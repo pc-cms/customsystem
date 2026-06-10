@@ -58,13 +58,16 @@ Deno.serve(async (req) => {
     // Short-circuit: phone already attached to a player → return that player.
     const { data: existing } = await sb
       .from("club_accounts")
-      .select("player_id, players:player_id (id, first_name, last_name, phone, verification_status, casino_id)")
+      .select("id, player_id, players:player_id (id, first_name, last_name, phone, verification_status, casino_id)")
       .eq("phone", session.phone)
       .maybeSingle();
     if (existing?.players) {
       // Make sure the password is set for this account so phone+password works.
       const pwHash = await hashPassword(password);
-      await sb.from("club_accounts").update({ password_hash: pwHash }).eq("phone", session.phone);
+      await sb.from("club_account_secrets").upsert(
+        { club_account_id: existing.id, password_hash: pwHash },
+        { onConflict: "club_account_id" }
+      );
       return new Response(JSON.stringify({ ok: true, player: existing.players, already_registered: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
