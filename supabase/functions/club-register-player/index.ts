@@ -90,9 +90,15 @@ Deno.serve(async (req) => {
 
     const playerId = (data as any)?.player_id;
 
-    // Store password hash on the club_account row created by the RPC.
+    // Store password hash in the secrets table linked to the club_account created by the RPC.
     const pwHash = await hashPassword(password);
-    await sb.from("club_accounts").update({ password_hash: pwHash }).eq("phone", session.phone);
+    const { data: acct } = await sb.from("club_accounts").select("id").eq("phone", session.phone).single();
+    if (acct) {
+      await sb.from("club_account_secrets").upsert(
+        { club_account_id: acct.id, password_hash: pwHash },
+        { onConflict: "club_account_id" }
+      );
+    }
 
     const { data: player } = await sb
       .from("players")
