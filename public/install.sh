@@ -16,9 +16,9 @@
 set -euo pipefail
 
 BOOTSTRAP_VERSION="1.3.3"
-REPO="${CASINO_REPO:-pc-cms/casinosystem}"
-if [[ "$REPO" == "pms-cms/casinosystem" ]]; then
-  REPO="pc-cms/casinosystem"
+REPO="${CASINO_REPO:-pc-cms/customsystem}"
+if [[ "$REPO" == "pms-cms/customsystem" ]]; then
+  REPO="pc-cms/customsystem"
 fi
 BRANCH="${CASINO_BRANCH:-main}"
 USE_LATEST_RELEASE="${CASINO_USE_LATEST_RELEASE:-false}"

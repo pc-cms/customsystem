@@ -421,7 +421,7 @@ if [[ $VERIFY -eq 1 ]]; then
   echo
   log "Frontend version:"
   LOC_VER=$(grep -oE '"version"[[:space:]]*:[[:space:]]*"[^"]+"' "$SCRIPT_DIR/../package.json" 2>/dev/null | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
-  REL_VER=$(curl -fsSL --max-time 8 https://api.github.com/repos/pc-cms/casinosystem/releases/latest 2>/dev/null | grep -oP '"tag_name"\s*:\s*"\K[^"]+' | head -1)
+  REL_VER=$(curl -fsSL --max-time 8 https://api.github.com/repos/pc-cms/customsystem/releases/latest 2>/dev/null | grep -oP '"tag_name"\s*:\s*"\K[^"]+' | head -1)
   printf "  Local:  %s\n  Latest: %s\n" "${LOC_VER:-?}" "${REL_VER:-?}"
   if [[ -n "$LOC_VER" && -n "$REL_VER" && "$LOC_VER" != "$REL_VER" && "v$LOC_VER" != "$REL_VER" ]]; then
     warn "Frontend отстаёт от Cloud — запустите: curl -fsSL https://casinosystem.app/install | sudo bash -s -- --update"
