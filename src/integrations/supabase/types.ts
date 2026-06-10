@@ -2190,35 +2190,61 @@ export type Database = {
         }
         Relationships: []
       }
+      club_account_secrets: {
+        Row: {
+          club_account_id: string
+          created_at: string
+          password_hash: string | null
+          totp_secret_enc: string | null
+          updated_at: string
+        }
+        Insert: {
+          club_account_id: string
+          created_at?: string
+          password_hash?: string | null
+          totp_secret_enc?: string | null
+          updated_at?: string
+        }
+        Update: {
+          club_account_id?: string
+          created_at?: string
+          password_hash?: string | null
+          totp_secret_enc?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_account_secrets_club_account_id_fkey"
+            columns: ["club_account_id"]
+            isOneToOne: true
+            referencedRelation: "club_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       club_accounts: {
         Row: {
           created_at: string
           id: string
           last_login_at: string | null
-          password_hash: string | null
           phone: string
           player_id: string
-          totp_secret_enc: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
           last_login_at?: string | null
-          password_hash?: string | null
           phone: string
           player_id: string
-          totp_secret_enc?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
           last_login_at?: string | null
-          password_hash?: string | null
           phone?: string
           player_id?: string
-          totp_secret_enc?: string | null
           updated_at?: string
         }
         Relationships: [

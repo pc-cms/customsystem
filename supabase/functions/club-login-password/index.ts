@@ -32,17 +32,29 @@ Deno.serve(async (req) => {
     const sb = createClient(SUPABASE_URL, SERVICE_KEY);
     const { data: account } = await sb
       .from("club_accounts")
-      .select("id, player_id, phone, password_hash")
+      .select("id, player_id, phone")
       .eq("phone", normalized)
       .maybeSingle();
 
-    if (!account || !account.password_hash) {
+    if (!account) {
       return new Response(JSON.stringify({ ok: false, error: "invalid_credentials" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const ok = await verifyPassword(password, account.password_hash);
+    const { data: secret } = await sb
+      .from("club_account_secrets")
+      .select("password_hash")
+      .eq("club_account_id", account.id)
+      .maybeSingle();
+
+    if (!secret?.password_hash) {
+      return new Response(JSON.stringify({ ok: false, error: "invalid_credentials" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const ok = await verifyPassword(password, secret.password_hash);
     if (!ok) {
       return new Response(JSON.stringify({ ok: false, error: "invalid_credentials" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
