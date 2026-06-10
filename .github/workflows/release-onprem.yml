@@ -100,6 +100,9 @@ jobs:
           tags: ${{ steps.tags.outputs.tags }}
           build-args: |
             VITE_BUILD_VERSION=${{ steps.meta.outputs.version }}
+            VITE_SUPABASE_URL=__CMS_ORIGIN_PLACEHOLDER__/api
+            VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwZWhuZ2p2d2NuaXB2a291bHV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2OTcwMjAsImV4cCI6MjA5MDI3MzAyMH0.KTJEJRCYpNjj51H28x3pYFLvfMz5qtRjxnUFw3Hnwr0
+            VITE_SUPABASE_PROJECT_ID=local
           cache-from: type=gha
           cache-to: type=gha,mode=max
           labels: |
