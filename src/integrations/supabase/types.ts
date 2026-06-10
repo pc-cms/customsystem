@@ -9588,6 +9588,10 @@ export type Database = {
         Args: { _casino: string; _user: string }
         Returns: boolean
       }
+      user_can_subscribe_casino_realtime: {
+        Args: { _casino_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_has_casino_access: {
         Args: { _casino_id: string; _user_id: string }
         Returns: boolean
