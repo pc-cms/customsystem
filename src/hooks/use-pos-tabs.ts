@@ -57,7 +57,7 @@ export function usePosOpenTabs(casinoId: string | null, shiftId: string | null) 
   useEffect(() => {
     if (!casinoId || !shiftId) return;
     const channel = supabase
-      .channel(`pos-tabs-${shiftId}`)
+      .channel(`casino:${casinoId}:pos-tabs-${shiftId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "pos_tabs", filter: `shift_id=eq.${shiftId}` },

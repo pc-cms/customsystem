@@ -54,7 +54,7 @@ export const useCctvObservations = (days = 7) => {
   useEffect(() => {
     if (!casinoId) return;
     const channel = supabase
-      .channel(`cctv-obs-${casinoId}`)
+      .channel(`casino:${casinoId}:cctv-obs`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "cctv_observations", filter: `casino_id=eq.${casinoId}` },

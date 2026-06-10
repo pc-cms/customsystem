@@ -50,7 +50,7 @@ export function usePosBarOrders(casinoId: string | null) {
   useEffect(() => {
     if (!casinoId) return;
     const ch = supabase
-      .channel(`pos-bar-${casinoId}`)
+      .channel(`casino:${casinoId}:pos-bar`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "pos_orders", filter: `casino_id=eq.${casinoId}` },

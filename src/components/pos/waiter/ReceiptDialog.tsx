@@ -36,7 +36,7 @@ const fmtSplit = (split: any) => {
 
 export const ReceiptDialog = ({ open, onOpenChange, tab }: Props) => {
   const { activeCasino } = useCasino();
-  const { data: orders = [] } = usePosTabOrders(tab?.id ?? null);
+  const { data: orders = [] } = usePosTabOrders(tab?.id ?? null, tab?.casino_id ?? null);
   const printRef = useRef<HTMLDivElement>(null);
 
   if (!tab) return null;

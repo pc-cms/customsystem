@@ -86,7 +86,7 @@ export const useIncidents = (
   useEffect(() => {
     if (!casinoId) return;
     const channel = supabase
-      .channel(`incidents-${casinoId}`)
+      .channel(`casino:${casinoId}:incidents`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "incidents", filter: `casino_id=eq.${casinoId}` },

@@ -40,7 +40,7 @@ export type PosOrderWithItems = PosOrder & { items: PosOrderItem[] };
 
 const kOrders = (tabId: string | null) => ["pos-orders", tabId] as const;
 
-export function usePosTabOrders(tabId: string | null) {
+export function usePosTabOrders(tabId: string | null, casinoId?: string | null) {
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: kOrders(tabId),
@@ -57,9 +57,9 @@ export function usePosTabOrders(tabId: string | null) {
   });
 
   useEffect(() => {
-    if (!tabId) return;
+    if (!tabId || !casinoId) return;
     const channel = supabase
-      .channel(`pos-orders-${tabId}`)
+      .channel(`casino:${casinoId}:pos-orders-${tabId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "pos_orders", filter: `tab_id=eq.${tabId}` },
@@ -67,7 +67,7 @@ export function usePosTabOrders(tabId: string | null) {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [tabId, qc]);
+  }, [tabId, casinoId, qc]);
 
   return q;
 }

@@ -33,7 +33,7 @@ export const useRealtimeSubscriptions = () => {
 
     try {
       const channel = supabase
-        .channel(`cms-realtime-${Date.now()}`)
+        .channel(`casino:${casinoId}:cms-realtime-${Date.now()}`)
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "transactions", filter: `casino_id=eq.${casinoId}` },

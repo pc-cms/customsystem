@@ -50,7 +50,7 @@ export function useReplicationMode(): { mode: ReplicationMode; isReplica: boolea
     })();
 
     const ch = supabase
-      .channel(`node_modes:${activeCasinoId}`)
+      .channel(`casino:${activeCasinoId}:node_modes`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "node_modes", filter: `casino_id=eq.${activeCasinoId}` },

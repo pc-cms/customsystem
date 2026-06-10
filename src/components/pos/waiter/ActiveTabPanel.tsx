@@ -33,7 +33,7 @@ const STATUS_CHIP: Record<PosOrderStatus, { label: string; cls: string }> = {
 };
 
 export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
-  const { data: orders = [], isLoading } = usePosTabOrders(tab?.id ?? null);
+  const { data: orders = [], isLoading } = usePosTabOrders(tab?.id ?? null, casinoId);
   const voidOrder = useVoidPosOrder();
   const [closeDialog, setCloseDialog] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
