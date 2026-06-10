@@ -47,7 +47,7 @@ export function usePosInventoryRecent(casinoId: string | null, limit = 50) {
   useEffect(() => {
     if (!casinoId) return;
     const ch = supabase
-      .channel(`pos-inv-${casinoId}`)
+      .channel(`casino:${casinoId}:pos-inv`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "pos_inventory_movements" },

@@ -72,7 +72,7 @@ export function usePosMenuCategories(casinoId: string | null) {
   useEffect(() => {
     if (!casinoId) return;
     const channel = supabase
-      .channel(`pos-menu-cats-${casinoId}`)
+      .channel(`casino:${casinoId}:pos-menu-cats`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "pos_menu_categories", filter: `casino_id=eq.${casinoId}` },
@@ -142,7 +142,7 @@ export function usePosMenuItems(casinoId: string | null) {
   useEffect(() => {
     if (!casinoId) return;
     const channel = supabase
-      .channel(`pos-menu-items-${casinoId}`)
+      .channel(`casino:${casinoId}:pos-menu-items`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "pos_menu_items", filter: `casino_id=eq.${casinoId}` },
