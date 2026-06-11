@@ -8,9 +8,11 @@ name: Build & Release Frontend Docker Image
 #   - push в main → собирает :latest + :main-<short-sha>
 #   - tag v*.*.*  → собирает :vX.Y.Z + :latest + создаёт GitHub Release
 #
-# Требования:
-#   - Repository → Settings → Actions → General → Workflow permissions = Read and write
-#   - Settings → Actions → General → Allow GitHub Actions to create and approve PRs
+# Требования (обязательно проверьте):
+#   1. Repository → Settings → Actions → General → Workflow permissions = "Read and write permissions"
+#   2. Repository → Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests" = включено
+#   3. Если пакет ghcr.io уже существовал ранее: перейдите на страницу пакета → Package settings → 
+#      "Manage Actions access" → добавьте текущий репозиторий с ролью "Write"
 
 on:
   push:
@@ -93,7 +95,7 @@ jobs:
 
       - name: Build and push
         id: push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: deploy/Dockerfile.frontend
