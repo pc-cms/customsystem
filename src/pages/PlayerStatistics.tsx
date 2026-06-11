@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BarChart3, Search, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -31,6 +31,9 @@ import { formatCardNumber } from "@/lib/card-number";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 import { usePlayerDailyAvgBets, useSetPlayerDailyAvgBet, type AvgBetGroup } from "@/hooks/use-player-daily-avg-bets";
+import { useCreatePlayerChipAdjustment } from "@/hooks/use-player-chip-adjustments";
+
+
 
 type TabKey = "day" | "present" | "left";
 
@@ -181,6 +184,8 @@ const PlayerStatistics = () => {
   const showFinancials = canSeePlayerFinancials(roles);
   const canTransfer = false;
   const canEditAvgBet = isSingleDay && roles.some(r => ["pit", "manager", "floor_manager", "super_admin"].includes(r));
+  const canEditChips = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "floor_manager", "super_admin"].includes(r));
+
 
   const { data: visits = [] } = useQuery({
     queryKey: ["casino_visits", casinoId, fromDate, toDate],
@@ -739,12 +744,23 @@ const PlayerStatistics = () => {
               <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[110px]">
                 <Money value={r.out} />
               </td>
-              <td className="px-2 py-1.5 font-mono text-sm text-right text-success whitespace-nowrap min-w-[110px]">
-                <Money value={r.chipIn} />
+              <td className="px-2 py-1.5 font-mono text-sm text-right text-success whitespace-nowrap min-w-[110px]" onClick={(e) => e.stopPropagation()}>
+                <InlineChipCell
+                  playerId={r.playerId}
+                  direction="in"
+                  value={r.chipIn}
+                  canEdit={canEditChips}
+                />
               </td>
-              <td className="px-2 py-1.5 font-mono text-sm text-right text-destructive whitespace-nowrap min-w-[110px]">
-                <Money value={r.chipOut} />
+              <td className="px-2 py-1.5 font-mono text-sm text-right text-destructive whitespace-nowrap min-w-[110px]" onClick={(e) => e.stopPropagation()}>
+                <InlineChipCell
+                  playerId={r.playerId}
+                  direction="out"
+                  value={r.chipOut}
+                  canEdit={canEditChips}
+                />
               </td>
+
               <td className={`px-2 py-1.5 font-mono text-sm text-right font-bold whitespace-nowrap min-w-[120px] ${
                 r.result > 0 ? "cms-amount-positive" : r.result < 0 ? "cms-amount-negative" : ""
               }`}>
@@ -1115,4 +1131,79 @@ function AvgBetPopover({
   );
 }
 
+function InlineChipCell({
+  playerId, direction, value, canEdit,
+}: {
+  playerId: string;
+  direction: "in" | "out";
+  value: number;
+  canEdit: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [raw, setRaw] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const create = useCreatePlayerChipAdjustment();
+
+  useEffect(() => {
+    if (editing) { inputRef.current?.focus(); inputRef.current?.select(); }
+  }, [editing]);
+
+  const display = value ? formatCurrency(value) : "·";
+
+  if (!canEdit) {
+    return <span className={value ? "" : "text-muted-foreground/60"}>{display}</span>;
+  }
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setRaw(""); setEditing(true); }}
+        className={`font-mono cursor-pointer hover:text-primary text-right w-full ${value ? "" : "text-muted-foreground/60"}`}
+        title={direction === "in" ? "Add Chip IN adjustment" : "Add Chip OUT adjustment"}
+      >
+        {display}
+      </button>
+    );
+  }
+
+  const commit = async () => {
+    const amount = parseSpacedNumber(raw);
+    if (!amount || amount <= 0) { setEditing(false); return; }
+    try {
+      await create.mutateAsync({
+        player_id: playerId,
+        chip_in: direction === "in" ? amount : 0,
+        chip_out: direction === "out" ? amount : 0,
+      });
+      setEditing(false);
+      setRaw("");
+    } catch {
+      // toast handled by hook
+    }
+  };
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      inputMode="numeric"
+      value={raw}
+      onChange={(e) => setRaw(formatInputWithSpaces(e.target.value))}
+      onBlur={() => { if (!create.isPending) { setEditing(false); setRaw(""); } }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") { e.preventDefault(); commit(); }
+        if (e.key === "Escape") { e.preventDefault(); setEditing(false); setRaw(""); }
+      }}
+      onClick={(e) => e.stopPropagation()}
+      placeholder={direction === "in" ? "+IN" : "+OUT"}
+      disabled={create.isPending}
+      className={`no-spin w-full h-7 px-1.5 rounded border bg-background font-mono text-sm text-right ${
+        direction === "in" ? "border-success/60 text-success" : "border-destructive/60 text-destructive"
+      }`}
+    />
+  );
+}
+
 export default PlayerStatistics;
+
