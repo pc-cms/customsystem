@@ -1,60 +1,53 @@
-## Goal
+## Цель
 
-1. Привести ВСЕ таблицы в `/reports` к единому виду (DataTable v2 + MoneyCell).
-2. В Slots-вкладке убрать «Opened» и оставить только время закрытия (HH:mm).
-3. Перенести оставшуюся функциональность из Closings в Reports и удалить `/closings`.
+Убрать подвисание Chip Count за счёт того, чтобы грузить и держать в памяти только данные текущего бизнес-дня, и не всю простыню снимков (на загруженном дне 2000+ строк), а только последний снимок по каждой паре (локация × номинал).
 
-## New Reports tab layout
+## Что сейчас происходит
 
-Текущие вкладки + 2 новые из Closings:
+- `useChipSnapshots(date)` тянет ВСЕ строки `chip_snapshots` за дату (на 2026-06-09 их 2321, ~1 МБ JSON).
+- Для UI достаточно «последнего значения по каждой локации/номиналу» — это ~300 строк.
+- React-Query уже персистится в IndexedDB (`PersistQueryClientProvider` в `App.tsx`), но: на первом заходе после reload всё равно тянет полный список, а `staleTime: 30s` — короткий, что на медленных ПК ощущается как freeze.
 
-`Daily diff · Total · Shifts · Live Game · Slots · Tables · Players · Groups · Expenses · Cashless · Miss Chips`
+## План
 
-- **Total** (новая, из Closings → Total): per-business-day rollup (Drop Tables, Tables Result, Drop Slots inline-edit, Slots Result, Expenses, Total Results). Использует общий пикер диапазона (а не помесячно). Inline-редактирование Drop Slots доступно только `super_admin / manager / floor_manager / finance_manager`.
-- **Shifts** остаётся как есть (KPI + Balance reconciliation).
-- **Live Game** (новая, из Closings → Live): список закрытых смен в диапазоне пикера с колонками Opened / Closed / Cash / Miss / Tables / Balance + кнопка **Print** (`ReprintShiftDialog`).
-- **Slots**: убираем колонку **Opened** полностью; в **Closed** показываем только время `HH:mm` (без даты — бизнес-день уже виден в первой колонке).
+### 1. RPC `chip_snapshots_latest` (DB)
 
-Вкладка **Tables** структурно не меняется (`TableResultsPage embedded`), только косметически выравнивается под общий стиль (без переделки внутренностей).
+Новая SQL-функция: `chip_snapshots_latest(_casino_id uuid, _date date) returns setof chip_snapshots`. Внутри — `DISTINCT ON (location_type, location_id, denomination) … ORDER BY …, created_at DESC, id DESC`. SECURITY INVOKER, опирается на существующие RLS-политики. Возвращает только последние значения за бизнес-день (≈300 строк вместо 2300).
 
-## Table styling — DataTable v2 везде
+### 2. `useChipSnapshots(date)` → лёгкий режим по умолчанию
 
-Мигрируем нативные `<table>` на `DataTable / DTHead / DTBody / DTRow / DTHeader / DTCell` + `MoneyCell` (как уже сделано в `SlotsHistoryReport`). Сохраняем существующую sort-логику (`useSorted`), но рендерим её через `DTHeader` с `onClick` + стрелкой (как в Slots).
+`src/hooks/use-chips.ts`:
+- Заменить `fetchChipSnapshots` на вызов RPC `chip_snapshots_latest` (через `supabase.rpc`).
+- Для текущего бизнес-дня поднять `staleTime` до `Infinity` + `gcTime: 24h`. Realtime (`use-realtime.ts`) сам инвалидирует на новые строки, а на старых днях ничего не меняется → пересчёт не нужен.
+- Для прошлых дат — `staleTime: 5 * 60_000`.
+- Persist в IndexedDB уже работает: повторный заход на Chip Count будет мгновенным.
 
-Применяем к:
-- `DailyReport` (Daily diff)
-- `ShiftReport` (Shifts) — KPI-плитки сверху не трогаем
-- Новый `LiveGameReport`
-- Новый `TotalReport`
-- `PlayerReport` (Players)
-- `GroupReport` (Groups)
+### 3. Полная история — отдельным хуком только там, где она реально нужна
 
-`Slots`, `Expenses`, `Cashless`, `Miss Chips` уже не наши локальные таблицы — оставляем как есть (`embedded` режим, своя разметка).
+`useChipSnapshotsFull(date)` (старый код `fetchChipSnapshots`) — оставить ТОЛЬКО для `TableAnalyticsChart` (страница `/tables/analytics`), где нужна вся история часовых точек. `Dashboard`, `Tables`, `ChipCountPanel`, `CloseTableWizard` переключаем на лёгкий `useChipSnapshots`.
 
-## Closings retirement
+### 4. Инвалидация в realtime
 
-- Удалить файл `src/pages/ClosingsPage.tsx`.
-- Удалить из `src/App.tsx` lazy-import и `Route path="/closings"`.
-- Редиректы:
-  - `/closings` → `/reports?tab=total`
-  - `/closings?tab=live` → `/reports?tab=live`
-  - `/closings?tab=slots` → `/reports?tab=slots`
-  - `/closings?tab=expenses` → `/reports?tab=expenses`
-  - `/cage/closings` → `/reports?tab=live` (уже редирект сейчас)
-  - `/cage-slots/report/:id` → `/reports?tab=slots`
-- В `AppSidebar.tsx` убрать пункт `Closings` (строка 69) и удалить `/closings` из `EXACT_NAV_PATHS` (строка 196).
-- Комментарий в `ReprintShiftDialog.tsx` поправить (`/cage/closings` → `/reports?tab=live`).
-- Логика `ExpensesDayReport`/`PrintPortal` для печати в Expenses-вкладке Closings сейчас НЕ переносится — печать дневного отчёта по расходам уже доступна в самой `Expenses`-странице (embedded). Если потеряем какую-то печать — она вернётся отдельной задачей.
+`src/hooks/use-realtime.ts`: проверить, что invalidate идёт по ключу `["chip-snapshots"]` — оставить как есть, новый облегчённый запрос подцепит то же. Полная история инвалидируется тем же ключом → отдельный prefix `["chip-snapshots-full"]` для нового хука.
 
-## Technical notes
+### 5. Bump версии
 
-- `LiveGameReport` использует тот же запрос, что Closings → Live (`shifts` where `status='closed'`, `closed_at` в диапазоне `from..to` через `businessDayHourUTC(_,7)`), плюс `ReprintShiftDialog` для печати.
-- `TotalReport` использует тот же мульти-fetch (live shifts, slots shifts, expenses, drop transactions) и тот же `useMutation` для `manual_drop_slots`. Диапазон берётся из общего пикера, не помесячно.
-- Колонка Closed в Slots: формат `HH:mm` от `s.closed_at` в Africa/Dar_es_Salaam.
-- Никаких изменений БД, RPC, edge functions — чисто фронт. Версию package.json не бампим.
+Любое изменение в backend → patch-bump `package.json`.
 
-## Out of scope
+## Файлы
 
-- Внутренности `TableResultsPage`, `Expenses`, `MissChips`, `Cashless`, `SlotsHistoryReport` (кроме указанной правки колонок времени).
-- Расчёты, RPC, RLS, миграции.
-- Печать дневных Expenses из Closings.
+- `supabase/migrations/<ts>_chip_snapshots_latest.sql` — новая RPC + GRANT EXECUTE для authenticated.
+- `src/hooks/use-chips.ts` — переписать `useChipSnapshots` на RPC, добавить `useChipSnapshotsFull`, поднять staleTime для сегодняшнего дня.
+- `src/lib/chip-snapshots.ts` — оставить `fetchChipSnapshots` (используется `useChipSnapshotsFull`).
+- `src/components/tables/TableAnalyticsChart.tsx` — переключить на `useChipSnapshotsFull`.
+- `src/hooks/use-realtime.ts` — добавить invalidate для `chip-snapshots-full` рядом с существующим.
+- `package.json` — bump patch.
+
+## Ожидаемый эффект
+
+- Payload Chip Count: ~1 МБ → ~150 КБ.
+- Первая отрисовка после клика: с ~2-4 сек freeze → мгновенно на загруженных днях.
+- Повторные заходы внутри сессии: 0 запросов (cache + Infinity staleTime), полностью локально.
+- На разных ПК отказ от тяжёлого sort/reduce на 2300 объектов в `useMemo`.
+
+Подтвердить — начну миграцию и правки.
