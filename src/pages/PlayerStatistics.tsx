@@ -32,7 +32,7 @@ import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 import { usePlayerDailyAvgBets, useSetPlayerDailyAvgBet, type AvgBetGroup } from "@/hooks/use-player-daily-avg-bets";
 import { useCreatePlayerChipAdjustment } from "@/hooks/use-player-chip-adjustments";
-import { useRef, useEffect } from "react";
+
 
 
 type TabKey = "day" | "present" | "left";
