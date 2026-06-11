@@ -744,12 +744,23 @@ const PlayerStatistics = () => {
               <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[110px]">
                 <Money value={r.out} />
               </td>
-              <td className="px-2 py-1.5 font-mono text-sm text-right text-success whitespace-nowrap min-w-[110px]">
-                <Money value={r.chipIn} />
+              <td className="px-2 py-1.5 font-mono text-sm text-right text-success whitespace-nowrap min-w-[110px]" onClick={(e) => e.stopPropagation()}>
+                <InlineChipCell
+                  playerId={r.playerId}
+                  direction="in"
+                  value={r.chipIn}
+                  canEdit={canEditChips}
+                />
               </td>
-              <td className="px-2 py-1.5 font-mono text-sm text-right text-destructive whitespace-nowrap min-w-[110px]">
-                <Money value={r.chipOut} />
+              <td className="px-2 py-1.5 font-mono text-sm text-right text-destructive whitespace-nowrap min-w-[110px]" onClick={(e) => e.stopPropagation()}>
+                <InlineChipCell
+                  playerId={r.playerId}
+                  direction="out"
+                  value={r.chipOut}
+                  canEdit={canEditChips}
+                />
               </td>
+
               <td className={`px-2 py-1.5 font-mono text-sm text-right font-bold whitespace-nowrap min-w-[120px] ${
                 r.result > 0 ? "cms-amount-positive" : r.result < 0 ? "cms-amount-negative" : ""
               }`}>
