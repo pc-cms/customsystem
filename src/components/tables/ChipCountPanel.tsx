@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Save, Maximize2, Minimize2, History, Tablet } from "lucide-react";
 import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
-import { useGamingTables, useSetTableTrackerValue, useTableTracker } from "@/hooks/use-casino-data";
+import { useGamingTables, useSetTableTrackerValue, useBatchSetTableTrackerValue, useTableTracker } from "@/hooks/use-casino-data";
 import { CHIP_DENOMS, formatChipLabel, formatCurrency } from "@/lib/currency";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
@@ -140,6 +140,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const grandTotal = rowResults.reduce((s, r) => s + r.total, 0);
 
   const setTrackerValue = useSetTableTrackerValue();
+  const batchTracker = useBatchSetTableTrackerValue();
   const { data: trackerRows = [] } = useTableTracker(date);
 
   const handleSave = () => {
@@ -160,22 +161,27 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
 
     // Auto-write per-table row result into Number Count tracker for the rounded slot.
     // On-time (:50–:10) always writes; fallback (:11–:49) writes only if slot is empty.
+    // Batch all tracker writes into ONE upsert — firing 10-20 parallel
+    // upserts was a major cause of the post-Save freeze on slow PCs.
     const target = slotForChipCount(nowEAT());
     if (target) {
       const { slot, onlyIfEmpty } = target;
+      const entries: Array<{ table_id: string; time_slot: string; value: number }> = [];
       countLocations.forEach((loc, ri) => {
         if (onlyIfEmpty) {
           const existing = trackerRows.find(
             (t: any) => t.table_id === loc.id && t.time_slot === slot,
           );
           if (existing && existing.value !== null && existing.value !== undefined && String(existing.value) !== "") {
-            return; // slot already has an on-time value — don't overwrite
+            return;
           }
         }
         const total = rowResults[ri]?.total ?? 0;
-        setTrackerValue.mutate({ table_id: loc.id, date, time_slot: slot, value: total });
+        entries.push({ table_id: loc.id, time_slot: slot, value: total });
       });
+      if (entries.length > 0) batchTracker.mutate({ date, entries });
     }
+    void setTrackerValue; // retained for backwards-compat (unused here)
   };
 
   if (openTables.length === 0) {

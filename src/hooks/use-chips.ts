@@ -83,8 +83,12 @@ export const useChipSnapshots = (date: string) => {
       return fetchChipSnapshots(casinoId, date);
     },
     enabled: !!casinoId,
-    staleTime: 0,
-    refetchOnMount: "always",
+    // Realtime (use-realtime.ts) invalidates on new rows. Avoid forcing a
+    // full refetch on every mount/focus — a busy day has 2000+ rows and slow
+    // PCs perceive that download as a freeze on every navigation.
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 };
 
@@ -186,7 +190,9 @@ export const useBatchChipSnapshot = () => {
       return { queryKey, optimisticIds: optimisticRows.map(r => r.id) };
     },
     onSuccess: (res: any) => {
-      qc.invalidateQueries({ queryKey: ["chip-snapshots"] });
+      // Optimistic rows already cover the UI; realtime will reconcile across
+      // tabs/devices. Skip invalidateQueries — a refetch of 2000+ rows on a
+      // slow PC was the main cause of the "freeze" after Save.
       toast.success(res?.offline ? "Chip count saved offline" : "Chip count recorded");
     },
     onError: (e, _input, ctx: any) => {
