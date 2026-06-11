@@ -12,6 +12,17 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
+    // Cron-only: require service-role key
+    const provided = req.headers.get("x-service-key") ?? "";
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const okAuth =
+      provided === SERVICE_KEY ||
+      authHeader === `Bearer ${SERVICE_KEY}`;
+    if (!okAuth) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const sb = createClient(SUPABASE_URL, SERVICE_KEY);
     const { data: bizDate } = await sb.rpc("get_current_business_date");
     const today: string = bizDate ?? new Date().toISOString().slice(0, 10);

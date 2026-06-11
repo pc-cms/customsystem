@@ -57,9 +57,7 @@ Deno.serve(async (req) => {
     if (!isAllowed) {
       console.log("[verify-manager] role rejected for", email, "roles:", roles);
       return new Response(
-        JSON.stringify({
-          error: `User has no manager-equivalent role (got: ${(roles ?? []).map((r: any) => r.role).join(", ") || "none"})`,
-        }),
+        JSON.stringify({ error: "Insufficient permissions" }),
         {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

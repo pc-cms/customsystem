@@ -49,11 +49,11 @@ Deno.serve(async (req) => {
     if (!authed) {
       const { data: peer } = await admin
         .from("peer_links")
-        .select("id")
+        .select("id, casino_id")
         .eq("sync_secret", syncSecret)
         .in("status", ["pending_outbound", "pending_inbound", "active", "paused"])
         .maybeSingle();
-      if (peer) authed = true;
+      if (peer && peer.casino_id && peer.casino_id === syncCasino) authed = true;
     }
   }
 
