@@ -120,6 +120,141 @@ const LEVEL_TINT: Record<string, string> = {
   normal: "bg-card border-border",
 };
 
+/**
+ * Inline chip adjustment: collapsed by default to two click-to-edit cells
+ * (IN / OUT). Clicking a cell expands an input with the comment line and
+ * a Save button. Enter commits, Esc cancels.
+ */
+const ChipAdjustInline = ({
+  chipIn, chipOut, note, setChipIn, setChipOut, setNote, onSubmit, pending,
+}: {
+  chipIn: string;
+  chipOut: string;
+  note: string;
+  setChipIn: (v: string) => void;
+  setChipOut: (v: string) => void;
+  setNote: (v: string) => void;
+  onSubmit: () => void;
+  pending: boolean;
+}) => {
+  const [active, setActive] = useState<null | "in" | "out">(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (active) inputRef.current?.focus();
+  }, [active]);
+
+  const cancel = () => {
+    setActive(null);
+    setChipIn("");
+    setChipOut("");
+    setNote("");
+  };
+
+  const commit = () => {
+    if (!chipIn && !chipOut) { setActive(null); return; }
+    onSubmit();
+    setActive(null);
+  };
+
+  const value = active === "in" ? chipIn : active === "out" ? chipOut : "";
+  const setValue = active === "in" ? setChipIn : setChipOut;
+
+  return (
+    <div
+      className="shrink-0 flex flex-col justify-center gap-2 w-[300px] border-l border-border pl-5 self-stretch"
+      aria-label="Player chip adjustment"
+    >
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono leading-none">
+        Chip Adjustment
+      </span>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => { if (active !== "in") { setChipOut(""); } setActive("in"); }}
+          className={cn(
+            "flex items-center gap-2 h-9 px-2.5 rounded-md border text-left transition-colors",
+            active === "in"
+              ? "border-success bg-success/5"
+              : "border-border bg-background hover:bg-accent/40",
+          )}
+        >
+          <ArrowDownToLine className="w-4 h-4 text-success shrink-0" />
+          <span className={cn(
+            "font-mono tabular-nums text-sm flex-1",
+            !chipIn && "text-muted-foreground/60"
+          )}>
+            {chipIn ? formatNumberSpaces(Number(chipIn)) : "IN"}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => { if (active !== "out") { setChipIn(""); } setActive("out"); }}
+          className={cn(
+            "flex items-center gap-2 h-9 px-2.5 rounded-md border text-left transition-colors",
+            active === "out"
+              ? "border-destructive bg-destructive/5"
+              : "border-border bg-background hover:bg-accent/40",
+          )}
+        >
+          <ArrowUpFromLine className="w-4 h-4 text-destructive shrink-0" />
+          <span className={cn(
+            "font-mono tabular-nums text-sm flex-1",
+            !chipOut && "text-muted-foreground/60"
+          )}>
+            {chipOut ? formatNumberSpaces(Number(chipOut)) : "OUT"}
+          </span>
+        </button>
+      </div>
+      {active && (
+        <div className="flex items-center gap-1.5">
+          <input
+            ref={inputRef}
+            type="number"
+            inputMode="numeric"
+            placeholder={active === "in" ? "Amount IN" : "Amount OUT"}
+            value={value}
+            onChange={(e) => setValue(e.target.value.replace(/[^0-9]/g, ""))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); commit(); }
+              if (e.key === "Escape") { e.preventDefault(); cancel(); }
+            }}
+            className="no-spin w-24 h-9 px-2 rounded-md border border-primary bg-background font-mono text-sm text-right"
+          />
+          <Input
+            placeholder="Comment…"
+            value={note}
+            onChange={(e) => setNote(e.target.value.slice(0, 500))}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commit(); } }}
+            className="flex-1 h-9 text-sm"
+          />
+          <Button
+            type="button"
+            onClick={commit}
+            disabled={pending || (!chipIn && !chipOut)}
+            className="h-9 px-2"
+            size="sm"
+            aria-label="Save adjustment"
+          >
+            <Check className="w-4 h-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={cancel}
+            className="h-9 px-2"
+            size="sm"
+            aria-label="Cancel"
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 
 
 export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className, range }: Props) => {
@@ -354,55 +489,18 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
           </div>
 
 
-          {/* Chip adjustment form — compact, uniform heights */}
+          {/* Chip adjustment — inline click-to-edit cells */}
           {canAdjust && (
-            <form
-              onSubmit={(e) => { e.preventDefault(); submitAdj(); }}
-              className="shrink-0 flex flex-col justify-center gap-2 w-[380px] border-l border-border pl-5 self-stretch"
-              aria-label="Player chip adjustment"
-            >
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono leading-none">
-                Chip Adjustment
-              </span>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="relative">
-                  <ArrowDownToLine className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-success pointer-events-none" />
-                  <NumberInput
-                    ariaLabel="Chip IN"
-                    placeholder="IN (+)"
-                    value={chipIn}
-                    onChange={setChipIn}
-                    className="pl-8"
-                  />
-                </div>
-                <div className="relative">
-                  <ArrowUpFromLine className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-destructive pointer-events-none" />
-                  <NumberInput
-                    ariaLabel="Chip OUT"
-                    placeholder="OUT (−)"
-                    value={chipOut}
-                    onChange={setChipOut}
-                    className="pl-8"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="Comment…"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value.slice(0, 500))}
-                  className="flex-1 h-9 text-sm"
-                />
-                <Button
-                  type="submit"
-                  disabled={createAdj.isPending || (!chipIn && !chipOut)}
-                  className="gap-1 h-9 px-4"
-                  size="sm"
-                >
-                  <Check className="w-4 h-4" /> OK
-                </Button>
-              </div>
-            </form>
+            <ChipAdjustInline
+              chipIn={chipIn}
+              chipOut={chipOut}
+              note={note}
+              setChipIn={setChipIn}
+              setChipOut={setChipOut}
+              setNote={setNote}
+              onSubmit={submitAdj}
+              pending={createAdj.isPending}
+            />
           )}
 
 
