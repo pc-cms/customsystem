@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useGamingTables, useTableTracker } from "@/hooks/use-casino-data";
-import { useChipSnapshots } from "@/hooks/use-chips";
+import { useChipSnapshotsFull } from "@/hooks/use-chips";
 import { formatCurrency } from "@/lib/currency";
 import { chipSnapshotResult } from "@/lib/table-live-result";
 import {
