@@ -49,14 +49,16 @@ export const useCreatePlayerChipAdjustment = () => {
       note?: string;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      if ((input.chip_in || 0) <= 0 && (input.chip_out || 0) <= 0) {
+      const chipIn = Math.trunc(input.chip_in || 0);
+      const chipOut = Math.trunc(input.chip_out || 0);
+      if (chipIn === 0 && chipOut === 0) {
         throw new Error("Enter Chip IN or Chip OUT amount");
       }
       const { error } = await (supabase.from as any)("player_chip_adjustments").insert({
         casino_id: casinoId,
         player_id: input.player_id,
-        chip_in: Math.max(0, Math.floor(input.chip_in || 0)),
-        chip_out: Math.max(0, Math.floor(input.chip_out || 0)),
+        chip_in: chipIn,
+        chip_out: chipOut,
         note: (input.note || "").slice(0, 500),
         operator_id: user.id,
       });
