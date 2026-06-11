@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useGamingTables, useTableTracker } from "@/hooks/use-casino-data";
-import { useChipSnapshots } from "@/hooks/use-chips";
+import { useChipSnapshotsFull } from "@/hooks/use-chips";
 import { formatCurrency } from "@/lib/currency";
 import { chipSnapshotResult } from "@/lib/table-live-result";
 import {
@@ -57,7 +57,7 @@ const niceMax = (v: number): number => {
 export function TableAnalyticsChart({ date }: { date: string }) {
   const { data: tables = [] } = useGamingTables();
   const { data: tracker = [] } = useTableTracker(date);
-  const { data: snapshots = [] } = useChipSnapshots(date);
+  const { data: snapshots = [] } = useChipSnapshotsFull(date);
 
   const activeTables = useMemo(
     () => tables.filter(t => !(t as any).is_archived),

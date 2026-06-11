@@ -8832,6 +8832,28 @@ export type Database = {
         }
         Returns: Json
       }
+      chip_snapshots_latest: {
+        Args: { _casino_id: string; _date: string }
+        Returns: {
+          actual_quantity: number
+          casino_id: string
+          created_at: string
+          date: string
+          denomination: number
+          expected_quantity: number
+          id: string
+          location_id: string | null
+          location_type: string
+          miss: number | null
+          recorded_by: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "chip_snapshots"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       cleanup_old_data: { Args: never; Returns: Json }
       clear_stale_peer_links: { Args: never; Returns: number }
       clear_stale_peer_requests: { Args: never; Returns: number }
