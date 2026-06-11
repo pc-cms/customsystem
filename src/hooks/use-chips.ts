@@ -74,19 +74,46 @@ export const useUpdateChipInventory = () => {
 };
 
 // ============ CHIP SNAPSHOTS ============
+// Default hook: returns ONLY the latest snapshot per (location_type, location_id,
+// denomination) for the given day via RPC chip_snapshots_latest. On a busy day a
+// raw fetch returns 2000+ rows (~1MB); the latest-only view is ~300 rows. Realtime
+// (use-realtime.ts) invalidates on inserts, so the cache stays fresh.
+// For full per-hour history use `useChipSnapshotsFull` (analytics chart only).
 export const useChipSnapshots = (date: string) => {
   const { casinoId } = useAuth();
+  const isToday = date === new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" });
   return useQuery({
     queryKey: ["chip-snapshots", casinoId, date],
+    queryFn: async () => {
+      if (!casinoId) return [];
+      const { data, error } = await supabase.rpc("chip_snapshots_latest", {
+        _casino_id: casinoId,
+        _date: date,
+      });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!casinoId,
+    // Pin today's data forever in-session: realtime keeps it fresh, no need to
+    // refetch on navigation. Past dates may receive late edits → 5min freshness.
+    staleTime: isToday ? Infinity : 5 * 60_000,
+    gcTime: 24 * 60 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+};
+
+// Full per-hour history (used only by Tables → Analytics chart).
+export const useChipSnapshotsFull = (date: string) => {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["chip-snapshots-full", casinoId, date],
     queryFn: async () => {
       if (!casinoId) return [];
       return fetchChipSnapshots(casinoId, date);
     },
     enabled: !!casinoId,
-    // Realtime (use-realtime.ts) invalidates on new rows. Avoid forcing a
-    // full refetch on every mount/focus — a busy day has 2000+ rows and slow
-    // PCs perceive that download as a freeze on every navigation.
-    staleTime: 30_000,
+    staleTime: 60_000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });

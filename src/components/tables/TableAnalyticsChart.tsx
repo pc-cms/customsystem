@@ -57,7 +57,7 @@ const niceMax = (v: number): number => {
 export function TableAnalyticsChart({ date }: { date: string }) {
   const { data: tables = [] } = useGamingTables();
   const { data: tracker = [] } = useTableTracker(date);
-  const { data: snapshots = [] } = useChipSnapshots(date);
+  const { data: snapshots = [] } = useChipSnapshotsFull(date);
 
   const activeTables = useMemo(
     () => tables.filter(t => !(t as any).is_archived),
