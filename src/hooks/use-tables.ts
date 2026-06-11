@@ -176,3 +176,53 @@ export const useSetTableTrackerValue = () => {
     onSettled: () => {},
   });
 };
+
+/**
+ * Batched tracker writes — single network round-trip for N tables.
+ * Used by Chip Count Save to avoid firing 10-20 parallel upserts that
+ * stalled slow PCs.
+ */
+export const useBatchSetTableTrackerValue = () => {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
+  return useMutation({
+    mutationFn: async (input: { date: string; entries: Array<{ table_id: string; time_slot: string; value: number }> }) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      if (input.entries.length === 0) return { offline: false };
+      const payload = input.entries.map((e) => ({
+        casino_id: casinoId,
+        table_id: e.table_id,
+        date: input.date,
+        time_slot: e.time_slot,
+        value: e.value,
+        recorded_by: user.id,
+      }));
+      const result = await offlineMutation({
+        table: "table_tracker",
+        operation: "upsert",
+        payload,
+        upsertConflict: "table_id,date,time_slot",
+      });
+      if (result.error) throw new Error(result.error);
+      return { offline: result.offline };
+    },
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["table-tracker", casinoId] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["table-tracker"] })
+        .filter(([key]) => (key as any[])[1] === casinoId);
+      queries.forEach(([key, data]) => {
+        if (!data) return;
+        let updated = [...data];
+        for (const e of input.entries) {
+          const idx = updated.findIndex((t: any) => t.table_id === e.table_id && t.time_slot === e.time_slot);
+          const entry = { table_id: e.table_id, date: input.date, time_slot: e.time_slot, value: e.value, casino_id: casinoId, id: `temp-${Date.now()}-${e.table_id}-${e.time_slot}` };
+          if (idx >= 0) updated[idx] = { ...updated[idx], value: e.value };
+          else updated.push(entry);
+        }
+        qc.setQueryData(key, updated);
+      });
+    },
+    onError: () => { toast.error("Sync error (tracker batch) — will retry", { duration: 2000 }); },
+  });
+};
