@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "installer_snapshots_public_read" ON storage.objects;
