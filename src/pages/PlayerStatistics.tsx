@@ -1131,4 +1131,79 @@ function AvgBetPopover({
   );
 }
 
+function InlineChipCell({
+  playerId, direction, value, canEdit,
+}: {
+  playerId: string;
+  direction: "in" | "out";
+  value: number;
+  canEdit: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [raw, setRaw] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const create = useCreatePlayerChipAdjustment();
+
+  useEffect(() => {
+    if (editing) { inputRef.current?.focus(); inputRef.current?.select(); }
+  }, [editing]);
+
+  const display = value ? formatCurrency(value) : "·";
+
+  if (!canEdit) {
+    return <span className={value ? "" : "text-muted-foreground/60"}>{display}</span>;
+  }
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setRaw(""); setEditing(true); }}
+        className={`font-mono cursor-pointer hover:text-primary text-right w-full ${value ? "" : "text-muted-foreground/60"}`}
+        title={direction === "in" ? "Add Chip IN adjustment" : "Add Chip OUT adjustment"}
+      >
+        {display}
+      </button>
+    );
+  }
+
+  const commit = async () => {
+    const amount = parseSpacedNumber(raw);
+    if (!amount || amount <= 0) { setEditing(false); return; }
+    try {
+      await create.mutateAsync({
+        player_id: playerId,
+        chip_in: direction === "in" ? amount : 0,
+        chip_out: direction === "out" ? amount : 0,
+      });
+      setEditing(false);
+      setRaw("");
+    } catch {
+      // toast handled by hook
+    }
+  };
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      inputMode="numeric"
+      value={raw}
+      onChange={(e) => setRaw(formatInputWithSpaces(e.target.value))}
+      onBlur={() => { if (!create.isPending) { setEditing(false); setRaw(""); } }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") { e.preventDefault(); commit(); }
+        if (e.key === "Escape") { e.preventDefault(); setEditing(false); setRaw(""); }
+      }}
+      onClick={(e) => e.stopPropagation()}
+      placeholder={direction === "in" ? "+IN" : "+OUT"}
+      disabled={create.isPending}
+      className={`no-spin w-full h-7 px-1.5 rounded border bg-background font-mono text-sm text-right ${
+        direction === "in" ? "border-success/60 text-success" : "border-destructive/60 text-destructive"
+      }`}
+    />
+  );
+}
+
 export default PlayerStatistics;
+
