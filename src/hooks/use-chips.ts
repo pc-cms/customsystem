@@ -83,8 +83,12 @@ export const useChipSnapshots = (date: string) => {
       return fetchChipSnapshots(casinoId, date);
     },
     enabled: !!casinoId,
-    staleTime: 0,
-    refetchOnMount: "always",
+    // Realtime (use-realtime.ts) invalidates on new rows. Avoid forcing a
+    // full refetch on every mount/focus — a busy day has 2000+ rows and slow
+    // PCs perceive that download as a freeze on every navigation.
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 };
 
