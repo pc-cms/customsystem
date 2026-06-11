@@ -23,12 +23,15 @@
   // Per-canonical-slug branding. Anything not in here falls back to the
   // default system black icon set (favicon.png / apple-touch-icon.png /
   // manifest.json) embedded statically in index.html.
+  var PREMIER_FAVICON = "/favicon-premier.png";
+  var PREMIER_APPLE_ICON = "/apple-touch-icon-premier.png";
+
   var BRANCHES = {
-    arusha:  { name: "Premier Arusha",  manifest: "/manifest-arusha.json",  favicon: "/arusha-logo.png", appleTouchIcon: "/arusha-logo.png" },
-    mwanza:  { name: "Premier Mwanza",  manifest: "/manifest-mwanza.json"  },
-    dodoma:  { name: "Premier Dodoma",  manifest: "/manifest-dodoma.json"  },
-    mbeya:   { name: "Premier Mbeya",   manifest: "/manifest-mbeya.json"   },
-    premier: { name: "Premier HQ",      manifest: "/manifest-premier.json" },
+    arusha:  { name: "Premier Arusha",  manifest: "/manifest-arusha.json",  favicon: PREMIER_FAVICON, appleTouchIcon: PREMIER_APPLE_ICON },
+    mwanza:  { name: "Premier Mwanza",  manifest: "/manifest-mwanza.json",  favicon: PREMIER_FAVICON, appleTouchIcon: PREMIER_APPLE_ICON },
+    dodoma:  { name: "Premier Dodoma",  manifest: "/manifest-dodoma.json",  favicon: PREMIER_FAVICON, appleTouchIcon: PREMIER_APPLE_ICON },
+    mbeya:   { name: "Premier Mbeya",   manifest: "/manifest-mbeya.json",   favicon: PREMIER_FAVICON, appleTouchIcon: PREMIER_APPLE_ICON },
+    premier: { name: "Premier HQ",      manifest: "/manifest-premier.json", favicon: PREMIER_FAVICON, appleTouchIcon: PREMIER_APPLE_ICON },
     club:    {
       name: "Premier Club",
       manifest: "/manifest-club.json",
@@ -113,18 +116,43 @@
       var info = resolve(window.location.hostname);
 
       if (info.kind === "landing") {
+        // Strip PWA-specific tags (landing is not installable) but swap
+        // favicon/apple-touch-icon to the Amaell Group corporate marks.
         removeAll([
-          'link[rel="icon"]',
-          'link[rel="apple-touch-icon"]',
           'link[rel="manifest"]',
           'meta[name="theme-color"]',
           'meta[name="apple-mobile-web-app-capable"]',
           'meta[name="mobile-web-app-capable"]',
           'meta[name="apple-mobile-web-app-status-bar-style"]',
           'meta[name="apple-mobile-web-app-title"]',
+          'link[rel="icon"]',
+          'link[rel="apple-touch-icon"]',
         ]);
+        var icoLink = document.createElement('link');
+        icoLink.setAttribute('rel', 'icon');
+        icoLink.setAttribute('type', 'image/x-icon');
+        icoLink.setAttribute('href', '/favicon.ico');
+        document.head.appendChild(icoLink);
+        var png32 = document.createElement('link');
+        png32.setAttribute('rel', 'icon');
+        png32.setAttribute('type', 'image/png');
+        png32.setAttribute('sizes', '32x32');
+        png32.setAttribute('href', '/favicon-32x32.png');
+        document.head.appendChild(png32);
+        var png16 = document.createElement('link');
+        png16.setAttribute('rel', 'icon');
+        png16.setAttribute('type', 'image/png');
+        png16.setAttribute('sizes', '16x16');
+        png16.setAttribute('href', '/favicon-16x16.png');
+        document.head.appendChild(png16);
+        var apple = document.createElement('link');
+        apple.setAttribute('rel', 'apple-touch-icon');
+        apple.setAttribute('sizes', '180x180');
+        apple.setAttribute('href', '/apple-touch-icon-amaell.png');
+        document.head.appendChild(apple);
         return;
       }
+
 
       if (info.kind === "default") return;
 
