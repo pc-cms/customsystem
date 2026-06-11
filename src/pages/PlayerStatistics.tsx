@@ -20,6 +20,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 import { DateNavigator } from "@/components/ui/date-navigator";
 import { getTableCellClasses } from "@/lib/table-colors";
@@ -1140,6 +1144,7 @@ function InlineChipCell({
   canEdit: boolean;
 }) {
   const [editing, setEditing] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [raw, setRaw] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const create = useCreatePlayerChipAdjustment();
@@ -1154,27 +1159,26 @@ function InlineChipCell({
     return <span className={value ? "" : "text-muted-foreground/60"}>{display}</span>;
   }
 
-  if (!editing) {
-    return (
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); setRaw(""); setEditing(true); }}
-        className={`font-mono cursor-pointer hover:text-primary text-right w-full ${value ? "" : "text-muted-foreground/60"}`}
-        title={direction === "in" ? "Add Chip IN adjustment" : "Add Chip OUT adjustment"}
-      >
-        {display}
-      </button>
-    );
-  }
+  const startEdit = () => { setRaw(""); setEditing(true); };
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (value > 0) {
+      setConfirmOpen(true);
+    } else {
+      startEdit();
+    }
+  };
 
   const commit = async () => {
-    const amount = parseSpacedNumber(raw);
-    if (!amount || amount <= 0) { setEditing(false); return; }
+    const newValue = parseSpacedNumber(raw) || 0;
+    const delta = newValue - (value || 0);
+    if (delta === 0) { setEditing(false); setRaw(""); return; }
     try {
       await create.mutateAsync({
         player_id: playerId,
-        chip_in: direction === "in" ? amount : 0,
-        chip_out: direction === "out" ? amount : 0,
+        chip_in: direction === "in" ? delta : 0,
+        chip_out: direction === "out" ? delta : 0,
       });
       setEditing(false);
       setRaw("");
@@ -1184,24 +1188,58 @@ function InlineChipCell({
   };
 
   return (
-    <input
-      ref={inputRef}
-      type="text"
-      inputMode="numeric"
-      value={raw}
-      onChange={(e) => setRaw(formatInputWithSpaces(e.target.value))}
-      onBlur={() => { if (!create.isPending) { setEditing(false); setRaw(""); } }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") { e.preventDefault(); commit(); }
-        if (e.key === "Escape") { e.preventDefault(); setEditing(false); setRaw(""); }
-      }}
-      onClick={(e) => e.stopPropagation()}
-      placeholder={direction === "in" ? "+IN" : "+OUT"}
-      disabled={create.isPending}
-      className={`no-spin w-full h-7 px-1.5 rounded border bg-background font-mono text-sm text-right ${
-        direction === "in" ? "border-success/60 text-success" : "border-destructive/60 text-destructive"
-      }`}
-    />
+    <>
+      {!editing ? (
+        <button
+          type="button"
+          onClick={handleClick}
+          className={`font-mono cursor-pointer hover:text-primary text-right w-full ${value ? "" : "text-muted-foreground/60"}`}
+          title={value > 0
+            ? `Existing Chip ${direction === "in" ? "IN" : "OUT"} — click to replace`
+            : `Add Chip ${direction === "in" ? "IN" : "OUT"} adjustment`}
+        >
+          {display}
+        </button>
+      ) : (
+        <input
+          ref={inputRef}
+          type="text"
+          inputMode="numeric"
+          value={raw}
+          onChange={(e) => setRaw(formatInputWithSpaces(e.target.value))}
+          onBlur={() => { if (!create.isPending) { setEditing(false); setRaw(""); } }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); commit(); }
+            if (e.key === "Escape") { e.preventDefault(); setEditing(false); setRaw(""); }
+          }}
+          onClick={(e) => e.stopPropagation()}
+          placeholder={value > 0 ? formatCurrency(value) : (direction === "in" ? "IN" : "OUT")}
+          disabled={create.isPending}
+          className={`no-spin w-full h-7 px-1.5 rounded border bg-background font-mono text-sm text-right ${
+            direction === "in" ? "border-success/60 text-success" : "border-destructive/60 text-destructive"
+          }`}
+        />
+      )}
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace existing Chip {direction === "in" ? "IN" : "OUT"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Current value: <span className="font-mono font-semibold">{formatCurrency(value)}</span>.
+              Entering a new amount will overwrite this total (recorded as an immutable audit delta).
+              Enter 0 to clear it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmOpen(false); startEdit(); }}>
+              Replace
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
