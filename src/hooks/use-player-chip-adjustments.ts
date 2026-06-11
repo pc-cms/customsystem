@@ -64,6 +64,8 @@ export const useCreatePlayerChipAdjustment = () => {
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["player_chip_adjustments", vars.player_id] });
+      qc.invalidateQueries({ queryKey: ["player_chip_adjustments", "by-range"] });
+      qc.invalidateQueries({ queryKey: ["player-period-stats", vars.player_id] });
       toast.success("Chip adjustment recorded");
     },
     onError: (e: any) => toast.error(e.message || "Failed to record adjustment"),

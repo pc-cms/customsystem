@@ -33,7 +33,10 @@ interface Props {
   range?: { from: string; to: string };
 }
 
-/** CASH IN and RESULT for one player over an arbitrary business-day range. */
+/** CASH IN and RESULT for one player over an arbitrary business-day range.
+ *  Result mirrors PlayerStatistics formula:
+ *    (cashOut + chipOut) − (cashIn + chipIn)
+ */
 const usePeriodPlayerStats = (
   playerId: string | undefined | null,
   fromDate: string | undefined,
@@ -45,22 +48,35 @@ const usePeriodPlayerStats = (
       if (!playerId || !fromDate || !toDate) return { cashIn: 0, result: 0 };
       const start = businessDayHourUTC(fromDate, 7);
       const end = businessDayHourUTC(toDate, 7 + 24);
-      const { data, error } = await supabase
-        .from("transactions")
-        .select("type, amount")
-        .eq("player_id", playerId)
-        .is("cancelled_at", null)
-        .gte("created_at", start)
-        .lt("created_at", end)
-        .in("type", ["buy", "in", "cashout", "out"]);
-      if (error) throw error;
+      const [txRes, adjRes] = await Promise.all([
+        supabase
+          .from("transactions")
+          .select("type, amount")
+          .eq("player_id", playerId)
+          .is("cancelled_at", null)
+          .gte("created_at", start)
+          .lt("created_at", end)
+          .in("type", ["buy", "in", "cashout", "out"]),
+        (supabase.from as any)("player_chip_adjustments")
+          .select("chip_in, chip_out")
+          .eq("player_id", playerId)
+          .gte("created_at", start)
+          .lt("created_at", end),
+      ]);
+      if (txRes.error) throw txRes.error;
+      if (adjRes.error) throw adjRes.error;
       let cashIn = 0, cashOut = 0;
-      for (const t of (data || []) as any[]) {
+      for (const t of (txRes.data || []) as any[]) {
         const a = Number(t.amount) || 0;
         if (t.type === "buy" || t.type === "in") cashIn += a;
         else cashOut += a;
       }
-      return { cashIn, result: cashOut - cashIn };
+      let chipIn = 0, chipOut = 0;
+      for (const a of (adjRes.data || []) as any[]) {
+        chipIn += Number(a.chip_in) || 0;
+        chipOut += Number(a.chip_out) || 0;
+      }
+      return { cashIn, result: (cashOut + chipOut) - (cashIn + chipIn) };
     },
     enabled: !!playerId && !!fromDate && !!toDate,
     staleTime: 30_000,
