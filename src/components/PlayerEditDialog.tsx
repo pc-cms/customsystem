@@ -234,8 +234,9 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
       if (playerType !== (player.player_type || "table")) updates.player_type = playerType;
       if (canEditCategory && category !== ((player.category as PlayerCategory) || "normal")) updates.category = category;
       if (Object.keys(updates).length > 0) {
-        const { error } = await supabase.from("players").update(updates as any).eq("id", player.id);
+        const { data: updated, error } = await supabase.from("players").update(updates as any).eq("id", player.id).select("id");
         if (error) throw error;
+        if (!updated || updated.length === 0) throw new Error("No permission to update this player");
       }
       queryClient.invalidateQueries({ queryKey: ["players"] });
       queryClient.invalidateQueries({ queryKey: ["player", player.id] });
