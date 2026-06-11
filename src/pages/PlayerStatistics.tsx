@@ -184,6 +184,8 @@ const PlayerStatistics = () => {
   const showFinancials = canSeePlayerFinancials(roles);
   const canTransfer = false;
   const canEditAvgBet = isSingleDay && roles.some(r => ["pit", "manager", "floor_manager", "super_admin"].includes(r));
+  const canEditChips = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "floor_manager", "super_admin"].includes(r));
+
 
   const { data: visits = [] } = useQuery({
     queryKey: ["casino_visits", casinoId, fromDate, toDate],
