@@ -62,11 +62,12 @@ Deno.serve(async (req) => {
     if (!authed) {
       const { data: peer } = await admin
         .from("peer_links")
-        .select("id")
+        .select("id, casino_id")
         .eq("sync_secret", syncSecret)
         .in("status", ["pending_outbound", "pending_inbound", "active", "paused"])
         .maybeSingle();
-      if (peer) authed = true;
+      // Reject if peer is not bound to a casino OR header casino doesn't match.
+      if (peer && peer.casino_id && peer.casino_id === casinoId) authed = true;
     }
   }
   if (!authed) return json(401, { error: "unauthorized" });

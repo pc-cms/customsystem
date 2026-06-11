@@ -92,7 +92,17 @@ async function runCheck(c: Check) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Cron-only: require service-role key
+  const provided = req.headers.get("x-service-key") ?? "";
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (provided !== SERVICE_KEY && authHeader !== `Bearer ${SERVICE_KEY}`) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+
 
   const results = await Promise.all(CHECKS.map(runCheck));
 

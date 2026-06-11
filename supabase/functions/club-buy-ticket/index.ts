@@ -18,13 +18,14 @@ Deno.serve(async (req) => {
     const session = await verifyClubToken(token);
     if (!session) return new Response(JSON.stringify({ error: "invalid token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { lottery_id, qty = 1, casino_id } = await req.json();
-    if (!lottery_id || qty <= 0 || !casino_id) {
-      return new Response(JSON.stringify({ error: "lottery_id + qty + casino_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const { lottery_id, qty = 1 } = await req.json();
+    if (!lottery_id || qty <= 0) {
+      return new Response(JSON.stringify({ error: "lottery_id + qty required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const sb = createClient(SUPABASE_URL, SERVICE_KEY);
-    const { data: player } = await sb.from("players").select("id, verification_status").eq("phone", session.phone).maybeSingle();
+    // casino_id derived server-side from player profile — never trust client value
+    const { data: player } = await sb.from("players").select("id, casino_id, verification_status").eq("phone", session.phone).maybeSingle();
     if (!player) return new Response(JSON.stringify({ error: "player_not_found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (player.verification_status !== "verified") {
       return new Response(JSON.stringify({ error: "kyc_required" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -34,7 +35,7 @@ Deno.serve(async (req) => {
       p_player_id: player.id,
       p_lottery_id: lottery_id,
       p_qty: qty,
-      p_casino_id: casino_id,
+      p_casino_id: player.casino_id,
     });
 
     if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });

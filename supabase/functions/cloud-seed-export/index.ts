@@ -243,14 +243,18 @@ Deno.serve(async (req) => {
     } else {
       const { data: peer } = await adminPre
         .from("peer_links")
-        .select("id")
+        .select("id, casino_id")
         .eq("sync_secret", syncSecret)
         .in("status", ["pending_outbound", "pending_inbound", "active", "paused"])
         .maybeSingle();
       if (!peer) {
         return new Response(JSON.stringify({ error: "invalid sync credentials" }), { status: 401, headers: corsHeaders });
       }
-      tokenCasinoId = syncCasino;
+      // Server-owned casino_id; reject if peer is not bound or header mismatches
+      if (!peer.casino_id || peer.casino_id !== syncCasino) {
+        return new Response(JSON.stringify({ error: "peer not bound to this casino" }), { status: 403, headers: corsHeaders });
+      }
+      tokenCasinoId = peer.casino_id;
     }
   } else if (seedTokenHdr) {
     try {

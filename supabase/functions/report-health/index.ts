@@ -44,12 +44,16 @@ Deno.serve(async (req) => {
   if (!srv) {
     const { data: peer, error } = await admin
       .from("peer_links")
-      .select("id")
+      .select("id, casino_id")
       .eq("sync_secret", secret)
       .in("status", ["pending_outbound", "pending_inbound", "active", "paused"])
       .maybeSingle();
     if (error || !peer) return json({ error: "invalid creds" }, 401);
-    srv = { id: peer.id, casino_id: casino, source: "peer" };
+    // Server-owned casino_id; reject if peer is not bound or header mismatches
+    if (!peer.casino_id || peer.casino_id !== casino) {
+      return json({ error: "peer not bound to this casino" }, 403);
+    }
+    srv = { id: peer.id, casino_id: peer.casino_id, source: "peer" };
   }
 
   let body: any = {};

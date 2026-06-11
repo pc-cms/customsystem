@@ -58,13 +58,18 @@ Deno.serve(async (req) => {
     .maybeSingle();
   const { data: peer, error: pErr } = reg ? { data: null, error: null } : await sb
     .from("peer_links")
-    .select("id")
+    .select("id, casino_id")
     .eq("sync_secret", secret)
     .in("status", ["pending_outbound", "pending_inbound", "active", "paused"])
     .maybeSingle();
 
   if (pErr || (!reg && !peer)) {
     return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: cors });
+  }
+  // If authed via peer_links, the peer must be bound to THIS casino — prevents
+  // a compromised node from overwriting another casino's backups.
+  if (!reg && peer && peer.casino_id !== (casino as any).id) {
+    return new Response(JSON.stringify({ error: "peer not bound to this casino" }), { status: 403, headers: cors });
   }
 
   const bytes = new Uint8Array(await req.arrayBuffer());
