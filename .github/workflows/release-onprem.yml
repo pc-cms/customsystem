@@ -8,9 +8,11 @@ name: Build & Release Frontend Docker Image
 #   - push в main → собирает :latest + :main-<short-sha>
 #   - tag v*.*.*  → собирает :vX.Y.Z + :latest + создаёт GitHub Release
 #
-# Требования:
-#   - Repository → Settings → Actions → General → Workflow permissions = Read and write
-#   - Settings → Actions → General → Allow GitHub Actions to create and approve PRs
+# Требования (обязательно проверьте):
+#   1. Repository → Settings → Actions → General → Workflow permissions = "Read and write permissions"
+#   2. Repository → Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests" = включено
+#   3. Если пакет ghcr.io уже существовал ранее: перейдите на страницу пакета → Package settings → 
+#      "Manage Actions access" → добавьте текущий репозиторий с ролью "Write"
 
 on:
   push:
@@ -31,6 +33,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/cms-frontend
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
@@ -76,6 +79,26 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Verify package write access
+        run: |
+          TOKEN=$(echo '${{ secrets.GITHUB_TOKEN }}' | base64)
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/user/packages/container/cms-frontend")
+          echo "Package API status: ${HTTP_STATUS}"
+          if [[ "$HTTP_STATUS" == "404" ]]; then
+            echo "ℹ️ Package does not exist yet — it will be created on first push."
+          elif [[ "$HTTP_STATUS" == "403" ]]; then
+            echo "::error::GITHUB_TOKEN denied access to package."
+            echo "::error::1. Go to Repo Settings → Actions → General → Workflow permissions → select 'Read and write permissions'"
+            echo "::error::2. If package already exists at ghcr.io, add this repo to Package Settings → 'Manage Actions access' with Write role"
+            exit 1
+          elif [[ "$HTTP_STATUS" == "401" ]]; then
+            echo "::error::GITHUB_TOKEN is invalid or expired."
+            exit 1
+          fi
+
       - name: Compute Docker tags
         id: tags
         run: |
@@ -92,7 +115,7 @@ jobs:
 
       - name: Build and push
         id: push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: deploy/Dockerfile.frontend
