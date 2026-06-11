@@ -356,7 +356,7 @@ const PlayerEditDialog = ({ player, open, onOpenChange }: PlayerEditDialogProps)
         </FormField>
 
         <FormField span={6} label="Nickname">
-          <Input value={nickname} onChange={e => setNickname(e.target.value)} className="h-10" disabled={readOnly} />
+          <Input value={nickname} onChange={e => setNickname(e.target.value.toUpperCase())} className="h-10 uppercase tracking-wide" disabled={readOnly} />
         </FormField>
         <FormField span={6} label="Phone">
           <Input value={phone} onChange={e => setPhone(e.target.value)} className="h-10" type="tel" disabled={readOnly} />
