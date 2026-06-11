@@ -23,12 +23,15 @@
   // Per-canonical-slug branding. Anything not in here falls back to the
   // default system black icon set (favicon.png / apple-touch-icon.png /
   // manifest.json) embedded statically in index.html.
+  var PREMIER_FAVICON = "/favicon-premier.png";
+  var PREMIER_APPLE_ICON = "/apple-touch-icon-premier.png";
+
   var BRANCHES = {
-    arusha:  { name: "Premier Arusha",  manifest: "/manifest-arusha.json",  favicon: "/arusha-logo.png", appleTouchIcon: "/arusha-logo.png" },
-    mwanza:  { name: "Premier Mwanza",  manifest: "/manifest-mwanza.json"  },
-    dodoma:  { name: "Premier Dodoma",  manifest: "/manifest-dodoma.json"  },
-    mbeya:   { name: "Premier Mbeya",   manifest: "/manifest-mbeya.json"   },
-    premier: { name: "Premier HQ",      manifest: "/manifest-premier.json" },
+    arusha:  { name: "Premier Arusha",  manifest: "/manifest-arusha.json",  favicon: PREMIER_FAVICON, appleTouchIcon: PREMIER_APPLE_ICON },
+    mwanza:  { name: "Premier Mwanza",  manifest: "/manifest-mwanza.json",  favicon: PREMIER_FAVICON, appleTouchIcon: PREMIER_APPLE_ICON },
+    dodoma:  { name: "Premier Dodoma",  manifest: "/manifest-dodoma.json",  favicon: PREMIER_FAVICON, appleTouchIcon: PREMIER_APPLE_ICON },
+    mbeya:   { name: "Premier Mbeya",   manifest: "/manifest-mbeya.json",   favicon: PREMIER_FAVICON, appleTouchIcon: PREMIER_APPLE_ICON },
+    premier: { name: "Premier HQ",      manifest: "/manifest-premier.json", favicon: PREMIER_FAVICON, appleTouchIcon: PREMIER_APPLE_ICON },
     club:    {
       name: "Premier Club",
       manifest: "/manifest-club.json",
