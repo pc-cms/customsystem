@@ -190,7 +190,9 @@ export const useBatchChipSnapshot = () => {
       return { queryKey, optimisticIds: optimisticRows.map(r => r.id) };
     },
     onSuccess: (res: any) => {
-      qc.invalidateQueries({ queryKey: ["chip-snapshots"] });
+      // Optimistic rows already cover the UI; realtime will reconcile across
+      // tabs/devices. Skip invalidateQueries — a refetch of 2000+ rows on a
+      // slow PC was the main cause of the "freeze" after Save.
       toast.success(res?.offline ? "Chip count saved offline" : "Chip count recorded");
     },
     onError: (e, _input, ctx: any) => {
