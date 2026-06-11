@@ -8202,7 +8202,7 @@ export type Database = {
           created_at: string
           id: string
           operator_id: string
-          player_id: string
+          player_id: string | null
           shift_id: string | null
           table_id: string | null
           tips_recipient_employee_id: string | null
@@ -8219,7 +8219,7 @@ export type Database = {
           created_at?: string
           id?: string
           operator_id: string
-          player_id: string
+          player_id?: string | null
           shift_id?: string | null
           table_id?: string | null
           tips_recipient_employee_id?: string | null
@@ -8236,7 +8236,7 @@ export type Database = {
           created_at?: string
           id?: string
           operator_id?: string
-          player_id?: string
+          player_id?: string | null
           shift_id?: string | null
           table_id?: string | null
           tips_recipient_employee_id?: string | null
