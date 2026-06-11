@@ -4891,6 +4891,7 @@ export type Database = {
       }
       peer_links: {
         Row: {
+          casino_id: string | null
           created_at: string
           display_name: string
           id: string
@@ -4908,6 +4909,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          casino_id?: string | null
           created_at?: string
           display_name: string
           id?: string
@@ -4925,6 +4927,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          casino_id?: string | null
           created_at?: string
           display_name?: string
           id?: string
