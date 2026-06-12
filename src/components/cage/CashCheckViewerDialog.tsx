@@ -73,7 +73,8 @@ const ChipsView = ({ chips }: { chips: Record<number, number> }) => {
       <span className="font-mono text-base font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(sumValue(chips))}</span>
     </div>
   </div>
-);
+  );
+};
 
 const CashView = ({ values, denoms, currency }: { values: Record<number, number>; denoms: number[]; currency: string }) => {
   const total = sumValue(values);
