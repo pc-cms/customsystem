@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { CHIP_DENOMS } from "@/lib/currency";
+import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import ChipToken from "@/components/ChipToken";
 import { format, startOfMonth, subMonths, addMonths } from "date-fns";
 import { Coins, ChevronLeft, ChevronRight } from "lucide-react";
@@ -14,9 +15,6 @@ import { DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell } from "@/components
 import { MoneyCell } from "@/components/ui/money-cell";
 import { useMoneyMode, useMoneyDisplayMode } from "@/components/ui/data-table-toolbar";
 import { fmtDateOnly } from "@/lib/format-date";
-
-// Denominations sorted descending (largest → smallest), per project rule.
-const DENOMS_DESC = [...CHIP_DENOMS].sort((a, b) => b - a);
 
 interface ShiftMissRow {
   business_date: string;
