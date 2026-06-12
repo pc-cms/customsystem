@@ -172,7 +172,7 @@ const FloatManagement = () => {
               </tr>
             </thead>
             <tbody>
-              {CHIP_DENOMS.map(d => {
+              {visibleDenoms.map(d => {
                 const anyHas = locations.some(loc => loc.denoms.includes(d));
                 if (!anyHas) return null;
                 return (
