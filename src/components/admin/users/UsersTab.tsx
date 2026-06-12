@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DataTable,
   DTHead,
@@ -67,7 +68,7 @@ export const UsersTab = () => {
   const { user, roles: callerRoles } = useAuth();
   const { isSummaryMode } = useCasino();
   const isSuperAdmin = callerRoles.includes("super_admin");
-  const showCasinoColumn = isSummaryMode;
+  const showCasinoColumn = true;
 
   const { data: rows = [], isLoading } = useAdminUsers();
   const { data: casinos = [] } = useAllCasinos();
@@ -77,6 +78,7 @@ export const UsersTab = () => {
   const updateProfile = useUpdateUserProfile();
 
   const [search, setSearch] = useState("");
+  const [casinoFilter, setCasinoFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("login");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [permsTarget, setPermsTarget] = useState<{ id: string; name: string } | null>(null);
@@ -94,9 +96,14 @@ export const UsersTab = () => {
     const visible = isSuperAdmin
       ? rows
       : rows.filter((r) => !r.roles.includes("super_admin"));
-    const matched = !q
+    const byCasino = casinoFilter === "all"
       ? visible
-      : visible.filter((r) => {
+      : casinoFilter === "__none__"
+        ? visible.filter((r) => !r.casino_id && r.casino_ids.length === 0)
+        : visible.filter((r) => r.casino_id === casinoFilter || r.casino_ids.includes(casinoFilter));
+    const matched = !q
+      ? byCasino
+      : byCasino.filter((r) => {
           return (
             (r.login || "").toLowerCase().includes(q) ||
             (r.display_name || "").toLowerCase().includes(q) ||
@@ -123,7 +130,7 @@ export const UsersTab = () => {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return sorted;
-  }, [rows, search, isSuperAdmin, sortKey, sortDir, casinos]);
+  }, [rows, search, isSuperAdmin, sortKey, sortDir, casinos, casinoFilter]);
 
   const toggleSort = (k: SortKey) => {
     if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -132,8 +139,8 @@ export const UsersTab = () => {
       setSortDir("asc");
     }
   };
-
   const sortIndicator = (k: SortKey) => (sortKey === k ? (sortDir === "asc" ? " ↑" : " ↓") : "");
+
 
   return (
     <div className="space-y-4">
@@ -155,6 +162,18 @@ export const UsersTab = () => {
               className="pl-8 w-64"
             />
           </div>
+          <Select value={casinoFilter} onValueChange={setCasinoFilter}>
+            <SelectTrigger className="w-44 h-9 text-xs">
+              <SelectValue placeholder="All casinos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All casinos</SelectItem>
+              <SelectItem value="__none__">No casino</SelectItem>
+              {casinos.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button onClick={() => navigate("/admin/users/new")} className="gap-1.5">
             <Plus className="w-4 h-4" /> New User
           </Button>
