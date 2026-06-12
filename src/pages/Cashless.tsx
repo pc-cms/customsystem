@@ -9,7 +9,6 @@ import {
   useCashless, useCreateCashless, useApproveCashless,
   type CashlessDirection, type CashlessProvider, type CashlessSource,
 } from "@/hooks/use-cashless";
-import { useActiveShift } from "@/hooks/use-shift";
 import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -79,7 +78,6 @@ const Cashless = () => {
   const isToday = viewDate === businessDate;
   const { data: rows = [] } = useCashless(viewDate, source);
 
-  const { data: liveShift } = useActiveShift();
   const { data: slotsShift } = useActiveCageSlotsShift();
   const { data: players = [] } = usePlayers();
 
