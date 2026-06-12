@@ -217,7 +217,6 @@ const CashCountGrid = ({
               values={cashlessIn!}
               onChange={onCashlessInChange!}
               suggestion={cashlessInSuggestion}
-              hintLabel="Hint · Cashless IN"
               sectionCls={sectionCls}
               titleCls={titleCls}
             />
@@ -228,7 +227,6 @@ const CashCountGrid = ({
               values={cashlessOut!}
               onChange={onCashlessOutChange!}
               suggestion={cashlessOutSuggestion}
-              hintLabel="Hint · Cashless OUT"
               sectionCls={sectionCls}
               titleCls={titleCls}
             />
@@ -239,7 +237,6 @@ const CashCountGrid = ({
               values={mobile}
               onChange={onMobileChange}
               suggestion={mobileSuggestion}
-              hintLabel="Hint · Cashless net"
               sectionCls={sectionCls}
               titleCls={titleCls}
             />
