@@ -28,22 +28,36 @@ interface Props {
  */
 export const PlayerNameAutocomplete = ({ value, onChange, placeholder, disabled, className, inCasinoOnly = false }: Props) => {
   const { data: allPlayers = [] } = usePlayers();
-  const { data: visits = [] } = useVisitsToday("player_id, checked_out_at");
-  const [open, setOpen] = useState(false);
-  const [activeIdx, setActiveIdx] = useState(0);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const dropRef = useRef<HTMLDivElement>(null);
-  const [dropUp, setDropUp] = useState(false);
+  const { casinoId } = useAuth();
+  // Open visits = players currently checked-in to THIS casino (no date filter —
+  // auto-close cron handles rollover; this avoids drift from local business-date
+  // calculation).
+  const { data: openVisits = [] } = useQuery({
+    queryKey: ["open-visits-autocomplete", casinoId],
+    queryFn: async () => {
+      if (!casinoId) return [] as { player_id: string }[];
+      const { data, error } = await supabase
+        .from("casino_visits")
+        .select("player_id")
+        .eq("casino_id", casinoId)
+        .is("checked_out_at", null);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!casinoId && inCasinoOnly,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
 
   const players = useMemo(() => {
     if (!inCasinoOnly) return allPlayers as any[];
     const presentIds = new Set(
-      (visits as any[])
-        .filter(v => !v.checked_out_at && v.player_id)
+      (openVisits as any[])
+        .filter(v => v.player_id)
         .map(v => v.player_id),
     );
     return (allPlayers as any[]).filter(p => presentIds.has(p.id));
-  }, [allPlayers, visits, inCasinoOnly]);
+  }, [allPlayers, openVisits, inCasinoOnly]);
 
   // Build canonical labels for every player in the base
   const allLabels = useMemo(() => {
