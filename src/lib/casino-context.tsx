@@ -163,7 +163,32 @@ export const CasinoProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
 
       if (hasGlobalAccess) {
-...
+        // Super admin, FM and Surveillance see all casinos.
+        // Subdomain dictates which one is active; data isolation stays per-casino.
+        const { data } = await supabase
+          .from("casinos")
+          .select("id, name, slug, code")
+          .order("name");
+        setAccessibleCasinos((data as CasinoInfo[]) ?? []);
+      } else {
+        // Regular users: primary casino + granted access
+        const { data: access } = await supabase
+          .from("user_casino_access")
+          .select("casino_id")
+          .eq("user_id", user.id);
+
+        const casinoIds = new Set<string>();
+        if (primaryCasinoId) casinoIds.add(primaryCasinoId);
+        access?.forEach(a => casinoIds.add(a.casino_id));
+
+        if (casinoIds.size > 0) {
+          const { data } = await supabase
+            .from("casinos")
+            .select("id, name, slug, code")
+            .in("id", Array.from(casinoIds))
+            .order("name");
+          setAccessibleCasinos((data as CasinoInfo[]) ?? []);
+        }
       }
 
       setLoading(false);
