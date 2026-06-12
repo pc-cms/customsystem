@@ -99,6 +99,8 @@ const CloseShiftPage = () => {
             cash_result: d.cashResult,
             miss_total: d.missTotal,
             shift_result: d.shiftResult,
+            cashless_in_providers: d.cashlessInProviders,
+            cashless_out_providers: d.cashlessOutProviders,
           }, { onSuccess: () => nav("/cage") });
         }}
       />

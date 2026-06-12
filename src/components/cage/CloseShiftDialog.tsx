@@ -50,6 +50,8 @@ interface CloseShiftDialogProps {
     cashResult: number;
     missTotal: number;
     shiftResult: number;
+    cashlessInProviders: MobileProviders;
+    cashlessOutProviders: MobileProviders;
   }) => void;
   loading: boolean;
 }
@@ -76,6 +78,7 @@ const CloseShiftDialog = ({
         chipCounts?: Record<number, number>;
         cashCounts?: Record<string, Record<number, number>>;
         bankBal?: Banks; mobileBal?: MobileProviders;
+        cashlessIn?: MobileProviders; cashlessOut?: MobileProviders;
       } : null;
     } catch { return null; }
   }, [storageKey]);
@@ -90,15 +93,17 @@ const CloseShiftDialog = ({
   const [cashCounts, setCashCounts] = useState<Record<string, Record<number, number>>>(persisted?.cashCounts || emptyCash);
   const [bankBal, setBankBal] = useState<Banks>(persisted?.bankBal || emptyBanks);
   const [mobileBal, setMobileBal] = useState<MobileProviders>(persisted?.mobileBal || emptyMobile);
+  const [cashlessIn, setCashlessIn] = useState<MobileProviders>(persisted?.cashlessIn || emptyMobile);
+  const [cashlessOut, setCashlessOut] = useState<MobileProviders>(persisted?.cashlessOut || emptyMobile);
 
   // Persist on every change.
   useEffect(() => {
     try {
       sessionStorage.setItem(storageKey, JSON.stringify({
-        step, notes, chipCounts, cashCounts, bankBal, mobileBal,
+        step, notes, chipCounts, cashCounts, bankBal, mobileBal, cashlessIn, cashlessOut,
       }));
     } catch { /* quota — ignore */ }
-  }, [storageKey, step, notes, chipCounts, cashCounts, bankBal, mobileBal]);
+  }, [storageKey, step, notes, chipCounts, cashCounts, bankBal, mobileBal, cashlessIn, cashlessOut]);
 
   // ── Opening (carried from previous closing) ───────────────────────────────
   const openingChips = useMemo(() => {
@@ -245,6 +250,8 @@ const CloseShiftDialog = ({
         cash: cashCounts,
         bank: bankBal,
         mobile: mobileBal,
+        cashless_in_providers: cashlessIn,
+        cashless_out_providers: cashlessOut,
         result_table: resultTable,
         cash_desk_balance: balance,
         manager_confirmed_by: managerId,
@@ -253,6 +260,8 @@ const CloseShiftDialog = ({
           ...Object.fromEntries(CURRENCIES.map(c => [c, cashSum(cashCounts[c] || {})])),
           bank: bankBal,
           mobile: mobileBal,
+          cashless_in: mobileTotal(cashlessIn),
+          cashless_out: mobileTotal(cashlessOut),
           total_tzs: totalTzs,
         },
       },
@@ -274,6 +283,8 @@ const CloseShiftDialog = ({
       cashResult: cashDelta,
       missTotal,
       shiftResult,
+      cashlessInProviders: cashlessIn,
+      cashlessOutProviders: cashlessOut,
     });
   };
 
@@ -785,6 +796,12 @@ const CloseShiftDialog = ({
           onMobileChange={setMobileBal}
           chipPlaceholder={openingChips}
           mobileSuggestion={cashlessSug?.net}
+          cashlessIn={cashlessIn}
+          onCashlessInChange={setCashlessIn}
+          cashlessInSuggestion={cashlessSug?.in}
+          cashlessOut={cashlessOut}
+          onCashlessOutChange={setCashlessOut}
+          cashlessOutSuggestion={cashlessSug?.out}
           rates={rates}
           hideChips
         />

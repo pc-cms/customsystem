@@ -7102,6 +7102,8 @@ export type Database = {
           balance: number | null
           cash_desk_result: number | null
           cash_result: number | null
+          cashless_in_providers: Json
+          cashless_out_providers: Json
           casino_id: string
           closed_at: string | null
           closed_by: string | null
@@ -7123,6 +7125,8 @@ export type Database = {
           balance?: number | null
           cash_desk_result?: number | null
           cash_result?: number | null
+          cashless_in_providers?: Json
+          cashless_out_providers?: Json
           casino_id: string
           closed_at?: string | null
           closed_by?: string | null
@@ -7144,6 +7148,8 @@ export type Database = {
           balance?: number | null
           cash_desk_result?: number | null
           cash_result?: number | null
+          cashless_in_providers?: Json
+          cashless_out_providers?: Json
           casino_id?: string
           closed_at?: string | null
           closed_by?: string | null
