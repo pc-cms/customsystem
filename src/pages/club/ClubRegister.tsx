@@ -56,10 +56,34 @@ const TextInput = (props: React.InputHTMLAttributes<HTMLInputElement>) => {
 
 export default function ClubRegister() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<Step>(getClubToken() ? "profile" : "phone");
+  const [step, setStep] = useState<Step>(() => {
+    if (getClubToken()) return "profile";
+    try {
+      const raw = sessionStorage.getItem("club:otp-pending");
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p?.phone && p?.sentAt && Date.now() - p.sentAt < 5 * 60_000) {
+          return "code";
+        }
+        sessionStorage.removeItem("club:otp-pending");
+      }
+    } catch {}
+    return "phone";
+  });
   const [busy, setBusy] = useState(false);
 
-  const [phoneLocal, setPhoneLocal] = useState("");
+  const [phoneLocal, setPhoneLocal] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem("club:otp-pending");
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p?.phone && p?.sentAt && Date.now() - p.sentAt < 5 * 60_000) {
+          return String(p.phone);
+        }
+      }
+    } catch {}
+    return "";
+  });
   const [code, setCode] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -72,8 +96,14 @@ export default function ClubRegister() {
     if (phoneLocal.length < 8) return;
     setBusy(true);
     try {
-      await clubApi.sendOtp(phone);
-      toast.success("Code sent to your phone");
+      const res: any = await clubApi.sendOtp(phone);
+      try {
+        sessionStorage.setItem(
+          "club:otp-pending",
+          JSON.stringify({ phone: phoneLocal, sentAt: Date.now() })
+        );
+      } catch {}
+      toast.success(res?.reused ? "Code already sent" : "Code sent to your phone");
       setStep("code");
     } catch (e: any) {
       toast.error(e.message || "Failed to send code");
@@ -86,6 +116,7 @@ export default function ClubRegister() {
     setBusy(true);
     try {
       const res = await clubApi.verifyOtp(phone, code);
+      try { sessionStorage.removeItem("club:otp-pending"); } catch {}
       setClubSession(res.token, res.phone);
       if (res.player_exists) {
         toast.success("Welcome back!");
@@ -204,7 +235,11 @@ export default function ClubRegister() {
                   {busy ? "Verifying…" : "Verify"}
                 </button>
                 <button
-                  onClick={() => setStep("phone")}
+                  onClick={() => {
+                    try { sessionStorage.removeItem("club:otp-pending"); } catch {}
+                    setCode("");
+                    setStep("phone");
+                  }}
                   className="w-full text-xs tracking-[0.25em] uppercase"
                   style={{ color: GOLD_DEEP }}
                 >
