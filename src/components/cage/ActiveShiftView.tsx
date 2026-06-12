@@ -43,7 +43,7 @@ import { Input } from "@/components/ui/input";
 
 import {
   MOBILE_PROVIDERS, emptyMobile, emptyBanks, mobileTotal, bankTotalTzs,
-  chipSum, emptyCash, calcGrandTotal,
+  chipSum, emptyCash, calcCashTotalTzs,
   type MobileProviders, type Banks,
 } from "@/components/cage/CageHelpers";
 import type { Tables } from "@/integrations/supabase/types";
@@ -665,10 +665,15 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, bu
     prefilledRef.current = true;
   }, [cashlessSug]);
 
-  const totalTzs = useMemo(() => calcGrandTotal(chipCounts, cash, bankBal, mobileBal, exchangeRates), [chipCounts, cash, bankBal, mobileBal, exchangeRates]);
+  const cashlessInTzs = useMemo(() => mobileTotal(cashlessIn), [cashlessIn]);
+  const cashlessOutTzs = useMemo(() => mobileTotal(cashlessOut), [cashlessOut]);
+  const totalTzs = useMemo(
+    () => chipSum(chipCounts) + calcCashTotalTzs(cash, exchangeRates) + bankTotalTzs(bankBal, exchangeRates) + cashlessInTzs - cashlessOutTzs,
+    [chipCounts, cash, bankBal, exchangeRates, cashlessInTzs, cashlessOutTzs],
+  );
   const difference = totalTzs - expectedBalance;
   const [showDiff, setShowDiff] = useState(false);
-  useEffect(() => { setShowDiff(false); }, [chipCounts, cash, bankBal, mobileBal]);
+  useEffect(() => { setShowDiff(false); }, [chipCounts, cash, bankBal, mobileBal, cashlessIn, cashlessOut]);
 
   // History viewer
   const [viewerCheck, setViewerCheck] = useState<Tables<"cash_counts"> | null>(null);
@@ -692,8 +697,8 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, bu
           chips_tzs: chipSum(chipCounts),
           ...Object.fromEntries(CURRENCIES.map(c => [c, cashSum(cash[c] || {})])),
           bank: bankBal, mobile: mobileBal,
-          cashless_in: mobileTotal(cashlessIn),
-          cashless_out: mobileTotal(cashlessOut),
+          cashless_in: cashlessInTzs,
+          cashless_out: cashlessOutTzs,
           expected: expectedBalance,
           counted: totalTzs,
           difference,
