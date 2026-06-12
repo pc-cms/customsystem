@@ -27,6 +27,7 @@ const FloatManagement = () => {
   const { data: baseline = [] } = useChipBaseline();
   const { data: casinoInfo } = useCasinoInfo();
   const { data: chipColorOverrides } = useChipColors();
+  const visibleDenoms = useVisibleChipDenoms();
   const upsertBaseline = useUpsertBaseline();
   const lockFloat = useLockFloat();
   const { casinoId } = useAuth();
@@ -37,24 +38,24 @@ const FloatManagement = () => {
 
   const isLocked = casinoInfo?.float_locked === true;
 
-  // Build locations: tables + cashier + safe
+  // Build locations: tables + cashier + safe (filtered by per-casino visibility)
   const locations: LocationDef[] = useMemo(() => {
     const locs: LocationDef[] = [];
-    // Sort tables alphabetically
     const sorted = [...tables].sort((a, b) => a.name.localeCompare(b.name));
     sorted.forEach(t => {
+      const tableDenoms = (t.denominations || CHIP_DENOMS).filter(d => visibleDenoms.includes(d));
       locs.push({
         key: `table-${t.id}`,
         label: t.name,
         type: "table",
         id: t.id,
-        denoms: t.denominations || CHIP_DENOMS,
+        denoms: tableDenoms,
       });
     });
-    locs.push({ key: "cashier", label: "Cashier", type: "cashier", id: null, denoms: CHIP_DENOMS });
-    locs.push({ key: "safe", label: "Safe", type: "safe", id: null, denoms: CHIP_DENOMS });
+    locs.push({ key: "cashier", label: "Cashier", type: "cashier", id: null, denoms: visibleDenoms });
+    locs.push({ key: "safe", label: "Safe", type: "safe", id: null, denoms: visibleDenoms });
     return locs;
-  }, [tables]);
+  }, [tables, visibleDenoms]);
 
   // Current baseline as map: { locKey: { denom: qty } }
   const baselineMap = useMemo(() => {
