@@ -3,23 +3,26 @@
  * `compute_shift_balance`). Used for live preview during Close Shift entry.
  *
  *   Cash Desk Result = ΔCash + Expenses + Collection − AddFloat
- *                    + SlotsOut − SlotsIn                         (NO miss, NO tips)
+ *                    + SlotsOut − SlotsIn
+ *                    + CashlessIn − CashlessOut                    (NO miss, NO tips)
  *   Shift Balance    = Cash Desk Result − Tables Result − Miss
  *
+ * ΔCash is computed from CASH + BANK only (mobile balance is excluded to
+ * avoid double-counting cashless movements). Mobile Balance entry remains a
+ * manual sanity check on the report.
+ *
  * TIPS ARE FULLY NEUTRAL — log-only.
- * `tips_live` / `tips_poker` / `tips_floor` transactions and the Slots
- * `cage_slots_tips_cd` / `cage_slots_tips_cd_payouts` rows are PURE LEDGER
- * entries. They never enter CDR or Shift Balance. Cashiers must keep tips
- * physically outside the drawer cash count.
  */
 export type CageBalanceInputs = {
-  openingCash: number;
-  closingCash: number;
+  openingCash: number;          // opening cash + bank (no mobile)
+  closingCash: number;          // closing cash + bank (no mobile)
   expenses: number;
   collection: number;
   addFloat: number;
   slotsIn: number;
   slotsOut: number;
+  cashlessIn: number;
+  cashlessOut: number;
   miss: number;
   tablesResult: number;
   tips?: number; // accepted for backward compat — ignored in formula
@@ -34,7 +37,9 @@ export type CageBalanceResult = {
 export const computeShiftBalance = (i: CageBalanceInputs): CageBalanceResult => {
   const deltaCash = i.closingCash - i.openingCash;
   const cashDeskResult =
-    deltaCash + i.expenses + i.collection - i.addFloat + i.slotsOut - i.slotsIn;
+    deltaCash + i.expenses + i.collection - i.addFloat
+    + i.slotsOut - i.slotsIn
+    + (i.cashlessIn || 0) - (i.cashlessOut || 0);
   const shiftBalance = cashDeskResult - i.tablesResult - i.miss;
   return { deltaCash, cashDeskResult, shiftBalance };
 };
