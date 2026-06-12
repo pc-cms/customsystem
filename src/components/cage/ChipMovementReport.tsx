@@ -167,7 +167,7 @@ const DenomTable = ({ title, data, total, signed }: {
           </tr>
         </thead>
         <tbody>
-          {CHIP_DENOMS.map(d => {
+          {visibleDenoms.map(d => {
             const q = data[d] || 0;
             const v = q * d;
             const c = resolveChipColor(d, chipColorOverrides);
