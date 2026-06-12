@@ -137,6 +137,7 @@ const DenomTable = ({ title, data, total, signed }: {
   signed?: boolean;
 }) => {
   const { data: chipColorOverrides } = useChipColors();
+  const visibleDenoms = useVisibleChipDenoms();
   const fmtQty = (q: number) => {
     if (!q) return "";
     return signed && q !== 0 ? `${q > 0 ? "+" : ""}${q}` : String(q);
