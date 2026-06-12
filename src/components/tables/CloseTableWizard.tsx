@@ -133,7 +133,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
     const tb = baselineMap[current.id] || {};
     const chipMap: Record<string, number> = {};
     const snapshotRows: any[] = [];
-    (current.denominations || []).forEach(d => {
+    tableDenoms(current).forEach(d => {
       const expected = tb[d] || 0;
       const actual = currentCounts[d] ?? 0;
       chipMap[String(d)] = actual;
