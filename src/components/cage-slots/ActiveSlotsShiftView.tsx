@@ -435,16 +435,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     );
   };
 
-  // Cashless transactions UI moved to /cashless sidebar page — keep per-provider totals
-  // for hints/snapshot only.
-  const cashlessByProvider = useMemo(() => {
-    const m: Record<string, number> = {};
-    cashless.forEach((t: any) => {
-      const sign = t.direction === "IN" ? 1 : -1;
-      m[t.provider] = (m[t.provider] || 0) + sign * Number(t.amount || 0);
-    });
-    return m;
-  }, [cashless]);
+  // Cashless transactions UI moved to /cashless sidebar page.
+
 
 
 
