@@ -18,7 +18,8 @@ import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
-import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
+import PlayerSearch from "@/components/cage/PlayerSearch";
+import { usePlayers } from "@/hooks/use-players";
 import { formatCurrency } from "@/lib/currency";
 
 const PROVIDERS: { value: CashlessProvider; label: string }[] = [
@@ -39,6 +40,7 @@ interface DraftRow {
   uid: string;
   direction: CashlessDirection;
   provider: CashlessProvider | "";
+  player_id: string;
   player_name: string;
   amount: string;
   reference: string;
@@ -48,6 +50,7 @@ const newDraft = (): DraftRow => ({
   uid: Math.random().toString(36).slice(2),
   direction: "IN",
   provider: "",
+  player_id: "",
   player_name: "",
   amount: "",
   reference: "",
