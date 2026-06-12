@@ -1,7 +1,9 @@
 import { useMemo, useRef, useState, useEffect, useLayoutEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { usePlayers } from "@/hooks/use-players";
-import { useVisitsToday } from "@/hooks/use-visits";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -26,7 +28,27 @@ interface Props {
  */
 export const PlayerNameAutocomplete = ({ value, onChange, placeholder, disabled, className, inCasinoOnly = false }: Props) => {
   const { data: allPlayers = [] } = usePlayers();
-  const { data: visits = [] } = useVisitsToday("player_id, checked_out_at");
+  const { casinoId } = useAuth();
+  // Open visits = players currently checked-in to THIS casino (no date filter —
+  // auto-close cron handles rollover; this avoids drift from local business-date
+  // calculation).
+  const { data: openVisits = [] } = useQuery({
+    queryKey: ["open-visits-autocomplete", casinoId],
+    queryFn: async () => {
+      if (!casinoId) return [] as { player_id: string }[];
+      const { data, error } = await supabase
+        .from("casino_visits")
+        .select("player_id")
+        .eq("casino_id", casinoId)
+        .is("checked_out_at", null);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!casinoId && inCasinoOnly,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
+
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -36,12 +58,12 @@ export const PlayerNameAutocomplete = ({ value, onChange, placeholder, disabled,
   const players = useMemo(() => {
     if (!inCasinoOnly) return allPlayers as any[];
     const presentIds = new Set(
-      (visits as any[])
-        .filter(v => !v.checked_out_at && v.player_id)
+      (openVisits as any[])
+        .filter(v => v.player_id)
         .map(v => v.player_id),
     );
     return (allPlayers as any[]).filter(p => presentIds.has(p.id));
-  }, [allPlayers, visits, inCasinoOnly]);
+  }, [allPlayers, openVisits, inCasinoOnly]);
 
   // Build canonical labels for every player in the base
   const allLabels = useMemo(() => {
