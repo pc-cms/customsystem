@@ -6,7 +6,7 @@ import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useGamingTables, useSetTableTrackerValue, useBatchSetTableTrackerValue, useTableTracker } from "@/hooks/use-casino-data";
 import { CHIP_DENOMS, formatChipLabel, formatCurrency } from "@/lib/currency";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
+import { useChipColors, resolveChipColor, useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { nowEAT } from "@/lib/business-day";
 import { chipSnapshotResult } from "@/lib/table-live-result";
 import { useShiftTableAdjustments } from "@/hooks/use-shift-table-adjustments";
