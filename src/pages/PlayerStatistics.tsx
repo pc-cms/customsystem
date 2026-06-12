@@ -77,8 +77,10 @@ const PlayerStatistics = () => {
     if (preset === "day") return { from: date, to: date };
     return range;
   }, [canBrowseHistory, today, preset, date, range]);
-  const fromDate = effectiveRange.from;
-  const toDate = effectiveRange.to;
+  const isValidIsoDate = (s: string | undefined | null): s is string =>
+    !!s && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(new Date(`${s}T00:00:00.000Z`).getTime());
+  const fromDate = isValidIsoDate(effectiveRange.from) ? effectiveRange.from : today;
+  const toDate = isValidIsoDate(effectiveRange.to) ? effectiveRange.to : today;
   const isMultiDay = fromDate !== toDate;
   const isHistorical = toDate !== today || fromDate !== today;
   const windowStartUTC = businessDayHourUTC(fromDate, 7);
