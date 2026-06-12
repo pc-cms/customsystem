@@ -122,6 +122,7 @@ export const CasinoProvider = ({ children }: { children: ReactNode }) => {
   const [activeCasinoId, setActiveCasinoId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [detectedSlug] = useState<string | null>(() => getSlugFromHostname());
+  const [subdomainCasino, setSubdomainCasino] = useState<CasinoInfo | null>(null);
 
   const isSuperOrFM = roles.includes("super_admin") || roles.includes("finance_manager");
   const isSurveillance = roles.includes("surveillance");
@@ -129,6 +130,25 @@ export const CasinoProvider = ({ children }: { children: ReactNode }) => {
   // Per-casino isolation is enforced by the subdomain → activeCasinoId resolver below.
   const hasGlobalAccess = isSuperOrFM || isSurveillance;
   const isSummaryMode = detectedSlug === "__premier__" && isSuperOrFM;
+
+  // Resolve subdomain slug → casino regardless of user access list.
+  // This guarantees that on `mwanza.casinosystem.app` the active casino is ALWAYS
+  // Mwanza, never silently falling back to the user's primary casino on another site.
+  // RLS will block users without proper access — but we never show cross-casino data.
+  useEffect(() => {
+    if (!detectedSlug || detectedSlug === "__premier__" || detectedSlug === "__landing__" || detectedSlug === "__club__") {
+      setSubdomainCasino(null);
+      return;
+    }
+    (async () => {
+      const { data } = await supabase
+        .from("casinos")
+        .select("id, name, slug, code")
+        .eq("slug", detectedSlug)
+        .maybeSingle();
+      setSubdomainCasino((data as CasinoInfo) ?? null);
+    })();
+  }, [detectedSlug]);
 
   // Fetch accessible casinos
   useEffect(() => {
@@ -179,28 +199,31 @@ export const CasinoProvider = ({ children }: { children: ReactNode }) => {
 
   // Resolve active casino from slug or primary
   useEffect(() => {
-    if (loading || accessibleCasinos.length === 0) return;
+    if (loading) return;
 
     if (isSummaryMode) {
       setActiveCasinoId(null);
       return;
     }
 
-    if (detectedSlug && detectedSlug !== "__premier__" && detectedSlug !== "__landing__") {
-      const matched = accessibleCasinos.find(c => c.slug === detectedSlug);
-      if (matched) {
-        setActiveCasinoId(matched.id);
+    // Subdomain ALWAYS wins — never show data from a different casino than the
+    // subdomain the user is on, even if they lack access (RLS will deny then).
+    if (detectedSlug && detectedSlug !== "__premier__" && detectedSlug !== "__landing__" && detectedSlug !== "__club__") {
+      if (subdomainCasino) {
+        setActiveCasinoId(subdomainCasino.id);
         return;
       }
+      // Subdomain detected but lookup pending — wait, don't fallback.
+      return;
     }
 
-    // Fallback to primary casino
+    // No subdomain (localhost / IP): fallback to primary casino
     if (primaryCasinoId) {
       setActiveCasinoId(primaryCasinoId);
     } else if (accessibleCasinos.length > 0) {
       setActiveCasinoId(accessibleCasinos[0].id);
     }
-  }, [loading, accessibleCasinos, detectedSlug, primaryCasinoId, isSummaryMode]);
+  }, [loading, accessibleCasinos, detectedSlug, primaryCasinoId, isSummaryMode, subdomainCasino]);
 
   const switchCasino = useCallback((casinoId: string | null) => {
     setActiveCasinoId(casinoId);
