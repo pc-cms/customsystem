@@ -40,6 +40,7 @@ export const DEFAULT_CHIP_HEX: Record<number, ChipColors> = {
   500_000:    { bg: "#0D9488", edge: "#FFFFFF", text: "#FFFFFF" }, // teal-600
   1_000_000:  { bg: "#FBBF24", edge: "#000000", text: "#000000" }, // amber-400
   5_000_000:  { bg: "#BE123C", edge: "#FFFFFF", text: "#FFFFFF" }, // rose-700
+  10_000_000: { bg: "#4338CA", edge: "#FFFFFF", text: "#FFFFFF" }, // indigo-700
 };
 
 export const useChipColors = () => {
