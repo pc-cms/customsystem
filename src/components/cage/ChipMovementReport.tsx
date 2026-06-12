@@ -16,7 +16,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { CHIP_DENOMS, formatNumberSpaces } from "@/lib/currency";
-import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
+import { useChipColors, resolveChipColor, useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { fmtDate } from "@/lib/format-date";
 import type { Tables } from "@/integrations/supabase/types";
 
