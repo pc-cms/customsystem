@@ -64,6 +64,9 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
   const reopenSingle = useReopenSingleTable();
   const closeAll = useCloseAllTables();
   const setTrackerValue = useSetTableTrackerValue();
+  const visibleCasinoDenoms = useVisibleChipDenoms();
+  const visibleSet = useMemo(() => new Set(visibleCasinoDenoms), [visibleCasinoDenoms]);
+  const tableDenoms = (table: GamingTable) => (table.denominations || []).filter(d => visibleSet.has(d));
 
   // Reset cursor when wizard opens
   useEffect(() => {
