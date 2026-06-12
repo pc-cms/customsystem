@@ -35,7 +35,7 @@ export const CASH_DENOMS: Record<string, number[]> = {
 // Non-TZS currencies (for exchange rate inputs)
 export const FOREIGN_CURRENCIES = CURRENCIES.filter(c => c !== "TZS");
 
-export const CHIP_DENOMS = [5_000_000, 1_000_000, 500_000, 100_000, 50_000, 25_000, 10_000, 5_000, 2_000, 1_000, 500] as const;
+export const CHIP_DENOMS = [10_000_000, 5_000_000, 1_000_000, 500_000, 100_000, 50_000, 25_000, 10_000, 5_000, 2_000, 1_000, 500] as const;
 
 export const CHIP_COLORS: Record<number, string> = {
   500: "bg-red-600 text-white",
@@ -49,6 +49,7 @@ export const CHIP_COLORS: Record<number, string> = {
   500_000: "bg-teal-600 text-white",
   1_000_000: "bg-amber-400 text-black",
   5_000_000: "bg-rose-700 text-white",
+  10_000_000: "bg-indigo-700 text-white",
 };
 
 export const formatChipLabel = (value: number): string => {
