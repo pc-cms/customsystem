@@ -49,6 +49,12 @@ export const PlayerNameAutocomplete = ({ value, onChange, placeholder, disabled,
     refetchInterval: 30_000,
   });
 
+  const [open, setOpen] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
+  const [dropUp, setDropUp] = useState(false);
+
   const players = useMemo(() => {
     if (!inCasinoOnly) return allPlayers as any[];
     const presentIds = new Set(
