@@ -69,7 +69,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/bank-checks", icon: CreditCard, label: "Bank", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
   // Unified Cashless & Transfers — single page each; source filter (Live/Slots) for managers, locked to role for cashiers.
   { to: "/cashless", icon: CreditCard, label: "Cashless", roles: ["super_admin", "manager", "floor_manager", "cashier", "cashier_slots", "finance_manager"], section: "CASHIER" },
-  { to: "/transfers", icon: ArrowLeftRight, label: "Transfers", roles: ["super_admin", "manager", "floor_manager", "cashier", "cashier_slots", "finance_manager"], section: "CASHIER" },
+  { to: "/transfers", icon: ArrowLeftRight, label: "Transfers", roles: ["super_admin", "manager", "floor_manager", "cashier_slots", "finance_manager"], section: "CASHIER" },
   // Unified Expenses — single page; source filter (Live/Slots/Office) for managers, locked to role for cashiers.
   { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "cashier", "cashier_slots"], section: "CASHIER" },
   { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
