@@ -891,58 +891,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             </>
           )}
 
-          {true && (
-            <PageSection title="Cashless Transactions for this Shift">
-              {/* Grey per-provider hint: signed net totals already recorded in this shift. */}
-              {Object.keys(cashlessByProvider).length > 0 && (
-                <div className="mb-2 text-[11px] text-muted-foreground font-mono flex flex-wrap gap-x-3 gap-y-1">
-                  {(["MPESA","AIRTEL","TIGO","HALOTEL"] as const).map(p => {
-                    const v = cashlessByProvider[p];
-                    if (!v) return null;
-                    return (
-                      <span key={p}>
-                        {p}: <span className={v < 0 ? "cms-amount-negative" : ""}>{v < 0 ? "−" : ""}{formatNumberSpaces(Math.abs(v))}</span>
-                      </span>
-                    );
-                  })}
-                </div>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-2 mb-3 items-end">
-                <select value={clDirection} onChange={e => setClDirection(e.target.value as any)} className="h-9 rounded border border-border bg-background px-2 text-sm">
-                  <option value="IN">IN</option>
-                  <option value="OUT">OUT</option>
-                </select>
-                <select value={clProvider} onChange={e => setClProvider(e.target.value as any)} className="h-9 rounded border border-border bg-background px-2 text-sm">
-                  <option value="MPESA">MPESA</option>
-                  <option value="AIRTEL">AIRTEL</option>
-                  <option value="TIGO">TIGO</option>
-                  <option value="HALOTEL">HALOTEL</option>
-                </select>
-                <Input placeholder="Player / name" value={clName} onChange={e => setClName(e.target.value)} className="h-9" />
-                <NumberInput placeholder="Amount" value={clAmount || ""} onChange={v => setClAmount(Number(v) || 0)} className="no-spin h-9 text-right font-mono" />
-                <Input placeholder="Ref" value={clRef} onChange={e => setClRef(e.target.value)} className="h-9" />
-                <Button onClick={submitCashless} size="sm" className="h-9">Add</Button>
-              </div>
-              <table className="w-full text-xs">
-                <thead className="text-muted-foreground border-b border-border">
-                  <tr><th className="text-left py-1.5">When</th><th>Dir</th><th>Provider</th><th className="text-left">Player</th><th className="text-right">Amount</th><th>Ref</th></tr>
-                </thead>
-                <tbody>
-                  {cashless.length === 0 && <tr><td colSpan={6} className="text-center text-muted-foreground py-3">·</td></tr>}
-                  {cashless.map((t: any) => (
-                    <tr key={t.id} className="border-b border-border/50">
-                      <td className="py-1.5">{fmtDateTime(t.created_at)}</td>
-                      <td className="text-center"><Badge variant={t.direction === "IN" ? "default" : "secondary"}>{t.direction}</Badge></td>
-                      <td className="text-center">{t.provider}</td>
-                      <td>{t.player_name}</td>
-                      <td className="text-right font-mono">{formatNumberSpaces(t.amount)}</td>
-                      <td className="text-center text-muted-foreground">{t.reference || "·"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </PageSection>
-          )}
+          {/* Cashless transactions moved to dedicated /cashless page in the sidebar */}
 
           {/* Transfers form moved to dedicated /transfers page in the sidebar */}
         </div>
