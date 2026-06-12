@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateChipEmission, useChipEmissions } from "@/hooks/use-chip-conservation";
 import { CHIP_DENOMS, formatChipLabel, formatNumberSpaces } from "@/lib/currency";
+import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import ChipToken from "@/components/ChipToken";
 import { Plus, AlertTriangle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,6 +20,7 @@ export const ChipEmissionDialog = ({ trigger }: { trigger?: React.ReactNode }) =
   const [reason, setReason] = useState("");
   const create = useCreateChipEmission();
   const { data: history = [] } = useChipEmissions();
+  const visibleDenoms = useVisibleChipDenoms();
 
   const handleSubmit = async () => {
     const denom = Number(denomination);
@@ -62,7 +64,7 @@ export const ChipEmissionDialog = ({ trigger }: { trigger?: React.ReactNode }) =
             <Select value={denomination} onValueChange={setDenomination}>
               <SelectTrigger><SelectValue placeholder="Select denomination" /></SelectTrigger>
               <SelectContent>
-                {CHIP_DENOMS.map((d) => (
+                {visibleDenoms.map((d) => (
                   <SelectItem key={d} value={String(d)}>{formatChipLabel(d)}</SelectItem>
                 ))}
               </SelectContent>

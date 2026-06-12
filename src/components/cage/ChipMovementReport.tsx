@@ -16,7 +16,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { CHIP_DENOMS, formatNumberSpaces } from "@/lib/currency";
-import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
+import { useChipColors, resolveChipColor, useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { fmtDate } from "@/lib/format-date";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -137,6 +137,7 @@ const DenomTable = ({ title, data, total, signed }: {
   signed?: boolean;
 }) => {
   const { data: chipColorOverrides } = useChipColors();
+  const visibleDenoms = useVisibleChipDenoms();
   const fmtQty = (q: number) => {
     if (!q) return "";
     return signed && q !== 0 ? `${q > 0 ? "+" : ""}${q}` : String(q);
@@ -166,7 +167,7 @@ const DenomTable = ({ title, data, total, signed }: {
           </tr>
         </thead>
         <tbody>
-          {CHIP_DENOMS.map(d => {
+          {visibleDenoms.map(d => {
             const q = data[d] || 0;
             const v = q * d;
             const c = resolveChipColor(d, chipColorOverrides);

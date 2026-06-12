@@ -6,6 +6,7 @@ import ShiftClosingReport from "@/components/cage/ShiftClosingReport";
 import ChipMovementReport from "@/components/cage/ChipMovementReport";
 import PrintPortal from "@/components/cage/PrintPortal";
 import { CHIP_DENOMS, formatCurrency, formatChipLabel, formatNumberSpaces, formatCashDenomLabel, CURRENCIES, CASH_DENOMS, CURRENCY_SYMBOLS } from "@/lib/currency";
+import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import ChipToken from "@/components/ChipToken";
 import { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
@@ -83,6 +84,7 @@ const CloseShiftDialog = ({
   const [notes, setNotes] = useState(persisted?.notes || "");
   const [showManagerConfirm, setShowManagerConfirm] = useState(false);
   const batchSnapshot = useBatchChipSnapshot();
+  const visibleDenoms = useVisibleChipDenoms();
 
   const [chipCounts, setChipCounts] = useState<Record<number, number>>(persisted?.chipCounts || {});
   const [cashCounts, setCashCounts] = useState<Record<string, Record<number, number>>>(persisted?.cashCounts || emptyCash);
@@ -723,7 +725,7 @@ const CloseShiftDialog = ({
               </tr>
             </thead>
             <tbody>
-              {CHIP_DENOMS.map(d => {
+              {visibleDenoms.map(d => {
                 const op = openingChips[d] || 0;
                 const cl = chipCounts[d] || 0;
                 const mq = missPerDenom[d] || 0;

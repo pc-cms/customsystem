@@ -4,7 +4,7 @@
  */
 import { useRef, useCallback, type CSSProperties } from "react";
 import { CHIP_DENOMS, formatChipLabel, formatNumberSpaces } from "@/lib/currency";
-import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
+import { useChipColors, resolveChipColor, useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 
 type Size = "sm" | "md" | "lg";
 
@@ -32,7 +32,7 @@ const SIZE_TOKENS: Record<Size, { inputH: string; inputText: string; chipClass: 
 const ChipDenomInput = ({
   values,
   onChange,
-  denoms = CHIP_DENOMS,
+  denoms,
   showValue = true,
   placeholder,
   onSubmit,
@@ -41,6 +41,8 @@ const ChipDenomInput = ({
 }: Props) => {
   const inputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const { data: colorOverrides } = useChipColors();
+  const visibleDenoms = useVisibleChipDenoms();
+  const effectiveDenoms = denoms ?? visibleDenoms;
   const tokens = SIZE_TOKENS[size];
 
   const handleChange = useCallback((denom: number, raw: string) => {
@@ -52,11 +54,11 @@ const ChipDenomInput = ({
   const handleKeyDown = useCallback((e: React.KeyboardEvent, idx: number) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      const nextDenom = denoms[idx + 1];
+      const nextDenom = effectiveDenoms[idx + 1];
       if (nextDenom !== undefined) inputRefs.current[nextDenom]?.focus();
       else onSubmit?.();
     }
-  }, [denoms, onSubmit]);
+  }, [effectiveDenoms, onSubmit]);
 
   const total = Object.entries(values).reduce((s, [d, c]) => s + Number(d) * (c || 0), 0);
 
@@ -66,7 +68,7 @@ const ChipDenomInput = ({
 
   // Column-major flow: with 2 cols and N denoms, first column gets ceil(N/2) items
   // (5M, 1M, 500K, 100K, 50K, 25K), second column gets the rest.
-  const rowsPerCol = Math.ceil(denoms.length / columns);
+  const rowsPerCol = Math.ceil(effectiveDenoms.length / columns);
   const gridStyle: React.CSSProperties | undefined = columns > 1
     ? { gridTemplateRows: `repeat(${rowsPerCol}, minmax(0, auto))`, gridAutoFlow: "column" }
     : undefined;
@@ -75,7 +77,7 @@ const ChipDenomInput = ({
   return (
     <div>
       <div className={`grid gap-x-3 gap-y-1 ${gridColsClass}`} style={gridStyle}>
-        {denoms.map((d, idx) => {
+        {effectiveDenoms.map((d, idx) => {
           const val = values[d] || 0;
           const chipValue = val * d;
           const color = resolveChipColor(d, colorOverrides);
