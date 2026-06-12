@@ -77,15 +77,24 @@ export const useCashlessSuggestions = (
         .eq("cage_type", cageType)
         .eq("business_date", businessDate);
       if (error) throw error;
+      // Provider codes in cashless_transactions are UPPERCASE
+      // (AIRTEL/MPESA/TIGO/HALOTEL) but cashier per-provider grid is keyed
+      // by display names (AirTel/Mpesa/Tigo/Halo) — normalize so hints
+      // line up with the grid rows and the manual override fields.
+      const NORMALIZE: Record<string, string> = {
+        AIRTEL: "AirTel", MPESA: "Mpesa", TIGO: "Tigo", HALOTEL: "Halo",
+      };
       const acc = { in: {} as Record<string, number>, out: {} as Record<string, number>, net: {} as Record<string, number> };
       (data || []).forEach((r: { provider: string; direction: string; amount: number | string }) => {
         const amt = Number(r.amount) || 0;
-        if (r.direction === "IN") acc.in[r.provider] = (acc.in[r.provider] || 0) + amt;
-        else acc.out[r.provider] = (acc.out[r.provider] || 0) + amt;
+        const key = NORMALIZE[r.provider] || r.provider;
+        if (r.direction === "IN") acc.in[key] = (acc.in[key] || 0) + amt;
+        else acc.out[key] = (acc.out[key] || 0) + amt;
       });
       const providers = new Set([...Object.keys(acc.in), ...Object.keys(acc.out)]);
       providers.forEach(p => { acc.net[p] = (acc.in[p] || 0) - (acc.out[p] || 0); });
       return acc;
+
     },
     enabled: !!casinoId && !!businessDate,
     staleTime: 1000 * 30,
