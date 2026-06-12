@@ -1232,9 +1232,9 @@ const CashlessProvidersBlock = ({
   const inputBase = "no-spin font-mono text-sm h-8 w-24 flex-1 min-w-0 rounded border border-border bg-background px-2 text-right focus:outline-none focus:ring-1 focus:ring-primary";
 
   // One-shot prefill of suggestions into empty rows + per-row "still gray" tracking.
-  const [prefilled, setPrefilled] = React.useState<Set<string>>(new Set());
-  const initRef = React.useRef(false);
-  React.useEffect(() => {
+  const [prefilled, setPrefilled] = useState<Set<string>>(new Set());
+  const initRef = useRef(false);
+  useEffect(() => {
     if (initRef.current || disabled || !suggestions) return;
     const hasAny = MOBILE_PROVIDERS.some(p => Number(suggestions[p]) > 0);
     if (!hasAny) return;
