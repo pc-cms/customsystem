@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, CheckCircle2, ShieldAlert, Lock, ArrowLeft, Printer } from "lucide-react";
@@ -223,6 +223,27 @@ const CloseShiftDialog = ({
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
   const { data: cashlessSug } = useCashlessSuggestions(businessDate, "live_game");
+
+  // Pre-fill Cashless IN/OUT/Balance from /cashless transactions when cashier
+  // hasn't entered anything yet. They can still override any provider value.
+  const prefilledRef = useRef(false);
+  useEffect(() => {
+    if (prefilledRef.current || !cashlessSug) return;
+    const merge = (cur: MobileProviders, sug?: Partial<Record<string, number>>): MobileProviders => {
+      if (!sug) return cur;
+      const next = { ...cur };
+      let touched = false;
+      for (const p of Object.keys(sug)) {
+        const s = Number(sug[p]) || 0;
+        if (s && !Number(cur[p as keyof MobileProviders])) { (next as any)[p] = s; touched = true; }
+      }
+      return touched ? next : cur;
+    };
+    setCashlessIn(prev => merge(prev, cashlessSug.in));
+    setCashlessOut(prev => merge(prev, cashlessSug.out));
+    setMobileBal(prev => merge(prev, cashlessSug.net));
+    prefilledRef.current = true;
+  }, [cashlessSug]);
 
   const handleManagerConfirmed = (managerId: string) => {
     setShowManagerConfirm(false);
