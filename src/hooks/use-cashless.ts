@@ -143,6 +143,7 @@ export const useCreateCashless = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["cashless"] });
+      qc.invalidateQueries({ queryKey: ["cashless-suggestions"] });
       qc.invalidateQueries({ queryKey: ["cage-slots-cashless"] });
     },
     onError: (e: any) => toast.error(e.message),

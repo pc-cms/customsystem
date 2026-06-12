@@ -9,7 +9,6 @@ import {
   useCashless, useCreateCashless, useApproveCashless,
   type CashlessDirection, type CashlessProvider, type CashlessSource,
 } from "@/hooks/use-cashless";
-import { useActiveShift } from "@/hooks/use-shift";
 import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,8 @@ import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
-import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
+import PlayerSearch from "@/components/cage/PlayerSearch";
+import { usePlayers } from "@/hooks/use-players";
 import { formatCurrency } from "@/lib/currency";
 
 const PROVIDERS: { value: CashlessProvider; label: string }[] = [
@@ -39,6 +39,7 @@ interface DraftRow {
   uid: string;
   direction: CashlessDirection;
   provider: CashlessProvider | "";
+  player_id: string;
   player_name: string;
   amount: string;
   reference: string;
@@ -48,6 +49,7 @@ const newDraft = (): DraftRow => ({
   uid: Math.random().toString(36).slice(2),
   direction: "IN",
   provider: "",
+  player_id: "",
   player_name: "",
   amount: "",
   reference: "",
@@ -76,8 +78,8 @@ const Cashless = () => {
   const isToday = viewDate === businessDate;
   const { data: rows = [] } = useCashless(viewDate, source);
 
-  const { data: liveShift } = useActiveShift();
   const { data: slotsShift } = useActiveCageSlotsShift();
+  const { data: players = [] } = usePlayers();
 
   const create = useCreateCashless();
   const approve = useApproveCashless();
@@ -100,7 +102,12 @@ const Cashless = () => {
     const row = drafts.find(r => r.uid === uid);
     if (!row) return;
     if (!row.provider) return toast.error("Choose provider");
-    if (!row.player_name.trim()) return toast.error("Enter player name");
+    if (!row.player_id) return toast.error("Choose player");
+    const player = players.find((p: any) => p.id === row.player_id);
+    const playerName = player
+      ? `${player.first_name || ""} ${player.last_name || ""}`.trim()
+      : row.player_name.trim();
+    if (!playerName) return toast.error("Choose player");
     const amt = Number(row.amount);
     if (!amt || amt <= 0) return toast.error("Amount must be > 0");
     if (writeSource === "slots" && !slotsShift?.id) {
@@ -110,7 +117,8 @@ const Cashless = () => {
       await create.mutateAsync({
         direction: row.direction,
         provider: row.provider as CashlessProvider,
-        player_name: row.player_name.trim(),
+        player_id: row.player_id,
+        player_name: playerName,
         amount: amt,
         reference: row.reference,
         business_date: businessDate,
@@ -252,10 +260,17 @@ const Cashless = () => {
                   </Select>
                 </td>
                 <td className="px-2 py-1.5">
-                  <PlayerNameAutocomplete
+                  <PlayerSearch
+                    players={players as any[]}
                     placeholder="Search any player"
-                    value={d.player_name}
-                    onChange={v => updateDraft(d.uid, { player_name: v })}
+                    value={d.player_id}
+                    onChange={id => {
+                      const player = (players as any[]).find(p => p.id === id);
+                      updateDraft(d.uid, {
+                        player_id: id,
+                        player_name: player ? `${player.first_name || ""} ${player.last_name || ""}`.trim() : "",
+                      });
+                    }}
                   />
 
                 </td>
