@@ -6,6 +6,7 @@
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import ChipToken from "@/components/ChipToken";
 import { CURRENCIES, CASH_DENOMS, CHIP_DENOMS, formatCurrency, formatNumberSpaces, formatCashDenomLabel, CURRENCY_SYMBOLS } from "@/lib/currency";
+import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { MOBILE_PROVIDERS } from "@/components/cage/CageHelpers";
 import type { Tables } from "@/integrations/supabase/types";
 
