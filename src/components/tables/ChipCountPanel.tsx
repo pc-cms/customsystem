@@ -6,7 +6,7 @@ import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useGamingTables, useSetTableTrackerValue, useBatchSetTableTrackerValue, useTableTracker } from "@/hooks/use-casino-data";
 import { CHIP_DENOMS, formatChipLabel, formatCurrency } from "@/lib/currency";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
+import { useChipColors, resolveChipColor, useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { nowEAT } from "@/lib/business-day";
 import { chipSnapshotResult } from "@/lib/table-live-result";
 import { useShiftTableAdjustments } from "@/hooks/use-shift-table-adjustments";
@@ -68,15 +68,18 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     [tables, tablesWithSnap]
   );
 
+  const visibleCasinoDenoms = useVisibleChipDenoms();
+  const visibleSet = useMemo(() => new Set(visibleCasinoDenoms), [visibleCasinoDenoms]);
+
   const countLocations = useMemo(() => {
     return openTables.map(t => ({
       key: `table-${t.id}`,
       label: t.name,
       type: "table" as const,
       id: t.id,
-      denoms: t.denominations || [],
+      denoms: (t.denominations || []).filter(d => visibleSet.has(d)),
     }));
-  }, [openTables]);
+  }, [openTables, visibleSet]);
 
   const latestSnapshotPerTable = useMemo(() => {
     const map: Record<string, { actual: Record<number, number>; expected: Record<number, number> }> = {};

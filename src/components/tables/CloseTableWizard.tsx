@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Lock, ChevronLeft, ChevronRight, ShieldAlert, X } from "lucide-react";
 import { formatChipLabel, formatCurrency } from "@/lib/currency";
 import ChipToken from "@/components/ChipToken";
-import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
+import { useChipColors, resolveChipColor, useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { useChipBaseline, useSetSingleTableResult, useReopenSingleTable, useCloseAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useChipSnapshots } from "@/hooks/use-chips";
 import { useSetTableTrackerValue } from "@/hooks/use-casino-data";
@@ -64,6 +64,9 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
   const reopenSingle = useReopenSingleTable();
   const closeAll = useCloseAllTables();
   const setTrackerValue = useSetTableTrackerValue();
+  const visibleCasinoDenoms = useVisibleChipDenoms();
+  const visibleSet = useMemo(() => new Set(visibleCasinoDenoms), [visibleCasinoDenoms]);
+  const tableDenoms = (table: GamingTable) => (table.denominations || []).filter(d => visibleSet.has(d));
 
   // Reset cursor when wizard opens
   useEffect(() => {
@@ -90,7 +93,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
     const tableBaseline = baselineMap[table.id] || {};
     const snap = latestSnapshotPerTable[table.id] || {};
     const draft = (table.closing_chips || {}) as Record<string, number>;
-    (table.denominations || []).forEach(d => {
+    tableDenoms(table).forEach(d => {
       if (draft[String(d)] !== undefined) out[d] = Number(draft[String(d)]);
       else if (snap[d] !== undefined) out[d] = snap[d];
       else out[d] = tableBaseline[d] || 0;
@@ -113,7 +116,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
   const calcResult = (table: GamingTable, c: Record<number, number>): number => {
     const tb = baselineMap[table.id] || {};
     let total = 0;
-    (table.denominations || []).forEach(d => {
+    tableDenoms(table).forEach(d => {
       const expected = tb[d] || 0;
       const actual = c[d] ?? 0;
       total += (actual - expected) * d;
@@ -130,7 +133,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
     const tb = baselineMap[current.id] || {};
     const chipMap: Record<string, number> = {};
     const snapshotRows: any[] = [];
-    (current.denominations || []).forEach(d => {
+    tableDenoms(current).forEach(d => {
       const expected = tb[d] || 0;
       const actual = currentCounts[d] ?? 0;
       chipMap[String(d)] = actual;
@@ -292,7 +295,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
               </tr>
             </thead>
             <tbody>
-              {[...(current.denominations || [])].sort((a, b) => b - a).map(d => {
+              {[...tableDenoms(current)].sort((a, b) => b - a).map(d => {
                 const expected = tableBaseline[d] || 0;
                 const actual = currentCounts[d] ?? 0;
                 const diff = (actual - expected) * d;
