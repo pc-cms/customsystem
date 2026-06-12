@@ -101,6 +101,71 @@ export const useChipColors = () => {
   });
 };
 
+/**
+ * Per-casino denomination visibility. A denom is visible when no row exists
+ * (default) OR `is_visible` is true. Hidden when explicitly set to false.
+ */
+export const useChipVisibility = () => {
+  const { casinoId } = useAuth();
+  return useQuery({
+    queryKey: ["chip_visibility", casinoId],
+    queryFn: async (): Promise<Record<number, boolean>> => {
+      if (!casinoId) return {};
+      const { data, error } = await supabase
+        .from("chip_color_settings")
+        .select("denomination, is_visible")
+        .eq("casino_id", casinoId);
+      if (error) throw error;
+      const map: Record<number, boolean> = {};
+      (data || []).forEach((r: any) => {
+        map[Number(r.denomination)] = r.is_visible !== false;
+      });
+      return map;
+    },
+    enabled: !!casinoId,
+    staleTime: 30_000,
+  });
+};
+
+/** CHIP_DENOMS filtered by current casino visibility (descending order). */
+export const useVisibleChipDenoms = (): readonly number[] => {
+  const { data: vis } = useChipVisibility();
+  if (!vis) return CHIP_DENOMS;
+  return CHIP_DENOMS.filter(d => vis[d] !== false);
+};
+
+export const useUpsertChipVisibility = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async (input: { denomination: number; is_visible: boolean }) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      const def = DEFAULT_CHIP_HEX[input.denomination] || { bg: "#6B7280", edge: "#FFFFFF", text: "#FFFFFF" };
+      const { error } = await supabase
+        .from("chip_color_settings")
+        .upsert(
+          {
+            casino_id: casinoId,
+            denomination: input.denomination,
+            bg_color: def.bg,
+            edge_color: def.edge,
+            text_color: def.text,
+            is_visible: input.is_visible,
+            updated_by: user.id,
+          },
+          { onConflict: "casino_id,denomination" },
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chip_color_settings", casinoId] });
+      qc.invalidateQueries({ queryKey: ["chip_visibility", casinoId] });
+      toast.success("Chip visibility updated");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+};
+
 /** Resolve color for a denomination, with override → default fallback. */
 export const resolveChipColor = (
   denom: number,
