@@ -205,35 +205,10 @@ const CloseShiftDialog = ({
     return () => { cancelled = true; };
   }, [shift?.id]);
 
-  // Cashless IN / OUT for this shift's business day (live-game cage).
-  const [cashlessTotals, setCashlessTotals] = useState({ in: 0, out: 0 });
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!shift?.casino_id || !shift?.opened_at) { setCashlessTotals({ in: 0, out: 0 }); return; }
-      // Live game = single shift per business day; the shift's business
-      // date is the date of opened_at in EAT (07:00 rollover).
-      const opened = new Date(shift.opened_at);
-      const eat = new Date(opened.getTime() + 3 * 60 * 60 * 1000);
-      if (eat.getUTCHours() < 7) eat.setUTCDate(eat.getUTCDate() - 1);
-      const bday = eat.toISOString().slice(0, 10);
-      const { data } = await (supabase as any)
-        .from("cashless_transactions")
-        .select("amount, direction, status, cage_type")
-        .eq("casino_id", shift.casino_id)
-        .eq("business_date", bday)
-        .in("status", ["recorded", "approved"]);
-      if (cancelled) return;
-      let cIn = 0, cOut = 0;
-      for (const r of (data || [])) {
-        if (r.cage_type && r.cage_type !== "live_game") continue;
-        const a = Number(r.amount || 0);
-        if (String(r.direction || "").toUpperCase() === "IN") cIn += a;
-        else if (String(r.direction || "").toUpperCase() === "OUT") cOut += a;
-      }
-      setCashlessTotals({ in: cIn, out: cOut });
-    })();
-  }, [shift?.id, shift?.casino_id, shift?.opened_at]);
+  // Cashless IN / OUT come from the cashier's manual per-provider entries.
+  // /cashless transactions are only a grey-placeholder hint in the UI.
+  const cashlessInTzs = useMemo(() => mobileTotal(cashlessIn), [cashlessIn]);
+  const cashlessOutTzs = useMemo(() => mobileTotal(cashlessOut), [cashlessOut]);
 
   const { cashDeskResult, shiftBalance: balance } = useMemo(
     () => computeShiftBalance({
@@ -244,16 +219,17 @@ const CloseShiftDialog = ({
       addFloat: floatAdded,
       slotsIn,
       slotsOut,
-      cashlessIn: cashlessTotals.in,
-      cashlessOut: cashlessTotals.out,
+      cashlessIn: cashlessInTzs,
+      cashlessOut: cashlessOutTzs,
       miss: balanceMissTotal,
       tablesResult: resultTable,
       tips: tipsTotal,
     }),
     [openingCashEffective, closingCashEffective, totalExpenses, collectionTotal,
-     floatAdded, slotsIn, slotsOut, cashlessTotals.in, cashlessTotals.out,
+     floatAdded, slotsIn, slotsOut, cashlessInTzs, cashlessOutTzs,
      balanceMissTotal, resultTable, tipsTotal],
   );
+
 
   const isBalanced = balance === 0;
   const requiresNote = !isBalanced;
