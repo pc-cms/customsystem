@@ -311,6 +311,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         mobile: mobileBlock,
         cashless_in_providers: cashlessInProviders,
         cashless_out_providers: cashlessOutProviders,
+        cashless_final_providers: cashlessFinalProviders,
         cards: { count: closingCards, value_tzs: cardDepositTzs },
         rateMap,
         totals: {
@@ -779,7 +780,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                   tone="in"
                   values={cashlessInProviders}
                   onChange={setCashlessInProviders}
-                  onBlur={() => saveCashlessProviders("cashless_in_providers", cashlessInProviders)}
+                  onBlur={(value) => saveCashlessProviders("cashless_in_providers", value || cashlessInProviders)}
                   disabled={shift.status !== "open"}
                   suggestions={cashlessSug?.in}
                 />
@@ -788,7 +789,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                   tone="out"
                   values={cashlessOutProviders}
                   onChange={setCashlessOutProviders}
-                  onBlur={() => saveCashlessProviders("cashless_out_providers", cashlessOutProviders)}
+                  onBlur={(value) => saveCashlessProviders("cashless_out_providers", value || cashlessOutProviders)}
                   disabled={shift.status !== "open"}
                   suggestions={cashlessSug?.out}
                 />
@@ -801,11 +802,12 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                     const total = mobileTotal(v);
                     setCashlessFinalInput(String(total));
                   }}
-                  onBlur={async () => {
-                    await saveCashlessProviders("cashless_final_providers", cashlessFinalProviders);
+                  onBlur={async (value) => {
+                    const next = value || cashlessFinalProviders;
+                    await saveCashlessProviders("cashless_final_providers", next);
                     await supabase
                       .from("cage_slots_shifts")
-                      .update({ cashless_final: Number(cashlessFinalInput) || 0 } as any)
+                      .update({ cashless_final: mobileTotal(next) } as any)
                       .eq("id", shift.id);
                   }}
                   disabled={shift.status !== "open"}
@@ -1212,7 +1214,7 @@ const CashlessProvidersBlock = ({
   values: MobileProviders;
   onChange: (v: MobileProviders) => void;
   disabled?: boolean;
-  onBlur?: () => void;
+  onBlur?: (value?: MobileProviders) => void;
   tone?: "default" | "in" | "out" | "final";
   /** Gray placeholder per provider (e.g. /cashless sum for this business day). */
   suggestions?: Partial<Record<string, number>>;
@@ -1242,7 +1244,7 @@ const CashlessProvidersBlock = ({
       }
     });
     onChange(next);
-    onBlur?.();
+    onBlur?.(next);
   };
 
   return (
@@ -1270,7 +1272,7 @@ const CashlessProvidersBlock = ({
               <NumberInput
                 value={values[provider] || ""}
                 onChange={v => onChange({ ...values, [provider]: Number(v) || 0 })}
-                onBlur={onBlur}
+                onBlur={() => onBlur?.(values)}
                 className={input}
                 placeholder={placeholder}
                 disabled={disabled}

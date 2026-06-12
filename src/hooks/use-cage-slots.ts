@@ -620,6 +620,10 @@ export const useSubmitSlotsForReview = () => {
           status: "ready_for_review",
           submitted_at: new Date().toISOString(),
           cashier_note: input.cashier_note || null,
+          cashless_in_providers: input.closing_denominations.cashless_in_providers || {},
+          cashless_out_providers: input.closing_denominations.cashless_out_providers || {},
+          cashless_final_providers: input.closing_denominations.cashless_final_providers || {},
+          cashless_final: Number(input.closing_denominations.totals?.cashless_final) || 0,
         } as any)
         .eq("id", input.shift_id);
       if (error) throw error;
