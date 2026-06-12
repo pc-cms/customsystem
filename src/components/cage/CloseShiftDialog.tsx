@@ -591,8 +591,8 @@ const CloseShiftDialog = ({
                 <KpiTile label="Cash Desk Result" value={cashDeskResult} tone={cashDeskResult >= 0 ? "pos" : "neg"} />
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 italic">
-                Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn.
-                Shift Balance = Cash Desk Result − Tables Result − Miss − Tips. Must be zero.
+                Cash Desk Result = ΔCash(cash+bank) + Expenses + Collection − AddFloat + SlotsOut − SlotsIn + Cashless IN − Cashless OUT.
+                Shift Balance = Cash Desk Result − Tables Result − Miss. Must be zero.
               </p>
             </div>
 
