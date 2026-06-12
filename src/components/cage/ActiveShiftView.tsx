@@ -665,10 +665,14 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, bu
       denominations: {
         chips: chipCounts, cash,
         bank: bankBal, mobile: mobileBal,
+        cashless_in_providers: cashlessIn,
+        cashless_out_providers: cashlessOut,
         totals: {
           chips_tzs: chipSum(chipCounts),
           ...Object.fromEntries(CURRENCIES.map(c => [c, cashSum(cash[c] || {})])),
           bank: bankBal, mobile: mobileBal,
+          cashless_in: mobileTotal(cashlessIn),
+          cashless_out: mobileTotal(cashlessOut),
           expected: expectedBalance,
           counted: totalTzs,
           difference,
@@ -685,7 +689,9 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, bu
         <CashCountGrid chips={chipCounts} onChipsChange={setChipCounts} cash={cash}
           onCashChange={(cur, v) => setCash(c => ({ ...c, [cur]: v }))} banks={bankBal} onBanksChange={setBankBal}
           mobile={mobileBal} onMobileChange={setMobileBal} rates={exchangeRates}
-          mobileSuggestion={cashlessSug?.net} />
+          mobileSuggestion={cashlessSug?.net}
+          cashlessIn={cashlessIn} onCashlessInChange={setCashlessIn} cashlessInSuggestion={cashlessSug?.in}
+          cashlessOut={cashlessOut} onCashlessOutChange={setCashlessOut} cashlessOutSuggestion={cashlessSug?.out} />
 
         <div className="grid grid-cols-3 gap-2 pt-3 mt-3 border-t border-border">
           <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Expected</p><p className="font-mono text-xl font-bold text-card-foreground">{formatCurrency(expectedBalance)}</p></div>
