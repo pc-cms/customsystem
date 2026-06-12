@@ -116,7 +116,7 @@ const Reports = () => {
       <MoneyModeProvider value={mode}>
       <Tabs defaultValue={initialTab} className="space-y-3">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="daily" className="gap-1 text-xs"><CalendarDays className="w-3.5 h-3.5" /> Daily diff</TabsTrigger>
+          <TabsTrigger value="daily" className="gap-1 text-xs"><CalendarDays className="w-3.5 h-3.5" /> Daily Balance</TabsTrigger>
           <TabsTrigger value="total" className="gap-1 text-xs"><BarChart3 className="w-3.5 h-3.5" /> Total</TabsTrigger>
           <TabsTrigger value="shifts" className="gap-1 text-xs"><Landmark className="w-3.5 h-3.5" /> Shifts</TabsTrigger>
           <TabsTrigger value="live" className="gap-1 text-xs"><Landmark className="w-3.5 h-3.5" /> Live Game</TabsTrigger>
@@ -742,7 +742,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <div className="cms-panel p-2">
           <p className="uppercase text-muted-foreground tracking-wider text-[10px]">Days</p>
           <p className="font-mono text-sm font-bold text-card-foreground">{rows.length}</p>
@@ -751,9 +751,6 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
           { label: "Drop", value: fmt(totals.drop), cls: "text-card-foreground" },
           { label: "Table Result", value: fmt(totals.result), cls: signCls(totals.result) },
           { label: "Hold %", value: fmtHold(totals.hold), cls: "text-card-foreground" },
-          { label: "Player Result", value: fmt(totals.playerResult), cls: signCls(totals.playerResult) },
-          { label: "Chip Difference", value: fmt(totals.miss), cls: signCls(totals.miss) },
-          { label: "Gaming Balance", value: fmt(totals.balance), cls: signCls(totals.balance) },
         ].map((c) => (
           <div key={c.label} className="cms-panel p-2">
             <p className="uppercase text-muted-foreground tracking-wider text-[10px]">{c.label}</p>
@@ -791,8 +788,8 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
             </DTRow>
           ))}
           {sorted.length > 0 && (
-            <DTRow className="border-t-2 border-primary/30 bg-muted/30 font-bold">
-              <DTCell type="date" className="uppercase">Totals</DTCell>
+            <DTRow className="border-t-2 border-primary/40 bg-primary/10 font-bold text-[120%]">
+              <DTCell type="date" className="uppercase text-primary">Total</DTCell>
               <DTCell type="money">{fmt(totals.drop)}</DTCell>
               <DTCell type="money"><span className={signCls(totals.result)}>{fmt(totals.result)}</span></DTCell>
               <DTCell type="money">{fmtHold(totals.hold)}</DTCell>
