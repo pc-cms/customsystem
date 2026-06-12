@@ -216,7 +216,7 @@ const Cashless = () => {
       </div>
 
       {/* Entry table — every OK adds a fresh row */}
-      <div className="cms-panel overflow-hidden mb-6">
+      <div className="cms-panel overflow-visible mb-6">
         <div className="px-4 py-2 border-b border-border flex items-center justify-between">
           <h3 className="text-sm font-semibold text-card-foreground">New entries</h3>
           <Button size="sm" variant="outline" onClick={() => setDrafts(d => [...d, newDraft()])} className="h-8 gap-1.5">
