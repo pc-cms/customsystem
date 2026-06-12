@@ -1,72 +1,67 @@
-## Revised plan — universal chip visibility + per-casino seed values
+## Goal
 
-Same two fixes as before, plus a data-ops step to seed `chip_color_settings.is_visible` for 5M / 10M across all four casinos using your matrix.
+Make the per-provider **Cashless IN / Cashless OUT** fields on the cage shift the **single source of truth** for the CDR / Balance formula in both cages. The `/cashless` page transactions remain the audit log and act only as a **grey placeholder hint** that the cashier may accept or override.
 
-### Visibility matrix (assuming the 4th line meant **Mbeya**, not Mwanza again)
+## How it should work end-to-end
 
-| Casino  | 10M | 5M  |
-|---------|-----|-----|
-| Mwanza  | ON  | OFF |
-| Arusha  | OFF | ON  |
-| Dodoma  | OFF | OFF |
-| Mbeya   | OFF | OFF |
-
-If the 4th line was a typo and you actually want a different setting for Mbeya — or wanted to override Mwanza again — tell me before I run it.
-
-## Fix 1 — RLS on `chip_color_settings` (migration)
-
-`super_admin` / `admin` currently can't flip the Visible toggle (your screenshot: `new row violates row-level security policy`). Replace the manager-only INSERT/UPDATE policies:
-
-```sql
-DROP POLICY "Managers insert chip colors" ON public.chip_color_settings;
-DROP POLICY "Managers update chip colors" ON public.chip_color_settings;
-
-CREATE POLICY "Admins/managers insert chip colors"
-  ON public.chip_color_settings FOR INSERT
-  WITH CHECK (
-    casino_id = get_user_casino_id(auth.uid())
-    AND (
-      has_role(auth.uid(), 'manager'::app_role)
-      OR has_role(auth.uid(), 'super_admin'::app_role)
-      OR has_role(auth.uid(), 'admin'::app_role)
-    )
-  );
-
-CREATE POLICY "Admins/managers update chip colors"
-  ON public.chip_color_settings FOR UPDATE
-  USING (
-    casino_id = get_user_casino_id(auth.uid())
-    AND (
-      has_role(auth.uid(), 'manager'::app_role)
-      OR has_role(auth.uid(), 'super_admin'::app_role)
-      OR has_role(auth.uid(), 'admin'::app_role)
-    )
-  );
+```
+/cashless page  ─────►  sum per provider  ─────►  grey placeholder in shift
+(transactions)         (useCashlessSuggestions)    Cashless IN / OUT inputs
+                                                          │
+                                            cashier types value (same or different)
+                                                          ▼
+                                       shifts.cashless_in_providers / _out_providers (JSONB)
+                                                          │
+                                                          ▼
+                                CDR / Shift Balance formula uses ONLY this manual value
 ```
 
-Bump `package.json` (auto-bump rule for backend changes).
+If the cashier leaves a row empty, that provider contributes **0** to the formula (the placeholder is a hint, not a value). The "Apply hint" button already lets them copy the suggestion into the inputs in one click.
 
-## Fix 2 — Seed per-casino 5M / 10M visibility (data op)
+## Changes
 
-One `INSERT … ON CONFLICT (casino_id, denomination) DO UPDATE SET is_visible = EXCLUDED.is_visible` per casino × denomination according to the matrix. Existing `body_color` / `edge_color` / `text_color` rows are left untouched; only `is_visible` is written. After this:
+### 1. Database — Live Game (`compute_shift_balance_from_row`)
+Replace the `SELECT … FROM cashless_transactions` block with reading the JSONB on the shift row:
+```
+v_cashless_in  := SUM of values in s.cashless_in_providers
+v_cashless_out := SUM of values in s.cashless_out_providers
+```
+Formula stays:
+```
+CDR = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn
+      + Cashless IN − Cashless OUT
+Balance = CDR − Tables − Miss
+```
 
-- Mwanza Chip Count grid shows 10M column (only Baccarat has it in `denominations`), 5M column gone.
-- Arusha shows 5M column, no 10M.
-- Dodoma & Mbeya show neither.
+### 2. Database — Slots (`compute_slots_shift_balance_from_row`)
+Same swap: `v_cashless_in/out` come from `s.cashless_in_providers / _out_providers`, not from `cashless_transactions`. (Slots CDR currently doesn't add cashless at all — same as before; only the displayed `cashless_in/out` values change to reflect the manual entry.)
 
-## Fix 3 — Apply visibility filter to Chip Count + Close Table (frontend only)
+Also trigger that recomputes shift on `cashless_transactions` change becomes irrelevant for the formula but keep it so the suggestions list stays fresh.
 
-Two surfaces still bypass the visibility map and read raw `gaming_tables.denominations`:
+### 3. Frontend — Live Game close shift (`CloseShiftDialog.tsx` + `cage-balance.ts`)
+- Stop fetching cashless totals from `cashless_transactions` (`cashlessTotals` state + `useEffect` that queries the table).
+- Pass `cashlessIn = mobileTotal(cashlessInProviders)` and `cashlessOut = mobileTotal(cashlessOutProviders)` into `computeShiftBalance`.
+- `FormulaRow + Cashless IN / − Cashless OUT` reads the manual totals.
 
-1. **`src/components/tables/ChipCountPanel.tsx`** — use `useVisibleChipDenoms()` to intersect `t.denominations` for both the column header set and each row's inputs.
-2. **`src/components/tables/CloseTableWizard.tsx`** — same intersection on `current.denominations` (lines 93, 116, 133, 295).
+### 4. Frontend — Active live shift view (`ActiveShiftView.tsx`)
+Already saves `cashless_in_providers` / `cashless_out_providers` on the shift and shows suggestions — no behavior change needed beyond confirming the DB now consumes those fields.
 
-No data migration, no changes to `gaming_tables.denominations`, no server-trigger changes.
+### 5. Frontend — Active slots shift view (`ActiveSlotsShiftView.tsx`)
+Already uses `cashlessInManualTzs` / `cashlessOutManualTzs` from the manual providers everywhere (`computeSlotsShiftBalance`, report rows, persisted snapshot). No code change needed; DB swap (item 2) aligns server-side totals with what the UI already shows.
 
-## End result — single source of truth
+### 6. Placeholder UX (no code changes — already in place)
+- `CashCountGrid → ProviderBlock` renders the suggestion as `placeholder` per row (grey).
+- "Apply hint" button copies suggestions into empty rows.
+- An empty input means 0 — confirmed by the formula change above.
 
-Admin → Chip Colors → `Visible` toggle (per casino) instantly governs every UI surface: Cage IN/OUT, Open/Close shift, Active shift, Float grid, Chip Movement report, Miss Chips report, Cash Check viewer, **Chip Count grid**, **Close Table wizard**.
+### 7. Version bump
+`package.json` patch bump (backend migration triggers the rule).
 
-## Out of scope
-- No edits to `gaming_tables.denominations`.
-- No new dedicated 10M/5M switch — the existing per-denomination Visible switch is the universal control.
+## Files affected
+
+- `supabase/migrations/<new>.sql` — replace both compute functions
+- `src/lib/cage-balance.ts` — unchanged inputs, just sourced from manual fields by callers
+- `src/components/cage/CloseShiftDialog.tsx` — drop `cashlessTotals` query, use manual totals
+- `package.json` — version bump
+
+No schema changes; only function bodies and one frontend file are touched. UI remains exactly as the user described: grey hint, free manual entry, formula reads the manual values.
