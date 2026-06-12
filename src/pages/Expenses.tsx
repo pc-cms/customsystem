@@ -108,7 +108,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   // Default source per role (governs both the filter and new-row defaults).
   const roleDefaultSource: SourceVal = isCashierSlots ? "slots" : "live_game";
   // Cashier roles cannot pick a different source.
-  const sourceLocked = !isManagerView && (isCashierLive || isCashierSlots);
+  const sourceLocked = isCashierLive || isCashierSlots;
 
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
