@@ -253,11 +253,11 @@ const Cashless = () => {
                 </td>
                 <td className="px-2 py-1.5">
                   <PlayerNameAutocomplete
-                    placeholder="Player in casino"
+                    placeholder="Search any player"
                     value={d.player_name}
                     onChange={v => updateDraft(d.uid, { player_name: v })}
-                    inCasinoOnly
                   />
+
                 </td>
                 <td className="px-2 py-1.5">
                   <NumberInput placeholder="0" value={d.amount} onChange={v => updateDraft(d.uid, { amount: v })} className="h-8 text-xs text-right" />
