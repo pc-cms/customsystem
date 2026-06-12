@@ -211,6 +211,8 @@ export const useCloseShift = () => {
         cash_result: cashResultFinal,
         miss_total: missTotalFinal,
         shift_result: tablesResultFinal,
+        cashless_in_providers: input.cashless_in_providers ?? {},
+        cashless_out_providers: input.cashless_out_providers ?? {},
       };
 
       // OFFLINE PATH — queue the UPDATE; DB trigger will reconcile on sync.
