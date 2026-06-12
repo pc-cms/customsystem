@@ -248,6 +248,8 @@ const CloseShiftDialog = ({
         cash: cashCounts,
         bank: bankBal,
         mobile: mobileBal,
+        cashless_in_providers: cashlessIn,
+        cashless_out_providers: cashlessOut,
         result_table: resultTable,
         cash_desk_balance: balance,
         manager_confirmed_by: managerId,
@@ -256,6 +258,8 @@ const CloseShiftDialog = ({
           ...Object.fromEntries(CURRENCIES.map(c => [c, cashSum(cashCounts[c] || {})])),
           bank: bankBal,
           mobile: mobileBal,
+          cashless_in: mobileTotal(cashlessIn),
+          cashless_out: mobileTotal(cashlessOut),
           total_tzs: totalTzs,
         },
       },
@@ -277,6 +281,8 @@ const CloseShiftDialog = ({
       cashResult: cashDelta,
       missTotal,
       shiftResult,
+      cashlessInProviders: cashlessIn,
+      cashlessOutProviders: cashlessOut,
     });
   };
 
