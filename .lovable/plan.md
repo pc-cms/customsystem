@@ -1,39 +1,31 @@
-## Why favicon didn't change
+## Goal
+Reports → **Daily** tab becomes the manager's end-of-day reconciliation table. Columns left-to-right:
 
-The branding logic in `public/branding.js` already swaps favicon per hostname, but:
-- `mwanza/dodoma/mbeya` have NO `favicon` field → fall back to the default `/favicon.png` (current dark Lovable-style icon you see in the tab).
-- `arusha` uses `/arusha-logo.png` only.
-- `casinosystem.app` (landing) strips icons entirely → browser shows whatever it cached (the colorful Lovable default).
-- The new Amaell favicons you uploaded haven't been added to `/public` yet.
+| Date | Drop | Table Result | Hold % | Player Result | Chip Difference | Gaming Balance |
 
-## Plan
+- **Drop** — real external drop per business day, same source as Player Tracking (Drop R from `compute_tables_drop_split`, summed across all tables of the casino).
+- **Hold %** — `Table Result / Drop × 100`, 1 decimal, `—` when Drop = 0.
+- **Gaming Balance** — `Table Result + Player Result − Chip Difference`. Should land on 0 for a clean day; coloured red when ≠ 0.
+- **Tips column removed** from the table, KPI strip, totals, and CSV/print export. (Tips remain captured via Player Tracking — out of scope here.)
 
-### 1. Add new icon files to `/public`
-- Copy `arusha-logo.png` → `favicon-premier.png` and `apple-touch-icon-premier.png` (reuse the existing Premier "AG" mark).
-- Copy uploaded Amaell Orbit icons for the landing domain:
-  - `user-uploads://favicon.ico` → `public/favicon.ico`
-  - `user-uploads://favicon-16x16.png` → `public/favicon-16x16.png`
-  - `user-uploads://favicon-32x32.png` → `public/favicon-32x32.png`
-  - `user-uploads://apple-touch-icon.png` → `public/apple-touch-icon-amaell.png`
+Totals row and the KPI strip on top mirror the same six columns (Days + 5 metrics, Hold % = weighted = ΣResult / ΣDrop).
 
-### 2. Update `public/branding.js`
-- Add `favicon`/`appleTouchIcon` to `mwanza`, `dodoma`, `mbeya`, `premier` → `/favicon-premier.png` + `/apple-touch-icon-premier.png`.
-- Change `arusha` to use the same Premier icons (was `arusha-logo.png` — keep that file untouched for in-app logo use).
-- For `landing` kind: instead of stripping `<link rel="icon">`, swap it to the Amaell `favicon.ico` + 16/32 PNGs + apple-touch-icon. Keep stripping the PWA manifest/theme tags (landing is not installable).
-- `club` already correct (`favicon-club.png` / `apple-touch-icon-club.png`) — no change.
+## Where
+- `src/pages/Reports.tsx` → `DailyReport` component (lines 693-789).
+- DB RPC `compute_daily_diff` extended to also return `drop_r` per business day so the page makes one round-trip.
 
-### 3. Update `index.html`
-- Default `<link rel="icon">` stays as `/favicon.png` (used only when no branch matches and not landing). No structural change needed.
+## Backend change
+Extend `compute_daily_diff(_casino_id, _from, _to)` to add one more output column `drop_r bigint` populated from `compute_tables_drop_split(_casino_id, win_from, win_to)` aggregated per day. No signature break for old callers because Postgres returns rows by name; UI mapping updated in the same pass. `tips` column stays in the RPC (still used by other surfaces) — only the UI hides it.
 
-### Mapping summary
+## Frontend change
+`DailyReport`:
+- Add `drop` to the row mapping.
+- KPI strip: Days, Drop, Result, Hold %, Player Result, Miss Chips, Gaming Balance.
+- Table headers + cells reordered to: Date, Drop, Result, Hold %, Player Result, Miss Chips, Gaming Balance.
+- Remove all Tips references (header, cell, totals, KPI tile).
+- `signCls` colouring on Gaming Balance unchanged.
 
-| Host | favicon |
-|---|---|
-| `casinosystem.app`, `www.` | Amaell `favicon.ico` + 16/32 + apple-touch-icon |
-| `arusha.`, `mwanza.`, `dodoma.`, `mbeya.`, `premier.`, `aru.`, `mwz.`, `dod.`, `mbi.` | `favicon-premier.png` |
-| `club.` | `favicon-club.png` (unchanged) |
-| other / preview | default `/favicon.png` |
-
-### Notes
-- Browsers aggressively cache favicons — a hard refresh (Ctrl+Shift+R) or new tab may be needed to see the change.
-- No backend / migration changes → no version bump needed.
+## Out of scope
+- Tips capture flow via Player Tracking (already exists).
+- Other report tabs (Total/Shifts/Live/Slots/Players/Groups/Cashless) — untouched.
+- No version bump UI change; auto-bump applies because of the migration.

@@ -8948,6 +8948,7 @@ export type Database = {
         Returns: {
           business_date: string
           diff: number
+          drop_r: number
           miss: number
           player_result: number
           result: number

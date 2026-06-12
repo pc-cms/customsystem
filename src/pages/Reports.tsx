@@ -702,14 +702,21 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
         _casino_id: casinoId, _from: from, _to: to,
       });
       if (error) throw error;
-      return (data || []).map((r: any) => ({
-        date: r.business_date,
-        result: Number(r.result || 0),
-        playerResult: Number(r.player_result || 0),
-        miss: Number(r.miss || 0),
-        tips: Number(r.tips || 0),
-        diff: Number(r.diff || 0),
-      }));
+      return (data || []).map((r: any) => {
+        const drop = Number(r.drop_r || 0);
+        const result = Number(r.result || 0);
+        const playerResult = Number(r.player_result || 0);
+        const miss = Number(r.miss || 0);
+        return {
+          date: r.business_date,
+          drop,
+          result,
+          hold: drop > 0 ? (result / drop) * 100 : null,
+          playerResult,
+          miss,
+          balance: result + playerResult - miss,
+        };
+      });
     },
     enabled: !!casinoId,
     staleTime: 30_000,
@@ -717,27 +724,36 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
 
   const { sorted, sort, toggle } = useSorted(rows, { key: "date", dir: "desc" });
 
-  const totals = useMemo(() => rows.reduce(
-    (a, r) => ({
-      result: a.result + r.result, playerResult: a.playerResult + r.playerResult,
-      miss: a.miss + r.miss, tips: a.tips + r.tips, diff: a.diff + r.diff,
-    }),
-    { result: 0, playerResult: 0, miss: 0, tips: 0, diff: 0 },
-  ), [rows]);
+  const totals = useMemo(() => {
+    const t = rows.reduce(
+      (a, r) => ({
+        drop: a.drop + r.drop,
+        result: a.result + r.result,
+        playerResult: a.playerResult + r.playerResult,
+        miss: a.miss + r.miss,
+        balance: a.balance + r.balance,
+      }),
+      { drop: 0, result: 0, playerResult: 0, miss: 0, balance: 0 },
+    );
+    return { ...t, hold: t.drop > 0 ? (t.result / t.drop) * 100 : null };
+  }, [rows]);
+
+  const fmtHold = (v: number | null) => v == null ? "—" : `${v.toFixed(1)}%`;
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2">
         <div className="cms-panel p-2">
           <p className="uppercase text-muted-foreground tracking-wider text-[10px]">Days</p>
           <p className="font-mono text-sm font-bold text-card-foreground">{rows.length}</p>
         </div>
         {[
-          { label: "Result", value: fmt(totals.result), cls: signCls(totals.result) },
+          { label: "Drop", value: fmt(totals.drop), cls: "text-card-foreground" },
+          { label: "Table Result", value: fmt(totals.result), cls: signCls(totals.result) },
+          { label: "Hold %", value: fmtHold(totals.hold), cls: "text-card-foreground" },
           { label: "Player Result", value: fmt(totals.playerResult), cls: signCls(totals.playerResult) },
-          { label: "Miss Chips", value: fmt(totals.miss), cls: signCls(totals.miss) },
-          { label: "Total Tips", value: fmt(totals.tips), cls: signCls(totals.tips) },
-          { label: "Diff", value: fmt(totals.diff), cls: signCls(totals.diff) },
+          { label: "Chip Difference", value: fmt(totals.miss), cls: signCls(totals.miss) },
+          { label: "Gaming Balance", value: fmt(totals.balance), cls: signCls(totals.balance) },
         ].map((c) => (
           <div key={c.label} className="cms-panel p-2">
             <p className="uppercase text-muted-foreground tracking-wider text-[10px]">{c.label}</p>
@@ -750,36 +766,39 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
         <DTHead>
           <DTRow>
             <SortHeader label="Date" k="date" sort={sort} toggle={toggle} type="date" />
-            <SortHeader label="Result" k="result" sort={sort} toggle={toggle} type="money" />
+            <SortHeader label="Drop" k="drop" sort={sort} toggle={toggle} type="money" />
+            <SortHeader label="Table Result" k="result" sort={sort} toggle={toggle} type="money" />
+            <SortHeader label="Hold %" k="hold" sort={sort} toggle={toggle} type="money" />
             <SortHeader label="Player Result" k="playerResult" sort={sort} toggle={toggle} type="money" />
-            <SortHeader label="Miss Chips" k="miss" sort={sort} toggle={toggle} type="money" />
-            <SortHeader label="Total Tips" k="tips" sort={sort} toggle={toggle} type="money" />
-            <SortHeader label="Diff (R + P − M + T)" k="diff" sort={sort} toggle={toggle} type="money" />
+            <SortHeader label="Chip Difference" k="miss" sort={sort} toggle={toggle} type="money" />
+            <SortHeader label="Gaming Balance" k="balance" sort={sort} toggle={toggle} type="money" />
           </DTRow>
         </DTHead>
         <DTBody>
           {isLoading ? (
-            <DTRow><DTCell colSpan={6} className="text-center text-muted-foreground py-6">Loading…</DTCell></DTRow>
+            <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">Loading…</DTCell></DTRow>
           ) : sorted.length === 0 ? (
-            <DTRow><DTCell colSpan={6} className="text-center text-muted-foreground py-6">No data in range</DTCell></DTRow>
+            <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">No data in range</DTCell></DTRow>
           ) : sorted.map((r) => (
             <DTRow key={r.date}>
               <DTCell type="date">{fmtDate(r.date)}</DTCell>
+              <DTCell type="money">{fmt(r.drop)}</DTCell>
               <DTCell type="money"><span className={`font-bold ${signCls(r.result)}`}>{fmt(r.result)}</span></DTCell>
+              <DTCell type="money"><span className="text-muted-foreground">{fmtHold(r.hold)}</span></DTCell>
               <DTCell type="money"><span className={signCls(r.playerResult)}>{fmt(r.playerResult)}</span></DTCell>
               <DTCell type="money"><span className={signCls(r.miss)}>{fmt(r.miss)}</span></DTCell>
-              <DTCell type="money"><span className={signCls(r.tips)}>{fmt(r.tips)}</span></DTCell>
-              <DTCell type="money"><span className={`font-bold ${signCls(r.diff)}`}>{fmt(r.diff)}</span></DTCell>
+              <DTCell type="money"><span className={`font-bold ${signCls(r.balance)}`}>{fmt(r.balance)}</span></DTCell>
             </DTRow>
           ))}
           {sorted.length > 0 && (
             <DTRow className="border-t-2 border-primary/30 bg-muted/30 font-bold">
               <DTCell type="date" className="uppercase">Totals</DTCell>
+              <DTCell type="money">{fmt(totals.drop)}</DTCell>
               <DTCell type="money"><span className={signCls(totals.result)}>{fmt(totals.result)}</span></DTCell>
+              <DTCell type="money">{fmtHold(totals.hold)}</DTCell>
               <DTCell type="money"><span className={signCls(totals.playerResult)}>{fmt(totals.playerResult)}</span></DTCell>
               <DTCell type="money"><span className={signCls(totals.miss)}>{fmt(totals.miss)}</span></DTCell>
-              <DTCell type="money"><span className={signCls(totals.tips)}>{fmt(totals.tips)}</span></DTCell>
-              <DTCell type="money"><span className={signCls(totals.diff)}>{fmt(totals.diff)}</span></DTCell>
+              <DTCell type="money"><span className={signCls(totals.balance)}>{fmt(totals.balance)}</span></DTCell>
             </DTRow>
           )}
         </DTBody>
