@@ -76,6 +76,7 @@ const CloseShiftDialog = ({
         chipCounts?: Record<number, number>;
         cashCounts?: Record<string, Record<number, number>>;
         bankBal?: Banks; mobileBal?: MobileProviders;
+        cashlessIn?: MobileProviders; cashlessOut?: MobileProviders;
       } : null;
     } catch { return null; }
   }, [storageKey]);
@@ -90,15 +91,17 @@ const CloseShiftDialog = ({
   const [cashCounts, setCashCounts] = useState<Record<string, Record<number, number>>>(persisted?.cashCounts || emptyCash);
   const [bankBal, setBankBal] = useState<Banks>(persisted?.bankBal || emptyBanks);
   const [mobileBal, setMobileBal] = useState<MobileProviders>(persisted?.mobileBal || emptyMobile);
+  const [cashlessIn, setCashlessIn] = useState<MobileProviders>(persisted?.cashlessIn || emptyMobile);
+  const [cashlessOut, setCashlessOut] = useState<MobileProviders>(persisted?.cashlessOut || emptyMobile);
 
   // Persist on every change.
   useEffect(() => {
     try {
       sessionStorage.setItem(storageKey, JSON.stringify({
-        step, notes, chipCounts, cashCounts, bankBal, mobileBal,
+        step, notes, chipCounts, cashCounts, bankBal, mobileBal, cashlessIn, cashlessOut,
       }));
     } catch { /* quota — ignore */ }
-  }, [storageKey, step, notes, chipCounts, cashCounts, bankBal, mobileBal]);
+  }, [storageKey, step, notes, chipCounts, cashCounts, bankBal, mobileBal, cashlessIn, cashlessOut]);
 
   // ── Opening (carried from previous closing) ───────────────────────────────
   const openingChips = useMemo(() => {
