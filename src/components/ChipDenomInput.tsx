@@ -32,7 +32,7 @@ const SIZE_TOKENS: Record<Size, { inputH: string; inputText: string; chipClass: 
 const ChipDenomInput = ({
   values,
   onChange,
-  denoms = CHIP_DENOMS,
+  denoms,
   showValue = true,
   placeholder,
   onSubmit,
@@ -41,6 +41,8 @@ const ChipDenomInput = ({
 }: Props) => {
   const inputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const { data: colorOverrides } = useChipColors();
+  const visibleDenoms = useVisibleChipDenoms();
+  const effectiveDenoms = denoms ?? visibleDenoms;
   const tokens = SIZE_TOKENS[size];
 
   const handleChange = useCallback((denom: number, raw: string) => {
