@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateChipEmission, useChipEmissions } from "@/hooks/use-chip-conservation";
 import { CHIP_DENOMS, formatChipLabel, formatNumberSpaces } from "@/lib/currency";
+import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import ChipToken from "@/components/ChipToken";
 import { Plus, AlertTriangle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
