@@ -72,7 +72,18 @@ export default function ClubRegister() {
   });
   const [busy, setBusy] = useState(false);
 
-  const [phoneLocal, setPhoneLocal] = useState("");
+  const [phoneLocal, setPhoneLocal] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem("club:otp-pending");
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p?.phone && p?.sentAt && Date.now() - p.sentAt < 5 * 60_000) {
+          return String(p.phone);
+        }
+      }
+    } catch {}
+    return "";
+  });
   const [code, setCode] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
