@@ -96,8 +96,14 @@ export default function ClubRegister() {
     if (phoneLocal.length < 8) return;
     setBusy(true);
     try {
-      await clubApi.sendOtp(phone);
-      toast.success("Code sent to your phone");
+      const res: any = await clubApi.sendOtp(phone);
+      try {
+        sessionStorage.setItem(
+          "club:otp-pending",
+          JSON.stringify({ phone: phoneLocal, sentAt: Date.now() })
+        );
+      } catch {}
+      toast.success(res?.reused ? "Code already sent" : "Code sent to your phone");
       setStep("code");
     } catch (e: any) {
       toast.error(e.message || "Failed to send code");
@@ -110,6 +116,7 @@ export default function ClubRegister() {
     setBusy(true);
     try {
       const res = await clubApi.verifyOtp(phone, code);
+      try { sessionStorage.removeItem("club:otp-pending"); } catch {}
       setClubSession(res.token, res.phone);
       if (res.player_exists) {
         toast.success("Welcome back!");
