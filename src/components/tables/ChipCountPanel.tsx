@@ -68,8 +68,8 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     [tables, tablesWithSnap]
   );
 
-  const visibleDenoms = useVisibleChipDenoms();
-  const visibleSet = useMemo(() => new Set(visibleDenoms), [visibleDenoms]);
+  const visibleCasinoDenoms = useVisibleChipDenoms();
+  const visibleSet = useMemo(() => new Set(visibleCasinoDenoms), [visibleCasinoDenoms]);
 
   const countLocations = useMemo(() => {
     return openTables.map(t => ({
