@@ -162,13 +162,24 @@ const CloseShiftDialog = ({
 
   // Canonical Cash Desk formula (mirrors DB RPC `compute_shift_balance`):
   //   Cash Desk Result = ΔCash + Expenses + Collection − AddFloat
-  //                    + SlotsOut − SlotsIn                         (NO miss)
+  //                    + SlotsOut − SlotsIn + CashlessIn − CashlessOut
   //   Shift Balance    = Cash Desk Result − Tables Result − Miss   (= 0 ideal)
-  // ΔCash = closing money (cash + mobile + bank, TZS) − opening cash.
-  const openingCashEffective = openingCashProp || openingCashTzs;
+  // ΔCash uses CASH + BANK only — mobile balance is excluded to avoid
+  // double-counting cashless movements (which now enter the formula
+  // explicitly via `cashless_transactions`). Mobile balance entry remains
+  // a manual sanity check displayed on the report.
+  const openingCashTotal = openingCashProp || openingCashTzs;
+  // Strip opening mobile from opening total (mobile balance never carries
+  // over per business rule, but be defensive).
+  const openingMobileTzs = useMemo(() => {
+    const t = (shift?.opening_float as any)?.totals;
+    return Number(t?.mobile_tzs || 0);
+  }, [shift?.opening_float]);
+  const openingCashEffective = Math.max(0, openingCashTotal - openingMobileTzs);
+  const closingCashEffective = closingCashOnlyTzs + closingBankTzs; // no mobile
   const cashDelta = useMemo(
-    () => closingCashTotalTzs - openingCashEffective,
-    [closingCashTotalTzs, openingCashEffective],
+    () => closingCashEffective - openingCashEffective,
+    [closingCashEffective, openingCashEffective],
   );
   // UI chip delta is counted − opening. Balance formula uses Miss as
   // opening − counted, so a missing 35 000 is stored/calculated as +35 000.
@@ -194,21 +205,50 @@ const CloseShiftDialog = ({
     return () => { cancelled = true; };
   }, [shift?.id]);
 
+  // Cashless IN / OUT for this shift's business day (live-game cage).
+  const [cashlessTotals, setCashlessTotals] = useState({ in: 0, out: 0 });
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!shift?.casino_id || !shift?.opened_at) { setCashlessTotals({ in: 0, out: 0 }); return; }
+      const { businessDateOf } = await import("@/lib/business-day");
+      const bday = businessDateOf(new Date(shift.opened_at));
+      const { data } = await (supabase as any)
+        .from("cashless_transactions")
+        .select("amount, direction, status, cage_type")
+        .eq("casino_id", shift.casino_id)
+        .eq("business_date", bday)
+        .in("status", ["recorded", "approved"]);
+      if (cancelled) return;
+      let cIn = 0, cOut = 0;
+      for (const r of (data || [])) {
+        if (r.cage_type && r.cage_type !== "live_game") continue;
+        const a = Number(r.amount || 0);
+        if (String(r.direction || "").toUpperCase() === "IN") cIn += a;
+        else if (String(r.direction || "").toUpperCase() === "OUT") cOut += a;
+      }
+      setCashlessTotals({ in: cIn, out: cOut });
+    })();
+  }, [shift?.id, shift?.casino_id, shift?.opened_at]);
+
   const { cashDeskResult, shiftBalance: balance } = useMemo(
     () => computeShiftBalance({
       openingCash: openingCashEffective,
-      closingCash: closingCashTotalTzs,
+      closingCash: closingCashEffective,
       expenses: totalExpenses,
       collection: collectionTotal,
       addFloat: floatAdded,
       slotsIn,
       slotsOut,
+      cashlessIn: cashlessTotals.in,
+      cashlessOut: cashlessTotals.out,
       miss: balanceMissTotal,
       tablesResult: resultTable,
       tips: tipsTotal,
     }),
-    [openingCashEffective, closingCashTotalTzs, totalExpenses, collectionTotal,
-     floatAdded, slotsIn, slotsOut, balanceMissTotal, resultTable, tipsTotal],
+    [openingCashEffective, closingCashEffective, totalExpenses, collectionTotal,
+     floatAdded, slotsIn, slotsOut, cashlessTotals.in, cashlessTotals.out,
+     balanceMissTotal, resultTable, tipsTotal],
   );
 
   const isBalanced = balance === 0;
