@@ -4,6 +4,87 @@ import ChipDenomInput from "@/components/ChipDenomInput";
 import CashDenomInput from "./CashDenomInput";
 import { MOBILE_PROVIDERS, mobileTotal, type MobileProviders, type Banks } from "./CageHelpers";
 
+/** Render one Cashless / Mobile Money provider block (IN, OUT, or Balance).
+ *  Per-row gray placeholder = suggestion from /cashless transactions. */
+const ProviderBlock = ({
+  title, values, onChange, suggestion, hintLabel, sectionCls, titleCls,
+}: {
+  title: string;
+  values: MobileProviders;
+  onChange: (v: MobileProviders) => void;
+  suggestion?: Partial<Record<string, number>>;
+  hintLabel: string;
+  sectionCls: string;
+  titleCls: string;
+}) => {
+  const mdRow = "flex items-center gap-2";
+  const mdChip = "cms-chip text-[10px] bg-muted text-foreground h-7 w-16 shrink-0 justify-center";
+  const mdInput = "no-spin font-mono text-sm h-8 w-24 flex-1 min-w-0 rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary";
+
+  const total = mobileTotal(values);
+  const suggestionTotal = suggestion
+    ? Object.values(suggestion).reduce((s, v) => s + (Number(v) || 0), 0)
+    : 0;
+  const hasSuggestions = !!suggestion && suggestionTotal !== 0;
+
+  const applySuggestions = () => {
+    if (!suggestion) return;
+    const next: MobileProviders = { ...values };
+    MOBILE_PROVIDERS.forEach(p => {
+      if (!values[p]) {
+        const s = Number(suggestion[p]) || 0;
+        if (s) next[p] = s;
+      }
+    });
+    onChange(next);
+  };
+
+  return (
+    <section className={sectionCls}>
+      <div className="flex items-center justify-between mb-2">
+        <p className={titleCls + " mb-0"}>{title}</p>
+        {hasSuggestions && (
+          <button
+            type="button"
+            onClick={applySuggestions}
+            className="text-[9px] uppercase tracking-wider text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+            title="Fill empty rows from /cashless transactions"
+          >
+            Apply hint
+          </button>
+        )}
+      </div>
+      <div className="space-y-1">
+        {MOBILE_PROVIDERS.map(provider => {
+          const hint = Number(suggestion?.[provider]) || 0;
+          const placeholder = hint ? formatNumberSpaces(hint) : "0";
+          return (
+            <div key={provider} className={mdRow}>
+              <span className={mdChip}>{provider}</span>
+              <NumberInput
+                value={values[provider] || ""}
+                onChange={v => onChange({ ...values, [provider]: Number(v) || 0 })}
+                className={mdInput}
+                placeholder={placeholder}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex items-center justify-between gap-2 pt-2 mt-2 border-t border-border">
+        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
+        <span className="font-mono text-sm font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(total)}</span>
+      </div>
+      {hasSuggestions && (
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <span className="text-[9px] uppercase tracking-wider text-muted-foreground">{hintLabel}</span>
+          <span className="font-mono text-[10px] text-muted-foreground whitespace-nowrap">TZS {formatNumberSpaces(suggestionTotal)}</span>
+        </div>
+      )}
+    </section>
+  );
+};
+
 const CashCountGrid = ({
   chips, onChipsChange,
   cash, onCashChange,
@@ -11,6 +92,8 @@ const CashCountGrid = ({
   mobile, onMobileChange,
   chipPlaceholder,
   mobileSuggestion,
+  cashlessIn, onCashlessInChange, cashlessInSuggestion,
+  cashlessOut, onCashlessOutChange, cashlessOutSuggestion,
   rates,
   hideChips = false,
   hideMobile = false,
@@ -24,19 +107,26 @@ const CashCountGrid = ({
   mobile: MobileProviders;
   onMobileChange: (v: MobileProviders) => void;
   chipPlaceholder?: Record<number, number>;
-  /** Per-provider gray suggestion (net IN−OUT from /cashless for this business day).
-   *  Shown as input placeholder when the cashier hasn't entered a value. */
+  /** Per-provider gray suggestion for the Mobile Money Balance block
+   *  (net IN−OUT from /cashless). */
   mobileSuggestion?: Partial<Record<string, number>>;
+  /** Optional Cashless IN block (per provider). When provided, renders
+   *  above the Mobile Balance block. */
+  cashlessIn?: MobileProviders;
+  onCashlessInChange?: (v: MobileProviders) => void;
+  cashlessInSuggestion?: Partial<Record<string, number>>;
+  /** Optional Cashless OUT block (per provider). */
+  cashlessOut?: MobileProviders;
+  onCashlessOutChange?: (v: MobileProviders) => void;
+  cashlessOutSuggestion?: Partial<Record<string, number>>;
   rates?: Record<string, number>;
   /** Hide the TZS Chips column when chips are entered elsewhere (e.g. Close Shift). */
   hideChips?: boolean;
   /** Hide the Mobile Money block (e.g. Cage Slots derives it from Cashless IN/OUT). */
   hideMobile?: boolean;
 }) => {
-  const mobTotal = mobileTotal(mobile);
   const banksTzsTotal = (banks.tzs || 0) + (banks.usd || 0) * (rates?.["USD"] || 0);
 
-  // Compact rows for Mobile/Banks so col 2 height matches col 3 & 4
   const mdRow = "flex items-center gap-2";
   const mdChip = "cms-chip text-[10px] bg-muted text-foreground h-7 w-16 shrink-0 justify-center";
   const mdInput = "no-spin font-mono text-sm h-8 w-24 flex-1 min-w-0 rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary";
@@ -45,22 +135,8 @@ const CashCountGrid = ({
   const titleCls = "text-xs font-bold text-foreground uppercase tracking-[0.22em] mb-2";
   const stackCls = "flex flex-col gap-3";
 
-  const suggestionTotal = mobileSuggestion
-    ? Object.values(mobileSuggestion).reduce((s, v) => s + (Number(v) || 0), 0)
-    : 0;
-  const hasSuggestions = !!mobileSuggestion && suggestionTotal !== 0;
-
-  const applySuggestions = () => {
-    if (!mobileSuggestion) return;
-    const next: MobileProviders = { ...mobile };
-    MOBILE_PROVIDERS.forEach(p => {
-      if (!mobile[p]) {
-        const s = Number(mobileSuggestion[p]) || 0;
-        if (s) next[p] = s;
-      }
-    });
-    onMobileChange(next);
-  };
+  const showCashlessIn = !!onCashlessInChange && !!cashlessIn;
+  const showCashlessOut = !!onCashlessOutChange && !!cashlessOut;
 
   return (
     <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 items-start ${hideChips ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
@@ -78,58 +154,48 @@ const CashCountGrid = ({
           />
         </section>
       )}
-      {/* Col 2 — TZS Cash + Mobile + Banks */}
+      {/* Col 2 — TZS Cash + Cashless IN/OUT/Balance + Banks */}
       <div className={stackCls}>
         <section className={sectionCls}>
           <p className={titleCls}>TZS Cash</p>
           <CashDenomInput values={cash["TZS"] || {}} onChange={v => onCashChange("TZS", v)} denoms={CASH_DENOMS["TZS"] || []} currency="TZS" size="lg" />
         </section>
 
-        {!hideMobile && (
-          <section className={sectionCls}>
-            <div className="flex items-center justify-between mb-2">
-              <p className={titleCls + " mb-0"}>Mobile Money</p>
-              {hasSuggestions && (
-                <button
-                  type="button"
-                  onClick={applySuggestions}
-                  className="text-[9px] uppercase tracking-wider text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
-                  title="Fill empty rows from /cashless transactions"
-                >
-                  Apply hint
-                </button>
-              )}
-            </div>
-            <div className="space-y-1">
-              {MOBILE_PROVIDERS.map(provider => {
-                const hint = Number(mobileSuggestion?.[provider]) || 0;
-                const placeholder = hint ? formatNumberSpaces(hint) : "0";
-                return (
-                  <div key={provider} className={mdRow}>
-                    <span className={mdChip}>{provider}</span>
-                    <NumberInput
-                      value={mobile[provider] || ""}
-                      onChange={v => onMobileChange({ ...mobile, [provider]: Number(v) || 0 })}
-                      className={mdInput}
-                      placeholder={placeholder}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex items-center justify-between gap-2 pt-2 mt-2 border-t border-border">
-              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
-              <span className="font-mono text-sm font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(mobTotal)}</span>
-            </div>
-            {hasSuggestions && (
-              <div className="flex items-center justify-between gap-2 pt-1">
-                <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Hint · Cashless net</span>
-                <span className="font-mono text-[10px] text-muted-foreground whitespace-nowrap">TZS {formatNumberSpaces(suggestionTotal)}</span>
-              </div>
-            )}
-          </section>
+        {showCashlessIn && (
+          <ProviderBlock
+            title="Cashless IN"
+            values={cashlessIn!}
+            onChange={onCashlessInChange!}
+            suggestion={cashlessInSuggestion}
+            hintLabel="Hint · Cashless IN"
+            sectionCls={sectionCls}
+            titleCls={titleCls}
+          />
         )}
 
+        {showCashlessOut && (
+          <ProviderBlock
+            title="Cashless OUT"
+            values={cashlessOut!}
+            onChange={onCashlessOutChange!}
+            suggestion={cashlessOutSuggestion}
+            hintLabel="Hint · Cashless OUT"
+            sectionCls={sectionCls}
+            titleCls={titleCls}
+          />
+        )}
+
+        {!hideMobile && (
+          <ProviderBlock
+            title={showCashlessIn || showCashlessOut ? "Mobile Balance" : "Mobile Money"}
+            values={mobile}
+            onChange={onMobileChange}
+            suggestion={mobileSuggestion}
+            hintLabel="Hint · Cashless net"
+            sectionCls={sectionCls}
+            titleCls={titleCls}
+          />
+        )}
 
         <section className={sectionCls}>
           <p className={titleCls}>Banks</p>
