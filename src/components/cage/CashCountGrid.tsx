@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { NumberInput } from "@/components/ui/number-input";
 import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import ChipDenomInput from "@/components/ChipDenomInput";
@@ -5,67 +6,66 @@ import CashDenomInput from "./CashDenomInput";
 import { MOBILE_PROVIDERS, mobileTotal, type MobileProviders, type Banks } from "./CageHelpers";
 
 /** Render one Cashless / Mobile Money provider block (IN, OUT, or Balance).
- *  Per-row gray placeholder = suggestion from /cashless transactions. */
+ *  Suggestion from /cashless transactions is *prefilled* into the cell itself
+ *  (gray text, just like chip prefills). Cashier can overwrite, clear, or keep
+ *  the value — once they type, the cell turns into a normal black entry. */
 const ProviderBlock = ({
-  title, values, onChange, suggestion, hintLabel, sectionCls, titleCls,
+  title, values, onChange, suggestion, sectionCls, titleCls,
 }: {
   title: string;
   values: MobileProviders;
   onChange: (v: MobileProviders) => void;
   suggestion?: Partial<Record<string, number>>;
-  hintLabel: string;
   sectionCls: string;
   titleCls: string;
 }) => {
   const mdRow = "flex items-center gap-2";
   const mdChip = "cms-chip text-[10px] bg-muted text-foreground h-7 w-16 shrink-0 justify-center";
-  const mdInput = "no-spin font-mono text-sm h-8 w-24 flex-1 min-w-0 rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary";
+  const mdInput = "no-spin font-mono text-sm h-8 w-24 flex-1 min-w-0 rounded border border-border bg-background px-2 text-right focus:outline-none focus:ring-1 focus:ring-primary";
 
   const total = mobileTotal(values);
-  const suggestionTotal = suggestion
-    ? Object.values(suggestion).reduce((s, v) => s + (Number(v) || 0), 0)
-    : 0;
-  const hasSuggestions = !!suggestion && suggestionTotal !== 0;
 
-  const applySuggestions = () => {
-    if (!suggestion) return;
+  // One-shot prefill: as soon as suggestions arrive, push them into empty rows
+  // and remember which rows are still untouched so we can render them in gray.
+  const [prefilled, setPrefilled] = useState<Set<string>>(new Set());
+  const initRef = useRef(false);
+  useEffect(() => {
+    if (initRef.current || !suggestion) return;
+    const hasAny = MOBILE_PROVIDERS.some(p => Number(suggestion[p]) > 0);
+    if (!hasAny) return;
+    initRef.current = true;
     const next: MobileProviders = { ...values };
+    const pre = new Set<string>();
     MOBILE_PROVIDERS.forEach(p => {
-      if (!values[p]) {
-        const s = Number(suggestion[p]) || 0;
-        if (s) next[p] = s;
-      }
+      const s = Number(suggestion[p]) || 0;
+      if (!values[p] && s) { next[p] = s; pre.add(p); }
     });
-    onChange(next);
+    if (pre.size) { setPrefilled(pre); onChange(next); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suggestion]);
+
+  const markTouched = (provider: string) => {
+    if (!prefilled.has(provider)) return;
+    setPrefilled(prev => { const n = new Set(prev); n.delete(provider); return n; });
   };
 
   return (
     <section className={sectionCls}>
-      <div className="flex items-center justify-between mb-2">
-        <p className={titleCls + " mb-0"}>{title}</p>
-        {hasSuggestions && (
-          <button
-            type="button"
-            onClick={applySuggestions}
-            className="text-[9px] uppercase tracking-wider text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
-            title="Fill empty rows from /cashless transactions"
-          >
-            Apply hint
-          </button>
-        )}
-      </div>
+      <p className={titleCls}>{title}</p>
       <div className="space-y-1">
         {MOBILE_PROVIDERS.map(provider => {
-          const hint = Number(suggestion?.[provider]) || 0;
-          const placeholder = hint ? formatNumberSpaces(hint) : "0";
+          const isPrefill = prefilled.has(provider);
           return (
             <div key={provider} className={mdRow}>
               <span className={mdChip}>{provider}</span>
               <NumberInput
                 value={values[provider] || ""}
-                onChange={v => onChange({ ...values, [provider]: Number(v) || 0 })}
-                className={mdInput}
-                placeholder={placeholder}
+                onChange={v => {
+                  markTouched(provider);
+                  onChange({ ...values, [provider]: Number(v) || 0 });
+                }}
+                className={`${mdInput} ${isPrefill ? "text-muted-foreground italic" : "text-foreground"}`}
+                placeholder="0"
               />
             </div>
           );
@@ -75,12 +75,6 @@ const ProviderBlock = ({
         <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
         <span className="font-mono text-sm font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(total)}</span>
       </div>
-      {hasSuggestions && (
-        <div className="flex items-center justify-between gap-2 pt-1">
-          <span className="text-[9px] uppercase tracking-wider text-muted-foreground">{hintLabel}</span>
-          <span className="font-mono text-[10px] text-muted-foreground whitespace-nowrap">TZS {formatNumberSpaces(suggestionTotal)}</span>
-        </div>
-      )}
     </section>
   );
 };
