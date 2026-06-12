@@ -944,9 +944,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             </PageSection>
           )}
 
-          {true && (
-            <SlotsTransfersForm shiftId={shift.id} />
-          )}
+          {/* Transfers form moved to dedicated /transfers page in the sidebar */}
         </div>
       </div>
 
