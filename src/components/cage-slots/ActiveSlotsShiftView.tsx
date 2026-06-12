@@ -435,14 +435,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     );
   };
 
-  // Cashless entry
-  const [clProvider, setClProvider] = useState<"AIRTEL" | "MPESA" | "TIGO" | "HALOTEL">("MPESA");
-  const [clDirection, setClDirection] = useState<"IN" | "OUT">("IN");
-  const [clAmount, setClAmount] = useState<number>(0);
-  const [clName, setClName] = useState("");
-  const [clRef, setClRef] = useState("");
-
-  // Per-provider net totals (signed: IN positive, OUT negative) for current shift cashless rows.
+  // Cashless transactions UI moved to /cashless sidebar page — keep per-provider totals
+  // for hints/snapshot only.
   const cashlessByProvider = useMemo(() => {
     const m: Record<string, number> = {};
     cashless.forEach((t: any) => {
@@ -451,16 +445,6 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     });
     return m;
   }, [cashless]);
-
-  const submitCashless = () => {
-    if (!clAmount || !clName.trim()) return;
-    createCashless.mutate({
-      shift_id: shift.id,
-      direction: clDirection, provider: clProvider,
-      amount: clAmount, player_name: clName, reference: clRef,
-    });
-    setClAmount(0); setClName(""); setClRef("");
-  };
 
 
 
