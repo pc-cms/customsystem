@@ -58,7 +58,7 @@ const ChipDenomInput = ({
       if (nextDenom !== undefined) inputRefs.current[nextDenom]?.focus();
       else onSubmit?.();
     }
-  }, [denoms, onSubmit]);
+  }, [effectiveDenoms, onSubmit]);
 
   const total = Object.entries(values).reduce((s, [d, c]) => s + Number(d) * (c || 0), 0);
 
