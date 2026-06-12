@@ -6,6 +6,7 @@ import ShiftClosingReport from "@/components/cage/ShiftClosingReport";
 import ChipMovementReport from "@/components/cage/ChipMovementReport";
 import PrintPortal from "@/components/cage/PrintPortal";
 import { CHIP_DENOMS, formatCurrency, formatChipLabel, formatNumberSpaces, formatCashDenomLabel, CURRENCIES, CASH_DENOMS, CURRENCY_SYMBOLS } from "@/lib/currency";
+import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import ChipToken from "@/components/ChipToken";
 import { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
