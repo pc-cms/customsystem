@@ -3,13 +3,14 @@
  * `compute_shift_balance`). Used for live preview during Close Shift entry.
  *
  *   Cash Desk Result = ΔCash + Expenses + Collection − AddFloat
- *                    + SlotsOut − SlotsIn                         (NO miss)
- *   Shift Balance    = Cash Desk Result − Tables Result − Miss − Tips
+ *                    + SlotsOut − SlotsIn                         (NO miss, NO tips)
+ *   Shift Balance    = Cash Desk Result − Tables Result − Miss
  *
- * Tips (`tips_live` + `tips_poker` + `tips_floor` transactions of THIS shift)
- * sit physically inside the cage at close time. They inflate ΔCash exactly
- * by their sum and must be subtracted so the cashier is not held responsible
- * for that surplus.
+ * TIPS ARE FULLY NEUTRAL — log-only.
+ * `tips_live` / `tips_poker` / `tips_floor` transactions and the Slots
+ * `cage_slots_tips_cd` / `cage_slots_tips_cd_payouts` rows are PURE LEDGER
+ * entries. They never enter CDR or Shift Balance. Cashiers must keep tips
+ * physically outside the drawer cash count.
  */
 export type CageBalanceInputs = {
   openingCash: number;
@@ -21,7 +22,7 @@ export type CageBalanceInputs = {
   slotsOut: number;
   miss: number;
   tablesResult: number;
-  tips?: number;
+  tips?: number; // accepted for backward compat — ignored in formula
 };
 
 export type CageBalanceResult = {
@@ -34,32 +35,26 @@ export const computeShiftBalance = (i: CageBalanceInputs): CageBalanceResult => 
   const deltaCash = i.closingCash - i.openingCash;
   const cashDeskResult =
     deltaCash + i.expenses + i.collection - i.addFloat + i.slotsOut - i.slotsIn;
-  const shiftBalance = cashDeskResult - i.tablesResult - i.miss - (i.tips || 0);
+  const shiftBalance = cashDeskResult - i.tablesResult - i.miss;
   return { deltaCash, cashDeskResult, shiftBalance };
 };
 
 
 /**
  * Cage Slots balance — canonical formula (mirrors DB
- * `compute_slots_shift_balance_from_row`). Updated 03 Jun 2026.
+ * `compute_slots_shift_balance_from_row`).
  *
  *   ΔCash            = ClosingCash − OpeningCash               (display only)
  *   Cash Desk Result = ClosingCash + Expenses − Ace Fill
  *                    + Collection + LG_Out − LG_In
- *                    − TipsIN + TipsOut                        (tips-neutral)
  *   Cards Miss       = (OpeningCards − ClosingCards) × CardValue
  *   Slots Result     = System Result
  *   Expected         = System Result
- *
  *   Shift Balance    = Cash Desk Result − System Result − Cards Miss
  *
- * Tips CD model: Tips IN are cash physically dropped into the cage drawer →
- * they are already counted in Closing Cash. Tips OUT (Cash Out Day/Evening)
- * physically reduce the drawer. To make tips fully neutral on Shift Balance
- * (IN +, OUT −, zero net if IN = OUT), we SUBTRACT TipsIN and ADD TipsOut to
- * CDR — this cancels their effect on the closing cash count. Unpaid tips that
- * remain in the drawer at handover are tracked as a debt to staff in the
- * tips_cd ledger and do NOT inflate the cage balance.
+ * Tips CD (`tipsCdIn`, `tipsCdPayout`) are LOG-ONLY: kept on the shift report
+ * for visibility but excluded from CDR and Balance. Cashiers must keep tips
+ * physically outside the drawer cash count.
  *
  *   Cashless Balance = Cashless IN − Cashless OUT   (derived, display only)
  *   Cashless Final   = manual entry, PRINT ONLY — never used in any formula.
@@ -72,18 +67,18 @@ export type SlotsBalanceInputs = {
   closingCash: number;
   expenses: number;
   collection: number;
-  addFloat: number;        // Ace Fill (ACE System Fill)
+  addFloat: number;
   lgIn: number;
   lgOut: number;
   cashlessIn: number;
   cashlessOut: number;
-  cashlessFinal: number;   // manual entry, print only — not used in calcs
+  cashlessFinal: number;
   openingCards: number;
   closingCards: number;
   cardValue: number;
   systemResult: number;
-  tipsCdIn?: number;       // Tips collected this shift (already in closing cash)
-  tipsCdPayout?: number;   // Tips paid out of cage (Day + Evening)
+  tipsCdIn?: number;       // log-only, ignored in formula
+  tipsCdPayout?: number;   // log-only, ignored in formula
 };
 
 export type SlotsBalanceResult = {
@@ -104,12 +99,10 @@ export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceRes
   const deltaCash = i.closingCash - i.openingCash;
   const tipsCdIn = i.tipsCdIn || 0;
   const tipsCdPayout = i.tipsCdPayout || 0;
-  // Tips IN are inside closing cash → subtract. Tips OUT removed cash from
-  // drawer → add back. Net effect: tips are neutral on Shift Balance.
+  // Tips fully neutral: closing cash must NOT include tips physically.
   const cashDeskResult =
     i.closingCash + i.expenses - i.addFloat + i.collection
-    + i.lgOut - i.lgIn
-    - tipsCdIn + tipsCdPayout;
+    + i.lgOut - i.lgIn;
   const cardsMiss = (i.openingCards - i.closingCards) * i.cardValue;
   const slotsResult = i.systemResult;
   const expected = i.systemResult;
@@ -128,5 +121,3 @@ export const computeSlotsShiftBalance = (i: SlotsBalanceInputs): SlotsBalanceRes
     shiftBalance,
   };
 };
-
-
