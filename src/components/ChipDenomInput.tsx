@@ -54,7 +54,7 @@ const ChipDenomInput = ({
   const handleKeyDown = useCallback((e: React.KeyboardEvent, idx: number) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      const nextDenom = denoms[idx + 1];
+      const nextDenom = effectiveDenoms[idx + 1];
       if (nextDenom !== undefined) inputRefs.current[nextDenom]?.focus();
       else onSubmit?.();
     }
@@ -68,7 +68,7 @@ const ChipDenomInput = ({
 
   // Column-major flow: with 2 cols and N denoms, first column gets ceil(N/2) items
   // (5M, 1M, 500K, 100K, 50K, 25K), second column gets the rest.
-  const rowsPerCol = Math.ceil(denoms.length / columns);
+  const rowsPerCol = Math.ceil(effectiveDenoms.length / columns);
   const gridStyle: React.CSSProperties | undefined = columns > 1
     ? { gridTemplateRows: `repeat(${rowsPerCol}, minmax(0, auto))`, gridAutoFlow: "column" }
     : undefined;
@@ -77,7 +77,7 @@ const ChipDenomInput = ({
   return (
     <div>
       <div className={`grid gap-x-3 gap-y-1 ${gridColsClass}`} style={gridStyle}>
-        {denoms.map((d, idx) => {
+        {effectiveDenoms.map((d, idx) => {
           const val = values[d] || 0;
           const chipValue = val * d;
           const color = resolveChipColor(d, colorOverrides);
