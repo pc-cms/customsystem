@@ -138,113 +138,120 @@ const CashCountGrid = ({
   const showCashlessIn = !!onCashlessInChange && !!cashlessIn;
   const showCashlessOut = !!onCashlessOutChange && !!cashlessOut;
 
+  const showCashlessBand = showCashlessIn || showCashlessOut || !hideMobile;
+
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 items-start ${hideChips ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
-      {!hideChips && (
-        /* Col 1 — TZS Chips, full height */
-        <section className={sectionCls}>
-          <p className={titleCls}>TZS Chips</p>
-          <ChipDenomInput
-            values={chips}
-            onChange={onChipsChange}
-            showValue={false}
-            placeholder={chipPlaceholder}
-            columns={1}
-            size="lg"
-          />
-        </section>
+    <div className="space-y-3">
+      <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 items-start ${hideChips ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
+        {!hideChips && (
+          /* Col 1 — TZS Chips, full height */
+          <section className={sectionCls}>
+            <p className={titleCls}>TZS Chips</p>
+            <ChipDenomInput
+              values={chips}
+              onChange={onChipsChange}
+              showValue={false}
+              placeholder={chipPlaceholder}
+              columns={1}
+              size="lg"
+            />
+          </section>
+        )}
+        {/* Col 2 — TZS Cash + Banks */}
+        <div className={stackCls}>
+          <section className={sectionCls}>
+            <p className={titleCls}>TZS Cash</p>
+            <CashDenomInput values={cash["TZS"] || {}} onChange={v => onCashChange("TZS", v)} denoms={CASH_DENOMS["TZS"] || []} currency="TZS" size="lg" />
+          </section>
+
+          <section className={sectionCls}>
+            <p className={titleCls}>Banks</p>
+            <div className="space-y-1">
+              <div className={mdRow}>
+                <span className={mdChip}>TZS</span>
+                <NumberInput value={banks.tzs || ""} onChange={v => onBanksChange({ ...banks, tzs: Number(v) || 0 })} className={mdInput} placeholder="0" />
+              </div>
+              <div className={mdRow}>
+                <span className={mdChip}>USD</span>
+                <NumberInput value={banks.usd || ""} onChange={v => onBanksChange({ ...banks, usd: Number(v) || 0 })} className={mdInput} placeholder="0" />
+              </div>
+            </div>
+            <div className="pt-2 mt-2 border-t border-border space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">USD in TZS</span>
+                <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">TZS {formatNumberSpaces((banks.usd || 0) * (rates?.["USD"] || 0))}</span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
+                <span className="font-mono text-sm font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(banksTzsTotal)}</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* Col 3 — USD + KES */}
+        <div className={stackCls}>
+          <section className={sectionCls}>
+            <p className={titleCls}>USD Cash</p>
+            <CashDenomInput values={cash["USD"] || {}} onChange={v => onCashChange("USD", v)} denoms={CASH_DENOMS["USD"] || []} currency="USD" size="lg" />
+          </section>
+          <section className={sectionCls}>
+            <p className={titleCls}>KES Cash</p>
+            <CashDenomInput values={cash["KES"] || {}} onChange={v => onCashChange("KES", v)} denoms={CASH_DENOMS["KES"] || []} currency="KES" size="lg" />
+          </section>
+        </div>
+
+        {/* Col 4 — EUR + GBP */}
+        <div className={stackCls}>
+          <section className={sectionCls}>
+            <p className={titleCls}>EUR Cash</p>
+            <CashDenomInput values={cash["EUR"] || {}} onChange={v => onCashChange("EUR", v)} denoms={CASH_DENOMS["EUR"] || []} currency="EUR" size="lg" />
+          </section>
+          <section className={sectionCls}>
+            <p className={titleCls}>GBP Cash</p>
+            <CashDenomInput values={cash["GBP"] || {}} onChange={v => onCashChange("GBP", v)} denoms={CASH_DENOMS["GBP"] || []} currency="GBP" size="lg" />
+          </section>
+        </div>
+      </div>
+
+      {/* Full-width Cashless band — IN / OUT / Balance side-by-side */}
+      {showCashlessBand && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
+          {showCashlessIn && (
+            <ProviderBlock
+              title="Cashless IN"
+              values={cashlessIn!}
+              onChange={onCashlessInChange!}
+              suggestion={cashlessInSuggestion}
+              hintLabel="Hint · Cashless IN"
+              sectionCls={sectionCls}
+              titleCls={titleCls}
+            />
+          )}
+          {showCashlessOut && (
+            <ProviderBlock
+              title="Cashless OUT"
+              values={cashlessOut!}
+              onChange={onCashlessOutChange!}
+              suggestion={cashlessOutSuggestion}
+              hintLabel="Hint · Cashless OUT"
+              sectionCls={sectionCls}
+              titleCls={titleCls}
+            />
+          )}
+          {!hideMobile && (
+            <ProviderBlock
+              title={showCashlessIn || showCashlessOut ? "Mobile Balance" : "Mobile Money"}
+              values={mobile}
+              onChange={onMobileChange}
+              suggestion={mobileSuggestion}
+              hintLabel="Hint · Cashless net"
+              sectionCls={sectionCls}
+              titleCls={titleCls}
+            />
+          )}
+        </div>
       )}
-      {/* Col 2 — TZS Cash + Cashless IN/OUT/Balance + Banks */}
-      <div className={stackCls}>
-        <section className={sectionCls}>
-          <p className={titleCls}>TZS Cash</p>
-          <CashDenomInput values={cash["TZS"] || {}} onChange={v => onCashChange("TZS", v)} denoms={CASH_DENOMS["TZS"] || []} currency="TZS" size="lg" />
-        </section>
-
-        {showCashlessIn && (
-          <ProviderBlock
-            title="Cashless IN"
-            values={cashlessIn!}
-            onChange={onCashlessInChange!}
-            suggestion={cashlessInSuggestion}
-            hintLabel="Hint · Cashless IN"
-            sectionCls={sectionCls}
-            titleCls={titleCls}
-          />
-        )}
-
-        {showCashlessOut && (
-          <ProviderBlock
-            title="Cashless OUT"
-            values={cashlessOut!}
-            onChange={onCashlessOutChange!}
-            suggestion={cashlessOutSuggestion}
-            hintLabel="Hint · Cashless OUT"
-            sectionCls={sectionCls}
-            titleCls={titleCls}
-          />
-        )}
-
-        {!hideMobile && (
-          <ProviderBlock
-            title={showCashlessIn || showCashlessOut ? "Mobile Balance" : "Mobile Money"}
-            values={mobile}
-            onChange={onMobileChange}
-            suggestion={mobileSuggestion}
-            hintLabel="Hint · Cashless net"
-            sectionCls={sectionCls}
-            titleCls={titleCls}
-          />
-        )}
-
-        <section className={sectionCls}>
-          <p className={titleCls}>Banks</p>
-          <div className="space-y-1">
-            <div className={mdRow}>
-              <span className={mdChip}>TZS</span>
-              <NumberInput value={banks.tzs || ""} onChange={v => onBanksChange({ ...banks, tzs: Number(v) || 0 })} className={mdInput} placeholder="0" />
-            </div>
-            <div className={mdRow}>
-              <span className={mdChip}>USD</span>
-              <NumberInput value={banks.usd || ""} onChange={v => onBanksChange({ ...banks, usd: Number(v) || 0 })} className={mdInput} placeholder="0" />
-            </div>
-          </div>
-          <div className="pt-2 mt-2 border-t border-border space-y-1">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">USD in TZS</span>
-              <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">TZS {formatNumberSpaces((banks.usd || 0) * (rates?.["USD"] || 0))}</span>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
-              <span className="font-mono text-sm font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(banksTzsTotal)}</span>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* Col 3 — USD + KES */}
-      <div className={stackCls}>
-        <section className={sectionCls}>
-          <p className={titleCls}>USD Cash</p>
-          <CashDenomInput values={cash["USD"] || {}} onChange={v => onCashChange("USD", v)} denoms={CASH_DENOMS["USD"] || []} currency="USD" size="lg" />
-        </section>
-        <section className={sectionCls}>
-          <p className={titleCls}>KES Cash</p>
-          <CashDenomInput values={cash["KES"] || {}} onChange={v => onCashChange("KES", v)} denoms={CASH_DENOMS["KES"] || []} currency="KES" size="lg" />
-        </section>
-      </div>
-
-      {/* Col 4 — EUR + GBP */}
-      <div className={stackCls}>
-        <section className={sectionCls}>
-          <p className={titleCls}>EUR Cash</p>
-          <CashDenomInput values={cash["EUR"] || {}} onChange={v => onCashChange("EUR", v)} denoms={CASH_DENOMS["EUR"] || []} currency="EUR" size="lg" />
-        </section>
-        <section className={sectionCls}>
-          <p className={titleCls}>GBP Cash</p>
-          <CashDenomInput values={cash["GBP"] || {}} onChange={v => onCashChange("GBP", v)} denoms={CASH_DENOMS["GBP"] || []} currency="GBP" size="lg" />
-        </section>
-      </div>
     </div>
   );
 };
