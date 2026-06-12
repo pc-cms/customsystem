@@ -1750,6 +1750,7 @@ export type Database = {
           edge_color: string
           id: string
           is_promo: boolean
+          is_visible: boolean
           text_color: string
           updated_at: string
           updated_by: string | null
@@ -1762,6 +1763,7 @@ export type Database = {
           edge_color?: string
           id?: string
           is_promo?: boolean
+          is_visible?: boolean
           text_color?: string
           updated_at?: string
           updated_by?: string | null
@@ -1774,6 +1776,7 @@ export type Database = {
           edge_color?: string
           id?: string
           is_promo?: boolean
+          is_visible?: boolean
           text_color?: string
           updated_at?: string
           updated_by?: string | null
