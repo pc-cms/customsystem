@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Lock, ChevronLeft, ChevronRight, ShieldAlert, X } from "lucide-react";
 import { formatChipLabel, formatCurrency } from "@/lib/currency";
 import ChipToken from "@/components/ChipToken";
-import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
+import { useChipColors, resolveChipColor, useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { useChipBaseline, useSetSingleTableResult, useReopenSingleTable, useCloseAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useChipSnapshots } from "@/hooks/use-chips";
 import { useSetTableTrackerValue } from "@/hooks/use-casino-data";
