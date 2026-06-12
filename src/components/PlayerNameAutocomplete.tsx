@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, useEffect, useLayoutEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { usePlayers } from "@/hooks/use-players";
+import { useVisitsToday } from "@/hooks/use-visits";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -10,20 +11,37 @@ interface Props {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  /** When true, only players currently checked-in to THIS casino (today's
+   *  open visits) are selectable. Used by Cashless IN/OUT entry. */
+  inCasinoOnly?: boolean;
 }
 
 /**
  * STRICT autocomplete — only existing players from the GLOBAL base can be selected.
  * Free-text typing is allowed only as a search query; on blur the value is cleared
  * if it doesn't exactly match a player from the database.
+ *
+ * `inCasinoOnly` narrows the pool to players currently present in the active
+ * casino (today's open visits — same source as the "In Casino" dashboard).
  */
-export const PlayerNameAutocomplete = ({ value, onChange, placeholder, disabled, className }: Props) => {
-  const { data: players = [] } = usePlayers();
+export const PlayerNameAutocomplete = ({ value, onChange, placeholder, disabled, className, inCasinoOnly = false }: Props) => {
+  const { data: allPlayers = [] } = usePlayers();
+  const { data: visits = [] } = useVisitsToday("player_id, checked_out_at");
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
   const wrapRef = useRef<HTMLDivElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
   const [dropUp, setDropUp] = useState(false);
+
+  const players = useMemo(() => {
+    if (!inCasinoOnly) return allPlayers as any[];
+    const presentIds = new Set(
+      (visits as any[])
+        .filter(v => !v.checked_out_at && v.player_id)
+        .map(v => v.player_id),
+    );
+    return (allPlayers as any[]).filter(p => presentIds.has(p.id));
+  }, [allPlayers, visits, inCasinoOnly]);
 
   // Build canonical labels for every player in the base
   const allLabels = useMemo(() => {
