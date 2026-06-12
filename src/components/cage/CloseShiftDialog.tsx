@@ -211,8 +211,12 @@ const CloseShiftDialog = ({
     let cancelled = false;
     (async () => {
       if (!shift?.casino_id || !shift?.opened_at) { setCashlessTotals({ in: 0, out: 0 }); return; }
-      const { businessDateOf } = await import("@/lib/business-day");
-      const bday = businessDateOf(new Date(shift.opened_at));
+      // Live game = single shift per business day; the shift's business
+      // date is the date of opened_at in EAT (07:00 rollover).
+      const opened = new Date(shift.opened_at);
+      const eat = new Date(opened.getTime() + 3 * 60 * 60 * 1000);
+      if (eat.getUTCHours() < 7) eat.setUTCDate(eat.getUTCDate() - 1);
+      const bday = eat.toISOString().slice(0, 10);
       const { data } = await (supabase as any)
         .from("cashless_transactions")
         .select("amount, direction, status, cage_type")
