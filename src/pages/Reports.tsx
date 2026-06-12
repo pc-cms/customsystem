@@ -116,7 +116,7 @@ const Reports = () => {
       <MoneyModeProvider value={mode}>
       <Tabs defaultValue={initialTab} className="space-y-3">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="daily" className="gap-1 text-xs"><CalendarDays className="w-3.5 h-3.5" /> Daily diff</TabsTrigger>
+          <TabsTrigger value="daily" className="gap-1 text-xs"><CalendarDays className="w-3.5 h-3.5" /> Daily Balance</TabsTrigger>
           <TabsTrigger value="total" className="gap-1 text-xs"><BarChart3 className="w-3.5 h-3.5" /> Total</TabsTrigger>
           <TabsTrigger value="shifts" className="gap-1 text-xs"><Landmark className="w-3.5 h-3.5" /> Shifts</TabsTrigger>
           <TabsTrigger value="live" className="gap-1 text-xs"><Landmark className="w-3.5 h-3.5" /> Live Game</TabsTrigger>
