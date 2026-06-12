@@ -235,7 +235,11 @@ export default function ClubRegister() {
                   {busy ? "Verifying…" : "Verify"}
                 </button>
                 <button
-                  onClick={() => setStep("phone")}
+                  onClick={() => {
+                    try { sessionStorage.removeItem("club:otp-pending"); } catch {}
+                    setCode("");
+                    setStep("phone");
+                  }}
                   className="w-full text-xs tracking-[0.25em] uppercase"
                   style={{ color: GOLD_DEEP }}
                 >
