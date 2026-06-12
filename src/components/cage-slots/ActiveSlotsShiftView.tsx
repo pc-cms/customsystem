@@ -78,7 +78,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const submit = useSubmitSlotsForReview();
   const approve = useApproveSlotsShift();
   const reopen = useReopenSlotsShift();
-  const createCashless = useCreateSlotsCashless();
+  
 
   const rateMap = useMemo(() => {
     const m: Record<string, number> = { TZS: 1 };
