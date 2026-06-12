@@ -525,8 +525,8 @@ const CloseShiftDialog = ({
                 <FormulaRow label="− Add Float" value={`−${formatNumberSpaces(floatAdded)}`} />
                 <FormulaRow label="+ Slots Cage Out" value={`+${formatNumberSpaces(slotsOut)}`} />
                 <FormulaRow label="− Slots Cage In" value={`−${formatNumberSpaces(slotsIn)}`} />
-                <FormulaRow label="+ Cashless IN" value={`+${formatNumberSpaces(cashlessTotals.in)}`} />
-                <FormulaRow label="− Cashless OUT" value={`−${formatNumberSpaces(cashlessTotals.out)}`} />
+                <FormulaRow label="+ Cashless IN" value={`+${formatNumberSpaces(cashlessInTzs)}`} />
+                <FormulaRow label="− Cashless OUT" value={`−${formatNumberSpaces(cashlessOutTzs)}`} />
                 <div className="flex justify-between pt-2 mt-1 border-t border-border text-base font-bold">
                   <span className="text-card-foreground">= Cash Desk Result</span>
                   <span className="text-card-foreground">{cashDeskResult >= 0 ? "+" : ""}{formatNumberSpaces(cashDeskResult)}</span>
