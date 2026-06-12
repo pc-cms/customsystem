@@ -137,6 +137,11 @@ export const useCloseShift = () => {
       closing_count: Record<string, any>;
       closing_cash: Record<string, any>;
       notes: string;
+      // Per-provider Cashless IN/OUT totals (manual cashier entry, with
+      // gray hints from /cashless transactions). Persisted to dedicated
+      // `shifts.cashless_in_providers` / `cashless_out_providers` columns.
+      cashless_in_providers?: Record<string, number>;
+      cashless_out_providers?: Record<string, number>;
       // The fields below are intentionally IGNORED on the server side —
       // they're sent only as a UI-side reference and are overwritten by the
       // authoritative `compute_shift_close` RPC result before persisting.
