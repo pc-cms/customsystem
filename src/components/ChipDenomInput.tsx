@@ -4,7 +4,7 @@
  */
 import { useRef, useCallback, type CSSProperties } from "react";
 import { CHIP_DENOMS, formatChipLabel, formatNumberSpaces } from "@/lib/currency";
-import { useChipColors, resolveChipColor } from "@/hooks/use-chip-colors";
+import { useChipColors, resolveChipColor, useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 
 type Size = "sm" | "md" | "lg";
 
