@@ -35,6 +35,10 @@ const getCasinoColor = (name: string) => {
   return "bg-accent/50 text-accent-foreground/70 border-border/50";
 };
 
+/** Strip "Cloud" suffix from display name. */
+const cleanCasinoName = (name: string) =>
+  name.replace(/\bcloud\b/gi, "").trim();
+
 /**
  * Shows a small badge with the full casino name and a brand colour,
  * indicating where the player was registered.
@@ -45,6 +49,8 @@ const CasinoBadge = ({ casinoId, className }: CasinoBadgeProps) => {
 
   if (!casino) return null;
 
+  const displayName = cleanCasinoName(casino.name);
+
   return (
     <span
       className={cn(
@@ -54,7 +60,7 @@ const CasinoBadge = ({ casinoId, className }: CasinoBadgeProps) => {
       )}
       title={`Registered at ${casino.name}`}
     >
-      {casino.name}
+      {displayName}
     </span>
   );
 };
