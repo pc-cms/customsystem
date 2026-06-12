@@ -139,6 +139,8 @@ export const UsersTab = () => {
       setSortDir("asc");
     }
   };
+  const sortIndicator = (k: SortKey) => (sortKey === k ? (sortDir === "asc" ? " ↑" : " ↓") : "");
+
 
   return (
     <div className="space-y-4">
