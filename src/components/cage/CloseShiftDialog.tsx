@@ -162,13 +162,24 @@ const CloseShiftDialog = ({
 
   // Canonical Cash Desk formula (mirrors DB RPC `compute_shift_balance`):
   //   Cash Desk Result = ΔCash + Expenses + Collection − AddFloat
-  //                    + SlotsOut − SlotsIn                         (NO miss)
+  //                    + SlotsOut − SlotsIn + CashlessIn − CashlessOut
   //   Shift Balance    = Cash Desk Result − Tables Result − Miss   (= 0 ideal)
-  // ΔCash = closing money (cash + mobile + bank, TZS) − opening cash.
-  const openingCashEffective = openingCashProp || openingCashTzs;
+  // ΔCash uses CASH + BANK only — mobile balance is excluded to avoid
+  // double-counting cashless movements (which now enter the formula
+  // explicitly via `cashless_transactions`). Mobile balance entry remains
+  // a manual sanity check displayed on the report.
+  const openingCashTotal = openingCashProp || openingCashTzs;
+  // Strip opening mobile from opening total (mobile balance never carries
+  // over per business rule, but be defensive).
+  const openingMobileTzs = useMemo(() => {
+    const t = (shift?.opening_float as any)?.totals;
+    return Number(t?.mobile_tzs || 0);
+  }, [shift?.opening_float]);
+  const openingCashEffective = Math.max(0, openingCashTotal - openingMobileTzs);
+  const closingCashEffective = closingCashOnlyTzs + closingBankTzs; // no mobile
   const cashDelta = useMemo(
-    () => closingCashTotalTzs - openingCashEffective,
-    [closingCashTotalTzs, openingCashEffective],
+    () => closingCashEffective - openingCashEffective,
+    [closingCashEffective, openingCashEffective],
   );
   // UI chip delta is counted − opening. Balance formula uses Miss as
   // opening − counted, so a missing 35 000 is stored/calculated as +35 000.
@@ -194,21 +205,54 @@ const CloseShiftDialog = ({
     return () => { cancelled = true; };
   }, [shift?.id]);
 
+  // Cashless IN / OUT for this shift's business day (live-game cage).
+  const [cashlessTotals, setCashlessTotals] = useState({ in: 0, out: 0 });
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!shift?.casino_id || !shift?.opened_at) { setCashlessTotals({ in: 0, out: 0 }); return; }
+      // Live game = single shift per business day; the shift's business
+      // date is the date of opened_at in EAT (07:00 rollover).
+      const opened = new Date(shift.opened_at);
+      const eat = new Date(opened.getTime() + 3 * 60 * 60 * 1000);
+      if (eat.getUTCHours() < 7) eat.setUTCDate(eat.getUTCDate() - 1);
+      const bday = eat.toISOString().slice(0, 10);
+      const { data } = await (supabase as any)
+        .from("cashless_transactions")
+        .select("amount, direction, status, cage_type")
+        .eq("casino_id", shift.casino_id)
+        .eq("business_date", bday)
+        .in("status", ["recorded", "approved"]);
+      if (cancelled) return;
+      let cIn = 0, cOut = 0;
+      for (const r of (data || [])) {
+        if (r.cage_type && r.cage_type !== "live_game") continue;
+        const a = Number(r.amount || 0);
+        if (String(r.direction || "").toUpperCase() === "IN") cIn += a;
+        else if (String(r.direction || "").toUpperCase() === "OUT") cOut += a;
+      }
+      setCashlessTotals({ in: cIn, out: cOut });
+    })();
+  }, [shift?.id, shift?.casino_id, shift?.opened_at]);
+
   const { cashDeskResult, shiftBalance: balance } = useMemo(
     () => computeShiftBalance({
       openingCash: openingCashEffective,
-      closingCash: closingCashTotalTzs,
+      closingCash: closingCashEffective,
       expenses: totalExpenses,
       collection: collectionTotal,
       addFloat: floatAdded,
       slotsIn,
       slotsOut,
+      cashlessIn: cashlessTotals.in,
+      cashlessOut: cashlessTotals.out,
       miss: balanceMissTotal,
       tablesResult: resultTable,
       tips: tipsTotal,
     }),
-    [openingCashEffective, closingCashTotalTzs, totalExpenses, collectionTotal,
-     floatAdded, slotsIn, slotsOut, balanceMissTotal, resultTable, tipsTotal],
+    [openingCashEffective, closingCashEffective, totalExpenses, collectionTotal,
+     floatAdded, slotsIn, slotsOut, cashlessTotals.in, cashlessTotals.out,
+     balanceMissTotal, resultTable, tipsTotal],
   );
 
   const isBalanced = balance === 0;
@@ -499,12 +543,14 @@ const CloseShiftDialog = ({
                 Cash Desk Result vs Tables Result
               </p>
               <div className="space-y-1.5 font-mono text-sm">
-                <FormulaRow label="ΔCash (Closing − Opening)" value={`${cashDelta >= 0 ? "+" : ""}${formatNumberSpaces(cashDelta)}`} />
+                <FormulaRow label="ΔCash (Closing − Opening, cash + bank)" value={`${cashDelta >= 0 ? "+" : ""}${formatNumberSpaces(cashDelta)}`} />
                 <FormulaRow label="+ Expenses" value={`+${formatNumberSpaces(totalExpenses)}`} />
                 <FormulaRow label="+ Collection" value={`+${formatNumberSpaces(collectionTotal)}`} />
                 <FormulaRow label="− Add Float" value={`−${formatNumberSpaces(floatAdded)}`} />
                 <FormulaRow label="+ Slots Cage Out" value={`+${formatNumberSpaces(slotsOut)}`} />
                 <FormulaRow label="− Slots Cage In" value={`−${formatNumberSpaces(slotsIn)}`} />
+                <FormulaRow label="+ Cashless IN" value={`+${formatNumberSpaces(cashlessTotals.in)}`} />
+                <FormulaRow label="− Cashless OUT" value={`−${formatNumberSpaces(cashlessTotals.out)}`} />
                 <div className="flex justify-between pt-2 mt-1 border-t border-border text-base font-bold">
                   <span className="text-card-foreground">= Cash Desk Result</span>
                   <span className="text-card-foreground">{cashDeskResult >= 0 ? "+" : ""}{formatNumberSpaces(cashDeskResult)}</span>
@@ -545,8 +591,8 @@ const CloseShiftDialog = ({
                 <KpiTile label="Cash Desk Result" value={cashDeskResult} tone={cashDeskResult >= 0 ? "pos" : "neg"} />
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 italic">
-                Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn.
-                Shift Balance = Cash Desk Result − Tables Result − Miss − Tips. Must be zero.
+                Cash Desk Result = ΔCash(cash+bank) + Expenses + Collection − AddFloat + SlotsOut − SlotsIn + Cashless IN − Cashless OUT.
+                Shift Balance = Cash Desk Result − Tables Result − Miss. Must be zero.
               </p>
             </div>
 
