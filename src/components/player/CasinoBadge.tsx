@@ -49,6 +49,8 @@ const CasinoBadge = ({ casinoId, className }: CasinoBadgeProps) => {
 
   if (!casino) return null;
 
+  const displayName = cleanCasinoName(casino.name);
+
   return (
     <span
       className={cn(
@@ -58,7 +60,7 @@ const CasinoBadge = ({ casinoId, className }: CasinoBadgeProps) => {
       )}
       title={`Registered at ${casino.name}`}
     >
-      {casino.name}
+      {displayName}
     </span>
   );
 };
