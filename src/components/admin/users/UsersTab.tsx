@@ -162,6 +162,18 @@ export const UsersTab = () => {
               className="pl-8 w-64"
             />
           </div>
+          <Select value={casinoFilter} onValueChange={setCasinoFilter}>
+            <SelectTrigger className="w-44 h-9 text-xs">
+              <SelectValue placeholder="All casinos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All casinos</SelectItem>
+              <SelectItem value="__none__">No casino</SelectItem>
+              {casinos.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button onClick={() => navigate("/admin/users/new")} className="gap-1.5">
             <Plus className="w-4 h-4" /> New User
           </Button>
