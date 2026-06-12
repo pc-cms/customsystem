@@ -725,7 +725,7 @@ const CloseShiftDialog = ({
               </tr>
             </thead>
             <tbody>
-              {CHIP_DENOMS.map(d => {
+              {visibleDenoms.map(d => {
                 const op = openingChips[d] || 0;
                 const cl = chipCounts[d] || 0;
                 const mq = missPerDenom[d] || 0;
