@@ -116,7 +116,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
   const calcResult = (table: GamingTable, c: Record<number, number>): number => {
     const tb = baselineMap[table.id] || {};
     let total = 0;
-    (table.denominations || []).forEach(d => {
+    tableDenoms(table).forEach(d => {
       const expected = tb[d] || 0;
       const actual = c[d] ?? 0;
       total += (actual - expected) * d;
