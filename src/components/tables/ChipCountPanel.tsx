@@ -68,15 +68,18 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     [tables, tablesWithSnap]
   );
 
+  const visibleDenoms = useVisibleChipDenoms();
+  const visibleSet = useMemo(() => new Set(visibleDenoms), [visibleDenoms]);
+
   const countLocations = useMemo(() => {
     return openTables.map(t => ({
       key: `table-${t.id}`,
       label: t.name,
       type: "table" as const,
       id: t.id,
-      denoms: t.denominations || [],
+      denoms: (t.denominations || []).filter(d => visibleSet.has(d)),
     }));
-  }, [openTables]);
+  }, [openTables, visibleSet]);
 
   const latestSnapshotPerTable = useMemo(() => {
     const map: Record<string, { actual: Record<number, number>; expected: Record<number, number> }> = {};
