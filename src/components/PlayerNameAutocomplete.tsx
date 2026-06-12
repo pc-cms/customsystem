@@ -1,7 +1,9 @@
 import { useMemo, useRef, useState, useEffect, useLayoutEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { usePlayers } from "@/hooks/use-players";
-import { useVisitsToday } from "@/hooks/use-visits";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
