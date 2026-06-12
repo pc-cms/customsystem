@@ -20,6 +20,7 @@ export const ChipEmissionDialog = ({ trigger }: { trigger?: React.ReactNode }) =
   const [reason, setReason] = useState("");
   const create = useCreateChipEmission();
   const { data: history = [] } = useChipEmissions();
+  const visibleDenoms = useVisibleChipDenoms();
 
   const handleSubmit = async () => {
     const denom = Number(denomination);
