@@ -50,6 +50,8 @@ interface CloseShiftDialogProps {
     cashResult: number;
     missTotal: number;
     shiftResult: number;
+    cashlessInProviders: MobileProviders;
+    cashlessOutProviders: MobileProviders;
   }) => void;
   loading: boolean;
 }
