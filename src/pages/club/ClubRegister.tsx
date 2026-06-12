@@ -56,7 +56,20 @@ const TextInput = (props: React.InputHTMLAttributes<HTMLInputElement>) => {
 
 export default function ClubRegister() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<Step>(getClubToken() ? "profile" : "phone");
+  const [step, setStep] = useState<Step>(() => {
+    if (getClubToken()) return "profile";
+    try {
+      const raw = sessionStorage.getItem("club:otp-pending");
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p?.phone && p?.sentAt && Date.now() - p.sentAt < 5 * 60_000) {
+          return "code";
+        }
+        sessionStorage.removeItem("club:otp-pending");
+      }
+    } catch {}
+    return "phone";
+  });
   const [busy, setBusy] = useState(false);
 
   const [phoneLocal, setPhoneLocal] = useState("");
