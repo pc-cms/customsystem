@@ -796,6 +796,12 @@ const CloseShiftDialog = ({
           onMobileChange={setMobileBal}
           chipPlaceholder={openingChips}
           mobileSuggestion={cashlessSug?.net}
+          cashlessIn={cashlessIn}
+          onCashlessInChange={setCashlessIn}
+          cashlessInSuggestion={cashlessSug?.in}
+          cashlessOut={cashlessOut}
+          onCashlessOutChange={setCashlessOut}
+          cashlessOutSuggestion={cashlessSug?.out}
           rates={rates}
           hideChips
         />
