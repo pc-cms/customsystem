@@ -42,6 +42,9 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
   const [localMode, MoneyToggle] = useMoneyMode("miss-chips");
   const parentMode = useMoneyDisplayMode();
   const mode = embedded ? parentMode : localMode;
+  const visibleDenoms = useVisibleChipDenoms();
+  // Denominations descending; filtered by per-casino visibility.
+  const DENOMS_DESC = useMemo(() => [...visibleDenoms].sort((a, b) => b - a), [visibleDenoms]);
 
   const monthLabel = format(monthAnchor, "MMMM yyyy");
   const fromIso = embedded && embeddedFrom
