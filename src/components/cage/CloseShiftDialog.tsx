@@ -84,6 +84,7 @@ const CloseShiftDialog = ({
   const [notes, setNotes] = useState(persisted?.notes || "");
   const [showManagerConfirm, setShowManagerConfirm] = useState(false);
   const batchSnapshot = useBatchChipSnapshot();
+  const visibleDenoms = useVisibleChipDenoms();
 
   const [chipCounts, setChipCounts] = useState<Record<number, number>>(persisted?.chipCounts || {});
   const [cashCounts, setCashCounts] = useState<Record<string, Record<number, number>>>(persisted?.cashCounts || emptyCash);
