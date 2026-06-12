@@ -64,7 +64,7 @@ export const ChipEmissionDialog = ({ trigger }: { trigger?: React.ReactNode }) =
             <Select value={denomination} onValueChange={setDenomination}>
               <SelectTrigger><SelectValue placeholder="Select denomination" /></SelectTrigger>
               <SelectContent>
-                {CHIP_DENOMS.map((d) => (
+                {visibleDenoms.map((d) => (
                   <SelectItem key={d} value={String(d)}>{formatChipLabel(d)}</SelectItem>
                 ))}
               </SelectContent>
