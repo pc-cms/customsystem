@@ -93,7 +93,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
     const tableBaseline = baselineMap[table.id] || {};
     const snap = latestSnapshotPerTable[table.id] || {};
     const draft = (table.closing_chips || {}) as Record<string, number>;
-    (table.denominations || []).forEach(d => {
+    tableDenoms(table).forEach(d => {
       if (draft[String(d)] !== undefined) out[d] = Number(draft[String(d)]);
       else if (snap[d] !== undefined) out[d] = snap[d];
       else out[d] = tableBaseline[d] || 0;
