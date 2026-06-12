@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { usePlayers } from "@/hooks/use-players";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -29,22 +30,30 @@ interface Props {
 export const PlayerNameAutocomplete = ({ value, onChange, placeholder, disabled, className, inCasinoOnly = false }: Props) => {
   const { data: allPlayers = [] } = usePlayers();
   const { casinoId } = useAuth();
-  // Open visits = players currently checked-in to THIS casino (no date filter —
-  // auto-close cron handles rollover; this avoids drift from local business-date
-  // calculation).
-  const { data: openVisits = [] } = useQuery({
-    queryKey: ["open-visits-autocomplete", casinoId],
+  const { activeCasinoId } = useCasino();
+  const effectiveCasinoId = activeCasinoId ?? casinoId;
+  // Open visits = the same source as Guests / In Casino. Query the joined player
+  // rows directly so cashless does not depend on the global players cache/RLS shape.
+  const { data: inCasinoPlayers = [] } = useQuery({
+    queryKey: ["in-casino-players-autocomplete", effectiveCasinoId],
     queryFn: async () => {
-      if (!casinoId) return [] as { player_id: string }[];
+      if (!effectiveCasinoId) return [] as any[];
       const { data, error } = await supabase
         .from("casino_visits")
-        .select("player_id")
-        .eq("casino_id", casinoId)
-        .is("checked_out_at", null);
+        .select("player_id, checked_in_at, players(id, first_name, last_name, nickname)")
+        .eq("casino_id", effectiveCasinoId)
+        .is("checked_out_at", null)
+        .order("checked_in_at", { ascending: false });
       if (error) throw error;
-      return data || [];
+      const seen = new Set<string>();
+      return (data || []).flatMap((v: any) => {
+        const p = v.players;
+        if (!p?.id || seen.has(p.id)) return [];
+        seen.add(p.id);
+        return [p];
+      });
     },
-    enabled: !!casinoId && inCasinoOnly,
+    enabled: !!effectiveCasinoId && inCasinoOnly,
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
@@ -57,13 +66,8 @@ export const PlayerNameAutocomplete = ({ value, onChange, placeholder, disabled,
 
   const players = useMemo(() => {
     if (!inCasinoOnly) return allPlayers as any[];
-    const presentIds = new Set(
-      (openVisits as any[])
-        .filter(v => v.player_id)
-        .map(v => v.player_id),
-    );
-    return (allPlayers as any[]).filter(p => presentIds.has(p.id));
-  }, [allPlayers, openVisits, inCasinoOnly]);
+    return inCasinoPlayers as any[];
+  }, [allPlayers, inCasinoPlayers, inCasinoOnly]);
 
   // Build canonical labels for every player in the base
   const allLabels = useMemo(() => {
