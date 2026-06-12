@@ -36,7 +36,7 @@ import {
   useSlotsCashless, useSlotsComments,
   useUpdateSlotsSystemResult, useUpsertSlotsInventory, useUpdateSlotsCards,
   useCreateSlotsCashCount, useSubmitSlotsForReview, useApproveSlotsShift,
-  useCreateSlotsCashless, useReopenSlotsShift,
+  useReopenSlotsShift,
 } from "@/hooks/use-cage-slots";
 import { useCashlessSuggestions } from "@/hooks/use-cashless";
 import { useAuth } from "@/lib/auth-context";
