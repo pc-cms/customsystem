@@ -47,9 +47,14 @@ const Section = ({ title, isEmpty, children }: { title: string; isEmpty: boolean
   );
 };
 
-const ChipsView = ({ chips }: { chips: Record<number, number> }) => (
+const ChipsView = ({ chips }: { chips: Record<number, number> }) => {
+  const visibleDenoms = useVisibleChipDenoms();
+  // Show visible denoms + any historical denom present in this snapshot (even if hidden now).
+  const denoms = [...new Set([...visibleDenoms, ...Object.keys(chips).map(Number).filter(n => (chips[n] || 0) > 0)])]
+    .sort((a, b) => b - a);
+  return (
   <div className="space-y-1.5">
-    {CHIP_DENOMS.map(d => {
+    {denoms.map(d => {
       const qty = chips[d] || 0;
       return (
         <div key={d} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 font-mono">
