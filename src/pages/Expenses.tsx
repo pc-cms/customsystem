@@ -655,9 +655,49 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-1.5">
-                          <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[exp.category] || CAT_COLORS.other}`}>
-                            {catLabel}
-                          </span>
+                          {isManagerView && editingCatId === exp.id ? (
+                            <div className="min-w-[140px]">
+                              <Select
+                                value={exp.category}
+                                onValueChange={(v) => {
+                                  updateCat.mutate(
+                                    { id: exp.id, category: v, prev_category: exp.category },
+                                    { onSuccess: () => setEditingCatId(null) },
+                                  );
+                                }}
+                              >
+                                <SelectTrigger className="h-7 text-[11px]"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {FALLBACK_CATS.map((c) => (
+                                    <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                                  ))}
+                                  <SelectItem value="pos_comp">POS Comp</SelectItem>
+                                  <SelectItem value="bar_charge">Bar charge</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => isManagerView && setEditingCatId(exp.id)}
+                              className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[exp.category] || CAT_COLORS.other} ${
+                                isManagerView ? "cursor-pointer hover:ring-1 hover:ring-primary" : "cursor-default"
+                              }`}
+                              title={isManagerView ? "Click to re-classify operational category" : undefined}
+                            >
+                              {catLabel}
+                            </button>
+                          )}
+                          {isManagerView && editingCatId === exp.id && (
+                            <button
+                              type="button"
+                              onClick={() => setEditingCatId(null)}
+                              className="text-[10px] text-muted-foreground hover:text-foreground"
+                              title="Cancel"
+                            >
+                              ✕
+                            </button>
+                          )}
                           {isManagerView && editingFinCatId === exp.id ? (
                             <div className="min-w-[180px]">
                               <FinCategoryPicker
@@ -679,7 +719,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                                   ? "text-muted-foreground"
                                   : "text-amber-600 dark:text-amber-400 italic"
                               } ${isManagerView ? "hover:underline cursor-pointer" : "cursor-default"}`}
-                              title={isManagerView ? "Click to re-classify" : undefined}
+                              title={isManagerView ? "Click to re-classify finance plan" : undefined}
                             >
                               → {exp.fin_category_id ? (finCatById[exp.fin_category_id]?.name || "—") : "Unassigned"}
                             </button>
@@ -696,6 +736,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                           )}
                         </div>
                       </td>
+
 
                       <td className="px-3 py-2 text-sm">
                         {exp.player_id ? (
