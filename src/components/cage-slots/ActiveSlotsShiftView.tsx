@@ -871,8 +871,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
           {/* Cashless transactions moved to dedicated /cashless page in the sidebar */}
 
-          {!isSubmitted && (
-            <PageSection title="Transfers" icon={ArrowLeftRight}>
+          {shift.status === "open" && (
+            <PageSection title="Transfers">
               <SlotsTransfersForm shiftId={shift.id} />
             </PageSection>
           )}
