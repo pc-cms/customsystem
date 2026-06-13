@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Receipt, CheckCircle, Plus, X, Trash2, Filter, GlassWater, ExternalLink } from "lucide-react";
+import { Receipt, CheckCircle, Plus, X, Trash2, Filter, GlassWater, ExternalLink, Printer } from "lucide-react";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { useExpenses, useCreateExpense, useApproveExpense, useDeleteExpense } from "@/hooks/use-casino-data";
 import { useCreateSlotsExpense, useUpdateExpenseFinCategory } from "@/hooks/use-expenses";
@@ -20,6 +20,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { fmtDateOnly } from "@/lib/format-date";
+import PrintPortal from "@/components/cage/PrintPortal";
+import ExpensesDayReport from "@/components/closings/ExpensesDayReport";
+import { useCasino } from "@/lib/casino-context";
 
 import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
 import { formatCurrency } from "@/lib/currency";
@@ -100,6 +103,7 @@ interface ExpensesProps {
 
 const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   const { isManager, roles } = useAuth();
+  const { activeCasino } = useCasino();
   const isCashierLive = roles.includes("cashier") && !roles.includes("cashier_slots");
   const isCashierSlots = roles.includes("cashier_slots") && !roles.includes("cashier");
   // Managers (and super_admin) see and can create everything.
@@ -595,9 +599,24 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
         });
         return (
           <div className="cms-panel overflow-hidden">
+            <div className="px-4 py-2 border-b border-border flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-card-foreground">
+                History · {sortedExpenses.length} {sortedExpenses.length === 1 ? "record" : "records"}
+              </h3>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1.5"
+                onClick={() => window.print()}
+                title="Print current view"
+              >
+                <Printer className="w-3.5 h-3.5" /> Print
+              </Button>
+            </div>
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
+
                   <th className="text-left px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("date")}>Date{sortArrow("date")}</th>
                   <th className="text-left px-3 py-2">Time</th>
                   <th className="text-left px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("source")}>Source{sortArrow("source")}</th>
@@ -727,7 +746,19 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           </div>
         );
       })()}
+
+      {/* Print view — current filtered expenses */}
+      <PrintPortal>
+        <ExpensesDayReport
+          casinoName={activeCasino?.name || "Casino"}
+          businessDate={isSingleDay ? from : `${from} – ${to}`}
+          rows={[...analytics.filtered].sort(
+            (a: any, b: any) => String(a.created_at).localeCompare(String(b.created_at)),
+          ) as any}
+        />
+      </PrintPortal>
     </div>
+
   );
 };
 
