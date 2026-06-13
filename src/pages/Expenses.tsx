@@ -746,7 +746,19 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           </div>
         );
       })()}
+
+      {/* Print view — current filtered expenses */}
+      <PrintPortal>
+        <ExpensesDayReport
+          casinoName={activeCasino?.name || "Casino"}
+          businessDate={isSingleDay ? from : `${from} – ${to}`}
+          rows={[...analytics.filtered].sort(
+            (a: any, b: any) => String(a.created_at).localeCompare(String(b.created_at)),
+          ) as any}
+        />
+      </PrintPortal>
     </div>
+
   );
 };
 
