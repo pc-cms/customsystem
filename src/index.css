@@ -426,7 +426,10 @@
   }
   html:has(#shift-print-area),
   body:has(#shift-print-area),
-  .cms-print-root:has(#shift-print-area) {
+  .cms-print-root:has(#shift-print-area),
+  html:has(.expenses-print-area),
+  body:has(.expenses-print-area),
+  .cms-print-root:has(.expenses-print-area) {
     page: cashdesk-portrait;
   }
   #shift-print-area {
@@ -438,6 +441,9 @@
     page: cashdesk-portrait;
     page-break-before: always;
     break-before: page;
+  }
+  .expenses-print-area {
+    page: cashdesk-portrait;
   }
 
 
