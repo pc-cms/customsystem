@@ -84,7 +84,6 @@ const Cashless = () => {
   const create = useCreateCashless();
   const approve = useApproveCashless();
   const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
-  const [pendingWithdrawalUid, setPendingWithdrawalUid] = useState<string | null>(null);
 
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft()]);
 
@@ -113,11 +112,6 @@ const Cashless = () => {
     if (!amt || amt <= 0) return toast.error("Amount must be > 0");
     if (writeSource === "slots" && !slotsShift?.id) {
       return toast.error("No open Slots shift");
-    }
-    // Withdrawals require manager confirmation before being recorded
-    if (row.direction === "OUT") {
-      setPendingWithdrawalUid(uid);
-      return;
     }
     await performSubmit(uid);
   };
@@ -407,19 +401,6 @@ const Cashless = () => {
         actionDetails={{ cashless_id: pendingApproveId }}
       />
 
-      <ManagerOverrideDialog
-        open={!!pendingWithdrawalUid}
-        onClose={() => setPendingWithdrawalUid(null)}
-        onConfirm={async () => {
-          const uid = pendingWithdrawalUid;
-          setPendingWithdrawalUid(null);
-          if (uid) await performSubmit(uid);
-        }}
-        title="Confirm Withdrawal"
-        description="Manager authentication required to record a cashless withdrawal."
-        actionType="APPROVE_EXPENSE"
-        actionDetails={{ draft_uid: pendingWithdrawalUid }}
-      />
     </div>
   );
 };
