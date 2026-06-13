@@ -68,6 +68,44 @@ const CloseShiftPage = () => {
     );
   }
 
+  // Preflight: shift cannot be closed while any gaming table is still open.
+  const openTables = (tables as any[]).filter(
+    (t) => !t.is_archived && (t.closing_result === null || t.closing_result === undefined)
+  );
+
+  if (openTables.length > 0) {
+    return (
+      <PageShell>
+        <PageHeader
+          icon={Square}
+          title="Close Shift"
+          subtitle="Cannot close — tables still open"
+        />
+        <PageSection>
+          <div className="flex flex-col items-start gap-4 p-2">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+              <div className="space-y-2">
+                <p className="text-sm font-medium">
+                  {openTables.length} table{openTables.length > 1 ? "s are" : " is"} still open. Close them first.
+                </p>
+                <ul className="text-sm text-muted-foreground list-disc pl-5">
+                  {openTables.map((t: any) => (
+                    <li key={t.id}>{t.name}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="default" onClick={() => nav("/tables/close")}>Go to Close Tables</Button>
+              <Button variant="outline" onClick={() => nav("/cage")}>Back to Cage</Button>
+            </div>
+          </div>
+        </PageSection>
+      </PageShell>
+    );
+  }
+
   return (
     <PageShell>
       <PageHeader
