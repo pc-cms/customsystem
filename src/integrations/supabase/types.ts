@@ -8986,7 +8986,7 @@ export type Database = {
         }[]
       }
       compute_players_drop_split: {
-        Args: { _casino_id: string; _from: string; _to: string }
+        Args: { _casino_id: string; _from?: string; _to?: string }
         Returns: {
           drop_r: number
           drop_recycled: number
@@ -9019,7 +9019,7 @@ export type Database = {
         Returns: Json
       }
       compute_tables_drop_split: {
-        Args: { _casino_id: string; _from: string; _to: string }
+        Args: { _casino_id: string; _from?: string; _to?: string }
         Returns: {
           drop_r: number
           drop_recycled: number
