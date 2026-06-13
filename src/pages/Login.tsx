@@ -14,6 +14,14 @@ const BRANCH_NAMES: Record<string, string> = {
   premier: "Premier",
 };
 
+const BRANCH_LOGOS: Record<string, string> = {
+  arusha: "/arusha-premier-logo.svg",
+  mwanza: "/mwanza-premier-logo.png",
+  dodoma: "/arusha-premier-logo.svg",
+  mbeya: "/arusha-premier-logo.svg",
+  premier: "/arusha-premier-logo.svg",
+};
+
 const GOLD = "#E8C688";
 
 const Login = () => {
