@@ -261,7 +261,7 @@ const CloseShiftDialog = ({
     };
     setCashlessIn(prev => merge(prev, cashlessSug.in));
     setCashlessOut(prev => merge(prev, cashlessSug.out));
-    setMobileBal(prev => merge(prev, cashlessSug.net));
+    // Mobile Balance is MANUAL-ONLY — never auto-fill from NET (IN-OUT).
     prefilledRef.current = true;
   }, [cashlessSug]);
 
