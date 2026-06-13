@@ -5,9 +5,10 @@ import { useTransactions, useExpenses, useGamingTables } from "@/hooks/use-casin
 import { useCageTransfers } from "@/hooks/use-cage-transfers";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { getBusinessDate } from "@/lib/business-day";
-import { PageShell } from "@/components/layout/PageShell";
+import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Square } from "lucide-react";
+import { Square, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import CloseShiftDialog from "@/components/cage/CloseShiftDialog";
 
 /**
