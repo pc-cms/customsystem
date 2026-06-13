@@ -164,11 +164,17 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const totalOuts = useMemo(() => activeShiftTransactions.filter(t => isOutTx(t.type)).reduce((s, t) => s + Number(t.amount), 0), [activeShiftTransactions]);
   const totalExpenses = useMemo(() => shiftExpenses.reduce((s, e) => s + Number(e.amount), 0), [shiftExpenses]);
 
-  // Cage transfer totals (cash-affecting only — Fill/Credit are chip-only)
+  // Cage transfer totals
   const totalAddFloat = useMemo(() => cageTransfers.filter(t => t.transfer_type === "add_float").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
   const totalCollection = useMemo(() => cageTransfers.filter(t => t.transfer_type === "collection").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
   const totalSlotsOut = useMemo(() => cageTransfers.filter(t => t.transfer_type === "slots_out").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
   const totalSlotsIn = useMemo(() => cageTransfers.filter(t => t.transfer_type === "slots_in").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
+  // Chip-only transfers to/from tables — affect total cage VALUE (chips leave/enter cage)
+  // but NOT cash. Used by Check (chips + cash) so physical count matches.
+  // Fill: chips OUT of cage → expected total decreases.
+  // Credit: chips INTO cage → expected total increases.
+  const totalFill = useMemo(() => cageTransfers.filter(t => t.transfer_type === "fill").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
+  const totalCredit = useMemo(() => cageTransfers.filter(t => t.transfer_type === "credit").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
 
   // Cancel dialog state
   const [cancelTarget, setCancelTarget] = useState<Tables<"transactions"> | null>(null);
