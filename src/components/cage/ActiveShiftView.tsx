@@ -201,7 +201,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
   // Total cage VALUE (chips + cash). IN/OUT are pure swaps (cash↔chips) — they
   // do NOT change the total. Only money entering/leaving the cage matters.
   // This is what the physical Check (chips + cash + bank + mobile) must equal.
-  const expectedTotal = openingFloat + totalAddFloat + totalSlotsIn - totalCollection - totalSlotsOut - totalExpenses;
+  const expectedTotal = openingFloat + totalAddFloat + totalSlotsIn + totalCredit - totalCollection - totalSlotsOut - totalExpenses - totalFill;
 
   const shiftDuration = useMemo(() => {
     const start = new Date(shift.opened_at);
