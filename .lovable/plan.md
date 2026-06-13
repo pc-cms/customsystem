@@ -1,60 +1,58 @@
-# Fix: Chip Count Result must reflect Fill / Credit
 
-## Problem (confirmed in code)
+# Drop R / Drop V — переход на per-day peak NEP
 
-`src/components/tables/CloseTableWizard.tsx` shows a single **Result** number computed by `calcResult` = `Σ(actual − baseline) × denom`. This is **pure physical** chip delta. Fill and Credit are NOT applied in this view.
+## Новая формула (единая для всех экранов)
 
-But the canonical Shift P&L (`shifts.tables_result`, DB RPC `compute_shift_table_results`) is `closing_result − Σ Fill + Σ Credit`.
+Для каждой пары `(player, business_day)`:
 
-Consequence: Pit closes a table after a 10M Fill, sees "Result +7M" on screen, but the shift report later shows −3M for that table. The two numbers don't match → user confusion → exactly what was reported now.
+1. Стартуем `NEP_day = 0`, `peak_day = 0`, `total_in_day = 0`.
+2. Идём по транзакциям дня по времени (cancelled игнорируем):
+   - `in` / `buy`: `NEP_day += amount`; `peak_day = max(peak_day, NEP_day)`; `total_in_day += amount`.
+   - `out` / `cashout`: `NEP_day -= amount`.
+3. По итогам дня:
+   - `Drop R (External) = peak_day`
+   - `Drop V (Recycled) = total_in_day − peak_day`
+4. **Lifetime / period** = сумма дневных `Drop R` и `Drop V` по всем дням внутри окна. История за пределами окна НЕ влияет.
 
-## Decision
+**Per-table split (один peak на игрока в день, разбивка пропорциональна IN по столам):**
+- Считаем `in_by_table[t]` за день.
+- `dropR_table[t] = peak_day × in_by_table[t] / total_in_day`
+- `dropV_table[t] = (total_in_day − peak_day) × in_by_table[t] / total_in_day`
+- Остаток от округления добивается в стол с максимальным IN.
 
-Keep `gaming_tables.closing_result` semantics unchanged (= raw physical Σ(actual − baseline) × denom). It remains the audited "what's physically on the table vs float" number. The DB trigger / RPC continues to add −Fill+Credit on top — no schema or trigger changes.
+Проверка на Леме (Arusha, 13.06.2026): `peak_day = 875 000`, `total_in_day = 1 245 000` → Drop R = 875k, Drop V = 370k. ✅
 
-Only the **UI** of Chip Count (Close Tables wizard) changes to make Fill/Credit visible and to show the corrected Final Result alongside.
+## Затрагиваемые поверхности
 
-## Scope (frontend only)
+**DB (миграция):**
+- `compute_player_drop_split(player_id, from, to)` — переписать на per-day peak, суммировать по дням внутри `[from, to]`.
+- `compute_players_drop_split(casino_id, from, to)` — то же, итог по каждому игроку.
+- `compute_tables_drop_split(casino_id, from, to)` — пропорциональная разбивка peak-day по столам.
+- `player_drop_split_lifetime(player_id)` (если используется в `player_economy`-вью) — переписать как сумма всех `peak_day` игрока. Обновить вьюшку `player_economy`.
+- Бизнес-день определяем через существующую `business_date_of(created_at)` (07:00 EAT rollover) — уже есть в БД.
+- День попадает в окно `[from, to]`, если граница дня (07:00 EAT начала) лежит в окне; границы — как сейчас в RPC.
 
-### 1. Load per-table Fill / Credit for the OPEN shift
-- Reuse existing `useShiftTableAdjustments` (or equivalent — same source that feeds `liveTableResult`'s `adjustmentMap`) inside `CloseTableWizard`.
-- Result: `adjustmentMap[tableId] = Σ Credit − Σ Fill` (signed, same sign convention as `liveTableResult`).
+**Frontend:**
+- `src/lib/nep-split.ts` — переписать `splitPlayerWindow` / `splitPlayersWindow` / `splitTablesWindow` по новому правилу. Сигнатуры и возвращаемые типы сохраняем.
+- `src/hooks/use-drop-split.ts` — без изменений (только дергает RPC).
+- Все потребители (`PlayerProfile`, `PlayerStatistics`, `Tables`, `Dashboard`, `Reports`, `ActivePlayers`, `TableSeatingDialog`, `SeatedPlayerChip`, `PlayerPreviewHeader`, `PlayerVisitsBreakdown`, `PlayerNameAutocomplete`, `PlayerSearch`) — без правок, они уже читают из RPC/хелперов.
 
-### 2. Update the wizard footer (lines ~340-355)
-Replace the single "Result" block with three compact lines:
+**Memory:**
+- Обновить `mem://features/nep-split` — новая формула, per-day reset, peak-NEP.
 
-```
-Chip Count        +7 000 000   ← raw physical (current calcResult)
-Fill              −10 000 000  ← only if non-zero
-Credit             +5 000 000   ← only if non-zero
-─────────────────────────────
-Result             +2 000 000   ← chipCount + adjustment (matches shift P&L)
-```
+**Версия:** auto-bump patch в `package.json` (backend change).
 
-- Hide Fill/Credit rows when both are 0 (most common case — keeps UI clean).
-- Use `cms-amount-positive` / `cms-amount-negative` semantic classes.
-- The big "Result" is the **adjusted** value (this is the number Pit cares about and the one that ends up in the shift report).
+## Что НЕ меняется
 
-### 3. Update per-table badges in the left list (line ~244-249)
-Each closed table currently shows `closing_result` (raw). Change to `closing_result + (adjustmentMap[t.id] ?? 0)` so the list value matches the footer and the shift report. Color logic stays the same.
+- `NepTx` тип, имена RPC, имена полей результата (`drop_r` / `drop_recycled`).
+- Cancelled (`cancelled_at IS NOT NULL`) полностью игнорируются (как сейчас).
+- Tracker / Chip Count / shifts.tables_result — не трогаем.
 
-### 4. Save unchanged
-`setSingleResult.mutate` continues to send `closing_result = calcResult(...)` (raw). No DB / RPC / trigger changes.
+## Sanity-чеки после миграции
 
-## Out of scope
-- DB schema, triggers, RPCs.
-- `liveTableResult` / Tables page / Dashboard — they already apply the adjustment.
-- Tracker / Analytics flows.
+- Лема Arusha сегодня → Drop R = 875 000, Drop V = 370 000.
+- Любой игрок без cashout-ов → Drop R = total IN, Drop V = 0.
+- Игрок с одним buy-in 100k и без выдач → Drop R = 100k.
+- Игрок, который зашёл 100k, выдали 50k, зашёл ещё 30k → peak = 100k, total_in = 130k → Drop R = 100k, Drop V = 30k.
 
-## Files touched
-- `src/components/tables/CloseTableWizard.tsx` — only file.
-- Possibly tiny import addition if the existing adjustments hook isn't already imported.
-
-## QA checklist
-1. Open a table, do a Fill 10M from Cage, do Chip Count of the same table with physical = baseline + 10M → wizard shows: Chip Count +10M, Fill −10M, **Result 0**.
-2. Credit 5M, Chip Count = baseline → Chip Count 0, Credit +5M, **Result +5M**.
-3. No Fill/Credit at all → only single "Result" line is visible (no clutter).
-4. After closing, the per-table badge in the left list equals the footer Result and equals what the shift closing report shows for that table.
-
-## Memory update
-After implementation, update `mem://features/live-table-result-resolution` to note that the Close Tables wizard now displays the adjusted Result (raw chip-count + Fill/Credit) in both the footer and the per-table list, so on-screen number matches `shifts.tables_result`.
+Готов к реализации.
