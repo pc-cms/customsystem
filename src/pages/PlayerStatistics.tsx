@@ -155,7 +155,7 @@ const PlayerStatistics = () => {
   const dailyAvgBetByPlayer = useMemo(() => {
     const m = new Map<string, { ar: number | null; bj: number | null; poker: number | null }>();
     dailyAvgBets.forEach(b => m.set(b.player_id, {
-      ar: b.avg_bet_ar, bj: b.avg_bet_bj, poker: b.avg_bet_poker,
+      ar: b.avg_bet_ar, bj: b.avg_bet_bj, poker: b.avg_bet_poker, club: b.avg_bet_club,
     }));
     return m;
   }, [dailyAvgBets]);
