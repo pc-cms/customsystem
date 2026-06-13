@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight, History, Pencil, Gift } from "lucide-react";
 import PrintSlotsShiftDialog from "./PrintSlotsShiftDialog";
 import EditOpeningCardsDialog from "./EditOpeningCardsDialog";
-// SlotsTransfersForm moved to /transfers page (sidebar)
+import SlotsTransfersForm from "./SlotsTransfersForm";
 import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
 import { useSlotsExpenses } from "@/hooks/use-expenses";
 import { useSlotsTipsCd } from "@/hooks/use-slots-tips-cd";
@@ -871,7 +871,11 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
           {/* Cashless transactions moved to dedicated /cashless page in the sidebar */}
 
-          {/* Transfers form moved to dedicated /transfers page in the sidebar */}
+          {shift.status === "open" && (
+            <PageSection title="Transfers">
+              <SlotsTransfersForm shiftId={shift.id} />
+            </PageSection>
+          )}
         </div>
       </div>
 
