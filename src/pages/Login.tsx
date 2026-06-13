@@ -59,7 +59,7 @@ const Login = () => {
             {isBranded ? (
               <>
                 <img
-                  src="/arusha-premier-logo.svg"
+                  src={BRANCH_LOGOS[hostLabel] || "/arusha-premier-logo.svg"}
                   alt={branchName}
                   className="mx-auto mb-3 h-28 w-auto"
                 />
