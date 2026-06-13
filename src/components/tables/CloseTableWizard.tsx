@@ -20,6 +20,7 @@ import { useChipColors, resolveChipColor, useVisibleChipDenoms } from "@/hooks/u
 import { useChipBaseline, useSetSingleTableResult, useReopenSingleTable, useCloseAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useChipSnapshots } from "@/hooks/use-chips";
 import { useSetTableTrackerValue } from "@/hooks/use-casino-data";
+import { useShiftTableAdjustments } from "@/hooks/use-shift-table-adjustments";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -64,6 +65,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
   const reopenSingle = useReopenSingleTable();
   const closeAll = useCloseAllTables();
   const setTrackerValue = useSetTableTrackerValue();
+  const { map: adjustmentsMap } = useShiftTableAdjustments();
   const visibleCasinoDenoms = useVisibleChipDenoms();
   const visibleSet = useMemo(() => new Set(visibleCasinoDenoms), [visibleCasinoDenoms]);
   const tableDenoms = (table: GamingTable) => (table.denominations || []).filter(d => visibleSet.has(d));
@@ -237,17 +239,21 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                 )}
                 <span className="truncate font-medium">{t.name}</span>
               </span>
-              {counted && (
-                <span
-                  className={cn(
-                    "font-mono text-xs font-semibold whitespace-nowrap shrink-0 tabular-nums",
-                    Number(t.closing_result) >= 0 ? "text-success" : "text-destructive"
-                  )}
-                >
-                  {Number(t.closing_result) >= 0 ? "+" : ""}
-                  {formatCurrency(Number(t.closing_result))}
-                </span>
-              )}
+              {counted && (() => {
+                const adj = adjustmentsMap[t.id]?.adjustment ?? 0;
+                const finalRes = Number(t.closing_result) + adj;
+                return (
+                  <span
+                    className={cn(
+                      "font-mono text-xs font-semibold whitespace-nowrap shrink-0 tabular-nums",
+                      finalRes >= 0 ? "text-success" : "text-destructive"
+                    )}
+                  >
+                    {finalRes >= 0 ? "+" : ""}
+                    {formatCurrency(finalRes)}
+                  </span>
+                );
+              })()}
             </button>
           );
         })}
@@ -340,19 +346,57 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
             </tbody>
           </table>
 
-          {/* Live result */}
-          <div className="cms-panel p-4 flex items-center justify-between">
-            <span className="text-sm uppercase tracking-wider text-muted-foreground font-medium">Result</span>
-            <span
-              className={cn(
-                "font-mono text-2xl font-bold",
-                liveResult >= 0 ? "text-success" : "text-destructive"
-              )}
-            >
-              {liveResult >= 0 ? "+" : ""}
-              {formatCurrency(liveResult)}
-            </span>
-          </div>
+          {/* Live result — Chip Count + Fill/Credit adjustment (matches shift P&L) */}
+          {(() => {
+            const adj = current ? adjustmentsMap[current.id] : undefined;
+            const fill = adj?.fill ?? 0;
+            const credit = adj?.credit ?? 0;
+            const hasAdj = fill !== 0 || credit !== 0;
+            const finalRes = liveResult + (adj?.adjustment ?? 0);
+            return (
+              <div className="cms-panel p-4 space-y-2">
+                {hasAdj && (
+                  <>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Chip Count</span>
+                      <span className={cn("font-mono font-semibold tabular-nums", liveResult >= 0 ? "text-success" : "text-destructive")}>
+                        {liveResult >= 0 ? "+" : ""}{formatCurrency(liveResult)}
+                      </span>
+                    </div>
+                    {fill !== 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Fill</span>
+                        <span className="font-mono font-semibold tabular-nums text-destructive">
+                          −{formatCurrency(fill)}
+                        </span>
+                      </div>
+                    )}
+                    {credit !== 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Credit</span>
+                        <span className="font-mono font-semibold tabular-nums text-success">
+                          +{formatCurrency(credit)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="border-t border-border pt-2" />
+                  </>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm uppercase tracking-wider text-muted-foreground font-medium">Result</span>
+                  <span
+                    className={cn(
+                      "font-mono text-2xl font-bold",
+                      finalRes >= 0 ? "text-success" : "text-destructive"
+                    )}
+                  >
+                    {finalRes >= 0 ? "+" : ""}
+                    {formatCurrency(finalRes)}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Actions */}
           {readOnly ? (
