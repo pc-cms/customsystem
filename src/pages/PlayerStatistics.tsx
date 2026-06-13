@@ -1022,19 +1022,21 @@ function AvgBetPopover({
   businessDate: string;
   isSingleDay: boolean;
   canEdit: boolean;
-  bets: { ar: number | null; bj: number | null; poker: number | null } | undefined;
+  bets: { ar: number | null; bj: number | null; poker: number | null; club: number | null } | undefined;
   fallback: number;
 }) {
   const ar = bets?.ar ?? null;
   const bj = bets?.bj ?? null;
   const poker = bets?.poker ?? null;
-  const vals = [ar, bj, poker].filter((v): v is number => v != null && v > 0);
+  const club = bets?.club ?? null;
+  const vals = [ar, bj, poker, club].filter((v): v is number => v != null && v > 0);
   const display = vals.length ? Math.round(vals.reduce((s, v) => s + v, 0) / vals.length) : fallback;
   const setBet = useSetPlayerDailyAvgBet();
   const [open, setOpen] = useState(false);
   const [draftAr, setDraftAr] = useState("");
   const [draftBj, setDraftBj] = useState("");
   const [draftPoker, setDraftPoker] = useState("");
+  const [draftClub, setDraftClub] = useState("");
 
   if (!isSingleDay) {
     return display ? <span>{formatCurrency(display)}</span> : <span>·</span>;
@@ -1044,6 +1046,7 @@ function AvgBetPopover({
     setDraftAr(ar ? formatInputWithSpaces(String(ar)) : "");
     setDraftBj(bj ? formatInputWithSpaces(String(bj)) : "");
     setDraftPoker(poker ? formatInputWithSpaces(String(poker)) : "");
+    setDraftClub(club ? formatInputWithSpaces(String(club)) : "");
     setOpen(true);
   };
 
@@ -1052,10 +1055,11 @@ function AvgBetPopover({
       ar: draftAr.trim() === "" ? null : parseSpacedNumber(draftAr) || null,
       bj: draftBj.trim() === "" ? null : parseSpacedNumber(draftBj) || null,
       poker: draftPoker.trim() === "" ? null : parseSpacedNumber(draftPoker) || null,
+      club: draftClub.trim() === "" ? null : parseSpacedNumber(draftClub) || null,
     };
-    const current: Record<AvgBetGroup, number | null> = { ar, bj, poker };
+    const current: Record<AvgBetGroup, number | null> = { ar, bj, poker, club };
     const writes: Array<Promise<unknown>> = [];
-    (["ar", "bj", "poker"] as AvgBetGroup[]).forEach(g => {
+    (["ar", "bj", "poker", "club"] as AvgBetGroup[]).forEach(g => {
       if (next[g] !== current[g]) {
         writes.push(setBet.mutateAsync({ playerId, businessDate, group: g, value: next[g] }));
       }
@@ -1070,7 +1074,7 @@ function AvgBetPopover({
         <button
           type="button"
           className={`font-mono cursor-pointer hover:text-primary ${display ? "" : "text-muted-foreground"}`}
-          title={canEdit ? "Click to edit AR / BJ / Poker" : "Avg Bet breakdown"}
+          title={canEdit ? "Click to edit AR / BJ / Poker / Club" : "Avg Bet breakdown"}
         >
           {display ? formatCurrency(display) : "·"}
         </button>
@@ -1094,6 +1098,7 @@ function AvgBetPopover({
                 { label: "AR", value: draftAr, set: setDraftAr },
                 { label: "BJ", value: draftBj, set: setDraftBj },
                 { label: "Poker", value: draftPoker, set: setDraftPoker },
+                { label: "Club", value: draftClub, set: setDraftClub },
               ] as const).map(g => (
                 <div key={g.label} className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-muted-foreground w-12">{g.label}</span>
@@ -1122,6 +1127,7 @@ function AvgBetPopover({
               { label: "AR", value: ar },
               { label: "BJ", value: bj },
               { label: "Poker", value: poker },
+              { label: "Club", value: club },
             ].map(g => (
               <div key={g.label} className="flex items-center justify-between px-1.5 py-1 rounded hover:bg-muted/40">
                 <span className="text-xs font-semibold text-muted-foreground">{g.label}</span>
