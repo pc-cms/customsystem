@@ -768,16 +768,45 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                             {!exp.approved && isManager && (
                               <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => approve.mutate(exp.id)} disabled={approve.isPending}>Approve</Button>
                             )}
-                            {!exp.approved && exp.category !== "bar_charge" && src !== "office" && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => del.mutate({ id: exp.id, amount: Number(exp.amount), category: exp.category })}
-                                title="Cancel expense"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
+                            {isManager ? (
+                              exp.category !== "bar_charge" && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => {
+                                    const label = exp.approved ? "approved expense" : "expense";
+                                    const reason = window.prompt(
+                                      `Cancel this ${label} of ${formatCurrency(Number(exp.amount))}?\nEnter a reason (logged to audit):`,
+                                      "",
+                                    );
+                                    if (reason === null) return;
+                                    cancelAsManager.mutate({
+                                      id: exp.id,
+                                      amount: Number(exp.amount),
+                                      category: exp.category,
+                                      approved: !!exp.approved,
+                                      reason: reason.trim(),
+                                    });
+                                  }}
+                                  disabled={cancelAsManager.isPending}
+                                  title={exp.approved ? "Cancel approved expense (audited)" : "Cancel expense"}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              )
+                            ) : (
+                              !exp.approved && exp.category !== "bar_charge" && src !== "office" && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => del.mutate({ id: exp.id, amount: Number(exp.amount), category: exp.category })}
+                                  title="Cancel expense"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              )
                             )}
                           </div>
                         </td>
