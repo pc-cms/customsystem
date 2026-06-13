@@ -103,6 +103,7 @@ interface ExpensesProps {
 
 const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   const { isManager, roles } = useAuth();
+  const { activeCasino } = useCasino();
   const isCashierLive = roles.includes("cashier") && !roles.includes("cashier_slots");
   const isCashierSlots = roles.includes("cashier_slots") && !roles.includes("cashier");
   // Managers (and super_admin) see and can create everything.
