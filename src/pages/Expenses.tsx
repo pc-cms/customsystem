@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Receipt, CheckCircle, Plus, X, Trash2, Filter, GlassWater, ExternalLink, Printer } from "lucide-react";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { useExpenses, useCreateExpense, useApproveExpense, useDeleteExpense } from "@/hooks/use-casino-data";
-import { useCreateSlotsExpense, useUpdateExpenseFinCategory } from "@/hooks/use-expenses";
+import { useCreateSlotsExpense, useUpdateExpenseFinCategory, useUpdateExpenseCategory, useCancelExpenseAsManager } from "@/hooks/use-expenses";
 import { useCreateOfficeExpense, useExpenseCategories } from "@/hooks/use-expense-categories";
 import { useFinCategories } from "@/hooks/use-fin";
 import { useActiveShift } from "@/hooks/use-shift";
@@ -152,7 +152,9 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   const createOffice = useCreateOfficeExpense();
   const approve = useApproveExpense();
   const del = useDeleteExpense();
+  const cancelAsManager = useCancelExpenseAsManager();
   const updateFinCat = useUpdateExpenseFinCategory();
+  const updateCat = useUpdateExpenseCategory();
   const { data: allFinCats = [] } = useFinCategories();
   const finCatById = useMemo(() => {
     const m: Record<string, any> = {};
@@ -160,6 +162,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     return m;
   }, [allFinCats]);
   const [editingFinCatId, setEditingFinCatId] = useState<string | null>(null);
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft(roleDefaultSource)]);
 
   const isLoading = loadingExpenses;
@@ -652,9 +655,49 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-1.5">
-                          <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[exp.category] || CAT_COLORS.other}`}>
-                            {catLabel}
-                          </span>
+                          {isManagerView && editingCatId === exp.id ? (
+                            <div className="min-w-[140px]">
+                              <Select
+                                value={exp.category}
+                                onValueChange={(v) => {
+                                  updateCat.mutate(
+                                    { id: exp.id, category: v, prev_category: exp.category },
+                                    { onSuccess: () => setEditingCatId(null) },
+                                  );
+                                }}
+                              >
+                                <SelectTrigger className="h-7 text-[11px]"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {FALLBACK_CATS.map((c) => (
+                                    <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                                  ))}
+                                  <SelectItem value="pos_comp">POS Comp</SelectItem>
+                                  <SelectItem value="bar_charge">Bar charge</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => isManagerView && setEditingCatId(exp.id)}
+                              className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[exp.category] || CAT_COLORS.other} ${
+                                isManagerView ? "cursor-pointer hover:ring-1 hover:ring-primary" : "cursor-default"
+                              }`}
+                              title={isManagerView ? "Click to re-classify operational category" : undefined}
+                            >
+                              {catLabel}
+                            </button>
+                          )}
+                          {isManagerView && editingCatId === exp.id && (
+                            <button
+                              type="button"
+                              onClick={() => setEditingCatId(null)}
+                              className="text-[10px] text-muted-foreground hover:text-foreground"
+                              title="Cancel"
+                            >
+                              ✕
+                            </button>
+                          )}
                           {isManagerView && editingFinCatId === exp.id ? (
                             <div className="min-w-[180px]">
                               <FinCategoryPicker
@@ -676,7 +719,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                                   ? "text-muted-foreground"
                                   : "text-amber-600 dark:text-amber-400 italic"
                               } ${isManagerView ? "hover:underline cursor-pointer" : "cursor-default"}`}
-                              title={isManagerView ? "Click to re-classify" : undefined}
+                              title={isManagerView ? "Click to re-classify finance plan" : undefined}
                             >
                               → {exp.fin_category_id ? (finCatById[exp.fin_category_id]?.name || "—") : "Unassigned"}
                             </button>
@@ -693,6 +736,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                           )}
                         </div>
                       </td>
+
 
                       <td className="px-3 py-2 text-sm">
                         {exp.player_id ? (
@@ -724,16 +768,45 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                             {!exp.approved && isManager && (
                               <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => approve.mutate(exp.id)} disabled={approve.isPending}>Approve</Button>
                             )}
-                            {!exp.approved && exp.category !== "bar_charge" && src !== "office" && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => del.mutate({ id: exp.id, amount: Number(exp.amount), category: exp.category })}
-                                title="Cancel expense"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
+                            {isManager ? (
+                              exp.category !== "bar_charge" && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => {
+                                    const label = exp.approved ? "approved expense" : "expense";
+                                    const reason = window.prompt(
+                                      `Cancel this ${label} of ${formatCurrency(Number(exp.amount))}?\nEnter a reason (logged to audit):`,
+                                      "",
+                                    );
+                                    if (reason === null) return;
+                                    cancelAsManager.mutate({
+                                      id: exp.id,
+                                      amount: Number(exp.amount),
+                                      category: exp.category,
+                                      approved: !!exp.approved,
+                                      reason: reason.trim(),
+                                    });
+                                  }}
+                                  disabled={cancelAsManager.isPending}
+                                  title={exp.approved ? "Cancel approved expense (audited)" : "Cancel expense"}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              )
+                            ) : (
+                              !exp.approved && exp.category !== "bar_charge" && src !== "office" && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => del.mutate({ id: exp.id, amount: Number(exp.amount), category: exp.category })}
+                                  title="Cancel expense"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              )
                             )}
                           </div>
                         </td>

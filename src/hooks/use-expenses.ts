@@ -277,3 +277,69 @@ export const useUpdateExpenseFinCategory = () => {
   });
 };
 
+/** Manager-only: re-classify the operational category of an existing expense.
+ *  Updates both `category` and `category_code`. Does NOT touch amount, cash,
+ *  approval or fin_category. Writes an audit log row. */
+export const useUpdateExpenseCategory = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async (input: { id: string; category: string; prev_category?: string }) => {
+      if (!user) throw new Error("Not authenticated");
+      const { error } = await (supabase as any)
+        .from("expenses")
+        .update({ category: input.category, category_code: input.category })
+        .eq("id", input.id);
+      if (error) throw error;
+      await logAction(casinoId!, "expense", "EXPENSE_CATEGORY_CHANGED", {
+        expense_id: input.id,
+        from: input.prev_category ?? null,
+        to: input.category,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["expenses"] });
+      qc.invalidateQueries({ queryKey: ["expenses-slots"] });
+      qc.invalidateQueries({ queryKey: ["fin-monthly"] });
+      toast.success("Category updated");
+    },
+    onError: (e: any) => toast.error(e?.message || "Failed to update category"),
+  });
+};
+
+/** Manager-only: cancel (delete) an existing expense — including approved ones.
+ *  RLS already lets managers delete any expense in their casino; this just
+ *  routes through one mutation with an audit-log marker. */
+export const useCancelExpenseAsManager = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async (exp: { id: string; amount: number; category: string; approved: boolean; reason?: string }) => {
+      if (!user || !casinoId) throw new Error("Not authenticated");
+      const { data, error } = await supabase
+        .from("expenses")
+        .delete()
+        .eq("id", exp.id)
+        .select("id");
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Cannot cancel: not permitted");
+      }
+      await logAction(casinoId, "expense", "EXPENSE_CANCELLED", {
+        expense_id: exp.id,
+        category: exp.category,
+        amount: exp.amount,
+        was_approved: exp.approved,
+        reason: exp.reason || null,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["expenses"] });
+      qc.invalidateQueries({ queryKey: ["expenses-slots"] });
+      qc.invalidateQueries({ queryKey: ["fin-monthly"] });
+      toast.success("Expense cancelled");
+    },
+    onError: (e: any) => toast.error(e?.message || "Failed to cancel"),
+  });
+};
+
