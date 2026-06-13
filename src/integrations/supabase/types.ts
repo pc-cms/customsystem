@@ -8821,6 +8821,13 @@ export type Database = {
         Returns: Json
       }
       business_date_of: { Args: { _ts: string }; Returns: string }
+      can_close_shift: {
+        Args: { p_shift_id: string }
+        Returns: {
+          ok: boolean
+          open_tables: Json
+        }[]
+      }
       cancel_transaction: {
         Args: { p_reason: string; p_transaction_id: string }
         Returns: undefined

@@ -69,34 +69,34 @@ export const chipSnapshotResult = (
 export interface LiveResultArgs {
   tableId: string;
   closingResult: number | null | undefined;
-  snapshotIndex: ReturnType<typeof buildLatestTableSnapshot>;
-  baselineMap: BaselineMap;
+  /** @deprecated kept for callsite compatibility; snapshots no longer affect Result. */
+  snapshotIndex?: ReturnType<typeof buildLatestTableSnapshot>;
+  /** @deprecated kept for callsite compatibility; baseline no longer affects Result. */
+  baselineMap?: BaselineMap;
   /**
-   * Optional per-table Fill/Credit adjustment for the active shift
-   * (`Σcredit − Σfill`). Added to the raw snapshot delta so the displayed
-   * result matches the final shift P&L formula `SnapResult − Fill + Credit`.
-   * Closed tables (with `closingResult`) are NOT adjusted — closing flow
-   * already accounts for transfers.
+   * Per-table Fill/Credit adjustment for the active shift (`Σcredit − Σfill`).
+   * Mirrors the DB RPC `compute_shift_table_results` so totals match.
    */
   adjustmentMap?: Record<string, number>;
 }
 
 /**
  * Returns the current displayed result for a single table.
- * Snapshot-only — no tracker, no cumulative sums.
+ *
+ * NEW MODEL (June 2026): Result comes EXCLUSIVELY from `gaming_tables.closing_result`
+ * (set by Close Tables wizard). Chip Count snapshots are for Tracker / Analytics
+ * only — they NEVER feed Live Result or Shift P&L.
+ *
+ * Per-table Fill/Credit adjustment is still added so totals match the DB RPC
+ * `compute_shift_table_results` (closing_result − Fill + Credit).
  */
 export const liveTableResult = ({
   tableId,
   closingResult,
-  snapshotIndex,
-  baselineMap,
   adjustmentMap,
 }: LiveResultArgs): number => {
-  if (closingResult !== null && closingResult !== undefined) return Number(closingResult);
-  const snap = snapshotIndex[tableId];
-  if (!snap || !snap.latestTime) return 0;
-  const raw = chipSnapshotResult(snap.perDenom, baselineMap[tableId] || {});
-  return raw + (adjustmentMap?.[tableId] ?? 0);
+  const base = (closingResult !== null && closingResult !== undefined) ? Number(closingResult) : 0;
+  return base + (adjustmentMap?.[tableId] ?? 0);
 };
 
 // Legacy helpers kept for Drop V / tracker totals consumers.

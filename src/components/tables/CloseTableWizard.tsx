@@ -87,15 +87,15 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
     return map;
   }, [snapshots]);
 
-  // Effective counts for current table (local edits > closing_chips draft > snapshot > baseline)
+  // Effective counts for current table (local edits > closing_chips draft > baseline).
+  // NOTE: Chip Count snapshots are intentionally NOT used here — Result is the
+  // source of truth and must be entered fresh by the cashier at close time.
   const getInitialCounts = (table: GamingTable): Record<number, number> => {
     const out: Record<number, number> = {};
     const tableBaseline = baselineMap[table.id] || {};
-    const snap = latestSnapshotPerTable[table.id] || {};
     const draft = (table.closing_chips || {}) as Record<string, number>;
     tableDenoms(table).forEach(d => {
       if (draft[String(d)] !== undefined) out[d] = Number(draft[String(d)]);
-      else if (snap[d] !== undefined) out[d] = snap[d];
       else out[d] = tableBaseline[d] || 0;
     });
     return out;
