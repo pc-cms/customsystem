@@ -20,6 +20,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { fmtDateOnly } from "@/lib/format-date";
+import PrintPortal from "@/components/cage/PrintPortal";
+import ExpensesDayReport from "@/components/closings/ExpensesDayReport";
+import { useCasino } from "@/lib/casino-context";
+import { useCasinos } from "@/hooks/use-casino-data";
 
 import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
 import { formatCurrency } from "@/lib/currency";
