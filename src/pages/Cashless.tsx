@@ -84,6 +84,7 @@ const Cashless = () => {
   const create = useCreateCashless();
   const approve = useApproveCashless();
   const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
+  const [pendingWithdrawalUid, setPendingWithdrawalUid] = useState<string | null>(null);
 
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft()]);
 
