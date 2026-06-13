@@ -33,7 +33,7 @@ const monthFirst = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).p
 
 const AttendanceMonthly = () => {
   const { roles } = useAuth();
-  const canEdit = roles.includes("hr") || roles.includes("manager") || roles.includes("floor_manager") || roles.includes("super_admin") || roles.includes("finance_manager");
+  const canEdit = roles.includes("hr") || roles.includes("manager") || roles.includes("shift_manager") || roles.includes("super_admin") || roles.includes("finance_manager");
 
   const [cursor, setCursor] = useState<Date>(() => {
     const d = today();

@@ -4,11 +4,11 @@
  * Guarantees:
  *   1. `route-module-map` resolves every real route used in NAV_ITEMS and the
  *      App.tsx route table to a valid ModuleKey (no silent null = "ungated").
- *   2. For role `floor_manager` (Taras), the sidebar items and the route
+ *   2. For role `shift_manager` (Taras), the sidebar items and the route
  *      guard exactly match the rows present in `effective_module_perms` —
  *      no inheritance, no "empty = allowed" fallback.
  *
- * The floor_manager allow-list is mirrored from `role_module_defaults` in DB
+ * The shift_manager allow-list is mirrored from `role_module_defaults` in DB
  * (kept in sync with the seed migration). If a future migration changes it,
  * update FLOOR_MANAGER_ALLOWED below.
  */
@@ -16,9 +16,9 @@ import { describe, it, expect } from "vitest";
 import { moduleKeyForRoute } from "@/lib/route-module-map";
 import { MODULES, type ModuleKey } from "@/lib/modules";
 
-// Mirror of `role_module_defaults` rows for floor_manager where can_view=true.
+// Mirror of `role_module_defaults` rows for shift_manager where can_view=true.
 // Source of truth = DB; this constant is the contract the UI must respect.
-// Mirrors role_module_defaults rows for floor_manager (DB source of truth).
+// Mirrors role_module_defaults rows for shift_manager (DB source of truth).
 const FLOOR_MANAGER_ALLOWED: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
   "bank_checks",
   "blacklist",
@@ -138,7 +138,7 @@ describe("route-module-map coverage", () => {
 /**
  * Pure simulation of the sidebar / RoleGuard gate for a given allow-list.
  * Mirrors the production logic:
- *   - super_admin bypass NOT applied (we test floor_manager)
+ *   - super_admin bypass NOT applied (we test shift_manager)
  *   - allowedModules = undefined → render nothing (loading)
  *   - moduleKeyForRoute null → ungated (visible)
  *   - else → must be in allowedModules
@@ -149,7 +149,7 @@ const isVisibleForRole = (route: string, allowed: ReadonlySet<string>): boolean 
   return allowed.has(mk);
 };
 
-describe("floor_manager (Taras) — sidebar & route gate match matrix", () => {
+describe("shift_manager (Taras) — sidebar & route gate match matrix", () => {
   it("allows exactly the routes whose module is in the allow-list", () => {
     const allow = FLOOR_MANAGER_ALLOWED as ReadonlySet<string>;
     const expected: Record<string, boolean> = {};
@@ -162,7 +162,7 @@ describe("floor_manager (Taras) — sidebar & route gate match matrix", () => {
     expect(actual).toEqual(expected);
   });
 
-  it("blocks finance, logs, admin, import-reports for floor_manager", () => {
+  it("blocks finance, logs, admin, import-reports for shift_manager", () => {
     const allow = FLOOR_MANAGER_ALLOWED as ReadonlySet<string>;
     const blocked = [
       "/finance/wallets", "/finance/dashboard", "/finance/review",

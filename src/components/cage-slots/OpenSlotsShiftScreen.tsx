@@ -23,7 +23,7 @@ const OpenSlotsShiftScreen = () => {
   const { roles, managerOverride } = useAuth();
   const canManage =
     roles.includes("manager") || roles.includes("super_admin") ||
-    roles.includes("finance_manager") || roles.includes("floor_manager") ||
+    roles.includes("finance_manager") || roles.includes("shift_manager") ||
     roles.includes("pit") || roles.includes("surveillance") || managerOverride.active;
   const open = useOpenSlotsShift();
   const { data: settings } = useCageSlotsSettings();

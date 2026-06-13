@@ -183,7 +183,7 @@ const ManagerOverrideDialog = ({
         .select("role")
         .eq("user_id", profile.user_id);
 
-      const isManager = roles?.some(r => r.role === "manager" || r.role === "floor_manager");
+      const isManager = roles?.some(r => r.role === "manager" || r.role === "shift_manager");
       if (!isManager) {
         setError(`${profile.display_name} is not a manager or floor manager`);
         setLoading(false);

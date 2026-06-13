@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
-type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "floor_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager";
+type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager";
 
 type ManagerOverride = {
   active: boolean;
@@ -197,12 +197,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [roles, managerOverride.active]
   );
 
-  // Floor Manager has full operational manager parity (approve expenses, override,
+  // Shift Manager has full operational manager parity (approve expenses, override,
   // close cage, reopen tables, edit past rota, blacklist, etc.) — but financial
   // surfaces remain role-gated separately via roles arrays in AppSidebar/RoleGuard.
   const isManager =
     roles.includes("manager") ||
-    roles.includes("floor_manager") ||
+    roles.includes("shift_manager") ||
     managerOverride.active;
 
   const activateManagerOverride = useCallback((managerId: string, managerName: string) => {

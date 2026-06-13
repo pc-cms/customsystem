@@ -59,11 +59,11 @@ const PlayerStatistics = () => {
   const { casinoId, roles, user } = useAuth();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
-  // Manager and Floor Manager can also browse historical periods (day/week/month/year/custom)
+  // Manager and Shift Manager can also browse historical periods (day/week/month/year/custom)
   const canBrowseHistory =
     canSeeAllTimeData(roles) ||
     roles.includes("manager") ||
-    roles.includes("floor_manager");
+    roles.includes("shift_manager");
   const minDate = subDays(today, -MAX_DAYS_BACK);
 
   // Date model: anchor `date` for single-day mode + period preset/range for managers.
@@ -189,8 +189,8 @@ const PlayerStatistics = () => {
 
   const showFinancials = canSeePlayerFinancials(roles);
   const canTransfer = false;
-  const canEditAvgBet = isSingleDay && roles.some(r => ["pit", "manager", "floor_manager", "super_admin"].includes(r));
-  const canEditChips = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "floor_manager", "super_admin"].includes(r));
+  const canEditAvgBet = isSingleDay && roles.some(r => ["pit", "manager", "shift_manager", "super_admin"].includes(r));
+  const canEditChips = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "shift_manager", "super_admin"].includes(r));
 
 
   const { data: visits = [] } = useQuery({

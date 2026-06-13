@@ -1,7 +1,7 @@
 /**
  * Employee List — Excel-like roster of every active employee in the casino.
  *
- * Accessible to Surveillance (CCTV), Manager, Floor Manager, Super Admin.
+ * Accessible to Surveillance (CCTV), Manager, Shift Manager, Super Admin.
  * Shows: Name, Position, Department, Tenure (years in company), Birthday,
  * and a free-form Comment that any of the four roles can edit and save.
  */

@@ -212,7 +212,7 @@ export const useApproveExpense = () => {
       if (!user) throw new Error("Not authenticated");
       const isRoleManager =
         roles.includes("manager") ||
-        roles.includes("floor_manager") ||
+        roles.includes("shift_manager") ||
         roles.includes("super_admin");
 
       if (isRoleManager) {

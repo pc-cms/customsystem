@@ -92,8 +92,9 @@ export const UserEditorDialog = ({ open, onOpenChange, target }: Props) => {
     }
   }, [open, target]);
 
-  const toggleRole = (r: string, checked: boolean) => {
-    setSelectedRoles(prev => (checked ? [...prev, r] : prev.filter(x => x !== r)));
+  // Single-role model: selecting a role replaces any previously selected one.
+  const setSingleRole = (r: string, checked: boolean) => {
+    setSelectedRoles(checked ? [r] : []);
   };
 
   const isCreate = target?.mode === "create";
@@ -216,19 +217,22 @@ export const UserEditorDialog = ({ open, onOpenChange, target }: Props) => {
 
         <div>
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">
-            Roles ({selectedRoles.length} selected)
+            Role {selectedRoles[0] ? `— ${ROLE_LABELS[selectedRoles[0]] || selectedRoles[0]}` : "(none)"}
           </label>
           <div className="grid sm:grid-cols-2 gap-2 rounded-md border border-border bg-muted/20 p-3">
             {availableRoles.map(role => {
-              const checked = selectedRoles.includes(role);
+              const checked = selectedRoles[0] === role;
               return (
                 <label
                   key={role}
                   className="flex items-center gap-2 text-sm cursor-pointer rounded px-2 py-1.5 hover:bg-muted/40 transition-colors"
                 >
-                  <Checkbox
+                  <input
+                    type="radio"
+                    name="user-role"
                     checked={checked}
-                    onCheckedChange={c => toggleRole(role, c === true)}
+                    onChange={e => setSingleRole(role, e.target.checked)}
+                    className="h-4 w-4 accent-primary"
                   />
                   <span className={checked ? "font-medium text-foreground" : "text-card-foreground"}>
                     {ROLE_LABELS[role] || role}
@@ -238,8 +242,7 @@ export const UserEditorDialog = ({ open, onOpenChange, target }: Props) => {
             })}
           </div>
           <p className="text-[10px] text-muted-foreground mt-1.5">
-            Tip: a Manager can also be a Cashier — combine roles freely. Each role unlocks its own
-            screens; the UI never hides things from one role just because another role is selected.
+            Each user holds exactly one role. Selecting a different role replaces the current one.
           </p>
         </div>
 

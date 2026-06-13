@@ -364,7 +364,7 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
   const { casinoId, roles } = useAuth();
   const qc = useQueryClient();
   const canEditDrop = roles.includes("super_admin") || roles.includes("manager") ||
-                      roles.includes("floor_manager") || roles.includes("finance_manager");
+                      roles.includes("shift_manager") || roles.includes("finance_manager");
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["reports-total", casinoId, from, to],

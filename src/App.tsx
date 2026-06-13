@@ -261,7 +261,7 @@ const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode
 const getDefaultRoute = (roles: string[]) => {
   // POS-only users go straight to the POS app
   const isPosOnly = (roles.includes("pos_waiter") || roles.includes("pos_bartender") || roles.includes("pos_manager"))
-    && !roles.some(r => ["manager","pit","cashier","reception","finance_manager","surveillance","super_admin","hr","floor_manager","cashier_slots"].includes(r));
+    && !roles.some(r => ["manager","pit","cashier","reception","finance_manager","surveillance","super_admin","hr","shift_manager","cashier_slots"].includes(r));
   if (isPosOnly) {
     if (roles.includes("pos_bartender") && !roles.includes("pos_waiter")) return "/pos/bar";
     if (roles.includes("pos_manager") && !roles.includes("pos_waiter")) return "/pos/manager";

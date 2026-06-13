@@ -3,7 +3,7 @@
  *   Weekly Bonus · Monthly Tips · Live Game Tips · Floor Tips · Club Poker Tips
  *
  * Each tab keeps its own period navigator (week / 16→15 / month). Visible to
- * manager / floor_manager / surveillance / finance_manager / super_admin.
+ * manager / shift_manager / surveillance / finance_manager / super_admin.
  * Cashier still records tips from the cage header — unchanged.
  *
  * Tab state lives in ?tab= so deep links and legacy redirects work.
