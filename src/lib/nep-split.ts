@@ -1,28 +1,33 @@
 /**
- * NEP (Net External Position) model — splits each cash-in into:
- *   - External (Drop R)  : new real money from the player
- *   - Recycled (Drop V)  : returned winnings (covers negative NEP)
+ * Per-business-day peak-NEP Drop split (June 2026 model).
  *
- * NEP_running = sum(in) - sum(out), walked chronologically per player.
- * For each new buy/in:
- *   recycled = max(0, min(amount, -NEP))
- *   external = amount - recycled
- *   NEP    += amount
- * For each cashout/out:
- *   NEP    -= amount  (no split)
+ *   For each business day a player plays, walk transactions in chronological order:
+ *     NEP_day starts at 0
+ *     `in` / `buy`     → NEP_day += amount;  peak_day = max(peak_day, NEP_day)
+ *     `out` / `cashout`→ NEP_day -= amount
+ *   Drop R (External)  = peak_day
+ *   Drop V (Recycled)  = total_in_day − peak_day
  *
- * Pure client-side helpers. The authoritative computation lives in DB RPCs:
+ *   Period / lifetime totals are the SUM of daily values inside the window.
+ *   Lifetime history outside the window does NOT influence the split.
+ *   Per-table split divides one player's daily peak proportionally to how much
+ *   they bought in at each table that day.
+ *   Cancelled transactions are ignored.
+ *
+ * Authoritative computation lives in DB RPCs:
  *   - compute_player_drop_split(player_id, from, to)
+ *   - compute_players_drop_split(casino_id, from, to)
  *   - compute_tables_drop_split(casino_id, from, to)
- *   - player_drop_split_lifetime(player_id) (used by player_economy view)
+ * These pure helpers mirror the DB logic for client-side previews / tests.
  */
 
 export type NepTx = {
   player_id: string | null;
   table_id?: string | null;
-  type: string; // 'buy' | 'in' | 'cashout' | 'out' | ...
+  type: string;
   amount: number | string;
   created_at: string;
+  cancelled_at?: string | null;
   id?: string;
 };
 
@@ -32,54 +37,100 @@ const isCashIn = (t: NepTx) => t.type === "buy" || t.type === "in";
 const isCashOut = (t: NepTx) => t.type === "cashout" || t.type === "out";
 
 /**
- * Compute Drop R / Recycled for a single player over a window.
- * `allTxs` MUST contain ALL transactions of the player up to `toIso`
- * (we need full history to know the running NEP).
+ * Africa/Dar_es_Salaam (UTC+3), business-day rollover at 07:00 EAT.
+ * Mirrors DB `business_date_of`.
  */
-export function splitPlayerWindow(
-  allTxs: NepTx[],
-  fromIso: string,
-  toIso: string
-): SplitTotals {
-  const sorted = [...allTxs].sort((a, b) => {
-    if (a.created_at !== b.created_at) return a.created_at.localeCompare(b.created_at);
-    return (a.id || "").localeCompare(b.id || "");
-  });
+const businessDateOf = (iso: string): string => {
+  const t = new Date(iso).getTime();
+  // shift back 7h (rollover) then read EAT (UTC+3) wall date
+  const shifted = new Date(t - 7 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000);
+  return shifted.toISOString().slice(0, 10);
+};
+
+const compareTx = (a: NepTx, b: NepTx) => {
+  if (a.created_at !== b.created_at) return a.created_at.localeCompare(b.created_at);
+  return (a.id || "").localeCompare(b.id || "");
+};
+
+const dayPeak = (dayTxs: NepTx[]): { peak: number; totalIn: number } => {
   let nep = 0;
-  let dropR = 0;
-  let recycled = 0;
-  for (const t of sorted) {
-    if (t.created_at > toIso) break;
+  let peak = 0;
+  let totalIn = 0;
+  for (const t of dayTxs) {
     const amt = Number(t.amount) || 0;
     if (isCashIn(t)) {
-      const rec = nep < 0 ? Math.min(amt, -nep) : 0;
-      const ext = amt - rec;
       nep += amt;
-      if (t.created_at >= fromIso) {
-        dropR += ext;
-        recycled += rec;
-      }
+      totalIn += amt;
+      if (nep > peak) peak = nep;
     } else if (isCashOut(t)) {
       nep -= amt;
     }
   }
+  return { peak, totalIn };
+};
+
+const groupByDay = (txs: NepTx[]): Map<string, NepTx[]> => {
+  const m = new Map<string, NepTx[]>();
+  for (const t of txs) {
+    if (t.cancelled_at) continue;
+    const bd = businessDateOf(t.created_at);
+    let arr = m.get(bd);
+    if (!arr) { arr = []; m.set(bd, arr); }
+    arr.push(t);
+  }
+  for (const [, arr] of m) arr.sort(compareTx);
+  return m;
+};
+
+/** Drop R / Drop V for a single player over a window (sum of per-day peaks). */
+export function splitPlayerWindow(
+  txs: NepTx[],
+  fromIso: string,
+  toIso: string
+): SplitTotals {
+  const inWindow = txs.filter(t => t.created_at >= fromIso && t.created_at <= toIso);
+  const days = groupByDay(inWindow);
+  let dropR = 0;
+  let recycled = 0;
+  for (const [, dayTxs] of days) {
+    const { peak, totalIn } = dayPeak(dayTxs);
+    dropR += peak;
+    recycled += totalIn - peak;
+  }
   return { dropR, recycled };
 }
 
-/**
- * Compute per-table Drop R / Recycled for a casino window from a flat list.
- * `allTxs` MUST be the full transaction history (all players, up to `toIso`)
- * so NEP is correct. Returns map keyed by table_id.
- */
-export function splitTablesWindow(
-  allTxs: NepTx[],
+/** Per-player split over a window from a flat list. */
+export function splitPlayersWindow(
+  txs: NepTx[],
   fromIso: string,
   toIso: string
 ): Map<string, SplitTotals> {
-  // group by player, walk chronologically per player
+  const out = new Map<string, SplitTotals>();
   const byPlayer = new Map<string, NepTx[]>();
-  for (const t of allTxs) {
+  for (const t of txs) {
     if (!t.player_id) continue;
+    let arr = byPlayer.get(t.player_id);
+    if (!arr) { arr = []; byPlayer.set(t.player_id, arr); }
+    arr.push(t);
+  }
+  for (const [pid, list] of byPlayer) {
+    out.set(pid, splitPlayerWindow(list, fromIso, toIso));
+  }
+  return out;
+}
+
+/** Per-table split: one peak per (player, day), distributed proportionally to IN per table. */
+export function splitTablesWindow(
+  txs: NepTx[],
+  fromIso: string,
+  toIso: string
+): Map<string, SplitTotals> {
+  const byPlayer = new Map<string, NepTx[]>();
+  for (const t of txs) {
+    if (!t.player_id) continue;
+    if (t.cancelled_at) continue;
+    if (t.created_at < fromIso || t.created_at > toIso) continue;
     let arr = byPlayer.get(t.player_id);
     if (!arr) { arr = []; byPlayer.set(t.player_id, arr); }
     arr.push(t);
@@ -91,49 +142,25 @@ export function splitTablesWindow(
     cur.dropR += ext;
     cur.recycled += rec;
   };
-  for (const [, txs] of byPlayer) {
-    txs.sort((a, b) => {
-      if (a.created_at !== b.created_at) return a.created_at.localeCompare(b.created_at);
-      return (a.id || "").localeCompare(b.id || "");
-    });
-    let nep = 0;
-    for (const t of txs) {
-      if (t.created_at > toIso) break;
-      const amt = Number(t.amount) || 0;
-      if (isCashIn(t)) {
-        const rec = nep < 0 ? Math.min(amt, -nep) : 0;
-        const ext = amt - rec;
-        nep += amt;
-        if (t.created_at >= fromIso && t.table_id) {
-          bump(t.table_id, ext, rec);
-        }
-      } else if (isCashOut(t)) {
-        nep -= amt;
+  for (const [, plist] of byPlayer) {
+    const days = groupByDay(plist);
+    for (const [, dayTxs] of days) {
+      const { peak, totalIn } = dayPeak(dayTxs);
+      if (totalIn <= 0) continue;
+      // sum IN per table for the day
+      const inByTable = new Map<string, number>();
+      for (const t of dayTxs) {
+        if (!isCashIn(t) || !t.table_id) continue;
+        const amt = Number(t.amount) || 0;
+        inByTable.set(t.table_id, (inByTable.get(t.table_id) || 0) + amt);
+      }
+      const recycledTotal = totalIn - peak;
+      for (const [tid, inT] of inByTable) {
+        const dr = (peak * inT) / totalIn;
+        const dv = (recycledTotal * inT) / totalIn;
+        bump(tid, dr, dv);
       }
     }
   }
   return result;
-}
-
-/**
- * Per-player Drop R within a window from a flat list of all transactions
- * (all players, up to `toIso`). Returns map keyed by player_id.
- */
-export function splitPlayersWindow(
-  allTxs: NepTx[],
-  fromIso: string,
-  toIso: string
-): Map<string, SplitTotals> {
-  const byPlayer = new Map<string, NepTx[]>();
-  for (const t of allTxs) {
-    if (!t.player_id) continue;
-    let arr = byPlayer.get(t.player_id);
-    if (!arr) { arr = []; byPlayer.set(t.player_id, arr); }
-    arr.push(t);
-  }
-  const out = new Map<string, SplitTotals>();
-  for (const [pid, txs] of byPlayer) {
-    out.set(pid, splitPlayerWindow(txs, fromIso, toIso));
-  }
-  return out;
 }
