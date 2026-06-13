@@ -23,7 +23,6 @@ import { fmtDateOnly } from "@/lib/format-date";
 import PrintPortal from "@/components/cage/PrintPortal";
 import ExpensesDayReport from "@/components/closings/ExpensesDayReport";
 import { useCasino } from "@/lib/casino-context";
-import { useCasinos } from "@/hooks/use-casino-data";
 
 import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
 import { formatCurrency } from "@/lib/currency";
