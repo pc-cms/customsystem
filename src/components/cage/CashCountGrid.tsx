@@ -247,6 +247,7 @@ const CashCountGrid = ({
               suggestion={mobileSuggestion}
               sectionCls={sectionCls}
               titleCls={titleCls}
+              manualOnly
             />
           )}
         </div>
@@ -254,5 +255,6 @@ const CashCountGrid = ({
     </div>
   );
 };
+
 
 export default CashCountGrid;
