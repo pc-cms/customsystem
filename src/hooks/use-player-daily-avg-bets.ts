@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
-export type AvgBetGroup = "ar" | "bj" | "poker";
+export type AvgBetGroup = "ar" | "bj" | "poker" | "club";
 
 export interface PlayerDailyAvgBet {
   id: string;
@@ -13,6 +13,7 @@ export interface PlayerDailyAvgBet {
   avg_bet_ar: number | null;
   avg_bet_bj: number | null;
   avg_bet_poker: number | null;
+  avg_bet_club: number | null;
   updated_at: string;
 }
 
@@ -26,7 +27,7 @@ export function usePlayerDailyAvgBets(businessDate: string | undefined) {
     queryFn: async () => {
       if (!casinoId || !businessDate) return [] as PlayerDailyAvgBet[];
       const { data, error } = await (supabase.from as any)("player_daily_avg_bets")
-        .select("id, casino_id, player_id, business_date, avg_bet_ar, avg_bet_bj, avg_bet_poker, updated_at")
+        .select("id, casino_id, player_id, business_date, avg_bet_ar, avg_bet_bj, avg_bet_poker, avg_bet_club, updated_at")
         .eq("casino_id", casinoId)
         .eq("business_date", businessDate);
       if (error) throw error;
@@ -45,7 +46,7 @@ export function usePlayerDailyAvgBetsRange(playerId: string | undefined, from: s
     queryFn: async () => {
       if (!playerId || !from || !to) return [] as PlayerDailyAvgBet[];
       const { data, error } = await (supabase.from as any)("player_daily_avg_bets")
-        .select("business_date, avg_bet_ar, avg_bet_bj, avg_bet_poker")
+        .select("business_date, avg_bet_ar, avg_bet_bj, avg_bet_poker, avg_bet_club")
         .eq("player_id", playerId)
         .gte("business_date", from)
         .lte("business_date", to)
@@ -67,7 +68,7 @@ export function useSetPlayerDailyAvgBet() {
       playerId, businessDate, group, value,
     }: { playerId: string; businessDate: string; group: AvgBetGroup; value: number | null }) => {
       if (!casinoId) throw new Error("No casino");
-      const col = group === "ar" ? "avg_bet_ar" : group === "bj" ? "avg_bet_bj" : "avg_bet_poker";
+      const col = group === "ar" ? "avg_bet_ar" : group === "bj" ? "avg_bet_bj" : group === "club" ? "avg_bet_club" : "avg_bet_poker";
       // Try update first
       const { data: existing } = await (supabase.from as any)("player_daily_avg_bets")
         .select("id")
