@@ -114,6 +114,22 @@ const Cashless = () => {
     if (writeSource === "slots" && !slotsShift?.id) {
       return toast.error("No open Slots shift");
     }
+    // Withdrawals require manager confirmation before being recorded
+    if (row.direction === "OUT") {
+      setPendingWithdrawalUid(uid);
+      return;
+    }
+    await performSubmit(uid);
+  };
+
+  const performSubmit = async (uid: string) => {
+    const row = drafts.find(r => r.uid === uid);
+    if (!row) return;
+    const player = players.find((p: any) => p.id === row.player_id);
+    const playerName = player
+      ? `${player.first_name || ""} ${player.last_name || ""}`.trim()
+      : row.player_name.trim();
+    const amt = Number(row.amount);
     try {
       await create.mutateAsync({
         direction: row.direction,
