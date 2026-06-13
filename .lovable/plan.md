@@ -1,67 +1,46 @@
-## Goal
+## Change: Table Results come from Close Tables, not Chip Count
 
-Make the per-provider **Cashless IN / Cashless OUT** fields on the cage shift the **single source of truth** for the CDR / Balance formula in both cages. The `/cashless` page transactions remain the audit log and act only as a **grey placeholder hint** that the cashier may accept or override.
+New rule across the system:
 
-## How it should work end-to-end
+- **Live Table Result** = `gaming_tables.closing_result` only. While a table is still open → result is `—` (not 0, to distinguish from an actual zero close).
+- **Chip Snapshots** = Tracker / Analytics only. They never feed P&L, never feed Live Result, never write to `shifts.tables_result`.
+- **Shift cannot be closed** while any gaming table on that casino is still open (`closing_result IS NULL`). UI blocks with a clear message listing the open tables.
+- **Shift P&L** (`shifts.tables_result`) = Σ `gaming_tables.closing_result` of tables closed during the shift − Fill + Credit (cage_transfers).
 
-```
-/cashless page  ─────►  sum per provider  ─────►  grey placeholder in shift
-(transactions)         (useCashlessSuggestions)    Cashless IN / OUT inputs
-                                                          │
-                                            cashier types value (same or different)
-                                                          ▼
-                                       shifts.cashless_in_providers / _out_providers (JSONB)
-                                                          │
-                                                          ▼
-                                CDR / Shift Balance formula uses ONLY this manual value
-```
+### Backend (DB migration)
 
-If the cashier leaves a row empty, that provider contributes **0** to the formula (the placeholder is a hint, not a value). The "Apply hint" button already lets them copy the suggestion into the inputs in one click.
+1. Rewrite `compute_shift_table_results(p_shift_id)`:
+   - Source = `gaming_tables.closing_result` for tables that were closed within the shift window (between `opened_at` and now/`closed_at`).
+   - Subtract Fill, add Credit from `cage_transfers` for that `shift_id`.
+   - Drop the snapshot/baseline branch entirely.
+   - Keep `imported` (table_daily_results) as override for historical days.
+2. Rewrite trigger `trg_recalc_shift_tables_on_snapshot` → drop it (snapshots no longer touch shifts).
+3. Add trigger on `gaming_tables` AFTER UPDATE of `closing_result` → recompute `shifts.tables_result` for the currently open shift in that casino.
+4. Add RPC `can_close_shift(p_shift_id)` returning `(ok bool, open_tables jsonb)`; called by Close Shift flow.
+5. Enforce via trigger on `shifts` BEFORE UPDATE → if `status='open'→'closed'` and any active gaming_table in the casino has `closing_result IS NULL`, RAISE EXCEPTION.
 
-## Changes
+### Frontend
 
-### 1. Database — Live Game (`compute_shift_balance_from_row`)
-Replace the `SELECT … FROM cashless_transactions` block with reading the JSONB on the shift row:
-```
-v_cashless_in  := SUM of values in s.cashless_in_providers
-v_cashless_out := SUM of values in s.cashless_out_providers
-```
-Formula stays:
-```
-CDR = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn
-      + Cashless IN − Cashless OUT
-Balance = CDR − Tables − Miss
-```
+- `src/lib/table-live-result.ts` → `liveTableResult()` returns `closingResult ?? null`. Remove snapshot / baseline / adjustment math (snapshots become irrelevant to result).
+- `src/hooks/use-shift-table-adjustments.ts` → keep for IN/OUT strip display only; not used in result anymore.
+- All consumers of `liveTableResult` render `—` (em-dash) when result is `null`.
+- `src/components/tables/CloseTableWizard.tsx` → `getInitialCounts` defaults to **baseline** (not snapshot). Snapshot data no longer pre-fills closing.
+- Cage `CloseShiftPage` → before submit, call `can_close_shift` RPC; if not ok, show modal listing open tables + Cancel.
+- `src/components/cage/ShiftClosingReport.tsx` and other P&L displays → keep reading `shifts.tables_result` (now sourced from closings).
+- Tables page / Pit dashboard → Live Result column shows `—` for open tables (was: live snapshot delta).
 
-### 2. Database — Slots (`compute_slots_shift_balance_from_row`)
-Same swap: `v_cashless_in/out` come from `s.cashless_in_providers / _out_providers`, not from `cashless_transactions`. (Slots CDR currently doesn't add cashless at all — same as before; only the displayed `cashless_in/out` values change to reflect the manual entry.)
+### Memory updates
 
-Also trigger that recomputes shift on `cashless_transactions` change becomes irrelevant for the formula but keep it so the suggestions list stays fresh.
+- Rewrite [Canonical tables_result](mem://features/canonical-tables-result) — formula now uses `gaming_tables.closing_result`.
+- Rewrite [Live Table Result Resolution](mem://features/live-table-result-resolution) — Result = `closing_result` only; snapshots removed.
+- Update Core rule: "Shift P&L source of truth = `shifts.tables_result` (sum of closing_result − Fill + Credit). Snapshots are Tracker/Analytics only."
+- Add Core rule: "Shift cannot be closed while any table is open."
 
-### 3. Frontend — Live Game close shift (`CloseShiftDialog.tsx` + `cage-balance.ts`)
-- Stop fetching cashless totals from `cashless_transactions` (`cashlessTotals` state + `useEffect` that queries the table).
-- Pass `cashlessIn = mobileTotal(cashlessInProviders)` and `cashlessOut = mobileTotal(cashlessOutProviders)` into `computeShiftBalance`.
-- `FormulaRow + Cashless IN / − Cashless OUT` reads the manual totals.
+### Out of scope (kept as-is)
 
-### 4. Frontend — Active live shift view (`ActiveShiftView.tsx`)
-Already saves `cashless_in_providers` / `cashless_out_providers` on the shift and shows suggestions — no behavior change needed beyond confirming the DB now consumes those fields.
+- Chip Count → Tracker bridge (still writes tracker slot from snapshot).
+- Tables Analytics / Drop V calculations.
+- Chip conservation / Miss chips logic.
+- Imported historical days (`table_daily_results`) override.
 
-### 5. Frontend — Active slots shift view (`ActiveSlotsShiftView.tsx`)
-Already uses `cashlessInManualTzs` / `cashlessOutManualTzs` from the manual providers everywhere (`computeSlotsShiftBalance`, report rows, persisted snapshot). No code change needed; DB swap (item 2) aligns server-side totals with what the UI already shows.
-
-### 6. Placeholder UX (no code changes — already in place)
-- `CashCountGrid → ProviderBlock` renders the suggestion as `placeholder` per row (grey).
-- "Apply hint" button copies suggestions into empty rows.
-- An empty input means 0 — confirmed by the formula change above.
-
-### 7. Version bump
-`package.json` patch bump (backend migration triggers the rule).
-
-## Files affected
-
-- `supabase/migrations/<new>.sql` — replace both compute functions
-- `src/lib/cage-balance.ts` — unchanged inputs, just sourced from manual fields by callers
-- `src/components/cage/CloseShiftDialog.tsx` — drop `cashlessTotals` query, use manual totals
-- `package.json` — version bump
-
-No schema changes; only function bodies and one frontend file are touched. UI remains exactly as the user described: grey hint, free manual entry, formula reads the manual values.
+Auto-bump `package.json` patch version (backend change).
