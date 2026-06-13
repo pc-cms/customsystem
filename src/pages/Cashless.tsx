@@ -84,6 +84,7 @@ const Cashless = () => {
   const create = useCreateCashless();
   const approve = useApproveCashless();
   const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
+  const [pendingWithdrawalUid, setPendingWithdrawalUid] = useState<string | null>(null);
 
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft()]);
 
@@ -113,6 +114,22 @@ const Cashless = () => {
     if (writeSource === "slots" && !slotsShift?.id) {
       return toast.error("No open Slots shift");
     }
+    // Withdrawals require manager confirmation before being recorded
+    if (row.direction === "OUT") {
+      setPendingWithdrawalUid(uid);
+      return;
+    }
+    await performSubmit(uid);
+  };
+
+  const performSubmit = async (uid: string) => {
+    const row = drafts.find(r => r.uid === uid);
+    if (!row) return;
+    const player = players.find((p: any) => p.id === row.player_id);
+    const playerName = player
+      ? `${player.first_name || ""} ${player.last_name || ""}`.trim()
+      : row.player_name.trim();
+    const amt = Number(row.amount);
     try {
       await create.mutateAsync({
         direction: row.direction,
@@ -388,6 +405,20 @@ const Cashless = () => {
         description="Manager authentication required to approve this cashless transaction."
         actionType="APPROVE_EXPENSE"
         actionDetails={{ cashless_id: pendingApproveId }}
+      />
+
+      <ManagerOverrideDialog
+        open={!!pendingWithdrawalUid}
+        onClose={() => setPendingWithdrawalUid(null)}
+        onConfirm={async () => {
+          const uid = pendingWithdrawalUid;
+          setPendingWithdrawalUid(null);
+          if (uid) await performSubmit(uid);
+        }}
+        title="Confirm Withdrawal"
+        description="Manager authentication required to record a cashless withdrawal."
+        actionType="APPROVE_EXPENSE"
+        actionDetails={{ draft_uid: pendingWithdrawalUid }}
       />
     </div>
   );
