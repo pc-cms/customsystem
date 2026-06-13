@@ -69,14 +69,13 @@ export const chipSnapshotResult = (
 export interface LiveResultArgs {
   tableId: string;
   closingResult: number | null | undefined;
-  snapshotIndex: ReturnType<typeof buildLatestTableSnapshot>;
-  baselineMap: BaselineMap;
+  /** @deprecated kept for callsite compatibility; snapshots no longer affect Result. */
+  snapshotIndex?: ReturnType<typeof buildLatestTableSnapshot>;
+  /** @deprecated kept for callsite compatibility; baseline no longer affects Result. */
+  baselineMap?: BaselineMap;
   /**
-   * Optional per-table Fill/Credit adjustment for the active shift
-   * (`Σcredit − Σfill`). Added to the raw snapshot delta so the displayed
-   * result matches the final shift P&L formula `SnapResult − Fill + Credit`.
-   * Closed tables (with `closingResult`) are NOT adjusted — closing flow
-   * already accounts for transfers.
+   * Per-table Fill/Credit adjustment for the active shift (`Σcredit − Σfill`).
+   * Mirrors the DB RPC `compute_shift_table_results` so totals match.
    */
   adjustmentMap?: Record<string, number>;
 }
