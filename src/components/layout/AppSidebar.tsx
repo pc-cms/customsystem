@@ -396,8 +396,10 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   const subdomainLabel = typeof window !== "undefined"
     ? (window.location.hostname.split(".")[0] || "").toLowerCase()
     : "";
-  const isArusha = subdomainLabel === "arusha"
-    || (activeCasino?.slug ?? "").toLowerCase() === "arusha";
+  const brandedSlugs = ["arusha", "mwanza", "dodoma", "mbeya", "premier"];
+  const activeSlug = (activeCasino?.slug ?? "").toLowerCase();
+  const brandedSlug = brandedSlugs.find(s => s === subdomainLabel || s === activeSlug) ?? null;
+  const isBranded = brandedSlug !== null;
   const location = useLocation();
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
