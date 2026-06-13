@@ -153,7 +153,7 @@ const PlayerStatistics = () => {
   const isSingleDay = fromDate === toDate;
   const { data: dailyAvgBets = [] } = usePlayerDailyAvgBets(isSingleDay ? fromDate : undefined);
   const dailyAvgBetByPlayer = useMemo(() => {
-    const m = new Map<string, { ar: number | null; bj: number | null; poker: number | null }>();
+    const m = new Map<string, { ar: number | null; bj: number | null; poker: number | null; club: number | null }>();
     dailyAvgBets.forEach(b => m.set(b.player_id, {
       ar: b.avg_bet_ar, bj: b.avg_bet_bj, poker: b.avg_bet_poker, club: b.avg_bet_club,
     }));
@@ -162,7 +162,7 @@ const PlayerStatistics = () => {
   const summaryAvgBet = (pid: string): number => {
     const b = dailyAvgBetByPlayer.get(pid);
     if (!b) return 0;
-    const vals = [b.ar, b.bj, b.poker].filter((v): v is number => v != null && v > 0);
+    const vals = [b.ar, b.bj, b.poker, b.club].filter((v): v is number => v != null && v > 0);
     return vals.length ? Math.max(...vals) : 0;
   };
 
