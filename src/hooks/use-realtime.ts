@@ -135,6 +135,14 @@ export const useRealtimeSubscriptions = () => {
           { event: "*", schema: "public", table: "casino_visits", filter: `casino_id=eq.${casinoId}` },
           () => { qc.invalidateQueries({ queryKey: ["casino-visits-live"] }); }
         )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "gaming_tables", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            qc.invalidateQueries({ queryKey: ["gaming-tables"] });
+            qc.invalidateQueries({ queryKey: ["table-tracker", casinoId] });
+          }
+        )
         .subscribe();
 
       channelRef.current = channel;
