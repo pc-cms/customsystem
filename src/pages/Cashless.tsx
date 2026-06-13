@@ -406,6 +406,20 @@ const Cashless = () => {
         actionType="APPROVE_EXPENSE"
         actionDetails={{ cashless_id: pendingApproveId }}
       />
+
+      <ManagerOverrideDialog
+        open={!!pendingWithdrawalUid}
+        onClose={() => setPendingWithdrawalUid(null)}
+        onConfirm={async () => {
+          const uid = pendingWithdrawalUid;
+          setPendingWithdrawalUid(null);
+          if (uid) await performSubmit(uid);
+        }}
+        title="Confirm Withdrawal"
+        description="Manager authentication required to record a cashless withdrawal."
+        actionType="APPROVE_EXPENSE"
+        actionDetails={{ draft_uid: pendingWithdrawalUid }}
+      />
     </div>
   );
 };
