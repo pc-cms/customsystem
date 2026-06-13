@@ -9687,7 +9687,7 @@ export type Database = {
         | "surveillance"
         | "super_admin"
         | "hr"
-        | "floor_manager"
+        | "shift_manager"
         | "cashier_slots"
         | "pos_waiter"
         | "pos_bartender"
@@ -9993,7 +9993,7 @@ export const Constants = {
         "surveillance",
         "super_admin",
         "hr",
-        "floor_manager",
+        "shift_manager",
         "cashier_slots",
         "pos_waiter",
         "pos_bartender",
