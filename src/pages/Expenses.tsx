@@ -152,7 +152,9 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   const createOffice = useCreateOfficeExpense();
   const approve = useApproveExpense();
   const del = useDeleteExpense();
+  const cancelAsManager = useCancelExpenseAsManager();
   const updateFinCat = useUpdateExpenseFinCategory();
+  const updateCat = useUpdateExpenseCategory();
   const { data: allFinCats = [] } = useFinCategories();
   const finCatById = useMemo(() => {
     const m: Record<string, any> = {};
@@ -160,6 +162,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     return m;
   }, [allFinCats]);
   const [editingFinCatId, setEditingFinCatId] = useState<string | null>(null);
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft(roleDefaultSource)]);
 
   const isLoading = loadingExpenses;
