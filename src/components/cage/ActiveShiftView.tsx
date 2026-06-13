@@ -634,7 +634,9 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, bu
   const [chipCounts, setChipCounts] = useState<Record<number, number>>(() => (lastDenoms.chips as Record<number, number>) || {});
   const [cash, setCash] = useState<Record<string, Record<number, number>>>(() => (lastDenoms.cash as Record<string, Record<number, number>>) || emptyCash());
   const [bankBal, setBankBal] = useState<Banks>(() => (lastDenoms.bank as Banks) || emptyBanks());
-  const [mobileBal, setMobileBal] = useState<MobileProviders>(() => (lastDenoms.mobile as MobileProviders) || emptyMobile());
+  // Mobile Balance is MANUAL-ONLY — never carry forward from previous shift/day.
+  const [mobileBal, setMobileBal] = useState<MobileProviders>(() => emptyMobile());
+
   const [cashlessIn, setCashlessIn] = useState<MobileProviders>(() => ({ ...emptyMobile(), ...((lastDenoms.cashless_in_providers as MobileProviders) || {}) }));
   const [cashlessOut, setCashlessOut] = useState<MobileProviders>(() => ({ ...emptyMobile(), ...((lastDenoms.cashless_out_providers as MobileProviders) || {}) }));
   const seededId = useRef<string | null>(lastCheck?.id || null);
@@ -661,7 +663,7 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, bu
     };
     setCashlessIn(prev => merge(prev, cashlessSug.in));
     setCashlessOut(prev => merge(prev, cashlessSug.out));
-    setMobileBal(prev => merge(prev, cashlessSug.net));
+    // Mobile Balance is MANUAL-ONLY — never auto-fill from NET (IN-OUT).
     prefilledRef.current = true;
   }, [cashlessSug]);
 

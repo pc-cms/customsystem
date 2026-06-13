@@ -10,7 +10,7 @@ import { MOBILE_PROVIDERS, mobileTotal, type MobileProviders, type Banks } from 
  *  (gray text, just like chip prefills). Cashier can overwrite, clear, or keep
  *  the value — once they type, the cell turns into a normal black entry. */
 const ProviderBlock = ({
-  title, values, onChange, suggestion, sectionCls, titleCls,
+  title, values, onChange, suggestion, sectionCls, titleCls, manualOnly = false,
 }: {
   title: string;
   values: MobileProviders;
@@ -18,6 +18,10 @@ const ProviderBlock = ({
   suggestion?: Partial<Record<string, number>>;
   sectionCls: string;
   titleCls: string;
+  /** When true, never auto-write suggestion into state (e.g. Mobile Balance
+   *  per project rule: manual-only, never derived from IN/OUT). Suggestion is
+   *  shown as a gray placeholder only. */
+  manualOnly?: boolean;
 }) => {
   const mdRow = "flex items-center gap-2";
   const mdChip = "cms-chip text-[10px] bg-muted text-foreground h-7 w-16 shrink-0 justify-center";
@@ -27,9 +31,12 @@ const ProviderBlock = ({
 
   // One-shot prefill: as soon as suggestions arrive, push them into empty rows
   // and remember which rows are still untouched so we can render them in gray.
+  // Skipped entirely for `manualOnly` blocks (Mobile Balance) — those must
+  // never be auto-filled from IN/OUT NET (project rule: manual-only).
   const [prefilled, setPrefilled] = useState<Set<string>>(new Set());
   const initRef = useRef(false);
   useEffect(() => {
+    if (manualOnly) return;
     if (initRef.current || !suggestion) return;
     const hasAny = MOBILE_PROVIDERS.some(p => Number(suggestion[p]) > 0);
     if (!hasAny) return;
@@ -42,7 +49,7 @@ const ProviderBlock = ({
     });
     if (pre.size) { setPrefilled(pre); onChange(next); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [suggestion]);
+  }, [suggestion, manualOnly]);
 
   const markTouched = (provider: string) => {
     if (!prefilled.has(provider)) return;
@@ -78,6 +85,7 @@ const ProviderBlock = ({
     </section>
   );
 };
+
 
 const CashCountGrid = ({
   chips, onChipsChange,
@@ -239,6 +247,7 @@ const CashCountGrid = ({
               suggestion={mobileSuggestion}
               sectionCls={sectionCls}
               titleCls={titleCls}
+              manualOnly
             />
           )}
         </div>
@@ -246,5 +255,6 @@ const CashCountGrid = ({
     </div>
   );
 };
+
 
 export default CashCountGrid;
