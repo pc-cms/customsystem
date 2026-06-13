@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import arushaLogo from "@/assets/arusha-logo.png";
+import mwanzaLogo from "@/assets/mwanza-logo.png";
 
 type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "floor_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager";
 
@@ -395,8 +396,10 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   const subdomainLabel = typeof window !== "undefined"
     ? (window.location.hostname.split(".")[0] || "").toLowerCase()
     : "";
-  const isArusha = subdomainLabel === "arusha"
-    || (activeCasino?.slug ?? "").toLowerCase() === "arusha";
+  const brandedSlugs = ["arusha", "mwanza", "dodoma", "mbeya", "premier"];
+  const activeSlug = (activeCasino?.slug ?? "").toLowerCase();
+  const brandedSlug = brandedSlugs.find(s => s === subdomainLabel || s === activeSlug) ?? null;
+  const isBranded = brandedSlug !== null;
   const location = useLocation();
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -654,14 +657,18 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   return (
     <>
       <div
-        className={cn("px-4 py-4 border-b", !isArusha && "border-sidebar-border")}
-        style={isArusha ? { borderBottomColor: "#E8C688" } : undefined}
+        className={cn("px-4 py-4 border-b", !isBranded && "border-sidebar-border")}
+        style={isBranded ? { borderBottomColor: "#E8C688" } : undefined}
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 shrink-0">
-            {isArusha ? (
+            {isBranded ? (
               <>
-                <img src={arushaLogo} alt="Arusha" className="w-7 h-7 shrink-0 object-contain" />
+                <img
+                  src={brandedSlug === "mwanza" ? mwanzaLogo : arushaLogo}
+                  alt={brandedSlug ?? "Casino"}
+                  className="w-7 h-7 shrink-0 object-contain"
+                />
                 <span className="font-faberge font-semibold text-sm uppercase tracking-wide" style={{ color: "#E8C688" }}>PREMIER</span>
               </>
             ) : (
@@ -671,13 +678,13 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
               </>
             )}
           </div>
-          {isArusha ? (
+          {isBranded ? (
             <span
               className="font-faberge font-semibold text-sm uppercase tracking-wide truncate text-right"
               style={{ color: "#E8C688" }}
-              title={isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Arusha"}
+              title={isSummaryMode ? "All Casinos" : activeCasino?.name ?? (brandedSlug ? brandedSlug.charAt(0).toUpperCase() + brandedSlug.slice(1) : "Casino Ops")}
             >
-              {isSummaryMode ? "All Casinos" : activeCasino?.name ?? "Arusha"}
+              {isSummaryMode ? "All Casinos" : activeCasino?.name ?? (brandedSlug ? brandedSlug.charAt(0).toUpperCase() + brandedSlug.slice(1) : "Casino Ops")}
             </span>
           ) : (
             <span
