@@ -146,7 +146,7 @@ const Dashboard = () => {
     return s;
   }, [tablesDropSplit]);
   // Pending expenses across BOTH cages (Live Game + Slots) — drives the
-  // Approvals tile for manager / floor_manager / finance_manager / super_admin.
+  // Approvals tile for manager / shift_manager / finance_manager / super_admin.
   const { data: pendingExpensesAll = 0 } = useQuery({
     queryKey: ["expenses-approvals-count", casinoId],
     queryFn: async () => {
@@ -165,7 +165,7 @@ const Dashboard = () => {
   const pendingExpenses = pendingExpensesAll;
   const canApproveExpenses =
     roles.includes("manager") ||
-    roles.includes("floor_manager") ||
+    roles.includes("shift_manager") ||
     roles.includes("finance_manager") ||
     roles.includes("super_admin");
   const { data: cashless = [] } = useCashless(businessDate);

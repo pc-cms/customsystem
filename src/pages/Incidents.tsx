@@ -109,7 +109,7 @@ const Incidents = () => {
   // Managers / Floor Managers / Super Admin / Surveillance see the full history by default.
   // Operational roles (pit etc.) default to the current business day.
   const isPrivileged = roles.some((r) =>
-    ["super_admin", "manager", "floor_manager", "surveillance", "finance_manager"].includes(r),
+    ["super_admin", "manager", "shift_manager", "surveillance", "finance_manager"].includes(r),
   );
 
   const [search, setSearch] = useState("");

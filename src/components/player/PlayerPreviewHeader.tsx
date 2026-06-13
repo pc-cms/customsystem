@@ -293,7 +293,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const nav = useNavigate();
   const { roles } = useAuth();
   const showFinancials = canSeePlayerFinancials(roles || []);
-  const canAdjust = (roles || []).some((r) => r === "pit" || r === "manager" || r === "floor_manager");
+  const canAdjust = (roles || []).some((r) => r === "pit" || r === "manager" || r === "shift_manager");
 
   const [chipIn, setChipIn] = useState("");
   const [chipOut, setChipOut] = useState("");

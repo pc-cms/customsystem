@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
 
     console.log("[verify-manager] roles:", JSON.stringify(roles), "err:", rolesError?.message);
 
-    const allowed = ["manager", "floor_manager", "super_admin", "finance_manager"];
+    const allowed = ["manager", "shift_manager", "super_admin", "finance_manager"];
     const isAllowed = roles?.some((r: any) => allowed.includes(r.role));
 
     if (!isAllowed) {

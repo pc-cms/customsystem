@@ -9,7 +9,7 @@
  *   - Returns null only for genuinely auxiliary routes that should NOT be
  *     gated (e.g. virtual placeholders without a real screen).
  *   - When in doubt, map to the closest ModuleKey — never leave a real
- *     screen ungated, otherwise floor_manager / custom roles will see it
+ *     screen ungated, otherwise shift_manager / custom roles will see it
  *     even if the matrix excludes it.
  */
 import type { ModuleKey } from "@/lib/modules";

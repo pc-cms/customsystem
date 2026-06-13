@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
     const admin = createClient(url, key);
     const { data: roles } = await admin
       .from("user_roles").select("role").eq("user_id", userData.user.id);
-    const allowed = new Set(["finance_manager", "super_admin", "manager", "floor_manager"]);
+    const allowed = new Set(["finance_manager", "super_admin", "manager", "shift_manager"]);
     const ok = (roles ?? []).some((r: any) => allowed.has(r.role));
     if (!ok) {
       return new Response(JSON.stringify({ error: "forbidden" }), {

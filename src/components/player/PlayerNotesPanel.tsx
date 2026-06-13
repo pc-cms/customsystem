@@ -5,7 +5,7 @@ import { fmtDateTime } from "@/lib/format-date";
 import { usePlayerNotes, useCreatePlayerNote } from "@/hooks/use-player-profile";
 import { useAuth } from "@/lib/auth-context";
 
-const POSTER_ROLES = ["pit", "manager", "floor_manager", "surveillance", "super_admin", "reception"];
+const POSTER_ROLES = ["pit", "manager", "shift_manager", "surveillance", "super_admin", "reception"];
 
 interface Props {
   playerId: string;

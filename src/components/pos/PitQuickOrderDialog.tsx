@@ -8,7 +8,7 @@
  *      as a pending order, picked up by the bar Kanban (PosBar).
  *
  * Source-of-truth: each line = one pos_orders row (kanban granularity).
- * Visible only to pit / manager / floor_manager via the PlayerPreviewHeader.
+ * Visible only to pit / manager / shift_manager via the PlayerPreviewHeader.
  */
 import { useMemo, useState } from "react";
 import { Minus, Plus, Send, AlertCircle } from "lucide-react";

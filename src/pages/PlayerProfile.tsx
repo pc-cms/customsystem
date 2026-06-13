@@ -56,7 +56,7 @@ const PlayerProfile = () => {
   const navigate = useNavigate();
   const { roles, isManager } = useAuth();
   const showFinancials = canSeePlayerFinancials(roles);
-  const canEditLevel = roles.some((r) => ["super_admin", "manager", "floor_manager", "finance_manager"].includes(r));
+  const canEditLevel = roles.some((r) => ["super_admin", "manager", "shift_manager", "finance_manager"].includes(r));
   const updateCategory = useUpdatePlayerCategory();
 
   const { data: player, isLoading } = usePlayer(id);
@@ -65,7 +65,7 @@ const PlayerProfile = () => {
   const { data: groupHistory = [] } = usePlayerGroupHistory(id);
   const { data: economy = null } = usePlayerEconomy(id);
   const { data: expenses = [] } = usePlayerExpenses(id);
-  const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager", "floor_manager"].includes(r)) || isManager;
+  const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager", "shift_manager"].includes(r)) || isManager;
   const { data: notes = [] } = usePlayerNotes(id, canSeeNotes);
 
   // Pit / Cashier / Reception are restricted to the current business day
@@ -388,12 +388,12 @@ const PlayerProfile = () => {
           <ArrowLeft className="w-4 h-4 mr-1" /> Players
         </Button>
         <div className="flex items-center gap-2">
-          {(roles.some(r => ["pit", "manager", "floor_manager", "surveillance", "super_admin"].includes(r)) || (roles.includes("reception") && isManager)) && player.status !== "blacklist" && (
+          {(roles.some(r => ["pit", "manager", "shift_manager", "surveillance", "super_admin"].includes(r)) || (roles.includes("reception") && isManager)) && player.status !== "blacklist" && (
             <Button variant="outline" size="sm" className="h-9 text-destructive border-destructive/50 hover:bg-destructive/10" onClick={() => setBlacklistOpen(true)}>
               <Ban className="w-3.5 h-3.5 mr-1.5" /> Add to Blacklist
             </Button>
           )}
-          {(isManager || roles.some(r => ["super_admin", "manager", "floor_manager", "reception", "pit"].includes(r))) && (
+          {(isManager || roles.some(r => ["super_admin", "manager", "shift_manager", "reception", "pit"].includes(r))) && (
             <Button variant="outline" size="sm" className="h-9" onClick={() => setEditOpen(true)}>
               Edit player
             </Button>
@@ -524,7 +524,7 @@ const PlayerProfile = () => {
                 playerId={(player as any).id}
                 selfFetch={false}
                 notes={notes}
-                canPost={roles.some(r => ["pit","manager","floor_manager","surveillance","super_admin","reception"].includes(r))}
+                canPost={roles.some(r => ["pit","manager","shift_manager","surveillance","super_admin","reception"].includes(r))}
               />
             </PageSection>
           )}

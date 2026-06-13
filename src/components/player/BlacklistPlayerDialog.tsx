@@ -23,7 +23,7 @@ export const BlacklistPlayerDialog = ({ open, onClose, playerId, playerName }: P
   const [showOverride, setShowOverride] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const isManager = roles.includes("manager") || roles.includes("floor_manager") || roles.includes("super_admin");
+  const isManager = roles.includes("manager") || roles.includes("shift_manager") || roles.includes("super_admin");
 
   const handleConfirm = () => {
     if (!reason.trim()) return;

@@ -2,7 +2,7 @@
  * Compact inline editor for player Level (category) and Tags.
  *
  * Permissions:
- *  - Level: super_admin / manager / floor_manager / finance_manager
+ *  - Level: super_admin / manager / shift_manager / finance_manager
  *  - Floor tags: same as Level
  *  - CCTV tags: surveillance only (super_admin can also write)
  *
@@ -30,7 +30,7 @@ interface Props {
   tagRows: Array<{ tag: string; source?: string | null }>;
 }
 
-const ROLE_FLOOR = ["super_admin", "manager", "floor_manager", "finance_manager"];
+const ROLE_FLOOR = ["super_admin", "manager", "shift_manager", "finance_manager"];
 const ROLE_CCTV = ["super_admin", "surveillance"];
 const MAX_TAGS_PER_SOURCE = 5;
 
