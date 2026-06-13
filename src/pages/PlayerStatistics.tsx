@@ -59,7 +59,7 @@ const PlayerStatistics = () => {
   const { casinoId, roles, user } = useAuth();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
-  // Manager and Floor Manager can also browse historical periods (day/week/month/year/custom)
+  // Manager and Shift Manager can also browse historical periods (day/week/month/year/custom)
   const canBrowseHistory =
     canSeeAllTimeData(roles) ||
     roles.includes("manager") ||

@@ -1,5 +1,5 @@
 /**
- * Expenses approval queue (Manager / Floor Manager / Finance / Super Admin).
+ * Expenses approval queue (Manager / Shift Manager / Finance / Super Admin).
  *
  * Unified view of pending expenses from BOTH cages:
  *   • Live Game (cage_type='live_game')  — submitted by Cashier Live

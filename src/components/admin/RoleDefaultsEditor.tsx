@@ -141,7 +141,7 @@ export const RoleDefaultsEditor = () => {
               {ALL_ROLES.map(r => (
                 <SelectItem key={r} value={r}>{ROLE_LABELS[r] || r}</SelectItem>
               ))}
-              <SelectItem value="shift_manager">Floor Manager</SelectItem>
+              <SelectItem value="shift_manager">Shift Manager</SelectItem>
             </SelectContent>
           </Select>
           <Badge variant="outline" className="text-[10px]">{dirtyCount} pending</Badge>

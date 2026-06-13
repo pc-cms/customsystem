@@ -197,7 +197,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [roles, managerOverride.active]
   );
 
-  // Floor Manager has full operational manager parity (approve expenses, override,
+  // Shift Manager has full operational manager parity (approve expenses, override,
   // close cage, reopen tables, edit past rota, blacklist, etc.) — but financial
   // surfaces remain role-gated separately via roles arrays in AppSidebar/RoleGuard.
   const isManager =

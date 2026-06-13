@@ -36,7 +36,7 @@ export const NON_SUPER_ROLES = ALL_ROLES.filter(r => r !== "super_admin") as rea
 export const ROLE_LABELS: Record<string, string> = {
   super_admin: "Super Admin",
   manager: "Manager",
-  shift_manager: "Floor Manager",
+  shift_manager: "Shift Manager",
   cashier: "Cashier Live",
   cashier_slots: "Cashier Slots",
   pit: "Pit Boss",

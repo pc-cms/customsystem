@@ -53,7 +53,7 @@ const ROLE_LABELS: Record<AppRole, string> = {
   super_admin: "Super Admin",
   finance_manager: "Finance",
   manager: "Manager",
-  shift_manager: "Floor Manager",
+  shift_manager: "Shift Manager",
   hr: "HR",
   pit: "Pit",
   cashier: "Cashier Live",
