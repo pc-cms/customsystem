@@ -995,7 +995,7 @@ const PlayerStatistics = () => {
                           <H k="visits" align="left" title="Visits in selected period">Vis</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
-                          <H k="zone" align="center" title="Sort by zone: S → LG → CP">Z</H>
+                          <H k="zone" align="center" title="Sort by zone: S → LG → CP">ZONE</H>
                           
                           
                           {showFinancials && (
