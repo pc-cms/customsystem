@@ -467,6 +467,7 @@ const PlayerStatistics = () => {
             case "position": return r.position === "table" ? (r.tableName ?? "zzz") : r.position;
             case "entry": return new Date(r.entryAt).getTime();
             case "exit": return r.exitAt ? new Date(r.exitAt).getTime() : 0;
+            case "zone": return r.zone ? ZONE_SORT_ORDER[r.zone as PlayerZone] : 9;
             case "avgBet": return r.avgBet;
             case "dropR": return r.dropR;
             case "inDrop": return r.inDrop;
