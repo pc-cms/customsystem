@@ -81,6 +81,12 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const { data: rota = [] } = usePitRotaRange(date, date);
   const { data: attendance = [] } = useDealerAttendance(date);
   const { data: casino } = useCasinoInfo();
+  const isMwanza = (casino?.name ?? "").toLowerCase().includes("mwanza");
+  const fmtTableName = (name: string | null | undefined) => {
+    if (!name) return name;
+    if (isMwanza && name.toLowerCase() === "baccarat") return "BCR";
+    return name;
+  };
   const setCell = useSetBreaklistCell();
   const setAttendance = useSetDealerAttendance();
   const lockCell = useLockBreaklistCell();
