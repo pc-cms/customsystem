@@ -991,13 +991,17 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
         if (autoFilledRef.current.has(key)) continue;
 
         const rotaShift = getRotaShift(d.id, day);
-        if (rotaShift !== "M" && rotaShift !== "N" && rotaShift !== "E") continue;
+        if (rotaShift !== "M" && rotaShift !== "N" && !isExtraShift(rotaShift)) continue;
 
         const current = getValue(d.id, day);
         if (current !== "") continue;
 
-        // Pit Bosses on Morning shift work 11 hours; everyone else defaults to 9.
-        const fillValue = ((d as any).is_pit_boss && rotaShift === "M") ? "11" : "9";
+        // Pit Bosses on Morning shift work 11 hours; Extra Morning (EM) = 11h,
+        // Extra Night (EN) = 8h; everyone else defaults to 9.
+        let fillValue = "9";
+        if ((d as any).is_pit_boss && rotaShift === "M") fillValue = "11";
+        else if (rotaShift === "EM") fillValue = "11";
+        else if (rotaShift === "EN") fillValue = "8";
 
         autoFilledRef.current.add(key);
         setAttendanceRaw.mutate({ dealer_id: d.id, date: dateStr, value: fillValue });
