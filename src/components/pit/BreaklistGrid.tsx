@@ -589,11 +589,11 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                                     if (availableRoles.length === 0) return null;
                                     return (
                                       <div key={t.id} className="flex items-center gap-0.5 px-1">
-                                        <span className="text-[9px] font-mono text-card-foreground min-w-[28px]">{t.name}</span>
+                                        <span className="text-[9px] font-mono text-card-foreground min-w-[28px]">{fmtTableName(t.name)}</span>
                                         {availableRoles.map(r => (
                                           <button key={r} onClick={() => handleRoleSelect(r, t.id)}
                                             className={`px-1 py-0.5 rounded text-[8px] font-mono font-bold ${getTableCellClasses(t.id, tableColorIndex.get(t.id) ?? 0, r)} hover:opacity-80`}>
-                                            {t.name}{rSuffix[r] || ""}
+                                            {fmtTableName(t.name)}{rSuffix[r] || ""}
                                           </button>
                                         ))}
                                       </div>
