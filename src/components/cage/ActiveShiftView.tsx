@@ -175,6 +175,14 @@ const ActiveShiftView = ({ shift, players, tables }: {
   // Credit: chips INTO cage → expected total increases.
   const totalFill = useMemo(() => cageTransfers.filter(t => t.transfer_type === "fill").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
   const totalCredit = useMemo(() => cageTransfers.filter(t => t.transfer_type === "credit").reduce((s, t) => s + Number(t.amount), 0), [cageTransfers]);
+  // When cashier closes a table, only the table's raw chip delta is physically
+  // settled back into Cage. Fill/Credit are already tracked as separate cage moves.
+  const totalClosedTableDelta = useMemo(
+    () => tables
+      .filter(t => t.status === "closed" && !t.is_archived && t.closing_result !== null)
+      .reduce((s, t) => s + Number(t.closing_result || 0), 0),
+    [tables],
+  );
 
   // Cancel dialog state
   const [cancelTarget, setCancelTarget] = useState<Tables<"transactions"> | null>(null);
@@ -201,7 +209,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
   // Total cage VALUE (chips + cash). IN/OUT are pure swaps (cash↔chips) — they
   // do NOT change the total. Only money entering/leaving the cage matters.
   // This is what the physical Check (chips + cash + bank + mobile) must equal.
-  const expectedTotal = openingFloat + totalAddFloat + totalSlotsIn + totalCredit - totalCollection - totalSlotsOut - totalExpenses - totalFill;
+  const expectedTotal = openingFloat + totalAddFloat + totalSlotsIn + totalCredit + totalClosedTableDelta - totalCollection - totalSlotsOut - totalExpenses - totalFill;
 
   const shiftDuration = useMemo(() => {
     const start = new Date(shift.opened_at);
