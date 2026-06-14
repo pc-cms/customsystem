@@ -698,6 +698,26 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                             {!exp.approved && isManager && (
                               <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => approve.mutate(exp.id)} disabled={approve.isPending}>Approve</Button>
                             )}
+                            {isManager && exp.category !== "bar_charge" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => setEditingExpense({
+                                  id: exp.id,
+                                  fin_category_id: exp.fin_category_id,
+                                  amount: Number(exp.amount),
+                                  currency: exp.currency || "TZS",
+                                  description: exp.description,
+                                  player_id: exp.player_id,
+                                  player_name: exp.player_name,
+                                  source: src,
+                                })}
+                                title="Edit expense (manager)"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
                             {isManager ? (
                               exp.category !== "bar_charge" && (
                                 <Button
@@ -785,11 +805,6 @@ const DraftRowView = ({
   canRemove: boolean;
   isPending: boolean;
 }) => {
-  const { data: dynamicCats = [] } = useExpenseCategories(draft.source);
-  const cats = dynamicCats.filter(c => c.active).length > 0
-    ? dynamicCats.filter(c => c.active).map(c => ({ code: c.code, label: c.label }))
-    : FALLBACK_CATS;
-
   const isOffice = draft.source === "office";
   const shiftMissing =
     (draft.source === "live_game" && !liveShift?.id) ||
@@ -801,7 +816,7 @@ const DraftRowView = ({
         <td className="px-2 py-1.5">
           <Select
             value={draft.source}
-            onValueChange={(v) => onChange({ source: v as SourceVal, category: "", target: v === "office" ? "casino" : draft.target })}
+            onValueChange={(v) => onChange({ source: v as SourceVal, fin_category_id: "", target: v === "office" ? "casino" : draft.target })}
           >
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -837,18 +852,12 @@ const DraftRowView = ({
         />
       </td>
       <td className="px-2 py-1.5">
-        <Select value={draft.category} onValueChange={(v) => onChange({ category: v })}>
-          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Category" /></SelectTrigger>
-          <SelectContent>
-            {cats.map((c) => <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <CategoryCombobox
+          value={draft.fin_category_id}
+          onChange={(v) => onChange({ fin_category_id: v })}
+          size="sm"
+        />
       </td>
-      {isManagerView && (
-        <td className="px-2 py-1.5">
-          <FinCategoryPicker value={draft.fin_category_id} onChange={(v) => onChange({ fin_category_id: v })} />
-        </td>
-      )}
       <td className="px-2 py-1.5">
         <NumberInput placeholder="0" value={draft.amount} onChange={(v) => onChange({ amount: v })} className="h-8 text-xs text-right" />
       </td>
@@ -868,33 +877,5 @@ const DraftRowView = ({
         </div>
       </td>
     </tr>
-  );
-};
-
-// ──────────────────────────────────────────────────────────
-// Manager-only Finance Plan picker (override)
-// ──────────────────────────────────────────────────────────
-const FinCategoryPicker = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
-  const { data: finCats = [] } = useFinCategories();
-  const grouped = (finCats || []).reduce((acc: Record<string, any[]>, c: any) => {
-    if (!c.is_active) return acc;
-    (acc[c.group_name] ||= []).push(c);
-    return acc;
-  }, {});
-  return (
-    <Select value={value || "__auto"} onValueChange={(v) => onChange(v === "__auto" ? "" : v)}>
-      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Auto" /></SelectTrigger>
-      <SelectContent className="max-h-[400px]">
-        <SelectItem value="__auto">Auto (from category)</SelectItem>
-        {Object.entries(grouped).map(([group, list]) => (
-          <div key={group}>
-            <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/50">{group}</div>
-            {(list as any[]).map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </div>
-        ))}
-      </SelectContent>
-    </Select>
   );
 };
