@@ -524,7 +524,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                           )}
                           {/* Inline role picker dropdown */}
                           {isActiveCell && (
-                            <div className={`absolute z-50 ${activeCell?.dropUp ? "bottom-8" : "top-8"} left-0 bg-popover border border-border rounded-md shadow-lg p-1 min-w-[100px]`}
+                            <div className={`absolute z-50 ${activeCell?.dropUp ? "bottom-8" : "top-8"} ${activeCell?.dropLeft ? "right-0" : "left-0"} bg-popover border border-border rounded-md shadow-lg p-1 min-w-[100px]`}
                               onMouseLeave={() => setActiveCell(null)}>
                               <div className="flex flex-wrap gap-0.5 mb-1">
                                 <button onClick={() => handleRoleSelect("BR")}
