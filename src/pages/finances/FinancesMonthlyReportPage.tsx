@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 const fmt = (n: number) => (n ? formatNumberSpaces(n) : "—");
+/** Like fmt but always shows 0 (used in totals rows so empty groups still display a number). */
+const fmtT = (n: number) => formatNumberSpaces(n || 0);
 const pct = (n: number) => (Number.isFinite(n) ? `${Math.round(n * 100)}%` : "—");
 
 const cls = (n: number) => (n < 0 ? "cms-amount-negative" : n > 0 ? "cms-amount-positive" : "text-muted-foreground");
@@ -151,6 +153,43 @@ export default function FinancesMonthlyReportPage() {
       r += 2;
     }
 
+    // Collections section (excluded from grand)
+    if (data.collections) {
+      const col = data.collections;
+      ws.mergeCells(`A${r}:K${r}`);
+      const cc = ws.getCell(`A${r}`);
+      cc.value = col.name;
+      cc.font = { bold: true, size: 12 };
+      cc.fill = groupFill as any;
+      r++;
+      writeHeader();
+      for (const c of col.categories) {
+        const remTzs = c.plan_month_tzs - c.actual_tzs;
+        const pctVal = c.plan_month_tzs ? c.actual_tzs / c.plan_month_tzs : null;
+        const row = ws.getRow(r);
+        row.values = [c.name, c.plan_year_tzs, c.plan_year_usd, c.plan_month_tzs, c.plan_month_usd, c.actual_tzs, c.actual_usd, pctVal, remTzs, c.plan_month_usd - c.actual_usd, c.plan_month_tzs ? remTzs / c.plan_month_tzs : null];
+        for (let i = 2; i <= 11; i++) {
+          const cell = row.getCell(i);
+          cell.numFmt = (i === 8 || i === 11) ? "0%" : "# ##0;[Red](# ##0);—";
+          cell.alignment = { horizontal: "right" };
+        }
+        r++;
+      }
+      const tr = ws.getRow(r);
+      tr.values = ["Total", col.totals.plan_year_tzs, col.totals.plan_year_usd, col.totals.plan_month_tzs, col.totals.plan_month_usd, col.totals.actual_tzs, col.totals.actual_usd, null, col.totals.plan_month_tzs - col.totals.actual_tzs, col.totals.plan_month_usd - col.totals.actual_usd, null];
+      for (let i = 1; i <= 11; i++) {
+        const cell = tr.getCell(i);
+        cell.font = { bold: true };
+        cell.fill = totalFill as any;
+        if (i > 1) {
+          cell.numFmt = (i === 8 || i === 11) ? "0%" : "# ##0;[Red](# ##0);—";
+          cell.alignment = { horizontal: "right" };
+        }
+      }
+      r += 2;
+    }
+
+
     // Grand total
     ws.mergeCells(`A${r}:K${r}`);
     ws.getCell(`A${r}`).value = "GRAND TOTAL";
@@ -262,17 +301,46 @@ export default function FinancesMonthlyReportPage() {
       ))}
 
 
+      {/* COLLECTIONS — owner withdrawals, excluded from Grand Total expenses */}
+      {data?.collections && (
+        <GroupTable
+          key={data.collections.code}
+          group={data.collections}
+          expandedId={expanded}
+          onToggle={toggle}
+          usdRate={usdRate}
+          isNetwork={isNetwork}
+          showUsd={showUsd}
+          editMode={editMode}
+          year={year}
+          month={month}
+          allCategories={allCats || []}
+          mtd={mtd?.map || {}}
+          mtdMonthLabel={mtdMonthLabel}
+          onPlanCommit={(catId, currency, amount) =>
+            upsertBudget.mutate({ year, month, category_id: catId, currency, planned_amount: amount })
+          }
+          onRenameCategory={(catId, newName) =>
+            renameCategory.mutate({ id: catId, name: newName })
+          }
+          onMoveExpense={(id, newCatId) =>
+            moveExpense.mutate({ id, fin_category_id: newCatId })
+          }
+        />
+      )}
+
       {/* GRAND TOTAL */}
       {data && (
         <PageSection title="Grand Total" card>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
             <Kpi label="Plan Month TZS" v={data.grand.plan_month_tzs} />
             <Kpi label="Actual TZS" v={data.grand.actual_tzs} />
             <Kpi label="Remain TZS" v={data.grand.plan_month_tzs - data.grand.actual_tzs} signed />
+            <Kpi label="Collections TZS" v={data.collections?.totals.actual_tzs ?? 0} />
             <Kpi label="Expenses USD" v={Math.round(data.grand.actual_tzs / usdRate)} />
             <Kpi
-              label="Revenue USD"
-              v={Math.round((data.incomes.total - data.grand.actual_tzs) / usdRate)}
+              label="Net After Collections USD"
+              v={Math.round((data.incomes.total - data.grand.actual_tzs - (data.collections?.totals.actual_tzs ?? 0)) / usdRate)}
               signed
             />
           </div>
@@ -357,16 +425,16 @@ const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, 
 
             <tr className="bg-muted/40 font-semibold border-t-2 border-border [&>td]:h-7 [&>td]:px-2 [&>td]:align-middle">
               <td className="sticky left-0 z-10 bg-muted/40">Total</td>
-              <td className="text-right font-mono tabular-nums">{fmt(group.totals.plan_year_tzs)}</td>
-              {showUsd && <td className="text-right font-mono tabular-nums">{fmt(group.totals.plan_year_usd)}</td>}
-              <td className="text-right font-mono tabular-nums">{fmt(group.totals.plan_month_tzs)}</td>
-              {showUsd && <td className="text-right font-mono tabular-nums">{fmt(group.totals.plan_month_usd)}</td>}
-              <td className="text-right font-mono tabular-nums border-l border-border">{fmt(group.totals.actual_tzs)}</td>
-              {showUsd && <td className="text-right font-mono tabular-nums">{fmt(group.totals.actual_usd)}</td>}
+              <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_year_tzs)}</td>
+              {showUsd && <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_year_usd)}</td>}
+              <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_month_tzs)}</td>
+              {showUsd && <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_month_usd)}</td>}
+              <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(group.totals.actual_tzs)}</td>
+              {showUsd && <td className="text-right font-mono tabular-nums">{fmtT(group.totals.actual_usd)}</td>}
               <td className="text-right font-mono tabular-nums">{group.totals.plan_month_tzs ? pct(group.totals.actual_tzs / group.totals.plan_month_tzs) : "—"}</td>
-              <td className="text-right font-mono tabular-nums border-l border-border">{fmt(groupMtd)}</td>
-              <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(group.totals.plan_month_tzs - group.totals.actual_tzs))}>{fmt(group.totals.plan_month_tzs - group.totals.actual_tzs)}</td>
-              {showUsd && <td className={cn("text-right font-mono tabular-nums", cls(group.totals.plan_month_usd - group.totals.actual_usd))}>{fmt(group.totals.plan_month_usd - group.totals.actual_usd)}</td>}
+              <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(groupMtd)}</td>
+              <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(group.totals.plan_month_tzs - group.totals.actual_tzs))}>{fmtT(group.totals.plan_month_tzs - group.totals.actual_tzs)}</td>
+              {showUsd && <td className={cn("text-right font-mono tabular-nums", cls(group.totals.plan_month_usd - group.totals.actual_usd))}>{fmtT(group.totals.plan_month_usd - group.totals.actual_usd)}</td>}
               <td className="text-right font-mono tabular-nums pr-3">{group.totals.plan_month_tzs ? pct((group.totals.plan_month_tzs - group.totals.actual_tzs) / group.totals.plan_month_tzs) : "—"}</td>
             </tr>
           </tbody>
