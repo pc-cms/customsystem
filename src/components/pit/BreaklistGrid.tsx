@@ -111,7 +111,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   // Dealers scheduled in rota for this date (M or N only)
   const rotaDealers = useMemo(() => {
     return rota
-      .filter((r: any) => r.shift === "M" || r.shift === "N" || r.shift === "E")
+      .filter((r: any) => r.shift === "M" || r.shift === "N" || isExtraShift(r.shift))
       .map((r: any) => ({ dealerId: r.dealer_id, shift: r.shift as string }));
   }, [rota]);
 
