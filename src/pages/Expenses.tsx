@@ -4,8 +4,8 @@ import { toast } from "sonner";
 import { Receipt, CheckCircle, Plus, X, Trash2, Filter, GlassWater, ExternalLink, Printer } from "lucide-react";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { useExpenses, useCreateExpense, useApproveExpense, useDeleteExpense } from "@/hooks/use-casino-data";
-import { useCreateSlotsExpense, useUpdateExpenseFinCategory, useUpdateExpenseCategory, useCancelExpenseAsManager } from "@/hooks/use-expenses";
-import { useCreateOfficeExpense, useExpenseCategories } from "@/hooks/use-expense-categories";
+import { useCreateSlotsExpense, useCancelExpenseAsManager } from "@/hooks/use-expenses";
+import { useCreateOfficeExpense } from "@/hooks/use-expense-categories";
 import { useFinCategories } from "@/hooks/use-fin";
 import { useActiveShift } from "@/hooks/use-shift";
 import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
@@ -23,6 +23,9 @@ import { fmtDateOnly } from "@/lib/format-date";
 import PrintPortal from "@/components/cage/PrintPortal";
 import ExpensesDayReport from "@/components/closings/ExpensesDayReport";
 import { useCasino } from "@/lib/casino-context";
+import { CategoryCombobox } from "@/components/expenses/CategoryCombobox";
+import { EditExpenseDialog, type EditableExpense } from "@/components/expenses/EditExpenseDialog";
+import { Pencil } from "lucide-react";
 
 import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
 import { formatCurrency } from "@/lib/currency";
@@ -75,7 +78,7 @@ interface DraftRow {
   source: SourceVal;
   target: "casino" | "player" | "";
   player_name: string;
-  category: string;
+  /** Selected fin_categories.id — the single source of truth for category. */
   fin_category_id: string;
   amount: string;
   description: string;
@@ -86,7 +89,6 @@ const newDraft = (defaultSource: SourceVal): DraftRow => ({
   source: defaultSource,
   target: "",
   player_name: "",
-  category: "",
   fin_category_id: "",
   amount: "",
   description: "",
@@ -153,16 +155,13 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   const approve = useApproveExpense();
   const del = useDeleteExpense();
   const cancelAsManager = useCancelExpenseAsManager();
-  const updateFinCat = useUpdateExpenseFinCategory();
-  const updateCat = useUpdateExpenseCategory();
   const { data: allFinCats = [] } = useFinCategories();
   const finCatById = useMemo(() => {
     const m: Record<string, any> = {};
     (allFinCats || []).forEach((c: any) => { m[c.id] = c; });
     return m;
   }, [allFinCats]);
-  const [editingFinCatId, setEditingFinCatId] = useState<string | null>(null);
-  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [editingExpense, setEditingExpense] = useState<EditableExpense | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft(roleDefaultSource)]);
 
   const isLoading = loadingExpenses;
@@ -201,42 +200,46 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     if (row.source !== "office" && !row.target) return toast.error("Choose target");
     if (row.source !== "office" && row.target === "player" && !row.player_name.trim())
       return toast.error("Enter player name");
-    if (!row.category) return toast.error("Choose category");
+    if (!row.fin_category_id) return toast.error("Choose category");
     const amt = Number(row.amount);
     if (!amt || amt <= 0) return toast.error("Amount must be > 0");
 
+    // Single unified category list: we drive everything off fin_category_id.
+    // The operational `category_code` field stays as a constant 'other'
+    // (legacy required field) — Monthly Report reads only fin_category_id.
+    const opCategory = "other";
+
     try {
-      const finOverride = row.fin_category_id || undefined;
       if (row.source === "office") {
         await createOffice.mutateAsync({
-          category_code: row.category,
+          category_code: opCategory,
           amount: amt,
           description: row.description,
-          fin_category_id: finOverride,
+          fin_category_id: row.fin_category_id,
         });
       } else if (row.source === "slots") {
         if (!slotsShift?.id) return toast.error("No open Slots shift");
         await createSlots.mutateAsync({
           slots_shift_id: slotsShift.id,
-          category: row.category,
+          category: opCategory,
           amount: amt,
           description: row.description,
           player_id: null,
           player_name: row.target === "player" ? row.player_name.trim() : "",
-          fin_category_id: finOverride,
+          fin_category_id: row.fin_category_id,
         });
       } else {
         if (!liveShift?.id) return toast.error("No open Live Game shift");
         await new Promise<void>((resolve, reject) => {
           create.mutate(
             {
-              category: row.category,
+              category: opCategory,
               amount: amt,
               description: row.description,
               player_id: null,
               player_name: row.target === "player" ? row.player_name.trim() : "",
               shift_id: liveShift.id,
-              fin_category_id: finOverride,
+              fin_category_id: row.fin_category_id,
             },
             { onSuccess: () => resolve(), onError: (e: any) => reject(e) },
           );
@@ -556,7 +559,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                 <th className="text-left px-3 py-2">Target</th>
                 <th className="text-left px-3 py-2">Player</th>
                 <th className="text-left px-3 py-2">Category</th>
-                {isManagerView && <th className="text-left px-3 py-2 w-[200px]">Finance Plan</th>}
+                
                 <th className="text-right px-3 py-2">Amount (TZS)</th>
                 <th className="text-left px-3 py-2">Description</th>
                 <th className="text-center px-3 py-2 w-[140px]">Action</th>
@@ -654,87 +657,14 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                         </span>
                       </td>
                       <td className="px-3 py-2">
-                        <div className="flex items-center gap-1.5">
-                          {isManagerView && editingCatId === exp.id ? (
-                            <div className="min-w-[140px]">
-                              <Select
-                                value={exp.category}
-                                onValueChange={(v) => {
-                                  updateCat.mutate(
-                                    { id: exp.id, category: v, prev_category: exp.category },
-                                    { onSuccess: () => setEditingCatId(null) },
-                                  );
-                                }}
-                              >
-                                <SelectTrigger className="h-7 text-[11px]"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  {FALLBACK_CATS.map((c) => (
-                                    <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
-                                  ))}
-                                  <SelectItem value="pos_comp">POS Comp</SelectItem>
-                                  <SelectItem value="bar_charge">Bar charge</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => isManagerView && setEditingCatId(exp.id)}
-                              className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[exp.category] || CAT_COLORS.other} ${
-                                isManagerView ? "cursor-pointer hover:ring-1 hover:ring-primary" : "cursor-default"
-                              }`}
-                              title={isManagerView ? "Click to re-classify operational category" : undefined}
-                            >
-                              {catLabel}
-                            </button>
-                          )}
-                          {isManagerView && editingCatId === exp.id && (
-                            <button
-                              type="button"
-                              onClick={() => setEditingCatId(null)}
-                              className="text-[10px] text-muted-foreground hover:text-foreground"
-                              title="Cancel"
-                            >
-                              ✕
-                            </button>
-                          )}
-                          {isManagerView && editingFinCatId === exp.id ? (
-                            <div className="min-w-[180px]">
-                              <FinCategoryPicker
-                                value={exp.fin_category_id || ""}
-                                onChange={(v) => {
-                                  updateFinCat.mutate(
-                                    { id: exp.id, fin_category_id: v || null },
-                                    { onSuccess: () => { setEditingFinCatId(null); toast.success("Category updated"); } },
-                                  );
-                                }}
-                              />
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => isManagerView && setEditingFinCatId(exp.id)}
-                              className={`text-[10px] truncate max-w-[160px] ${
-                                exp.fin_category_id
-                                  ? "text-muted-foreground"
-                                  : "text-amber-600 dark:text-amber-400 italic"
-                              } ${isManagerView ? "hover:underline cursor-pointer" : "cursor-default"}`}
-                              title={isManagerView ? "Click to re-classify finance plan" : undefined}
-                            >
-                              → {exp.fin_category_id ? (finCatById[exp.fin_category_id]?.name || "—") : "Unassigned"}
-                            </button>
-                          )}
-                          {isManagerView && editingFinCatId === exp.id && (
-                            <button
-                              type="button"
-                              onClick={() => setEditingFinCatId(null)}
-                              className="text-[10px] text-muted-foreground hover:text-foreground"
-                              title="Cancel"
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </div>
+                        <span
+                          className="text-[11px] truncate max-w-[200px] inline-block"
+                          title={exp.fin_category_id ? (finCatById[exp.fin_category_id]?.name || "—") : "Unassigned"}
+                        >
+                          {exp.fin_category_id
+                            ? (finCatById[exp.fin_category_id]?.name || "—")
+                            : <span className="text-amber-600 dark:text-amber-400 italic">Unassigned</span>}
+                        </span>
                       </td>
 
 
@@ -767,6 +697,26 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                           <div className="inline-flex gap-1">
                             {!exp.approved && isManager && (
                               <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => approve.mutate(exp.id)} disabled={approve.isPending}>Approve</Button>
+                            )}
+                            {isManager && exp.category !== "bar_charge" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => setEditingExpense({
+                                  id: exp.id,
+                                  fin_category_id: exp.fin_category_id,
+                                  amount: Number(exp.amount),
+                                  currency: exp.currency || "TZS",
+                                  description: exp.description,
+                                  player_id: exp.player_id,
+                                  player_name: exp.player_name,
+                                  source: src,
+                                })}
+                                title="Edit expense (manager)"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
                             )}
                             {isManager ? (
                               exp.category !== "bar_charge" && (
@@ -832,6 +782,12 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           />
         </div>
       </PrintPortal>
+
+      <EditExpenseDialog
+        open={!!editingExpense}
+        onOpenChange={(o) => { if (!o) setEditingExpense(null); }}
+        expense={editingExpense}
+      />
     </div>
 
   );
@@ -855,11 +811,6 @@ const DraftRowView = ({
   canRemove: boolean;
   isPending: boolean;
 }) => {
-  const { data: dynamicCats = [] } = useExpenseCategories(draft.source);
-  const cats = dynamicCats.filter(c => c.active).length > 0
-    ? dynamicCats.filter(c => c.active).map(c => ({ code: c.code, label: c.label }))
-    : FALLBACK_CATS;
-
   const isOffice = draft.source === "office";
   const shiftMissing =
     (draft.source === "live_game" && !liveShift?.id) ||
@@ -871,7 +822,7 @@ const DraftRowView = ({
         <td className="px-2 py-1.5">
           <Select
             value={draft.source}
-            onValueChange={(v) => onChange({ source: v as SourceVal, category: "", target: v === "office" ? "casino" : draft.target })}
+            onValueChange={(v) => onChange({ source: v as SourceVal, fin_category_id: "", target: v === "office" ? "casino" : draft.target })}
           >
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -907,18 +858,12 @@ const DraftRowView = ({
         />
       </td>
       <td className="px-2 py-1.5">
-        <Select value={draft.category} onValueChange={(v) => onChange({ category: v })}>
-          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Category" /></SelectTrigger>
-          <SelectContent>
-            {cats.map((c) => <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <CategoryCombobox
+          value={draft.fin_category_id}
+          onChange={(v) => onChange({ fin_category_id: v })}
+          size="sm"
+        />
       </td>
-      {isManagerView && (
-        <td className="px-2 py-1.5">
-          <FinCategoryPicker value={draft.fin_category_id} onChange={(v) => onChange({ fin_category_id: v })} />
-        </td>
-      )}
       <td className="px-2 py-1.5">
         <NumberInput placeholder="0" value={draft.amount} onChange={(v) => onChange({ amount: v })} className="h-8 text-xs text-right" />
       </td>
@@ -938,33 +883,5 @@ const DraftRowView = ({
         </div>
       </td>
     </tr>
-  );
-};
-
-// ──────────────────────────────────────────────────────────
-// Manager-only Finance Plan picker (override)
-// ──────────────────────────────────────────────────────────
-const FinCategoryPicker = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
-  const { data: finCats = [] } = useFinCategories();
-  const grouped = (finCats || []).reduce((acc: Record<string, any[]>, c: any) => {
-    if (!c.is_active) return acc;
-    (acc[c.group_name] ||= []).push(c);
-    return acc;
-  }, {});
-  return (
-    <Select value={value || "__auto"} onValueChange={(v) => onChange(v === "__auto" ? "" : v)}>
-      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Auto" /></SelectTrigger>
-      <SelectContent className="max-h-[400px]">
-        <SelectItem value="__auto">Auto (from category)</SelectItem>
-        {Object.entries(grouped).map(([group, list]) => (
-          <div key={group}>
-            <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/50">{group}</div>
-            {(list as any[]).map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </div>
-        ))}
-      </SelectContent>
-    </Select>
   );
 };
