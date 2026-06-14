@@ -86,12 +86,18 @@ const PlayerProfile = () => {
   const rangeStartMs = useMemo(() => new Date(`${range.from}T00:00:00`).getTime(), [range.from]);
   const rangeEndMs = useMemo(() => new Date(`${range.to}T23:59:59`).getTime(), [range.to]);
 
+  // Filter visits by BUSINESS date (v.date YYYY-MM-DD) — not by checked_in_at
+  // timestamp. A visit that opens after midnight but before 07:00 EAT still
+  // belongs to the previous business day (date stays the same), so a
+  // calendar-day timestamp filter would drop it. Use string compare which
+  // is safe for YYYY-MM-DD ordering.
   const visitsInRange = useMemo(
     () => visits.filter((v: any) => {
-      const ts = new Date(v.checked_in_at).getTime();
-      return ts >= rangeStartMs && ts <= rangeEndMs;
+      const d = v.date as string | null;
+      if (!d) return false;
+      return d >= range.from && d <= range.to;
     }),
-    [visits, rangeStartMs, rangeEndMs]
+    [visits, range.from, range.to]
   );
 
   const txInRange = useMemo(
