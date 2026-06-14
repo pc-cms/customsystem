@@ -13,10 +13,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { PageSection } from "@/components/layout/PageSection";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/currency";
+import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
+import { useActiveShift } from "@/hooks/use-shift";
+import SlotsTransfersForm from "@/components/cage-slots/SlotsTransfersForm";
 
 type Source = "all" | "live_game" | "slots";
 
