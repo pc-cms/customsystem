@@ -155,16 +155,13 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   const approve = useApproveExpense();
   const del = useDeleteExpense();
   const cancelAsManager = useCancelExpenseAsManager();
-  const updateFinCat = useUpdateExpenseFinCategory();
-  const updateCat = useUpdateExpenseCategory();
   const { data: allFinCats = [] } = useFinCategories();
   const finCatById = useMemo(() => {
     const m: Record<string, any> = {};
     (allFinCats || []).forEach((c: any) => { m[c.id] = c; });
     return m;
   }, [allFinCats]);
-  const [editingFinCatId, setEditingFinCatId] = useState<string | null>(null);
-  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [editingExpense, setEditingExpense] = useState<EditableExpense | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft(roleDefaultSource)]);
 
   const isLoading = loadingExpenses;
@@ -203,42 +200,46 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     if (row.source !== "office" && !row.target) return toast.error("Choose target");
     if (row.source !== "office" && row.target === "player" && !row.player_name.trim())
       return toast.error("Enter player name");
-    if (!row.category) return toast.error("Choose category");
+    if (!row.fin_category_id) return toast.error("Choose category");
     const amt = Number(row.amount);
     if (!amt || amt <= 0) return toast.error("Amount must be > 0");
 
+    // Single unified category list: we drive everything off fin_category_id.
+    // The operational `category_code` field stays as a constant 'other'
+    // (legacy required field) — Monthly Report reads only fin_category_id.
+    const opCategory = "other";
+
     try {
-      const finOverride = row.fin_category_id || undefined;
       if (row.source === "office") {
         await createOffice.mutateAsync({
-          category_code: row.category,
+          category_code: opCategory,
           amount: amt,
           description: row.description,
-          fin_category_id: finOverride,
+          fin_category_id: row.fin_category_id,
         });
       } else if (row.source === "slots") {
         if (!slotsShift?.id) return toast.error("No open Slots shift");
         await createSlots.mutateAsync({
           slots_shift_id: slotsShift.id,
-          category: row.category,
+          category: opCategory,
           amount: amt,
           description: row.description,
           player_id: null,
           player_name: row.target === "player" ? row.player_name.trim() : "",
-          fin_category_id: finOverride,
+          fin_category_id: row.fin_category_id,
         });
       } else {
         if (!liveShift?.id) return toast.error("No open Live Game shift");
         await new Promise<void>((resolve, reject) => {
           create.mutate(
             {
-              category: row.category,
+              category: opCategory,
               amount: amt,
               description: row.description,
               player_id: null,
               player_name: row.target === "player" ? row.player_name.trim() : "",
               shift_id: liveShift.id,
-              fin_category_id: finOverride,
+              fin_category_id: row.fin_category_id,
             },
             { onSuccess: () => resolve(), onError: (e: any) => reject(e) },
           );
