@@ -22,16 +22,10 @@ const TYPE_OPTIONS: Array<{
   value: SlotsTransferType; label: string; icon: typeof Banknote;
   description: string; needsOverride: boolean; isCross: boolean; tone: Tone;
 }> = [
-  { value: "fill", label: "Add Float", icon: Banknote, description: "Cash IN from manager safe to slots cage",
-    needsOverride: false, isCross: false,
-    tone: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30", activeBg: "bg-emerald-500/15", activeBorder: "border-emerald-500/50" } },
-  { value: "collection", label: "Collect", icon: HandCoins, description: "Cash OUT to manager safe",
+  { value: "collection", label: "Collection", icon: HandCoins, description: "Cash OUT to manager safe · manager approval required",
     needsOverride: true, isCross: false,
     tone: { bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/30", activeBg: "bg-red-500/15", activeBorder: "border-red-500/50" } },
-  { value: "lg_in", label: "Cage LG IN", icon: ArrowDownLeft, description: "Cash IN from Live Game cage",
-    needsOverride: false, isCross: true,
-    tone: { bg: "bg-teal-500/10", text: "text-teal-400", border: "border-teal-500/30", activeBg: "bg-teal-500/15", activeBorder: "border-teal-500/50" } },
-  { value: "lg_out", label: "Cage LG OUT", icon: ArrowUpRight, description: "Cash OUT to Live Game cage",
+  { value: "lg_out", label: "Live Game Out", icon: ArrowUpRight, description: "Cash OUT to Live Game cage",
     needsOverride: false, isCross: true,
     tone: { bg: "bg-orange-500/10", text: "text-orange-400", border: "border-orange-500/30", activeBg: "bg-orange-500/15", activeBorder: "border-orange-500/50" } },
 ];
@@ -44,7 +38,7 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
   const { data: transfers = [] } = useSlotsTransfers(shiftId);
   const create = useCreateSlotsTransfer();
 
-  const [type, setType] = useState<SlotsTransferType>("fill");
+  const [type, setType] = useState<SlotsTransferType>("collection");
   const [amount, setAmount] = useState("");
   const [sign, setSign] = useState<1 | -1>(1);
   const [note, setNote] = useState("");
@@ -164,15 +158,18 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
               {transfers.length === 0 ? (
                 <tr><td colSpan={4} className="text-center text-muted-foreground text-sm py-6">No transfers yet</td></tr>
               ) : transfers.map(tr => {
-                const opt = TYPE_MAP.get(tr.transfer_type)!;
+                const opt = TYPE_MAP.get(tr.transfer_type);
                 const amt = Number(tr.amount);
                 // Net effect on the cage: 'in' adds, 'out' subtracts. Negative amounts flip the sign.
                 const signed = (tr.direction === "in" ? 1 : -1) * amt;
                 const positive = signed >= 0;
+                const toneCls = opt
+                  ? `${opt.tone.bg} ${opt.tone.text} ${opt.tone.border}`
+                  : "bg-muted text-muted-foreground border-border";
                 return (
                   <tr key={tr.id} className={`border-b border-border last:border-0 ${positive ? "bg-emerald-500/5" : "bg-red-500/5"}`}>
                     <td className="px-3 py-2">
-                      <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded border ${opt.tone.bg} ${opt.tone.text} ${opt.tone.border}`}>
+                      <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded border ${toneCls}`}>
                         {SLOTS_TRANSFER_LABEL[tr.transfer_type]}{amt < 0 ? " ⟲" : ""}
                       </span>
                     </td>
