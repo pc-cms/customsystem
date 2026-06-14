@@ -1,67 +1,85 @@
-import CategoryBadge, { ALL_CATEGORIES, type PlayerCategory } from "./CategoryBadge";
+import { useState } from "react";
+import { Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ALL_CATEGORIES, type PlayerCategory } from "./CategoryBadge";
 
-interface CategoryFilterProps {
-  selected: Set<PlayerCategory>;
-  onChange: (next: Set<PlayerCategory>) => void;
-}
-
-const ACTIVE_TINT: Record<PlayerCategory, string> = {
-  diamond: "bg-blue-500/15 text-blue-700 dark:text-blue-300 ring-1 ring-inset ring-blue-500/40",
-  platinum: "bg-purple-500/15 text-purple-700 dark:text-purple-300 ring-1 ring-inset ring-purple-500/40",
-  gold: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 ring-1 ring-inset ring-yellow-500/40",
-  normal: "bg-muted text-foreground ring-1 ring-inset ring-border",
+const CATEGORY_CHIP: Record<PlayerCategory, string> = {
+  diamond: "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/40",
+  platinum: "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-500/20 dark:text-purple-400 dark:border-purple-500/40",
+  gold: "bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/40",
+  normal: "bg-muted text-muted-foreground border-border",
 };
 
-const LABEL: Record<PlayerCategory, string> = {
+const CATEGORY_LABEL: Record<PlayerCategory, string> = {
+  diamond: "Diamond",
+  platinum: "Platinum",
+  gold: "Gold",
+  normal: "Normal",
+};
+
+const CATEGORY_LETTER: Record<PlayerCategory, string> = {
   diamond: "D",
   platinum: "P",
   gold: "G",
   normal: "N",
 };
 
+interface CategoryFilterProps {
+  selected: Set<PlayerCategory>;
+  onChange: (next: Set<PlayerCategory>) => void;
+}
+
 const CategoryFilter = ({ selected, onChange }: CategoryFilterProps) => {
-  const toggle = (cat: PlayerCategory) => {
+  const [open, setOpen] = useState(false);
+  const allSelected = selected.size === ALL_CATEGORIES.length;
+
+  const toggle = (cat: PlayerCategory, checked: boolean) => {
     const next = new Set(selected);
-    if (next.has(cat)) {
-      if (next.size > 1) next.delete(cat);
-    } else {
+    if (checked) {
       next.add(cat);
+    } else {
+      if (next.size > 1) next.delete(cat);
     }
     onChange(next);
   };
-  const allSelected = selected.size === ALL_CATEGORIES.length;
 
   return (
-    <div className="flex items-center rounded-md border border-border overflow-hidden h-8">
-      <button
-        type="button"
-        onClick={() => onChange(new Set(ALL_CATEGORIES))}
-        className={cn(
-          "px-2.5 h-full text-[11px] uppercase tracking-wide font-semibold transition-colors",
-          allSelected ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted/40"
-        )}
-      >
-        All
-      </button>
-      {ALL_CATEGORIES.map((cat) => {
-        const active = selected.has(cat);
-        return (
-          <button
-            key={cat}
-            type="button"
-            onClick={() => toggle(cat)}
-            title={cat}
-            className={cn(
-              "px-2.5 h-full text-[11px] uppercase tracking-wide font-semibold transition-colors border-l border-border",
-              active ? ACTIVE_TINT[cat] : "text-muted-foreground hover:bg-muted/40"
-            )}
-          >
-            {LABEL[cat]}
-          </button>
-        );
-      })}
-    </div>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "flex items-center gap-1.5 px-2.5 h-8 rounded-md border border-border text-[11px] font-mono font-black uppercase tracking-wide transition-colors",
+            !allSelected ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted/40"
+          )}
+        >
+          <span>LEVEL</span>
+          <Filter className="w-3 h-3" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-44 p-2">
+        <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 px-1">Filter levels</p>
+        <div className="space-y-1">
+          {ALL_CATEGORIES.map((cat) => (
+            <label key={cat} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/40 cursor-pointer text-xs">
+              <Checkbox
+                checked={selected.has(cat)}
+                onCheckedChange={(v) => toggle(cat, !!v)}
+              />
+              <span className={cn(
+                "inline-flex items-center justify-center min-w-[28px] h-5 px-1.5 rounded border text-[10px] font-mono font-black",
+                CATEGORY_CHIP[cat]
+              )}>
+                {CATEGORY_LETTER[cat]}
+              </span>
+              <span className="text-card-foreground">{CATEGORY_LABEL[cat]}</span>
+            </label>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };
 
