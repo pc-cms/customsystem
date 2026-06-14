@@ -999,7 +999,7 @@ const UpdateDataTab = () => {
   const { data: visits = [] } = useVisitsToday();
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"newest" | "last_visit">("last_visit");
+  const [sortBy, setSortBy] = useSessionState<"newest" | "last_visit">("sortBy", "last_visit");
   const { select: selectPlayer } = useSelectedPlayer();
   const isMobile = useIsMobile();
 
