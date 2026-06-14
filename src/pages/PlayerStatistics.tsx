@@ -444,6 +444,7 @@ const PlayerStatistics = () => {
     list = list.filter((r: any) => categoryFilter.has(r.category));
     if (posFilter === "table") list = list.filter((r: any) => r.position === "table");
     else if (posFilter === "slots") list = list.filter((r: any) => r.position === "slots");
+    list = list.filter((r: any) => zoneFilter.has((r.zone as PlayerZone) ?? "none"));
     if (search) {
       const q = search.toLowerCase();
       list = list.filter((r: any) =>
