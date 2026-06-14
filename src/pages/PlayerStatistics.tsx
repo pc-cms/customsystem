@@ -183,7 +183,7 @@ const PlayerStatistics = () => {
   const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(
     new Set(["diamond", "platinum", "gold", "normal"])
   );
-  const [posFilter, setPosFilter] = useState<"mix" | "table" | "slots">("mix");
+  
   
   type SortKey = "card" | "name" | "level" | "visits" | "position" | "entry" | "exit" | "zone" | "avgBet" | "dropR" | "inDrop" | "out" | "chipIn" | "chipOut" | "result";
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
@@ -442,8 +442,6 @@ const PlayerStatistics = () => {
     if (tab === "present") list = list.filter((r: any) => r.isPresent);
     if (tab === "left") list = list.filter((r: any) => !r.isPresent);
     list = list.filter((r: any) => categoryFilter.has(r.category));
-    if (posFilter === "table") list = list.filter((r: any) => r.position === "table");
-    else if (posFilter === "slots") list = list.filter((r: any) => r.position === "slots");
     list = list.filter((r: any) => zoneFilter.has((r.zone as PlayerZone) ?? "none"));
     if (search) {
       const q = search.toLowerCase();
@@ -491,7 +489,7 @@ const PlayerStatistics = () => {
       if (a.isPresent !== b.isPresent) return a.isPresent ? -1 : 1;
       return new Date(b.entryAt).getTime() - new Date(a.entryAt).getTime();
     });
-  }, [displayRows, tab, categoryFilter, posFilter, zoneFilter, search, sortKey, sortDir]);
+  }, [displayRows, tab, categoryFilter, zoneFilter, search, sortKey, sortDir]);
 
   const counts = useMemo(() => ({
     day: displayRows.length,
@@ -734,7 +732,7 @@ const PlayerStatistics = () => {
         <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
         <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
         <td
-          className={`p-0 w-[52px] text-center align-middle ${r.zone ? ZONE_CELL_CLASSES[r.zone as PlayerZone] : ""}`}
+          className={`p-0 w-[44px] text-center align-middle ${r.zone ? ZONE_CELL_CLASSES[r.zone as PlayerZone] : ""}`}
           onClick={(e) => e.stopPropagation()}
         >
           <ZonePicker
@@ -891,22 +889,54 @@ const PlayerStatistics = () => {
           </TabsList>
 
           <div className="flex items-center gap-2">
-            <div className="flex items-center rounded-md border border-border overflow-hidden h-8">
-              {(["mix", "table", "slots"] as const).map(p => (
+            <Popover>
+              <PopoverTrigger asChild>
                 <button
-                  key={p}
                   type="button"
-                  onClick={() => setPosFilter(p)}
-                  className={`px-2.5 h-full text-[11px] uppercase tracking-wide transition-colors ${
-                    posFilter === p
-                      ? "bg-primary/15 text-primary font-semibold"
-                      : "text-muted-foreground hover:bg-muted/40"
+                  className={`flex items-center gap-1.5 px-2.5 h-8 rounded-md border border-border text-[11px] font-mono font-black uppercase tracking-wide transition-colors ${
+                    zoneFilter.size < 4 ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted/40"
                   }`}
                 >
-                  {p === "mix" ? "Mix" : p === "table" ? "Table" : "Slot"}
+                  <span>Z</span>
+                  <Filter className="w-3 h-3" />
                 </button>
-              ))}
-            </div>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-40 p-2">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 px-1">Filter zones</p>
+                <div className="space-y-1">
+                  {(["S","LG","CP"] as PlayerZone[]).map(z => (
+                    <label key={z} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/40 cursor-pointer text-xs">
+                      <Checkbox
+                        checked={zoneFilter.has(z)}
+                        onCheckedChange={(v) => {
+                          setZoneFilter(prev => {
+                            const next = new Set(prev);
+                            if (v) next.add(z); else next.delete(z);
+                            return next;
+                          });
+                        }}
+                      />
+                      <span className={`inline-flex items-center justify-center min-w-[28px] h-5 px-1.5 rounded border text-[10px] font-mono font-black ${ZONE_CHIP_CLASSES[z]}`}>{z}</span>
+                      <span className="text-card-foreground">{ZONE_LABELS[z]}</span>
+                    </label>
+                  ))}
+                  <label className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/40 cursor-pointer text-xs">
+                    <Checkbox
+                      checked={zoneFilter.has("none")}
+                      onCheckedChange={(v) => {
+                        setZoneFilter(prev => {
+                          const next = new Set(prev);
+                          if (v) next.add("none"); else next.delete("none");
+                          return next;
+                        });
+                      }}
+                    />
+                    <span className="inline-flex items-center justify-center min-w-[28px] h-5 px-1.5 rounded border border-border text-[10px] font-mono text-muted-foreground font-black">·</span>
+                    <span className="text-muted-foreground">Unassigned</span>
+                  </label>
+                </div>
+              </PopoverContent>
+            </Popover>
             <CategoryFilter selected={categoryFilter} onChange={setCategoryFilter} />
             <div className="relative w-56">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -931,11 +961,11 @@ const PlayerStatistics = () => {
                         sortKey !== k ? <ArrowUpDown className="w-3 h-3 inline ml-1 opacity-40" />
                           : sortDir === "asc" ? <ArrowUp className="w-3 h-3 inline ml-1" />
                           : <ArrowDown className="w-3 h-3 inline ml-1" />;
-                      const H = ({ k, align = "left", children, title, sticky }: { k: SortKey; align?: "left" | "right"; children: any; title?: string; sticky?: string }) => (
+                      const H = ({ k, align = "left", children, title, sticky }: { k: SortKey; align?: "left" | "right" | "center"; children: any; title?: string; sticky?: string }) => (
                         <th
                           title={title}
                           style={{ top: "var(--ppheader-h, 0px)" }}
-                          className={`px-2 py-3 cursor-pointer select-none hover:text-primary whitespace-nowrap font-bold sticky bg-zinc-900 text-white ${align === "right" ? "text-right" : "text-left"} ${sticky ? `${sticky} z-30` : "z-20"}`}
+                          className={`px-2 py-3 cursor-pointer select-none hover:text-primary whitespace-nowrap font-bold sticky bg-zinc-900 text-white ${align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left"} ${sticky ? `${sticky} z-30` : "z-20"}`}
                           onClick={() => toggleSort(k)}
                         >
                           {children}<SortIcon k={k} />
@@ -965,67 +995,7 @@ const PlayerStatistics = () => {
                           <H k="visits" align="left" title="Visits in selected period">Vis</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
-                          <th
-                            style={{ top: "var(--ppheader-h, 0px)" }}
-                            className="px-1 py-3 sticky bg-zinc-900 text-white z-20 font-bold whitespace-nowrap text-center"
-                          >
-                            <div className="flex items-center justify-center gap-1">
-                              <span
-                                onClick={() => toggleSort("zone")}
-                                className="cursor-pointer select-none hover:text-primary"
-                                title="Sort by zone: S → LG → CP"
-                              >
-                                Zone<SortIcon k="zone" />
-                              </span>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <button
-                                    type="button"
-                                    className="p-0.5 rounded hover:bg-white/10"
-                                    title="Filter by zone"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <Filter className={`w-3 h-3 ${zoneFilter.size < 4 ? "text-primary" : "opacity-60"}`} />
-                                  </button>
-                                </PopoverTrigger>
-                                <PopoverContent align="end" className="w-40 p-2" onClick={(e) => e.stopPropagation()}>
-                                  <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 px-1">Filter zones</p>
-                                  <div className="space-y-1">
-                                    {(["S","LG","CP"] as PlayerZone[]).map(z => (
-                                      <label key={z} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/40 cursor-pointer text-xs">
-                                        <Checkbox
-                                          checked={zoneFilter.has(z)}
-                                          onCheckedChange={(v) => {
-                                            setZoneFilter(prev => {
-                                              const next = new Set(prev);
-                                              if (v) next.add(z); else next.delete(z);
-                                              return next;
-                                            });
-                                          }}
-                                        />
-                                        <span className={`inline-flex items-center justify-center min-w-[28px] h-5 px-1.5 rounded border text-[10px] font-mono font-bold ${ZONE_CHIP_CLASSES[z]}`}>{z}</span>
-                                        <span className="text-card-foreground">{ZONE_LABELS[z]}</span>
-                                      </label>
-                                    ))}
-                                    <label className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/40 cursor-pointer text-xs">
-                                      <Checkbox
-                                        checked={zoneFilter.has("none")}
-                                        onCheckedChange={(v) => {
-                                          setZoneFilter(prev => {
-                                            const next = new Set(prev);
-                                            if (v) next.add("none"); else next.delete("none");
-                                            return next;
-                                          });
-                                        }}
-                                      />
-                                      <span className="inline-flex items-center justify-center min-w-[28px] h-5 px-1.5 rounded border border-border text-[10px] font-mono text-muted-foreground">·</span>
-                                      <span className="text-muted-foreground">Unassigned</span>
-                                    </label>
-                                  </div>
-                                </PopoverContent>
-                              </Popover>
-                            </div>
-                          </th>
+                          <H k="zone" align="center" title="Sort by zone: S → LG → CP">Z</H>
                           
                           
                           {showFinancials && (
@@ -1345,7 +1315,7 @@ function ZonePicker({
 }) {
   const [open, setOpen] = useState(false);
   const label = zone ?? "·";
-  const baseBtn = `w-full h-7 flex items-center justify-center font-mono text-[11px] font-bold ${
+  const baseBtn = `w-full h-7 flex items-center justify-center font-mono text-[11px] font-black ${
     zone ? "" : "text-muted-foreground/60"
   }`;
   if (!canEdit) {
