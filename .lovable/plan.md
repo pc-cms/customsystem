@@ -1,63 +1,42 @@
 ## Цель
+Каждый день в 13:00 EAT (10:00 UTC) все игроки казино Arusha, у которых `first_name` или `last_name` содержит «tips» (ILIKE), автоматически чекинятся в зал (position = `hall`).
 
-Когда пользователь открывает любую страницу со списком/отчётом/таблицей, его последние **фильтры, поиск, сортировка, выбранный месяц/период, активная вкладка** автоматически восстанавливаются — пока открыта вкладка браузера. Никакого UI «сохранить пресет» не добавляем (по решению пользователя). Закрытие вкладки = сброс.
+## Реализация
 
-## Подход
+### 1. Edge function `auto-checkin-tips`
+`supabase/functions/auto-checkin-tips/index.ts`:
+- Через service role находит casino Arusha (`slug ILIKE 'arus%'` или `name ILIKE 'arusha%'`).
+- Берёт всех игроков этого казино, где `first_name ILIKE '%tips%' OR last_name ILIKE '%tips%'` и `status='active'`.
+- Для каждого: апсерт в `casino_visits` на сегодняшнюю дату (Africa/Dar_es_Salaam):
+  - если строки нет — `INSERT` с `position='hall'`, `checked_in_by = NULL` (system).
+  - если есть и `checked_out_at IS NOT NULL` — переоткрыть (`checked_out_at = NULL`).
+  - если уже открыт — пропустить.
+- Возвращает `{ casino, processed, opened, reopened, skipped }`.
+- Идемпотентна — безопасно дёргать вручную и повторно.
 
-Сейчас фильтры/сортировки хранятся в локальном `useState` каждой страницы — единого места для перехвата нет. Поэтому делаем тонкий обёрточный хук-замену `useState`, который прозрачно зеркалит значение в `sessionStorage`, и применяем его в местах, где состояние имеет смысл сохранять.
-
-### Новый хук `useSessionState`
-
-`src/hooks/use-session-state.ts`:
-
-```ts
-useSessionState<T>(key: string, initial: T | (() => T)): [T, Setter<T>]
+### 2. Cron job
+Через `supabase--insert` (содержит секреты — НЕ migration):
+```sql
+select cron.schedule(
+  'auto-checkin-tips-arusha',
+  '0 10 * * *',  -- 10:00 UTC = 13:00 EAT
+  $$ select net.http_post(
+    url:='https://<ref>.supabase.co/functions/v1/auto-checkin-tips',
+    headers:='{"Content-Type":"application/json","apikey":"<anon>"}'::jsonb,
+    body:='{}'::jsonb
+  ); $$
+);
 ```
+Расширения `pg_cron` и `pg_net` уже включены (используются другими кронами).
 
-- Ключ автоматически префиксуется текущим `location.pathname` → состояние изолировано по странице (фильтры на `/players` не лезут в `/expenses`).
-- Сериализация через `JSON.stringify` с safe-fallback (битый JSON → `initial`).
-- SSR-safe (проверка `typeof window`).
-- Поддержка функционального `setState(prev => …)` как у `useState`.
-- Утилита `clearSessionState(pathname?)` для logout-хука — чистим всё своё при выходе.
+### 3. Версия
+Bump patch в `package.json` (cron + edge function = backend change).
 
-### Точки применения (фронтенд, без бизнес-логики)
+## Что НЕ меняется
+- UI, страницы Guests/Reception — без изменений.
+- Никаких миграций схемы; используется существующая таблица `casino_visits` с её уникальным индексом `(casino_id, player_id, date)`.
+- Логика чекина соответствует ручной из `Guests.tsx` (reopen vs insert).
 
-Пройтись по страницам со списками/отчётами и заменить `useState` на `useSessionState` **только** для состояний-фильтров:
-
-- Search-строки (`search`, `query`, `q`)
-- Селекты фильтра (`statusFilter`, `roleFilter`, `casinoFilter`, `categoryFilter`, `currencyFilter` и т.п.)
-- Сортировки (`sortKey`, `sortDir`, `sortBy`)
-- Активные вкладки `Tabs` (`activeTab`)
-- Выбранный месяц/диапазон дат в отчётах (`month`, `dateFrom`, `dateTo`, `period`)
-- Пагинация (`page`, `pageSize`) — где есть
-
-Страницы в первой волне (наиболее частые):
-- `Players.tsx`, `Blacklist.tsx`, `Expenses.tsx`, `Reception.tsx`
-- `pages/reports/*` (Monthly, Miss Chips, Cashless, Poker Tips, Floor Tips, Slots History)
-- `BusinessDays.tsx`, `CancelledTransactions.tsx`, `CageSlots.tsx`, `Cage.tsx` (history-вкладки)
-- `AttendanceMonthly.tsx`, `MonthlyTips.tsx`, `WeeklyBonus.tsx`
-- `admin/users/UsersTab.tsx`, прочие админ-табы со списками
-
-### Что НЕ запоминаем
-
-- Открытые модалки, селекция строк, hover/focus, скролл — это шум.
-- Ввод в формы создания/редактирования — может привести к восстановлению устаревших данных.
-- Операционные гриды (Pit Rota, Breaklist, Table Tracker) — там состояние = бизнес-данные из БД, не пользовательский фильтр.
-
-### Очистка
-
-- При `signOut` в auth-хуке вызывать `clearSessionState()` — чтобы следующий пользователь на том же устройстве не унаследовал чужие фильтры.
-- Версионирование ключа: префикс `cms:v1:` — при будущих ломающих изменениях легко инвалидировать.
-
-## Результат
-
-- Переключился со страницы Players на Expenses и обратно — фильтр «Blacklisted + сортировка по NEP DESC» восстановился.
-- Открыл Monthly Report за май, ушёл смотреть Cage, вернулся — всё ещё май.
-- Закрыл вкладку браузера / залогинился под другим — чистый старт.
-
-## Технические детали
-
-- Никаких изменений в БД, RLS, edge-функций, типов Supabase.
-- Хук ~40 строк, чистый клиент.
-- Изменения в страницах механические: `useState(x)` → `useSessionState('filterName', x)`. Сигнатура сеттера идентична — остальной код страницы не трогаем.
-- Версия `package.json` НЕ бампается (чисто фронт-UX, бэкенда нет).
+## Замечания
+- Если cashier/reception захотят check-out — обычная кнопка работает как раньше.
+- Если в Arusha нет ни одного игрока с TIPS в имени — функция вернёт `processed: 0`, без ошибки.
