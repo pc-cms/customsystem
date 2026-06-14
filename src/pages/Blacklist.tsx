@@ -69,7 +69,7 @@ const Blacklist = () => {
   const isSurveillance = roles.includes("surveillance");
   const canBlacklist = roles.some(r => ["pit", "manager", "surveillance", "super_admin"].includes(r));
   const [pendingAction, setPendingAction] = useState<{ player: any; action: "blacklist" | "reactivate" } | null>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useSessionState<string>("search", "");
   const [addTarget, setAddTarget] = useState<{ id: string; name: string } | null>(null);
   const { select: selectPlayer } = useSelectedPlayer();
 
