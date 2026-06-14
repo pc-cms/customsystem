@@ -1102,11 +1102,11 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                         ? `${ATT_COLORS[val]} ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset`
                         : isHoursSick ? "bg-transparent text-card-foreground font-bold ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset cursor-help"
                         : isHours
-                          ? rotaShift === "E"
+                          ? isExtraShift(rotaShift)
                             ? "bg-transparent text-card-foreground font-bold ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset"
                             : "bg-transparent text-card-foreground font-bold"
                         : isScheduled && isEmpty
-                          ? `${UNIFIED_SHIFT_TINTS[rotaShift] || "bg-muted/30 text-muted-foreground"} ${rotaShift === "E" ? "ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset" : ""}`
+                          ? `${UNIFIED_SHIFT_TINTS[rotaShift] || "bg-muted/30 text-muted-foreground"} ${isExtraShift(rotaShift) ? "ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset" : ""}`
                           : "bg-transparent text-muted-foreground/40 hover:text-muted-foreground"
                     }`}
                   />
