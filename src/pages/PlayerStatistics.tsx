@@ -897,7 +897,7 @@ const PlayerStatistics = () => {
                     zoneFilter.size < 4 ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted/40"
                   }`}
                 >
-                  <span>Z</span>
+                  <span>ZONE</span>
                   <Filter className="w-3 h-3" />
                 </button>
               </PopoverTrigger>
