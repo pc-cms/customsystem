@@ -306,16 +306,19 @@ type EditCallbacks = {
   onMoveExpense: (expenseId: string, newCatId: string) => void;
 };
 
-const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, ...edit }: {
+const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, mtd, mtdMonthLabel, ...edit }: {
   group: ReportGroup;
   expandedId: string | null;
   onToggle: (id: string) => void;
   usdRate: number;
   isNetwork: boolean;
   showUsd: boolean;
+  mtd: Record<string, number>;
+  mtdMonthLabel: string;
 } & EditCallbacks) => {
 
-  const colCount = 6 + (showUsd ? 4 : 0); // Category + 5 metrics + optional 4 USD
+  const colCount = 7 + (showUsd ? 4 : 0); // Category + 5 metrics + MTD + optional 4 USD
+  const groupMtd = group.categories.reduce((s, c) => s + (mtd[c.id] || 0), 0);
   return (
     <PageSection title={group.name} card={false}>
       <div className="rounded-md border border-border overflow-auto bg-card">
@@ -330,6 +333,7 @@ const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, 
               <th className="text-right w-[110px] border-l border-border">Actual</th>
               {showUsd && <th className="text-right w-[80px]">USD</th>}
               <th className="text-right w-[52px]">%</th>
+              <th className="text-right w-[110px] border-l border-border" title={`Month-to-date · ${mtdMonthLabel}`}>{mtdMonthLabel || "MTD"}</th>
               <th className="text-right w-[110px] border-l border-border">Remain</th>
               {showUsd && <th className="text-right w-[80px]">USD</th>}
               <th className="text-right w-[52px] pr-3">%</th>
@@ -346,6 +350,7 @@ const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, 
                 isNetwork={isNetwork}
                 showUsd={showUsd}
                 colCount={colCount}
+                mtdValue={mtd[c.id] || 0}
                 {...edit}
               />
             ))}
@@ -359,6 +364,7 @@ const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, 
               <td className="text-right font-mono tabular-nums border-l border-border">{fmt(group.totals.actual_tzs)}</td>
               {showUsd && <td className="text-right font-mono tabular-nums">{fmt(group.totals.actual_usd)}</td>}
               <td className="text-right font-mono tabular-nums">{group.totals.plan_month_tzs ? pct(group.totals.actual_tzs / group.totals.plan_month_tzs) : "—"}</td>
+              <td className="text-right font-mono tabular-nums border-l border-border">{fmt(groupMtd)}</td>
               <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(group.totals.plan_month_tzs - group.totals.actual_tzs))}>{fmt(group.totals.plan_month_tzs - group.totals.actual_tzs)}</td>
               {showUsd && <td className={cn("text-right font-mono tabular-nums", cls(group.totals.plan_month_usd - group.totals.actual_usd))}>{fmt(group.totals.plan_month_usd - group.totals.actual_usd)}</td>}
               <td className="text-right font-mono tabular-nums pr-3">{group.totals.plan_month_tzs ? pct((group.totals.plan_month_tzs - group.totals.actual_tzs) / group.totals.plan_month_tzs) : "—"}</td>
