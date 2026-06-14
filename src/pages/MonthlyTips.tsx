@@ -78,7 +78,7 @@ const dowOf = (iso: string) => {
 };
 
 export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }) {
-  const [periodStart, setPeriodStart] = useState<string>(() => getPeriodStart16(new Date()));
+  const [periodStart, setPeriodStart] = useSessionState<string>("periodStart", () => getPeriodStart16(new Date()));
   const periodEnd = useMemo(() => getPeriodEnd15(periodStart), [periodStart]);
 
   const { data: dealers = [] } = useDealers();
