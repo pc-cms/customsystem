@@ -16,7 +16,7 @@ import ActivePlayers from "@/components/pit/ActivePlayers";
 import TableTracker from "@/pages/TableTracker";
 import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
-import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
+import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, isExtraShift } from "@/lib/shift-colors";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PitShell } from "@/components/pit/PitShell";
@@ -26,7 +26,7 @@ import RotaLockButton from "@/components/rota/RotaLockButton";
 import RotaExcelButtons from "@/components/rota/RotaExcelButtons";
 
 
-const ROTA_SHIFTS = ["M", "N", "L", "E", "O"] as const;
+const ROTA_SHIFTS = ["M", "N", "L", "EM", "EN", "O"] as const;
 
 const SHIFT_COLORS = UNIFIED_SHIFT_COLORS;
 
@@ -34,7 +34,9 @@ const SHIFT_LABELS: Record<string, string> = {
   M: "Middle (17:45)",
   N: "Night (20:45)",
   L: "Leave",
-  E: "Extra",
+  E: "Extra (legacy)",
+  EM: "Extra Morning (11h)",
+  EN: "Extra Night (8h)",
   O: "Off (day off)",
 };
 
@@ -668,6 +670,15 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   const handleKeyDown = (e: React.KeyboardEvent, dealerId: string, day: number) => {
     const key = e.key.toUpperCase();
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    // Pressing "E" toggles between Extra Morning (EM) and Extra Night (EN).
+    if (key === "E") {
+      e.preventDefault();
+      const current = getRotaEntry(dealerId, day)?.shift;
+      const next = current === "EM" ? "EN" : "EM";
+      setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: next as any });
+      focusNextCell(e.target as HTMLElement);
+      return;
+    }
     if (ROTA_SHIFTS.includes(key as typeof ROTA_SHIFTS[number])) {
       e.preventDefault();
       setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: key as typeof ROTA_SHIFTS[number] });
@@ -787,7 +798,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
             })}
             <td className="px-2 py-1 text-center border-l border-border/25"><span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">{stats["M"] || ""}</span></td>
             <td className="px-2 py-1 text-center"><span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">{stats["N"] || ""}</span></td>
-            <td className="px-2 py-1 text-center"><span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">{stats["E"] || ""}</span></td>
+            <td className="px-2 py-1 text-center"><span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">{((stats["E"] || 0) + (stats["EM"] || 0) + (stats["EN"] || 0)) || ""}</span></td>
           </tr>
         );
       })}
@@ -844,7 +855,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
             {days.map(day => {
               const count = activeDealers.filter(d => {
                 const s = getDisplayShift(d.id, day)?.shift;
-                return s === "M" || s === "N" || s === "E";
+                return s === "M" || s === "N" || isExtraShift(s);
               }).length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
             })}
@@ -909,7 +920,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     const entry = rota.find((r: any) => r.dealer_id === dealerId && r.date === dateStr);
     if (!entry) return null;
     const s = entry.shift as string;
-    return (s === "M" || s === "N" || s === "E") ? s : null;
+    return (s === "M" || s === "N" || isExtraShift(s)) ? s : null;
   };
 
   const today = new Date();
@@ -980,13 +991,17 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
         if (autoFilledRef.current.has(key)) continue;
 
         const rotaShift = getRotaShift(d.id, day);
-        if (rotaShift !== "M" && rotaShift !== "N" && rotaShift !== "E") continue;
+        if (rotaShift !== "M" && rotaShift !== "N" && !isExtraShift(rotaShift)) continue;
 
         const current = getValue(d.id, day);
         if (current !== "") continue;
 
-        // Pit Bosses on Morning shift work 11 hours; everyone else defaults to 9.
-        const fillValue = ((d as any).is_pit_boss && rotaShift === "M") ? "11" : "9";
+        // Pit Bosses on Morning shift work 11 hours; Extra Morning (EM) = 11h,
+        // Extra Night (EN) = 8h; everyone else defaults to 9.
+        let fillValue = "9";
+        if ((d as any).is_pit_boss && rotaShift === "M") fillValue = "11";
+        else if (rotaShift === "EM") fillValue = "11";
+        else if (rotaShift === "EN") fillValue = "8";
 
         autoFilledRef.current.add(key);
         setAttendanceRaw.mutate({ dealer_id: d.id, date: dateStr, value: fillValue });
@@ -1087,11 +1102,11 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                         ? `${ATT_COLORS[val]} ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset`
                         : isHoursSick ? "bg-transparent text-card-foreground font-bold ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset cursor-help"
                         : isHours
-                          ? rotaShift === "E"
+                          ? isExtraShift(rotaShift)
                             ? "bg-transparent text-card-foreground font-bold ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset"
                             : "bg-transparent text-card-foreground font-bold"
                         : isScheduled && isEmpty
-                          ? `${UNIFIED_SHIFT_TINTS[rotaShift] || "bg-muted/30 text-muted-foreground"} ${rotaShift === "E" ? "ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset" : ""}`
+                          ? `${UNIFIED_SHIFT_TINTS[rotaShift] || "bg-muted/30 text-muted-foreground"} ${isExtraShift(rotaShift) ? "ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset" : ""}`
                           : "bg-transparent text-muted-foreground/40 hover:text-muted-foreground"
                     }`}
                   />

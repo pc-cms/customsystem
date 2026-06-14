@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useUpsertWarningCommentByKey } from "@/hooks/use-staff-warnings";
+import { isExtraShift } from "@/lib/shift-colors";
 
 const CATEGORY_LABELS: Record<string, string> = {
   trainee: "T",
@@ -110,7 +111,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   // Dealers scheduled in rota for this date (M or N only)
   const rotaDealers = useMemo(() => {
     return rota
-      .filter((r: any) => r.shift === "M" || r.shift === "N" || r.shift === "E")
+      .filter((r: any) => r.shift === "M" || r.shift === "N" || isExtraShift(r.shift))
       .map((r: any) => ({ dealerId: r.dealer_id, shift: r.shift as string }));
   }, [rota]);
 
@@ -335,7 +336,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       if (dealerShift === "N") {
         const nIdx = TIME_SLOTS.indexOf("21:00");
         shiftStartIdx = nIdx >= 0 ? nIdx : 0;
-      } else if (dealerShift === "E") {
+      } else if (isExtraShift(dealerShift)) {
         const occupiedIdx = breaklist
           .filter((b: any) => b.dealer_id === activeCell.dealerId && b.role !== "S")
           .map((b: any) => TIME_SLOTS.indexOf(b.time_slot as string))
