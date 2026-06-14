@@ -14,7 +14,7 @@ export const UNIFIED_SHIFT_COLORS: Record<string, string> = {
   L: "bg-emerald-200 text-emerald-900 dark:bg-emerald-500 dark:text-emerald-950 font-bold",
   // Extra (legacy single code, kept for backward compatibility) — purple
   E: "bg-purple-200 text-purple-900 dark:bg-purple-500 dark:text-white font-bold",
-  // Extra Morning (11h) — fuchsia
+  // Extra Middle (11h) — fuchsia
   EM: "bg-fuchsia-200 text-fuchsia-900 dark:bg-fuchsia-500 dark:text-white font-bold",
   // Extra Night (8h) — violet
   EN: "bg-violet-300 text-violet-950 dark:bg-violet-600 dark:text-white font-bold",

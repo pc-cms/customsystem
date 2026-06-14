@@ -670,7 +670,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   const handleKeyDown = (e: React.KeyboardEvent, dealerId: string, day: number) => {
     const key = e.key.toUpperCase();
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-    // Pressing "E" toggles between Extra Morning (EM) and Extra Night (EN).
+    // Pressing "E" toggles between Extra Middle (EM) and Extra Night (EN).
     if (key === "E") {
       e.preventDefault();
       const current = getRotaEntry(dealerId, day)?.shift;
@@ -999,7 +999,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
         const current = getValue(d.id, day);
         if (current !== "") continue;
 
-        // Pit Bosses on Morning shift work 11 hours; Extra Morning (EM) = 11h,
+        // Pit Bosses on Middle shift work 11 hours; Extra Middle (EM) = 11h,
         // Extra Night (EN) = 8h; everyone else defaults to 9.
         let fillValue = "9";
         if ((d as any).is_pit_boss && rotaShift === "M") fillValue = "11";
