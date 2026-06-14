@@ -373,11 +373,11 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
                         : isHoursSick
                           ? "bg-transparent text-card-foreground font-bold ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset"
                           : isHours
-                            ? c.shift === "E"
+                            ? isExtraShift(c.shift)
                               ? "bg-transparent text-card-foreground font-bold ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset"
                               : "bg-transparent text-card-foreground font-bold"
                             : isScheduled && isEmpty
-                              ? cn(UNIFIED_SHIFT_TINTS[c.shift] || "bg-muted/30 text-muted-foreground", "placeholder:text-current placeholder:opacity-60", c.shift === "E" && "ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset")
+                              ? cn(UNIFIED_SHIFT_TINTS[c.shift] || "bg-muted/30 text-muted-foreground", "placeholder:text-current placeholder:opacity-60", isExtraShift(c.shift) && "ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset")
                               : "bg-slate-700/90 dark:bg-slate-900 text-slate-300 placeholder:text-slate-400/60";
                       return (
                         <td key={i} className="px-0.5 py-0.5 text-center border-l border-border/25">
