@@ -182,9 +182,20 @@ const Transfers = () => {
           ))}
         </div>
         <span className="text-[10px] text-muted-foreground">
-          History only. New transfers are recorded inside the Cage workspace where table / chip context is available.
+          {canCreateSlots || canCreateLive
+            ? "Record a new transfer below, or browse history."
+            : "History only. Open the matching cage shift to record new transfers."}
         </span>
       </div>
+
+      {/* Inline transfer creation — only when an open shift exists for that cage. */}
+      {canCreateSlots && (
+        <div className="mb-6">
+          <PageSection title="New Slots Cage Transfer">
+            <SlotsTransfersForm shiftId={activeSlotsShift!.id} />
+          </PageSection>
+        </div>
+      )}
 
       {/* KPI tiles */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
