@@ -197,11 +197,13 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       toast.error("Locked — manager access required");
       return;
     }
-    // Open dropdown upward when there is not enough space below
+    // Open dropdown upward when there is not enough space below; leftward when not enough on the right
     const rect = e.currentTarget.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceRight = window.innerWidth - rect.right;
     const dropUp = spaceBelow < 240;
-    setActiveCell({ dealerId, timeSlot, dropUp });
+    const dropLeft = spaceRight < 240;
+    setActiveCell({ dealerId, timeSlot, dropUp, dropLeft });
     // Force-refresh breaklist for this casino so the popup's "available tables"
     // list reflects rows added by other operators since the page last refetched.
     // Without this, off-screen assignments (e.g. Wilfred on AR1 at 20:00) may not
