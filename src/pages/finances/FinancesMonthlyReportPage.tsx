@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 const fmt = (n: number) => (n ? formatNumberSpaces(n) : "—");
+/** Like fmt but always shows 0 (used in totals rows so empty groups still display a number). */
+const fmtT = (n: number) => formatNumberSpaces(n || 0);
 const pct = (n: number) => (Number.isFinite(n) ? `${Math.round(n * 100)}%` : "—");
 
 const cls = (n: number) => (n < 0 ? "cms-amount-negative" : n > 0 ? "cms-amount-positive" : "text-muted-foreground");
