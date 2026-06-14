@@ -961,11 +961,11 @@ const PlayerStatistics = () => {
                         sortKey !== k ? <ArrowUpDown className="w-3 h-3 inline ml-1 opacity-40" />
                           : sortDir === "asc" ? <ArrowUp className="w-3 h-3 inline ml-1" />
                           : <ArrowDown className="w-3 h-3 inline ml-1" />;
-                      const H = ({ k, align = "left", children, title, sticky }: { k: SortKey; align?: "left" | "right"; children: any; title?: string; sticky?: string }) => (
+                      const H = ({ k, align = "left", children, title, sticky }: { k: SortKey; align?: "left" | "right" | "center"; children: any; title?: string; sticky?: string }) => (
                         <th
                           title={title}
                           style={{ top: "var(--ppheader-h, 0px)" }}
-                          className={`px-2 py-3 cursor-pointer select-none hover:text-primary whitespace-nowrap font-bold sticky bg-zinc-900 text-white ${align === "right" ? "text-right" : "text-left"} ${sticky ? `${sticky} z-30` : "z-20"}`}
+                          className={`px-2 py-3 cursor-pointer select-none hover:text-primary whitespace-nowrap font-bold sticky bg-zinc-900 text-white ${align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left"} ${sticky ? `${sticky} z-30` : "z-20"}`}
                           onClick={() => toggleSort(k)}
                         >
                           {children}<SortIcon k={k} />
