@@ -16,13 +16,14 @@ export const ZONE_SORT_ORDER: Record<PlayerZone, number> = {
 };
 
 /**
- * Square solid fill applied to the whole <td> for both Zone and Bet columns.
- * Mirrored across light/dark so the link Zone↔Bet stays visible in both themes.
+ * Thin inset border applied to the whole <td> for both Zone and Bet columns.
+ * No fill — keeps the row background untouched while still linking Zone↔Bet
+ * visually. Text stays colored.
  */
 export const ZONE_CELL_CLASSES: Record<PlayerZone, string> = {
-  S: "bg-amber-500/25 text-amber-900 dark:bg-amber-500/25 dark:text-amber-100",
-  LG: "bg-sky-500/25 text-sky-900 dark:bg-sky-500/25 dark:text-sky-100",
-  CP: "bg-purple-500/25 text-purple-900 dark:bg-purple-500/25 dark:text-purple-100",
+  S: "ring-1 ring-inset ring-amber-500/60 text-amber-700 dark:text-amber-300",
+  LG: "ring-1 ring-inset ring-sky-500/60 text-sky-700 dark:text-sky-300",
+  CP: "ring-1 ring-inset ring-purple-500/60 text-purple-700 dark:text-purple-300",
 };
 
 /** Compact chip style — used inside picker buttons. */
