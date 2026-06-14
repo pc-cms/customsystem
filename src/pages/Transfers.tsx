@@ -13,10 +13,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { PageSection } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/currency";
+import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
+import { useActiveShift } from "@/hooks/use-shift";
+import SlotsTransfersForm from "@/components/cage-slots/SlotsTransfersForm";
 
 type Source = "all" | "live_game" | "slots";
 
@@ -131,6 +135,16 @@ const Transfers = () => {
 
   const { data: rows = [] } = useUnifiedTransfers(viewDate, source);
 
+  // Inline transfer creation — render the slots/live form when the cashier (or manager)
+  // has an open shift and the matching source is selected. Lets users record a transfer
+  // straight from the Transfers screen instead of jumping back to the cage workspace.
+  const { data: activeSlotsShift } = useActiveCageSlotsShift();
+  const { data: activeLiveShift } = useActiveShift();
+  const canCreateSlots = (source === "slots" || source === "all")
+    && activeSlotsShift && activeSlotsShift.status === "open";
+  const canCreateLive = (source === "live_game" || source === "all")
+    && activeLiveShift && (activeLiveShift as any).status === "open";
+
   const summary = useMemo(() => {
     let live = 0, slots = 0, count = rows.length;
     rows.forEach(r => {
@@ -168,9 +182,20 @@ const Transfers = () => {
           ))}
         </div>
         <span className="text-[10px] text-muted-foreground">
-          History only. New transfers are recorded inside the Cage workspace where table / chip context is available.
+          {canCreateSlots || canCreateLive
+            ? "Record a new transfer below, or browse history."
+            : "History only. Open the matching cage shift to record new transfers."}
         </span>
       </div>
+
+      {/* Inline transfer creation — only when an open shift exists for that cage. */}
+      {canCreateSlots && (
+        <div className="mb-6">
+          <PageSection title="New Slots Cage Transfer">
+            <SlotsTransfersForm shiftId={activeSlotsShift!.id} />
+          </PageSection>
+        </div>
+      )}
 
       {/* KPI tiles */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
