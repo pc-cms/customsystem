@@ -58,6 +58,8 @@ export default function FinancesMonthlyReportPage() {
   const { data: allCats } = useFinCategories();
 
   const { data, isLoading } = useMonthlyReport({ year, month, ytd, scope: scope || activeCasinoId || "" });
+  const { data: mtd } = useCategoryMtd(scope || activeCasinoId || "");
+  const mtdMonthLabel = mtd ? MONTHS[mtd.month - 1].slice(0, 3) : "";
 
   const toggle = (id: string) => setExpanded((e) => (e === id ? null : id));
 
