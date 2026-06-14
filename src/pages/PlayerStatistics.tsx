@@ -1042,6 +1042,7 @@ const PlayerStatistics = () => {
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
                       {showFinancials && (() => {
                         const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
                           if (!value) return <>·</>;
