@@ -361,7 +361,10 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     const freshAgg = await fetchFreshTransfersAgg();
     await supabase
       .from("cage_slots_shifts")
-      .update({ cashless_final: cashlessFinal } as any)
+      .update({
+        cashless_final: cashlessFinal,
+        cashless_final_providers: cashlessFinalProviders,
+      } as any)
       .eq("id", shift.id);
     setSystem.mutate({ shift_id: shift.id, system_shift_result: Number(systemResultInput) || 0 });
     updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards });
@@ -378,6 +381,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         mobile: closingMobile,
         cashless_in_providers: cashlessInProviders,
         cashless_out_providers: cashlessOutProviders,
+        cashless_final_providers: cashlessFinalProviders,
+
 
         cards: { count: closingCards, value_tzs: cardDepositTzs },
         rateMap,
