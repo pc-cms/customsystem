@@ -96,7 +96,7 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense }: Props) => {
       size="form"
     >
       <FormGrid>
-        <FormField label="Category" full>
+        <FormField label="Category" span={12}>
           <CategoryCombobox value={finCatId} onChange={setFinCatId} />
         </FormField>
 
@@ -134,7 +134,7 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense }: Props) => {
           </Select>
         </FormField>
 
-        <FormField label="Description" full>
+        <FormField label="Description" span={12}>
           <Textarea
             rows={2}
             value={description}
