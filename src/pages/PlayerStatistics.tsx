@@ -751,7 +751,7 @@ const PlayerStatistics = () => {
           };
           return (
             <>
-              <td className={`px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[90px] ${r.zone ? ZONE_CELL_CLASSES[r.zone as PlayerZone] : ""}`} onClick={(e) => e.stopPropagation()}>
+              <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[90px]" onClick={(e) => e.stopPropagation()}>
                 <AvgBetPopover
                   playerId={r.playerId}
                   businessDate={fromDate}
