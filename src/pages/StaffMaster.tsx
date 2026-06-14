@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, useCallback } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { UserCheck, Camera, RotateCw, Upload, Trash2, Plus, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { parseStaffMasterXlsx, type ParsedStaffRow } from "@/lib/staff-master-import";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -268,8 +269,8 @@ const StaffMaster = () => {
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Sorting state
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [sortKey, setSortKey] = useSessionState<SortKey | null>("sortKey", null);
+  const [sortDir, setSortDir] = useSessionState<SortDir>("sortDir", "asc");
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {

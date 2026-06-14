@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -68,7 +69,7 @@ const Blacklist = () => {
   const isSurveillance = roles.includes("surveillance");
   const canBlacklist = roles.some(r => ["pit", "manager", "surveillance", "super_admin"].includes(r));
   const [pendingAction, setPendingAction] = useState<{ player: any; action: "blacklist" | "reactivate" } | null>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useSessionState<string>("search", "");
   const [addTarget, setAddTarget] = useState<{ id: string; name: string } | null>(null);
   const { select: selectPlayer } = useSelectedPlayer();
 

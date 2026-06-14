@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { Loader2, Upload, Plus, CreditCard } from "lucide-react";
 import { downloadXlsx } from "@/lib/excel-export";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,7 @@ const todayMinus = (days: number) => {
 
 export default function BankChecks() {
   const { activeCasinoId } = useCasino();
-  const [preset, setPreset] = useState<DatePreset>("month");
+  const [preset, setPreset] = useSessionState<DatePreset>("preset", "month");
   const [from, setFrom] = useState(todayMinus(29));
   const [to, setTo] = useState(todayMinus(0));
   // Extend "to" by 1 day so that early-morning checks (00:00–06:00) of next calendar day,

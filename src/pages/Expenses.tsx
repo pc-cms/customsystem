@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Receipt, CheckCircle, Plus, X, Trash2, Filter, GlassWater, ExternalLink, Printer } from "lucide-react";
@@ -120,17 +121,18 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   const businessDate = serverBusinessDate || getBusinessDate();
 
   // ── Filters ──────────────────────────────────────────────
-  const [from, setFrom] = useState<string>(businessDate);
-  const [to, setTo] = useState<string>(businessDate);
-  const [category, setCategory] = useState<string>("all");
-  const [target, setTarget] = useState<ExpenseTarget>("all");
-  const [status, setStatus] = useState<ExpenseStatus>("all");
-  const [source, setSource] = useState<ExpenseSourceFilter>(
+  const [from, setFrom] = useSessionState<string>("from", businessDate);
+  const [to, setTo] = useSessionState<string>("to", businessDate);
+  const [category, setCategory] = useSessionState<string>("category", "all");
+  const [target, setTarget] = useSessionState<ExpenseTarget>("target", "all");
+  const [status, setStatus] = useSessionState<ExpenseStatus>("status", "all");
+  const [source, setSource] = useSessionState<ExpenseSourceFilter>(
+    "source",
     sourceLocked ? roleDefaultSource : "all",
   );
-  const [search, setSearch] = useState<string>("");
+  const [search, setSearch] = useSessionState<string>("search", "");
   const [showBarDetails, setShowBarDetails] = useState<boolean>(false);
-  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "date", dir: "desc" });
+  const [sort, setSort] = useSessionState<{ key: SortKey; dir: SortDir }>("sort", { key: "date", dir: "desc" });
   const toggleSort = (k: SortKey) =>
     setSort(s => (s.key === k ? { key: k, dir: s.dir === "asc" ? "desc" : "asc" } : { key: k, dir: "desc" }));
   const sortArrow = (k: SortKey) => sort.key === k ? (sort.dir === "asc" ? " ↑" : " ↓") : "";

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -159,12 +160,12 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
     ? PRESETS.filter((p) => p.key !== "custom")
     : PRESETS;
 
-  const [preset, setPreset] = useState<PresetKey>("month");
+  const [preset, setPreset] = useSessionState<PresetKey>("preset", "month");
   const [weekAnchor, setWeekAnchor] = useState<Date>(new Date());
   const [monthAnchor, setMonthAnchor] = useState<Date>(new Date());
   const [yearAnchor, setYearAnchor] = useState<Date>(new Date());
-  const [customFrom, setCustomFrom] = useState(daysAgoStr(29));
-  const [customTo, setCustomTo] = useState(todayStr());
+  const [customFrom, setCustomFrom] = useSessionState<string>("customFrom", daysAgoStr(29));
+  const [customTo, setCustomTo] = useSessionState<string>("customTo", todayStr());
   const [openDate, setOpenDate] = useState<string | null>(null);
 
   // Surveillance: clamp anchors to current calendar year, force off custom preset

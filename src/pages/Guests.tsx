@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { UserCheck, Search, ArrowUp, ArrowDown, ArrowUpDown, LogOut, User, Pencil, LogIn } from "lucide-react";
@@ -37,15 +38,15 @@ const Guests = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [tab, setTab] = useState<TabKey>("day");
-  const [search, setSearch] = useState("");
-  const [posFilter, setPosFilter] = useState<"all" | "table" | "slots" | "hall">("all");
-  
+  const [tab, setTab] = useSessionState<TabKey>("tab", "day");
+  const [search, setSearch] = useSessionState<string>("search", "");
+  const [posFilter, setPosFilter] = useSessionState<"all" | "table" | "slots" | "hall">("posFilter", "all");
+
   const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(
     new Set(["diamond", "platinum", "gold", "normal"])
   );
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [sortKey, setSortKey] = useSessionState<SortKey | null>("sortKey", null);
+  const [sortDir, setSortDir] = useSessionState<"asc" | "desc">("sortDir", "desc");
   const { select: selectPlayer } = useSelectedPlayer();
 
   const toggleSort = (key: SortKey) => {

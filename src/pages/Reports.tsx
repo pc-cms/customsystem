@@ -1,4 +1,5 @@
 import { useState, useMemo, lazy, Suspense } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { usePlayers, useTransactions, useExpenses, usePlayerGroups } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -93,9 +94,9 @@ const Reports = () => {
   const now = new Date();
   const monthStart = toIsoDate(new Date(now.getFullYear(), now.getMonth(), 1));
   const today = toIsoDate(now);
-  const [from, setFrom] = useState(monthStart);
-  const [to, setTo] = useState(today);
-  const [preset, setPreset] = useState<DatePreset>("custom");
+  const [from, setFrom] = useSessionState<string>("from", monthStart);
+  const [to, setTo] = useSessionState<string>("to", today);
+  const [preset, setPreset] = useSessionState<DatePreset>("preset", "custom");
   const initialTab = (typeof window !== "undefined"
     ? new URLSearchParams(window.location.search).get("tab")
     : null) || "daily";

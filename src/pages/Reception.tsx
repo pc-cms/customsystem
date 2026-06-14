@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -998,7 +999,7 @@ const UpdateDataTab = () => {
   const { data: visits = [] } = useVisitsToday();
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"newest" | "last_visit">("last_visit");
+  const [sortBy, setSortBy] = useSessionState<"newest" | "last_visit">("sortBy", "last_visit");
   const { select: selectPlayer } = useSelectedPlayer();
   const isMobile = useIsMobile();
 

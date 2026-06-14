@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { Coins, ChevronLeft, ChevronRight, Printer, Lock, Unlock, Calculator } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -77,7 +78,7 @@ const dowOf = (iso: string) => {
 };
 
 export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }) {
-  const [periodStart, setPeriodStart] = useState<string>(() => getPeriodStart16(new Date()));
+  const [periodStart, setPeriodStart] = useSessionState<string>("periodStart", () => getPeriodStart16(new Date()));
   const periodEnd = useMemo(() => getPeriodEnd15(periodStart), [periodStart]);
 
   const { data: dealers = [] } = useDealers();
