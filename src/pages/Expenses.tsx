@@ -822,13 +822,15 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
 
       {/* Print view — current filtered expenses */}
       <PrintPortal>
-        <ExpensesDayReport
-          casinoName={activeCasino?.name || "Casino"}
-          businessDate={isSingleDay ? from : `${from} – ${to}`}
-          rows={[...analytics.filtered].sort(
-            (a: any, b: any) => String(a.created_at).localeCompare(String(b.created_at)),
-          ) as any}
-        />
+        <div className="hidden print:block">
+          <ExpensesDayReport
+            casinoName={activeCasino?.name || "Casino"}
+            businessDate={isSingleDay ? from : `${from} – ${to}`}
+            rows={[...analytics.filtered].sort(
+              (a: any, b: any) => String(a.created_at).localeCompare(String(b.created_at)),
+            ) as any}
+          />
+        </div>
       </PrintPortal>
     </div>
 

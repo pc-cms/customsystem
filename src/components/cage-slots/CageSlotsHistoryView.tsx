@@ -1,5 +1,5 @@
 import { Fragment, KeyboardEvent, useState } from "react";
-import { ChevronDown, ChevronRight, Coins, Printer } from "lucide-react";
+import { ChevronDown, ChevronRight, Coins, Printer, Pencil } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,8 @@ import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import { useCageSlotsHistory, useSlotsCashlessAggByShift, useSlotsClosingTotalsByShift } from "@/hooks/use-cage-slots";
 import PrintSlotsShiftDialog from "./PrintSlotsShiftDialog";
 import SlotsShiftReportBody from "./SlotsShiftReportBody";
+import EditClosedCashlessDialog from "./EditClosedCashlessDialog";
+import { useAuth } from "@/lib/auth-context";
 
 const NORMALIZE_PROVIDER = (k: string): string | null => {
   const v = String(k || "").toLowerCase().replace(/[\s_-]+/g, "");
@@ -27,8 +29,10 @@ const CageSlotsHistoryView = () => {
   const { data: cashlessAgg = {} } = useSlotsCashlessAggByShift(shiftIds);
   const { data: closingTotals = {} } = useSlotsClosingTotalsByShift(shiftIds);
   const [printShiftId, setPrintShiftId] = useState<string | null>(null);
+  const [editCashlessShift, setEditCashlessShift] = useState<{ id: string; providers: Record<string, number> } | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [mode, MoneyToggle] = useMoneyMode("cage-slots-history");
+  const { isManager } = useAuth();
 
   return (
     <PageShell>
@@ -136,9 +140,25 @@ const CageSlotsHistoryView = () => {
                     <DTCell type="money"><MoneyCell value={clNet || null} mode={mode} signed empty="·" /></DTCell>
                     <DTCell type="money"><MoneyCell value={balance} mode={mode} signed /></DTCell>
                     <DTCell type="actions" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="sm" onClick={() => setPrintShiftId(s.id)} className="gap-1 h-7">
-                        <Printer className="w-3.5 h-3.5" /> Print
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        {isManager && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditCashlessShift({
+                              id: s.id,
+                              providers: ((s as any).cashless_final_providers || {}) as Record<string, number>,
+                            })}
+                            className="gap-1 h-7"
+                            title="Backfill per-provider cashless balance"
+                          >
+                            <Pencil className="w-3.5 h-3.5" /> Cashless
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={() => setPrintShiftId(s.id)} className="gap-1 h-7">
+                          <Printer className="w-3.5 h-3.5" /> Print
+                        </Button>
+                      </div>
                     </DTCell>
                   </DTRow>
                   {isExpanded && (
@@ -159,6 +179,14 @@ const CageSlotsHistoryView = () => {
           open
           shiftId={printShiftId}
           onClose={() => setPrintShiftId(null)}
+        />
+      )}
+      {editCashlessShift && (
+        <EditClosedCashlessDialog
+          open
+          shiftId={editCashlessShift.id}
+          current={editCashlessShift.providers}
+          onClose={() => setEditCashlessShift(null)}
         />
       )}
     </PageShell>

@@ -1,77 +1,59 @@
-## Что меняется
+Four targeted changes, all UI/presentation (no business-logic changes to balance formulas).
 
-Добавить новую колонку **Zone** в таблице Player Statistics — сразу после колонки **Left**. Хранится `(player_id, casino_id, business_date) → zone ∈ {S, LG, CP}`, выбирается вручную (по умолчанию пусто). Колонка имеет сортировку, фильтр в шапке, цветную квадратную заливку по всей ячейке, и автоматически перекрашивает ячейку **Bet** той же строки в тот же цвет.
+## 1. Manager backfill of per-provider cashless balance for closed shifts
 
-## Цвета зон (одна палитра для Zone и для Bet)
+For already-closed Live Game and Slots shifts where the cashier typed only the total and left the per-provider grid empty, give the manager an inline "Edit cashless balance" action that opens a small dialog with one row per provider (M-Pesa, Tigo Pesa, Airtel Money, Halopesa, Azampesa, CRDB Sim Banking). Manager confirms with their existing manager-password override. On save:
 
-| Код | Игра | Tailwind (light/dark) |
-|---|---|---|
-| `S`  | Slots       | `bg-amber-500/20 text-amber-800 dark:bg-amber-500/25 dark:text-amber-200` |
-| `LG` | Live Game   | `bg-sky-500/20 text-sky-800 dark:bg-sky-500/25 dark:text-sky-200` |
-| `CP` | Club Poker  | `bg-purple-500/20 text-purple-800 dark:bg-purple-500/25 dark:text-purple-200` |
+- Live: update `shifts.closing_count.totals.mobile` and `shifts.cashless_final_providers` (whichever your schema uses for live; mirror existing key).
+- Slots: update `cage_slots_shifts.cashless_final_providers` (the column already exists).
 
-Пустая зона → нейтральный `text-muted-foreground` для обоих столбцов.
+Sum is recomputed and written into the matching `*_final` total so the printed Balance column in the consolidated report stops showing dashes. An audit row is added to `audit_logs` (manager_id, shift_id, before, after).
 
-## База данных (миграция)
+Access: visible only to roles allowed manager override (manager, super_admin, finance_manager).
 
-Новая таблица `player_daily_zones`:
+## 2. All print previews render at 50% thumbnail
 
-```
-id          uuid PK
-casino_id   uuid NOT NULL
-player_id   uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE
-business_date  date NOT NULL
-zone        text NOT NULL CHECK (zone IN ('S','LG','CP'))
-created_by  uuid
-created_at, updated_at  timestamptz
-UNIQUE (casino_id, player_id, business_date)
-```
+Currently `ReprintShiftDialog` and `PrintSlotsShiftDialog` show on-screen previews at `scale-[0.85] w-[117%]`, which still fills the dialog so the Print button gets pushed below the fold. Change the preview wrapper to `scale-[0.5] w-[200%]` and cap the wrapper height (`max-h-[55vh] overflow-auto`) so the dialog stays compact and the **Print** button is always visible without scrolling. The printed output is unaffected because it runs through `PrintPortal` (separate copy).
 
-GRANT'ы → `authenticated` (CRUD) + `service_role` (ALL). RLS:
-- SELECT: все аутентифицированные в рамках своего casino_id (как у `player_daily_avg_bets`).
-- INSERT/UPDATE/DELETE: роли `pit`, `manager`, `shift_manager`, `reception`, `super_admin` (через `has_role`).
+Applies to:
+- `src/components/cage/ReprintShiftDialog.tsx`
+- `src/components/cage-slots/PrintSlotsShiftDialog.tsx`
 
-Индексы: `(casino_id, business_date)`, `(player_id)`. Триггер `update_updated_at_column`.
+## 3. Expenses page: stop showing the printable report on screen
 
-Регистрация в `sync_table_registry` чтобы cms-sync реплицировала запись между casino-нодами.
+In `src/pages/Expenses.tsx` the `<PrintPortal>` child is rendered without a `hidden print:block` wrapper, so `ExpensesDayReport` appears at the bottom of the page in normal view. Wrap its content in `<div className="hidden print:block">…</div>` to match how every other PrintPortal consumer does it. No layout change otherwise.
 
-## Фронтенд
+## 4. Simplify Close Shift "Manager Review" screen
 
-### Новый хук `src/hooks/use-player-daily-zones.ts`
-- `usePlayerDailyZones(businessDate)` → `Map<player_id, 'S'|'LG'|'CP'>` для текущего casino.
-- `useSetPlayerDailyZone()` — upsert `(player_id, business_date, zone)`, delete при `null`. Инвалидация query-ключа.
+In `src/components/cage/CloseShiftDialog.tsx` (step `review`), keep only what the user asked for:
 
-### `src/lib/zone-colors.ts` (новый)
-- `ZONE_LABELS = { S:'Slots', LG:'Live Game', CP:'Club Poker' }`
-- `ZONE_CELL_CLASSES: Record<Zone, string>` — те самые tailwind-комбо выше (полная квадратная заливка td).
+Kept:
+- **Chips per denomination** — change grid to fixed `grid-cols-2` (two columns, all densities).
+- **Cash per currency & denomination** — unchanged.
+- **Cashless (Mobile Money)** per provider — unchanged.
+- **Banks** — unchanged.
+- **Total block**: Chips · Cash · Mobile · Bank tiles + Cash Desk Total — unchanged.
+- **New compact summary card** replacing everything below it:
+  - Opening (carried over)
+  - Closing (cash desk total counted)
+  - Balance = signed difference (uses existing `balance` value, unchanged formula). Green when 0, red when not.
 
-### `src/pages/PlayerStatistics.tsx`
+Removed from the screen (logic untouched — values still computed and written to `closingCash` on confirm):
+- The 9-line "Cash Desk Result vs Tables Result" formula block.
+- The "Shift Results" KPI tile trio (Tables Result / Shift Balance / Cash Desk Result).
+- The "IN/OUT Audit" strip.
 
-1. Импорт `usePlayerDailyZones`, `useSetPlayerDailyZone`, `ZONE_CELL_CLASSES`.
-2. Подключить `const { data: zonesByPlayer = new Map() } = usePlayerDailyZones(isSingleDay ? fromDate : undefined);` — поле работает только в режиме одного дня (как `dailyAvgBetByPlayer`); в multi-day показываем зону игрока, если она единственная за период (агрегируем в `displayRows`).
-3. Расширить `SortKey` → добавить `'zone'`.
-4. Добавить `zoneFilter: Set<Zone | 'none'>` в state, default = все четыре.
-5. В `filtered` — фильтр по `zoneFilter`; в sorter — case `'zone'` (`S < LG < CP < none`).
-6. **Шапка** (после `<H k="exit">Left</H>`):
-   - `<th>` с двумя элементами: иконка-сортировка `Zone` и Popover-фильтр (чекбоксы S/LG/CP/None) — как уже сделано для других колонок в проекте.
-7. **Ячейка строки** — новая `<td>` БЕЗ внутренних padding-классов, чтобы заливка была квадратной:
-   - класс `${ZONE_CELL_CLASSES[zone] ?? ''} p-0 w-[44px] text-center align-middle`.
-   - Внутри `<button>` с popover-выбором (S/LG/CP/Clear). Read-only если `!canEditZone`.
-   - `canEditZone = isSingleDay && fromDate === today && roles ∈ {pit, manager, shift_manager, reception, super_admin}`.
-8. **Ячейка Bet** — `<td>` получает класс зоны:
-   - `className={`px-2 py-1.5 font-mono text-sm text-right ... ${ZONE_CELL_CLASSES[zone] ?? ''}`}`
-   - Так весь td заливается тем же цветом — визуально парная связка Zone↔Bet.
-9. Total row: пустые `<td>` под Zone (заливка не нужна).
-10. `colSpan` в "No players" — увеличить на 1.
+Cashier notes block and Back / Print / Cancel / Confirm-password footer stay as-is.
 
-### Никаких изменений в:
-- `nep-split.ts`, расчётах Drop/Result, типах transactions, других экранах.
-- `PlayerProfile`, Dashboard и др. — Zone живёт только в Statistics.
+## Files touched
 
-## Версия
+- `src/components/cage/CloseShiftDialog.tsx` — manager-review section simplified, chips grid → 2 cols.
+- `src/components/cage/ReprintShiftDialog.tsx` — preview thumbnail to 50% + bounded height.
+- `src/components/cage-slots/PrintSlotsShiftDialog.tsx` — preview thumbnail to 50% + bounded height.
+- `src/pages/Expenses.tsx` — wrap PrintPortal child in `hidden print:block`.
+- `src/components/cage-slots/CageSlotsHistoryView.tsx` (or sibling row component) — add manager "Edit cashless balance" action for closed slots shifts.
+- `src/components/cage/CageHistoryView.tsx` — same action for closed live shifts.
+- New small dialog `src/components/cage/EditClosedCashlessDialog.tsx` reused by both surfaces.
+- New mutation hook `src/hooks/use-edit-closed-cashless.ts` performing the update + audit log entry.
 
-Backend изменение (новая таблица + RLS + sync registry) → авто-bump patch в `package.json`.
-
-## Memory
-
-Добавить `mem://features/player-zone-tagging` с описанием новой колонки и палитры; индекс в `Players`.
+No DB migration required (columns already exist). No edge function changes. No change to balance math or report formulas.

@@ -380,7 +380,7 @@ const CloseShiftDialog = ({
               {chipsNonZero.length === 0 ? (
                 <p className="text-sm text-muted-foreground italic">No chips counted.</p>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-1 font-mono text-sm">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 font-mono text-sm">
                   {chipsNonZero.map(d => {
                     const qty = chipCounts[d] || 0;
                     const op = openingChips[d] || 0;
@@ -510,102 +510,45 @@ const CloseShiftDialog = ({
               </div>
             </div>
 
-            {/* CASH DESK FORMULA — canonical 9-component breakdown */}
+            {/* OPENING · CLOSING · BALANCE — compact summary */}
             <div className={cn(
               "rounded-lg border-2 p-4",
               isBalanced ? "border-success/60 bg-success/5" : "border-destructive/60 bg-destructive/5",
             )}>
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-3">
-                Cash Desk Result vs Tables Result
-              </p>
-              <div className="space-y-1.5 font-mono text-sm">
-                <FormulaRow label="ΔCash (Closing − Opening, cash + bank)" value={`${cashDelta >= 0 ? "+" : ""}${formatNumberSpaces(cashDelta)}`} />
-                <FormulaRow label="+ Expenses" value={`+${formatNumberSpaces(totalExpenses)}`} />
-                <FormulaRow label="+ Collection" value={`+${formatNumberSpaces(collectionTotal)}`} />
-                <FormulaRow label="− Add Float" value={`−${formatNumberSpaces(floatAdded)}`} />
-                <FormulaRow label="+ Slots Cage Out" value={`+${formatNumberSpaces(slotsOut)}`} />
-                <FormulaRow label="− Slots Cage In" value={`−${formatNumberSpaces(slotsIn)}`} />
-                <FormulaRow label="+ Cashless IN" value={`+${formatNumberSpaces(cashlessInTzs)}`} />
-                <FormulaRow label="− Cashless OUT" value={`−${formatNumberSpaces(cashlessOutTzs)}`} />
-                <div className="flex justify-between pt-2 mt-1 border-t border-border text-base font-bold">
-                  <span className="text-card-foreground">= Cash Desk Result</span>
-                  <span className="text-card-foreground">{cashDeskResult >= 0 ? "+" : ""}{formatNumberSpaces(cashDeskResult)}</span>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Opening</p>
+                  <p className="font-mono text-xl font-bold text-card-foreground">{formatNumberSpaces(openingTotal)}</p>
+                  <p className="text-[10px] text-muted-foreground">TZS</p>
                 </div>
-                <FormulaRow label="− Tables Result" value={`−(${resultTable >= 0 ? "+" : ""}${formatNumberSpaces(resultTable)})`} />
-                <FormulaRow label="− Miss Chips (signed)" value={`−(${balanceMissTotal >= 0 ? "+" : ""}${formatNumberSpaces(balanceMissTotal)})`} />
-                <FormulaRow label="− Tips (Live + Poker + Floor)" value={`−${formatNumberSpaces(tipsTotal)}`} />
-
-                <div className={cn(
-                  "flex justify-between pt-3 mt-2 border-t-2 text-lg font-bold",
-                  isBalanced ? "border-success/60" : "border-destructive/60",
-                )}>
-                  <span className="text-card-foreground inline-flex items-center gap-2">
+                <div className="text-center">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Closing</p>
+                  <p className="font-mono text-xl font-bold text-card-foreground">{formatNumberSpaces(totalTzs)}</p>
+                  <p className="text-[10px] text-muted-foreground">TZS</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 inline-flex items-center gap-1 justify-center">
                     {isBalanced
-                      ? <CheckCircle2 className="w-5 h-5 text-success" />
-                      : <AlertTriangle className="w-5 h-5 text-destructive" />}
-                    = Shift Balance
-                  </span>
-                  <span className={isBalanced ? "text-success" : balance > 0 ? "cms-amount-positive" : "cms-amount-negative"}>
-                    {balance >= 0 ? "+" : ""}{formatNumberSpaces(balance)} <span className="text-sm text-muted-foreground">TZS</span>
-                  </span>
+                      ? <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+                      : <AlertTriangle className="w-3.5 h-3.5 text-destructive" />}
+                    Balance
+                  </p>
+                  <p className={cn(
+                    "font-mono text-xl font-bold",
+                    isBalanced ? "text-success" : balance > 0 ? "cms-amount-positive" : "cms-amount-negative",
+                  )}>
+                    {balance >= 0 ? "+" : ""}{formatNumberSpaces(balance)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">TZS</p>
                 </div>
               </div>
               {!isBalanced && (
-                <p className="text-xs text-destructive flex items-center gap-1.5 pt-2 mt-2">
+                <p className="text-xs text-destructive flex items-center gap-1.5 pt-3 mt-3 border-t border-destructive/30">
                   <AlertTriangle className="w-3.5 h-3.5" />
                   Discrepancy — manager password required to accept.
                 </p>
               )}
             </div>
-
-            {/* THREE KEY RESULTS */}
-            <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-4 mt-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-3">Shift Results</p>
-              <div className="grid grid-cols-3 gap-3">
-                <KpiTile label="Tables Result" value={resultTable} tone={resultTable >= 0 ? "pos" : "neg"} />
-                <KpiTile label="Shift Balance" value={balance} tone={isBalanced ? "ok" : balance > 0 ? "pos" : "neg"} />
-                <KpiTile label="Cash Desk Result" value={cashDeskResult} tone={cashDeskResult >= 0 ? "pos" : "neg"} />
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-2 italic">
-                Cash Desk Result = ΔCash(cash+bank) + Expenses + Collection − AddFloat + SlotsOut − SlotsIn + Cashless IN − Cashless OUT.
-                Shift Balance = Cash Desk Result − Tables Result − Miss. Must be zero.
-              </p>
-            </div>
-
-            {/* IN/OUT AUDIT — analytical only, no financial impact.
-                Compares logged Σ(IN) − Σ(OUT) (player buy/sell transactions)
-                against the physical cash delta. A non-zero diff usually
-                means the cashier processed a buy/sell pair without
-                logging the transaction (cash↔chips swap is value-neutral,
-                so the cage still balances; only player tracker is incomplete).
-                Manual-entry philosophy: warn, never auto-correct. */}
-            {(() => {
-              const inOutNet = totalBuyIns - totalCashouts;
-              const inOutDiff = inOutNet - cashDelta;
-              const ok = inOutDiff === 0;
-              return (
-                <div className={cn(
-                  "rounded-lg border p-3 mt-4 text-xs",
-                  ok ? "border-border bg-muted/30" : "border-amber-500/40 bg-amber-500/5",
-                )}>
-                  <div className="flex items-center justify-between gap-3 font-mono">
-                    <span className="uppercase tracking-wider text-muted-foreground font-semibold">IN/OUT Audit</span>
-                    <div className="flex items-center gap-4">
-                      <span><span className="text-muted-foreground">Σ IN−OUT</span> {formatNumberSpaces(inOutNet)}</span>
-                      <span><span className="text-muted-foreground">Cash Δ</span> {formatNumberSpaces(cashDelta)}</span>
-                      <span className={ok ? "text-muted-foreground" : "text-amber-600 dark:text-amber-400 font-semibold"}>
-                        Diff {inOutDiff >= 0 ? "+" : ""}{formatNumberSpaces(inOutDiff)}
-                      </span>
-                    </div>
-                  </div>
-                  {!ok && (
-                    <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1.5">
-                      Likely missing IN/OUT entries — does not affect Cash Result, but player tracker is incomplete for this shift.
-                    </p>
-                  )}
-                </div>
-              );
-            })()}
 
             {notes && (
               <div className="mt-4 pt-3 border-t border-border">
