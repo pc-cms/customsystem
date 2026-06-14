@@ -156,6 +156,8 @@ const PlayerStatistics = () => {
   // Daily avg bet (manual entry). Single-day only — for multi-day periods we don't show breakdown.
   const isSingleDay = fromDate === toDate;
   const { data: dailyAvgBets = [] } = usePlayerDailyAvgBets(isSingleDay ? fromDate : undefined);
+  const { data: zonesByPlayer = new Map<string, PlayerZone>() } = usePlayerDailyZones(isSingleDay ? fromDate : undefined);
+  const setZone = useSetPlayerDailyZone();
   const dailyAvgBetByPlayer = useMemo(() => {
     const m = new Map<string, { ar: number | null; bj: number | null; poker: number | null; club: number | null }>();
     dailyAvgBets.forEach(b => m.set(b.player_id, {
