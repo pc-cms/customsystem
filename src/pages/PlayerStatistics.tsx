@@ -954,6 +954,68 @@ const PlayerStatistics = () => {
                           <H k="visits" align="left" title="Visits in selected period">Vis</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
+                          <th
+                            style={{ top: "var(--ppheader-h, 0px)" }}
+                            className="px-1 py-3 sticky bg-zinc-900 text-white z-20 font-bold whitespace-nowrap text-center"
+                          >
+                            <div className="flex items-center justify-center gap-1">
+                              <span
+                                onClick={() => toggleSort("zone")}
+                                className="cursor-pointer select-none hover:text-primary"
+                                title="Sort by zone: S → LG → CP"
+                              >
+                                Zone<SortIcon k="zone" />
+                              </span>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="p-0.5 rounded hover:bg-white/10"
+                                    title="Filter by zone"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Filter className={`w-3 h-3 ${zoneFilter.size < 4 ? "text-primary" : "opacity-60"}`} />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent align="end" className="w-40 p-2" onClick={(e) => e.stopPropagation()}>
+                                  <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 px-1">Filter zones</p>
+                                  <div className="space-y-1">
+                                    {(["S","LG","CP"] as PlayerZone[]).map(z => (
+                                      <label key={z} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/40 cursor-pointer text-xs">
+                                        <Checkbox
+                                          checked={zoneFilter.has(z)}
+                                          onCheckedChange={(v) => {
+                                            setZoneFilter(prev => {
+                                              const next = new Set(prev);
+                                              if (v) next.add(z); else next.delete(z);
+                                              return next;
+                                            });
+                                          }}
+                                        />
+                                        <span className={`inline-flex items-center justify-center min-w-[28px] h-5 px-1.5 rounded border text-[10px] font-mono font-bold ${ZONE_CHIP_CLASSES[z]}`}>{z}</span>
+                                        <span className="text-card-foreground">{ZONE_LABELS[z]}</span>
+                                      </label>
+                                    ))}
+                                    <label className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/40 cursor-pointer text-xs">
+                                      <Checkbox
+                                        checked={zoneFilter.has("none")}
+                                        onCheckedChange={(v) => {
+                                          setZoneFilter(prev => {
+                                            const next = new Set(prev);
+                                            if (v) next.add("none"); else next.delete("none");
+                                            return next;
+                                          });
+                                        }}
+                                      />
+                                      <span className="inline-flex items-center justify-center min-w-[28px] h-5 px-1.5 rounded border border-border text-[10px] font-mono text-muted-foreground">·</span>
+                                      <span className="text-muted-foreground">Unassigned</span>
+                                    </label>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+                          </th>
+                          
                           
                           {showFinancials && (
                             <>
