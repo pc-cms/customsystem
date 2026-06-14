@@ -326,8 +326,8 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
           <div className="text-center text-muted-foreground py-10 text-sm">Loading…</div>
         ) : (
           <>
-            <div className="border border-border rounded-md overflow-hidden bg-white print:hidden">
-              <div className="origin-top-left scale-[0.85] w-[117%]">
+            <div className="border border-border rounded-md overflow-auto bg-white print:hidden max-h-[55vh]">
+              <div className="origin-top-left scale-[0.5] w-[200%]">
                 <SlotsConsolidatedReport {...props} />
               </div>
             </div>

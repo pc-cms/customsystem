@@ -195,8 +195,8 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => {
           <>
             {/* On-screen preview only — print is handled by PrintPortal below
                 so the printed output escapes the dialog's transform/clip. */}
-            <div className="border border-border rounded-md overflow-hidden bg-white text-black print:hidden">
-              <div className="origin-top-left scale-[0.85] w-[117%]">
+            <div className="border border-border rounded-md overflow-auto bg-white text-black print:hidden max-h-[55vh]">
+              <div className="origin-top-left scale-[0.5] w-[200%]">
                 <ShiftClosingReport
                   shift={shift}
                   tables={tables}
