@@ -733,6 +733,17 @@ const PlayerStatistics = () => {
         <td className="px-2 py-1.5 font-mono text-[11px] text-center w-12">{r.visits || "·"}</td>
         <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
         <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
+        <td
+          className={`p-0 w-[52px] text-center align-middle ${r.zone ? ZONE_CELL_CLASSES[r.zone as PlayerZone] : ""}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ZonePicker
+            zone={(r.zone as PlayerZone | null) ?? null}
+            canEdit={canEditZone}
+            onPick={(z) => setZone.mutate({ playerId: r.playerId, businessDate: fromDate, zone: z })}
+          />
+        </td>
+        
         
         {showFinancials && (() => {
           const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
