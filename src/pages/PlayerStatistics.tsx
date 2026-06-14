@@ -1315,7 +1315,7 @@ function ZonePicker({
 }) {
   const [open, setOpen] = useState(false);
   const label = zone ?? "·";
-  const baseBtn = `w-full h-7 flex items-center justify-center font-mono text-[11px] font-bold ${
+  const baseBtn = `w-full h-7 flex items-center justify-center font-mono text-[11px] font-black ${
     zone ? "" : "text-muted-foreground/60"
   }`;
   if (!canEdit) {
