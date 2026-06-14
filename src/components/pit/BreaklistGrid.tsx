@@ -81,6 +81,12 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const { data: rota = [] } = usePitRotaRange(date, date);
   const { data: attendance = [] } = useDealerAttendance(date);
   const { data: casino } = useCasinoInfo();
+  const isMwanza = (casino?.name ?? "").toLowerCase().includes("mwanza");
+  const fmtTableName = (name: string | null | undefined) => {
+    if (!name) return name;
+    if (isMwanza && name.toLowerCase() === "baccarat") return "BCR";
+    return name;
+  };
   const setCell = useSetBreaklistCell();
   const setAttendance = useSetDealerAttendance();
   const lockCell = useLockBreaklistCell();
@@ -366,7 +372,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       if (conflict) {
         const occupant = activeDealers.find(d => d.id === conflict.dealer_id)?.name || "another dealer";
         const table = openTables.find(t => t.id === tableId);
-        const tableName = table?.name || "this table";
+        const tableName = fmtTableName(table?.name) || "this table";
         toast.error(`${tableName} ${slot} already taken by ${occupant} at ${activeCell.timeSlot}`);
         return;
       }
@@ -479,7 +485,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                     {TIME_SLOTS.map(slot => {
                       const cell = getCellData(dealer.id, slot);
                       const table = cell?.table_id ? assignableTables.find(t => t.id === cell.table_id) : null;
-                      const tableName = table?.name ?? null;
+                      const tableName = fmtTableName(table?.name) ?? null;
                       const displayLabel = cell
                         ? tableName
                           ? `${tableName}${roleSuffix[cell.role] || ""}`
@@ -583,11 +589,11 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                                     if (availableRoles.length === 0) return null;
                                     return (
                                       <div key={t.id} className="flex items-center gap-0.5 px-1">
-                                        <span className="text-[9px] font-mono text-card-foreground min-w-[28px]">{t.name}</span>
+                                        <span className="text-[9px] font-mono text-card-foreground min-w-[28px]">{fmtTableName(t.name)}</span>
                                         {availableRoles.map(r => (
                                           <button key={r} onClick={() => handleRoleSelect(r, t.id)}
                                             className={`px-1 py-0.5 rounded text-[8px] font-mono font-bold ${getTableCellClasses(t.id, tableColorIndex.get(t.id) ?? 0, r)} hover:opacity-80`}>
-                                            {t.name}{rSuffix[r] || ""}
+                                            {fmtTableName(t.name)}{rSuffix[r] || ""}
                                           </button>
                                         ))}
                                       </div>
