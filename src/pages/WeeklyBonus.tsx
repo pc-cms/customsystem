@@ -14,7 +14,7 @@ import {
 } from "@/hooks/use-weekly-bonus";
 import { useDailyResults } from "@/hooks/use-import-reports";
 import { fmtDateOnly } from "@/lib/format-date";
-import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
+import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, isExtraShift } from "@/lib/shift-colors";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
