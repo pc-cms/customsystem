@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { PageSection } from "@/components/layout/PageSection";
+import { PageSection } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
