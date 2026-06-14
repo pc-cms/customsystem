@@ -36,6 +36,10 @@ import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 import { usePlayerDailyAvgBets, useSetPlayerDailyAvgBet, type AvgBetGroup } from "@/hooks/use-player-daily-avg-bets";
 import { useCreatePlayerChipAdjustment } from "@/hooks/use-player-chip-adjustments";
+import { usePlayerDailyZones, useSetPlayerDailyZone } from "@/hooks/use-player-daily-zones";
+import { ZONE_VALUES, ZONE_LABELS, ZONE_CELL_CLASSES, ZONE_CHIP_CLASSES, ZONE_SORT_ORDER, type PlayerZone } from "@/lib/zone-colors";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Filter } from "lucide-react";
 
 
 
@@ -152,6 +156,8 @@ const PlayerStatistics = () => {
   // Daily avg bet (manual entry). Single-day only — for multi-day periods we don't show breakdown.
   const isSingleDay = fromDate === toDate;
   const { data: dailyAvgBets = [] } = usePlayerDailyAvgBets(isSingleDay ? fromDate : undefined);
+  const { data: zonesByPlayer = new Map<string, PlayerZone>() } = usePlayerDailyZones(isSingleDay ? fromDate : undefined);
+  const setZone = useSetPlayerDailyZone();
   const dailyAvgBetByPlayer = useMemo(() => {
     const m = new Map<string, { ar: number | null; bj: number | null; poker: number | null; club: number | null }>();
     dailyAvgBets.forEach(b => m.set(b.player_id, {
@@ -179,7 +185,7 @@ const PlayerStatistics = () => {
   );
   const [posFilter, setPosFilter] = useState<"mix" | "table" | "slots">("mix");
   
-  type SortKey = "card" | "name" | "level" | "visits" | "position" | "entry" | "exit" | "avgBet" | "dropR" | "inDrop" | "out" | "chipIn" | "chipOut" | "result";
+  type SortKey = "card" | "name" | "level" | "visits" | "position" | "entry" | "exit" | "zone" | "avgBet" | "dropR" | "inDrop" | "out" | "chipIn" | "chipOut" | "result";
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const toggleSort = (key: SortKey) => {
@@ -191,6 +197,8 @@ const PlayerStatistics = () => {
   const canTransfer = false;
   const canEditAvgBet = isSingleDay && roles.some(r => ["pit", "manager", "shift_manager", "super_admin"].includes(r));
   const canEditChips = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "shift_manager", "super_admin"].includes(r));
+  const canEditZone = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "shift_manager", "reception", "super_admin"].includes(r));
+  const [zoneFilter, setZoneFilter] = useState<Set<PlayerZone | "none">>(new Set(["S", "LG", "CP", "none"]));
 
 
   const { data: visits = [] } = useQuery({
@@ -391,9 +399,10 @@ const PlayerStatistics = () => {
         chipDelta: chip.in - chip.out,
         result,
         isPresent,
+        zone: (zonesByPlayer.get(v.player_id) ?? null) as PlayerZone | null,
       };
     }).filter(Boolean) as Array<NonNullable<ReturnType<typeof Object>>>;
-  }, [visits, players, visitFin, activeSessionByPlayer, tableNameById, playersDropSplit, playerInDropSum, dailyAvgBetByPlayer, lifetimeVisitsByPlayer, visitsByPlayer]);
+  }, [visits, players, visitFin, activeSessionByPlayer, tableNameById, playersDropSplit, playerInDropSum, dailyAvgBetByPlayer, lifetimeVisitsByPlayer, visitsByPlayer, zonesByPlayer]);
 
   // For multi-day periods, group rows per player so the same player isn't repeated for each visit.
   const displayRows = useMemo(() => {
@@ -435,6 +444,7 @@ const PlayerStatistics = () => {
     list = list.filter((r: any) => categoryFilter.has(r.category));
     if (posFilter === "table") list = list.filter((r: any) => r.position === "table");
     else if (posFilter === "slots") list = list.filter((r: any) => r.position === "slots");
+    list = list.filter((r: any) => zoneFilter.has((r.zone as PlayerZone) ?? "none"));
     if (search) {
       const q = search.toLowerCase();
       list = list.filter((r: any) =>
@@ -457,6 +467,7 @@ const PlayerStatistics = () => {
             case "position": return r.position === "table" ? (r.tableName ?? "zzz") : r.position;
             case "entry": return new Date(r.entryAt).getTime();
             case "exit": return r.exitAt ? new Date(r.exitAt).getTime() : 0;
+            case "zone": return r.zone ? ZONE_SORT_ORDER[r.zone as PlayerZone] : 9;
             case "avgBet": return r.avgBet;
             case "dropR": return r.dropR;
             case "inDrop": return r.inDrop;
@@ -480,7 +491,7 @@ const PlayerStatistics = () => {
       if (a.isPresent !== b.isPresent) return a.isPresent ? -1 : 1;
       return new Date(b.entryAt).getTime() - new Date(a.entryAt).getTime();
     });
-  }, [displayRows, tab, categoryFilter, posFilter, search, sortKey, sortDir]);
+  }, [displayRows, tab, categoryFilter, posFilter, zoneFilter, search, sortKey, sortDir]);
 
   const counts = useMemo(() => ({
     day: displayRows.length,
@@ -722,6 +733,17 @@ const PlayerStatistics = () => {
         <td className="px-2 py-1.5 font-mono text-[11px] text-center w-12">{r.visits || "·"}</td>
         <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
         <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
+        <td
+          className={`p-0 w-[52px] text-center align-middle ${r.zone ? ZONE_CELL_CLASSES[r.zone as PlayerZone] : ""}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ZonePicker
+            zone={(r.zone as PlayerZone | null) ?? null}
+            canEdit={canEditZone}
+            onPick={(z) => setZone.mutate({ playerId: r.playerId, businessDate: fromDate, zone: z })}
+          />
+        </td>
+        
         
         {showFinancials && (() => {
           const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
@@ -731,7 +753,7 @@ const PlayerStatistics = () => {
           };
           return (
             <>
-              <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[90px]" onClick={(e) => e.stopPropagation()}>
+              <td className={`px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[90px] ${r.zone ? ZONE_CELL_CLASSES[r.zone as PlayerZone] : ""}`} onClick={(e) => e.stopPropagation()}>
                 <AvgBetPopover
                   playerId={r.playerId}
                   businessDate={fromDate}
@@ -943,6 +965,68 @@ const PlayerStatistics = () => {
                           <H k="visits" align="left" title="Visits in selected period">Vis</H>
                           <H k="entry">Entry</H>
                           <H k="exit">Left</H>
+                          <th
+                            style={{ top: "var(--ppheader-h, 0px)" }}
+                            className="px-1 py-3 sticky bg-zinc-900 text-white z-20 font-bold whitespace-nowrap text-center"
+                          >
+                            <div className="flex items-center justify-center gap-1">
+                              <span
+                                onClick={() => toggleSort("zone")}
+                                className="cursor-pointer select-none hover:text-primary"
+                                title="Sort by zone: S → LG → CP"
+                              >
+                                Zone<SortIcon k="zone" />
+                              </span>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="p-0.5 rounded hover:bg-white/10"
+                                    title="Filter by zone"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Filter className={`w-3 h-3 ${zoneFilter.size < 4 ? "text-primary" : "opacity-60"}`} />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent align="end" className="w-40 p-2" onClick={(e) => e.stopPropagation()}>
+                                  <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 px-1">Filter zones</p>
+                                  <div className="space-y-1">
+                                    {(["S","LG","CP"] as PlayerZone[]).map(z => (
+                                      <label key={z} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/40 cursor-pointer text-xs">
+                                        <Checkbox
+                                          checked={zoneFilter.has(z)}
+                                          onCheckedChange={(v) => {
+                                            setZoneFilter(prev => {
+                                              const next = new Set(prev);
+                                              if (v) next.add(z); else next.delete(z);
+                                              return next;
+                                            });
+                                          }}
+                                        />
+                                        <span className={`inline-flex items-center justify-center min-w-[28px] h-5 px-1.5 rounded border text-[10px] font-mono font-bold ${ZONE_CHIP_CLASSES[z]}`}>{z}</span>
+                                        <span className="text-card-foreground">{ZONE_LABELS[z]}</span>
+                                      </label>
+                                    ))}
+                                    <label className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/40 cursor-pointer text-xs">
+                                      <Checkbox
+                                        checked={zoneFilter.has("none")}
+                                        onCheckedChange={(v) => {
+                                          setZoneFilter(prev => {
+                                            const next = new Set(prev);
+                                            if (v) next.add("none"); else next.delete("none");
+                                            return next;
+                                          });
+                                        }}
+                                      />
+                                      <span className="inline-flex items-center justify-center min-w-[28px] h-5 px-1.5 rounded border border-border text-[10px] font-mono text-muted-foreground">·</span>
+                                      <span className="text-muted-foreground">Unassigned</span>
+                                    </label>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+                          </th>
+                          
                           
                           {showFinancials && (
                             <>
@@ -966,6 +1050,7 @@ const PlayerStatistics = () => {
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-left uppercase tracking-wider font-bold sticky left-16 bg-[#F5D061] dark:bg-[#6B5A1A] text-amber-950 dark:text-amber-50 z-30">
                         Total
                       </td>
+                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
                       <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
@@ -998,7 +1083,7 @@ const PlayerStatistics = () => {
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={5 + (showFinancials ? 7 : 0)} className="px-2 py-8 text-center text-muted-foreground text-xs">
+                      <td colSpan={6 + (showFinancials ? 7 : 0)} className="px-2 py-8 text-center text-muted-foreground text-xs">
                         No players to display
                       </td>
                     </tr>
@@ -1250,6 +1335,60 @@ function InlineChipCell({
     </>
   );
 }
+
+function ZonePicker({
+  zone, canEdit, onPick,
+}: {
+  zone: PlayerZone | null;
+  canEdit: boolean;
+  onPick: (z: PlayerZone | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const label = zone ?? "·";
+  const baseBtn = `w-full h-7 flex items-center justify-center font-mono text-[11px] font-bold ${
+    zone ? "" : "text-muted-foreground/60"
+  }`;
+  if (!canEdit) {
+    return <div className={baseBtn} title={zone ? ZONE_LABELS[zone] : "No zone"}>{label}</div>;
+  }
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={`${baseBtn} hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer`}
+          title={zone ? ZONE_LABELS[zone] : "Pick zone"}
+        >
+          {label}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="center" className="w-auto p-1.5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1">
+          {(["S","LG","CP"] as PlayerZone[]).map(z => (
+            <button
+              key={z}
+              type="button"
+              onClick={() => { onPick(z); setOpen(false); }}
+              className={`px-2 py-1 rounded border text-[11px] font-mono font-bold hover:opacity-80 ${ZONE_CHIP_CLASSES[z]}`}
+              title={ZONE_LABELS[z]}
+            >
+              {z}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => { onPick(null); setOpen(false); }}
+            className="px-2 py-1 rounded border border-border text-[11px] font-mono text-muted-foreground hover:bg-muted"
+            title="Clear zone"
+          >
+            ·
+          </button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 
 export default PlayerStatistics;
 

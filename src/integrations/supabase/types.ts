@@ -5357,6 +5357,57 @@ export type Database = {
           },
         ]
       }
+      player_daily_zones: {
+        Row: {
+          business_date: string
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          player_id: string
+          updated_at: string
+          updated_by: string | null
+          zone: string
+        }
+        Insert: {
+          business_date: string
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          player_id: string
+          updated_at?: string
+          updated_by?: string | null
+          zone: string
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          player_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          zone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_daily_zones_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "player_daily_zones_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_groups: {
         Row: {
           casino_id: string
