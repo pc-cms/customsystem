@@ -4,8 +4,8 @@ import { toast } from "sonner";
 import { Receipt, CheckCircle, Plus, X, Trash2, Filter, GlassWater, ExternalLink, Printer } from "lucide-react";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { useExpenses, useCreateExpense, useApproveExpense, useDeleteExpense } from "@/hooks/use-casino-data";
-import { useCreateSlotsExpense, useUpdateExpenseFinCategory, useUpdateExpenseCategory, useCancelExpenseAsManager } from "@/hooks/use-expenses";
-import { useCreateOfficeExpense, useExpenseCategories } from "@/hooks/use-expense-categories";
+import { useCreateSlotsExpense, useCancelExpenseAsManager } from "@/hooks/use-expenses";
+import { useCreateOfficeExpense } from "@/hooks/use-expense-categories";
 import { useFinCategories } from "@/hooks/use-fin";
 import { useActiveShift } from "@/hooks/use-shift";
 import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
@@ -23,6 +23,9 @@ import { fmtDateOnly } from "@/lib/format-date";
 import PrintPortal from "@/components/cage/PrintPortal";
 import ExpensesDayReport from "@/components/closings/ExpensesDayReport";
 import { useCasino } from "@/lib/casino-context";
+import { CategoryCombobox } from "@/components/expenses/CategoryCombobox";
+import { EditExpenseDialog, type EditableExpense } from "@/components/expenses/EditExpenseDialog";
+import { Pencil } from "lucide-react";
 
 import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
 import { formatCurrency } from "@/lib/currency";
@@ -75,7 +78,7 @@ interface DraftRow {
   source: SourceVal;
   target: "casino" | "player" | "";
   player_name: string;
-  category: string;
+  /** Selected fin_categories.id — the single source of truth for category. */
   fin_category_id: string;
   amount: string;
   description: string;
@@ -86,7 +89,6 @@ const newDraft = (defaultSource: SourceVal): DraftRow => ({
   source: defaultSource,
   target: "",
   player_name: "",
-  category: "",
   fin_category_id: "",
   amount: "",
   description: "",
