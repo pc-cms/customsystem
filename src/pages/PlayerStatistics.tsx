@@ -489,7 +489,7 @@ const PlayerStatistics = () => {
       if (a.isPresent !== b.isPresent) return a.isPresent ? -1 : 1;
       return new Date(b.entryAt).getTime() - new Date(a.entryAt).getTime();
     });
-  }, [displayRows, tab, categoryFilter, posFilter, zoneFilter, search, sortKey, sortDir]);
+  }, [displayRows, tab, categoryFilter, zoneFilter, search, sortKey, sortDir]);
 
   const counts = useMemo(() => ({
     day: displayRows.length,
