@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 const ARUSHA_CASINO_ID = "48f4404f-7724-418c-8365-29af3998e113";
+const SYSTEM_USER_ID = "bf328d89-bf0a-46ab-ae1e-9b4914cc9811";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -47,6 +48,7 @@ Deno.serve(async (req) => {
           casino_id: ARUSHA_CASINO_ID,
           player_id: p.id,
           position: "hall",
+          checked_in_by: SYSTEM_USER_ID,
         });
         if (error) throw error;
         opened++;
