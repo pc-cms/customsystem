@@ -264,17 +264,46 @@ export default function FinancesMonthlyReportPage() {
       ))}
 
 
+      {/* COLLECTIONS — owner withdrawals, excluded from Grand Total expenses */}
+      {data?.collections && (
+        <GroupTable
+          key={data.collections.code}
+          group={data.collections}
+          expandedId={expanded}
+          onToggle={toggle}
+          usdRate={usdRate}
+          isNetwork={isNetwork}
+          showUsd={showUsd}
+          editMode={editMode}
+          year={year}
+          month={month}
+          allCategories={allCats || []}
+          mtd={mtd?.map || {}}
+          mtdMonthLabel={mtdMonthLabel}
+          onPlanCommit={(catId, currency, amount) =>
+            upsertBudget.mutate({ year, month, category_id: catId, currency, planned_amount: amount })
+          }
+          onRenameCategory={(catId, newName) =>
+            renameCategory.mutate({ id: catId, name: newName })
+          }
+          onMoveExpense={(id, newCatId) =>
+            moveExpense.mutate({ id, fin_category_id: newCatId })
+          }
+        />
+      )}
+
       {/* GRAND TOTAL */}
       {data && (
         <PageSection title="Grand Total" card>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
             <Kpi label="Plan Month TZS" v={data.grand.plan_month_tzs} />
             <Kpi label="Actual TZS" v={data.grand.actual_tzs} />
             <Kpi label="Remain TZS" v={data.grand.plan_month_tzs - data.grand.actual_tzs} signed />
+            <Kpi label="Collections TZS" v={data.collections?.totals.actual_tzs ?? 0} />
             <Kpi label="Expenses USD" v={Math.round(data.grand.actual_tzs / usdRate)} />
             <Kpi
-              label="Revenue USD"
-              v={Math.round((data.incomes.total - data.grand.actual_tzs) / usdRate)}
+              label="Net After Collections USD"
+              v={Math.round((data.incomes.total - data.grand.actual_tzs - (data.collections?.totals.actual_tzs ?? 0)) / usdRate)}
               signed
             />
           </div>
