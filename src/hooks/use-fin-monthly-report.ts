@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 
 const GROUP_ORDER = ["fixed", "tax", "variable", "salary", "petrol", "additional"] as const;
+const COLLECTIONS_GROUP = "collections";
 
 export type ReportExpense = {
   id: string;
