@@ -176,7 +176,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const isEditable = isToday && (!pastLock || isManager || isPit);
 
   // Inline role picker state
-  const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string; dropUp: boolean } | null>(null);
+  const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string; dropUp: boolean; dropLeft: boolean } | null>(null);
   // HR comment dialog state (opens after A/S/SP/LT to capture a short note)
   const [commentFor, setCommentFor] = useState<{ dealerId: string; dealerName: string; kind: "Absent" | "Sick" | "Suspend" | "Late"; label: string } | null>(null);
   const [commentText, setCommentText] = useState("");
@@ -197,11 +197,13 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       toast.error("Locked — manager access required");
       return;
     }
-    // Open dropdown upward when there is not enough space below
+    // Open dropdown upward when there is not enough space below; leftward when not enough on the right
     const rect = e.currentTarget.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceRight = window.innerWidth - rect.right;
     const dropUp = spaceBelow < 240;
-    setActiveCell({ dealerId, timeSlot, dropUp });
+    const dropLeft = spaceRight < 240;
+    setActiveCell({ dealerId, timeSlot, dropUp, dropLeft });
     // Force-refresh breaklist for this casino so the popup's "available tables"
     // list reflects rows added by other operators since the page last refetched.
     // Without this, off-screen assignments (e.g. Wilfred on AR1 at 20:00) may not
@@ -522,7 +524,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                           )}
                           {/* Inline role picker dropdown */}
                           {isActiveCell && (
-                            <div className={`absolute z-50 ${activeCell?.dropUp ? "bottom-8" : "top-8"} left-0 bg-popover border border-border rounded-md shadow-lg p-1 min-w-[100px]`}
+                            <div className={`absolute z-50 ${activeCell?.dropUp ? "bottom-8" : "top-8"} ${activeCell?.dropLeft ? "right-0" : "left-0"} bg-popover border border-border rounded-md shadow-lg p-1 min-w-[100px]`}
                               onMouseLeave={() => setActiveCell(null)}>
                               <div className="flex flex-wrap gap-0.5 mb-1">
                                 <button onClick={() => handleRoleSelect("BR")}
