@@ -952,6 +952,9 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     const trimmed = val.trim().toUpperCase();
     if (trimmed === "") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "" }); return; }
     if (trimmed === "A" || trimmed === "S" || trimmed === "SP") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: trimmed }); return; }
+    // Extra Middle = 11h, Extra Night = 8h
+    if (trimmed === "EM") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "11" }); return; }
+    if (trimmed === "EN") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "8" }); return; }
     const ms = trimmed.match(/^(\d+(?:\.\d+)?)S$/);
     if (ms) {
       const n = Number(ms[1]);
