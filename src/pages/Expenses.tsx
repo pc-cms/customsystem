@@ -657,87 +657,14 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                         </span>
                       </td>
                       <td className="px-3 py-2">
-                        <div className="flex items-center gap-1.5">
-                          {isManagerView && editingCatId === exp.id ? (
-                            <div className="min-w-[140px]">
-                              <Select
-                                value={exp.category}
-                                onValueChange={(v) => {
-                                  updateCat.mutate(
-                                    { id: exp.id, category: v, prev_category: exp.category },
-                                    { onSuccess: () => setEditingCatId(null) },
-                                  );
-                                }}
-                              >
-                                <SelectTrigger className="h-7 text-[11px]"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  {FALLBACK_CATS.map((c) => (
-                                    <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
-                                  ))}
-                                  <SelectItem value="pos_comp">POS Comp</SelectItem>
-                                  <SelectItem value="bar_charge">Bar charge</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => isManagerView && setEditingCatId(exp.id)}
-                              className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[exp.category] || CAT_COLORS.other} ${
-                                isManagerView ? "cursor-pointer hover:ring-1 hover:ring-primary" : "cursor-default"
-                              }`}
-                              title={isManagerView ? "Click to re-classify operational category" : undefined}
-                            >
-                              {catLabel}
-                            </button>
-                          )}
-                          {isManagerView && editingCatId === exp.id && (
-                            <button
-                              type="button"
-                              onClick={() => setEditingCatId(null)}
-                              className="text-[10px] text-muted-foreground hover:text-foreground"
-                              title="Cancel"
-                            >
-                              ✕
-                            </button>
-                          )}
-                          {isManagerView && editingFinCatId === exp.id ? (
-                            <div className="min-w-[180px]">
-                              <FinCategoryPicker
-                                value={exp.fin_category_id || ""}
-                                onChange={(v) => {
-                                  updateFinCat.mutate(
-                                    { id: exp.id, fin_category_id: v || null },
-                                    { onSuccess: () => { setEditingFinCatId(null); toast.success("Category updated"); } },
-                                  );
-                                }}
-                              />
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => isManagerView && setEditingFinCatId(exp.id)}
-                              className={`text-[10px] truncate max-w-[160px] ${
-                                exp.fin_category_id
-                                  ? "text-muted-foreground"
-                                  : "text-amber-600 dark:text-amber-400 italic"
-                              } ${isManagerView ? "hover:underline cursor-pointer" : "cursor-default"}`}
-                              title={isManagerView ? "Click to re-classify finance plan" : undefined}
-                            >
-                              → {exp.fin_category_id ? (finCatById[exp.fin_category_id]?.name || "—") : "Unassigned"}
-                            </button>
-                          )}
-                          {isManagerView && editingFinCatId === exp.id && (
-                            <button
-                              type="button"
-                              onClick={() => setEditingFinCatId(null)}
-                              className="text-[10px] text-muted-foreground hover:text-foreground"
-                              title="Cancel"
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </div>
+                        <span
+                          className="text-[11px] truncate max-w-[200px] inline-block"
+                          title={exp.fin_category_id ? (finCatById[exp.fin_category_id]?.name || "—") : "Unassigned"}
+                        >
+                          {exp.fin_category_id
+                            ? (finCatById[exp.fin_category_id]?.name || "—")
+                            : <span className="text-amber-600 dark:text-amber-400 italic">Unassigned</span>}
+                        </span>
                       </td>
 
 
