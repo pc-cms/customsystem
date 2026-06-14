@@ -26,7 +26,7 @@ import RotaLockButton from "@/components/rota/RotaLockButton";
 import RotaExcelButtons from "@/components/rota/RotaExcelButtons";
 
 
-const ROTA_SHIFTS = ["M", "N", "L", "E", "O"] as const;
+const ROTA_SHIFTS = ["M", "N", "L", "EM", "EN", "O"] as const;
 
 const SHIFT_COLORS = UNIFIED_SHIFT_COLORS;
 
@@ -34,7 +34,9 @@ const SHIFT_LABELS: Record<string, string> = {
   M: "Middle (17:45)",
   N: "Night (20:45)",
   L: "Leave",
-  E: "Extra",
+  E: "Extra (legacy)",
+  EM: "Extra Morning (11h)",
+  EN: "Extra Night (8h)",
   O: "Off (day off)",
 };
 
