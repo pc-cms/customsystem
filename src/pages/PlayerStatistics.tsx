@@ -36,6 +36,10 @@ import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 import { usePlayerDailyAvgBets, useSetPlayerDailyAvgBet, type AvgBetGroup } from "@/hooks/use-player-daily-avg-bets";
 import { useCreatePlayerChipAdjustment } from "@/hooks/use-player-chip-adjustments";
+import { usePlayerDailyZones, useSetPlayerDailyZone } from "@/hooks/use-player-daily-zones";
+import { ZONE_VALUES, ZONE_LABELS, ZONE_CELL_CLASSES, ZONE_CHIP_CLASSES, ZONE_SORT_ORDER, type PlayerZone } from "@/lib/zone-colors";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Filter } from "lucide-react";
 
 
 
