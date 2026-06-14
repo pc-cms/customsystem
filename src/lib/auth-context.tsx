@@ -240,6 +240,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     handleSignedOut();
+    clearSessionState();
     await supabase.auth.signOut();
   };
 
