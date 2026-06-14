@@ -16,9 +16,9 @@ export const ZONE_SORT_ORDER: Record<PlayerZone, number> = {
 };
 
 /**
- * Thin inset border applied to the whole <td> for both Zone and Bet columns.
- * No fill — keeps the row background untouched while still linking Zone↔Bet
- * visually. Text stays colored.
+ * Thin inset border applied to the Zone column cell only.
+ * No fill — keeps the row background untouched while still highlighting Zone.
+ * Text stays colored.
  */
 export const ZONE_CELL_CLASSES: Record<PlayerZone, string> = {
   S: "ring-1 ring-inset ring-amber-500/60 text-amber-700 dark:text-amber-300",
