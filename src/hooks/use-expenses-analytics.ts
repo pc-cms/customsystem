@@ -30,6 +30,8 @@ export interface ExpenseFilters {
   from?: string;
   to?: string;
   categories?: string[];
+  /** Filter by fin_categories.id (unified category system). */
+  finCategoryIds?: string[];
   target?: ExpenseTarget;
   status?: ExpenseStatus;
   source?: ExpenseSourceFilter;
@@ -52,6 +54,10 @@ export const useExpenseAnalytics = (
     if (filters?.categories && filters.categories.length > 0) {
       const set = new Set(filters.categories);
       filtered = filtered.filter((e) => set.has(e.category));
+    }
+    if (filters?.finCategoryIds && filters.finCategoryIds.length > 0) {
+      const set = new Set(filters.finCategoryIds);
+      filtered = filtered.filter((e: any) => e.fin_category_id && set.has(e.fin_category_id));
     }
     if (filters?.target && filters.target !== "all") {
       filtered = filtered.filter((e) =>
@@ -173,6 +179,7 @@ export const useExpenseAnalytics = (
     filters?.from,
     filters?.to,
     filters?.categories?.join(","),
+    filters?.finCategoryIds?.join(","),
     filters?.target,
     filters?.status,
     filters?.source,

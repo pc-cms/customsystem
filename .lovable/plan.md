@@ -1,42 +1,27 @@
-## Цель
-Каждый день в 13:00 EAT (10:00 UTC) все игроки казино Arusha, у которых `first_name` или `last_name` содержит «tips» (ILIKE), автоматически чекинятся в зал (position = `hall`).
+## Two fixes
 
-## Реализация
+### 1. Expenses — фильтр Category переключаем на `fin_categories`
+**Проблема**: На `/expenses` дропдаун Category до сих пор показывает старый хардкод `Food / Alcohol / Taxi / Hotel / Flight / Other / POS Comp / Bar charge` и фильтрует по `category_code`. Но все новые расходы пишутся с `category_code='other'` (категория теперь в `fin_category_id`), поэтому выбор любой категории = «0 строк», и UI выглядит как до рефакторинга.
 
-### 1. Edge function `auto-checkin-tips`
-`supabase/functions/auto-checkin-tips/index.ts`:
-- Через service role находит casino Arusha (`slug ILIKE 'arus%'` или `name ILIKE 'arusha%'`).
-- Берёт всех игроков этого казино, где `first_name ILIKE '%tips%' OR last_name ILIKE '%tips%'` и `status='active'`.
-- Для каждого: апсерт в `casino_visits` на сегодняшнюю дату (Africa/Dar_es_Salaam):
-  - если строки нет — `INSERT` с `position='hall'`, `checked_in_by = NULL` (system).
-  - если есть и `checked_out_at IS NOT NULL` — переоткрыть (`checked_out_at = NULL`).
-  - если уже открыт — пропустить.
-- Возвращает `{ casino, processed, opened, reopened, skipped }`.
-- Идемпотентна — безопасно дёргать вручную и повторно.
+**Правки**:
+- `src/hooks/use-expenses-analytics.ts` — добавить в `ExpenseFilters` поле `finCategoryIds?: string[]` и фильтр `e.fin_category_id ∈ set`. Включить ключ в `useMemo` deps.
+- `src/pages/Expenses.tsx`:
+  - State: заменить `category: string("all")` на `finCategoryFilter: string("")` (sessionStorage ключ `finCategoryFilter`).
+  - Дропдаун `<Select>` Category (строки 440-453) → `CategoryCombobox` с кнопкой `×` справа для сброса в `""` (=All).
+  - `filters` memo: убрать `categories`, передавать `finCategoryIds: finCategoryFilter ? [finCategoryFilter] : undefined`.
+  - `resetFilters` и KPI «Total» click handler: `setFinCategoryFilter("")` вместо `setCategory("all")`.
+  - Удалить неиспользуемый `FALLBACK_CATS`.
 
-### 2. Cron job
-Через `supabase--insert` (содержит секреты — НЕ migration):
-```sql
-select cron.schedule(
-  'auto-checkin-tips-arusha',
-  '0 10 * * *',  -- 10:00 UTC = 13:00 EAT
-  $$ select net.http_post(
-    url:='https://<ref>.supabase.co/functions/v1/auto-checkin-tips',
-    headers:='{"Content-Type":"application/json","apikey":"<anon>"}'::jsonb,
-    body:='{}'::jsonb
-  ); $$
-);
-```
-Расширения `pg_cron` и `pg_net` уже включены (используются другими кронами).
+### 2. Player Statistics — ZONE + BET: заменить заливку на тонкую рамку
+**Файл**: `src/lib/zone-colors.ts` — `ZONE_CELL_CLASSES` сейчас даёт сплошной фон (`bg-amber-500/25` и т.д.). Меняем на `ring-1 ring-inset ring-<color>/60` + цветной текст. Заливка исчезает, цветовая связка Zone↔Bet сохраняется тонким бордером.
 
-### 3. Версия
-Bump patch в `package.json` (cron + edge function = backend change).
+## Не трогаем
+- `ZONE_CHIP_CLASSES` (это маленькие чипы в пикере — остаются с заливкой, иначе нечитаемо).
+- `category_code='other'` остаётся для legacy NOT NULL.
+- `expense_categories` таблица, Admin `ExpenseCategoriesSettings`, EditExpenseDialog, MonthlyReport — без изменений.
+- БД, миграции, RPC, edge functions, package.json version (чисто UI).
 
-## Что НЕ меняется
-- UI, страницы Guests/Reception — без изменений.
-- Никаких миграций схемы; используется существующая таблица `casino_visits` с её уникальным индексом `(casino_id, player_id, date)`.
-- Логика чекина соответствует ручной из `Guests.tsx` (reopen vs insert).
-
-## Замечания
-- Если cashier/reception захотят check-out — обычная кнопка работает как раньше.
-- Если в Arusha нет ни одного игрока с TIPS в имени — функция вернёт `processed: 0`, без ошибки.
+## Файлы
+- `src/lib/zone-colors.ts`
+- `src/hooks/use-expenses-analytics.ts`
+- `src/pages/Expenses.tsx`
