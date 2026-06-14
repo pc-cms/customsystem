@@ -247,6 +247,8 @@ export default function FinancesMonthlyReportPage() {
           year={year}
           month={month}
           allCategories={allCats || []}
+          mtd={mtd?.map || {}}
+          mtdMonthLabel={mtdMonthLabel}
           onPlanCommit={(catId, currency, amount) =>
             upsertBudget.mutate({ year, month, category_id: catId, currency, planned_amount: amount })
           }
