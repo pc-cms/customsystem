@@ -1,58 +1,77 @@
+## Что меняется
 
-# Drop R / Drop V — переход на per-day peak NEP
+Добавить новую колонку **Zone** в таблице Player Statistics — сразу после колонки **Left**. Хранится `(player_id, casino_id, business_date) → zone ∈ {S, LG, CP}`, выбирается вручную (по умолчанию пусто). Колонка имеет сортировку, фильтр в шапке, цветную квадратную заливку по всей ячейке, и автоматически перекрашивает ячейку **Bet** той же строки в тот же цвет.
 
-## Новая формула (единая для всех экранов)
+## Цвета зон (одна палитра для Zone и для Bet)
 
-Для каждой пары `(player, business_day)`:
+| Код | Игра | Tailwind (light/dark) |
+|---|---|---|
+| `S`  | Slots       | `bg-amber-500/20 text-amber-800 dark:bg-amber-500/25 dark:text-amber-200` |
+| `LG` | Live Game   | `bg-sky-500/20 text-sky-800 dark:bg-sky-500/25 dark:text-sky-200` |
+| `CP` | Club Poker  | `bg-purple-500/20 text-purple-800 dark:bg-purple-500/25 dark:text-purple-200` |
 
-1. Стартуем `NEP_day = 0`, `peak_day = 0`, `total_in_day = 0`.
-2. Идём по транзакциям дня по времени (cancelled игнорируем):
-   - `in` / `buy`: `NEP_day += amount`; `peak_day = max(peak_day, NEP_day)`; `total_in_day += amount`.
-   - `out` / `cashout`: `NEP_day -= amount`.
-3. По итогам дня:
-   - `Drop R (External) = peak_day`
-   - `Drop V (Recycled) = total_in_day − peak_day`
-4. **Lifetime / period** = сумма дневных `Drop R` и `Drop V` по всем дням внутри окна. История за пределами окна НЕ влияет.
+Пустая зона → нейтральный `text-muted-foreground` для обоих столбцов.
 
-**Per-table split (один peak на игрока в день, разбивка пропорциональна IN по столам):**
-- Считаем `in_by_table[t]` за день.
-- `dropR_table[t] = peak_day × in_by_table[t] / total_in_day`
-- `dropV_table[t] = (total_in_day − peak_day) × in_by_table[t] / total_in_day`
-- Остаток от округления добивается в стол с максимальным IN.
+## База данных (миграция)
 
-Проверка на Леме (Arusha, 13.06.2026): `peak_day = 875 000`, `total_in_day = 1 245 000` → Drop R = 875k, Drop V = 370k. ✅
+Новая таблица `player_daily_zones`:
 
-## Затрагиваемые поверхности
+```
+id          uuid PK
+casino_id   uuid NOT NULL
+player_id   uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE
+business_date  date NOT NULL
+zone        text NOT NULL CHECK (zone IN ('S','LG','CP'))
+created_by  uuid
+created_at, updated_at  timestamptz
+UNIQUE (casino_id, player_id, business_date)
+```
 
-**DB (миграция):**
-- `compute_player_drop_split(player_id, from, to)` — переписать на per-day peak, суммировать по дням внутри `[from, to]`.
-- `compute_players_drop_split(casino_id, from, to)` — то же, итог по каждому игроку.
-- `compute_tables_drop_split(casino_id, from, to)` — пропорциональная разбивка peak-day по столам.
-- `player_drop_split_lifetime(player_id)` (если используется в `player_economy`-вью) — переписать как сумма всех `peak_day` игрока. Обновить вьюшку `player_economy`.
-- Бизнес-день определяем через существующую `business_date_of(created_at)` (07:00 EAT rollover) — уже есть в БД.
-- День попадает в окно `[from, to]`, если граница дня (07:00 EAT начала) лежит в окне; границы — как сейчас в RPC.
+GRANT'ы → `authenticated` (CRUD) + `service_role` (ALL). RLS:
+- SELECT: все аутентифицированные в рамках своего casino_id (как у `player_daily_avg_bets`).
+- INSERT/UPDATE/DELETE: роли `pit`, `manager`, `shift_manager`, `reception`, `super_admin` (через `has_role`).
 
-**Frontend:**
-- `src/lib/nep-split.ts` — переписать `splitPlayerWindow` / `splitPlayersWindow` / `splitTablesWindow` по новому правилу. Сигнатуры и возвращаемые типы сохраняем.
-- `src/hooks/use-drop-split.ts` — без изменений (только дергает RPC).
-- Все потребители (`PlayerProfile`, `PlayerStatistics`, `Tables`, `Dashboard`, `Reports`, `ActivePlayers`, `TableSeatingDialog`, `SeatedPlayerChip`, `PlayerPreviewHeader`, `PlayerVisitsBreakdown`, `PlayerNameAutocomplete`, `PlayerSearch`) — без правок, они уже читают из RPC/хелперов.
+Индексы: `(casino_id, business_date)`, `(player_id)`. Триггер `update_updated_at_column`.
 
-**Memory:**
-- Обновить `mem://features/nep-split` — новая формула, per-day reset, peak-NEP.
+Регистрация в `sync_table_registry` чтобы cms-sync реплицировала запись между casino-нодами.
 
-**Версия:** auto-bump patch в `package.json` (backend change).
+## Фронтенд
 
-## Что НЕ меняется
+### Новый хук `src/hooks/use-player-daily-zones.ts`
+- `usePlayerDailyZones(businessDate)` → `Map<player_id, 'S'|'LG'|'CP'>` для текущего casino.
+- `useSetPlayerDailyZone()` — upsert `(player_id, business_date, zone)`, delete при `null`. Инвалидация query-ключа.
 
-- `NepTx` тип, имена RPC, имена полей результата (`drop_r` / `drop_recycled`).
-- Cancelled (`cancelled_at IS NOT NULL`) полностью игнорируются (как сейчас).
-- Tracker / Chip Count / shifts.tables_result — не трогаем.
+### `src/lib/zone-colors.ts` (новый)
+- `ZONE_LABELS = { S:'Slots', LG:'Live Game', CP:'Club Poker' }`
+- `ZONE_CELL_CLASSES: Record<Zone, string>` — те самые tailwind-комбо выше (полная квадратная заливка td).
 
-## Sanity-чеки после миграции
+### `src/pages/PlayerStatistics.tsx`
 
-- Лема Arusha сегодня → Drop R = 875 000, Drop V = 370 000.
-- Любой игрок без cashout-ов → Drop R = total IN, Drop V = 0.
-- Игрок с одним buy-in 100k и без выдач → Drop R = 100k.
-- Игрок, который зашёл 100k, выдали 50k, зашёл ещё 30k → peak = 100k, total_in = 130k → Drop R = 100k, Drop V = 30k.
+1. Импорт `usePlayerDailyZones`, `useSetPlayerDailyZone`, `ZONE_CELL_CLASSES`.
+2. Подключить `const { data: zonesByPlayer = new Map() } = usePlayerDailyZones(isSingleDay ? fromDate : undefined);` — поле работает только в режиме одного дня (как `dailyAvgBetByPlayer`); в multi-day показываем зону игрока, если она единственная за период (агрегируем в `displayRows`).
+3. Расширить `SortKey` → добавить `'zone'`.
+4. Добавить `zoneFilter: Set<Zone | 'none'>` в state, default = все четыре.
+5. В `filtered` — фильтр по `zoneFilter`; в sorter — case `'zone'` (`S < LG < CP < none`).
+6. **Шапка** (после `<H k="exit">Left</H>`):
+   - `<th>` с двумя элементами: иконка-сортировка `Zone` и Popover-фильтр (чекбоксы S/LG/CP/None) — как уже сделано для других колонок в проекте.
+7. **Ячейка строки** — новая `<td>` БЕЗ внутренних padding-классов, чтобы заливка была квадратной:
+   - класс `${ZONE_CELL_CLASSES[zone] ?? ''} p-0 w-[44px] text-center align-middle`.
+   - Внутри `<button>` с popover-выбором (S/LG/CP/Clear). Read-only если `!canEditZone`.
+   - `canEditZone = isSingleDay && fromDate === today && roles ∈ {pit, manager, shift_manager, reception, super_admin}`.
+8. **Ячейка Bet** — `<td>` получает класс зоны:
+   - `className={`px-2 py-1.5 font-mono text-sm text-right ... ${ZONE_CELL_CLASSES[zone] ?? ''}`}`
+   - Так весь td заливается тем же цветом — визуально парная связка Zone↔Bet.
+9. Total row: пустые `<td>` под Zone (заливка не нужна).
+10. `colSpan` в "No players" — увеличить на 1.
 
-Готов к реализации.
+### Никаких изменений в:
+- `nep-split.ts`, расчётах Drop/Result, типах transactions, других экранах.
+- `PlayerProfile`, Dashboard и др. — Zone живёт только в Statistics.
+
+## Версия
+
+Backend изменение (новая таблица + RLS + sync registry) → авто-bump patch в `package.json`.
+
+## Memory
+
+Добавить `mem://features/player-zone-tagging` с описанием новой колонки и палитры; индекс в `Players`.
