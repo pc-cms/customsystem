@@ -158,15 +158,18 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
               {transfers.length === 0 ? (
                 <tr><td colSpan={4} className="text-center text-muted-foreground text-sm py-6">No transfers yet</td></tr>
               ) : transfers.map(tr => {
-                const opt = TYPE_MAP.get(tr.transfer_type)!;
+                const opt = TYPE_MAP.get(tr.transfer_type);
                 const amt = Number(tr.amount);
                 // Net effect on the cage: 'in' adds, 'out' subtracts. Negative amounts flip the sign.
                 const signed = (tr.direction === "in" ? 1 : -1) * amt;
                 const positive = signed >= 0;
+                const toneCls = opt
+                  ? `${opt.tone.bg} ${opt.tone.text} ${opt.tone.border}`
+                  : "bg-muted text-muted-foreground border-border";
                 return (
                   <tr key={tr.id} className={`border-b border-border last:border-0 ${positive ? "bg-emerald-500/5" : "bg-red-500/5"}`}>
                     <td className="px-3 py-2">
-                      <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded border ${opt.tone.bg} ${opt.tone.text} ${opt.tone.border}`}>
+                      <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded border ${toneCls}`}>
                         {SLOTS_TRANSFER_LABEL[tr.transfer_type]}{amt < 0 ? " ⟲" : ""}
                       </span>
                     </td>
