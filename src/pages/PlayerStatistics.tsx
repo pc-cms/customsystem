@@ -1336,5 +1336,59 @@ function InlineChipCell({
   );
 }
 
+function ZonePicker({
+  zone, canEdit, onPick,
+}: {
+  zone: PlayerZone | null;
+  canEdit: boolean;
+  onPick: (z: PlayerZone | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const label = zone ?? "·";
+  const baseBtn = `w-full h-7 flex items-center justify-center font-mono text-[11px] font-bold ${
+    zone ? "" : "text-muted-foreground/60"
+  }`;
+  if (!canEdit) {
+    return <div className={baseBtn} title={zone ? ZONE_LABELS[zone] : "No zone"}>{label}</div>;
+  }
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={`${baseBtn} hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer`}
+          title={zone ? ZONE_LABELS[zone] : "Pick zone"}
+        >
+          {label}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="center" className="w-auto p-1.5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1">
+          {(["S","LG","CP"] as PlayerZone[]).map(z => (
+            <button
+              key={z}
+              type="button"
+              onClick={() => { onPick(z); setOpen(false); }}
+              className={`px-2 py-1 rounded border text-[11px] font-mono font-bold hover:opacity-80 ${ZONE_CHIP_CLASSES[z]}`}
+              title={ZONE_LABELS[z]}
+            >
+              {z}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => { onPick(null); setOpen(false); }}
+            className="px-2 py-1 rounded border border-border text-[11px] font-mono text-muted-foreground hover:bg-muted"
+            title="Clear zone"
+          >
+            ·
+          </button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+
 export default PlayerStatistics;
 
