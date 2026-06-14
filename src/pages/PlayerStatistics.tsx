@@ -732,7 +732,7 @@ const PlayerStatistics = () => {
         <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{formatTime(r.entryAt)}</td>
         <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.exitAt ? formatTime(r.exitAt) : "·"}</td>
         <td
-          className={`p-0 w-[52px] text-center align-middle ${r.zone ? ZONE_CELL_CLASSES[r.zone as PlayerZone] : ""}`}
+          className={`p-0 w-[44px] text-center align-middle ${r.zone ? ZONE_CELL_CLASSES[r.zone as PlayerZone] : ""}`}
           onClick={(e) => e.stopPropagation()}
         >
           <ZonePicker
