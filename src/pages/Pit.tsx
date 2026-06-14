@@ -855,7 +855,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
             {days.map(day => {
               const count = activeDealers.filter(d => {
                 const s = getDisplayShift(d.id, day)?.shift;
-                return s === "M" || s === "N" || s === "E";
+                return s === "M" || s === "N" || isExtraShift(s);
               }).length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
             })}
