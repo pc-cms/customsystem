@@ -197,6 +197,8 @@ const PlayerStatistics = () => {
   const canTransfer = false;
   const canEditAvgBet = isSingleDay && roles.some(r => ["pit", "manager", "shift_manager", "super_admin"].includes(r));
   const canEditChips = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "shift_manager", "super_admin"].includes(r));
+  const canEditZone = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "shift_manager", "reception", "super_admin"].includes(r));
+  const [zoneFilter, setZoneFilter] = useState<Set<PlayerZone | "none">>(new Set(["S", "LG", "CP", "none"]));
 
 
   const { data: visits = [] } = useQuery({
