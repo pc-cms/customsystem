@@ -840,15 +840,15 @@ const CloseTablesForm = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
                 <span className="text-sm font-semibold text-card-foreground">{table.name}</span>
                 <span className="text-xs text-muted-foreground ml-2">({table.game})</span>
               </label>
-              <span className={`font-mono text-sm font-bold ${result >= 0 ? "text-success" : "text-destructive"}`}>
+              <span className={`font-mono text-lg font-bold ${result >= 0 ? "text-success" : "text-destructive"}`}>
                 {result >= 0 ? "+" : ""}{formatCurrency(result)}
               </span>
             </div>
             {distribution.length > 0 && (
-              <div className="flex flex-wrap gap-1 ml-8">
+              <div className="flex flex-wrap gap-1.5 ml-8">
                 {distribution.map(({ denom, diff }) => (
-                  <span key={denom} className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${diff > 0 ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
-                    {denom}: {diff > 0 ? `+${diff}` : diff}
+                  <span key={denom} className={`text-xs font-mono px-2 py-1 rounded-md ${diff > 0 ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
+                    {formatNumberSpaces(denom)}: {diff > 0 ? `+${formatNumberSpaces(diff)}` : formatNumberSpaces(diff)}
                   </span>
                 ))}
               </div>
