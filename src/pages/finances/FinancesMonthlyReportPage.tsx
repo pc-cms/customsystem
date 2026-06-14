@@ -153,6 +153,43 @@ export default function FinancesMonthlyReportPage() {
       r += 2;
     }
 
+    // Collections section (excluded from grand)
+    if (data.collections) {
+      const col = data.collections;
+      ws.mergeCells(`A${r}:K${r}`);
+      const cc = ws.getCell(`A${r}`);
+      cc.value = col.name;
+      cc.font = { bold: true, size: 12 };
+      cc.fill = groupFill as any;
+      r++;
+      writeHeader();
+      for (const c of col.categories) {
+        const remTzs = c.plan_month_tzs - c.actual_tzs;
+        const pctVal = c.plan_month_tzs ? c.actual_tzs / c.plan_month_tzs : null;
+        const row = ws.getRow(r);
+        row.values = [c.name, c.plan_year_tzs, c.plan_year_usd, c.plan_month_tzs, c.plan_month_usd, c.actual_tzs, c.actual_usd, pctVal, remTzs, c.plan_month_usd - c.actual_usd, c.plan_month_tzs ? remTzs / c.plan_month_tzs : null];
+        for (let i = 2; i <= 11; i++) {
+          const cell = row.getCell(i);
+          cell.numFmt = (i === 8 || i === 11) ? "0%" : "# ##0;[Red](# ##0);—";
+          cell.alignment = { horizontal: "right" };
+        }
+        r++;
+      }
+      const tr = ws.getRow(r);
+      tr.values = ["Total", col.totals.plan_year_tzs, col.totals.plan_year_usd, col.totals.plan_month_tzs, col.totals.plan_month_usd, col.totals.actual_tzs, col.totals.actual_usd, null, col.totals.plan_month_tzs - col.totals.actual_tzs, col.totals.plan_month_usd - col.totals.actual_usd, null];
+      for (let i = 1; i <= 11; i++) {
+        const cell = tr.getCell(i);
+        cell.font = { bold: true };
+        cell.fill = totalFill as any;
+        if (i > 1) {
+          cell.numFmt = (i === 8 || i === 11) ? "0%" : "# ##0;[Red](# ##0);—";
+          cell.alignment = { horizontal: "right" };
+        }
+      }
+      r += 2;
+    }
+
+
     // Grand total
     ws.mergeCells(`A${r}:K${r}`);
     ws.getCell(`A${r}`).value = "GRAND TOTAL";
