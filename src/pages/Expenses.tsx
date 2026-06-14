@@ -782,6 +782,12 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           />
         </div>
       </PrintPortal>
+
+      <EditExpenseDialog
+        open={!!editingExpense}
+        onOpenChange={(o) => { if (!o) setEditingExpense(null); }}
+        expense={editingExpense}
+      />
     </div>
 
   );
