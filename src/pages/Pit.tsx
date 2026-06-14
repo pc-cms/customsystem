@@ -35,7 +35,7 @@ const SHIFT_LABELS: Record<string, string> = {
   N: "Night (20:45)",
   L: "Leave",
   E: "Extra (legacy)",
-  EM: "Extra Morning (11h)",
+  EM: "Extra Middle (11h)",
   EN: "Extra Night (8h)",
   O: "Off (day off)",
 };
