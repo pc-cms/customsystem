@@ -399,9 +399,10 @@ const PlayerStatistics = () => {
         chipDelta: chip.in - chip.out,
         result,
         isPresent,
+        zone: (zonesByPlayer.get(v.player_id) ?? null) as PlayerZone | null,
       };
     }).filter(Boolean) as Array<NonNullable<ReturnType<typeof Object>>>;
-  }, [visits, players, visitFin, activeSessionByPlayer, tableNameById, playersDropSplit, playerInDropSum, dailyAvgBetByPlayer, lifetimeVisitsByPlayer, visitsByPlayer]);
+  }, [visits, players, visitFin, activeSessionByPlayer, tableNameById, playersDropSplit, playerInDropSum, dailyAvgBetByPlayer, lifetimeVisitsByPlayer, visitsByPlayer, zonesByPlayer]);
 
   // For multi-day periods, group rows per player so the same player isn't repeated for each visit.
   const displayRows = useMemo(() => {
