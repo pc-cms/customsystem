@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useUpsertWarningCommentByKey } from "@/hooks/use-staff-warnings";
+import { isExtraShift } from "@/lib/shift-colors";
 
 const CATEGORY_LABELS: Record<string, string> = {
   trainee: "T",
