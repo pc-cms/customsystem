@@ -381,6 +381,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         mobile: closingMobile,
         cashless_in_providers: cashlessInProviders,
         cashless_out_providers: cashlessOutProviders,
+        cashless_final_providers: cashlessFinalProviders,
+
 
         cards: { count: closingCards, value_tzs: cardDepositTzs },
         rateMap,
