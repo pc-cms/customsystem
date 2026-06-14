@@ -485,7 +485,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                     {TIME_SLOTS.map(slot => {
                       const cell = getCellData(dealer.id, slot);
                       const table = cell?.table_id ? assignableTables.find(t => t.id === cell.table_id) : null;
-                      const tableName = table?.name ?? null;
+                      const tableName = fmtTableName(table?.name) ?? null;
                       const displayLabel = cell
                         ? tableName
                           ? `${tableName}${roleSuffix[cell.role] || ""}`
