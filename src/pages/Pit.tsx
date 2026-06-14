@@ -670,6 +670,15 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   const handleKeyDown = (e: React.KeyboardEvent, dealerId: string, day: number) => {
     const key = e.key.toUpperCase();
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    // Pressing "E" toggles between Extra Morning (EM) and Extra Night (EN).
+    if (key === "E") {
+      e.preventDefault();
+      const current = getRotaEntry(dealerId, day)?.shift;
+      const next = current === "EM" ? "EN" : "EM";
+      setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: next as any });
+      focusNextCell(e.target as HTMLElement);
+      return;
+    }
     if (ROTA_SHIFTS.includes(key as typeof ROTA_SHIFTS[number])) {
       e.preventDefault();
       setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: key as typeof ROTA_SHIFTS[number] });
