@@ -889,22 +889,54 @@ const PlayerStatistics = () => {
           </TabsList>
 
           <div className="flex items-center gap-2">
-            <div className="flex items-center rounded-md border border-border overflow-hidden h-8">
-              {(["mix", "table", "slots"] as const).map(p => (
+            <Popover>
+              <PopoverTrigger asChild>
                 <button
-                  key={p}
                   type="button"
-                  onClick={() => setPosFilter(p)}
-                  className={`px-2.5 h-full text-[11px] uppercase tracking-wide transition-colors ${
-                    posFilter === p
-                      ? "bg-primary/15 text-primary font-semibold"
-                      : "text-muted-foreground hover:bg-muted/40"
+                  className={`flex items-center gap-1.5 px-2.5 h-8 rounded-md border border-border text-[11px] font-mono font-black uppercase tracking-wide transition-colors ${
+                    zoneFilter.size < 4 ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted/40"
                   }`}
                 >
-                  {p === "mix" ? "Mix" : p === "table" ? "Table" : "Slot"}
+                  <span>Z</span>
+                  <Filter className="w-3 h-3" />
                 </button>
-              ))}
-            </div>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-40 p-2">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 px-1">Filter zones</p>
+                <div className="space-y-1">
+                  {(["S","LG","CP"] as PlayerZone[]).map(z => (
+                    <label key={z} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/40 cursor-pointer text-xs">
+                      <Checkbox
+                        checked={zoneFilter.has(z)}
+                        onCheckedChange={(v) => {
+                          setZoneFilter(prev => {
+                            const next = new Set(prev);
+                            if (v) next.add(z); else next.delete(z);
+                            return next;
+                          });
+                        }}
+                      />
+                      <span className={`inline-flex items-center justify-center min-w-[28px] h-5 px-1.5 rounded border text-[10px] font-mono font-black ${ZONE_CHIP_CLASSES[z]}`}>{z}</span>
+                      <span className="text-card-foreground">{ZONE_LABELS[z]}</span>
+                    </label>
+                  ))}
+                  <label className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-muted/40 cursor-pointer text-xs">
+                    <Checkbox
+                      checked={zoneFilter.has("none")}
+                      onCheckedChange={(v) => {
+                        setZoneFilter(prev => {
+                          const next = new Set(prev);
+                          if (v) next.add("none"); else next.delete("none");
+                          return next;
+                        });
+                      }}
+                    />
+                    <span className="inline-flex items-center justify-center min-w-[28px] h-5 px-1.5 rounded border border-border text-[10px] font-mono text-muted-foreground font-black">·</span>
+                    <span className="text-muted-foreground">Unassigned</span>
+                  </label>
+                </div>
+              </PopoverContent>
+            </Popover>
             <CategoryFilter selected={categoryFilter} onChange={setCategoryFilter} />
             <div className="relative w-56">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
