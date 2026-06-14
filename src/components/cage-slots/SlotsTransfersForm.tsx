@@ -38,7 +38,7 @@ const SlotsTransfersForm = ({ shiftId }: Props) => {
   const { data: transfers = [] } = useSlotsTransfers(shiftId);
   const create = useCreateSlotsTransfer();
 
-  const [type, setType] = useState<SlotsTransferType>("fill");
+  const [type, setType] = useState<SlotsTransferType>("collection");
   const [amount, setAmount] = useState("");
   const [sign, setSign] = useState<1 | -1>(1);
   const [note, setNote] = useState("");
