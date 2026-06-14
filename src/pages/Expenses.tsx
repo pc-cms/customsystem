@@ -559,7 +559,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                 <th className="text-left px-3 py-2">Target</th>
                 <th className="text-left px-3 py-2">Player</th>
                 <th className="text-left px-3 py-2">Category</th>
-                {isManagerView && <th className="text-left px-3 py-2 w-[200px]">Finance Plan</th>}
+                
                 <th className="text-right px-3 py-2">Amount (TZS)</th>
                 <th className="text-left px-3 py-2">Description</th>
                 <th className="text-center px-3 py-2 w-[140px]">Action</th>
