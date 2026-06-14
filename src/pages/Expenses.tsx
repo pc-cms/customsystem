@@ -175,7 +175,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   const resetFilters = () => {
     setFrom(businessDate);
     setTo(businessDate);
-    setCategory("all");
+    setFinCategoryFilter("");
     setTarget("all");
     setStatus("all");
     setSource(sourceLocked ? roleDefaultSource : "all");
