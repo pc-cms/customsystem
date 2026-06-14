@@ -123,7 +123,12 @@ export const CellPicker: React.FC<CellPickerProps> = ({
                       opt.className || "bg-muted text-muted-foreground"
                     } ${value === opt.value ? "ring-1 ring-primary" : ""}`}
                   >
-                    {opt.label}
+                    <span>{opt.label}</span>
+                    {opt.title && (
+                      <span className="block text-[8px] font-normal opacity-80 leading-tight">
+                        {opt.title}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>

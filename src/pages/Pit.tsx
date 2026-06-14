@@ -670,7 +670,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   const handleKeyDown = (e: React.KeyboardEvent, dealerId: string, day: number) => {
     const key = e.key.toUpperCase();
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-    // Pressing "E" toggles between Extra Morning (EM) and Extra Night (EN).
+    // Pressing "E" toggles between Extra Middle (EM) and Extra Night (EN).
     if (key === "E") {
       e.preventDefault();
       const current = getRotaEntry(dealerId, day)?.shift;
@@ -952,6 +952,9 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     const trimmed = val.trim().toUpperCase();
     if (trimmed === "") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "" }); return; }
     if (trimmed === "A" || trimmed === "S" || trimmed === "SP") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: trimmed }); return; }
+    // Extra Middle = 11h, Extra Night = 8h
+    if (trimmed === "EM") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "11" }); return; }
+    if (trimmed === "EN") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "8" }); return; }
     const ms = trimmed.match(/^(\d+(?:\.\d+)?)S$/);
     if (ms) {
       const n = Number(ms[1]);
@@ -996,7 +999,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
         const current = getValue(d.id, day);
         if (current !== "") continue;
 
-        // Pit Bosses on Morning shift work 11 hours; Extra Morning (EM) = 11h,
+        // Pit Bosses on Middle shift work 11 hours; Extra Middle (EM) = 11h,
         // Extra Night (EN) = 8h; everyone else defaults to 9.
         let fillValue = "9";
         if ((d as any).is_pit_boss && rotaShift === "M") fillValue = "11";
@@ -1081,6 +1084,10 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                         { value: "A", label: "A", title: "Absent", className: ATT_COLORS["A"] },
                         { value: "S", label: "S", title: "Sick", className: ATT_COLORS["S"] },
                       ]},
+                      { label: "Shifts", options: [
+                        { value: "EM", label: "EM", title: SHIFT_LABELS["EM"], className: UNIFIED_SHIFT_COLORS["EM"] },
+                        { value: "EN", label: "EN", title: SHIFT_LABELS["EN"], className: UNIFIED_SHIFT_COLORS["EN"] },
+                      ]},
                       { label: "Hours", options: Array.from({ length: 12 }, (_, i) => i + 1).map(n => ({
                         value: String(n), label: String(n),
                         className: "bg-card-foreground/5 text-card-foreground",
@@ -1094,6 +1101,15 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                     onKeyDown={e => {
                       const k = e.key.toUpperCase();
                       if (k === "A" || k === "S") { e.preventDefault(); handleSave(dealer.id, day, k); return; }
+                      if (k === "E") {
+                        e.preventDefault();
+                        const current = getValue(dealer.id, day);
+                        // Toggle between EM (11h) and EN (8h) based on current saved value or rota
+                        const rotaShift = getRotaShift(dealer.id, day);
+                        const next = current === "11" || (current === "" && rotaShift === "EM") ? "EN" : "EM";
+                        handleSave(dealer.id, day, next);
+                        return;
+                      }
                       if (/^[0-9]$/.test(k)) { e.preventDefault(); handleSave(dealer.id, day, k); return; }
                       if (k === "BACKSPACE" || k === "DELETE") { e.preventDefault(); handleSave(dealer.id, day, ""); return; }
                     }}
