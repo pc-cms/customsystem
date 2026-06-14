@@ -336,7 +336,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       if (dealerShift === "N") {
         const nIdx = TIME_SLOTS.indexOf("21:00");
         shiftStartIdx = nIdx >= 0 ? nIdx : 0;
-      } else if (dealerShift === "E") {
+      } else if (isExtraShift(dealerShift)) {
         const occupiedIdx = breaklist
           .filter((b: any) => b.dealer_id === activeCell.dealerId && b.role !== "S")
           .map((b: any) => TIME_SLOTS.indexOf(b.time_slot as string))
