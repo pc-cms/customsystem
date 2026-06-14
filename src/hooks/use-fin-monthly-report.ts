@@ -209,7 +209,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         byGroup.set(c.group_code, arr);
       });
 
-      const groups: ReportGroup[] = GROUP_ORDER.filter((g) => byGroup.has(g)).map((g) => {
+      const buildGroup = (g: string): ReportGroup => {
         const list = (byGroup.get(g) || []).sort((a, b) => a.sort_order - b.sort_order);
         const first = (cats.data || []).find((c: any) => c.group_code === g);
         const totals = list.reduce(
@@ -224,7 +224,10 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           { plan_year_tzs: 0, plan_year_usd: 0, plan_month_tzs: 0, plan_month_usd: 0, actual_tzs: 0, actual_usd: 0 },
         );
         return { code: g, name: first?.group_name || g, categories: list, totals };
-      });
+      };
+
+      const groups: ReportGroup[] = GROUP_ORDER.filter((g) => byGroup.has(g)).map(buildGroup);
+      const collections: ReportGroup | null = byGroup.has(COLLECTIONS_GROUP) ? buildGroup(COLLECTIONS_GROUP) : null;
 
       const grand = groups.reduce(
         (s, g) => ({
@@ -239,6 +242,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       return {
         incomes: { live_game: liveGame, slots: slotsIncome, other, total: liveGame + slotsIncome + other },
         groups,
+        collections,
         grand,
       };
     },
