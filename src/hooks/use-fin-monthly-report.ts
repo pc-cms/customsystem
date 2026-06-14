@@ -47,6 +47,8 @@ export type ReportGroup = {
 export type MonthlyReport = {
   incomes: { live_game: number; slots: number; other: number; total: number };
   groups: ReportGroup[];
+  /** Collections & Owner Withdrawals — rendered separately, excluded from grand.actual_tzs */
+  collections: ReportGroup | null;
   grand: { plan_month_tzs: number; plan_month_usd: number; actual_tzs: number; actual_usd: number };
 };
 
