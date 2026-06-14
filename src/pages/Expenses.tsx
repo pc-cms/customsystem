@@ -33,16 +33,8 @@ import { formatCurrency } from "@/lib/currency";
 
 type SourceVal = "live_game" | "slots" | "office";
 
-// Legacy hard-coded categories — used as a fallback if no per-casino
-// `expense_categories` rows exist for the chosen source scope.
-const FALLBACK_CATS = [
-  { code: "food", label: "Food" },
-  { code: "alcohol", label: "Alcohol" },
-  { code: "taxi", label: "Taxi" },
-  { code: "hotel", label: "Hotel" },
-  { code: "flight", label: "Flight" },
-  { code: "other", label: "Other" },
-];
+// Legacy hard-coded categories retained only for color mapping (CAT_COLORS).
+// The Category filter now uses CategoryCombobox over fin_categories.
 
 const CAT_COLORS: Record<string, string> = {
   food: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
@@ -123,7 +115,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   // ── Filters ──────────────────────────────────────────────
   const [from, setFrom] = useSessionState<string>("from", businessDate);
   const [to, setTo] = useSessionState<string>("to", businessDate);
-  const [category, setCategory] = useSessionState<string>("category", "all");
+  const [finCategoryFilter, setFinCategoryFilter] = useSessionState<string>("finCategoryFilter", "");
   const [target, setTarget] = useSessionState<ExpenseTarget>("target", "all");
   const [status, setStatus] = useSessionState<ExpenseStatus>("status", "all");
   const [source, setSource] = useSessionState<ExpenseSourceFilter>(
@@ -170,13 +162,13 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
 
   const filters = useMemo(
     () => ({
-      categories: category === "all" ? undefined : [category],
+      finCategoryIds: finCategoryFilter ? [finCategoryFilter] : undefined,
       target,
       status,
       source,
       search,
     }),
-    [category, target, status, source, search],
+    [finCategoryFilter, target, status, source, search],
   );
   const analytics = useExpenseAnalytics(expenses as any, filters);
 
@@ -281,7 +273,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           onClick={() => {
             // Reset to All sources + all categories/targets/statuses (keep date range).
             setSource(sourceLocked ? roleDefaultSource : "all");
-            setCategory("all");
+            setFinCategoryFilter("");
             setTarget("all");
             setStatus("all");
           }}
@@ -439,17 +431,27 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           )}
           <div>
             <label className="text-[10px] uppercase text-muted-foreground">Category</label>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All categories</SelectItem>
-                {FALLBACK_CATS.map((c) => (
-                  <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
-                ))}
-                <SelectItem value="pos_comp">POS Comp</SelectItem>
-                <SelectItem value="bar_charge">Bar charge</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-1">
+              <CategoryCombobox
+                size="sm"
+                value={finCategoryFilter}
+                onChange={setFinCategoryFilter}
+                placeholder="All categories"
+                className="flex-1"
+              />
+              {finCategoryFilter && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={() => setFinCategoryFilter("")}
+                  title="Clear category"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
           </div>
           <div>
             <label className="text-[10px] uppercase text-muted-foreground">Target</label>
