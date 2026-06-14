@@ -135,6 +135,16 @@ const Transfers = () => {
 
   const { data: rows = [] } = useUnifiedTransfers(viewDate, source);
 
+  // Inline transfer creation — render the slots/live form when the cashier (or manager)
+  // has an open shift and the matching source is selected. Lets users record a transfer
+  // straight from the Transfers screen instead of jumping back to the cage workspace.
+  const { data: activeSlotsShift } = useActiveCageSlotsShift();
+  const { data: activeLiveShift } = useActiveShift();
+  const canCreateSlots = (source === "slots" || source === "all")
+    && activeSlotsShift && activeSlotsShift.status === "open";
+  const canCreateLive = (source === "live_game" || source === "all")
+    && activeLiveShift && (activeLiveShift as any).status === "open";
+
   const summary = useMemo(() => {
     let live = 0, slots = 0, count = rows.length;
     rows.forEach(r => {
