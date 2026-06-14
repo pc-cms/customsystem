@@ -1084,6 +1084,10 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                         { value: "A", label: "A", title: "Absent", className: ATT_COLORS["A"] },
                         { value: "S", label: "S", title: "Sick", className: ATT_COLORS["S"] },
                       ]},
+                      { label: "Shifts", options: [
+                        { value: "EM", label: "EM", title: SHIFT_LABELS["EM"], className: UNIFIED_SHIFT_COLORS["EM"] },
+                        { value: "EN", label: "EN", title: SHIFT_LABELS["EN"], className: UNIFIED_SHIFT_COLORS["EN"] },
+                      ]},
                       { label: "Hours", options: Array.from({ length: 12 }, (_, i) => i + 1).map(n => ({
                         value: String(n), label: String(n),
                         className: "bg-card-foreground/5 text-card-foreground",
@@ -1097,6 +1101,15 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                     onKeyDown={e => {
                       const k = e.key.toUpperCase();
                       if (k === "A" || k === "S") { e.preventDefault(); handleSave(dealer.id, day, k); return; }
+                      if (k === "E") {
+                        e.preventDefault();
+                        const current = getValue(dealer.id, day);
+                        // Toggle between EM (11h) and EN (8h) based on current saved value or rota
+                        const rotaShift = getRotaShift(dealer.id, day);
+                        const next = current === "11" || (current === "" && rotaShift === "EM") ? "EN" : "EM";
+                        handleSave(dealer.id, day, next);
+                        return;
+                      }
                       if (/^[0-9]$/.test(k)) { e.preventDefault(); handleSave(dealer.id, day, k); return; }
                       if (k === "BACKSPACE" || k === "DELETE") { e.preventDefault(); handleSave(dealer.id, day, ""); return; }
                     }}
