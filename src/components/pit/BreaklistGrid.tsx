@@ -372,7 +372,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       if (conflict) {
         const occupant = activeDealers.find(d => d.id === conflict.dealer_id)?.name || "another dealer";
         const table = openTables.find(t => t.id === tableId);
-        const tableName = table?.name || "this table";
+        const tableName = fmtTableName(table?.name) || "this table";
         toast.error(`${tableName} ${slot} already taken by ${occupant} at ${activeCell.timeSlot}`);
         return;
       }
