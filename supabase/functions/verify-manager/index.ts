@@ -5,16 +5,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const ALLOWED_ROLES = ["manager", "shift_manager", "super_admin", "finance_manager"];
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { email, password } = await req.json();
-    console.log("[verify-manager] request for:", email);
+    const { email: rawInput, password } = await req.json();
+    const input = (rawInput ?? "").toString().trim();
+    console.log("[verify-manager] request for:", input);
 
-    if (!email || !password) {
+    if (!input || !password) {
       return new Response(JSON.stringify({ error: "Email and password required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -25,25 +28,77 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const verifyClient = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: authData, error: authError } = await verifyClient.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const adminClient = createClient(supabaseUrl, serviceKey);
 
-    if (authError || !authData.user) {
-      console.log("[verify-manager] auth failed:", authError?.message);
+    // Build list of candidate emails to try.
+    //   1. Exact input (if it already looks like an email)
+    //   2. `{login}@cms.local` template (legacy default for typed logins)
+    //   3. Fallback: look up profiles by case-insensitive display_name match
+    //      and resolve the real auth email. This rescues shift_managers whose
+    //      login differs from their display name (e.g. "petro" vs "Peter").
+    const candidates: string[] = [];
+    if (input.includes("@")) {
+      candidates.push(input.toLowerCase());
+    } else {
+      candidates.push(`${input.toLowerCase()}@cms.local`);
+    }
+
+    const tryAuth = async (email: string) => {
+      const client = createClient(supabaseUrl, supabaseAnonKey);
+      const { data, error } = await client.auth.signInWithPassword({ email, password });
+      try { await client.auth.signOut(); } catch { /* noop */ }
+      return { data, error };
+    };
+
+    let managerId: string | null = null;
+    let usedEmail: string | null = null;
+    let lastAuthErrorMsg = "Invalid credentials";
+
+    for (const candidate of candidates) {
+      const { data, error } = await tryAuth(candidate);
+      if (!error && data?.user) {
+        managerId = data.user.id;
+        usedEmail = candidate;
+        break;
+      }
+      lastAuthErrorMsg = error?.message || lastAuthErrorMsg;
+      console.log("[verify-manager] candidate failed:", candidate, "err:", error?.message);
+    }
+
+    // Fallback: look up by display_name → fetch real auth email → retry.
+    if (!managerId && !input.includes("@")) {
+      const { data: matches } = await adminClient
+        .from("profiles")
+        .select("user_id, display_name")
+        .ilike("display_name", input);
+
+      const userIds: string[] = (matches ?? []).map((m: any) => m.user_id);
+      for (const uid of userIds) {
+        const { data: u, error: ue } = await adminClient.auth.admin.getUserById(uid);
+        if (ue || !u?.user?.email) continue;
+        const email = u.user.email;
+        if (candidates.includes(email.toLowerCase())) continue; // already tried
+        const { data, error } = await tryAuth(email);
+        if (!error && data?.user) {
+          managerId = data.user.id;
+          usedEmail = email;
+          break;
+        }
+        lastAuthErrorMsg = error?.message || lastAuthErrorMsg;
+        console.log("[verify-manager] display_name fallback failed:", email, "err:", error?.message);
+      }
+    }
+
+    if (!managerId) {
+      console.log("[verify-manager] all candidates failed for:", input);
       return new Response(JSON.stringify({ error: "Invalid credentials" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    await verifyClient.auth.signOut();
-    const managerId = authData.user.id;
-    console.log("[verify-manager] auth ok, user_id:", managerId);
+    console.log("[verify-manager] auth ok, user_id:", managerId, "via:", usedEmail);
 
-    const adminClient = createClient(supabaseUrl, serviceKey);
     const { data: roles, error: rolesError } = await adminClient
       .from("user_roles")
       .select("role")
@@ -51,11 +106,10 @@ Deno.serve(async (req) => {
 
     console.log("[verify-manager] roles:", JSON.stringify(roles), "err:", rolesError?.message);
 
-    const allowed = ["manager", "shift_manager", "super_admin", "finance_manager"];
-    const isAllowed = roles?.some((r: any) => allowed.includes(r.role));
+    const isAllowed = roles?.some((r: any) => ALLOWED_ROLES.includes(r.role));
 
     if (!isAllowed) {
-      console.log("[verify-manager] role rejected for", email, "roles:", roles);
+      console.log("[verify-manager] role rejected for", input, "roles:", roles);
       return new Response(
         JSON.stringify({ error: "Insufficient permissions" }),
         {
@@ -74,7 +128,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         manager_id: managerId,
-        display_name: profile?.display_name || email,
+        display_name: profile?.display_name || usedEmail || input,
       }),
       {
         status: 200,
