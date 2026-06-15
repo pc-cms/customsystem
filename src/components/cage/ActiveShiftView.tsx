@@ -649,7 +649,12 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, bu
   const [cash, setCash] = useState<Record<string, Record<number, number>>>(() => (lastDenoms.cash as Record<string, Record<number, number>>) || emptyCash());
   const [bankBal, setBankBal] = useState<Banks>(() => (lastDenoms.bank as Banks) || emptyBanks());
   // Mobile Balance is MANUAL-ONLY — never carry forward from previous shift/day.
-  const [mobileBal, setMobileBal] = useState<MobileProviders>(() => emptyMobile());
+  // Within the SAME shift we re-seed from the last check so the cashier's
+  // typed balance survives across subsequent mid-shift checks (and the final
+  // closing check), instead of silently resetting to 0 each time.
+  const [mobileBal, setMobileBal] = useState<MobileProviders>(
+    () => ({ ...emptyMobile(), ...((lastDenoms.mobile as MobileProviders) || {}) }),
+  );
 
   const [cashlessIn, setCashlessIn] = useState<MobileProviders>(() => ({ ...emptyMobile(), ...((lastDenoms.cashless_in_providers as MobileProviders) || {}) }));
   const [cashlessOut, setCashlessOut] = useState<MobileProviders>(() => ({ ...emptyMobile(), ...((lastDenoms.cashless_out_providers as MobileProviders) || {}) }));
