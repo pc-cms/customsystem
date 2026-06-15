@@ -96,6 +96,39 @@ const CloseShiftDialog = ({
   const [cashlessIn, setCashlessIn] = useState<MobileProviders>(persisted?.cashlessIn || emptyMobile);
   const [cashlessOut, setCashlessOut] = useState<MobileProviders>(persisted?.cashlessOut || emptyMobile);
 
+  // Hydrate the manual Cashless Balance from the LATEST cash check of this
+  // shift if the cashier hasn't typed anything yet in this dialog. Without
+  // this the close dialog starts empty and every value the cashier entered
+  // during the shift is lost on the printed report (closing_count.mobile = 0).
+  const mobileHydratedRef = useRef(false);
+  useEffect(() => {
+    if (mobileHydratedRef.current) return;
+    if (!shift?.id) return;
+    const anyTyped = MOBILE_PROVIDERS.some(p => Number(mobileBal[p]) > 0);
+    if (anyTyped) { mobileHydratedRef.current = true; return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("cash_counts")
+        .select("denominations")
+        .eq("shift_id", shift.id)
+        .eq("count_type", "check")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      const m = (data?.denominations as any)?.mobile as Partial<MobileProviders> | undefined;
+      if (m && MOBILE_PROVIDERS.some(p => Number((m as any)[p]) > 0)) {
+        setMobileBal(prev => {
+          const stillEmpty = MOBILE_PROVIDERS.every(p => !Number(prev[p]));
+          return stillEmpty ? { ...emptyMobile(), ...m } as MobileProviders : prev;
+        });
+      }
+      mobileHydratedRef.current = true;
+    })();
+    return () => { cancelled = true; };
+  }, [shift?.id]);
+
   // Persist on every change.
   useEffect(() => {
     try {
