@@ -128,7 +128,7 @@ const SlotsConsolidatedReport = ({
 
 
       {/* ============ CASH FLOW: OPENER | CLOSER ============ */}
-      <div className="grid grid-cols-2 gap-1 mb-0.5">
+      <div className="mb-0.5" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
         {/* OPENER */}
         <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
           <colgroup><col style={{ width: "55%" }} /><col style={{ width: "45%" }} /></colgroup>
