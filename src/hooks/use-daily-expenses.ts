@@ -12,19 +12,19 @@ export const useDailyExpenses = (businessDate?: string) => {
     queryKey: ["daily-expenses", casinoId, businessDate],
     queryFn: async () => {
       if (!casinoId || !businessDate) return [];
-      const { businessDayHourUTC } = await import("@/lib/business-day");
       const { data, error } = await supabase
         .from("expenses")
         .select("*, players(id, first_name, last_name)")
         .eq("casino_id", casinoId)
-        .gte("created_at", businessDayHourUTC(businessDate, 7))
-        .lt("created_at", businessDayHourUTC(businessDate, 7 + 24))
+        .eq("business_date", businessDate)
         .order("created_at", { ascending: true })
         .limit(2000);
       if (error) throw error;
       return data || [];
     },
     enabled: !!casinoId && !!businessDate,
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 };

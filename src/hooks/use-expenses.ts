@@ -35,18 +35,15 @@ export const useExpenses = (
       }
       // source === "all" → no extra gates (managers view across all sources)
 
-      const { businessDayHourUTC } = await import("@/lib/business-day");
       if (range?.from || range?.to) {
         const from = range.from || range.to!;
         const to = range.to || range.from!;
         query = query
-          .gte("created_at", businessDayHourUTC(from, 7))
-          .lt("created_at", businessDayHourUTC(to, 7 + 24))
+          .gte("business_date", from)
+          .lte("business_date", to)
           .limit(2000);
       } else if (date) {
-        query = query
-          .gte("created_at", businessDayHourUTC(date, 7))
-          .lt("created_at", businessDayHourUTC(date, 7 + 24));
+        query = query.eq("business_date", date);
       } else {
         query = query.limit(200);
       }
@@ -56,7 +53,9 @@ export const useExpenses = (
       return data;
     },
     enabled: !!casinoId,
-    staleTime: 1000 * 60 * 2,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 };
 
