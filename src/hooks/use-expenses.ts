@@ -121,6 +121,8 @@ export const useCreateSlotsExpense = () => {
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["expenses-slots"] });
       qc.invalidateQueries({ queryKey: ["expenses"] });
+      qc.invalidateQueries({ queryKey: ["expenses-approvals"] });
+      qc.invalidateQueries({ queryKey: ["daily-expenses"] });
       qc.invalidateQueries({ queryKey: ["cage-slots-shift", vars.slots_shift_id] });
       toast.success("Expense recorded");
     },
@@ -172,6 +174,8 @@ export const useCreateExpense = () => {
     },
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["expenses"] });
+      qc.invalidateQueries({ queryKey: ["expenses-approvals"] });
+      qc.invalidateQueries({ queryKey: ["daily-expenses"] });
       if (!res.offline) toast.success("Expense recorded");
     },
     onError: (e) => toast.error(e.message),

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -123,6 +123,17 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     sourceLocked ? roleDefaultSource : "all",
   );
   const [search, setSearch] = useSessionState<string>("search", "");
+
+  // Snap stale persisted date range forward after a business-day rollover so
+  // newly-created expenses always show up on first paint.
+  useEffect(() => {
+    if (!businessDate) return;
+    if (to < businessDate) {
+      setFrom(businessDate);
+      setTo(businessDate);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [businessDate]);
   const [showBarDetails, setShowBarDetails] = useState<boolean>(false);
   const [sort, setSort] = useSessionState<{ key: SortKey; dir: SortDir }>("sort", { key: "date", dir: "desc" });
   const toggleSort = (k: SortKey) =>
