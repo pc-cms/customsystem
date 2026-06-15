@@ -122,6 +122,8 @@ export const useCreateOfficeExpense = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["expenses"] });
+      qc.invalidateQueries({ queryKey: ["expenses-approvals"] });
+      qc.invalidateQueries({ queryKey: ["expenses-slots"] });
       qc.invalidateQueries({ queryKey: ["daily-expenses"] });
       qc.invalidateQueries({ queryKey: ["finance-wallets"] });
       toast.success("Office expense recorded — MAIN_CASH debited");
