@@ -134,6 +134,18 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessDate]);
+
+  // Managers/admins: relax any stale per-source filter persisted in
+  // sessionStorage so freshly-created expenses of any source are visible.
+  // Cashiers: force their locked role source if it drifted.
+  useEffect(() => {
+    if (!sourceLocked && source !== "all") {
+      setSource("all");
+    } else if (sourceLocked && source !== roleDefaultSource) {
+      setSource(roleDefaultSource);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [showBarDetails, setShowBarDetails] = useState<boolean>(false);
   const [sort, setSort] = useSessionState<{ key: SortKey; dir: SortDir }>("sort", { key: "date", dir: "desc" });
   const toggleSort = (k: SortKey) =>
