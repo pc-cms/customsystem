@@ -174,6 +174,8 @@ export const useCreateExpense = () => {
     },
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["expenses"] });
+      qc.invalidateQueries({ queryKey: ["expenses-approvals"] });
+      qc.invalidateQueries({ queryKey: ["daily-expenses"] });
       if (!res.offline) toast.success("Expense recorded");
     },
     onError: (e) => toast.error(e.message),
