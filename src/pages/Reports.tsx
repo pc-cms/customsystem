@@ -14,7 +14,7 @@ import Expenses from "@/pages/finances/FinancesExpensesPage";
 import SlotsHistoryReport from "@/components/reports/SlotsHistoryReport";
 import CashlessReport from "@/components/reports/CashlessReport";
 import { PageShell } from "@/components/layout/PageShell";
-import { DateRangePresets, type DatePreset } from "@/components/ui/date-range-presets";
+import { presetRange, type DatePreset } from "@/components/ui/date-range-presets";
 import { useMoneyMode, MoneyModeProvider, useFormatMoney } from "@/components/ui/data-table-toolbar";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +25,9 @@ import { toast } from "sonner";
 import {
   DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell,
 } from "@/components/ui/data-table";
-import { MonthCarousel } from "@/components/payroll/MonthCarousel";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 
 const TableResultsPage = lazy(() => import("@/pages/TableResults"));
