@@ -93,6 +93,11 @@ const toIsoDate = (d: Date) => {
   return `${y}-${m}-${day}`;
 };
 
+const MONTHS = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December",
+];
+
 const Reports = () => {
   const now = new Date();
   const monthStart = toIsoDate(new Date(now.getFullYear(), now.getMonth(), 1));
@@ -117,21 +122,93 @@ const Reports = () => {
   const monthPickerYear = fromDate.getFullYear();
   const monthPickerMonth = fromDate.getMonth() + 1;
 
+  const YEARS = useMemo(() => {
+    const y = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, i) => y - 2 + i);
+  }, []);
+
+  const applyPreset = (p: DatePreset) => {
+    if (p === "custom") {
+      setPreset("custom");
+      return;
+    }
+    let r = presetRange(p);
+    if (p === "month") {
+      const start = new Date(monthPickerYear, monthPickerMonth - 1, 1);
+      const end = new Date(monthPickerYear, monthPickerMonth, 0);
+      r = { from: toIsoDate(start), to: toIsoDate(end) };
+    } else if (p === "year") {
+      const start = new Date(monthPickerYear, 0, 1);
+      const end = new Date(monthPickerYear, 11, 31);
+      r = { from: toIsoDate(start), to: toIsoDate(end) };
+    }
+    setPreset(p);
+    setFrom(r.from);
+    setTo(r.to);
+  };
+
   return (
     <PageShell>
       <div className="cms-panel p-3 mb-3 flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3 flex-wrap">
-          <DateRangePresets
-            preset={preset}
-            from={from}
-            to={to}
-            onChange={(next) => { setPreset(next.preset); setFrom(next.from); setTo(next.to); }}
-          />
-          <MonthCarousel
-            year={monthPickerYear}
-            month={monthPickerMonth}
-            onChange={handleMonthChange}
-          />
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={preset} onValueChange={(v) => applyPreset(v as DatePreset)}>
+            <SelectTrigger className="w-[110px] h-9">
+              <SelectValue placeholder="Period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="day">Day</SelectItem>
+              <SelectItem value="week">Week</SelectItem>
+              <SelectItem value="month">Month</SelectItem>
+              <SelectItem value="year">Year</SelectItem>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="custom">Custom</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={String(monthPickerMonth)}
+            onValueChange={(v) => handleMonthChange(monthPickerYear, Number(v))}
+          >
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue placeholder="Month" />
+            </SelectTrigger>
+            <SelectContent>
+              {MONTHS.map((name, i) => (
+                <SelectItem key={i + 1} value={String(i + 1)}>{name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={String(monthPickerYear)}
+            onValueChange={(v) => handleMonthChange(Number(v), monthPickerMonth)}
+          >
+            <SelectTrigger className="w-[100px] h-9">
+              <SelectValue placeholder="Year" />
+            </SelectTrigger>
+            <SelectContent>
+              {YEARS.map((y) => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {preset === "custom" && (
+            <>
+              <Input
+                type="date"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                className="w-[150px] h-9"
+              />
+              <Input
+                type="date"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                className="w-[150px] h-9"
+              />
+            </>
+          )}
         </div>
         <MoneyToggle />
       </div>
