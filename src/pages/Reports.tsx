@@ -103,15 +103,34 @@ const Reports = () => {
     : null) || "daily";
   const [mode, MoneyToggle] = useMoneyMode("reports-global");
 
+  const handleMonthChange = (year: number, month: number) => {
+    const start = new Date(year, month - 1, 1);
+    const end = new Date(year, month, 0);
+    setPreset("custom");
+    setFrom(toIsoDate(start));
+    setTo(toIsoDate(end));
+  };
+
+  const fromDate = new Date(from + "T00:00:00");
+  const monthPickerYear = fromDate.getFullYear();
+  const monthPickerMonth = fromDate.getMonth() + 1;
+
   return (
     <PageShell>
       <div className="cms-panel p-3 mb-3 flex items-center justify-between gap-3 flex-wrap">
-        <DateRangePresets
-          preset={preset}
-          from={from}
-          to={to}
-          onChange={(next) => { setPreset(next.preset); setFrom(next.from); setTo(next.to); }}
-        />
+        <div className="flex items-center gap-3 flex-wrap">
+          <DateRangePresets
+            preset={preset}
+            from={from}
+            to={to}
+            onChange={(next) => { setPreset(next.preset); setFrom(next.from); setTo(next.to); }}
+          />
+          <MonthCarousel
+            year={monthPickerYear}
+            month={monthPickerMonth}
+            onChange={handleMonthChange}
+          />
+        </div>
         <MoneyToggle />
       </div>
 
