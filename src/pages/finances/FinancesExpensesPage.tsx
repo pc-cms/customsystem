@@ -417,6 +417,12 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
           </Button>
         </div>
       </ResponsiveDialog>
+
+      <EditExpenseDialog
+        open={!!editRow}
+        onOpenChange={(o) => { if (!o) setEditRow(null); }}
+        expense={editRow}
+      />
     </Shell>
   );
 }
