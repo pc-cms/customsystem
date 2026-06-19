@@ -15,7 +15,7 @@ import { useMonthlyReport, type ReportCategory, type ReportGroup, type ReportExp
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
 import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories } from "@/hooks/use-fin";
-import { useUpdateExpenseFinCategory } from "@/hooks/use-expenses";
+
 import { useCategoryMtd } from "@/hooks/use-category-mtd";
 import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
 import { InlineTextCell } from "@/components/finances/InlineTextCell";
@@ -59,7 +59,7 @@ export default function FinancesMonthlyReportPage() {
 
   const upsertBudget = useUpsertFinBudgetCell();
   const renameCategory = useRenameFinCategory();
-  const moveExpense = useUpdateExpenseFinCategory();
+  
   const { data: allCats } = useFinCategories();
 
   const { data, isLoading } = useMonthlyReport({ year, month, ytd, scope: scope || activeCasinoId || "" });
