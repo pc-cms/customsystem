@@ -297,9 +297,17 @@ export default function FinancesMonthlyReportPage() {
           onRenameCategory={(catId, newName) =>
             renameCategory.mutate({ id: catId, name: newName })
           }
-          onMoveExpense={(id, newCatId) =>
-            moveExpense.mutate({ id, fin_category_id: newCatId })
-          }
+          onEditExpense={(e) => setEditRow({
+            id: e.id,
+            fin_category_id: e.fin_category_id,
+            wallet_id: e.wallet_id,
+            amount: e.amount,
+            currency: e.currency,
+            description: e.description,
+            player_id: e.player_id,
+            player_name: e.player_name,
+            source: e.source,
+          })}
         />
       ))}
 
@@ -326,9 +334,17 @@ export default function FinancesMonthlyReportPage() {
           onRenameCategory={(catId, newName) =>
             renameCategory.mutate({ id: catId, name: newName })
           }
-          onMoveExpense={(id, newCatId) =>
-            moveExpense.mutate({ id, fin_category_id: newCatId })
-          }
+          onEditExpense={(e) => setEditRow({
+            id: e.id,
+            fin_category_id: e.fin_category_id,
+            wallet_id: e.wallet_id,
+            amount: e.amount,
+            currency: e.currency,
+            description: e.description,
+            player_id: e.player_id,
+            player_name: e.player_name,
+            source: e.source,
+          })}
         />
       )}
 
