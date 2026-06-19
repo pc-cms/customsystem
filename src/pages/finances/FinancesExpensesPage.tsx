@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Receipt, Plus, Trash2, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import { Receipt, Plus, Trash2, ArrowUp, ArrowDown, Filter, Pencil } from "lucide-react";
+import EditExpenseDialog, { type EditableExpense } from "@/components/expenses/EditExpenseDialog";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
@@ -89,6 +90,7 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
 
   const [open, setOpen] = useState(false);
   const [showVoided, setShowVoided] = useState(false);
+  const [editRow, setEditRow] = useState<EditableExpense | null>(null);
   const [form, setForm] = useState<any>({
     business_date: todayBD(), fin_category_id: "", wallet_id: "",
     amount: 0, currency: "TZS", exchange_rate: 1, description: "",
@@ -330,9 +332,29 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
                   </FinTD>
                   <FinTD align="right" className={FW.actions}>
                     {canManage && !r.voided_at && (
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => voidExp.mutate(r.id)} title="Void / reverse">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => setEditRow({
+                            id: r.id,
+                            fin_category_id: r.fin_category_id ?? null,
+                            amount: Number(r.amount || 0),
+                            currency: r.currency ?? "TZS",
+                            description: r.description ?? "",
+                            player_id: r.player_id ?? null,
+                            player_name: r.player_name ?? "",
+                            source: r.source ?? null,
+                          })}
+                          title="Edit"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => voidExp.mutate(r.id)} title="Void / reverse">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     )}
                   </FinTD>
                 </FinTR>
@@ -395,6 +417,12 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
           </Button>
         </div>
       </ResponsiveDialog>
+
+      <EditExpenseDialog
+        open={!!editRow}
+        onOpenChange={(o) => { if (!o) setEditRow(null); }}
+        expense={editRow}
+      />
     </Shell>
   );
 }
