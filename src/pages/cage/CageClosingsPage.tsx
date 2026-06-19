@@ -7,18 +7,19 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { addMonths, format, startOfMonth, subMonths } from "date-fns";
+import { addDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Landmark, RotateCcw, AlertTriangle, Printer, ChevronLeft, ChevronRight } from "lucide-react";
+import { Landmark, RotateCcw, AlertTriangle, Printer } from "lucide-react";
 import { formatNumberSpaces } from "@/lib/currency";
-import { fmtDate } from "@/lib/format-date";
+import { fmtDate, fmtDateOnly } from "@/lib/format-date";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
 import { toast } from "sonner";
+import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 
 const CageClosingsPage = () => {
   const nav = useNavigate();
