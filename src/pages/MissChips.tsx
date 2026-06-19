@@ -6,8 +6,8 @@ import { useAuth } from "@/lib/auth-context";
 import { CHIP_DENOMS } from "@/lib/currency";
 import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import ChipToken from "@/components/ChipToken";
-import { format, startOfMonth, subMonths, addMonths } from "date-fns";
-import { Coins, ChevronLeft, ChevronRight } from "lucide-react";
+import { format, addDays } from "date-fns";
+import { Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -15,6 +15,7 @@ import { DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell } from "@/components
 import { MoneyCell } from "@/components/ui/money-cell";
 import { useMoneyMode, useMoneyDisplayMode } from "@/components/ui/data-table-toolbar";
 import { fmtDateOnly } from "@/lib/format-date";
+import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 
 interface ShiftMissRow {
   business_date: string;
