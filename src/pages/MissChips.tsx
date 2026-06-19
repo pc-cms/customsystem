@@ -201,31 +201,15 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
       <PageHeader
         icon={Coins}
         title="Miss Chips"
-        subtitle={`Daily cage chip count delta · ${monthLabel}`}
+        subtitle={`Daily cage chip count delta · ${periodLabel}`}
         date
         centerSlot={
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={goPrev}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 font-mono min-w-[140px]"
-              onClick={goCurrent}
-            >
-              {monthLabel}
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={goNext}
-              disabled={nextDisabled}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <DateRangePresets
+            preset={preset}
+            from={from}
+            to={to}
+            onChange={(n) => { setPreset(n.preset); setFrom(n.from); setTo(n.to); }}
+          />
         }
       >
         <MoneyCell value={monthSum.total} mode={mode} signed className="text-base font-semibold" />
