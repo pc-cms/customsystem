@@ -1,46 +1,51 @@
+/**
+ * DateRangePresets — unified date range selector used across the app.
+ *
+ * Presets: Day · Week · Month · Year · Custom
+ *  - Day   = today
+ *  - Week  = current calendar week, Sunday → Saturday
+ *  - Month = current calendar month (1st → last day)
+ *  - Year  = current calendar year (Jan 1 → Dec 31)
+ *  - Custom = two date pickers (From / To)
+ *
+ * Prev/Next chevrons shift the active period by one unit of its kind
+ * (day / week / month / year). In Custom mode they shift both endpoints
+ * by the range length.
+ */
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fmtDateOnly } from "@/lib/format-date";
+import {
+  format, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, addYears, subYears,
+  startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO,
+  differenceInCalendarDays,
+} from "date-fns";
 
-export type DatePreset = "day" | "week" | "month" | "year" | "all" | "custom";
+export type DatePreset = "day" | "week" | "month" | "year" | "custom";
 
-const todayMinus = (days: number) => {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  return d.toISOString().slice(0, 10);
+const iso = (d: Date) => format(d, "yyyy-MM-dd");
+const fromIso = (s: string): Date => {
+  if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date();
+  const d = parseISO(s);
+  return Number.isNaN(d.getTime()) ? new Date() : d;
 };
 
-export const presetRange = (p: DatePreset): { from: string; to: string } => {
-  const today = todayMinus(0);
+export const presetRange = (p: DatePreset, anchor: Date = new Date()): { from: string; to: string } => {
   switch (p) {
-    case "day": return { from: today, to: today };
-    case "week": return { from: todayMinus(6), to: today };
-    case "month": return { from: todayMinus(29), to: today };
-    case "year": return { from: todayMinus(364), to: today };
-    case "all": return { from: "1970-01-01", to: today };
-    default: return { from: todayMinus(29), to: today };
+    case "day":   return { from: iso(anchor), to: iso(anchor) };
+    case "week":  return { from: iso(startOfWeek(anchor, { weekStartsOn: 0 })), to: iso(endOfWeek(anchor, { weekStartsOn: 0 })) };
+    case "month": return { from: iso(startOfMonth(anchor)), to: iso(endOfMonth(anchor)) };
+    case "year":  return { from: iso(startOfYear(anchor)), to: iso(endOfYear(anchor)) };
+    default:      return { from: iso(startOfMonth(anchor)), to: iso(endOfMonth(anchor)) };
   }
 };
 
 const PRESET_LABELS: Record<Exclude<DatePreset, "custom">, string> = {
-  day: "Day", week: "Week", month: "Month", year: "Year", all: "All",
-};
-
-const isoToDate = (iso: string): Date | undefined => {
-  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return undefined;
-  const d = new Date(`${iso}T00:00:00`);
-  return Number.isNaN(d.getTime()) ? undefined : d;
-};
-
-const dateToIso = (d: Date): string => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  day: "Day", week: "Week", month: "Month", year: "Year",
 };
 
 interface DateRangePresetsProps {
@@ -49,6 +54,8 @@ interface DateRangePresetsProps {
   to: string;
   onChange: (next: { preset: DatePreset; from: string; to: string }) => void;
   className?: string;
+  /** Hide the prev/next arrows. Default false. */
+  hideNav?: boolean;
 }
 
 interface DatePickerButtonProps {
@@ -58,7 +65,7 @@ interface DatePickerButtonProps {
 }
 
 const DatePickerButton = ({ value, onChange, placeholder = "Pick date" }: DatePickerButtonProps) => {
-  const selected = isoToDate(value);
+  const selected = value ? fromIso(value) : undefined;
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -78,8 +85,9 @@ const DatePickerButton = ({ value, onChange, placeholder = "Pick date" }: DatePi
         <Calendar
           mode="single"
           selected={selected}
-          onSelect={(d) => d && onChange(dateToIso(d))}
+          onSelect={(d) => d && onChange(iso(d))}
           initialFocus
+          weekStartsOn={0}
           className={cn("p-3 pointer-events-auto")}
         />
       </PopoverContent>
@@ -87,7 +95,41 @@ const DatePickerButton = ({ value, onChange, placeholder = "Pick date" }: DatePi
   );
 };
 
-export const DateRangePresets = ({ preset, from, to, onChange, className }: DateRangePresetsProps) => {
+const shiftRange = (
+  preset: DatePreset,
+  from: string,
+  to: string,
+  direction: -1 | 1,
+): { from: string; to: string } => {
+  const anchorFrom = fromIso(from);
+  switch (preset) {
+    case "day": {
+      const d = direction > 0 ? addDays(anchorFrom, 1) : subDays(anchorFrom, 1);
+      return { from: iso(d), to: iso(d) };
+    }
+    case "week": {
+      const ref = direction > 0 ? addWeeks(anchorFrom, 1) : subWeeks(anchorFrom, 1);
+      return presetRange("week", ref);
+    }
+    case "month": {
+      const ref = direction > 0 ? addMonths(anchorFrom, 1) : subMonths(anchorFrom, 1);
+      return presetRange("month", ref);
+    }
+    case "year": {
+      const ref = direction > 0 ? addYears(anchorFrom, 1) : subYears(anchorFrom, 1);
+      return presetRange("year", ref);
+    }
+    case "custom":
+    default: {
+      // Shift both endpoints by (range length + 1) days.
+      const span = Math.max(1, differenceInCalendarDays(fromIso(to), anchorFrom) + 1);
+      const delta = direction * span;
+      return { from: iso(addDays(anchorFrom, delta)), to: iso(addDays(fromIso(to), delta)) };
+    }
+  }
+};
+
+export const DateRangePresets = ({ preset, from, to, onChange, className, hideNav = false }: DateRangePresetsProps) => {
   const setPreset = (p: DatePreset) => {
     if (p === "custom") {
       onChange({ preset: p, from, to });
@@ -96,8 +138,17 @@ export const DateRangePresets = ({ preset, from, to, onChange, className }: Date
       onChange({ preset: p, from: r.from, to: r.to });
     }
   };
+  const shift = (dir: -1 | 1) => {
+    const r = shiftRange(preset, from, to, dir);
+    onChange({ preset, from: r.from, to: r.to });
+  };
   return (
     <div className={`flex items-center gap-2 flex-wrap ${className ?? ""}`}>
+      {!hideNav && (
+        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => shift(-1)} aria-label="Previous period">
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+      )}
       <div className="flex gap-1">
         {(Object.keys(PRESET_LABELS) as Array<keyof typeof PRESET_LABELS>).map((p) => (
           <Button
@@ -119,6 +170,11 @@ export const DateRangePresets = ({ preset, from, to, onChange, className }: Date
           Custom
         </Button>
       </div>
+      {!hideNav && (
+        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => shift(1)} aria-label="Next period">
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      )}
       {preset === "custom" && (
         <div className="flex items-center gap-2">
           <Label className="text-xs text-muted-foreground">From</Label>
