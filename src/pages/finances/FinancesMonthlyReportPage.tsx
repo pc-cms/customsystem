@@ -390,7 +390,7 @@ type EditCallbacks = {
   allCategories: { id: string; name: string; group_name: string | null; group_code: string | null; is_active: boolean; is_income: boolean }[];
   onPlanCommit: (catId: string, currency: "TZS" | "USD", amount: number) => void;
   onRenameCategory: (catId: string, newName: string) => void;
-  onMoveExpense: (expenseId: string, newCatId: string) => void;
+  onEditExpense: (e: ReportExpense) => void;
 };
 
 const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, mtd, mtdMonthLabel, ...edit }: {
