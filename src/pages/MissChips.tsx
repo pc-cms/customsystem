@@ -38,8 +38,10 @@ interface MissChipsProps {
 
 const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProps = {}) => {
   const { casinoId } = useAuth();
-  const today = new Date();
-  const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
+  const initial = useMemo(() => presetRange("month"), []);
+  const [preset, setPreset] = useState<DatePreset>("month");
+  const [from, setFrom] = useState(initial.from);
+  const [to, setTo] = useState(initial.to);
   const [localMode, MoneyToggle] = useMoneyMode("miss-chips");
   const parentMode = useMoneyDisplayMode();
   const mode = embedded ? parentMode : localMode;
@@ -47,14 +49,13 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
   // Denominations descending; filtered by per-casino visibility.
   const DENOMS_DESC = useMemo(() => [...visibleDenoms].sort((a, b) => b - a), [visibleDenoms]);
 
-  const monthLabel = format(monthAnchor, "MMMM yyyy");
-  const fromIso = embedded && embeddedFrom
-    ? `${embeddedFrom}T02:00:00Z`
-    : `${format(startOfMonth(monthAnchor), "yyyy-MM-dd")}T02:00:00Z`;
-  const nextStart = startOfMonth(addMonths(monthAnchor, 1));
-  const toIso = embedded && embeddedTo
-    ? `${format(new Date(new Date(embeddedTo + "T00:00:00").getTime() + 86400000), "yyyy-MM-dd")}T02:00:00Z`
-    : `${format(nextStart, "yyyy-MM-dd")}T02:00:00Z`;
+  // Query window — convert from/to (or embedded override) into UTC bucket
+  // boundaries (EAT business day starts at 05:00 EAT = 02:00 UTC).
+  const effFrom = embedded && embeddedFrom ? embeddedFrom : from;
+  const effTo = embedded && embeddedTo ? embeddedTo : to;
+  const fromIso = `${effFrom}T02:00:00Z`;
+  const toIso = `${format(addDays(new Date(effTo + "T00:00:00"), 1), "yyyy-MM-dd")}T02:00:00Z`;
+  const periodLabel = `${fmtDateOnly(effFrom)} – ${fmtDateOnly(effTo)}`;
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["miss-chips-daily", casinoId, fromIso, toIso],
