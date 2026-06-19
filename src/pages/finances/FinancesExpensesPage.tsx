@@ -90,6 +90,7 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
 
   const [open, setOpen] = useState(false);
   const [showVoided, setShowVoided] = useState(false);
+  const [editRow, setEditRow] = useState<EditableExpense | null>(null);
   const [form, setForm] = useState<any>({
     business_date: todayBD(), fin_category_id: "", wallet_id: "",
     amount: 0, currency: "TZS", exchange_rate: 1, description: "",
