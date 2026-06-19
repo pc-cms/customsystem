@@ -28,16 +28,14 @@ const CageClosingsPage = () => {
   const [pendingShift, setPendingShift] = useState<any | null>(null);
   const [reprintShiftId, setReprintShiftId] = useState<string | null>(null);
 
-  // Month picker — same unified pattern as Miss Chips / Bank Checks.
-  const today = useMemo(() => new Date(), []);
-  const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
-  const monthLabel = format(monthAnchor, "MMMM yyyy");
-  const monthStart = startOfMonth(monthAnchor);
-  const monthEnd = startOfMonth(addMonths(monthAnchor, 1));
-  const goPrev = () => setMonthAnchor((d) => startOfMonth(subMonths(d, 1)));
-  const goNext = () => setMonthAnchor((d) => startOfMonth(addMonths(d, 1)));
-  const goCurrent = () => setMonthAnchor(startOfMonth(today));
-  const nextDisabled = monthAnchor >= startOfMonth(today);
+  // Unified Day/Week/Month/Year/Custom picker.
+  const initial = useMemo(() => presetRange("month"), []);
+  const [preset, setPreset] = useState<DatePreset>("month");
+  const [from, setFrom] = useState(initial.from);
+  const [to, setTo] = useState(initial.to);
+  const periodLabel = `${fmtDateOnly(from)} – ${fmtDateOnly(to)}`;
+  const rangeStartIso = new Date(from + "T00:00:00").toISOString();
+  const rangeEndIso = addDays(new Date(to + "T00:00:00"), 1).toISOString();
 
   const isManager = roles.includes("manager") || roles.includes("super_admin") || roles.includes("finance_manager");
 
