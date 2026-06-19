@@ -371,7 +371,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   // ===== Snapshot history (per save = group of rows sharing created_at) =====
   const history = useMemo(() => {
     const groups: Record<string, { ts: string; perTableDenoms: Record<string, { actual: Record<number, number>; expected: Record<number, number> }> }> = {};
-    snapshots.forEach((s: any) => {
+    snapshotsFull.forEach((s: any) => {
       if (s.location_type !== "table" || !s.location_id) return;
       const ts = s.created_at;
       if (!groups[ts]) groups[ts] = { ts, perTableDenoms: {} };
@@ -388,7 +388,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       });
       return { ts: g.ts, perTable, total: Object.values(perTable).reduce((s, v) => s + v, 0) };
     }).sort((a, b) => b.ts.localeCompare(a.ts));
-  }, [snapshots, baselineMap]);
+  }, [snapshotsFull, baselineMap]);
 
   return (
     <>
