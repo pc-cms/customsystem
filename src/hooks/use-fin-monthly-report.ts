@@ -16,7 +16,12 @@ export type ReportExpense = {
   amount: number;
   currency: string;
   amount_tzs: number;
+  wallet_id: string | null;
   wallet_name: string | null;
+  fin_category_id: string | null;
+  player_id: string | null;
+  player_name: string | null;
+  source: string | null;
   casino_id: string;
   casino_slug: string | null;
   voided_at: string | null;
@@ -87,7 +92,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       if (!network && casinoId) budgetQ = budgetQ.eq("casino_id", casinoId);
       let expQ = supabase
         .from("expenses")
-        .select("id, business_date, description, amount, currency, amount_tzs, fin_category_id, casino_id, voided_at, fin_wallets(name), casinos(slug)")
+        .select("id, business_date, description, amount, currency, amount_tzs, fin_category_id, wallet_id, player_id, player_name, source, casino_id, voided_at, fin_wallets(name), casinos(slug)")
         .gte("business_date", start)
         .lt("business_date", endExclusive)
         .not("fin_category_id", "is", null)
@@ -174,7 +179,12 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           amount: Number(e.amount || 0),
           currency: e.currency,
           amount_tzs: Number(e.amount_tzs || 0),
+          wallet_id: e.wallet_id ?? null,
           wallet_name: e.fin_wallets?.name ?? null,
+          fin_category_id: e.fin_category_id ?? null,
+          player_id: e.player_id ?? null,
+          player_name: e.player_name ?? null,
+          source: e.source ?? null,
           casino_id: e.casino_id,
           casino_slug: e.casinos?.slug ?? null,
           voided_at: e.voided_at,
