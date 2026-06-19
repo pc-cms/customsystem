@@ -40,7 +40,7 @@ const CageClosingsPage = () => {
   const isManager = roles.includes("manager") || roles.includes("super_admin") || roles.includes("finance_manager");
 
   const { data: shifts = [], isLoading } = useQuery({
-    queryKey: ["closed-shifts", casinoId, monthStart.toISOString()],
+    queryKey: ["closed-shifts", casinoId, rangeStartIso, rangeEndIso],
     queryFn: async () => {
       if (!casinoId) return [];
       const { data, error } = await supabase
@@ -48,10 +48,10 @@ const CageClosingsPage = () => {
         .select("id, opened_at, closed_at, cash_result, miss_total, shift_result, tables_result, cash_desk_result, balance, notes, opened_by, closed_by, opening_float, closing_cash, closing_count")
         .eq("casino_id", casinoId)
         .eq("status", "closed")
-        .gte("closed_at", monthStart.toISOString())
-        .lt("closed_at", monthEnd.toISOString())
+        .gte("closed_at", rangeStartIso)
+        .lt("closed_at", rangeEndIso)
         .order("closed_at", { ascending: false })
-        .limit(200);
+        .limit(500);
       if (error) throw error;
       return data || [];
     },
