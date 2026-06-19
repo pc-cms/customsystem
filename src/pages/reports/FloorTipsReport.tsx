@@ -1,22 +1,22 @@
 /**
  * FloorTipsReport — per-employee breakdown of Floor tips collected by cashier.
- * Monthly view with totals per employee + detail rows.
+ * Unified Day/Week/Month/Year/Custom picker.
  */
 import { useMemo, useState } from "react";
-import { UserCheck, ChevronLeft, ChevronRight } from "lucide-react";
+import { UserCheck } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
-import { format, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
 import { useTipsByRange } from "@/hooks/use-tips";
+import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 
 export default function FloorTipsReport() {
-  const [anchor, setAnchor] = useState<Date>(new Date());
-  const monthStart = useMemo(() => format(startOfMonth(anchor), "yyyy-MM-dd"), [anchor]);
-  const monthEnd = useMemo(() => format(endOfMonth(anchor), "yyyy-MM-dd"), [anchor]);
-  const { data: rows = [] } = useTipsByRange("tips_floor", monthStart, monthEnd);
+  const initial = presetRange("month");
+  const [preset, setPreset] = useState<DatePreset>("month");
+  const [from, setFrom] = useState(initial.from);
+  const [to, setTo] = useState(initial.to);
+  const { data: rows = [] } = useTipsByRange("tips_floor", from, to);
 
   const byEmployee = useMemo(() => {
     const m = new Map<string, { name: string; total: number; count: number; details: typeof rows }>();
@@ -32,23 +32,23 @@ export default function FloorTipsReport() {
     return Array.from(m.values()).sort((a, b) => b.total - a.total);
   }, [rows]);
 
-  const monthTotal = byEmployee.reduce((s, r) => s + r.total, 0);
+  const periodTotal = byEmployee.reduce((s, r) => s + r.total, 0);
 
   return (
     <PageShell>
-      <PageHeader icon={UserCheck} title="Floor Tips" subtitle={format(anchor, "MMMM yyyy")}>
-        <Button variant="outline" size="icon" onClick={() => setAnchor(d => subMonths(d, 1))}>
-          <ChevronLeft className="w-4 h-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={() => setAnchor(d => addMonths(d, 1))}>
-          <ChevronRight className="w-4 h-4" />
-        </Button>
+      <PageHeader icon={UserCheck} title="Floor Tips" subtitle="Cashier-recorded Floor tips">
+        <DateRangePresets
+          preset={preset}
+          from={from}
+          to={to}
+          onChange={(n) => { setPreset(n.preset); setFrom(n.from); setTo(n.to); }}
+        />
       </PageHeader>
 
       <PageSection>
         <div className="cms-panel p-3 mb-3 flex items-center justify-between">
-          <span className="text-sm text-muted-foreground uppercase tracking-wider">Month Total</span>
-          <span className="font-mono text-2xl font-bold">{formatCurrency(monthTotal)}</span>
+          <span className="text-sm text-muted-foreground uppercase tracking-wider">Period Total</span>
+          <span className="font-mono text-2xl font-bold">{formatCurrency(periodTotal)}</span>
         </div>
 
         <div className="cms-panel">
@@ -62,7 +62,7 @@ export default function FloorTipsReport() {
             </thead>
             <tbody>
               {byEmployee.length === 0 ? (
-                <tr><td colSpan={3} className="text-center text-muted-foreground py-6">No floor tips this month</td></tr>
+                <tr><td colSpan={3} className="text-center text-muted-foreground py-6">No floor tips in this period</td></tr>
               ) : byEmployee.map(e => (
                 <tr key={e.name} className="border-b border-border/50 last:border-0">
                   <td className="px-3 py-2 font-medium">{e.name}</td>

@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { CHIP_DENOMS } from "@/lib/currency";
 import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import ChipToken from "@/components/ChipToken";
-import { format, startOfMonth, subMonths, addMonths } from "date-fns";
-import { Coins, ChevronLeft, ChevronRight } from "lucide-react";
+import { format, addDays } from "date-fns";
+import { Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -15,6 +15,7 @@ import { DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell } from "@/components
 import { MoneyCell } from "@/components/ui/money-cell";
 import { useMoneyMode, useMoneyDisplayMode } from "@/components/ui/data-table-toolbar";
 import { fmtDateOnly } from "@/lib/format-date";
+import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 
 interface ShiftMissRow {
   business_date: string;
@@ -37,8 +38,10 @@ interface MissChipsProps {
 
 const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProps = {}) => {
   const { casinoId } = useAuth();
-  const today = new Date();
-  const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
+  const initial = useMemo(() => presetRange("month"), []);
+  const [preset, setPreset] = useState<DatePreset>("month");
+  const [from, setFrom] = useState(initial.from);
+  const [to, setTo] = useState(initial.to);
   const [localMode, MoneyToggle] = useMoneyMode("miss-chips");
   const parentMode = useMoneyDisplayMode();
   const mode = embedded ? parentMode : localMode;
@@ -46,14 +49,13 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
   // Denominations descending; filtered by per-casino visibility.
   const DENOMS_DESC = useMemo(() => [...visibleDenoms].sort((a, b) => b - a), [visibleDenoms]);
 
-  const monthLabel = format(monthAnchor, "MMMM yyyy");
-  const fromIso = embedded && embeddedFrom
-    ? `${embeddedFrom}T02:00:00Z`
-    : `${format(startOfMonth(monthAnchor), "yyyy-MM-dd")}T02:00:00Z`;
-  const nextStart = startOfMonth(addMonths(monthAnchor, 1));
-  const toIso = embedded && embeddedTo
-    ? `${format(new Date(new Date(embeddedTo + "T00:00:00").getTime() + 86400000), "yyyy-MM-dd")}T02:00:00Z`
-    : `${format(nextStart, "yyyy-MM-dd")}T02:00:00Z`;
+  // Query window — convert from/to (or embedded override) into UTC bucket
+  // boundaries (EAT business day starts at 05:00 EAT = 02:00 UTC).
+  const effFrom = embedded && embeddedFrom ? embeddedFrom : from;
+  const effTo = embedded && embeddedTo ? embeddedTo : to;
+  const fromIso = `${effFrom}T02:00:00Z`;
+  const toIso = `${format(addDays(new Date(effTo + "T00:00:00"), 1), "yyyy-MM-dd")}T02:00:00Z`;
+  const periodLabel = `${fmtDateOnly(effFrom)} – ${fmtDateOnly(effTo)}`;
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["miss-chips-daily", casinoId, fromIso, toIso],
@@ -118,10 +120,7 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
     return { by, total };
   }, [dailyRows]);
 
-  const goPrev = () => setMonthAnchor((d) => startOfMonth(subMonths(d, 1)));
-  const goNext = () => setMonthAnchor((d) => startOfMonth(addMonths(d, 1)));
-  const goCurrent = () => setMonthAnchor(startOfMonth(today));
-  const nextDisabled = monthAnchor >= startOfMonth(today);
+  // Period nav handled by DateRangePresets below.
 
   const totalCols = DENOMS_DESC.length + 2;
 
@@ -202,31 +201,15 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
       <PageHeader
         icon={Coins}
         title="Miss Chips"
-        subtitle={`Daily cage chip count delta · ${monthLabel}`}
+        subtitle={`Daily cage chip count delta · ${periodLabel}`}
         date
         centerSlot={
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={goPrev}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 font-mono min-w-[140px]"
-              onClick={goCurrent}
-            >
-              {monthLabel}
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={goNext}
-              disabled={nextDisabled}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <DateRangePresets
+            preset={preset}
+            from={from}
+            to={to}
+            onChange={(n) => { setPreset(n.preset); setFrom(n.from); setTo(n.to); }}
+          />
         }
       >
         <MoneyCell value={monthSum.total} mode={mode} signed className="text-base font-semibold" />
