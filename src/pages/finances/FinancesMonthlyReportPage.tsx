@@ -365,6 +365,12 @@ export default function FinancesMonthlyReportPage() {
           </div>
         </PageSection>
       )}
+
+      <EditExpenseDialog
+        open={!!editRow}
+        onOpenChange={(o) => { if (!o) setEditRow(null); }}
+        expense={editRow}
+      />
     </PageShell>
   );
 }
