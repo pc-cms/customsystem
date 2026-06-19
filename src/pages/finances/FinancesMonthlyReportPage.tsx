@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { FileSpreadsheet, ChevronRight, ChevronDown, Download } from "lucide-react";
+import { FileSpreadsheet, ChevronRight, ChevronDown, Download, Pencil } from "lucide-react";
+import { EditExpenseDialog, type EditableExpense } from "@/components/expenses/EditExpenseDialog";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -10,11 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useMonthlyReport, type ReportCategory, type ReportGroup } from "@/hooks/use-fin-monthly-report";
+import { useMonthlyReport, type ReportCategory, type ReportGroup, type ReportExpense } from "@/hooks/use-fin-monthly-report";
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
 import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories } from "@/hooks/use-fin";
-import { useUpdateExpenseFinCategory } from "@/hooks/use-expenses";
+
 import { useCategoryMtd } from "@/hooks/use-category-mtd";
 import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
 import { InlineTextCell } from "@/components/finances/InlineTextCell";
@@ -47,6 +48,8 @@ export default function FinancesMonthlyReportPage() {
   const [scope, setScope] = useState<string>(activeCasinoId || "");
   const [usdRate, setUsdRate] = useState(2500);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [editRow, setEditRow] = useState<EditableExpense | null>(null);
+
 
   const { roles } = useAuth();
   const canEdit = roles.includes("super_admin") || roles.includes("finance_manager");
@@ -56,7 +59,7 @@ export default function FinancesMonthlyReportPage() {
 
   const upsertBudget = useUpsertFinBudgetCell();
   const renameCategory = useRenameFinCategory();
-  const moveExpense = useUpdateExpenseFinCategory();
+  
   const { data: allCats } = useFinCategories();
 
   const { data, isLoading } = useMonthlyReport({ year, month, ytd, scope: scope || activeCasinoId || "" });
@@ -294,9 +297,17 @@ export default function FinancesMonthlyReportPage() {
           onRenameCategory={(catId, newName) =>
             renameCategory.mutate({ id: catId, name: newName })
           }
-          onMoveExpense={(id, newCatId) =>
-            moveExpense.mutate({ id, fin_category_id: newCatId })
-          }
+          onEditExpense={(e) => setEditRow({
+            id: e.id,
+            fin_category_id: e.fin_category_id,
+            wallet_id: e.wallet_id,
+            amount: e.amount,
+            currency: e.currency,
+            description: e.description,
+            player_id: e.player_id,
+            player_name: e.player_name,
+            source: e.source,
+          })}
         />
       ))}
 
@@ -323,9 +334,17 @@ export default function FinancesMonthlyReportPage() {
           onRenameCategory={(catId, newName) =>
             renameCategory.mutate({ id: catId, name: newName })
           }
-          onMoveExpense={(id, newCatId) =>
-            moveExpense.mutate({ id, fin_category_id: newCatId })
-          }
+          onEditExpense={(e) => setEditRow({
+            id: e.id,
+            fin_category_id: e.fin_category_id,
+            wallet_id: e.wallet_id,
+            amount: e.amount,
+            currency: e.currency,
+            description: e.description,
+            player_id: e.player_id,
+            player_name: e.player_name,
+            source: e.source,
+          })}
         />
       )}
 
@@ -346,6 +365,12 @@ export default function FinancesMonthlyReportPage() {
           </div>
         </PageSection>
       )}
+
+      <EditExpenseDialog
+        open={!!editRow}
+        onOpenChange={(o) => { if (!o) setEditRow(null); }}
+        expense={editRow}
+      />
     </PageShell>
   );
 }
@@ -371,7 +396,7 @@ type EditCallbacks = {
   allCategories: { id: string; name: string; group_name: string | null; group_code: string | null; is_active: boolean; is_income: boolean }[];
   onPlanCommit: (catId: string, currency: "TZS" | "USD", amount: number) => void;
   onRenameCategory: (catId: string, newName: string) => void;
-  onMoveExpense: (expenseId: string, newCatId: string) => void;
+  onEditExpense: (e: ReportExpense) => void;
 };
 
 const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, mtd, mtdMonthLabel, ...edit }: {
@@ -444,13 +469,11 @@ const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, 
   );
 };
 
-const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, mtdValue, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onMoveExpense }: {
+const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, mtdValue, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onEditExpense }: {
   c: ReportCategory; expanded: boolean; onToggle: () => void; usdRate: number; isNetwork: boolean; showUsd: boolean; colCount: number; mtdValue: number;
 } & EditCallbacks) => {
   const remTzs = c.plan_month_tzs - c.actual_tzs;
   const remUsd = c.plan_month_usd - c.actual_usd;
-  // Filter active non-income expense categories for the Move-to dropdown.
-  const moveTargets = allCategories.filter(x => x.is_active && !x.is_income && x.id !== c.id);
   return (
     <>
       <tr
@@ -524,7 +547,7 @@ const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, mtd
                       <th className="text-right w-[120px]">Amount</th>
                       <th className="text-right w-[120px]">TZS</th>
                       {showUsd && <th className="text-right w-[100px]">USD</th>}
-                      {editMode && <th className="text-left w-[170px] pr-2">Move to…</th>}
+                      {editMode && <th className="w-[40px]"></th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -541,17 +564,16 @@ const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, mtd
                         <td className="text-right font-mono tabular-nums">{formatNumberSpaces(e.amount_tzs)}</td>
                         {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground">{formatNumberSpaces(Math.round(e.amount_tzs / (usdRate || 1)))}</td>}
                         {editMode && (
-                          <td className="pr-2" onClick={(ev) => ev.stopPropagation()}>
-                            <Select onValueChange={(v) => v && onMoveExpense(e.id, v)}>
-                              <SelectTrigger className="h-6 text-[10px] px-1.5"><SelectValue placeholder="Move…" /></SelectTrigger>
-                              <SelectContent className="max-h-[300px]">
-                                {moveTargets.map((t) => (
-                                  <SelectItem key={t.id} value={t.id} className="text-[11px]">
-                                    <span className="text-muted-foreground">{t.group_name}</span> · {t.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                          <td className="pr-2 text-right" onClick={(ev) => ev.stopPropagation()}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => onEditExpense(e)}
+                              aria-label="Edit expense"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
                           </td>
                         )}
                       </tr>

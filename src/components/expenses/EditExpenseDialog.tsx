@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CategoryCombobox } from "./CategoryCombobox";
 import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
 import { useEditExpense } from "@/hooks/use-edit-expense";
+import { useFinWallets } from "@/hooks/use-fin";
 
 type Currency = "TZS" | "USD" | "EUR" | "GBP" | "KES";
 const CURRENCIES: Currency[] = ["TZS", "USD", "EUR", "GBP", "KES"];
@@ -27,6 +28,7 @@ const CURRENCIES: Currency[] = ["TZS", "USD", "EUR", "GBP", "KES"];
 export interface EditableExpense {
   id: string;
   fin_category_id?: string | null;
+  wallet_id?: string | null;
   amount: number;
   currency?: string | null;
   description?: string | null;
@@ -43,7 +45,9 @@ interface Props {
 
 export const EditExpenseDialog = ({ open, onOpenChange, expense }: Props) => {
   const edit = useEditExpense();
+  const { data: wallets = [] } = useFinWallets();
   const [finCatId, setFinCatId] = useState<string>("");
+  const [walletId, setWalletId] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
   const [currency, setCurrency] = useState<Currency>("TZS");
   const [description, setDescription] = useState("");
@@ -53,6 +57,7 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense }: Props) => {
   useEffect(() => {
     if (!expense) return;
     setFinCatId(expense.fin_category_id || "");
+    setWalletId(expense.wallet_id || "");
     setAmount(String(expense.amount ?? ""));
     setCurrency(((expense.currency as Currency) || "TZS"));
     setDescription(expense.description || "");
@@ -71,6 +76,7 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense }: Props) => {
     await edit.mutateAsync({
       id: expense.id,
       fin_category_id: finCatId || null,
+      wallet_id: walletId || null,
       amount: amt,
       currency,
       description: description.trim(),
@@ -78,6 +84,7 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense }: Props) => {
       player_name: target === "player" ? playerName.trim() : "",
       before: {
         fin_category_id: expense.fin_category_id ?? null,
+        wallet_id: expense.wallet_id ?? null,
         amount: expense.amount,
         currency: expense.currency ?? "TZS",
         description: expense.description ?? "",
@@ -98,6 +105,20 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense }: Props) => {
       <FormGrid>
         <FormField label="Category" span={12}>
           <CategoryCombobox value={finCatId} onChange={setFinCatId} />
+        </FormField>
+
+        <FormField label="Wallet" span={12}>
+          <Select value={walletId || "none"} onValueChange={(v) => setWalletId(v === "none" ? "" : v)}>
+            <SelectTrigger><SelectValue placeholder="Pick wallet" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">— No wallet —</SelectItem>
+              {(wallets as any[]).map((w) => (
+                <SelectItem key={w.id} value={w.id}>
+                  {w.name} <span className="text-muted-foreground">({w.currency})</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </FormField>
 
         {!isOffice && (

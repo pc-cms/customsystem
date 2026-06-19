@@ -17,6 +17,7 @@ import { toast } from "sonner";
 export type EditExpensePatch = {
   id: string;
   fin_category_id?: string | null;
+  wallet_id?: string | null;
   amount?: number;
   currency?: "TZS" | "USD" | "EUR" | "GBP" | "KES";
   description?: string;
@@ -40,6 +41,7 @@ export const useEditExpense = () => {
 
       const update: Record<string, any> = {};
       if (patch.fin_category_id !== undefined) update.fin_category_id = patch.fin_category_id;
+      if (patch.wallet_id !== undefined) update.wallet_id = patch.wallet_id;
       if (patch.amount !== undefined) update.amount = patch.amount;
       if (patch.currency !== undefined) update.currency = patch.currency;
       if (patch.description !== undefined) update.description = patch.description;
@@ -66,6 +68,8 @@ export const useEditExpense = () => {
       qc.invalidateQueries({ queryKey: ["daily-expenses"] });
       qc.invalidateQueries({ queryKey: ["fin-expenses"] });
       qc.invalidateQueries({ queryKey: ["fin-monthly-report"] });
+      qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
+      qc.invalidateQueries({ queryKey: ["fin-wallet-balances"] });
       toast.success("Expense updated");
     },
     onError: (e: any) => toast.error(e?.message || "Failed to update expense"),
