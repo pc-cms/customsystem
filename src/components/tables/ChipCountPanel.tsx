@@ -50,6 +50,10 @@ interface ChipCountPanelProps {
 export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const { data: tables = [] } = useGamingTables();
   const { data: snapshots = [] } = useChipSnapshots(date);
+  // History panel must show ALL saves (not just the latest per location/denom),
+  // otherwise the user only sees the most recent check while previous ones are
+  // hidden — even though they were correctly written to Number Count tracker.
+  const { data: snapshotsFull = [] } = useChipSnapshotsFull(date);
   const { data: baseline = [] } = useChipBaseline();
   const { data: chipColorOverrides } = useChipColors();
   const batchSnapshot = useBatchChipSnapshot();
