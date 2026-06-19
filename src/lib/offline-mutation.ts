@@ -44,7 +44,9 @@ function isNetworkError(msg: string | undefined): boolean {
 }
 
 export async function offlineMutation(opts: OfflineMutationOptions): Promise<{ offline: boolean; error?: string }> {
-  const timeoutMs = opts.onlineTimeoutMs ?? 8000;
+  // 15s default — tuned for cloud RTT from East Africa (Arusha/Mwanza/Dodoma/Mbeya).
+  // Must stay identical across all casinos; do not override per-location.
+  const timeoutMs = opts.onlineTimeoutMs ?? 15000;
 
   // If online, try direct execution with a hard timeout
   if (navigator.onLine) {
@@ -103,11 +105,12 @@ export async function offlineMutation(opts: OfflineMutationOptions): Promise<{ o
       upsertConflict: opts.upsertConflict,
       meta: opts.meta,
     });
-    toast.info(
-      navigator.onLine
-        ? "Connection slow — saved offline, will retry"
-        : "Saved offline — will sync when connected",
-    );
+    // Only notify on REAL offline. A timed-out online attempt still got
+    // enqueued + will sync in the background — no need to scare the operator
+    // with a "Connection slow" toast for every jitter spike.
+    if (!navigator.onLine) {
+      toast.info("Saved offline — will sync when connected");
+    }
     // Kick a background sync attempt; don't await so UI doesn't block.
     void syncPendingActions().catch(() => {});
     return { offline: true };

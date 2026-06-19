@@ -1,71 +1,65 @@
+# Унификация сетевого поведения между казино
 
-# Monthly Report — Collections, Totals, Category Guard
+## Контекст (что уже одинаково)
 
-## 1. Collections (Owner Withdrawal) — двойное отображение
+Я провёл аудит — между Arusha и Mwanza **нет ни одного функционального различия** в клиентском коде:
 
-Категория `Collection (Owner Withdrawal)` уже существует (`group_code='income'`, `is_income=false`). Сейчас она невидима в Monthly Report, потому что `GROUP_ORDER` исключает `income`.
+| Что | Arusha | Mwanza | Статус |
+|---|---|---|---|
+| PWA-манифест (cloud) | `manifest-arusha.json` | `manifest-mwanza.json` | Идентичны, кроме `name`/`short_name` (косметика) |
+| PWA-манифест (on-prem) | `manifest-aru.json` | `manifest-mwz.json` | Идентичны, кроме `name` и `id` |
+| Иконки, `start_url`, `scope`, `theme_color` | те же | те же | OK |
+| `node_modes.mode` в БД | `cloud_primary` | `cloud_primary` | OK |
+| Таймаут offline-mutation | 8000 ms | 8000 ms | OK (см. ниже) |
+| Auth throttle / 429 cooldown | 30000 ms | 30000 ms | OK |
+| Sync backoff (1s→16s) | глобальный | глобальный | OK |
+| Realtime/prefetch логика | одна и та же | одна и та же | OK |
 
-**Решение — и то, и другое:**
+**Единственная реальная разница** — физическая сетевая задержка от ISP клиента в Мванзе vs Аруше до cloud-edge Supabase (EU). Это вне кода. Но мы можем сделать UX устойчивым к худшему из двух RTT, чтобы при подключении следующего казино (Dodoma, Mbeya) поведение было одинаковым.
 
-**A) Новая группа в основной таблице** (`use-fin-monthly-report.ts`):
-- Добавить `'collections'` в `GROUP_ORDER` после `additional`.
-- Миграция: создать `group_code='collections'`, `group_name='Collections & Owner Withdrawals'`, перенести туда категорию `Collection (Owner Withdrawal)` (`is_income=false`). Также перенести `CAPEX`, `Inter-Casino Transfer Out`, `Money Change` (они тоже `is_income=false` в `income` группе и логически не "доходы", а движения вне P&L).
-- Группа отображается обычной таблицей Plan vs Actual со всеми колонками и группой Total.
+## Что меняем
 
-**B) KPI-блок «Net After Collections» в Grand Total секции:**
-- Добавить два KPI: `Collections TZS` (сумма actual по группе collections), `Net Cash After Collections = Incomes.total − Expenses(без collections) − Collections`.
-- Сами Collections **не** включаются в `grand.actual_tzs` основных расходов (чтобы не дублировались с операционными расходами), а вычитаются отдельной строкой.
+### 1. Поднять единый таймаут операций до 15 секунд
 
-**Код:**
-- В хуке выделить новую группу `collections`, считать `collections_total` отдельно.
-- В `MonthlyReport` тип добавить `collections: { total_tzs, total_usd, expenses: ReportExpense[] }`.
-- Grand total `actual_tzs` остаётся **операционным** (без collections) → корректное сравнение с бюджетом.
-- Revenue USD KPI пересчитать: `(incomes.total − expenses_ops − collections) / usdRate`.
+`src/lib/offline-mutation.ts`: `onlineTimeoutMs` default `8000 → 15000`.
 
-## 2. Группы без бюджета — фикс суммирования
+**Почему:** 8 секунд — слишком жёстко для casino, у которого RTT до облака >300 ms + редкие jitter-пики. Запрос успевает дойти, но клиент уже считает его «зависшим», сбрасывает в IndexedDB и показывает «Connection slow». Поднимаем до 15 с — это всё ещё гарантирует, что UI не зависнет навсегда, но перестаёт ложно срабатывать на нормальном африканском интернете.
 
-Текущий код в `useMonthlyReport` уже добавляет все активные non-income категории в `byGroup`, поэтому категории отображаются. Но **проблема**: `GROUP_ORDER.filter((g) => byGroup.has(g))` — если в группе ни у одной категории нет ни plan, ни actual, она всё равно появляется (это ОК). А вот totals row показывает `fmt(0) = '—'` — визуально кажется пустой.
+### 2. Убрать всплывающий тост «Connection slow — saved offline, will retry»
 
-**Фикс:**
-- В `fmt()` для totals row показывать `0` вместо `—`, когда у группы есть категории (хотя бы одна с actual>0). Сейчас `fmt = (n) => n ? formatNumberSpaces(n) : '—'`.
-- Group Total и Grand Total: если `actual_tzs > 0` ИЛИ `plan_month_tzs > 0` — показывать число (включая 0). Иначе `—`.
-- Проверить: убедиться что Group Total корректно суммирует `actual_tzs` даже если все `plan_month_tzs = 0` (логика уже правильная, но добавить тест: открыть месяц с реальными расходами в Mwanza без бюджетов и убедиться, что Group Total и Grand Total Actual колонка показывает суммы).
+`src/lib/offline-mutation.ts`: при `navigator.onLine === true` (т.е. не настоящий offline, а просто медленный round-trip) **не показывать toast**. Запись всё равно сохраняется в IndexedDB и синхронизируется фоном через `syncPendingActions`.
 
-## 3. Запрет удаления категории при наличии расходов
+Реальный offline (`navigator.onLine === false`) → toast остаётся: «Saved offline — will sync when connected». Это валидный сигнал.
 
-**Миграция:** триггер `BEFORE DELETE` на `fin_categories`:
-```sql
-IF EXISTS (SELECT 1 FROM expenses WHERE fin_category_id = OLD.id LIMIT 1) THEN
-  RAISE EXCEPTION 'Cannot delete category "%": has linked expenses. Move them first.', OLD.name;
-END IF;
--- то же для fin_budget и fin_incomes
-```
+**Почему:** сейчас этот тост пугает Мванзу при каждом jitter-пике, хотя данные не теряются. Верхний `OfflineBanner` (красная/жёлтая полоса) продолжает корректно показывать статус сети и очередь.
 
-**UI** (`src/components/admin/ExpenseCategoriesSettings.tsx` или где удаление):
-- Перед удалением `SELECT count(*) FROM expenses WHERE fin_category_id=...`
-- Если > 0 — disabled кнопка Delete с tooltip «Has N linked expenses».
-- Soft-delete (`is_active=false`) остаётся доступным всегда.
+### 3. Зафиксировать паритет манифестов
 
-## 4. Auto version bump
+Добавить короткий комментарий-header в каждый `public/manifest-<casino>.json` и `public/manifest-<code>.json`, явно говорящий: «отличия от других манифестов — только косметика (name/short_name)». Чтобы при добавлении нового казино было видно правило.
 
-`package.json` patch (миграция + триггер).
+(Файлы менять не нужно по содержимому — только короткий комментарий поверх описания через поле `description`, либо отдельный `MANIFESTS.md` рядом.)
 
-## Technical details
+### 4. Документация
 
-**Files to edit:**
-- `src/hooks/use-fin-monthly-report.ts` — добавить группу `collections`, выделить collections в отдельное поле, передать в UI
-- `src/pages/finances/FinancesMonthlyReportPage.tsx` — рендер группы Collections (как обычная GroupTable), KPI «Collections» и «Net After Collections» в Grand Total, fix `fmt` для totals (показывать 0)
-- `src/components/admin/ExpenseCategoriesSettings.tsx` — disable Delete если есть расходы, показать счётчик
-- `package.json` — bump patch
+Создать `docs/CASINO-PARITY.md` — короткая страница со списком гарантий: «все казино должны иметь идентичные таймауты, ретраи, частоту prefetch, размер кэша; различия допускаются только в name/short_name/иконке». Это станет чек-листом при подключении Dodoma/Mbeya.
 
-**Migration:**
-- Создать `group_code='collections'` группу
-- `UPDATE fin_categories SET group_code='collections', group_name='Collections & Owner Withdrawals' WHERE name IN ('Collection (Owner Withdrawal)', 'CAPEX', 'Inter-Casino Transfer Out', 'Money Change')`
-- Триггер `fin_categories_prevent_delete_with_expenses`
-- GRANT и RLS не меняются (категории уже public-read)
+## Чего НЕ делаем
 
-**XLSX export:** добавить секцию Collections перед Grand Total.
+- Не вводим per-casino таймауты — это противоречит цели «одинаковые задержки везде».
+- Не трогаем `auth-throttle`, `sync-engine`, `pit-prefetch` — там уже всё симметрично и проверено.
+- Не трогаем on-prem (`manifest-aru/mwz`) логику — она к Mwanza Cloud отношения не имеет.
+- Не меняем `node_modes` — оба казино правильно в `cloud_primary`.
 
-## Out of scope (не делаем)
-- Реклассификация старых 251 расхода (пользователь сказал «всё ок»).
-- Auto-fallback в «Others Expenses» при удалении — заменено на запрет удаления.
+## Технические детали
+
+**Файлы:**
+- `src/lib/offline-mutation.ts` — изменить `timeoutMs ?? 8000` → `?? 15000`; в блоке `enqueue` показывать `toast.info` только если `!navigator.onLine`.
+- `docs/CASINO-PARITY.md` — новый файл, ~30 строк.
+- (опционально) `public/manifest-*.json` — добавить ключ `"_comment": "All casino manifests must be identical except name/short_name/description"`. PWA-парсеры неизвестные ключи игнорируют.
+
+**Версия:** bump patch — это behavioural change в клиенте.
+
+**Проверка после деплоя:**
+- Открыть Mwanza, поправить ячейку attendance — toast «Connection slow» больше не должен появляться при медленном (но успешном) ответе.
+- Полностью выключить Wi-Fi → toast «Saved offline» появляется как раньше.
+- Очередь sync в `/admin/sync-queue` пустеет при возврате online.
