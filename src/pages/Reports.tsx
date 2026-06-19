@@ -160,7 +160,7 @@ const Reports = () => {
               <SelectItem value="week">Week</SelectItem>
               <SelectItem value="month">Month</SelectItem>
               <SelectItem value="year">Year</SelectItem>
-              <SelectItem value="all">All</SelectItem>
+              
               <SelectItem value="custom">Custom</SelectItem>
             </SelectContent>
           </Select>
