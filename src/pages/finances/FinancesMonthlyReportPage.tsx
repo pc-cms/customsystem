@@ -463,13 +463,11 @@ const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, 
   );
 };
 
-const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, mtdValue, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onMoveExpense }: {
+const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, mtdValue, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onEditExpense }: {
   c: ReportCategory; expanded: boolean; onToggle: () => void; usdRate: number; isNetwork: boolean; showUsd: boolean; colCount: number; mtdValue: number;
 } & EditCallbacks) => {
   const remTzs = c.plan_month_tzs - c.actual_tzs;
   const remUsd = c.plan_month_usd - c.actual_usd;
-  // Filter active non-income expense categories for the Move-to dropdown.
-  const moveTargets = allCategories.filter(x => x.is_active && !x.is_income && x.id !== c.id);
   return (
     <>
       <tr
@@ -543,7 +541,7 @@ const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, mtd
                       <th className="text-right w-[120px]">Amount</th>
                       <th className="text-right w-[120px]">TZS</th>
                       {showUsd && <th className="text-right w-[100px]">USD</th>}
-                      {editMode && <th className="text-left w-[170px] pr-2">Move to…</th>}
+                      {editMode && <th className="w-[40px]"></th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -560,17 +558,16 @@ const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, mtd
                         <td className="text-right font-mono tabular-nums">{formatNumberSpaces(e.amount_tzs)}</td>
                         {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground">{formatNumberSpaces(Math.round(e.amount_tzs / (usdRate || 1)))}</td>}
                         {editMode && (
-                          <td className="pr-2" onClick={(ev) => ev.stopPropagation()}>
-                            <Select onValueChange={(v) => v && onMoveExpense(e.id, v)}>
-                              <SelectTrigger className="h-6 text-[10px] px-1.5"><SelectValue placeholder="Move…" /></SelectTrigger>
-                              <SelectContent className="max-h-[300px]">
-                                {moveTargets.map((t) => (
-                                  <SelectItem key={t.id} value={t.id} className="text-[11px]">
-                                    <span className="text-muted-foreground">{t.group_name}</span> · {t.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                          <td className="pr-2 text-right" onClick={(ev) => ev.stopPropagation()}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => onEditExpense(e)}
+                              aria-label="Edit expense"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
                           </td>
                         )}
                       </tr>
