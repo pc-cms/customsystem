@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { Save, Maximize2, Minimize2, History, Tablet } from "lucide-react";
-import { useChipSnapshots, useBatchChipSnapshot } from "@/hooks/use-chips";
+import { useChipSnapshots, useChipSnapshotsFull, useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useGamingTables, useSetTableTrackerValue, useBatchSetTableTrackerValue, useTableTracker } from "@/hooks/use-casino-data";
 import { CHIP_DENOMS, formatChipLabel, formatCurrency } from "@/lib/currency";
@@ -50,6 +50,10 @@ interface ChipCountPanelProps {
 export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const { data: tables = [] } = useGamingTables();
   const { data: snapshots = [] } = useChipSnapshots(date);
+  // History panel must show ALL saves (not just the latest per location/denom),
+  // otherwise the user only sees the most recent check while previous ones are
+  // hidden — even though they were correctly written to Number Count tracker.
+  const { data: snapshotsFull = [] } = useChipSnapshotsFull(date);
   const { data: baseline = [] } = useChipBaseline();
   const { data: chipColorOverrides } = useChipColors();
   const batchSnapshot = useBatchChipSnapshot();
@@ -367,7 +371,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   // ===== Snapshot history (per save = group of rows sharing created_at) =====
   const history = useMemo(() => {
     const groups: Record<string, { ts: string; perTableDenoms: Record<string, { actual: Record<number, number>; expected: Record<number, number> }> }> = {};
-    snapshots.forEach((s: any) => {
+    snapshotsFull.forEach((s: any) => {
       if (s.location_type !== "table" || !s.location_id) return;
       const ts = s.created_at;
       if (!groups[ts]) groups[ts] = { ts, perTableDenoms: {} };
@@ -384,7 +388,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       });
       return { ts: g.ts, perTable, total: Object.values(perTable).reduce((s, v) => s + v, 0) };
     }).sort((a, b) => b.ts.localeCompare(a.ts));
-  }, [snapshots, baselineMap]);
+  }, [snapshotsFull, baselineMap]);
 
   return (
     <>
