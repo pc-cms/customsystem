@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { FileSpreadsheet, ChevronRight, ChevronDown, Download } from "lucide-react";
+import { FileSpreadsheet, ChevronRight, ChevronDown, Download, Pencil } from "lucide-react";
+import { EditExpenseDialog, type EditableExpense } from "@/components/expenses/EditExpenseDialog";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,8 @@ export default function FinancesMonthlyReportPage() {
   const [scope, setScope] = useState<string>(activeCasinoId || "");
   const [usdRate, setUsdRate] = useState(2500);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [editRow, setEditRow] = useState<EditableExpense | null>(null);
+
 
   const { roles } = useAuth();
   const canEdit = roles.includes("super_admin") || roles.includes("finance_manager");
