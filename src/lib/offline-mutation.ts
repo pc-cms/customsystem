@@ -44,7 +44,9 @@ function isNetworkError(msg: string | undefined): boolean {
 }
 
 export async function offlineMutation(opts: OfflineMutationOptions): Promise<{ offline: boolean; error?: string }> {
-  const timeoutMs = opts.onlineTimeoutMs ?? 8000;
+  // 15s default — tuned for cloud RTT from East Africa (Arusha/Mwanza/Dodoma/Mbeya).
+  // Must stay identical across all casinos; do not override per-location.
+  const timeoutMs = opts.onlineTimeoutMs ?? 15000;
 
   // If online, try direct execution with a hard timeout
   if (navigator.onLine) {
