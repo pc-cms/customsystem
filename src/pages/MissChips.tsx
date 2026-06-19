@@ -120,10 +120,7 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
     return { by, total };
   }, [dailyRows]);
 
-  const goPrev = () => setMonthAnchor((d) => startOfMonth(subMonths(d, 1)));
-  const goNext = () => setMonthAnchor((d) => startOfMonth(addMonths(d, 1)));
-  const goCurrent = () => setMonthAnchor(startOfMonth(today));
-  const nextDisabled = monthAnchor >= startOfMonth(today);
+  // Period nav handled by DateRangePresets below.
 
   const totalCols = DENOMS_DESC.length + 2;
 
