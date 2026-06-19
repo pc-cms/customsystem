@@ -1,65 +1,93 @@
-## Проблема
+## Цель
 
-Ты прав: за последние месяцы накопилось несколько «фиксов по безопасности/scope», которые молча урезают данные в UI. Только что нашли один такой случай — `ChipCountPanel.history` читал RPC `chip_snapshots_latest` (создан для скорости/нагрузки), и из-за этого показывался только последний чек вместо всех. Аналогичные регрессии могут быть в других местах: пикеры дат, история, просмотры.
+Унифицировать **все** пикеры дат в приложении к единому виду:
 
-Прежде чем что-то править, я хочу **сначала провести аудит** и показать тебе полный список подозрительных мест. Без аудита риск — починить одно, сломать другое (особенно правила «only current business day» для Pit/Cashier/Reception, которые сейчас в Core memory).
+**Кнопки:** `Day` · `Week` · `Month` · `Year` · `Custom`
 
-## Что аудитим (3 категории)
+- `Week` = последние 7 дней начиная с **Воскресенья** (Sun→Sat), а не «последние 7 дней от сегодня»
+- `Month` = текущий календарный месяц (1‑е → последнее число)
+- `Year` = текущий календарный год (1 янв → 31 дек)
+- `Day` = сегодня (бизнес‑день)
+- `Custom` = два календарных попапа From / To
 
-### 1. «Latest-only» RPC и срезы данных
-Места, где UI читает не «всё за период», а агрегат / последнее значение, и поэтому история выглядит пустой:
-- `chip_snapshots_latest` — другие потребители кроме ChipCountPanel
-- `compute_shift_balance`, `build_business_day_snapshot` — не используется ли результат там, где нужна полная история
-- Любые `.order(..., desc).limit(1)` в hooks, где компонент рядом ожидает массив
+Убрать «7 дней назад» и «30 дней назад» как пресеты — это сейчас в `presetRange()` в `date-range-presets.tsx` и в кастомных месячных навигаторах с `‹ ›`.
 
-### 2. Date pickers, ограниченные `useBusinessDayFilter()` / `canSeePlayerFinancials()`
-Правило «Pit/Cashier/Reception видят только текущий бизнес-день» правильное для **операционных списков** (Cage, Shift), но не должно урезать:
-- Просмотр исторических чеков / Chip Count history
-- Player Profile → визиты/история (с учётом hide-financials, но даты выбираемы)
-- Reports (Miss Chips, Monthly Tips, Floor/Poker Tips, Business Days) — там month picker
-- Tracker / Analytics страницы
-- Любые «View»/read-only сущности с собственным `canSee...` правилом
+## Что меняется (1 общий компонент + замены)
 
-Проверяем все вызовы `useBusinessDayFilter` и сравниваем с маршрутом: если страница помечена как «read-only история» — фильтр там не нужен.
+### 1. `src/components/ui/date-range-presets.tsx` — обновить
 
-### 3. RLS на read-only таблицах
-Проверим политики на:
-- `chip_snapshots`, `table_tracker`, `cash_counts`, `cage_slots_cash_counts`
-- `shifts`, `cage_slots_shifts`
-- `business_day_closures`, `business_day_snapshot`
-- `dealer_attendance`, `staff_attendance`
+- `presetRange("week")` → текущая неделя Sun..Sat (через `startOfWeek(d, { weekStartsOn: 0 })` / `endOfWeek`)
+- `presetRange("month")` → `startOfMonth..endOfMonth` (не «−29 дней»)
+- `presetRange("year")` → `startOfYear..endOfYear` (не «−364 дня»)
+- `presetRange("day")` → сегодня (как есть)
+- Календарь в `Custom` уже использует shadcn `Calendar` — добавим проп `weekStartsOn={0}` чтобы воскресенье было первым днём.
+- Внутри попапов оставить навигацию `‹ ›` влево/вправо для быстрого перехода на предыдущий/следующий период того же типа (Day → −1 день, Week → −1 неделя, Month → −1 месяц, Year → −1 год). Это закрывает кейсы текущих самописных навигаторов.
 
-Ищем: фильтры по `created_at >= today`, по `business_date = current`, по `auth.uid() = recorded_by` (когда должен видеть весь pit). Эти политики иногда добавляются «для безопасности», но ломают коллективный просмотр.
+### 2. Заменить самописные «месяц‑навигаторы» на `DateRangePresets`
 
-## Что НЕ трогаем без отдельного подтверждения
+Сейчас в этих файлах своя пара `‹ Month Name ›` без выбора Day/Week/Year:
 
-- Правило про `account_manager` / `am_trust_player`
-- Cross-casino политики (`players`, `player_cards`, `player_tags`, `casino_visits`, storage photos)
-- Сами performance RPC (`chip_snapshots_latest` остаётся — это правильная оптимизация, мы только переключаем потребителей где нужен полный список)
-- Финансовый блок видимости для Cashier/Reception/Pit (это твоё прямое правило в Core)
+- `src/pages/tips/LiveGameTipsTab.tsx`
+- `src/pages/tips/FloorTipsTab.tsx`
+- `src/pages/tips/ClubPokerTipsTab.tsx`
+- `src/pages/reports/PokerTipsReport.tsx`
+- `src/pages/reports/FloorTipsReport.tsx`
+- `src/pages/MonthlyTips.tsx`
+- `src/pages/MissChips.tsx`
+- `src/pages/cage/CageClosingsPage.tsx`
 
-## Deliverable аудита
+Заменяем на `<DateRangePresets preset from to onChange />` с дефолтом `month`. Хуки (`useTipsByRange`, `useMonthlyTips` и т.п.) уже принимают `from`/`to` строки — просто передаём новые значения.
 
-Я тебе верну **один комментарий-таблицу** вида:
+Исключение: **Live Game Tips** работает в окне «16 → 15 следующего месяца» (Period 16‑15), это специальный бухгалтерский период — оставляем как есть, помечаем `Custom`‑режимом с заблокированными границами, либо оставляем самописный навигатор только тут. **Уточнение нужно — см. вопрос ниже.**
 
-```text
-| Место                          | Регрессия                              | Причина                          | Предлагаемый фикс           |
-|--------------------------------|----------------------------------------|----------------------------------|-----------------------------|
-| ChipCountPanel.history          | показывался 1 чек вместо всех         | RPC latest для performance       | ✅ Уже починено (1.3.379)   |
-| ReportX → month picker          | даты до X числа не выбираются         | useBusinessDayFilter на read-page | снять фильтр                |
-| ...                            | ...                                    | ...                              | ...                         |
+### 3. Места уже на `DateRangePresets` — только пересчёт пресетов
+Автоматически подхватят новое поведение Week/Month/Year:
+- `src/pages/Reports.tsx`
+- `src/pages/PlayerStatistics.tsx`
+- `src/pages/PlayerProfile.tsx`
+- `src/pages/Groups.tsx`
+- `src/pages/WeeklyBonus.tsx`
+- `src/pages/finances/FinancesWalletsPage.tsx`
+- `src/pages/BankChecks.tsx`
+- `src/pages/TableResults.tsx`
+- `src/pages/tips/LotteryTab.tsx`
+- `src/components/cage/CageHistoryView.tsx`
+
+### 4. `src/components/ui/date-navigator.tsx` (для одиночной даты)
+- Календарь внутри → `weekStartsOn={0}` (визуально воскресенье первое).
+- Логика «бизнес‑день» не трогается.
+
+### 5. `src/components/ui/calendar.tsx`
+- Прокинуть проп `weekStartsOn` (по умолчанию `0`), чтобы все попап‑календари по умолчанию начинались с воскресенья.
+
+## Что НЕ трогаем
+
+- `useMonthlyTips`, `getPeriodStart16` — это банковский 16→15 период для финансов, не календарный месяц.
+- Бизнес‑день логика (`useEffectiveBusinessDate`, 07:00 EAT).
+- Role‑gates (`useBusinessDayFilter`, `canSeePlayerFinancials`) — операционные страницы (Cage, ActiveShift, Tables) по‑прежнему заперты на «сегодня».
+- Версия `package.json` — только UI, бэкенда нет, без bump.
+
+## Тех. детали
+
+```ts
+// новая логика presetRange
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format } from "date-fns";
+const iso = (d: Date) => format(d, "yyyy-MM-dd");
+case "day":   return { from: iso(today), to: iso(today) };
+case "week":  return { from: iso(startOfWeek(today, { weekStartsOn: 0 })), to: iso(endOfWeek(today, { weekStartsOn: 0 })) };
+case "month": return { from: iso(startOfMonth(today)), to: iso(endOfMonth(today)) };
+case "year":  return { from: iso(startOfYear(today)), to: iso(endOfYear(today)) };
+case "all":   // оставляем для обратной совместимости, но кнопку убираем из UI
 ```
 
-После того как ты посмотришь таблицу и подтвердишь, **тогда** мы по очереди (или батчем) применяем фиксы. Каждый — с минимальным касанием логики и без отката security/scope правил, которые ты хочешь сохранить.
+UI пресетов: `Day · Week · Month · Year · Custom` (убираем `All`).
 
-## Технические шаги (build mode)
+## Вопрос перед реализацией
 
-1. `rg` по проекту: все вызовы `useBusinessDayFilter`, `canSeePlayerFinancials`, `_latest` RPC, `.limit(1)` в hooks, фильтры по `business_date`/`created_at` в SQL политиках.
-2. Сверка с маршрутом: операционная страница или read-only история?
-3. Чтение SQL политик через `supabase--read_query` (`pg_policies` для перечисленных таблиц).
-4. Составление таблицы регрессий → отдаю тебе.
-5. После apply — точечные правки + bump версии, без массовых рефакторов.
+**Live Game Tips** сейчас идёт по бухгалтерскому окну «16 число → 15 следующего месяца» (синхронизирован с Monthly Tips). Это специальное окно, не календарный месяц. Что делаем?
 
-## Что нужно от тебя сейчас
+- (A) Оставляем самописный навигатор 16→15 только на Live Game Tips (исключение).
+- (B) Унифицируем под Month (1‑е → последнее) — тогда сумма перестанет совпадать с Monthly Tips «collected» подсказкой.
+- (C) Унифицируем, но Monthly Tips тоже переводим на календарный месяц.
 
-Только подтверждение «делай аудит» — или дай 1-2 конкретных примера блоков, где «выбор глубины даты / просмотр информации» сломался (страница + что не работает). Это сильно сократит шаг 1.
+По умолчанию выберу **(A)** если не уточнишь.
