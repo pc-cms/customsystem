@@ -81,31 +81,15 @@ const CageClosingsPage = () => {
       <PageHeader
         icon={Landmark}
         title="Cage Closings"
-        subtitle={`Manager-only · Reopen a closed shift to correct the closing count · ${monthLabel}`}
+        subtitle={`Manager-only · Reopen a closed shift to correct the closing count · ${periodLabel}`}
         date
         centerSlot={
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={goPrev}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 font-mono min-w-[140px]"
-              onClick={goCurrent}
-            >
-              {monthLabel}
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={goNext}
-              disabled={nextDisabled}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <DateRangePresets
+            preset={preset}
+            from={from}
+            to={to}
+            onChange={(n) => { setPreset(n.preset); setFrom(n.from); setTo(n.to); }}
+          />
         }
       >
         <Button variant="outline" size="sm" onClick={() => nav("/cage")}>Back to Cage</Button>
@@ -119,7 +103,7 @@ const CageClosingsPage = () => {
       )}
 
       <div className="cms-panel">
-        <div className="cms-header">Closed Shifts · {monthLabel} ({shifts.length})</div>
+        <div className="cms-header">Closed Shifts · {periodLabel} ({shifts.length})</div>
         <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-card z-10">
