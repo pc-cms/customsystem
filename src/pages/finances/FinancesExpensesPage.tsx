@@ -332,9 +332,29 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
                   </FinTD>
                   <FinTD align="right" className={FW.actions}>
                     {canManage && !r.voided_at && (
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => voidExp.mutate(r.id)} title="Void / reverse">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => setEditRow({
+                            id: r.id,
+                            fin_category_id: r.fin_category_id ?? null,
+                            amount: Number(r.amount || 0),
+                            currency: r.currency ?? "TZS",
+                            description: r.description ?? "",
+                            player_id: r.player_id ?? null,
+                            player_name: r.player_name ?? "",
+                            source: r.source ?? null,
+                          })}
+                          title="Edit"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => voidExp.mutate(r.id)} title="Void / reverse">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     )}
                   </FinTD>
                 </FinTR>
