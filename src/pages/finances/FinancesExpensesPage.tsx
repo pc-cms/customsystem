@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Receipt, Plus, Trash2, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import { Receipt, Plus, Trash2, ArrowUp, ArrowDown, Filter, Pencil } from "lucide-react";
+import EditExpenseDialog, { type EditableExpense } from "@/components/expenses/EditExpenseDialog";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
