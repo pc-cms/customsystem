@@ -252,6 +252,16 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
               </div>
             </div>
           )}
+          {!embedded && period === "week" && (
+            <div className="md:col-span-2 flex items-end gap-1">
+              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftWeek(-1)} title="Previous week">‹</Button>
+              <div className="flex-1">
+                <label className="text-[10px] uppercase text-muted-foreground">Week</label>
+                <Input type="date" value={anchor} onChange={(e) => setAnchor(e.target.value)} className="h-8 text-xs" />
+              </div>
+              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftWeek(1)} title="Next week">›</Button>
+            </div>
+          )}
           {!embedded && period === "month" && (
             <div className="md:col-span-2 flex items-end gap-1">
               <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftMonth(-1)} title="Previous month">‹</Button>
@@ -265,6 +275,20 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
                 />
               </div>
               <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftMonth(1)} title="Next month">›</Button>
+            </div>
+          )}
+          {!embedded && period === "year" && (
+            <div className="md:col-span-2 flex items-end gap-1">
+              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftYear(-1)} title="Previous year">‹</Button>
+              <div className="flex-1">
+                <label className="text-[10px] uppercase text-muted-foreground">Year</label>
+                <YearSelect
+                  value={new Date(anchor + "T00:00:00").getFullYear()}
+                  onChange={(y) => setAnchor(`${y}-01-01`)}
+                  className="w-full"
+                />
+              </div>
+              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftYear(1)} title="Next year">›</Button>
             </div>
           )}
           {!embedded && period === "custom" && (
