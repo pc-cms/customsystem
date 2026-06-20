@@ -1,0 +1,2 @@
+ALTER TYPE public.shift_type ADD VALUE IF NOT EXISTS 'EM';
+ALTER TYPE public.shift_type ADD VALUE IF NOT EXISTS 'EN';
