@@ -952,9 +952,9 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     const trimmed = val.trim().toUpperCase();
     if (trimmed === "") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "" }); return; }
     if (trimmed === "A" || trimmed === "S" || trimmed === "SP") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: trimmed }); return; }
-    // Shift code shortcuts: M=11h, N=8h, EM=11h, EN=8h
+    // Shift code shortcuts: M/EM=11h, N/EN/ED=8h
     if (trimmed === "M" || trimmed === "EM") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "11" }); return; }
-    if (trimmed === "N" || trimmed === "EN") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "8" }); return; }
+    if (trimmed === "N" || trimmed === "EN" || trimmed === "ED") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "8" }); return; }
     const ms = trimmed.match(/^(\d+(?:\.\d+)?)S$/);
     if (ms) {
       const n = Number(ms[1]);
