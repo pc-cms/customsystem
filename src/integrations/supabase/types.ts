@@ -9864,7 +9864,7 @@ export type Database = {
         | "reversal"
         | "expiry_writeoff"
       promo_grant_status: "active" | "exhausted" | "expired" | "reversed"
-      shift_type: "M" | "N" | "A" | "S" | "E" | "L"
+      shift_type: "M" | "N" | "A" | "S" | "E" | "L" | "EM" | "EN"
       staff_department:
         | "security"
         | "cashier"
@@ -10177,7 +10177,7 @@ export const Constants = {
         "expiry_writeoff",
       ],
       promo_grant_status: ["active", "exhausted", "expired", "reversed"],
-      shift_type: ["M", "N", "A", "S", "E", "L"],
+      shift_type: ["M", "N", "A", "S", "E", "L", "EM", "EN"],
       staff_department: [
         "security",
         "cashier",
