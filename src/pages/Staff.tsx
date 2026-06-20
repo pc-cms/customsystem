@@ -1208,8 +1208,8 @@ const AttendanceDepartmentBlock = ({
                   display={val || (isScheduled && isEmpty ? rotaShift! : "·")}
                   rows={[
                     { options: [
-                      { value: "A", label: "A", title: "Absent", className: ATT_COLORS["A"] },
-                      { value: "S", label: "S", title: "Sick", className: ATT_COLORS["S"] },
+                      { value: "A", label: "A", className: ATT_COLORS["A"] },
+                      { value: "S", label: "S", className: ATT_COLORS["S"] },
                     ]},
                     { label: "Hours", options: Array.from({ length: 12 }, (_, i) => i + 1).map(n => ({
                       value: String(n), label: String(n),
