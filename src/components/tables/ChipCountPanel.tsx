@@ -390,6 +390,22 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     }).sort((a, b) => b.ts.localeCompare(a.ts));
   }, [snapshotsFull, baselineMap]);
 
+  // Columns for the history table = every table that has any snapshot today
+  // (including ones that were closed mid-shift), in the same order as the
+  // main grid. Falls back to countLocations when no extra tables found.
+  const historyColumns = useMemo(() => {
+    const ids = new Set<string>();
+    snapshotsFull.forEach((s: any) => {
+      if (s.location_type === "table" && s.location_id) ids.add(s.location_id);
+    });
+    const fromGrid = countLocations.filter(loc => ids.has(loc.id) || true); // keep grid order
+    const gridIds = new Set(countLocations.map(l => l.id));
+    const extras = tables
+      .filter(t => ids.has(t.id) && !gridIds.has(t.id))
+      .map(t => ({ key: `table-${t.id}`, label: t.name, id: t.id }));
+    return [...fromGrid, ...extras];
+  }, [snapshotsFull, countLocations, tables]);
+
   return (
     <>
       {renderGrid(false)}
