@@ -26,7 +26,7 @@ const todayBD = () => new Date().toISOString().slice(0, 10);
 const pad = (n: number) => String(n).padStart(2, "0");
 const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-type Period = "day" | "week" | "month" | "year" | "ytd" | "all" | "custom";
+type Period = "day" | "week" | "month" | "year" | "custom";
 
 function computeRange(period: Period, anchor: string): { from?: string; to?: string } {
   const d = new Date(anchor + "T00:00:00");
@@ -48,7 +48,6 @@ function computeRange(period: Period, anchor: string): { from?: string; to?: str
   if (period === "year") {
     return { from: `${d.getFullYear()}-01-01`, to: `${d.getFullYear()}-12-31` };
   }
-  if (period === "ytd") return { from: `${d.getFullYear()}-01-01`, to: todayBD() };
   return {};
 }
 
@@ -226,7 +225,7 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
           <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Filters</h3>
           {!embedded && (
             <div className="ml-auto flex items-center gap-1 flex-wrap">
-              {(["day", "week", "month", "year", "ytd", "all", "custom"] as Period[]).map((p) => (
+              {(["day", "week", "month", "year", "custom"] as Period[]).map((p) => (
                 <Button
                   key={p}
                   size="sm"
@@ -234,7 +233,7 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
                   className="h-7 px-2 text-xs capitalize"
                   onClick={() => setPeriod(p)}
                 >
-                  {p === "ytd" ? "YTD" : p}
+                  {p}
                 </Button>
               ))}
               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={resetFilters}>
@@ -303,7 +302,6 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
               </div>
             </>
           )}
-          {!embedded && (period === "ytd" || period === "all") && <div className="md:col-span-2" />}
           <div>
             <label className="text-[10px] uppercase text-muted-foreground">Category</label>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>

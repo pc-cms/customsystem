@@ -43,7 +43,6 @@ export default function FinancesMonthlyReportPage() {
 
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [ytd, setYtd] = useState(false);
   const [showUsd, setShowUsd] = useState(false);
   const [scope, setScope] = useState<string>(activeCasinoId || "");
   const [usdRate, setUsdRate] = useState(2500);
@@ -54,8 +53,7 @@ export default function FinancesMonthlyReportPage() {
   const { roles } = useAuth();
   const canEdit = roles.includes("super_admin") || roles.includes("finance_manager");
   const isNetwork = scope === "network";
-  // Inline edit only when editing a single casino + a single month (not YTD).
-  const editMode = canEdit && !isNetwork && !ytd;
+  const editMode = canEdit && !isNetwork;
 
   const upsertBudget = useUpsertFinBudgetCell();
   const renameCategory = useRenameFinCategory();
@@ -64,7 +62,7 @@ export default function FinancesMonthlyReportPage() {
   
   const { data: allCats } = useFinCategories();
 
-  const { data, isLoading } = useMonthlyReport({ year, month, ytd, scope: scope || activeCasinoId || "" });
+  const { data, isLoading } = useMonthlyReport({ year, month, ytd: false, scope: scope || activeCasinoId || "" });
   const { data: mtd } = useCategoryMtd(scope || activeCasinoId || "");
   const mtdMonthLabel = mtd ? MONTHS[mtd.month - 1].slice(0, 3) : "";
 
@@ -80,7 +78,7 @@ export default function FinancesMonthlyReportPage() {
     // Title block
     ws.mergeCells("A1:K1");
     const titleCell = ws.getCell("A1");
-    titleCell.value = `${scopeName} · ${ytd ? "YTD " : ""}${MONTHS[month - 1]} ${year}`;
+    titleCell.value = `${scopeName} · ${MONTHS[month - 1]} ${year}`;
     titleCell.font = { bold: true, size: 14 };
     titleCell.alignment = { horizontal: "center" };
 
@@ -221,7 +219,7 @@ export default function FinancesMonthlyReportPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Monthly_Report_${year}_${String(month).padStart(2, "0")}${ytd ? "_YTD" : ""}.xlsx`;
+    a.download = `Monthly_Report_${year}_${String(month).padStart(2, "0")}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -240,10 +238,6 @@ export default function FinancesMonthlyReportPage() {
             </Select>
             <YearSelect value={year} onChange={setYear} className="w-32" />
 
-            <div className="flex items-center gap-2 ml-2">
-              <Switch id="ytd" checked={ytd} onCheckedChange={setYtd} />
-              <Label htmlFor="ytd" className="text-xs">YTD</Label>
-            </div>
             <div className="flex items-center gap-2 ml-2">
               <Switch id="usd" checked={showUsd} onCheckedChange={setShowUsd} />
               <Label htmlFor="usd" className="text-xs">Show USD</Label>
