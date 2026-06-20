@@ -302,7 +302,6 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
               </div>
             </>
           )}
-          {!embedded && (period === "ytd" || period === "all") && <div className="md:col-span-2" />}
           <div>
             <label className="text-[10px] uppercase text-muted-foreground">Category</label>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
