@@ -425,10 +425,28 @@ const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, 
   mtdMonthLabel: string;
 } & EditCallbacks) => {
 
+  const { editMode, onAddCategory, onRenameGroup } = edit;
   const colCount = 7 + (showUsd ? 4 : 0); // Category + 5 metrics + MTD + optional 4 USD
   const groupMtd = group.categories.reduce((s, c) => s + (mtd[c.id] || 0), 0);
+  const titleNode = editMode ? (
+    <div className="min-w-[220px]">
+      <InlineTextCell value={group.name} onCommit={(v) => { if (v.trim() && v.trim() !== group.name) onRenameGroup(v.trim()); }} />
+    </div>
+  ) : group.name;
+  const handleAdd = () => {
+    const name = window.prompt(`New category in "${group.name}":`)?.trim();
+    if (name) onAddCategory(name);
+  };
   return (
-    <PageSection title={group.name} card={false}>
+    <PageSection
+      title={titleNode}
+      titleRight={editMode ? (
+        <Button variant="outline" size="sm" onClick={handleAdd} className="h-7 gap-1">
+          <Plus className="w-3 h-3" /> Add category
+        </Button>
+      ) : undefined}
+      card={false}
+    >
       <div className="rounded-md border border-border overflow-auto bg-card">
         <table className="w-full text-[11px] border-collapse">
           <thead className="bg-muted/40">
@@ -462,6 +480,19 @@ const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, 
                 {...edit}
               />
             ))}
+
+            {editMode && (
+              <tr className="border-t border-dashed border-border [&>td]:h-7 [&>td]:px-2">
+                <td colSpan={colCount} className="text-left">
+                  <button
+                    onClick={handleAdd}
+                    className="text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" /> Add category to {group.name}
+                  </button>
+                </td>
+              </tr>
+            )}
 
             <tr className="bg-muted/40 font-semibold border-t-2 border-border [&>td]:h-7 [&>td]:px-2 [&>td]:align-middle">
               <td className="sticky left-0 z-10 bg-muted/40">Total</td>
