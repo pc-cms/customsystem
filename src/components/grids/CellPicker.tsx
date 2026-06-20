@@ -45,6 +45,7 @@ export const CellPicker: React.FC<CellPickerProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [dropUp, setDropUp] = useState(false);
+  const [dropLeft, setDropLeft] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
 
@@ -67,10 +68,11 @@ export const CellPicker: React.FC<CellPickerProps> = ({
   const handleOpen = () => {
     if (disabled) return;
     setDropUp(false);
+    setDropLeft(false);
     setOpen(o => !o);
   };
 
-  // Measure actual popup after render and flip if it overflows viewport bottom.
+  // Measure actual popup after render and flip if it overflows viewport bottom/right.
   useLayoutEffect(() => {
     if (!open) return;
     const btn = btnRef.current;
@@ -78,9 +80,12 @@ export const CellPicker: React.FC<CellPickerProps> = ({
     if (!btn || !pop) return;
     const btnRect = btn.getBoundingClientRect();
     const popH = pop.offsetHeight;
+    const popW = pop.offsetWidth;
     const spaceBelow = window.innerHeight - btnRect.bottom - 8;
     const spaceAbove = btnRect.top - 8;
     if (popH > spaceBelow && spaceAbove > spaceBelow) setDropUp(true);
+    const spaceRight = window.innerWidth - btnRect.left - 8;
+    if (popW > spaceRight) setDropLeft(true);
   }, [open]);
 
   const choose = (v: string | null) => {
