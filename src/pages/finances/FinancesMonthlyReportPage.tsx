@@ -62,6 +62,8 @@ export default function FinancesMonthlyReportPage() {
   const upsertBudget = useUpsertFinBudgetCell();
   const renameCategory = useRenameFinCategory();
   const archiveCategory = useArchiveFinCategory();
+  const createCategory = useCreateFinCategory();
+  const renameGroup = useRenameFinGroup();
 
   
   const { data: allCats } = useFinCategories();
