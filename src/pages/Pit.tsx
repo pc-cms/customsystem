@@ -1081,8 +1081,8 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                     title={cellTitle}
                     rows={[
                       { options: [
-                        { value: "A", label: "A", title: "Absent", className: ATT_COLORS["A"] },
-                        { value: "S", label: "S", title: "Sick", className: ATT_COLORS["S"] },
+                        { value: "A", label: "A", className: ATT_COLORS["A"] },
+                        { value: "S", label: "S", className: ATT_COLORS["S"] },
                       ]},
                       { label: "Shifts", options: [
                         { value: "EM", label: "EM", className: UNIFIED_SHIFT_COLORS["EM"] },
