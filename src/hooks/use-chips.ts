@@ -212,9 +212,14 @@ export const useBatchChipSnapshot = () => {
       }));
       (input as any).optimisticRows = optimisticRows;
       const queryKey = ["chip-snapshots", casinoId, input.date];
+      const queryKeyFull = ["chip-snapshots-full", casinoId, input.date];
       await qc.cancelQueries({ queryKey });
+      await qc.cancelQueries({ queryKey: queryKeyFull });
       qc.setQueryData<any[]>(queryKey, (old = []) => [...optimisticRows, ...old]);
-      return { queryKey, optimisticIds: optimisticRows.map(r => r.id) };
+      // Mirror into the "full history" cache so the Snapshot history panel
+      // updates instantly after Save (instead of waiting for realtime).
+      qc.setQueryData<any[]>(queryKeyFull, (old = []) => [...optimisticRows, ...old]);
+      return { queryKey, queryKeyFull, optimisticIds: optimisticRows.map(r => r.id) };
     },
     onSuccess: (res: any) => {
       // Optimistic rows already cover the UI; realtime will reconcile across
