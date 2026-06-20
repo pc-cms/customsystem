@@ -219,7 +219,7 @@ export default function FinancesMonthlyReportPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Monthly_Report_${year}_${String(month).padStart(2, "0")}${ytd ? "_YTD" : ""}.xlsx`;
+    a.download = `Monthly_Report_${year}_${String(month).padStart(2, "0")}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
   };
