@@ -187,7 +187,16 @@ export const useUpsertFinWallet = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: any) => {
-      const { error } = await supabase.from("fin_wallets").upsert(input);
+      const payload = {
+        id: input.id,
+        casino_id: input.casino_id,
+        name: input.name,
+        kind: input.kind,
+        currency: input.currency,
+        is_active: input.is_active ?? true,
+        sort_order: input.sort_order ?? 0,
+      };
+      const { error } = await supabase.from("fin_wallets").upsert(payload);
       if (error) throw error;
     },
     onSuccess: () => {
