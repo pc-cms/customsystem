@@ -299,6 +299,8 @@ export default function FinancesMonthlyReportPage() {
           onRenameCategory={(catId, newName) =>
             renameCategory.mutate({ id: catId, name: newName })
           }
+          onArchiveCategory={(catId) => archiveCategory.mutate(catId)}
+
           onEditExpense={(e) => setEditRow({
             id: e.id,
             fin_category_id: e.fin_category_id,
