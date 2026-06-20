@@ -920,7 +920,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     const entry = rota.find((r: any) => r.dealer_id === dealerId && r.date === dateStr);
     if (!entry) return null;
     const s = entry.shift as string;
-    return (s === "M" || s === "N" || isExtraShift(s)) ? s : null;
+    return (s === "M" || s === "N" || s === "G" || isExtraShift(s)) ? s : null;
   };
 
   const today = new Date();
@@ -952,9 +952,9 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     const trimmed = val.trim().toUpperCase();
     if (trimmed === "") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "" }); return; }
     if (trimmed === "A" || trimmed === "S" || trimmed === "SP") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: trimmed }); return; }
-    // Shift code shortcuts: M/EM=11h, N/EN/ED=8h
+    // Shift code shortcuts: M/EM=11h, N/EN/ED/G=8h
     if (trimmed === "M" || trimmed === "EM") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "11" }); return; }
-    if (trimmed === "N" || trimmed === "EN" || trimmed === "ED") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "8" }); return; }
+    if (trimmed === "N" || trimmed === "EN" || trimmed === "ED" || trimmed === "G") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "8" }); return; }
     const ms = trimmed.match(/^(\d+(?:\.\d+)?)S$/);
     if (ms) {
       const n = Number(ms[1]);
@@ -994,18 +994,18 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
         if (autoFilledRef.current.has(key)) continue;
 
         const rotaShift = getRotaShift(d.id, day);
-        if (rotaShift !== "M" && rotaShift !== "N" && !isExtraShift(rotaShift)) continue;
+        if (rotaShift !== "M" && rotaShift !== "N" && rotaShift !== "G" && !isExtraShift(rotaShift)) continue;
 
         const current = getValue(d.id, day);
         if (current !== "") continue;
 
         // Shift-aware auto-fill hours:
         //   M  / EM → 11   (Middle, Extra Middle)
-        //   N  / EN → 8    (Night,  Extra Night)
+        //   N  / EN / G → 8    (Night, Extra Night, Graveyard)
         // Applies to all dealers and Pit Bosses uniformly.
         let fillValue = "9"; // fallback for unrecognized shift codes
         if (rotaShift === "M" || rotaShift === "EM") fillValue = "11";
-        else if (rotaShift === "N" || rotaShift === "EN") fillValue = "8";
+        else if (rotaShift === "N" || rotaShift === "EN" || rotaShift === "G") fillValue = "8";
 
         autoFilledRef.current.add(key);
         setAttendanceRaw.mutate({ dealer_id: d.id, date: dateStr, value: fillValue });
