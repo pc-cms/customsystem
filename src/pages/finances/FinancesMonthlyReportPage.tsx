@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { useMonthlyReport, type ReportCategory, type ReportGroup, type ReportExpense } from "@/hooks/use-fin-monthly-report";
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
-import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories } from "@/hooks/use-fin";
+import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories, useArchiveFinCategory } from "@/hooks/use-fin";
 
 import { useCategoryMtd } from "@/hooks/use-category-mtd";
 import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
