@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FileSpreadsheet, ChevronRight, ChevronDown, Download, Pencil } from "lucide-react";
+import { FileSpreadsheet, ChevronRight, ChevronDown, Download, Pencil, Trash2 } from "lucide-react";
 import { EditExpenseDialog, type EditableExpense } from "@/components/expenses/EditExpenseDialog";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { useMonthlyReport, type ReportCategory, type ReportGroup, type ReportExpense } from "@/hooks/use-fin-monthly-report";
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
-import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories } from "@/hooks/use-fin";
+import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories, useArchiveFinCategory } from "@/hooks/use-fin";
 
 import { useCategoryMtd } from "@/hooks/use-category-mtd";
 import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
@@ -59,6 +59,8 @@ export default function FinancesMonthlyReportPage() {
 
   const upsertBudget = useUpsertFinBudgetCell();
   const renameCategory = useRenameFinCategory();
+  const archiveCategory = useArchiveFinCategory();
+
   
   const { data: allCats } = useFinCategories();
 
@@ -297,6 +299,8 @@ export default function FinancesMonthlyReportPage() {
           onRenameCategory={(catId, newName) =>
             renameCategory.mutate({ id: catId, name: newName })
           }
+          onArchiveCategory={(catId) => archiveCategory.mutate(catId)}
+
           onEditExpense={(e) => setEditRow({
             id: e.id,
             fin_category_id: e.fin_category_id,
@@ -334,6 +338,8 @@ export default function FinancesMonthlyReportPage() {
           onRenameCategory={(catId, newName) =>
             renameCategory.mutate({ id: catId, name: newName })
           }
+          onArchiveCategory={(catId) => archiveCategory.mutate(catId)}
+
           onEditExpense={(e) => setEditRow({
             id: e.id,
             fin_category_id: e.fin_category_id,
@@ -396,6 +402,7 @@ type EditCallbacks = {
   allCategories: { id: string; name: string; group_name: string | null; group_code: string | null; is_active: boolean; is_income: boolean }[];
   onPlanCommit: (catId: string, currency: "TZS" | "USD", amount: number) => void;
   onRenameCategory: (catId: string, newName: string) => void;
+  onArchiveCategory: (catId: string) => void;
   onEditExpense: (e: ReportExpense) => void;
 };
 
@@ -469,7 +476,7 @@ const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, 
   );
 };
 
-const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, mtdValue, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onEditExpense }: {
+const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, mtdValue, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onArchiveCategory, onEditExpense }: {
   c: ReportCategory; expanded: boolean; onToggle: () => void; usdRate: number; isNetwork: boolean; showUsd: boolean; colCount: number; mtdValue: number;
 } & EditCallbacks) => {
   const remTzs = c.plan_month_tzs - c.actual_tzs;
@@ -494,6 +501,23 @@ const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, mtd
               />
             </div>
             {c.expenses.length > 0 && <span className="text-[10px] text-muted-foreground shrink-0">({c.expenses.length})</span>}
+            {editMode && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 shrink-0 text-muted-foreground hover:text-destructive"
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  if (confirm(`Archive category "${c.name}"?\n\nIt will be hidden from the Monthly Report and from new expense forms, but past expenses and budgets remain intact.`)) {
+                    onArchiveCategory(c.id);
+                  }
+                }}
+                aria-label="Archive category"
+                title="Archive category"
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            )}
           </div>
         </td>
         <td className="text-right">
