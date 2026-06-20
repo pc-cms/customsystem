@@ -274,52 +274,22 @@ const Incidents = () => {
         subtitle={`Violation journal · ${filtered.length} entries · ${totalPts} pts`}
         centerSlot={
           <div className="flex items-center gap-1.5 flex-wrap">
-            <div className="inline-flex rounded-md border border-border overflow-hidden">
-              {(["day", "7d", "30d", "all"] as const).map(m => (
-                <button
-                  key={m}
-                  onClick={() => setViewMode(m)}
-                  className={`px-2 h-7 text-[10px] font-mono uppercase ${viewMode === m ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted text-muted-foreground"}`}
-                >
-                  {m === "day" ? "Day" : m === "all" ? "All" : m}
-                </button>
-              ))}
-            </div>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              disabled={viewMode !== "day"}
-              onClick={() => {
-                const d = new Date(form.incident_date + "T12:00:00Z");
-                d.setUTCDate(d.getUTCDate() - 1);
-                setF("incident_date", d.toISOString().slice(0, 10));
+            <DateRangePresets
+              preset={datePreset}
+              from={datePreset === "day" ? form.incident_date : rangeFrom}
+              to={datePreset === "day" ? form.incident_date : rangeTo}
+              onChange={({ preset, from: f, to: t }) => {
+                setDatePreset(preset);
+                if (preset === "day") {
+                  setF("incident_date", f);
+                } else {
+                  setRangeFrom(f);
+                  setRangeTo(t);
+                }
               }}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Input
-              type="date"
-              value={form.incident_date}
-              max={todayDate()}
-              disabled={viewMode !== "day"}
-              onChange={(e) => e.target.value && setF("incident_date", e.target.value)}
-              className="w-44 font-mono h-9"
             />
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              disabled={viewMode !== "day" || form.incident_date >= todayDate()}
-              onClick={() => {
-                const d = new Date(form.incident_date + "T12:00:00Z");
-                d.setUTCDate(d.getUTCDate() + 1);
-                const next = d.toISOString().slice(0, 10);
-                if (next <= todayDate()) setF("incident_date", next);
-              }}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-            {viewMode === "day" && form.incident_date !== todayDate() && (
-              <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => setF("incident_date", todayDate())}>
+            {datePreset === "day" && form.incident_date !== todayDate() && (
+              <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => setF("incident_date", todayDate())}>
                 Today
               </Button>
             )}
