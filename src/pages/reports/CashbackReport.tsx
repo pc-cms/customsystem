@@ -54,14 +54,14 @@ export default function CashbackReport() {
 
   return (
     <PageShell>
-      <PageHeader icon={Gift} title="Cashback Report" subtitle="Cashback credits issued per player and period" />
-
-      <PageSection title="Filters">
-        <div className="flex gap-4 items-end">
-          <div><Label>From</Label><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
-          <div><Label>To</Label><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
-        </div>
-      </PageSection>
+      <PageHeader icon={Gift} title="Cashback Report" subtitle="Cashback credits issued per player and period">
+        <DateRangePresets
+          preset={preset}
+          from={from}
+          to={to}
+          onChange={(n) => { setPreset(n.preset); setFrom(n.from); setTo(n.to); }}
+        />
+      </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <PageSection title="Total issued"><div className="text-3xl font-mono">{fmt(total)}</div><div className="text-sm text-muted-foreground">{grants.length} grants</div></PageSection>
