@@ -47,20 +47,14 @@ const PromoRedemptionsReport = () => {
 
   return (
     <PageShell>
-      <PageHeader icon={ArrowDownToLine} title="Promo Redemptions" subtitle="Promo credits spent at the cage" />
-
-      <PageSection title="Filters">
-        <div className="flex gap-4 items-end">
-          <div>
-            <Label>From</Label>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          </div>
-          <div>
-            <Label>To</Label>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-          </div>
-        </div>
-      </PageSection>
+      <PageHeader icon={ArrowDownToLine} title="Promo Redemptions" subtitle="Promo credits spent at the cage">
+        <DateRangePresets
+          preset={preset}
+          from={from}
+          to={to}
+          onChange={(n) => { setPreset(n.preset); setFrom(n.from); setTo(n.to); }}
+        />
+      </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <PageSection title="Total Spent">
