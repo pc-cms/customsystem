@@ -16,6 +16,7 @@ import { AlertTriangle, Camera, Check, ChevronLeft, ChevronRight, ImageIcon, Loa
 import { useAuth } from "@/lib/auth-context";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -116,15 +117,19 @@ const Incidents = () => {
   const [form, setForm] = useState<IncidentInput>(emptyForm());
   const [uploading, setUploading] = useState(false);
   const [viewPhoto, setViewPhoto] = useState<string | null>(null);
-  // Journal view mode — "day" shows the selected business day, 7d/30d rolling windows, "all" = full history.
-  // The form.incident_date still controls the draft row date independently.
-  const [viewMode, setViewMode] = useState<"day" | "7d" | "30d" | "all">(isPrivileged ? "all" : "day");
+  // Journal view mode — "day" uses business-day window (D 11:00 → D+1 11:00 EAT).
+  // Other presets (week/month/year/custom) use a plain calendar-date range.
+  const initialPreset: DatePreset = isPrivileged ? "month" : "day";
+  const [datePreset, setDatePreset] = useState<DatePreset>(initialPreset);
+  const initialRange = presetRange(initialPreset);
+  const [rangeFrom, setRangeFrom] = useState<string>(initialRange.from);
+  const [rangeTo, setRangeTo] = useState<string>(initialRange.to);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Business-day window for "day", rolling N days for "7d"/"30d", no filter for "all".
   const { data: incidents = [], isLoading } = useIncidents(
-    viewMode === "day" || viewMode === "all" ? null : viewMode === "7d" ? 7 : 30,
-    viewMode === "day" ? form.incident_date : null,
+    null,
+    datePreset === "day" ? form.incident_date : null,
+    datePreset === "day" ? null : { from: rangeFrom, to: rangeTo },
   );
   const createMut = useCreateIncident();
 
