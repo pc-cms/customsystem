@@ -358,49 +358,6 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           <Filter className="w-3.5 h-3.5 text-muted-foreground" />
           <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Filters</h3>
           <div className="ml-auto flex items-center gap-1 flex-wrap">
-            {isManagerView && (() => {
-              const stepDay = (delta: number) => {
-                const base = isSingleDay ? from : businessDate;
-                const d = new Date(base + "T00:00:00Z");
-                d.setUTCDate(d.getUTCDate() + delta);
-                const iso = d.toISOString().slice(0, 10);
-                setFrom(iso);
-                setTo(iso);
-              };
-              const dayValue = isSingleDay ? from : businessDate;
-              return (
-                <div className="flex items-center gap-1 mr-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 w-7 p-0 text-xs"
-                    onClick={() => stepDay(-1)}
-                    title="Previous business day"
-                  >‹</Button>
-                  <Input
-                    type="date"
-                    value={dayValue}
-                    max={businessDate}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (!v) return;
-                      setFrom(v);
-                      setTo(v);
-                    }}
-                    className="h-7 w-[140px] text-xs px-2"
-                    title="Pick a business day"
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 w-7 p-0 text-xs"
-                    onClick={() => stepDay(1)}
-                    disabled={isSingleDay && from >= businessDate}
-                    title="Next business day"
-                  >›</Button>
-                </div>
-              );
-            })()}
             <DateRangePresets
               preset={datePreset}
               from={from}
