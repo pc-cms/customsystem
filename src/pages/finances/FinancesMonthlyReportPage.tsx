@@ -43,7 +43,6 @@ export default function FinancesMonthlyReportPage() {
 
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [ytd, setYtd] = useState(false);
   const [showUsd, setShowUsd] = useState(false);
   const [scope, setScope] = useState<string>(activeCasinoId || "");
   const [usdRate, setUsdRate] = useState(2500);
@@ -54,8 +53,7 @@ export default function FinancesMonthlyReportPage() {
   const { roles } = useAuth();
   const canEdit = roles.includes("super_admin") || roles.includes("finance_manager");
   const isNetwork = scope === "network";
-  // Inline edit only when editing a single casino + a single month (not YTD).
-  const editMode = canEdit && !isNetwork && !ytd;
+  const editMode = canEdit && !isNetwork;
 
   const upsertBudget = useUpsertFinBudgetCell();
   const renameCategory = useRenameFinCategory();
