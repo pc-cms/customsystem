@@ -1008,8 +1008,10 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
         const current = getValue(s.id, day);
         if (current !== "") continue;
 
+        // Shift-aware: D = 9h, N = 8h.
+        const fillValue = rotaShift === "N" ? "8" : "9";
         autoFilledRef.current.add(key);
-        setAttendanceRaw.mutate({ staff_id: s.id, date: dateStr, value: "9" });
+        setAttendanceRaw.mutate({ staff_id: s.id, date: dateStr, value: fillValue });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

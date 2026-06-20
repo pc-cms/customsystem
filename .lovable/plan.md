@@ -1,93 +1,65 @@
 ## Цель
 
-Унифицировать **все** пикеры дат в приложении к единому виду:
+Зафиксировать единое правило часов Атенданса при автозаполнении после закрытия бизнес‑дня:
 
-**Кнопки:** `Day` · `Week` · `Month` · `Year` · `Custom`
+- **Live Game (Pit)** — `M = 11`, `N = 8`, `EM = 11`, `EN = 8` (включая Pit Bosses).
+- **Floor Staff** — `D = 9`, **`N = 8`** (раньше оба были 9).
 
-- `Week` = последние 7 дней начиная с **Воскресенья** (Sun→Sat), а не «последние 7 дней от сегодня»
-- `Month` = текущий календарный месяц (1‑е → последнее число)
-- `Year` = текущий календарный год (1 янв → 31 дек)
-- `Day` = сегодня (бизнес‑день)
-- `Custom` = два календарных попапа From / To
+Сейчас Pit auto‑fill ставит 9 часов всем кроме PB‑on‑M / EM / EN. Из‑за этого вчера дилеры на M получили 9 вместо 11, а на N — 9 вместо 8.
 
-Убрать «7 дней назад» и «30 дней назад» как пресеты — это сейчас в `presetRange()` в `date-range-presets.tsx` и в кастомных месячных навигаторах с `‹ ›`.
+## Что поменяю
 
-## Что меняется (1 общий компонент + замены)
+### 1. `src/pages/Pit.tsx` — auto‑fill при закрытии дня
 
-### 1. `src/components/ui/date-range-presets.tsx` — обновить
-
-- `presetRange("week")` → текущая неделя Sun..Sat (через `startOfWeek(d, { weekStartsOn: 0 })` / `endOfWeek`)
-- `presetRange("month")` → `startOfMonth..endOfMonth` (не «−29 дней»)
-- `presetRange("year")` → `startOfYear..endOfYear` (не «−364 дня»)
-- `presetRange("day")` → сегодня (как есть)
-- Календарь в `Custom` уже использует shadcn `Calendar` — добавим проп `weekStartsOn={0}` чтобы воскресенье было первым днём.
-- Внутри попапов оставить навигацию `‹ ›` влево/вправо для быстрого перехода на предыдущий/следующий период того же типа (Day → −1 день, Week → −1 неделя, Month → −1 месяц, Year → −1 год). Это закрывает кейсы текущих самописных навигаторов.
-
-### 2. Заменить самописные «месяц‑навигаторы» на `DateRangePresets`
-
-Сейчас в этих файлах своя пара `‹ Month Name ›` без выбора Day/Week/Year:
-
-- `src/pages/tips/LiveGameTipsTab.tsx`
-- `src/pages/tips/FloorTipsTab.tsx`
-- `src/pages/tips/ClubPokerTipsTab.tsx`
-- `src/pages/reports/PokerTipsReport.tsx`
-- `src/pages/reports/FloorTipsReport.tsx`
-- `src/pages/MonthlyTips.tsx`
-- `src/pages/MissChips.tsx`
-- `src/pages/cage/CageClosingsPage.tsx`
-
-Заменяем на `<DateRangePresets preset from to onChange />` с дефолтом `month`. Хуки (`useTipsByRange`, `useMonthlyTips` и т.п.) уже принимают `from`/`to` строки — просто передаём новые значения.
-
-Исключение: **Live Game Tips** работает в окне «16 → 15 следующего месяца» (Period 16‑15), это специальный бухгалтерский период — оставляем как есть, помечаем `Custom`‑режимом с заблокированными границами, либо оставляем самописный навигатор только тут. **Уточнение нужно — см. вопрос ниже.**
-
-### 3. Места уже на `DateRangePresets` — только пересчёт пресетов
-Автоматически подхватят новое поведение Week/Month/Year:
-- `src/pages/Reports.tsx`
-- `src/pages/PlayerStatistics.tsx`
-- `src/pages/PlayerProfile.tsx`
-- `src/pages/Groups.tsx`
-- `src/pages/WeeklyBonus.tsx`
-- `src/pages/finances/FinancesWalletsPage.tsx`
-- `src/pages/BankChecks.tsx`
-- `src/pages/TableResults.tsx`
-- `src/pages/tips/LotteryTab.tsx`
-- `src/components/cage/CageHistoryView.tsx`
-
-### 4. `src/components/ui/date-navigator.tsx` (для одиночной даты)
-- Календарь внутри → `weekStartsOn={0}` (визуально воскресенье первое).
-- Логика «бизнес‑день» не трогается.
-
-### 5. `src/components/ui/calendar.tsx`
-- Прокинуть проп `weekStartsOn` (по умолчанию `0`), чтобы все попап‑календари по умолчанию начинались с воскресенья.
-
-## Что НЕ трогаем
-
-- `useMonthlyTips`, `getPeriodStart16` — это банковский 16→15 период для финансов, не календарный месяц.
-- Бизнес‑день логика (`useEffectiveBusinessDate`, 07:00 EAT).
-- Role‑gates (`useBusinessDayFilter`, `canSeePlayerFinancials`) — операционные страницы (Cage, ActiveShift, Tables) по‑прежнему заперты на «сегодня».
-- Версия `package.json` — только UI, бэкенда нет, без bump.
-
-## Тех. детали
+В блоке `useEffect` (≈ строки 1002‑1010) заменить логику `fillValue`:
 
 ```ts
-// новая логика presetRange
-import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format } from "date-fns";
-const iso = (d: Date) => format(d, "yyyy-MM-dd");
-case "day":   return { from: iso(today), to: iso(today) };
-case "week":  return { from: iso(startOfWeek(today, { weekStartsOn: 0 })), to: iso(endOfWeek(today, { weekStartsOn: 0 })) };
-case "month": return { from: iso(startOfMonth(today)), to: iso(endOfMonth(today)) };
-case "year":  return { from: iso(startOfYear(today)), to: iso(endOfYear(today)) };
-case "all":   // оставляем для обратной совместимости, но кнопку убираем из UI
+let fillValue = "9"; // fallback
+if (rotaShift === "M" || rotaShift === "EM") fillValue = "11";
+else if (rotaShift === "N" || rotaShift === "EN") fillValue = "8";
 ```
 
-UI пресетов: `Day · Week · Month · Year · Custom` (убираем `All`).
+Старый PB‑special‑case убирается — он покрывается общим правилом `M = 11`.
 
-## Вопрос перед реализацией
+### 2. `src/pages/Pit.tsx` — ручной ввод
 
-**Live Game Tips** сейчас идёт по бухгалтерскому окну «16 число → 15 следующего месяца» (синхронизирован с Monthly Tips). Это специальное окно, не календарный месяц. Что делаем?
+В `handleSave` (≈ 950‑968) добавить трансляцию одиночных кодов:
 
-- (A) Оставляем самописный навигатор 16→15 только на Live Game Tips (исключение).
-- (B) Унифицируем под Month (1‑е → последнее) — тогда сумма перестанет совпадать с Monthly Tips «collected» подсказкой.
-- (C) Унифицируем, но Monthly Tips тоже переводим на календарный месяц.
+- ввод `M` → сохранить `11`
+- ввод `N` → сохранить `8`
 
-По умолчанию выберу **(A)** если не уточнишь.
+(аналогично уже существующим `EM` → 11 и `EN` → 8).
+
+### 3. `src/pages/Staff.tsx` — auto‑fill для Floor
+
+В блоке auto‑fill (≈ строки 1005‑1012) заменить плоский `"9"` на shift‑aware:
+
+```ts
+const fillValue = rotaShift === "N" ? "8" : "9"; // D = 9, N = 8
+```
+
+### 4. Memory
+
+Добавить новое правило в Core (`mem://index.md`) и отдельный файл `mem://features/attendance-autofill-hours`:
+
+> Attendance auto‑fill hours (after business‑day closure):
+> Pit (Live Game): M/EM = 11, N/EN = 8 — для всех дилеров и Pit Bosses.
+> Floor Staff: D = 9, N = 8.
+> Применяется только к ячейкам, где значение пустое; ручной ввод никогда не перезаписывается.
+
+И обновить существующее правило [Attendance Auto‑fill](mem://features/attendance-autofill) — заменить «9h auto‑fill» на shift‑aware.
+
+## Что НЕ трогаю
+
+- Триггеры/RPC в БД — auto‑fill живёт только на фронте, миграция не нужна.
+- Поведение `S` / `A` / `SP` / `{n}S` и Sick‑Pay расчёта.
+- Hard guards: «никогда не автозаполнять открытый текущий день», «обязательно нужен `business_day_closures`», «пропускать ячейки с любым существующим значением».
+- Колонку Total в Атенданс — она просто суммирует то, что записано.
+
+## Бамп версии
+
+`package.json` patch‑бамп **не** делаю — изменения чисто фронтовые (правила автозаполнения), без миграций/edge‑функций/RLS.
+
+## Открытые вчерашние ячейки
+
+После применения новых правил уже записанные «9» НЕ перезаписываются автоматически — auto‑fill срабатывает только на пустые ячейки. Чтобы поправить вчерашний день, нужно вручную очистить 9 у затронутых дилеров — тогда auto‑fill поставит 11/8. Если хочешь, могу отдельным шагом сделать одноразовый UPDATE‑SQL для вчерашнего бизнес‑дня (только Pit, только M/N с текущим значением "9") — скажи «да, поправь вчерашний день».

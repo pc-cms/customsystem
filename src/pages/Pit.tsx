@@ -952,9 +952,9 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     const trimmed = val.trim().toUpperCase();
     if (trimmed === "") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "" }); return; }
     if (trimmed === "A" || trimmed === "S" || trimmed === "SP") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: trimmed }); return; }
-    // Extra Middle = 11h, Extra Night = 8h
-    if (trimmed === "EM") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "11" }); return; }
-    if (trimmed === "EN") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "8" }); return; }
+    // Shift code shortcuts: M=11h, N=8h, EM=11h, EN=8h
+    if (trimmed === "M" || trimmed === "EM") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "11" }); return; }
+    if (trimmed === "N" || trimmed === "EN") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "8" }); return; }
     const ms = trimmed.match(/^(\d+(?:\.\d+)?)S$/);
     if (ms) {
       const n = Number(ms[1]);
@@ -999,12 +999,13 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
         const current = getValue(d.id, day);
         if (current !== "") continue;
 
-        // Pit Bosses on Middle shift work 11 hours; Extra Middle (EM) = 11h,
-        // Extra Night (EN) = 8h; everyone else defaults to 9.
-        let fillValue = "9";
-        if ((d as any).is_pit_boss && rotaShift === "M") fillValue = "11";
-        else if (rotaShift === "EM") fillValue = "11";
-        else if (rotaShift === "EN") fillValue = "8";
+        // Shift-aware auto-fill hours:
+        //   M  / EM → 11   (Middle, Extra Middle)
+        //   N  / EN → 8    (Night,  Extra Night)
+        // Applies to all dealers and Pit Bosses uniformly.
+        let fillValue = "9"; // fallback for unrecognized shift codes
+        if (rotaShift === "M" || rotaShift === "EM") fillValue = "11";
+        else if (rotaShift === "N" || rotaShift === "EN") fillValue = "8";
 
         autoFilledRef.current.add(key);
         setAttendanceRaw.mutate({ dealer_id: d.id, date: dateStr, value: fillValue });
