@@ -6,19 +6,18 @@ import { useCasino } from "@/lib/casino-context";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable } from "@/components/ui/data-table";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 import { fmtDateTime, fmtDateOnly } from "@/lib/format-date";
 
 const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
 
 const PromoIssuanceReport = () => {
   const { activeCasinoId } = useCasino();
-  const today = new Date().toISOString().slice(0, 10);
-  const monthAgo = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
-  const [from, setFrom] = useState(monthAgo);
-  const [to, setTo] = useState(today);
+  const initial = presetRange("month");
+  const [preset, setPreset] = useState<DatePreset>("month");
+  const [from, setFrom] = useState(initial.from);
+  const [to, setTo] = useState(initial.to);
 
   const { data: grants = [], isLoading } = useQuery({
     queryKey: ["promo_issuance", activeCasinoId, from, to],
