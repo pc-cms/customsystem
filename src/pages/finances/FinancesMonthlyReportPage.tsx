@@ -302,6 +302,8 @@ export default function FinancesMonthlyReportPage() {
             renameCategory.mutate({ id: catId, name: newName })
           }
           onArchiveCategory={(catId) => archiveCategory.mutate(catId)}
+          onAddCategory={(name) => createCategory.mutate({ group_code: g.code, group_name: g.name, name, is_income: false })}
+          onRenameGroup={(newName) => renameGroup.mutate({ group_code: g.code, name: newName })}
 
           onEditExpense={(e) => setEditRow({
             id: e.id,
