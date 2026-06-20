@@ -202,7 +202,6 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
         icon={Coins}
         title="Miss Chips"
         subtitle={`Daily cage chip count delta · ${periodLabel}`}
-        date
         centerSlot={
           <DateRangePresets
             preset={preset}
