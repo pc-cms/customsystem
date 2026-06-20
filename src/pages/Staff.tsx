@@ -976,9 +976,9 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
     const trimmed = val.trim().toUpperCase();
     if (trimmed === "") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: "" }); return; }
     if (trimmed === "A" || trimmed === "S" || trimmed === "SP") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: trimmed }); return; }
-    // Shift code shortcuts: EM=11h, EN=8h, ED=8h
+    // Shift code shortcuts: EM=11h, EN/ED/G=8h
     if (trimmed === "EM") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: "11" }); return; }
-    if (trimmed === "EN" || trimmed === "ED") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: "8" }); return; }
+    if (trimmed === "EN" || trimmed === "ED" || trimmed === "G") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: "8" }); return; }
     const num = Number(trimmed);
     if (!isNaN(num) && num >= 0 && num <= 24) { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: String(num) }); }
   };
@@ -1006,7 +1006,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
         if (autoFilledRef.current.has(key)) continue;
 
         const rotaShift = getRotaShift(s.id, day);
-        if (rotaShift !== "D" && rotaShift !== "N") continue;
+        if (rotaShift !== "D" && rotaShift !== "N" && rotaShift !== "G") continue;
 
         const current = getValue(s.id, day);
         if (current !== "") continue;

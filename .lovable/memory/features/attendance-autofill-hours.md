@@ -16,6 +16,7 @@ is a working shift, it writes a shift-aware default.
 | Pit (Live Game)    | N    | 8     |
 | Floor / Office     | D    | 8     |
 | Floor / Office     | N    | 8     |
+| Floor / Office     | G    | 8     |
 | Extra (any module) | EM   | 11    |
 | Extra (any module) | EN   | 8     |
 | Extra (any module) | ED   | 8     |
