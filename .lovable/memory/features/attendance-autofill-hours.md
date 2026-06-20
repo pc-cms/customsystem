@@ -14,7 +14,7 @@ is a working shift, it writes a shift-aware default:
 | Pit (Live Game) | EM    | 11    |
 | Pit (Live Game) | N     | 8     |
 | Pit (Live Game) | EN    | 8     |
-| Floor Staff     | D     | 9     |
+| Floor Staff     | D     | 8     |
 | Floor Staff     | N     | 8     |
 
 Applies to Pit dealers AND Pit Bosses uniformly (no PB-specific branch).
