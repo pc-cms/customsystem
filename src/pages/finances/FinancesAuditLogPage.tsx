@@ -8,14 +8,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { useFinAuditLog } from "@/hooks/use-fin";
 import { fmtDateTime } from "@/lib/format-date";
+import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 
 export default function FinancesAuditLogPage() {
   const { data: rows = [] } = useFinAuditLog();
   const [action, setAction] = useState("all");
   const [entity, setEntity] = useState("all");
   const [actor, setActor] = useState("all");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const initial = presetRange("month");
+  const [preset, setPreset] = useState<DatePreset>("month");
+  const [from, setFrom] = useState<string>(initial.from);
+  const [to, setTo] = useState<string>(initial.to);
   const [search, setSearch] = useState("");
 
   const { actions, entities, actors } = useMemo(() => {
