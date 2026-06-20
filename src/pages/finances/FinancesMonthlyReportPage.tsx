@@ -410,6 +410,8 @@ type EditCallbacks = {
   onRenameCategory: (catId: string, newName: string) => void;
   onArchiveCategory: (catId: string) => void;
   onEditExpense: (e: ReportExpense) => void;
+  onAddCategory: (name: string) => void;
+  onRenameGroup: (newName: string) => void;
 };
 
 const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, mtd, mtdMonthLabel, ...edit }: {
