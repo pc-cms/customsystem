@@ -15,6 +15,8 @@ import { useMonthlyReport, type ReportCategory, type ReportGroup, type ReportExp
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
 import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories, useArchiveFinCategory } from "@/hooks/use-fin";
+import { useFinDailyRate } from "@/hooks/use-fin-daily-rates";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 
 import { useCategoryMtd } from "@/hooks/use-category-mtd";
 import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
@@ -45,7 +47,9 @@ export default function FinancesMonthlyReportPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [showUsd, setShowUsd] = useState(false);
   const [scope, setScope] = useState<string>(activeCasinoId || "");
-  const [usdRate, setUsdRate] = useState(2500);
+  const { data: bizDate } = useEffectiveBusinessDate();
+  const { data: usdRateFromSystem } = useFinDailyRate(bizDate, "USD");
+  const usdRate = usdRateFromSystem ?? 2500;
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editRow, setEditRow] = useState<EditableExpense | null>(null);
 
@@ -244,7 +248,9 @@ export default function FinancesMonthlyReportPage() {
             </div>
             <div className="flex items-center gap-2 ml-2">
               <Label className="text-xs text-muted-foreground">USD rate</Label>
-              <Input type="number" value={usdRate} onChange={(e) => setUsdRate(Number(e.target.value))} className="w-24 font-mono" />
+              <div className="h-9 px-3 flex items-center rounded-md border border-input bg-muted/40 font-mono text-sm tabular-nums w-24 justify-end" title={usdRateFromSystem ? "From system (Office daily rates)" : "Fallback default — no rate set"}>
+                {formatNumberSpaces(Math.round(usdRate))}
+              </div>
             </div>
             <Tabs value={scope || activeCasinoId || ""} onValueChange={setScope} className="ml-auto">
               <TabsList>
