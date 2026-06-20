@@ -390,6 +390,22 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     }).sort((a, b) => b.ts.localeCompare(a.ts));
   }, [snapshotsFull, baselineMap]);
 
+  // Columns for the history table = every table that has any snapshot today
+  // (including ones that were closed mid-shift), in the same order as the
+  // main grid. Falls back to countLocations when no extra tables found.
+  const historyColumns = useMemo(() => {
+    const ids = new Set<string>();
+    snapshotsFull.forEach((s: any) => {
+      if (s.location_type === "table" && s.location_id) ids.add(s.location_id);
+    });
+    const fromGrid = countLocations.filter(loc => ids.has(loc.id) || true); // keep grid order
+    const gridIds = new Set(countLocations.map(l => l.id));
+    const extras = tables
+      .filter(t => ids.has(t.id) && !gridIds.has(t.id))
+      .map(t => ({ key: `table-${t.id}`, label: t.name, id: t.id }));
+    return [...fromGrid, ...extras];
+  }, [snapshotsFull, countLocations, tables]);
+
   return (
     <>
       {renderGrid(false)}
@@ -411,7 +427,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
               <thead className="sticky top-0 bg-card">
                 <tr className="border-b border-border">
                   <th className="text-left px-2 py-1.5 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Time</th>
-                  {countLocations.map(loc => (
+                  {historyColumns.map(loc => (
                     <th key={loc.id} className="text-right px-2 py-1.5 font-medium text-muted-foreground text-[10px]">{loc.label}</th>
                   ))}
                   <th className="text-right px-2 py-1.5 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Total</th>
@@ -423,7 +439,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                   return (
                     <tr key={g.ts} className={`border-b border-border last:border-0 ${i % 2 === 1 ? "bg-muted/10" : ""}`}>
                       <td className="px-2 py-1 font-mono text-card-foreground">{time}</td>
-                      {countLocations.map(loc => {
+                      {historyColumns.map(loc => {
                         const v = g.perTable[loc.id];
                         if (v === undefined) return <td key={loc.id} className="px-2 py-1 text-right text-muted-foreground/30">·</td>;
                         return (

@@ -212,9 +212,14 @@ export const useBatchChipSnapshot = () => {
       }));
       (input as any).optimisticRows = optimisticRows;
       const queryKey = ["chip-snapshots", casinoId, input.date];
+      const queryKeyFull = ["chip-snapshots-full", casinoId, input.date];
       await qc.cancelQueries({ queryKey });
+      await qc.cancelQueries({ queryKey: queryKeyFull });
       qc.setQueryData<any[]>(queryKey, (old = []) => [...optimisticRows, ...old]);
-      return { queryKey, optimisticIds: optimisticRows.map(r => r.id) };
+      // Mirror into the "full history" cache so the Snapshot history panel
+      // updates instantly after Save (instead of waiting for realtime).
+      qc.setQueryData<any[]>(queryKeyFull, (old = []) => [...optimisticRows, ...old]);
+      return { queryKey, queryKeyFull, optimisticIds: optimisticRows.map(r => r.id) };
     },
     onSuccess: (res: any) => {
       // Optimistic rows already cover the UI; realtime will reconcile across
@@ -223,8 +228,13 @@ export const useBatchChipSnapshot = () => {
       toast.success(res?.offline ? "Chip count saved offline" : "Chip count recorded");
     },
     onError: (e, _input, ctx: any) => {
-      if (ctx?.queryKey && ctx?.optimisticIds) {
-        qc.setQueryData<any[]>(ctx.queryKey, (old = []) => old.filter(r => !ctx.optimisticIds.includes(r.id)));
+      if (ctx?.optimisticIds) {
+        if (ctx?.queryKey) {
+          qc.setQueryData<any[]>(ctx.queryKey, (old = []) => old.filter(r => !ctx.optimisticIds.includes(r.id)));
+        }
+        if (ctx?.queryKeyFull) {
+          qc.setQueryData<any[]>(ctx.queryKeyFull, (old = []) => old.filter(r => !ctx.optimisticIds.includes(r.id)));
+        }
       }
       toast.error(e.message);
     },
