@@ -79,6 +79,57 @@ export const useArchiveFinCategory = () => {
   });
 };
 
+/** Create a new category inside a group. sort_order = max+1 in that group. */
+export const useCreateFinCategory = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { group_code: string; group_name: string; name: string; is_income?: boolean }) => {
+      const { data: existing } = await supabase
+        .from("fin_categories")
+        .select("sort_order")
+        .eq("group_code", input.group_code)
+        .order("sort_order", { ascending: false })
+        .limit(1);
+      const nextSort = (existing?.[0]?.sort_order ?? 0) + 10;
+      const { error } = await supabase.from("fin_categories").insert({
+        group_code: input.group_code,
+        group_name: input.group_name,
+        name: input.name.trim(),
+        sort_order: nextSort,
+        is_income: input.is_income ?? false,
+        is_active: true,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fin-categories"] });
+      qc.invalidateQueries({ queryKey: ["fin-monthly-report"] });
+      toast.success("Category added");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+};
+
+/** Rename a whole group (updates group_name on all categories sharing group_code). */
+export const useRenameFinGroup = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { group_code: string; name: string }) => {
+      const { error } = await supabase
+        .from("fin_categories")
+        .update({ group_name: input.name.trim() })
+        .eq("group_code", input.group_code);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fin-categories"] });
+      qc.invalidateQueries({ queryKey: ["fin-monthly-report"] });
+      toast.success("Section renamed");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+};
+
 
 /** Inline-edit a single fin_budget cell (year+month+category+currency). */
 export const useUpsertFinBudgetCell = () => {
