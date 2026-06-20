@@ -84,10 +84,6 @@ export const useIncidents = (
     },
     enabled: !!casinoId,
   });
-      return (data || []) as Incident[];
-    },
-    enabled: !!casinoId,
-  });
 
   useEffect(() => {
     if (!casinoId) return;
