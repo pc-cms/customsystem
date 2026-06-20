@@ -920,7 +920,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     const entry = rota.find((r: any) => r.dealer_id === dealerId && r.date === dateStr);
     if (!entry) return null;
     const s = entry.shift as string;
-    return (s === "M" || s === "N" || isExtraShift(s)) ? s : null;
+    return (s === "M" || s === "N" || s === "G" || isExtraShift(s)) ? s : null;
   };
 
   const today = new Date();

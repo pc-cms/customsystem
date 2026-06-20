@@ -968,7 +968,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
     const entry = rota.find((r: any) => r.staff_id === staffId && r.date === dateStr);
     if (!entry) return null;
     const s = entry.shift as string;
-    return (s === "D" || s === "N") ? s : null;
+    return (s === "D" || s === "N" || s === "G") ? s : null;
   };
 
   const handleSave = (staffId: string, day: number, val: string) => {
