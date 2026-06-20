@@ -79,6 +79,18 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
     setAnchor(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`);
   };
 
+  const shiftWeek = (delta: number) => {
+    const d = new Date(anchor + "T00:00:00");
+    d.setDate(d.getDate() + delta * 7);
+    setAnchor(fmt(d));
+  };
+
+  const shiftYear = (delta: number) => {
+    const d = new Date(anchor + "T00:00:00");
+    d.setFullYear(d.getFullYear() + delta);
+    setAnchor(`${d.getFullYear()}-01-01`);
+  };
+
   const resetFilters = () => {
     setSearch("");
     setCategoryFilter("all");
