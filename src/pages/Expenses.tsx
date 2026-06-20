@@ -372,15 +372,8 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
             </Button>
           </div>
         </div>
-        <div className={`grid grid-cols-2 ${sourceLocked ? "md:grid-cols-6" : "md:grid-cols-7"} gap-2`}>
-          <div>
-            <label className="text-[10px] uppercase text-muted-foreground">From</label>
-            <Input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} className="h-8 text-xs" />
-          </div>
-          <div>
-            <label className="text-[10px] uppercase text-muted-foreground">To</label>
-            <Input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} className="h-8 text-xs" />
-          </div>
+        <div className={`grid grid-cols-2 ${sourceLocked ? "md:grid-cols-4" : "md:grid-cols-5"} gap-2`}>
+
           {!sourceLocked && (
             <div>
               <label className="text-[10px] uppercase text-muted-foreground">Source</label>
