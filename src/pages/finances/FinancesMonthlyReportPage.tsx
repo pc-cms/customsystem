@@ -402,6 +402,7 @@ type EditCallbacks = {
   allCategories: { id: string; name: string; group_name: string | null; group_code: string | null; is_active: boolean; is_income: boolean }[];
   onPlanCommit: (catId: string, currency: "TZS" | "USD", amount: number) => void;
   onRenameCategory: (catId: string, newName: string) => void;
+  onArchiveCategory: (catId: string) => void;
   onEditExpense: (e: ReportExpense) => void;
 };
 
