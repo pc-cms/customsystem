@@ -248,7 +248,9 @@ export default function FinancesMonthlyReportPage() {
             </div>
             <div className="flex items-center gap-2 ml-2">
               <Label className="text-xs text-muted-foreground">USD rate</Label>
-              <Input type="number" value={usdRate} onChange={(e) => setUsdRate(Number(e.target.value))} className="w-24 font-mono" />
+              <div className="h-9 px-3 flex items-center rounded-md border border-input bg-muted/40 font-mono text-sm tabular-nums w-24 justify-end" title={usdRateFromSystem ? "From system (Office daily rates)" : "Fallback default — no rate set"}>
+                {formatNumberSpaces(Math.round(usdRate))}
+              </div>
             </div>
             <Tabs value={scope || activeCasinoId || ""} onValueChange={setScope} className="ml-auto">
               <TabsList>
