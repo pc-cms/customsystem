@@ -53,7 +53,9 @@ export default function FinancesAuditLogPage() {
 
   const reset = () => {
     setAction("all"); setEntity("all"); setActor("all");
-    setFrom(""); setTo(""); setSearch("");
+    const r = presetRange("month");
+    setPreset("month"); setFrom(r.from); setTo(r.to);
+    setSearch("");
   };
 
   return (
@@ -64,9 +66,15 @@ export default function FinancesAuditLogPage() {
         subtitle={`2-year retention · ${filtered.length} of ${rows.length} entries`}
       >
         <FinanceCasinoSwitcher />
+        <DateRangePresets
+          preset={preset}
+          from={from}
+          to={to}
+          onChange={(n) => { setPreset(n.preset); setFrom(n.from); setTo(n.to); }}
+        />
       </PageHeader>
       <PageSection card={false}>
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
           <Select value={action} onValueChange={setAction}>
             <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Action" /></SelectTrigger>
             <SelectContent>
@@ -88,13 +96,12 @@ export default function FinancesAuditLogPage() {
               {actors.map(u => <SelectItem key={u} value={u} className="text-xs font-mono">{u.slice(0, 8)}…</SelectItem>)}
             </SelectContent>
           </Select>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-8 text-xs" placeholder="From" />
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-8 text-xs" placeholder="To" />
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-7 h-8 text-xs" />
           </div>
         </div>
+
         <div className="flex justify-end mb-2">
           <Button size="sm" variant="ghost" onClick={reset} className="h-7 text-xs">Reset</Button>
         </div>
