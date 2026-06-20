@@ -20,6 +20,7 @@ import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { DateRangePresets, type DatePreset } from "@/components/ui/date-range-presets";
 import { fmtDateOnly } from "@/lib/format-date";
 import PrintPortal from "@/components/cage/PrintPortal";
 import ExpensesDayReport from "@/components/closings/ExpensesDayReport";
@@ -115,6 +116,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   // ── Filters ──────────────────────────────────────────────
   const [from, setFrom] = useSessionState<string>("from", businessDate);
   const [to, setTo] = useSessionState<string>("to", businessDate);
+  const [datePreset, setDatePreset] = useSessionState<DatePreset>("expensesDatePreset", "day");
   const [finCategoryFilter, setFinCategoryFilter] = useSessionState<string>("finCategoryFilter", "");
   const [target, setTarget] = useSessionState<ExpenseTarget>("target", "all");
   const [status, setStatus] = useSessionState<ExpenseStatus>("status", "all");
