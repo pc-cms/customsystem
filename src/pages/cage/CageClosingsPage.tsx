@@ -82,7 +82,6 @@ const CageClosingsPage = () => {
         icon={Landmark}
         title="Cage Closings"
         subtitle={`Manager-only · Reopen a closed shift to correct the closing count · ${periodLabel}`}
-        date
         centerSlot={
           <DateRangePresets
             preset={preset}
