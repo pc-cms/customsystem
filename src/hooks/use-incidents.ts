@@ -43,6 +43,7 @@ export type IncidentInput = Omit<Incident, "id" | "casino_id" | "created_by" | "
 export const useIncidents = (
   days: number | null = null,
   businessDate: string | null = null,
+  range: { from: string; to: string } | null = null,
 ) => {
   const { casinoId } = useAuth();
   const qc = useQueryClient();
@@ -56,7 +57,7 @@ export const useIncidents = (
     : null;
 
   const query = useQuery({
-    queryKey: ["incidents", casinoId, days, businessDate],
+    queryKey: ["incidents", casinoId, days, businessDate, range?.from, range?.to],
     queryFn: async () => {
       if (!casinoId) return [] as Incident[];
       let q = supabase
@@ -64,11 +65,12 @@ export const useIncidents = (
         .select("*")
         .eq("casino_id", casinoId);
       if (businessDate && nextDate) {
-        // Window: D 11:00 → D+1 11:00 EAT (matches unified business-day rollover).
         q = q.or(
           `and(incident_date.eq.${businessDate},incident_time.gte.11:00:00),` +
           `and(incident_date.eq.${nextDate},incident_time.lt.11:00:00)`,
         );
+      } else if (range && range.from && range.to) {
+        q = q.gte("incident_date", range.from).lte("incident_date", range.to);
       } else if (sinceDate) {
         q = q.gte("incident_date", sinceDate);
       }
@@ -78,6 +80,10 @@ export const useIncidents = (
         .order("created_at", { ascending: true })
         .limit(2000);
       if (error) throw error;
+      return (data || []) as Incident[];
+    },
+    enabled: !!casinoId,
+  });
       return (data || []) as Incident[];
     },
     enabled: !!casinoId,
