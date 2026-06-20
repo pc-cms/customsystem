@@ -6,19 +6,18 @@ import { useCasino } from "@/lib/casino-context";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable } from "@/components/ui/data-table";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 import { fmtDateTime } from "@/lib/format-date";
 
 const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
 
 const PromoRedemptionsReport = () => {
   const { activeCasinoId } = useCasino();
-  const today = new Date().toISOString().slice(0, 10);
-  const monthAgo = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
-  const [from, setFrom] = useState(monthAgo);
-  const [to, setTo] = useState(today);
+  const initial = presetRange("month");
+  const [preset, setPreset] = useState<DatePreset>("month");
+  const [from, setFrom] = useState(initial.from);
+  const [to, setTo] = useState(initial.to);
 
   const { data: redemptions = [], isLoading } = useQuery({
     queryKey: ["promo_redemptions_report", activeCasinoId, from, to],
@@ -48,20 +47,14 @@ const PromoRedemptionsReport = () => {
 
   return (
     <PageShell>
-      <PageHeader icon={ArrowDownToLine} title="Promo Redemptions" subtitle="Promo credits spent at the cage" />
-
-      <PageSection title="Filters">
-        <div className="flex gap-4 items-end">
-          <div>
-            <Label>From</Label>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          </div>
-          <div>
-            <Label>To</Label>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-          </div>
-        </div>
-      </PageSection>
+      <PageHeader icon={ArrowDownToLine} title="Promo Redemptions" subtitle="Promo credits spent at the cage">
+        <DateRangePresets
+          preset={preset}
+          from={from}
+          to={to}
+          onChange={(n) => { setPreset(n.preset); setFrom(n.from); setTo(n.to); }}
+        />
+      </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <PageSection title="Total Spent">

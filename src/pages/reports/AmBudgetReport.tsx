@@ -13,15 +13,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { fmtDateTime } from "@/lib/format-date";
 import { downloadXlsx } from "@/lib/excel-export";
+import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 
 const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
 
 export default function AmBudgetReport() {
   const { activeCasinoId } = useCasino();
   const today = new Date().toISOString().slice(0, 10);
-  const monthAgo = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
-  const [from, setFrom] = useState(monthAgo);
-  const [to, setTo] = useState(today);
+  const initial = presetRange("month");
+  const [preset, setPreset] = useState<DatePreset>("month");
+  const [from, setFrom] = useState(initial.from);
+  const [to, setTo] = useState(initial.to);
   const [reason, setReason] = useState("all");
   const [amFilter, setAmFilter] = useState("all");
 
@@ -87,15 +89,19 @@ export default function AmBudgetReport() {
   return (
     <PageShell>
       <PageHeader icon={Briefcase} title="AM Budget Report" subtitle="Network-wide AM funding ledger">
+        <DateRangePresets
+          preset={preset}
+          from={from}
+          to={to}
+          onChange={(n) => { setPreset(n.preset); setFrom(n.from); setTo(n.to); }}
+        />
         <Button variant="outline" size="sm" onClick={exportXlsx} className="gap-1.5">
           <Download className="w-3.5 h-3.5" /> Export
         </Button>
       </PageHeader>
 
       <PageSection title="Filters">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div><Label>From</Label><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
-          <div><Label>To</Label><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
           <div>
             <Label>AM</Label>
             <Select value={amFilter} onValueChange={setAmFilter}>
@@ -123,6 +129,7 @@ export default function AmBudgetReport() {
           </div>
         </div>
       </PageSection>
+
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <PageSection title="Top-ups"><div className="text-2xl font-mono cms-amount-positive">+{fmt(totals.topup)}</div></PageSection>

@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
-import { YearSelect } from "@/components/ui/year-select";
+
+import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 import {
   useFinExpenses, useCreateFinExpense, useVoidFinExpense,
   useFinCategories, useFinWallets, useFinBudget
@@ -23,33 +24,8 @@ import {
 } from "@/components/finances/FinTable";
 
 const todayBD = () => new Date().toISOString().slice(0, 10);
-const pad = (n: number) => String(n).padStart(2, "0");
-const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-type Period = "day" | "week" | "month" | "year" | "custom";
 
-function computeRange(period: Period, anchor: string): { from?: string; to?: string } {
-  const d = new Date(anchor + "T00:00:00");
-  if (period === "day") return { from: anchor, to: anchor };
-  if (period === "week") {
-    const day = d.getDay(); // 0 = Sun
-    const from = new Date(d);
-    from.setDate(d.getDate() - day);
-    const to = new Date(from);
-    to.setDate(from.getDate() + 6);
-    return { from: fmt(from), to: fmt(to) };
-  }
-  if (period === "month") {
-    const from = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
-    const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-    const to = `${last.getFullYear()}-${pad(last.getMonth() + 1)}-${pad(last.getDate())}`;
-    return { from, to };
-  }
-  if (period === "year") {
-    return { from: `${d.getFullYear()}-01-01`, to: `${d.getFullYear()}-12-31` };
-  }
-  return {};
-}
 
 type SortKey = "date" | "category" | "wallet" | "amount";
 
@@ -63,39 +39,22 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
   const { roles } = useAuth();
   const canManage = roles.includes("super_admin") || roles.includes("manager") || roles.includes("finance_manager");
 
-  const [period, setPeriod] = useState<Period>("month");
-  const [anchor, setAnchor] = useState<string>(todayBD());
-  const [customFrom, setCustomFrom] = useState<string>(todayBD());
-  const [customTo, setCustomTo] = useState<string>(todayBD());
+  const initialRange = presetRange("month");
+  const [preset, setPreset] = useState<DatePreset>("month");
+  const [from, setFrom] = useState<string>(initialRange.from);
+  const [to, setTo] = useState<string>(initialRange.to);
   const range = embedded && embeddedFrom && embeddedTo
     ? { from: embeddedFrom, to: embeddedTo }
-    : period === "custom" ? { from: customFrom, to: customTo } : computeRange(period, anchor);
-
-  const shiftMonth = (delta: number) => {
-    const d = new Date(anchor + "T00:00:00");
-    d.setDate(1);
-    d.setMonth(d.getMonth() + delta);
-    setAnchor(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`);
-  };
-
-  const shiftWeek = (delta: number) => {
-    const d = new Date(anchor + "T00:00:00");
-    d.setDate(d.getDate() + delta * 7);
-    setAnchor(fmt(d));
-  };
-
-  const shiftYear = (delta: number) => {
-    const d = new Date(anchor + "T00:00:00");
-    d.setFullYear(d.getFullYear() + delta);
-    setAnchor(`${d.getFullYear()}-01-01`);
-  };
+    : { from, to };
 
   const resetFilters = () => {
     setSearch("");
     setCategoryFilter("all");
     setWalletFilter("all");
-    setPeriod("month");
-    setAnchor(todayBD());
+    const r = presetRange("month");
+    setPreset("month");
+    setFrom(r.from);
+    setTo(r.to);
   };
 
   const [search, setSearch] = useState("");
@@ -184,7 +143,6 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
           icon={Receipt}
           title="Monthly Expenses"
           subtitle={`Per-casino expense ledger · ${visible.length} of ${rows.length} records`}
-          date
         >
           <FinanceCasinoSwitcher />
           <label className="text-xs flex items-center gap-1.5">
@@ -220,88 +178,24 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
 
       {/* Filters */}
       <div className="cms-panel p-3 mb-4">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
           <Filter className="w-3.5 h-3.5 text-muted-foreground" />
           <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Filters</h3>
           {!embedded && (
-            <div className="ml-auto flex items-center gap-1 flex-wrap">
-              {(["day", "week", "month", "year", "custom"] as Period[]).map((p) => (
-                <Button
-                  key={p}
-                  size="sm"
-                  variant={period === p ? "default" : "outline"}
-                  className="h-7 px-2 text-xs capitalize"
-                  onClick={() => setPeriod(p)}
-                >
-                  {p}
-                </Button>
-              ))}
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={resetFilters}>
+            <div className="ml-auto flex items-center gap-2 flex-wrap">
+              <DateRangePresets
+                preset={preset}
+                from={from}
+                to={to}
+                onChange={(n) => { setPreset(n.preset); setFrom(n.from); setTo(n.to); }}
+              />
+              <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={resetFilters}>
                 Reset
               </Button>
             </div>
           )}
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-          {!embedded && period === "day" && (
-            <div className="md:col-span-2 flex items-end gap-1">
-              <div className="flex-1">
-                <label className="text-[10px] uppercase text-muted-foreground">Date</label>
-                <Input type="date" value={anchor} onChange={(e) => setAnchor(e.target.value)} className="h-8 text-xs" />
-              </div>
-            </div>
-          )}
-          {!embedded && period === "week" && (
-            <div className="md:col-span-2 flex items-end gap-1">
-              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftWeek(-1)} title="Previous week">‹</Button>
-              <div className="flex-1">
-                <label className="text-[10px] uppercase text-muted-foreground">Week</label>
-                <Input type="date" value={anchor} onChange={(e) => setAnchor(e.target.value)} className="h-8 text-xs" />
-              </div>
-              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftWeek(1)} title="Next week">›</Button>
-            </div>
-          )}
-          {!embedded && period === "month" && (
-            <div className="md:col-span-2 flex items-end gap-1">
-              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftMonth(-1)} title="Previous month">‹</Button>
-              <div className="flex-1">
-                <label className="text-[10px] uppercase text-muted-foreground">Month</label>
-                <Input
-                  type="month"
-                  value={anchor.slice(0, 7)}
-                  onChange={(e) => setAnchor(e.target.value + "-01")}
-                  className="h-8 text-xs"
-                />
-              </div>
-              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftMonth(1)} title="Next month">›</Button>
-            </div>
-          )}
-          {!embedded && period === "year" && (
-            <div className="md:col-span-2 flex items-end gap-1">
-              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftYear(-1)} title="Previous year">‹</Button>
-              <div className="flex-1">
-                <label className="text-[10px] uppercase text-muted-foreground">Year</label>
-                <YearSelect
-                  value={new Date(anchor + "T00:00:00").getFullYear()}
-                  onChange={(y) => setAnchor(`${y}-01-01`)}
-                  className="w-full"
-                />
-              </div>
-              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftYear(1)} title="Next year">›</Button>
-            </div>
-          )}
-          {!embedded && period === "custom" && (
-            <>
-              <div>
-                <label className="text-[10px] uppercase text-muted-foreground">From</label>
-                <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="h-8 text-xs" />
-              </div>
-              <div>
-                <label className="text-[10px] uppercase text-muted-foreground">To</label>
-                <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-8 text-xs" />
-              </div>
-            </>
-          )}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
           <div>
             <label className="text-[10px] uppercase text-muted-foreground">Category</label>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
