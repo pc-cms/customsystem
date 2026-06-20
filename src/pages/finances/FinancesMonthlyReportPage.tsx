@@ -78,7 +78,7 @@ export default function FinancesMonthlyReportPage() {
     // Title block
     ws.mergeCells("A1:K1");
     const titleCell = ws.getCell("A1");
-    titleCell.value = `${scopeName} · ${ytd ? "YTD " : ""}${MONTHS[month - 1]} ${year}`;
+    titleCell.value = `${scopeName} · ${MONTHS[month - 1]} ${year}`;
     titleCell.font = { bold: true, size: 14 };
     titleCell.alignment = { horizontal: "center" };
 
