@@ -26,7 +26,7 @@ const todayBD = () => new Date().toISOString().slice(0, 10);
 const pad = (n: number) => String(n).padStart(2, "0");
 const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-type Period = "day" | "week" | "month" | "year" | "ytd" | "all" | "custom";
+type Period = "day" | "week" | "month" | "year" | "custom";
 
 function computeRange(period: Period, anchor: string): { from?: string; to?: string } {
   const d = new Date(anchor + "T00:00:00");
@@ -48,7 +48,6 @@ function computeRange(period: Period, anchor: string): { from?: string; to?: str
   if (period === "year") {
     return { from: `${d.getFullYear()}-01-01`, to: `${d.getFullYear()}-12-31` };
   }
-  if (period === "ytd") return { from: `${d.getFullYear()}-01-01`, to: todayBD() };
   return {};
 }
 
