@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
+import { YearSelect } from "@/components/ui/year-select";
 import {
   useFinExpenses, useCreateFinExpense, useVoidFinExpense,
   useFinCategories, useFinWallets, useFinBudget
@@ -23,17 +24,29 @@ import {
 
 const todayBD = () => new Date().toISOString().slice(0, 10);
 const pad = (n: number) => String(n).padStart(2, "0");
+const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-type Period = "day" | "month" | "ytd" | "all" | "custom";
+type Period = "day" | "week" | "month" | "year" | "ytd" | "all" | "custom";
 
 function computeRange(period: Period, anchor: string): { from?: string; to?: string } {
   const d = new Date(anchor + "T00:00:00");
   if (period === "day") return { from: anchor, to: anchor };
+  if (period === "week") {
+    const day = d.getDay(); // 0 = Sun
+    const from = new Date(d);
+    from.setDate(d.getDate() - day);
+    const to = new Date(from);
+    to.setDate(from.getDate() + 6);
+    return { from: fmt(from), to: fmt(to) };
+  }
   if (period === "month") {
     const from = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
     const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
     const to = `${last.getFullYear()}-${pad(last.getMonth() + 1)}-${pad(last.getDate())}`;
     return { from, to };
+  }
+  if (period === "year") {
+    return { from: `${d.getFullYear()}-01-01`, to: `${d.getFullYear()}-12-31` };
   }
   if (period === "ytd") return { from: `${d.getFullYear()}-01-01`, to: todayBD() };
   return {};
