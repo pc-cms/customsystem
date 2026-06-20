@@ -427,7 +427,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
               <thead className="sticky top-0 bg-card">
                 <tr className="border-b border-border">
                   <th className="text-left px-2 py-1.5 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Time</th>
-                  {countLocations.map(loc => (
+                  {historyColumns.map(loc => (
                     <th key={loc.id} className="text-right px-2 py-1.5 font-medium text-muted-foreground text-[10px]">{loc.label}</th>
                   ))}
                   <th className="text-right px-2 py-1.5 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Total</th>
@@ -439,7 +439,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                   return (
                     <tr key={g.ts} className={`border-b border-border last:border-0 ${i % 2 === 1 ? "bg-muted/10" : ""}`}>
                       <td className="px-2 py-1 font-mono text-card-foreground">{time}</td>
-                      {countLocations.map(loc => {
+                      {historyColumns.map(loc => {
                         const v = g.perTable[loc.id];
                         if (v === undefined) return <td key={loc.id} className="px-2 py-1 text-right text-muted-foreground/30">·</td>;
                         return (
