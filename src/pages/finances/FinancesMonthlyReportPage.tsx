@@ -239,10 +239,6 @@ export default function FinancesMonthlyReportPage() {
             <YearSelect value={year} onChange={setYear} className="w-32" />
 
             <div className="flex items-center gap-2 ml-2">
-              <Switch id="ytd" checked={ytd} onCheckedChange={setYtd} />
-              <Label htmlFor="ytd" className="text-xs">YTD</Label>
-            </div>
-            <div className="flex items-center gap-2 ml-2">
               <Switch id="usd" checked={showUsd} onCheckedChange={setShowUsd} />
               <Label htmlFor="usd" className="text-xs">Show USD</Label>
             </div>
