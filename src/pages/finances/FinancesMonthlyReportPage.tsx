@@ -501,6 +501,23 @@ const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, mtd
               />
             </div>
             {c.expenses.length > 0 && <span className="text-[10px] text-muted-foreground shrink-0">({c.expenses.length})</span>}
+            {editMode && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 shrink-0 text-muted-foreground hover:text-destructive"
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  if (confirm(`Archive category "${c.name}"?\n\nIt will be hidden from the Monthly Report and from new expense forms, but past expenses and budgets remain intact.`)) {
+                    onArchiveCategory(c.id);
+                  }
+                }}
+                aria-label="Archive category"
+                title="Archive category"
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            )}
           </div>
         </td>
         <td className="text-right">
