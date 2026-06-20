@@ -64,39 +64,22 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
   const { roles } = useAuth();
   const canManage = roles.includes("super_admin") || roles.includes("manager") || roles.includes("finance_manager");
 
-  const [period, setPeriod] = useState<Period>("month");
-  const [anchor, setAnchor] = useState<string>(todayBD());
-  const [customFrom, setCustomFrom] = useState<string>(todayBD());
-  const [customTo, setCustomTo] = useState<string>(todayBD());
+  const initialRange = presetRange("month");
+  const [preset, setPreset] = useState<DatePreset>("month");
+  const [from, setFrom] = useState<string>(initialRange.from);
+  const [to, setTo] = useState<string>(initialRange.to);
   const range = embedded && embeddedFrom && embeddedTo
     ? { from: embeddedFrom, to: embeddedTo }
-    : period === "custom" ? { from: customFrom, to: customTo } : computeRange(period, anchor);
-
-  const shiftMonth = (delta: number) => {
-    const d = new Date(anchor + "T00:00:00");
-    d.setDate(1);
-    d.setMonth(d.getMonth() + delta);
-    setAnchor(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`);
-  };
-
-  const shiftWeek = (delta: number) => {
-    const d = new Date(anchor + "T00:00:00");
-    d.setDate(d.getDate() + delta * 7);
-    setAnchor(fmt(d));
-  };
-
-  const shiftYear = (delta: number) => {
-    const d = new Date(anchor + "T00:00:00");
-    d.setFullYear(d.getFullYear() + delta);
-    setAnchor(`${d.getFullYear()}-01-01`);
-  };
+    : { from, to };
 
   const resetFilters = () => {
     setSearch("");
     setCategoryFilter("all");
     setWalletFilter("all");
-    setPeriod("month");
-    setAnchor(todayBD());
+    const r = presetRange("month");
+    setPreset("month");
+    setFrom(r.from);
+    setTo(r.to);
   };
 
   const [search, setSearch] = useState("");
