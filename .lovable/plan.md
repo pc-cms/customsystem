@@ -1,65 +1,64 @@
 ## Цель
+Унифицировать popup выбора смен (только буквы, одинаковые размеры/выравнивание, умное позиционирование) и привести легенды Rota/Attendance к единому формату «только время начала».
 
-Зафиксировать единое правило часов Атенданса при автозаполнении после закрытия бизнес‑дня:
+## 1. `CellPicker.tsx` — единый компонент для всех popup
 
-- **Live Game (Pit)** — `M = 11`, `N = 8`, `EM = 11`, `EN = 8` (включая Pit Bosses).
-- **Floor Staff** — `D = 9`, **`N = 8`** (раньше оба были 9).
+**Только буквы, одинаковые кнопки**
+- Убрать рендер `opt.title` как подписи под кнопкой (строки 127–131). `title` остаётся только как нативный hover-tooltip на `<button title={opt.title}>`.
+- Привести все option-кнопки к одинаковому размеру: фиксированная `min-w-[28px] h-6`, центрированный текст, одинаковый padding. Сейчас padding `px-1.5 py-0.5` — ок, добавить `min-w-` и `inline-flex items-center justify-center`.
+- Row label (`Hours`, `Sick after Nh` и т.п.) оставить — это разделитель групп, а не подпись опции.
 
-Сейчас Pit auto‑fill ставит 9 часов всем кроме PB‑on‑M / EM / EN. Из‑за этого вчера дилеры на M получили 9 вместо 11, а на N — 9 вместо 8.
+**Горизонтальный flip (новое глобальное правило)**
+- Добавить state `dropLeft` параллельно `dropUp`.
+- В `useLayoutEffect` помимо вертикальной проверки измерять `spaceRight = window.innerWidth - btnRect.left - 8` vs `popW = pop.offsetWidth`; если `popW > spaceRight` → `setDropLeft(true)`.
+- В классе popup: `${dropUp ? "bottom-9" : "top-9"} ${dropLeft ? "right-0" : "left-0"}`.
 
-## Что поменяю
+Это автоматически починит все попапы (Pit rota, Pit attendance, Staff rota, Staff attendance и любые будущие).
 
-### 1. `src/pages/Pit.tsx` — auto‑fill при закрытии дня
+## 2. Pit attendance popup (`src/pages/Pit.tsx` ~1082–1099)
+- Убрать `title: "Absent"` / `title: "Sick"` у A/S опций — больше не нужны (легенда выше уже объясняет). Опционально оставить как hover-tooltip — но согласно правилу «только буквы» убираем совсем.
+- Row label `"Shifts"` и `"Hours"` и `"Sick after Nh"` оставить.
+- Никаких изменений в логике save.
 
-В блоке `useEffect` (≈ строки 1002‑1010) заменить логику `fillValue`:
+## 3. Унифицированные легенды (`только начало смены, без дефисов`)
 
-```ts
-let fillValue = "9"; // fallback
-if (rotaShift === "M" || rotaShift === "EM") fillValue = "11";
-else if (rotaShift === "N" || rotaShift === "EN") fillValue = "8";
+**Pit (`SHIFT_LABELS` в `src/pages/Pit.tsx`)** — используется в одной общей легенде для rota+attendance:
+```
+M  → 17:45
+N  → 20:45
+EM → 17:45        // Extra Middle = тот же старт, что M
+EN → 20:45        // Extra Night = тот же старт, что N
+L  → Leave
+O  → Off
+```
+A → Absent, S → Sick (статусы, не смены — оставить как есть).
+
+**Floor (`ROTA_GROUPS.floor.shiftLabels` + общий `STAFF_SHIFT_LABELS` в `src/hooks/use-staff.ts`)**:
+```
+D → 12:30
+N → 20:45
+E → 17:45         // Extra = Middle-старт (общий с дилерами)
+L → Leave
+O → Off
 ```
 
-Старый PB‑special‑case убирается — он покрывается общим правилом `M = 11`.
-
-### 2. `src/pages/Pit.tsx` — ручной ввод
-
-В `handleSave` (≈ 950‑968) добавить трансляцию одиночных кодов:
-
-- ввод `M` → сохранить `11`
-- ввод `N` → сохранить `8`
-
-(аналогично уже существующим `EM` → 11 и `EN` → 8).
-
-### 3. `src/pages/Staff.tsx` — auto‑fill для Floor
-
-В блоке auto‑fill (≈ строки 1005‑1012) заменить плоский `"9"` на shift‑aware:
-
-```ts
-const fillValue = rotaShift === "N" ? "8" : "9"; // D = 9, N = 8
+**Security (`ROTA_GROUPS.security.shiftLabels`)** — уже в нужном формате, не трогать:
 ```
+D 06:00 / M 13:45 / N 17:45 / G 21:45 / L Leave / E Extra / O Off
+```
+Только заменить `E: "Extra"` → `E: "17:45"` для единообразия, и при желании оставить `L: "Leave"`, `O: "Off"`.
 
-### 4. Memory
+**Office (`ROTA_GROUPS.office.shiftLabels`)** — как Floor.
 
-Добавить новое правило в Core (`mem://index.md`) и отдельный файл `mem://features/attendance-autofill-hours`:
+**Attendance Staff (`STAFF_SHIFT_LABELS`)** — синхронизировать с Floor (используется в `Staff.tsx:217` для D/N подсказок).
 
-> Attendance auto‑fill hours (after business‑day closure):
-> Pit (Live Game): M/EM = 11, N/EN = 8 — для всех дилеров и Pit Bosses.
-> Floor Staff: D = 9, N = 8.
-> Применяется только к ячейкам, где значение пустое; ручной ввод никогда не перезаписывается.
+Никаких `(...)` скобок, никаких слов `Day`/`Night`/`Middle` — только `HH:MM` для рабочих смен, односложные слова для статусов (`Leave`, `Off`, `Absent`, `Sick`).
 
-И обновить существующее правило [Attendance Auto‑fill](mem://features/attendance-autofill) — заменить «9h auto‑fill» на shift‑aware.
+## 4. Затронутые файлы
+- `src/components/grids/CellPicker.tsx` — popup styling + horizontal flip
+- `src/pages/Pit.tsx` — `SHIFT_LABELS`, удалить `title` у A/S
+- `src/hooks/use-staff.ts` — `shiftLabels` у floor/security/office + `STAFF_SHIFT_LABELS`
 
-## Что НЕ трогаю
-
-- Триггеры/RPC в БД — auto‑fill живёт только на фронте, миграция не нужна.
-- Поведение `S` / `A` / `SP` / `{n}S` и Sick‑Pay расчёта.
-- Hard guards: «никогда не автозаполнять открытый текущий день», «обязательно нужен `business_day_closures`», «пропускать ячейки с любым существующим значением».
-- Колонку Total в Атенданс — она просто суммирует то, что записано.
-
-## Бамп версии
-
-`package.json` patch‑бамп **не** делаю — изменения чисто фронтовые (правила автозаполнения), без миграций/edge‑функций/RLS.
-
-## Открытые вчерашние ячейки
-
-После применения новых правил уже записанные «9» НЕ перезаписываются автоматически — auto‑fill срабатывает только на пустые ячейки. Чтобы поправить вчерашний день, нужно вручную очистить 9 у затронутых дилеров — тогда auto‑fill поставит 11/8. Если хочешь, могу отдельным шагом сделать одноразовый UPDATE‑SQL для вчерашнего бизнес‑дня (только Pit, только M/N с текущим значением "9") — скажи «да, поправь вчерашний день».
+## Не входит
+- Логика смен, часов, бэкфилл, backend. Только UI/презентация.
+- Легенды Live Game в других местах (Dashboard, Breaklist) не трогаем — у пользователя речь о Rota/Attendance.

@@ -43,19 +43,19 @@ export const ROTA_GROUPS = {
     label: "Floor",
     departments: ["cashier", "bartender", "hostess", "waiter", "cleaner", "reception"] as StaffDepartment[],
     shifts: ["D", "N", "L", "E", "O"] as const,
-    shiftLabels: { D: "Day (12:30)", N: "Night (20:45)", L: "Leave", E: "Extra", O: "Off" } as Record<string, string>,
+    shiftLabels: { D: "12:30", N: "20:45", L: "Leave", E: "17:45", O: "Off" } as Record<string, string>,
   },
   security: {
     label: "Security",
     departments: ["security"] as StaffDepartment[],
     shifts: ["D", "M", "N", "G", "L", "E", "O"] as const,
-    shiftLabels: { D: "06:00", M: "13:45", N: "17:45", G: "21:45", L: "Leave", E: "Extra", O: "Off" } as Record<string, string>,
+    shiftLabels: { D: "06:00", M: "13:45", N: "17:45", G: "21:45", L: "Leave", E: "17:45", O: "Off" } as Record<string, string>,
   },
   office: {
     label: "Office",
     departments: ["it", "hr", "driver"] as StaffDepartment[],
     shifts: ["D", "N", "L", "E", "O"] as const,
-    shiftLabels: { D: "Day (12:30)", N: "Night (20:45)", L: "Leave", E: "Extra", O: "Off" } as Record<string, string>,
+    shiftLabels: { D: "12:30", N: "20:45", L: "Leave", E: "17:45", O: "Off" } as Record<string, string>,
   },
 } as const;
 
@@ -64,10 +64,10 @@ export type RotaGroupKey = keyof typeof ROTA_GROUPS;
 const STAFF_SHIFTS = ["D", "N", "L", "E", "O"] as const;
 
 export const STAFF_SHIFT_LABELS: Record<string, string> = {
-  D: "Day (12:30)",
-  N: "Night (20:45)",
+  D: "12:30",
+  N: "20:45",
   L: "Leave",
-  E: "Extra",
+  E: "17:45",
   O: "Off",
 };
 

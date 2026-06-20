@@ -31,13 +31,13 @@ const ROTA_SHIFTS = ["M", "N", "L", "EM", "EN", "O"] as const;
 const SHIFT_COLORS = UNIFIED_SHIFT_COLORS;
 
 const SHIFT_LABELS: Record<string, string> = {
-  M: "Middle (17:45)",
-  N: "Night (20:45)",
+  M: "17:45",
+  N: "20:45",
   L: "Leave",
-  E: "Extra (legacy)",
-  EM: "Extra Middle (11h)",
-  EN: "Extra Night (8h)",
-  O: "Off (day off)",
+  E: "17:45",
+  EM: "17:45",
+  EN: "20:45",
+  O: "Off",
 };
 
 const ATT_COLORS = UNIFIED_ATT_COLORS;
@@ -1081,8 +1081,8 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                     title={cellTitle}
                     rows={[
                       { options: [
-                        { value: "A", label: "A", title: "Absent", className: ATT_COLORS["A"] },
-                        { value: "S", label: "S", title: "Sick", className: ATT_COLORS["S"] },
+                        { value: "A", label: "A", className: ATT_COLORS["A"] },
+                        { value: "S", label: "S", className: ATT_COLORS["S"] },
                       ]},
                       { label: "Shifts", options: [
                         { value: "EM", label: "EM", className: UNIFIED_SHIFT_COLORS["EM"] },
