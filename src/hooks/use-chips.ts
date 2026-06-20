@@ -228,8 +228,13 @@ export const useBatchChipSnapshot = () => {
       toast.success(res?.offline ? "Chip count saved offline" : "Chip count recorded");
     },
     onError: (e, _input, ctx: any) => {
-      if (ctx?.queryKey && ctx?.optimisticIds) {
-        qc.setQueryData<any[]>(ctx.queryKey, (old = []) => old.filter(r => !ctx.optimisticIds.includes(r.id)));
+      if (ctx?.optimisticIds) {
+        if (ctx?.queryKey) {
+          qc.setQueryData<any[]>(ctx.queryKey, (old = []) => old.filter(r => !ctx.optimisticIds.includes(r.id)));
+        }
+        if (ctx?.queryKeyFull) {
+          qc.setQueryData<any[]>(ctx.queryKeyFull, (old = []) => old.filter(r => !ctx.optimisticIds.includes(r.id)));
+        }
       }
       toast.error(e.message);
     },
