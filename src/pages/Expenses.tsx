@@ -399,31 +399,16 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                 </div>
               );
             })()}
-            {(() => {
-              const shift = (days: number) => {
-                const d = new Date(businessDate + "T00:00:00Z");
-                d.setUTCDate(d.getUTCDate() - days);
-                return d.toISOString().slice(0, 10);
-              };
-              const presets: Array<{ label: string; from: string; to: string }> = [
-                { label: "Today", from: businessDate, to: businessDate },
-                { label: "7d",    from: shift(6),   to: businessDate },
-                { label: "30d",   from: shift(29),  to: businessDate },
-                { label: "All",   from: "2020-01-01", to: businessDate },
-              ];
-              return presets.map(p => {
-                const active = from === p.from && to === p.to;
-                return (
-                  <Button
-                    key={p.label}
-                    size="sm"
-                    variant={active ? "default" : "outline"}
-                    className="h-7 px-2 text-xs"
-                    onClick={() => { setFrom(p.from); setTo(p.to); }}
-                  >{p.label}</Button>
-                );
-              });
-            })()}
+            <DateRangePresets
+              preset={datePreset}
+              from={from}
+              to={to}
+              onChange={({ preset, from: f, to: t }) => {
+                setDatePreset(preset);
+                setFrom(f);
+                setTo(t);
+              }}
+            />
             <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={resetFilters}>
               Reset
             </Button>
