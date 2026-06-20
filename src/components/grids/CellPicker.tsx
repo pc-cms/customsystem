@@ -110,7 +110,7 @@ export const CellPicker: React.FC<CellPickerProps> = ({
       {open && (
         <div
           ref={popRef}
-          className={`absolute z-50 ${dropUp ? "bottom-9" : "top-9"} left-0 bg-popover border border-border rounded-md shadow-lg p-1 min-w-[140px]`}
+          className={`absolute z-50 ${dropUp ? "bottom-9" : "top-9"} ${dropLeft ? "right-0" : "left-0"} bg-popover border border-border rounded-md shadow-lg p-1 min-w-[140px]`}
         >
           {rows.map((row, i) => (
             <div key={i} className={i > 0 ? "mt-1 pt-1 border-t border-border" : ""}>
@@ -124,16 +124,11 @@ export const CellPicker: React.FC<CellPickerProps> = ({
                     type="button"
                     onClick={() => choose(opt.value)}
                     title={opt.title}
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold transition-colors hover:opacity-80 ${
+                    className={`inline-flex items-center justify-center min-w-[28px] h-6 px-1.5 rounded text-[10px] font-mono font-bold transition-colors hover:opacity-80 ${
                       opt.className || "bg-muted text-muted-foreground"
                     } ${value === opt.value ? "ring-1 ring-primary" : ""}`}
                   >
-                    <span>{opt.label}</span>
-                    {opt.title && (
-                      <span className="block text-[8px] font-normal opacity-80 leading-tight">
-                        {opt.title}
-                      </span>
-                    )}
+                    {opt.label}
                   </button>
                 ))}
               </div>
