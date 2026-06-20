@@ -287,7 +287,6 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           icon={Receipt}
           title="Expenses"
           subtitle={`Immutable · ${analytics.filtered.length} of ${expenses.length} records · ${analytics.pendingCount} pending`}
-          date
         />
       )}
 
