@@ -168,7 +168,6 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
           icon={Receipt}
           title="Monthly Expenses"
           subtitle={`Per-casino expense ledger · ${visible.length} of ${rows.length} records`}
-          date
         >
           <FinanceCasinoSwitcher />
           <label className="text-xs flex items-center gap-1.5">
