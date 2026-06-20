@@ -226,7 +226,7 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
           <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Filters</h3>
           {!embedded && (
             <div className="ml-auto flex items-center gap-1 flex-wrap">
-              {(["day", "month", "ytd", "all", "custom"] as Period[]).map((p) => (
+              {(["day", "week", "month", "year", "ytd", "all", "custom"] as Period[]).map((p) => (
                 <Button
                   key={p}
                   size="sm"
