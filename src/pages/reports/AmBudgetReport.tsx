@@ -19,9 +19,10 @@ const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
 export default function AmBudgetReport() {
   const { activeCasinoId } = useCasino();
   const today = new Date().toISOString().slice(0, 10);
-  const monthAgo = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
-  const [from, setFrom] = useState(monthAgo);
-  const [to, setTo] = useState(today);
+  const initial = presetRange("month");
+  const [preset, setPreset] = useState<DatePreset>("month");
+  const [from, setFrom] = useState(initial.from);
+  const [to, setTo] = useState(initial.to);
   const [reason, setReason] = useState("all");
   const [amFilter, setAmFilter] = useState("all");
 
