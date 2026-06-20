@@ -776,7 +776,6 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                       options: ROTA_SHIFTS.map(s => ({
                         value: s,
                         label: s,
-                        title: SHIFT_LABELS[s],
                         className: SHIFT_COLORS[s],
                       })),
                     }]}
@@ -1086,8 +1085,8 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                         { value: "S", label: "S", title: "Sick", className: ATT_COLORS["S"] },
                       ]},
                       { label: "Shifts", options: [
-                        { value: "EM", label: "EM", title: SHIFT_LABELS["EM"], className: UNIFIED_SHIFT_COLORS["EM"] },
-                        { value: "EN", label: "EN", title: SHIFT_LABELS["EN"], className: UNIFIED_SHIFT_COLORS["EN"] },
+                        { value: "EM", label: "EM", className: UNIFIED_SHIFT_COLORS["EM"] },
+                        { value: "EN", label: "EN", className: UNIFIED_SHIFT_COLORS["EN"] },
                       ]},
                       { label: "Hours", options: Array.from({ length: 12 }, (_, i) => i + 1).map(n => ({
                         value: String(n), label: String(n),

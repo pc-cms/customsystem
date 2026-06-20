@@ -898,7 +898,6 @@ const DepartmentBlock = ({
                   rows={[{
                     options: groupShifts.map(s => ({
                       value: s, label: s,
-                      title: shiftLabels[s],
                       className: STAFF_SHIFT_COLORS[s],
                     })),
                   }]}
