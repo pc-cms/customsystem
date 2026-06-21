@@ -86,11 +86,13 @@ const usePeriodIncome = (from: string, to: string) => {
           .eq("casino_id", activeCasinoId),
         supabase
           .from("fin_daily_rates")
-          .select("usd_to_tzs")
+          .select("rate_to_tzs")
           .eq("casino_id", activeCasinoId)
+          .eq("currency", "USD")
           .gte("business_date", from)
           .lte("business_date", to),
       ]);
+
 
       const live = (shifts.data || []).reduce(
         (s: number, r: any) => s + Number(r.tables_result || 0),
@@ -101,7 +103,7 @@ const usePeriodIncome = (from: string, to: string) => {
         0,
       );
       const rateList = (rates.data || [])
-        .map((r: any) => Number(r.usd_to_tzs || 0))
+        .map((r: any) => Number(r.rate_to_tzs || 0))
         .filter((n: number) => n > 0);
       const avg = rateList.length
         ? rateList.reduce((a: number, b: number) => a + b, 0) / rateList.length

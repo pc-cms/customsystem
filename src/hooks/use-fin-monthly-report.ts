@@ -36,25 +36,46 @@ export type ReportCategory = {
   plan_year_usd: number;
   plan_month_tzs: number;
   plan_month_usd: number;
+  /** Σ amount where currency='TZS' — native TZS spend, no conversion. */
   actual_tzs: number;
+  /** Σ amount where currency='USD' — native USD spend, no conversion. */
   actual_usd: number;
+  /** Σ amount_tzs across all currencies — for grand totals in TZS. */
+  actual_grand_tzs: number;
   expenses: ReportExpense[];
-  per_casino?: Record<string, { actual_tzs: number; actual_usd: number }>;
+  per_casino?: Record<string, { actual_tzs: number; actual_usd: number; actual_grand_tzs: number }>;
 };
 
 export type ReportGroup = {
   code: string;
   name: string;
   categories: ReportCategory[];
-  totals: { plan_year_tzs: number; plan_year_usd: number; plan_month_tzs: number; plan_month_usd: number; actual_tzs: number; actual_usd: number };
+  totals: {
+    plan_year_tzs: number;
+    plan_year_usd: number;
+    plan_month_tzs: number;
+    plan_month_usd: number;
+    actual_tzs: number;
+    actual_usd: number;
+    actual_grand_tzs: number;
+  };
 };
 
 export type MonthlyReport = {
   incomes: { live_game: number; slots: number; other: number; total: number };
   groups: ReportGroup[];
-  /** Collections & Owner Withdrawals — rendered separately, excluded from grand.actual_tzs */
+  /** Collections & Owner Withdrawals — rendered separately, excluded from grand. */
   collections: ReportGroup | null;
-  grand: { plan_month_tzs: number; plan_month_usd: number; actual_tzs: number; actual_usd: number };
+  grand: {
+    plan_month_tzs: number;
+    plan_month_usd: number;
+    plan_month_grand_tzs: number;
+    actual_tzs: number;
+    actual_usd: number;
+    actual_grand_tzs: number;
+  };
+  /** USD→TZS rate used for Grand TZS conversion (avg of period, or 0 if no rate set). */
+  usd_rate: number;
 };
 
 type Args = {
@@ -100,11 +121,12 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         .limit(5000);
       if (!network && casinoId) expQ = expQ.eq("casino_id", casinoId);
 
-      // Incomes from shifts + cage_slots_shifts
-      const startUtc = `${start}T04:00:00.000Z`;
-      const endUtc = `${endExclusive}T04:00:00.000Z`;
-      let shiftsQ = supabase.from("shifts").select("tables_result, casino_id").gte("opened_at", startUtc).lt("opened_at", endUtc);
-      let slotsQ = supabase.from("cage_slots_shifts").select("system_shift_result, casino_id").gte("opened_at", startUtc).lt("opened_at", endUtc);
+      // Incomes from fin_day_closing — ONLY closed business days count as income.
+      let dayClosingsQ = supabase
+        .from("fin_day_closing")
+        .select("tables_result, slots_result, casino_id, business_date")
+        .gte("business_date", start)
+        .lt("business_date", endExclusive);
       // Other Incomes — dedicated fin_incomes table (replaces legacy expenses.is_income hack).
       const startMonth = ytd ? 1 : month;
       let incomesQ = (supabase as any)
@@ -113,27 +135,27 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         .eq("year", year)
         .gte("month", startMonth)
         .lte("month", month);
-      // Avg USD→TZS rate for the period (for USD income conversion)
+      // USD→TZS rate for the period (correct column = rate_to_tzs, filtered to USD).
       let ratesQ = supabase
         .from("fin_daily_rates")
-        .select("usd_to_tzs, business_date")
+        .select("rate_to_tzs, business_date")
+        .eq("currency", "USD")
         .gte("business_date", start)
         .lt("business_date", endExclusive);
       if (!network && casinoId) {
-        shiftsQ = shiftsQ.eq("casino_id", casinoId);
-        slotsQ = slotsQ.eq("casino_id", casinoId);
+        dayClosingsQ = dayClosingsQ.eq("casino_id", casinoId);
         incomesQ = incomesQ.eq("casino_id", casinoId);
         ratesQ = ratesQ.eq("casino_id", casinoId);
       }
 
-      const [cats, budgets, expenses, shifts, slots, incomes, rates] = await Promise.all([catsQ, budgetQ, expQ, shiftsQ, slotsQ, incomesQ, ratesQ]);
+      const [cats, budgets, expenses, dayClosings, incomes, rates] = await Promise.all([catsQ, budgetQ, expQ, dayClosingsQ, incomesQ, ratesQ]);
       if (cats.error) throw cats.error;
       if (budgets.error) throw budgets.error;
       if (expenses.error) throw expenses.error;
 
-      const liveGame = (shifts.data || []).reduce((s, r: any) => s + Number(r.tables_result || 0), 0);
-      const slotsIncome = (slots.data || []).reduce((s, r: any) => s + Number(r.system_shift_result || 0), 0);
-      const rateList = ((rates as any)?.data || []).map((r: any) => Number(r.usd_to_tzs || 0)).filter((n: number) => n > 0);
+      const liveGame = (dayClosings.data || []).reduce((s, r: any) => s + Number(r.tables_result || 0), 0);
+      const slotsIncome = (dayClosings.data || []).reduce((s, r: any) => s + Number(r.slots_result || 0), 0);
+      const rateList = ((rates as any)?.data || []).map((r: any) => Number(r.rate_to_tzs || 0)).filter((n: number) => n > 0);
       const avgUsdTzs = rateList.length ? rateList.reduce((s: number, n: number) => s + n, 0) / rateList.length : 0;
       const other = ((incomes as any)?.data || []).reduce((s: number, r: any) => {
         const amt = Number(r.amount || 0);
@@ -141,44 +163,67 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         return s + amt; // TZS
       }, 0);
 
-      // Plan Year = sum of all 12 months per category.
+      // Plan Year: if user entered only ONE month for (cat,currency), multiply by 12;
+      // otherwise sum across entered months.
       // Plan Month = sum of selected month(s): single month, or 1..month for YTD.
       const planMap = new Map<string, { tzs: number; usd: number }>();
-      const planYearMap = new Map<string, { tzs: number; usd: number }>();
+      // Per (catId, currency) → Map<month, amount>
+      const planMonthly = new Map<string, { tzs: Map<number, number>; usd: Map<number, number> }>();
       const endMonth = month;
       (budgets.data || []).forEach((b: any) => {
         const key = b.category_id;
-        const py = planYearMap.get(key) || { tzs: 0, usd: 0 };
         const pm = planMap.get(key) || { tzs: 0, usd: 0 };
         const isUsd = b.currency === "USD";
         const amt = Number(b.planned_amount || 0);
-        py[isUsd ? "usd" : "tzs"] += amt;
         if (b.month >= startMonth && b.month <= endMonth) {
           pm[isUsd ? "usd" : "tzs"] += amt;
         }
-        planYearMap.set(key, py);
         planMap.set(key, pm);
+        const pmonths = planMonthly.get(key) || { tzs: new Map(), usd: new Map() };
+        if (amt > 0) {
+          const m = pmonths[isUsd ? "usd" : "tzs"];
+          m.set(b.month, (m.get(b.month) || 0) + amt);
+        }
+        planMonthly.set(key, pmonths);
       });
+      const planYearFor = (catId: string): { tzs: number; usd: number } => {
+        const e = planMonthly.get(catId);
+        if (!e) return { tzs: 0, usd: 0 };
+        const yearOf = (m: Map<number, number>) => {
+          if (m.size === 0) return 0;
+          if (m.size === 1) {
+            const only = Array.from(m.values())[0];
+            return only * 12;
+          }
+          return Array.from(m.values()).reduce((s, n) => s + n, 0);
+        };
+        return { tzs: yearOf(e.tzs), usd: yearOf(e.usd) };
+      };
 
-      // Index actuals per category
-      const actualMap = new Map<string, { tzs: number; usd: number; perCasino: Record<string, { tzs: number; usd: number }>; list: ReportExpense[] }>();
+      // Index actuals per category.
+      // `tzs` = native TZS spend, `usd` = native USD spend, `grand` = Σ amount_tzs.
+      const actualMap = new Map<string, { tzs: number; usd: number; grand: number; perCasino: Record<string, { tzs: number; usd: number; grand: number }>; list: ReportExpense[] }>();
       (expenses.data || []).forEach((e: any) => {
         const cid = e.fin_category_id;
         if (!cid) return;
-        const cur = actualMap.get(cid) || { tzs: 0, usd: 0, perCasino: {}, list: [] };
-        cur.tzs += Number(e.amount_tzs || 0);
-        if (e.currency === "USD") cur.usd += Number(e.amount || 0);
+        const cur = actualMap.get(cid) || { tzs: 0, usd: 0, grand: 0, perCasino: {}, list: [] };
+        const amt = Number(e.amount || 0);
+        const amtTzs = Number(e.amount_tzs || 0);
+        cur.grand += amtTzs;
+        if (e.currency === "USD") cur.usd += amt;
+        else if (!e.currency || e.currency === "TZS") cur.tzs += amt;
         const cKey = e.casino_id;
-        cur.perCasino[cKey] = cur.perCasino[cKey] || { tzs: 0, usd: 0 };
-        cur.perCasino[cKey].tzs += Number(e.amount_tzs || 0);
-        if (e.currency === "USD") cur.perCasino[cKey].usd += Number(e.amount || 0);
+        cur.perCasino[cKey] = cur.perCasino[cKey] || { tzs: 0, usd: 0, grand: 0 };
+        cur.perCasino[cKey].grand += amtTzs;
+        if (e.currency === "USD") cur.perCasino[cKey].usd += amt;
+        else if (!e.currency || e.currency === "TZS") cur.perCasino[cKey].tzs += amt;
         cur.list.push({
           id: e.id,
           business_date: e.business_date,
           description: e.description,
-          amount: Number(e.amount || 0),
+          amount: amt,
           currency: e.currency,
-          amount_tzs: Number(e.amount_tzs || 0),
+          amount_tzs: amtTzs,
           wallet_id: e.wallet_id ?? null,
           wallet_name: e.fin_wallets?.name ?? null,
           fin_category_id: e.fin_category_id ?? null,
@@ -197,8 +242,8 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       (cats.data || []).forEach((c: any) => {
         if (c.is_income) return; // incomes header handled separately
         if (!c.is_active) return;
-        const a = actualMap.get(c.id) || { tzs: 0, usd: 0, perCasino: {}, list: [] };
-        const py = planYearMap.get(c.id) || { tzs: 0, usd: 0 };
+        const a = actualMap.get(c.id) || { tzs: 0, usd: 0, grand: 0, perCasino: {}, list: [] };
+        const py = planYearFor(c.id);
         const pm = planMap.get(c.id) || { tzs: 0, usd: 0 };
         const cat: ReportCategory = {
           id: c.id,
@@ -211,6 +256,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           plan_month_usd: pm.usd,
           actual_tzs: a.tzs,
           actual_usd: a.usd,
+          actual_grand_tzs: a.grand,
           expenses: a.list.sort((x, y) => x.business_date.localeCompare(y.business_date)),
           per_casino: a.perCasino as any,
         };
@@ -230,8 +276,9 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
             plan_month_usd: s.plan_month_usd + c.plan_month_usd,
             actual_tzs: s.actual_tzs + c.actual_tzs,
             actual_usd: s.actual_usd + c.actual_usd,
+            actual_grand_tzs: s.actual_grand_tzs + c.actual_grand_tzs,
           }),
-          { plan_year_tzs: 0, plan_year_usd: 0, plan_month_tzs: 0, plan_month_usd: 0, actual_tzs: 0, actual_usd: 0 },
+          { plan_year_tzs: 0, plan_year_usd: 0, plan_month_tzs: 0, plan_month_usd: 0, actual_tzs: 0, actual_usd: 0, actual_grand_tzs: 0 },
         );
         return { code: g, name: first?.group_name || g, categories: list, totals };
       };
@@ -243,19 +290,24 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         (s, g) => ({
           plan_month_tzs: s.plan_month_tzs + g.totals.plan_month_tzs,
           plan_month_usd: s.plan_month_usd + g.totals.plan_month_usd,
+          plan_month_grand_tzs: 0,
           actual_tzs: s.actual_tzs + g.totals.actual_tzs,
           actual_usd: s.actual_usd + g.totals.actual_usd,
+          actual_grand_tzs: s.actual_grand_tzs + g.totals.actual_grand_tzs,
         }),
-        { plan_month_tzs: 0, plan_month_usd: 0, actual_tzs: 0, actual_usd: 0 },
+        { plan_month_tzs: 0, plan_month_usd: 0, plan_month_grand_tzs: 0, actual_tzs: 0, actual_usd: 0, actual_grand_tzs: 0 },
       );
+      grand.plan_month_grand_tzs = grand.plan_month_tzs + (avgUsdTzs ? grand.plan_month_usd * avgUsdTzs : 0);
 
       return {
         incomes: { live_game: liveGame, slots: slotsIncome, other, total: liveGame + slotsIncome + other },
         groups,
         collections,
         grand,
+        usd_rate: avgUsdTzs,
       };
     },
     staleTime: 60_000,
   });
 };
+
