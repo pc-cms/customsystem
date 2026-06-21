@@ -181,8 +181,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     void supabase.auth.getSession()
       .then(({ data: { session } }) => {
         if (!mounted) return;
+        try {
+          supabase.realtime.setAuth(session?.access_token ?? null);
+        } catch (e) {
+          console.warn("[Auth] realtime.setAuth (initial) failed", e);
+        }
         processSession(session);
       })
+
       .catch((error) => {
         console.error("getSession error", error);
       })
