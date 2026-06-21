@@ -130,9 +130,9 @@ const PlayerProfile = () => {
   // Map transactions to visits (same casino + within check-in / check-out window).
   // dropR = NEP-aware external drop per visit (computed via lifetime walk).
   const visitFinancials = useMemo(() => {
-    const map = new Map<string, { totalIn: number; cashout: number; comps: number; dropR: number }>();
+    const map = new Map<string, { totalIn: number; cashout: number; comps: number; dropR: number; chipIn: number; chipOut: number }>();
     for (const v of visits) {
-      map.set(v.id, { totalIn: 0, cashout: 0, comps: 0, dropR: 0 });
+      map.set(v.id, { totalIn: 0, cashout: 0, comps: 0, dropR: 0, chipIn: 0, chipOut: 0 });
     }
     // Sort visits per casino by check-in for window matching.
     const visitsByCasino = new Map<string, any[]>();
@@ -194,8 +194,18 @@ const PlayerProfile = () => {
         f.comps += Number(e.amount) || 0;
       }
     }
+    // Chip adjustments per visit (audit-only; affect Result/Total but never NEP/Drop R).
+    for (const c of chipAdjustments as any[]) {
+      const ts = new Date(c.created_at).getTime();
+      const v = findVisit(c.casino_id, ts);
+      if (v) {
+        const f = map.get(v.id)!;
+        f.chipIn += Number(c.chip_in) || 0;
+        f.chipOut += Number(c.chip_out) || 0;
+      }
+    }
     return map;
-  }, [visits, transactions, expenses]);
+  }, [visits, transactions, expenses, chipAdjustments]);
 
   // Per-visit transactions list (for the expandable row showing every IN/OUT with time + table).
   const visitTxs = useMemo(() => {
