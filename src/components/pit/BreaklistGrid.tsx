@@ -625,6 +625,11 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                   className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["LT"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
                   LT
                 </button>
+                <button onClick={() => handleClearCell()}
+                  title="Clear cell"
+                  className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors bg-destructive/20 text-destructive ring-1 ring-destructive/40 hover:opacity-80">
+                  Clear
+                </button>
               </div>
               {openTables.length > 0 && (
                 <div className="border-t border-border pt-1 space-y-0.5">
