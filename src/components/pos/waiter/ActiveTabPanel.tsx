@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, Receipt, CreditCard, Printer } from "lucide-react";
+import { X, Receipt, CreditCard, Printer, Plus } from "lucide-react";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateTime } from "@/lib/format-date";
 import {
@@ -12,12 +12,20 @@ import {
   type PosOrderWithItems,
 } from "@/hooks/use-pos-orders";
 import type { PosTab } from "@/hooks/use-pos-tabs";
+import {
+  usePosModifiers,
+  usePosOrderItemModifiers,
+  useAttachModifier,
+  useDetachModifier,
+} from "@/hooks/use-pos-modifiers";
 
 import { toast } from "@/hooks/use-toast";
 import CloseBillDialog from "./CloseBillDialog";
 import PayNowDialog from "./PayNowDialog";
 import ReceiptDialog from "./ReceiptDialog";
 import PlayerPosStatusBadge from "@/components/pos/PlayerPosStatusBadge";
+import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 interface Props {
