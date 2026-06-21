@@ -50,12 +50,14 @@ function OrderCard({
   isManager,
   onMarkProblem,
   onForceClose,
+  locationName,
 }: {
   order: PosBarOrder;
   onAdvance?: () => void;
   isManager: boolean;
   onMarkProblem: (o: PosBarOrder) => void;
   onForceClose: (o: PosBarOrder) => void;
+  locationName: string | null;
 }) {
   const age = ageMinutes(order.created_at);
   const urgent = age >= 10 && order.status !== "ready";
