@@ -584,6 +584,8 @@ const PlayerProfile = () => {
                       {showFinancials && <th className="text-right py-2 px-2" title="Drop — NEP-aware (external cash only)">Drop</th>}
                       {showFinancials && <th className="text-right py-2 px-2" title="Total cash in (all buy-ins)">Cash In</th>}
                       {showFinancials && <th className="text-right py-2 px-2">Cashout</th>}
+                      {showFinancials && <th className="text-right py-2 px-2" title="Chip adjustments in (+)">Chip In</th>}
+                      {showFinancials && <th className="text-right py-2 px-2" title="Chip adjustments out (−)">Chip Out</th>}
                       {showFinancials && <th className="text-right py-2 px-2">Result</th>}
                       {showFinancials && <th className="text-right py-2 px-2">Comps</th>}
                       {showFinancials && <th className="text-right py-2 px-2">Total</th>}
