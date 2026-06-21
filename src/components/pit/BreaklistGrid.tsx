@@ -399,6 +399,27 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     setActiveCell(null);
   };
 
+  const handleClearCell = () => {
+    if (!activeCell) return;
+    const cell = getCellData(activeCell.dealerId, activeCell.timeSlot);
+    if (!cell) {
+      setActiveCell(null);
+      return;
+    }
+    if (cell.is_locked && !isManager) {
+      toast.error("Locked — manager access required");
+      setActiveCell(null);
+      return;
+    }
+    deleteCell.mutate({
+      id: cell.id,
+      dealer_id: activeCell.dealerId,
+      time_slot: activeCell.timeSlot,
+      date,
+    });
+    setActiveCell(null);
+  };
+
   const handleToggleCellLock = (dealerId: string, timeSlot: string) => {
     const cell = getCellData(dealerId, timeSlot);
     if (!cell) return;
