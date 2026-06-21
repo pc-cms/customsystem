@@ -541,6 +541,9 @@ const AppRoutes = () => {
           <Route path="manager/shift-reconciliation" element={<PosShiftReconciliation />} />
           <Route path="manager/player-analytics" element={<PosPlayerAnalytics />} />
           <Route path="manager/problem-orders" element={<PosManagerProblemOrders />} />
+          <Route path="manager/locations" element={<PosManagerLocations />} />
+          <Route path="manager/modifiers" element={<PosManagerModifiers />} />
+          <Route path="manager/recipes" element={<PosManagerRecipes />} />
 
           <Route path="reports" element={<PosReports />} />
           <Route path="charges" element={<PosCharges />} />
