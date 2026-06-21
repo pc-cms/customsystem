@@ -6,6 +6,6 @@ export { usePlayers, useCreatePlayer, useUpdatePlayerStatus, useAddPlayerTag, us
 export { useTransactions, useCreateTransaction } from "./use-transactions";
 export { useGamingTables, useCloseTable, useReopenTable, useTableTracker, useSetTableTrackerValue, useBatchSetTableTrackerValue } from "./use-tables";
 export { useExpenses, useCreateExpense, useApproveExpense, useDeleteExpense } from "./use-expenses";
-export { useDealers, useCreateDealer, useUpdateDealer, useDeleteDealer, usePitRota, usePitRotaRange, useSetPitRota, useDeletePitRota, useDealerAttendance, useSetDealerAttendance, useDealerAttendanceRange, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell } from "./use-dealers";
+export { useDealers, useCreateDealer, useUpdateDealer, useDeleteDealer, usePitRota, usePitRotaRange, useSetPitRota, useDeletePitRota, useDealerAttendance, useSetDealerAttendance, useDealerAttendanceRange, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useDeleteBreaklistCell } from "./use-dealers";
 export { useVisitsToday } from "./use-visits";
 export { useActivityLogs, useClientSessionsTotalBet } from "./use-logs";

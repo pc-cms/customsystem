@@ -509,3 +509,35 @@ export const useLockBreaklistCell = () => {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["breaklist", casinoId] }); },
   });
 };
+
+export const useDeleteBreaklistCell = () => {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
+  return useMutation({
+    mutationKey: ["breaklist-cell-delete"],
+    mutationFn: async (input: { id: string; dealer_id: string; time_slot: string; date: string }) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      const { error } = await supabase.from("breaklist").delete().eq("id", input.id);
+      if (error) throw error;
+      await logAction(casinoId, "breaklist", "CELL_DELETED", input);
+    },
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["breaklist", casinoId] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["breaklist"] })
+        .filter(([key]) => (key as any[])[1] === casinoId);
+      queries.forEach(([key, data]) => {
+        if (!data) return;
+        const updated = data.filter((b: any) => !(b.dealer_id === input.dealer_id && b.time_slot === input.time_slot));
+        qc.setQueryData(key, updated);
+      });
+      return { queries };
+    },
+    onError: (err: any, _input, ctx: any) => {
+      if (ctx?.queries) ctx.queries.forEach(([key, data]: [any, any]) => qc.setQueryData(key, data));
+      const msg = err?.message || "Unknown error";
+      toast.error(`Breaklist clear failed: ${msg}`, { duration: 4000 });
+    },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["breaklist"] }); },
+  });
+};

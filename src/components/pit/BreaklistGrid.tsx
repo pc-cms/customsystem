@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCasino } from "@/lib/casino-context";
-import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useGamingTables, usePitRotaRange, useSetDealerAttendance, useDealerAttendance } from "@/hooks/use-casino-data";
+import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useDeleteBreaklistCell, useGamingTables, usePitRotaRange, useSetDealerAttendance, useDealerAttendance } from "@/hooks/use-casino-data";
 import { useCasinoInfo } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
 import { Lock, Unlock, LockKeyhole } from "lucide-react";
@@ -90,6 +90,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     return name;
   };
   const setCell = useSetBreaklistCell();
+  const deleteCell = useDeleteBreaklistCell();
   const setAttendance = useSetDealerAttendance();
   const lockCell = useLockBreaklistCell();
   const { isManager, roles } = useAuth();
@@ -398,6 +399,27 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     setActiveCell(null);
   };
 
+  const handleClearCell = () => {
+    if (!activeCell) return;
+    const cell = getCellData(activeCell.dealerId, activeCell.timeSlot);
+    if (!cell) {
+      setActiveCell(null);
+      return;
+    }
+    if (cell.is_locked && !isManager) {
+      toast.error("Locked — manager access required");
+      setActiveCell(null);
+      return;
+    }
+    deleteCell.mutate({
+      id: cell.id,
+      dealer_id: activeCell.dealerId,
+      time_slot: activeCell.timeSlot,
+      date,
+    });
+    setActiveCell(null);
+  };
+
   const handleToggleCellLock = (dealerId: string, timeSlot: string) => {
     const cell = getCellData(dealerId, timeSlot);
     if (!cell) return;
@@ -602,6 +624,11 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                   title="Late — each slot deducts 20 min from shift"
                   className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["LT"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
                   LT
+                </button>
+                <button onClick={() => handleClearCell()}
+                  title="Clear cell"
+                  className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors bg-destructive/20 text-destructive ring-1 ring-destructive/40 hover:opacity-80">
+                  Clear
                 </button>
               </div>
               {openTables.length > 0 && (
