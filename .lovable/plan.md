@@ -1,57 +1,20 @@
-## Active filter on Player Tracker (PlayerStatistics)
+Проблема подтверждается в коде: в `Player Tracking` есть готовый общий механизм `useSessionState`, но сама страница `PlayerStatistics.tsx` всё ещё использует обычный `useState` для табов, периода, поиска, фильтров, Active и сортировки. Поэтому при уходе в другой модуль компонент размонтируется, и всё сбрасывается.
 
-Add a toggle button **ACTIVE** next to the existing **ZONE** filter in the Player Tracker toolbar. When enabled, the list shows only players who had at least one financial operation in the current period; the button always displays the count of such players.
+План:
+1. Подключить `useSessionState` в `PlayerStatistics.tsx`.
+2. Перевести на session-память только безопасные UI-настройки страницы:
+   - выбранный tab: Day / Present / Left;
+   - date / preset / range;
+   - search;
+   - category filter;
+   - zone filter;
+   - Active toggle;
+   - sort key + sort direction.
+3. Для `Set`-фильтров (`categoryFilter`, `zoneFilter`) хранить в sessionStorage массивы, а в коде обратно собирать `Set`, чтобы фильтрация продолжила работать без багов JSON.
+4. Добавить мягкую валидацию сохранённых значений: если в storage попал старый/битый ключ, страница откроется с дефолтами, а не сломается.
+5. Не сохранять модалки, выбранного игрока, inline-edit поля и operational edits — только фильтры/сортировку/период.
+6. Проверить сценарий:
+   - Player Tracking → сортировка по Visits → Incidents → Player Tracking: сортировка остаётся.
+   - Active ON → Table Tracking → Player Tracking: Active остаётся ON.
 
-### Definition of "Active"
-
-A player is Active when any of these is non-zero for the selected period:
-- `dropR` (Drop External)
-- `inDrop` (In + Drop, recycled)
-- `out` (Cash Out)
-- `chipIn` (Chips In)
-- `chipOut` (Chips Out)
-
-These fields already exist on each row in the `displayRows` memo (lines 395–405) — no new query needed.
-
-### UI placement
-
-In `src/pages/PlayerStatistics.tsx` toolbar (around line 891, immediately before the ZONE Popover):
-
-```
-[ ACTIVE 23 ]  [ ZONE ▾ ]  [ Categories ]  [ Search ]
-```
-
-Visual:
-- Same height (`h-8`), same border + rounded style as ZONE button
-- Inactive state: muted text + neutral background
-- Active state: `bg-primary/15 text-primary` (matches ZONE active style)
-- Count badge inline: `ACTIVE · 23`
-- Click toggles `activeOnly` boolean
-
-### State + filter wiring
-
-- Add `const [activeOnly, setActiveOnly] = useState(false);`
-- Helper inside the rows memo or `filtered` memo:
-  ```
-  const isActive = (r) =>
-    (r.dropR ?? 0) > 0 || (r.inDrop ?? 0) > 0 ||
-    (r.out ?? 0) > 0   || (r.chipIn ?? 0) > 0 || (r.chipOut ?? 0) > 0;
-  ```
-- Extend the `filtered` memo (line 440) with:
-  ```
-  if (activeOnly) list = list.filter(isActive);
-  ```
-- Add `activeOnly` to the memo dependency array.
-- Compute count for the badge from `displayRows` (ignores Present/Left tab and zone filter so the number reflects "real active players today" regardless of other filters):
-  ```
-  const activeCount = useMemo(
-    () => displayRows.filter(isActive).length,
-    [displayRows]
-  );
-  ```
-
-### Out of scope
-
-- No DB / hook / RLS changes.
-- No change to Zone filter, Category filter, sorting, totals row, or row rendering.
-- No change in other pages (Reception, Cage, Dashboard).
+Без backend-изменений, миграций и версии package.json: это frontend/session-state fix.

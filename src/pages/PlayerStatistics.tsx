@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { useNavigate } from "react-router-dom";
 import { BarChart3, Search, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -71,9 +72,9 @@ const PlayerStatistics = () => {
   const minDate = subDays(today, -MAX_DAYS_BACK);
 
   // Date model: anchor `date` for single-day mode + period preset/range for managers.
-  const [date, setDate] = useState(today);
-  const [preset, setPreset] = useState<DatePreset>("day");
-  const [range, setRange] = useState<{ from: string; to: string }>({ from: today, to: today });
+  const [date, setDate] = useSessionState<string>("pt:date", today);
+  const [preset, setPreset] = useSessionState<DatePreset>("pt:preset", "day");
+  const [range, setRange] = useSessionState<{ from: string; to: string }>("pt:range", { from: today, to: today });
 
   // Effective range is what drives ALL queries.
   const effectiveRange = useMemo<{ from: string; to: string }>(() => {
@@ -178,16 +179,27 @@ const PlayerStatistics = () => {
     setDate(next);
   };
 
-  const [tab, setTab] = useState<TabKey>("day");
-  const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(
-    new Set(["diamond", "platinum", "gold", "normal"])
+  const [tab, setTab] = useSessionState<TabKey>("pt:tab", "day");
+  const [search, setSearch] = useSessionState<string>("pt:search", "");
+  const [categoryFilterArr, setCategoryFilterArr] = useSessionState<PlayerCategory[]>(
+    "pt:categoryFilter",
+    ["diamond", "platinum", "gold", "normal"]
   );
-  
-  
+  const categoryFilter = useMemo(
+    () => new Set(Array.isArray(categoryFilterArr) ? categoryFilterArr : ["diamond","platinum","gold","normal"]) as Set<PlayerCategory>,
+    [categoryFilterArr]
+  );
+  const setCategoryFilter = useCallback((updater: React.SetStateAction<Set<PlayerCategory>>) => {
+    setCategoryFilterArr(prev => {
+      const prevSet = new Set(Array.isArray(prev) ? prev : []) as Set<PlayerCategory>;
+      const next = typeof updater === "function" ? (updater as (s: Set<PlayerCategory>) => Set<PlayerCategory>)(prevSet) : updater;
+      return Array.from(next);
+    });
+  }, [setCategoryFilterArr]);
+
   type SortKey = "card" | "name" | "level" | "visits" | "position" | "entry" | "exit" | "zone" | "avgBet" | "dropR" | "inDrop" | "out" | "chipIn" | "chipOut" | "result";
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [sortKey, setSortKey] = useSessionState<SortKey | null>("pt:sortKey", null);
+  const [sortDir, setSortDir] = useSessionState<"asc" | "desc">("pt:sortDir", "desc");
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
     else { setSortKey(key); setSortDir(key === "card" || key === "name" ? "asc" : "desc"); }
@@ -198,8 +210,22 @@ const PlayerStatistics = () => {
   const canEditAvgBet = isSingleDay && roles.some(r => ["pit", "manager", "shift_manager", "super_admin"].includes(r));
   const canEditChips = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "shift_manager", "super_admin"].includes(r));
   const canEditZone = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "shift_manager", "reception", "super_admin"].includes(r));
-  const [zoneFilter, setZoneFilter] = useState<Set<PlayerZone | "none">>(new Set(["S", "LG", "CP", "none"]));
-  const [activeOnly, setActiveOnly] = useState(false);
+  const [zoneFilterArr, setZoneFilterArr] = useSessionState<Array<PlayerZone | "none">>(
+    "pt:zoneFilter",
+    ["S", "LG", "CP", "none"]
+  );
+  const zoneFilter = useMemo(
+    () => new Set(Array.isArray(zoneFilterArr) ? zoneFilterArr : ["S","LG","CP","none"]) as Set<PlayerZone | "none">,
+    [zoneFilterArr]
+  );
+  const setZoneFilter = useCallback((updater: React.SetStateAction<Set<PlayerZone | "none">>) => {
+    setZoneFilterArr(prev => {
+      const prevSet = new Set(Array.isArray(prev) ? prev : []) as Set<PlayerZone | "none">;
+      const next = typeof updater === "function" ? (updater as (s: Set<PlayerZone | "none">) => Set<PlayerZone | "none">)(prevSet) : updater;
+      return Array.from(next);
+    });
+  }, [setZoneFilterArr]);
+  const [activeOnly, setActiveOnly] = useSessionState<boolean>("pt:activeOnly", false);
   const isActiveRow = (r: any) =>
     (r.dropR ?? 0) > 0 || (r.inDrop ?? 0) > 0 ||
     (r.out ?? 0) > 0 || (r.chipIn ?? 0) > 0 || (r.chipOut ?? 0) > 0;
