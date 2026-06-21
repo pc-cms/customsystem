@@ -3,6 +3,13 @@ import { formatNumberSpaces } from "@/lib/currency";
 import { usePosMenuCategories, usePosMenuItems, type PosMenuItem } from "@/hooks/use-pos-menu";
 import { useAddPosOrder } from "@/hooks/use-pos-orders";
 import { usePosModifiers, type PosModifier } from "@/hooks/use-pos-modifiers";
+import {
+  usePosItemAvailability,
+  statusLabel,
+  statusBadgeClass,
+  type PosItemAvailabilityRow,
+  type PosItemAvailabilityStatus,
+} from "@/hooks/use-pos-item-availability";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
@@ -20,11 +27,18 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
   const { data: categories = [] } = usePosMenuCategories(casinoId);
   const { data: items = [] } = usePosMenuItems(casinoId);
   const { data: modifiers = [] } = usePosModifiers(casinoId, true);
+  const { data: availability = [] } = usePosItemAvailability(casinoId);
   const addOrder = useAddPosOrder();
 
   const activeCategories = useMemo(() => categories.filter((c) => c.is_active), [categories]);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
   const [modSheet, setModSheet] = useState<{ item: PosMenuItem; qty: number } | null>(null);
+
+  const availByItem = useMemo(() => {
+    const m = new Map<string, PosItemAvailabilityRow>();
+    for (const a of availability) m.set(a.sellable_item_id, a);
+    return m;
+  }, [availability]);
 
   const effectiveCat = selectedCat ?? activeCategories[0]?.id ?? null;
 
@@ -92,18 +106,12 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             {filtered.map((it) => {
-              const outOfStock = it.stock_qty != null && it.stock_qty <= 0;
-              const isLow =
-                !outOfStock &&
-                it.stock_qty != null &&
-                it.low_threshold != null &&
-                it.stock_qty <= it.low_threshold;
+              const av = availByItem.get(it.id);
               return (
                 <ItemTile
                   key={it.id}
                   item={it}
-                  outOfStock={outOfStock}
-                  isLow={isLow}
+                  availability={av}
                   disabled={!tabId || addOrder.isPending}
                   hasModifiers={modifiers.length > 0}
                   onAdd={(qty) => handleAdd(it, qty)}
@@ -131,17 +139,29 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
 };
 
 const ItemTile = ({
-  item, outOfStock, isLow, disabled, hasModifiers, onAdd, onAddWithNote, onOpenMods,
+  item, availability, disabled, hasModifiers, onAdd, onAddWithNote, onOpenMods,
 }: {
   item: PosMenuItem;
-  outOfStock: boolean;
-  isLow: boolean;
+  availability?: PosItemAvailabilityRow;
   disabled: boolean;
   hasModifiers: boolean;
   onAdd: (qty: number) => void;
   onAddWithNote: (qty: number, note: string | null) => void;
   onOpenMods: (qty: number) => void;
 }) => {
+  const status: PosItemAvailabilityStatus | null = availability?.status ?? null;
+  const isBad = status === "out" || status === "negative";
+  const isLow = status === "low";
+  const showBadge = status && status !== "ok";
+  const portions = availability?.portions_available;
+  // Waiter sees only safe summary: status + portions if known. Never raw ingredient stock.
+  const badgeText =
+    status === "low" && portions != null
+      ? `Low · ${portions}`
+      : status
+        ? statusLabel(status)
+        : "";
+
   const askNote = (qty: number) => {
     if (disabled) return;
     // eslint-disable-next-line no-alert
@@ -152,18 +172,18 @@ const ItemTile = ({
     <div
       className={cn(
         "relative rounded-md border bg-card flex flex-col overflow-hidden",
-        outOfStock ? "border-cms-amount-negative/60" : isLow ? "border-cms-amount-negative/40" : "border-border",
+        isBad ? "border-cms-amount-negative/60" : isLow ? "border-cms-amount-negative/40" : "border-border",
         disabled && "opacity-50",
       )}
     >
-      {outOfStock && (
-        <span className="absolute top-1 right-1 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cms-amount-negative/20 text-cms-amount-negative">
-          Out · allowed
-        </span>
-      )}
-      {!outOfStock && isLow && (
-        <span className="absolute top-1 right-1 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cms-amount-negative/15 text-cms-amount-negative">
-          Low
+      {showBadge && status && (
+        <span
+          className={cn(
+            "absolute top-1 right-1 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded",
+            statusBadgeClass(status),
+          )}
+        >
+          {badgeText}
         </span>
       )}
       <button
@@ -177,12 +197,19 @@ const ItemTile = ({
           <span className="font-mono tabular-nums font-semibold">
             {formatNumberSpaces(item.price_tzs)}
           </span>
-          {item.stock_qty != null && (
-            <span className={cn(
-              "text-[10px]",
-              outOfStock ? "text-cms-amount-negative font-semibold" : "text-muted-foreground",
-            )}>×{item.stock_qty}</span>
-          )}
+          {availability?.has_recipe
+            ? portions != null && (
+                <span className={cn(
+                  "text-[10px]",
+                  isBad ? "text-cms-amount-negative font-semibold" : "text-muted-foreground",
+                )}>{portions}p</span>
+              )
+            : item.stock_qty != null && (
+                <span className={cn(
+                  "text-[10px]",
+                  isBad ? "text-cms-amount-negative font-semibold" : "text-muted-foreground",
+                )}>×{item.stock_qty}</span>
+              )}
         </div>
       </button>
       <div className="flex border-t border-border">

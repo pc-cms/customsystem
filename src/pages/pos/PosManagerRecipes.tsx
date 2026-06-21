@@ -28,6 +28,12 @@ import {
   type PosRecipe,
 } from "@/hooks/use-pos-recipes";
 import { toast } from "@/hooks/use-toast";
+import {
+  usePosItemAvailabilityDetail,
+  statusLabel,
+  statusBadgeClass,
+} from "@/hooks/use-pos-item-availability";
+import { cn } from "@/lib/utils";
 
 export default function PosManagerRecipes() {
   const { activeCasinoId } = useCasino();
@@ -274,6 +280,7 @@ function RecipeEditor({
     >
       {recipe && (
         <div className="space-y-3">
+          <AvailabilityPanel sellableItemId={recipe.sellable_item_id} />
           <DataTable>
             <DTHead>
               <DTRow>
@@ -344,5 +351,84 @@ function RecipeEditor({
         </div>
       )}
     </ResponsiveDialog>
+  );
+}
+
+function AvailabilityPanel({ sellableItemId }: { sellableItemId: string }) {
+  const { data, isLoading, error } = usePosItemAvailabilityDetail(sellableItemId);
+  if (isLoading) {
+    return <div className="rounded-md border border-border p-3 text-xs text-muted-foreground">Loading availability…</div>;
+  }
+  if (error || !data) return null;
+  const summary: any = data.summary ?? {};
+  const status = summary.status as
+    | "ok" | "low" | "out" | "negative" | "untracked" | "config_error"
+    | undefined;
+  return (
+    <div className="rounded-md border border-border p-3 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-xs uppercase text-muted-foreground">Availability</div>
+        {status && (
+          <span className={cn(
+            "text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded",
+            statusBadgeClass(status),
+          )}>
+            {statusLabel(status)}
+            {summary.portions_available != null && ` · ${summary.portions_available} portions`}
+          </span>
+        )}
+      </div>
+      {summary.has_recipe && summary.bottleneck_ingredient_name && (
+        <div className="text-xs text-muted-foreground">
+          Bottleneck: <span className="font-medium text-foreground">{summary.bottleneck_ingredient_name}</span>
+          {summary.bottleneck_remaining != null && ` (${summary.bottleneck_remaining} in stock)`}
+        </div>
+      )}
+      {summary.empty_recipe && (
+        <div className="text-xs text-amber-600 dark:text-amber-400">
+          Recipe has no ingredients — falling back to sellable item stock.
+        </div>
+      )}
+      {data.ingredients.length > 0 && (
+        <DataTable>
+          <DTHead>
+            <DTRow>
+              <DTHeader>Ingredient</DTHeader>
+              <DTHeader className="text-right">Req/portion</DTHeader>
+              <DTHeader className="text-right">Stock</DTHeader>
+              <DTHeader className="text-right">Portions</DTHeader>
+              <DTHeader className="text-right">Waste</DTHeader>
+              <DTHeader></DTHeader>
+            </DTRow>
+          </DTHead>
+          <DTBody>
+            {data.ingredients.map((ing) => (
+              <DTRow key={ing.ingredient_item_id} className={ing.is_bottleneck ? "bg-cms-amount-negative/5" : undefined}>
+                <DTCell className="font-medium">{ing.ingredient_name ?? ing.ingredient_item_id}</DTCell>
+                <DTCell className="text-right tabular-nums">
+                  {ing.required_per_portion} {ing.unit ?? ""}
+                </DTCell>
+                <DTCell className={cn(
+                  "text-right tabular-nums",
+                  ing.ingredient_stock_qty == null && "text-muted-foreground",
+                  (ing.ingredient_stock_qty ?? 0) < 0 && "text-cms-amount-negative font-semibold",
+                )}>
+                  {ing.ingredient_stock_qty ?? "—"}
+                </DTCell>
+                <DTCell className="text-right tabular-nums">
+                  {ing.portions_for_ingredient ?? "—"}
+                </DTCell>
+                <DTCell className="text-right tabular-nums text-muted-foreground">{ing.waste_percent}%</DTCell>
+                <DTCell className="text-right">
+                  {ing.is_bottleneck && (
+                    <Badge variant="outline" className="text-[9px]">Bottleneck</Badge>
+                  )}
+                </DTCell>
+              </DTRow>
+            ))}
+          </DTBody>
+        </DataTable>
+      )}
+    </div>
   );
 }
