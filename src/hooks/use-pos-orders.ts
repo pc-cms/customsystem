@@ -84,6 +84,7 @@ export function useAddPosOrder() {
       item_name: string;
       unit_price_tzs: number;
       qty: number;
+      notes?: string | null;
     }) => {
       // Insert order shell — total_tzs computed by trigger after order_items insert
       const { data: order, error: oErr } = await supabase
@@ -94,7 +95,8 @@ export function useAddPosOrder() {
           tab_id: input.tab_id,
           waiter_user_id: input.waiter_user_id,
           status: "pending",
-        })
+          notes: input.notes ?? null,
+        } as any)
         .select("id")
         .single();
       if (oErr) throw oErr;
@@ -118,6 +120,25 @@ export function useAddPosOrder() {
     },
   });
 }
+
+/** Update notes on a pending order (waiter only — locked once bartender starts). */
+export function useUpdatePosOrderNotes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { order_id: string; notes: string | null }) => {
+      const { error } = await supabase
+        .from("pos_orders")
+        .update({ notes: input.notes } as any)
+        .eq("id", input.order_id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pos-orders"] });
+      qc.invalidateQueries({ queryKey: ["pos-bar-orders"] });
+    },
+  });
+}
+
 
 export function useVoidPosOrder() {
   const qc = useQueryClient();

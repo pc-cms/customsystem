@@ -26,7 +26,7 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
     return items.filter((i) => i.is_active && (!effectiveCat || i.category_id === effectiveCat));
   }, [items, effectiveCat]);
 
-  const handleAdd = async (item: PosMenuItem, qty: number) => {
+  const handleAdd = async (item: PosMenuItem, qty: number, notes?: string | null) => {
     if (!tabId) {
       toast({ title: "Select or open a tab first", variant: "destructive" });
       return;
@@ -41,11 +41,13 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
         item_name: item.name,
         unit_price_tzs: item.price_tzs,
         qty,
+        notes: notes ?? null,
       });
     } catch (e: any) {
       toast({ title: "Failed", description: e?.message, variant: "destructive" });
     }
   };
+
 
   if (activeCategories.length === 0) {
     return (
@@ -115,8 +117,14 @@ const ItemTile = ({
   outOfStock: boolean;
   isLow: boolean;
   disabled: boolean;
-  onAdd: (qty: number) => void;
+  onAdd: (qty: number, notes?: string | null) => void;
 }) => {
+  const askNote = (qty: number) => {
+    if (disabled) return;
+    // eslint-disable-next-line no-alert
+    const note = window.prompt(`Note for ${item.name} (×${qty})?\nLeave blank to skip.`, "");
+    onAdd(qty, note && note.trim() ? note.trim() : null);
+  };
   return (
     <div
       className={cn(
@@ -170,9 +178,19 @@ const ItemTile = ({
             ×{q}
           </button>
         ))}
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => askNote(1)}
+          title="Add with a note"
+          className="w-9 h-8 text-xs hover:bg-accent/40 border-l border-border flex items-center justify-center"
+        >
+          📝
+        </button>
       </div>
     </div>
   );
 };
 
 export default MenuPanel;
+
