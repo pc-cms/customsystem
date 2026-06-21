@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { Ticket } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,9 +15,9 @@ const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
 const LotterySalesReport = () => {
   const { activeCasinoId } = useCasino();
   const initial = presetRange("month");
-  const [preset, setPreset] = useState<DatePreset>("month");
-  const [from, setFrom] = useState(initial.from);
-  const [to, setTo] = useState(initial.to);
+  const [preset, setPreset] = useSessionState<DatePreset>("preset", "month");
+  const [from, setFrom] = useSessionState("from", initial.from);
+  const [to, setTo] = useSessionState("to", initial.to);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["lottery-sales", activeCasinoId, from, to],

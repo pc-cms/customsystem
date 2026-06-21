@@ -8,15 +8,16 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable } from "@/components/ui/data-table";
 import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 import { fmtDateTime } from "@/lib/format-date";
+import { useSessionState } from "@/hooks/use-session-state";
 
 const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
 
 export default function CashbackReport() {
   const { activeCasinoId } = useCasino();
   const initial = presetRange("month");
-  const [preset, setPreset] = useState<DatePreset>("month");
-  const [from, setFrom] = useState(initial.from);
-  const [to, setTo] = useState(initial.to);
+  const [preset, setPreset] = useSessionState<DatePreset>("preset", "month");
+  const [from, setFrom] = useSessionState("from", initial.from);
+  const [to, setTo] = useSessionState("to", initial.to);
 
   const { data: grants = [], isLoading } = useQuery({
     queryKey: ["cashback_report", activeCasinoId, from, to],

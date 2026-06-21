@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { Landmark, Receipt, TrendingDown, LayoutDashboard, Filter, ArrowUpDown, Smartphone } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -228,10 +229,10 @@ const Dashboard = () => {
   const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
   // Floor Staff filters & sort
-  const [deptFilter, setDeptFilter] = useState<StaffDepartment[]>([]);
-  const [shiftFilter, setShiftFilter] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<"name" | "department" | "shift">("department");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [deptFilter, setDeptFilter] = useSessionState<StaffDepartment[]>("deptFilter", []);
+  const [shiftFilter, setShiftFilter] = useSessionState<string[]>("shiftFilter", []);
+  const [sortBy, setSortBy] = useSessionState<"name" | "department" | "shift">("sort", "department");
+  const [sortDir, setSortDir] = useSessionState<"asc" | "desc">("sortDir", "asc");
 
   const rotaMap = useMemo(() => {
     const m = new Map<string, string>();

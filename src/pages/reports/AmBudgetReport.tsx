@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Briefcase, Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { fmtDateTime } from "@/lib/format-date";
 import { downloadXlsx } from "@/lib/excel-export";
 import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
+import { useSessionState } from "@/hooks/use-session-state";
 
 const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
 
@@ -21,11 +22,11 @@ export default function AmBudgetReport() {
   const { activeCasinoId } = useCasino();
   const today = new Date().toISOString().slice(0, 10);
   const initial = presetRange("month");
-  const [preset, setPreset] = useState<DatePreset>("month");
-  const [from, setFrom] = useState(initial.from);
-  const [to, setTo] = useState(initial.to);
-  const [reason, setReason] = useState("all");
-  const [amFilter, setAmFilter] = useState("all");
+  const [preset, setPreset] = useSessionState<DatePreset>("preset", "month");
+  const [from, setFrom] = useSessionState("from", initial.from);
+  const [to, setTo] = useSessionState("to", initial.to);
+  const [reason, setReason] = useSessionState("reason", "all");
+  const [amFilter, setAmFilter] = useSessionState("amFilter", "all");
 
   const { data: amUsers = [] } = useQuery({
     queryKey: ["am-users-report"],

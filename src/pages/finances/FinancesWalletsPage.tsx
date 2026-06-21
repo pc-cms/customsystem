@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { Wallet, Plus, Pencil, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -156,13 +157,11 @@ export default function FinancesWalletsPage() {
   const { data: wallets = [] } = useFinWallets();
   const upsert = useUpsertFinWallet();
 
-  const [preset, setPreset] = useState<DatePreset>("month");
-  const [range, setRange] = useState(presetRange("month"));
-  const [walletFilter, setWalletFilter] = useState<string>("all");
-  const [kindFilter, setKindFilter] = useState<string>("all");
-  const [sort, setSort] = useState<"date_desc" | "date_asc" | "amount_desc" | "amount_asc">(
-    "date_desc",
-  );
+  const [preset, setPreset] = useSessionState<DatePreset>("preset", "month");
+  const [range, setRange] = useSessionState<{from:string;to:string}>("range", presetRange("month"));
+  const [walletFilter, setWalletFilter] = useSessionState<string>("wallet", "all");
+  const [kindFilter, setKindFilter] = useSessionState<string>("kind", "all");
+  const [sort, setSort] = useSessionState<"date_desc" | "date_asc" | "amount_desc" | "amount_asc">("sort", "date_desc");
 
   const { data: balAsOf } = useWalletBalancesAsOf(range.to);
   const { data: income } = usePeriodIncome(range.from, range.to);

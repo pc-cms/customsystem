@@ -5,6 +5,7 @@
  * counts. Manager password is required (audited via system_logs).
  */
 import { useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { addDays } from "date-fns";
@@ -30,9 +31,9 @@ const CageClosingsPage = () => {
 
   // Unified Day/Week/Month/Year/Custom picker.
   const initial = useMemo(() => presetRange("month"), []);
-  const [preset, setPreset] = useState<DatePreset>("month");
-  const [from, setFrom] = useState(initial.from);
-  const [to, setTo] = useState(initial.to);
+  const [preset, setPreset] = useSessionState<DatePreset>("preset", "month");
+  const [from, setFrom] = useSessionState<string>("from", initial.from);
+  const [to, setTo] = useSessionState<string>("to", initial.to);
   const periodLabel = `${fmtDateOnly(from)} – ${fmtDateOnly(to)}`;
   const rangeStartIso = new Date(from + "T00:00:00").toISOString();
   const rangeEndIso = addDays(new Date(to + "T00:00:00"), 1).toISOString();

@@ -12,6 +12,7 @@
  *  - Min column widths so inputs are comfortable (~100px+); page scrolls horizontally.
  */
 import { useMemo, useRef, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { AlertTriangle, Camera, Check, ChevronLeft, ChevronRight, ImageIcon, Loader2, RotateCcw, Search, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -113,17 +114,17 @@ const Incidents = () => {
     ["super_admin", "manager", "shift_manager", "surveillance", "finance_manager"].includes(r),
   );
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useSessionState<string>("search", "");
   const [form, setForm] = useState<IncidentInput>(emptyForm());
   const [uploading, setUploading] = useState(false);
   const [viewPhoto, setViewPhoto] = useState<string | null>(null);
   // Journal view mode — "day" uses business-day window (D 11:00 → D+1 11:00 EAT).
   // Other presets (week/month/year/custom) use a plain calendar-date range.
   const initialPreset: DatePreset = isPrivileged ? "month" : "day";
-  const [datePreset, setDatePreset] = useState<DatePreset>(initialPreset);
+  const [datePreset, setDatePreset] = useSessionState<DatePreset>("preset", initialPreset);
   const initialRange = presetRange(initialPreset);
-  const [rangeFrom, setRangeFrom] = useState<string>(initialRange.from);
-  const [rangeTo, setRangeTo] = useState<string>(initialRange.to);
+  const [rangeFrom, setRangeFrom] = useSessionState<string>("from", initialRange.from);
+  const [rangeTo, setRangeTo] = useSessionState<string>("to", initialRange.to);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: incidents = [], isLoading } = useIncidents(

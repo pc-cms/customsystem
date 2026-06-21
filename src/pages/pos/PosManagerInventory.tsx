@@ -6,6 +6,7 @@
  * - Side panel: recent movements (audit log, append-only).
  */
 import { useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { useCasino } from "@/lib/casino-context";
 import { usePosMenuItems, usePosMenuCategories, type PosMenuItem } from "@/hooks/use-pos-menu";
 import { usePosInventoryRecent, stockStatus, type StockStatus } from "@/hooks/use-pos-inventory";
@@ -48,8 +49,8 @@ export default function PosManagerInventory() {
   const { data: categories = [] } = usePosMenuCategories(activeCasinoId);
   const { data: recent = [] } = usePosInventoryRecent(activeCasinoId, 30);
 
-  const [filter, setFilter] = useState<Filter>("all");
-  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useSessionState<Filter>("filter", "all");
+  const [search, setSearch] = useSessionState("search", "");
   const [moveItem, setMoveItem] = useState<PosMenuItem | null>(null);
 
   const catName = useMemo(() => {

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import EmployeePhotoCell from "@/components/EmployeePhotoCell";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -98,7 +99,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
     const [y, m] = businessToday.split("-").map(Number);
     return `${y}-${String(m).padStart(2, "0")}`;
   }, [businessToday]);
-  const [month, setMonth] = useState(currentMonth);
+  const [month, setMonth] = useSessionState<string>("month", currentMonth);
 
   const navigateMonth = (delta: number) => {
     const [y, m] = month.split("-").map(Number);
@@ -273,9 +274,9 @@ const EmployeeList = () => {
   const deleteStaff = useDeleteStaffMember();
   const [name, setName] = useState("");
   const [dept, setDept] = useState<StaffDepartment>("waiter");
-  const [sortBy, setSortBy] = useState<string>("department");
-  const [filterDept, setFilterDept] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("active");
+  const [sortBy, setSortBy] = useSessionState<string>("sort", "department");
+  const [filterDept, setFilterDept] = useSessionState<string>("dept", "all");
+  const [filterStatus, setFilterStatus] = useSessionState<string>("status", "active");
   const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
   const [editValue, setEditValue] = useState("");
 
@@ -510,7 +511,7 @@ const EmployeeList = () => {
 const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { month: string; groupKey: RotaGroupKey; monthLabel: string; readOnly?: boolean }) => {
   const group = ROTA_GROUPS[groupKey];
   const groupShifts = group.shifts as readonly string[];
-  const [filterDept, setFilterDept] = useState<string>("all");
+  const [filterDept, setFilterDept] = useSessionState<string>("dept", "all");
   const [y, m] = month.split("-").map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -931,7 +932,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
   const [y, m] = month.split("-").map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-  const [filterDept, setFilterDept] = useState<string>("all");
+  const [filterDept, setFilterDept] = useSessionState<string>("dept", "all");
 
   const startDate = `${month}-01`;
   const endDate = `${month}-${String(daysInMonth).padStart(2, "0")}`;

@@ -3,6 +3,7 @@
  * Cashier/manager/finance/super_admin may mark a charge as settled (e.g. paid in cash at cage).
  */
 import { useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { ReceiptText, Check, X } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -25,7 +26,7 @@ type FilterStatus = "open" | "settled" | "voided" | "all";
 
 export default function PosCharges() {
   const { activeCasinoId } = useCasino();
-  const [status, setStatus] = useState<FilterStatus>("open");
+  const [status, setStatus] = useSessionState<FilterStatus>("status", "open");
   const { data: rows = [], isLoading } = usePlayerCharges(activeCasinoId, { status });
   const settleMut = useSettlePlayerCharge();
   const voidMut = useVoidPlayerCharge();

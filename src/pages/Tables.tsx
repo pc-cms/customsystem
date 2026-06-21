@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { useNavigate } from "react-router-dom";
 import { useGamingTables, useTransactions, useTableTracker, usePlayers } from "@/hooks/use-casino-data";
 import { useActiveShift } from "@/hooks/use-shift";
@@ -41,7 +42,7 @@ const Tables = () => {
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDay = serverBusinessDate || getBusinessDate();
   const { restrictedToToday } = useBusinessDayFilter();
-  const [date, setDate] = useState(businessDay);
+  const [date, setDate] = useSessionState<string>("date", businessDay);
   // Operational roles (Pit) without Manager Access cannot browse other days.
   const effectiveDate = restrictedToToday ? businessDay : date;
   const { data: tables = [] } = useGamingTables();

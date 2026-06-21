@@ -1,7 +1,7 @@
 /**
  * FloorTipsTab — unified Day/Week/Month/Year/Custom picker.
  */
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useMemo } from "react";
 import { UserCheck } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import { useTipsByRange } from "@/hooks/use-tips";
@@ -9,12 +9,13 @@ import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { TipsLedgerTable } from "./TipsLedgerTable";
 import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
+import { useSessionState } from "@/hooks/use-session-state";
 
 export default function FloorTipsTab({ belowHeader }: { belowHeader?: ReactNode }) {
   const initial = presetRange("month");
-  const [preset, setPreset] = useState<DatePreset>("month");
-  const [from, setFrom] = useState(initial.from);
-  const [to, setTo] = useState(initial.to);
+  const [preset, setPreset] = useSessionState<DatePreset>("preset", "month");
+  const [from, setFrom] = useSessionState("from", initial.from);
+  const [to, setTo] = useSessionState("to", initial.to);
   const { data: rows = [] } = useTipsByRange("tips_floor", from, to);
 
   const periodTotal = useMemo(() => rows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0), [rows]);

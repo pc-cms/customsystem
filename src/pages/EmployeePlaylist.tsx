@@ -6,6 +6,7 @@
  * and a free-form Comment that any of the four roles can edit and save.
  */
 import { useMemo, useState, useEffect, useCallback } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Cake, FileSpreadsheet, Search, Eye, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -163,10 +164,10 @@ const SortHeader = ({
 export default function EmployeePlaylist() {
   const { data: employees = [], isLoading } = useEmployees();
   const { data: notes = {} } = usePlaylistNotes();
-  const [query, setQuery] = useState("");
-  const [dept, setDept] = useState<string>("all");
-  const [sortKey, setSortKey] = useState<SortKey>("full_name");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [query, setQuery] = useSessionState<string>("search", "");
+  const [dept, setDept] = useSessionState<string>("dept", "all");
+  const [sortKey, setSortKey] = useSessionState<SortKey>("sort", "full_name");
+  const [sortDir, setSortDir] = useSessionState<SortDir>("sortDir", "asc");
   const [photo, setPhoto] = useState<{ src?: string | null; alt?: string } | null>(null);
 
   const toggleSort = (k: SortKey) => {
