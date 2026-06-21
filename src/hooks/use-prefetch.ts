@@ -66,9 +66,10 @@ const queryFns = {
 export function usePrefetchCriticalData() {
   const qc = useQueryClient();
   const { casinoId, user, roles } = useAuth();
+  const { isReady } = useDataScope();
 
   useEffect(() => {
-    if (!casinoId || !user) return;
+    if (!isReady || !casinoId || !user) return;
     const today = getBusinessDate();
 
     // Warm lazy route chunks for offline navigation. Idempotent (24h throttle).
