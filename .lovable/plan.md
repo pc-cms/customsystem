@@ -1,23 +1,64 @@
-## Goal
-Remember Breaklist scroll position (horizontal + vertical) per user/page, same way as sort/filter state — so reloading or navigating back keeps the user where they were.
+## Monthly Report — 5 fixes (revised)
 
-## Approach
-Reuse the existing `useSessionState` infrastructure (already used for `search`/`sort`/`dept` in other grids). Adds a tiny `useScrollMemory` hook that:
+### 1. Plan/Year = месячный план × 12 (когда введён один месяц)
+В `src/hooks/use-fin-monthly-report.ts` при сборке `planYearMap`:
+- Считаем число месяцев с ненулевым значением в `fin_budget` для пары (category, currency).
+- Если введён ровно один месяц → `plan_year = value × 12`.
+- Если введено ≥ 2 месяцев → суммируем как сейчас.
+- Логика применяется отдельно к TZS и USD.
 
-1. Reads `{ x, y }` from sessionStorage under namespace `cms:v1:ss:<userId>::<pathname>::breaklist-scroll`.
-2. On the scroll container's `onScroll`, debounces writes (~150ms) so we don't thrash storage.
-3. On mount, once the grid has rendered rows (data loaded), restores `scrollLeft` / `scrollTop` once.
+### 2. Раздельный учёт TZS-расходов и USD-расходов (нативная валюта)
+Сейчас `actual_tzs` суммирует `amount_tzs` всех расходов (включая USD, конвертированные по курсу). Это неверно — пользователю нужны **фактически списанные суммы в исходной валюте**, без конвертации.
 
-## Where
-- New file: `src/hooks/use-scroll-memory.ts` — generic hook returning `{ ref, onScroll }` taking a storage key.
-- Edit: `src/components/pit/BreaklistGrid.tsx` — attach `ref` and `onScroll` to the `cms-panel overflow-auto` container (line 443). Restore after dealers/rota data is ready (use `useEffect` keyed on `isLoading=false` + row count > 0, guarded by a `restoredRef` so it only runs once per mount).
+В `use-fin-monthly-report.ts` для каждой категории/группы считаем три независимых поля:
+- `actual_native_tzs` — Σ `amount` где `currency = 'TZS'`
+- `actual_native_usd` — Σ `amount` где `currency = 'USD'` (уже считается как `actual_usd`)
+- `actual_grand_tzs` — Σ `amount_tzs` всех (для итогового баланса в шиллингах)
 
-## Scope
-- Only the Breaklist grid container. No other lists changed.
-- Storage namespaced per user + per path (same as `useSessionState`), wiped on tab close.
-- Zoom level remains independent (already persisted elsewhere).
+Аналогично три поля для плана: `plan_month_tzs` (TZS-бюджет), `plan_month_usd` (USD-бюджет), `plan_month_grand_tzs` = TZS + USD × курс.
 
-## Non-goals
-- Not restoring selected cell / role picker state.
-- Not persisting across tab close (sessionStorage by design).
-- No backend changes, no version bump.
+В таблице групп показываем колонки:
+- **Plan/Year TZS**, **Plan/Year USD**
+- **Plan/Mo TZS**, **Plan/Mo USD**
+- **Actual TZS** (native), **Actual USD** (native)
+- **%**, **MTD**, **Remain TZS**, **Remain USD**, **Remain %**
+
+(Колонка "USD" перестаёт быть опциональной — это нативные доллары, а не пересчёт.)
+
+### 3. Блок Total Budget (после групп, до Collections)
+Новая `PageSection title="Total Budget"`:
+| Метрика | TZS | USD | Grand TZS |
+|---|---|---|---|
+| Plan Month | Σ TZS-плана | Σ USD-плана | TZS + USD×rate |
+| Actual | Σ TZS-факта | Σ USD-факта | Σ amount_tzs |
+| Remain | разница | разница | разница |
+
+Курс USD→TZS берём из `fin_daily_rates` (последний доступный для активного казино в выбранном месяце; fallback — средний по месяцу).
+
+### 4. Порядок секций (только UI)
+```
+Incomes
+Groups (fixed, tax, variable, salary, petrol, additional) ← Expenses
+Total Budget (новая, см. п.3)
+Profit         = Incomes.Total − Total Budget.Actual Grand TZS
+Collections & Owner Withdrawal
+Net Balance    = Profit − Collections.Actual TZS
+```
+Заменяет текущий блок "Grand Total".
+
+### 5. Курс в расчётах (баг)
+В `use-fin-monthly-report.ts` и `FinancesWalletsPage.tsx`:
+- Заменяем `.select("usd_to_tzs, business_date")` → `.select("rate_to_tzs, business_date").eq("currency","USD")` (колонка `usd_to_tzs` не существует — запрос молча возвращает 0, поэтому курс "застревает на 2500" fallback).
+
+### 6. Slots income из Day Closing
+В `use-fin-monthly-report.ts`:
+- Удаляем запрос к `cage_slots_shifts.system_shift_result`.
+- Добавляем запрос к `fin_day_closing` за диапазон:
+  `SELECT slots_result, tables_result FROM fin_day_closing WHERE casino_id=? AND business_date BETWEEN start AND endExclusive`
+- `incomes.slots = Σ slots_result`, `incomes.live_game = Σ tables_result`. Только закрытые финансовым менеджером дни считаются доходом.
+
+### Технические заметки
+- Файлы: `src/hooks/use-fin-monthly-report.ts`, `src/pages/finances/FinancesMonthlyReportPage.tsx`, `src/pages/finances/FinancesWalletsPage.tsx`.
+- Фронтенд + хук, никаких миграций.
+- XLSX-экспорт обновлю в соответствии с новой структурой.
+- Без bump версии (UI-only).
