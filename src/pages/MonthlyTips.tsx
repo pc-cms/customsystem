@@ -82,7 +82,9 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
   const [periodStart, setPeriodStart] = useSessionState<string>("periodStart", () => getPeriodStart16(new Date()));
   const periodEnd = useMemo(() => getPeriodEnd15(periodStart), [periodStart]);
 
-  const { data: dealers = [] } = useDealers();
+  const { data: dealers = [], isPending: dealersPending, isFetching: dealersFetching } = useDealers();
+  const { isReady: scopeReady } = useDataScope();
+  const dealersLoading = !scopeReady || dealersPending || (dealersFetching && dealers.length === 0);
   const { data: rota = [] } = usePitRotaRange(periodStart, periodEnd);
   const { data: attendance = [] } = useDealerAttendanceRange(periodStart, periodEnd);
   const { data: entries = [] } = useMonthlyTipsEntries(periodStart);
