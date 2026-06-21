@@ -242,36 +242,42 @@ const ActiveShiftView = ({ shift, players, tables }: {
         }
         date
       >
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setTipsKind("tips_live")}
-          className="gap-1.5 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25"
-        >
-          <Gift className="w-3.5 h-3.5" /> Tips Live
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setTipsKind("tips_poker")}
-          className="gap-1.5 bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40 hover:bg-amber-500/25"
-        >
-          <Coins className="w-3.5 h-3.5" /> Tips Poker
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setTipsKind("tips_floor")}
-          className="gap-1.5 bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/40 hover:bg-sky-500/25"
-        >
-          <UserCheck className="w-3.5 h-3.5" /> Tips Floor
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setShowPromoIn(true)} className="gap-1.5 bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/40 hover:bg-violet-500/25">
-          <Sparkles className="w-3.5 h-3.5" /> Promo IN
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setShowIssueTicket(true)} className="gap-1.5 bg-pink-500/15 text-pink-700 dark:text-pink-300 border-pink-500/40 hover:bg-pink-500/25">
-          <Ticket className="w-3.5 h-3.5" /> Issue Ticket
-        </Button>
+        {/* Hidden by request — kept in code for future re-enable.
+            Buttons: Tips Live / Tips Poker / Tips Floor / Promo IN / Issue Ticket */}
+        {false && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setTipsKind("tips_live")}
+              className="gap-1.5 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25"
+            >
+              <Gift className="w-3.5 h-3.5" /> Tips Live
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setTipsKind("tips_poker")}
+              className="gap-1.5 bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40 hover:bg-amber-500/25"
+            >
+              <Coins className="w-3.5 h-3.5" /> Tips Poker
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setTipsKind("tips_floor")}
+              className="gap-1.5 bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/40 hover:bg-sky-500/25"
+            >
+              <UserCheck className="w-3.5 h-3.5" /> Tips Floor
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowPromoIn(true)} className="gap-1.5 bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/40 hover:bg-violet-500/25">
+              <Sparkles className="w-3.5 h-3.5" /> Promo IN
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowIssueTicket(true)} className="gap-1.5 bg-pink-500/15 text-pink-700 dark:text-pink-300 border-pink-500/40 hover:bg-pink-500/25">
+              <Ticket className="w-3.5 h-3.5" /> Issue Ticket
+            </Button>
+          </>
+        )}
         <Button variant="outline" size="sm" onClick={() => setShowCloseTables(true)} className="gap-1.5">
           <Package className="w-3.5 h-3.5" /> Close Tables
         </Button>
