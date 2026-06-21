@@ -18,6 +18,7 @@ import TipsDialog, { type TipsKind } from "@/components/cage/TipsDialog";
 import CancelTransactionDialog from "@/components/cage/CancelTransactionDialog";
 import PromoInDialog from "@/components/cage/PromoInDialog";
 import IssueTicketDialog from "@/components/cage/IssueTicketDialog";
+import { HourlyCheckBanner } from "@/components/cage/HourlyCheckBanner";
 import { useNavigate } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
