@@ -173,7 +173,12 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       const tableBaseline = baselineMap[loc.id] || {};
       loc.denoms.forEach(d => {
         const expected = tableBaseline[d] || 0;
-        const actual = locCounts[d] ?? expected;
+        const entered = locCounts[d];
+        // Empty/NaN → save the last check value (= what placeholder shows) so
+        // partial entries keep the previous reading for untouched denominations.
+        const actual = entered === undefined || Number.isNaN(entered as any)
+          ? getLastCheck(loc.id, d)
+          : (entered as number);
         rows.push({ location_type: loc.type, location_id: loc.id, denomination: d, expected_quantity: expected, actual_quantity: actual });
       });
     });
