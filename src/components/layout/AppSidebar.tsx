@@ -311,6 +311,9 @@ const SidebarSections = ({
                   to={sub.to}
                   end
                   onClick={onNavigate}
+                  onMouseEnter={() => prefetchRoute(sub.to)}
+                  onFocus={() => prefetchRoute(sub.to)}
+                  onTouchStart={() => prefetchRoute(sub.to)}
                   className={`flex items-center gap-2 px-2 h-7 rounded-md text-xs transition-colors ${
                     active ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
                   }`}
