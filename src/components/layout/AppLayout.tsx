@@ -34,7 +34,8 @@ const FULL_WIDTH_ROUTES = [
 const STORAGE_KEY = "cms.sidebar.collapsed";
 
 export const AppLayout = () => {
-  useRealtimeSubscriptions();
+  // Realtime is mounted once in ProtectedRoutes (App.tsx). Do NOT mount here too —
+  // duplicate channels cause double invalidations and waste connections.
   const isMobile = useIsMobile();
   const location = useLocation();
   const isFullWidth = FULL_WIDTH_ROUTES.some((p) => location.pathname.startsWith(p));
