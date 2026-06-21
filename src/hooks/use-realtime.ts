@@ -20,6 +20,8 @@ export const useRealtimeSubscriptions = () => {
   const { activeCasinoId: casinoId } = useCasino();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const crossChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const wasDisconnectedRef = useRef(false);
+  const subscribedOnceRef = useRef(false);
 
   useEffect(() => {
     if (!casinoId) return;
@@ -30,10 +32,21 @@ export const useRealtimeSubscriptions = () => {
     if (prevChannel) {
       supabase.removeChannel(prevChannel);
     }
+    subscribedOnceRef.current = false;
+
+    const channelName = `casino:${casinoId}:cms-realtime-${Date.now()}`;
+    // Expose minimal diagnostic state on window for live debugging
+    const status = (window as any).__realtimeStatus ?? {};
+    status.channelName = channelName;
+    status.subscribed = false;
+    status.lastEventAt = 0;
+    (window as any).__realtimeStatus = status;
+
+    const bump = () => { status.lastEventAt = Date.now(); };
 
     try {
       const channel = supabase
-        .channel(`casino:${casinoId}:cms-realtime-${Date.now()}`)
+        .channel(channelName)
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "transactions", filter: `casino_id=eq.${casinoId}` },
@@ -251,9 +264,31 @@ export const useRealtimeSubscriptions = () => {
             qc.invalidateQueries({ queryKey: ["player-profile"] });
           }
         )
-        .subscribe();
+        .subscribe((subStatus, err) => {
+          if (subStatus === "SUBSCRIBED") {
+            status.subscribed = true;
+            status.lastEventAt = Date.now();
+            console.info(`[Realtime] ✓ subscribed (casino=${casinoId})`);
+            if (subscribedOnceRef.current && wasDisconnectedRef.current) {
+              wasDisconnectedRef.current = false;
+              // Reconnect: refetch all active queries to catch up missed events
+              qc.invalidateQueries({ refetchType: "active" });
+            }
+            subscribedOnceRef.current = true;
+          } else if (
+            subStatus === "CHANNEL_ERROR" ||
+            subStatus === "TIMED_OUT" ||
+            subStatus === "CLOSED"
+          ) {
+            status.subscribed = false;
+            wasDisconnectedRef.current = true;
+            console.warn(`[Realtime] ✗ ${subStatus}`, err ?? "");
+          }
+        });
 
       channelRef.current = channel;
+      // Suppress unused warning for bump (kept for future event-level tracking)
+      void bump;
     } catch (err) {
       console.error("[Realtime] Failed to setup channel:", err);
     }

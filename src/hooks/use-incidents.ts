@@ -83,6 +83,7 @@ export const useIncidents = (
       return (data || []) as Incident[];
     },
     enabled: !!casinoId,
+    staleTime: 15_000,
   });
 
   useEffect(() => {
