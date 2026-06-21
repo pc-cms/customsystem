@@ -548,11 +548,19 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       {activeCell && createPortal(
         (() => {
           const { rect, dropUp, dropLeft } = activeCell;
+          // The grid is wrapped in a `zoom: N%` container, but the portal renders
+          // at document.body so it loses that scaling. Mirror the zoom factor with
+          // a CSS transform so the picker visually matches the grid cells.
+          const z = (zoom || 100) / 100;
           const style: React.CSSProperties = dropUp
             ? { position: "fixed", bottom: window.innerHeight - rect.top + 4, zIndex: 60 }
             : { position: "fixed", top: rect.bottom + 4, zIndex: 60 };
           if (dropLeft) style.right = window.innerWidth - rect.right;
           else style.left = rect.left;
+          if (z !== 1) {
+            style.transform = `scale(${z})`;
+            style.transformOrigin = `${dropLeft ? "right" : "left"} ${dropUp ? "bottom" : "top"}`;
+          }
           return (
             <div
               style={style}
