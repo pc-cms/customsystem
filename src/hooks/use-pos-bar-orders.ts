@@ -45,26 +45,30 @@ export function usePosBarOrders(casinoId: string | null) {
     queryFn: async (): Promise<PosBarOrder[]> => {
       const { data, error } = await supabase
         .from("pos_orders")
-        .select(
-          "*, items:pos_order_items(*), tab:pos_tabs(id, player_name, walkin_label), waiter:profiles!pos_orders_waiter_user_id_fkey(display_name)",
-        )
+        .select("*, items:pos_order_items(*), tab:pos_tabs(id, player_name, walkin_label)")
         .eq("casino_id", casinoId!)
         .in("status", ACTIVE)
         .order("created_at", { ascending: true });
-      if (error) {
-        // Fallback if FK alias is not recognized — retry without the join
-        const fb = await supabase
-          .from("pos_orders")
-          .select("*, items:pos_order_items(*), tab:pos_tabs(id, player_name, walkin_label)")
-          .eq("casino_id", casinoId!)
-          .in("status", ACTIVE)
-          .order("created_at", { ascending: true });
-        if (fb.error) throw fb.error;
-        return (fb.data ?? []).map((r: any) => ({ ...r, waiter: null })) as unknown as PosBarOrder[];
+      if (error) throw error;
+      const rows = (data ?? []) as any[];
+      const waiterIds = Array.from(new Set(rows.map((r) => r.waiter_user_id).filter(Boolean)));
+      let waiterMap: Record<string, string> = {};
+      if (waiterIds.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, display_name")
+          .in("user_id", waiterIds);
+        for (const p of profs ?? []) {
+          waiterMap[(p as any).user_id] = (p as any).display_name ?? "";
+        }
       }
-      return (data ?? []) as unknown as PosBarOrder[];
+      return rows.map((r) => ({
+        ...r,
+        waiter: r.waiter_user_id ? { display_name: waiterMap[r.waiter_user_id] ?? null } : null,
+      })) as unknown as PosBarOrder[];
     },
   });
+
 
   useEffect(() => {
     if (!casinoId) return;
