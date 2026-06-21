@@ -271,3 +271,97 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
 };
 
 export default ActiveTabPanel;
+
+function EditItemModifiersDialog({
+  casinoId, orderItemId, currentMods, locked, onClose,
+}: {
+  casinoId: string;
+  orderItemId: string | null;
+  currentMods: Array<{ id: string; modifier_id: string | null; modifier_name_snapshot: string; price_tzs_delta_snapshot: number }>;
+  locked: boolean;
+  onClose: () => void;
+}) {
+  const { data: modifiers = [] } = usePosModifiers(casinoId, true);
+  const attach = useAttachModifier();
+  const detach = useDetachModifier();
+
+  const currentByModId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of currentMods) if (c.modifier_id) m.set(c.modifier_id, c.id);
+    return m;
+  }, [currentMods]);
+
+  const toggle = async (modId: string) => {
+    if (!orderItemId) return;
+    const existingRowId = currentByModId.get(modId);
+    try {
+      if (existingRowId) {
+        await detach.mutateAsync(existingRowId);
+      } else {
+        const mod = modifiers.find((m) => m.id === modId);
+        if (!mod) return;
+        await attach.mutateAsync({ order_item_id: orderItemId, modifier: mod });
+      }
+    } catch (e: any) {
+      const msg = String(e?.message ?? "");
+      if (msg.includes("MODIFIERS_LOCKED_AFTER_PENDING")) {
+        toast({
+          title: "Modifiers locked",
+          description: "Order is no longer pending — modifiers can't be changed.",
+          variant: "destructive",
+        });
+        onClose();
+      } else {
+        toast({ title: "Failed", description: msg, variant: "destructive" });
+      }
+    }
+  };
+
+  return (
+    <ResponsiveDialog
+      open={!!orderItemId}
+      onOpenChange={(o) => !o && onClose()}
+      title="Item modifiers"
+      size="form"
+    >
+      <div className="space-y-3">
+        {locked && (
+          <div className="text-xs text-cms-amount-negative rounded bg-cms-amount-negative/10 px-3 py-2">
+            Modifiers are locked once the bartender accepts the order.
+          </div>
+        )}
+        <div className="space-y-1 max-h-[55vh] overflow-y-auto">
+          {modifiers.length === 0 ? (
+            <div className="text-sm text-muted-foreground text-center py-4">No modifiers configured.</div>
+          ) : modifiers.map((m) => {
+            const checked = currentByModId.has(m.id);
+            return (
+              <label key={m.id} className={cn(
+                "flex items-center justify-between gap-2 p-2 rounded",
+                locked ? "opacity-60" : "hover:bg-accent/40 cursor-pointer",
+              )}>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={checked}
+                    disabled={locked || attach.isPending || detach.isPending}
+                    onCheckedChange={() => toggle(m.id)}
+                  />
+                  <span className="text-sm">{m.name}</span>
+                </div>
+                <span className={cn(
+                  "text-sm font-mono tabular-nums",
+                  m.price_tzs_delta > 0 ? "text-foreground" : m.price_tzs_delta < 0 ? "text-cms-amount-positive" : "text-muted-foreground",
+                )}>
+                  {m.price_tzs_delta > 0 ? "+" : ""}{formatNumberSpaces(m.price_tzs_delta)}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+        <ResponsiveDialogFooter>
+          <Button variant="outline" onClick={onClose}>Close</Button>
+        </ResponsiveDialogFooter>
+      </div>
+    </ResponsiveDialog>
+  );
+}
