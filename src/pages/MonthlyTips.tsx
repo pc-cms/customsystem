@@ -13,6 +13,7 @@ import {
   useUpsertMonthlyTipsEntry, useUpsertMonthlyTipsPool,
   getPeriodStart16, getPeriodEnd15, addMonthsPeriod, enumerateDays,
 } from "@/hooks/use-monthly-tips";
+import { useDataScope } from "@/hooks/use-data-scope";
 import { useTipsCollectedForPeriod } from "@/hooks/use-tips";
 import { fmtDateOnly } from "@/lib/format-date";
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, isExtraShift } from "@/lib/shift-colors";
