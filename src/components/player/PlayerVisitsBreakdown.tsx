@@ -244,6 +244,8 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
                     <td className="py-2 px-2 text-right font-mono">{mo.agg.drop ? fmtMoney(mo.agg.drop) : dot}</td>
                     <td className="py-2 px-2 text-right font-mono">{mo.agg.inGross ? fmtMoney(mo.agg.inGross) : dot}</td>
                     <td className="py-2 px-2 text-right font-mono">{mo.agg.out ? fmtMoney(mo.agg.out) : dot}</td>
+                    <td className="py-2 px-2 text-right font-mono text-success">{mo.agg.chipIn ? fmtMoney(mo.agg.chipIn) : dot}</td>
+                    <td className="py-2 px-2 text-right font-mono text-destructive">{mo.agg.chipOut ? fmtMoney(mo.agg.chipOut) : dot}</td>
                     <td className={`py-2 px-2 text-right font-mono ${moRes === 0 ? "text-muted-foreground" : moRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                       {moRes === 0 ? "·" : fmtMoney(moRes)}
                     </td>
