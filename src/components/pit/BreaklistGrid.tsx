@@ -178,7 +178,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const isEditable = isToday && (!pastLock || isManager || isPit);
 
   // Inline role picker state
-  const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string; dropUp: boolean; dropLeft: boolean } | null>(null);
+  const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string; dropUp: boolean; dropLeft: boolean; rect: { top: number; left: number; bottom: number; right: number; width: number; height: number } } | null>(null);
   // HR comment dialog state (opens after A/S/SP/LT to capture a short note)
   const [commentFor, setCommentFor] = useState<{ dealerId: string; dealerName: string; kind: "Absent" | "Sick" | "Suspend" | "Late"; label: string } | null>(null);
   const [commentText, setCommentText] = useState("");
