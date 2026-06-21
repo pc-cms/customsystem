@@ -15,8 +15,6 @@ import { useMonthlyReport, type ReportCategory, type ReportGroup, type ReportExp
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
 import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories, useArchiveFinCategory, useCreateFinCategory, useRenameFinGroup } from "@/hooks/use-fin";
-import { useFinDailyRate } from "@/hooks/use-fin-daily-rates";
-import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 
 import { useCategoryMtd } from "@/hooks/use-category-mtd";
 import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
