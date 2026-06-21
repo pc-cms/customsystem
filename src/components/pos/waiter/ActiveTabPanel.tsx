@@ -15,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import CloseBillDialog from "./CloseBillDialog";
 import PayNowDialog from "./PayNowDialog";
 import ReceiptDialog from "./ReceiptDialog";
+import PlayerPosStatusBadge from "@/components/pos/PlayerPosStatusBadge";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -64,7 +65,10 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
       <div className="p-3 border-b border-border">
         <div className="flex items-baseline justify-between gap-2">
           <div className="min-w-0">
-            <div className="font-semibold truncate">{label}</div>
+            <div className="font-semibold truncate flex items-center gap-2">
+              <span className="truncate">{label}</span>
+              <PlayerPosStatusBadge playerId={tab.player_id} casinoId={tab.casino_id} />
+            </div>
             <div className="text-xs text-muted-foreground">Opened {fmtDateTime(tab.opened_at)}</div>
           </div>
           <div className="text-right shrink-0">

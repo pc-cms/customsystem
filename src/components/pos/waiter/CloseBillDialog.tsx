@@ -108,6 +108,19 @@ export const CloseBillDialog = ({ open, onOpenChange, tab, onClosed }: Props) =>
         setOverridePromptOpen(true);
         return;
       }
+      const msg = String(e?.message ?? "");
+      if (msg.includes("PLAYER_CHARGE_REQUIRES_PLAYER")) {
+        toast({ title: "Player Charge needs a linked player",
+          description: "Charge to player tab can only be used for tabs opened against a registered player.",
+          variant: "destructive" });
+        return;
+      }
+      if (msg.includes("COMP_PLAYER_REQUIRES_PLAYER")) {
+        toast({ title: "Comp · player needs a linked player",
+          description: "Comp · player can only be used for tabs opened against a registered player.",
+          variant: "destructive" });
+        return;
+      }
       toast({ title: "Failed to close", description: e?.message, variant: "destructive" });
     }
   };
