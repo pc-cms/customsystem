@@ -470,6 +470,9 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           key={sub.tab}
           to={`${basePath}?tab=${sub.tab}`}
           onClick={onNavigate}
+          onMouseEnter={() => prefetchRoute(basePath)}
+          onFocus={() => prefetchRoute(basePath)}
+          onTouchStart={() => prefetchRoute(basePath)}
           className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors ${
             currentTab === sub.tab
               ? "bg-sidebar-accent text-sidebar-primary font-medium"
