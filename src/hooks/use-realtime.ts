@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { toast } from "sonner";
+import { markRealtimeEvent, setRealtimeStatus } from "@/lib/realtime-status";
 
 /**
  * Realtime subscriptions for wired LAN environment.
