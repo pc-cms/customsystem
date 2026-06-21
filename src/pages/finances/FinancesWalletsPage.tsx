@@ -86,11 +86,13 @@ const usePeriodIncome = (from: string, to: string) => {
           .eq("casino_id", activeCasinoId),
         supabase
           .from("fin_daily_rates")
-          .select("usd_to_tzs")
+          .select("rate_to_tzs")
           .eq("casino_id", activeCasinoId)
+          .eq("currency", "USD")
           .gte("business_date", from)
           .lte("business_date", to),
       ]);
+
 
       const live = (shifts.data || []).reduce(
         (s: number, r: any) => s + Number(r.tables_result || 0),
