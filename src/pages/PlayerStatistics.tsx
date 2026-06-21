@@ -895,6 +895,17 @@ const PlayerStatistics = () => {
           </TabsList>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveOnly(v => !v)}
+              title="Show only players with operations today (Drop / Cash In / Out / Chips In / Out)"
+              className={`flex items-center gap-1.5 px-2.5 h-8 rounded-md border border-border text-[11px] font-mono font-black uppercase tracking-wide transition-colors ${
+                activeOnly ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted/40"
+              }`}
+            >
+              <span>ACTIVE</span>
+              <span className="tabular-nums">· {counts.active}</span>
+            </button>
             <Popover>
               <PopoverTrigger asChild>
                 <button
