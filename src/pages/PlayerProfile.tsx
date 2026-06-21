@@ -593,10 +593,10 @@ const PlayerProfile = () => {
                   </thead>
                   <tbody>
                     {visitsInRange.slice(0, 200).map((v: any) => {
-                      const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0, dropR: 0 };
-                      const result = f.cashout - f.totalIn;
+                      const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0, dropR: 0, chipIn: 0, chipOut: 0 };
+                      const result = (f.cashout + f.chipOut) - (f.totalIn + f.chipIn);
                       const total = result - f.comps;
-                      const colCount = 5 + (showFinancials ? 6 : 0);
+                      const colCount = 5 + (showFinancials ? 8 : 0);
                       const isExpanded = expandedVisit === v.id;
                       const txs = visitTxs.get(v.id) || [];
                       return (
@@ -618,6 +618,8 @@ const PlayerProfile = () => {
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.dropR ? fmtMoney(f.dropR) : dot()}</td>}
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.totalIn ? fmtMoney(f.totalIn) : dot()}</td>}
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.cashout ? fmtMoney(f.cashout) : dot()}</td>}
+                          {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right text-success">{f.chipIn ? fmtMoney(f.chipIn) : dot()}</td>}
+                          {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right text-destructive">{f.chipOut ? fmtMoney(f.chipOut) : dot()}</td>}
                           {showFinancials && (
                             <td className={`py-1.5 px-2 font-mono text-xs text-right ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                               {result === 0 ? "·" : fmtMoney(result)}
