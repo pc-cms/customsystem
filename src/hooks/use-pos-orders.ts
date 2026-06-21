@@ -85,6 +85,7 @@ export function useAddPosOrder() {
       unit_price_tzs: number;
       qty: number;
       notes?: string | null;
+      modifiers?: Array<{ id: string; name: string; price_tzs_delta: number }>;
     }) => {
       // Insert order shell — total_tzs computed by trigger after order_items insert
       const { data: order, error: oErr } = await supabase
@@ -102,15 +103,31 @@ export function useAddPosOrder() {
       if (oErr) throw oErr;
 
       const lineTotal = input.unit_price_tzs * input.qty;
-      const { error: iErr } = await supabase.from("pos_order_items").insert({
-        order_id: order.id,
-        item_id: input.item_id,
-        item_name: input.item_name,
-        qty: input.qty,
-        unit_price_tzs: input.unit_price_tzs,
-        line_total_tzs: lineTotal,
-      });
+      const { data: item, error: iErr } = await supabase
+        .from("pos_order_items")
+        .insert({
+          order_id: order.id,
+          item_id: input.item_id,
+          item_name: input.item_name,
+          qty: input.qty,
+          unit_price_tzs: input.unit_price_tzs,
+          line_total_tzs: lineTotal,
+        })
+        .select("id")
+        .single();
       if (iErr) throw iErr;
+
+      // Attach modifiers (DB trigger recomputes line_total via per-unit formula).
+      if (input.modifiers && input.modifiers.length > 0) {
+        const rows = input.modifiers.map((m) => ({
+          order_item_id: (item as any).id as string,
+          modifier_id: m.id,
+          modifier_name_snapshot: m.name,
+          price_tzs_delta_snapshot: m.price_tzs_delta,
+        }));
+        const { error: mErr } = await supabase.from("pos_order_item_modifiers").insert(rows);
+        if (mErr) throw mErr;
+      }
       return order.id as string;
     },
     onSuccess: (_d, v) => {

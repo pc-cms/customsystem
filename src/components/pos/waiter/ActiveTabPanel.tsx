@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, Receipt, CreditCard, Printer } from "lucide-react";
+import { X, Receipt, CreditCard, Printer, Plus } from "lucide-react";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateTime } from "@/lib/format-date";
 import {
@@ -12,12 +12,20 @@ import {
   type PosOrderWithItems,
 } from "@/hooks/use-pos-orders";
 import type { PosTab } from "@/hooks/use-pos-tabs";
+import {
+  usePosModifiers,
+  usePosOrderItemModifiers,
+  useAttachModifier,
+  useDetachModifier,
+} from "@/hooks/use-pos-modifiers";
 
 import { toast } from "@/hooks/use-toast";
 import CloseBillDialog from "./CloseBillDialog";
 import PayNowDialog from "./PayNowDialog";
 import ReceiptDialog from "./ReceiptDialog";
 import PlayerPosStatusBadge from "@/components/pos/PlayerPosStatusBadge";
+import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -42,6 +50,27 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
   const [closeDialog, setCloseDialog] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [payNowOrder, setPayNowOrder] = useState<PosOrderWithItems | null>(null);
+  const [modItemId, setModItemId] = useState<string | null>(null);
+
+  const orderItemIds = useMemo(
+    () => orders.flatMap((o) => o.items.map((it) => it.id)),
+    [orders],
+  );
+  const { data: allModifiers = [] } = usePosOrderItemModifiers(orderItemIds);
+  const modsByItem = useMemo(() => {
+    const m = new Map<string, typeof allModifiers>();
+    for (const x of allModifiers) {
+      const arr = m.get(x.order_item_id) ?? [];
+      arr.push(x);
+      m.set(x.order_item_id, arr);
+    }
+    return m;
+  }, [allModifiers]);
+  const itemOrderStatus = useMemo(() => {
+    const m = new Map<string, PosOrderStatus>();
+    for (const o of orders) for (const it of o.items) m.set(it.id, o.status);
+    return m;
+  }, [orders]);
 
 
   if (!tab) {
@@ -101,14 +130,42 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
                 <li key={o.id} className="p-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      {o.items.map((it) => (
-                        <div key={it.id} className="flex items-baseline justify-between gap-2 text-sm">
-                          <span className={cn("truncate", o.status === "void" && "line-through opacity-60")}>
-                            {it.item_name} <span className="text-muted-foreground">×{it.qty}</span>
-                          </span>
-                          <span className="font-mono tabular-nums">{formatNumberSpaces(it.line_total_tzs)}</span>
-                        </div>
-                      ))}
+                      {o.items.map((it) => {
+                        const mods = modsByItem.get(it.id) ?? [];
+                        return (
+                          <div key={it.id}>
+                            <div className="flex items-baseline justify-between gap-2 text-sm">
+                              <span className={cn("truncate", o.status === "void" && "line-through opacity-60")}>
+                                {it.item_name} <span className="text-muted-foreground">×{it.qty}</span>
+                              </span>
+                              <span className="font-mono tabular-nums">{formatNumberSpaces(it.line_total_tzs)}</span>
+                            </div>
+                            {mods.length > 0 && (
+                              <div className="pl-3 flex flex-wrap gap-1 mt-0.5">
+                                {mods.map((m) => (
+                                  <span key={m.id} className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                                    + {m.modifier_name_snapshot}
+                                    {m.price_tzs_delta_snapshot !== 0 && (
+                                      <span className="ml-1 font-mono tabular-nums">
+                                        ({m.price_tzs_delta_snapshot > 0 ? "+" : ""}{formatNumberSpaces(m.price_tzs_delta_snapshot)})
+                                      </span>
+                                    )}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {o.status === "pending" && (
+                              <button
+                                type="button"
+                                onClick={() => setModItemId(it.id)}
+                                className="mt-0.5 text-[10px] text-muted-foreground hover:text-primary inline-flex items-center gap-1"
+                              >
+                                <Plus className="h-3 w-3" /> {mods.length > 0 ? "Edit modifiers" : "Add modifiers"}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
                       {(notes || canEditNote) && (
                         <button
                           type="button"
@@ -201,8 +258,110 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
         shiftId={shiftId}
         userId={userId}
       />
+
+      <EditItemModifiersDialog
+        casinoId={casinoId}
+        orderItemId={modItemId}
+        currentMods={modItemId ? (modsByItem.get(modItemId) ?? []) : []}
+        locked={modItemId ? itemOrderStatus.get(modItemId) !== "pending" : true}
+        onClose={() => setModItemId(null)}
+      />
     </div>
   );
 };
 
 export default ActiveTabPanel;
+
+function EditItemModifiersDialog({
+  casinoId, orderItemId, currentMods, locked, onClose,
+}: {
+  casinoId: string;
+  orderItemId: string | null;
+  currentMods: Array<{ id: string; modifier_id: string | null; modifier_name_snapshot: string; price_tzs_delta_snapshot: number }>;
+  locked: boolean;
+  onClose: () => void;
+}) {
+  const { data: modifiers = [] } = usePosModifiers(casinoId, true);
+  const attach = useAttachModifier();
+  const detach = useDetachModifier();
+
+  const currentByModId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of currentMods) if (c.modifier_id) m.set(c.modifier_id, c.id);
+    return m;
+  }, [currentMods]);
+
+  const toggle = async (modId: string) => {
+    if (!orderItemId) return;
+    const existingRowId = currentByModId.get(modId);
+    try {
+      if (existingRowId) {
+        await detach.mutateAsync(existingRowId);
+      } else {
+        const mod = modifiers.find((m) => m.id === modId);
+        if (!mod) return;
+        await attach.mutateAsync({ order_item_id: orderItemId, modifier: mod });
+      }
+    } catch (e: any) {
+      const msg = String(e?.message ?? "");
+      if (msg.includes("MODIFIERS_LOCKED_AFTER_PENDING")) {
+        toast({
+          title: "Modifiers locked",
+          description: "Order is no longer pending — modifiers can't be changed.",
+          variant: "destructive",
+        });
+        onClose();
+      } else {
+        toast({ title: "Failed", description: msg, variant: "destructive" });
+      }
+    }
+  };
+
+  return (
+    <ResponsiveDialog
+      open={!!orderItemId}
+      onOpenChange={(o) => !o && onClose()}
+      title="Item modifiers"
+      size="form"
+    >
+      <div className="space-y-3">
+        {locked && (
+          <div className="text-xs text-cms-amount-negative rounded bg-cms-amount-negative/10 px-3 py-2">
+            Modifiers are locked once the bartender accepts the order.
+          </div>
+        )}
+        <div className="space-y-1 max-h-[55vh] overflow-y-auto">
+          {modifiers.length === 0 ? (
+            <div className="text-sm text-muted-foreground text-center py-4">No modifiers configured.</div>
+          ) : modifiers.map((m) => {
+            const checked = currentByModId.has(m.id);
+            return (
+              <label key={m.id} className={cn(
+                "flex items-center justify-between gap-2 p-2 rounded",
+                locked ? "opacity-60" : "hover:bg-accent/40 cursor-pointer",
+              )}>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={checked}
+                    disabled={locked || attach.isPending || detach.isPending}
+                    onCheckedChange={() => toggle(m.id)}
+                  />
+                  <span className="text-sm">{m.name}</span>
+                </div>
+                <span className={cn(
+                  "text-sm font-mono tabular-nums",
+                  m.price_tzs_delta > 0 ? "text-foreground" : m.price_tzs_delta < 0 ? "text-cms-amount-positive" : "text-muted-foreground",
+                )}>
+                  {m.price_tzs_delta > 0 ? "+" : ""}{formatNumberSpaces(m.price_tzs_delta)}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+        <ResponsiveDialogFooter>
+          <Button variant="outline" onClick={onClose}>Close</Button>
+        </ResponsiveDialogFooter>
+      </div>
+    </ResponsiveDialog>
+  );
+}

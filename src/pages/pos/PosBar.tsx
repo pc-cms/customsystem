@@ -13,10 +13,12 @@ import {
   useForceCloseOrder,
   type PosBarOrder,
 } from "@/hooks/use-pos-bar-orders";
+import { usePosLocations } from "@/hooks/use-pos-locations";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, Check, Clock, Flame, MoreVertical, AlertTriangle, User } from "lucide-react";
+import { formatNumberSpaces } from "@/lib/currency";
+import { ChevronRight, Check, Clock, Flame, MoreVertical, AlertTriangle, User, MapPin } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -26,6 +28,7 @@ import {
 import type { PosOrderStatus } from "@/hooks/use-pos-orders";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { cn } from "@/lib/utils";
 
 const COLS: { key: PosOrderStatus; title: string; icon: typeof Clock; next?: "preparing" | "ready" | "served"; nextLabel?: string }[] = [
   { key: "pending",   title: "New",       icon: Clock, next: "preparing", nextLabel: "Accept" },
@@ -47,12 +50,14 @@ function OrderCard({
   isManager,
   onMarkProblem,
   onForceClose,
+  locationName,
 }: {
   order: PosBarOrder;
   onAdvance?: () => void;
   isManager: boolean;
   onMarkProblem: (o: PosBarOrder) => void;
   onForceClose: (o: PosBarOrder) => void;
+  locationName: string | null;
 }) {
   const age = ageMinutes(order.created_at);
   const urgent = age >= 10 && order.status !== "ready";
@@ -87,8 +92,11 @@ function OrderCard({
           )}
         </div>
       </div>
-      <div className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
-        <User className="h-3 w-3" /> {waiterName}
+      <div className="text-xs text-muted-foreground flex items-center gap-3 mb-2 flex-wrap">
+        <span className="inline-flex items-center gap-1"><User className="h-3 w-3" /> {waiterName}</span>
+        {locationName && (
+          <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {locationName}</span>
+        )}
       </div>
       {problem && order.problem_reason && (
         <div className="text-xs text-cms-amount-negative mb-2 px-2 py-1 rounded bg-cms-amount-negative/10">
@@ -97,9 +105,28 @@ function OrderCard({
       )}
       <ul className="text-sm space-y-1 mb-2">
         {order.items.map((it) => (
-          <li key={it.id} className="flex justify-between gap-2">
-            <span className="truncate">{it.item_name}</span>
-            <span className="text-muted-foreground shrink-0">×{it.qty}</span>
+          <li key={it.id} className="flex flex-col gap-0.5">
+            <div className="flex justify-between gap-2">
+              <span className="truncate">{it.item_name}</span>
+              <span className="text-muted-foreground shrink-0">×{it.qty}</span>
+            </div>
+            {it.modifiers && it.modifiers.length > 0 && (
+              <div className="pl-3 flex flex-wrap gap-1">
+                {it.modifiers.map((m) => (
+                  <span
+                    key={m.id}
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary"
+                  >
+                    + {m.modifier_name_snapshot}
+                    {m.price_tzs_delta_snapshot !== 0 && (
+                      <span className="ml-1 font-mono tabular-nums">
+                        ({m.price_tzs_delta_snapshot > 0 ? "+" : ""}{formatNumberSpaces(m.price_tzs_delta_snapshot)})
+                      </span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            )}
           </li>
         ))}
       </ul>
@@ -131,17 +158,29 @@ export default function PosBar() {
     || roleSet.includes("manager")
     || roleSet.includes("super_admin");
 
-
   const { data: orders = [], isLoading } = usePosBarOrders(activeCasinoId);
+  const { data: locations = [] } = usePosLocations(activeCasinoId, true);
   const advance = useAdvancePosOrder();
   const markProblem = useMarkOrderProblem();
   const forceClose = useForceCloseOrder();
 
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const locationName = (locId: string | null): string | null => {
+    if (!locId) return locations.find((l) => l.name === "Main Bar")?.name ?? null;
+    return locations.find((l) => l.id === locId)?.name ?? null;
+  };
+
+  const filteredOrders = useMemo(() => {
+    if (locationFilter === "all") return orders;
+    if (locationFilter === "__none__") return orders.filter((o) => !o.pos_location_id);
+    return orders.filter((o) => o.pos_location_id === locationFilter);
+  }, [orders, locationFilter]);
+
   const grouped = useMemo(() => {
     const m: Record<PosOrderStatus, PosBarOrder[]> = { pending: [], preparing: [], ready: [], served: [], void: [] };
-    for (const o of orders) m[o.status]?.push(o);
+    for (const o of filteredOrders) m[o.status]?.push(o);
     return m;
-  }, [orders]);
+  }, [filteredOrders]);
 
   const handleAdvance = (o: PosBarOrder, to: "preparing" | "ready" | "served") => {
     advance.mutate(
@@ -186,11 +225,36 @@ export default function PosBar() {
 
   return (
     <div className="p-4 h-full flex flex-col">
-      <div className="flex items-baseline justify-between mb-3">
+      <div className="flex items-baseline justify-between mb-3 gap-3 flex-wrap">
         <h1 className="text-xl font-semibold">Bar Display</h1>
-        <span className="text-xs text-muted-foreground">
-          {isLoading ? "Loading…" : `${orders.length} active`}
-        </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setLocationFilter("all")}
+            className={cn(
+              "h-8 px-3 rounded-md text-xs font-medium border",
+              locationFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:bg-accent/40",
+            )}
+          >
+            All
+          </button>
+          {locations.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => setLocationFilter(l.id)}
+              className={cn(
+                "h-8 px-3 rounded-md text-xs font-medium border inline-flex items-center gap-1",
+                locationFilter === l.id ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:bg-accent/40",
+              )}
+            >
+              <MapPin className="h-3 w-3" /> {l.name}
+            </button>
+          ))}
+          <span className="text-xs text-muted-foreground ml-2">
+            {isLoading ? "Loading…" : `${filteredOrders.length} / ${orders.length} active`}
+          </span>
+        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 min-h-0">
         {COLS.map((col) => {
@@ -215,6 +279,7 @@ export default function PosBar() {
                       isManager={isManager}
                       onMarkProblem={handleMarkProblem}
                       onForceClose={handleForceClose}
+                      locationName={locationName(o.pos_location_id)}
                     />
                   ))
                 )}

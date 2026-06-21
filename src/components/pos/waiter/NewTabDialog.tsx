@@ -1,10 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { useOpenPosTab } from "@/hooks/use-pos-tabs";
 import { usePosPlayerSearch, type PosPlayerSearchRow } from "@/hooks/use-pos-player-search";
+import { usePosLocations } from "@/hooks/use-pos-locations";
 import PlayerPosStatusBadge from "@/components/pos/PlayerPosStatusBadge";
 import { Search } from "lucide-react";
 
@@ -21,6 +29,15 @@ export const NewTabDialog = ({ open, onOpenChange, casinoId, shiftId, userId, on
   const openTab = useOpenPosTab();
   const [search, setSearch] = useState("");
   const { data: results = [], isFetching } = usePosPlayerSearch(casinoId, search);
+  const { data: locations = [] } = usePosLocations(casinoId, true);
+  const [locationId, setLocationId] = useState<string>("");
+
+  useEffect(() => {
+    if (!locationId && locations.length > 0) {
+      const mainBar = locations.find((l) => l.name === "Main Bar") ?? locations[0];
+      setLocationId(mainBar.id);
+    }
+  }, [locations, locationId]);
 
   const createForPlayer = async (player: PosPlayerSearchRow) => {
     try {
@@ -31,6 +48,7 @@ export const NewTabDialog = ({ open, onOpenChange, casinoId, shiftId, userId, on
         opened_by_user_id: userId,
         player_id: player.id,
         player_name: name || (player.nickname ?? "Player"),
+        pos_location_id: locationId || null,
       });
       toast({ title: "Tab opened" });
       onCreated(result.id);
@@ -49,6 +67,19 @@ export const NewTabDialog = ({ open, onOpenChange, casinoId, shiftId, userId, on
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange} title="New tab" size="lg">
       <div className="space-y-3">
+        {locations.length > 0 && (
+          <div>
+            <label className="text-xs uppercase text-muted-foreground">Location</label>
+            <Select value={locationId} onValueChange={setLocationId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {locations.map((l) => (
+                  <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input

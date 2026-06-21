@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { UtensilsCrossed, Receipt, Boxes, BarChart3, ReceiptText, ShoppingCart, Tag, ClipboardCheck, Users, ScaleIcon, AlertTriangle } from "lucide-react";
+import { UtensilsCrossed, Receipt, Boxes, BarChart3, ReceiptText, ShoppingCart, Tag, ClipboardCheck, Users, ScaleIcon, AlertTriangle, MapPin, Sparkles, ChefHat } from "lucide-react";
 
 import CompBudgetCard from "@/components/pos/manager/CompBudgetCard";
 
@@ -65,6 +65,27 @@ const cards = [
     title: "Problem orders",
     desc: "Marked-as-problem and force-closed orders",
     icon: AlertTriangle,
+    enabled: true,
+  },
+  {
+    to: "/pos/manager/locations",
+    title: "Locations",
+    desc: "Main Bar, Coffee Counter, VIP service…",
+    icon: MapPin,
+    enabled: true,
+  },
+  {
+    to: "/pos/manager/modifiers",
+    title: "Modifiers",
+    desc: "Extra Milk, No Ice, Double Shot — per-unit deltas",
+    icon: Sparkles,
+    enabled: true,
+  },
+  {
+    to: "/pos/manager/recipes",
+    title: "Recipes / BOM",
+    desc: "Foundation tables (inert in Phase 3A)",
+    icon: ChefHat,
     enabled: true,
   },
   {

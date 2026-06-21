@@ -2,8 +2,12 @@ import { useMemo, useState } from "react";
 import { formatNumberSpaces } from "@/lib/currency";
 import { usePosMenuCategories, usePosMenuItems, type PosMenuItem } from "@/hooks/use-pos-menu";
 import { useAddPosOrder } from "@/hooks/use-pos-orders";
+import { usePosModifiers, type PosModifier } from "@/hooks/use-pos-modifiers";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Props {
   casinoId: string;
@@ -15,10 +19,12 @@ interface Props {
 export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
   const { data: categories = [] } = usePosMenuCategories(casinoId);
   const { data: items = [] } = usePosMenuItems(casinoId);
+  const { data: modifiers = [] } = usePosModifiers(casinoId, true);
   const addOrder = useAddPosOrder();
 
   const activeCategories = useMemo(() => categories.filter((c) => c.is_active), [categories]);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
+  const [modSheet, setModSheet] = useState<{ item: PosMenuItem; qty: number } | null>(null);
 
   const effectiveCat = selectedCat ?? activeCategories[0]?.id ?? null;
 
@@ -26,7 +32,11 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
     return items.filter((i) => i.is_active && (!effectiveCat || i.category_id === effectiveCat));
   }, [items, effectiveCat]);
 
-  const handleAdd = async (item: PosMenuItem, qty: number, notes?: string | null) => {
+  const handleAdd = async (
+    item: PosMenuItem,
+    qty: number,
+    opts?: { notes?: string | null; modifiers?: PosModifier[] },
+  ) => {
     if (!tabId) {
       toast({ title: "Select or open a tab first", variant: "destructive" });
       return;
@@ -41,13 +51,13 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
         item_name: item.name,
         unit_price_tzs: item.price_tzs,
         qty,
-        notes: notes ?? null,
+        notes: opts?.notes ?? null,
+        modifiers: opts?.modifiers ?? [],
       });
     } catch (e: any) {
       toast({ title: "Failed", description: e?.message, variant: "destructive" });
     }
   };
-
 
   if (activeCategories.length === 0) {
     return (
@@ -95,45 +105,54 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
                   outOfStock={outOfStock}
                   isLow={isLow}
                   disabled={!tabId || addOrder.isPending}
+                  hasModifiers={modifiers.length > 0}
                   onAdd={(qty) => handleAdd(it, qty)}
+                  onAddWithNote={(qty, note) => handleAdd(it, qty, { notes: note })}
+                  onOpenMods={(qty) => setModSheet({ item: it, qty })}
                 />
               );
             })}
           </div>
         )}
       </div>
+
+      <ModifierSheet
+        sheet={modSheet}
+        modifiers={modifiers}
+        onClose={() => setModSheet(null)}
+        onConfirm={async (mods, note) => {
+          if (!modSheet) return;
+          await handleAdd(modSheet.item, modSheet.qty, { notes: note, modifiers: mods });
+          setModSheet(null);
+        }}
+      />
     </div>
   );
 };
 
 const ItemTile = ({
-  item,
-  outOfStock,
-  isLow,
-  disabled,
-  onAdd,
+  item, outOfStock, isLow, disabled, hasModifiers, onAdd, onAddWithNote, onOpenMods,
 }: {
   item: PosMenuItem;
   outOfStock: boolean;
   isLow: boolean;
   disabled: boolean;
-  onAdd: (qty: number, notes?: string | null) => void;
+  hasModifiers: boolean;
+  onAdd: (qty: number) => void;
+  onAddWithNote: (qty: number, note: string | null) => void;
+  onOpenMods: (qty: number) => void;
 }) => {
   const askNote = (qty: number) => {
     if (disabled) return;
     // eslint-disable-next-line no-alert
     const note = window.prompt(`Note for ${item.name} (×${qty})?\nLeave blank to skip.`, "");
-    onAdd(qty, note && note.trim() ? note.trim() : null);
+    onAddWithNote(qty, note && note.trim() ? note.trim() : null);
   };
   return (
     <div
       className={cn(
         "relative rounded-md border bg-card flex flex-col overflow-hidden",
-        outOfStock
-          ? "border-cms-amount-negative/60"
-          : isLow
-            ? "border-cms-amount-negative/40"
-            : "border-border",
+        outOfStock ? "border-cms-amount-negative/60" : isLow ? "border-cms-amount-negative/40" : "border-border",
         disabled && "opacity-50",
       )}
     >
@@ -169,19 +188,23 @@ const ItemTile = ({
       <div className="flex border-t border-border">
         {[2, 3, 5].map((q) => (
           <button
-            key={q}
-            type="button"
-            disabled={disabled}
-            onClick={() => onAdd(q)}
+            key={q} type="button" disabled={disabled} onClick={() => onAdd(q)}
             className="flex-1 h-8 text-xs font-mono hover:bg-accent/40 border-l border-border first:border-l-0"
           >
             ×{q}
           </button>
         ))}
+        {hasModifiers && (
+          <button
+            type="button" disabled={disabled} onClick={() => onOpenMods(1)}
+            title="Add with modifiers"
+            className="w-9 h-8 text-xs hover:bg-accent/40 border-l border-border flex items-center justify-center font-semibold"
+          >
+            +M
+          </button>
+        )}
         <button
-          type="button"
-          disabled={disabled}
-          onClick={() => askNote(1)}
+          type="button" disabled={disabled} onClick={() => askNote(1)}
           title="Add with a note"
           className="w-9 h-8 text-xs hover:bg-accent/40 border-l border-border flex items-center justify-center"
         >
@@ -192,5 +215,85 @@ const ItemTile = ({
   );
 };
 
-export default MenuPanel;
+function ModifierSheet({
+  sheet, modifiers, onClose, onConfirm,
+}: {
+  sheet: { item: PosMenuItem; qty: number } | null;
+  modifiers: PosModifier[];
+  onClose: () => void;
+  onConfirm: (mods: PosModifier[], note: string | null) => void | Promise<void>;
+}) {
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [note, setNote] = useState("");
 
+  // Reset on sheet change
+  useMemo(() => {
+    setSelected({});
+    setNote("");
+  }, [sheet?.item.id]);
+
+  if (!sheet) return null;
+  const chosen = modifiers.filter((m) => selected[m.id]);
+  const deltaSum = chosen.reduce((s, m) => s + m.price_tzs_delta, 0);
+  const lineTotal = (sheet.item.price_tzs + deltaSum) * sheet.qty;
+
+  return (
+    <ResponsiveDialog
+      open={!!sheet}
+      onOpenChange={(o) => !o && onClose()}
+      title={`Modifiers · ${sheet.item.name} ×${sheet.qty}`}
+      size="form"
+    >
+      <div className="space-y-3">
+        <div className="space-y-1 max-h-[40vh] overflow-y-auto">
+          {modifiers.length === 0 ? (
+            <div className="text-sm text-muted-foreground text-center py-4">No modifiers configured.</div>
+          ) : modifiers.map((m) => (
+            <label
+              key={m.id}
+              className="flex items-center justify-between gap-2 p-2 rounded hover:bg-accent/40 cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={!!selected[m.id]}
+                  onCheckedChange={(c) => setSelected({ ...selected, [m.id]: !!c })}
+                />
+                <span className="text-sm">{m.name}</span>
+              </div>
+              <span className={cn(
+                "text-sm font-mono tabular-nums",
+                m.price_tzs_delta > 0 ? "text-foreground" : m.price_tzs_delta < 0 ? "text-cms-amount-positive" : "text-muted-foreground",
+              )}>
+                {m.price_tzs_delta > 0 ? "+" : ""}{formatNumberSpaces(m.price_tzs_delta)}
+              </span>
+            </label>
+          ))}
+        </div>
+
+        <div>
+          <label className="text-xs uppercase text-muted-foreground">Note (optional)</label>
+          <input
+            className="w-full h-10 px-3 rounded-md border border-border bg-background text-sm"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="e.g. table 5, no straw"
+          />
+        </div>
+
+        <div className="flex items-center justify-between text-sm border-t border-border pt-2">
+          <span className="text-muted-foreground">
+            ({formatNumberSpaces(sheet.item.price_tzs)} {deltaSum !== 0 && `${deltaSum > 0 ? "+" : ""}${formatNumberSpaces(deltaSum)}`}) × {sheet.qty}
+          </span>
+          <span className="font-mono font-semibold tabular-nums">{formatNumberSpaces(lineTotal)}</span>
+        </div>
+
+        <ResponsiveDialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={() => onConfirm(chosen, note.trim() || null)}>Add</Button>
+        </ResponsiveDialogFooter>
+      </div>
+    </ResponsiveDialog>
+  );
+}
+
+export default MenuPanel;
