@@ -199,6 +199,10 @@ const PlayerStatistics = () => {
   const canEditChips = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "shift_manager", "super_admin"].includes(r));
   const canEditZone = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "shift_manager", "reception", "super_admin"].includes(r));
   const [zoneFilter, setZoneFilter] = useState<Set<PlayerZone | "none">>(new Set(["S", "LG", "CP", "none"]));
+  const [activeOnly, setActiveOnly] = useState(false);
+  const isActiveRow = (r: any) =>
+    (r.dropR ?? 0) > 0 || (r.inDrop ?? 0) > 0 ||
+    (r.out ?? 0) > 0 || (r.chipIn ?? 0) > 0 || (r.chipOut ?? 0) > 0;
 
 
   const { data: visits = [] } = useQuery({
