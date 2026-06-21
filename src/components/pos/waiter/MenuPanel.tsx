@@ -106,18 +106,12 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             {filtered.map((it) => {
-              const outOfStock = it.stock_qty != null && it.stock_qty <= 0;
-              const isLow =
-                !outOfStock &&
-                it.stock_qty != null &&
-                it.low_threshold != null &&
-                it.stock_qty <= it.low_threshold;
+              const av = availByItem.get(it.id);
               return (
                 <ItemTile
                   key={it.id}
                   item={it}
-                  outOfStock={outOfStock}
-                  isLow={isLow}
+                  availability={av}
                   disabled={!tabId || addOrder.isPending}
                   hasModifiers={modifiers.length > 0}
                   onAdd={(qty) => handleAdd(it, qty)}
