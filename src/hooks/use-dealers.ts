@@ -375,6 +375,11 @@ const aliasBreaklistRow = (b: any) => ({ ...b, dealer_id: b.employee_id });
 
 export const useBreaklistData = (date: string) => {
   const { activeCasinoId: casinoId } = useCasino();
+  // Pause polling while local breaklist mutations are in flight. Otherwise a
+  // 3.5s refetch can fire between optimistic update and server commit, pull
+  // STALE rows, and overwrite the freshly-picked table — the cell would then
+  // appear empty for 3-4 seconds until the next refetch after onSettled.
+  const pendingBreaklistMutations = useIsMutating({ mutationKey: ["breaklist-cell"] });
   return useQuery({
     queryKey: ["breaklist", casinoId, date],
     queryFn: async () => {
@@ -385,8 +390,8 @@ export const useBreaklistData = (date: string) => {
     // Safety net for realtime: even if the websocket drops a postgres_changes
     // event (token refresh edge cases, network blips), Pit operators on two PCs
     // must converge within seconds — not after a manual reload.
-    refetchInterval: 3_500,
-    refetchOnWindowFocus: true,
+    refetchInterval: pendingBreaklistMutations > 0 ? false : 3_500,
+    refetchOnWindowFocus: pendingBreaklistMutations === 0,
     refetchOnReconnect: true,
   });
 };
