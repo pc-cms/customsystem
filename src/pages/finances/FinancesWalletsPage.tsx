@@ -103,7 +103,7 @@ const usePeriodIncome = (from: string, to: string) => {
         0,
       );
       const rateList = (rates.data || [])
-        .map((r: any) => Number(r.usd_to_tzs || 0))
+        .map((r: any) => Number(r.rate_to_tzs || 0))
         .filter((n: number) => n > 0);
       const avg = rateList.length
         ? rateList.reduce((a: number, b: number) => a + b, 0) / rateList.length
