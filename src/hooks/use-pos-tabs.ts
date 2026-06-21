@@ -22,6 +22,7 @@ export type PosTab = {
   expense_id: string | null;
   void_reason: string | null;
   business_date: string | null;
+  pos_location_id: string | null;
 };
 
 export type PaymentSplit = {
