@@ -1,77 +1,69 @@
 
-# POS Phase 1 — Implementation Plan
+# POS Phase 2 — Approved Implementation
 
-## Status
+Order of operations: **(1) DB migration → wait for approval → (2) frontend + version bump**.
 
-The **database migration is already approved & applied** (you saw the migration approval pop-up). The remaining work is **frontend wiring** for the new server logic + a version bump. Approve this plan and I'll make those edits in build mode.
+## 1. Database migration (single file)
 
----
+**New columns on `pos_orders`:**
+`notes text`, `is_problem bool default false`, `problem_reason text`, `problem_marked_at timestamptz`, `problem_marked_by uuid`, `force_closed_at timestamptz`, `force_closed_by uuid`, `force_close_reason text`, `closed_by_system bool default false`, `auto_closed_at timestamptz`.
 
-## What the migration already did (live in DB)
+**Functions + triggers:**
 
-1. `pos_orders.stock_deducted_at` column added (idempotency guard).
-2. `pos_inventory_movements` enriched with `casino_id`, `business_date`, `reference_type`, `reference_id` + indexes.
-3. `pos_order_items_after_insert` rewritten — **no longer deducts stock**; only recomputes order total.
-4. New trigger `pos_orders_stock_lifecycle`:
-   - On status `pending → preparing/ready/served`: inserts one `pos_inventory_movements` row per tracked item (`reason='sale'`, `reference_type='pos_order'`), sets `stock_deducted_at`, logs `pos_order_confirmed` to `activity_logs`, and logs `pos_stock_negative` for any item that went < 0.
-   - On status `→ void`: if `stock_deducted_at` was set, inserts reversal movements (`reason='order_void_reversal'`); always logs `pos_order_voided` with `stock_restored` flag.
-5. New trigger `pos_tabs_validate_close` blocks close when `payment_split.player_charge > 0` or `comp_player > 0` and `player_id IS NULL`, with error codes `PLAYER_CHARGE_REQUIRES_PLAYER` / `COMP_PLAYER_REQUIRES_PLAYER`.
-6. Audit triggers added: `pos_tabs_audit` (open/close/void), `pos_orders_audit_insert` (create), `pos_player_charges_audit` (create/settle/void), `pos_inventory_audit_insert` (manual adjustments only — sale/void are audited via the lifecycle trigger), `pos_comp_override_audit`.
-7. New RPC `pos_player_status(_player_id, _casino_id)` returns `'allowed' | 'warning' | 'approval'` without numeric balances. Logic: `approval` if `pos_comp_budget_status.is_over`; `warning` if ≥3 open charges OR comp budget ≥80% used OR any open charge; else `allowed`.
-8. `pos_orders.void_reason` is marked deprecated via column comment. Code uses `voided_reason` consistently; the duplicate column is preserved so existing rows are not lost.
+- `pos_tabs_require_player()` — BEFORE INSERT on `pos_tabs`. Raises `PLAYER_REQUIRED_FOR_NEW_TAB` whenever `NEW.player_id IS NULL`, regardless of `walkin_label`. INSERT-only, so historical walk-in rows stay intact.
+- `pos_orders_force_close_guard()` — BEFORE UPDATE on `pos_orders`. If `OLD.force_closed_at IS NULL AND NEW.force_closed_at IS NOT NULL AND OLD.status = 'pending'`, raises `FORCE_CLOSE_NOT_ALLOWED_FOR_PENDING` with hint *"Pending orders must be accepted by bartender or voided, not force-closed."* Sets actor + `closed_by_system=false` for allowed statuses, advances status to `served` when force-closing.
+- `pos_orders_auto_close_on_ready()` — BEFORE UPDATE OF status on `pos_orders`. When `OLD.status='preparing' AND NEW.status='ready'`, rewrites NEW to `status='served'`, sets `ready_at`, `served_at`, `closed_by_system=true`, `auto_closed_at`. Phase 1 `pos_orders_stock_lifecycle` (AFTER UPDATE) only deducts when `OLD.status='pending'`, so no double-deduct.
+- `pos_orders_audit_manager_actions()` — AFTER UPDATE. Inserts `pos_order_marked_problem`, `pos_order_force_closed`, `pos_order_auto_closed` rows into activity log.
+- `pos_player_search(_casino_id uuid, _q text)` RPC — `STABLE SECURITY DEFINER SET search_path=public`. Trigram + ILIKE over `players.first_name/last_name/nickname/phone/id_number` and `player_cards.card_number/rfid_uid`. Returns id, names, nickname, category, masked phone, casino_id, card_matched flag. **No money fields.** Limit 30. `GRANT EXECUTE TO authenticated`.
 
-All new functions use `SET search_path TO 'public'`. The 432 linter warnings are pre-existing project-wide and not introduced by this migration.
+No table creates → no new GRANTs needed for tables.
 
----
+## 2. Frontend
 
-## Frontend changes pending (need build mode)
+**New:**
+- `src/hooks/use-pos-player-search.ts`
+- `src/components/pos/manager/OrderActionsMenu.tsx`, `MarkProblemDialog.tsx`, `ForceCloseDialog.tsx`
+- `src/pages/pos/PosManagerProblemOrders.tsx` (route `/pos/manager/problem-orders`)
 
-### New files
-- `src/hooks/use-pos-player-status.ts` — thin React-Query wrapper over the `pos_player_status` RPC, 60s stale.
-- `src/components/pos/PlayerPosStatusBadge.tsx` — pill (Allowed / Warning / Need Approval) with icon. Renders nothing for walk-in tabs. **No numeric data shown to waiters.**
+**Edited:**
+- `NewTabDialog.tsx` — single search input replaces walk-in form. Submit disabled until a player row is selected.
+- `MenuPanel.tsx` — 📝 icon on each tile opens note prompt (persists to next add).
+- `ActiveTabPanel.tsx` — show + edit notes while order is `pending`; lock once `preparing`.
+- `PlayerPosStatusBadge.tsx` — adds 4th `unknown` state (grey `—`, no toast).
+- `use-pos-player-status.ts` — `retry:1`, `throwOnError:false`, error → `unknown`.
+- `use-pos-orders.ts` — accept `notes` on add.
+- `use-pos-bar-orders.ts` — join `waiter:profiles!waiter_user_id(display_name)`; add `notes`; add `useMarkOrderProblem`, `useForceCloseOrder` mutations (FE guard: throws before request if `status==='pending'` for force-close).
+- `PosBar.tsx` (OrderCard) — render `👤 {waiter}`, italic note, problem highlight; `⋮` menu (manager only) hides *Force close* when status is `pending`.
+- `PosManager.tsx` + `App.tsx` — register `/pos/manager/problem-orders` route + sidebar entry.
+- `package.json` — patch version bump.
 
-### Edited files
-- `src/components/pos/waiter/MenuPanel.tsx`
-  - Out-of-stock tile **no longer disabled**; gets a red `Out · allowed` chip and a warning-coloured stock badge. Bartender confirm will still go through and DB will log `pos_stock_negative`.
-- `src/components/pos/waiter/ActiveTabPanel.tsx`
-  - Add `<PlayerPosStatusBadge>` next to the tab label (player tabs only).
-- `src/components/pos/waiter/NewTabDialog.tsx`
-  - Show the status badge next to each player row in the search results so the waiter sees the state **before** opening the tab.
-- `src/components/pos/waiter/CloseBillDialog.tsx`
-  - Map the new DB error codes (`PLAYER_CHARGE_REQUIRES_PLAYER`, `COMP_PLAYER_REQUIRES_PLAYER`) to friendly toast messages instead of the raw SQL string. The pre-existing client-side guards remain (defence in depth).
-- `package.json` — bump version (`1.3.395 → 1.3.396`, patch — backend change rule).
+## 3. Verification queries to run after migration
 
-### Files NOT touched
-- Payment flow (`useClosePosTab`, `pos_tabs_after_close_comp`, `pos_tab_emit_player_charge`) is untouched per Phase 1 scope.
-- No changes to RLS, Z-report, purchases, reports, shifts, or PosLayout.
+```sql
+-- (a) Insert with NULL player_id must fail
+INSERT INTO pos_tabs(casino_id, opened_by) VALUES (...);                  -- expect PLAYER_REQUIRED_FOR_NEW_TAB
+INSERT INTO pos_tabs(casino_id, opened_by, walkin_label) VALUES (...);    -- expect same error
 
----
+-- (b) Historical walk-in rows still readable
+SELECT count(*) FROM pos_tabs WHERE player_id IS NULL;
 
-## Acceptance checks I'll run after build-mode edits
+-- (c) Force-close blocked on pending
+UPDATE pos_orders SET force_closed_at=now(), force_close_reason='x'
+ WHERE status='pending' LIMIT 1;                                          -- expect FORCE_CLOSE_NOT_ALLOWED_FOR_PENDING
 
-| Check | How |
-|---|---|
-| Adding item does not move stock | Inspect `pos_menu_items.stock_qty` before + after `useAddPosOrder`; expect unchanged |
-| Bartender Start deducts exactly once | Press Start twice (second is no-op via guard); expect single `pos_inventory_movements` `sale` row |
-| Sale movement carries full reference | Query `pos_inventory_movements WHERE reference_type='pos_order'` for the order id |
-| Void after confirm restores stock | `useVoidPosOrder` then verify reversal row + `stock_qty` back to original |
-| Void before confirm has no inventory side-effect | `useVoidPosOrder` on a `pending` order — expect zero new movements |
-| Out-of-stock tile is clickable | Click + confirm; expect `pos_stock_negative` row in `activity_logs` |
-| `player_charge` without player blocked | Walk-in tab → close with charge > 0; expect toast with friendly text |
-| `voided_reason` consistent | All FE writes still use `voided_reason` for orders, `void_reason` for tabs/charges |
-| `activity_logs` rows present | One row per: tab open/close/void, order create/confirm/void, charge create/settle/void, manual stock adjustment, comp override |
-| Existing flow untouched | Open shift → tabs → orders → bar advance → close bill → Z-report renders |
+-- (d) Auto-close: simulate preparing→ready, expect served + closed_by_system=true + auto_closed_at set
 
----
+-- (e) Stock invariant: count sale movements per order before/after auto-close + force-close — exactly one
+```
 
-## Known limitations carried into Phase 2+
+## 4. Risks / manual QA notes
 
-- Status pill thresholds (≥3 open / ≥80% budget) are placeholders until `players.comps_balance` / `credit_limit` / `debt_limit` exist.
-- No order-level audit on Started/Ready/Served *individually* — only the first deduction event is logged. We can split if needed.
-- Manager force-close, reversal of a closed tab, recipes, modifiers, locations, purchase requests/approvals, daily-close screen, printable shift report — all deferred to later phases as agreed.
-- The `pos_inventory_movements` immutable-row trigger applies only to UPDATE/DELETE; new INSERTs with the enriched columns are unblocked.
-- `pos_orders.void_reason` column kept; safe to drop in a later cleanup migration once we confirm zero readers in older offline replicas.
+- Force-close guard relies on `OLD.status` snapshot — must run **before** auto-close trigger (BEFORE UPDATE ordering by name alphabetically; the guard name `trg_pos_orders_force_close_guard` sorts before `trg_pos_orders_auto_close`). Verified manually after push.
+- Auto-close fires only on explicit `ready` transition by bartender; will not retro-close orders that were left in `preparing` before deploy.
+- `pos_player_search` is cross-casino on the player base (per Core rule "global player base"); UI shows the player's home-casino chip so the waiter knows it's not a local member.
+- No automatic "POS Guest" provisioning — front-line staff must register a player first (existing reception flow).
+- Status pill heuristic remains a placeholder until `players.credit_limit` / `comps_balance` columns land.
+- No backfill of historical walk-in tabs into players; they remain `player_id IS NULL` and read-only.
+- Z-report and `useClosePosTab` payment_split untouched — re-tested via existing report.
 
----
-
-Approve and I'll make the four file edits + add the two new files + bump `package.json`.
+Phase 3 (recipes, modifiers, POS locations, suppliers, purchase approvals, receiving, payment redesign) **not started**.
