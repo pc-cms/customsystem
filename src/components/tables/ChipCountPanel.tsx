@@ -172,14 +172,14 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       const locCounts = counts[loc.key] || {};
       const tableBaseline = baselineMap[loc.id] || {};
       loc.denoms.forEach(d => {
-        const expected = tableBaseline[d] || 0;
         const entered = locCounts[d];
-        // Empty/NaN → save the last check value (= what placeholder shows) so
-        // partial entries keep the previous reading for untouched denominations.
-        const actual = entered === undefined || Number.isNaN(entered as any)
-          ? getLastCheck(loc.id, d)
-          : (entered as number);
-        rows.push({ location_type: loc.type, location_id: loc.id, denomination: d, expected_quantity: expected, actual_quantity: actual });
+        // Strictly skip cells the user did not touch — empty/NaN means
+        // "no change", so we do NOT write a new snapshot row for this
+        // (table, denomination). The latest existing snapshot remains
+        // the authoritative reading for downstream consumers.
+        if (entered === undefined || Number.isNaN(entered as any)) return;
+        const expected = tableBaseline[d] || 0;
+        rows.push({ location_type: loc.type, location_id: loc.id, denomination: d, expected_quantity: expected, actual_quantity: entered as number });
       });
     });
     batchSnapshot.mutate({ date, counts: rows });
