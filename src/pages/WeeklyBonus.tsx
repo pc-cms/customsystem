@@ -12,6 +12,7 @@ import {
   useUpsertBonusEntry, useUpsertBonusPool,
   getWeekStartSunday, addDaysIso,
 } from "@/hooks/use-weekly-bonus";
+import { useDataScope } from "@/hooks/use-data-scope";
 import { useDailyResults } from "@/hooks/use-import-reports";
 import { fmtDateOnly } from "@/lib/format-date";
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, isExtraShift } from "@/lib/shift-colors";
