@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { usePlayerGroups, useCreateGroup, useAddGroupMember, useRemoveGroupMember, usePlayers, useTransactions, useExpenses } from "@/hooks/use-casino-data";
 import { formatCurrency } from "@/lib/currency";
 import { useAuth } from "@/lib/auth-context";
@@ -40,9 +41,9 @@ const Groups = () => {
   const [newName, setNewName] = useState("");
   const [addingToGroup, setAddingToGroup] = useState<string | null>(null);
 
-  const [preset, setPreset] = useState<DatePreset>("month");
+  const [preset, setPreset] = useSessionState<DatePreset>("preset", "month");
   const initial = monthToDateRange(today);
-  const [dateRange, setDateRange] = useState<{ from: string; to: string }>(initial);
+  const [dateRange, setDateRange] = useSessionState<{ from: string; to: string }>("dateRange", initial);
 
   // Per-member period stats — accounts for membership window AND date filter
   const computeMemberStats = (m: any) => {
