@@ -344,6 +344,8 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
                   <td className="py-2 px-2 text-right font-mono">{fmtMoney(tot.drop)}</td>
                   <td className="py-2 px-2 text-right font-mono">{fmtMoney(tot.inGross)}</td>
                   <td className="py-2 px-2 text-right font-mono">{fmtMoney(tot.out)}</td>
+                  <td className="py-2 px-2 text-right font-mono text-success">{fmtMoney(tot.chipIn)}</td>
+                  <td className="py-2 px-2 text-right font-mono text-destructive">{fmtMoney(tot.chipOut)}</td>
                   <td className={`py-2 px-2 text-right font-mono ${r === 0 ? "" : r > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(r)}</td>
                   <td className="py-2 px-2 text-right font-mono">{fmtMoney(tot.comps)}</td>
                   <td className={`py-2 px-2 text-right font-mono ${t === 0 ? "" : t > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(t)}</td>
