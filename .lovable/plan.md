@@ -1,64 +1,61 @@
-## Monthly Report — 5 fixes (revised)
+## Budget Page — таблица-редактор с месяцами × категориями
 
-### 1. Plan/Year = месячный план × 12 (когда введён один месяц)
-В `src/hooks/use-fin-monthly-report.ts` при сборке `planYearMap`:
-- Считаем число месяцев с ненулевым значением в `fin_budget` для пары (category, currency).
-- Если введён ровно один месяц → `plan_year = value × 12`.
-- Если введено ≥ 2 месяцев → суммируем как сейчас.
-- Логика применяется отдельно к TZS и USD.
+Полный редизайн `src/pages/finances/FinancesBudgetPage.tsx`.
 
-### 2. Раздельный учёт TZS-расходов и USD-расходов (нативная валюта)
-Сейчас `actual_tzs` суммирует `amount_tzs` всех расходов (включая USD, конвертированные по курсу). Это неверно — пользователю нужны **фактически списанные суммы в исходной валюте**, без конвертации.
+### Структура таблицы
 
-В `use-fin-monthly-report.ts` для каждой категории/группы считаем три независимых поля:
-- `actual_native_tzs` — Σ `amount` где `currency = 'TZS'`
-- `actual_native_usd` — Σ `amount` где `currency = 'USD'` (уже считается как `actual_usd`)
-- `actual_grand_tzs` — Σ `amount_tzs` всех (для итогового баланса в шиллингах)
+**Колонки слева (sticky):**
+1. Группа (badge) + Категория
+2. Сортировка-кнопка (стрелочки в заголовке)
 
-Аналогично три поля для плана: `plan_month_tzs` (TZS-бюджет), `plan_month_usd` (USD-бюджет), `plan_month_grand_tzs` = TZS + USD × курс.
+**Колонки месяцев (Jan..Dec):**
+- Каждый месяц = `colspan=2` в верхнем заголовке.
+- Под ним два под-заголовка: `TZS` и `USD`.
+- Ширина одной под-ячейки ~110px, monospaced tabular-nums, помещает `999 000 000` (9 цифр + разделители).
 
-В таблице групп показываем колонки:
-- **Plan/Year TZS**, **Plan/Year USD**
-- **Plan/Mo TZS**, **Plan/Mo USD**
-- **Actual TZS** (native), **Actual USD** (native)
-- **%**, **MTD**, **Remain TZS**, **Remain USD**, **Remain %**
+**Правые sticky колонки:**
+- `Plan Year TZS` (Σ TZS за 12 месяцев — если введён 1 месяц → ×12, иначе сумма; та же логика, что в Monthly Report).
+- `Plan Year USD` (то же для USD).
 
-(Колонка "USD" перестаёт быть опциональной — это нативные доллары, а не пересчёт.)
+**Низ — три sticky строки:**
+- Row 1: `Total TZS` — Σ TZS-плана по всем категориям × месяц.
+- Row 2: `Total USD` — Σ USD-плана.
+- Row 3: `Grand TZS` — TZS + USD × rate, где rate из `fin_daily_rates` (последний USD-курс активного казино за год; fallback — текущий курс из useFinDailyRate).
 
-### 3. Блок Total Budget (после групп, до Collections)
-Новая `PageSection title="Total Budget"`:
-| Метрика | TZS | USD | Grand TZS |
-|---|---|---|---|
-| Plan Month | Σ TZS-плана | Σ USD-плана | TZS + USD×rate |
-| Actual | Σ TZS-факта | Σ USD-факта | Σ amount_tzs |
-| Remain | разница | разница | разница |
+### Группировка и сортировка
 
-Курс USD→TZS берём из `fin_daily_rates` (последний доступный для активного казино в выбранном месяце; fallback — средний по месяцу).
+Слева над таблицей (в `belowHeader`):
+- Select **Sort by**: `Group → Name` (по умолчанию) / `Name A→Z` / `Plan Year TZS desc` / `Plan Year USD desc`.
+- При `Group → Name`: строки рендерятся секциями — для каждой группы заголовочная строка с именем (Fixed expenses, Tax, Variable, ...) и subtotal-строка (Σ TZS/USD/Grand TZS по группе и по месяцам) сразу под категориями группы.
+- Sticky левая колонка содержит группу-бейдж + имя.
 
-### 4. Порядок секций (только UI)
-```
-Incomes
-Groups (fixed, tax, variable, salary, petrol, additional) ← Expenses
-Total Budget (новая, см. п.3)
-Profit         = Incomes.Total − Total Budget.Actual Grand TZS
-Collections & Owner Withdrawal
-Net Balance    = Profit − Collections.Actual TZS
-```
-Заменяет текущий блок "Grand Total".
+### Inline-редактирование
 
-### 5. Курс в расчётах (баг)
-В `use-fin-monthly-report.ts` и `FinancesWalletsPage.tsx`:
-- Заменяем `.select("usd_to_tzs, business_date")` → `.select("rate_to_tzs, business_date").eq("currency","USD")` (колонка `usd_to_tzs` не существует — запрос молча возвращает 0, поэтому курс "застревает на 2500" fallback).
+- Каждая под-ячейка — `<input type="number">` с `onBlur` коммитом через существующий `useUpsertFinBudget` (передаём `currency: 'TZS' | 'USD'`).
+- Tab перемещает фокус слева направо по строке (TZS → USD → next month TZS …).
+- Enter сохраняет и переходит на следующую строку в той же колонке.
+- Пустая строка / `0` → удалить запись (или сохранить как 0, как сейчас).
+- Оптимистичное обновление через invalidate `["fin-budget", year]`.
 
-### 6. Slots income из Day Closing
-В `use-fin-monthly-report.ts`:
-- Удаляем запрос к `cage_slots_shifts.system_shift_result`.
-- Добавляем запрос к `fin_day_closing` за диапазон:
-  `SELECT slots_result, tables_result FROM fin_day_closing WHERE casino_id=? AND business_date BETWEEN start AND endExclusive`
-- `incomes.slots = Σ slots_result`, `incomes.live_game = Σ tables_result`. Только закрытые финансовым менеджером дни считаются доходом.
+### Прокрутка и размеры
 
-### Технические заметки
-- Файлы: `src/hooks/use-fin-monthly-report.ts`, `src/pages/finances/FinancesMonthlyReportPage.tsx`, `src/pages/finances/FinancesWalletsPage.tsx`.
-- Фронтенд + хук, никаких миграций.
-- XLSX-экспорт обновлю в соответствии с новой структурой.
-- Без bump версии (UI-only).
+- Контейнер: `overflow-auto`, `max-h: calc(100vh - 220px)`.
+- Sticky: верхний `thead` (2 уровня), левая колонка (Category), правые 2 колонки (Plan Year TZS/USD), нижние 3 totals-строки.
+- Не пытаемся уместить в один экран — горизонтальный скролл по 12 месяцам × 2 = 24 под-колонки + 3 sticky.
+- Общая мин-ширина таблицы: `200 (cat) + 24×110 (months) + 2×130 (plan year) ≈ 3100px`.
+
+### Удаления
+
+- Убираем глобальный селектор валюты (Select TZS/USD) — обе валюты теперь в таблице.
+- Убираем колонку «Plan Year (auto)» — заменяем на две (TZS + USD).
+
+### Где не трогаем
+
+- Хук `useUpsertFinBudget` остаётся как есть (он уже принимает `currency`).
+- Таблица `fin_budget` и схема — без изменений.
+- Monthly Report остаётся как есть.
+
+### Файлы
+
+- `src/pages/finances/FinancesBudgetPage.tsx` — полная замена.
+- Без backend-изменений, без миграций, без bump версии.
