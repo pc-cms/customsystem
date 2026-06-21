@@ -345,6 +345,9 @@ const SidebarSections = ({
           to={item.to}
           end={item.to === "/" || item.to === "/tables" || EXACT_NAV_PATHS.has(itemBase) || isTabAware}
           onClick={onNavigate}
+          onMouseEnter={() => prefetchRoute(itemBase)}
+          onFocus={() => prefetchRoute(itemBase)}
+          onTouchStart={() => prefetchRoute(itemBase)}
           className={({ isActive }) => {
             const active = isTabAware ? isTabAwareActive : isActive;
             return `flex items-center gap-3 px-3 h-8 rounded-md text-sm transition-colors ${
