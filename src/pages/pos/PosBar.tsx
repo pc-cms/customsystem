@@ -13,10 +13,12 @@ import {
   useForceCloseOrder,
   type PosBarOrder,
 } from "@/hooks/use-pos-bar-orders";
+import { usePosLocations } from "@/hooks/use-pos-locations";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, Check, Clock, Flame, MoreVertical, AlertTriangle, User } from "lucide-react";
+import { formatNumberSpaces } from "@/lib/currency";
+import { ChevronRight, Check, Clock, Flame, MoreVertical, AlertTriangle, User, MapPin } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -26,6 +28,7 @@ import {
 import type { PosOrderStatus } from "@/hooks/use-pos-orders";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { cn } from "@/lib/utils";
 
 const COLS: { key: PosOrderStatus; title: string; icon: typeof Clock; next?: "preparing" | "ready" | "served"; nextLabel?: string }[] = [
   { key: "pending",   title: "New",       icon: Clock, next: "preparing", nextLabel: "Accept" },
