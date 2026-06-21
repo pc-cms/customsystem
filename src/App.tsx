@@ -156,7 +156,7 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 60 * 2, // 2 min — better for slow connections
       gcTime: 1000 * 60 * 60 * 24, // 24h — keep in cache for offline
-      refetchOnWindowFocus: false, // avoid refetch storms on tab switch
+      refetchOnWindowFocus: true, // safety net: refetch stale visible queries when user returns to tab
       // M8: Do NOT auto-refetch every query on reconnect — that causes a
       // request storm on flaky links and brings the UI down again. The
       // offline sync engine triggers staggered refetches manually.
