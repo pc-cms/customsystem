@@ -258,6 +258,14 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
         shiftId={shiftId}
         userId={userId}
       />
+
+      <EditItemModifiersDialog
+        casinoId={casinoId}
+        orderItemId={modItemId}
+        currentMods={modItemId ? (modsByItem.get(modItemId) ?? []) : []}
+        locked={modItemId ? itemOrderStatus.get(modItemId) !== "pending" : true}
+        onClose={() => setModItemId(null)}
+      />
     </div>
   );
 };
