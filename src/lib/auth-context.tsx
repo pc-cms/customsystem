@@ -151,11 +151,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let mounted = true;
     let timeoutId: ReturnType<typeof setTimeout>;
 
-    // Safety timeout: if getSession hangs (known Supabase issue), force ready after 5s
+    // Safety timeout: if getSession hangs (known Supabase issue), force ready after 5s.
+    // Additionally — if we have a token stashed in localStorage but no session
+    // materialised, try refreshSession() so the user doesn't get stuck with
+    // casinoId=null and every per-casino query disabled forever.
     timeoutId = setTimeout(() => {
       if (mounted && !authReady) {
         console.warn("[Auth] getSession timed out after 5s, forcing ready state");
         setAuthReady(true);
+        try {
+          const hasStoredToken = Object.keys(localStorage).some(
+            (k) => k.startsWith("sb-") && k.endsWith("-auth-token")
+          );
+          if (hasStoredToken && !currentUserIdRef.current) {
+            console.warn("[Auth] stored token found but no session — attempting refreshSession()");
+            void supabase.auth.refreshSession().then(({ data, error }) => {
+              if (error) {
+                console.error("[Auth] refreshSession failed", error);
+                return;
+              }
+              if (data.session && mounted) processSession(data.session);
+            });
+          }
+        } catch (e) {
+          console.warn("[Auth] safety refreshSession check failed", e);
+        }
       }
     }, 5000);
 
