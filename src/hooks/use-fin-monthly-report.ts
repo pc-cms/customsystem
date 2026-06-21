@@ -36,25 +36,46 @@ export type ReportCategory = {
   plan_year_usd: number;
   plan_month_tzs: number;
   plan_month_usd: number;
+  /** Σ amount where currency='TZS' — native TZS spend, no conversion. */
   actual_tzs: number;
+  /** Σ amount where currency='USD' — native USD spend, no conversion. */
   actual_usd: number;
+  /** Σ amount_tzs across all currencies — for grand totals in TZS. */
+  actual_grand_tzs: number;
   expenses: ReportExpense[];
-  per_casino?: Record<string, { actual_tzs: number; actual_usd: number }>;
+  per_casino?: Record<string, { actual_tzs: number; actual_usd: number; actual_grand_tzs: number }>;
 };
 
 export type ReportGroup = {
   code: string;
   name: string;
   categories: ReportCategory[];
-  totals: { plan_year_tzs: number; plan_year_usd: number; plan_month_tzs: number; plan_month_usd: number; actual_tzs: number; actual_usd: number };
+  totals: {
+    plan_year_tzs: number;
+    plan_year_usd: number;
+    plan_month_tzs: number;
+    plan_month_usd: number;
+    actual_tzs: number;
+    actual_usd: number;
+    actual_grand_tzs: number;
+  };
 };
 
 export type MonthlyReport = {
   incomes: { live_game: number; slots: number; other: number; total: number };
   groups: ReportGroup[];
-  /** Collections & Owner Withdrawals — rendered separately, excluded from grand.actual_tzs */
+  /** Collections & Owner Withdrawals — rendered separately, excluded from grand. */
   collections: ReportGroup | null;
-  grand: { plan_month_tzs: number; plan_month_usd: number; actual_tzs: number; actual_usd: number };
+  grand: {
+    plan_month_tzs: number;
+    plan_month_usd: number;
+    plan_month_grand_tzs: number;
+    actual_tzs: number;
+    actual_usd: number;
+    actual_grand_tzs: number;
+  };
+  /** USD→TZS rate used for Grand TZS conversion (avg of period, or 0 if no rate set). */
+  usd_rate: number;
 };
 
 type Args = {
