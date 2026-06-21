@@ -162,6 +162,17 @@ export default function PosManagerModifiers() {
           </div>
         )}
       </ResponsiveDialog>
+
+      {configFor && activeCasinoId && (
+        <PosModifierConfigDialog
+          open={!!configFor}
+          onOpenChange={(o) => !o && setConfigFor(null)}
+          casinoId={activeCasinoId}
+          modifierId={configFor.id}
+          modifierName={configFor.name}
+        />
+      )}
     </PageShell>
+
   );
 }
