@@ -6,6 +6,7 @@
 // + table context is available.
 // ============================================================
 import { useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { ArrowLeftRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
@@ -124,13 +125,14 @@ const Transfers = () => {
   const sourceLocked = !isManager && (isCashierLive || isCashierSlots);
   const roleDefaultSource: Source = isCashierSlots ? "slots" : "live_game";
 
-  const [source, setSource] = useState<Source>(
+  const [source, setSource] = useSessionState<Source>(
+    "source",
     sourceLocked ? roleDefaultSource : (isManager ? "all" : roleDefaultSource)
   );
 
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
-  const [viewDate, setViewDate] = useState<string>(businessDate);
+  const [viewDate, setViewDate] = useSessionState<string>("viewDate", businessDate);
   const isToday = viewDate === businessDate;
 
   const { data: rows = [] } = useUnifiedTransfers(viewDate, source);
