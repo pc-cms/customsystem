@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, Plus, Archive, ArchiveRestore } from "lucide-react";
+import { Sparkles, Plus, Archive, ArchiveRestore, Settings } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
 } from "@/hooks/use-pos-modifiers";
 import { formatNumberSpaces } from "@/lib/currency";
 import { toast } from "@/hooks/use-toast";
+import { PosModifierConfigDialog } from "@/components/pos/manager/PosModifierConfigDialog";
 
 export default function PosManagerModifiers() {
   const { activeCasinoId } = useCasino();
@@ -27,6 +28,8 @@ export default function PosManagerModifiers() {
   const upsert = useUpsertPosModifier();
   const archive = useArchivePosModifier();
   const [edit, setEdit] = useState<Partial<PosModifier> | null>(null);
+  const [configFor, setConfigFor] = useState<PosModifier | null>(null);
+
 
   const handleSave = async () => {
     if (!edit || !activeCasinoId || !edit.name?.trim()) {
