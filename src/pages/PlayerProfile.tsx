@@ -228,8 +228,8 @@ const PlayerProfile = () => {
   }, [visits, transactions]);
 
   // Lifetime KPIs — perspective: PLAYER (positive = player won, negative = player lost).
-  // result = cashout − drop  (clean play)
-  // total  = result − comps  (with comps/expenses)
+  // result = (cashout + chipOut) − (drop + chipIn)   (clean play + chip adjustments)
+  // total  = result − comps                          (with comps/expenses)
   const lifetime = useMemo(() => {
     const totalMins = visits.reduce((s, v) => s + visitDuration(v), 0);
     const dropGross = Number(economy?.total_drop) || 0;
@@ -237,9 +237,14 @@ const PlayerProfile = () => {
     const drop = dropR; // Lifetime "Drop" KPI = NEP-aware Drop R (External part of cash-in)
     const cashout = Number(economy?.total_cashout) || 0;
     const comps = Number(economy?.total_expenses) || 0;
-    const result = cashout - dropGross; // result based on gross buy (player PnL)
+    let chipIn = 0, chipOut = 0;
+    for (const c of chipAdjustments as any[]) {
+      chipIn += Number(c.chip_in) || 0;
+      chipOut += Number(c.chip_out) || 0;
+    }
+    const result = (cashout + chipOut) - (dropGross + chipIn); // result includes chip adjustments
     const total = result - comps;
-    const hold = holdPct(dropGross, cashout, comps);
+    const hold = holdPct(dropGross, cashout, comps); // Hold % stays on cash drop only (audit-only chips don't bias hold)
     const firstVisit = visits.length ? visits[visits.length - 1].checked_in_at : null;
     const lastVisit = visits[0] ? (visits[0].checked_out_at || visits[0].checked_in_at) : null;
     const daysSinceLast = lastVisit
@@ -253,6 +258,8 @@ const PlayerProfile = () => {
       drop,
       cashout,
       comps,
+      chipIn,
+      chipOut,
       result,
       total,
       hold,
@@ -260,7 +267,7 @@ const PlayerProfile = () => {
       lastVisit,
       daysSinceLast,
     };
-  }, [visits, economy]);
+  }, [visits, economy, chipAdjustments]);
 
   // Period summary (NEP-aware Drop R: lifetime walk, attribute External part to in-range cash-ins).
   const period = useMemo(() => {
