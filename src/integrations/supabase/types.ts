@@ -6014,10 +6014,20 @@ export type Database = {
       }
       pos_orders: {
         Row: {
+          auto_closed_at: string | null
           business_date: string | null
           casino_id: string
+          closed_by_system: boolean
           created_at: string
+          force_close_reason: string | null
+          force_closed_at: string | null
+          force_closed_by: string | null
           id: string
+          is_problem: boolean
+          notes: string | null
+          problem_marked_at: string | null
+          problem_marked_by: string | null
+          problem_reason: string | null
           ready_at: string | null
           served_at: string | null
           shift_id: string | null
@@ -6033,10 +6043,20 @@ export type Database = {
           waiter_user_id: string
         }
         Insert: {
+          auto_closed_at?: string | null
           business_date?: string | null
           casino_id: string
+          closed_by_system?: boolean
           created_at?: string
+          force_close_reason?: string | null
+          force_closed_at?: string | null
+          force_closed_by?: string | null
           id?: string
+          is_problem?: boolean
+          notes?: string | null
+          problem_marked_at?: string | null
+          problem_marked_by?: string | null
+          problem_reason?: string | null
           ready_at?: string | null
           served_at?: string | null
           shift_id?: string | null
@@ -6052,10 +6072,20 @@ export type Database = {
           waiter_user_id: string
         }
         Update: {
+          auto_closed_at?: string | null
           business_date?: string | null
           casino_id?: string
+          closed_by_system?: boolean
           created_at?: string
+          force_close_reason?: string | null
+          force_closed_at?: string | null
+          force_closed_by?: string | null
           id?: string
+          is_problem?: boolean
+          notes?: string | null
+          problem_marked_at?: string | null
+          problem_marked_by?: string | null
+          problem_reason?: string | null
           ready_at?: string | null
           served_at?: string | null
           shift_id?: string | null
@@ -9470,6 +9500,19 @@ export type Database = {
           _new_waiter_user_id: string
         }
         Returns: Json
+      }
+      pos_player_search: {
+        Args: { _casino_id: string; _q: string }
+        Returns: {
+          category: string
+          first_name: string
+          home_casino_id: string
+          id: string
+          last_name: string
+          matched_card: boolean
+          nickname: string
+          phone_masked: string
+        }[]
       }
       pos_player_status: {
         Args: { _casino_id: string; _player_id: string }
