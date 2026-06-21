@@ -5839,11 +5839,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pos_inventory_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_pos_item_availability"
+            referencedColumns: ["sellable_item_id"]
+          },
+          {
             foreignKeyName: "pos_inventory_movements_source_item_id_fkey"
             columns: ["source_item_id"]
             isOneToOne: false
             referencedRelation: "pos_menu_items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_inventory_movements_source_item_id_fkey"
+            columns: ["source_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_pos_item_availability"
+            referencedColumns: ["sellable_item_id"]
           },
         ]
       }
@@ -6016,6 +6030,13 @@ export type Database = {
             referencedRelation: "pos_menu_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pos_menu_price_history_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_pos_item_availability"
+            referencedColumns: ["sellable_item_id"]
+          },
         ]
       }
       pos_modifier_menu_items: {
@@ -6051,6 +6072,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pos_menu_items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_modifier_menu_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_pos_item_availability"
+            referencedColumns: ["sellable_item_id"]
           },
           {
             foreignKeyName: "pos_modifier_menu_items_modifier_id_fkey"
@@ -6123,6 +6151,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pos_modifier_recipe_effects_ingredient_item_id_fkey"
+            columns: ["ingredient_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_pos_item_availability"
+            referencedColumns: ["sellable_item_id"]
+          },
+          {
             foreignKeyName: "pos_modifier_recipe_effects_modifier_id_fkey"
             columns: ["modifier_id"]
             isOneToOne: false
@@ -6135,6 +6170,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pos_menu_items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_modifier_recipe_effects_sellable_item_id_fkey"
+            columns: ["sellable_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_pos_item_availability"
+            referencedColumns: ["sellable_item_id"]
           },
         ]
       }
@@ -6262,6 +6304,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pos_menu_items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_order_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_pos_item_availability"
+            referencedColumns: ["sellable_item_id"]
           },
           {
             foreignKeyName: "pos_order_items_order_id_fkey"
@@ -6504,6 +6553,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pos_purchase_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_pos_item_availability"
+            referencedColumns: ["sellable_item_id"]
+          },
+          {
             foreignKeyName: "pos_purchase_items_purchase_id_fkey"
             columns: ["purchase_id"]
             isOneToOne: false
@@ -6606,6 +6662,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pos_recipe_items_ingredient_item_id_fkey"
+            columns: ["ingredient_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_pos_item_availability"
+            referencedColumns: ["sellable_item_id"]
+          },
+          {
             foreignKeyName: "pos_recipe_items_recipe_id_fkey"
             columns: ["recipe_id"]
             isOneToOne: false
@@ -6656,6 +6719,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pos_menu_items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_recipes_sellable_item_id_fkey"
+            columns: ["sellable_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_pos_item_availability"
+            referencedColumns: ["sellable_item_id"]
           },
         ]
       }
@@ -6770,6 +6840,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pos_menu_items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_stock_count_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_pos_item_availability"
+            referencedColumns: ["sellable_item_id"]
           },
         ]
       }
@@ -9256,6 +9333,38 @@ export type Database = {
         }
         Relationships: []
       }
+      v_pos_item_availability: {
+        Row: {
+          bottleneck_ingredient_id: string | null
+          bottleneck_ingredient_name: string | null
+          bottleneck_remaining: number | null
+          casino_id: string | null
+          empty_recipe: boolean | null
+          has_recipe: boolean | null
+          item_name: string | null
+          low_threshold: number | null
+          portions_available: number | null
+          sellable_item_id: string | null
+          sellable_stock_qty: number | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_recipe_items_ingredient_item_id_fkey"
+            columns: ["bottleneck_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "pos_menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_recipe_items_ingredient_item_id_fkey"
+            columns: ["bottleneck_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "v_pos_item_availability"
+            referencedColumns: ["sellable_item_id"]
+          },
+        ]
+      }
     }
     Functions: {
       _close_open_position: {
@@ -9891,6 +10000,7 @@ export type Database = {
         }
         Returns: Json
       }
+      pos_item_availability_detail: { Args: { item_id: string }; Returns: Json }
       pos_player_search: {
         Args: { _casino_id: string; _q: string }
         Returns: {
