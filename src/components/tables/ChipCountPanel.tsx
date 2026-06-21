@@ -144,12 +144,18 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       visibleDenoms.forEach(d => {
         if (!loc.denoms.includes(d)) return;
         const expected = tableBaseline[d] || 0;
-        const actual = locCounts[d] ?? expected;
+        const entered = locCounts[d];
+        // Empty / NaN cell → use last check value (= placeholder) so partial entry
+        // is intuitive: untouched denoms keep last reading, only edits move the result.
+        const actual = entered === undefined || Number.isNaN(entered as any)
+          ? getLastCheck(loc.id, d)
+          : (entered as number);
         raw += (actual - expected) * d;
       });
       return { key: loc.key, total: raw + adjustmentFor(loc.id) };
     });
-  }, [countLocations, counts, baselineMap, visibleDenoms, adjustmentFor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countLocations, counts, baselineMap, visibleDenoms, adjustmentFor, latestSnapshotPerTable]);
 
   const grandTotal = rowResults.reduce((s, r) => s + r.total, 0);
 
