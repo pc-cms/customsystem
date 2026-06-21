@@ -557,9 +557,12 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         subtitle={`Opened ${fmtDateTime(shift.opened_at)}`}
         date
         context={
-          <Badge variant={isReadyForReview ? "default" : "outline"} className="uppercase text-[10px]">
-            {shift.status.replace("_", " ")}
-          </Badge>
+          <span className="inline-flex items-center gap-2">
+            <Badge variant={isReadyForReview ? "default" : "outline"} className="uppercase text-[10px]">
+              {shift.status.replace("_", " ")}
+            </Badge>
+            <HourlyCheckBanner kind="slots" />
+          </span>
         }
       >
         {shift.status === "open" && (
