@@ -494,12 +494,13 @@ const PlayerStatistics = () => {
       if (a.isPresent !== b.isPresent) return a.isPresent ? -1 : 1;
       return new Date(b.entryAt).getTime() - new Date(a.entryAt).getTime();
     });
-  }, [displayRows, tab, categoryFilter, zoneFilter, search, sortKey, sortDir]);
+  }, [displayRows, tab, categoryFilter, zoneFilter, activeOnly, search, sortKey, sortDir]);
 
   const counts = useMemo(() => ({
     day: displayRows.length,
     present: displayRows.filter((r: any) => r.isPresent).length,
     left: displayRows.filter((r: any) => !r.isPresent).length,
+    active: displayRows.filter(isActiveRow).length,
   }), [displayRows]);
 
   // Totals across the currently filtered list (period + tab + filters + search).
