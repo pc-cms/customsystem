@@ -69,6 +69,7 @@ const PlayerProfile = () => {
   const { data: expenses = [] } = usePlayerExpenses(id);
   const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager", "shift_manager"].includes(r)) || isManager;
   const { data: notes = [] } = usePlayerNotes(id, canSeeNotes);
+  const { data: chipAdjustments = [] } = usePlayerChipAdjustments(id);
 
   // Pit / Cashier / Reception are restricted to the current business day
   // unless the Manager Access override is active.
