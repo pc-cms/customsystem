@@ -3,6 +3,13 @@ import { formatNumberSpaces } from "@/lib/currency";
 import { usePosMenuCategories, usePosMenuItems, type PosMenuItem } from "@/hooks/use-pos-menu";
 import { useAddPosOrder } from "@/hooks/use-pos-orders";
 import { usePosModifiers, type PosModifier } from "@/hooks/use-pos-modifiers";
+import {
+  usePosItemAvailability,
+  statusLabel,
+  statusBadgeClass,
+  type PosItemAvailabilityRow,
+  type PosItemAvailabilityStatus,
+} from "@/hooks/use-pos-item-availability";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
