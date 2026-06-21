@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { toast } from "sonner";
+import { markRealtimeEvent, setRealtimeStatus } from "@/lib/realtime-status";
 
 /**
  * Realtime subscriptions for wired LAN environment.
@@ -79,6 +80,7 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "breaklist", filter: `casino_id=eq.${casinoId}` },
           () => {
+            markRealtimeEvent("breaklist");
             qc.invalidateQueries({ queryKey: ["breaklist", casinoId] });
           }
         )
@@ -86,6 +88,7 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "dealer_attendance", filter: `casino_id=eq.${casinoId}` },
           () => {
+            markRealtimeEvent("dealer_attendance");
             qc.invalidateQueries({ queryKey: ["dealer-attendance-range", casinoId] });
           }
         )
@@ -110,12 +113,16 @@ export const useRealtimeSubscriptions = () => {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "table_tracker", filter: `casino_id=eq.${casinoId}` },
-          () => { qc.invalidateQueries({ queryKey: ["table-tracker", casinoId] }); }
+          () => {
+            markRealtimeEvent("table_tracker");
+            qc.invalidateQueries({ queryKey: ["table-tracker", casinoId] });
+          }
         )
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "chip_snapshots", filter: `casino_id=eq.${casinoId}` },
           () => {
+            markRealtimeEvent("chip_snapshots");
             qc.invalidateQueries({ queryKey: ["chip-snapshots", casinoId] });
             qc.invalidateQueries({ queryKey: ["chip-snapshots-full", casinoId] });
           }
@@ -123,7 +130,10 @@ export const useRealtimeSubscriptions = () => {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "pit_rota", filter: `casino_id=eq.${casinoId}` },
-          () => { qc.invalidateQueries({ queryKey: ["pit-rota-range", casinoId] }); }
+          () => {
+            markRealtimeEvent("pit_rota");
+            qc.invalidateQueries({ queryKey: ["pit-rota-range", casinoId] });
+          }
         )
         .on(
           "postgres_changes",
@@ -143,11 +153,18 @@ export const useRealtimeSubscriptions = () => {
             qc.invalidateQueries({ queryKey: ["table-tracker", casinoId] });
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") setRealtimeStatus("connected");
+          else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setRealtimeStatus("error");
+          else if (status === "CLOSED") setRealtimeStatus("closed");
+          else setRealtimeStatus("connecting");
+        });
 
       channelRef.current = channel;
+      setRealtimeStatus("connecting");
     } catch (err) {
       console.error("[Realtime] Failed to setup channel:", err);
+      setRealtimeStatus("error");
     }
 
     return () => {
