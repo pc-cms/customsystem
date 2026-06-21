@@ -89,16 +89,22 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
     return map;
   }, [snapshots]);
 
-  // Effective counts for current table (local edits > closing_chips draft > baseline).
-  // NOTE: Chip Count snapshots are intentionally NOT used here — Result is the
-  // source of truth and must be entered fresh by the cashier at close time.
+  // Last check value for (table, denom): latest chip_snapshot for today, else float baseline.
+  const getLastCheck = (tableId: string, denom: number): number => {
+    const snap = latestSnapshotPerTable[tableId]?.[denom];
+    if (snap !== undefined) return snap;
+    return baselineMap[tableId]?.[denom] ?? 0;
+  };
+
+  // Effective counts for current table. Empty (NaN) by default — placeholder shows
+  // the last check so Pit only types what changed since then. Drafts (closing_chips)
+  // are restored as concrete values.
   const getInitialCounts = (table: GamingTable): Record<number, number> => {
     const out: Record<number, number> = {};
-    const tableBaseline = baselineMap[table.id] || {};
     const draft = (table.closing_chips || {}) as Record<string, number>;
     tableDenoms(table).forEach(d => {
       if (draft[String(d)] !== undefined) out[d] = Number(draft[String(d)]);
-      else out[d] = tableBaseline[d] || 0;
+      else out[d] = NaN as any; // empty → placeholder = last check
     });
     return out;
   };
@@ -115,16 +121,20 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
     }));
   };
 
+  // Diff = (actual − baseline) × denom. Empty cell → fall back to last check
+  // (no change since last reading).
   const calcResult = (table: GamingTable, c: Record<number, number>): number => {
     const tb = baselineMap[table.id] || {};
     let total = 0;
     tableDenoms(table).forEach(d => {
       const expected = tb[d] || 0;
-      const actual = c[d] ?? 0;
+      const raw = c[d];
+      const actual = Number.isFinite(raw) ? (raw as number) : getLastCheck(table.id, d);
       total += (actual - expected) * d;
     });
     return total;
   };
+
 
   const isCounted = (table: GamingTable) => table.closing_result !== null && table.closing_result !== undefined;
 
