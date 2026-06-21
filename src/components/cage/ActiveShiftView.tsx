@@ -225,9 +225,10 @@ const ActiveShiftView = ({ shift, players, tables }: {
         icon={Landmark}
         title="Cage"
         context={
-          <span className="flex items-center gap-1.5 text-base font-semibold">
+          <span className="flex items-center gap-2 text-base font-semibold">
             <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
             <span className="font-mono tabular-nums text-foreground">{shiftDuration}</span>
+            <HourlyCheckBanner kind="live" />
           </span>
         }
         belowHeader={
