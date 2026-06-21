@@ -530,90 +530,115 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                               {cell.is_locked ? <Unlock className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
                             </button>
                           )}
-                          {/* Inline role picker dropdown */}
-                          {isActiveCell && (
-                            <div className={`absolute z-50 ${activeCell?.dropUp ? "bottom-8" : "top-8"} ${activeCell?.dropLeft ? "right-0" : "left-0"} bg-popover border border-border rounded-md shadow-lg p-1 min-w-[100px]`}
-                              onMouseLeave={() => setActiveCell(null)}>
-                              <div className="flex flex-wrap gap-0.5 mb-1">
-                                <button onClick={() => handleRoleSelect("BR")}
-                                  title="Break"
-                                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["BR"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
-                                  BR
-                                </button>
-                                <button onClick={() => handleRoleSelect("TR")}
-                                  title="Training"
-                                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["TR"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
-                                  TR
-                                </button>
-                                <button onClick={() => handleRoleSelect("SRT")}
-                                  title="Sorting"
-                                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["SRT"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
-                                  SRT
-                                </button>
-                                <button onClick={() => handleRoleSelect("CLS")}
-                                  title="Closing"
-                                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["CLS"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
-                                  CLS
-                                </button>
-                                <button onClick={() => handleRoleSelect("S")}
-                                  title="Sick — fills all remaining slots until shift end"
-                                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["S"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
-                                  S
-                                </button>
-                                <button onClick={() => handleRoleSelect("SP")}
-                                  title="Suspend — hides dealer from grid for the day"
-                                  className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors bg-red-500/20 text-red-600 dark:text-red-300 ring-1 ring-red-500/40 hover:opacity-80">
-                                  SP
-                                </button>
-                                <button onClick={() => handleRoleSelect("LT")}
-                                  title="Late — each slot deducts 20 min from shift"
-                                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["LT"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
-                                  LT
-                                </button>
-
-                              </div>
-                              {openTables.length > 0 && (
-                                <div className="border-t border-border pt-1 space-y-0.5">
-                                  <p className="text-[8px] text-muted-foreground uppercase px-1">Assign to table</p>
-                                  {openTables.map(t => {
-                                    const roles = TABLE_ROLES[t.game] || [];
-                                    const rSuffix: Record<string, string> = {
-                                      ARi: "i", ARc: "c", AR1i: "i", AR1c: "c",
-                                      Pi: "i", BJi: "i",
-                                    };
-                                    // Slots already taken on this table for this time slot (by other dealers)
-                                    const takenSlots = new Set(
-                                      breaklist
-                                        .filter((b: any) =>
-                                          b.table_id === t.id &&
-                                          b.time_slot === activeCell!.timeSlot &&
-                                          b.dealer_id !== activeCell!.dealerId,
-                                        )
-                                        .map((b: any) => roleSlot(b.role))
-                                        .filter(Boolean),
-                                    );
-                                    const availableRoles = roles.filter(r => {
-                                      const s = roleSlot(r);
-                                      return !s || !takenSlots.has(s);
-                                    });
-                                    if (availableRoles.length === 0) return null;
-                                    return (
-                                      <div key={t.id} className="flex items-center gap-0.5 px-1">
-                                        <span className="text-[9px] font-mono text-card-foreground min-w-[28px]">{fmtTableName(t.name)}</span>
-                                        {availableRoles.map(r => (
-                                          <button key={r} onClick={() => handleRoleSelect(r, t.id)}
-                                            className={`px-1 py-0.5 rounded text-[8px] font-mono font-bold ${getTableCellClasses(t.id, tableColorIndex.get(t.id) ?? 0, r)} hover:opacity-80`}>
-                                            {fmtTableName(t.name)}{rSuffix[r] || ""}
-                                          </button>
-                                        ))}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          )}
+                          {/* Inline role picker is rendered via portal below to
+                              escape the table's overflow:auto clipping. */}
                         </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Role picker — portal-rendered so it overflows the scrollable table.
+          Positioned with `fixed` against the clicked cell's viewport rect. */}
+      {activeCell && createPortal(
+        (() => {
+          const { rect, dropUp, dropLeft } = activeCell;
+          const style: React.CSSProperties = dropUp
+            ? { position: "fixed", bottom: window.innerHeight - rect.top + 4, zIndex: 60 }
+            : { position: "fixed", top: rect.bottom + 4, zIndex: 60 };
+          if (dropLeft) style.right = window.innerWidth - rect.right;
+          else style.left = rect.left;
+          return (
+            <div
+              style={style}
+              className="bg-popover border border-border rounded-md shadow-lg p-1 min-w-[100px]"
+              onMouseLeave={() => setActiveCell(null)}
+            >
+              <div className="flex flex-wrap gap-0.5 mb-1">
+                <button onClick={() => handleRoleSelect("BR")}
+                  title="Break"
+                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["BR"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
+                  BR
+                </button>
+                <button onClick={() => handleRoleSelect("TR")}
+                  title="Training"
+                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["TR"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
+                  TR
+                </button>
+                <button onClick={() => handleRoleSelect("SRT")}
+                  title="Sorting"
+                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["SRT"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
+                  SRT
+                </button>
+                <button onClick={() => handleRoleSelect("CLS")}
+                  title="Closing"
+                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["CLS"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
+                  CLS
+                </button>
+                <button onClick={() => handleRoleSelect("S")}
+                  title="Sick — fills all remaining slots until shift end"
+                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["S"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
+                  S
+                </button>
+                <button onClick={() => handleRoleSelect("SP")}
+                  title="Suspend — hides dealer from grid for the day"
+                  className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors bg-red-500/20 text-red-600 dark:text-red-300 ring-1 ring-red-500/40 hover:opacity-80">
+                  SP
+                </button>
+                <button onClick={() => handleRoleSelect("LT")}
+                  title="Late — each slot deducts 20 min from shift"
+                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${ROLE_COLORS["LT"] || "bg-muted text-muted-foreground"} hover:opacity-80`}>
+                  LT
+                </button>
+              </div>
+              {openTables.length > 0 && (
+                <div className="border-t border-border pt-1 space-y-0.5">
+                  <p className="text-[8px] text-muted-foreground uppercase px-1">Assign to table</p>
+                  {openTables.map(t => {
+                    const roles = TABLE_ROLES[t.game] || [];
+                    const rSuffix: Record<string, string> = {
+                      ARi: "i", ARc: "c", AR1i: "i", AR1c: "c",
+                      Pi: "i", BJi: "i",
+                    };
+                    const takenSlots = new Set(
+                      breaklist
+                        .filter((b: any) =>
+                          b.table_id === t.id &&
+                          b.time_slot === activeCell!.timeSlot &&
+                          b.dealer_id !== activeCell!.dealerId,
+                        )
+                        .map((b: any) => roleSlot(b.role))
+                        .filter(Boolean),
+                    );
+                    const availableRoles = roles.filter(r => {
+                      const s = roleSlot(r);
+                      return !s || !takenSlots.has(s);
+                    });
+                    if (availableRoles.length === 0) return null;
+                    return (
+                      <div key={t.id} className="flex items-center gap-0.5 px-1">
+                        <span className="text-[9px] font-mono text-card-foreground min-w-[28px]">{fmtTableName(t.name)}</span>
+                        {availableRoles.map(r => (
+                          <button key={r} onClick={() => handleRoleSelect(r, t.id)}
+                            className={`px-1 py-0.5 rounded text-[8px] font-mono font-bold ${getTableCellClasses(t.id, tableColorIndex.get(t.id) ?? 0, r)} hover:opacity-80`}>
+                            {fmtTableName(t.name)}{rSuffix[r] || ""}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })(),
+        document.body,
+      )}
                       );
                     })}
                   </tr>
