@@ -28,6 +28,12 @@ import {
   type PosRecipe,
 } from "@/hooks/use-pos-recipes";
 import { toast } from "@/hooks/use-toast";
+import {
+  usePosItemAvailabilityDetail,
+  statusLabel,
+  statusBadgeClass,
+} from "@/hooks/use-pos-item-availability";
+import { cn } from "@/lib/utils";
 
 export default function PosManagerRecipes() {
   const { activeCasinoId } = useCasino();
