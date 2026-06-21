@@ -191,9 +191,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     void setTrackerValue; // retained for backwards-compat (unused here)
   };
 
-  if (openTables.length === 0) {
-    return <p className="text-muted-foreground text-sm text-center py-8">No open tables</p>;
-  }
+  // Early-return moved below all hooks to keep hook order stable (React #310).
 
   const renderGrid = (full: boolean) => {
     // Tablet mode: extra-large cells & numbers for in-pit chip counts on a tablet.
@@ -405,6 +403,10 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       .map(t => ({ key: `table-${t.id}`, label: t.name, id: t.id }));
     return [...fromGrid, ...extras];
   }, [snapshotsFull, countLocations, tables]);
+
+  if (openTables.length === 0) {
+    return <p className="text-muted-foreground text-sm text-center py-8">No open tables</p>;
+  }
 
   return (
     <>
