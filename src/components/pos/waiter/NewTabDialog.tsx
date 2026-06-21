@@ -67,6 +67,19 @@ export const NewTabDialog = ({ open, onOpenChange, casinoId, shiftId, userId, on
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange} title="New tab" size="lg">
       <div className="space-y-3">
+        {locations.length > 0 && (
+          <div>
+            <label className="text-xs uppercase text-muted-foreground">Location</label>
+            <Select value={locationId} onValueChange={setLocationId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {locations.map((l) => (
+                  <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
