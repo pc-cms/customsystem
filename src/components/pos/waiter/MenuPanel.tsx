@@ -27,11 +27,18 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
   const { data: categories = [] } = usePosMenuCategories(casinoId);
   const { data: items = [] } = usePosMenuItems(casinoId);
   const { data: modifiers = [] } = usePosModifiers(casinoId, true);
+  const { data: availability = [] } = usePosItemAvailability(casinoId);
   const addOrder = useAddPosOrder();
 
   const activeCategories = useMemo(() => categories.filter((c) => c.is_active), [categories]);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
   const [modSheet, setModSheet] = useState<{ item: PosMenuItem; qty: number } | null>(null);
+
+  const availByItem = useMemo(() => {
+    const m = new Map<string, PosItemAvailabilityRow>();
+    for (const a of availability) m.set(a.sellable_item_id, a);
+    return m;
+  }, [availability]);
 
   const effectiveCat = selectedCat ?? activeCategories[0]?.id ?? null;
 
