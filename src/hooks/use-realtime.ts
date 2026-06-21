@@ -264,9 +264,31 @@ export const useRealtimeSubscriptions = () => {
             qc.invalidateQueries({ queryKey: ["player-profile"] });
           }
         )
-        .subscribe();
+        .subscribe((subStatus, err) => {
+          if (subStatus === "SUBSCRIBED") {
+            status.subscribed = true;
+            status.lastEventAt = Date.now();
+            console.info(`[Realtime] ✓ subscribed (casino=${casinoId})`);
+            if (subscribedOnceRef.current && wasDisconnectedRef.current) {
+              wasDisconnectedRef.current = false;
+              // Reconnect: refetch all active queries to catch up missed events
+              qc.invalidateQueries({ refetchType: "active" });
+            }
+            subscribedOnceRef.current = true;
+          } else if (
+            subStatus === "CHANNEL_ERROR" ||
+            subStatus === "TIMED_OUT" ||
+            subStatus === "CLOSED"
+          ) {
+            status.subscribed = false;
+            wasDisconnectedRef.current = true;
+            console.warn(`[Realtime] ✗ ${subStatus}`, err ?? "");
+          }
+        });
 
       channelRef.current = channel;
+      // Suppress unused warning for bump (kept for future event-level tracking)
+      void bump;
     } catch (err) {
       console.error("[Realtime] Failed to setup channel:", err);
     }
