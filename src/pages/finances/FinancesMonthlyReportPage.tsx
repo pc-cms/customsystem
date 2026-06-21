@@ -395,7 +395,7 @@ type EditCallbacks = {
   onRenameGroup: (newName: string) => void;
 };
 
-const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, mtd, mtdMonthLabel, ...edit }: {
+const GroupTable = ({ group, expandedId, onToggle, isNetwork, showUsd, mtd, mtdMonthLabel, ...edit }: {
   group: ReportGroup;
   expandedId: string | null;
   onToggle: (id: string) => void;
@@ -452,7 +452,6 @@ const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, 
                 c={c}
                 expanded={expandedId === c.id}
                 onToggle={() => onToggle(c.id)}
-                usdRate={usdRate}
                 isNetwork={isNetwork}
                 showUsd={showUsd}
                 colCount={colCount}
