@@ -310,6 +310,8 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
                               <td className="py-1 px-2 text-right font-mono text-xs">{day.agg.drop ? fmtMoney(day.agg.drop) : dot}</td>
                               <td className="py-1 px-2 text-right font-mono text-xs">{day.agg.inGross ? fmtMoney(day.agg.inGross) : dot}</td>
                               <td className="py-1 px-2 text-right font-mono text-xs">{day.agg.out ? fmtMoney(day.agg.out) : dot}</td>
+                              <td className="py-1 px-2 text-right font-mono text-xs text-success">{day.agg.chipIn ? fmtMoney(day.agg.chipIn) : dot}</td>
+                              <td className="py-1 px-2 text-right font-mono text-xs text-destructive">{day.agg.chipOut ? fmtMoney(day.agg.chipOut) : dot}</td>
                               <td className={`py-1 px-2 text-right font-mono text-xs ${dRes === 0 ? "text-muted-foreground" : dRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                                 {dRes === 0 ? "·" : fmtMoney(dRes)}
                               </td>
