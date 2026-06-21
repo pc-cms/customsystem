@@ -404,6 +404,10 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     return [...fromGrid, ...extras];
   }, [snapshotsFull, countLocations, tables]);
 
+  if (openTables.length === 0) {
+    return <p className="text-muted-foreground text-sm text-center py-8">No open tables</p>;
+  }
+
   return (
     <>
       {renderGrid(false)}
