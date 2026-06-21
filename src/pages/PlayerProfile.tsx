@@ -718,6 +718,7 @@ const PlayerProfile = () => {
               visits={visits as any}
               transactions={transactions as any}
               expenses={expenses as any}
+              chipAdjustments={chipAdjustments as any}
               showFinancials={canSeePlayerFinancials(roles)}
             />
           </PageSection>
