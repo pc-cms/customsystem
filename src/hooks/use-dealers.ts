@@ -402,7 +402,7 @@ export const useSetBreaklistCell = () => {
   const { user } = useAuth();
   const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
-    mutationFn: async (input: {
+    mutationKey: ["breaklist-cell"],
       date: string;
       dealer_id: string;
       time_slot: string;
