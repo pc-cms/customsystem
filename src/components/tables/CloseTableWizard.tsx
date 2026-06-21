@@ -89,16 +89,22 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
     return map;
   }, [snapshots]);
 
-  // Effective counts for current table (local edits > closing_chips draft > baseline).
-  // NOTE: Chip Count snapshots are intentionally NOT used here — Result is the
-  // source of truth and must be entered fresh by the cashier at close time.
+  // Last check value for (table, denom): latest chip_snapshot for today, else float baseline.
+  const getLastCheck = (tableId: string, denom: number): number => {
+    const snap = latestSnapshotPerTable[tableId]?.[denom];
+    if (snap !== undefined) return snap;
+    return baselineMap[tableId]?.[denom] ?? 0;
+  };
+
+  // Effective counts for current table. Empty (NaN) by default — placeholder shows
+  // the last check so Pit only types what changed since then. Drafts (closing_chips)
+  // are restored as concrete values.
   const getInitialCounts = (table: GamingTable): Record<number, number> => {
     const out: Record<number, number> = {};
-    const tableBaseline = baselineMap[table.id] || {};
     const draft = (table.closing_chips || {}) as Record<string, number>;
     tableDenoms(table).forEach(d => {
       if (draft[String(d)] !== undefined) out[d] = Number(draft[String(d)]);
-      else out[d] = tableBaseline[d] || 0;
+      else out[d] = NaN as any; // empty → placeholder = last check
     });
     return out;
   };
@@ -115,16 +121,20 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
     }));
   };
 
+  // Diff = (actual − baseline) × denom. Empty cell → fall back to last check
+  // (no change since last reading).
   const calcResult = (table: GamingTable, c: Record<number, number>): number => {
     const tb = baselineMap[table.id] || {};
     let total = 0;
     tableDenoms(table).forEach(d => {
       const expected = tb[d] || 0;
-      const actual = c[d] ?? 0;
+      const raw = c[d];
+      const actual = Number.isFinite(raw) ? (raw as number) : getLastCheck(table.id, d);
       total += (actual - expected) * d;
     });
     return total;
   };
+
 
   const isCounted = (table: GamingTable) => table.closing_result !== null && table.closing_result !== undefined;
 
@@ -137,7 +147,8 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
     const snapshotRows: any[] = [];
     tableDenoms(current).forEach(d => {
       const expected = tb[d] || 0;
-      const actual = currentCounts[d] ?? 0;
+      const raw = currentCounts[d];
+      const actual = Number.isFinite(raw) ? (raw as number) : getLastCheck(current.id, d);
       chipMap[String(d)] = actual;
       snapshotRows.push({
         location_type: "table",
@@ -148,6 +159,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
         date,
       });
     });
+
     const result = calcResult(current, currentCounts);
 
     setSingleResult.mutate(
@@ -305,7 +317,10 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
             <tbody>
               {[...tableDenoms(current)].sort((a, b) => b - a).map(d => {
                 const expected = tableBaseline[d] || 0;
-                const actual = currentCounts[d] ?? 0;
+                const raw = currentCounts[d];
+                const lastCheck = getLastCheck(current.id, d);
+                const hasInput = Number.isFinite(raw);
+                const actual = hasInput ? (raw as number) : lastCheck;
                 const diff = (actual - expected) * d;
                 return (
                   <tr key={d} className="border-b border-border/50 last:border-0">
@@ -319,18 +334,20 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                       <input
                         type="number"
                         min="0"
-                        value={currentCounts[d] ?? ""}
+                        value={hasInput ? (raw as number) : ""}
                         readOnly={readOnly}
                         disabled={readOnly}
                         onChange={e => {
                           if (readOnly) return;
-                          const v = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
-                          setCount(d, isNaN(v) ? 0 : v);
+                          if (e.target.value === "") { setCount(d, NaN as any); return; }
+                          const v = parseInt(e.target.value, 10);
+                          setCount(d, isNaN(v) ? (NaN as any) : v);
                         }}
-                        className="no-spin w-full max-w-[180px] h-12 mx-auto block rounded text-xl font-mono font-semibold text-center border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-card-foreground disabled:opacity-100 disabled:cursor-default"
-                        placeholder={String(expected)}
+                        className="no-spin w-full max-w-[180px] h-12 mx-auto block rounded text-xl font-mono font-semibold text-center border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-card-foreground placeholder:text-muted-foreground/60 placeholder:font-normal disabled:opacity-100 disabled:cursor-default"
+                        placeholder={String(lastCheck)}
                       />
                     </td>
+
                     <td
                       className={cn(
                         "py-2 px-1 text-right font-mono text-xl font-semibold w-px whitespace-nowrap tabular-nums",

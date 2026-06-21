@@ -1,70 +1,41 @@
-Полный аудит. Хук `useSessionState` уже есть; он сохраняет per-user + per-path в sessionStorage (живёт до закрытия вкладки). Сейчас на него переведены: Reports, Reception, Groups, Expenses, Blacklist, BankChecks, Guests, Logs, MonthlyTips, PlayerProfile, PlayerStatistics, StaffMaster, TableResults, TableTracker, Transfers, CrmPlayers, MarketingCampaigns, Cashless.
+## Цель
+На `/tables/close` (Close Tables wizard) — поведение ввода как в Chip Count: ячейка пустая, серым **плейсхолдером** показывается значение из **последнего ЧЕКА** (chip_snapshot) для этой пары (table, denom). Если чека сегодня не было — fallback на Float (baseline).
 
-## Что переведу (frontend-only, без backend)
+## Что меняю (frontend-only)
 
-Цель: для каждой страницы — таб + фильтры + поиск + сортировка + date preset/range перевести с `useState` на `useSessionState`. Не трогаю: формы ввода, модалки, выбранные строки, операционные drafts.
+Файл: `src/components/tables/CloseTableWizard.tsx`
 
-### Player Tracking / Manager-facing
-1. `src/pages/Pit.tsx` — таб, фильтры, период.
-2. `src/pages/Incidents.tsx` — search, type/severity/status/staff фильтры, date preset, сортировка.
-3. `src/pages/Dashboard.tsx` — только селекторы периода/таб, если есть.
-4. `src/pages/Staff.tsx`, `src/pages/EmployeePlaylist.tsx` — поиск/сортировки/таб.
-5. `src/pages/MissChips.tsx` — month picker, сортировки.
+1. **Источник «последней» цифры** — уже есть `latestSnapshotPerTable` (строится из `useChipSnapshots(date)`). Добавляю helper:
+   ```ts
+   const getLastCheck = (tableId, denom) =>
+     latestSnapshotPerTable[tableId]?.[denom] ?? baselineMap[tableId]?.[denom] ?? 0;
+   ```
 
-### Tips
-6. `src/pages/tips/ClubPokerTipsTab.tsx`, `src/pages/tips/FloorTipsTab.tsx` — preset+from+to.
-7. `src/pages/TipsAndBonuses.tsx` — таб, period.
+2. **`getInitialCounts`** — больше не префиллим `tableBaseline[d]`. Возвращаем `NaN` для пустой ячейки (как в `ChipCountPanel`). Сохраняем фактический `draft` (closing_chips) если он есть.
+   ```ts
+   if (draft[d] !== undefined) out[d] = Number(draft[d]);
+   else out[d] = NaN;            // пусто → плейсхолдер = last check
+   ```
 
-### Cage / Tables
-8. `src/pages/cage/CageClosingsPage.tsx` — date preset/диапазон, фильтры, сортировка.
-9. `src/pages/Tables.tsx` (если есть фильтры/сортировки) — таб/поиск.
+3. **Input** (строки 318–332):
+   - `value={Number.isFinite(currentCounts[d]) ? currentCounts[d] : ""}`
+   - `placeholder={String(getLastCheck(current.id, d))}`
+   - Класс плейсхолдера: `placeholder:text-muted-foreground/60` (серый — уже почти так, но без `/60`; делаю одинаково с Chip Count).
+   - `setCount`: пустая строка → `NaN`, иначе число.
 
-### Reports (все которые ещё на useState)
-10. `src/pages/reports/AmBudgetReport.tsx`
-11. `src/pages/reports/CashbackReport.tsx`
-12. `src/pages/reports/FloorTipsReport.tsx`
-13. `src/pages/reports/PokerTipsReport.tsx`
-14. `src/pages/reports/LotterySalesReport.tsx`
-15. `src/pages/reports/PromoCodesReport.tsx`
-16. `src/pages/reports/PromoIssuanceReport.tsx`
-17. `src/pages/reports/PromoRedemptionsReport.tsx`
-— везде preset/from/to + любые фильтры/сортировки.
+4. **`calcResult` и Diff** — если в ячейке `NaN`, считаем «как в last check»: `actual = getLastCheck(table.id, d)`. То есть пустая ячейка = «без изменений с последнего чека», что совпадает с поведением `ChipCountPanel` (там подставляется `lastCheck` в математику).
+   - Это меняет и live Result в правом блоке, и колонку Diff в строке.
 
-### Admin
-18. `src/pages/admin/KycReviewsPage.tsx`
-19. `src/pages/admin/PromoGrantsPage.tsx`
-20. `src/pages/admin/ShopOrdersPage.tsx`
-21. `src/pages/admin/SyncLogPage.tsx`
+5. **`handleSave`** — при сохранении в `closing_chips` и `snapshot_rows` так же подставляем `actual = Number.isFinite(currentCounts[d]) ? currentCounts[d] : getLastCheck(current.id, d)`. То есть Pit может сохранить, ничего не введя — это фиксирует «как в последнем чеке».
 
-### Finances
-22. `src/pages/finances/FinancesAliasesPage.tsx`
-23. `src/pages/finances/FinancesAuditLogPage.tsx`
-24. `src/pages/finances/FinancesExpensesPage.tsx`
-25. `src/pages/finances/FinancesWalletsPage.tsx`
+## Чего НЕ трогаю
+- Хук `useChipSnapshots` и DB.
+- `ChipCountPanel`, `Cage`, остальные модули.
+- Версия `package.json` (чистый UI).
+- Логика Fill/Credit/adjustment.
 
-### POS
-26. `src/pages/pos/PosCharges.tsx`
-27. `src/pages/pos/PosManagerInventory.tsx`
-28. `src/pages/pos/PosManagerMenu.tsx`
-29. `src/pages/pos/PosShiftReconciliation.tsx`
-
-### Marketing
-30. `src/pages/marketing/MarketingCampaignDetail.tsx`
-
-## Правила конвертации (единообразно)
-
-- Ключи: префикс по странице, например `pt:tab`, `incidents:search`, `cage-cls:preset`. Это даёт человекочитаемый namespace внутри уже существующего per-user/per-path неймспейса хука.
-- `Set<...>` фильтры храним как массив (`useSessionState<T[]>`) + локальная `useMemo`-обёртка в `Set` + `setX` через `setArr(prev => Array.from(updater(new Set(prev))))` — как сделано в PlayerStatistics.
-- Sort: пара (`sortKey`, `sortDir`) — два независимых ключа, либо один объект `{key, dir}`.
-- Date preset: триплет (`preset`, `from`, `to`) — три ключа, как в Reports.
-- Не трогаем: значения форм, drafts модалок, выбранного игрока/строку, временные UI-стейты (open/close popover), inline-edit поля.
-- Версия `package.json` не бампается (чисто frontend UI state).
-
-## Verification
-
-Сценарий после внедрения:
-- Открыть страницу, поставить сортировку/фильтр/preset → уйти в любой другой модуль → вернуться → состояние сохранено.
-- Logout → login другим юзером → видит свой пустой/дефолтный набор (изоляция по userId уже встроена в хук).
-- Закрытие вкладки → всё чистится (sessionStorage).
-
-Если ок — приступаю и пройдусь по всем 30 файлам.
+## Проверка
+- Открыть `/tables/close`, не вводить ничего → Diff = 0, Result = 0+adj, плейсхолдеры серые = последний чек.
+- Сделать чек по столу (Chip Count) → вернуться в Close Tables → плейсхолдеры обновились.
+- Ввести цифру → input становится чёрным, Diff пересчитывается от Float (baseline), как и сейчас.
+- Save без ввода → в БД уходят значения последнего чека (а не нули).
