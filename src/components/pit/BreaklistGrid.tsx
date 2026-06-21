@@ -90,6 +90,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     return name;
   };
   const setCell = useSetBreaklistCell();
+  const deleteCell = useDeleteBreaklistCell();
   const setAttendance = useSetDealerAttendance();
   const lockCell = useLockBreaklistCell();
   const { isManager, roles } = useAuth();
