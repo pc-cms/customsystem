@@ -680,13 +680,14 @@ const PlayerProfile = () => {
                   <tfoot>
                     {(() => {
                       const periodMins = visitsInRange.reduce((s, v) => s + visitDuration(v), 0);
-                      let pDropR = 0, pIn = 0, pOut = 0, pComps = 0;
+                      let pDropR = 0, pIn = 0, pOut = 0, pComps = 0, pChipIn = 0, pChipOut = 0;
                       for (const v of visitsInRange) {
                         const f = visitFinancials.get(v.id);
                         if (!f) continue;
                         pDropR += f.dropR; pIn += f.totalIn; pOut += f.cashout; pComps += f.comps;
+                        pChipIn += f.chipIn; pChipOut += f.chipOut;
                       }
-                      const pRes = pOut - pIn;
+                      const pRes = (pOut + pChipOut) - (pIn + pChipIn);
                       const pTotal = pRes - pComps;
                       return (
                         <tr className="border-t-2 border-border font-semibold">
@@ -695,6 +696,8 @@ const PlayerProfile = () => {
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pDropR)}</td>}
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pIn)}</td>}
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pOut)}</td>}
+                          {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right text-success">{fmtMoney(pChipIn)}</td>}
+                          {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right text-destructive">{fmtMoney(pChipOut)}</td>}
                           {showFinancials && <td className={`py-2 px-2 font-mono text-xs text-right ${pRes === 0 ? "" : pRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pRes)}</td>}
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pComps)}</td>}
                           {showFinancials && <td className={`py-2 px-2 font-mono text-xs text-right ${pTotal === 0 ? "" : pTotal > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pTotal)}</td>}
