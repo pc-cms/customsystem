@@ -91,6 +91,9 @@ export default function PosManagerModifiers() {
                 <DTCell className="text-right">
                   {canEdit && (
                     <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => setConfigFor(m)}>
+                        <Settings className="h-4 w-4 mr-1" /> Configure
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => setEdit(m)}>Edit</Button>
                       <Button
                         variant="ghost"
@@ -102,6 +105,7 @@ export default function PosManagerModifiers() {
                       </Button>
                     </div>
                   )}
+
                 </DTCell>
               </DTRow>
             ))}
