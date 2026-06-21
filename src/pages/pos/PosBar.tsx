@@ -225,11 +225,36 @@ export default function PosBar() {
 
   return (
     <div className="p-4 h-full flex flex-col">
-      <div className="flex items-baseline justify-between mb-3">
+      <div className="flex items-baseline justify-between mb-3 gap-3 flex-wrap">
         <h1 className="text-xl font-semibold">Bar Display</h1>
-        <span className="text-xs text-muted-foreground">
-          {isLoading ? "Loading…" : `${orders.length} active`}
-        </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setLocationFilter("all")}
+            className={cn(
+              "h-8 px-3 rounded-md text-xs font-medium border",
+              locationFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:bg-accent/40",
+            )}
+          >
+            All
+          </button>
+          {locations.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => setLocationFilter(l.id)}
+              className={cn(
+                "h-8 px-3 rounded-md text-xs font-medium border inline-flex items-center gap-1",
+                locationFilter === l.id ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:bg-accent/40",
+              )}
+            >
+              <MapPin className="h-3 w-3" /> {l.name}
+            </button>
+          ))}
+          <span className="text-xs text-muted-foreground ml-2">
+            {isLoading ? "Loading…" : `${filteredOrders.length} / ${orders.length} active`}
+          </span>
+        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 min-h-0">
         {COLS.map((col) => {
@@ -254,6 +279,7 @@ export default function PosBar() {
                       isManager={isManager}
                       onMarkProblem={handleMarkProblem}
                       onForceClose={handleForceClose}
+                      locationName={locationName(o.pos_location_id)}
                     />
                   ))
                 )}
