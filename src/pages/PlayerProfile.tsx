@@ -22,6 +22,7 @@ import {
   usePlayerNotes, usePlayerTransactions, usePlayerEconomy, usePlayerExpenses,
   useCreatePlayerNote, useUpdatePlayerCategory,
 } from "@/hooks/use-player-profile";
+import { usePlayerChipAdjustments } from "@/hooks/use-player-chip-adjustments";
 import { Textarea } from "@/components/ui/textarea";
 import { PlayerNotesPanel } from "@/components/player/PlayerNotesPanel";
 import { useAuth } from "@/lib/auth-context";
