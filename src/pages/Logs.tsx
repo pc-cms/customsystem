@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { useActivityLogs } from "@/hooks/use-casino-data";
 import { useLogLookups } from "@/hooks/use-log-lookups";
 import { actionLabel, formatLogDetails } from "@/lib/format-log";
@@ -18,8 +19,8 @@ const CATEGORY_STYLES: Record<string, string> = {
 const Logs = () => {
   const { data: logs = [], isLoading } = useActivityLogs(500);
   const { data: lookups = {} } = useLogLookups();
-  const [search, setSearch] = useState("");
-  const [catFilter, setCatFilter] = useState("all");
+  const [search, setSearch] = useSessionState<string>("search", "");
+  const [catFilter, setCatFilter] = useSessionState<string>("catFilter", "all");
 
   const enriched = useMemo(() => logs.map(l => ({
     ...l,
