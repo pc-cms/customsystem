@@ -117,7 +117,13 @@ export const fetchBreaklistRows = (casinoId: string, date: string) =>
     .range(from, to));
 
 export const useDealers = () => {
-  const { activeCasinoId: casinoId } = useCasino();
+  const { activeCasinoId: casinoId, loading: casinoLoading } = useCasino();
+  const { user, loading: authLoading } = useAuth();
+  // Gate the query until BOTH the Supabase session AND the casino context have
+  // fully resolved. Otherwise on a cold start (incognito / hard reload) the
+  // first fetch can fire after `casinoId` is set but before the access token
+  // is attached → RLS returns 0 rows → cached "empty" for 2 min.
+  const isReady = !authLoading && !casinoLoading && !!user && !!casinoId;
   return useQuery({
     queryKey: ["dealers", casinoId],
     queryFn: async () => {
@@ -132,7 +138,7 @@ export const useDealers = () => {
       const raw = data ?? [];
       return disambiguateNames(raw.map(mapEmployeeToDealer), raw);
     },
-    enabled: !!casinoId,
+    enabled: isReady,
     staleTime: 1000 * 60 * 2,
   });
 };
