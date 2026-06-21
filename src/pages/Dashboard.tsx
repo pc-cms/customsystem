@@ -231,8 +231,8 @@ const Dashboard = () => {
   // Floor Staff filters & sort
   const [deptFilter, setDeptFilter] = useSessionState<StaffDepartment[]>("deptFilter", []);
   const [shiftFilter, setShiftFilter] = useSessionState<string[]>("shiftFilter", []);
-  const [sortBy, setSortBy] = useState<"name" | "department" | "shift">("department");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [sortBy, setSortBy] = useSessionState<"name" | "department" | "shift">("sort", "department");
+  const [sortDir, setSortDir] = useSessionState<"asc" | "desc">("sortDir", "asc");
 
   const rotaMap = useMemo(() => {
     const m = new Map<string, string>();
