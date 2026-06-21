@@ -140,6 +140,11 @@ export const CasinoProvider = ({ children }: { children: ReactNode }) => {
       setSubdomainCasino(null);
       return;
     }
+    // Wait for the user session before hitting `casinos` (RLS-gated). Without
+    // this guard, an incognito cold-start fires this query before the access
+    // token is attached → RLS returns nothing → activeCasinoId stays null →
+    // every per-casino hook returns empty for the rest of the session.
+    if (!user) return;
     (async () => {
       const { data } = await supabase
         .from("casinos")
@@ -148,7 +153,7 @@ export const CasinoProvider = ({ children }: { children: ReactNode }) => {
         .maybeSingle();
       setSubdomainCasino((data as CasinoInfo) ?? null);
     })();
-  }, [detectedSlug]);
+  }, [detectedSlug, user]);
 
   // Fetch accessible casinos
   useEffect(() => {
