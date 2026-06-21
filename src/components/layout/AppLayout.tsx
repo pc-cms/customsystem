@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
-import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
+// useRealtimeSubscriptions intentionally not imported — mounted in App.tsx only.
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileHeader } from "./AppSidebar";
 import { PWAUpdateNotification } from "@/components/PWAUpdateNotification";
