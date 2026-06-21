@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { Receipt, Plus, Trash2, ArrowUp, ArrowDown, Filter, Pencil } from "lucide-react";
 import EditExpenseDialog, { type EditableExpense } from "@/components/expenses/EditExpenseDialog";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -40,9 +41,9 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
   const canManage = roles.includes("super_admin") || roles.includes("manager") || roles.includes("finance_manager");
 
   const initialRange = presetRange("month");
-  const [preset, setPreset] = useState<DatePreset>("month");
-  const [from, setFrom] = useState<string>(initialRange.from);
-  const [to, setTo] = useState<string>(initialRange.to);
+  const [preset, setPreset] = useSessionState<DatePreset>("preset", "month");
+  const [from, setFrom] = useSessionState<string>("from", initialRange.from);
+  const [to, setTo] = useSessionState<string>("to", initialRange.to);
   const range = embedded && embeddedFrom && embeddedTo
     ? { from: embeddedFrom, to: embeddedTo }
     : { from, to };
@@ -57,11 +58,11 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
     setTo(r.to);
   };
 
-  const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [walletFilter, setWalletFilter] = useState<string>("all");
-  const [sortKey, setSortKey] = useState<SortKey>("date");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [search, setSearch] = useSessionState("search", "");
+  const [categoryFilter, setCategoryFilter] = useSessionState<string>("category", "all");
+  const [walletFilter, setWalletFilter] = useSessionState<string>("wallet", "all");
+  const [sortKey, setSortKey] = useSessionState<SortKey>("sortKey", "date");
+  const [sortDir, setSortDir] = useSessionState<"asc" | "desc">("sortDir", "desc");
 
   const { data: rows = [] } = useFinExpenses(range);
   const { data: categories = [] } = useFinCategories();

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { Link } from "react-router-dom";
 import { ShieldCheck, Check, X, RotateCcw, ExternalLink, Gift, History } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -56,7 +57,7 @@ const KycReviewsPage = () => {
   const [revokeReason, setRevokeReason] = useState("");
   const [trust, setTrust] = useState<{ player_id: string; name: string } | null>(null);
   const [trustReason, setTrustReason] = useState("");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useSessionState("search", "");
   const [grantTarget, setGrantTarget] = useState<GrantTarget | null>(null);
   const [historyTarget, setHistoryTarget] = useState<{ id: string; full_name: string } | null>(null);
   const [selected, setSelected] = useState<Record<string, BulkGrantTarget>>({});

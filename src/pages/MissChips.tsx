@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { useQuery } from "@tanstack/react-query";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -39,9 +40,9 @@ interface MissChipsProps {
 const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProps = {}) => {
   const { casinoId } = useAuth();
   const initial = useMemo(() => presetRange("month"), []);
-  const [preset, setPreset] = useState<DatePreset>("month");
-  const [from, setFrom] = useState(initial.from);
-  const [to, setTo] = useState(initial.to);
+  const [preset, setPreset] = useSessionState<DatePreset>("preset", "month");
+  const [from, setFrom] = useSessionState<string>("from", initial.from);
+  const [to, setTo] = useSessionState<string>("to", initial.to);
   const [localMode, MoneyToggle] = useMoneyMode("miss-chips");
   const parentMode = useMoneyDisplayMode();
   const mode = embedded ? parentMode : localMode;

@@ -5,6 +5,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Badge } from "@/components/ui/badge";
@@ -41,9 +42,9 @@ const SyncLogPage = () => {
   const { roles } = useAuth();
   const allowed = roles.includes("super_admin") || roles.includes("finance_manager");
 
-  const [direction, setDirection] = useState<"all" | Direction>("all");
-  const [status, setStatus] = useState<"all" | Status>("all");
-  const [peer, setPeer] = useState<string>("all");
+  const [direction, setDirection] = useSessionState<"all" | Direction>("direction", "all");
+  const [status, setStatus] = useSessionState<"all" | Status>("status", "all");
+  const [peer, setPeer] = useSessionState<string>("peer", "all");
   const [page, setPage] = useState(0);
 
   const { data: peerOptions = [] } = useQuery({

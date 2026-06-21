@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { Tag, Trash2, Search, Merge } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,7 +30,7 @@ export default function FinancesAliasesPage() {
   const qc = useQueryClient();
   const { data: aliases = [] } = useAliases();
   const { data: cats = [] } = useFinCategories();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useSessionState("search", "");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkTarget, setBulkTarget] = useState<string>("");
 

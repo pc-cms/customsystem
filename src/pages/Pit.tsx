@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect, Suspense } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { useSearchParams } from "react-router-dom";
 import { useDealers, useCreateDealer, useUpdateDealer, useDeleteDealer, usePitRotaRange, useSetPitRota, useDeletePitRota, useSetDealerAttendance, useDealerAttendanceRange } from "@/hooks/use-casino-data";
@@ -83,7 +84,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
     const [y, m] = businessToday.split("-").map(Number);
     return `${y}-${String(m).padStart(2, "0")}`;
   }, [businessToday]);
-  const [month, setMonth] = useState(currentMonth);
+  const [month, setMonth] = useSessionState<string>("month", currentMonth);
 
   const navigateMonth = (delta: number) => {
     const [y, m] = month.split("-").map(Number);
@@ -116,7 +117,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
   };
 
   // Breaklist zoom
-  const [breaklistZoom, setBreaklistZoom] = useState(125);
+  const [breaklistZoom, setBreaklistZoom] = useSessionState<number>("breaklistZoom", 125);
 
   // Free month navigation; write-protection enforced inside grids.
   // Rota allows next month (filled in advance); Attendance does not.
@@ -318,9 +319,9 @@ const DealerEmployeeList = () => {
   const deleteDealer = useDeleteDealer();
   const [name, setName] = useState("");
   const [category, setCategory] = useState<DealerCategory>("dealer");
-  const [sortBy, setSortBy] = useState<string>("category");
-  const [filterCat, setFilterCat] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("active");
+  const [sortBy, setSortBy] = useSessionState<string>("dealerSort", "category");
+  const [filterCat, setFilterCat] = useSessionState<string>("dealerCat", "all");
+  const [filterStatus, setFilterStatus] = useSessionState<string>("dealerStatus", "active");
   const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
   const [editValue, setEditValue] = useState("");
 

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { ClipboardList, Search } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -12,14 +13,14 @@ import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/
 
 export default function FinancesAuditLogPage() {
   const { data: rows = [] } = useFinAuditLog();
-  const [action, setAction] = useState("all");
-  const [entity, setEntity] = useState("all");
-  const [actor, setActor] = useState("all");
+  const [action, setAction] = useSessionState("action", "all");
+  const [entity, setEntity] = useSessionState("entity", "all");
+  const [actor, setActor] = useSessionState("actor", "all");
   const initial = presetRange("month");
-  const [preset, setPreset] = useState<DatePreset>("month");
-  const [from, setFrom] = useState<string>(initial.from);
-  const [to, setTo] = useState<string>(initial.to);
-  const [search, setSearch] = useState("");
+  const [preset, setPreset] = useSessionState<DatePreset>("preset", "month");
+  const [from, setFrom] = useSessionState<string>("from", initial.from);
+  const [to, setTo] = useSessionState<string>("to", initial.to);
+  const [search, setSearch] = useSessionState("search", "");
 
   const { actions, entities, actors } = useMemo(() => {
     const a = new Set<string>(), e = new Set<string>(), u = new Set<string>();

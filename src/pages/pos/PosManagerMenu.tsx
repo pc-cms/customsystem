@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { Plus, Pencil, Archive, ArchiveRestore, History, Search, UtensilsCrossed } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
@@ -38,9 +39,9 @@ export default function PosManagerMenu() {
   const { data: categories = [], isLoading: catsLoading } = usePosMenuCategories(activeCasinoId);
   const { data: items = [], isLoading: itemsLoading } = usePosMenuItems(activeCasinoId);
 
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | "all">("all");
-  const [activeOnly, setActiveOnly] = useState(true);
-  const [search, setSearch] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useSessionState<string | "all">("category", "all");
+  const [activeOnly, setActiveOnly] = useSessionState("activeOnly", true);
+  const [search, setSearch] = useSessionState("search", "");
 
   const [catDialog, setCatDialog] = useState<{ open: boolean; category: PosMenuCategory | null }>({
     open: false,

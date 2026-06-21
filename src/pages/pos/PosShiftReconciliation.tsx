@@ -4,6 +4,7 @@
  * Read-only RPC `pos_shift_reconciliation`. Filterable by month + status.
  */
 import { useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
@@ -61,8 +62,8 @@ const currentYM = () => {
 
 export default function PosShiftReconciliation() {
   const { activeCasinoId } = useCasino();
-  const [ym, setYm] = useState(currentYM());
-  const [status, setStatus] = useState<"all" | Row["status"]>("all");
+  const [ym, setYm] = useSessionState("ym", currentYM());
+  const [status, setStatus] = useSessionState<"all" | Row["status"]>("status", "all");
 
   const { from, to } = useMemo(() => monthBounds(ym), [ym]);
 
