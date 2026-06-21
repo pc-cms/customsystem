@@ -101,6 +101,7 @@ export function useOpenPosTab() {
       player_id?: string | null;
       player_name?: string | null;
       walkin_label?: string | null;
+      pos_location_id?: string | null;
     }) => {
       const { data, error } = await supabase
         .from("pos_tabs")
@@ -111,7 +112,8 @@ export function useOpenPosTab() {
           player_id: input.player_id ?? null,
           player_name: input.player_name ?? null,
           walkin_label: input.walkin_label ?? null,
-        })
+          pos_location_id: input.pos_location_id ?? null,
+        } as any)
         .select("*")
         .single();
       if (error) throw error;
