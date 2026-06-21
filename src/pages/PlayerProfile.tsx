@@ -22,6 +22,7 @@ import {
   usePlayerNotes, usePlayerTransactions, usePlayerEconomy, usePlayerExpenses,
   useCreatePlayerNote, useUpdatePlayerCategory,
 } from "@/hooks/use-player-profile";
+import { usePlayerChipAdjustments } from "@/hooks/use-player-chip-adjustments";
 import { Textarea } from "@/components/ui/textarea";
 import { PlayerNotesPanel } from "@/components/player/PlayerNotesPanel";
 import { useAuth } from "@/lib/auth-context";
@@ -68,6 +69,7 @@ const PlayerProfile = () => {
   const { data: expenses = [] } = usePlayerExpenses(id);
   const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager", "shift_manager"].includes(r)) || isManager;
   const { data: notes = [] } = usePlayerNotes(id, canSeeNotes);
+  const { data: chipAdjustments = [] } = usePlayerChipAdjustments(id);
 
   // Pit / Cashier / Reception are restricted to the current business day
   // unless the Manager Access override is active.
@@ -117,12 +119,20 @@ const PlayerProfile = () => {
     [expenses, rangeStartMs, rangeEndMs]
   );
 
+  const chipAdjInRange = useMemo(
+    () => (chipAdjustments as any[]).filter((c: any) => {
+      const ts = new Date(c.created_at).getTime();
+      return ts >= rangeStartMs && ts <= rangeEndMs;
+    }),
+    [chipAdjustments, rangeStartMs, rangeEndMs]
+  );
+
   // Map transactions to visits (same casino + within check-in / check-out window).
   // dropR = NEP-aware external drop per visit (computed via lifetime walk).
   const visitFinancials = useMemo(() => {
-    const map = new Map<string, { totalIn: number; cashout: number; comps: number; dropR: number }>();
+    const map = new Map<string, { totalIn: number; cashout: number; comps: number; dropR: number; chipIn: number; chipOut: number }>();
     for (const v of visits) {
-      map.set(v.id, { totalIn: 0, cashout: 0, comps: 0, dropR: 0 });
+      map.set(v.id, { totalIn: 0, cashout: 0, comps: 0, dropR: 0, chipIn: 0, chipOut: 0 });
     }
     // Sort visits per casino by check-in for window matching.
     const visitsByCasino = new Map<string, any[]>();
@@ -184,8 +194,18 @@ const PlayerProfile = () => {
         f.comps += Number(e.amount) || 0;
       }
     }
+    // Chip adjustments per visit (audit-only; affect Result/Total but never NEP/Drop R).
+    for (const c of chipAdjustments as any[]) {
+      const ts = new Date(c.created_at).getTime();
+      const v = findVisit(c.casino_id, ts);
+      if (v) {
+        const f = map.get(v.id)!;
+        f.chipIn += Number(c.chip_in) || 0;
+        f.chipOut += Number(c.chip_out) || 0;
+      }
+    }
     return map;
-  }, [visits, transactions, expenses]);
+  }, [visits, transactions, expenses, chipAdjustments]);
 
   // Per-visit transactions list (for the expandable row showing every IN/OUT with time + table).
   const visitTxs = useMemo(() => {
@@ -208,8 +228,8 @@ const PlayerProfile = () => {
   }, [visits, transactions]);
 
   // Lifetime KPIs — perspective: PLAYER (positive = player won, negative = player lost).
-  // result = cashout − drop  (clean play)
-  // total  = result − comps  (with comps/expenses)
+  // result = (cashout + chipOut) − (drop + chipIn)   (clean play + chip adjustments)
+  // total  = result − comps                          (with comps/expenses)
   const lifetime = useMemo(() => {
     const totalMins = visits.reduce((s, v) => s + visitDuration(v), 0);
     const dropGross = Number(economy?.total_drop) || 0;
@@ -217,9 +237,14 @@ const PlayerProfile = () => {
     const drop = dropR; // Lifetime "Drop" KPI = NEP-aware Drop R (External part of cash-in)
     const cashout = Number(economy?.total_cashout) || 0;
     const comps = Number(economy?.total_expenses) || 0;
-    const result = cashout - dropGross; // result based on gross buy (player PnL)
+    let chipIn = 0, chipOut = 0;
+    for (const c of chipAdjustments as any[]) {
+      chipIn += Number(c.chip_in) || 0;
+      chipOut += Number(c.chip_out) || 0;
+    }
+    const result = (cashout + chipOut) - (dropGross + chipIn); // result includes chip adjustments
     const total = result - comps;
-    const hold = holdPct(dropGross, cashout, comps);
+    const hold = holdPct(dropGross, cashout, comps); // Hold % stays on cash drop only (audit-only chips don't bias hold)
     const firstVisit = visits.length ? visits[visits.length - 1].checked_in_at : null;
     const lastVisit = visits[0] ? (visits[0].checked_out_at || visits[0].checked_in_at) : null;
     const daysSinceLast = lastVisit
@@ -233,6 +258,8 @@ const PlayerProfile = () => {
       drop,
       cashout,
       comps,
+      chipIn,
+      chipOut,
       result,
       total,
       hold,
@@ -240,7 +267,7 @@ const PlayerProfile = () => {
       lastVisit,
       daysSinceLast,
     };
-  }, [visits, economy]);
+  }, [visits, economy, chipAdjustments]);
 
   // Period summary (NEP-aware Drop R: lifetime walk, attribute External part to in-range cash-ins).
   const period = useMemo(() => {
@@ -262,10 +289,15 @@ const PlayerProfile = () => {
     }
     const pComps = expensesInRange.reduce((s, e: any) => s + (Number(e.amount) || 0), 0);
     const pMins = visitsInRange.reduce((s, v) => s + visitDuration(v), 0);
-    const result = pOut - pIn;
+    let pChipIn = 0, pChipOut = 0;
+    for (const c of chipAdjInRange) {
+      pChipIn += Number(c.chip_in) || 0;
+      pChipOut += Number(c.chip_out) || 0;
+    }
+    const result = (pOut + pChipOut) - (pIn + pChipIn);
     const total = result - pComps;
-    return { pIn, pOut, pComps, pMins, result, total, hold: holdPct(pIn, pOut, pComps), visits: visitsInRange.length };
-  }, [transactions, rangeStartMs, rangeEndMs, expensesInRange, visitsInRange]);
+    return { pIn, pOut, pComps, pMins, pChipIn, pChipOut, result, total, hold: holdPct(pIn, pOut, pComps), visits: visitsInRange.length };
+  }, [transactions, rangeStartMs, rangeEndMs, expensesInRange, visitsInRange, chipAdjInRange]);
 
   // Per-table aggregates (Position / Sessions / Hands / Avg bet / Duration / IN / OUT / Theo / Result / Hold).
   const tableStats = useMemo(() => {
@@ -552,6 +584,8 @@ const PlayerProfile = () => {
                       {showFinancials && <th className="text-right py-2 px-2" title="Drop — NEP-aware (external cash only)">Drop</th>}
                       {showFinancials && <th className="text-right py-2 px-2" title="Total cash in (all buy-ins)">Cash In</th>}
                       {showFinancials && <th className="text-right py-2 px-2">Cashout</th>}
+                      {showFinancials && <th className="text-right py-2 px-2" title="Chip adjustments in (+)">Chip In</th>}
+                      {showFinancials && <th className="text-right py-2 px-2" title="Chip adjustments out (−)">Chip Out</th>}
                       {showFinancials && <th className="text-right py-2 px-2">Result</th>}
                       {showFinancials && <th className="text-right py-2 px-2">Comps</th>}
                       {showFinancials && <th className="text-right py-2 px-2">Total</th>}
@@ -559,10 +593,10 @@ const PlayerProfile = () => {
                   </thead>
                   <tbody>
                     {visitsInRange.slice(0, 200).map((v: any) => {
-                      const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0, dropR: 0 };
-                      const result = f.cashout - f.totalIn;
+                      const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0, dropR: 0, chipIn: 0, chipOut: 0 };
+                      const result = (f.cashout + f.chipOut) - (f.totalIn + f.chipIn);
                       const total = result - f.comps;
-                      const colCount = 5 + (showFinancials ? 6 : 0);
+                      const colCount = 5 + (showFinancials ? 8 : 0);
                       const isExpanded = expandedVisit === v.id;
                       const txs = visitTxs.get(v.id) || [];
                       return (
@@ -584,6 +618,8 @@ const PlayerProfile = () => {
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.dropR ? fmtMoney(f.dropR) : dot()}</td>}
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.totalIn ? fmtMoney(f.totalIn) : dot()}</td>}
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.cashout ? fmtMoney(f.cashout) : dot()}</td>}
+                          {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right text-success">{f.chipIn ? fmtMoney(f.chipIn) : dot()}</td>}
+                          {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right text-destructive">{f.chipOut ? fmtMoney(f.chipOut) : dot()}</td>}
                           {showFinancials && (
                             <td className={`py-1.5 px-2 font-mono text-xs text-right ${result === 0 ? "text-muted-foreground" : result > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                               {result === 0 ? "·" : fmtMoney(result)}
@@ -644,13 +680,14 @@ const PlayerProfile = () => {
                   <tfoot>
                     {(() => {
                       const periodMins = visitsInRange.reduce((s, v) => s + visitDuration(v), 0);
-                      let pDropR = 0, pIn = 0, pOut = 0, pComps = 0;
+                      let pDropR = 0, pIn = 0, pOut = 0, pComps = 0, pChipIn = 0, pChipOut = 0;
                       for (const v of visitsInRange) {
                         const f = visitFinancials.get(v.id);
                         if (!f) continue;
                         pDropR += f.dropR; pIn += f.totalIn; pOut += f.cashout; pComps += f.comps;
+                        pChipIn += f.chipIn; pChipOut += f.chipOut;
                       }
-                      const pRes = pOut - pIn;
+                      const pRes = (pOut + pChipOut) - (pIn + pChipIn);
                       const pTotal = pRes - pComps;
                       return (
                         <tr className="border-t-2 border-border font-semibold">
@@ -659,6 +696,8 @@ const PlayerProfile = () => {
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pDropR)}</td>}
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pIn)}</td>}
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pOut)}</td>}
+                          {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right text-success">{fmtMoney(pChipIn)}</td>}
+                          {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right text-destructive">{fmtMoney(pChipOut)}</td>}
                           {showFinancials && <td className={`py-2 px-2 font-mono text-xs text-right ${pRes === 0 ? "" : pRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pRes)}</td>}
                           {showFinancials && <td className="py-2 px-2 font-mono text-xs text-right">{fmtMoney(pComps)}</td>}
                           {showFinancials && <td className={`py-2 px-2 font-mono text-xs text-right ${pTotal === 0 ? "" : pTotal > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(pTotal)}</td>}
@@ -679,6 +718,7 @@ const PlayerProfile = () => {
               visits={visits as any}
               transactions={transactions as any}
               expenses={expenses as any}
+              chipAdjustments={chipAdjustments as any}
               showFinancials={canSeePlayerFinancials(roles)}
             />
           </PageSection>

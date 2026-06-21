@@ -1,109 +1,71 @@
-# POS Phase 3A — Revised (7 corrections applied)
+## Problem
 
-Scope is strictly additive. No change to Phase 1 stock lifecycle, payment_split, Z-report, cash drawer, comps, purchases, suppliers, receiving, credit limits, or payment redesign. Recipe tables are inert in 3A (engine switch deferred to 3B).
+Chip IN / Chip OUT (`player_chip_adjustments`) is applied correctly in:
+- `PlayerStatistics` page (rows + totals, formula: `result = (out + chipOut) − (inDrop + chipIn)`)
+- `PlayerPreviewHeader` log
 
-## 1. Database migration (single file)
+But it is **not** included in the extended player profile (`PlayerProfile`) — neither the **Visits** tab (Month → Week → Day breakdown), nor the **Info & History** "Visits" table, nor the **lifetime/period KPIs** in the header card. The `player_economy` view does not aggregate chip adjustments, and `PlayerVisitsBreakdown` only receives transactions + expenses.
 
-### New tables — RLS enabled, GRANT SELECT/INSERT/UPDATE/DELETE TO authenticated + GRANT ALL TO service_role; policies mirror existing `pos_menu_items` (casino_id within user's accessible casinos)
+## Fix (frontend-only, no DB changes)
 
-- **`pos_locations`** — id, casino_id, name, type (`bar|coffee|vip_service|other`), is_active default true, sort_order int default 0, timestamps. UNIQUE (casino_id, name).
-- **`pos_modifiers`** — id, casino_id, name, price_tzs_delta bigint default 0, is_active default true, sort_order int default 0, timestamps. UNIQUE (casino_id, name).
-- **`pos_order_item_modifiers`** — id, order_item_id FK→pos_order_items ON DELETE CASCADE, modifier_id FK→pos_modifiers (nullable for snapshot survival when archived), modifier_name_snapshot text NOT NULL, price_tzs_delta_snapshot bigint NOT NULL default 0, created_at. Index on order_item_id. RLS via parent order's casino_id.
-- **`pos_recipes`** — id, casino_id, sellable_item_id FK→pos_menu_items, name, is_active default true, timestamps. UNIQUE partial index (casino_id, sellable_item_id) WHERE is_active.
-- **`pos_recipe_items`** — id, recipe_id FK→pos_recipes ON DELETE CASCADE, ingredient_item_id FK→pos_menu_items, quantity numeric NOT NULL CHECK (>0), unit text, waste_percent numeric default 0 CHECK (0–100), timestamps.
+Adopt the same canonical formula used in `PlayerStatistics`:
+- `Chip In` adds to the drop side (player put more chips on the table)
+- `Chip Out` adds to the cashout side
+- `Result = (Out + ChipOut) − (Drop + ChipIn)`
+- `Drop R` (NEP-aware External cash) is unchanged — chip adjustments never affect NEP, only `Result` / `Total`.
 
-### New columns (all nullable, additive)
-- `pos_orders.pos_location_id uuid REFERENCES pos_locations(id)`
-- `pos_tabs.pos_location_id uuid REFERENCES pos_locations(id)`
-- `pos_shifts.pos_location_id uuid REFERENCES pos_locations(id)`
+### 1. `src/pages/PlayerProfile.tsx`
 
-### Default Main Bar — every active casino (Correction 5)
-- Backfill INSERT `Main Bar` (`type='bar'`, `sort_order=0`) for every row in `casinos` where `is_active = true` (or no `is_active` column → all rows), `ON CONFLICT (casino_id, name) DO NOTHING`.
-- Helper RPC `pos_get_or_create_default_location(_casino_id uuid) RETURNS uuid` — SECURITY DEFINER, returns id of `Main Bar`, creating if missing. Called by frontend on POS open to guarantee a valid default exists.
+- Add lifetime fetch via existing `usePlayerChipAdjustments(id)` hook.
+- Filter `chipAdjInRange` by `created_at` against `rangeStartMs..rangeEndMs`.
+- Extend `visitFinancials` map to also carry `chipIn`, `chipOut`; walk `chipAdjustments` and attribute each row to the visit window matching `(casino_id, created_at)`, fallback ignored if no window match (matches PlayerStatistics behavior).
+- Extend the **Info & History → Visits** table:
+  - Add two new columns `Chip In` / `Chip Out` between `Cashout` and `Result`.
+  - Adjust `result` and `total` per row + footer totals to include chips.
+- Extend `lifetime` KPIs in header:
+  - Sum all chip adjustments (lifetime).
+  - `result = cashout + chipOut − (dropGross + chipIn)`; `total = result − comps`.
+  - Hold % stays based on cash drop only (do not bias hold by audit-only chip adjustments).
+- Extend `period` KPIs similarly using `chipAdjInRange`.
 
-### Triggers
+### 2. `src/components/player/PlayerVisitsBreakdown.tsx`
 
-**A. Pre-insert location inheritance (Correction 4)**
-- `pos_tabs_set_location_trigger` — BEFORE INSERT on `pos_tabs`: if `NEW.pos_location_id IS NULL`, set to `pos_get_or_create_default_location(NEW.casino_id)`.
-- `pos_orders_set_location_trigger` — BEFORE INSERT on `pos_orders`: if `NEW.pos_location_id IS NULL`, copy from `pos_tabs.pos_location_id`; if still NULL, fall back to `pos_get_or_create_default_location(NEW.casino_id)`. New orders never stay NULL going forward; historical NULLs untouched and rendered as "Main Bar" by UI.
+- Add new prop `chipAdjustments: Array<{ id; casino_id; created_at; chip_in; chip_out }>`.
+- Extend `Agg` with `chipIn`, `chipOut`.
+- In the `visitFin` walk, attribute each chip adjustment to its visit window (same `findVisit(casinoId, ts)` helper already used for transactions).
+- Add two new columns `Chip +` / `Chip −` between `Out` and `Result`.
+- Change `result(a) = (a.out + a.chipOut) − (a.drop + a.chipIn)` for player perspective; `total = result − comps` unchanged.
+- `colSpan` bumps from 8 to 10 when `showFinancials`.
+- Lifetime total row in `<tfoot>` includes the two new columns.
 
-**B. Modifier total recompute — quantity-aware (Correction 1)**
+### 3. `src/pages/PlayerProfile.tsx` (wire-up)
 
-Formula:
+```tsx
+<PlayerVisitsBreakdown
+  visits={visits}
+  transactions={transactions}
+  expenses={expenses}
+  chipAdjustments={chipAdjustments}
+  showFinancials={canSeePlayerFinancials(roles)}
+/>
 ```
-line_total_tzs = (unit_price_tzs + COALESCE(sum(price_tzs_delta_snapshot), 0)) * qty
-```
-Per-unit modifier delta (e.g. qty 3 × Extra Milk +500 = +1500). Documented in trigger comment.
 
-- `pos_order_item_modifiers_recompute_line_total()` — AFTER INSERT/UPDATE/DELETE on `pos_order_item_modifiers`: recompute the parent `pos_order_items.line_total_tzs` using the formula above. UPDATE flows through with a `current_setting('pos.system_recompute', true) = 'on'` GUC so the immutability trigger lets it pass (Correction 3).
+### 4. Sanity check other surfaces
 
-**C. Modifier edit window — pending only, enforced server-side (Correction 2)**
-- `pos_order_item_modifiers_guard()` — BEFORE INSERT/UPDATE/DELETE: load parent order via `pos_order_items → pos_orders`; raise `MODIFIERS_LOCKED_AFTER_PENDING` unless `pos_orders.status = 'pending'` AND parent `pos_tabs.closed_at IS NULL`. Frontend mirrors by hiding the +/- mod buttons after pending.
+Searched the codebase for places consuming visits/transactions for player financials. Confirmed no fix needed elsewhere:
+- `PlayerStatistics.tsx` — already correct.
+- `PlayerPreviewHeader.tsx` — already correct.
+- `Reception.tsx`, `Guests.tsx`, `Blacklist.tsx`, `CrmPlayers.tsx`, `PosPlayerAnalytics.tsx` — use lifetime visit counts or last-visit only; no per-visit cash result.
+- `AmPerformancePage.tsx` — AM aggregates, separate domain.
 
-**D. Existing `pos_order_items` immutability (Correction 3)**
+Chip adjustments remain audit-only: no impact on cage, NEP/Drop R, chip inventory, shift balance, or DB triggers.
 
-Pre-flight inspection step in the migration (using a DO block + `pg_get_functiondef`) verifies the current immutability trigger. Required outcome:
-- If it blocks all UPDATE → replace with a thin wrapper that **allows UPDATE of `line_total_tzs` only when `current_setting('pos.system_recompute', true) = 'on'`** AND `OLD.order_id = NEW.order_id` AND every other column unchanged. All other columns remain immutable for every role.
-- If it already permits trusted updates → no change.
-- The recompute trigger sets the GUC (`PERFORM set_config('pos.system_recompute', 'on', true)`) immediately before its UPDATE and clears it after. Normal users (no GUC) still get the immutability error.
+## Files changed
 
-This keeps historical totals safe while letting modifier attach/detach during `pending` recompute the line.
+- `src/pages/PlayerProfile.tsx`
+- `src/components/player/PlayerVisitsBreakdown.tsx`
 
-**E. Phase 1 stock lifecycle — unchanged.** It triggers on `pos_orders.status` transitions, not on `line_total_tzs`. Verified single-deduction invariant preserved.
+## Out of scope
 
-### Recipes are inert (Correction 7)
-- Tables + UI only. No consumption of recipes by stock-deduction trigger in 3A.
-- No mass auto-generation. A manager-only "Create default 1:1 recipe" button on the recipe page calls a dedicated mutation for one sellable item at a time.
-
-### Archive-only, no hard delete (Correction 6)
-- All manager UIs use `is_active = false`. The migration adds no `ON DELETE` cascade that could remove modifiers/recipes/locations referenced by orders. `pos_order_item_modifiers.modifier_id` is nullable + ON DELETE SET NULL, but the UI never deletes — snapshots stay readable regardless.
-
-## 2. Frontend changes
-
-### New hooks
-- `use-pos-locations.ts` — list/create/update/archive; calls `pos_get_or_create_default_location` on POS open.
-- `use-pos-modifiers.ts` — list/create/update/archive; attach/detach modifiers on an order item (only while order is `pending`; FE guard matches DB guard).
-- `use-pos-recipes.ts` — read/write recipes + items; "create default 1:1 recipe" mutation per item.
-
-### New manager pages (+ register in `PosManager.tsx`, `App.tsx`, sidebar)
-- `/pos/manager/locations` — `PosManagerLocations.tsx`
-- `/pos/manager/modifiers` — `PosManagerModifiers.tsx`
-- `/pos/manager/recipes` — `PosManagerRecipes.tsx` (sellable item picker + ingredient grid + "Uses legacy direct deduction" badge when no active recipe)
-
-### Waiter (MenuPanel, ActiveTabPanel, NewTabDialog)
-- `NewTabDialog` — optional location dropdown, default = Main Bar (from `pos_get_or_create_default_location`).
-- `MenuPanel` — item tile gets "+ mods" affordance opening a sheet (multi-select modifiers with deltas) alongside existing 📝 note flow. Submits modifiers along with `pos_order_items` insert.
-- `ActiveTabPanel` — renders modifier chips per item; +/- mod controls visible **only while order status = pending** and tab not closed; otherwise read-only.
-
-### Bar (`PosBar`)
-- Top filter chips: All / per-location (built from `pos_locations`). Filters `useBarOrders` by `pos_location_id`. NULL historical orders surface under "Main Bar".
-- Order card shows: location chip, waiter name, player name, free-text note, modifier chips with `+ delta` per unit.
-
-### Version bump
-- `package.json` patch bump.
-
-## 3. Verification matrix (post-push)
-
-1. Phase 1: waiter→bar→ready→served still single stock deduction.
-2. Phase 2: `pos_tabs` insert with NULL `player_id` still blocked; pending force-close still blocked.
-3. `Main Bar` exists for every active casino; `pos_get_or_create_default_location` is idempotent.
-4. New tab without explicit location → trigger fills Main Bar; new order under that tab inherits the tab's location; Bar filter shows it.
-5. Modifier attach while `pending`: line_total = `(unit + Σdelta) * qty`; tab total + Z-report match.
-6. Modifier attach attempt after status moves to `preparing` → DB raises `MODIFIERS_LOCKED_AFTER_PENDING`; FE controls hidden.
-7. Direct UPDATE of `pos_order_items.line_total_tzs` by an authenticated user (no GUC) → still blocked by immutability trigger. Recompute trigger path succeeds.
-8. Recipe created for an item → stock still deducts via legacy path (no double-deduct); badge shows "Uses legacy direct deduction" until 3B.
-9. RLS: casino A user cannot SELECT casino B's locations/modifiers/recipes/order_item_modifiers.
-10. Archive a modifier/location/recipe → set `is_active=false`; old orders still render snapshot name + delta.
-11. `payment_split` and Z-report totals unchanged on a normal close.
-12. No DELETE issued against any existing table; no destructive UPDATE.
-
-## 4. Phase 3B preview (NOT in this phase)
-- Recipe-aware stock deduction with fallback to legacy when no active recipe.
-- Recipe-affecting modifiers (e.g. "double shot").
-- Per-location stock pools.
-- Purchase approvals, suppliers, receiving, credit limits, comps wallet, payment redesign.
-
-## Order of operations
-1. Push DB migration → wait for approval and successful run.
-2. Push frontend (hooks, manager pages, MenuPanel/ActiveTabPanel/NewTabDialog/PosBar edits, route registration, version bump).
-3. Return implementation report covering every item in the acceptance list.
+- No DB migration, no edge function, no version bump (UI presentation fix only).
+- `player_economy` view unchanged (adding chip adjustments there would touch every consumer; we sum on the client where needed).

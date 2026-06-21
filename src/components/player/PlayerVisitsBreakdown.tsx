@@ -17,11 +17,13 @@ type Visit = {
 };
 type Tx = { id: string; casino_id: string; created_at: string; type: string; amount: number };
 type Exp = { id: string; casino_id: string; created_at: string; amount: number };
+type ChipAdj = { id: string; casino_id: string; created_at: string; chip_in: number; chip_out: number };
 
 type Props = {
   visits: Visit[];
   transactions: Tx[];
   expenses: Exp[];
+  chipAdjustments?: ChipAdj[];
   showFinancials: boolean;
 };
 
@@ -68,16 +70,18 @@ const weekLabel = (start: Date) => {
   return `Week ${fmt(start)}–${fmt(end)} ${start.toLocaleDateString("en-GB", { timeZone: "Africa/Dar_es_Salaam", month: "short" })}`;
 };
 
-type Agg = { visits: number; minutes: number; drop: number; inGross: number; out: number; comps: number };
-const blank = (): Agg => ({ visits: 0, minutes: 0, drop: 0, inGross: 0, out: 0, comps: 0 });
+type Agg = { visits: number; minutes: number; drop: number; inGross: number; out: number; comps: number; chipIn: number; chipOut: number };
+const blank = (): Agg => ({ visits: 0, minutes: 0, drop: 0, inGross: 0, out: 0, comps: 0, chipIn: 0, chipOut: 0 });
 const add = (a: Agg, b: Agg): Agg => ({
   visits: a.visits + b.visits, minutes: a.minutes + b.minutes,
   drop: a.drop + b.drop, inGross: a.inGross + b.inGross, out: a.out + b.out, comps: a.comps + b.comps,
+  chipIn: a.chipIn + b.chipIn, chipOut: a.chipOut + b.chipOut,
 });
-const result = (a: Agg) => a.out - a.drop;
+// Player perspective: chip_in adds to drop-side, chip_out adds to cashout-side.
+const result = (a: Agg) => (a.out + a.chipOut) - (a.drop + a.chipIn);
 const total = (a: Agg) => result(a) - a.comps;
 
-export default function PlayerVisitsBreakdown({ visits, transactions, expenses, showFinancials }: Props) {
+export default function PlayerVisitsBreakdown({ visits, transactions, expenses, chipAdjustments = [], showFinancials }: Props) {
   const [openMonths, setOpenMonths] = useState<Record<string, boolean>>({});
   const [openWeeks, setOpenWeeks] = useState<Record<string, boolean>>({});
 
@@ -86,7 +90,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
   // each cash-in's External portion to the visit window it falls into.
   const visitFin = useMemo(() => {
     const m = new Map<string, Agg>();
-    for (const v of visits) m.set(v.id, { visits: 1, minutes: visitMins(v), drop: 0, inGross: 0, out: 0, comps: 0 });
+    for (const v of visits) m.set(v.id, { visits: 1, minutes: visitMins(v), drop: 0, inGross: 0, out: 0, comps: 0, chipIn: 0, chipOut: 0 });
 
     // Build sorted ranges of visits per casino for fast lookup.
     type Range = { id: string; casinoId: string; start: number; end: number };
@@ -125,6 +129,16 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
         if (vid) m.get(vid)!.out += amt;
       }
     }
+    // Chip adjustments per visit (audit-only; affect Result/Total, not Drop R / NEP).
+    for (const c of chipAdjustments) {
+      const ts = new Date(c.created_at).getTime();
+      const vid = findVisit(c.casino_id, ts);
+      if (vid) {
+        const cur = m.get(vid)!;
+        cur.chipIn += Number(c.chip_in) || 0;
+        cur.chipOut += Number(c.chip_out) || 0;
+      }
+    }
     // Comps per visit
     for (const e of expenses) {
       const ts = new Date(e.created_at).getTime();
@@ -132,7 +146,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
       if (vid) m.get(vid)!.comps += Number(e.amount) || 0;
     }
     return m;
-  }, [visits, transactions, expenses]);
+  }, [visits, transactions, expenses, chipAdjustments]);
 
   // Build hierarchy: month → week → day → visits[].
   const months = useMemo(() => {
@@ -184,7 +198,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
     return <div className="text-sm text-muted-foreground py-6 text-center">No visits recorded.</div>;
   }
 
-  const colSpan = showFinancials ? 8 : 3;
+  const colSpan = showFinancials ? 10 : 3;
 
   return (
     <div className="overflow-x-auto">
@@ -198,6 +212,8 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
               <th className="text-right py-2 px-2" title="Drop — NEP-aware (external cash only)">Drop</th>
               <th className="text-right py-2 px-2" title="Total cash in (all buy-ins, including recycled)">In</th>
               <th className="text-right py-2 px-2" title="Total cashout">Out</th>
+              <th className="text-right py-2 px-2" title="Chip adjustments in (+)">Chip In</th>
+              <th className="text-right py-2 px-2" title="Chip adjustments out (−)">Chip Out</th>
               <th className="text-right py-2 px-2">Result</th>
               <th className="text-right py-2 px-2">Comps</th>
               <th className="text-right py-2 px-2">Total</th>
@@ -228,6 +244,8 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
                     <td className="py-2 px-2 text-right font-mono">{mo.agg.drop ? fmtMoney(mo.agg.drop) : dot}</td>
                     <td className="py-2 px-2 text-right font-mono">{mo.agg.inGross ? fmtMoney(mo.agg.inGross) : dot}</td>
                     <td className="py-2 px-2 text-right font-mono">{mo.agg.out ? fmtMoney(mo.agg.out) : dot}</td>
+                    <td className="py-2 px-2 text-right font-mono text-success">{mo.agg.chipIn ? fmtMoney(mo.agg.chipIn) : dot}</td>
+                    <td className="py-2 px-2 text-right font-mono text-destructive">{mo.agg.chipOut ? fmtMoney(mo.agg.chipOut) : dot}</td>
                     <td className={`py-2 px-2 text-right font-mono ${moRes === 0 ? "text-muted-foreground" : moRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                       {moRes === 0 ? "·" : fmtMoney(moRes)}
                     </td>
@@ -260,6 +278,8 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
                           <td className="py-1.5 px-2 text-right font-mono text-xs">{wk.agg.drop ? fmtMoney(wk.agg.drop) : dot}</td>
                           <td className="py-1.5 px-2 text-right font-mono text-xs">{wk.agg.inGross ? fmtMoney(wk.agg.inGross) : dot}</td>
                           <td className="py-1.5 px-2 text-right font-mono text-xs">{wk.agg.out ? fmtMoney(wk.agg.out) : dot}</td>
+                          <td className="py-1.5 px-2 text-right font-mono text-xs text-success">{wk.agg.chipIn ? fmtMoney(wk.agg.chipIn) : dot}</td>
+                          <td className="py-1.5 px-2 text-right font-mono text-xs text-destructive">{wk.agg.chipOut ? fmtMoney(wk.agg.chipOut) : dot}</td>
                           <td className={`py-1.5 px-2 text-right font-mono text-xs ${wkRes === 0 ? "text-muted-foreground" : wkRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                             {wkRes === 0 ? "·" : fmtMoney(wkRes)}
                           </td>
@@ -290,6 +310,8 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
                               <td className="py-1 px-2 text-right font-mono text-xs">{day.agg.drop ? fmtMoney(day.agg.drop) : dot}</td>
                               <td className="py-1 px-2 text-right font-mono text-xs">{day.agg.inGross ? fmtMoney(day.agg.inGross) : dot}</td>
                               <td className="py-1 px-2 text-right font-mono text-xs">{day.agg.out ? fmtMoney(day.agg.out) : dot}</td>
+                              <td className="py-1 px-2 text-right font-mono text-xs text-success">{day.agg.chipIn ? fmtMoney(day.agg.chipIn) : dot}</td>
+                              <td className="py-1 px-2 text-right font-mono text-xs text-destructive">{day.agg.chipOut ? fmtMoney(day.agg.chipOut) : dot}</td>
                               <td className={`py-1 px-2 text-right font-mono text-xs ${dRes === 0 ? "text-muted-foreground" : dRes > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
                                 {dRes === 0 ? "·" : fmtMoney(dRes)}
                               </td>
@@ -322,6 +344,8 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
                   <td className="py-2 px-2 text-right font-mono">{fmtMoney(tot.drop)}</td>
                   <td className="py-2 px-2 text-right font-mono">{fmtMoney(tot.inGross)}</td>
                   <td className="py-2 px-2 text-right font-mono">{fmtMoney(tot.out)}</td>
+                  <td className="py-2 px-2 text-right font-mono text-success">{fmtMoney(tot.chipIn)}</td>
+                  <td className="py-2 px-2 text-right font-mono text-destructive">{fmtMoney(tot.chipOut)}</td>
                   <td className={`py-2 px-2 text-right font-mono ${r === 0 ? "" : r > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(r)}</td>
                   <td className="py-2 px-2 text-right font-mono">{fmtMoney(tot.comps)}</td>
                   <td className={`py-2 px-2 text-right font-mono ${t === 0 ? "" : t > 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{fmtMoney(t)}</td>
