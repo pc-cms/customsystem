@@ -163,17 +163,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, nextSession) => {
         if (!mounted) return;
+        // Keep Realtime websocket auth in sync with refreshed tokens —
+        // otherwise existing channels keep using a stale JWT and RLS
+        // silently drops postgres_changes payloads (no error, just no events).
+        try {
+          supabase.realtime.setAuth(nextSession?.access_token ?? null);
+        } catch (e) {
+          console.warn("[Auth] realtime.setAuth failed", e);
+        }
         processSession(nextSession);
         setAuthReady(true);
       }
     );
 
+
     // 2. Then restore session from storage
     void supabase.auth.getSession()
       .then(({ data: { session } }) => {
         if (!mounted) return;
+        try {
+          supabase.realtime.setAuth(session?.access_token ?? null);
+        } catch (e) {
+          console.warn("[Auth] realtime.setAuth (initial) failed", e);
+        }
         processSession(session);
       })
+
       .catch((error) => {
         console.error("getSession error", error);
       })
