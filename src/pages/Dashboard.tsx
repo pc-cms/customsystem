@@ -317,46 +317,50 @@ const Dashboard = () => {
         <CCTVDashboardSection />
       )}
 
-      {/* Day at a glance — single panel, one row per metric, never wraps. */}
+      {/* Day at a glance + Tables Totals — two columns. */}
       {(() => {
         const isSurveillance = roles.includes("surveillance") && !roles.includes("manager") && !roles.includes("super_admin");
         if (!showFinancials) return null;
-        const rows: Array<{ label: string; value: React.ReactNode; icon?: any; href?: string; signed?: number }> = [
-          { label: "Total Drop", value: formatCurrency(totalDrop), icon: Landmark, href: "/cage" },
-          {
-            label: "Result",
-            icon: TrendingDown,
-            href: "/tables?tab=tracker",
-            signed: totalResult,
-            value: `${totalResult >= 0 ? "+" : ""}${formatCurrency(totalResult)}`,
-          },
-        ];
-        if (!isSurveillance && canApproveExpenses) {
-          rows.push({ label: "Daily Expenses", value: pendingExpenses, icon: Receipt, href: "/expenses" });
-        }
-        if (!isSurveillance) {
-          rows.push({ label: "Pending Cashless", value: pendingCashless, icon: Smartphone, href: "/cashless" });
-        }
-        return <SummaryPanel title="Day at a glance" rows={rows} />;
-      })()}
 
-      {/* Tables Totals — single panel with row per game type + Total Casino accent row. */}
-      {showFinancials && gameTypeCount > 0 && (
-        <SummaryPanel
-          title="Tables Totals"
-          rows={Object.entries(gameTypeTotals).map(([game, t]) => ({
-            label: t.label,
-            signed: t.result,
-            href: "/tables",
-            value: `${t.result >= 0 ? "+" : ""}${formatCurrency(t.result)}`,
-          }))}
-          total={{
-            label: "Total Casino",
-            signed: totalResult,
-            value: `${totalResult >= 0 ? "+" : ""}${formatCurrency(totalResult)}`,
-          }}
-        />
-      )}
+        const leftRows: Array<{ label: string; value: React.ReactNode; icon?: any; href?: string; signed?: number }> = [];
+        if (!isSurveillance && canApproveExpenses) {
+          leftRows.push({ label: "Daily Expenses", value: pendingExpenses, icon: Receipt, href: "/expenses" });
+        }
+        leftRows.push({ label: "Headcount", value: headcountToday, icon: Users, href: "/reception" });
+        leftRows.push({ label: "Active Players", value: activePlayersToday, icon: Users, href: "/reception" });
+
+        const rightRows = Object.entries(gameTypeTotals).map(([_, t]) => ({
+          label: t.label,
+          signed: t.result,
+          href: "/tables",
+          value: `${t.result >= 0 ? "+" : ""}${formatCurrency(t.result)}`,
+        }));
+
+        return (
+          <div className="grid lg:grid-cols-2 gap-4">
+            <SummaryPanel
+              title="Day at a glance"
+              rows={leftRows}
+              total={{
+                label: "Total Drop",
+                signed: totalDrop,
+                value: formatCurrency(totalDrop),
+              }}
+            />
+            {gameTypeCount > 0 && (
+              <SummaryPanel
+                title="Tables Totals"
+                rows={rightRows}
+                total={{
+                  label: "Total Casino",
+                  signed: totalResult,
+                  value: `${totalResult >= 0 ? "+" : ""}${formatCurrency(totalResult)}`,
+                }}
+              />
+            )}
+          </div>
+        );
+      })()}
 
       {/* Floor Staff on Shift — full width, fills remaining height */}
       <div className="cms-panel flex flex-col" style={{ minHeight: "60vh" }}>
