@@ -348,7 +348,7 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
               {rows.length === 0 && (
                 <tr>
                   <td colSpan={TOTAL_COLS} className="text-center text-muted-foreground py-6">
-                    No staff found
+                    {dealersLoading ? "Loading staff…" : "No staff found"}
                   </td>
                 </tr>
               )}
