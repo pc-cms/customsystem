@@ -2,7 +2,7 @@
  * PokerTipsReport — daily breakdown of Club Poker tips collected by cashier.
  * Unified Day/Week/Month/Year/Custom picker.
  */
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Coins } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -10,12 +10,13 @@ import { formatCurrency } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
 import { useTipsByRange } from "@/hooks/use-tips";
 import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
+import { useSessionState } from "@/hooks/use-session-state";
 
 export default function PokerTipsReport() {
   const initial = presetRange("month");
-  const [preset, setPreset] = useState<DatePreset>("month");
-  const [from, setFrom] = useState(initial.from);
-  const [to, setTo] = useState(initial.to);
+  const [preset, setPreset] = useSessionState<DatePreset>("preset", "month");
+  const [from, setFrom] = useSessionState("from", initial.from);
+  const [to, setTo] = useSessionState("to", initial.to);
   const { data: rows = [] } = useTipsByRange("tips_poker", from, to);
 
   const byDay = useMemo(() => {

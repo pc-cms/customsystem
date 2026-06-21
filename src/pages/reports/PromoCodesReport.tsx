@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { Tag, Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,13 +13,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { fmtDateTime } from "@/lib/format-date";
 import { downloadXlsx } from "@/lib/excel-export";
+import { useSessionState } from "@/hooks/use-session-state";
 
 const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
 
 export default function PromoCodesReport() {
   const { activeCasinoId } = useCasino();
-  const [status, setStatus] = useState<"all" | "redeemed" | "active" | "expired">("all");
-  const [search, setSearch] = useState("");
+  const [status, setStatus] = useSessionState<"all" | "redeemed" | "active" | "expired">("status", "all");
+  const [search, setSearch] = useSessionState("search", "");
 
   const { data: campaigns = [] } = useQuery({
     queryKey: ["promo-campaigns-report", activeCasinoId],
