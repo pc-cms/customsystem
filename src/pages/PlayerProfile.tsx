@@ -119,6 +119,14 @@ const PlayerProfile = () => {
     [expenses, rangeStartMs, rangeEndMs]
   );
 
+  const chipAdjInRange = useMemo(
+    () => (chipAdjustments as any[]).filter((c: any) => {
+      const ts = new Date(c.created_at).getTime();
+      return ts >= rangeStartMs && ts <= rangeEndMs;
+    }),
+    [chipAdjustments, rangeStartMs, rangeEndMs]
+  );
+
   // Map transactions to visits (same casino + within check-in / check-out window).
   // dropR = NEP-aware external drop per visit (computed via lifetime walk).
   const visitFinancials = useMemo(() => {
