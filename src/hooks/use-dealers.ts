@@ -3,7 +3,7 @@
  * Hooks alias employee_id → dealer_id and write employee_id (DB triggers
  * keep the legacy `dealer_id` column in sync). Consumers stay unchanged.
  */
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useIsMutating } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
