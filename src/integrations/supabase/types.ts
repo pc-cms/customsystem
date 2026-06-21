@@ -6018,6 +6018,126 @@ export type Database = {
           },
         ]
       }
+      pos_modifier_menu_items: {
+        Row: {
+          casino_id: string
+          created_at: string
+          menu_item_id: string
+          modifier_id: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          menu_item_id: string
+          modifier_id: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          menu_item_id?: string
+          modifier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_modifier_menu_items_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_modifier_menu_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "pos_menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_modifier_menu_items_modifier_id_fkey"
+            columns: ["modifier_id"]
+            isOneToOne: false
+            referencedRelation: "pos_modifiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_modifier_recipe_effects: {
+        Row: {
+          casino_id: string
+          created_at: string
+          effect_type: string
+          id: string
+          ingredient_item_id: string
+          modifier_id: string
+          multiplier: number | null
+          quantity: number | null
+          sellable_item_id: string | null
+          sort_order: number
+          unit: string | null
+          updated_at: string
+          waste_percent: number
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          effect_type: string
+          id?: string
+          ingredient_item_id: string
+          modifier_id: string
+          multiplier?: number | null
+          quantity?: number | null
+          sellable_item_id?: string | null
+          sort_order?: number
+          unit?: string | null
+          updated_at?: string
+          waste_percent?: number
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          effect_type?: string
+          id?: string
+          ingredient_item_id?: string
+          modifier_id?: string
+          multiplier?: number | null
+          quantity?: number | null
+          sellable_item_id?: string | null
+          sort_order?: number
+          unit?: string | null
+          updated_at?: string
+          waste_percent?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_modifier_recipe_effects_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_modifier_recipe_effects_ingredient_item_id_fkey"
+            columns: ["ingredient_item_id"]
+            isOneToOne: false
+            referencedRelation: "pos_menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_modifier_recipe_effects_modifier_id_fkey"
+            columns: ["modifier_id"]
+            isOneToOne: false
+            referencedRelation: "pos_modifiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_modifier_recipe_effects_sellable_item_id_fkey"
+            columns: ["sellable_item_id"]
+            isOneToOne: false
+            referencedRelation: "pos_menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_modifiers: {
         Row: {
           casino_id: string
@@ -6067,6 +6187,7 @@ export type Database = {
           modifier_name_snapshot: string
           order_item_id: string
           price_tzs_delta_snapshot: number
+          recipe_effects_snapshot: Json | null
         }
         Insert: {
           created_at?: string
@@ -6075,6 +6196,7 @@ export type Database = {
           modifier_name_snapshot: string
           order_item_id: string
           price_tzs_delta_snapshot?: number
+          recipe_effects_snapshot?: Json | null
         }
         Update: {
           created_at?: string
@@ -6083,6 +6205,7 @@ export type Database = {
           modifier_name_snapshot?: string
           order_item_id?: string
           price_tzs_delta_snapshot?: number
+          recipe_effects_snapshot?: Json | null
         }
         Relationships: [
           {

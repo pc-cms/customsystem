@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, Plus, Archive, ArchiveRestore } from "lucide-react";
+import { Sparkles, Plus, Archive, ArchiveRestore, Settings } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
 } from "@/hooks/use-pos-modifiers";
 import { formatNumberSpaces } from "@/lib/currency";
 import { toast } from "@/hooks/use-toast";
+import { PosModifierConfigDialog } from "@/components/pos/manager/PosModifierConfigDialog";
 
 export default function PosManagerModifiers() {
   const { activeCasinoId } = useCasino();
@@ -27,6 +28,8 @@ export default function PosManagerModifiers() {
   const upsert = useUpsertPosModifier();
   const archive = useArchivePosModifier();
   const [edit, setEdit] = useState<Partial<PosModifier> | null>(null);
+  const [configFor, setConfigFor] = useState<PosModifier | null>(null);
+
 
   const handleSave = async () => {
     if (!edit || !activeCasinoId || !edit.name?.trim()) {
@@ -88,6 +91,9 @@ export default function PosManagerModifiers() {
                 <DTCell className="text-right">
                   {canEdit && (
                     <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => setConfigFor(m)}>
+                        <Settings className="h-4 w-4 mr-1" /> Configure
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => setEdit(m)}>Edit</Button>
                       <Button
                         variant="ghost"
@@ -99,6 +105,7 @@ export default function PosManagerModifiers() {
                       </Button>
                     </div>
                   )}
+
                 </DTCell>
               </DTRow>
             ))}
@@ -155,6 +162,17 @@ export default function PosManagerModifiers() {
           </div>
         )}
       </ResponsiveDialog>
+
+      {configFor && activeCasinoId && (
+        <PosModifierConfigDialog
+          open={!!configFor}
+          onOpenChange={(o) => !o && setConfigFor(null)}
+          casinoId={activeCasinoId}
+          modifierId={configFor.id}
+          modifierName={configFor.name}
+        />
+      )}
     </PageShell>
+
   );
 }
