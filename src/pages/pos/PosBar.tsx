@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { PosOrderStatus } from "@/hooks/use-pos-orders";
 import { toast } from "sonner";
-import { useAuth } from "@/lib/auth/AuthProvider";
+import { useAuth } from "@/lib/auth-context";
 
 const COLS: { key: PosOrderStatus; title: string; icon: typeof Clock; next?: "preparing" | "ready" | "served"; nextLabel?: string }[] = [
   { key: "pending",   title: "New",       icon: Clock, next: "preparing", nextLabel: "Accept" },
@@ -125,9 +125,11 @@ function OrderCard({
 
 export default function PosBar() {
   const { activeCasinoId } = useCasino();
-  const { user, roles } = useAuth() as any;
-  const isManager = Array.isArray(roles)
-    && (roles.includes("pos_manager") || roles.includes("manager") || roles.includes("super_admin"));
+  const { roles } = useAuth();
+  const isManager = roles.includes("pos_manager")
+    || roles.includes("manager")
+    || roles.includes("super_admin");
+
   const { data: orders = [], isLoading } = usePosBarOrders(activeCasinoId);
   const advance = useAdvancePosOrder();
   const markProblem = useMarkOrderProblem();
