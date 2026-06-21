@@ -447,6 +447,7 @@ const PlayerStatistics = () => {
     if (tab === "left") list = list.filter((r: any) => !r.isPresent);
     list = list.filter((r: any) => categoryFilter.has(r.category));
     list = list.filter((r: any) => zoneFilter.has((r.zone as PlayerZone) ?? "none"));
+    if (activeOnly) list = list.filter(isActiveRow);
     if (search) {
       const q = search.toLowerCase();
       list = list.filter((r: any) =>
