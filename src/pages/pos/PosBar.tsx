@@ -92,8 +92,11 @@ function OrderCard({
           )}
         </div>
       </div>
-      <div className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
-        <User className="h-3 w-3" /> {waiterName}
+      <div className="text-xs text-muted-foreground flex items-center gap-3 mb-2 flex-wrap">
+        <span className="inline-flex items-center gap-1"><User className="h-3 w-3" /> {waiterName}</span>
+        {locationName && (
+          <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {locationName}</span>
+        )}
       </div>
       {problem && order.problem_reason && (
         <div className="text-xs text-cms-amount-negative mb-2 px-2 py-1 rounded bg-cms-amount-negative/10">
@@ -102,9 +105,28 @@ function OrderCard({
       )}
       <ul className="text-sm space-y-1 mb-2">
         {order.items.map((it) => (
-          <li key={it.id} className="flex justify-between gap-2">
-            <span className="truncate">{it.item_name}</span>
-            <span className="text-muted-foreground shrink-0">×{it.qty}</span>
+          <li key={it.id} className="flex flex-col gap-0.5">
+            <div className="flex justify-between gap-2">
+              <span className="truncate">{it.item_name}</span>
+              <span className="text-muted-foreground shrink-0">×{it.qty}</span>
+            </div>
+            {it.modifiers && it.modifiers.length > 0 && (
+              <div className="pl-3 flex flex-wrap gap-1">
+                {it.modifiers.map((m) => (
+                  <span
+                    key={m.id}
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary"
+                  >
+                    + {m.modifier_name_snapshot}
+                    {m.price_tzs_delta_snapshot !== 0 && (
+                      <span className="ml-1 font-mono tabular-nums">
+                        ({m.price_tzs_delta_snapshot > 0 ? "+" : ""}{formatNumberSpaces(m.price_tzs_delta_snapshot)})
+                      </span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            )}
           </li>
         ))}
       </ul>
