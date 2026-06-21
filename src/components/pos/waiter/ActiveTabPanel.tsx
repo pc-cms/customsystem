@@ -7,10 +7,12 @@ import { fmtDateTime } from "@/lib/format-date";
 import {
   usePosTabOrders,
   useVoidPosOrder,
+  useUpdatePosOrderNotes,
   type PosOrderStatus,
   type PosOrderWithItems,
 } from "@/hooks/use-pos-orders";
 import type { PosTab } from "@/hooks/use-pos-tabs";
+
 import { toast } from "@/hooks/use-toast";
 import CloseBillDialog from "./CloseBillDialog";
 import PayNowDialog from "./PayNowDialog";
@@ -36,9 +38,11 @@ const STATUS_CHIP: Record<PosOrderStatus, { label: string; cls: string }> = {
 export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
   const { data: orders = [], isLoading } = usePosTabOrders(tab?.id ?? null, casinoId);
   const voidOrder = useVoidPosOrder();
+  const updateNotes = useUpdatePosOrderNotes();
   const [closeDialog, setCloseDialog] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [payNowOrder, setPayNowOrder] = useState<PosOrderWithItems | null>(null);
+
 
   if (!tab) {
     return (
@@ -91,6 +95,8 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
               const chip = STATUS_CHIP[o.status];
               const canVoid = o.status === "pending" || o.status === "preparing";
               const canPayNow = canVoid && o.total_tzs > 0;
+              const canEditNote = o.status === "pending";
+              const notes = (o as any).notes as string | null;
               return (
                 <li key={o.id} className="p-3">
                   <div className="flex items-start justify-between gap-2">
@@ -103,6 +109,28 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
                           <span className="font-mono tabular-nums">{formatNumberSpaces(it.line_total_tzs)}</span>
                         </div>
                       ))}
+                      {(notes || canEditNote) && (
+                        <button
+                          type="button"
+                          disabled={!canEditNote}
+                          onClick={() => {
+                            if (!canEditNote) return;
+                            const next = window.prompt("Edit note (blank to clear):", notes ?? "");
+                            if (next === null) return;
+                            void updateNotes.mutateAsync({
+                              order_id: o.id,
+                              notes: next.trim() ? next.trim() : null,
+                            }).catch((e: any) => toast({ title: "Failed", description: e?.message, variant: "destructive" }));
+                          }}
+                          className={cn(
+                            "mt-1 text-left text-xs italic w-full px-2 py-1 rounded",
+                            notes ? "bg-muted/60 text-foreground" : "text-muted-foreground",
+                            canEditNote ? "hover:bg-accent/40" : "opacity-80 cursor-default",
+                          )}
+                        >
+                          📝 {notes || (canEditNote ? "Add a note…" : "")}
+                        </button>
+                      )}
                       <div className="mt-1 flex items-center gap-2">
                         <Badge className={chip.cls} variant="secondary">{chip.label}</Badge>
                         <span className="text-[11px] text-muted-foreground">{fmtDateTime(o.created_at)}</span>
@@ -135,6 +163,7 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
               );
             })}
           </ul>
+
         )}
       </div>
 

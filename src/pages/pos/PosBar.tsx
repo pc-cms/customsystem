@@ -126,9 +126,11 @@ function OrderCard({
 export default function PosBar() {
   const { activeCasinoId } = useCasino();
   const { roles } = useAuth();
-  const isManager = roles.includes("pos_manager")
-    || roles.includes("manager")
-    || roles.includes("super_admin");
+  const roleSet = roles as readonly string[];
+  const isManager = roleSet.includes("pos_manager")
+    || roleSet.includes("manager")
+    || roleSet.includes("super_admin");
+
 
   const { data: orders = [], isLoading } = usePosBarOrders(activeCasinoId);
   const advance = useAdvancePosOrder();
