@@ -1,57 +1,93 @@
-## Цель
-Расширить уже существующий `useSessionState` на страницы игроков/трекинга/статистики и сделать пресеты приватными по пользователю (без чистки на signOut).
+## Диагноз
 
-## 1. Изменения в `useSessionState`
+После проверки кодовой базы и БД:
 
-`src/hooks/use-session-state.ts`:
-- Текущий ключ: `cms.session::${pathname}::${key}`.
-- Новый ключ: `cms.session::${userId || "anon"}::${pathname}::${key}` — берём `userId` из `auth-context` (lazy через `getStoredUserId()`, чтобы не тянуть React-контекст в хук). Это даст разделение по юзерам в одной вкладке.
-- При смене `userId` (другой логин) хук читает из своего namespace — фильтры предыдущего юзера не видны.
+- **Realtime включён** в `supabase_realtime` для всех ключевых таблиц (transactions, breaklist, shifts, casino_visits, bank_checks, cashless_transactions, table_tracker, expenses, players, pit_rota, dealer_attendance, gaming_tables, business_day_closures, и т.д. — 40 таблиц в публикации).
+- **REPLICA IDENTITY = FULL** у всех таблиц, к которым подписка ходит с фильтром `casino_id=eq.X` — фильтр работает корректно для INSERT/UPDATE/DELETE.
+- **Канал монтируется один раз** в `ProtectedRoutes` (`useRealtimeSubscriptions`) — на навигацию по страницам не пересоздаётся. ОК.
+- **React Query настройки** (`src/App.tsx:154`):
+  - `staleTime: 2 мин` — кэш свежий 2 минуты
+  - `refetchOnWindowFocus: false` — фокус вкладки НЕ триггерит refetch
+  - `refetchOnReconnect: false` — реконнект сети НЕ триггерит refetch
+  - Значит, после `staleTime` обновление возможно ТОЛЬКО через `invalidateQueries` от Realtime, либо при ремоунте компонента (переход между страницами → новый mount → если данные «stale», refetch).
 
-`src/lib/auth-context.tsx`:
-- Убрать вызов `clearSessionState()` в `signOut`. Данные остаются в sessionStorage, но другой юзер их не увидит (другой namespace).
-- `sessionStorage` всё равно умирает при закрытии вкладки — приватность сохраняется.
+**Это объясняет симптом:** если событие Realtime по какой-то причине не приходит или не инвалидирует нужный ключ — данные «висят» до перехода на другую страницу. С `refetchOnWindowFocus: false` смена окна вообще не должна обновлять; «обновление при переключении вкладок» = переход между разделами навигации, не реальная подписка.
 
-## 2. Страницы под подключение (Players / Tracking / Stats)
+Причина «молчания» Realtime, которую можно подтвердить только в проде:
+- `.subscribe()` вызывается **без status-callback** — мы не видим, успешно ли установлена подписка, не было ли `CHANNEL_ERROR`/`TIMED_OUT`/`CLOSED`.
+- Один канал держит ~22 биндинга `.on('postgres_changes', ...)` — это много, у Supabase есть рекомендация дробить, при флапающей сети такой канал может «упасть» и не подписаться заново корректно.
 
-Пройтись по всем экранам, связанным с игроками и трекингом, и заменить `useState` → `useSessionState` для фильтров/сортировок/поиска/табов/периодов:
+## Что делаю
 
-| Файл | Что персистим |
-|---|---|
-| `src/pages/crm/CrmPlayers.tsx` | search, category/status/tag фильтры, sortKey/sortDir, активный таб |
-| `src/pages/Guests.tsx` | (уже подключено — проверить полноту: posFilter, date range) |
-| `src/pages/Blacklist.tsx` | (уже) — добавить sort и фильтры по casino |
-| `src/pages/PlayerProfile.tsx` | активный таб (Overview / Visits / Tracker / Notes / Cashless / Bank Checks …), period preset |
-| `src/pages/Reception.tsx` | (уже sortBy) — добавить search, фильтры status/category |
-| `src/pages/Groups.tsx` | search, sort |
-| `src/pages/MarketingCampaigns.tsx`, `MarketingCampaignDetail.tsx` | search, status filter, активный таб |
-| Player Tracker / Active Players (внутри Dashboard, Pit, или отдельные блоки) — найти grep'ом `useState` для filter/sort и заменить |
-| `src/pages/BankChecks.tsx` | (уже preset) — добавить search, statusFilter, sortKey/sortDir |
-| `src/pages/Cashless.tsx` | search, providerFilter, dateRange, sort |
-| `src/pages/Transfers.tsx` | period, sort |
-| `src/pages/Logs.tsx` | filter по типу события, period, search |
-| Stats-страницы под `src/pages/reports/*` относящиеся к игрокам (per-player reports) | period preset, sort |
+### 1. Диагностика канала (`src/hooks/use-realtime.ts`)
 
-Точный список финализирую при имплементации — пройдусь grep'ом `useState<` по `pages/` и `components/players/`, `components/crm/`, `components/tracker/`. Любой `useState` для строки поиска, селекта фильтра, `sortKey`, `sortDir`, `activeTab`, `preset`, `dateFrom`/`dateTo`, `page`/`pageSize` → заменяю на `useSessionState`.
+Добавляю status-callback в `.subscribe()`:
 
-**Исключения** (как и раньше — не персистим):
-- Открытие модалок, выбранная строка, hover/focus.
-- Поля форм ввода (создание/редактирование).
-- Оперативные гриды Pit Rota / Breaklist / Table Tracker — там нет фильтров, только структурная сетка.
+```ts
+.subscribe((status, err) => {
+  if (status === "SUBSCRIBED") {
+    console.info(`[Realtime] ✓ subscribed (casino=${casinoId})`);
+    // Если это не первый SUBSCRIBED — это РЕКОННЕКТ, нужно догнать пропущенное
+    if (wasDisconnectedRef.current) {
+      wasDisconnectedRef.current = false;
+      qc.invalidateQueries({ refetchType: "active" });
+    }
+  } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+    console.warn(`[Realtime] ✗ ${status}`, err);
+    wasDisconnectedRef.current = true;
+  }
+});
+```
 
-## 3. Проверка
+Это даёт две вещи:
+- видимость в консоли (можно прямо в проде открыть DevTools и увидеть, жив ли канал);
+- автоматический догон данных при реконнекте — без UI-индикатора, прозрачно.
 
-1. Открыть `/crm/players`, поставить фильтр + сортировку → перейти на `/cage` → вернуться → состояние на месте.
-2. Открыть `/players/:id`, переключить таб на Tracker → перейти на другого игрока → вернуться к первому → таб Tracker сохранён.
-3. signOut → login тем же юзером → фильтры на месте.
-4. signOut → login другим юзером → видит чистое состояние (свой namespace).
-5. Закрыть вкладку → открыть заново → чистое состояние (sessionStorage умер).
+### 2. Страховочный refetch на смене вкладки
 
-## 4. Версия
+Включаю в `src/App.tsx` QueryClient default:
 
-Чисто фронтовое изменение — bump patch в `package.json` всё равно сделаю (по нашему правилу авто-бамп; здесь скорее косметика, но затрагивает много страниц).
+```ts
+refetchOnWindowFocus: true,  // было false
+```
+
+Логика: с `staleTime: 2 мин` это НЕ создаёт «storm» — refetch уходит только для запросов старше 2 минут, и только тех, что сейчас отображаются. Это страховочный механизм: даже если Realtime пропустит событие (CHANNEL_ERROR в момент INSERT), при возврате во вкладку данные обновятся. Сейчас именно это работает (юзер описал — «обновляется при переключении»), но через mount-cycle, что медленнее.
+
+### 3. Снижение staleTime для оперативных хуков
+
+Точечно снижаю `staleTime` до **15 секунд** для самых «живых» данных, где задержка в 2 мин раздражает даже при работающем Realtime:
+
+| Хук | Сейчас | Станет |
+|---|---|---|
+| `use-transactions.ts` | 30s | 15s |
+| `use-bank-checks.ts` | default 2m | 15s |
+| `use-cashless.ts` | default 2m | 15s |
+| `use-cage-transfers.ts` | default 2m | 15s |
+| `use-incidents.ts` | default 2m | 15s |
+| `use-shift.ts` / `use-shift-tables-result.ts` | default 2m | 15s |
+| `use-visits.ts` (Active Players) | default 2m | 15s |
+
+Точные значения проверю при правке. Это страховка на случай если Realtime пропустит конкретное событие — компонент при следующем рендере подтянет свежие данные.
+
+**Не трогаю** словари (employees, chips, casinos, categories) — они меняются редко, `staleTime: 2m` для них правильный.
+
+### 4. Window-level debug helper
+
+В `useRealtimeSubscriptions` экспонирую в `window.__realtimeStatus` объект `{ subscribed: boolean, lastEventAt: number, channelName: string }`. Открыл DevTools — увидел `subscribed: true`, `lastEventAt: 5 сек назад` → канал жив. Это альтернатива удалённому UI-индикатору, доступная только разработчику.
+
+### 5. Версия
+
+Auto-bump patch в `package.json` (1.3.385 → 1.3.386). Backend не трогаем — миграции не нужны (публикация и REPLICA IDENTITY уже корректны).
+
+## Проверка
+
+1. Логин → DevTools Console → ожидаем `[Realtime] ✓ subscribed (casino=...)`.
+2. Открыть две вкладки одного казино, в одной поставить транзакцию — во второй данные появляются в пределах 1 сек, без перехода между страницами.
+3. В DevTools → Network → throttle Offline 10 сек → Online → в консоли видим `[Realtime] ✗ CLOSED` затем `[Realtime] ✓ subscribed` и автоматический refetch.
+4. Свернуть вкладку, изменить данные в другом устройстве, вернуться → данные обновлены сразу (refetchOnWindowFocus сработает по любым stale запросам как страховка).
 
 ## Что НЕ делаем
-- Никакой БД, никаких миграций, никаких RLS — пресеты остаются клиентскими.
-- Не вводим именованные пресеты с UI выбора (по предыдущему решению — только «последнее состояние»).
-- Не трогаем localStorage и не делаем синхронизацию между устройствами.
+
+- Не возвращаем UI-индикатор (по решению юзера ранее).
+- Не дробим главный канал на несколько (если после диагностики выяснится, что канал стабильно падает — отдельной задачей).
+- Не трогаем RLS, миграции, edge-функции.
