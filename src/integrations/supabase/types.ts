@@ -5789,27 +5789,39 @@ export type Database = {
       }
       pos_inventory_movements: {
         Row: {
+          business_date: string | null
+          casino_id: string | null
           created_at: string
           delta: number
           id: string
           item_id: string
           reason: string
+          reference_id: string | null
+          reference_type: string | null
           user_id: string | null
         }
         Insert: {
+          business_date?: string | null
+          casino_id?: string | null
           created_at?: string
           delta: number
           id?: string
           item_id: string
           reason: string
+          reference_id?: string | null
+          reference_type?: string | null
           user_id?: string | null
         }
         Update: {
+          business_date?: string | null
+          casino_id?: string | null
           created_at?: string
           delta?: number
           id?: string
           item_id?: string
           reason?: string
+          reference_id?: string | null
+          reference_type?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -6011,6 +6023,7 @@ export type Database = {
           shift_id: string | null
           source: string
           status: Database["public"]["Enums"]["pos_order_status"]
+          stock_deducted_at: string | null
           tab_id: string
           total_tzs: number
           void_reason: string | null
@@ -6029,6 +6042,7 @@ export type Database = {
           shift_id?: string | null
           source?: string
           status?: Database["public"]["Enums"]["pos_order_status"]
+          stock_deducted_at?: string | null
           tab_id: string
           total_tzs?: number
           void_reason?: string | null
@@ -6047,6 +6061,7 @@ export type Database = {
           shift_id?: string | null
           source?: string
           status?: Database["public"]["Enums"]["pos_order_status"]
+          stock_deducted_at?: string | null
           tab_id?: string
           total_tzs?: number
           void_reason?: string | null
@@ -9455,6 +9470,10 @@ export type Database = {
           _new_waiter_user_id: string
         }
         Returns: Json
+      }
+      pos_player_status: {
+        Args: { _casino_id: string; _player_id: string }
+        Returns: string
       }
       pos_save_stock_count: {
         Args: {
