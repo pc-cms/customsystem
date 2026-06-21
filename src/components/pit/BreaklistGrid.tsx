@@ -639,15 +639,6 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
         })(),
         document.body,
       )}
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
 
       {/* HR comment dialog — opens after marking A / S / SP / LT so the
           operator can attach a short note that lands in staff_warnings. */}
