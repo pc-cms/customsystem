@@ -519,6 +519,9 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
                     <NavLink
                       to={targetTo}
                       end={targetTo === "/"}
+                      onMouseEnter={() => prefetchRoute(itemBase)}
+                      onFocus={() => prefetchRoute(itemBase)}
+                      onTouchStart={() => prefetchRoute(itemBase)}
                       className={cn(
                         "w-10 h-10 flex items-center justify-center rounded-md transition-colors",
                         isActive
