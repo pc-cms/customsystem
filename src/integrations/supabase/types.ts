@@ -5834,6 +5834,47 @@ export type Database = {
           },
         ]
       }
+      pos_locations: {
+        Row: {
+          casino_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_locations_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_menu_categories: {
         Row: {
           casino_id: string
@@ -5964,6 +6005,89 @@ export type Database = {
           },
         ]
       }
+      pos_modifiers: {
+        Row: {
+          casino_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          price_tzs_delta: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          price_tzs_delta?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_tzs_delta?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_modifiers_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_order_item_modifiers: {
+        Row: {
+          created_at: string
+          id: string
+          modifier_id: string | null
+          modifier_name_snapshot: string
+          order_item_id: string
+          price_tzs_delta_snapshot: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          modifier_id?: string | null
+          modifier_name_snapshot: string
+          order_item_id: string
+          price_tzs_delta_snapshot?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          modifier_id?: string | null
+          modifier_name_snapshot?: string
+          order_item_id?: string
+          price_tzs_delta_snapshot?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_order_item_modifiers_modifier_id_fkey"
+            columns: ["modifier_id"]
+            isOneToOne: false
+            referencedRelation: "pos_modifiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_order_item_modifiers_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "pos_order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_order_items: {
         Row: {
           created_at: string
@@ -6025,6 +6149,7 @@ export type Database = {
           id: string
           is_problem: boolean
           notes: string | null
+          pos_location_id: string | null
           problem_marked_at: string | null
           problem_marked_by: string | null
           problem_reason: string | null
@@ -6054,6 +6179,7 @@ export type Database = {
           id?: string
           is_problem?: boolean
           notes?: string | null
+          pos_location_id?: string | null
           problem_marked_at?: string | null
           problem_marked_by?: string | null
           problem_reason?: string | null
@@ -6083,6 +6209,7 @@ export type Database = {
           id?: string
           is_problem?: boolean
           notes?: string | null
+          pos_location_id?: string | null
           problem_marked_at?: string | null
           problem_marked_by?: string | null
           problem_reason?: string | null
@@ -6101,6 +6228,13 @@ export type Database = {
           waiter_user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pos_orders_pos_location_id_fkey"
+            columns: ["pos_location_id"]
+            isOneToOne: false
+            referencedRelation: "pos_locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pos_orders_shift_id_fkey"
             columns: ["shift_id"]
@@ -6293,6 +6427,99 @@ export type Database = {
           },
         ]
       }
+      pos_recipe_items: {
+        Row: {
+          created_at: string
+          id: string
+          ingredient_item_id: string
+          quantity: number
+          recipe_id: string
+          unit: string | null
+          updated_at: string
+          waste_percent: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ingredient_item_id: string
+          quantity: number
+          recipe_id: string
+          unit?: string | null
+          updated_at?: string
+          waste_percent?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ingredient_item_id?: string
+          quantity?: number
+          recipe_id?: string
+          unit?: string | null
+          updated_at?: string
+          waste_percent?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_recipe_items_ingredient_item_id_fkey"
+            columns: ["ingredient_item_id"]
+            isOneToOne: false
+            referencedRelation: "pos_menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_recipe_items_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "pos_recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_recipes: {
+        Row: {
+          casino_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sellable_item_id: string
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sellable_item_id: string
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sellable_item_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_recipes_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_recipes_sellable_item_id_fkey"
+            columns: ["sellable_item_id"]
+            isOneToOne: false
+            referencedRelation: "pos_menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_shifts: {
         Row: {
           business_date: string | null
@@ -6304,6 +6531,7 @@ export type Database = {
           id: string
           opened_at: string
           opening_cash: number
+          pos_location_id: string | null
           shift_type: string
           waiter_user_id: string
           z_report: Json | null
@@ -6318,6 +6546,7 @@ export type Database = {
           id?: string
           opened_at?: string
           opening_cash?: number
+          pos_location_id?: string | null
           shift_type?: string
           waiter_user_id: string
           z_report?: Json | null
@@ -6332,6 +6561,7 @@ export type Database = {
           id?: string
           opened_at?: string
           opening_cash?: number
+          pos_location_id?: string | null
           shift_type?: string
           waiter_user_id?: string
           z_report?: Json | null
@@ -6342,6 +6572,13 @@ export type Database = {
             columns: ["handover_from_shift_id"]
             isOneToOne: false
             referencedRelation: "pos_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_shifts_pos_location_id_fkey"
+            columns: ["pos_location_id"]
+            isOneToOne: false
+            referencedRelation: "pos_locations"
             referencedColumns: ["id"]
           },
         ]
@@ -6459,6 +6696,7 @@ export type Database = {
           payment_split: Json | null
           player_id: string | null
           player_name: string | null
+          pos_location_id: string | null
           shift_id: string
           status: string
           total_tzs: number
@@ -6480,6 +6718,7 @@ export type Database = {
           payment_split?: Json | null
           player_id?: string | null
           player_name?: string | null
+          pos_location_id?: string | null
           shift_id: string
           status?: string
           total_tzs?: number
@@ -6501,6 +6740,7 @@ export type Database = {
           payment_split?: Json | null
           player_id?: string | null
           player_name?: string | null
+          pos_location_id?: string | null
           shift_id?: string
           status?: string
           total_tzs?: number
@@ -6535,6 +6775,13 @@ export type Database = {
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_tabs_pos_location_id_fkey"
+            columns: ["pos_location_id"]
+            isOneToOne: false
+            referencedRelation: "pos_locations"
             referencedColumns: ["id"]
           },
           {
@@ -9492,6 +9739,10 @@ export type Database = {
       }
       pos_compute_z_report: { Args: { _shift_id: string }; Returns: Json }
       pos_create_purchase: { Args: { _payload: Json }; Returns: string }
+      pos_get_or_create_default_location: {
+        Args: { _casino_id: string }
+        Returns: string
+      }
       pos_handover_shift: {
         Args: {
           _closing_cash: number
