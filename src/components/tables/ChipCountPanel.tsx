@@ -313,18 +313,15 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                       if (!loc.denoms.includes(d)) {
                         return <td key={d} className={`${t.rowPadX} ${t.rowPadY} text-center text-muted-foreground/30`}>·</td>;
                       }
-                      const bsl = tableBaseline[d] || 0;
-                      const current = locCounts[d] ?? getDefault(loc.id, d);
+                      const lastCheck = getLastCheck(loc.id, d);
+                      const raw = locCounts[d];
+                      const isEmpty = raw === undefined || Number.isNaN(raw as any);
                       return (
                         <td key={d} className={`${t.rowPadX} ${t.rowPadY}`}>
                           <input
                             type="number" min="0" max="999" maxLength={3}
-                            value={Number.isNaN(current as any) ? "" : current}
+                            value={isEmpty ? "" : (raw as number)}
                             onFocus={e => {
-                              // Remember previous value on the element for blur-restore on misclicks
-                              (e.target as any).dataset.prev = String(current);
-                              e.target.value = "";
-                              setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: NaN as any } }));
                               requestAnimationFrame(() => e.target.select());
                             }}
                             onChange={e => {
@@ -338,15 +335,8 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                               if (val < 0) val = 0;
                               setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: val } }));
                             }}
-                            onBlur={e => {
-                              const raw = e.target.value;
-                              if (raw === "" || isNaN(parseInt(raw, 10))) {
-                                const prev = Number((e.target as any).dataset.prev ?? current);
-                                setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: prev } }));
-                              }
-                            }}
-                            className={`no-spin w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground`}
-                            placeholder={String(bsl)}
+                            className={`no-spin w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground placeholder:text-muted-foreground/50`}
+                            placeholder={String(lastCheck)}
                           />
                         </td>
                       );
