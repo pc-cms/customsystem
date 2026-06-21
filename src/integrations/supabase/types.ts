@@ -5795,9 +5795,11 @@ export type Database = {
           delta: number
           id: string
           item_id: string
+          metadata: Json | null
           reason: string
           reference_id: string | null
           reference_type: string | null
+          source_item_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -5807,9 +5809,11 @@ export type Database = {
           delta: number
           id?: string
           item_id: string
+          metadata?: Json | null
           reason: string
           reference_id?: string | null
           reference_type?: string | null
+          source_item_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -5819,15 +5823,24 @@ export type Database = {
           delta?: number
           id?: string
           item_id?: string
+          metadata?: Json | null
           reason?: string
           reference_id?: string | null
           reference_type?: string | null
+          source_item_id?: string | null
           user_id?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "pos_inventory_movements_item_id_fkey"
             columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "pos_menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_inventory_movements_source_item_id_fkey"
+            columns: ["source_item_id"]
             isOneToOne: false
             referencedRelation: "pos_menu_items"
             referencedColumns: ["id"]
@@ -6159,6 +6172,7 @@ export type Database = {
           source: string
           status: Database["public"]["Enums"]["pos_order_status"]
           stock_deducted_at: string | null
+          stock_mode: string | null
           tab_id: string
           total_tzs: number
           void_reason: string | null
@@ -6189,6 +6203,7 @@ export type Database = {
           source?: string
           status?: Database["public"]["Enums"]["pos_order_status"]
           stock_deducted_at?: string | null
+          stock_mode?: string | null
           tab_id: string
           total_tzs?: number
           void_reason?: string | null
@@ -6219,6 +6234,7 @@ export type Database = {
           source?: string
           status?: Database["public"]["Enums"]["pos_order_status"]
           stock_deducted_at?: string | null
+          stock_mode?: string | null
           tab_id?: string
           total_tzs?: number
           void_reason?: string | null
