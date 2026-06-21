@@ -280,6 +280,7 @@ function RecipeEditor({
     >
       {recipe && (
         <div className="space-y-3">
+          <AvailabilityPanel sellableItemId={recipe.sellable_item_id} />
           <DataTable>
             <DTHead>
               <DTRow>
