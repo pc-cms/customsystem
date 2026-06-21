@@ -33,6 +33,8 @@ const PosManagerPricing = lazy(() => import("@/pages/pos/PosManagerPricing"));
 const PosManagerStockCounts = lazy(() => import("@/pages/pos/PosManagerStockCounts"));
 const PosShiftReconciliation = lazy(() => import("@/pages/pos/PosShiftReconciliation"));
 const PosPlayerAnalytics = lazy(() => import("@/pages/pos/PosPlayerAnalytics"));
+const PosManagerProblemOrders = lazy(() => import("@/pages/pos/PosManagerProblemOrders"));
+
 
 // Lazy-loaded pages — each becomes a separate chunk
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -535,6 +537,8 @@ const AppRoutes = () => {
           <Route path="manager/stock-counts" element={<PosManagerStockCounts />} />
           <Route path="manager/shift-reconciliation" element={<PosShiftReconciliation />} />
           <Route path="manager/player-analytics" element={<PosPlayerAnalytics />} />
+          <Route path="manager/problem-orders" element={<PosManagerProblemOrders />} />
+
           <Route path="reports" element={<PosReports />} />
           <Route path="charges" element={<PosCharges />} />
           <Route path="purchases" element={<PosPurchases />} />
