@@ -158,17 +158,29 @@ export default function PosBar() {
     || roleSet.includes("manager")
     || roleSet.includes("super_admin");
 
-
   const { data: orders = [], isLoading } = usePosBarOrders(activeCasinoId);
+  const { data: locations = [] } = usePosLocations(activeCasinoId, true);
   const advance = useAdvancePosOrder();
   const markProblem = useMarkOrderProblem();
   const forceClose = useForceCloseOrder();
 
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const locationName = (locId: string | null): string | null => {
+    if (!locId) return locations.find((l) => l.name === "Main Bar")?.name ?? null;
+    return locations.find((l) => l.id === locId)?.name ?? null;
+  };
+
+  const filteredOrders = useMemo(() => {
+    if (locationFilter === "all") return orders;
+    if (locationFilter === "__none__") return orders.filter((o) => !o.pos_location_id);
+    return orders.filter((o) => o.pos_location_id === locationFilter);
+  }, [orders, locationFilter]);
+
   const grouped = useMemo(() => {
     const m: Record<PosOrderStatus, PosBarOrder[]> = { pending: [], preparing: [], ready: [], served: [], void: [] };
-    for (const o of orders) m[o.status]?.push(o);
+    for (const o of filteredOrders) m[o.status]?.push(o);
     return m;
-  }, [orders]);
+  }, [filteredOrders]);
 
   const handleAdvance = (o: PosBarOrder, to: "preparing" | "ready" | "served") => {
     advance.mutate(
