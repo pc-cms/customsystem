@@ -75,7 +75,9 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
   const [weekStart, setWeekStart] = useState<string>(() => getWeekStartSunday(new Date()));
   const weekEnd = useMemo(() => addDaysIso(weekStart, 6), [weekStart]);
 
-  const { data: dealers = [] } = useDealers();
+  const { data: dealers = [], isPending: dealersPending, isFetching: dealersFetching } = useDealers();
+  const { isReady: scopeReady } = useDataScope();
+  const dealersLoading = !scopeReady || dealersPending || (dealersFetching && dealers.length === 0);
   const { data: rota = [] } = usePitRotaRange(weekStart, weekEnd);
   const { data: attendance = [] } = useDealerAttendanceRange(weekStart, weekEnd);
   const { data: entries = [] } = useWeeklyBonusEntries(weekStart);
