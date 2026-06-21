@@ -169,8 +169,28 @@ const Dashboard = () => {
     roles.includes("shift_manager") ||
     roles.includes("finance_manager") ||
     roles.includes("super_admin");
-  const { data: cashless = [] } = useCashless(businessDate);
-  const pendingCashless = cashless.filter((r: any) => r.status === "pending").length;
+  // Headcount = total visits today (distinct player_id rows in casino_visits for the business date).
+  const { data: headcountToday = 0 } = useQuery({
+    queryKey: ["dashboard-headcount", casinoId, businessDate],
+    queryFn: async () => {
+      if (!casinoId) return 0;
+      const { count, error } = await supabase
+        .from("casino_visits")
+        .select("id", { count: "exact", head: true })
+        .eq("casino_id", casinoId)
+        .eq("date", businessDate);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: !!casinoId,
+    staleTime: 1000 * 30,
+  });
+  // Active players = distinct players with at least one transaction today.
+  const activePlayersToday = useMemo(() => {
+    const s = new Set<string>();
+    transactions.forEach((t: any) => { if (t.player_id) s.add(t.player_id); });
+    return s.size;
+  }, [transactions]);
 
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
   const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
