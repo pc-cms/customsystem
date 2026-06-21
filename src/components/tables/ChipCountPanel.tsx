@@ -97,23 +97,30 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     return map;
   }, [snapshots]);
 
-  const getDefault = (tableId: string, denom: number): number => {
+  // "Last check" placeholder value for a (table, denom): latest snapshot's
+  // actual quantity if any was recorded this shift, otherwise the chip baseline.
+  // Per UX request: input fields start EMPTY; this number is displayed as a
+  // gray placeholder so Pit types only what changed instead of deleting prefilled
+  // digits. When the field is left empty, computations fall back to this value.
+  const getLastCheck = (tableId: string, denom: number): number => {
     const snap = latestSnapshotPerTable[tableId]?.actual[denom];
     if (snap !== undefined) return snap;
     return baselineMap[tableId]?.[denom] ?? 0;
   };
 
+  // NaN sentinel means "empty input" → treated as "same as last check" for math.
   const [counts, setCounts] = useState<Record<string, Record<number, number>>>({});
   const [fullscreen, setFullscreen] = useState(false);
   const [tabletMode, setTabletMode] = useState(false);
 
-  // Initialize / refresh prefill when underlying data changes
+  // Reset to empty when underlying tables/snapshots change so the new placeholder
+  // (latest snapshot) takes effect immediately for Pit's next entry.
   useEffect(() => {
     const initial: Record<string, Record<number, number>> = {};
     countLocations.forEach(loc => {
       initial[loc.key] = {};
       loc.denoms.forEach(d => {
-        initial[loc.key][d] = getDefault(loc.id, d);
+        initial[loc.key][d] = NaN as any; // empty by default — placeholder shows last check
       });
     });
     setCounts(initial);
@@ -137,12 +144,18 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       visibleDenoms.forEach(d => {
         if (!loc.denoms.includes(d)) return;
         const expected = tableBaseline[d] || 0;
-        const actual = locCounts[d] ?? expected;
+        const entered = locCounts[d];
+        // Empty / NaN cell → use last check value (= placeholder) so partial entry
+        // is intuitive: untouched denoms keep last reading, only edits move the result.
+        const actual = entered === undefined || Number.isNaN(entered as any)
+          ? getLastCheck(loc.id, d)
+          : (entered as number);
         raw += (actual - expected) * d;
       });
       return { key: loc.key, total: raw + adjustmentFor(loc.id) };
     });
-  }, [countLocations, counts, baselineMap, visibleDenoms, adjustmentFor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countLocations, counts, baselineMap, visibleDenoms, adjustmentFor, latestSnapshotPerTable]);
 
   const grandTotal = rowResults.reduce((s, r) => s + r.total, 0);
 
@@ -160,7 +173,12 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       const tableBaseline = baselineMap[loc.id] || {};
       loc.denoms.forEach(d => {
         const expected = tableBaseline[d] || 0;
-        const actual = locCounts[d] ?? expected;
+        const entered = locCounts[d];
+        // Empty/NaN → save the last check value (= what placeholder shows) so
+        // partial entries keep the previous reading for untouched denominations.
+        const actual = entered === undefined || Number.isNaN(entered as any)
+          ? getLastCheck(loc.id, d)
+          : (entered as number);
         rows.push({ location_type: loc.type, location_id: loc.id, denomination: d, expected_quantity: expected, actual_quantity: actual });
       });
     });
@@ -306,18 +324,15 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                       if (!loc.denoms.includes(d)) {
                         return <td key={d} className={`${t.rowPadX} ${t.rowPadY} text-center text-muted-foreground/30`}>·</td>;
                       }
-                      const bsl = tableBaseline[d] || 0;
-                      const current = locCounts[d] ?? getDefault(loc.id, d);
+                      const lastCheck = getLastCheck(loc.id, d);
+                      const raw = locCounts[d];
+                      const isEmpty = raw === undefined || Number.isNaN(raw as any);
                       return (
                         <td key={d} className={`${t.rowPadX} ${t.rowPadY}`}>
                           <input
                             type="number" min="0" max="999" maxLength={3}
-                            value={Number.isNaN(current as any) ? "" : current}
+                            value={isEmpty ? "" : (raw as number)}
                             onFocus={e => {
-                              // Remember previous value on the element for blur-restore on misclicks
-                              (e.target as any).dataset.prev = String(current);
-                              e.target.value = "";
-                              setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: NaN as any } }));
                               requestAnimationFrame(() => e.target.select());
                             }}
                             onChange={e => {
@@ -331,15 +346,8 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                               if (val < 0) val = 0;
                               setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: val } }));
                             }}
-                            onBlur={e => {
-                              const raw = e.target.value;
-                              if (raw === "" || isNaN(parseInt(raw, 10))) {
-                                const prev = Number((e.target as any).dataset.prev ?? current);
-                                setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: prev } }));
-                              }
-                            }}
-                            className={`no-spin w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground`}
-                            placeholder={String(bsl)}
+                            className={`no-spin w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground placeholder:text-muted-foreground/50`}
+                            placeholder={String(lastCheck)}
                           />
                         </td>
                       );

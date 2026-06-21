@@ -18,6 +18,7 @@ import TipsDialog, { type TipsKind } from "@/components/cage/TipsDialog";
 import CancelTransactionDialog from "@/components/cage/CancelTransactionDialog";
 import PromoInDialog from "@/components/cage/PromoInDialog";
 import IssueTicketDialog from "@/components/cage/IssueTicketDialog";
+import { HourlyCheckBanner } from "@/components/cage/HourlyCheckBanner";
 import { useNavigate } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -225,9 +226,10 @@ const ActiveShiftView = ({ shift, players, tables }: {
         icon={Landmark}
         title="Cage"
         context={
-          <span className="flex items-center gap-1.5 text-base font-semibold">
+          <span className="flex items-center gap-2 text-base font-semibold">
             <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
             <span className="font-mono tabular-nums text-foreground">{shiftDuration}</span>
+            <HourlyCheckBanner kind="live" />
           </span>
         }
         belowHeader={
