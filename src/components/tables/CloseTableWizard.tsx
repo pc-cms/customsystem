@@ -317,7 +317,10 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
             <tbody>
               {[...tableDenoms(current)].sort((a, b) => b - a).map(d => {
                 const expected = tableBaseline[d] || 0;
-                const actual = currentCounts[d] ?? 0;
+                const raw = currentCounts[d];
+                const lastCheck = getLastCheck(current.id, d);
+                const hasInput = Number.isFinite(raw);
+                const actual = hasInput ? (raw as number) : lastCheck;
                 const diff = (actual - expected) * d;
                 return (
                   <tr key={d} className="border-b border-border/50 last:border-0">
@@ -331,18 +334,20 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
                       <input
                         type="number"
                         min="0"
-                        value={currentCounts[d] ?? ""}
+                        value={hasInput ? (raw as number) : ""}
                         readOnly={readOnly}
                         disabled={readOnly}
                         onChange={e => {
                           if (readOnly) return;
-                          const v = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
-                          setCount(d, isNaN(v) ? 0 : v);
+                          if (e.target.value === "") { setCount(d, NaN as any); return; }
+                          const v = parseInt(e.target.value, 10);
+                          setCount(d, isNaN(v) ? (NaN as any) : v);
                         }}
-                        className="no-spin w-full max-w-[180px] h-12 mx-auto block rounded text-xl font-mono font-semibold text-center border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-card-foreground disabled:opacity-100 disabled:cursor-default"
-                        placeholder={String(expected)}
+                        className="no-spin w-full max-w-[180px] h-12 mx-auto block rounded text-xl font-mono font-semibold text-center border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-card-foreground placeholder:text-muted-foreground/60 placeholder:font-normal disabled:opacity-100 disabled:cursor-default"
+                        placeholder={String(lastCheck)}
                       />
                     </td>
+
                     <td
                       className={cn(
                         "py-2 px-1 text-right font-mono text-xl font-semibold w-px whitespace-nowrap tabular-nums",
