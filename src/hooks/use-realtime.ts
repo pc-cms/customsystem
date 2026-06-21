@@ -153,11 +153,18 @@ export const useRealtimeSubscriptions = () => {
             qc.invalidateQueries({ queryKey: ["table-tracker", casinoId] });
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") setRealtimeStatus("connected");
+          else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setRealtimeStatus("error");
+          else if (status === "CLOSED") setRealtimeStatus("closed");
+          else setRealtimeStatus("connecting");
+        });
 
       channelRef.current = channel;
+      setRealtimeStatus("connecting");
     } catch (err) {
       console.error("[Realtime] Failed to setup channel:", err);
+      setRealtimeStatus("error");
     }
 
     return () => {
