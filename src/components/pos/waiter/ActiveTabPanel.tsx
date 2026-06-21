@@ -50,6 +50,27 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
   const [closeDialog, setCloseDialog] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [payNowOrder, setPayNowOrder] = useState<PosOrderWithItems | null>(null);
+  const [modItemId, setModItemId] = useState<string | null>(null);
+
+  const orderItemIds = useMemo(
+    () => orders.flatMap((o) => o.items.map((it) => it.id)),
+    [orders],
+  );
+  const { data: allModifiers = [] } = usePosOrderItemModifiers(orderItemIds);
+  const modsByItem = useMemo(() => {
+    const m = new Map<string, typeof allModifiers>();
+    for (const x of allModifiers) {
+      const arr = m.get(x.order_item_id) ?? [];
+      arr.push(x);
+      m.set(x.order_item_id, arr);
+    }
+    return m;
+  }, [allModifiers]);
+  const itemOrderStatus = useMemo(() => {
+    const m = new Map<string, PosOrderStatus>();
+    for (const o of orders) for (const it of o.items) m.set(it.id, o.status);
+    return m;
+  }, [orders]);
 
 
   if (!tab) {
