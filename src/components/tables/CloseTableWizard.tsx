@@ -147,7 +147,8 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
     const snapshotRows: any[] = [];
     tableDenoms(current).forEach(d => {
       const expected = tb[d] || 0;
-      const actual = currentCounts[d] ?? 0;
+      const raw = currentCounts[d];
+      const actual = Number.isFinite(raw) ? (raw as number) : getLastCheck(current.id, d);
       chipMap[String(d)] = actual;
       snapshotRows.push({
         location_type: "table",
@@ -158,6 +159,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
         date,
       });
     });
+
     const result = calcResult(current, currentCounts);
 
     setSingleResult.mutate(
