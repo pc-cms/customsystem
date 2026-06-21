@@ -81,7 +81,7 @@ const add = (a: Agg, b: Agg): Agg => ({
 const result = (a: Agg) => (a.out + a.chipOut) - (a.drop + a.chipIn);
 const total = (a: Agg) => result(a) - a.comps;
 
-export default function PlayerVisitsBreakdown({ visits, transactions, expenses, showFinancials }: Props) {
+export default function PlayerVisitsBreakdown({ visits, transactions, expenses, chipAdjustments = [], showFinancials }: Props) {
   const [openMonths, setOpenMonths] = useState<Record<string, boolean>>({});
   const [openWeeks, setOpenWeeks] = useState<Record<string, boolean>>({});
 
@@ -90,7 +90,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
   // each cash-in's External portion to the visit window it falls into.
   const visitFin = useMemo(() => {
     const m = new Map<string, Agg>();
-    for (const v of visits) m.set(v.id, { visits: 1, minutes: visitMins(v), drop: 0, inGross: 0, out: 0, comps: 0 });
+    for (const v of visits) m.set(v.id, { visits: 1, minutes: visitMins(v), drop: 0, inGross: 0, out: 0, comps: 0, chipIn: 0, chipOut: 0 });
 
     // Build sorted ranges of visits per casino for fast lookup.
     type Range = { id: string; casinoId: string; start: number; end: number };
@@ -129,6 +129,16 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
         if (vid) m.get(vid)!.out += amt;
       }
     }
+    // Chip adjustments per visit (audit-only; affect Result/Total, not Drop R / NEP).
+    for (const c of chipAdjustments) {
+      const ts = new Date(c.created_at).getTime();
+      const vid = findVisit(c.casino_id, ts);
+      if (vid) {
+        const cur = m.get(vid)!;
+        cur.chipIn += Number(c.chip_in) || 0;
+        cur.chipOut += Number(c.chip_out) || 0;
+      }
+    }
     // Comps per visit
     for (const e of expenses) {
       const ts = new Date(e.created_at).getTime();
@@ -136,7 +146,7 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
       if (vid) m.get(vid)!.comps += Number(e.amount) || 0;
     }
     return m;
-  }, [visits, transactions, expenses]);
+  }, [visits, transactions, expenses, chipAdjustments]);
 
   // Build hierarchy: month → week → day → visits[].
   const months = useMemo(() => {
