@@ -15,8 +15,6 @@ import { useMonthlyReport, type ReportCategory, type ReportGroup, type ReportExp
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
 import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories, useArchiveFinCategory, useCreateFinCategory, useRenameFinGroup } from "@/hooks/use-fin";
-import { useFinDailyRate } from "@/hooks/use-fin-daily-rates";
-import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 
 import { useCategoryMtd } from "@/hooks/use-category-mtd";
 import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
@@ -47,9 +45,6 @@ export default function FinancesMonthlyReportPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [showUsd, setShowUsd] = useState(false);
   const [scope, setScope] = useState<string>(activeCasinoId || "");
-  const { data: bizDate } = useEffectiveBusinessDate();
-  const { data: usdRateFromSystem } = useFinDailyRate(bizDate, "USD");
-  const usdRate = usdRateFromSystem ?? 2500;
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editRow, setEditRow] = useState<EditableExpense | null>(null);
 
@@ -248,12 +243,6 @@ export default function FinancesMonthlyReportPage() {
               <Switch id="usd" checked={showUsd} onCheckedChange={setShowUsd} />
               <Label htmlFor="usd" className="text-xs">Show USD</Label>
             </div>
-            <div className="flex items-center gap-2 ml-2">
-              <Label className="text-xs text-muted-foreground">USD rate</Label>
-              <div className="h-9 px-3 flex items-center rounded-md border border-input bg-muted/40 font-mono text-sm tabular-nums w-24 justify-end" title={usdRateFromSystem ? "From system (Office daily rates)" : "Fallback default — no rate set"}>
-                {formatNumberSpaces(Math.round(usdRate))}
-              </div>
-            </div>
             <Tabs value={scope || activeCasinoId || ""} onValueChange={setScope} className="ml-auto">
               <TabsList>
                 {accessibleCasinos.map((c) => (
@@ -286,7 +275,6 @@ export default function FinancesMonthlyReportPage() {
           group={g}
           expandedId={expanded}
           onToggle={toggle}
-          usdRate={usdRate}
           isNetwork={isNetwork}
           showUsd={showUsd}
           editMode={editMode}
@@ -327,7 +315,6 @@ export default function FinancesMonthlyReportPage() {
           group={data.collections}
           expandedId={expanded}
           onToggle={toggle}
-          usdRate={usdRate}
           isNetwork={isNetwork}
           showUsd={showUsd}
           editMode={editMode}
@@ -368,12 +355,6 @@ export default function FinancesMonthlyReportPage() {
             <Kpi label="Actual TZS" v={data.grand.actual_tzs} />
             <Kpi label="Remain TZS" v={data.grand.plan_month_tzs - data.grand.actual_tzs} signed />
             <Kpi label="Collections TZS" v={data.collections?.totals.actual_tzs ?? 0} />
-            <Kpi label="Expenses USD" v={Math.round(data.grand.actual_tzs / usdRate)} />
-            <Kpi
-              label="Net After Collections USD"
-              v={Math.round((data.incomes.total - data.grand.actual_tzs - (data.collections?.totals.actual_tzs ?? 0)) / usdRate)}
-              signed
-            />
           </div>
         </PageSection>
       )}
@@ -414,11 +395,10 @@ type EditCallbacks = {
   onRenameGroup: (newName: string) => void;
 };
 
-const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, mtd, mtdMonthLabel, ...edit }: {
+const GroupTable = ({ group, expandedId, onToggle, isNetwork, showUsd, mtd, mtdMonthLabel, ...edit }: {
   group: ReportGroup;
   expandedId: string | null;
   onToggle: (id: string) => void;
-  usdRate: number;
   isNetwork: boolean;
   showUsd: boolean;
   mtd: Record<string, number>;
@@ -472,7 +452,6 @@ const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, 
                 c={c}
                 expanded={expandedId === c.id}
                 onToggle={() => onToggle(c.id)}
-                usdRate={usdRate}
                 isNetwork={isNetwork}
                 showUsd={showUsd}
                 colCount={colCount}
@@ -515,8 +494,8 @@ const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, 
   );
 };
 
-const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, mtdValue, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onArchiveCategory, onEditExpense }: {
-  c: ReportCategory; expanded: boolean; onToggle: () => void; usdRate: number; isNetwork: boolean; showUsd: boolean; colCount: number; mtdValue: number;
+const Row = ({ c, expanded, onToggle, isNetwork, showUsd, colCount, mtdValue, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onArchiveCategory, onEditExpense }: {
+  c: ReportCategory; expanded: boolean; onToggle: () => void; isNetwork: boolean; showUsd: boolean; colCount: number; mtdValue: number;
 } & EditCallbacks) => {
   const remTzs = c.plan_month_tzs - c.actual_tzs;
   const remUsd = c.plan_month_usd - c.actual_usd;
@@ -625,7 +604,6 @@ const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, mtd
                           {e.currency && e.currency !== "TZS" && <span className="ml-1 text-[10px] text-muted-foreground">{e.currency}</span>}
                         </td>
                         <td className="text-right font-mono tabular-nums">{formatNumberSpaces(e.amount_tzs)}</td>
-                        {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground">{formatNumberSpaces(Math.round(e.amount_tzs / (usdRate || 1)))}</td>}
                         {editMode && (
                           <td className="pr-2 text-right" onClick={(ev) => ev.stopPropagation()}>
                             <Button
@@ -644,7 +622,6 @@ const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, mtd
                     <tr className="border-t-2 border-border bg-muted/30 font-semibold [&>td]:h-7 [&>td]:px-2">
                       <td colSpan={isNetwork ? 5 : 4}>Total · {c.expenses.length}</td>
                       <td className="text-right font-mono tabular-nums">{formatNumberSpaces(c.actual_tzs)}</td>
-                      {showUsd && <td className="text-right font-mono tabular-nums">{formatNumberSpaces(Math.round(c.actual_tzs / (usdRate || 1)))}</td>}
                       {editMode && <td />}
                     </tr>
 
