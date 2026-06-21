@@ -68,6 +68,27 @@ const cards = [
     enabled: true,
   },
   {
+    to: "/pos/manager/locations",
+    title: "Locations",
+    desc: "Main Bar, Coffee Counter, VIP service…",
+    icon: MapPin,
+    enabled: true,
+  },
+  {
+    to: "/pos/manager/modifiers",
+    title: "Modifiers",
+    desc: "Extra Milk, No Ice, Double Shot — per-unit deltas",
+    icon: Sparkles,
+    enabled: true,
+  },
+  {
+    to: "/pos/manager/recipes",
+    title: "Recipes / BOM",
+    desc: "Foundation tables (inert in Phase 3A)",
+    icon: ChefHat,
+    enabled: true,
+  },
+  {
     to: "/pos/charges",
     title: "Player charges",
     desc: "Outstanding postpaid F&B tabs",
