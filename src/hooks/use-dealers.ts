@@ -510,17 +510,45 @@ export const useLockBreaklistCell = () => {
   });
 };
 
-export const useDeleteBreaklistCell = () => {
+export const useClearBreaklistCell = () => {
   const qc = useQueryClient();
   const { user } = useAuth();
   const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
-    mutationKey: ["breaklist-cell-delete"],
+    mutationKey: ["breaklist-cell"],
     mutationFn: async (input: { id: string; dealer_id: string; time_slot: string; date: string }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      const { error } = await supabase.from("breaklist").delete().eq("id", input.id);
+
+      const { data: existing } = await supabase
+        .from("breaklist")
+        .select("role, table_id")
+        .eq("id", input.id)
+        .maybeSingle();
+
+      const { error } = await supabase.from("breaklist").update({
+        role: "CLR" as any,
+        table_id: null,
+        is_locked: false,
+        locked_by: null,
+        updated_by: user.id,
+      }).eq("id", input.id);
       if (error) throw error;
-      await logAction(casinoId, "breaklist", "CELL_DELETED", input);
+
+      await supabase.from("breaklist_logs").insert({
+        casino_id: casinoId,
+        breaklist_id: input.id,
+        dealer_id: input.dealer_id,
+        date: input.date,
+        time_slot: input.time_slot,
+        action: "CELL_CLEARED",
+        old_role: existing?.role ?? null,
+        new_role: null,
+        old_table_id: existing?.table_id ?? null,
+        new_table_id: null,
+        operator_id: user.id,
+      });
+
+      await logAction(casinoId, "breaklist", "CELL_CLEARED", input);
     },
     onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: ["breaklist", casinoId] });
@@ -528,7 +556,11 @@ export const useDeleteBreaklistCell = () => {
         .filter(([key]) => (key as any[])[1] === casinoId);
       queries.forEach(([key, data]) => {
         if (!data) return;
-        const updated = data.filter((b: any) => !(b.dealer_id === input.dealer_id && b.time_slot === input.time_slot));
+        const updated = data.map((b: any) =>
+          b.dealer_id === input.dealer_id && b.time_slot === input.time_slot
+            ? { ...b, role: "CLR", table_id: null, is_locked: false, locked_by: null }
+            : b,
+        );
         qc.setQueryData(key, updated);
       });
       return { queries };
@@ -541,3 +573,5 @@ export const useDeleteBreaklistCell = () => {
     onSettled: () => { qc.invalidateQueries({ queryKey: ["breaklist"] }); },
   });
 };
+
+export const useDeleteBreaklistCell = useClearBreaklistCell;
