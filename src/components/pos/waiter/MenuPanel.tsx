@@ -92,7 +92,7 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
                   item={it}
                   outOfStock={outOfStock}
                   isLow={isLow}
-                  disabled={!tabId || outOfStock || addOrder.isPending}
+                  disabled={!tabId || addOrder.isPending}
                   onAdd={(qty) => handleAdd(it, qty)}
                 />
               );
@@ -121,11 +121,20 @@ const ItemTile = ({
     <div
       className={cn(
         "relative rounded-md border bg-card flex flex-col overflow-hidden",
-        isLow ? "border-cms-amount-negative/40" : "border-border",
+        outOfStock
+          ? "border-cms-amount-negative/60"
+          : isLow
+            ? "border-cms-amount-negative/40"
+            : "border-border",
         disabled && "opacity-50",
       )}
     >
-      {isLow && (
+      {outOfStock && (
+        <span className="absolute top-1 right-1 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cms-amount-negative/20 text-cms-amount-negative">
+          Out · allowed
+        </span>
+      )}
+      {!outOfStock && isLow && (
         <span className="absolute top-1 right-1 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cms-amount-negative/15 text-cms-amount-negative">
           Low
         </span>
@@ -141,11 +150,11 @@ const ItemTile = ({
           <span className="font-mono tabular-nums font-semibold">
             {formatNumberSpaces(item.price_tzs)}
           </span>
-          {outOfStock && (
-            <span className="text-xs text-cms-amount-negative">Out</span>
-          )}
-          {!outOfStock && item.stock_qty != null && (
-            <span className="text-[10px] text-muted-foreground">×{item.stock_qty}</span>
+          {item.stock_qty != null && (
+            <span className={cn(
+              "text-[10px]",
+              outOfStock ? "text-cms-amount-negative font-semibold" : "text-muted-foreground",
+            )}>×{item.stock_qty}</span>
           )}
         </div>
       </button>
