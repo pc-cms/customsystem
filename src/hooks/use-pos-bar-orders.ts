@@ -7,6 +7,14 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { PosOrderItem, PosOrderStatus } from "./use-pos-orders";
 
+export type PosBarOrderItem = PosOrderItem & {
+  modifiers?: Array<{
+    id: string;
+    modifier_name_snapshot: string;
+    price_tzs_delta_snapshot: number;
+  }>;
+};
+
 export type PosBarOrder = {
   id: string;
   casino_id: string;
@@ -24,7 +32,8 @@ export type PosBarOrder = {
   force_closed_at: string | null;
   closed_by_system: boolean;
   auto_closed_at: string | null;
-  items: PosOrderItem[];
+  pos_location_id: string | null;
+  items: PosBarOrderItem[];
   tab: {
     id: string;
     player_name: string | null;
@@ -45,7 +54,7 @@ export function usePosBarOrders(casinoId: string | null) {
     queryFn: async (): Promise<PosBarOrder[]> => {
       const { data, error } = await supabase
         .from("pos_orders")
-        .select("*, items:pos_order_items(*), tab:pos_tabs(id, player_name, walkin_label)")
+        .select("*, items:pos_order_items(*, modifiers:pos_order_item_modifiers(id, modifier_name_snapshot, price_tzs_delta_snapshot)), tab:pos_tabs(id, player_name, walkin_label)")
         .eq("casino_id", casinoId!)
         .in("status", ACTIVE)
         .order("created_at", { ascending: true });
