@@ -130,14 +130,42 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
                 <li key={o.id} className="p-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      {o.items.map((it) => (
-                        <div key={it.id} className="flex items-baseline justify-between gap-2 text-sm">
-                          <span className={cn("truncate", o.status === "void" && "line-through opacity-60")}>
-                            {it.item_name} <span className="text-muted-foreground">×{it.qty}</span>
-                          </span>
-                          <span className="font-mono tabular-nums">{formatNumberSpaces(it.line_total_tzs)}</span>
-                        </div>
-                      ))}
+                      {o.items.map((it) => {
+                        const mods = modsByItem.get(it.id) ?? [];
+                        return (
+                          <div key={it.id}>
+                            <div className="flex items-baseline justify-between gap-2 text-sm">
+                              <span className={cn("truncate", o.status === "void" && "line-through opacity-60")}>
+                                {it.item_name} <span className="text-muted-foreground">×{it.qty}</span>
+                              </span>
+                              <span className="font-mono tabular-nums">{formatNumberSpaces(it.line_total_tzs)}</span>
+                            </div>
+                            {mods.length > 0 && (
+                              <div className="pl-3 flex flex-wrap gap-1 mt-0.5">
+                                {mods.map((m) => (
+                                  <span key={m.id} className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                                    + {m.modifier_name_snapshot}
+                                    {m.price_tzs_delta_snapshot !== 0 && (
+                                      <span className="ml-1 font-mono tabular-nums">
+                                        ({m.price_tzs_delta_snapshot > 0 ? "+" : ""}{formatNumberSpaces(m.price_tzs_delta_snapshot)})
+                                      </span>
+                                    )}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {o.status === "pending" && (
+                              <button
+                                type="button"
+                                onClick={() => setModItemId(it.id)}
+                                className="mt-0.5 text-[10px] text-muted-foreground hover:text-primary inline-flex items-center gap-1"
+                              >
+                                <Plus className="h-3 w-3" /> {mods.length > 0 ? "Edit modifiers" : "Add modifiers"}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
                       {(notes || canEditNote) && (
                         <button
                           type="button"
