@@ -1,0 +1,1 @@
+ALTER TYPE public.dealer_role ADD VALUE IF NOT EXISTS 'CLR';

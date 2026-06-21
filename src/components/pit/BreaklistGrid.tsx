@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCasino } from "@/lib/casino-context";
-import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useDeleteBreaklistCell, useGamingTables, usePitRotaRange, useSetDealerAttendance, useDealerAttendance } from "@/hooks/use-casino-data";
+import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useClearBreaklistCell, useGamingTables, usePitRotaRange, useSetDealerAttendance, useDealerAttendance } from "@/hooks/use-casino-data";
 import { useCasinoInfo } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
 import { Lock, Unlock, LockKeyhole } from "lucide-react";
@@ -70,11 +70,13 @@ const isInWorkingHours = (slot: string) => {
 // Map a stored role to the per-table exclusivity slot.
 // Three independent slots per table: Dealer (D), Inspector (I, ends with 'i'), Chipper (C, ends with 'c').
 const roleSlot = (r: string): "D" | "I" | "C" | null => {
-  if (!r || r === "BR" || r === "TR" || r === "S" || r === "LT" || r === "SRT" || r === "CLS") return null;
+  if (!r || r === "BR" || r === "TR" || r === "S" || r === "LT" || r === "SRT" || r === "CLS" || r === "CLR") return null;
   if (/c$/i.test(r)) return "C";
   if (/i$/.test(r)) return "I";
   return "D";
 };
+
+const isClearedBreaklistCell = (cell: any) => cell?.role === "CLR";
 
 const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const { data: dealers = [] } = useDealers();
@@ -90,7 +92,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     return name;
   };
   const setCell = useSetBreaklistCell();
-  const deleteCell = useDeleteBreaklistCell();
+  const clearCell = useClearBreaklistCell();
   const setAttendance = useSetDealerAttendance();
   const lockCell = useLockBreaklistCell();
   const { isManager, roles } = useAuth();
@@ -316,7 +318,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       // Only fill EMPTY slots from current onwards; existing assignments are preserved.
       const occupied = new Set(
         breaklist
-          .filter((b: any) => b.dealer_id === activeCell.dealerId)
+          .filter((b: any) => b.dealer_id === activeCell.dealerId && !isClearedBreaklistCell(b))
           .map((b: any) => b.time_slot as string)
       );
       const slotsToFill = TIME_SLOTS.slice(startIdx).filter(s => !occupied.has(s));
@@ -411,7 +413,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       setActiveCell(null);
       return;
     }
-    deleteCell.mutate({
+    clearCell.mutate({
       id: cell.id,
       dealer_id: activeCell.dealerId,
       time_slot: activeCell.timeSlot,
@@ -427,7 +429,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   };
 
   const getLockedCount = (dealerId: string) =>
-    breaklist.filter(b => b.dealer_id === dealerId && b.is_locked).length;
+    breaklist.filter(b => b.dealer_id === dealerId && b.is_locked && !isClearedBreaklistCell(b)).length;
 
   const roleSuffix: Record<string, string> = {
     ARi: "i", ARc: "c", AR1i: "i", AR1c: "c",
@@ -516,9 +518,10 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                     </td>
                     {TIME_SLOTS.map(slot => {
                       const cell = getCellData(dealer.id, slot);
+                      const isCleared = cell?.role === "CLR";
                       const table = cell?.table_id ? assignableTables.find(t => t.id === cell.table_id) : null;
                       const tableName = fmtTableName(table?.name) ?? null;
-                      const displayLabel = cell
+                      const displayLabel = cell && !isCleared
                         ? tableName
                           ? `${tableName}${roleSuffix[cell.role] || ""}`
                           : cell.role
@@ -531,7 +534,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                           <div
                             onClick={(e) => isEditable && handleCellClick(dealer.id, slot, e)}
                             className={`w-full h-7 rounded text-[13px] font-mono font-extrabold relative transition-colors cursor-pointer flex items-center justify-center ${
-                              cell
+                              cell && !isCleared
                                 ? cell.table_id && tableColorIndex.has(cell.table_id)
                                   ? getTableCellClasses(cell.table_id, tableColorIndex.get(cell.table_id)!, cell.role)
                                   : ROLE_COLORS[cell.role] || "bg-muted text-muted-foreground"
@@ -540,7 +543,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                             title={tableName ? `${cell?.role} @ ${tableName}` : cell?.role}
                           >
                             {displayLabel}
-                            {cell?.is_locked && <Lock className="w-2 h-2 absolute top-0.5 right-0.5 text-yellow-600 dark:text-yellow-400" />}
+                            {cell?.is_locked && !isCleared && <Lock className="w-2 h-2 absolute top-0.5 right-0.5 text-yellow-600 dark:text-yellow-400" />}
                           </div>
                           {/* Per-cell lock toggle for managers */}
                           {isEditable && isManager && cell && !isActiveCell && (
