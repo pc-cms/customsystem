@@ -149,15 +149,22 @@ export async function resetPWACache(): Promise<void> {
     } catch { /* ignore */ }
   } catch (e) {
     console.warn("[PWA] reset failed:", e);
-  } finally {
-    // 5) Hard navigation with cache-buster — bypasses HTTP cache AND any SW
-    //    controller still claiming this page. `replace` keeps history clean.
-    try {
-      const url = new URL(window.location.href);
-      url.searchParams.set("_cb", Date.now().toString(36));
-      window.location.replace(url.toString());
-    } catch {
-      window.location.reload();
-    }
+  }
+
+  // 5) Force a network fetch for the current page so we get the latest
+  //    index.html (with new hashed chunk URLs) instead of a stale
+  //    browser-cache or SW-cached copy.
+  try {
+    await fetch(window.location.href, { cache: "no-store", credentials: "same-origin" });
+  } catch { /* ignore */ }
+
+  // 6) Hard navigation with cache-buster — bypasses HTTP cache AND any SW
+  //    controller still claiming this page. `replace` keeps history clean.
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.set("_cb", Date.now().toString(36));
+    window.location.replace(url.toString());
+  } catch {
+    window.location.reload();
   }
 }

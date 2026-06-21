@@ -385,7 +385,7 @@ export const useBreaklistData = (date: string) => {
     // Safety net for realtime: even if the websocket drops a postgres_changes
     // event (token refresh edge cases, network blips), Pit operators on two PCs
     // must converge within seconds — not after a manual reload.
-    refetchInterval: 15_000,
+    refetchInterval: 3_500,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });
