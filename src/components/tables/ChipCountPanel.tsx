@@ -97,23 +97,30 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     return map;
   }, [snapshots]);
 
-  const getDefault = (tableId: string, denom: number): number => {
+  // "Last check" placeholder value for a (table, denom): latest snapshot's
+  // actual quantity if any was recorded this shift, otherwise the chip baseline.
+  // Per UX request: input fields start EMPTY; this number is displayed as a
+  // gray placeholder so Pit types only what changed instead of deleting prefilled
+  // digits. When the field is left empty, computations fall back to this value.
+  const getLastCheck = (tableId: string, denom: number): number => {
     const snap = latestSnapshotPerTable[tableId]?.actual[denom];
     if (snap !== undefined) return snap;
     return baselineMap[tableId]?.[denom] ?? 0;
   };
 
+  // NaN sentinel means "empty input" → treated as "same as last check" for math.
   const [counts, setCounts] = useState<Record<string, Record<number, number>>>({});
   const [fullscreen, setFullscreen] = useState(false);
   const [tabletMode, setTabletMode] = useState(false);
 
-  // Initialize / refresh prefill when underlying data changes
+  // Reset to empty when underlying tables/snapshots change so the new placeholder
+  // (latest snapshot) takes effect immediately for Pit's next entry.
   useEffect(() => {
     const initial: Record<string, Record<number, number>> = {};
     countLocations.forEach(loc => {
       initial[loc.key] = {};
       loc.denoms.forEach(d => {
-        initial[loc.key][d] = getDefault(loc.id, d);
+        initial[loc.key][d] = NaN as any; // empty by default — placeholder shows last check
       });
     });
     setCounts(initial);
