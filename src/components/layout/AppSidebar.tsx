@@ -18,6 +18,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
 import { useMyModulePermissions } from "@/hooks/use-module-permissions";
 import { moduleKeyForRoute } from "@/lib/route-module-map";
+import { prefetchRoute } from "@/lib/route-prefetch";
 import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
 import { VersionIndicator } from "@/components/VersionIndicator";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
@@ -310,6 +311,9 @@ const SidebarSections = ({
                   to={sub.to}
                   end
                   onClick={onNavigate}
+                  onMouseEnter={() => prefetchRoute(sub.to)}
+                  onFocus={() => prefetchRoute(sub.to)}
+                  onTouchStart={() => prefetchRoute(sub.to)}
                   className={`flex items-center gap-2 px-2 h-7 rounded-md text-xs transition-colors ${
                     active ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
                   }`}
@@ -341,6 +345,9 @@ const SidebarSections = ({
           to={item.to}
           end={item.to === "/" || item.to === "/tables" || EXACT_NAV_PATHS.has(itemBase) || isTabAware}
           onClick={onNavigate}
+          onMouseEnter={() => prefetchRoute(itemBase)}
+          onFocus={() => prefetchRoute(itemBase)}
+          onTouchStart={() => prefetchRoute(itemBase)}
           className={({ isActive }) => {
             const active = isTabAware ? isTabAwareActive : isActive;
             return `flex items-center gap-3 px-3 h-8 rounded-md text-sm transition-colors ${
@@ -463,6 +470,9 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           key={sub.tab}
           to={`${basePath}?tab=${sub.tab}`}
           onClick={onNavigate}
+          onMouseEnter={() => prefetchRoute(basePath)}
+          onFocus={() => prefetchRoute(basePath)}
+          onTouchStart={() => prefetchRoute(basePath)}
           className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors ${
             currentTab === sub.tab
               ? "bg-sidebar-accent text-sidebar-primary font-medium"
@@ -509,6 +519,9 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
                     <NavLink
                       to={targetTo}
                       end={targetTo === "/"}
+                      onMouseEnter={() => prefetchRoute(itemBase)}
+                      onFocus={() => prefetchRoute(itemBase)}
+                      onTouchStart={() => prefetchRoute(itemBase)}
                       className={cn(
                         "w-10 h-10 flex items-center justify-center rounded-md transition-colors",
                         isActive
