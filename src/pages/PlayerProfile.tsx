@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { ArrowLeft, Ban, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays } from "lucide-react";
 
@@ -72,8 +73,8 @@ const PlayerProfile = () => {
   // unless the Manager Access override is active.
   const { restrictedToToday, businessDate } = useBusinessDayFilter();
   const initialPreset: DatePreset = restrictedToToday ? "day" : "month";
-  const [preset, setPreset] = useState<DatePreset>(initialPreset);
-  const [range, setRange] = useState(() => restrictedToToday
+  const [preset, setPreset] = useSessionState<DatePreset>("preset", initialPreset);
+  const [range, setRange] = useSessionState("range", () => restrictedToToday
     ? { from: businessDate!, to: businessDate! }
     : presetRange("month"));
   const { data: sessions = [] } = usePlayerSessions(id, range);
