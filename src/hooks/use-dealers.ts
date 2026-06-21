@@ -382,8 +382,15 @@ export const useBreaklistData = (date: string) => {
       return (await fetchBreaklistRows(casinoId, date)).map(aliasBreaklistRow);
     },
     enabled: !!casinoId,
+    // Safety net for realtime: even if the websocket drops a postgres_changes
+    // event (token refresh edge cases, network blips), Pit operators on two PCs
+    // must converge within seconds — not after a manual reload.
+    refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 };
+
 
 export const useSetBreaklistCell = () => {
   const qc = useQueryClient();
