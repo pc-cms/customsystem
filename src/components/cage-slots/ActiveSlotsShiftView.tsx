@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight, History, Pencil, Gift } from "lucide-react";
 import PrintSlotsShiftDialog from "./PrintSlotsShiftDialog";
+import { HourlyCheckBanner } from "@/components/cage/HourlyCheckBanner";
 import EditOpeningCardsDialog from "./EditOpeningCardsDialog";
 import SlotsTransfersForm from "./SlotsTransfersForm";
 import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
