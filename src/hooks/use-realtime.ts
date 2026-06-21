@@ -3,7 +3,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { toast } from "sonner";
-import { markRealtimeEvent, setRealtimeStatus } from "@/lib/realtime-status";
 
 /**
  * Realtime subscriptions for wired LAN environment.
@@ -80,7 +79,6 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "breaklist", filter: `casino_id=eq.${casinoId}` },
           () => {
-            markRealtimeEvent("breaklist");
             qc.invalidateQueries({ queryKey: ["breaklist", casinoId] });
           }
         )
@@ -88,7 +86,6 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "dealer_attendance", filter: `casino_id=eq.${casinoId}` },
           () => {
-            markRealtimeEvent("dealer_attendance");
             qc.invalidateQueries({ queryKey: ["dealer-attendance-range", casinoId] });
           }
         )
@@ -114,7 +111,6 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "table_tracker", filter: `casino_id=eq.${casinoId}` },
           () => {
-            markRealtimeEvent("table_tracker");
             qc.invalidateQueries({ queryKey: ["table-tracker", casinoId] });
           }
         )
@@ -122,7 +118,6 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "chip_snapshots", filter: `casino_id=eq.${casinoId}` },
           () => {
-            markRealtimeEvent("chip_snapshots");
             qc.invalidateQueries({ queryKey: ["chip-snapshots", casinoId] });
             qc.invalidateQueries({ queryKey: ["chip-snapshots-full", casinoId] });
           }
@@ -131,7 +126,6 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "pit_rota", filter: `casino_id=eq.${casinoId}` },
           () => {
-            markRealtimeEvent("pit_rota");
             qc.invalidateQueries({ queryKey: ["pit-rota-range", casinoId] });
           }
         )
@@ -158,7 +152,6 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "staff_rota", filter: `casino_id=eq.${casinoId}` },
           () => {
-            markRealtimeEvent("staff_rota");
             qc.invalidateQueries({ queryKey: ["staff-rota-range", casinoId] });
             qc.invalidateQueries({ queryKey: ["staff-rota", casinoId] });
           }
@@ -167,7 +160,6 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "staff_attendance", filter: `casino_id=eq.${casinoId}` },
           () => {
-            markRealtimeEvent("staff_attendance");
             qc.invalidateQueries({ queryKey: ["staff-attendance-range", casinoId] });
             qc.invalidateQueries({ queryKey: ["staff-attendance", casinoId] });
           }
@@ -176,7 +168,6 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "rota_locks", filter: `casino_id=eq.${casinoId}` },
           () => {
-            markRealtimeEvent("rota_locks");
             qc.invalidateQueries({ queryKey: ["rota-locks", casinoId] });
           }
         )
@@ -185,7 +176,6 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "shifts", filter: `casino_id=eq.${casinoId}` },
           () => {
-            markRealtimeEvent("shifts");
             qc.invalidateQueries({ queryKey: ["shifts"] });
             qc.invalidateQueries({ queryKey: ["shift"] });
             qc.invalidateQueries({ queryKey: ["shift-tables-result"] });
@@ -196,7 +186,6 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "bank_checks", filter: `casino_id=eq.${casinoId}` },
           () => {
-            markRealtimeEvent("bank_checks");
             qc.invalidateQueries({ queryKey: ["bank-checks"] });
             qc.invalidateQueries({ queryKey: ["cash-checks-by-date"] });
             qc.invalidateQueries({ queryKey: ["player-economy"] });
@@ -206,7 +195,6 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "cage_transfers", filter: `casino_id=eq.${casinoId}` },
           () => {
-            markRealtimeEvent("cage_transfers");
             qc.invalidateQueries({ queryKey: ["cage-transfers"] });
             qc.invalidateQueries({ queryKey: ["shift-tables-result"] });
           }
@@ -215,7 +203,6 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "cashless_transactions", filter: `casino_id=eq.${casinoId}` },
           () => {
-            markRealtimeEvent("cashless_transactions");
             qc.invalidateQueries({ queryKey: ["cashless"] });
             qc.invalidateQueries({ queryKey: ["cashless-transactions"] });
           }
@@ -224,7 +211,6 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "player_chip_adjustments", filter: `casino_id=eq.${casinoId}` },
           () => {
-            markRealtimeEvent("player_chip_adjustments");
             qc.invalidateQueries({ queryKey: ["player-chip-adjustments"] });
             qc.invalidateQueries({ queryKey: ["player-economy"] });
           }
@@ -234,7 +220,6 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "player_daily_zones", filter: `casino_id=eq.${casinoId}` },
           () => {
-            markRealtimeEvent("player_daily_zones");
             qc.invalidateQueries({ queryKey: ["player-daily-zones"] });
             qc.invalidateQueries({ queryKey: ["casino-visits-live"] });
           }
@@ -243,7 +228,6 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "player_daily_avg_bets", filter: `casino_id=eq.${casinoId}` },
           () => {
-            markRealtimeEvent("player_daily_avg_bets");
             qc.invalidateQueries({ queryKey: ["player-daily-avg-bets"] });
             qc.invalidateQueries({ queryKey: ["player-economy"] });
           }
@@ -253,7 +237,6 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "business_day_closures", filter: `casino_id=eq.${casinoId}` },
           () => {
-            markRealtimeEvent("business_day_closures");
             qc.invalidateQueries({ queryKey: ["business-day-closure"] });
             qc.invalidateQueries({ queryKey: ["effective-business-date"] });
             qc.invalidateQueries({ queryKey: ["business-day-history"] });
@@ -268,18 +251,11 @@ export const useRealtimeSubscriptions = () => {
             qc.invalidateQueries({ queryKey: ["player-profile"] });
           }
         )
-        .subscribe((status) => {
-          if (status === "SUBSCRIBED") setRealtimeStatus("connected");
-          else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setRealtimeStatus("error");
-          else if (status === "CLOSED") setRealtimeStatus("closed");
-          else setRealtimeStatus("connecting");
-        });
+        .subscribe();
 
       channelRef.current = channel;
-      setRealtimeStatus("connecting");
     } catch (err) {
       console.error("[Realtime] Failed to setup channel:", err);
-      setRealtimeStatus("error");
     }
 
     return () => {
