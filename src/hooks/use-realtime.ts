@@ -153,6 +153,121 @@ export const useRealtimeSubscriptions = () => {
             qc.invalidateQueries({ queryKey: ["table-tracker", casinoId] });
           }
         )
+        // ===== Pit module: Floor Staff rota + attendance =====
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "staff_rota", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            markRealtimeEvent("staff_rota");
+            qc.invalidateQueries({ queryKey: ["staff-rota-range", casinoId] });
+            qc.invalidateQueries({ queryKey: ["staff-rota", casinoId] });
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "staff_attendance", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            markRealtimeEvent("staff_attendance");
+            qc.invalidateQueries({ queryKey: ["staff-attendance-range", casinoId] });
+            qc.invalidateQueries({ queryKey: ["staff-attendance", casinoId] });
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "rota_locks", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            markRealtimeEvent("rota_locks");
+            qc.invalidateQueries({ queryKey: ["rota-locks", casinoId] });
+          }
+        )
+        // ===== Shifts (Pit shift badge + Player Stats P&L) =====
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "shifts", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            markRealtimeEvent("shifts");
+            qc.invalidateQueries({ queryKey: ["shifts"] });
+            qc.invalidateQueries({ queryKey: ["shift"] });
+            qc.invalidateQueries({ queryKey: ["shift-tables-result"] });
+          }
+        )
+        // ===== Player Statistics: bank checks, transfers, cashless, adjustments =====
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "bank_checks", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            markRealtimeEvent("bank_checks");
+            qc.invalidateQueries({ queryKey: ["bank-checks"] });
+            qc.invalidateQueries({ queryKey: ["cash-checks-by-date"] });
+            qc.invalidateQueries({ queryKey: ["player-economy"] });
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "cage_transfers", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            markRealtimeEvent("cage_transfers");
+            qc.invalidateQueries({ queryKey: ["cage-transfers"] });
+            qc.invalidateQueries({ queryKey: ["shift-tables-result"] });
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "cashless_transactions", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            markRealtimeEvent("cashless_transactions");
+            qc.invalidateQueries({ queryKey: ["cashless"] });
+            qc.invalidateQueries({ queryKey: ["cashless-transactions"] });
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "player_chip_adjustments", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            markRealtimeEvent("player_chip_adjustments");
+            qc.invalidateQueries({ queryKey: ["player-chip-adjustments"] });
+            qc.invalidateQueries({ queryKey: ["player-economy"] });
+          }
+        )
+        // ===== Player tracker: position grid + average bets =====
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "player_daily_zones", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            markRealtimeEvent("player_daily_zones");
+            qc.invalidateQueries({ queryKey: ["player-daily-zones"] });
+            qc.invalidateQueries({ queryKey: ["casino-visits-live"] });
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "player_daily_avg_bets", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            markRealtimeEvent("player_daily_avg_bets");
+            qc.invalidateQueries({ queryKey: ["player-daily-avg-bets"] });
+            qc.invalidateQueries({ queryKey: ["player-economy"] });
+          }
+        )
+        // ===== Business day closures (drives current-day rollover everywhere) =====
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "business_day_closures", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            markRealtimeEvent("business_day_closures");
+            qc.invalidateQueries({ queryKey: ["business-day-closure"] });
+            qc.invalidateQueries({ queryKey: ["effective-business-date"] });
+            qc.invalidateQueries({ queryKey: ["business-day-history"] });
+          }
+        )
+        // ===== Player notes (PlayerProfile + intelligence panel) =====
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "player_notes" },
+          () => {
+            qc.invalidateQueries({ queryKey: ["player-notes"] });
+            qc.invalidateQueries({ queryKey: ["player-profile"] });
+          }
+        )
         .subscribe((status) => {
           if (status === "SUBSCRIBED") setRealtimeStatus("connected");
           else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setRealtimeStatus("error");

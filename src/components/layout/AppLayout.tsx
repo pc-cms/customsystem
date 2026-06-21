@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
-import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
+// useRealtimeSubscriptions intentionally not imported — mounted in App.tsx only.
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileHeader } from "./AppSidebar";
 import { PWAUpdateNotification } from "@/components/PWAUpdateNotification";
@@ -34,7 +34,8 @@ const FULL_WIDTH_ROUTES = [
 const STORAGE_KEY = "cms.sidebar.collapsed";
 
 export const AppLayout = () => {
-  useRealtimeSubscriptions();
+  // Realtime is mounted once in ProtectedRoutes (App.tsx). Do NOT mount here too —
+  // duplicate channels cause double invalidations and waste connections.
   const isMobile = useIsMobile();
   const location = useLocation();
   const isFullWidth = FULL_WIDTH_ROUTES.some((p) => location.pathname.startsWith(p));
