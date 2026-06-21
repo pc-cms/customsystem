@@ -3,6 +3,7 @@
  * Not financial analytics: contacts + behavior + tags + host assignment.
  */
 import { useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { useNavigate } from "react-router-dom";
 import { Users, RefreshCw, Phone, MessageCircle, Cake, Lock, Search } from "lucide-react";
 import { useCasino } from "@/lib/casino-context";
@@ -78,10 +79,10 @@ export default function CrmPlayers() {
   const nav = useNavigate();
   const { data = [], isLoading } = useCrmPlayers(activeCasinoId);
   const recalc = useRecalcSegments();
-  const [search, setSearch] = useState("");
-  const [segFilter, setSegFilter] = useState<"all" | CrmSegment>("all");
-  const [bdFilter, setBdFilter] = useState<BirthdayFilter>("all");
-  const [hostFilter, setHostFilter] = useState<"all" | "assigned" | "unassigned">("all");
+  const [search, setSearch] = useSessionState<string>("search", "");
+  const [segFilter, setSegFilter] = useSessionState<"all" | CrmSegment>("segFilter", "all");
+  const [bdFilter, setBdFilter] = useSessionState<BirthdayFilter>("bdFilter", "all");
+  const [hostFilter, setHostFilter] = useSessionState<"all" | "assigned" | "unassigned">("hostFilter", "all");
   const [editing, setEditing] = useState<CrmPlayerRow | null>(null);
 
   const rows = useMemo(() => {

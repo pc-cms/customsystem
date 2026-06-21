@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { getBusinessDate, nowEAT } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
@@ -50,8 +51,8 @@ interface TableTrackerProps { embedded?: boolean }
 const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
-  const [date, setDate] = useState(today);
-  const [mode, setMode] = useState<"numbers" | "chips">("numbers");
+  const [date, setDate] = useSessionState<string>("date", today);
+  const [mode, setMode] = useSessionState<"numbers" | "chips">("mode", "numbers");
   const { isManager } = useAuth();
   const { data: tables = [] } = useGamingTables();
   const { data: trackerData = [] } = useTableTracker(date);

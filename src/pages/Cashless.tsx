@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { toast } from "sonner";
 import { CreditCard, CheckCircle, Plus, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -68,13 +69,14 @@ const Cashless = () => {
   const sourceLocked = !isManager && (isCashierLive || isCashierSlots);
   const roleDefaultSource: CashlessSource = isCashierSlots ? "slots" : "live_game";
 
-  const [source, setSource] = useState<CashlessSource>(
+  const [source, setSource] = useSessionState<CashlessSource>(
+    "source",
     sourceLocked ? roleDefaultSource : (isManager ? "all" : roleDefaultSource)
   );
 
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
-  const [viewDate, setViewDate] = useState<string>(businessDate);
+  const [viewDate, setViewDate] = useSessionState<string>("viewDate", businessDate);
   const isToday = viewDate === businessDate;
   const { data: rows = [] } = useCashless(viewDate, source);
 

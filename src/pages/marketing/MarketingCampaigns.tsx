@@ -4,6 +4,7 @@
  * Read access: same casino users.
  */
 import { useMemo, useState } from "react";
+import { useSessionState } from "@/hooks/use-session-state";
 import { useNavigate } from "react-router-dom";
 import { Megaphone, Plus } from "lucide-react";
 import { useCasino } from "@/lib/casino-context";
@@ -64,7 +65,7 @@ export default function MarketingCampaigns() {
   const nav = useNavigate();
   const { data = [], isLoading } = usePromoCampaigns(activeCasinoId);
   const [open, setOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<"all" | PromoCampaignStatus>("all");
+  const [statusFilter, setStatusFilter] = useSessionState<"all" | PromoCampaignStatus>("statusFilter", "all");
 
   const rows = useMemo(
     () => data.filter((c) => statusFilter === "all" || c.status === statusFilter),

@@ -1,64 +1,57 @@
 ## Цель
-Унифицировать popup выбора смен (только буквы, одинаковые размеры/выравнивание, умное позиционирование) и привести легенды Rota/Attendance к единому формату «только время начала».
+Расширить уже существующий `useSessionState` на страницы игроков/трекинга/статистики и сделать пресеты приватными по пользователю (без чистки на signOut).
 
-## 1. `CellPicker.tsx` — единый компонент для всех popup
+## 1. Изменения в `useSessionState`
 
-**Только буквы, одинаковые кнопки**
-- Убрать рендер `opt.title` как подписи под кнопкой (строки 127–131). `title` остаётся только как нативный hover-tooltip на `<button title={opt.title}>`.
-- Привести все option-кнопки к одинаковому размеру: фиксированная `min-w-[28px] h-6`, центрированный текст, одинаковый padding. Сейчас padding `px-1.5 py-0.5` — ок, добавить `min-w-` и `inline-flex items-center justify-center`.
-- Row label (`Hours`, `Sick after Nh` и т.п.) оставить — это разделитель групп, а не подпись опции.
+`src/hooks/use-session-state.ts`:
+- Текущий ключ: `cms.session::${pathname}::${key}`.
+- Новый ключ: `cms.session::${userId || "anon"}::${pathname}::${key}` — берём `userId` из `auth-context` (lazy через `getStoredUserId()`, чтобы не тянуть React-контекст в хук). Это даст разделение по юзерам в одной вкладке.
+- При смене `userId` (другой логин) хук читает из своего namespace — фильтры предыдущего юзера не видны.
 
-**Горизонтальный flip (новое глобальное правило)**
-- Добавить state `dropLeft` параллельно `dropUp`.
-- В `useLayoutEffect` помимо вертикальной проверки измерять `spaceRight = window.innerWidth - btnRect.left - 8` vs `popW = pop.offsetWidth`; если `popW > spaceRight` → `setDropLeft(true)`.
-- В классе popup: `${dropUp ? "bottom-9" : "top-9"} ${dropLeft ? "right-0" : "left-0"}`.
+`src/lib/auth-context.tsx`:
+- Убрать вызов `clearSessionState()` в `signOut`. Данные остаются в sessionStorage, но другой юзер их не увидит (другой namespace).
+- `sessionStorage` всё равно умирает при закрытии вкладки — приватность сохраняется.
 
-Это автоматически починит все попапы (Pit rota, Pit attendance, Staff rota, Staff attendance и любые будущие).
+## 2. Страницы под подключение (Players / Tracking / Stats)
 
-## 2. Pit attendance popup (`src/pages/Pit.tsx` ~1082–1099)
-- Убрать `title: "Absent"` / `title: "Sick"` у A/S опций — больше не нужны (легенда выше уже объясняет). Опционально оставить как hover-tooltip — но согласно правилу «только буквы» убираем совсем.
-- Row label `"Shifts"` и `"Hours"` и `"Sick after Nh"` оставить.
-- Никаких изменений в логике save.
+Пройтись по всем экранам, связанным с игроками и трекингом, и заменить `useState` → `useSessionState` для фильтров/сортировок/поиска/табов/периодов:
 
-## 3. Унифицированные легенды (`только начало смены, без дефисов`)
+| Файл | Что персистим |
+|---|---|
+| `src/pages/crm/CrmPlayers.tsx` | search, category/status/tag фильтры, sortKey/sortDir, активный таб |
+| `src/pages/Guests.tsx` | (уже подключено — проверить полноту: posFilter, date range) |
+| `src/pages/Blacklist.tsx` | (уже) — добавить sort и фильтры по casino |
+| `src/pages/PlayerProfile.tsx` | активный таб (Overview / Visits / Tracker / Notes / Cashless / Bank Checks …), period preset |
+| `src/pages/Reception.tsx` | (уже sortBy) — добавить search, фильтры status/category |
+| `src/pages/Groups.tsx` | search, sort |
+| `src/pages/MarketingCampaigns.tsx`, `MarketingCampaignDetail.tsx` | search, status filter, активный таб |
+| Player Tracker / Active Players (внутри Dashboard, Pit, или отдельные блоки) — найти grep'ом `useState` для filter/sort и заменить |
+| `src/pages/BankChecks.tsx` | (уже preset) — добавить search, statusFilter, sortKey/sortDir |
+| `src/pages/Cashless.tsx` | search, providerFilter, dateRange, sort |
+| `src/pages/Transfers.tsx` | period, sort |
+| `src/pages/Logs.tsx` | filter по типу события, period, search |
+| Stats-страницы под `src/pages/reports/*` относящиеся к игрокам (per-player reports) | period preset, sort |
 
-**Pit (`SHIFT_LABELS` в `src/pages/Pit.tsx`)** — используется в одной общей легенде для rota+attendance:
-```
-M  → 17:45
-N  → 20:45
-EM → 17:45        // Extra Middle = тот же старт, что M
-EN → 20:45        // Extra Night = тот же старт, что N
-L  → Leave
-O  → Off
-```
-A → Absent, S → Sick (статусы, не смены — оставить как есть).
+Точный список финализирую при имплементации — пройдусь grep'ом `useState<` по `pages/` и `components/players/`, `components/crm/`, `components/tracker/`. Любой `useState` для строки поиска, селекта фильтра, `sortKey`, `sortDir`, `activeTab`, `preset`, `dateFrom`/`dateTo`, `page`/`pageSize` → заменяю на `useSessionState`.
 
-**Floor (`ROTA_GROUPS.floor.shiftLabels` + общий `STAFF_SHIFT_LABELS` в `src/hooks/use-staff.ts`)**:
-```
-D → 12:30
-N → 20:45
-E → 17:45         // Extra = Middle-старт (общий с дилерами)
-L → Leave
-O → Off
-```
+**Исключения** (как и раньше — не персистим):
+- Открытие модалок, выбранная строка, hover/focus.
+- Поля форм ввода (создание/редактирование).
+- Оперативные гриды Pit Rota / Breaklist / Table Tracker — там нет фильтров, только структурная сетка.
 
-**Security (`ROTA_GROUPS.security.shiftLabels`)** — уже в нужном формате, не трогать:
-```
-D 06:00 / M 13:45 / N 17:45 / G 21:45 / L Leave / E Extra / O Off
-```
-Только заменить `E: "Extra"` → `E: "17:45"` для единообразия, и при желании оставить `L: "Leave"`, `O: "Off"`.
+## 3. Проверка
 
-**Office (`ROTA_GROUPS.office.shiftLabels`)** — как Floor.
+1. Открыть `/crm/players`, поставить фильтр + сортировку → перейти на `/cage` → вернуться → состояние на месте.
+2. Открыть `/players/:id`, переключить таб на Tracker → перейти на другого игрока → вернуться к первому → таб Tracker сохранён.
+3. signOut → login тем же юзером → фильтры на месте.
+4. signOut → login другим юзером → видит чистое состояние (свой namespace).
+5. Закрыть вкладку → открыть заново → чистое состояние (sessionStorage умер).
 
-**Attendance Staff (`STAFF_SHIFT_LABELS`)** — синхронизировать с Floor (используется в `Staff.tsx:217` для D/N подсказок).
+## 4. Версия
 
-Никаких `(...)` скобок, никаких слов `Day`/`Night`/`Middle` — только `HH:MM` для рабочих смен, односложные слова для статусов (`Leave`, `Off`, `Absent`, `Sick`).
+Чисто фронтовое изменение — bump patch в `package.json` всё равно сделаю (по нашему правилу авто-бамп; здесь скорее косметика, но затрагивает много страниц).
 
-## 4. Затронутые файлы
-- `src/components/grids/CellPicker.tsx` — popup styling + horizontal flip
-- `src/pages/Pit.tsx` — `SHIFT_LABELS`, удалить `title` у A/S
-- `src/hooks/use-staff.ts` — `shiftLabels` у floor/security/office + `STAFF_SHIFT_LABELS`
-
-## Не входит
-- Логика смен, часов, бэкфилл, backend. Только UI/презентация.
-- Легенды Live Game в других местах (Dashboard, Breaklist) не трогаем — у пользователя речь о Rota/Attendance.
+## Что НЕ делаем
+- Никакой БД, никаких миграций, никаких RLS — пресеты остаются клиентскими.
+- Не вводим именованные пресеты с UI выбора (по предыдущему решению — только «последнее состояние»).
+- Не трогаем localStorage и не делаем синхронизацию между устройствами.

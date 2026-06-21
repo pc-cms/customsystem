@@ -135,7 +135,7 @@ const CheckInTab = () => {
   const { data: visits = [] } = useVisitsToday("*, players(first_name, last_name, nickname, photo_url, status, id_number, category, player_type)") as { data: any[] };
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useSessionState<string>("checkin:query", "");
   const debouncedQuery = useDebouncedValue(query, 200);
   const [selectedPlayer, setSelectedPlayer] = useState<any | null>(null);
   const [incompleteWarning, setIncompleteWarning] = useState<string[] | null>(null);
@@ -998,7 +998,7 @@ const UpdateDataTab = () => {
   const { data: players = [] } = usePlayers();
   const { data: visits = [] } = useVisitsToday();
   const queryClient = useQueryClient();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useSessionState<string>("update:query", "");
   const [sortBy, setSortBy] = useSessionState<"newest" | "last_visit">("sortBy", "last_visit");
   const { select: selectPlayer } = useSelectedPlayer();
   const isMobile = useIsMobile();

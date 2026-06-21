@@ -1,14 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 /**
  * useSessionState — drop-in replacement for useState that mirrors the value
  * into sessionStorage so filters/sorts/active tabs/period selectors restore
  * automatically while the browser tab is open.
  *
- * - Key is auto-namespaced by current pathname so the same `key` ("search",
- *   "sort", ...) on different pages doesn't collide.
- * - Closing the tab clears the state (sessionStorage semantics).
- * - On signOut call `clearSessionState()` to wipe everything for the next user.
+ * Key shape: `cms:v1:ss:${userId}::${pathname}::${key}`
+ *  - userId namespace ⇒ different users in the same tab don't see each other's
+ *    filters (privacy + correctness on shared kiosks).
+ *  - pathname namespace ⇒ same `key` ("search", "sort", ...) on different
+ *    pages doesn't collide.
+ *  - sessionStorage semantics ⇒ closing the tab wipes everything anyway.
+ *
+ * The AuthProvider calls `setSessionUserId(user?.id ?? null)` on every auth
+ * change. When the userId changes, mounted hooks automatically re-read from
+ * the new namespace.
  *
  * Do NOT use for form inputs, modal state, row selection, or operational
  * grid cells — restoring those leads to stale/confusing UX.
@@ -16,6 +22,27 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const PREFIX = "cms:v1:ss:";
 
+// ----- user-id pub/sub -----
+let currentUserId: string | null = null;
+const userListeners = new Set<() => void>();
+
+export function setSessionUserId(id: string | null): void {
+  const next = id || null;
+  if (currentUserId === next) return;
+  currentUserId = next;
+  userListeners.forEach((l) => l());
+}
+
+function subscribeUserId(cb: () => void): () => void {
+  userListeners.add(cb);
+  return () => { userListeners.delete(cb); };
+}
+
+function snapshotUserId(): string | null {
+  return currentUserId;
+}
+
+// ----- storage helpers -----
 function readKey(fullKey: string): unknown {
   if (typeof window === "undefined") return undefined;
   try {
@@ -41,21 +68,42 @@ function currentPath(): string {
   return window.location.pathname || "";
 }
 
+function makeKey(userId: string | null, key: string): string {
+  return `${PREFIX}${userId || "anon"}::${currentPath()}::${key}`;
+}
+
 export function useSessionState<T>(
   key: string,
   initial: T | (() => T),
 ): [T, React.Dispatch<React.SetStateAction<T>>] {
-  const fullKeyRef = useRef<string>(`${PREFIX}${currentPath()}::${key}`);
+  const userId = useSyncExternalStore(subscribeUserId, snapshotUserId, snapshotUserId);
+  const fullKey = makeKey(userId, key);
+  const initialRef = useRef(initial);
+  initialRef.current = initial;
 
   const [value, setValue] = useState<T>(() => {
-    const stored = readKey(fullKeyRef.current);
+    const stored = readKey(fullKey);
     if (stored !== undefined) return stored as T;
     return typeof initial === "function" ? (initial as () => T)() : initial;
   });
 
+  // On userId switch (different namespace), re-hydrate from the new bucket.
+  const lastKeyRef = useRef(fullKey);
   useEffect(() => {
-    writeKey(fullKeyRef.current, value);
-  }, [value]);
+    if (lastKeyRef.current === fullKey) return;
+    lastKeyRef.current = fullKey;
+    const stored = readKey(fullKey);
+    if (stored !== undefined) {
+      setValue(stored as T);
+    } else {
+      const init = initialRef.current;
+      setValue(typeof init === "function" ? (init as () => T)() : init);
+    }
+  }, [fullKey]);
+
+  useEffect(() => {
+    writeKey(fullKey, value);
+  }, [fullKey, value]);
 
   const setter = useCallback<React.Dispatch<React.SetStateAction<T>>>(
     (next) => setValue(next),
@@ -65,7 +113,11 @@ export function useSessionState<T>(
   return [value, setter];
 }
 
-/** Wipe all useSessionState entries (call on signOut). */
+/**
+ * Legacy wipe — kept for compatibility. Per current policy we do NOT clear
+ * on signOut: the userId namespace already isolates the next user, and the
+ * tab close wipes everything anyway.
+ */
 export function clearSessionState(): void {
   if (typeof window === "undefined") return;
   try {

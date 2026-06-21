@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
-import { clearSessionState } from "@/hooks/use-session-state";
+import { setSessionUserId } from "@/hooks/use-session-state";
 
 type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager";
 
@@ -130,6 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     setSession(nextSession);
     setUser(nextSession?.user ?? null);
+    setSessionUserId(nextUserId);
 
     if (!nextUserId) {
       // Signed out
@@ -240,7 +241,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     handleSignedOut();
-    clearSessionState();
+    setSessionUserId(null);
+    // Note: sessionStorage entries are intentionally kept — they're namespaced
+    // by userId, so the next user (or re-login) gets their own bucket. Closing
+    // the tab wipes everything regardless.
     await supabase.auth.signOut();
   };
 
