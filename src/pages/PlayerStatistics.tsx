@@ -199,6 +199,10 @@ const PlayerStatistics = () => {
   const canEditChips = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "shift_manager", "super_admin"].includes(r));
   const canEditZone = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "shift_manager", "reception", "super_admin"].includes(r));
   const [zoneFilter, setZoneFilter] = useState<Set<PlayerZone | "none">>(new Set(["S", "LG", "CP", "none"]));
+  const [activeOnly, setActiveOnly] = useState(false);
+  const isActiveRow = (r: any) =>
+    (r.dropR ?? 0) > 0 || (r.inDrop ?? 0) > 0 ||
+    (r.out ?? 0) > 0 || (r.chipIn ?? 0) > 0 || (r.chipOut ?? 0) > 0;
 
 
   const { data: visits = [] } = useQuery({
@@ -443,6 +447,7 @@ const PlayerStatistics = () => {
     if (tab === "left") list = list.filter((r: any) => !r.isPresent);
     list = list.filter((r: any) => categoryFilter.has(r.category));
     list = list.filter((r: any) => zoneFilter.has((r.zone as PlayerZone) ?? "none"));
+    if (activeOnly) list = list.filter(isActiveRow);
     if (search) {
       const q = search.toLowerCase();
       list = list.filter((r: any) =>
@@ -489,12 +494,13 @@ const PlayerStatistics = () => {
       if (a.isPresent !== b.isPresent) return a.isPresent ? -1 : 1;
       return new Date(b.entryAt).getTime() - new Date(a.entryAt).getTime();
     });
-  }, [displayRows, tab, categoryFilter, zoneFilter, search, sortKey, sortDir]);
+  }, [displayRows, tab, categoryFilter, zoneFilter, activeOnly, search, sortKey, sortDir]);
 
   const counts = useMemo(() => ({
     day: displayRows.length,
     present: displayRows.filter((r: any) => r.isPresent).length,
     left: displayRows.filter((r: any) => !r.isPresent).length,
+    active: displayRows.filter(isActiveRow).length,
   }), [displayRows]);
 
   // Totals across the currently filtered list (period + tab + filters + search).
@@ -889,6 +895,17 @@ const PlayerStatistics = () => {
           </TabsList>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveOnly(v => !v)}
+              title="Show only players with operations today (Drop / Cash In / Out / Chips In / Out)"
+              className={`flex items-center gap-1.5 px-2.5 h-8 rounded-md border border-border text-[11px] font-mono font-black uppercase tracking-wide transition-colors ${
+                activeOnly ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted/40"
+              }`}
+            >
+              <span>ACTIVE</span>
+              <span className="tabular-nums">· {counts.active}</span>
+            </button>
             <Popover>
               <PopoverTrigger asChild>
                 <button
