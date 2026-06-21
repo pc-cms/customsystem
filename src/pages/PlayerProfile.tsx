@@ -289,10 +289,15 @@ const PlayerProfile = () => {
     }
     const pComps = expensesInRange.reduce((s, e: any) => s + (Number(e.amount) || 0), 0);
     const pMins = visitsInRange.reduce((s, v) => s + visitDuration(v), 0);
-    const result = pOut - pIn;
+    let pChipIn = 0, pChipOut = 0;
+    for (const c of chipAdjInRange) {
+      pChipIn += Number(c.chip_in) || 0;
+      pChipOut += Number(c.chip_out) || 0;
+    }
+    const result = (pOut + pChipOut) - (pIn + pChipIn);
     const total = result - pComps;
-    return { pIn, pOut, pComps, pMins, result, total, hold: holdPct(pIn, pOut, pComps), visits: visitsInRange.length };
-  }, [transactions, rangeStartMs, rangeEndMs, expensesInRange, visitsInRange]);
+    return { pIn, pOut, pComps, pMins, pChipIn, pChipOut, result, total, hold: holdPct(pIn, pOut, pComps), visits: visitsInRange.length };
+  }, [transactions, rangeStartMs, rangeEndMs, expensesInRange, visitsInRange, chipAdjInRange]);
 
   // Per-table aggregates (Position / Sessions / Hands / Avg bet / Duration / IN / OUT / Theo / Result / Hold).
   const tableStats = useMemo(() => {
