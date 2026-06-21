@@ -205,7 +205,13 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     const spaceRight = window.innerWidth - rect.right;
     const dropUp = spaceBelow < 240;
     const dropLeft = spaceRight < 240;
-    setActiveCell({ dealerId, timeSlot, dropUp, dropLeft });
+    setActiveCell({
+      dealerId,
+      timeSlot,
+      dropUp,
+      dropLeft,
+      rect: { top: rect.top, left: rect.left, bottom: rect.bottom, right: rect.right, width: rect.width, height: rect.height },
+    });
     // Force-refresh breaklist for this casino so the popup's "available tables"
     // list reflects rows added by other operators since the page last refetched.
     // Without this, off-screen assignments (e.g. Wilfred on AR1 at 20:00) may not
