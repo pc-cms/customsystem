@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useDataScope } from "@/hooks/use-data-scope";
 import { getBusinessDate } from "@/lib/business-day";
 import { disambiguateNames, mapEmployeeToDealer } from "@/hooks/use-dealers";
 import { prefetchRouteChunks } from "@/lib/route-prefetch";
