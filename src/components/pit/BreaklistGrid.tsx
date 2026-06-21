@@ -70,11 +70,13 @@ const isInWorkingHours = (slot: string) => {
 // Map a stored role to the per-table exclusivity slot.
 // Three independent slots per table: Dealer (D), Inspector (I, ends with 'i'), Chipper (C, ends with 'c').
 const roleSlot = (r: string): "D" | "I" | "C" | null => {
-  if (!r || r === "BR" || r === "TR" || r === "S" || r === "LT" || r === "SRT" || r === "CLS") return null;
+  if (!r || r === "BR" || r === "TR" || r === "S" || r === "LT" || r === "SRT" || r === "CLS" || r === "CLR") return null;
   if (/c$/i.test(r)) return "C";
   if (/i$/.test(r)) return "I";
   return "D";
 };
+
+const isClearedBreaklistCell = (cell: any) => cell?.role === "CLR";
 
 const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const { data: dealers = [] } = useDealers();
@@ -316,7 +318,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       // Only fill EMPTY slots from current onwards; existing assignments are preserved.
       const occupied = new Set(
         breaklist
-          .filter((b: any) => b.dealer_id === activeCell.dealerId)
+          .filter((b: any) => b.dealer_id === activeCell.dealerId && !isClearedBreaklistCell(b))
           .map((b: any) => b.time_slot as string)
       );
       const slotsToFill = TIME_SLOTS.slice(startIdx).filter(s => !occupied.has(s));
@@ -427,7 +429,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   };
 
   const getLockedCount = (dealerId: string) =>
-    breaklist.filter(b => b.dealer_id === dealerId && b.is_locked).length;
+    breaklist.filter(b => b.dealer_id === dealerId && b.is_locked && !isClearedBreaklistCell(b)).length;
 
   const roleSuffix: Record<string, string> = {
     ARi: "i", ARc: "c", AR1i: "i", AR1c: "c",
