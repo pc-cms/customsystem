@@ -113,5 +113,5 @@ export function usePrefetchCriticalData() {
         staleTime: 1000 * 60 * 2,
       });
     }
-  }, [casinoId, user, roles, qc]);
+  }, [isReady, casinoId, user, roles, qc]);
 }
