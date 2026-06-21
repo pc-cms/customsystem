@@ -13,6 +13,7 @@ import {
   useUpsertMonthlyTipsEntry, useUpsertMonthlyTipsPool,
   getPeriodStart16, getPeriodEnd15, addMonthsPeriod, enumerateDays,
 } from "@/hooks/use-monthly-tips";
+import { useDataScope } from "@/hooks/use-data-scope";
 import { useTipsCollectedForPeriod } from "@/hooks/use-tips";
 import { fmtDateOnly } from "@/lib/format-date";
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, isExtraShift } from "@/lib/shift-colors";
@@ -81,7 +82,9 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
   const [periodStart, setPeriodStart] = useSessionState<string>("periodStart", () => getPeriodStart16(new Date()));
   const periodEnd = useMemo(() => getPeriodEnd15(periodStart), [periodStart]);
 
-  const { data: dealers = [] } = useDealers();
+  const { data: dealers = [], isPending: dealersPending, isFetching: dealersFetching } = useDealers();
+  const { isReady: scopeReady } = useDataScope();
+  const dealersLoading = !scopeReady || dealersPending || (dealersFetching && dealers.length === 0);
   const { data: rota = [] } = usePitRotaRange(periodStart, periodEnd);
   const { data: attendance = [] } = useDealerAttendanceRange(periodStart, periodEnd);
   const { data: entries = [] } = useMonthlyTipsEntries(periodStart);
@@ -345,7 +348,7 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
               {rows.length === 0 && (
                 <tr>
                   <td colSpan={TOTAL_COLS} className="text-center text-muted-foreground py-6">
-                    No staff found
+                    {dealersLoading ? "Loading staff…" : "No staff found"}
                   </td>
                 </tr>
               )}

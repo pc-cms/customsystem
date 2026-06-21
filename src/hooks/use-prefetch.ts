@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useDataScope } from "@/hooks/use-data-scope";
 import { getBusinessDate } from "@/lib/business-day";
 import { disambiguateNames, mapEmployeeToDealer } from "@/hooks/use-dealers";
 import { prefetchRouteChunks } from "@/lib/route-prefetch";
@@ -65,9 +66,10 @@ const queryFns = {
 export function usePrefetchCriticalData() {
   const qc = useQueryClient();
   const { casinoId, user, roles } = useAuth();
+  const { isReady } = useDataScope();
 
   useEffect(() => {
-    if (!casinoId || !user) return;
+    if (!isReady || !casinoId || !user) return;
     const today = getBusinessDate();
 
     // Warm lazy route chunks for offline navigation. Idempotent (24h throttle).
@@ -111,5 +113,5 @@ export function usePrefetchCriticalData() {
         staleTime: 1000 * 60 * 2,
       });
     }
-  }, [casinoId, user, roles, qc]);
+  }, [isReady, casinoId, user, roles, qc]);
 }

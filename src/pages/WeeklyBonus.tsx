@@ -12,6 +12,7 @@ import {
   useUpsertBonusEntry, useUpsertBonusPool,
   getWeekStartSunday, addDaysIso,
 } from "@/hooks/use-weekly-bonus";
+import { useDataScope } from "@/hooks/use-data-scope";
 import { useDailyResults } from "@/hooks/use-import-reports";
 import { fmtDateOnly } from "@/lib/format-date";
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, isExtraShift } from "@/lib/shift-colors";
@@ -75,7 +76,9 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
   const [weekStart, setWeekStart] = useState<string>(() => getWeekStartSunday(new Date()));
   const weekEnd = useMemo(() => addDaysIso(weekStart, 6), [weekStart]);
 
-  const { data: dealers = [] } = useDealers();
+  const { data: dealers = [], isPending: dealersPending, isFetching: dealersFetching } = useDealers();
+  const { isReady: scopeReady } = useDataScope();
+  const dealersLoading = !scopeReady || dealersPending || (dealersFetching && dealers.length === 0);
   const { data: rota = [] } = usePitRotaRange(weekStart, weekEnd);
   const { data: attendance = [] } = useDealerAttendanceRange(weekStart, weekEnd);
   const { data: entries = [] } = useWeeklyBonusEntries(weekStart);
@@ -336,7 +339,7 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
               {rows.length === 0 && (
                 <tr>
                   <td colSpan={TOTAL_COLS} className="text-center text-muted-foreground py-6">
-                    No staff found
+                    {dealersLoading ? "Loading staff…" : "No staff found"}
                   </td>
                 </tr>
               )}
