@@ -139,17 +139,29 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
 };
 
 const ItemTile = ({
-  item, outOfStock, isLow, disabled, hasModifiers, onAdd, onAddWithNote, onOpenMods,
+  item, availability, disabled, hasModifiers, onAdd, onAddWithNote, onOpenMods,
 }: {
   item: PosMenuItem;
-  outOfStock: boolean;
-  isLow: boolean;
+  availability?: PosItemAvailabilityRow;
   disabled: boolean;
   hasModifiers: boolean;
   onAdd: (qty: number) => void;
   onAddWithNote: (qty: number, note: string | null) => void;
   onOpenMods: (qty: number) => void;
 }) => {
+  const status: PosItemAvailabilityStatus | null = availability?.status ?? null;
+  const isBad = status === "out" || status === "negative";
+  const isLow = status === "low";
+  const showBadge = status && status !== "ok";
+  const portions = availability?.portions_available;
+  // Waiter sees only safe summary: status + portions if known. Never raw ingredient stock.
+  const badgeText =
+    status === "low" && portions != null
+      ? `Low · ${portions}`
+      : status
+        ? statusLabel(status)
+        : "";
+
   const askNote = (qty: number) => {
     if (disabled) return;
     // eslint-disable-next-line no-alert
@@ -160,18 +172,18 @@ const ItemTile = ({
     <div
       className={cn(
         "relative rounded-md border bg-card flex flex-col overflow-hidden",
-        outOfStock ? "border-cms-amount-negative/60" : isLow ? "border-cms-amount-negative/40" : "border-border",
+        isBad ? "border-cms-amount-negative/60" : isLow ? "border-cms-amount-negative/40" : "border-border",
         disabled && "opacity-50",
       )}
     >
-      {outOfStock && (
-        <span className="absolute top-1 right-1 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cms-amount-negative/20 text-cms-amount-negative">
-          Out · allowed
-        </span>
-      )}
-      {!outOfStock && isLow && (
-        <span className="absolute top-1 right-1 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cms-amount-negative/15 text-cms-amount-negative">
-          Low
+      {showBadge && status && (
+        <span
+          className={cn(
+            "absolute top-1 right-1 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded",
+            statusBadgeClass(status),
+          )}
+        >
+          {badgeText}
         </span>
       )}
       <button
@@ -185,12 +197,19 @@ const ItemTile = ({
           <span className="font-mono tabular-nums font-semibold">
             {formatNumberSpaces(item.price_tzs)}
           </span>
-          {item.stock_qty != null && (
-            <span className={cn(
-              "text-[10px]",
-              outOfStock ? "text-cms-amount-negative font-semibold" : "text-muted-foreground",
-            )}>×{item.stock_qty}</span>
-          )}
+          {availability?.has_recipe
+            ? portions != null && (
+                <span className={cn(
+                  "text-[10px]",
+                  isBad ? "text-cms-amount-negative font-semibold" : "text-muted-foreground",
+                )}>{portions}p</span>
+              )
+            : item.stock_qty != null && (
+                <span className={cn(
+                  "text-[10px]",
+                  isBad ? "text-cms-amount-negative font-semibold" : "text-muted-foreground",
+                )}>×{item.stock_qty}</span>
+              )}
         </div>
       </button>
       <div className="flex border-t border-border">
