@@ -79,7 +79,7 @@ const Blacklist = () => {
       const { data, error } = await supabase
         .from("players")
         .select("*")
-        .order("last_name");
+        .order("updated_at", { ascending: false });
       if (error) throw error;
       return data;
     },
