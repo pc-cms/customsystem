@@ -302,6 +302,7 @@ export default function FinancesBudgetVsActualPage() {
   const ytdLabel = `YTD ${MONTHS[0]}–${MONTHS[month - 1]}`;
 
   return (
+    <CompactCtx.Provider value={compact}>
     <PageShell>
       <PageHeader
         icon={BarChart3}
