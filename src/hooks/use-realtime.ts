@@ -211,7 +211,7 @@ export const useRealtimeSubscriptions = () => {
           { event: "*", schema: "public", table: "cage_transfers", filter: `casino_id=eq.${casinoId}` },
           () => {
             qc.invalidateQueries({ queryKey: ["cage-transfers"] });
-            qc.invalidateQueries({ queryKey: ["shift-tables-result"] });
+            qc.invalidateQueries({ queryKey: ["shift_tables_result_total"] });
           }
         )
         .on(
