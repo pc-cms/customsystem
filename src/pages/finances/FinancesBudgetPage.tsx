@@ -196,7 +196,7 @@ export default function FinancesBudgetPage() {
               <tr className="bg-background [&>th]:bg-background [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground">
                 <th
                   rowSpan={2}
-                  className="text-left sticky left-0 z-40 px-3 py-2 border-r border-b border-border align-middle bg-background"
+                  className="text-left sticky left-0 z-40 px-3 py-2 border-b border-border align-middle bg-background shadow-[1px_0_0_0_hsl(var(--border))]"
                 >
                   Category
                 </th>
@@ -205,7 +205,7 @@ export default function FinancesBudgetPage() {
                     key={m}
                     colSpan={2}
                     className={cn(
-                      "text-center border-l border-b border-border px-1 py-1 cursor-pointer select-none transition-colors",
+                      "text-center border-l-2 border-border border-b px-1 py-1 cursor-pointer select-none transition-colors [scroll-snap-stop:always]",
                       isSelMonth(i) ? `${selBgStrong} text-foreground` : "hover:bg-muted/50",
                     )}
                     style={{
@@ -221,7 +221,7 @@ export default function FinancesBudgetPage() {
                 ))}
                 <th
                   rowSpan={2}
-                  className="text-right sticky right-[100px] z-40 border-l border-b border-border px-2 py-2 align-middle bg-background"
+                  className="text-right sticky z-40 border-b border-border px-2 py-2 align-middle bg-background shadow-[-1px_0_0_0_hsl(var(--border))]"
                   style={{ right: yearW }}
                   title="Plan Year TZS — Σ12 (если введён один месяц → ×12)"
                 >
@@ -229,7 +229,7 @@ export default function FinancesBudgetPage() {
                 </th>
                 <th
                   rowSpan={2}
-                  className="text-right sticky right-0 z-40 border-l border-b border-border px-2 py-2 align-middle bg-background"
+                  className="text-right sticky right-0 z-40 border-b border-border px-2 py-2 align-middle bg-background shadow-[-1px_0_0_0_hsl(var(--border))]"
                   title="Plan Year USD — Σ12 (если введён один месяц → ×12)"
                 >
                   Plan Year USD
