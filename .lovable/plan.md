@@ -1,30 +1,37 @@
-Formula for Live cage Shift Balance (Mwanza and all casinos):
+## Budget tables — snap-per-month, fixed dividers, sticky borders
 
-```text
-OpeningCash = opening total - opening chips - opening manual mobile balance
-ClosingCash = closing total - closing chips - closing manual mobile balance
-ΔCash = ClosingCash - OpeningCash
+Apply to all three budget pages:
+- `FinancesBudgetPage.tsx` (TZS/USD twin per month)
+- `FinancesBudgetDifferencePage.tsx` (single per month)
+- `FinancesBudgetVsActualPage.tsx` (plan/actual/var group per month)
 
-Cash Desk Result = ΔCash + Expenses + Collection - Add Float + Slots Out - Slots In
-Shift Balance = Cash Desk Result - Tables Result - Miss Chips
-```
+### Fixes
 
-Rules:
-- `Cashless IN` and `Cashless OUT` are tracked/displayed only.
-- `NET (IN - OUT)` is display only.
-- printed `Cashless Balance` is only the cashier’s manual provider balance.
-- `Cashless Balance` must not affect `Cash Desk Result` or `Shift Balance`.
+**1. Snap exactly per month group (not per sub-column)**
+- Apply `scroll-snap-align: start` ONLY on the outer per-month `<th>` (already correct in Budget, since `colSpan=2` th carries it). For Difference and VsActual it's already per-month.
+- Set `scroll-padding-left` on container = `catW + 1` so first month column lands flush against the sticky Category column (currently scrollPaddingLeft is set but month column ends up partially under sticky Category — increase to `catW + 8` and add `scroll-snap-stop: always` on the snap targets to force per-step snap and prevent half-column landing).
+- Add `scroll-snap-stop: always` to each month header (Tailwind: `[scroll-snap-stop:always]`).
 
-What I found:
-- Frontend close-screen formula already excludes Cashless IN/OUT.
-- Print display already shows Cashless Balance from manual closer entry.
-- Backend formula currently tries to subtract `totals.mobile_tzs`, but Live close/open saves mobile as `totals.mobile` object, not `mobile_tzs`. So the backend can fail to exclude the manual mobile balance and persist a wrong `shifts.balance`, especially visible in Mwanza.
+**2. Vertical column dividers in every body cell**
+- Currently only first sub-column of each month carries `border-l`. Add a stronger `border-l-2 border-border` on the FIRST sub-column of each month (the TZS one) and a thin `border-l border-border/40` on the USD sub-column — gives clear month-group boundaries plus light inner divider.
+- For Difference / VsActual: add `border-l border-border` on every month cell.
 
-Plan:
-1. Update the Live backend formula `compute_shift_balance_from_row` to calculate manual mobile total from both supported shapes:
-   - `totals.mobile_tzs` if present
-   - otherwise sum `totals.mobile` / `opening_float.mobile` / `closing_count.mobile`
-2. Keep Cashless IN/OUT excluded from CDR and Shift Balance.
-3. Recompute existing Live shifts so stored `cash_desk_result` and `balance` are corrected.
-4. Update `src/lib/cage-balance.ts` comments only if needed so they match the actual formula.
-5. Bump `package.json` patch version because this is a backend formula change.
+**3. Sticky first & last columns must show clear non-scrolling borders**
+- Replace `border-r border-border` on sticky Category column with `shadow-[1px_0_0_0_hsl(var(--border))]` (a stuck right edge that always renders above scrolling content).
+- Replace `border-l border-border` on sticky right Plan-Year columns with `shadow-[-1px_0_0_0_hsl(var(--border))]`.
+- Keeps the divider crisp regardless of scroll position (CSS borders on sticky cells can disappear under overlapping content).
+
+**4. Budget page Category sticky width fix**
+- Set `scrollPaddingLeft: catW` exactly + `scroll-snap-stop: always` so the next month doesn't end up half-hidden under the sticky Category column.
+
+### Implementation details
+
+- Reuse same `monthW`, `catW`, `yearW` constants per page.
+- All purely CSS / className changes; no data, RPC, or formula changes.
+- Version bump to `v1.3.407` in `package.json`.
+
+### Files
+- `src/pages/finances/FinancesBudgetPage.tsx`
+- `src/pages/finances/FinancesBudgetDifferencePage.tsx`
+- `src/pages/finances/FinancesBudgetVsActualPage.tsx`
+- `package.json`

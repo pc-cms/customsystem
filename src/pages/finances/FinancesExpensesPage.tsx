@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
-import { Receipt, Plus, Trash2, ArrowUp, ArrowDown, Filter, Pencil, Printer, FileSpreadsheet } from "lucide-react";
+import { Receipt, Plus, Trash2, ArrowUp, ArrowDown, Filter, Pencil } from "lucide-react";
 import EditExpenseDialog, { type EditableExpense } from "@/components/expenses/EditExpenseDialog";
-import { downloadXlsx } from "@/lib/excel-export";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
@@ -122,73 +121,6 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
   const SortIcon = ({ k }: { k: SortKey }) =>
     sortKey === k ? (sortDir === "asc" ? <ArrowUp className="w-3 h-3 inline ml-0.5" /> : <ArrowDown className="w-3 h-3 inline ml-0.5" />) : null;
 
-  const handleExportExcel = async () => {
-    const header = ["Date", "Category", "Wallet", "Description", "Amount (TZS)", "Currency", "Original Amount"];
-    const body = visible.map((r: any) => {
-      const ccy = r.currency || "TZS";
-      const tzs = r.voided_at ? 0 : Number(r.amount_tzs || r.amount || 0);
-      const cat = [r.fin_categories?.group_name, r.fin_categories?.name].filter(Boolean).join(" · ") || r.category || "";
-      const desc = (r.description || "") + (r.voided_at ? " [VOID]" : "");
-      return [
-        r.business_date || "",
-        cat,
-        r.fin_wallets?.name || "",
-        desc,
-        tzs,
-        ccy !== "TZS" ? ccy : "",
-        ccy !== "TZS" ? Number(r.amount || 0) : "",
-      ];
-    });
-    const total = visible.reduce((s: number, r: any) => s + (r.voided_at ? 0 : Number(r.amount_tzs || r.amount || 0)), 0);
-    body.push(["", "", "", "TOTAL", total, "", ""]);
-    await downloadXlsx(`Monthly_Expenses_${range.from}_${range.to}.xlsx`, [
-      { name: "Expenses", rows: [header, ...body] as any },
-    ]);
-  };
-
-  const handlePrint = () => {
-    const fmtNum = (n: number) =>
-      new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(n).replace(/,/g, " ");
-    const rowsHtml = visible.map((r: any) => {
-      const tzs = r.voided_at ? 0 : Number(r.amount_tzs || r.amount || 0);
-      const cat = [r.fin_categories?.group_name, r.fin_categories?.name].filter(Boolean).join(" · ") || r.category || "";
-      const cls = r.voided_at ? ' class="void"' : "";
-      const esc = (s: string) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!));
-      return `<tr${cls}><td>${esc(r.business_date || "")}</td><td>${esc(cat)}</td><td>${esc(r.description || "")}</td><td class="num">${fmtNum(tzs)}</td></tr>`;
-    }).join("");
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Monthly Expenses ${range.from} — ${range.to}</title>
-<style>
-  @page { size: A4 portrait; margin: 12mm; }
-  body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #000; }
-  h1 { font-size: 14pt; margin: 0 0 4px; }
-  .meta { font-size: 9pt; color: #444; margin-bottom: 10px; }
-  table { width: 100%; border-collapse: collapse; }
-  thead { display: table-header-group; }
-  th, td { border: 1px solid #000; padding: 3px 6px; vertical-align: top; }
-  th { background: #eee; text-align: left; font-size: 9pt; }
-  td.num, th.num { text-align: right; font-family: "Courier New", monospace; white-space: nowrap; }
-  tr.void td { color: #888; text-decoration: line-through; }
-  tfoot td { font-weight: bold; background: #f4f4f4; }
-  @media print { .noprint { display: none; } }
-</style></head>
-<body>
-  <h1>Monthly Expenses</h1>
-  <div class="meta">Period: ${range.from} — ${range.to} · Records: ${visible.length}</div>
-  <table>
-    <thead><tr><th style="width:80px">Date</th><th>Category</th><th>Description</th><th class="num" style="width:120px">Amount (TZS)</th></tr></thead>
-    <tbody>${rowsHtml || '<tr><td colspan="4" style="text-align:center;color:#888">No expenses</td></tr>'}</tbody>
-    <tfoot><tr><td colspan="3">TOTAL</td><td class="num">${fmtNum(totalTzs)}</td></tr></tfoot>
-  </table>
-  <div class="noprint" style="margin-top:14px"><button onclick="window.print()">Print</button></div>
-  <script>window.addEventListener('load',()=>setTimeout(()=>window.print(),200));</script>
-</body></html>`;
-    const w = window.open("", "_blank");
-    if (!w) return;
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-  };
-
   const overrunCheck = useMemo(() => {
     if (!form.fin_category_id || !form.amount) return null;
     const b = (budget || []).find((x: any) => x.category_id === form.fin_category_id && x.currency === form.currency);
@@ -217,8 +149,6 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
           <label className="text-xs flex items-center gap-1.5">
             <input type="checkbox" checked={showVoided} onChange={(e) => setShowVoided(e.target.checked)} /> Show voided
           </label>
-          <Button variant="outline" size="sm" onClick={handlePrint}><Printer className="w-4 h-4" /> Print</Button>
-          <Button variant="outline" size="sm" onClick={handleExportExcel}><FileSpreadsheet className="w-4 h-4" /> Excel</Button>
           {canManage && <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4" /> New Expense</Button>}
         </PageHeader>
       )}

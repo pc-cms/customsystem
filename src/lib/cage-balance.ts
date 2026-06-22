@@ -1,16 +1,17 @@
 /**
- * Canonical Cash Desk Formula — single source of truth (mirrors DB
- * `compute_shift_balance_from_row`). Used for live preview during Close Shift.
+ * Canonical Cash Desk Formula — single source of truth (mirrors DB RPC
+ * `compute_shift_balance`). Used for live preview during Close Shift entry.
  *
  *   Cash Desk Result = ΔCash + Expenses + Collection − AddFloat
- *                    + SlotsOut − SlotsIn          (NO miss, NO tips, NO cashless)
+ *                    + SlotsOut − SlotsIn
+ *                    + CashlessIn − CashlessOut                    (NO miss, NO tips)
  *   Shift Balance    = Cash Desk Result − Tables Result − Miss
  *
- * ΔCash is computed from CASH + BANK only (mobile balance excluded).
+ * ΔCash is computed from CASH + BANK only (mobile balance is excluded to
+ * avoid double-counting cashless movements). Mobile Balance entry remains a
+ * manual sanity check on the report.
  *
- * TIPS and CASHLESS IN/OUT are fully balance-neutral — log-only. The printed
- * "Balance" column for cashless reads ONLY the manual closer entry from
- * `closing_count.totals.mobile_<provider>`; it is never derived from NET.
+ * TIPS ARE FULLY NEUTRAL — log-only.
  */
 export type CageBalanceInputs = {
   openingCash: number;          // opening cash + bank (no mobile)
@@ -35,10 +36,10 @@ export type CageBalanceResult = {
 
 export const computeShiftBalance = (i: CageBalanceInputs): CageBalanceResult => {
   const deltaCash = i.closingCash - i.openingCash;
-  // Cashless IN/OUT are LOG-ONLY (same rule as tips) — excluded from CDR.
   const cashDeskResult =
     deltaCash + i.expenses + i.collection - i.addFloat
-    + i.slotsOut - i.slotsIn;
+    + i.slotsOut - i.slotsIn
+    + (i.cashlessIn || 0) - (i.cashlessOut || 0);
   const shiftBalance = cashDeskResult - i.tablesResult - i.miss;
   return { deltaCash, cashDeskResult, shiftBalance };
 };
