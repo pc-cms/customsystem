@@ -4,7 +4,7 @@ import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftR
 import PrintSlotsShiftDialog from "./PrintSlotsShiftDialog";
 import { HourlyCheckBanner } from "@/components/cage/HourlyCheckBanner";
 import EditOpeningCardsDialog from "./EditOpeningCardsDialog";
-import SlotsTransfersForm from "./SlotsTransfersForm";
+// SlotsTransfersForm moved to dedicated /transfers page
 import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
 import { useSlotsExpenses } from "@/hooks/use-expenses";
 import { useSlotsTipsCd } from "@/hooks/use-slots-tips-cd";
