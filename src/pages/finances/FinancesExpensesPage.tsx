@@ -217,6 +217,8 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
           <label className="text-xs flex items-center gap-1.5">
             <input type="checkbox" checked={showVoided} onChange={(e) => setShowVoided(e.target.checked)} /> Show voided
           </label>
+          <Button variant="outline" size="sm" onClick={handlePrint}><Printer className="w-4 h-4" /> Print</Button>
+          <Button variant="outline" size="sm" onClick={handleExportExcel}><FileSpreadsheet className="w-4 h-4" /> Excel</Button>
           {canManage && <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4" /> New Expense</Button>}
         </PageHeader>
       )}
