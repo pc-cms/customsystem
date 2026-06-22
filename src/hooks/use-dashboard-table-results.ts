@@ -1,22 +1,19 @@
 /**
- * useDashboardTableResults — canonical per-table P&L for the dashboard.
+ * useDashboardTableResults — per-table P&L for the dashboard.
  *
- * Source of truth: DB RPC `compute_shift_table_results(p_shift_id)`, which is
- * the same function the DB trigger uses to populate `shifts.tables_result`.
+ * RULE (per user, June 2026): No daily summing. Take the LATEST Chip Count
+ * snapshot per table and compute result = Σ (actual − expected) × denomination.
+ * Sum those per game type and total on the consumer side.
  *
- * For each shift that overlaps the given business day window (07:00 EAT
- * rollover via `businessDayHourUTC`), we call the RPC and sum results per
- * table_id. This matches Cage shift P&L exactly and avoids the stale
- * `chip_baseline` (rolling) vs `chip_initial_baseline` (original) mismatch
- * that caused the dashboard to show drastically wrong totals.
+ * Each chip_snapshots row carries both `actual_quantity` and `expected_quantity`
+ * (the baseline at the moment of the count), so we don't need a separate
+ * baseline lookup and we avoid the rolling-vs-initial baseline mismatch.
  *
- * Casino scope: always filtered by the active casino_id — no cross-casino
- * mixing. Subdomain dictates casinoId, so Arusha sees only Arusha, etc.
+ * Casino scope: filtered by active casino_id via the RPC. No cross-casino mix.
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { businessDayHourUTC } from "@/lib/business-day";
 
 export type TableResultMap = Record<string, number>;
 
@@ -26,34 +23,21 @@ export const useDashboardTableResults = (businessDate: string | undefined) => {
     queryKey: ["dashboard-table-results", casinoId, businessDate],
     queryFn: async (): Promise<TableResultMap> => {
       if (!casinoId || !businessDate) return {};
-      const start = businessDayHourUTC(businessDate, 7);
-      const end = businessDayHourUTC(businessDate, 7 + 24);
 
-      // All shifts whose opened_at falls inside this business day. We pick by
-      // opened_at to match useCashChecksByBusinessDate / cage day-scoping rules.
-      const { data: shifts, error } = await supabase
-        .from("shifts")
-        .select("id")
-        .eq("casino_id", casinoId)
-        .gte("opened_at", start)
-        .lt("opened_at", end);
+      // Latest snapshot per (location_type, location_id, denomination) for the day.
+      const { data, error } = await supabase.rpc("chip_snapshots_latest", {
+        _casino_id: casinoId,
+        _date: businessDate,
+      });
       if (error) throw error;
-      const ids = (shifts || []).map((s: any) => s.id);
-      if (!ids.length) return {};
-
-      // Fan-out the canonical RPC per shift (same source as shifts.tables_result).
-      const rpcCalls = await Promise.all(
-        ids.map((id) =>
-          (supabase as any).rpc("compute_shift_table_results", { p_shift_id: id })
-        )
-      );
 
       const map: TableResultMap = {};
-      rpcCalls.forEach((res: any) => {
-        if (res.error) throw res.error;
-        (res.data || []).forEach((r: any) => {
-          map[r.table_id] = (map[r.table_id] || 0) + Number(r.result || 0);
-        });
+      (data || []).forEach((r: any) => {
+        if (r.location_type !== "table" || !r.location_id) return;
+        const denom = Number(r.denomination || 0);
+        const actual = Number(r.actual_quantity || 0);
+        const expected = Number(r.expected_quantity || 0);
+        map[r.location_id] = (map[r.location_id] || 0) + (actual - expected) * denom;
       });
       return map;
     },
