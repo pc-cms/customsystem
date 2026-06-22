@@ -41,7 +41,6 @@ export default function FinancesMonthlyReportPage() {
 
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [showUsd, setShowUsd] = useState(false);
   const [scope, setScope] = useState<string>(activeCasinoId || "");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editRow, setEditRow] = useState<EditableExpense | null>(null);
