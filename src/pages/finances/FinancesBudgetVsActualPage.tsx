@@ -183,7 +183,7 @@ export default function FinancesBudgetVsActualPage() {
     return (
       <tr key={cat.id} className={`border-t border-border ${rowCls}`}>
         <td
-          className={`sticky left-0 z-[1] bg-background px-2 py-1 ${bold ? "bg-muted/30" : ""} cursor-pointer hover:text-primary`}
+          className={`sticky left-0 z-[1] bg-background px-2 py-1 ${bold ? "bg-muted/30" : ""} cursor-pointer hover:text-primary shadow-[1px_0_0_0_hsl(var(--border))]`}
           onClick={() => !bold && setDrill({ catId: cat.id, catName: cat.name })}
         >
           {label ?? cat.name}
