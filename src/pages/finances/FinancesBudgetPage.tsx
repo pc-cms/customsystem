@@ -134,8 +134,10 @@ export default function FinancesBudgetPage() {
   };
 
   const isSelMonth = (i: number) => i + 1 === selectedMonth;
-  const selBg = "bg-primary/10";
-  const selBgStrong = "bg-primary/20";
+  const selBg = "bg-primary/15";
+  const selBgStrong = "bg-primary/25";
+  const stickyLeftEdge = "ring-1 ring-inset ring-border shadow-[2px_0_0_0_hsl(var(--border))]";
+  const stickyRightEdge = "ring-1 ring-inset ring-border shadow-[-2px_0_0_0_hsl(var(--border))]";
 
   return (
     <PageShell>
@@ -179,7 +181,7 @@ export default function FinancesBudgetPage() {
             scrollPaddingLeft: catW,
           }}
         >
-          <table className="text-[11px] border-collapse" style={{ minWidth: minW }}>
+          <table className="text-[11px] border-separate border-spacing-0" style={{ minWidth: minW }}>
             <colgroup>
               <col style={{ width: catW, minWidth: catW }} />
               {MONTHS.map((_, i) => (
@@ -196,7 +198,7 @@ export default function FinancesBudgetPage() {
               <tr className="bg-background [&>th]:bg-background [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground">
                 <th
                   rowSpan={2}
-                  className="text-left sticky left-0 z-40 px-3 py-2 border-b border-border align-middle bg-background shadow-[1px_0_0_0_hsl(var(--border))]"
+                   className={cn("text-left sticky left-0 z-40 px-3 py-2 border-b border-border align-middle bg-background", stickyLeftEdge)}
                 >
                   Category
                 </th>
@@ -221,7 +223,7 @@ export default function FinancesBudgetPage() {
                 ))}
                 <th
                   rowSpan={2}
-                  className="text-right sticky z-40 border-b border-border px-2 py-2 align-middle bg-background shadow-[-1px_0_0_0_hsl(var(--border))]"
+                   className={cn("text-right sticky z-40 border-b border-border px-2 py-2 align-middle bg-background border-l-2 border-border", stickyRightEdge)}
                   style={{ right: yearW }}
                   title="Plan Year TZS — Σ12 (если введён один месяц → ×12)"
                 >
@@ -229,7 +231,7 @@ export default function FinancesBudgetPage() {
                 </th>
                 <th
                   rowSpan={2}
-                  className="text-right sticky right-0 z-40 border-b border-border px-2 py-2 align-middle bg-background shadow-[-1px_0_0_0_hsl(var(--border))]"
+                   className={cn("text-right sticky right-0 z-40 border-b border-border px-2 py-2 align-middle bg-background border-l-2 border-border", stickyRightEdge)}
                   title="Plan Year USD — Σ12 (если введён один месяц → ×12)"
                 >
                   Plan Year USD
@@ -279,7 +281,7 @@ export default function FinancesBudgetPage() {
                     {showGroups && (
                       <tr className="bg-muted border-t border-border">
                         <td
-                          className="sticky left-0 z-20 bg-muted px-3 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-foreground shadow-[1px_0_0_0_hsl(var(--border))]"
+                          className={cn("sticky left-0 z-20 bg-muted px-3 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-foreground", stickyLeftEdge)}
                         >
                           {sec.groupName}
                         </td>
@@ -298,7 +300,7 @@ export default function FinancesBudgetPage() {
                           className="border-t border-border hover:bg-muted/40 [&>td]:h-7 [&>td]:align-middle"
                         >
                           <td
-                            className="sticky left-0 z-10 bg-card px-3 whitespace-nowrap shadow-[1px_0_0_0_hsl(var(--border))]"
+                            className={cn("sticky left-0 z-10 bg-card px-3 whitespace-nowrap", stickyLeftEdge)}
                             title={c.name}
                           >
                             {!showGroups && (
@@ -334,10 +336,10 @@ export default function FinancesBudgetPage() {
                               </Fragment>
                             );
                           })}
-                          <td className="sticky z-10 bg-card text-right pr-2 font-mono tabular-nums whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]" style={{ right: yearW }}>
+                          <td className={cn("sticky z-10 bg-card text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border", stickyRightEdge)} style={{ right: yearW }}>
                             {yTzs ? fmtN(yTzs) : <span className="text-muted-foreground/40">·</span>}
                           </td>
-                          <td className="sticky right-0 z-10 bg-card text-right pr-2 font-mono tabular-nums whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]">
+                          <td className={cn("sticky right-0 z-10 bg-card text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border", stickyRightEdge)}>
                             {yUsd ? fmtN(yUsd) : <span className="text-muted-foreground/40">·</span>}
                           </td>
                         </tr>
@@ -346,7 +348,7 @@ export default function FinancesBudgetPage() {
 
                     {showGroups && (
                       <tr className="border-t border-border bg-muted font-semibold [&>td]:h-7">
-                        <td className="sticky left-0 z-10 bg-muted px-3 text-[10px] uppercase tracking-wider text-muted-foreground shadow-[1px_0_0_0_hsl(var(--border))]">
+                        <td className={cn("sticky left-0 z-10 bg-muted px-3 text-[10px] uppercase tracking-wider text-muted-foreground", stickyLeftEdge)}>
                           Σ {sec.groupName}
                         </td>
                         {MONTHS.map((_, i) => {
@@ -372,10 +374,10 @@ export default function FinancesBudgetPage() {
                             </Fragment>
                           );
                         })}
-                        <td className="sticky z-10 bg-muted text-right pr-2 font-mono tabular-nums whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]" style={{ right: yearW }}>
+                        <td className={cn("sticky z-10 bg-muted text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border", stickyRightEdge)} style={{ right: yearW }}>
                           {fmtN(subYearTzs)}
                         </td>
-                        <td className="sticky right-0 z-10 bg-muted text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]">
+                        <td className={cn("sticky right-0 z-10 bg-muted text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap border-l-2 border-border", stickyRightEdge)}>
                           {fmtN(subYearUsd)}
                         </td>
                       </tr>
@@ -386,8 +388,8 @@ export default function FinancesBudgetPage() {
             </tbody>
 
             <tfoot className="sticky bottom-0 z-30">
-              <tr className="bg-secondary/80 backdrop-blur font-semibold border-t-2 border-primary/40 [&>td]:h-7">
-                <td className="sticky left-0 z-40 bg-secondary px-3 text-[10px] uppercase tracking-wider shadow-[1px_0_0_0_hsl(var(--border))]">
+              <tr className="bg-secondary font-semibold border-t-2 border-primary/40 [&>td]:h-7">
+                <td className={cn("sticky left-0 z-40 bg-secondary px-3 text-[10px] uppercase tracking-wider", stickyLeftEdge)}>
                   Total TZS
                 </td>
                 {MONTHS.map((_, i) => {
@@ -396,33 +398,33 @@ export default function FinancesBudgetPage() {
                     <Fragment key={`ft-tzs-${i}`}>
                       <td
                         className={cn(
-                          "border-l-2 border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap bg-secondary/80",
+                          "border-l-2 border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap bg-secondary",
                           sel && selBgStrong,
                         )}
                       >
                         {fmtT(monthTotals.tzs[i])}
                       </td>
-                      <td className={cn("border-l border-border/40 bg-secondary/80", sel && selBgStrong)} />
+                       <td className={cn("border-l border-border/40 bg-secondary", sel && selBgStrong)} />
                     </Fragment>
                   );
                 })}
-                <td className="sticky z-40 bg-secondary text-right pr-2 font-mono tabular-nums whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]" style={{ right: yearW }}>
+                <td className={cn("sticky z-40 bg-secondary text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border", stickyRightEdge)} style={{ right: yearW }}>
                   {fmtT(yearTotalTzs)}
                 </td>
-                <td className="sticky right-0 z-40 bg-secondary shadow-[-1px_0_0_0_hsl(var(--border))]" />
+                <td className={cn("sticky right-0 z-40 bg-secondary border-l-2 border-border", stickyRightEdge)} />
               </tr>
-              <tr className="bg-secondary/80 backdrop-blur font-semibold border-t border-border [&>td]:h-7">
-                <td className="sticky left-0 z-40 bg-secondary px-3 text-[10px] uppercase tracking-wider text-muted-foreground shadow-[1px_0_0_0_hsl(var(--border))]">
+              <tr className="bg-secondary font-semibold border-t border-border [&>td]:h-7">
+                <td className={cn("sticky left-0 z-40 bg-secondary px-3 text-[10px] uppercase tracking-wider text-muted-foreground", stickyLeftEdge)}>
                   Total USD
                 </td>
                 {MONTHS.map((_, i) => {
                   const sel = isSelMonth(i);
                   return (
                     <Fragment key={`ft-usd-${i}`}>
-                      <td className={cn("border-l-2 border-border bg-secondary/80", sel && selBgStrong)} />
+                       <td className={cn("border-l-2 border-border bg-secondary", sel && selBgStrong)} />
                       <td
                         className={cn(
-                          "border-l border-border/40 text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap bg-secondary/80",
+                          "border-l border-border/40 text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap bg-secondary",
                           sel && selBgStrong,
                         )}
                       >
@@ -431,13 +433,13 @@ export default function FinancesBudgetPage() {
                     </Fragment>
                   );
                 })}
-                <td className="sticky z-40 bg-secondary shadow-[-1px_0_0_0_hsl(var(--border))]" style={{ right: yearW }} />
-                <td className="sticky right-0 z-40 bg-secondary text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]">
+                <td className={cn("sticky z-40 bg-secondary border-l-2 border-border", stickyRightEdge)} style={{ right: yearW }} />
+                <td className={cn("sticky right-0 z-40 bg-secondary text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap border-l-2 border-border", stickyRightEdge)}>
                   {fmtT(yearTotalUsd)}
                 </td>
               </tr>
-              <tr className="bg-primary/15 backdrop-blur font-bold border-t border-primary/40 [&>td]:h-8">
-                <td className="sticky left-0 z-40 bg-primary/20 px-3 text-[10px] uppercase tracking-wider shadow-[1px_0_0_0_hsl(var(--border))]">
+              <tr className="bg-primary/15 font-bold border-t border-primary/40 [&>td]:h-8">
+                <td className={cn("sticky left-0 z-40 bg-primary px-3 text-[10px] uppercase tracking-wider text-primary-foreground", stickyLeftEdge)}>
                   Grand TZS
                 </td>
                 {MONTHS.map((_, i) => {
@@ -456,7 +458,7 @@ export default function FinancesBudgetPage() {
                     </td>
                   );
                 })}
-                <td colSpan={2} className="sticky right-0 z-40 bg-primary/20 text-right pr-2 font-mono tabular-nums whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]">
+                <td colSpan={2} className={cn("sticky right-0 z-40 bg-primary text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border text-primary-foreground", stickyRightEdge)}>
                   {fmtT(yearGrandTzs)}
                 </td>
               </tr>

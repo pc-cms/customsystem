@@ -13,6 +13,7 @@ import { useFinDailyRatesForDate } from "@/hooks/use-fin-daily-rates";
 import { formatNumberSpaces } from "@/lib/currency";
 import { formatMoneyCompact } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
+import { cn } from "@/lib/utils";
 import ExcelJS from "exceljs";
 
 const CompactCtx = createContext(false);
@@ -44,10 +45,10 @@ function VarianceCell({ plan, actual }: { plan: number; actual: number }) {
   const sign = variance > 0 ? "+" : "";
   return (
     <>
-      <td className={`px-1.5 text-right font-mono tabular-nums ${cls}`}>
+      <td className={`border-l border-border/40 px-1.5 text-right font-mono tabular-nums ${cls}`}>
         {variance === 0 && plan === 0 && actual === 0 ? "·" : `${sign}${fmt(variance)}`}
       </td>
-      <td className={`px-1.5 text-right font-mono tabular-nums text-[10px] ${cls}`}>
+      <td className={`border-l border-border/40 px-1.5 text-right font-mono tabular-nums text-[10px] ${cls}`}>
         {pct === null ? "—" : plan === 0 && actual === 0 ? "·" : `${pct > 0 ? "+" : ""}${pct.toFixed(0)}%`}
       </td>
     </>
@@ -58,10 +59,10 @@ function PlanActualGroup({ plan, actual }: { plan: number; actual: number }) {
   const fmt = useFmt();
   return (
     <>
-      <td className="px-1.5 text-right font-mono tabular-nums text-muted-foreground">
+      <td className="border-l border-border px-1.5 text-right font-mono tabular-nums text-muted-foreground">
         {plan ? fmt(plan) : "·"}
       </td>
-      <td className="px-1.5 text-right font-mono tabular-nums">
+      <td className="border-l border-border/40 px-1.5 text-right font-mono tabular-nums">
         {actual ? fmt(actual) : "·"}
       </td>
       <VarianceCell plan={plan} actual={actual} />
@@ -75,6 +76,7 @@ export default function FinancesBudgetVsActualPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [drill, setDrill] = useState<{ catId: string; catName: string; ccy?: Ccy } | null>(null);
   const [compact, setCompact] = useState(false);
+  const stickyLeftEdge = "ring-1 ring-inset ring-border shadow-[2px_0_0_0_hsl(var(--border))]";
 
   const { data: categories = [] } = useFinCategories();
   const { data: budget = [] } = useFinBudget(year);
@@ -179,11 +181,12 @@ export default function FinancesBudgetVsActualPage() {
     const mGrandAct = grand(mTriple.actual, usdRate);
     const yGrandPlan = grand(yTriple.plan, usdRate);
     const yGrandAct = grand(yTriple.actual, usdRate);
-    const rowCls = bold ? "font-semibold bg-muted/30" : "hover:bg-muted/20";
+    const rowCls = bold ? "font-semibold bg-muted" : "hover:bg-muted/20";
+    const firstCellBg = bold ? "bg-muted" : "bg-card";
     return (
       <tr key={cat.id} className={`border-t border-border ${rowCls}`}>
         <td
-          className={`sticky left-0 z-[1] bg-background px-2 py-1 ${bold ? "bg-muted/30" : ""} cursor-pointer hover:text-primary shadow-[1px_0_0_0_hsl(var(--border))]`}
+          className={cn("sticky left-0 z-[1] px-2 py-1 cursor-pointer hover:text-primary", firstCellBg, stickyLeftEdge)}
           onClick={() => !bold && setDrill({ catId: cat.id, catName: cat.name })}
         >
           {label ?? cat.name}
@@ -220,8 +223,8 @@ export default function FinancesBudgetVsActualPage() {
     const mGP = grand(m.plan, usdRate), mGA = grand(m.actual, usdRate);
     const yGP = grand(y.plan, usdRate), yGA = grand(y.actual, usdRate);
     return (
-      <tr key={key} className={`border-t border-border font-semibold bg-muted/40 ${extraCls}`}>
-        <td className="sticky left-0 z-[1] bg-muted/40 px-2 py-1 shadow-[1px_0_0_0_hsl(var(--border))]">{label}</td>
+      <tr key={key} className={`border-t border-border font-semibold bg-muted ${extraCls}`}>
+        <td className={cn("sticky left-0 z-[1] bg-muted px-2 py-1", stickyLeftEdge)}>{label}</td>
         <PlanActualGroup plan={m.plan.tzs} actual={m.actual.tzs} />
         <PlanActualGroup plan={m.plan.usd} actual={m.actual.usd} />
         <PlanActualGroup plan={mGP} actual={mGA} />
@@ -341,11 +344,11 @@ export default function FinancesBudgetVsActualPage() {
             ⚠ No USD rate set for today — Grand TZS columns ignore USD amounts.
           </div>
         )}
-        <div className="rounded-md border border-border overflow-auto max-h-[78vh]">
-          <table className="text-xs" style={{ minWidth: 2400 }}>
+        <div className="rounded-md border border-border overflow-auto max-h-[78vh] bg-card">
+          <table className="text-xs border-separate border-spacing-0" style={{ minWidth: 2400 }}>
             <thead className="sticky top-0 z-[2]">
               <tr className="bg-muted">
-                <th rowSpan={3} className="sticky left-0 z-[3] bg-muted px-2 py-2 text-left shadow-[1px_0_0_0_hsl(var(--border))] min-w-[220px]">
+                <th rowSpan={3} className={cn("sticky left-0 z-[3] bg-muted px-2 py-2 text-left min-w-[220px]", stickyLeftEdge)}>
                   Category
                 </th>
                 <th colSpan={12} className="px-2 py-1 text-center border-l border-border">{monthLabel}</th>
@@ -370,13 +373,13 @@ export default function FinancesBudgetVsActualPage() {
             <tbody>
               {grouped.map((g) => (
                 <Fragment key={g.code}>
-                  <tr className="bg-muted/60">
+                  <tr className="bg-muted">
                     <td
-                      className="sticky left-0 z-[1] bg-muted/60 px-2 py-1 font-semibold text-[11px] uppercase tracking-wide shadow-[1px_0_0_0_hsl(var(--border))]"
-                      colSpan={25}
+                      className={cn("sticky left-0 z-[1] bg-muted px-2 py-1 font-semibold text-[11px] uppercase tracking-wide", stickyLeftEdge)}
                     >
                       {g.name}
                     </td>
+                    <td colSpan={24} className="bg-muted border-l border-border" />
                   </tr>
                   {g.rows.map((c: any) => renderRow(c))}
                   {renderAggRow(`sub-${g.code}`, `${g.name} subtotal`, g.rows.map((c: any) => c.id))}

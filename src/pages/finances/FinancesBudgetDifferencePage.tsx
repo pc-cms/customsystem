@@ -73,8 +73,10 @@ export default function FinancesBudgetDifferencePage() {
   };
 
   const isSel = (i: number) => i + 1 === selectedMonth;
-  const selBg = "bg-primary/10";
-  const selBgStrong = "bg-primary/20";
+  const selBg = "bg-primary/15";
+  const selBgStrong = "bg-primary/25";
+  const stickyLeftEdge = "ring-1 ring-inset ring-border shadow-[2px_0_0_0_hsl(var(--border))]";
+  const stickyRightEdge = "ring-1 ring-inset ring-border shadow-[-2px_0_0_0_hsl(var(--border))]";
 
   return (
     <PageShell>
@@ -93,7 +95,7 @@ export default function FinancesBudgetDifferencePage() {
           className="rounded-md border border-border overflow-auto max-h-[75vh] bg-card"
           style={{ scrollSnapType: "x mandatory", scrollPaddingLeft: catW }}
         >
-          <table className="text-[11px] border-collapse" style={{ minWidth: minW }}>
+          <table className="text-[11px] border-separate border-spacing-0" style={{ minWidth: minW }}>
             <colgroup>
               <col style={{ width: catW, minWidth: catW }} />
               {MONTHS.map((_, i) => <col key={i} style={{ width: monthW, minWidth: monthW }} />)}
@@ -101,7 +103,7 @@ export default function FinancesBudgetDifferencePage() {
             </colgroup>
             <thead className="sticky top-0 z-20">
               <tr className="bg-background [&>th]:bg-background [&>th]:h-8 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:border-b [&>th]:border-border">
-                <th className="text-left sticky left-0 z-30 shadow-[1px_0_0_0_hsl(var(--border))]">Category</th>
+                <th className={cn("text-left sticky left-0 z-30 bg-background", stickyLeftEdge)}>Category</th>
                 {MONTHS.map((m, i) => (
                   <th
                     key={m}
@@ -115,7 +117,7 @@ export default function FinancesBudgetDifferencePage() {
                     {m}
                   </th>
                 ))}
-                <th className="text-right sticky right-0 z-30 shadow-[-1px_0_0_0_hsl(var(--border))]">YTD</th>
+                <th className={cn("text-right sticky right-0 z-30 bg-background border-l-2 border-border", stickyRightEdge)}>YTD</th>
               </tr>
             </thead>
             <tbody>
@@ -123,7 +125,7 @@ export default function FinancesBudgetDifferencePage() {
                 let ytd = 0;
                 return (
                   <tr key={c.id} className="border-t border-border hover:bg-muted/30 [&>td]:h-8 [&>td]:align-middle">
-                    <td className="text-left sticky left-0 z-10 bg-card pl-2 pr-3 whitespace-nowrap shadow-[1px_0_0_0_hsl(var(--border))]">
+                    <td className={cn("text-left sticky left-0 z-10 bg-card pl-2 pr-3 whitespace-nowrap", stickyLeftEdge)}>
                       <span className="text-muted-foreground text-[9px] uppercase mr-1">{c.group_code}</span>
                       <span className="truncate inline-block max-w-[260px] align-middle">{c.name}</span>
                     </td>
@@ -143,7 +145,7 @@ export default function FinancesBudgetDifferencePage() {
                         </td>
                       );
                     })}
-                    <td className="text-right pr-2 sticky right-0 z-10 bg-card shadow-[-1px_0_0_0_hsl(var(--border))] font-mono tabular-nums whitespace-nowrap">
+                    <td className={cn("text-right pr-2 sticky right-0 z-10 bg-card border-l-2 border-border font-mono tabular-nums whitespace-nowrap", stickyRightEdge)}>
                       <span className={cn(ytd < 0 ? "cms-amount-negative font-semibold" : ytd > 0 ? "cms-amount-positive" : "text-muted-foreground")}>
                         {ytd ? fmt(ytd) : "·"}
                       </span>
@@ -153,8 +155,8 @@ export default function FinancesBudgetDifferencePage() {
               })}
             </tbody>
             <tfoot className="sticky bottom-0 z-30">
-              <tr className="bg-primary/15 backdrop-blur font-bold border-t-2 border-primary/40 [&>td]:h-8">
-                <td className="sticky left-0 z-40 bg-primary/20 px-2 text-[10px] uppercase tracking-wider shadow-[1px_0_0_0_hsl(var(--border))]">
+              <tr className="bg-primary/15 font-bold border-t-2 border-primary/40 [&>td]:h-8">
+                <td className={cn("sticky left-0 z-40 bg-primary px-2 text-[10px] uppercase tracking-wider text-primary-foreground", stickyLeftEdge)}>
                   Σ Difference
                 </td>
                 {colTotals.map((v, i) => (
@@ -170,7 +172,7 @@ export default function FinancesBudgetDifferencePage() {
                     </span>
                   </td>
                 ))}
-                <td className="sticky right-0 z-40 bg-primary/20 shadow-[-1px_0_0_0_hsl(var(--border))] text-right pr-2 font-mono tabular-nums whitespace-nowrap">
+                <td className={cn("sticky right-0 z-40 bg-primary border-l-2 border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap text-primary-foreground", stickyRightEdge)}>
                   <span className={ytdGrand < 0 ? "cms-amount-negative" : ytdGrand > 0 ? "cms-amount-positive" : "text-muted-foreground"}>
                     {ytdGrand ? fmt(ytdGrand) : "·"}
                   </span>
