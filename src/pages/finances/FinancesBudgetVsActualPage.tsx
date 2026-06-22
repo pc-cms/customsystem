@@ -13,6 +13,7 @@ import { useFinDailyRatesForDate } from "@/hooks/use-fin-daily-rates";
 import { formatNumberSpaces } from "@/lib/currency";
 import { formatMoneyCompact } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
+import { cn } from "@/lib/utils";
 import ExcelJS from "exceljs";
 
 const CompactCtx = createContext(false);
@@ -44,10 +45,10 @@ function VarianceCell({ plan, actual }: { plan: number; actual: number }) {
   const sign = variance > 0 ? "+" : "";
   return (
     <>
-      <td className={`px-1.5 text-right font-mono tabular-nums ${cls}`}>
+      <td className={`border-l border-border/40 px-1.5 text-right font-mono tabular-nums ${cls}`}>
         {variance === 0 && plan === 0 && actual === 0 ? "·" : `${sign}${fmt(variance)}`}
       </td>
-      <td className={`px-1.5 text-right font-mono tabular-nums text-[10px] ${cls}`}>
+      <td className={`border-l border-border/40 px-1.5 text-right font-mono tabular-nums text-[10px] ${cls}`}>
         {pct === null ? "—" : plan === 0 && actual === 0 ? "·" : `${pct > 0 ? "+" : ""}${pct.toFixed(0)}%`}
       </td>
     </>
@@ -58,10 +59,10 @@ function PlanActualGroup({ plan, actual }: { plan: number; actual: number }) {
   const fmt = useFmt();
   return (
     <>
-      <td className="px-1.5 text-right font-mono tabular-nums text-muted-foreground">
+      <td className="border-l border-border px-1.5 text-right font-mono tabular-nums text-muted-foreground">
         {plan ? fmt(plan) : "·"}
       </td>
-      <td className="px-1.5 text-right font-mono tabular-nums">
+      <td className="border-l border-border/40 px-1.5 text-right font-mono tabular-nums">
         {actual ? fmt(actual) : "·"}
       </td>
       <VarianceCell plan={plan} actual={actual} />
