@@ -85,8 +85,8 @@ export default function FinancesDayClosingPage() {
     await upsert.mutateAsync({
       id: existing?.id,
       business_date: bd,
-      tables_result: tables,
-      slots_result: slots,
+      tables_result: tablesValue,
+      slots_result: slotsValue,
       income_lines: lines,
       notes,
     });
@@ -133,7 +133,7 @@ export default function FinancesDayClosingPage() {
           <div className="text-right font-medium text-muted-foreground uppercase tracking-wider">Cage actual / Δ</div>
 
           <div>Tables</div>
-          <div className="text-right font-mono">{formatNumberSpaces(tables)}</div>
+          <div className={cn("text-right font-mono", amountToneClass(tablesValue))}>{formatNumberSpaces(tablesValue)}</div>
           <div className="text-right font-mono">
             {snap ? formatNumberSpaces(snap.tables) : "—"}
             {snap && (
@@ -144,7 +144,7 @@ export default function FinancesDayClosingPage() {
           </div>
 
           <div>Slots</div>
-          <div className="text-right font-mono">{formatNumberSpaces(slots)}</div>
+          <div className={cn("text-right font-mono", amountToneClass(slotsValue))}>{formatNumberSpaces(slotsValue)}</div>
           <div className="text-right font-mono">
             {snap ? formatNumberSpaces(snap.slots) : "—"}
             {snap && (
@@ -179,11 +179,11 @@ export default function FinancesDayClosingPage() {
 
       <div className="grid sm:grid-cols-3 gap-3">
         <PageSection title="Tables">
-          <Input type="number" step="0.01" disabled={locked} value={tables || ""} onChange={(e) => setTables(Number(e.target.value))} className="text-lg font-mono" />
-          <div className="text-xs text-muted-foreground mt-1">From shifts: {formatNumberSpaces(tablesAuto)}</div>
+          <Input type="text" inputMode="decimal" disabled={locked} value={tables} onChange={(e) => setTables(formatAmountInput(e.target.value))} className={cn("text-lg font-mono", amountToneClass(tablesValue))} />
+          <div className={cn("text-xs mt-1", amountToneClass(tablesAuto))}>From shifts: {formatNumberSpaces(tablesAuto)}</div>
         </PageSection>
         <PageSection title="Slots">
-          <Input type="number" step="0.01" disabled={locked} value={slots || ""} onChange={(e) => setSlots(Number(e.target.value))} className="text-lg font-mono" />
+          <Input type="text" inputMode="decimal" disabled={locked} value={slots} onChange={(e) => setSlots(formatAmountInput(e.target.value))} className={cn("text-lg font-mono", slots === "" ? "text-muted-foreground" : amountToneClass(slotsValue))} />
         </PageSection>
         <PageSection title="Total Income (lines)">
           <div className="text-2xl font-mono">{formatNumberSpaces(incomeTotal)}</div>
