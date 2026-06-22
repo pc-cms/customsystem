@@ -69,9 +69,9 @@ export const chipSnapshotResult = (
 export interface LiveResultArgs {
   tableId: string;
   closingResult: number | null | undefined;
-  /** @deprecated kept for callsite compatibility; snapshots no longer affect Result. */
+  /** Latest snapshot batch per table from buildLatestTableSnapshot(snapshots). */
   snapshotIndex?: ReturnType<typeof buildLatestTableSnapshot>;
-  /** @deprecated kept for callsite compatibility; baseline no longer affects Result. */
+  /** Original chip baseline per table: { [tableId]: { [denom]: qty } }. */
   baselineMap?: BaselineMap;
   /**
    * Per-table Fill/Credit adjustment for the active shift (`Σcredit − Σfill`).
@@ -83,19 +83,31 @@ export interface LiveResultArgs {
 /**
  * Returns the current displayed result for a single table.
  *
- * NEW MODEL (June 2026): Result comes EXCLUSIVELY from `gaming_tables.closing_result`
- * (set by Close Tables wizard). Chip Count snapshots are for Tracker / Analytics
- * only — they NEVER feed Live Result or Shift P&L.
- *
- * Per-table Fill/Credit adjustment is still added so totals match the DB RPC
- * `compute_shift_table_results` (closing_result − Fill + Credit).
+ * Per project memory "Live Table Result Resolution":
+ *   1. `closing_result` if set (table closed via Close Tables wizard) — authoritative.
+ *   2. Otherwise latest Chip Count snapshot batch vs original baseline:
+ *      Σ (actual − baseline.expected) × denom
+ *   3. Otherwise 0.
+ * Plus per-shift Fill/Credit adjustment so totals match
+ * DB RPC `compute_shift_table_results` (result − Fill + Credit).
  */
 export const liveTableResult = ({
   tableId,
   closingResult,
+  snapshotIndex,
+  baselineMap,
   adjustmentMap,
 }: LiveResultArgs): number => {
-  const base = (closingResult !== null && closingResult !== undefined) ? Number(closingResult) : 0;
+  let base = 0;
+  if (closingResult !== null && closingResult !== undefined) {
+    base = Number(closingResult);
+  } else {
+    const snap = snapshotIndex?.[tableId];
+    const baseline = baselineMap?.[tableId];
+    if (snap && baseline) {
+      base = chipSnapshotResult(snap.perDenom, baseline);
+    }
+  }
   return base + (adjustmentMap?.[tableId] ?? 0);
 };
 
