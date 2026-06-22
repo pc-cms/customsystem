@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { UtensilsCrossed, Receipt, Boxes, BarChart3, ReceiptText, ShoppingCart, Tag, ClipboardCheck, Users, ScaleIcon, AlertTriangle, MapPin, Sparkles, ChefHat } from "lucide-react";
+import { UtensilsCrossed, Receipt, Boxes, BarChart3, ReceiptText, ShoppingCart, Tag, ClipboardCheck, Users, ScaleIcon, AlertTriangle, MapPin, Sparkles, ChefHat, TrendingUp } from "lucide-react";
 
 import CompBudgetCard from "@/components/pos/manager/CompBudgetCard";
 
@@ -51,6 +51,13 @@ const cards = [
     title: "Reports",
     desc: "Sales by waiter, top items, payment mix",
     icon: BarChart3,
+    enabled: true,
+  },
+  {
+    to: "/pos/manager/cogs",
+    title: "COGS report",
+    desc: "Cost of goods sold from cost snapshots",
+    icon: TrendingUp,
     enabled: true,
   },
   {
