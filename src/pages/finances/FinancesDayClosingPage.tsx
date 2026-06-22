@@ -14,8 +14,19 @@ import {
 import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
+import { cn } from "@/lib/utils";
 
 const today = () => new Date().toISOString().slice(0, 10);
+const parseAmountInput = (value: string): number => Number(value.replace(/\s+/g, "").replace(",", ".")) || 0;
+const formatAmountInput = (value: string): string => {
+  const trimmed = value.trimStart();
+  const sign = trimmed.startsWith("-") ? "-" : "";
+  const cleaned = trimmed.replace(/[^\d.,]/g, "").replace(",", ".");
+  const [integer = "", decimal] = cleaned.split(".");
+  const digits = integer.replace(/\D/g, "");
+  return `${sign}${digits.replace(/\B(?=(\d{3})+(?!\d))/g, " ")}${decimal !== undefined ? `.${decimal.replace(/\D/g, "")}` : ""}`;
+};
+const amountToneClass = (value: number) => value > 0 ? "cms-amount-positive" : value < 0 ? "cms-amount-negative" : "text-muted-foreground";
 
 export default function FinancesDayClosingPage() {
   const [bd, setBd] = useState(today());
@@ -27,8 +38,8 @@ export default function FinancesDayClosingPage() {
   const upsert = useUpsertDayClosing();
   const lock = useLockDayClosing();
 
-  const [slots, setSlots] = useState(0);
-  const [tables, setTables] = useState(0);
+  const [slots, setSlots] = useState("");
+  const [tables, setTables] = useState("");
   const [notes, setNotes] = useState("");
   const [varianceNote, setVarianceNote] = useState("");
   const [lines, setLines] = useState<any[]>([]);
@@ -36,13 +47,13 @@ export default function FinancesDayClosingPage() {
 
   useEffect(() => {
     if (existing) {
-      setTables(Number(existing.tables_result || 0));
-      setSlots(Number(existing.slots_result || 0));
+      setTables(formatNumberSpaces(Number(existing.tables_result || 0)));
+      setSlots(formatNumberSpaces(Number(existing.slots_result || 0)));
       setNotes(existing.notes || "");
       setVarianceNote((existing as any).variance_note || "");
       setLines(Array.isArray(existing.income_lines) ? (existing.income_lines as any[]) : []);
     } else {
-      setTables(tablesAuto || 0); setSlots(0); setNotes(""); setVarianceNote(""); setLines([]);
+      setTables(formatNumberSpaces(tablesAuto || 0)); setSlots(""); setNotes(""); setVarianceNote(""); setLines([]);
     }
   }, [existing?.id, tablesAuto]);
 
@@ -52,8 +63,10 @@ export default function FinancesDayClosingPage() {
     [lines]
   );
 
-  const diffTables = (tables || 0) - (snap?.tables ?? 0);
-  const diffSlots = (slots || 0) - (snap?.slots ?? 0);
+  const tablesValue = parseAmountInput(tables);
+  const slotsValue = parseAmountInput(slots);
+  const diffTables = tablesValue - (snap?.tables ?? 0);
+  const diffSlots = slotsValue - (snap?.slots ?? 0);
   const needsVariance = !!snap && (Math.abs(diffTables) > 1 || Math.abs(diffSlots) > 1);
   const noteValid = varianceNote.trim().length >= 3;
 
@@ -72,8 +85,8 @@ export default function FinancesDayClosingPage() {
     await upsert.mutateAsync({
       id: existing?.id,
       business_date: bd,
-      tables_result: tables,
-      slots_result: slots,
+      tables_result: tablesValue,
+      slots_result: slotsValue,
       income_lines: lines,
       notes,
     });
@@ -120,7 +133,7 @@ export default function FinancesDayClosingPage() {
           <div className="text-right font-medium text-muted-foreground uppercase tracking-wider">Cage actual / Δ</div>
 
           <div>Tables</div>
-          <div className="text-right font-mono">{formatNumberSpaces(tables)}</div>
+          <div className={cn("text-right font-mono", amountToneClass(tablesValue))}>{formatNumberSpaces(tablesValue)}</div>
           <div className="text-right font-mono">
             {snap ? formatNumberSpaces(snap.tables) : "—"}
             {snap && (
@@ -131,7 +144,7 @@ export default function FinancesDayClosingPage() {
           </div>
 
           <div>Slots</div>
-          <div className="text-right font-mono">{formatNumberSpaces(slots)}</div>
+          <div className={cn("text-right font-mono", amountToneClass(slotsValue))}>{formatNumberSpaces(slotsValue)}</div>
           <div className="text-right font-mono">
             {snap ? formatNumberSpaces(snap.slots) : "—"}
             {snap && (
@@ -166,14 +179,14 @@ export default function FinancesDayClosingPage() {
 
       <div className="grid sm:grid-cols-3 gap-3">
         <PageSection title="Tables">
-          <Input type="number" step="0.01" disabled={locked} value={tables || ""} onChange={(e) => setTables(Number(e.target.value))} className="text-lg font-mono" />
-          <div className="text-xs text-muted-foreground mt-1">From shifts: {formatNumberSpaces(tablesAuto)}</div>
+          <Input type="text" inputMode="decimal" disabled={locked} value={tables} onChange={(e) => setTables(formatAmountInput(e.target.value))} className={cn("text-lg font-mono", amountToneClass(tablesValue))} />
+          <div className={cn("text-xs mt-1", amountToneClass(tablesAuto))}>From shifts: {formatNumberSpaces(tablesAuto)}</div>
         </PageSection>
         <PageSection title="Slots">
-          <Input type="number" step="0.01" disabled={locked} value={slots || ""} onChange={(e) => setSlots(Number(e.target.value))} className="text-lg font-mono" />
+          <Input type="text" inputMode="decimal" disabled={locked} value={slots} onChange={(e) => setSlots(formatAmountInput(e.target.value))} className={cn("text-lg font-mono", slots === "" ? "text-muted-foreground" : amountToneClass(slotsValue))} />
         </PageSection>
         <PageSection title="Total Income (lines)">
-          <div className="text-2xl font-mono">{formatNumberSpaces(incomeTotal)}</div>
+          <div className={cn("text-2xl font-mono", amountToneClass(incomeTotal))}>{formatNumberSpaces(incomeTotal)}</div>
         </PageSection>
       </div>
 
@@ -264,8 +277,8 @@ export default function FinancesDayClosingPage() {
               {list.map((r: any) => (
                 <tr key={r.id} className="border-t border-border hover:bg-muted/40 cursor-pointer" onClick={() => setBd(r.business_date)}>
                   <td className="px-3 py-1.5 font-mono text-xs">{fmtDate(r.business_date)}</td>
-                  <td className="text-right font-mono">{formatNumberSpaces(Number(r.tables_result))}</td>
-                  <td className="text-right font-mono">{formatNumberSpaces(Number(r.slots_result))}</td>
+                  <td className={cn("text-right font-mono", amountToneClass(Number(r.tables_result || 0)))}>{formatNumberSpaces(Number(r.tables_result))}</td>
+                  <td className={cn("text-right font-mono", amountToneClass(Number(r.slots_result || 0)))}>{formatNumberSpaces(Number(r.slots_result))}</td>
                   <td className="text-right">{Array.isArray(r.income_lines) ? r.income_lines.length : 0}</td>
                   <td className="text-xs">
                     {r.locked_at ? <span className="text-green-600">Locked</span> : <span className="text-muted-foreground">Draft</span>}
