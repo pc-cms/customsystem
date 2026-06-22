@@ -439,7 +439,7 @@ export default function FinancesBudgetPage() {
                 </td>
               </tr>
               <tr className="bg-primary/15 font-bold border-t border-primary/40 [&>td]:h-8">
-                <td className={cn("sticky left-0 z-40 bg-primary/25 px-3 text-[10px] uppercase tracking-wider", stickyLeftEdge)}>
+                <td className={cn("sticky left-0 z-40 bg-primary px-3 text-[10px] uppercase tracking-wider text-primary-foreground", stickyLeftEdge)}>
                   Grand TZS
                 </td>
                 {MONTHS.map((_, i) => {
@@ -458,7 +458,7 @@ export default function FinancesBudgetPage() {
                     </td>
                   );
                 })}
-                <td colSpan={2} className={cn("sticky right-0 z-40 bg-primary/25 text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border", stickyRightEdge)}>
+                <td colSpan={2} className={cn("sticky right-0 z-40 bg-primary text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border text-primary-foreground", stickyRightEdge)}>
                   {fmtT(yearGrandTzs)}
                 </td>
               </tr>
