@@ -554,8 +554,8 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, mtd, mtdMonthLabel
 };
 
 
-const Row = ({ c, expanded, onToggle, isNetwork, showUsd, colCount, mtdValue, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onArchiveCategory, onEditExpense }: {
-  c: ReportCategory; expanded: boolean; onToggle: () => void; isNetwork: boolean; showUsd: boolean; colCount: number; mtdValue: number;
+const Row = ({ c, expanded, onToggle, isNetwork, colCount, mtdValue, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onArchiveCategory, onEditExpense }: {
+  c: ReportCategory; expanded: boolean; onToggle: () => void; isNetwork: boolean; colCount: number; mtdValue: number;
 } & EditCallbacks) => {
   const remTzs = c.plan_month_tzs - c.actual_tzs;
   const remUsd = c.plan_month_usd - c.actual_usd;
