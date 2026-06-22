@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ClipboardPen, Lock, Unlock, Check, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -135,6 +135,15 @@ function DayRow({
     slots: existing?.slots_result != null ? formatNumberSpaces(existing.slots_result) : "",
     comment: existing?.notes ?? "",
   }));
+
+  // Re-sync when `existing` arrives/changes from the query (initial undefined → loaded).
+  useEffect(() => {
+    setState({
+      tables: existing?.tables_result != null ? formatNumberSpaces(existing.tables_result) : "",
+      slots: existing?.slots_result != null ? formatNumberSpaces(existing.slots_result) : "",
+      comment: existing?.notes ?? "",
+    });
+  }, [existing?.id, existing?.tables_result, existing?.slots_result, existing?.notes]);
 
   const parseNum = (s: string) => Number(s.replace(/\s+/g, "").replace(",", "."));
   const tablesNum = state.tables === "" ? tablesAuto : parseNum(state.tables);
