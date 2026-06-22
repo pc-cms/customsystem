@@ -1,8 +1,8 @@
 # POS Phase 3C — Status
 
 - **3C-1 IMPLEMENTED (v1.3.400)** — recipe-affecting modifiers backend + manager UI.
-- 3C-2 pending — bottleneck availability view/RPC + waiter/manager UI.
-- 3C-3 pending — cost snapshots + COGS RPC + report page.
+- **3C-2 IMPLEMENTED (v1.3.401)** — bottleneck availability view/RPC + waiter badges + manager breakdown.
+- **3C-3 IMPLEMENTED (v1.3.402)** — cost snapshots on movements + `pos_cogs_report` RPC + `/pos/manager/cogs` page. No historical backfill.
 
 ## 3C-1 delivered
 
