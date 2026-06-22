@@ -57,7 +57,7 @@ export default function PosManagerCogs() {
       <PageHeader
         icon={BarChart3}
         title="COGS report"
-        description="Cost of goods sold from immutable inventory cost snapshots. Sales come from order items."
+        subtitle="Cost of goods sold from immutable inventory cost snapshots. Sales come from order items."
       />
 
       <PageSection>
