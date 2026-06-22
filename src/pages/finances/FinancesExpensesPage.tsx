@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
-import { Receipt, Plus, Trash2, ArrowUp, ArrowDown, Filter, Pencil } from "lucide-react";
+import { Receipt, Plus, Trash2, ArrowUp, ArrowDown, Filter, Pencil, Printer, FileSpreadsheet } from "lucide-react";
 import EditExpenseDialog, { type EditableExpense } from "@/components/expenses/EditExpenseDialog";
+import { downloadXlsx } from "@/lib/excel-export";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
