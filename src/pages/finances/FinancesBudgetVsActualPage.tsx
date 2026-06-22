@@ -35,6 +35,7 @@ interface Triple {
 const grand = (b: Bucket, rate: number) => b.tzs + b.usd * rate;
 
 function VarianceCell({ plan, actual }: { plan: number; actual: number }) {
+  const fmt = useFmt();
   const variance = actual - plan;
   const pct = plan > 0 ? (variance / plan) * 100 : actual > 0 ? null : 0;
   const over = variance > 0.5;
@@ -44,7 +45,7 @@ function VarianceCell({ plan, actual }: { plan: number; actual: number }) {
   return (
     <>
       <td className={`px-1.5 text-right font-mono tabular-nums ${cls}`}>
-        {variance === 0 && plan === 0 && actual === 0 ? "·" : `${sign}${formatNumberSpaces(Math.round(variance))}`}
+        {variance === 0 && plan === 0 && actual === 0 ? "·" : `${sign}${fmt(variance)}`}
       </td>
       <td className={`px-1.5 text-right font-mono tabular-nums text-[10px] ${cls}`}>
         {pct === null ? "—" : plan === 0 && actual === 0 ? "·" : `${pct > 0 ? "+" : ""}${pct.toFixed(0)}%`}
@@ -54,13 +55,14 @@ function VarianceCell({ plan, actual }: { plan: number; actual: number }) {
 }
 
 function PlanActualGroup({ plan, actual }: { plan: number; actual: number }) {
+  const fmt = useFmt();
   return (
     <>
       <td className="px-1.5 text-right font-mono tabular-nums text-muted-foreground">
-        {plan ? formatNumberSpaces(Math.round(plan)) : "·"}
+        {plan ? fmt(plan) : "·"}
       </td>
       <td className="px-1.5 text-right font-mono tabular-nums">
-        {actual ? formatNumberSpaces(Math.round(actual)) : "·"}
+        {actual ? fmt(actual) : "·"}
       </td>
       <VarianceCell plan={plan} actual={actual} />
     </>
