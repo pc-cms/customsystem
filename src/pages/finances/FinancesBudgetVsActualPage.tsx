@@ -326,6 +326,9 @@ export default function FinancesBudgetVsActualPage() {
               ))}
             </SelectContent>
           </Select>
+          <Button size="sm" variant={compact ? "default" : "outline"} onClick={() => setCompact((v) => !v)}>
+            {compact ? "Compact" : "Full"}
+          </Button>
           <Button size="sm" variant="outline" onClick={exportXlsx}>
             <Download className="w-3.5 h-3.5 mr-1" />XLSX
           </Button>
