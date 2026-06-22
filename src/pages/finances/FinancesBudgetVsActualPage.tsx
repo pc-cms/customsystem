@@ -372,7 +372,7 @@ export default function FinancesBudgetVsActualPage() {
                 <Fragment key={g.code}>
                   <tr className="bg-muted/60">
                     <td
-                      className="sticky left-0 z-[1] bg-muted/60 px-2 py-1 font-semibold text-[11px] uppercase tracking-wide"
+                      className="sticky left-0 z-[1] bg-muted/60 px-2 py-1 font-semibold text-[11px] uppercase tracking-wide shadow-[1px_0_0_0_hsl(var(--border))]"
                       colSpan={25}
                     >
                       {g.name}
