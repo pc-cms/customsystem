@@ -274,7 +274,6 @@ export default function FinancesMonthlyReportPage() {
           expandedId={expanded}
           onToggle={toggle}
           isNetwork={isNetwork}
-          showUsd={showUsd}
           editMode={editMode}
           year={year}
           month={month}
@@ -378,7 +377,6 @@ export default function FinancesMonthlyReportPage() {
                 expandedId={expanded}
                 onToggle={toggle}
                 isNetwork={isNetwork}
-                showUsd={showUsd}
                 editMode={editMode}
                 year={year}
                 month={month}
@@ -514,7 +512,6 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, showUsd, mtd, mtdM
                 expanded={expandedId === c.id}
                 onToggle={() => onToggle(c.id)}
                 isNetwork={isNetwork}
-                showUsd={showUsd}
                 colCount={colCount}
                 mtdValue={mtd[c.id] || 0}
                 {...edit}
