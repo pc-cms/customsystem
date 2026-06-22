@@ -14,8 +14,19 @@ import {
 import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
+import { cn } from "@/lib/utils";
 
 const today = () => new Date().toISOString().slice(0, 10);
+const parseAmountInput = (value: string): number => Number(value.replace(/\s+/g, "").replace(",", ".")) || 0;
+const formatAmountInput = (value: string): string => {
+  const trimmed = value.trimStart();
+  const sign = trimmed.startsWith("-") ? "-" : "";
+  const cleaned = trimmed.replace(/[^\d.,]/g, "").replace(",", ".");
+  const [integer = "", decimal] = cleaned.split(".");
+  const digits = integer.replace(/\D/g, "");
+  return `${sign}${digits.replace(/\B(?=(\d{3})+(?!\d))/g, " ")}${decimal !== undefined ? `.${decimal.replace(/\D/g, "")}` : ""}`;
+};
+const amountToneClass = (value: number) => value > 0 ? "cms-amount-positive" : value < 0 ? "cms-amount-negative" : "text-muted-foreground";
 
 export default function FinancesDayClosingPage() {
   const [bd, setBd] = useState(today());
@@ -27,8 +38,8 @@ export default function FinancesDayClosingPage() {
   const upsert = useUpsertDayClosing();
   const lock = useLockDayClosing();
 
-  const [slots, setSlots] = useState(0);
-  const [tables, setTables] = useState(0);
+  const [slots, setSlots] = useState("");
+  const [tables, setTables] = useState("");
   const [notes, setNotes] = useState("");
   const [varianceNote, setVarianceNote] = useState("");
   const [lines, setLines] = useState<any[]>([]);
@@ -36,13 +47,13 @@ export default function FinancesDayClosingPage() {
 
   useEffect(() => {
     if (existing) {
-      setTables(Number(existing.tables_result || 0));
-      setSlots(Number(existing.slots_result || 0));
+      setTables(formatNumberSpaces(Number(existing.tables_result || 0)));
+      setSlots(formatNumberSpaces(Number(existing.slots_result || 0)));
       setNotes(existing.notes || "");
       setVarianceNote((existing as any).variance_note || "");
       setLines(Array.isArray(existing.income_lines) ? (existing.income_lines as any[]) : []);
     } else {
-      setTables(tablesAuto || 0); setSlots(0); setNotes(""); setVarianceNote(""); setLines([]);
+      setTables(formatNumberSpaces(tablesAuto || 0)); setSlots(""); setNotes(""); setVarianceNote(""); setLines([]);
     }
   }, [existing?.id, tablesAuto]);
 
@@ -52,8 +63,10 @@ export default function FinancesDayClosingPage() {
     [lines]
   );
 
-  const diffTables = (tables || 0) - (snap?.tables ?? 0);
-  const diffSlots = (slots || 0) - (snap?.slots ?? 0);
+  const tablesValue = parseAmountInput(tables);
+  const slotsValue = parseAmountInput(slots);
+  const diffTables = tablesValue - (snap?.tables ?? 0);
+  const diffSlots = slotsValue - (snap?.slots ?? 0);
   const needsVariance = !!snap && (Math.abs(diffTables) > 1 || Math.abs(diffSlots) > 1);
   const noteValid = varianceNote.trim().length >= 3;
 
