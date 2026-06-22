@@ -55,8 +55,8 @@ const cards = [
   },
   {
     to: "/pos/manager/cogs",
-    title: "COGS report",
-    desc: "Cost of goods sold from cost snapshots",
+    title: "Cost control",
+    desc: "Consumption cost by item, ingredient, location, shift, payment method",
     icon: TrendingUp,
     enabled: true,
   },
