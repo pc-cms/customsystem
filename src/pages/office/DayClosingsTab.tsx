@@ -177,25 +177,27 @@ function DayRow({
 
   const doSave = async (noteOverride?: string) => {
     const finalComment = noteOverride ?? state.comment;
+    const tid = `day-${date}`;
     try {
-      await upsert.mutateAsync({
+      const saved = await upsert.mutateAsync({
         id: existing?.id,
         business_date: date,
         tables_result: tablesNum,
         slots_result: slotsNum,
         notes: finalComment || null,
       });
-      if (existing?.id) {
+      const rowId = existing?.id ?? (saved as any)?.id;
+      if (rowId) {
         await lock.mutateAsync({
-          id: existing.id,
+          id: rowId,
           varianceNote: needsNote ? (finalComment || "").trim() : null,
         });
-        toast.success("Day closed");
+        toast.success("Day closed", { id: tid });
       } else {
-        toast.success("Saved — press OK again to lock");
+        toast.success("Saved", { id: tid });
       }
     } catch (e: any) {
-      toast.error(e.message);
+      toast.error(e.message, { id: tid });
     }
   };
 
