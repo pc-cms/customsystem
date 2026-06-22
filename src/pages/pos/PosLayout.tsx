@@ -38,9 +38,7 @@ export const PosLayout = () => {
   const canBar = roles.includes("pos_bartender") || roles.includes("pos_manager") || roles.includes("super_admin");
   const canManage =
     roles.includes("pos_manager") ||
-    roles.includes("super_admin") ||
-    roles.includes("manager") ||
-    roles.includes("finance_manager");
+    roles.includes("super_admin");
 
   const linkCls = ({ isActive }: { isActive: boolean }) =>
     `flex-1 flex flex-col items-center justify-center gap-1 py-3 text-xs font-medium ${
