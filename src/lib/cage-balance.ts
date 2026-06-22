@@ -35,10 +35,10 @@ export type CageBalanceResult = {
 
 export const computeShiftBalance = (i: CageBalanceInputs): CageBalanceResult => {
   const deltaCash = i.closingCash - i.openingCash;
+  // Cashless IN/OUT are LOG-ONLY (same rule as tips) — excluded from CDR.
   const cashDeskResult =
     deltaCash + i.expenses + i.collection - i.addFloat
-    + i.slotsOut - i.slotsIn
-    + (i.cashlessIn || 0) - (i.cashlessOut || 0);
+    + i.slotsOut - i.slotsIn;
   const shiftBalance = cashDeskResult - i.tablesResult - i.miss;
   return { deltaCash, cashDeskResult, shiftBalance };
 };
