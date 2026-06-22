@@ -76,6 +76,7 @@ export default function FinancesBudgetVsActualPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [drill, setDrill] = useState<{ catId: string; catName: string; ccy?: Ccy } | null>(null);
   const [compact, setCompact] = useState(false);
+  const stickyLeftEdge = "ring-1 ring-inset ring-border shadow-[2px_0_0_0_hsl(var(--border))]";
 
   const { data: categories = [] } = useFinCategories();
   const { data: budget = [] } = useFinBudget(year);
@@ -180,11 +181,12 @@ export default function FinancesBudgetVsActualPage() {
     const mGrandAct = grand(mTriple.actual, usdRate);
     const yGrandPlan = grand(yTriple.plan, usdRate);
     const yGrandAct = grand(yTriple.actual, usdRate);
-    const rowCls = bold ? "font-semibold bg-muted/30" : "hover:bg-muted/20";
+    const rowCls = bold ? "font-semibold bg-muted" : "hover:bg-muted/20";
+    const firstCellBg = bold ? "bg-muted" : "bg-card";
     return (
       <tr key={cat.id} className={`border-t border-border ${rowCls}`}>
         <td
-          className={`sticky left-0 z-[1] bg-background px-2 py-1 ${bold ? "bg-muted/30" : ""} cursor-pointer hover:text-primary shadow-[1px_0_0_0_hsl(var(--border))]`}
+          className={cn("sticky left-0 z-[1] px-2 py-1 cursor-pointer hover:text-primary", firstCellBg, stickyLeftEdge)}
           onClick={() => !bold && setDrill({ catId: cat.id, catName: cat.name })}
         >
           {label ?? cat.name}
@@ -221,8 +223,8 @@ export default function FinancesBudgetVsActualPage() {
     const mGP = grand(m.plan, usdRate), mGA = grand(m.actual, usdRate);
     const yGP = grand(y.plan, usdRate), yGA = grand(y.actual, usdRate);
     return (
-      <tr key={key} className={`border-t border-border font-semibold bg-muted/40 ${extraCls}`}>
-        <td className="sticky left-0 z-[1] bg-muted/40 px-2 py-1 shadow-[1px_0_0_0_hsl(var(--border))]">{label}</td>
+      <tr key={key} className={`border-t border-border font-semibold bg-muted ${extraCls}`}>
+        <td className={cn("sticky left-0 z-[1] bg-muted px-2 py-1", stickyLeftEdge)}>{label}</td>
         <PlanActualGroup plan={m.plan.tzs} actual={m.actual.tzs} />
         <PlanActualGroup plan={m.plan.usd} actual={m.actual.usd} />
         <PlanActualGroup plan={mGP} actual={mGA} />
