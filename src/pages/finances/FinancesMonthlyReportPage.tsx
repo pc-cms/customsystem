@@ -237,8 +237,9 @@ export default function FinancesMonthlyReportPage() {
             <YearSelect value={year} onChange={setYear} className="w-32" />
 
             <div className="flex items-center gap-2 ml-2">
-              <Switch id="usd" checked={showUsd} onCheckedChange={setShowUsd} />
-              <Label htmlFor="usd" className="text-xs">Show USD</Label>
+              {data?.usd_rate ? (
+                <span className="text-[10px] text-muted-foreground">USD→TZS @ {formatNumberSpaces(Math.round(data.usd_rate))}</span>
+              ) : null}
             </div>
             <Tabs value={scope || activeCasinoId || ""} onValueChange={setScope} className="ml-auto">
               <TabsList>
