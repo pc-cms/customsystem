@@ -9986,6 +9986,23 @@ export type Database = {
         Args: { _business_date: string; _casino_id: string; _user: string }
         Returns: number
       }
+      pos_backfill_cost_snapshots: {
+        Args: {
+          _casino_id: string
+          _dry_run?: boolean
+          _from_date?: string
+          _to_date?: string
+        }
+        Returns: {
+          backfilled: boolean
+          item_id: string
+          movement_id: string
+          new_cost_tzs: number
+          new_unit_cost: number
+          old_cost_tzs: number
+          old_unit_cost: number
+        }[]
+      }
       pos_close_shift: {
         Args: { _closing_cash: number; _shift_id: string }
         Returns: Json
@@ -10052,6 +10069,15 @@ export type Database = {
       }
       pos_player_status: {
         Args: { _casino_id: string; _player_id: string }
+        Returns: string
+      }
+      pos_record_waste: {
+        Args: {
+          _item_id: string
+          _notes?: string
+          _qty: number
+          _reason: string
+        }
         Returns: string
       }
       pos_save_stock_count: {

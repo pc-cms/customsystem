@@ -8,6 +8,11 @@
  *   - How that cost was covered (cash / card / comps / complimentary / player charge)
  *   - What was voided / reversed
  *
+ * Phase 3D additions:
+ *   - Excel export button
+ *   - Historical backfill trigger (manager-only, dry-run by default)
+ *   - Waste / spoilage / damage costs included in consumed total
+ *
  * Gross-margin fields still exist in the RPC payload for backward compat but
  * are intentionally not shown as headline KPIs.
  */
@@ -18,11 +23,15 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, ClipboardList } from "lucide-react";
+import { AlertTriangle, ClipboardList, FileSpreadsheet, Database } from "lucide-react";
 import { useCasino } from "@/lib/casino-context";
 import { usePosLocations } from "@/hooks/use-pos-locations";
 import { usePosCogsReport, type CogsGroupBy } from "@/hooks/use-pos-cogs";
+import { usePosBackfillCostSnapshots } from "@/hooks/use-pos-waste";
 import { formatNumberSpaces } from "@/lib/currency";
+import { downloadXlsx } from "@/lib/excel-export";
+import { toast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 const GROUP_LABEL: Record<CogsGroupBy, string> = {
   sellable_item: "Sellable item",
@@ -45,6 +54,7 @@ export default function PosManagerCogs() {
   const [to, setTo] = useState(today());
   const [groupBy, setGroupBy] = useState<CogsGroupBy>("sellable_item");
   const [locationId, setLocationId] = useState<string>("__all__");
+  const [backfillDryRun, setBackfillDryRun] = useState(true);
 
   const { data: locations = [] } = usePosLocations(activeCasinoId, true);
   const { data: rows = [], isLoading, error } = usePosCogsReport({
@@ -53,6 +63,7 @@ export default function PosManagerCogs() {
     locationId: locationId === "__all__" ? null : locationId,
     groupBy,
   });
+  const backfill = usePosBackfillCostSnapshots(activeCasinoId);
 
   const totals = useMemo(() => {
     const posValue = rows.reduce((s, r) => s + r.gross_sales_tzs, 0);
@@ -68,6 +79,65 @@ export default function PosManagerCogs() {
   }, [rows]);
 
   const isForbidden = (error as any)?.message?.toLowerCase?.().includes("forbidden");
+
+  const handleExport = async () => {
+    if (!rows.length) return;
+    const header = [
+      GROUP_LABEL[groupBy],
+      "Units",
+      "Cost consumed (TZS)",
+      "POS value (TZS)",
+      "Cost share %",
+      "Cash",
+      "Card",
+      "Comps",
+      "Compl.",
+      "Player charge",
+      "Movements",
+      "Uncosted",
+    ];
+    const dataRows = rows.map((r) => {
+      const share = totals.cost > 0 ? ((r.cogs_tzs / totals.cost) * 100).toFixed(1) + "%" : "—";
+      return [
+        r.group_label,
+        r.units_consumed,
+        r.cogs_tzs,
+        r.gross_sales_tzs,
+        share,
+        r.cost_cash_tzs,
+        r.cost_card_tzs,
+        r.cost_comp_player_tzs,
+        r.cost_comp_house_tzs,
+        r.cost_player_charge_tzs,
+        r.movement_count,
+        r.uncosted_movement_count,
+      ];
+    });
+    const filename = `POS-Cost-Control_${from}_to_${to}_${groupBy}.xlsx`;
+    await downloadXlsx(filename, [
+      { name: "Cost Control", rows: [header, ...dataRows] },
+    ]);
+    toast({ title: "Excel exported" });
+  };
+
+  const handleBackfill = async () => {
+    if (!activeCasinoId) return;
+    try {
+      const result = await backfill.mutateAsync({ from, to, dryRun: backfillDryRun });
+      const updated = result.filter((r) => r.backfilled).length;
+      const total = result.length;
+      toast({
+        title: backfillDryRun ? "Dry-run complete" : "Backfill complete",
+        description: `${total} rows ${backfillDryRun ? "would be" : "were"} updated.`,
+      });
+      if (!backfillDryRun && updated > 0) {
+        // Force refetch
+        window.location.reload();
+      }
+    } catch (e: any) {
+      toast({ title: "Backfill failed", description: e?.message, variant: "destructive" });
+    }
+  };
 
   return (
     <PageShell>
@@ -111,6 +181,39 @@ export default function PosManagerCogs() {
             </Select>
           </div>
         </div>
+
+        <div className="flex items-center gap-2 mt-3">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleExport}
+            disabled={!rows.length || isLoading}
+            className="gap-2"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Export Excel
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleBackfill}
+            disabled={backfill.isPending || !activeCasinoId}
+            className="gap-2"
+          >
+            <Database className="w-4 h-4" />
+            {backfillDryRun ? "Dry-run backfill" : "Apply backfill"}
+          </Button>
+          <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={backfillDryRun}
+              onChange={(e) => setBackfillDryRun(e.target.checked)}
+              className="rounded border-border"
+            />
+            Dry-run
+          </label>
+        </div>
       </PageSection>
 
       {isForbidden && (
@@ -145,6 +248,7 @@ export default function PosManagerCogs() {
               Some movements have no cost snapshot (zero/missing
               <code className="mx-1">avg_cost_tzs</code> or pre-Phase-3C-3 history).
               They are counted as 0 TZS in the cost columns.
+              Use <strong>Dry-run backfill</strong> to preview, then <strong>Apply backfill</strong> to fill missing snapshots.
             </div>
           </div>
         )}

@@ -3,6 +3,8 @@
 - **3C-1 IMPLEMENTED (v1.3.400)** — recipe-affecting modifiers backend + manager UI.
 - **3C-2 IMPLEMENTED (v1.3.401)** — bottleneck availability view/RPC + waiter badges + manager breakdown.
 - **3C-3 IMPLEMENTED (v1.3.402)** — cost snapshots on movements + `pos_cogs_report` RPC + `/pos/manager/cogs` page. No historical backfill.
+- **3C-3 REVISED (v1.3.403)** — reframed from "COGS / gross margin" to "POS Cost Control". Payment-method cost allocation, role gate, waste-ready.
+- **3D IMPLEMENTED (v1.3.404)** — operational control: waste/spoilage reasons, cost snapshots for waste, Excel export, historical backfill, `pos_save_stock_count` schema fix.
 
 ## 3C-1 delivered
 
@@ -44,6 +46,28 @@
 - Pending-lock on modifiers preserved.
 - Z-report / payment_split / locations / problem orders / auto-close untouched.
 
-## Next
-- 3C-2: bottleneck `v_pos_item_availability` view + `pos_item_availability_detail` RPC + waiter badges + manager breakdown panel.
-- 3C-3: `unit_cost_tzs_snapshot`/`cost_tzs_snapshot` columns on `pos_inventory_movements`, lifecycle populates them, `pos_cogs_report` RPC + report page.
+## 3D delivered
+
+### New / updated functions
+- `pos_save_stock_count` — fixed column-name mismatch (`qty_delta`→`delta`, `ref_type`→`reference_type`, `ref_id`→`reference_id`, `performed_by`→`user_id`). Now writes `business_date`, `source_item_id`, `metadata`, `unit_cost_tzs_snapshot`, `cost_tzs_snapshot`, `cost_snapshot_missing`.
+- `pos_record_waste(item_id, qty, reason, notes)` — new RPC. Reasons: `waste`, `spoilage`, `staff_consumption`, `damage`, `tasting`. Captures immutable cost snapshot, sets `business_date` to current business date. Authenticated users can call; bartenders/managers can record waste.
+- `pos_backfill_cost_snapshots(casino_id, from, to, dry_run)` — manager-tier only. Returns row-level audit of what would change / what changed. Dry-run by default; uncheck to apply.
+- `pos_cogs_report` updated to include waste/spoilage/staff_consumption/damage/tasting in `units_consumed` and `cogs_tzs`. Waste costs show in total consumed but are not allocated to any payment bucket (no associated tab).
+
+### Frontend
+- `src/hooks/use-pos-waste.ts` — `usePosRecordWaste` + `usePosBackfillCostSnapshots`.
+- `src/components/pos/StockMovementDialog.tsx` — out-direction now shows 5 operational-reason buttons (Waste, Spoilage, Staff consumption, Damage, Tasting). Selecting one routes through `pos_record_waste` RPC so cost snapshot is captured. Free-text reason still works for non-waste removals.
+- `src/pages/pos/PosManagerCogs.tsx` — added **Export Excel** button (downloads current grouped view) and **Dry-run backfill / Apply backfill** button with checkbox toggle. Uncosted banner now mentions backfill option.
+
+### Verification
+- Waste movement inserts `pos_inventory_movements` with `unit_cost_tzs_snapshot` and `cost_tzs_snapshot`.
+- `cost_snapshot_missing` flagged when `avg_cost_tzs` is 0/missing.
+- `pos_cost_snapshot_missing` activity log emitted on missing cost.
+- Backfill dry-run returns preview rows; apply updates movement snapshots.
+- Stock count movements now have full schema consistency with sales movements.
+- Phase 1/2/3A/3B/3C-1/3C-2/3C-3 flows unchanged.
+
+## Next (do not start yet)
+- Phase 3E: per-location stock pools (deferred until requested).
+- Phase 3F: suppliers, receiving, purchase approvals (deferred until requested).
+- Payment redesign / comps wallet / credit limits / unit conversion / auto backfill all remain out of scope.
