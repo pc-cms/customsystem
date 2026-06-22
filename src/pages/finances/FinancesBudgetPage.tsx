@@ -346,7 +346,7 @@ export default function FinancesBudgetPage() {
 
                     {showGroups && (
                       <tr className="border-t border-border bg-muted font-semibold [&>td]:h-7">
-                        <td className="sticky left-0 z-10 bg-muted px-3 text-[10px] uppercase tracking-wider text-muted-foreground border-r border-border">
+                        <td className="sticky left-0 z-10 bg-muted px-3 text-[10px] uppercase tracking-wider text-muted-foreground shadow-[1px_0_0_0_hsl(var(--border))]">
                           Σ {sec.groupName}
                         </td>
                         {MONTHS.map((_, i) => {
@@ -355,7 +355,7 @@ export default function FinancesBudgetPage() {
                             <Fragment key={`s-${sec.groupCode}-${i}`}>
                               <td
                                 className={cn(
-                                  "border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap",
+                                  "border-l-2 border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap",
                                   sel && selBg,
                                 )}
                               >
@@ -363,7 +363,7 @@ export default function FinancesBudgetPage() {
                               </td>
                               <td
                                 className={cn(
-                                  "text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap",
+                                  "border-l border-border/40 text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap",
                                   sel && selBg,
                                 )}
                               >
@@ -372,10 +372,10 @@ export default function FinancesBudgetPage() {
                             </Fragment>
                           );
                         })}
-                        <td className="sticky right-0 z-10 bg-muted border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap" style={{ right: yearW }}>
+                        <td className="sticky z-10 bg-muted text-right pr-2 font-mono tabular-nums whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]" style={{ right: yearW }}>
                           {fmtN(subYearTzs)}
                         </td>
-                        <td className="sticky right-0 z-10 bg-muted border-l border-border text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap">
+                        <td className="sticky right-0 z-10 bg-muted text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]">
                           {fmtN(subYearUsd)}
                         </td>
                       </tr>
@@ -387,7 +387,7 @@ export default function FinancesBudgetPage() {
 
             <tfoot className="sticky bottom-0 z-30">
               <tr className="bg-secondary/80 backdrop-blur font-semibold border-t-2 border-primary/40 [&>td]:h-7">
-                <td className="sticky left-0 z-40 bg-secondary px-3 text-[10px] uppercase tracking-wider border-r border-border">
+                <td className="sticky left-0 z-40 bg-secondary px-3 text-[10px] uppercase tracking-wider shadow-[1px_0_0_0_hsl(var(--border))]">
                   Total TZS
                 </td>
                 {MONTHS.map((_, i) => {
@@ -396,33 +396,33 @@ export default function FinancesBudgetPage() {
                     <Fragment key={`ft-tzs-${i}`}>
                       <td
                         className={cn(
-                          "border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap bg-secondary/80",
+                          "border-l-2 border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap bg-secondary/80",
                           sel && selBgStrong,
                         )}
                       >
                         {fmtT(monthTotals.tzs[i])}
                       </td>
-                      <td className={cn("bg-secondary/80", sel && selBgStrong)} />
+                      <td className={cn("border-l border-border/40 bg-secondary/80", sel && selBgStrong)} />
                     </Fragment>
                   );
                 })}
-                <td className="sticky right-0 z-40 bg-secondary border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap" style={{ right: yearW }}>
+                <td className="sticky z-40 bg-secondary text-right pr-2 font-mono tabular-nums whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]" style={{ right: yearW }}>
                   {fmtT(yearTotalTzs)}
                 </td>
-                <td className="sticky right-0 z-40 bg-secondary border-l border-border" />
+                <td className="sticky right-0 z-40 bg-secondary shadow-[-1px_0_0_0_hsl(var(--border))]" />
               </tr>
               <tr className="bg-secondary/80 backdrop-blur font-semibold border-t border-border [&>td]:h-7">
-                <td className="sticky left-0 z-40 bg-secondary px-3 text-[10px] uppercase tracking-wider text-muted-foreground border-r border-border">
+                <td className="sticky left-0 z-40 bg-secondary px-3 text-[10px] uppercase tracking-wider text-muted-foreground shadow-[1px_0_0_0_hsl(var(--border))]">
                   Total USD
                 </td>
                 {MONTHS.map((_, i) => {
                   const sel = isSelMonth(i);
                   return (
                     <Fragment key={`ft-usd-${i}`}>
-                      <td className={cn("border-l border-border bg-secondary/80", sel && selBgStrong)} />
+                      <td className={cn("border-l-2 border-border bg-secondary/80", sel && selBgStrong)} />
                       <td
                         className={cn(
-                          "text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap bg-secondary/80",
+                          "border-l border-border/40 text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap bg-secondary/80",
                           sel && selBgStrong,
                         )}
                       >
@@ -431,13 +431,13 @@ export default function FinancesBudgetPage() {
                     </Fragment>
                   );
                 })}
-                <td className="sticky right-0 z-40 bg-secondary border-l border-border" style={{ right: yearW }} />
-                <td className="sticky right-0 z-40 bg-secondary border-l border-border text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap">
+                <td className="sticky z-40 bg-secondary shadow-[-1px_0_0_0_hsl(var(--border))]" style={{ right: yearW }} />
+                <td className="sticky right-0 z-40 bg-secondary text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]">
                   {fmtT(yearTotalUsd)}
                 </td>
               </tr>
               <tr className="bg-primary/15 backdrop-blur font-bold border-t border-primary/40 [&>td]:h-8">
-                <td className="sticky left-0 z-40 bg-primary/20 px-3 text-[10px] uppercase tracking-wider border-r border-border">
+                <td className="sticky left-0 z-40 bg-primary/20 px-3 text-[10px] uppercase tracking-wider shadow-[1px_0_0_0_hsl(var(--border))]">
                   Grand TZS
                 </td>
                 {MONTHS.map((_, i) => {
@@ -448,7 +448,7 @@ export default function FinancesBudgetPage() {
                       key={`fg-${i}`}
                       colSpan={2}
                       className={cn(
-                        "border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap bg-primary/15",
+                        "border-l-2 border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap bg-primary/15",
                         sel && "bg-primary/30",
                       )}
                     >
@@ -456,7 +456,7 @@ export default function FinancesBudgetPage() {
                     </td>
                   );
                 })}
-                <td colSpan={2} className="sticky right-0 z-40 bg-primary/20 border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap">
+                <td colSpan={2} className="sticky right-0 z-40 bg-primary/20 text-right pr-2 font-mono tabular-nums whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]">
                   {fmtT(yearGrandTzs)}
                 </td>
               </tr>
