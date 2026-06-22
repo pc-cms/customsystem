@@ -344,11 +344,11 @@ export default function FinancesBudgetVsActualPage() {
             ⚠ No USD rate set for today — Grand TZS columns ignore USD amounts.
           </div>
         )}
-        <div className="rounded-md border border-border overflow-auto max-h-[78vh]">
-          <table className="text-xs" style={{ minWidth: 2400 }}>
+        <div className="rounded-md border border-border overflow-auto max-h-[78vh] bg-card">
+          <table className="text-xs border-separate border-spacing-0" style={{ minWidth: 2400 }}>
             <thead className="sticky top-0 z-[2]">
               <tr className="bg-muted">
-                <th rowSpan={3} className="sticky left-0 z-[3] bg-muted px-2 py-2 text-left shadow-[1px_0_0_0_hsl(var(--border))] min-w-[220px]">
+                <th rowSpan={3} className={cn("sticky left-0 z-[3] bg-muted px-2 py-2 text-left min-w-[220px]", stickyLeftEdge)}>
                   Category
                 </th>
                 <th colSpan={12} className="px-2 py-1 text-center border-l border-border">{monthLabel}</th>
@@ -373,9 +373,9 @@ export default function FinancesBudgetVsActualPage() {
             <tbody>
               {grouped.map((g) => (
                 <Fragment key={g.code}>
-                  <tr className="bg-muted/60">
+                  <tr className="bg-muted">
                     <td
-                      className="sticky left-0 z-[1] bg-muted/60 px-2 py-1 font-semibold text-[11px] uppercase tracking-wide shadow-[1px_0_0_0_hsl(var(--border))]"
+                      className={cn("sticky left-0 z-[1] bg-muted px-2 py-1 font-semibold text-[11px] uppercase tracking-wide", stickyLeftEdge)}
                       colSpan={25}
                     >
                       {g.name}
