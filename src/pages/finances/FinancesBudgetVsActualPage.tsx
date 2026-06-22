@@ -1,4 +1,4 @@
-import { useMemo, useState, Fragment } from "react";
+import { useMemo, useState, Fragment, createContext, useContext } from "react";
 import { BarChart3, AlertTriangle, Download } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -11,8 +11,15 @@ import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { useFinBudget, useFinExpenses, useFinCategories } from "@/hooks/use-fin";
 import { useFinDailyRatesForDate } from "@/hooks/use-fin-daily-rates";
 import { formatNumberSpaces } from "@/lib/currency";
+import { formatMoneyCompact } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
 import ExcelJS from "exceljs";
+
+const CompactCtx = createContext(false);
+const useFmt = () => {
+  const compact = useContext(CompactCtx);
+  return (n: number) => (compact ? formatMoneyCompact(Math.round(n)) : formatNumberSpaces(Math.round(n)));
+};
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -28,6 +35,7 @@ interface Triple {
 const grand = (b: Bucket, rate: number) => b.tzs + b.usd * rate;
 
 function VarianceCell({ plan, actual }: { plan: number; actual: number }) {
+  const fmt = useFmt();
   const variance = actual - plan;
   const pct = plan > 0 ? (variance / plan) * 100 : actual > 0 ? null : 0;
   const over = variance > 0.5;
@@ -37,7 +45,7 @@ function VarianceCell({ plan, actual }: { plan: number; actual: number }) {
   return (
     <>
       <td className={`px-1.5 text-right font-mono tabular-nums ${cls}`}>
-        {variance === 0 && plan === 0 && actual === 0 ? "·" : `${sign}${formatNumberSpaces(Math.round(variance))}`}
+        {variance === 0 && plan === 0 && actual === 0 ? "·" : `${sign}${fmt(variance)}`}
       </td>
       <td className={`px-1.5 text-right font-mono tabular-nums text-[10px] ${cls}`}>
         {pct === null ? "—" : plan === 0 && actual === 0 ? "·" : `${pct > 0 ? "+" : ""}${pct.toFixed(0)}%`}
@@ -47,13 +55,14 @@ function VarianceCell({ plan, actual }: { plan: number; actual: number }) {
 }
 
 function PlanActualGroup({ plan, actual }: { plan: number; actual: number }) {
+  const fmt = useFmt();
   return (
     <>
       <td className="px-1.5 text-right font-mono tabular-nums text-muted-foreground">
-        {plan ? formatNumberSpaces(Math.round(plan)) : "·"}
+        {plan ? fmt(plan) : "·"}
       </td>
       <td className="px-1.5 text-right font-mono tabular-nums">
-        {actual ? formatNumberSpaces(Math.round(actual)) : "·"}
+        {actual ? fmt(actual) : "·"}
       </td>
       <VarianceCell plan={plan} actual={actual} />
     </>
@@ -65,6 +74,7 @@ export default function FinancesBudgetVsActualPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [drill, setDrill] = useState<{ catId: string; catName: string; ccy?: Ccy } | null>(null);
+  const [compact, setCompact] = useState(false);
 
   const { data: categories = [] } = useFinCategories();
   const { data: budget = [] } = useFinBudget(year);
@@ -292,6 +302,7 @@ export default function FinancesBudgetVsActualPage() {
   const ytdLabel = `YTD ${MONTHS[0]}–${MONTHS[month - 1]}`;
 
   return (
+    <CompactCtx.Provider value={compact}>
     <PageShell>
       <PageHeader
         icon={BarChart3}
@@ -315,6 +326,9 @@ export default function FinancesBudgetVsActualPage() {
               ))}
             </SelectContent>
           </Select>
+          <Button size="sm" variant={compact ? "default" : "outline"} onClick={() => setCompact((v) => !v)}>
+            {compact ? "Compact" : "Full"}
+          </Button>
           <Button size="sm" variant="outline" onClick={exportXlsx}>
             <Download className="w-3.5 h-3.5 mr-1" />XLSX
           </Button>
@@ -422,5 +436,6 @@ export default function FinancesBudgetVsActualPage() {
         </DialogContent>
       </Dialog>
     </PageShell>
+    </CompactCtx.Provider>
   );
 }
