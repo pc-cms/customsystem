@@ -68,7 +68,16 @@
 - Stock count movements now have full schema consistency with sales movements.
 - Phase 1/2/3A/3B/3C-1/3C-2/3C-3 flows unchanged.
 
+## 3D accepted / operational assumptions
+
+- POS is tenant/domain isolated per casino. Each POS instance runs inside its own casino domain/environment.
+- Waste/spoilage recording (`pos_record_waste`) is accepted as operational functionality inside that casino environment.
+- Role-level backend tightening for `pos_record_waste` can be added as future hardening, but it is not a blocker for this phase.
+- Phase 1/2/3A/3B/3C-1/3C-2/3C-3 flows remain unchanged.
+
 ## Next (do not start yet)
-- Phase 3E: per-location stock pools (deferred until requested).
-- Phase 3F: suppliers, receiving, purchase approvals (deferred until requested).
+- Phase 3E: per-location stock pools (deferred until explicitly requested).
+- Phase 3F: suppliers, receiving, purchase approvals (deferred until explicitly requested).
 - Payment redesign / comps wallet / credit limits / unit conversion / auto backfill all remain out of scope.
+
+**No new phases start without explicit user request.**
