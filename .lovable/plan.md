@@ -1,10 +1,11 @@
-# POS Phase 3C — Status
+# POS Phase 3C / 3D — Status
 
 - **3C-1 IMPLEMENTED (v1.3.400)** — recipe-affecting modifiers backend + manager UI.
 - **3C-2 IMPLEMENTED (v1.3.401)** — bottleneck availability view/RPC + waiter badges + manager breakdown.
 - **3C-3 IMPLEMENTED (v1.3.402)** — cost snapshots on movements + `pos_cogs_report` RPC + `/pos/manager/cogs` page. No historical backfill.
 - **3C-3 REVISED (v1.3.403)** — reframed from "COGS / gross margin" to "POS Cost Control". Payment-method cost allocation, role gate, waste-ready.
 - **3D IMPLEMENTED (v1.3.404)** — operational control: waste/spoilage reasons, cost snapshots for waste, Excel export, historical backfill, `pos_save_stock_count` schema fix.
+- **3D ACCEPTED** — tenant isolation assumption documented. Operational POS users inside a casino domain are trusted within that tenant scope. Role-level backend tightening for `pos_record_waste` is future hardening, not a blocker.
 
 ## 3C-1 delivered
 
