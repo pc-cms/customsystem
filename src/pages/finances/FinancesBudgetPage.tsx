@@ -1,14 +1,16 @@
-import { useMemo, useState } from "react";
-import { Target } from "lucide-react";
+import { useMemo, useRef, useState, Fragment } from "react";
+import { Target, ChevronLeft, ChevronRight } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { YearSelect } from "@/components/ui/year-select";
 import { useFinBudget, useFinCategories, useUpsertFinBudget } from "@/hooks/use-fin";
 import { useFinDailyRatesForDate } from "@/hooks/use-fin-daily-rates";
 import { formatNumberSpaces } from "@/lib/currency";
+import { formatMoneyCompact } from "@/lib/format-money";
 import { cn } from "@/lib/utils";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -24,13 +26,15 @@ const planYear = (months: Record<number, number>): number => {
   return vals.reduce((s, v) => s + v, 0);
 };
 
-const fmt = (n: number) => (n ? formatNumberSpaces(n) : "");
-const fmtT = (n: number) => formatNumberSpaces(n || 0);
-
 export default function FinancesBudgetPage() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [sortKey, setSortKey] = useState<SortKey>("group");
+  const [compact, setCompact] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1); // 1..12
+
+  const fmtN = (n: number) => (n ? (compact ? formatMoneyCompact(n) : formatNumberSpaces(n)) : "");
+  const fmtT = (n: number) => (compact ? formatMoneyCompact(n || 0) : formatNumberSpaces(n || 0));
 
   const { data: categoriesRaw = [] } = useFinCategories();
   const { data: budgetRows = [] } = useFinBudget(year);
@@ -100,10 +104,10 @@ export default function FinancesBudgetPage() {
   const yearTotalUsd = monthTotals.usd.reduce((s, v) => s + v, 0);
   const yearGrandTzs = yearTotalTzs + yearTotalUsd * (usdRate || 0);
 
-  const subColW = 110;
+  const subColW = compact ? 70 : 110;
   const monthW = subColW * 2;
   const catW = 240;
-  const yearW = 130;
+  const yearW = compact ? 100 : 130;
   const minW = catW + 12 * monthW + 2 * yearW;
 
   type Section = { groupCode: string; groupName: string; rows: any[] };
@@ -121,6 +125,18 @@ export default function FinancesBudgetPage() {
     return acc;
   }, [sorted, showGroups]);
 
+  // Scroll snap by month
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollByMonths = (dir: -1 | 1) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * monthW, behavior: "smooth" });
+  };
+
+  const isSelMonth = (i: number) => i + 1 === selectedMonth;
+  const selBg = "bg-primary/10";
+  const selBgStrong = "bg-primary/20";
+
   return (
     <PageShell>
       <PageHeader icon={Target} title="Budget" subtitle="Per-casino · per-category · per-month · TZS + USD inline">
@@ -137,112 +153,83 @@ export default function FinancesBudgetPage() {
             <SelectItem value="year_usd">Plan Year USD ↓</SelectItem>
           </SelectContent>
         </Select>
+        <Button
+          size="sm"
+          variant={compact ? "default" : "outline"}
+          onClick={() => setCompact((v) => !v)}
+          title="Toggle compact (K/M) display"
+        >
+          {compact ? "Compact" : "Full"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => scrollByMonths(-1)} aria-label="Previous month">
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => scrollByMonths(1)} aria-label="Next month">
+          <ChevronRight className="w-4 h-4" />
+        </Button>
       </PageHeader>
 
-      {/* Top totals summary (replaces sticky footer) */}
       <PageSection card={false} bodyClassName="p-0">
-        <div className="rounded-md border border-border overflow-x-auto bg-card">
-          <table className="text-[11px] border-collapse w-full" style={{ minWidth: minW }}>
+        <div
+          ref={scrollRef}
+          className="rounded-md border border-border overflow-auto bg-card"
+          style={{
+            maxHeight: "calc(100vh - 220px)",
+            scrollSnapType: "x mandatory",
+            scrollPaddingLeft: catW,
+          }}
+        >
+          <table className="text-[11px] border-collapse" style={{ minWidth: minW }}>
             <colgroup>
               <col style={{ width: catW, minWidth: catW }} />
               {MONTHS.map((_, i) => (
-                <>
-                  <col key={`ct-${i}`} style={{ width: subColW, minWidth: subColW }} />
-                  <col key={`cu-${i}`} style={{ width: subColW, minWidth: subColW }} />
-                </>
+                <Fragment key={`cg-${i}`}>
+                  <col style={{ width: subColW, minWidth: subColW }} />
+                  <col style={{ width: subColW, minWidth: subColW }} />
+                </Fragment>
               ))}
               <col style={{ width: yearW, minWidth: yearW }} />
               <col style={{ width: yearW, minWidth: yearW }} />
             </colgroup>
-            <tbody>
-              <tr className="bg-muted font-semibold [&>td]:h-7">
-                <td className="px-3 text-[10px] uppercase tracking-wider border-r border-border">Total TZS</td>
-                {MONTHS.map((_, i) => (
-                  <>
-                    <td key={`tt-${i}`} className="border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap">
-                      {fmtT(monthTotals.tzs[i])}
-                    </td>
-                    <td key={`tg-${i}`} />
-                  </>
-                ))}
-                <td className="border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap">{fmtT(yearTotalTzs)}</td>
-                <td className="border-l border-border" />
-              </tr>
-              <tr className="bg-muted font-semibold [&>td]:h-7 border-t border-border">
-                <td className="px-3 text-[10px] uppercase tracking-wider border-r border-border text-muted-foreground">Total USD</td>
-                {MONTHS.map((_, i) => (
-                  <>
-                    <td key={`ut-${i}`} className="border-l border-border" />
-                    <td key={`uu-${i}`} className="text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap">
-                      {fmtT(monthTotals.usd[i])}
-                    </td>
-                  </>
-                ))}
-                <td className="border-l border-border" />
-                <td className="border-l border-border text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap">
-                  {fmtT(yearTotalUsd)}
-                </td>
-              </tr>
-              <tr className="bg-secondary font-bold [&>td]:h-8 border-t border-border">
-                <td className="px-3 text-[10px] uppercase tracking-wider border-r border-border">Grand TZS</td>
-                {MONTHS.map((_, i) => {
-                  const gtzs = monthTotals.tzs[i] + monthTotals.usd[i] * (usdRate || 0);
-                  return (
-                    <td
-                      key={`gt-${i}`}
-                      colSpan={2}
-                      className="border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap"
-                    >
-                      {fmtT(gtzs)}
-                    </td>
-                  );
-                })}
-                <td colSpan={2} className="border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap">
-                  {fmtT(yearGrandTzs)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </PageSection>
 
-      <PageSection card={false} bodyClassName="p-0">
-        <div
-          className="rounded-md border border-border overflow-auto bg-card"
-          style={{ maxHeight: "calc(100vh - 360px)" }}
-        >
-          <table className="text-[11px] border-collapse" style={{ minWidth: minW }}>
             <thead className="sticky top-0 z-30">
               <tr className="bg-background [&>th]:bg-background [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground">
                 <th
                   rowSpan={2}
-                  className="text-left sticky left-0 z-40 px-3 py-2 border-r border-b border-border align-middle"
-                  style={{ width: catW, minWidth: catW }}
+                  className="text-left sticky left-0 z-40 px-3 py-2 border-r border-b border-border align-middle bg-background"
                 >
                   Category
                 </th>
-                {MONTHS.map((m) => (
+                {MONTHS.map((m, i) => (
                   <th
                     key={m}
                     colSpan={2}
-                    className="text-center border-l border-b border-border px-1 py-1"
-                    style={{ width: monthW, minWidth: monthW }}
+                    className={cn(
+                      "text-center border-l border-b border-border px-1 py-1 cursor-pointer select-none transition-colors",
+                      isSelMonth(i) ? `${selBgStrong} text-foreground` : "hover:bg-muted/50",
+                    )}
+                    style={{
+                      scrollSnapAlign: "start",
+                      width: monthW,
+                      minWidth: monthW,
+                    }}
+                    onClick={() => setSelectedMonth(i + 1)}
+                    title="Click to highlight column"
                   >
                     {m}
                   </th>
                 ))}
                 <th
                   rowSpan={2}
-                  className="text-right sticky right-[130px] z-40 border-l border-b border-border px-2 py-2 align-middle"
-                  style={{ width: yearW, minWidth: yearW }}
+                  className="text-right sticky right-[100px] z-40 border-l border-b border-border px-2 py-2 align-middle bg-background"
+                  style={{ right: yearW }}
                   title="Plan Year TZS — Σ12 (если введён один месяц → ×12)"
                 >
                   Plan Year TZS
                 </th>
                 <th
                   rowSpan={2}
-                  className="text-right sticky right-0 z-40 border-l border-b border-border px-2 py-2 align-middle"
-                  style={{ width: yearW, minWidth: yearW }}
+                  className="text-right sticky right-0 z-40 border-l border-b border-border px-2 py-2 align-middle bg-background"
                   title="Plan Year USD — Σ12 (если введён один месяц → ×12)"
                 >
                   Plan Year USD
@@ -250,22 +237,24 @@ export default function FinancesBudgetPage() {
               </tr>
               <tr className="bg-background [&>th]:bg-background [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[9px] [&>th]:text-muted-foreground/80">
                 {MONTHS.map((_, i) => (
-                  <>
+                  <Fragment key={`sub-${i}`}>
                     <th
-                      key={`tzs-${i}`}
-                      className="text-right border-l border-b border-border px-1 py-1"
-                      style={{ width: subColW, minWidth: subColW }}
+                      className={cn(
+                        "text-right border-l border-b border-border px-1 py-1",
+                        isSelMonth(i) && selBg,
+                      )}
                     >
                       TZS
                     </th>
                     <th
-                      key={`usd-${i}`}
-                      className="text-right border-b border-border px-1 py-1"
-                      style={{ width: subColW, minWidth: subColW }}
+                      className={cn(
+                        "text-right border-b border-border px-1 py-1",
+                        isSelMonth(i) && selBg,
+                      )}
                     >
                       USD
                     </th>
-                  </>
+                  </Fragment>
                 ))}
               </tr>
             </thead>
@@ -286,7 +275,7 @@ export default function FinancesBudgetPage() {
                 const subYearUsd = subUsd.reduce((s, v) => s + v, 0);
 
                 return (
-                  <>
+                  <Fragment key={sec.groupCode || "all"}>
                     {showGroups && (
                       <tr className="bg-muted border-t border-border">
                         <td
@@ -325,28 +314,31 @@ export default function FinancesBudgetPage() {
                             const m = i + 1;
                             const tzs = tzsRow[m] || 0;
                             const usd = usdRow[m] || 0;
+                            const sel = isSelMonth(i);
                             return (
-                              <>
-                                <td key={`t-${m}`} className="border-l border-border p-0">
+                              <Fragment key={`r-${c.id}-${m}`}>
+                                <td className={cn("border-l border-border p-0", sel && selBg)}>
                                   <Cell
                                     value={tzs}
+                                    compact={compact}
                                     onCommit={(raw) => onCommit(c.id, "TZS", m, tzs, raw)}
                                   />
                                 </td>
-                                <td key={`u-${m}`} className="p-0">
+                                <td className={cn("p-0", sel && selBg)}>
                                   <Cell
                                     value={usd}
+                                    compact={compact}
                                     onCommit={(raw) => onCommit(c.id, "USD", m, usd, raw)}
                                   />
                                 </td>
-                              </>
+                              </Fragment>
                             );
                           })}
-                          <td className="sticky right-[130px] z-10 bg-card border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap">
-                            {yTzs ? fmt(yTzs) : <span className="text-muted-foreground/40">·</span>}
+                          <td className="sticky right-0 z-10 bg-card border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap" style={{ right: yearW }}>
+                            {yTzs ? fmtN(yTzs) : <span className="text-muted-foreground/40">·</span>}
                           </td>
                           <td className="sticky right-0 z-10 bg-card border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap">
-                            {yUsd ? fmt(yUsd) : <span className="text-muted-foreground/40">·</span>}
+                            {yUsd ? fmtN(yUsd) : <span className="text-muted-foreground/40">·</span>}
                           </td>
                         </tr>
                       );
@@ -357,34 +349,118 @@ export default function FinancesBudgetPage() {
                         <td className="sticky left-0 z-10 bg-muted px-3 text-[10px] uppercase tracking-wider text-muted-foreground border-r border-border">
                           Σ {sec.groupName}
                         </td>
-                        {MONTHS.map((_, i) => (
-                          <>
-                            <td
-                              key={`st-${i}`}
-                              className="border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap"
-                            >
-                              {subTzs[i] ? fmt(subTzs[i]) : ""}
-                            </td>
-                            <td
-                              key={`su-${i}`}
-                              className="text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap"
-                            >
-                              {subUsd[i] ? fmt(subUsd[i]) : ""}
-                            </td>
-                          </>
-                        ))}
-                        <td className="sticky right-[130px] z-10 bg-muted border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap">
-                          {fmt(subYearTzs)}
+                        {MONTHS.map((_, i) => {
+                          const sel = isSelMonth(i);
+                          return (
+                            <Fragment key={`s-${sec.groupCode}-${i}`}>
+                              <td
+                                className={cn(
+                                  "border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap",
+                                  sel && selBg,
+                                )}
+                              >
+                                {subTzs[i] ? fmtN(subTzs[i]) : ""}
+                              </td>
+                              <td
+                                className={cn(
+                                  "text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap",
+                                  sel && selBg,
+                                )}
+                              >
+                                {subUsd[i] ? fmtN(subUsd[i]) : ""}
+                              </td>
+                            </Fragment>
+                          );
+                        })}
+                        <td className="sticky right-0 z-10 bg-muted border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap" style={{ right: yearW }}>
+                          {fmtN(subYearTzs)}
                         </td>
                         <td className="sticky right-0 z-10 bg-muted border-l border-border text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap">
-                          {fmt(subYearUsd)}
+                          {fmtN(subYearUsd)}
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
+
+            <tfoot className="sticky bottom-0 z-30">
+              <tr className="bg-secondary/80 backdrop-blur font-semibold border-t-2 border-primary/40 [&>td]:h-7">
+                <td className="sticky left-0 z-40 bg-secondary px-3 text-[10px] uppercase tracking-wider border-r border-border">
+                  Total TZS
+                </td>
+                {MONTHS.map((_, i) => {
+                  const sel = isSelMonth(i);
+                  return (
+                    <Fragment key={`ft-tzs-${i}`}>
+                      <td
+                        className={cn(
+                          "border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap bg-secondary/80",
+                          sel && selBgStrong,
+                        )}
+                      >
+                        {fmtT(monthTotals.tzs[i])}
+                      </td>
+                      <td className={cn("bg-secondary/80", sel && selBgStrong)} />
+                    </Fragment>
+                  );
+                })}
+                <td className="sticky right-0 z-40 bg-secondary border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap" style={{ right: yearW }}>
+                  {fmtT(yearTotalTzs)}
+                </td>
+                <td className="sticky right-0 z-40 bg-secondary border-l border-border" />
+              </tr>
+              <tr className="bg-secondary/80 backdrop-blur font-semibold border-t border-border [&>td]:h-7">
+                <td className="sticky left-0 z-40 bg-secondary px-3 text-[10px] uppercase tracking-wider text-muted-foreground border-r border-border">
+                  Total USD
+                </td>
+                {MONTHS.map((_, i) => {
+                  const sel = isSelMonth(i);
+                  return (
+                    <Fragment key={`ft-usd-${i}`}>
+                      <td className={cn("border-l border-border bg-secondary/80", sel && selBgStrong)} />
+                      <td
+                        className={cn(
+                          "text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap bg-secondary/80",
+                          sel && selBgStrong,
+                        )}
+                      >
+                        {fmtT(monthTotals.usd[i])}
+                      </td>
+                    </Fragment>
+                  );
+                })}
+                <td className="sticky right-0 z-40 bg-secondary border-l border-border" style={{ right: yearW }} />
+                <td className="sticky right-0 z-40 bg-secondary border-l border-border text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap">
+                  {fmtT(yearTotalUsd)}
+                </td>
+              </tr>
+              <tr className="bg-primary/15 backdrop-blur font-bold border-t border-primary/40 [&>td]:h-8">
+                <td className="sticky left-0 z-40 bg-primary/20 px-3 text-[10px] uppercase tracking-wider border-r border-border">
+                  Grand TZS
+                </td>
+                {MONTHS.map((_, i) => {
+                  const sel = isSelMonth(i);
+                  const gtzs = monthTotals.tzs[i] + monthTotals.usd[i] * (usdRate || 0);
+                  return (
+                    <td
+                      key={`fg-${i}`}
+                      colSpan={2}
+                      className={cn(
+                        "border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap bg-primary/15",
+                        sel && "bg-primary/30",
+                      )}
+                    >
+                      {fmtT(gtzs)}
+                    </td>
+                  );
+                })}
+                <td colSpan={2} className="sticky right-0 z-40 bg-primary/20 border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap">
+                  {fmtT(yearGrandTzs)}
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
         {usdRate > 0 ? (
@@ -401,13 +477,16 @@ export default function FinancesBudgetPage() {
   );
 }
 
-function Cell({ value, onCommit }: { value: number; onCommit: (raw: string) => void }) {
+function Cell({ value, compact, onCommit }: { value: number; compact: boolean; onCommit: (raw: string) => void }) {
   const [local, setLocal] = useState<string>(value ? String(value) : "");
+  const [focused, setFocused] = useState(false);
+  const display = !focused && compact && value ? formatMoneyCompact(value) : local;
   return (
     <Input
-      value={local}
+      value={display}
+      onFocus={(e) => { setFocused(true); setLocal(value ? String(value) : ""); e.currentTarget.select(); }}
       onChange={(e) => setLocal(e.target.value.replace(/[^\d.-]/g, ""))}
-      onBlur={() => onCommit(local)}
+      onBlur={() => { setFocused(false); onCommit(local); }}
       onKeyDown={(e) => {
         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
       }}
