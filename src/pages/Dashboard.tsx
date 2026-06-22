@@ -188,10 +188,6 @@ const Dashboard = () => {
     return s.size;
   }, [transactions]);
 
-  const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
-  const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
-  const { adjustmentMap } = useShiftTableAdjustments();
-
   // Per-table tracker totals (raw drop indicator)
   const tableTrackerTotals = useMemo(() => {
     const totals: Record<string, number> = {};
@@ -202,23 +198,17 @@ const Dashboard = () => {
   }, [trackerData]);
 
   // Table DROP = simple sum of all Cash In on the table for the current business day (no NEP logic).
+  // Table RESULT = canonical per-shift RPC sum (same source as shifts.tables_result).
   const tableStats = useMemo(() => {
     const stats: Record<string, { drop: number; result: number }> = {};
     tables.forEach(t => {
       const drop = transactions
         .filter(tx => tx.table_id === t.id && (tx.type === "buy" || tx.type === "in"))
         .reduce((s, tx) => s + Number(tx.amount), 0);
-      const result = liveTableResult({
-        tableId: t.id,
-        closingResult: t.closing_result as any,
-        snapshotIndex,
-        baselineMap,
-        adjustmentMap,
-      });
-      stats[t.id] = { drop, result };
+      stats[t.id] = { drop, result: Number(tableResultMap[t.id] || 0) };
     });
     return stats;
-  }, [tables, transactions, snapshotIndex, baselineMap, adjustmentMap]);
+  }, [tables, transactions, tableResultMap]);
 
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { drop: number; result: number; label: string }> = {};
