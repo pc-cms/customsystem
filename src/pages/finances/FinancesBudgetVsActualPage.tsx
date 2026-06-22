@@ -183,7 +183,7 @@ export default function FinancesBudgetVsActualPage() {
     return (
       <tr key={cat.id} className={`border-t border-border ${rowCls}`}>
         <td
-          className={`sticky left-0 z-[1] bg-background px-2 py-1 ${bold ? "bg-muted/30" : ""} cursor-pointer hover:text-primary`}
+          className={`sticky left-0 z-[1] bg-background px-2 py-1 ${bold ? "bg-muted/30" : ""} cursor-pointer hover:text-primary shadow-[1px_0_0_0_hsl(var(--border))]`}
           onClick={() => !bold && setDrill({ catId: cat.id, catName: cat.name })}
         >
           {label ?? cat.name}
@@ -221,7 +221,7 @@ export default function FinancesBudgetVsActualPage() {
     const yGP = grand(y.plan, usdRate), yGA = grand(y.actual, usdRate);
     return (
       <tr key={key} className={`border-t border-border font-semibold bg-muted/40 ${extraCls}`}>
-        <td className="sticky left-0 z-[1] bg-muted/40 px-2 py-1">{label}</td>
+        <td className="sticky left-0 z-[1] bg-muted/40 px-2 py-1 shadow-[1px_0_0_0_hsl(var(--border))]">{label}</td>
         <PlanActualGroup plan={m.plan.tzs} actual={m.actual.tzs} />
         <PlanActualGroup plan={m.plan.usd} actual={m.actual.usd} />
         <PlanActualGroup plan={mGP} actual={mGA} />
@@ -345,7 +345,7 @@ export default function FinancesBudgetVsActualPage() {
           <table className="text-xs" style={{ minWidth: 2400 }}>
             <thead className="sticky top-0 z-[2]">
               <tr className="bg-muted">
-                <th rowSpan={3} className="sticky left-0 z-[3] bg-muted px-2 py-2 text-left border-r border-border min-w-[220px]">
+                <th rowSpan={3} className="sticky left-0 z-[3] bg-muted px-2 py-2 text-left shadow-[1px_0_0_0_hsl(var(--border))] min-w-[220px]">
                   Category
                 </th>
                 <th colSpan={12} className="px-2 py-1 text-center border-l border-border">{monthLabel}</th>
@@ -372,7 +372,7 @@ export default function FinancesBudgetVsActualPage() {
                 <Fragment key={g.code}>
                   <tr className="bg-muted/60">
                     <td
-                      className="sticky left-0 z-[1] bg-muted/60 px-2 py-1 font-semibold text-[11px] uppercase tracking-wide"
+                      className="sticky left-0 z-[1] bg-muted/60 px-2 py-1 font-semibold text-[11px] uppercase tracking-wide shadow-[1px_0_0_0_hsl(var(--border))]"
                       colSpan={25}
                     >
                       {g.name}
