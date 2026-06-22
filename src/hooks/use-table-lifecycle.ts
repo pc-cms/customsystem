@@ -364,15 +364,17 @@ export const useSetSingleTableResult = () => {
       if (snapRes.error) throw new Error(snapRes.error);
 
       if (!updateRes.offline) {
-        await logAction(casinoId, "system", "TABLE_RESULT_SET", {
+        // Fire-and-forget — don't block Save on the audit log write.
+        void logAction(casinoId, "system", "TABLE_RESULT_SET", {
           table_id: input.table_id,
           closing_result: input.closing_result,
-        });
+        }).catch(() => {});
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["gaming-tables"] });
       qc.invalidateQueries({ queryKey: ["chip-snapshots"] });
+      qc.invalidateQueries({ queryKey: ["shift_tables_result_total"] });
     },
     onError: (e) => toast.error(e.message),
   });
