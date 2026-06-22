@@ -240,7 +240,7 @@ export default function FinancesBudgetPage() {
                   <Fragment key={`sub-${i}`}>
                     <th
                       className={cn(
-                        "text-right border-l border-b border-border px-1 py-1",
+                        "text-right border-l-2 border-border border-b px-1 py-1",
                         isSelMonth(i) && selBg,
                       )}
                     >
@@ -248,7 +248,7 @@ export default function FinancesBudgetPage() {
                     </th>
                     <th
                       className={cn(
-                        "text-right border-b border-border px-1 py-1",
+                        "text-right border-l border-border/40 border-b px-1 py-1",
                         isSelMonth(i) && selBg,
                       )}
                     >
