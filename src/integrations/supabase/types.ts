@@ -5791,6 +5791,8 @@ export type Database = {
         Row: {
           business_date: string | null
           casino_id: string | null
+          cost_snapshot_missing: boolean
+          cost_tzs_snapshot: number | null
           created_at: string
           delta: number
           id: string
@@ -5800,11 +5802,14 @@ export type Database = {
           reference_id: string | null
           reference_type: string | null
           source_item_id: string | null
+          unit_cost_tzs_snapshot: number | null
           user_id: string | null
         }
         Insert: {
           business_date?: string | null
           casino_id?: string | null
+          cost_snapshot_missing?: boolean
+          cost_tzs_snapshot?: number | null
           created_at?: string
           delta: number
           id?: string
@@ -5814,11 +5819,14 @@ export type Database = {
           reference_id?: string | null
           reference_type?: string | null
           source_item_id?: string | null
+          unit_cost_tzs_snapshot?: number | null
           user_id?: string | null
         }
         Update: {
           business_date?: string | null
           casino_id?: string | null
+          cost_snapshot_missing?: boolean
+          cost_tzs_snapshot?: number | null
           created_at?: string
           delta?: number
           id?: string
@@ -5828,6 +5836,7 @@ export type Database = {
           reference_id?: string | null
           reference_type?: string | null
           source_item_id?: string | null
+          unit_cost_tzs_snapshot?: number | null
           user_id?: string | null
         }
         Relationships: [
@@ -9980,6 +9989,27 @@ export type Database = {
       pos_close_shift: {
         Args: { _closing_cash: number; _shift_id: string }
         Returns: Json
+      }
+      pos_cogs_report: {
+        Args: {
+          _casino_id: string
+          _from_date: string
+          _group_by?: string
+          _pos_location_id?: string
+          _to_date: string
+        }
+        Returns: {
+          cogs_tzs: number
+          gross_margin_pct: number
+          gross_margin_tzs: number
+          gross_sales_tzs: number
+          group_key: string
+          group_label: string
+          group_type: string
+          movement_count: number
+          uncosted_movement_count: number
+          units_consumed: number
+        }[]
       }
       pos_comp_budget_status: {
         Args: { _casino_id: string; _month_start?: string }
