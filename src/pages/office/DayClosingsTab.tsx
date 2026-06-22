@@ -137,8 +137,8 @@ function DayRow({
   }));
 
   const parseNum = (s: string) => Number(s.replace(/\s+/g, "").replace(",", "."));
-  const tablesNum = state.tables === "" ? tablesAuto : parseNum(state.tables);
-  const slotsNum = state.slots === "" ? slotsAuto : parseNum(state.slots);
+  const tablesNum = state.tables === "" ? 0 : parseNum(state.tables);
+  const slotsNum = state.slots === "" ? 0 : parseNum(state.slots);
   const formatInput = (s: string) => {
     const cleaned = s.replace(/[^\d\-.,]/g, "").replace(",", ".");
     if (cleaned === "" || cleaned === "-") return cleaned;
