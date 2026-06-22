@@ -196,13 +196,12 @@ function DayRow({
 
       <td className="px-3 py-2 text-right">
         <Input
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="0.01"
           disabled={!editable}
           placeholder={formatNumberSpaces(tablesAuto)}
           value={state.tables}
-          onChange={(e) => setState((s) => ({ ...s, tables: e.target.value }))}
+          onChange={(e) => setState((s) => ({ ...s, tables: formatInput(e.target.value) }))}
           className="text-right font-mono h-8"
         />
         <div className="text-[10px] text-muted-foreground mt-0.5 text-right pr-1">
@@ -212,13 +211,12 @@ function DayRow({
 
       <td className="px-3 py-2 text-right">
         <Input
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="0.01"
           disabled={!editable}
           placeholder={formatNumberSpaces(slotsAuto)}
           value={state.slots}
-          onChange={(e) => setState((s) => ({ ...s, slots: e.target.value }))}
+          onChange={(e) => setState((s) => ({ ...s, slots: formatInput(e.target.value) }))}
           className="text-right font-mono h-8"
         />
         <div className="text-[10px] text-muted-foreground mt-0.5 text-right pr-1">
