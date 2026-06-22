@@ -1,0 +1,1 @@
+UPDATE public.role_module_defaults SET can_view=true, can_write=true, day_horizon='all' WHERE role='manager' AND module_key IN ('finance_review','finance_wallets');
