@@ -646,7 +646,6 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, mtdValue, editMode, y
                       <th className="text-left w-[140px]">Wallet</th>
                       <th className="text-right w-[120px]">Amount</th>
                       <th className="text-right w-[120px]">TZS</th>
-                      {showUsd && <th className="text-right w-[100px]">USD</th>}
                       {editMode && <th className="w-[40px]"></th>}
                     </tr>
                   </thead>
