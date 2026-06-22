@@ -281,7 +281,7 @@ export default function FinancesBudgetPage() {
                     {showGroups && (
                       <tr className="bg-muted border-t border-border">
                         <td
-                          className="sticky left-0 z-20 bg-muted px-3 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-foreground shadow-[1px_0_0_0_hsl(var(--border))]"
+                          className={cn("sticky left-0 z-20 bg-muted px-3 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-foreground", stickyLeftEdge)}
                         >
                           {sec.groupName}
                         </td>
@@ -300,7 +300,7 @@ export default function FinancesBudgetPage() {
                           className="border-t border-border hover:bg-muted/40 [&>td]:h-7 [&>td]:align-middle"
                         >
                           <td
-                            className="sticky left-0 z-10 bg-card px-3 whitespace-nowrap shadow-[1px_0_0_0_hsl(var(--border))]"
+                            className={cn("sticky left-0 z-10 bg-card px-3 whitespace-nowrap", stickyLeftEdge)}
                             title={c.name}
                           >
                             {!showGroups && (
@@ -336,10 +336,10 @@ export default function FinancesBudgetPage() {
                               </Fragment>
                             );
                           })}
-                          <td className="sticky z-10 bg-card text-right pr-2 font-mono tabular-nums whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]" style={{ right: yearW }}>
+                          <td className={cn("sticky z-10 bg-card text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border", stickyRightEdge)} style={{ right: yearW }}>
                             {yTzs ? fmtN(yTzs) : <span className="text-muted-foreground/40">·</span>}
                           </td>
-                          <td className="sticky right-0 z-10 bg-card text-right pr-2 font-mono tabular-nums whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]">
+                          <td className={cn("sticky right-0 z-10 bg-card text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border", stickyRightEdge)}>
                             {yUsd ? fmtN(yUsd) : <span className="text-muted-foreground/40">·</span>}
                           </td>
                         </tr>
@@ -348,7 +348,7 @@ export default function FinancesBudgetPage() {
 
                     {showGroups && (
                       <tr className="border-t border-border bg-muted font-semibold [&>td]:h-7">
-                        <td className="sticky left-0 z-10 bg-muted px-3 text-[10px] uppercase tracking-wider text-muted-foreground shadow-[1px_0_0_0_hsl(var(--border))]">
+                        <td className={cn("sticky left-0 z-10 bg-muted px-3 text-[10px] uppercase tracking-wider text-muted-foreground", stickyLeftEdge)}>
                           Σ {sec.groupName}
                         </td>
                         {MONTHS.map((_, i) => {
@@ -374,10 +374,10 @@ export default function FinancesBudgetPage() {
                             </Fragment>
                           );
                         })}
-                        <td className="sticky z-10 bg-muted text-right pr-2 font-mono tabular-nums whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]" style={{ right: yearW }}>
+                        <td className={cn("sticky z-10 bg-muted text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border", stickyRightEdge)} style={{ right: yearW }}>
                           {fmtN(subYearTzs)}
                         </td>
-                        <td className="sticky right-0 z-10 bg-muted text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]">
+                        <td className={cn("sticky right-0 z-10 bg-muted text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap border-l-2 border-border", stickyRightEdge)}>
                           {fmtN(subYearUsd)}
                         </td>
                       </tr>
