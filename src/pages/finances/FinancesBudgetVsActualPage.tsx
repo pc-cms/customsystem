@@ -221,7 +221,7 @@ export default function FinancesBudgetVsActualPage() {
     const yGP = grand(y.plan, usdRate), yGA = grand(y.actual, usdRate);
     return (
       <tr key={key} className={`border-t border-border font-semibold bg-muted/40 ${extraCls}`}>
-        <td className="sticky left-0 z-[1] bg-muted/40 px-2 py-1">{label}</td>
+        <td className="sticky left-0 z-[1] bg-muted/40 px-2 py-1 shadow-[1px_0_0_0_hsl(var(--border))]">{label}</td>
         <PlanActualGroup plan={m.plan.tzs} actual={m.actual.tzs} />
         <PlanActualGroup plan={m.plan.usd} actual={m.actual.usd} />
         <PlanActualGroup plan={mGP} actual={mGA} />
