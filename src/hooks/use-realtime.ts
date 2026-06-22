@@ -133,6 +133,8 @@ export const useRealtimeSubscriptions = () => {
           () => {
             qc.invalidateQueries({ queryKey: ["chip-snapshots", casinoId] });
             qc.invalidateQueries({ queryKey: ["chip-snapshots-full", casinoId] });
+            // Cassa P&L depends on latest chip snapshot — invalidate canonical key.
+            qc.invalidateQueries({ queryKey: ["shift_tables_result_total"] });
           }
         )
         .on(
