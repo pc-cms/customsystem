@@ -1,69 +1,68 @@
-## Проблема
 
-`shifts.balance` всегда промахивается на сумму **Cashless Balance** (например, −11 000 000 в Мванзе 19/06). Причина — рассинхрон формул:
+## 1. Почему меню разные: diff прав Аруша vs Мванза
 
-- **TS-превью** (`src/lib/cage-balance.ts`) при закрытии смены показывает кассиру правильный баланс с включённым cashless.
-- **DB-функция** `compute_shift_balance_from_row` (источник истины — пишет `cash_desk_result` и `balance` в `shifts`) исключает cashless из CDR.
+Код сайдбара (`src/components/layout/AppSidebar.tsx → NAV_ITEMS`) **одинаков** для всех казино — разница на 100% в назначенных ролях и одном персональном override'е.
 
-После сохранения смены БД-триггер пересчитывает баланс без cashless → перекос ровно на величину `CashlessIn − CashlessOut`.
+### Кассирские пользователи (раздел CASHIER)
 
-Логически верна TS-формула: cashless_in — это деньги, реально полученные заведением (на мобильный счёт) в обмен на фишки, которые потом формируют `tables_result`. Без cashless в CDR уравнение не закрывается.
+| Пользователь | Назначенные роли | Что фактически видит |
+|---|---|---|
+| **Arusha · Cashier** | `cashier` | Cage Live Game, Cashless, Expenses |
+| **Mwanza · Live Game** | `cashier` + **`reception`** | то же самое **+ Dashboard, Reception, Guests, Blacklist** |
+| **Arusha · Cashier Slots** | `cashier_slots` + override (`cage=hidden`, `cage_slots=visible`) | Cage Slots, Cashless, Transfers, Expenses |
+| **Mwanza · Slots** | `cashier_slots` + **`reception`** (без override) | то же **+ Dashboard, Reception, Guests, Blacklist** |
 
-## Что нужно сделать
+**Корень расхождения:**
+- В Мванзе кассирам дополнительно навешана роль `reception` → подтягивается весь блок RECEPTION и Dashboard.
+- В Аруше «Cashier Slots» имеет явный per-user override (скрыт `cage`, открыт `cage_slots`); в Мванзе таких overrides нет.
 
-### 1. Исправить DB-функцию (миграция)
+### Менеджеры/Pit/HR/Surveillance
+Полностью совпадают между казино — `manager`, `shift_manager`, `pit`, `hr`, `surveillance`, `finance_manager` дают одинаковый набор пунктов.
 
-В `public.compute_shift_balance_from_row(s shifts)` добавить cashless в CDR:
+### Что я предлагаю сделать с расхождением
+Это конфиг БД, не код. Два варианта (решим после диффа — отдельным шагом):
+- (A) Снять роль `reception` с Mwanza `Live Game` и `Slots` (выровнять под Арушу).
+- (B) Добавить роль `reception` пользователю Arusha `Cashier`/`Cashier Slots` (выровнять под Мванзу).
 
-```sql
--- было:
-v_cash_desk := v_delta_cash + v_expenses + v_collection - v_add_float
-               + v_slots_out - v_slots_in;
+В рамках текущего плана конфигурацию НЕ трогаю — только показываю diff. Скажешь какой вариант — сделаю отдельной миграцией.
 
--- станет:
-v_cash_desk := v_delta_cash + v_expenses + v_collection - v_add_float
-               + v_slots_out - v_slots_in
-               + v_cashless_in - v_cashless_out;
+## 2. Чистка пункта `Transfers` в сайдбаре
+
+Сейчас:
+
+```ts
+{ to: "/transfers", label: "Transfers",
+  roles: ["super_admin", "manager", "shift_manager", "cashier_slots", "finance_manager"], ... }
 ```
 
-Обновить комментарий в функции, чтобы он совпадал с реальной формулой.
+Стало:
 
-### 2. Бэкфилл исторических смен
-
-Перепрогнать `compute_shift_balance_from_row` для всех уже закрытых смен и записать новые `cash_desk_result` / `balance`:
-
-```sql
-UPDATE public.shifts s
-SET cash_desk_result = (public.compute_shift_balance_from_row(s)->>'cash_desk_result')::bigint,
-    balance          = (public.compute_shift_balance_from_row(s)->>'balance')::bigint
-WHERE status = 'closed';
+```ts
+{ to: "/transfers", label: "Transfers",
+  roles: ["super_admin", "cashier_slots"], ... }
 ```
 
-Затронет все казино (Arusha, Mwanza, Dodoma, Mbeya), но реальное изменение коснётся только смен с ненулевым cashless. В Arusha cashless почти не используется → balance не сдвинется.
+Эффект:
+- Manager / Shift Manager / Finance Manager **больше не видят пункт `Transfers`** в сайдбаре.
+- Историю переводов они смотрят через `Cage View` и `Reports → Live Game / Slots` — там данные те же.
+- Сама страница `/transfers` остаётся живой (cashier_slots/super_admin), URL-доступ для менеджера не блокируется на уровне роутера (только пункт в меню скрыт).
 
-### 3. Верификация
+### Файл, который меняю
+- `src/components/layout/AppSidebar.tsx` — одна строка в `NAV_ITEMS`.
 
-После миграции проверить, что:
-- Смена Мванзы `b0ede990` (19/06): balance стал ≈ 0 (было −11M).
-- Смена Мванзы `6acbf13e` (18/06, cashless Halo 200K): balance = −200 500 + 200 000 = −500 (мелкая чиповая недостача — нормально).
-- Прочие смены Arusha без cashless не изменились.
+Версия `package.json` не бампается (правка чисто UI, без backend-изменений).
 
-### 4. Обновить документацию формулы
+## 3. Дубликат формы Transfers в Cage Slots под чеком
 
-В `src/lib/cage-balance.ts` блок-комментарий уже корректен. Просто синхронизировать комментарий в DB-функции и обновить memory [Cash Desk Balance Formula] — в ней формула указана с cashless, так что правки memory не требуется, только подтверждение что DB теперь совпадает.
+Я не трогаю в этом плане:
+- `Transfers` отдельной страницей (`/transfers`) и
+- секция `Transfers` внутри активной смены Cage Slots (`src/components/cage-slots/ActiveSlotsShiftView.tsx → SlotsTransfersForm`)
 
-## Что НЕ трогаем
+Ты явно выбрал только пункт «убрать Transfers у менеджеров». Если дубликат формы внутри Cage Slots тоже надо снести (или наоборот, оставить ввод только там и убрать форму с `/transfers`) — скажи в одной строке после применения, сделаю вторым шагом.
 
-- Cage Slots (`compute_slots_shift_balance_from_row`) — другая формула, в ней cashless изначально не участвует (заданная политика).
-- Tips — остаются полностью нейтральными.
-- Mobile Balance (ручная сверка) — остаётся отдельной проверкой, в формулу не входит.
-- UI закрытия смены — TS-формула уже правильная, изменений не требует.
+## 4. Что НЕ меняется
 
-## Риски
-
-- Бэкфилл изменит исторический `balance` у всех смен с cashless. Это **исправление**, а не искажение — отчёты Daily Review / Finance станут корректными. Имеет смысл сделать одной транзакцией.
-- Если где-то отчёт жёстко завязан на старое (некорректное) значение balance — может перестать «сходиться» с прошлыми ручными корректировками. Маловероятно, т.к. balance ≠ 0 как раз и был жалобой.
-
-## После approve
-
-Версию `package.json` бампну патчем (backend change).
+- `NAV_ITEMS` для остальных пунктов.
+- Сами страницы `/transfers`, `ActiveSlotsShiftView`, форма ввода.
+- RLS, миграции, ролевые дефолты, user_module_permissions.
+- Версия приложения.
