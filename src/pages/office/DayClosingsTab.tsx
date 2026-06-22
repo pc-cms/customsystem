@@ -136,8 +136,18 @@ function DayRow({
     comment: existing?.notes ?? "",
   }));
 
-  const tablesNum = state.tables === "" ? tablesAuto : Number(state.tables);
-  const slotsNum = state.slots === "" ? slotsAuto : Number(state.slots);
+  const parseNum = (s: string) => Number(s.replace(/\s+/g, "").replace(",", "."));
+  const tablesNum = state.tables === "" ? tablesAuto : parseNum(state.tables);
+  const slotsNum = state.slots === "" ? slotsAuto : parseNum(state.slots);
+  const formatInput = (s: string) => {
+    const cleaned = s.replace(/[^\d\-.,]/g, "").replace(",", ".");
+    if (cleaned === "" || cleaned === "-") return cleaned;
+    const [intPart, decPart] = cleaned.split(".");
+    const sign = intPart.startsWith("-") ? "-" : "";
+    const digits = intPart.replace(/-/g, "");
+    const withSep = digits.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    return sign + withSep + (decPart !== undefined ? "." + decPart : "");
+  };
 
   const dT = Math.abs(tablesNum - tablesAuto);
   const dS = Math.abs(slotsNum - slotsAuto);
