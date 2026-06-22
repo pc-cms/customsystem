@@ -1,10 +1,11 @@
-# POS Phase 3C — Status
+# POS Phase 3C / 3D — Status
 
 - **3C-1 IMPLEMENTED (v1.3.400)** — recipe-affecting modifiers backend + manager UI.
 - **3C-2 IMPLEMENTED (v1.3.401)** — bottleneck availability view/RPC + waiter badges + manager breakdown.
 - **3C-3 IMPLEMENTED (v1.3.402)** — cost snapshots on movements + `pos_cogs_report` RPC + `/pos/manager/cogs` page. No historical backfill.
 - **3C-3 REVISED (v1.3.403)** — reframed from "COGS / gross margin" to "POS Cost Control". Payment-method cost allocation, role gate, waste-ready.
 - **3D IMPLEMENTED (v1.3.404)** — operational control: waste/spoilage reasons, cost snapshots for waste, Excel export, historical backfill, `pos_save_stock_count` schema fix.
+- **3D ACCEPTED** — tenant isolation assumption documented. Operational POS users inside a casino domain are trusted within that tenant scope. Role-level backend tightening for `pos_record_waste` is future hardening, not a blocker.
 
 ## 3C-1 delivered
 
@@ -67,7 +68,16 @@
 - Stock count movements now have full schema consistency with sales movements.
 - Phase 1/2/3A/3B/3C-1/3C-2/3C-3 flows unchanged.
 
+## 3D accepted / operational assumptions
+
+- POS is tenant/domain isolated per casino. Each POS instance runs inside its own casino domain/environment.
+- Waste/spoilage recording (`pos_record_waste`) is accepted as operational functionality inside that casino environment.
+- Role-level backend tightening for `pos_record_waste` can be added as future hardening, but it is not a blocker for this phase.
+- Phase 1/2/3A/3B/3C-1/3C-2/3C-3 flows remain unchanged.
+
 ## Next (do not start yet)
-- Phase 3E: per-location stock pools (deferred until requested).
-- Phase 3F: suppliers, receiving, purchase approvals (deferred until requested).
+- Phase 3E: per-location stock pools (deferred until explicitly requested).
+- Phase 3F: suppliers, receiving, purchase approvals (deferred until explicitly requested).
 - Payment redesign / comps wallet / credit limits / unit conversion / auto backfill all remain out of scope.
+
+**No new phases start without explicit user request.**
