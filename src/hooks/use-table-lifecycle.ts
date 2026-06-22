@@ -331,7 +331,7 @@ export const useSetSingleTableResult = () => {
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
 
-      const updateRes = await offlineMutation({
+      const updatePromise = offlineMutation({
         table: "gaming_tables",
         operation: "update",
         payload: {
@@ -340,27 +340,28 @@ export const useSetSingleTableResult = () => {
           closing_result: input.closing_result,
         },
       });
-      if (updateRes.error) throw new Error(updateRes.error);
 
-      if (input.snapshot_rows && input.snapshot_rows.length > 0) {
-        const rows = input.snapshot_rows.map(r => ({
-          id: crypto.randomUUID(),
-          casino_id: casinoId,
-          date: r.date,
-          location_type: r.location_type,
-          location_id: r.location_id,
-          denomination: r.denomination,
-          expected_quantity: r.expected_quantity,
-          actual_quantity: r.actual_quantity,
-          recorded_by: user.id,
-        }));
-        const snapRes = await offlineMutation({
-          table: "chip_snapshots",
-          operation: "insert",
-          payload: rows as any,
-        });
-        if (snapRes.error) throw new Error(snapRes.error);
-      }
+      const snapshotPromise = (input.snapshot_rows && input.snapshot_rows.length > 0)
+        ? offlineMutation({
+            table: "chip_snapshots",
+            operation: "insert",
+            payload: input.snapshot_rows.map(r => ({
+              id: crypto.randomUUID(),
+              casino_id: casinoId,
+              date: r.date,
+              location_type: r.location_type,
+              location_id: r.location_id,
+              denomination: r.denomination,
+              expected_quantity: r.expected_quantity,
+              actual_quantity: r.actual_quantity,
+              recorded_by: user.id,
+            })) as any,
+          })
+        : Promise.resolve({ offline: false } as any);
+
+      const [updateRes, snapRes] = await Promise.all([updatePromise, snapshotPromise]);
+      if (updateRes.error) throw new Error(updateRes.error);
+      if (snapRes.error) throw new Error(snapRes.error);
 
       if (!updateRes.offline) {
         await logAction(casinoId, "system", "TABLE_RESULT_SET", {
