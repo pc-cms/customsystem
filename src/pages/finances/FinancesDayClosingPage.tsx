@@ -186,7 +186,7 @@ export default function FinancesDayClosingPage() {
           <Input type="text" inputMode="decimal" disabled={locked} value={slots} onChange={(e) => setSlots(formatAmountInput(e.target.value))} className={cn("text-lg font-mono", slots === "" ? "text-muted-foreground" : amountToneClass(slotsValue))} />
         </PageSection>
         <PageSection title="Total Income (lines)">
-          <div className="text-2xl font-mono">{formatNumberSpaces(incomeTotal)}</div>
+          <div className={cn("text-2xl font-mono", amountToneClass(incomeTotal))}>{formatNumberSpaces(incomeTotal)}</div>
         </PageSection>
       </div>
 
@@ -277,8 +277,8 @@ export default function FinancesDayClosingPage() {
               {list.map((r: any) => (
                 <tr key={r.id} className="border-t border-border hover:bg-muted/40 cursor-pointer" onClick={() => setBd(r.business_date)}>
                   <td className="px-3 py-1.5 font-mono text-xs">{fmtDate(r.business_date)}</td>
-                  <td className="text-right font-mono">{formatNumberSpaces(Number(r.tables_result))}</td>
-                  <td className="text-right font-mono">{formatNumberSpaces(Number(r.slots_result))}</td>
+                  <td className={cn("text-right font-mono", amountToneClass(Number(r.tables_result || 0)))}>{formatNumberSpaces(Number(r.tables_result))}</td>
+                  <td className={cn("text-right font-mono", amountToneClass(Number(r.slots_result || 0)))}>{formatNumberSpaces(Number(r.slots_result))}</td>
                   <td className="text-right">{Array.isArray(r.income_lines) ? r.income_lines.length : 0}</td>
                   <td className="text-xs">
                     {r.locked_at ? <span className="text-green-600">Locked</span> : <span className="text-muted-foreground">Draft</span>}
