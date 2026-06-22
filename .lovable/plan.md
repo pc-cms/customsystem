@@ -1,37 +1,69 @@
-## Budget tables — snap-per-month, fixed dividers, sticky borders
+## Проблема
 
-Apply to all three budget pages:
-- `FinancesBudgetPage.tsx` (TZS/USD twin per month)
-- `FinancesBudgetDifferencePage.tsx` (single per month)
-- `FinancesBudgetVsActualPage.tsx` (plan/actual/var group per month)
+`shifts.balance` всегда промахивается на сумму **Cashless Balance** (например, −11 000 000 в Мванзе 19/06). Причина — рассинхрон формул:
 
-### Fixes
+- **TS-превью** (`src/lib/cage-balance.ts`) при закрытии смены показывает кассиру правильный баланс с включённым cashless.
+- **DB-функция** `compute_shift_balance_from_row` (источник истины — пишет `cash_desk_result` и `balance` в `shifts`) исключает cashless из CDR.
 
-**1. Snap exactly per month group (not per sub-column)**
-- Apply `scroll-snap-align: start` ONLY on the outer per-month `<th>` (already correct in Budget, since `colSpan=2` th carries it). For Difference and VsActual it's already per-month.
-- Set `scroll-padding-left` on container = `catW + 1` so first month column lands flush against the sticky Category column (currently scrollPaddingLeft is set but month column ends up partially under sticky Category — increase to `catW + 8` and add `scroll-snap-stop: always` on the snap targets to force per-step snap and prevent half-column landing).
-- Add `scroll-snap-stop: always` to each month header (Tailwind: `[scroll-snap-stop:always]`).
+После сохранения смены БД-триггер пересчитывает баланс без cashless → перекос ровно на величину `CashlessIn − CashlessOut`.
 
-**2. Vertical column dividers in every body cell**
-- Currently only first sub-column of each month carries `border-l`. Add a stronger `border-l-2 border-border` on the FIRST sub-column of each month (the TZS one) and a thin `border-l border-border/40` on the USD sub-column — gives clear month-group boundaries plus light inner divider.
-- For Difference / VsActual: add `border-l border-border` on every month cell.
+Логически верна TS-формула: cashless_in — это деньги, реально полученные заведением (на мобильный счёт) в обмен на фишки, которые потом формируют `tables_result`. Без cashless в CDR уравнение не закрывается.
 
-**3. Sticky first & last columns must show clear non-scrolling borders**
-- Replace `border-r border-border` on sticky Category column with `shadow-[1px_0_0_0_hsl(var(--border))]` (a stuck right edge that always renders above scrolling content).
-- Replace `border-l border-border` on sticky right Plan-Year columns with `shadow-[-1px_0_0_0_hsl(var(--border))]`.
-- Keeps the divider crisp regardless of scroll position (CSS borders on sticky cells can disappear under overlapping content).
+## Что нужно сделать
 
-**4. Budget page Category sticky width fix**
-- Set `scrollPaddingLeft: catW` exactly + `scroll-snap-stop: always` so the next month doesn't end up half-hidden under the sticky Category column.
+### 1. Исправить DB-функцию (миграция)
 
-### Implementation details
+В `public.compute_shift_balance_from_row(s shifts)` добавить cashless в CDR:
 
-- Reuse same `monthW`, `catW`, `yearW` constants per page.
-- All purely CSS / className changes; no data, RPC, or formula changes.
-- Version bump to `v1.3.407` in `package.json`.
+```sql
+-- было:
+v_cash_desk := v_delta_cash + v_expenses + v_collection - v_add_float
+               + v_slots_out - v_slots_in;
 
-### Files
-- `src/pages/finances/FinancesBudgetPage.tsx`
-- `src/pages/finances/FinancesBudgetDifferencePage.tsx`
-- `src/pages/finances/FinancesBudgetVsActualPage.tsx`
-- `package.json`
+-- станет:
+v_cash_desk := v_delta_cash + v_expenses + v_collection - v_add_float
+               + v_slots_out - v_slots_in
+               + v_cashless_in - v_cashless_out;
+```
+
+Обновить комментарий в функции, чтобы он совпадал с реальной формулой.
+
+### 2. Бэкфилл исторических смен
+
+Перепрогнать `compute_shift_balance_from_row` для всех уже закрытых смен и записать новые `cash_desk_result` / `balance`:
+
+```sql
+UPDATE public.shifts s
+SET cash_desk_result = (public.compute_shift_balance_from_row(s)->>'cash_desk_result')::bigint,
+    balance          = (public.compute_shift_balance_from_row(s)->>'balance')::bigint
+WHERE status = 'closed';
+```
+
+Затронет все казино (Arusha, Mwanza, Dodoma, Mbeya), но реальное изменение коснётся только смен с ненулевым cashless. В Arusha cashless почти не используется → balance не сдвинется.
+
+### 3. Верификация
+
+После миграции проверить, что:
+- Смена Мванзы `b0ede990` (19/06): balance стал ≈ 0 (было −11M).
+- Смена Мванзы `6acbf13e` (18/06, cashless Halo 200K): balance = −200 500 + 200 000 = −500 (мелкая чиповая недостача — нормально).
+- Прочие смены Arusha без cashless не изменились.
+
+### 4. Обновить документацию формулы
+
+В `src/lib/cage-balance.ts` блок-комментарий уже корректен. Просто синхронизировать комментарий в DB-функции и обновить memory [Cash Desk Balance Formula] — в ней формула указана с cashless, так что правки memory не требуется, только подтверждение что DB теперь совпадает.
+
+## Что НЕ трогаем
+
+- Cage Slots (`compute_slots_shift_balance_from_row`) — другая формула, в ней cashless изначально не участвует (заданная политика).
+- Tips — остаются полностью нейтральными.
+- Mobile Balance (ручная сверка) — остаётся отдельной проверкой, в формулу не входит.
+- UI закрытия смены — TS-формула уже правильная, изменений не требует.
+
+## Риски
+
+- Бэкфилл изменит исторический `balance` у всех смен с cashless. Это **исправление**, а не искажение — отчёты Daily Review / Finance станут корректными. Имеет смысл сделать одной транзакцией.
+- Если где-то отчёт жёстко завязан на старое (некорректное) значение balance — может перестать «сходиться» с прошлыми ручными корректировками. Маловероятно, т.к. balance ≠ 0 как раз и был жалобой.
+
+## После approve
+
+Версию `package.json` бампну патчем (backend change).
