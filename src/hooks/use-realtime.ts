@@ -193,7 +193,7 @@ export const useRealtimeSubscriptions = () => {
           () => {
             qc.invalidateQueries({ queryKey: ["shifts"] });
             qc.invalidateQueries({ queryKey: ["shift"] });
-            qc.invalidateQueries({ queryKey: ["shift-tables-result"] });
+            qc.invalidateQueries({ queryKey: ["shift_tables_result_total"] });
           }
         )
         // ===== Player Statistics: bank checks, transfers, cashless, adjustments =====
