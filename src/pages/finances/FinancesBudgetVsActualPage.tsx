@@ -74,6 +74,7 @@ export default function FinancesBudgetVsActualPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [drill, setDrill] = useState<{ catId: string; catName: string; ccy?: Ccy } | null>(null);
+  const [compact, setCompact] = useState(false);
 
   const { data: categories = [] } = useFinCategories();
   const { data: budget = [] } = useFinBudget(year);
