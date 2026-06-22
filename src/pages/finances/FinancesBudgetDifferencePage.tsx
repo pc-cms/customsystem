@@ -48,20 +48,20 @@ export default function FinancesBudgetDifferencePage() {
       </PageHeader>
       <PageSection card={false}>
         <div className="rounded-md border border-border overflow-auto max-h-[75vh] bg-card">
-          <table className="w-full text-[11px] border-collapse">
-            <thead className="bg-muted/40 sticky top-0 z-20">
-              <tr className="[&>th]:h-8 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground">
-                <th className="text-left sticky left-0 z-30 bg-muted/40 min-w-[200px]">Category</th>
-                {MONTHS.map((m) => <th key={m} className="text-right w-[72px]">{m}</th>)}
-                <th className="text-right w-[100px] sticky right-0 z-30 bg-muted/40 border-l border-border">YTD</th>
+          <table className="text-[11px] border-collapse min-w-[1600px]">
+            <thead className="sticky top-0 z-20">
+              <tr className="bg-background [&>th]:bg-background [&>th]:h-8 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:border-b [&>th]:border-border">
+                <th className="text-left sticky left-0 z-30 min-w-[220px]">Category</th>
+                {MONTHS.map((m) => <th key={m} className="text-right w-[104px] min-w-[104px]">{m}</th>)}
+                <th className="text-right w-[120px] min-w-[120px] sticky right-0 z-30 border-l border-border">YTD</th>
               </tr>
             </thead>
             <tbody>
               {expenseCats.map((c: any) => {
                 let ytd = 0;
                 return (
-                  <tr key={c.id} className="border-t border-border hover:bg-muted/30 [&>td]:h-8 [&>td]:px-1 [&>td]:align-middle">
-                    <td className="text-left sticky left-0 z-10 bg-card pl-2 pr-3 whitespace-nowrap">
+                  <tr key={c.id} className="border-t border-border hover:bg-muted/30 [&>td]:h-8 [&>td]:align-middle">
+                    <td className="text-left sticky left-0 z-10 bg-card pl-2 pr-3 whitespace-nowrap border-r border-border">
                       <span className="text-muted-foreground text-[9px] uppercase mr-1">{c.group_code}</span>
                       <span className="truncate inline-block max-w-[260px] align-middle">{c.name}</span>
                     </td>
@@ -72,7 +72,7 @@ export default function FinancesBudgetDifferencePage() {
                       ytd += diff;
                       const hasData = p > 0 || a > 0;
                       return (
-                        <td key={i} className="text-right pr-1.5 font-mono tabular-nums">
+                        <td key={i} className="text-right pr-1.5 font-mono tabular-nums whitespace-nowrap">
                           {hasData ? (
                             <span className={cn(diff < 0 ? "cms-amount-negative font-semibold" : diff > 0 ? "cms-amount-positive" : "text-muted-foreground")}>
                               {formatNumberSpaces(diff)}
@@ -81,7 +81,7 @@ export default function FinancesBudgetDifferencePage() {
                         </td>
                       );
                     })}
-                    <td className="text-right pr-2 sticky right-0 z-10 bg-card border-l border-border font-mono tabular-nums">
+                    <td className="text-right pr-2 sticky right-0 z-10 bg-card border-l border-border font-mono tabular-nums whitespace-nowrap">
                       <span className={cn(ytd < 0 ? "cms-amount-negative font-semibold" : ytd > 0 ? "cms-amount-positive" : "text-muted-foreground")}>
                         {ytd ? formatNumberSpaces(ytd) : "·"}
                       </span>
@@ -93,6 +93,7 @@ export default function FinancesBudgetDifferencePage() {
           </table>
         </div>
       </PageSection>
+
     </PageShell>
   );
 }
