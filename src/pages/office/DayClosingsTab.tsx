@@ -131,8 +131,8 @@ function DayRow({
   const editable = !locked || (managerOverride && unlocked);
 
   const [state, setState] = useState<RowState>(() => ({
-    tables: existing ? String(existing.tables_result ?? "") : "",
-    slots: existing ? String(existing.slots_result ?? "") : "",
+    tables: existing?.tables_result != null ? formatNumberSpaces(existing.tables_result) : "",
+    slots: existing?.slots_result != null ? formatNumberSpaces(existing.slots_result) : "",
     comment: existing?.notes ?? "",
   }));
 
