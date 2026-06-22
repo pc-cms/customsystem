@@ -131,13 +131,23 @@ function DayRow({
   const editable = !locked || (managerOverride && unlocked);
 
   const [state, setState] = useState<RowState>(() => ({
-    tables: existing ? String(existing.tables_result ?? "") : "",
-    slots: existing ? String(existing.slots_result ?? "") : "",
+    tables: existing?.tables_result != null ? formatNumberSpaces(existing.tables_result) : "",
+    slots: existing?.slots_result != null ? formatNumberSpaces(existing.slots_result) : "",
     comment: existing?.notes ?? "",
   }));
 
-  const tablesNum = state.tables === "" ? tablesAuto : Number(state.tables);
-  const slotsNum = state.slots === "" ? slotsAuto : Number(state.slots);
+  const parseNum = (s: string) => Number(s.replace(/\s+/g, "").replace(",", "."));
+  const tablesNum = state.tables === "" ? tablesAuto : parseNum(state.tables);
+  const slotsNum = state.slots === "" ? slotsAuto : parseNum(state.slots);
+  const formatInput = (s: string) => {
+    const cleaned = s.replace(/[^\d\-.,]/g, "").replace(",", ".");
+    if (cleaned === "" || cleaned === "-") return cleaned;
+    const [intPart, decPart] = cleaned.split(".");
+    const sign = intPart.startsWith("-") ? "-" : "";
+    const digits = intPart.replace(/-/g, "");
+    const withSep = digits.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    return sign + withSep + (decPart !== undefined ? "." + decPart : "");
+  };
 
   const dT = Math.abs(tablesNum - tablesAuto);
   const dS = Math.abs(slotsNum - slotsAuto);
@@ -186,13 +196,12 @@ function DayRow({
 
       <td className="px-3 py-2 text-right">
         <Input
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="0.01"
           disabled={!editable}
           placeholder={formatNumberSpaces(tablesAuto)}
           value={state.tables}
-          onChange={(e) => setState((s) => ({ ...s, tables: e.target.value }))}
+          onChange={(e) => setState((s) => ({ ...s, tables: formatInput(e.target.value) }))}
           className="text-right font-mono h-8"
         />
         <div className="text-[10px] text-muted-foreground mt-0.5 text-right pr-1">
@@ -202,13 +211,12 @@ function DayRow({
 
       <td className="px-3 py-2 text-right">
         <Input
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="0.01"
           disabled={!editable}
           placeholder={formatNumberSpaces(slotsAuto)}
           value={state.slots}
-          onChange={(e) => setState((s) => ({ ...s, slots: e.target.value }))}
+          onChange={(e) => setState((s) => ({ ...s, slots: formatInput(e.target.value) }))}
           className="text-right font-mono h-8"
         />
         <div className="text-[10px] text-muted-foreground mt-0.5 text-right pr-1">
