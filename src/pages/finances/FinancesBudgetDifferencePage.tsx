@@ -1,11 +1,13 @@
-import { useMemo, useState } from "react";
-import { TrendingDown } from "lucide-react";
+import { useMemo, useRef, useState, Fragment } from "react";
+import { TrendingDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { YearSelect } from "@/components/ui/year-select";
+import { Button } from "@/components/ui/button";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { useFinBudget, useFinExpenses, useFinCategories } from "@/hooks/use-fin";
 import { formatNumberSpaces } from "@/lib/currency";
+import { formatMoneyCompact } from "@/lib/format-money";
 import { cn } from "@/lib/utils";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -14,9 +16,13 @@ const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov
 export default function FinancesBudgetDifferencePage() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
+  const [compact, setCompact] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const { data: categories = [] } = useFinCategories();
   const { data: budget = [] } = useFinBudget(year);
   const { data: expenses = [] } = useFinExpenses({ from: `${year}-01-01`, to: `${year}-12-31` });
+
+  const fmt = (n: number) => (compact ? formatMoneyCompact(n) : formatNumberSpaces(n));
 
   const planned = useMemo(() => {
     const m: Record<string, Record<number, number>> = {};
@@ -40,20 +46,76 @@ export default function FinancesBudgetDifferencePage() {
 
   const expenseCats = useMemo(() => categories.filter((c: any) => !c.is_income), [categories]);
 
+  // Column totals
+  const colTotals = useMemo(() => {
+    const arr = Array(12).fill(0);
+    expenseCats.forEach((c: any) => {
+      for (let i = 0; i < 12; i++) {
+        const p = planned[c.id]?.[i + 1] || 0;
+        const a = actual[c.id]?.[i + 1] || 0;
+        arr[i] += p - a;
+      }
+    });
+    return arr;
+  }, [expenseCats, planned, actual]);
+  const ytdGrand = colTotals.reduce((s, v) => s + v, 0);
+
+  const monthW = compact ? 80 : 104;
+  const catW = 220;
+  const ytdW = 120;
+  const minW = catW + 12 * monthW + ytdW;
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollByMonths = (dir: -1 | 1) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * monthW, behavior: "smooth" });
+  };
+
+  const isSel = (i: number) => i + 1 === selectedMonth;
+  const selBg = "bg-primary/10";
+  const selBgStrong = "bg-primary/20";
+
   return (
     <PageShell>
       <PageHeader icon={TrendingDown} title="Budget · Difference" subtitle="Plan − Actual per month · negative = overrun">
         <FinanceCasinoSwitcher />
         <YearSelect value={year} onChange={setYear} />
+        <Button size="sm" variant={compact ? "default" : "outline"} onClick={() => setCompact((v) => !v)}>
+          {compact ? "Compact" : "Full"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => scrollByMonths(-1)}><ChevronLeft className="w-4 h-4" /></Button>
+        <Button size="sm" variant="outline" onClick={() => scrollByMonths(1)}><ChevronRight className="w-4 h-4" /></Button>
       </PageHeader>
       <PageSection card={false}>
-        <div className="rounded-md border border-border overflow-auto max-h-[75vh] bg-card">
-          <table className="text-[11px] border-collapse min-w-[1600px]">
+        <div
+          ref={scrollRef}
+          className="rounded-md border border-border overflow-auto max-h-[75vh] bg-card"
+          style={{ scrollSnapType: "x mandatory", scrollPaddingLeft: catW }}
+        >
+          <table className="text-[11px] border-collapse" style={{ minWidth: minW }}>
+            <colgroup>
+              <col style={{ width: catW, minWidth: catW }} />
+              {MONTHS.map((_, i) => <col key={i} style={{ width: monthW, minWidth: monthW }} />)}
+              <col style={{ width: ytdW, minWidth: ytdW }} />
+            </colgroup>
             <thead className="sticky top-0 z-20">
               <tr className="bg-background [&>th]:bg-background [&>th]:h-8 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:border-b [&>th]:border-border">
-                <th className="text-left sticky left-0 z-30 min-w-[220px]">Category</th>
-                {MONTHS.map((m) => <th key={m} className="text-right w-[104px] min-w-[104px]">{m}</th>)}
-                <th className="text-right w-[120px] min-w-[120px] sticky right-0 z-30 border-l border-border">YTD</th>
+                <th className="text-left sticky left-0 z-30">Category</th>
+                {MONTHS.map((m, i) => (
+                  <th
+                    key={m}
+                    className={cn(
+                      "text-right cursor-pointer select-none transition-colors",
+                      isSel(i) ? `${selBgStrong} text-foreground` : "hover:bg-muted/50",
+                    )}
+                    style={{ scrollSnapAlign: "start" }}
+                    onClick={() => setSelectedMonth(i + 1)}
+                  >
+                    {m}
+                  </th>
+                ))}
+                <th className="text-right sticky right-0 z-30 border-l border-border">YTD</th>
               </tr>
             </thead>
             <tbody>
@@ -72,10 +134,10 @@ export default function FinancesBudgetDifferencePage() {
                       ytd += diff;
                       const hasData = p > 0 || a > 0;
                       return (
-                        <td key={i} className="text-right pr-1.5 font-mono tabular-nums whitespace-nowrap">
+                        <td key={i} className={cn("text-right pr-1.5 font-mono tabular-nums whitespace-nowrap", isSel(i) && selBg)}>
                           {hasData ? (
                             <span className={cn(diff < 0 ? "cms-amount-negative font-semibold" : diff > 0 ? "cms-amount-positive" : "text-muted-foreground")}>
-                              {formatNumberSpaces(diff)}
+                              {fmt(diff)}
                             </span>
                           ) : <span className="text-muted-foreground/40">·</span>}
                         </td>
@@ -83,13 +145,38 @@ export default function FinancesBudgetDifferencePage() {
                     })}
                     <td className="text-right pr-2 sticky right-0 z-10 bg-card border-l border-border font-mono tabular-nums whitespace-nowrap">
                       <span className={cn(ytd < 0 ? "cms-amount-negative font-semibold" : ytd > 0 ? "cms-amount-positive" : "text-muted-foreground")}>
-                        {ytd ? formatNumberSpaces(ytd) : "·"}
+                        {ytd ? fmt(ytd) : "·"}
                       </span>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
+            <tfoot className="sticky bottom-0 z-30">
+              <tr className="bg-primary/15 backdrop-blur font-bold border-t-2 border-primary/40 [&>td]:h-8">
+                <td className="sticky left-0 z-40 bg-primary/20 px-2 text-[10px] uppercase tracking-wider border-r border-border">
+                  Σ Difference
+                </td>
+                {colTotals.map((v, i) => (
+                  <td
+                    key={i}
+                    className={cn(
+                      "text-right pr-1.5 font-mono tabular-nums whitespace-nowrap bg-primary/15",
+                      isSel(i) && "bg-primary/30",
+                    )}
+                  >
+                    <span className={v < 0 ? "cms-amount-negative" : v > 0 ? "cms-amount-positive" : "text-muted-foreground"}>
+                      {v ? fmt(v) : "·"}
+                    </span>
+                  </td>
+                ))}
+                <td className="sticky right-0 z-40 bg-primary/20 border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap">
+                  <span className={ytdGrand < 0 ? "cms-amount-negative" : ytdGrand > 0 ? "cms-amount-positive" : "text-muted-foreground"}>
+                    {ytdGrand ? fmt(ytdGrand) : "·"}
+                  </span>
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </PageSection>
