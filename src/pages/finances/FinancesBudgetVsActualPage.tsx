@@ -436,5 +436,6 @@ export default function FinancesBudgetVsActualPage() {
         </DialogContent>
       </Dialog>
     </PageShell>
+    </CompactCtx.Provider>
   );
 }
