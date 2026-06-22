@@ -11,8 +11,12 @@ import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { useFinBudget, useFinExpenses, useFinCategories } from "@/hooks/use-fin";
 import { useFinDailyRatesForDate } from "@/hooks/use-fin-daily-rates";
 import { formatNumberSpaces } from "@/lib/currency";
+import { formatMoneyCompact } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
 import ExcelJS from "exceljs";
+
+let __compactCtx = false;
+const fmtNum = (n: number) => (__compactCtx ? formatMoneyCompact(Math.round(n)) : formatNumberSpaces(Math.round(n)));
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
