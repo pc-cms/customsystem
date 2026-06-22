@@ -279,7 +279,7 @@ export default function FinancesBudgetPage() {
                     {showGroups && (
                       <tr className="bg-muted border-t border-border">
                         <td
-                          className="sticky left-0 z-20 bg-muted px-3 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-foreground border-r border-border"
+                          className="sticky left-0 z-20 bg-muted px-3 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-foreground shadow-[1px_0_0_0_hsl(var(--border))]"
                         >
                           {sec.groupName}
                         </td>
@@ -298,7 +298,7 @@ export default function FinancesBudgetPage() {
                           className="border-t border-border hover:bg-muted/40 [&>td]:h-7 [&>td]:align-middle"
                         >
                           <td
-                            className="sticky left-0 z-10 bg-card px-3 whitespace-nowrap border-r border-border"
+                            className="sticky left-0 z-10 bg-card px-3 whitespace-nowrap shadow-[1px_0_0_0_hsl(var(--border))]"
                             title={c.name}
                           >
                             {!showGroups && (
@@ -317,14 +317,14 @@ export default function FinancesBudgetPage() {
                             const sel = isSelMonth(i);
                             return (
                               <Fragment key={`r-${c.id}-${m}`}>
-                                <td className={cn("border-l border-border p-0", sel && selBg)}>
+                                <td className={cn("border-l-2 border-border p-0", sel && selBg)}>
                                   <Cell
                                     value={tzs}
                                     compact={compact}
                                     onCommit={(raw) => onCommit(c.id, "TZS", m, tzs, raw)}
                                   />
                                 </td>
-                                <td className={cn("p-0", sel && selBg)}>
+                                <td className={cn("border-l border-border/40 p-0", sel && selBg)}>
                                   <Cell
                                     value={usd}
                                     compact={compact}
@@ -334,10 +334,10 @@ export default function FinancesBudgetPage() {
                               </Fragment>
                             );
                           })}
-                          <td className="sticky right-0 z-10 bg-card border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap" style={{ right: yearW }}>
+                          <td className="sticky z-10 bg-card text-right pr-2 font-mono tabular-nums whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]" style={{ right: yearW }}>
                             {yTzs ? fmtN(yTzs) : <span className="text-muted-foreground/40">·</span>}
                           </td>
-                          <td className="sticky right-0 z-10 bg-card border-l border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap">
+                          <td className="sticky right-0 z-10 bg-card text-right pr-2 font-mono tabular-nums whitespace-nowrap shadow-[-1px_0_0_0_hsl(var(--border))]">
                             {yUsd ? fmtN(yUsd) : <span className="text-muted-foreground/40">·</span>}
                           </td>
                         </tr>
