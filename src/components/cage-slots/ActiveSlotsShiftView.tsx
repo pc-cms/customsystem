@@ -880,11 +880,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
           {/* Cashless transactions moved to dedicated /cashless page in the sidebar */}
 
-          {shift.status === "open" && (
-            <PageSection title="Transfers">
-              <SlotsTransfersForm shiftId={shift.id} />
-            </PageSection>
-          )}
+          {/* Transfers form lives on the dedicated /transfers page (sidebar) to avoid duplication */}
         </div>
       </div>
 
