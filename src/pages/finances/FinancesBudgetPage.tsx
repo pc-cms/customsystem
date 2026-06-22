@@ -134,8 +134,10 @@ export default function FinancesBudgetPage() {
   };
 
   const isSelMonth = (i: number) => i + 1 === selectedMonth;
-  const selBg = "bg-primary/10";
-  const selBgStrong = "bg-primary/20";
+  const selBg = "bg-primary/15";
+  const selBgStrong = "bg-primary/25";
+  const stickyLeftEdge = "ring-1 ring-inset ring-border shadow-[2px_0_0_0_hsl(var(--border))]";
+  const stickyRightEdge = "ring-1 ring-inset ring-border shadow-[-2px_0_0_0_hsl(var(--border))]";
 
   return (
     <PageShell>
@@ -179,7 +181,7 @@ export default function FinancesBudgetPage() {
             scrollPaddingLeft: catW,
           }}
         >
-          <table className="text-[11px] border-collapse" style={{ minWidth: minW }}>
+          <table className="text-[11px] border-separate border-spacing-0" style={{ minWidth: minW }}>
             <colgroup>
               <col style={{ width: catW, minWidth: catW }} />
               {MONTHS.map((_, i) => (
@@ -196,7 +198,7 @@ export default function FinancesBudgetPage() {
               <tr className="bg-background [&>th]:bg-background [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground">
                 <th
                   rowSpan={2}
-                  className="text-left sticky left-0 z-40 px-3 py-2 border-b border-border align-middle bg-background shadow-[1px_0_0_0_hsl(var(--border))]"
+                   className={cn("text-left sticky left-0 z-40 px-3 py-2 border-b border-border align-middle bg-background", stickyLeftEdge)}
                 >
                   Category
                 </th>
@@ -221,7 +223,7 @@ export default function FinancesBudgetPage() {
                 ))}
                 <th
                   rowSpan={2}
-                  className="text-right sticky z-40 border-b border-border px-2 py-2 align-middle bg-background shadow-[-1px_0_0_0_hsl(var(--border))]"
+                   className={cn("text-right sticky z-40 border-b border-border px-2 py-2 align-middle bg-background border-l-2 border-border", stickyRightEdge)}
                   style={{ right: yearW }}
                   title="Plan Year TZS — Σ12 (если введён один месяц → ×12)"
                 >
@@ -229,7 +231,7 @@ export default function FinancesBudgetPage() {
                 </th>
                 <th
                   rowSpan={2}
-                  className="text-right sticky right-0 z-40 border-b border-border px-2 py-2 align-middle bg-background shadow-[-1px_0_0_0_hsl(var(--border))]"
+                   className={cn("text-right sticky right-0 z-40 border-b border-border px-2 py-2 align-middle bg-background border-l-2 border-border", stickyRightEdge)}
                   title="Plan Year USD — Σ12 (если введён один месяц → ×12)"
                 >
                   Plan Year USD
