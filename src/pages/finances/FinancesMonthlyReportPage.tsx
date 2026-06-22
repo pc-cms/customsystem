@@ -601,11 +601,9 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, mtdValue, editMode, y
         <td className="text-right">
           <InlineNumberCell value={c.plan_year_tzs} disabled onCommit={() => {}} />
         </td>
-        {showUsd && (
-          <td className="text-right text-muted-foreground">
-            <InlineNumberCell value={c.plan_year_usd} disabled onCommit={() => {}} className="text-muted-foreground" />
-          </td>
-        )}
+        <td className="text-right text-muted-foreground">
+          <InlineNumberCell value={c.plan_year_usd} disabled onCommit={() => {}} className="text-muted-foreground" />
+        </td>
         <td className="text-right">
           <InlineNumberCell
             value={c.plan_month_tzs}
@@ -613,24 +611,24 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, mtdValue, editMode, y
             onCommit={(v) => onPlanCommit(c.id, "TZS", v)}
           />
         </td>
-        {showUsd && (
-          <td className="text-right text-muted-foreground">
-            <InlineNumberCell
-              value={c.plan_month_usd}
-              disabled={!editMode}
-              onCommit={(v) => onPlanCommit(c.id, "USD", v)}
-              className="text-muted-foreground"
-            />
-          </td>
-        )}
+        <td className="text-right text-muted-foreground">
+          <InlineNumberCell
+            value={c.plan_month_usd}
+            disabled={!editMode}
+            onCommit={(v) => onPlanCommit(c.id, "USD", v)}
+            className="text-muted-foreground"
+          />
+        </td>
         <td className="text-right font-mono tabular-nums border-l border-border">{fmt(c.actual_tzs)}</td>
-        {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground">{fmt(c.actual_usd)}</td>}
+        <td className="text-right font-mono tabular-nums text-muted-foreground">{fmt(c.actual_usd)}</td>
+        <td className="text-right font-mono tabular-nums border-l border-border">{fmt(c.actual_grand_tzs)}</td>
         <td className="text-right font-mono tabular-nums">{c.plan_month_tzs ? pct(c.actual_tzs / c.plan_month_tzs) : "—"}</td>
         <td className="text-right font-mono tabular-nums border-l border-border">{fmt(mtdValue)}</td>
         <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(remTzs))}>{fmt(remTzs)}</td>
-        {showUsd && <td className={cn("text-right font-mono tabular-nums text-muted-foreground", cls(remUsd))}>{fmt(remUsd)}</td>}
+        <td className={cn("text-right font-mono tabular-nums text-muted-foreground", cls(remUsd))}>{fmt(remUsd)}</td>
         <td className="text-right font-mono tabular-nums pr-3">{c.plan_month_tzs ? pct(remTzs / c.plan_month_tzs) : "—"}</td>
       </tr>
+
 
       {expanded && (
         <tr className="bg-muted/10">
