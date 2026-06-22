@@ -376,10 +376,10 @@ export default function FinancesBudgetVsActualPage() {
                   <tr className="bg-muted">
                     <td
                       className={cn("sticky left-0 z-[1] bg-muted px-2 py-1 font-semibold text-[11px] uppercase tracking-wide", stickyLeftEdge)}
-                      colSpan={25}
                     >
                       {g.name}
                     </td>
+                    <td colSpan={24} className="bg-muted border-l border-border" />
                   </tr>
                   {g.rows.map((c: any) => renderRow(c))}
                   {renderAggRow(`sub-${g.code}`, `${g.name} subtotal`, g.rows.map((c: any) => c.id))}
