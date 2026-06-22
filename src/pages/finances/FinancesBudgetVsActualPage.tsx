@@ -345,7 +345,7 @@ export default function FinancesBudgetVsActualPage() {
           <table className="text-xs" style={{ minWidth: 2400 }}>
             <thead className="sticky top-0 z-[2]">
               <tr className="bg-muted">
-                <th rowSpan={3} className="sticky left-0 z-[3] bg-muted px-2 py-2 text-left border-r border-border min-w-[220px]">
+                <th rowSpan={3} className="sticky left-0 z-[3] bg-muted px-2 py-2 text-left shadow-[1px_0_0_0_hsl(var(--border))] min-w-[220px]">
                   Category
                 </th>
                 <th colSpan={12} className="px-2 py-1 text-center border-l border-border">{monthLabel}</th>
