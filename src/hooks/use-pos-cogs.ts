@@ -1,7 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type CogsGroupBy = "sellable_item" | "ingredient" | "location" | "day";
+export type CogsGroupBy =
+  | "sellable_item"
+  | "ingredient"
+  | "location"
+  | "day"
+  | "shift"
+  | "payment_method";
 
 export type CogsRow = {
   group_key: string;
@@ -10,10 +16,18 @@ export type CogsRow = {
   units_consumed: number;
   cogs_tzs: number;
   gross_sales_tzs: number;
+  /** kept for backward compat — UI does not emphasize it. */
   gross_margin_tzs: number;
+  /** kept for backward compat — UI does not emphasize it. */
   gross_margin_pct: number | null;
   uncosted_movement_count: number;
   movement_count: number;
+  cost_cash_tzs: number;
+  cost_card_tzs: number;
+  cost_comp_player_tzs: number;
+  cost_comp_house_tzs: number;
+  cost_player_charge_tzs: number;
+  cost_voided_tzs: number;
 };
 
 export function usePosCogsReport(params: {
@@ -48,6 +62,12 @@ export function usePosCogsReport(params: {
         gross_margin_pct: r.gross_margin_pct == null ? null : Number(r.gross_margin_pct),
         uncosted_movement_count: Number(r.uncosted_movement_count) || 0,
         movement_count: Number(r.movement_count) || 0,
+        cost_cash_tzs: Number(r.cost_cash_tzs) || 0,
+        cost_card_tzs: Number(r.cost_card_tzs) || 0,
+        cost_comp_player_tzs: Number(r.cost_comp_player_tzs) || 0,
+        cost_comp_house_tzs: Number(r.cost_comp_house_tzs) || 0,
+        cost_player_charge_tzs: Number(r.cost_player_charge_tzs) || 0,
+        cost_voided_tzs: Number(r.cost_voided_tzs) || 0,
       }));
     },
   });

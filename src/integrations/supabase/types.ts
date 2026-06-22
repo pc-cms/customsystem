@@ -10000,6 +10000,12 @@ export type Database = {
         }
         Returns: {
           cogs_tzs: number
+          cost_card_tzs: number
+          cost_cash_tzs: number
+          cost_comp_house_tzs: number
+          cost_comp_player_tzs: number
+          cost_player_charge_tzs: number
+          cost_voided_tzs: number
           gross_margin_pct: number
           gross_margin_tzs: number
           gross_sales_tzs: number
