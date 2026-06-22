@@ -304,6 +304,51 @@ export default function FinancesMonthlyReportPage() {
         />
       ))}
 
+      {/* GRAND TOTAL — in-table headline row across all operating groups */}
+      {data && (
+        <PageSection title="Grand Total" card={false}>
+          <div className="rounded-md border-2 border-border overflow-auto bg-card">
+            <table className="w-full text-[11px] border-collapse">
+              <thead className="bg-muted/40">
+                <tr className="[&>th]:h-7 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
+                  <th className="text-left sticky left-0 z-10 bg-muted/40 min-w-[220px]">All operating groups</th>
+                  <th className="text-right w-[110px]">Plan/Mo</th>
+                  <th className="text-right w-[80px]">USD</th>
+                  <th className="text-right w-[110px] border-l border-border">Actual</th>
+                  <th className="text-right w-[80px]">USD</th>
+                  <th className="text-right w-[110px] border-l border-border">Grand TZS</th>
+                  <th className="text-right w-[52px]">%</th>
+                  <th className="text-right w-[110px] border-l border-border">Remain TZS</th>
+                  <th className="text-right w-[80px]">USD</th>
+                  <th className="text-right w-[110px] pr-3">Remain Grand</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="bg-muted/50 font-bold [&>td]:h-8 [&>td]:px-2 [&>td]:align-middle">
+                  <td className="sticky left-0 z-10 bg-muted/50">TOTAL</td>
+                  <td className="text-right font-mono tabular-nums">{fmtT(data.grand.plan_month_tzs)}</td>
+                  <td className="text-right font-mono tabular-nums">{fmtT(data.grand.plan_month_usd)}</td>
+                  <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(data.grand.actual_tzs)}</td>
+                  <td className="text-right font-mono tabular-nums">{fmtT(data.grand.actual_usd)}</td>
+                  <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(data.grand.actual_grand_tzs)}</td>
+                  <td className="text-right font-mono tabular-nums">{data.grand.plan_month_grand_tzs ? pct(data.grand.actual_grand_tzs / data.grand.plan_month_grand_tzs) : "—"}</td>
+                  <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(data.grand.plan_month_tzs - data.grand.actual_tzs))}>{fmtT(data.grand.plan_month_tzs - data.grand.actual_tzs)}</td>
+                  <td className={cn("text-right font-mono tabular-nums", cls(data.grand.plan_month_usd - data.grand.actual_usd))}>{fmtT(data.grand.plan_month_usd - data.grand.actual_usd)}</td>
+                  <td className={cn("text-right font-mono tabular-nums pr-3", cls(data.grand.plan_month_grand_tzs - data.grand.actual_grand_tzs))}>{fmtT(data.grand.plan_month_grand_tzs - data.grand.actual_grand_tzs)}</td>
+                </tr>
+              </tbody>
+            </table>
+            {data.usd_rate > 0 && (
+              <div className="text-[10px] text-muted-foreground px-3 py-1.5 border-t border-border">
+                Grand TZS uses USD→TZS @ {formatNumberSpaces(Math.round(data.usd_rate))}
+              </div>
+            )}
+          </div>
+        </PageSection>
+      )}
+
+
+
 
       {/* TOTAL BUDGET — после расходов, до Collections */}
       {data && (
