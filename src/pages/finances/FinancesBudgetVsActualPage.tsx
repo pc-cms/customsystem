@@ -1,4 +1,4 @@
-import { useMemo, useState, Fragment } from "react";
+import { useMemo, useState, Fragment, createContext, useContext } from "react";
 import { BarChart3, AlertTriangle, Download } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -15,8 +15,11 @@ import { formatMoneyCompact } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
 import ExcelJS from "exceljs";
 
-let __compactCtx = false;
-const fmtNum = (n: number) => (__compactCtx ? formatMoneyCompact(Math.round(n)) : formatNumberSpaces(Math.round(n)));
+const CompactCtx = createContext(false);
+const useFmt = () => {
+  const compact = useContext(CompactCtx);
+  return (n: number) => (compact ? formatMoneyCompact(Math.round(n)) : formatNumberSpaces(Math.round(n)));
+};
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
