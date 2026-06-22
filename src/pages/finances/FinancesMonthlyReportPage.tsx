@@ -454,18 +454,17 @@ type EditCallbacks = {
   onRenameGroup: (newName: string) => void;
 };
 
-const GroupTable = ({ group, expandedId, onToggle, isNetwork, showUsd, mtd, mtdMonthLabel, ...edit }: {
+const GroupTable = ({ group, expandedId, onToggle, isNetwork, mtd, mtdMonthLabel, ...edit }: {
   group: ReportGroup;
   expandedId: string | null;
   onToggle: (id: string) => void;
   isNetwork: boolean;
-  showUsd: boolean;
   mtd: Record<string, number>;
   mtdMonthLabel: string;
 } & EditCallbacks) => {
 
   const { editMode, onAddCategory, onRenameGroup } = edit;
-  const colCount = 7 + (showUsd ? 4 : 0); // Category + 5 metrics + MTD + optional 4 USD
+  const colCount = 13; // Category + 6 USD/TZS pair cells + Grand + % + MTD + Remain TZS + USD + %
   const groupMtd = group.categories.reduce((s, c) => s + (mtd[c.id] || 0), 0);
   const titleNode = editMode ? (
     <div className="min-w-[220px]">
@@ -492,15 +491,16 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, showUsd, mtd, mtdM
             <tr className="[&>th]:h-7 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
               <th className="text-left sticky left-0 z-10 bg-muted/40 min-w-[220px]">Category</th>
               <th className="text-right w-[110px]">Plan/Year</th>
-              {showUsd && <th className="text-right w-[80px]">USD</th>}
+              <th className="text-right w-[80px]">USD</th>
               <th className="text-right w-[110px]">Plan/Mo</th>
-              {showUsd && <th className="text-right w-[80px]">USD</th>}
+              <th className="text-right w-[80px]">USD</th>
               <th className="text-right w-[110px] border-l border-border">Actual</th>
-              {showUsd && <th className="text-right w-[80px]">USD</th>}
+              <th className="text-right w-[80px]">USD</th>
+              <th className="text-right w-[110px] border-l border-border" title="Σ amount_tzs (TZS + USD converted)">Grand TZS</th>
               <th className="text-right w-[52px]">%</th>
               <th className="text-right w-[110px] border-l border-border" title={`Month-to-date · ${mtdMonthLabel}`}>{mtdMonthLabel || "MTD"}</th>
               <th className="text-right w-[110px] border-l border-border">Remain</th>
-              {showUsd && <th className="text-right w-[80px]">USD</th>}
+              <th className="text-right w-[80px]">USD</th>
               <th className="text-right w-[52px] pr-3">%</th>
             </tr>
           </thead>
@@ -534,15 +534,16 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, showUsd, mtd, mtdM
             <tr className="bg-muted/40 font-semibold border-t-2 border-border [&>td]:h-7 [&>td]:px-2 [&>td]:align-middle">
               <td className="sticky left-0 z-10 bg-muted/40">Total</td>
               <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_year_tzs)}</td>
-              {showUsd && <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_year_usd)}</td>}
+              <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_year_usd)}</td>
               <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_month_tzs)}</td>
-              {showUsd && <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_month_usd)}</td>}
+              <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_month_usd)}</td>
               <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(group.totals.actual_tzs)}</td>
-              {showUsd && <td className="text-right font-mono tabular-nums">{fmtT(group.totals.actual_usd)}</td>}
+              <td className="text-right font-mono tabular-nums">{fmtT(group.totals.actual_usd)}</td>
+              <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(group.totals.actual_grand_tzs)}</td>
               <td className="text-right font-mono tabular-nums">{group.totals.plan_month_tzs ? pct(group.totals.actual_tzs / group.totals.plan_month_tzs) : "—"}</td>
               <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(groupMtd)}</td>
               <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(group.totals.plan_month_tzs - group.totals.actual_tzs))}>{fmtT(group.totals.plan_month_tzs - group.totals.actual_tzs)}</td>
-              {showUsd && <td className={cn("text-right font-mono tabular-nums", cls(group.totals.plan_month_usd - group.totals.actual_usd))}>{fmtT(group.totals.plan_month_usd - group.totals.actual_usd)}</td>}
+              <td className={cn("text-right font-mono tabular-nums", cls(group.totals.plan_month_usd - group.totals.actual_usd))}>{fmtT(group.totals.plan_month_usd - group.totals.actual_usd)}</td>
               <td className="text-right font-mono tabular-nums pr-3">{group.totals.plan_month_tzs ? pct((group.totals.plan_month_tzs - group.totals.actual_tzs) / group.totals.plan_month_tzs) : "—"}</td>
             </tr>
           </tbody>
@@ -551,6 +552,7 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, showUsd, mtd, mtdM
     </PageSection>
   );
 };
+
 
 const Row = ({ c, expanded, onToggle, isNetwork, showUsd, colCount, mtdValue, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onArchiveCategory, onEditExpense }: {
   c: ReportCategory; expanded: boolean; onToggle: () => void; isNetwork: boolean; showUsd: boolean; colCount: number; mtdValue: number;
