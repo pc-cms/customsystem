@@ -124,8 +124,7 @@ const Dashboard = () => {
   const { data: tables = [] } = useGamingTables();
   // (live-game expenses fetched separately via pending count query below)
   const { data: trackerData = [] } = useTableTracker(businessDate);
-  const { data: snapshots = [] } = useChipSnapshots(businessDate);
-  const { data: baseline = [] } = useChipBaseline();
+  const { data: tableResultMap = {} } = useDashboardTableResults(businessDate);
   const { data: staffMembers = [] } = useStaffMembers();
   const { data: staffRota = [] } = useStaffRotaRange(businessDate, businessDate);
 
