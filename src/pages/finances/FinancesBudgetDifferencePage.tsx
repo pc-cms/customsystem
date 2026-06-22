@@ -156,7 +156,7 @@ export default function FinancesBudgetDifferencePage() {
             </tbody>
             <tfoot className="sticky bottom-0 z-30">
               <tr className="bg-primary/15 font-bold border-t-2 border-primary/40 [&>td]:h-8">
-                <td className={cn("sticky left-0 z-40 bg-primary/25 px-2 text-[10px] uppercase tracking-wider", stickyLeftEdge)}>
+                <td className={cn("sticky left-0 z-40 bg-primary px-2 text-[10px] uppercase tracking-wider text-primary-foreground", stickyLeftEdge)}>
                   Σ Difference
                 </td>
                 {colTotals.map((v, i) => (
@@ -172,7 +172,7 @@ export default function FinancesBudgetDifferencePage() {
                     </span>
                   </td>
                 ))}
-                <td className={cn("sticky right-0 z-40 bg-primary/25 border-l-2 border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap", stickyRightEdge)}>
+                <td className={cn("sticky right-0 z-40 bg-primary border-l-2 border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap text-primary-foreground", stickyRightEdge)}>
                   <span className={ytdGrand < 0 ? "cms-amount-negative" : ytdGrand > 0 ? "cms-amount-positive" : "text-muted-foreground"}>
                     {ytdGrand ? fmt(ytdGrand) : "·"}
                   </span>
