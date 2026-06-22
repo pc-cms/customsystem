@@ -38,6 +38,26 @@ function buildMonthDates(year: number, month: number): string[] {
 
 type RowState = { tables: string; slots: string; comment: string };
 
+const parseAmountInput = (value: string): number => {
+  const raw = value.replace(/\s+/g, "").replace(",", ".");
+  if (!raw || raw === "-" || raw === "." || raw === "-.") return 0;
+  return Number(raw) || 0;
+};
+
+const formatAmountInput = (value: string): string => {
+  const trimmed = value.trimStart();
+  const sign = trimmed.startsWith("-") ? "-" : "";
+  const cleaned = trimmed.replace(/[^\d.,]/g, "").replace(",", ".");
+  const [integer = "", decimal] = cleaned.split(".");
+  const digits = integer.replace(/\D/g, "");
+  const formattedInteger = digits.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  const suffix = decimal !== undefined ? `.${decimal.replace(/\D/g, "")}` : "";
+  return `${sign}${formattedInteger}${suffix}`;
+};
+
+const amountToneClass = (value: number) =>
+  value > 0 ? "cms-amount-positive" : value < 0 ? "cms-amount-negative" : "text-muted-foreground";
+
 export default function DayClosingsTab() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -145,18 +165,8 @@ function DayRow({
     });
   }, [existing?.id, existing?.tables_result, existing?.slots_result, existing?.notes]);
 
-  const parseNum = (s: string) => Number(s.replace(/\s+/g, "").replace(",", "."));
-  const tablesNum = state.tables === "" ? tablesAuto : parseNum(state.tables);
-  const slotsNum = state.slots === "" ? slotsAuto : parseNum(state.slots);
-  const formatInput = (s: string) => {
-    const cleaned = s.replace(/[^\d\-.,]/g, "").replace(",", ".");
-    if (cleaned === "" || cleaned === "-") return cleaned;
-    const [intPart, decPart] = cleaned.split(".");
-    const sign = intPart.startsWith("-") ? "-" : "";
-    const digits = intPart.replace(/-/g, "");
-    const withSep = digits.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-    return sign + withSep + (decPart !== undefined ? "." + decPart : "");
-  };
+  const tablesNum = state.tables === "" ? tablesAuto : parseAmountInput(state.tables);
+  const slotsNum = state.slots === "" ? slotsAuto : parseAmountInput(state.slots);
 
   const dT = Math.abs(tablesNum - tablesAuto);
   const dS = Math.abs(slotsNum - slotsAuto);
@@ -210,10 +220,10 @@ function DayRow({
           disabled={!editable}
           placeholder={formatNumberSpaces(tablesAuto)}
           value={state.tables}
-          onChange={(e) => setState((s) => ({ ...s, tables: formatInput(e.target.value) }))}
-          className="text-right font-mono h-8"
+          onChange={(e) => setState((s) => ({ ...s, tables: formatAmountInput(e.target.value) }))}
+          className={cn("text-right font-mono h-8", state.tables !== "" && amountToneClass(tablesNum))}
         />
-        <div className="text-[10px] text-muted-foreground mt-0.5 text-right pr-1">
+        <div className={cn("text-[10px] mt-0.5 text-right pr-1", amountToneClass(tablesAuto))}>
           auto {formatNumberSpaces(tablesAuto)}
         </div>
       </td>
@@ -225,10 +235,10 @@ function DayRow({
           disabled={!editable}
           placeholder={formatNumberSpaces(slotsAuto)}
           value={state.slots}
-          onChange={(e) => setState((s) => ({ ...s, slots: formatInput(e.target.value) }))}
-          className="text-right font-mono h-8"
+          onChange={(e) => setState((s) => ({ ...s, slots: formatAmountInput(e.target.value) }))}
+          className={cn("text-right font-mono h-8", state.slots !== "" && amountToneClass(slotsNum))}
         />
-        <div className="text-[10px] text-muted-foreground mt-0.5 text-right pr-1">
+        <div className={cn("text-[10px] mt-0.5 text-right pr-1", amountToneClass(slotsAuto))}>
           auto {formatNumberSpaces(slotsAuto)}
         </div>
       </td>
