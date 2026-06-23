@@ -35,6 +35,7 @@ import { useCasinoInfo, useUpdateCasinoSchedule, useCancelPendingSchedule } from
 import { UsersTab } from "@/components/admin/users/UsersTab";
 import { FinCategoriesSettings } from "@/components/admin/FinCategoriesSettings";
 import { ExpenseCategoriesSettings } from "@/components/admin/ExpenseCategoriesSettings";
+import { ResyncDataCard } from "@/components/admin/ResyncDataCard";
 
 // (ROLES / ALL_ROLES / ROLE_LABELS moved to src/components/admin/users/users-hooks.ts)
 
@@ -181,7 +182,12 @@ const Admin = () => {
 
         <TabsContent value="users"><UsersTab /></TabsContent>
         {isSuperAdmin && <TabsContent value="role-defaults"><RoleDefaultsEditor /></TabsContent>}
-        <TabsContent value="schedule"><ScheduleSettings /></TabsContent>
+        <TabsContent value="schedule">
+          <div className="space-y-4">
+            <ScheduleSettings />
+            <div className="max-w-lg"><ResyncDataCard /></div>
+          </div>
+        </TabsContent>
         <TabsContent value="tables"><TableManagement /></TabsContent>
         <TabsContent value="float">
           <div className="space-y-4">
