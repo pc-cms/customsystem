@@ -140,9 +140,6 @@ export function prefetchRouteChunks(allowedModules?: Set<string>): void {
 
   let loaders = routeLoaders;
   if (allowedModules && allowedModules.size > 0) {
-    // Lazy import to avoid a hard circular dep at module-evaluation time.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { moduleKeyForRoute } = require("@/lib/route-module-map") as typeof import("@/lib/route-module-map");
     loaders = Object.entries(pathLoaders)
       .filter(([path]) => {
         const mod = moduleKeyForRoute(path);
