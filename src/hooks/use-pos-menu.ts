@@ -67,6 +67,7 @@ export function usePosMenuCategories(casinoId: string | null) {
       if (error) throw error;
       return (data ?? []) as PosMenuCategory[];
     },
+    staleTime: 1000 * 60 * 30,
   });
 
   useEffect(() => {
