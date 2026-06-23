@@ -94,12 +94,16 @@ export const useChipSnapshots = (date: string) => {
       return data || [];
     },
     enabled: !!casinoId,
-    // Pin today's data forever in-session: realtime keeps it fresh, no need to
-    // refetch on navigation. Past dates may receive late edits → 5min freshness.
+    // Pin today's data in-session: realtime keeps it fresh. Past dates may
+    // receive late edits → 5min freshness.
     staleTime: isToday ? Infinity : 5 * 60_000,
     gcTime: 24 * 60 * 60_000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    // IMPORTANT: keep default `refetchOnMount: true`. If realtime invalidated
+    // this key while the page was unmounted (another user wrote a snapshot),
+    // we need to refetch on next mount. Setting this to false made pit users
+    // see super-admin's writes only after a full reload.
+    refetchOnReconnect: true,
   });
 };
 
@@ -115,7 +119,7 @@ export const useChipSnapshotsFull = (date: string) => {
     enabled: !!casinoId,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnReconnect: true,
   });
 };
 
