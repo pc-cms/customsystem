@@ -358,6 +358,137 @@ const Kpi = ({ label, v, signed }: { label: string; v: number; signed?: boolean 
   </div>
 );
 
+/**
+ * Summary block — one compact table combining Incomes, Budget (Plan / Actual / Remain)
+ * and Result (Profit / Collections / Net Balance). Remain = Plan/Month − Actual everywhere.
+ */
+const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report").MonthlyReport }) => {
+  const incomes = data.incomes;
+  const g = data.grand;
+  const collectionsTzs = data.collections?.totals.actual_grand_tzs ?? 0;
+  const profit = incomes.total - g.actual_grand_tzs;
+  const netBalance = profit - collectionsTzs;
+  const pctTxt = (n: number, d: number) => (d ? pct(n / d) : "—");
+
+  return (
+    <PageSection title="Month Summary" card={false}>
+      <div className="rounded-md border-2 border-border overflow-auto bg-card">
+        <table className="w-full text-[12px] border-collapse">
+          {/* INCOMES */}
+          <thead className="bg-muted/40">
+            <tr className="[&>th]:h-7 [&>th]:px-3 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
+              <th className="text-left min-w-[180px]">Incomes</th>
+              <th className="text-right w-[140px]">TZS</th>
+              <th className="text-right w-[120px]">USD</th>
+              <th className="text-right w-[160px] border-l border-border">Grand TZS</th>
+              <th className="text-right w-[60px] pr-3">%</th>
+            </tr>
+          </thead>
+          <tbody className="font-mono tabular-nums">
+            <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
+              <td className="font-sans text-muted-foreground">Live Game</td>
+              <td className="text-right">{fmtT(incomes.live_game)}</td>
+              <td className="text-right text-muted-foreground">—</td>
+              <td className="text-right border-l border-border">{fmtT(incomes.live_game)}</td>
+              <td className="text-right text-muted-foreground pr-3">—</td>
+            </tr>
+            <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
+              <td className="font-sans text-muted-foreground">Slots</td>
+              <td className="text-right">{fmtT(incomes.slots)}</td>
+              <td className="text-right text-muted-foreground">—</td>
+              <td className="text-right border-l border-border">{fmtT(incomes.slots)}</td>
+              <td className="text-right text-muted-foreground pr-3">—</td>
+            </tr>
+            <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
+              <td className="font-sans text-muted-foreground">Other</td>
+              <td className="text-right">{fmtT(incomes.other)}</td>
+              <td className="text-right text-muted-foreground">—</td>
+              <td className="text-right border-l border-border">{fmtT(incomes.other)}</td>
+              <td className="text-right text-muted-foreground pr-3">—</td>
+            </tr>
+            <tr className="border-t-2 border-border bg-muted/30 font-bold [&>td]:h-8 [&>td]:px-3">
+              <td className="font-sans">Total Income</td>
+              <td className="text-right">{fmtT(incomes.total)}</td>
+              <td className="text-right text-muted-foreground">—</td>
+              <td className="text-right border-l border-border">{fmtT(incomes.total)}</td>
+              <td className="text-right text-muted-foreground pr-3">—</td>
+            </tr>
+          </tbody>
+
+          {/* BUDGET — Plan / Actual / Remain (the headline "unpaid balance for the month") */}
+          <thead className="bg-muted/40">
+            <tr className="[&>th]:h-7 [&>th]:px-3 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap border-t-2 border-border">
+              <th className="text-left">Budget (Month)</th>
+              <th className="text-right">Plan/Mo</th>
+              <th className="text-right">Actual</th>
+              <th className="text-right border-l border-border">Remain (Plan − Actual)</th>
+              <th className="text-right pr-3">%</th>
+            </tr>
+          </thead>
+          <tbody className="font-mono tabular-nums">
+            <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
+              <td className="font-sans text-muted-foreground">TZS</td>
+              <td className="text-right">{fmtT(g.plan_month_tzs)}</td>
+              <td className="text-right">{fmtT(g.actual_tzs)}</td>
+              <td className={cn("text-right border-l border-border", cls(g.remain_tzs))}>{fmtT(g.remain_tzs)}</td>
+              <td className="text-right text-muted-foreground pr-3">{pctTxt(g.actual_tzs, g.plan_month_tzs)}</td>
+            </tr>
+            <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
+              <td className="font-sans text-muted-foreground">USD</td>
+              <td className="text-right">{fmtT(g.plan_month_usd)}</td>
+              <td className="text-right">{fmtT(g.actual_usd)}</td>
+              <td className={cn("text-right border-l border-border", cls(g.remain_usd))}>{fmtT(g.remain_usd)}</td>
+              <td className="text-right text-muted-foreground pr-3">{pctTxt(g.actual_usd, g.plan_month_usd)}</td>
+            </tr>
+            <tr className="border-t-2 border-border bg-muted/30 font-bold [&>td]:h-8 [&>td]:px-3">
+              <td className="font-sans">Grand TZS</td>
+              <td className="text-right">{fmtT(g.plan_month_grand_tzs)}</td>
+              <td className="text-right">{fmtT(g.actual_grand_tzs)}</td>
+              <td className={cn("text-right border-l border-border", cls(g.remain_grand_tzs))}>{fmtT(g.remain_grand_tzs)}</td>
+              <td className="text-right pr-3">{pctTxt(g.actual_grand_tzs, g.plan_month_grand_tzs)}</td>
+            </tr>
+          </tbody>
+
+          {/* RESULT — Profit & Net Balance */}
+          <thead className="bg-muted/40">
+            <tr className="[&>th]:h-7 [&>th]:px-3 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap border-t-2 border-border">
+              <th className="text-left">Result</th>
+              <th className="text-right" colSpan={2}>Calculation</th>
+              <th className="text-right border-l border-border">Grand TZS</th>
+              <th className="text-right pr-3"></th>
+            </tr>
+          </thead>
+          <tbody className="font-mono tabular-nums">
+            <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
+              <td className="font-sans text-muted-foreground">Profit</td>
+              <td className="text-right text-muted-foreground font-sans text-[11px]" colSpan={2}>Income − Actual (Grand)</td>
+              <td className={cn("text-right border-l border-border", cls(profit))}>{fmtT(profit)}</td>
+              <td className="pr-3"></td>
+            </tr>
+            <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
+              <td className="font-sans text-muted-foreground">Collections</td>
+              <td className="text-right text-muted-foreground font-sans text-[11px]" colSpan={2}>Owner withdrawals</td>
+              <td className="text-right border-l border-border">{fmtT(collectionsTzs)}</td>
+              <td className="pr-3"></td>
+            </tr>
+            <tr className="border-t-2 border-border bg-muted/30 font-bold [&>td]:h-8 [&>td]:px-3">
+              <td className="font-sans">Net Balance</td>
+              <td className="text-right text-muted-foreground font-sans text-[11px]" colSpan={2}>Profit − Collections</td>
+              <td className={cn("text-right border-l border-border", cls(netBalance))}>{fmtT(netBalance)}</td>
+              <td className="pr-3"></td>
+            </tr>
+          </tbody>
+        </table>
+        {data.usd_rate > 0 && (
+          <div className="text-[10px] text-muted-foreground px-3 py-1.5 border-t border-border">
+            Grand TZS uses USD→TZS @ {formatNumberSpaces(Math.round(data.usd_rate))}
+          </div>
+        )}
+      </div>
+    </PageSection>
+  );
+};
+
 type EditCallbacks = {
   editMode: boolean;
   year: number;
