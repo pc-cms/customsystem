@@ -21,6 +21,7 @@ export const useChipBaseline = () => {
       return data;
     },
     enabled: !!casinoId,
+    staleTime: 1000 * 60 * 60 * 6, // 6h — baseline rarely changes; Realtime invalidates
   });
 };
 

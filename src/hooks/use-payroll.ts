@@ -81,6 +81,7 @@ export const useEmployees = () => {
       })) as Employee[];
     },
     enabled: !!activeCasinoId,
+    staleTime: 1000 * 60 * 30,
   });
 };
 
@@ -481,6 +482,7 @@ export const useLatestPayrollSettings = () => {
       return (data as PayrollSettings | null) ?? null;
     },
     enabled: !!activeCasinoId,
+    staleTime: 1000 * 60 * 60 * 24,
   });
 };
 
@@ -512,6 +514,7 @@ export const useLatestPayeBrackets = () => {
       return ((data as unknown) as PayeBracket[]) || [];
     },
     enabled: !!activeCasinoId,
+    staleTime: 1000 * 60 * 60 * 24,
   });
 };
 

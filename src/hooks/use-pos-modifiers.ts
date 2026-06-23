@@ -40,7 +40,7 @@ export function usePosModifiers(casinoId: string | null, activeOnly = true) {
       if (error) throw error;
       return (data ?? []) as PosModifier[];
     },
-    staleTime: 60_000,
+    staleTime: 1000 * 60 * 30,
   });
 }
 

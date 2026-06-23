@@ -42,7 +42,7 @@ export function usePosRecipes(casinoId: string | null) {
       if (error) throw error;
       return (data ?? []) as PosRecipe[];
     },
-    staleTime: 30_000,
+    staleTime: 1000 * 60 * 30,
   });
 }
 

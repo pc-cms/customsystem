@@ -7,15 +7,15 @@ import { MobileHeader } from "./AppSidebar";
 import { PWAUpdateNotification } from "@/components/PWAUpdateNotification";
 import { LocalServerBadge } from "@/components/LocalServerBadge";
 import { OfflineBanner } from "@/components/OfflineBanner";
-import { prefetchRouteChunks } from "@/lib/route-prefetch";
+
+import { PageSkeleton } from "@/components/ui/skeleton";
 
 import { cn } from "@/lib/utils";
 
-const PageLoader = () => (
-  <div className="flex items-center justify-center py-20">
-    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-  </div>
-);
+// Suspense fallback while a lazy route chunk loads. Skeleton (layout-aware)
+// feels much faster than a centered spinner because the page structure
+// is already painted by the time data arrives.
+const PageLoader = () => <PageSkeleton />;
 
 // Routes that need full-bleed width (no max-w container)
 const FULL_WIDTH_ROUTES = [
@@ -49,11 +49,9 @@ export const AppLayout = () => {
     localStorage.setItem(STORAGE_KEY, collapsed ? "1" : "0");
   }, [collapsed]);
 
-  // Warm all lazy route chunks once a day so the app survives offline
-  // navigation to pages the user has never opened before.
-  useEffect(() => {
-    prefetchRouteChunks();
-  }, []);
+  // Route-chunk warm-up is driven by `usePrefetchCriticalData` (App.tsx)
+  // so it can filter chunks by `allowedModules`. Duplicating it here would
+  // warm everything for super-admin path before modules load.
 
   return (
     <div className="flex h-screen overflow-hidden">

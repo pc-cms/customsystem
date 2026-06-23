@@ -141,19 +141,24 @@ export const DTBody = React.forwardRef<
 ));
 DTBody.displayName = "DTBody";
 
-export const DTRow = React.forwardRef<
-  HTMLTableRowElement,
-  React.HTMLAttributes<HTMLTableRowElement>
->(({ className, ...props }, ref) => (
-  <tr
-    ref={ref}
-    className={cn(
-      "border-b border-border transition-colors hover:bg-muted/40",
-      className,
-    )}
-    {...props}
-  />
-));
+// Memoized — table rows are the dominant render cost on long lists.
+// Children passed as JSX still re-create on each parent render, so the
+// memo only saves time when consumers pass stable children (typical:
+// stringified cells). Worst case = identical perf as before.
+export const DTRow = React.memo(
+  React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTMLTableRowElement>>(
+    ({ className, ...props }, ref) => (
+      <tr
+        ref={ref}
+        className={cn(
+          "border-b border-border transition-colors hover:bg-muted/40",
+          className,
+        )}
+        {...props}
+      />
+    ),
+  ),
+);
 DTRow.displayName = "DTRow";
 
 interface CellProps extends React.TdHTMLAttributes<HTMLTableCellElement> {

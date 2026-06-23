@@ -30,6 +30,12 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
+  // Strip `console.log` / `console.info` / `debugger` in production builds.
+  // Keeps `console.warn` and `console.error` (used for real diagnostics).
+  // Dev keeps everything for live debugging.
+  esbuild: mode === "production"
+    ? { drop: ["debugger"], pure: ["console.log", "console.info", "console.debug"] }
+    : undefined,
   plugins: [
     react(),
     mode === "development" && componentTagger(),

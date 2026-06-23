@@ -26,9 +26,8 @@ export const useGamingTables = (includeArchived = false) => {
       return data;
     },
     enabled: !!casinoId,
-    staleTime: 30_000,
-    refetchInterval: 60_000,
-    refetchOnWindowFocus: true,
+    // Gaming tables change rarely (config). Realtime invalidates on edits.
+    staleTime: 1000 * 60 * 5,
   });
 };
 

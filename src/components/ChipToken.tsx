@@ -3,7 +3,7 @@
  * Two-color poker chip: main body + 6 edge inserts + label color.
  * Reads per-casino overrides from chip_color_settings; falls back to defaults.
  */
-import type { CSSProperties } from "react";
+import { memo, type CSSProperties } from "react";
 import { useChipColors, resolveChipColor, type ChipColors } from "@/hooks/use-chip-colors";
 import { formatChipLabel } from "@/lib/currency";
 import { cn } from "@/lib/utils";
@@ -39,4 +39,4 @@ const ChipToken = ({ denom, size = "sm", label, colors: colorOverride, className
   );
 };
 
-export default ChipToken;
+export default memo(ChipToken);

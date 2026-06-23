@@ -152,6 +152,7 @@ export const useStaffMembers = () => {
       });
     },
     enabled: !!casinoId,
+    staleTime: 1000 * 60 * 30, // 30 min — staff roster changes rarely
   });
 };
 

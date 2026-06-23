@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fmtDate } from "@/lib/format-date";
@@ -34,7 +34,7 @@ interface PageHeaderProps {
  *          subtitle
  *   [belowHeader (filters/tabs)]
  */
-export const PageHeader = ({
+export const PageHeader = memo(function PageHeader({
   icon: Icon,
   title,
   subtitle,
@@ -44,7 +44,7 @@ export const PageHeader = ({
   date,
   belowHeader,
   className,
-}: PageHeaderProps) => {
+}: PageHeaderProps) {
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const dateValue: Date | string | null =
     date === true ? (serverBusinessDate || getBusinessDate()) : date && typeof date !== "boolean" ? date : null;
@@ -90,5 +90,5 @@ export const PageHeader = ({
       {belowHeader && <div className="flex items-center gap-2 flex-wrap">{belowHeader}</div>}
     </div>
   );
-};
+});
 

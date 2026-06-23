@@ -2,11 +2,13 @@
  * Eagerly prefetch lazy-loaded route chunks.
  *
  * Two strategies:
- *  1. After login: warm ALL chunks in idle time so the app is fully reachable
- *     offline and switching tabs never shows a flash of Suspense loader.
+ *  1. After login: warm chunks for routes the user can actually open
+ *     (`allowedModules` from the Permission Matrix). Pit/Cashier never
+ *     parse Finance/Payroll/KYC JS.
  *  2. On link hover/focus/touchstart in the sidebar: prefetch THIS chunk
  *     immediately so the click is instant even on cold cache.
  */
+import { moduleKeyForRoute } from "@/lib/route-module-map";
 
 type Loader = () => Promise<unknown>;
 
@@ -120,16 +122,35 @@ async function runPool(loaders: Loader[], concurrency = 3) {
 }
 
 /**
- * Warm every route chunk in the background. Idempotent — runs at most
- * once per 24h per device.
+ * Warm route chunks in the background. Idempotent — runs at most once
+ * per 24h per device.
+ *
+ * When `allowedModules` is provided (Step 3), only chunks for routes the
+ * user can actually open are warmed — Pit/Cashier don't pull Finance,
+ * Payroll, KYC, Lottery JS into memory.
+ *
+ * When omitted (legacy callers), warms every chunk — preserves the
+ * previous "fully reachable offline" behavior for super-admin / unknown.
  */
-export function prefetchRouteChunks(): void {
+export function prefetchRouteChunks(allowedModules?: Set<string>): void {
   if (typeof window === "undefined") return;
   if (!navigator.onLine) return;
   if (!shouldRun()) return;
   markRan();
+
+  let loaders = routeLoaders;
+  if (allowedModules && allowedModules.size > 0) {
+    loaders = Object.entries(pathLoaders)
+      .filter(([path]) => {
+        const mod = moduleKeyForRoute(path);
+        // ungated routes (mod=null) are always warmed; gated routes must be allowed
+        return mod === null || allowedModules.has(mod);
+      })
+      .map(([, loader]) => loader);
+  }
+
   idle(() => {
-    void runPool(routeLoaders, 3);
+    void runPool(loaders, 3);
   });
 }
 

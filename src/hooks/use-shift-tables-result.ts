@@ -24,6 +24,8 @@ export function useShiftTablesResultTotal(shiftId: string | null | undefined) {
       return rows.reduce((s, r) => s + Number(r.result || 0), 0);
     },
     enabled: !!shiftId,
-    staleTime: 10_000,
+    // Hot KPI: shift P&L must always be fresh.
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 }
