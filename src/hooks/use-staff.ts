@@ -303,6 +303,7 @@ export const useStaffAttendanceRange = (startDate: string, endDate: string) => {
       return (data ?? []).map(aliasStaffRow);
     },
     enabled: !!casinoId,
+    refetchOnMount: true,
   });
 };
 
