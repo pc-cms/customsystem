@@ -287,11 +287,11 @@ function modulePrefetchTasks(
     case "pit_active_players":
       return [
         () => qc.prefetchQuery({
-          queryKey: ["player-daily-zones", casinoId, today],
+          queryKey: ["player_daily_zones", casinoId, today],
           queryFn: async () => {
             const { data, error } = await supabase
-              .from("player_daily_zones").select("*")
-              .eq("casino_id", casinoId).eq("date", today);
+              .from("player_daily_zones").select("player_id, zone")
+              .eq("casino_id", casinoId).eq("business_date", today);
             if (error) throw error;
             return data ?? [];
           },
