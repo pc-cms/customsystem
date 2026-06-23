@@ -124,7 +124,8 @@ export const useChipVisibility = () => {
       return map;
     },
     enabled: !!casinoId,
-    staleTime: 30_000,
+    staleTime: 1000 * 60 * 60 * 24,
+    gcTime: 1000 * 60 * 60 * 24 * 7,
   });
 };
 
