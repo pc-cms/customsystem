@@ -591,13 +591,13 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
             <tr className="bg-muted/40 font-semibold border-t-2 border-border [&>td]:h-9 [&>td]:px-2 [&>td]:align-middle">
               <td className="sticky left-0 z-10 bg-muted/40">Total</td>
               <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(t.plan_month_tzs)}</td>
-              <td className="text-right font-mono tabular-nums">{fmtT(t.plan_month_usd)}</td>
+              <td className={cn("text-right font-mono tabular-nums", USD_COL)}><UsdAmt value={t.plan_month_usd} total /></td>
               <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(t.actual_tzs)}</td>
-              <td className="text-right font-mono tabular-nums">{fmtT(t.actual_usd)}</td>
+              <td className={cn("text-right font-mono tabular-nums", USD_COL)}><UsdAmt value={t.actual_usd} total /></td>
               <td className="text-right font-mono tabular-nums">{fmtT(t.actual_grand_tzs)}</td>
               <td className={cn("text-right font-mono tabular-nums", pctTone(tSpent))}>{actPct}</td>
               <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(t.remain_tzs))}>{fmtT(t.remain_tzs)}</td>
-              <td className={cn("text-right font-mono tabular-nums", cls(t.remain_usd))}>{fmtT(t.remain_usd)}</td>
+              <td className={cn("text-right font-mono tabular-nums", USD_COL, cls(t.remain_usd))}><UsdAmt value={t.remain_usd} total /></td>
               <td className={cn("text-right font-mono tabular-nums", cls(t.remain_grand_tzs))}>{fmtT(t.remain_grand_tzs)}</td>
               <td className={cn("text-right font-mono tabular-nums pr-3", pctTone(tSpent))}>{remPct}</td>
             </tr>
