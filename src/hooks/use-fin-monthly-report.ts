@@ -36,6 +36,8 @@ export type ReportCategory = {
   plan_year_usd: number;
   plan_month_tzs: number;
   plan_month_usd: number;
+  /** plan_month_tzs + plan_month_usd × avg USD→TZS rate. */
+  plan_month_grand_tzs: number;
   /** Σ amount where currency='TZS' — native TZS spend, no conversion. */
   actual_tzs: number;
   /** Σ amount where currency='USD' — native USD spend, no conversion. */
