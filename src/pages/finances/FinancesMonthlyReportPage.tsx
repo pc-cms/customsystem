@@ -52,26 +52,17 @@ const pctTone = (spentRatio: number | null | undefined) => {
 
 /**
  * USD distinction:
- *  - `USD_COL`  → faint vertical-stripe background, applied to every USD <th>/<td>.
- *  - `UsdGlyph` → small sky-blue "$" prefix shown next to USD numerics.
- *    Skipped automatically when the rendered amount is the muted "—" placeholder.
+ *  - `USD_COL`  → visible vertical-stripe background, applied to every USD <th>/<td>.
+ *  - The `$` sign lives in the column header (header-size, muted color); body cells render numbers only.
  */
-const USD_COL = "bg-muted/40 dark:bg-muted/20";
-const UsdGlyph = ({ show = true }: { show?: boolean }) =>
-  show ? (
-    <span className="mr-0.5 text-[10px] font-semibold text-sky-600 dark:text-sky-400">$</span>
-  ) : null;
-/** Renders an amount with leading $ glyph; falls back to muted "—" for zero/empty. */
+const USD_COL = "bg-muted/70 dark:bg-muted/40";
+/** Renders an amount; falls back to muted "—" for zero/empty. */
 const UsdAmt = ({ value, total = false, className }: { value: number; total?: boolean; className?: string }) => {
   const txt = total ? fmtT(value) : fmt(value);
   if (txt === "—") return <span className="text-muted-foreground">—</span>;
-  return (
-    <span className={className}>
-      <UsdGlyph />
-      {txt}
-    </span>
-  );
+  return <span className={className}>{txt}</span>;
 };
+
 
 
 const CASINO_CODE: Record<string, string> = { arusha: "A", mwanza: "M", dodoma: "D", mbeya: "B" };
@@ -386,30 +377,30 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
         {/* ───── INCOMES ───── */}
         <div className={card}>
           <div className={cardHeader}>Incomes</div>
-          <table className="w-full text-[12px] border-collapse">
+          <table className="w-full text-[15px] border-collapse">
             <thead className="bg-muted/20">
-              <tr className="[&>th]:h-7 [&>th]:px-3 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
+              <tr className="[&>th]:h-8 [&>th]:px-3 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
                 <th className="text-left">Source</th>
-                <th className="text-right w-[120px]">TZS</th>
-                <th className={cn("text-right w-[90px] pr-3", USD_COL)}>$ USD</th>
+                <th className="text-right w-[140px]">TZS</th>
+                <th className={cn("text-right w-[100px] pr-3", USD_COL)}>$</th>
               </tr>
             </thead>
-            <tbody className="font-mono tabular-nums">
+            <tbody className="font-mono tabular-nums font-bold">
               {[
                 ["Live Game", incomes.live_game],
                 ["Slots", incomes.slots],
                 ["Other", incomes.other],
               ].map(([label, v]) => (
-                <tr key={label as string} className="border-t border-border [&>td]:h-7 [&>td]:px-3">
-                  <td className="font-sans text-muted-foreground">{label}</td>
+                <tr key={label as string} className="border-t border-border [&>td]:h-9 [&>td]:px-3">
+                  <td className="font-sans font-normal text-muted-foreground text-[12px]">{label}</td>
                   <td className="text-right">{fmtT(v as number)}</td>
-                  <td className={cn("text-right text-muted-foreground pr-3", USD_COL)}>—</td>
+                  <td className={cn("text-right text-muted-foreground font-normal pr-3", USD_COL)}>—</td>
                 </tr>
               ))}
-              <tr className="border-t-2 border-border bg-muted/30 font-bold [&>td]:h-8 [&>td]:px-3">
-                <td className="font-sans">Total Income</td>
+              <tr className="border-t-2 border-border bg-muted/30 [&>td]:h-10 [&>td]:px-3">
+                <td className="font-sans text-[13px]">Total Income</td>
                 <td className="text-right">{fmtT(incomes.total)}</td>
-                <td className={cn("text-right text-muted-foreground pr-3", USD_COL)}>—</td>
+                <td className={cn("text-right text-muted-foreground font-normal pr-3", USD_COL)}>—</td>
               </tr>
             </tbody>
           </table>
@@ -418,44 +409,44 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
         {/* ───── BUDGET ───── */}
         <div className={card}>
           <div className={cardHeader}>Budget · Plan vs Actual</div>
-          <table className="w-full text-[12px] border-collapse">
+          <table className="w-full text-[15px] border-collapse">
             <thead className="bg-muted/20">
-              <tr className="[&>th]:h-7 [&>th]:px-3 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
-                <th className="text-left w-[70px]">Ccy</th>
+              <tr className="[&>th]:h-8 [&>th]:px-3 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
+                <th className="text-left w-[90px]">Currency</th>
                 <th className="text-right">Plan</th>
                 <th className="text-right">Actual</th>
                 <th className="text-right border-l border-border">Remain</th>
-                <th className="text-right w-[56px] pr-3">%</th>
+                <th className="text-right w-[60px] pr-3">%</th>
               </tr>
             </thead>
-            <tbody className="font-mono tabular-nums">
+            <tbody className="font-mono tabular-nums font-bold">
               {/* TZS row */}
-              <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
-                <td className="font-sans text-muted-foreground">TZS</td>
+              <tr className="border-t border-border [&>td]:h-9 [&>td]:px-3">
+                <td className="font-sans font-normal text-muted-foreground text-[12px]">TZS</td>
                 <td className="text-right">{fmtT(g.plan_month_tzs)}</td>
                 <td className="text-right">{fmtT(g.actual_tzs)}</td>
-                <td className={cn("text-right border-l border-border", cls(g.remain_tzs))}>{fmtT(g.remain_tzs)}</td>
-                <td className={cn("text-right pr-3", pctTone(g.plan_month_tzs ? g.actual_tzs / g.plan_month_tzs : null))}>
+                <td className="text-right border-l border-border">{fmtT(g.remain_tzs)}</td>
+                <td className={cn("text-right pr-3 font-normal text-[12px]", pctTone(g.plan_month_tzs ? g.actual_tzs / g.plan_month_tzs : null))}>
                   {pctTxt(g.actual_tzs, g.plan_month_tzs)}
                 </td>
               </tr>
               {/* USD row */}
-              <tr className={cn("border-t border-border [&>td]:h-7 [&>td]:px-3", USD_COL)}>
-                <td className="font-sans text-sky-600 dark:text-sky-400 font-semibold">$ USD</td>
+              <tr className={cn("border-t border-border [&>td]:h-9 [&>td]:px-3", USD_COL)}>
+                <td className="font-sans font-normal text-muted-foreground text-[12px]">USD</td>
                 <td className="text-right"><UsdAmt value={g.plan_month_usd} total /></td>
                 <td className="text-right"><UsdAmt value={g.actual_usd} total /></td>
-                <td className={cn("text-right border-l border-border", cls(g.remain_usd))}><UsdAmt value={g.remain_usd} total /></td>
-                <td className={cn("text-right pr-3", pctTone(g.plan_month_usd ? g.actual_usd / g.plan_month_usd : null))}>
+                <td className="text-right border-l border-border"><UsdAmt value={g.remain_usd} total /></td>
+                <td className={cn("text-right pr-3 font-normal text-[12px]", pctTone(g.plan_month_usd ? g.actual_usd / g.plan_month_usd : null))}>
                   {pctTxt(g.actual_usd, g.plan_month_usd)}
                 </td>
               </tr>
               {/* Grand TZS row */}
-              <tr className="border-t-2 border-border bg-muted/30 font-bold [&>td]:h-8 [&>td]:px-3">
-                <td className="font-sans">Grand TZS</td>
+              <tr className="border-t-2 border-border bg-muted/30 [&>td]:h-10 [&>td]:px-3">
+                <td className="font-sans text-[13px]">Grand TZS</td>
                 <td className="text-right">{fmtT(g.plan_month_grand_tzs)}</td>
                 <td className="text-right">{fmtT(g.actual_grand_tzs)}</td>
                 <td className={cn("text-right border-l border-border", cls(g.remain_grand_tzs))}>{fmtT(g.remain_grand_tzs)}</td>
-                <td className={cn("text-right pr-3", pctTone(g.plan_month_grand_tzs ? g.actual_grand_tzs / g.plan_month_grand_tzs : null))}>
+                <td className={cn("text-right pr-3 font-normal text-[12px]", pctTone(g.plan_month_grand_tzs ? g.actual_grand_tzs / g.plan_month_grand_tzs : null))}>
                   {pctTxt(g.actual_grand_tzs, g.plan_month_grand_tzs)}
                 </td>
               </tr>
@@ -471,29 +462,30 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
         {/* ───── RESULT ───── */}
         <div className={card}>
           <div className={cardHeader}>Result</div>
-          <table className="w-full text-[12px] border-collapse">
-            <tbody className="font-mono tabular-nums">
-              <tr className="border-t border-border [&>td]:px-3 [&>td]:py-1.5">
-                <td className="font-sans">
+          <table className="w-full text-[15px] border-collapse">
+            <tbody className="font-mono tabular-nums font-bold">
+              <tr className="border-t border-border [&>td]:px-3 [&>td]:py-2">
+                <td className="font-sans font-normal text-[13px]">
                   <div>Profit</div>
                   <div className="text-[10px] text-muted-foreground font-normal">Income − Actual</div>
                 </td>
                 <td className={cn("text-right pr-3 align-middle", cls(profit))}>{fmtT(profit)}</td>
               </tr>
-              <tr className="border-t border-border [&>td]:px-3 [&>td]:py-1.5">
-                <td className="font-sans">
+              <tr className="border-t border-border [&>td]:px-3 [&>td]:py-2">
+                <td className="font-sans font-normal text-[13px]">
                   <div>Collections</div>
                   <div className="text-[10px] text-muted-foreground font-normal">Owner withdrawals</div>
                 </td>
                 <td className="text-right pr-3 align-middle">{fmtT(collectionsTzs)}</td>
               </tr>
-              <tr className="border-t-2 border-border bg-muted/30 font-bold [&>td]:px-3 [&>td]:py-2">
-                <td className="font-sans">
-                  <div>Net Balance</div>
+              <tr className="border-t-2 border-border bg-muted/30 [&>td]:px-3 [&>td]:py-2.5">
+                <td className="font-sans font-normal text-[13px]">
+                  <div className="font-semibold">Net Balance</div>
                   <div className="text-[10px] text-muted-foreground font-normal">Profit − Collections</div>
                 </td>
-                <td className={cn("text-right pr-3 align-middle text-[13px]", cls(netBalance))}>{fmtT(netBalance)}</td>
+                <td className={cn("text-right pr-3 align-middle text-[16px]", cls(netBalance))}>{fmtT(netBalance)}</td>
               </tr>
+
             </tbody>
           </table>
         </div>
@@ -559,16 +551,17 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
             </tr>
             <tr className="[&>th]:h-8 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[11px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap border-t border-border">
               <th className="text-right w-[110px] border-l border-border">TZS</th>
-              <th className={cn("text-right w-[80px]", USD_COL)}>$ USD</th>
+              <th className={cn("text-right w-[80px]", USD_COL)}>$</th>
               <th className="text-right w-[110px] border-l border-border">TZS</th>
-              <th className={cn("text-right w-[80px]", USD_COL)}>$ USD</th>
+              <th className={cn("text-right w-[80px]", USD_COL)}>$</th>
               <th className="text-right w-[110px]" title="Σ amount_tzs (TZS + USD converted)">Grand TZS</th>
               <th className="text-right w-[56px]">%</th>
               <th className="text-right w-[110px] border-l border-border">TZS</th>
-              <th className={cn("text-right w-[80px]", USD_COL)}>$ USD</th>
-              <th className="text-right w-[110px]">Grand Total</th>
+              <th className={cn("text-right w-[80px]", USD_COL)}>$</th>
+              <th className="text-right w-[110px]">Grand TZS</th>
               <th className="text-right w-[56px] pr-3">%</th>
             </tr>
+
           </thead>
           <tbody>
             {group.categories.map((c) => (
@@ -604,9 +597,10 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
               <td className={cn("text-right font-mono tabular-nums", USD_COL)}><UsdAmt value={t.actual_usd} total /></td>
               <td className="text-right font-mono tabular-nums">{fmtT(t.actual_grand_tzs)}</td>
               <td className={cn("text-right font-mono tabular-nums", pctTone(tSpent))}>{actPct}</td>
-              <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(t.remain_tzs))}>{fmtT(t.remain_tzs)}</td>
-              <td className={cn("text-right font-mono tabular-nums", USD_COL, cls(t.remain_usd))}><UsdAmt value={t.remain_usd} total /></td>
+              <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(t.remain_tzs)}</td>
+              <td className={cn("text-right font-mono tabular-nums", USD_COL)}><UsdAmt value={t.remain_usd} total /></td>
               <td className={cn("text-right font-mono tabular-nums", cls(t.remain_grand_tzs))}>{fmtT(t.remain_grand_tzs)}</td>
+
               <td className={cn("text-right font-mono tabular-nums pr-3", pctTone(tSpent))}>{remPct}</td>
             </tr>
           </tbody>
@@ -670,22 +664,21 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, editMode, year, month
           />
         </td>
         <td className={cn("text-right", USD_COL)}>
-          <div className="flex items-center justify-end gap-0.5">
-            <UsdGlyph show={!!c.plan_month_usd} />
-            <InlineNumberCell
-              value={c.plan_month_usd}
-              disabled={!editMode}
-              onCommit={(v) => onPlanCommit(c.id, "USD", v)}
-            />
-          </div>
+          <InlineNumberCell
+            value={c.plan_month_usd}
+            disabled={!editMode}
+            onCommit={(v) => onPlanCommit(c.id, "USD", v)}
+          />
         </td>
+
         <td className="text-right font-mono tabular-nums border-l border-border">{fmt(c.actual_tzs)}</td>
         <td className={cn("text-right font-mono tabular-nums", USD_COL)}><UsdAmt value={c.actual_usd} /></td>
         <td className="text-right font-mono tabular-nums">{fmt(c.actual_grand_tzs)}</td>
         <td className={cn("text-right font-mono tabular-nums", pctTone(spent))}>{actPct}</td>
-        <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(c.remain_tzs))}>{fmt(c.remain_tzs)}</td>
-        <td className={cn("text-right font-mono tabular-nums", USD_COL, cls(c.remain_usd))}><UsdAmt value={c.remain_usd} /></td>
+        <td className="text-right font-mono tabular-nums border-l border-border">{fmt(c.remain_tzs)}</td>
+        <td className={cn("text-right font-mono tabular-nums", USD_COL)}><UsdAmt value={c.remain_usd} /></td>
         <td className={cn("text-right font-mono tabular-nums", cls(c.remain_grand_tzs))}>{fmt(c.remain_grand_tzs)}</td>
+
         <td className={cn("text-right font-mono tabular-nums pr-3", pctTone(spent))}>{remPct}</td>
       </tr>
 
