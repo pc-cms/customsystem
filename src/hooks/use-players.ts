@@ -256,6 +256,12 @@ export const usePlayerEconomyRange = (range: { from: string; to: string }) => {
     },
     enabled: !!casinoId,
     staleTime: 1000 * 60 * 2,
+    select: (d: any) => {
+      if (d instanceof Map) return d;
+      const m = new Map<string, any>();
+      for (const [k, v] of Object.entries(d ?? {})) m.set(k, v as any);
+      return m;
+    },
   });
 };
 
