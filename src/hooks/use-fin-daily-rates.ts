@@ -90,6 +90,7 @@ export const useFinDailyRate = (businessDate?: string, currency?: string) => {
       return data ? Number(data.rate_to_tzs) : null;
     },
     enabled: !!activeCasinoId && !!businessDate && !!currency,
+    staleTime: 1000 * 60 * 60,
   });
 };
 
