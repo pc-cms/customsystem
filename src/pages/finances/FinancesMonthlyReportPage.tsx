@@ -674,9 +674,10 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, editMode, year, month
         <td className={cn("text-right font-mono tabular-nums", USD_COL)}><UsdAmt value={c.actual_usd} /></td>
         <td className="text-right font-mono tabular-nums">{fmt(c.actual_grand_tzs)}</td>
         <td className={cn("text-right font-mono tabular-nums", pctTone(spent))}>{actPct}</td>
-        <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(c.remain_tzs))}>{fmt(c.remain_tzs)}</td>
-        <td className={cn("text-right font-mono tabular-nums", USD_COL, cls(c.remain_usd))}><UsdAmt value={c.remain_usd} /></td>
+        <td className="text-right font-mono tabular-nums border-l border-border">{fmt(c.remain_tzs)}</td>
+        <td className={cn("text-right font-mono tabular-nums", USD_COL)}><UsdAmt value={c.remain_usd} /></td>
         <td className={cn("text-right font-mono tabular-nums", cls(c.remain_grand_tzs))}>{fmt(c.remain_grand_tzs)}</td>
+
         <td className={cn("text-right font-mono tabular-nums pr-3", pctTone(spent))}>{remPct}</td>
       </tr>
 
