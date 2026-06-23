@@ -1,151 +1,76 @@
+## Monthly Report — refactor summary block and Remain calculation
 
-# Архитектурная оптимизация: единая таблица + логи в БД + масштабирование
+### Goal
 
-Цель — чтобы добавление новой роли или модуля **не добавляло работы UI** и не замедляло систему. Все таблицы — один компонент-функция, все логи — триггерами в БД, все агрегации — RPC.
+Reorganize `src/pages/finances/FinancesMonthlyReportPage.tsx` so the entire month summary (Incomes, Plan, Actual, **Remain = Plan/Month − Actual**, Profit, Net Balance) sits **at the top in one compact table**, and all per-group category detail follows below. Fix the Remain figure so it consistently means "Plan/Month − Actual this month" everywhere, and surface it as the "unpaid balance for the current month".
 
----
+### Changes
 
-## Часть 0. Зафиксировать 4 отложенные задачи в memory
+**1. New top "Summary" block (replaces today's Incomes card + Grand Total card + Total Budget card + Profit card + Net Balance card)**
 
-Сохранить в `mem://tasks/` четыре отдельные карточки со статусом DEFERRED, чтобы не потерять:
-- `tasks/virtualization-long-lists` (шаг 7) — Players/BankChecks/Expenses/CancelledTransactions
-- `tasks/webp-thumbnails` (шаг 12) — миграция + бэкфилл фото
-- `tasks/db-audit-triggers` (шаг 14) — 12 таблиц + чистка ~56 `logAction` в коде
-- `tasks/aggregation-rpcs` (шаг 16) — 5 RPC для отчётов
+One bordered table with three vertical sections, in this order:
 
-Каждая карточка содержит риски, последовательность шагов и оценку. В `mem://index.md` добавить ссылки в раздел Pending Tasks.
+```text
+INCOMES        | TZS              | USD       | Grand TZS
+  Live Game    | …                | —         | …
+  Slots        | …                | —         | …
+  Other        | …                | …         | …
+  Total Income | …                | …         | … (bold)
 
----
+BUDGET (Month) | Plan/Mo  | Actual | Remain (Plan−Actual) | %
+  TZS          | …        | …      | …                    | …
+  USD          | …        | …      | …                    | …
+  Grand TZS    | …        | …      | … (bold, colored)    | …
 
-## Часть 1. Единый шаблон таблиц — `<SmartTable>` (config-driven)
-
-### Проблема
-Сейчас в коде сосуществуют:
-- `DataTable + DTHead/DTBody/DTRow/DTCell` (унифицированный шаблон) — используется частично,
-- кастомные `<table>` в `Guests.tsx`, `BankChecks.tsx`, `Expenses.tsx`, `CancelledTransactions.tsx`, `Logs.tsx`, во всех POS-страницах,
-- разные реализации сортировки, фильтра, sticky-колонок, inline-edit, пустого состояния.
-
-Каждая новая страница = ещё одна копия логики → растёт bundle, тормозит ререндер, виртуализацию приходится прикручивать 4 раза.
-
-### Решение: один компонент `SmartTable<T>`
-
-`src/components/ui/smart-table.tsx` — обёртка над существующим `DataTable`, принимающая декларативный конфиг колонок и данные. Никаких HOC, только props.
-
-```ts
-type ColumnDef<T> = {
-  key: string;
-  header: string;
-  type: ColType;                          // переиспользуем из data-table.tsx
-  accessor: (row: T) => React.ReactNode;
-  sortValue?: (row: T) => string | number;
-  width?: number;
-  sticky?: boolean;
-  hidden?: (ctx: TableCtx) => boolean;    // role/permission-aware
-};
-
-type SmartTableProps<T> = {
-  data: T[];
-  columns: ColumnDef<T>[];
-  rowKey: (row: T) => string;
-  sort?: { key: string; dir: "asc" | "desc" };
-  onSortChange?: (s) => void;
-  empty?: React.ReactNode;
-  virtual?: boolean;                      // вкл. @tanstack/react-virtual автоматически если data.length > 200
-  density?: "comfort" | "compact" | "grid";
-  stickyFirstColumn?: boolean;
-};
+RESULT         | TZS                          | Grand TZS
+  Profit       | Income − Actual (Grand)      | …
+  Collections  | …                            | …
+  Net Balance  | Profit − Collections (bold)  | …
 ```
 
-Внутри:
-- header клик → сортировка (один общий механизм, мемоизированный),
-- виртуализация включается **автоматически** при `data.length > 200` → решает шаг 7 одним движением для всех 4 страниц одновременно,
-- `React.memo` на строках + стабильный `rowKey` → нулевой ререндер невидимых строк,
-- `hidden(ctx)` использует `useMyEffectivePerms()` → колонки, недоступные роли, не маунтятся вовсе (Cashier не парсит финансовые ячейки),
-- пустое состояние, скелетон, sticky-колонка, печать — встроены.
+- "Remain" row in BUDGET is the headline "unpaid balance for the current month" — Plan/Month − Actual. Positive = budget left, negative = over budget. Color via existing `cms-amount-positive` / `cms-amount-negative`.
+- USD→TZS rate footer stays under this table.
+- Drop the now-duplicated `Grand Total`, `Total Budget`, `Profit`, `Net Balance` page sections.
+- Keep `Incomes` data but inside the new block (no separate card).
 
-### Миграция страниц (постепенно, без визуальных регрессий)
-1. Players (`Guests.tsx`)
-2. `BankChecks.tsx`
-3. `Expenses.tsx` (через `ExpensesRouter`)
-4. `CancelledTransactions.tsx`
-5. `Logs.tsx`
-6. POS-отчёты (после стабилизации)
+**2. Fix Remain consistency**
 
-Каждая страница → ~30-50 строк конфига вместо 200-400 строк JSX. Виртуализация и sticky достаются бесплатно. Новая страница = 1 конфиг.
+In `useMonthlyReport` (`src/hooks/use-fin-monthly-report.ts`) and in the page:
 
----
+- Define `remain_tzs = plan_month_tzs − actual_tzs`, `remain_usd = plan_month_usd − actual_usd`, `remain_grand_tzs = plan_month_grand_tzs − actual_grand_tzs` at category, group, and grand level inside the hook (so UI and Excel use one source).
+- Replace inline arithmetic in the page (`data.grand.plan_month_tzs - data.grand.actual_tzs`, etc.) with these fields. Same for group totals row in `GroupTable` and per-row in `Row`.
+- Excel export uses the same fields.
+- This removes the "annual − month" confusion the user reported: every Remain cell is now explicitly `Plan/Month − Actual` for the selected month only. Plan/Year columns stay in the per-group detail table for reference only (read-only).
 
-## Часть 2. Логи action — перенос с UI в БД (шаг 14, расширенный план)
+**3. Per-group category tables — keep below summary, minor cleanup**
 
-### Проблема
-Сейчас `src/lib/logging.ts::logAction()` вызывается из ~56 мест клиента. Каждый вызов — лишний round-trip, лишний рендер, лишняя точка отказа (offline → лог потерян). Когда добавляем роль/модуль — нужно помнить везде проставить `logAction(...)`.
+- Render groups (and Collections) unchanged structurally, but:
+  - Remove the page-level `Grand Total` section (moved into summary).
+  - Remove the standalone `Total Budget` section (moved into summary).
+  - Keep group tables (`GroupTable`) and expand/drill-down behavior identical.
+  - In group footer row, use the new `remain_*` fields from the hook for consistency.
 
-### Решение: триггеры в БД + retention
+**4. Layout order on the page**
 
-#### 2.1 Триггерная функция
-Одна универсальная функция `public.tg_activity_log()`:
-```sql
-CREATE FUNCTION public.tg_activity_log() RETURNS trigger ...
-  -- читает casino_id из NEW/OLD (TG_ARGV[0] = имя колонки)
-  -- category/action = TG_ARGV[1], TG_ARGV[2]
-  -- details = jsonb_diff(OLD, NEW) — только реально изменённые поля
-  -- operator_id = current_setting('request.jwt.claim.sub', true)
+```text
+PageHeader (month/year/scope filters + XLSX)
+└─ Summary block (NEW — Incomes + Budget + Result, single bordered table)
+└─ Per-group tables (Fixed, Tax, Variable, Salary, Petrol, Additional)
+└─ Collections group table
 ```
 
-#### 2.2 Целевые таблицы (12 шт.)
-`transactions`, `cage_transfers`, `cage_slots_transfers`, `chip_snapshots`, `chip_emissions`, `expenses`, `bank_checks`, `player_chip_adjustments`, `shifts`, `cage_slots_shifts`, `players` (status/blacklist), `player_tags`.
+`Profit` and `Net Balance` no longer appear as separate sections — they live in the Summary block's RESULT rows.
 
-Каждая получает 1-2 строки:
-```sql
-CREATE TRIGGER trg_log AFTER INSERT OR UPDATE OR DELETE ON public.transactions
-  FOR EACH ROW EXECUTE FUNCTION public.tg_activity_log('casino_id','transaction','tx');
-```
+### Technical notes
 
-#### 2.3 Чистка клиента
-- Убрать ~56 вызовов `logAction(...)` после того как соответствующий триггер заработал (по одной таблице за раз, проверяя что нет дублей в `activity_logs`).
-- `src/lib/logging.ts` оставить только для категорий, которые **не имеют** транзакционного эквивалента (UI-события типа "пользователь открыл модалку" — но мы такое и не логируем).
+- Files touched:
+  - `src/hooks/use-fin-monthly-report.ts` — add `remain_tzs`, `remain_usd`, `remain_grand_tzs` to `ReportCategory`, `ReportGroup.totals`, and `MonthlyReport.grand`. Compute once in the hook.
+  - `src/pages/finances/FinancesMonthlyReportPage.tsx` — new `SummaryBlock` component replacing 4 existing `PageSection`s; switch all Remain reads to hook fields; keep Excel export but read from same fields.
+- No DB / migration changes. No business logic change beyond centralizing the Remain formula.
+- Existing color tokens (`cms-amount-positive`, `cms-amount-negative`) and `formatNumberSpaces` reused — no new design tokens.
+- Mobile: summary table uses `overflow-auto` wrapper like existing tables; rows stack horizontally with sticky first column.
 
-#### 2.4 Retention (масштабирование)
-- Партицирование `activity_logs` по месяцам (или cron `move-to-archive` для строк старше 60 дней → `activity_logs_archive`, который уже есть).
-- BRIN-индекс по `created_at`.
-- Cron `purge-archive` для записей старше 365 дней.
+### Out of scope (will follow up separately if needed)
 
-#### 2.5 Эффект
-- UI больше **никогда** не блокируется на лог.
-- Новая таблица в системе = 1 строка `CREATE TRIGGER`, никаких правок в React.
-- Логи не теряются при offline — пишутся при applied транзакции синка.
-- Bundle минус ~3 KB и минус 56 точек ошибок.
-
----
-
-## Часть 3. Архитектурные правила для масштабирования
-
-Закрепить в `mem://core` (Core rules) как обязательные при создании любой новой страницы/роли:
-
-1. **Таблицы** — только `<SmartTable>` с конфигом колонок. Запрещены ручные `<table>`/`DataTable+DTBody` в новом коде.
-2. **Логирование** — только триггерами БД. `logAction()` в новом коде запрещён.
-3. **Агрегации** (дашборды, отчёты) — только через RPC (`fin_dashboard_kpis`, `dashboard_table_results`, `fin_monthly_report`, `player_economy`, `attendance_monthly`) — это шаг 16, остаётся в отложенных, но правило вводим сейчас, чтобы новые отчёты сразу шли правильным путём.
-4. **Permission-gated колонки/секции** — через `hidden(ctx)` в конфиге, а не условные импорты компонентов. Роль не платит за чужой код.
-5. **Префетч** — только через `pathLoaders` + `modulePrefetchTasks`, фильтруемые по `allowedModules`. Уже сделано (шаги 3/15).
-6. **Виртуализация** — автоматическая в `SmartTable` при > 200 строк. Ручная не нужна.
-
----
-
-## Что делать прямо сейчас (после approve)
-
-1. **Часть 0** — записать 4 задачи и обновить `mem://index.md` (5 мин).
-2. **Часть 1, фаза 1** — создать `src/components/ui/smart-table.tsx` + типы + автовиртуализация (через `@tanstack/react-virtual`, добавить зависимость). Не трогать страницы.
-3. **Часть 1, фаза 2** — мигрировать `Guests.tsx` как первый эталон (страница с самой большой жалобой на скорость). Сравнить визуально с текущей.
-4. **Часть 3** — записать 6 правил в `mem://core`.
-5. **Часть 2 откладываем** в одну атомарную сессию (миграция + чистка клиента + версионный бамп) — это шаг 14, требует отдельного approve, потому что миграция большая.
-
-После фазы 4 возвращаемся: либо доводим миграцию страниц на `SmartTable` (Bank/Expenses/Cancelled/Logs), либо запускаем «Часть 2».
-
----
-
-## Технические детали
-
-- **Зависимость:** `@tanstack/react-virtual` (~3 KB gz) — нужна только для авто-виртуализации внутри `SmartTable`.
-- **Backward compat:** старый `DataTable`/`DTBody` остаётся для уже мигрированных страниц; `SmartTable` строится поверх него и переиспользует тот же CSS и `ColType` — визуально 1-в-1.
-- **Тесты:** для `SmartTable` — один vitest c snapshot+sort+virtual-threshold; миграция страниц проверяется ручным smoke на `/guests` и `/bank-checks`.
-- **Версия:** Часть 2 (триггеры) — backend change → авто-бамп patch версии. Часть 1/3 — фронт + memory, без бампа.
+- A real "pending/unpaid expenses" status field (you confirmed Remain = Plan − Actual is enough for now).
+- Any change to budget entry, expense entry, or per-casino network view logic.
