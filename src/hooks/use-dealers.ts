@@ -210,6 +210,7 @@ export const usePitRota = (date: string) => {
       return (await fetchPitRotaRows(casinoId, date)).map(aliasRotaRow);
     },
     enabled: !!casinoId,
+    refetchOnMount: "always",
   });
 };
 
@@ -222,6 +223,7 @@ export const usePitRotaRange = (startDate: string, endDate: string) => {
       return (await fetchPitRotaRows(casinoId, startDate, endDate)).map(aliasRotaRow);
     },
     enabled: !!casinoId,
+    refetchOnMount: "always",
   });
 };
 
@@ -317,6 +319,7 @@ export const useDealerAttendance = (date: string) => {
       return (await fetchDealerAttendanceRows(casinoId, date)).map(aliasAttRow);
     },
     enabled: !!casinoId,
+    refetchOnMount: "always",
   });
 };
 
@@ -372,6 +375,7 @@ export const useDealerAttendanceRange = (startDate: string, endDate: string) => 
       return (await fetchDealerAttendanceRows(casinoId, startDate, endDate)).map(aliasAttRow);
     },
     enabled: !!casinoId,
+    refetchOnMount: "always",
   });
 };
 
@@ -397,6 +401,7 @@ export const useBreaklistData = (date: string) => {
     // event (token refresh edge cases, network blips), Pit operators on two PCs
     // must converge within seconds — not after a manual reload.
     refetchInterval: pendingBreaklistMutations > 0 ? false : 3_500,
+    refetchOnMount: "always",
     refetchOnWindowFocus: pendingBreaklistMutations === 0,
     refetchOnReconnect: true,
   });
