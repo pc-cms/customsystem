@@ -12,14 +12,17 @@
  * Casino scope: filtered by active casino_id via the RPC. No cross-casino mix.
  */
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useShiftTableAdjustments } from "@/hooks/use-shift-table-adjustments";
 
 export type TableResultMap = Record<string, number>;
 
 export const useDashboardTableResults = (businessDate: string | undefined) => {
   const { casinoId } = useAuth();
-  return useQuery({
+  const { adjustmentMap } = useShiftTableAdjustments();
+  const query = useQuery({
     queryKey: ["dashboard-table-results", casinoId, businessDate],
     queryFn: async (): Promise<TableResultMap> => {
       if (!casinoId || !businessDate) return {};
@@ -43,5 +46,19 @@ export const useDashboardTableResults = (businessDate: string | undefined) => {
     },
     enabled: !!casinoId && !!businessDate,
     staleTime: 15_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 10_000,
   });
+
+  const data = useMemo<TableResultMap>(() => {
+    const merged: TableResultMap = { ...(query.data ?? {}) };
+    Object.entries(adjustmentMap).forEach(([tableId, adjustment]) => {
+      merged[tableId] = (merged[tableId] || 0) + Number(adjustment || 0);
+    });
+    return merged;
+  }, [query.data, adjustmentMap]);
+
+  return { ...query, data };
 };
