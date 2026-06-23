@@ -138,6 +138,7 @@ export function usePosMenuItems(casinoId: string | null) {
       if (error) throw error;
       return (data ?? []) as PosMenuItem[];
     },
+    staleTime: 1000 * 60 * 10,
   });
 
   useEffect(() => {
