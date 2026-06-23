@@ -57,8 +57,15 @@ export function useEffectiveBusinessDate() {
     },
     initialData: () =>
       casinoId ? readBusinessDateCache(casinoId) ?? undefined : undefined,
+    // The local cache is only a paint-time seed. It must never pin yesterday's
+    // business day after opening the PWA/browser, otherwise Tables/Dashboard can
+    // boot on the previous date until the interval fires.
+    initialDataUpdatedAt: 0,
     enabled: !!casinoId,
     staleTime: 60_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     refetchInterval: 60_000,
     retry: (failureCount) => navigator.onLine && failureCount < 1,
     networkMode: "always",

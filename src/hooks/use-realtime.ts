@@ -206,6 +206,7 @@ export const useRealtimeSubscriptions = () => {
             () => {
               debouncedInvalidate(qc, `chip-snap:${casinoId}`, ["chip-snapshots", casinoId]);
               debouncedInvalidate(qc, `chip-snap-full:${casinoId}`, ["chip-snapshots-full", casinoId]);
+              debouncedInvalidate(qc, `dashboard-table-results:${casinoId}`, ["dashboard-table-results", casinoId]);
               debouncedInvalidate(qc, "shift_tables_result", ["shift_tables_result_total"]);
             },
           )
@@ -245,6 +246,8 @@ export const useRealtimeSubscriptions = () => {
             { event: "*", schema: "public", table: "cage_transfers", filter: `casino_id=eq.${casinoId}` },
             () => {
               debouncedInvalidate(qc, "cage-transfers", ["cage-transfers"]);
+              debouncedInvalidate(qc, "shift-table-adjustments", ["shift-table-adjustments"]);
+              debouncedInvalidate(qc, `dashboard-table-results:${casinoId}`, ["dashboard-table-results", casinoId]);
               debouncedInvalidate(qc, "shift_tables_result", ["shift_tables_result_total"]);
             },
           )

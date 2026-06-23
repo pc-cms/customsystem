@@ -23,7 +23,7 @@ export type TableAdjustmentMap = Record<string, TableAdjustment>;
 export const useShiftTableAdjustments = (shiftIdOverride?: string | null) => {
   const { casinoId } = useAuth();
   const { data: activeShift } = useActiveShift();
-  const shiftId = shiftIdOverride ?? activeShift?.id ?? null;
+  const shiftId = shiftIdOverride === undefined ? (activeShift?.id ?? null) : shiftIdOverride;
 
   const query = useQuery({
     queryKey: ["shift-table-adjustments", casinoId, shiftId],
@@ -40,6 +40,10 @@ export const useShiftTableAdjustments = (shiftIdOverride?: string | null) => {
     },
     enabled: !!casinoId && !!shiftId,
     staleTime: 15_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 10_000,
   });
 
   const map = useMemo<TableAdjustmentMap>(() => {

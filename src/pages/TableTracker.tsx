@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { getBusinessDate, nowEAT } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
@@ -65,6 +65,19 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const isToday = date === today;
   const currentSlot = useMemo(() => getCurrentSlot(), []);
   const readOnly = !isToday && !isManager;
+
+  useEffect(() => {
+    if (!today) return;
+    const marker = "cms:table-tracker:last-auto-business-day";
+    try {
+      const lastAutoDay = window.sessionStorage.getItem(marker);
+      if (lastAutoDay === today) return;
+      window.sessionStorage.setItem(marker, today);
+      if (date !== today) setDate(today);
+    } catch {
+      if (date !== today) setDate(today);
+    }
+  }, [today, date, setDate]);
 
   const getVal = useCallback((tableId: string, slot: string) => {
     const entry = trackerData.find(t => t.table_id === tableId && t.time_slot === slot);

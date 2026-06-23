@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { useNavigate } from "react-router-dom";
 import { useGamingTables, useTransactions, useTableTracker, usePlayers } from "@/hooks/use-casino-data";
@@ -45,6 +45,20 @@ const Tables = () => {
   const [date, setDate] = useSessionState<string>("date", businessDay);
   // Operational roles (Pit) without Manager Access cannot browse other days.
   const effectiveDate = restrictedToToday ? businessDay : date;
+
+  useEffect(() => {
+    if (restrictedToToday || !businessDay) return;
+    const marker = "cms:tables:last-auto-business-day";
+    try {
+      const lastAutoDay = window.sessionStorage.getItem(marker);
+      if (lastAutoDay === businessDay) return;
+      window.sessionStorage.setItem(marker, businessDay);
+      if (date !== businessDay) setDate(businessDay);
+    } catch {
+      if (date !== businessDay) setDate(businessDay);
+    }
+  }, [businessDay, date, restrictedToToday, setDate]);
+
   const { data: tables = [] } = useGamingTables();
   const { data: players = [] } = usePlayers();
   const { data: transactions = [] } = useTransactions(effectiveDate);
@@ -311,7 +325,7 @@ const Tables = () => {
   }, [transactions, shift]);
 
   const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
-  const { adjustmentMap } = useShiftTableAdjustments(shift?.id ?? null);
+  const { adjustmentMap } = useShiftTableAdjustments(effectiveDate === businessDay ? (shift?.id ?? null) : null);
 
   // Table DROP = simple sum of all Cash In on the table for the current business day (no NEP logic).
   const tableStats = useMemo(() => {
