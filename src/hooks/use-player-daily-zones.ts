@@ -35,6 +35,9 @@ export function usePlayerDailyZones(businessDate: string | undefined) {
     enabled: !!casinoId && !!businessDate,
     staleTime: 15_000,
     refetchInterval: 30_000,
+    // Defensive: if persisted cache rehydrated as plain object (legacy),
+    // rebuild a Map so consumers' `.get()` always works.
+    select: (d: any) => (d instanceof Map ? d : new Map<string, PlayerZone>(Object.entries(d ?? {}))),
   });
 }
 
