@@ -41,7 +41,8 @@ export const useExpenseCategories = (scope?: CategoryScope | "all") => {
       return rows;
     },
     enabled: !!casinoId,
-    staleTime: 60_000,
+    staleTime: 1000 * 60 * 60 * 24, // 24h — categories change rarely
+    gcTime: 1000 * 60 * 60 * 24 * 7,
   });
 };
 
