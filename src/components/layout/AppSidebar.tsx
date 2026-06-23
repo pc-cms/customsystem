@@ -278,11 +278,23 @@ const SidebarSections = ({
     key: "attendance" | "rota",
     item: NavItem,
     sectionCtx: Section,
-    subs: VirtualSub[],
+    allSubs: VirtualSub[],
   ) => {
     const groupKey = `__virtual:${key}`;
+    // Filter sub-items by the access matrix so Floor/Security/Office only
+    // appear when the user actually has access to the corresponding module
+    // (staff_rota / staff_attendance). Live keeps showing whenever the parent
+    // group is visible (it maps to pit_rota / pit_attendance which already
+    // gates the parent). Super-admin sees everything.
+    const subs = allSubs.filter(s => {
+      if (isSuper) return true;
+      if (allowedModules === undefined) return true; // avoid flicker while loading
+      const mk = moduleKeyForRoute(s.to, s.label);
+      if (!mk) return true;
+      return allowedModules.has(mk);
+    });
+    if (subs.length === 0) return null;
     const matchSub = (s: VirtualSub) => {
-      // Phase 2: flat-URL subs (no matchTab) match by pathname only.
       if (!s.matchTab) return location.pathname === s.matchPath;
       return location.pathname === s.matchPath && currentTab === s.matchTab && (!s.matchGroup || currentGroup === s.matchGroup);
     };
