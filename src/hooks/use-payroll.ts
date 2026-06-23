@@ -81,6 +81,7 @@ export const useEmployees = () => {
       })) as Employee[];
     },
     enabled: !!activeCasinoId,
+    staleTime: 1000 * 60 * 30,
   });
 };
 
