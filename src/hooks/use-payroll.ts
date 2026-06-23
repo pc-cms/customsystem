@@ -482,6 +482,7 @@ export const useLatestPayrollSettings = () => {
       return (data as PayrollSettings | null) ?? null;
     },
     enabled: !!activeCasinoId,
+    staleTime: 1000 * 60 * 60 * 24,
   });
 };
 
