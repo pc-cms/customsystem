@@ -574,7 +574,7 @@ const App = () => (
       persistOptions={{
         persister,
         maxAge: 1000 * 60 * 60 * 24, // 24h
-        buster: "v4-skip-map-set-dehydration",
+        buster: "v5-staff-prefetch-normalized",
         dehydrateOptions: {
           // Skip queries whose data is a Map/Set — JSON dehydration loses
           // them and on restore `.get()` blows up ("Se.get is not a function").
