@@ -44,6 +44,10 @@ export type ReportCategory = {
   actual_usd: number;
   /** Σ amount_tzs across all currencies — for grand totals in TZS. */
   actual_grand_tzs: number;
+  /** Plan/Month − Actual (centralized so UI + Excel agree). */
+  remain_tzs: number;
+  remain_usd: number;
+  remain_grand_tzs: number;
   expenses: ReportExpense[];
   per_casino?: Record<string, { actual_tzs: number; actual_usd: number; actual_grand_tzs: number }>;
 };
@@ -61,6 +65,9 @@ export type ReportGroup = {
     actual_tzs: number;
     actual_usd: number;
     actual_grand_tzs: number;
+    remain_tzs: number;
+    remain_usd: number;
+    remain_grand_tzs: number;
   };
 };
 
@@ -76,6 +83,9 @@ export type MonthlyReport = {
     actual_tzs: number;
     actual_usd: number;
     actual_grand_tzs: number;
+    remain_tzs: number;
+    remain_usd: number;
+    remain_grand_tzs: number;
   };
   /** USD→TZS rate used for Grand TZS conversion (avg of period, or 0 if no rate set). */
   usd_rate: number;
