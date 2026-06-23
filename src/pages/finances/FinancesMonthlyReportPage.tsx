@@ -97,8 +97,11 @@ export default function FinancesMonthlyReportPage() {
     const totalFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2EFDA" } } as const;
 
     let r = 10;
+    const COLS = 11; // Category + Plan(2) + Actual(4) + Remaining(4)
+    const lastCol = "K";
+    const pctCols = new Set([7, 11]); // Actual %, Remain %
     const writeHeader = () => {
-      const headers = ["Category", "Plan/Year TZS", "Plan/Year USD", "Plan/Month TZS", "Plan/Month USD", "Actual TZS", "Actual USD", "%", "Remain TZS", "Remain USD", "Remain %"];
+      const headers = ["Category", "Plan TZS", "Plan USD", "Actual TZS", "Actual USD", "Actual Grand TZS", "Actual %", "Remain TZS", "Remain USD", "Remain Grand TZS", "Remain %"];
       headers.forEach((h, i) => {
         const cell = ws.getCell(r, i + 1);
         cell.value = h;
@@ -110,105 +113,85 @@ export default function FinancesMonthlyReportPage() {
       r++;
     };
 
+    const writeCatRow = (c: typeof data.groups[number]["categories"][number]) => {
+      const actPct = c.plan_month_grand_tzs ? c.actual_grand_tzs / c.plan_month_grand_tzs : null;
+      const remPct = c.plan_month_grand_tzs ? c.remain_grand_tzs / c.plan_month_grand_tzs : null;
+      const row = ws.getRow(r);
+      row.values = [c.name, c.plan_month_tzs, c.plan_month_usd, c.actual_tzs, c.actual_usd, c.actual_grand_tzs, actPct, c.remain_tzs, c.remain_usd, c.remain_grand_tzs, remPct];
+      for (let i = 2; i <= COLS; i++) {
+        const cell = row.getCell(i);
+        cell.numFmt = pctCols.has(i) ? "0%" : "# ##0;[Red](# ##0);—";
+        cell.alignment = { horizontal: "right" };
+      }
+      r++;
+    };
+
+    const writeTotalRow = (t: typeof data.groups[number]["totals"]) => {
+      const actPct = t.plan_month_grand_tzs ? t.actual_grand_tzs / t.plan_month_grand_tzs : null;
+      const remPct = t.plan_month_grand_tzs ? t.remain_grand_tzs / t.plan_month_grand_tzs : null;
+      const tr = ws.getRow(r);
+      tr.values = ["Total", t.plan_month_tzs, t.plan_month_usd, t.actual_tzs, t.actual_usd, t.actual_grand_tzs, actPct, t.remain_tzs, t.remain_usd, t.remain_grand_tzs, remPct];
+      for (let i = 1; i <= COLS; i++) {
+        const cell = tr.getCell(i);
+        cell.font = { bold: true };
+        cell.fill = totalFill as any;
+        if (i > 1) {
+          cell.numFmt = pctCols.has(i) ? "0%" : "# ##0;[Red](# ##0);—";
+          cell.alignment = { horizontal: "right" };
+        }
+      }
+      r += 2;
+    };
+
     for (const g of data.groups) {
-      ws.mergeCells(`A${r}:K${r}`);
+      ws.mergeCells(`A${r}:${lastCol}${r}`);
       const gc = ws.getCell(`A${r}`);
       gc.value = g.name;
       gc.font = { bold: true, size: 12 };
       gc.fill = groupFill as any;
       r++;
       writeHeader();
-
-      for (const c of g.categories) {
-        const remTzs = c.plan_month_tzs - c.actual_tzs;
-        const remUsd = c.plan_month_usd - c.actual_usd;
-        const pctVal = c.plan_month_tzs ? c.actual_tzs / c.plan_month_tzs : null;
-        const remPct = c.plan_month_tzs ? remTzs / c.plan_month_tzs : null;
-        const row = ws.getRow(r);
-        row.values = [c.name, c.plan_year_tzs, c.plan_year_usd, c.plan_month_tzs, c.plan_month_usd, c.actual_tzs, c.actual_usd, pctVal, remTzs, remUsd, remPct];
-        for (let i = 2; i <= 11; i++) {
-          const cell = row.getCell(i);
-          cell.numFmt = (i === 8 || i === 11) ? "0%" : "# ##0;[Red](# ##0);—";
-          cell.alignment = { horizontal: "right" };
-        }
-        r++;
-      }
-
-      // Group total
-      const tr = ws.getRow(r);
-      tr.values = ["Total", g.totals.plan_year_tzs, g.totals.plan_year_usd, g.totals.plan_month_tzs, g.totals.plan_month_usd, g.totals.actual_tzs, g.totals.actual_usd,
-        g.totals.plan_month_tzs ? g.totals.actual_tzs / g.totals.plan_month_tzs : null,
-        g.totals.plan_month_tzs - g.totals.actual_tzs, g.totals.plan_month_usd - g.totals.actual_usd,
-        g.totals.plan_month_tzs ? (g.totals.plan_month_tzs - g.totals.actual_tzs) / g.totals.plan_month_tzs : null];
-      for (let i = 1; i <= 11; i++) {
-        const cell = tr.getCell(i);
-        cell.font = { bold: true };
-        cell.fill = totalFill as any;
-        if (i > 1) {
-          cell.numFmt = (i === 8 || i === 11) ? "0%" : "# ##0;[Red](# ##0);—";
-          cell.alignment = { horizontal: "right" };
-        }
-      }
-      r += 2;
+      for (const c of g.categories) writeCatRow(c);
+      writeTotalRow(g.totals);
     }
 
     // Collections section (excluded from grand)
     if (data.collections) {
       const col = data.collections;
-      ws.mergeCells(`A${r}:K${r}`);
+      ws.mergeCells(`A${r}:${lastCol}${r}`);
       const cc = ws.getCell(`A${r}`);
       cc.value = col.name;
       cc.font = { bold: true, size: 12 };
       cc.fill = groupFill as any;
       r++;
       writeHeader();
-      for (const c of col.categories) {
-        const remTzs = c.plan_month_tzs - c.actual_tzs;
-        const pctVal = c.plan_month_tzs ? c.actual_tzs / c.plan_month_tzs : null;
-        const row = ws.getRow(r);
-        row.values = [c.name, c.plan_year_tzs, c.plan_year_usd, c.plan_month_tzs, c.plan_month_usd, c.actual_tzs, c.actual_usd, pctVal, remTzs, c.plan_month_usd - c.actual_usd, c.plan_month_tzs ? remTzs / c.plan_month_tzs : null];
-        for (let i = 2; i <= 11; i++) {
-          const cell = row.getCell(i);
-          cell.numFmt = (i === 8 || i === 11) ? "0%" : "# ##0;[Red](# ##0);—";
-          cell.alignment = { horizontal: "right" };
-        }
-        r++;
-      }
-      const tr = ws.getRow(r);
-      tr.values = ["Total", col.totals.plan_year_tzs, col.totals.plan_year_usd, col.totals.plan_month_tzs, col.totals.plan_month_usd, col.totals.actual_tzs, col.totals.actual_usd, null, col.totals.plan_month_tzs - col.totals.actual_tzs, col.totals.plan_month_usd - col.totals.actual_usd, null];
-      for (let i = 1; i <= 11; i++) {
-        const cell = tr.getCell(i);
-        cell.font = { bold: true };
-        cell.fill = totalFill as any;
-        if (i > 1) {
-          cell.numFmt = (i === 8 || i === 11) ? "0%" : "# ##0;[Red](# ##0);—";
-          cell.alignment = { horizontal: "right" };
-        }
-      }
-      r += 2;
+      for (const c of col.categories) writeCatRow(c);
+      writeTotalRow(col.totals);
     }
 
 
     // Grand total
-    ws.mergeCells(`A${r}:K${r}`);
+    ws.mergeCells(`A${r}:${lastCol}${r}`);
     ws.getCell(`A${r}`).value = "GRAND TOTAL";
     ws.getCell(`A${r}`).font = { bold: true, size: 12 };
     ws.getCell(`A${r}`).fill = totalFill as any;
     r++;
+    const g = data.grand;
+    const gActPct = g.plan_month_grand_tzs ? g.actual_grand_tzs / g.plan_month_grand_tzs : null;
+    const gRemPct = g.plan_month_grand_tzs ? g.remain_grand_tzs / g.plan_month_grand_tzs : null;
     const gr = ws.getRow(r);
-    gr.values = ["", "", "", data.grand.plan_month_tzs, data.grand.plan_month_usd, data.grand.actual_tzs, data.grand.actual_usd,
-      data.grand.plan_month_tzs ? data.grand.actual_tzs / data.grand.plan_month_tzs : null,
-      data.grand.plan_month_tzs - data.grand.actual_tzs, data.grand.plan_month_usd - data.grand.actual_usd, null];
-    for (let i = 4; i <= 11; i++) {
+    gr.values = ["", g.plan_month_tzs, g.plan_month_usd, g.actual_tzs, g.actual_usd, g.actual_grand_tzs, gActPct, g.remain_tzs, g.remain_usd, g.remain_grand_tzs, gRemPct];
+    for (let i = 2; i <= COLS; i++) {
       const cell = gr.getCell(i);
       cell.font = { bold: true };
-      cell.numFmt = (i === 8 || i === 11) ? "0%" : "# ##0;[Red](# ##0);—";
+      cell.numFmt = pctCols.has(i) ? "0%" : "# ##0;[Red](# ##0);—";
       cell.alignment = { horizontal: "right" };
     }
 
     // Column widths
     ws.getColumn(1).width = 36;
-    for (let i = 2; i <= 11; i++) ws.getColumn(i).width = 14;
+    for (let i = 2; i <= COLS; i++) ws.getColumn(i).width = 14;
+
 
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
