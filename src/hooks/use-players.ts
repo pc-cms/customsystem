@@ -63,7 +63,21 @@ export const useUpdatePlayerStatus = () => {
       if (error) throw error;
       await logAction(casinoId!, "player", "STATUS_CHANGED", { player_id: id, status });
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["players"] }); },
+    onMutate: async ({ id, status }) => {
+      await qc.cancelQueries({ queryKey: ["players"] });
+      const snapshots: [readonly unknown[], unknown][] = [];
+      qc.getQueriesData<any[]>({ queryKey: ["players"] }).forEach(([key, data]) => {
+        if (!Array.isArray(data)) return;
+        snapshots.push([key, data]);
+        qc.setQueryData(key, data.map((p: any) => (p?.id === id ? { ...p, status } : p)));
+      });
+      return { snapshots };
+    },
+    onError: (e: any, _v, ctx) => {
+      ctx?.snapshots.forEach(([k, v]) => qc.setQueryData(k, v));
+      toast.error(e?.message || "Failed to update status");
+    },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["players"] }); },
   });
 };
 
@@ -80,8 +94,24 @@ export const useAddPlayerTag = () => {
       if (error) throw error;
       await logAction(casinoId!, "edit", "TAG_ADDED", { player_id: playerId, tag });
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["players"] }); },
-    onError: (e) => toast.error(e.message),
+    onMutate: async ({ playerId, tag }) => {
+      await qc.cancelQueries({ queryKey: ["players"] });
+      const snapshots: [readonly unknown[], unknown][] = [];
+      const optimistic = { player_id: playerId, tag, created_by: user?.id, _optimistic: true };
+      qc.getQueriesData<any[]>({ queryKey: ["players"] }).forEach(([key, data]) => {
+        if (!Array.isArray(data)) return;
+        snapshots.push([key, data]);
+        qc.setQueryData(key, data.map((p: any) => p?.id === playerId
+          ? { ...p, player_tags: [...(p.player_tags || []), optimistic] }
+          : p));
+      });
+      return { snapshots };
+    },
+    onError: (e: any, _v, ctx) => {
+      ctx?.snapshots.forEach(([k, v]) => qc.setQueryData(k, v));
+      toast.error(e?.message);
+    },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["players"] }); },
   });
 };
 
@@ -94,7 +124,23 @@ export const useRemovePlayerTag = () => {
       if (error) throw error;
       await logAction(casinoId!, "edit", "TAG_REMOVED", { player_id: playerId, tag });
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["players"] }); },
+    onMutate: async ({ playerId, tag }) => {
+      await qc.cancelQueries({ queryKey: ["players"] });
+      const snapshots: [readonly unknown[], unknown][] = [];
+      qc.getQueriesData<any[]>({ queryKey: ["players"] }).forEach(([key, data]) => {
+        if (!Array.isArray(data)) return;
+        snapshots.push([key, data]);
+        qc.setQueryData(key, data.map((p: any) => p?.id === playerId
+          ? { ...p, player_tags: (p.player_tags || []).filter((t: any) => t?.tag !== tag) }
+          : p));
+      });
+      return { snapshots };
+    },
+    onError: (e: any, _v, ctx) => {
+      ctx?.snapshots.forEach(([k, v]) => qc.setQueryData(k, v));
+      toast.error(e?.message);
+    },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["players"] }); },
   });
 };
 
