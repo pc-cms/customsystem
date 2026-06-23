@@ -34,7 +34,7 @@ interface PageHeaderProps {
  *          subtitle
  *   [belowHeader (filters/tabs)]
  */
-export const PageHeader = ({
+export const PageHeader = memo(function PageHeader({
   icon: Icon,
   title,
   subtitle,
@@ -44,7 +44,7 @@ export const PageHeader = ({
   date,
   belowHeader,
   className,
-}: PageHeaderProps) => {
+}: PageHeaderProps) {
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const dateValue: Date | string | null =
     date === true ? (serverBusinessDate || getBusinessDate()) : date && typeof date !== "boolean" ? date : null;
