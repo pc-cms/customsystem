@@ -296,9 +296,15 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
             actual_tzs: s.actual_tzs + c.actual_tzs,
             actual_usd: s.actual_usd + c.actual_usd,
             actual_grand_tzs: s.actual_grand_tzs + c.actual_grand_tzs,
+            remain_tzs: 0,
+            remain_usd: 0,
+            remain_grand_tzs: 0,
           }),
-          { plan_year_tzs: 0, plan_year_usd: 0, plan_month_tzs: 0, plan_month_usd: 0, plan_month_grand_tzs: 0, actual_tzs: 0, actual_usd: 0, actual_grand_tzs: 0 },
+          { plan_year_tzs: 0, plan_year_usd: 0, plan_month_tzs: 0, plan_month_usd: 0, plan_month_grand_tzs: 0, actual_tzs: 0, actual_usd: 0, actual_grand_tzs: 0, remain_tzs: 0, remain_usd: 0, remain_grand_tzs: 0 },
         );
+        totals.remain_tzs = totals.plan_month_tzs - totals.actual_tzs;
+        totals.remain_usd = totals.plan_month_usd - totals.actual_usd;
+        totals.remain_grand_tzs = totals.plan_month_grand_tzs - totals.actual_grand_tzs;
         return { code: g, name: first?.group_name || g, categories: list, totals };
       };
 
@@ -313,10 +319,16 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           actual_tzs: s.actual_tzs + g.totals.actual_tzs,
           actual_usd: s.actual_usd + g.totals.actual_usd,
           actual_grand_tzs: s.actual_grand_tzs + g.totals.actual_grand_tzs,
+          remain_tzs: 0,
+          remain_usd: 0,
+          remain_grand_tzs: 0,
         }),
-        { plan_month_tzs: 0, plan_month_usd: 0, plan_month_grand_tzs: 0, actual_tzs: 0, actual_usd: 0, actual_grand_tzs: 0 },
+        { plan_month_tzs: 0, plan_month_usd: 0, plan_month_grand_tzs: 0, actual_tzs: 0, actual_usd: 0, actual_grand_tzs: 0, remain_tzs: 0, remain_usd: 0, remain_grand_tzs: 0 },
       );
       grand.plan_month_grand_tzs = grand.plan_month_tzs + (avgUsdTzs ? grand.plan_month_usd * avgUsdTzs : 0);
+      grand.remain_tzs = grand.plan_month_tzs - grand.actual_tzs;
+      grand.remain_usd = grand.plan_month_usd - grand.actual_usd;
+      grand.remain_grand_tzs = grand.plan_month_grand_tzs - grand.actual_grand_tzs;
 
       return {
         incomes: { live_game: liveGame, slots: slotsIncome, other, total: liveGame + slotsIncome + other },
