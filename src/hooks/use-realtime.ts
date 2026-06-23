@@ -186,8 +186,14 @@ export const useRealtimeSubscriptions = () => {
           );
       }
 
-      // ═════════════ TABLES ═════════════
-      if (has("tables") || has("table_tracker") || has("table_results")) {
+      // ═════════════ TABLES / CHIP COUNTS ═════════════
+      // Pit accounts also depend on Chip Count events even when their matrix is
+      // mostly Live Game. Keep this subscription broad and casino-scoped.
+      if (
+        has("tables") || has("table_tracker") || has("table_results") ||
+        has("pit_breaklist") || has("pit_rota") || has("pit_attendance") || has("pit_dealers") ||
+        roles.includes("pit")
+      ) {
         channel = channel
           .on(
             "postgres_changes",

@@ -13,6 +13,7 @@
  */
 
 import { toast } from "sonner";
+import { clearIDBPersistedQueryCache } from "@/lib/query-persister";
 
 const isInIframe = (() => {
   try {
@@ -143,9 +144,11 @@ export async function resetPWACache(): Promise<void> {
       if (v) localStorage.setItem("cms:app-version", v);
     } catch { /* ignore */ }
 
-    // 4) Drop stale persisted react-query cache that might reference old chunks
+    // 4) Drop stale persisted React Query cache from both legacy localStorage
+    // and the current IndexedDB persister.
     try {
       localStorage.removeItem("REACT_QUERY_OFFLINE_CACHE");
+      await clearIDBPersistedQueryCache();
     } catch { /* ignore */ }
   } catch (e) {
     console.warn("[PWA] reset failed:", e);
