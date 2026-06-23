@@ -661,15 +661,13 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, editMode, year, month
           />
         </td>
         <td className={cn("text-right", USD_COL)}>
-          <div className="flex items-center justify-end gap-0.5">
-            <UsdGlyph show={!!c.plan_month_usd} />
-            <InlineNumberCell
-              value={c.plan_month_usd}
-              disabled={!editMode}
-              onCommit={(v) => onPlanCommit(c.id, "USD", v)}
-            />
-          </div>
+          <InlineNumberCell
+            value={c.plan_month_usd}
+            disabled={!editMode}
+            onCommit={(v) => onPlanCommit(c.id, "USD", v)}
+          />
         </td>
+
         <td className="text-right font-mono tabular-nums border-l border-border">{fmt(c.actual_tzs)}</td>
         <td className={cn("text-right font-mono tabular-nums", USD_COL)}><UsdAmt value={c.actual_usd} /></td>
         <td className="text-right font-mono tabular-nums">{fmt(c.actual_grand_tzs)}</td>
