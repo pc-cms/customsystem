@@ -255,15 +255,8 @@ export default function FinancesMonthlyReportPage() {
         <Button variant="outline" size="sm" onClick={exportXlsx} disabled={!data}><Download className="w-4 h-4" /> XLSX</Button>
       </PageHeader>
 
-      {/* INCOMES */}
-      <PageSection title="Incomes" card>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <Income label="Live Game" v={data?.incomes.live_game ?? 0} />
-          <Income label="Slots" v={data?.incomes.slots ?? 0} />
-          <Income label="Other Incomes" v={data?.incomes.other ?? 0} />
-          <Income label="Total in TZS" v={data?.incomes.total ?? 0} bold />
-        </div>
-      </PageSection>
+      {/* SUMMARY — Incomes + Budget (Plan/Actual/Remain) + Profit & Net Balance, single compact table */}
+      {data && <SummaryBlock data={data} />}
 
       {/* GROUPS */}
       {isLoading && <div className="text-sm text-muted-foreground text-center py-6">Loading…</div>}
