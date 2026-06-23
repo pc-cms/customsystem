@@ -57,6 +57,7 @@ export type ReportGroup = {
     plan_year_usd: number;
     plan_month_tzs: number;
     plan_month_usd: number;
+    plan_month_grand_tzs: number;
     actual_tzs: number;
     actual_usd: number;
     actual_grand_tzs: number;
