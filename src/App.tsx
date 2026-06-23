@@ -160,12 +160,21 @@ const ClubResponsibleGaming = lazy(() => import("@/pages/club/legal/ResponsibleG
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 2, // 2 min — better for slow connections
+      // Step 1 (UX plan): tabs must feel instant. Realtime keeps the cache
+      // fresh in the background (module channels mounted at the App level),
+      // so re-entering a previously opened tab should NOT trigger a refetch.
+      // Hooks that need shorter staleness override this explicitly
+      // (current-shift, business-day-closure, shift_tables_result_total = 0).
+      staleTime: 1000 * 60 * 5, // 5 min default — Realtime patches dominate
       gcTime: 1000 * 60 * 60 * 24, // 24h — keep in cache for offline
-      refetchOnWindowFocus: true, // safety net: refetch stale visible queries when user returns to tab
+      // Returning to a tab / focusing the window must NOT cascade refetches:
+      // cache is already current (Realtime). Manual "Resync all data" in
+      // Settings covers the cold-start-on-new-PC scenario.
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
       // M8: Do NOT auto-refetch every query on reconnect — that causes a
       // request storm on flaky links and brings the UI down again. The
-      // offline sync engine triggers staggered refetches manually.
+      // offline sync engine + Realtime catch-up handle reconnects.
       refetchOnReconnect: false,
       retry: 2,
       retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 15000),
