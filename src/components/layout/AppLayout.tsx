@@ -49,11 +49,9 @@ export const AppLayout = () => {
     localStorage.setItem(STORAGE_KEY, collapsed ? "1" : "0");
   }, [collapsed]);
 
-  // Warm all lazy route chunks once a day so the app survives offline
-  // navigation to pages the user has never opened before.
-  useEffect(() => {
-    prefetchRouteChunks();
-  }, []);
+  // Route-chunk warm-up is driven by `usePrefetchCriticalData` (App.tsx)
+  // so it can filter chunks by `allowedModules`. Duplicating it here would
+  // warm everything for super-admin path before modules load.
 
   return (
     <div className="flex h-screen overflow-hidden">
