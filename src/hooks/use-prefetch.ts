@@ -229,11 +229,12 @@ function modulePrefetchTasks(
     case "daily_expenses":
       return [
         () => qc.prefetchQuery({
-          queryKey: ["expense-categories", casinoId],
+          queryKey: ["expense-categories", casinoId, "all"],
           queryFn: async () => {
             const { data, error } = await supabase
-              .from("expense_categories").select("*")
-              .eq("casino_id", casinoId).eq("is_active", true);
+              .from("expense_categories")
+              .select("id, casino_id, code, label, scope, active, sort_order")
+              .eq("casino_id", casinoId).eq("active", true);
             if (error) throw error;
             return data ?? [];
           },
