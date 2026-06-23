@@ -341,13 +341,13 @@ export function usePrefetchCriticalData() {
     if (!isReady || !casinoId || !user || allowedModules === undefined) return;
     const today = getBusinessDate();
 
-    // Warm route chunks only for modules the user can open (Step 3 will
-    // tighten this further; for now still warms everything as a fallback
-    // for offline navigation).
-    prefetchRouteChunks();
+    const isSuperAdmin = roles.includes("super_admin");
+
+    // Step 3: warm only route chunks for modules the user can open.
+    // Super-admin = warm everything (passes undefined → legacy behavior).
+    prefetchRouteChunks(isSuperAdmin ? undefined : allowedModules);
 
     const tasks: Task[] = [...alwaysTasks(qc, casinoId, today)];
-    const isSuperAdmin = roles.includes("super_admin");
 
     // Iterate every known module; super-admin = all, otherwise filter.
     const moduleSet = isSuperAdmin
