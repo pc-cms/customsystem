@@ -2,11 +2,13 @@
  * Eagerly prefetch lazy-loaded route chunks.
  *
  * Two strategies:
- *  1. After login: warm ALL chunks in idle time so the app is fully reachable
- *     offline and switching tabs never shows a flash of Suspense loader.
+ *  1. After login: warm chunks for routes the user can actually open
+ *     (`allowedModules` from the Permission Matrix). Pit/Cashier never
+ *     parse Finance/Payroll/KYC JS.
  *  2. On link hover/focus/touchstart in the sidebar: prefetch THIS chunk
  *     immediately so the click is instant even on cold cache.
  */
+import { moduleKeyForRoute } from "@/lib/route-module-map";
 
 type Loader = () => Promise<unknown>;
 
