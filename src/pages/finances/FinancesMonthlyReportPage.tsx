@@ -585,11 +585,11 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, mtd, mtdMonthLabel
               <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(group.totals.actual_tzs)}</td>
               <td className="text-right font-mono tabular-nums">{fmtT(group.totals.actual_usd)}</td>
               <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(group.totals.actual_grand_tzs)}</td>
-              <td className="text-right font-mono tabular-nums">{group.totals.plan_month_tzs ? pct(group.totals.actual_tzs / group.totals.plan_month_tzs) : "—"}</td>
+              <td className="text-right font-mono tabular-nums">{group.totals.plan_month_grand_tzs ? pct(group.totals.actual_grand_tzs / group.totals.plan_month_grand_tzs) : "—"}</td>
               <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(groupMtd)}</td>
               <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(group.totals.plan_month_tzs - group.totals.actual_tzs))}>{fmtT(group.totals.plan_month_tzs - group.totals.actual_tzs)}</td>
               <td className={cn("text-right font-mono tabular-nums", cls(group.totals.plan_month_usd - group.totals.actual_usd))}>{fmtT(group.totals.plan_month_usd - group.totals.actual_usd)}</td>
-              <td className="text-right font-mono tabular-nums pr-3">{group.totals.plan_month_tzs ? pct((group.totals.plan_month_tzs - group.totals.actual_tzs) / group.totals.plan_month_tzs) : "—"}</td>
+              <td className="text-right font-mono tabular-nums pr-3">{group.totals.plan_month_grand_tzs ? pct((group.totals.plan_month_grand_tzs - group.totals.actual_grand_tzs) / group.totals.plan_month_grand_tzs) : "—"}</td>
             </tr>
           </tbody>
         </table>
@@ -667,11 +667,11 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, mtdValue, editMode, y
         <td className="text-right font-mono tabular-nums border-l border-border">{fmt(c.actual_tzs)}</td>
         <td className="text-right font-mono tabular-nums text-muted-foreground">{fmt(c.actual_usd)}</td>
         <td className="text-right font-mono tabular-nums border-l border-border">{fmt(c.actual_grand_tzs)}</td>
-        <td className="text-right font-mono tabular-nums">{c.plan_month_tzs ? pct(c.actual_tzs / c.plan_month_tzs) : "—"}</td>
+        <td className="text-right font-mono tabular-nums">{c.plan_month_grand_tzs ? pct(c.actual_grand_tzs / c.plan_month_grand_tzs) : "—"}</td>
         <td className="text-right font-mono tabular-nums border-l border-border">{fmt(mtdValue)}</td>
         <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(remTzs))}>{fmt(remTzs)}</td>
         <td className={cn("text-right font-mono tabular-nums text-muted-foreground", cls(remUsd))}>{fmt(remUsd)}</td>
-        <td className="text-right font-mono tabular-nums pr-3">{c.plan_month_tzs ? pct(remTzs / c.plan_month_tzs) : "—"}</td>
+        <td className="text-right font-mono tabular-nums pr-3">{c.plan_month_grand_tzs ? pct((c.plan_month_grand_tzs - c.actual_grand_tzs) / c.plan_month_grand_tzs) : "—"}</td>
       </tr>
 
 

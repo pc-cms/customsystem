@@ -36,6 +36,8 @@ export type ReportCategory = {
   plan_year_usd: number;
   plan_month_tzs: number;
   plan_month_usd: number;
+  /** plan_month_tzs + plan_month_usd × avg USD→TZS rate. */
+  plan_month_grand_tzs: number;
   /** Σ amount where currency='TZS' — native TZS spend, no conversion. */
   actual_tzs: number;
   /** Σ amount where currency='USD' — native USD spend, no conversion. */
@@ -55,6 +57,7 @@ export type ReportGroup = {
     plan_year_usd: number;
     plan_month_tzs: number;
     plan_month_usd: number;
+    plan_month_grand_tzs: number;
     actual_tzs: number;
     actual_usd: number;
     actual_grand_tzs: number;
@@ -254,6 +257,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           plan_year_usd: py.usd,
           plan_month_tzs: pm.tzs,
           plan_month_usd: pm.usd,
+          plan_month_grand_tzs: pm.tzs + (avgUsdTzs ? pm.usd * avgUsdTzs : 0),
           actual_tzs: a.tzs,
           actual_usd: a.usd,
           actual_grand_tzs: a.grand,
@@ -274,11 +278,12 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
             plan_year_usd: s.plan_year_usd + c.plan_year_usd,
             plan_month_tzs: s.plan_month_tzs + c.plan_month_tzs,
             plan_month_usd: s.plan_month_usd + c.plan_month_usd,
+            plan_month_grand_tzs: s.plan_month_grand_tzs + c.plan_month_grand_tzs,
             actual_tzs: s.actual_tzs + c.actual_tzs,
             actual_usd: s.actual_usd + c.actual_usd,
             actual_grand_tzs: s.actual_grand_tzs + c.actual_grand_tzs,
           }),
-          { plan_year_tzs: 0, plan_year_usd: 0, plan_month_tzs: 0, plan_month_usd: 0, actual_tzs: 0, actual_usd: 0, actual_grand_tzs: 0 },
+          { plan_year_tzs: 0, plan_year_usd: 0, plan_month_tzs: 0, plan_month_usd: 0, plan_month_grand_tzs: 0, actual_tzs: 0, actual_usd: 0, actual_grand_tzs: 0 },
         );
         return { code: g, name: first?.group_name || g, categories: list, totals };
       };
