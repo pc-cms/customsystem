@@ -40,6 +40,10 @@ export const useShiftTableAdjustments = (shiftIdOverride?: string | null) => {
     },
     enabled: !!casinoId && !!shiftId,
     staleTime: 15_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 10_000,
   });
 
   const map = useMemo<TableAdjustmentMap>(() => {
