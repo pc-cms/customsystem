@@ -110,8 +110,12 @@ export const liveTableResult = ({
     base = Number(closingResult);
   } else {
     const snap = snapshotIndex?.[tableId];
-    const baseline = baselineMap?.[tableId];
-    if (snap && baseline) {
+    if (snap) {
+      // Prefer the snapshot's own per-denom expected (carries the baseline at
+      // count-time). Fall back to the supplied baselineMap if present.
+      const baseline = snap.expectedPerDenom && Object.keys(snap.expectedPerDenom).length > 0
+        ? snap.expectedPerDenom
+        : (baselineMap?.[tableId] ?? {});
       base = chipSnapshotResult(snap.perDenom, baseline);
     }
   }
