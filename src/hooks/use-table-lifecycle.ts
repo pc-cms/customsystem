@@ -406,13 +406,34 @@ export const useReopenSingleTable = () => {
   });
 };
 
-// Close all tables (Cashier action) — sets status to 'closed' (offline-aware)
+// Close all tables (Cashier action) — sets status to 'closed' (offline-aware).
+// Uses a SINGLE batched UPDATE with `.in('id', ids)` so closing 10+ tables is
+// one network round-trip (~1-2s) instead of N sequential updates (~20s on
+// East Africa cloud RTT).
 export const useCloseAllTables = () => {
   const qc = useQueryClient();
   const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
     mutationFn: async (tableIds: string[]) => {
       if (!casinoId) throw new Error("No casino");
+      if (tableIds.length === 0) return { offline: false };
+
+      // Online: single batched UPDATE.
+      if (navigator.onLine) {
+        const { error } = await supabase
+          .from("gaming_tables")
+          .update({ status: "closed" as any })
+          .in("id", tableIds);
+        if (!error) {
+          void logAction(casinoId, "system", "TABLES_CLOSED_BY_CASHIER", { table_ids: tableIds })
+            .catch(() => {});
+          return { offline: false };
+        }
+        // Network/timeout error → fall through to offline queue per-row so
+        // each enqueued item is independently retried by the sync engine.
+      }
+
+      // Offline (or batched online failed): enqueue per table.
       let anyOffline = false;
       for (const id of tableIds) {
         const res = await offlineMutation({
@@ -424,7 +445,8 @@ export const useCloseAllTables = () => {
         if (res.offline) anyOffline = true;
       }
       if (!anyOffline) {
-        await logAction(casinoId, "system", "TABLES_CLOSED_BY_CASHIER", { table_ids: tableIds });
+        void logAction(casinoId, "system", "TABLES_CLOSED_BY_CASHIER", { table_ids: tableIds })
+          .catch(() => {});
       }
       return { offline: anyOffline };
     },
