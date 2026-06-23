@@ -66,4 +66,4 @@ const CasinoBadge = ({ casinoId, className }: CasinoBadgeProps) => {
   );
 };
 
-export default CasinoBadge;
+export default memo(CasinoBadge);
