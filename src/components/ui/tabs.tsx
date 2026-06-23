@@ -3,7 +3,31 @@ import * as TabsPrimitive from "@radix-ui/react-tabs";
 
 import { cn } from "@/lib/utils";
 
-const Tabs = TabsPrimitive.Root;
+/**
+ * Tabs root with React.startTransition wrapping `onValueChange`. Switching
+ * tabs no longer blocks paint on heavy lists — React keeps the previous
+ * tab content visible while the next tab renders in the background.
+ */
+const Tabs = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root>
+>(({ onValueChange, ...props }, ref) => {
+  const handleChange = React.useCallback(
+    (v: string) => {
+      if (!onValueChange) return;
+      React.startTransition(() => onValueChange(v));
+    },
+    [onValueChange],
+  );
+  return (
+    <TabsPrimitive.Root
+      ref={ref}
+      {...props}
+      onValueChange={onValueChange ? handleChange : undefined}
+    />
+  );
+});
+Tabs.displayName = TabsPrimitive.Root.displayName;
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
