@@ -6,6 +6,7 @@
  *   <SkeletonRow cols={5} />
  *   <SkeletonTable rows={10} cols={5} />
  */
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
 type DivProps = React.HTMLAttributes<HTMLDivElement>;
