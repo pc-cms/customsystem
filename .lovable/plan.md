@@ -1,76 +1,64 @@
-## Distinguish USD vs TZS visually in report tables
+## Month Summary — convert tall stacked table to a horizontal 3-card band
 
-Currently TZS and USD numeric cells look identical — small numbers blur together. Three approaches, each on its own. Pick one (or combine A+B).
+Current `SummaryBlock` is one tall table stacked **Incomes → Budget → Result**, scrolling far down the page. Reshape it into **3 side-by-side cards** on desktop, wrapping on narrow viewports.
 
----
-
-### Option A — Currency badge on USD cells (recommended, lightest touch)
-
-Add a tiny `$` glyph as a leading badge inside every USD cell. TZS stays clean (it's the default), USD always shows a small green `$` chip.
+### Layout
 
 ```text
-Plan TZS    Plan USD       Actual TZS   Actual USD
-1 250 000   $ 4 500        980 000      $ 3 200
+┌─── INCOMES ────────────┐  ┌─────── BUDGET (Month) ─────────┐  ┌──── RESULT ─────┐
+│ Source     TZS    $USD │  │       Plan    Actual   Remain  │  │ Profit     X TZS│
+│ Live Game  ...     —   │  │ TZS   ...     ...      ...  %  │  │ Collections X TZS│
+│ Slots      ...     —   │  │$USD   ...     ...      ...  %  │  ├─────────────────│
+│ Other      ...     —   │  ├────────────────────────────────│  │ NET BAL   X TZS │
+├────────────────────────│  │ Grand ...     ...      ...  %  │  │ (signed color)  │
+│ TOTAL      ...     —   │  │ TZS                            │  │                 │
+└────────────────────────┘  └────────────────────────────────┘  └─────────────────┘
 ```
 
-- Implementation: small `<span className="text-[10px] font-semibold text-emerald-600/80 mr-1">$</span>` prefix in every USD-rendering `<td>` (Plan USD, Actual USD, Remain USD).
-- Also color the entire USD numeric in a slightly different tone: `text-emerald-700 dark:text-emerald-400` (kept subtle, NOT the signed red/green for losses — those still win for `cls()`).
-- Header label changes from `USD` to `$ USD`.
-- Pros: minimal noise, scannable at a glance, currency self-evident even out of context (e.g. exported screenshot).
-- Cons: adds a tiny element to every USD cell.
+- Outer wrapper: `grid grid-cols-1 lg:grid-cols-[1fr_1.5fr_0.9fr] gap-3`.
+  - Budget card gets the widest track (3 numeric columns + %).
+  - Result is narrowest (just label + one value).
+- Each card: `rounded-md border-2 border-border bg-card overflow-hidden`, with an uppercase header strip `bg-muted/40 h-8 px-3` showing the card title.
+- Card body: compact mini-table, `text-[12px]`, mono numerics, `h-7` rows, totals row `bg-muted/30 font-bold border-t-2`.
+- The existing USD column tint + `$` glyph (just shipped) carries over to all three cards for consistency.
 
-### Option B — Vertical-stripe background tint on USD column block
+### Card contents
 
-Apply a faint background tint to the `Plan USD`, `Actual USD`, `Remain USD` columns so they read as a "USD strip" running down the table.
+1. **Incomes** — 3 columns: Source · TZS · $ USD. Rows: Live Game, Slots, Other, **Total Income** (bold). Grand TZS is identical to TZS column today (no USD income), so drop the redundant `Grand TZS` column inside this card — the Total row is the grand.
 
-```text
-Plan        |Plan|         Actual        |Actual|       Remain        |Remain|
-TZS         |USD |         TZS    Grand  |USD   |       TZS   Grand   |USD   |
-…tinted column backgrounds…
-```
+2. **Budget (Month)** — 4 columns: Currency · Plan · Actual · Remain (with `%` shown small/muted under or beside Remain). Rows:
+   - `TZS` row
+   - `$ USD` row (tinted, glyph, sky label — matches GroupTable)
+   - **Grand TZS** row (bold, top border)
+   
+   `Remain` uses `cls()` (signed colors); `%` uses the existing `pctTone()` heat-map so it stays consistent with the per-group tables.
 
-- Implementation: add `bg-amber-50/40 dark:bg-amber-950/20` (or sky/violet — pick one neutral hue) to USD `<th>`/`<td>` in the GroupTable and SummaryBlock.
-- Pros: zero extra glyphs, very strong column-level grouping, works at any zoom.
-- Cons: fights with row hover tint; needs careful contrast so the stripe doesn't drown the signed-amount colors.
+3. **Result** — single value-per-row card. Rows:
+   - Profit · `Income − Actual Grand` (small muted hint under label, not its own column)
+   - Collections · `Owner withdrawals`
+   - **Net Balance** (bold, separated by `border-t-2`)
+   
+   Saves horizontal space by collapsing the "Calculation" column into a sub-label.
 
-### Option C — Dashed divider + suffix label inside each block
+### USD rate footer
 
-Inside each `Plan`/`Actual`/`Remain` block, add a dashed vertical divider between TZS and USD columns, and append a tiny `TZS`/`USD` suffix next to non-zero values.
+Moves into the Budget card footer (`text-[10px] text-muted-foreground px-3 py-1.5 border-t`), since that's the only card where USD→TZS conversion matters.
 
-```text
-Plan TZS ┊ Plan USD     Actual TZS ┊ Actual USD     …
-1 250 000┊  4 500 USD   980 000   ┊ 3 200 USD
-```
+### Responsive
 
-- Implementation: replace `border-l border-border` between block sub-columns with `border-l border-dashed border-border/60`; add `<span className="text-[9px] text-muted-foreground ml-1">USD</span>` after USD amounts only.
-- Pros: keeps a unified visual rhythm.
-- Cons: suffix repeats in every row → visual noise; dashed lines can look "draft-y".
+- `≥ lg` (1024px+): 3 cards in one row.
+- `md` (768–1024): 2-column grid — Incomes + Budget on top, Result full-width below.
+- `< md`: stacks single column — same vertical experience as today on phones.
 
----
+### Technical changes
 
-### Recommendation
-
-**A + B combined, restrained:**
-
-1. Tiny green `$` glyph in front of every USD value, plus subtle emerald text tint on USD numerics (option A).
-2. Very faint `bg-muted/30` column tint on the three USD columns (Plan USD / Actual USD / Remain USD) so they read as a continuous vertical strip (option B, neutral hue — not amber — so it doesn't clash with the % heat-map).
-3. Headers: rename `USD` → `$ USD` and add the same column tint.
-
-This makes USD instantly recognisable without changing any number formatting or breaking the existing red/green signed-amount colors.
-
-### Files touched
-
-- `src/pages/finances/FinancesMonthlyReportPage.tsx`
-  - `GroupTable` header & `Row` cells: add USD glyph + tint to the 3 USD columns and totals row.
-  - `SummaryBlock`: apply the same USD glyph + tint to the USD row(s) in Incomes / Budget cards.
-- No hook, no data, no Excel-export changes (Excel already labels columns explicitly).
+- File: `src/pages/finances/FinancesMonthlyReportPage.tsx`.
+- Replace the single `<table>` inside `SummaryBlock` with a `<div className="grid …">` containing three independent card `<div>`s, each with its own small `<table>`.
+- Reuse helpers `fmt`, `fmtT`, `pct`, `cls`, `pctTone`, `USD_COL`, `UsdGlyph`, `UsdAmt`. No hook/data changes.
+- `PageSection title="Month Summary"` wrapper stays.
 
 ### Behaviour preserved
 
-- All amounts, formulas, and signed colors unchanged.
-- `cls()` (positive/negative) still wins over the USD tint on `Remain USD`.
-- Heat-map `pctTone()` on `%` cells unchanged.
-
----
-
-Tell me **A**, **B**, **C**, or **A+B (recommended)** and I'll implement.
+- All numbers, formulas, signed colors, USD heat-map unchanged.
+- `Remain = Plan − Actual`, `Profit = Income − Actual Grand`, `Net = Profit − Collections`.
+- Excel export untouched.
