@@ -153,6 +153,8 @@ export const useStaffMembers = () => {
     },
     enabled: !!casinoId,
     staleTime: 1000 * 60 * 30, // 30 min — staff roster changes rarely
+    refetchOnMount: true, // always re-validate on navigation so a previously-empty
+                          // cache (e.g. queried before casinoId was set) cannot stick.
   });
 };
 
@@ -231,6 +233,7 @@ export const useStaffRotaRange = (startDate: string, endDate: string) => {
       return (data ?? []).map(aliasStaffRow);
     },
     enabled: !!casinoId,
+    refetchOnMount: true,
   });
 };
 
@@ -300,6 +303,7 @@ export const useStaffAttendanceRange = (startDate: string, endDate: string) => {
       return (data ?? []).map(aliasStaffRow);
     },
     enabled: !!casinoId,
+    refetchOnMount: true,
   });
 };
 
