@@ -50,6 +50,30 @@ const pctTone = (spentRatio: number | null | undefined) => {
   return "text-emerald-500";
 };
 
+/**
+ * USD distinction:
+ *  - `USD_COL`  → faint vertical-stripe background, applied to every USD <th>/<td>.
+ *  - `UsdGlyph` → small sky-blue "$" prefix shown next to USD numerics.
+ *    Skipped automatically when the rendered amount is the muted "—" placeholder.
+ */
+const USD_COL = "bg-muted/40 dark:bg-muted/20";
+const UsdGlyph = ({ show = true }: { show?: boolean }) =>
+  show ? (
+    <span className="mr-0.5 text-[10px] font-semibold text-sky-600 dark:text-sky-400">$</span>
+  ) : null;
+/** Renders an amount with leading $ glyph; falls back to muted "—" for zero/empty. */
+const UsdAmt = ({ value, total = false, className }: { value: number; total?: boolean; className?: string }) => {
+  const txt = total ? fmtT(value) : fmt(value);
+  if (txt === "—") return <span className="text-muted-foreground">—</span>;
+  return (
+    <span className={className}>
+      <UsdGlyph />
+      {txt}
+    </span>
+  );
+};
+
+
 const CASINO_CODE: Record<string, string> = { arusha: "A", mwanza: "M", dodoma: "D", mbeya: "B" };
 
 export default function FinancesMonthlyReportPage() {
