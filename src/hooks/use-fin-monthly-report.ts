@@ -257,6 +257,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           plan_year_usd: py.usd,
           plan_month_tzs: pm.tzs,
           plan_month_usd: pm.usd,
+          plan_month_grand_tzs: pm.tzs + (avgUsdTzs ? pm.usd * avgUsdTzs : 0),
           actual_tzs: a.tzs,
           actual_usd: a.usd,
           actual_grand_tzs: a.grand,
