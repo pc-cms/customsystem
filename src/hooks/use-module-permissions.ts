@@ -40,7 +40,10 @@ export const useMyEffectivePerms = () => {
       return fetchEffective(user.id);
     },
     enabled: !!user?.id,
-    staleTime: 60_000,
+    // Permissions effectively never change mid-session. Cache for the
+    // entire session; mutations explicitly invalidate this key.
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 60 * 24,
   });
 };
 
