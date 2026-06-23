@@ -14,7 +14,7 @@ import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
 import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories, useArchiveFinCategory, useCreateFinCategory, useRenameFinGroup } from "@/hooks/use-fin";
 
-import { useCategoryMtd } from "@/hooks/use-category-mtd";
+
 import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
 import { InlineTextCell } from "@/components/finances/InlineTextCell";
 import { formatNumberSpaces } from "@/lib/currency";
@@ -61,8 +61,6 @@ export default function FinancesMonthlyReportPage() {
   const { data: allCats } = useFinCategories();
 
   const { data, isLoading } = useMonthlyReport({ year, month, ytd: false, scope: scope || activeCasinoId || "" });
-  const { data: mtd } = useCategoryMtd(scope || activeCasinoId || "");
-  const mtdMonthLabel = mtd ? MONTHS[mtd.month - 1].slice(0, 3) : "";
 
   const toggle = (id: string) => setExpanded((e) => (e === id ? null : id));
 
