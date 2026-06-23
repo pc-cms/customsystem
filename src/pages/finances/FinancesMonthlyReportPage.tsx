@@ -661,20 +661,22 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, editMode, year, month
             onCommit={(v) => onPlanCommit(c.id, "TZS", v)}
           />
         </td>
-        <td className="text-right text-muted-foreground">
-          <InlineNumberCell
-            value={c.plan_month_usd}
-            disabled={!editMode}
-            onCommit={(v) => onPlanCommit(c.id, "USD", v)}
-            className="text-muted-foreground"
-          />
+        <td className={cn("text-right", USD_COL)}>
+          <div className="flex items-center justify-end gap-0.5">
+            <UsdGlyph show={!!c.plan_month_usd} />
+            <InlineNumberCell
+              value={c.plan_month_usd}
+              disabled={!editMode}
+              onCommit={(v) => onPlanCommit(c.id, "USD", v)}
+            />
+          </div>
         </td>
         <td className="text-right font-mono tabular-nums border-l border-border">{fmt(c.actual_tzs)}</td>
-        <td className="text-right font-mono tabular-nums text-muted-foreground">{fmt(c.actual_usd)}</td>
+        <td className={cn("text-right font-mono tabular-nums", USD_COL)}><UsdAmt value={c.actual_usd} /></td>
         <td className="text-right font-mono tabular-nums">{fmt(c.actual_grand_tzs)}</td>
         <td className={cn("text-right font-mono tabular-nums", pctTone(spent))}>{actPct}</td>
         <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(c.remain_tzs))}>{fmt(c.remain_tzs)}</td>
-        <td className={cn("text-right font-mono tabular-nums text-muted-foreground", cls(c.remain_usd))}>{fmt(c.remain_usd)}</td>
+        <td className={cn("text-right font-mono tabular-nums", USD_COL, cls(c.remain_usd))}><UsdAmt value={c.remain_usd} /></td>
         <td className={cn("text-right font-mono tabular-nums", cls(c.remain_grand_tzs))}>{fmt(c.remain_grand_tzs)}</td>
         <td className={cn("text-right font-mono tabular-nums pr-3", pctTone(spent))}>{remPct}</td>
       </tr>
