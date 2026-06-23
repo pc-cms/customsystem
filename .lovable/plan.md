@@ -1,64 +1,51 @@
-## Month Summary — convert tall stacked table to a horizontal 3-card band
 
-Current `SummaryBlock` is one tall table stacked **Incomes → Budget → Result**, scrolling far down the page. Reshape it into **3 side-by-side cards** on desktop, wrapping on narrow viewports.
+## Monthly Report — polish USD glyph, neutralize colors, rename columns, enlarge Summary
 
-### Layout
+Targeted tweaks to `src/pages/finances/FinancesMonthlyReportPage.tsx`. No data/hook changes.
 
-```text
-┌─── INCOMES ────────────┐  ┌─────── BUDGET (Month) ─────────┐  ┌──── RESULT ─────┐
-│ Source     TZS    $USD │  │       Plan    Actual   Remain  │  │ Profit     X TZS│
-│ Live Game  ...     —   │  │ TZS   ...     ...      ...  %  │  │ Collections X TZS│
-│ Slots      ...     —   │  │$USD   ...     ...      ...  %  │  ├─────────────────│
-│ Other      ...     —   │  ├────────────────────────────────│  │ NET BAL   X TZS │
-├────────────────────────│  │ Grand ...     ...      ...  %  │  │ (signed color)  │
-│ TOTAL      ...     —   │  │ TZS                            │  │                 │
-└────────────────────────┘  └────────────────────────────────┘  └─────────────────┘
-```
+### 1. `$` glyph — move to column header, match header style
 
-- Outer wrapper: `grid grid-cols-1 lg:grid-cols-[1fr_1.5fr_0.9fr] gap-3`.
-  - Budget card gets the widest track (3 numeric columns + %).
-  - Result is narrowest (just label + one value).
-- Each card: `rounded-md border-2 border-border bg-card overflow-hidden`, with an uppercase header strip `bg-muted/40 h-8 px-3` showing the card title.
-- Card body: compact mini-table, `text-[12px]`, mono numerics, `h-7` rows, totals row `bg-muted/30 font-bold border-t-2`.
-- The existing USD column tint + `$` glyph (just shipped) carries over to all three cards for consistency.
+Currently the `$` is rendered as a small sky-blue prefix in front of every USD number. Instead:
 
-### Card contents
+- Drop `UsdGlyph` from every body cell (`UsdAmt`, plan input cell, Summary USD row).
+- In all USD column **headers**, the label becomes a single `$` sign — same size as the header font (`text-[11px]` in GroupTable, `text-[10px]` in Summary), same muted color as the rest of the header (`text-muted-foreground`, no sky-blue, no bold).
+- Helper change: `UsdAmt` simply renders the number (no glyph). Keep the `—` fallback for zero.
 
-1. **Incomes** — 3 columns: Source · TZS · $ USD. Rows: Live Game, Slots, Other, **Total Income** (bold). Grand TZS is identical to TZS column today (no USD income), so drop the redundant `Grand TZS` column inside this card — the Total row is the grand.
+### 2. Stronger USD column fill
 
-2. **Budget (Month)** — 4 columns: Currency · Plan · Actual · Remain (with `%` shown small/muted under or beside Remain). Rows:
-   - `TZS` row
-   - `$ USD` row (tinted, glyph, sky label — matches GroupTable)
-   - **Grand TZS** row (bold, top border)
-   
-   `Remain` uses `cls()` (signed colors); `%` uses the existing `pctTone()` heat-map so it stays consistent with the per-group tables.
+`USD_COL` bumps from `bg-muted/40 dark:bg-muted/20` to `bg-muted/70 dark:bg-muted/40` so the vertical stripe is clearly visible against `bg-card`. Applied identically in `GroupTable` headers/cells/totals and in the Summary Budget USD row.
 
-3. **Result** — single value-per-row card. Rows:
-   - Profit · `Income − Actual Grand` (small muted hint under label, not its own column)
-   - Collections · `Owner withdrawals`
-   - **Net Balance** (bold, separated by `border-t-2`)
-   
-   Saves horizontal space by collapsing the "Calculation" column into a sub-label.
+### 3. Neutralize number colors — keep heat-map only on Grand TZS
 
-### USD rate footer
+In `GroupTable` `<Row>` and totals row:
 
-Moves into the Budget card footer (`text-[10px] text-muted-foreground px-3 py-1.5 border-t`), since that's the only card where USD→TZS conversion matters.
+- Plan TZS, Plan USD, Actual TZS, Actual USD, Remain TZS, Remain USD → no `cls()`; render with default `text-foreground` (white in dark mode).
+- **Grand TZS** column (Actual Grand, Remain Grand) keeps `cls()` signed coloring.
+- `%` columns keep `pctTone()` heat-map (green / neutral / yellow / orange / red).
 
-### Responsive
+In Summary `Budget` card:
 
-- `≥ lg` (1024px+): 3 cards in one row.
-- `md` (768–1024): 2-column grid — Incomes + Budget on top, Result full-width below.
-- `< md`: stacks single column — same vertical experience as today on phones.
+- TZS row and USD row → drop `cls()` on Remain cells; numbers stay white.
+- **Grand TZS** row keeps `cls()` on Remain and `pctTone()` on `%`.
 
-### Technical changes
+### 4. Rename "Grand Total" → "Grand TZS"
 
-- File: `src/pages/finances/FinancesMonthlyReportPage.tsx`.
-- Replace the single `<table>` inside `SummaryBlock` with a `<div className="grid …">` containing three independent card `<div>`s, each with its own small `<table>`.
-- Reuse helpers `fmt`, `fmtT`, `pct`, `cls`, `pctTone`, `USD_COL`, `UsdGlyph`, `UsdAmt`. No hook/data changes.
-- `PageSection title="Month Summary"` wrapper stays.
+`GroupTable` header (line 569) `Grand Total` becomes `Grand TZS` so it matches the Actual `Grand TZS` column and the Summary row label. Excel export header unchanged for now (separate ask).
 
-### Behaviour preserved
+### 5. Summary block typography & label cleanup
 
-- All numbers, formulas, signed colors, USD heat-map unchanged.
-- `Remain = Plan − Actual`, `Profit = Income − Actual Grand`, `Net = Profit − Collections`.
+- `Ccy` header in Budget card → `Currency` (full word, widen column to `w-[90px]`).
+- USD row label: currently `$ USD` in sky-blue bold — change to plain `USD` in muted style to match TZS row label (the `$` now lives in the column header instead).
+- Body numbers in all 3 Summary cards: bump from `text-[12px]` to `text-[15px] font-bold`. Header strips and small hints under labels stay at current size.
+- Row heights bump from `h-7` to `h-9` so the larger text breathes.
+- Keep all "Profit / Owner withdrawals / Income − Actual / Profit − Collections" hints for now (user said remove later).
+
+### 6. Behavior preserved
+
+- All numbers, formulas, signed colors on Grand TZS, USD heat-map unchanged.
 - Excel export untouched.
+- No changes to hooks, queries, or other pages.
+
+### Files touched
+
+- `src/pages/finances/FinancesMonthlyReportPage.tsx` (helpers + `SummaryBlock` + `GroupTable` header + `Row`).
