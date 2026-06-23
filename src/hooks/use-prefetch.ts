@@ -331,6 +331,24 @@ async function runSequential(tasks: Task[]) {
   }
 }
 
+function buildAllTasks(
+  qc: QueryClient,
+  casinoId: string,
+  roles: string[],
+  allowedModules: Set<string>,
+  today: string,
+): Task[] {
+  const isSuperAdmin = roles.includes("super_admin");
+  const tasks: Task[] = [...alwaysTasks(qc, casinoId, today)];
+  const moduleSet = isSuperAdmin
+    ? new Set<string>(allModuleKeys)
+    : allowedModules;
+  for (const key of moduleSet) {
+    tasks.push(...modulePrefetchTasks(key as ModuleKey, qc, casinoId, today));
+  }
+  return tasks;
+}
+
 export function usePrefetchCriticalData() {
   const qc = useQueryClient();
   const { casinoId, user, roles } = useAuth();
@@ -347,20 +365,31 @@ export function usePrefetchCriticalData() {
     // Super-admin = warm everything (passes undefined → legacy behavior).
     prefetchRouteChunks(isSuperAdmin ? undefined : allowedModules);
 
-    const tasks: Task[] = [...alwaysTasks(qc, casinoId, today)];
-
-    // Iterate every known module; super-admin = all, otherwise filter.
-    const moduleSet = isSuperAdmin
-      ? new Set<string>(allModuleKeys)
-      : allowedModules;
-
-    for (const key of moduleSet) {
-      tasks.push(...modulePrefetchTasks(key as ModuleKey, qc, casinoId, today));
-    }
+    const tasks = buildAllTasks(qc, casinoId, roles, allowedModules, today);
 
     // Fire-and-forget; sequential.
     void runSequential(tasks);
   }, [isReady, casinoId, user, roles, allowedModules, qc]);
+}
+
+/**
+ * Manual full-resync — for "new PC" scenario or after a long offline period.
+ * Re-runs every prefetch task allowed for the current user. Sequential,
+ * does NOT block the UI; returns a promise that resolves when all warmed.
+ */
+export function useResyncAllData() {
+  const qc = useQueryClient();
+  const { casinoId, roles } = useAuth();
+  const { data: allowedModules } = useMyModulePermissions();
+
+  return async () => {
+    if (!casinoId || allowedModules === undefined) return;
+    const today = getBusinessDate();
+    // Mark every cached query stale so subsequent reads re-fetch.
+    await qc.invalidateQueries({ refetchType: "none" });
+    const tasks = buildAllTasks(qc, casinoId, roles, allowedModules, today);
+    await runSequential(tasks);
+  };
 }
 
 // Module keys we know how to prefetch (used for super-admin path).
