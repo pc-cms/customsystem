@@ -344,19 +344,6 @@ export default function FinancesMonthlyReportPage() {
   );
 }
 
-const Income = ({ label, v, bold }: { label: string; v: number; bold?: boolean }) => (
-  <div className="rounded-md border border-border p-3">
-    <div className="text-xs uppercase text-muted-foreground">{label}</div>
-    <div className={cn("font-mono mt-1", bold ? "text-lg font-bold" : "text-base")}>{fmt(v)}</div>
-  </div>
-);
-
-const Kpi = ({ label, v, signed }: { label: string; v: number; signed?: boolean }) => (
-  <div className="rounded-md border border-border p-3">
-    <div className="text-xs uppercase text-muted-foreground">{label}</div>
-    <div className={cn("font-mono mt-1 text-base font-semibold", signed && cls(v))}>{formatNumberSpaces(v)}</div>
-  </div>
-);
 
 /**
  * Summary block — one compact table combining Incomes, Budget (Plan / Actual / Remain)
