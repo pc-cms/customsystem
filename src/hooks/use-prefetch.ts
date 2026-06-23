@@ -212,11 +212,11 @@ function modulePrefetchTasks(
     case "bank_checks":
       return [
         () => qc.prefetchQuery({
-          queryKey: ["bank-checks", casinoId, today],
+          queryKey: ["bank-checks", casinoId, today, today],
           queryFn: async () => {
             const { data, error } = await supabase
               .from("bank_checks").select("*")
-              .eq("casino_id", casinoId).eq("business_date", today);
+              .eq("casino_id", casinoId).eq("check_date", today);
             if (error) throw error;
             return data ?? [];
           },
