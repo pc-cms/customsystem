@@ -33,6 +33,7 @@ export const useTablesDropSplit = (fromIso: string | null, toIso: string | null)
     enabled: !!casinoId && !!fromIso && !!toIso,
     staleTime: 1000 * 30,
     refetchInterval: 60_000,
+    select: (d: any) => (d instanceof Map ? d : new Map<string, TableSplit>(Object.entries(d ?? {}))),
   });
 };
 
@@ -58,6 +59,7 @@ export const usePlayersDropSplit = (fromIso: string | null, toIso: string | null
     enabled: !!casinoId && !!fromIso && !!toIso,
     staleTime: 1000 * 30,
     refetchInterval: 60_000,
+    select: (d: any) => (d instanceof Map ? d : new Map<string, TableSplit>(Object.entries(d ?? {}))),
   });
 };
 
