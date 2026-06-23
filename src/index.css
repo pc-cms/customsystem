@@ -339,6 +339,20 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /*
+   * Realtime row highlight: a soft 1s fade applied to table rows whose
+   * cached value was just updated via Supabase Realtime. Lets the user
+   * see *what* changed without rerendering the surrounding list.
+   * Add the class via `useRealtimeFlash()` (see src/hooks/use-realtime-flash.ts).
+   */
+  .realtime-flash {
+    animation: realtimeFlash 1s ease-out;
+  }
+  @keyframes realtimeFlash {
+    0%   { background-color: hsl(142 76% 36% / 0.18); }
+    100% { background-color: transparent; }
+  }
 }
 
 /* Print styles for Rota / Attendance grids */
