@@ -321,7 +321,8 @@ const ProtectedRoutes = () => {
   useEffect(() => {
     const KEYS = [
       "shifts", "transactions", "cage-transfers", "cash-counts",
-      "visits", "active-players", "gaming_tables", "chip_counts",
+      "visits", "active-players", "gaming-tables", "chip-snapshots",
+      "chip-snapshots-full", "table-tracker",
     ];
     const onReconnect = async () => {
       for (const k of KEYS) {
@@ -574,11 +575,19 @@ const App = () => (
       persistOptions={{
         persister,
         maxAge: 1000 * 60 * 60 * 24, // 24h
-        buster: "v5-staff-prefetch-normalized",
+        buster: "v6-pwa-live-chipcounts",
         dehydrateOptions: {
-          // Skip queries whose data is a Map/Set — JSON dehydration loses
-          // them and on restore `.get()` blows up ("Se.get is not a function").
+          // Skip queries whose data is a Map/Set — JSON dehydration loses them.
+          // Also skip high-churn live tables: persisting these to IndexedDB on
+          // every Realtime/write event made installed PWAs slower than Chrome
+          // tabs on some PCs, and restored stale Chip Counts between accounts.
           shouldDehydrateQuery: (q) => {
+            const key = q.queryKey[0];
+            if (typeof key === "string" && [
+              "chip-snapshots", "chip-snapshots-full", "table-tracker",
+              "breaklist", "casino-visits-live", "casino_visits",
+              "client_sessions", "transactions",
+            ].includes(key)) return false;
             const d = q.state.data;
             if (d instanceof Map || d instanceof Set) return false;
             return q.state.status === "success";

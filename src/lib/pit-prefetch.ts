@@ -12,7 +12,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getBusinessDate } from "@/lib/business-day";
-import { fetchChipSnapshots } from "@/lib/chip-snapshots";
 import {
   disambiguateNames,
   fetchBreaklistRows,
@@ -77,8 +76,17 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
     () => qc.prefetchQuery({
       queryKey: ["chip-snapshots", casinoId, today],
       queryFn: async () => {
-        return fetchChipSnapshots(casinoId, today);
+        // Keep this key compatible with useChipSnapshots(): latest-only RPC.
+        // Prefetching full history into the same key made PWA restores heavy
+        // and could keep old cross-account Chip Counts visible too long.
+        const { data, error } = await supabase.rpc("chip_snapshots_latest", {
+          _casino_id: casinoId,
+          _date: today,
+        });
+        if (error) throw error;
+        return data ?? [];
       },
+      staleTime: 0,
     }),
     () => qc.prefetchQuery({
       queryKey: ["pit-rota-range", casinoId, monthStart, monthEnd],

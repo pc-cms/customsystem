@@ -94,16 +94,16 @@ export const useChipSnapshots = (date: string) => {
       return data || [];
     },
     enabled: !!casinoId,
-    // Pin today's data in-session: realtime keeps it fresh. Past dates may
-    // receive late edits → 5min freshness.
-    staleTime: isToday ? Infinity : 5 * 60_000,
+    // Chip Counts are cross-device operational data. Do NOT pin today's data
+    // forever and do NOT trust restored PWA cache here: if Realtime drops on a
+    // weak network, another account's save must still appear shortly.
+    staleTime: isToday ? 0 : 5 * 60_000,
     gcTime: 24 * 60 * 60_000,
-    refetchOnWindowFocus: false,
-    // IMPORTANT: keep default `refetchOnMount: true`. If realtime invalidated
-    // this key while the page was unmounted (another user wrote a snapshot),
-    // we need to refetch on next mount. Setting this to false made pit users
-    // see super-admin's writes only after a full reload.
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     refetchOnReconnect: true,
+    refetchInterval: isToday ? 10_000 : false,
+    refetchIntervalInBackground: false,
   });
 };
 
@@ -117,9 +117,12 @@ export const useChipSnapshotsFull = (date: string) => {
       return fetchChipSnapshots(casinoId, date);
     },
     enabled: !!casinoId,
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
+    staleTime: 15_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     refetchOnReconnect: true,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
 };
 
