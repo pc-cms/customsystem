@@ -139,7 +139,7 @@ export const useDealers = () => {
       return disambiguateNames(raw.map(mapEmployeeToDealer), raw);
     },
     enabled: isReady,
-    staleTime: 1000 * 60 * 2,
+    staleTime: 1000 * 60 * 30, // 30 min — dealer roster changes rarely
   });
 };
 
