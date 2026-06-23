@@ -574,7 +574,16 @@ const App = () => (
       persistOptions={{
         persister,
         maxAge: 1000 * 60 * 60 * 24, // 24h
-        buster: "v3-live-game-dealers-normalized",
+        buster: "v4-skip-map-set-dehydration",
+        dehydrateOptions: {
+          // Skip queries whose data is a Map/Set — JSON dehydration loses
+          // them and on restore `.get()` blows up ("Se.get is not a function").
+          shouldDehydrateQuery: (q) => {
+            const d = q.state.data;
+            if (d instanceof Map || d instanceof Set) return false;
+            return q.state.status === "success";
+          },
+        },
       }}
     >
       <TooltipProvider>
