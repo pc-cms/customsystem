@@ -39,4 +39,4 @@ const ChipToken = ({ denom, size = "sm", label, colors: colorOverride, className
   );
 };
 
-export default ChipToken;
+export default memo(ChipToken);
