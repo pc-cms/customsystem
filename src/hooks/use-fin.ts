@@ -180,6 +180,7 @@ export const useFinWallets = () => {
       return data;
     },
     enabled: isSummaryMode || !!activeCasinoId,
+    staleTime: 1000 * 60 * 60 * 6, // 6h — wallets are configuration
   });
 };
 
