@@ -46,6 +46,9 @@ export const useActiveShift = () => {
       return data;
     },
     enabled: !!casinoId,
+    // Hot KPI: active shift drives Cage / Pit headers; must always be fresh.
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 };
 
