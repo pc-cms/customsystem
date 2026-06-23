@@ -21,7 +21,7 @@ export const useFinCategories = () =>
       if (error) throw error;
       return data;
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 60 * 24, // 24h — categories rarely change
   });
 
 export const useUpsertFinCategory = () => {
