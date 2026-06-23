@@ -120,16 +120,38 @@ async function runPool(loaders: Loader[], concurrency = 3) {
 }
 
 /**
- * Warm every route chunk in the background. Idempotent — runs at most
- * once per 24h per device.
+ * Warm route chunks in the background. Idempotent — runs at most once
+ * per 24h per device.
+ *
+ * When `allowedModules` is provided (Step 3), only chunks for routes the
+ * user can actually open are warmed — Pit/Cashier don't pull Finance,
+ * Payroll, KYC, Lottery JS into memory.
+ *
+ * When omitted (legacy callers), warms every chunk — preserves the
+ * previous "fully reachable offline" behavior for super-admin / unknown.
  */
-export function prefetchRouteChunks(): void {
+export function prefetchRouteChunks(allowedModules?: Set<string>): void {
   if (typeof window === "undefined") return;
   if (!navigator.onLine) return;
   if (!shouldRun()) return;
   markRan();
+
+  let loaders = routeLoaders;
+  if (allowedModules && allowedModules.size > 0) {
+    // Lazy import to avoid a hard circular dep at module-evaluation time.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { moduleKeyForRoute } = require("@/lib/route-module-map") as typeof import("@/lib/route-module-map");
+    loaders = Object.entries(pathLoaders)
+      .filter(([path]) => {
+        const mod = moduleKeyForRoute(path);
+        // ungated routes (mod=null) are always warmed; gated routes must be allowed
+        return mod === null || allowedModules.has(mod);
+      })
+      .map(([, loader]) => loader);
+  }
+
   idle(() => {
-    void runPool(routeLoaders, 3);
+    void runPool(loaders, 3);
   });
 }
 
