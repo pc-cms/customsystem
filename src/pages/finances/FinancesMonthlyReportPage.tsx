@@ -596,9 +596,10 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
               <td className={cn("text-right font-mono tabular-nums", USD_COL)}><UsdAmt value={t.actual_usd} total /></td>
               <td className="text-right font-mono tabular-nums">{fmtT(t.actual_grand_tzs)}</td>
               <td className={cn("text-right font-mono tabular-nums", pctTone(tSpent))}>{actPct}</td>
-              <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(t.remain_tzs))}>{fmtT(t.remain_tzs)}</td>
-              <td className={cn("text-right font-mono tabular-nums", USD_COL, cls(t.remain_usd))}><UsdAmt value={t.remain_usd} total /></td>
+              <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(t.remain_tzs)}</td>
+              <td className={cn("text-right font-mono tabular-nums", USD_COL)}><UsdAmt value={t.remain_usd} total /></td>
               <td className={cn("text-right font-mono tabular-nums", cls(t.remain_grand_tzs))}>{fmtT(t.remain_grand_tzs)}</td>
+
               <td className={cn("text-right font-mono tabular-nums pr-3", pctTone(tSpent))}>{remPct}</td>
             </tr>
           </tbody>
