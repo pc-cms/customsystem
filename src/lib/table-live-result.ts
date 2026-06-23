@@ -25,40 +25,47 @@ export interface SnapshotRow {
 export type BaselineMap = Record<string, Record<number, number>>;
 
 /**
- * Build a map: tableId → { latestTime, perDenom: { [denom]: actual_quantity } }
- * keeping only the LATEST snapshot batch per table (snapshots written in a single
- * Chip Count share a created_at).
+ * Build a map: tableId → { latestTime, perDenom, expectedPerDenom }.
+ *
+ * IMPORTANT: snapshots are deduped per (table, denomination) upstream
+ * (RPC `chip_snapshots_latest` returns the latest row per denom for the day).
+ * We MUST merge across all denoms regardless of `created_at`, because a
+ * partial chip count (e.g. only the 5M denom) writes a row whose timestamp
+ * is later than other denoms — picking a single "latest batch" by timestamp
+ * would drop the rest and treat them as actual=0, producing a phantom loss
+ * equal to the entire table baseline.
  */
 export const buildLatestTableSnapshot = (snapshots: SnapshotRow[]) => {
   const map: Record<string, { latestTime: string; perDenom: Record<number, number>; expectedPerDenom: Record<number, number> }> = {};
-  // Sort ascending by time so later writes overwrite.
+  // Sort ascending so later writes per (table, denom) win on tie-break.
   const sorted = [...snapshots].sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
   sorted.forEach(s => {
     if (s.location_type !== "table" || !s.location_id) return;
     const t = s.created_at || "";
-    const cur = map[s.location_id];
-    if (!cur || t > cur.latestTime) {
-      map[s.location_id] = { latestTime: t, perDenom: {}, expectedPerDenom: {} };
-    }
-    if (map[s.location_id].latestTime === t) {
-      map[s.location_id].perDenom[Number(s.denomination)] = Number(s.actual_quantity);
-      map[s.location_id].expectedPerDenom[Number(s.denomination)] = Number(s.expected_quantity);
-    }
+    const denom = Number(s.denomination);
+    const cur = map[s.location_id] || { latestTime: "", perDenom: {}, expectedPerDenom: {} };
+    cur.perDenom[denom] = Number(s.actual_quantity);
+    cur.expectedPerDenom[denom] = Number(s.expected_quantity);
+    if (t > cur.latestTime) cur.latestTime = t;
+    map[s.location_id] = cur;
   });
   return map;
 };
 
-/** Result derived from a chip snapshot batch: Σ (actual - baseline) × denom. */
+/**
+ * Result derived from chip snapshots: Σ (actual − expected) × denom across
+ * the denominations that were actually counted. Denominations without a
+ * snapshot are treated as unchanged (contribute 0). Each snapshot row already
+ * carries its own `expected_quantity` baseline so the second argument is
+ * kept only for backward compatibility and is no longer required.
+ */
 export const chipSnapshotResult = (
   perDenom: Record<number, number>,
   baselinePerDenom: Record<number, number>
 ) => {
   let total = 0;
-  const denoms = new Set<number>([
-    ...Object.keys(perDenom).map(Number),
-    ...Object.keys(baselinePerDenom).map(Number),
-  ]);
-  denoms.forEach(d => {
+  Object.keys(perDenom).forEach(k => {
+    const d = Number(k);
     const actual = perDenom[d] ?? 0;
     const expected = baselinePerDenom[d] ?? 0;
     total += (actual - expected) * d;
@@ -103,8 +110,12 @@ export const liveTableResult = ({
     base = Number(closingResult);
   } else {
     const snap = snapshotIndex?.[tableId];
-    const baseline = baselineMap?.[tableId];
-    if (snap && baseline) {
+    if (snap) {
+      // Prefer the snapshot's own per-denom expected (carries the baseline at
+      // count-time). Fall back to the supplied baselineMap if present.
+      const baseline = snap.expectedPerDenom && Object.keys(snap.expectedPerDenom).length > 0
+        ? snap.expectedPerDenom
+        : (baselineMap?.[tableId] ?? {});
       base = chipSnapshotResult(snap.perDenom, baseline);
     }
   }
