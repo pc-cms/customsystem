@@ -588,13 +588,14 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
 const Row = ({ c, expanded, onToggle, isNetwork, colCount, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onArchiveCategory, onEditExpense }: {
   c: ReportCategory; expanded: boolean; onToggle: () => void; isNetwork: boolean; colCount: number;
 } & EditCallbacks) => {
-  const actPct = c.plan_month_grand_tzs ? pct(c.actual_grand_tzs / c.plan_month_grand_tzs) : "—";
+  const spent = c.plan_month_grand_tzs ? c.actual_grand_tzs / c.plan_month_grand_tzs : null;
+  const actPct = spent == null ? "—" : pct(spent);
   const remPct = c.plan_month_grand_tzs ? pct(c.remain_grand_tzs / c.plan_month_grand_tzs) : "—";
   return (
     <>
       <tr
         className={cn(
-          "border-t border-border hover:bg-muted/30 cursor-pointer [&>td]:h-7 [&>td]:px-2 [&>td]:align-middle",
+          "border-t border-border hover:bg-muted/30 cursor-pointer [&>td]:h-8 [&>td]:px-2 [&>td]:align-middle",
           expanded && "bg-muted/30",
         )}
         onClick={onToggle}
@@ -609,7 +610,7 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, editMode, year, month
                 onCommit={(v) => onRenameCategory(c.id, v)}
               />
             </div>
-            {c.expenses.length > 0 && <span className="text-[10px] text-muted-foreground shrink-0">({c.expenses.length})</span>}
+            {c.expenses.length > 0 && <span className="text-[11px] text-muted-foreground shrink-0">({c.expenses.length})</span>}
             {editMode && (
               <Button
                 variant="ghost"
@@ -647,12 +648,13 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, editMode, year, month
         <td className="text-right font-mono tabular-nums border-l border-border">{fmt(c.actual_tzs)}</td>
         <td className="text-right font-mono tabular-nums text-muted-foreground">{fmt(c.actual_usd)}</td>
         <td className="text-right font-mono tabular-nums">{fmt(c.actual_grand_tzs)}</td>
-        <td className="text-right font-mono tabular-nums">{actPct}</td>
+        <td className={cn("text-right font-mono tabular-nums", pctTone(spent))}>{actPct}</td>
         <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(c.remain_tzs))}>{fmt(c.remain_tzs)}</td>
         <td className={cn("text-right font-mono tabular-nums text-muted-foreground", cls(c.remain_usd))}>{fmt(c.remain_usd)}</td>
         <td className={cn("text-right font-mono tabular-nums", cls(c.remain_grand_tzs))}>{fmt(c.remain_grand_tzs)}</td>
-        <td className="text-right font-mono tabular-nums pr-3">{remPct}</td>
+        <td className={cn("text-right font-mono tabular-nums pr-3", pctTone(spent))}>{remPct}</td>
       </tr>
+
 
 
 
