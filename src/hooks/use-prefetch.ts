@@ -22,6 +22,7 @@ import { useDataScope } from "@/hooks/use-data-scope";
 import { useMyModulePermissions } from "@/hooks/use-module-permissions";
 import { getBusinessDate } from "@/lib/business-day";
 import { disambiguateNames, mapEmployeeToDealer } from "@/hooks/use-dealers";
+import { normalizeEmployeesToStaff } from "@/hooks/use-staff";
 import { prefetchRouteChunks } from "@/lib/route-prefetch";
 import type { ModuleKey } from "@/lib/modules";
 
@@ -134,7 +135,7 @@ function modulePrefetchTasks(
               .eq("casino_id", casinoId)
               .gte("date", monthStart).lte("date", monthEnd);
             if (error) throw error;
-            return data ?? [];
+            return (data ?? []).map((r: any) => ({ ...r, dealer_id: r.employee_id }));
           },
           staleTime: FIVE_MIN,
         }),
@@ -146,7 +147,7 @@ function modulePrefetchTasks(
               .eq("casino_id", casinoId)
               .gte("date", monthStart).lte("date", monthEnd);
             if (error) throw error;
-            return data ?? [];
+            return (data ?? []).map((r: any) => ({ ...r, dealer_id: r.employee_id }));
           },
           staleTime: FIVE_MIN,
         }),
@@ -313,7 +314,7 @@ function modulePrefetchTasks(
               .eq("casino_id", casinoId).neq("department", "Pit")
               .order("department").order("full_name");
             if (error) throw error;
-            return data ?? [];
+            return normalizeEmployeesToStaff(data ?? []);
           },
           staleTime: 1000 * 60 * 30,
         }),

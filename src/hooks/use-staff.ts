@@ -101,7 +101,7 @@ const mapDept = (department: string, position: string | null): StaffDepartment =
   }
 };
 
-const mapEmployeeToStaff = (e: any): StaffMember => {
+export const mapEmployeeToStaff = (e: any): StaffMember => {
   const split = splitFullName(e.full_name);
   const first = (e.first_name && String(e.first_name).trim()) || split.first;
   // Show FIRST NAME only by default; disambiguation appends last-name initials
@@ -121,6 +121,23 @@ const mapEmployeeToStaff = (e: any): StaffMember => {
   };
 };
 
+export const normalizeEmployeesToStaff = (raw: any[]): StaffMember[] => {
+  const inputs = raw.map((e: any) => {
+    const split = splitFullName(e.full_name);
+    const first = (e.first_name && String(e.first_name).trim()) || split.first || (e.full_name || "").trim();
+    return {
+      id: e.id,
+      first,
+      last: (e.last_name && String(e.last_name).trim()) || split.last,
+    };
+  });
+  const dispMap = buildDisplayNames(inputs);
+  return raw.map((e: any) => {
+    const m = mapEmployeeToStaff(e);
+    return { ...m, name: dispMap.get(m.id) || m.name };
+  });
+};
+
 export const useStaffMembers = () => {
   const { casinoId } = useAuth();
   return useQuery({
@@ -135,26 +152,12 @@ export const useStaffMembers = () => {
         .order("full_name");
       if (error) throw error;
       const raw = data ?? [];
-      // Disambiguate by FIRST NAME collisions — append last-name initials.
-      const inputs = raw.map((e: any) => {
-        const split = splitFullName(e.full_name);
-        const first = (e.first_name && String(e.first_name).trim()) || split.first || (e.full_name || "").trim();
-        return {
-          id: e.id,
-          first,
-          last: (e.last_name && String(e.last_name).trim()) || split.last,
-        };
-      });
-      const dispMap = buildDisplayNames(inputs);
-      return raw.map((e: any) => {
-        const m = mapEmployeeToStaff(e);
-        return { ...m, name: dispMap.get(m.id) || m.name };
-      });
+      return normalizeEmployeesToStaff(raw);
     },
     enabled: !!casinoId,
     staleTime: 1000 * 60 * 30, // 30 min — staff roster changes rarely
-    refetchOnMount: true, // always re-validate on navigation so a previously-empty
-                          // cache (e.g. queried before casinoId was set) cannot stick.
+    refetchOnMount: "always", // always re-validate on navigation so malformed/stale
+                              // persisted cache cannot render an empty rota/attendance grid.
   });
 };
 
@@ -233,7 +236,7 @@ export const useStaffRotaRange = (startDate: string, endDate: string) => {
       return (data ?? []).map(aliasStaffRow);
     },
     enabled: !!casinoId,
-    refetchOnMount: true,
+    refetchOnMount: "always",
   });
 };
 
@@ -303,7 +306,7 @@ export const useStaffAttendanceRange = (startDate: string, endDate: string) => {
       return (data ?? []).map(aliasStaffRow);
     },
     enabled: !!casinoId,
-    refetchOnMount: true,
+    refetchOnMount: "always",
   });
 };
 
