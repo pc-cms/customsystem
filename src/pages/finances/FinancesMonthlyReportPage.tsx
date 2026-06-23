@@ -585,11 +585,11 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, mtd, mtdMonthLabel
               <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(group.totals.actual_tzs)}</td>
               <td className="text-right font-mono tabular-nums">{fmtT(group.totals.actual_usd)}</td>
               <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(group.totals.actual_grand_tzs)}</td>
-              <td className="text-right font-mono tabular-nums">{group.totals.plan_month_tzs ? pct(group.totals.actual_tzs / group.totals.plan_month_tzs) : "—"}</td>
+              <td className="text-right font-mono tabular-nums">{group.totals.plan_month_grand_tzs ? pct(group.totals.actual_grand_tzs / group.totals.plan_month_grand_tzs) : "—"}</td>
               <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(groupMtd)}</td>
               <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(group.totals.plan_month_tzs - group.totals.actual_tzs))}>{fmtT(group.totals.plan_month_tzs - group.totals.actual_tzs)}</td>
               <td className={cn("text-right font-mono tabular-nums", cls(group.totals.plan_month_usd - group.totals.actual_usd))}>{fmtT(group.totals.plan_month_usd - group.totals.actual_usd)}</td>
-              <td className="text-right font-mono tabular-nums pr-3">{group.totals.plan_month_tzs ? pct((group.totals.plan_month_tzs - group.totals.actual_tzs) / group.totals.plan_month_tzs) : "—"}</td>
+              <td className="text-right font-mono tabular-nums pr-3">{group.totals.plan_month_grand_tzs ? pct((group.totals.plan_month_grand_tzs - group.totals.actual_grand_tzs) / group.totals.plan_month_grand_tzs) : "—"}</td>
             </tr>
           </tbody>
         </table>
