@@ -96,8 +96,9 @@ export const useChipColors = () => {
       return map;
     },
     enabled: !!casinoId,
-    // staleTime intentionally short — realtime channel handles freshness.
-    staleTime: 30_000,
+    // Chip colors change extremely rarely; Realtime patches invalidate.
+    staleTime: 1000 * 60 * 60 * 24,
+    gcTime: 1000 * 60 * 60 * 24 * 7,
   });
 };
 
