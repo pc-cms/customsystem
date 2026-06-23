@@ -148,7 +148,7 @@ export const useRoleModuleDefaults = (role: string | null) => {
       return (data ?? []) as RoleDefaultRow[];
     },
     enabled: !!role,
-    staleTime: 60_000,
+    staleTime: 1000 * 60 * 60, // 1h — admin screen only
   });
 };
 
