@@ -32,6 +32,24 @@ const pct = (n: number) => (Number.isFinite(n) ? `${Math.round(n * 100)}%` : "�
 
 const cls = (n: number) => (n < 0 ? "cms-amount-negative" : n > 0 ? "cms-amount-positive" : "text-muted-foreground");
 
+/**
+ * Budget heat-map for "% spent" (actual / plan).
+ *  < 90%        → green   (well under budget)
+ *  90% – 100%   → neutral (on track)
+ *  100% – 110%  → yellow  (slightly over)
+ *  110% – 120%  → orange  (over)
+ *  > 120%       → red     (significantly over)
+ *  null/no plan → muted
+ */
+const pctTone = (spentRatio: number | null | undefined) => {
+  if (spentRatio == null || !Number.isFinite(spentRatio)) return "text-muted-foreground";
+  if (spentRatio > 1.2) return "text-red-500 font-semibold";
+  if (spentRatio > 1.1) return "text-orange-500 font-semibold";
+  if (spentRatio > 1.0) return "text-yellow-500";
+  if (spentRatio >= 0.9) return "text-foreground";
+  return "text-emerald-500";
+};
+
 const CASINO_CODE: Record<string, string> = { arusha: "A", mwanza: "M", dodoma: "D", mbeya: "B" };
 
 export default function FinancesMonthlyReportPage() {
