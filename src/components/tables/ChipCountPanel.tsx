@@ -113,8 +113,15 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const [fullscreen, setFullscreen] = useState(false);
   const [tabletMode, setTabletMode] = useState(false);
 
-  // Reset to empty when underlying tables/snapshots change so the new placeholder
-  // (latest snapshot) takes effect immediately for Pit's next entry.
+  // Reset typed-in counts ONLY when the SET of tables changes (open/close, or
+  // table added). Do NOT reset on snapshots.length changing — realtime delivery
+  // of a peer save (or our own save) was wiping in-progress typing.
+  // The placeholder (`getLastCheck`) already reflects the newest snapshot, so
+  // untouched cells stay visually correct without clobbering user input.
+  const tableSetKey = useMemo(
+    () => countLocations.map(l => l.key).sort().join("|"),
+    [countLocations],
+  );
   useEffect(() => {
     const initial: Record<string, Record<number, number>> = {};
     countLocations.forEach(loc => {
@@ -125,7 +132,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     });
     setCounts(initial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countLocations.length, snapshots.length, baseline.length]);
+  }, [tableSetKey]);
 
   const visibleDenoms = useMemo(
     () => CHIP_DENOMS.filter(d => countLocations.some(loc => loc.denoms.includes(d))),
