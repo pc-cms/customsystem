@@ -14,7 +14,7 @@ import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
 import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories, useArchiveFinCategory, useCreateFinCategory, useRenameFinGroup } from "@/hooks/use-fin";
 
-import { useCategoryMtd } from "@/hooks/use-category-mtd";
+
 import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
 import { InlineTextCell } from "@/components/finances/InlineTextCell";
 import { formatNumberSpaces } from "@/lib/currency";
@@ -61,8 +61,6 @@ export default function FinancesMonthlyReportPage() {
   const { data: allCats } = useFinCategories();
 
   const { data, isLoading } = useMonthlyReport({ year, month, ytd: false, scope: scope || activeCasinoId || "" });
-  const { data: mtd } = useCategoryMtd(scope || activeCasinoId || "");
-  const mtdMonthLabel = mtd ? MONTHS[mtd.month - 1].slice(0, 3) : "";
 
   const toggle = (id: string) => setExpanded((e) => (e === id ? null : id));
 
@@ -99,8 +97,11 @@ export default function FinancesMonthlyReportPage() {
     const totalFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2EFDA" } } as const;
 
     let r = 10;
+    const COLS = 11; // Category + Plan(2) + Actual(4) + Remaining(4)
+    const lastCol = "K";
+    const pctCols = new Set([7, 11]); // Actual %, Remain %
     const writeHeader = () => {
-      const headers = ["Category", "Plan/Year TZS", "Plan/Year USD", "Plan/Month TZS", "Plan/Month USD", "Actual TZS", "Actual USD", "%", "Remain TZS", "Remain USD", "Remain %"];
+      const headers = ["Category", "Plan TZS", "Plan USD", "Actual TZS", "Actual USD", "Actual Grand TZS", "Actual %", "Remain TZS", "Remain USD", "Remain Grand TZS", "Remain %"];
       headers.forEach((h, i) => {
         const cell = ws.getCell(r, i + 1);
         cell.value = h;
@@ -112,105 +113,85 @@ export default function FinancesMonthlyReportPage() {
       r++;
     };
 
+    const writeCatRow = (c: typeof data.groups[number]["categories"][number]) => {
+      const actPct = c.plan_month_grand_tzs ? c.actual_grand_tzs / c.plan_month_grand_tzs : null;
+      const remPct = c.plan_month_grand_tzs ? c.remain_grand_tzs / c.plan_month_grand_tzs : null;
+      const row = ws.getRow(r);
+      row.values = [c.name, c.plan_month_tzs, c.plan_month_usd, c.actual_tzs, c.actual_usd, c.actual_grand_tzs, actPct, c.remain_tzs, c.remain_usd, c.remain_grand_tzs, remPct];
+      for (let i = 2; i <= COLS; i++) {
+        const cell = row.getCell(i);
+        cell.numFmt = pctCols.has(i) ? "0%" : "# ##0;[Red](# ##0);—";
+        cell.alignment = { horizontal: "right" };
+      }
+      r++;
+    };
+
+    const writeTotalRow = (t: typeof data.groups[number]["totals"]) => {
+      const actPct = t.plan_month_grand_tzs ? t.actual_grand_tzs / t.plan_month_grand_tzs : null;
+      const remPct = t.plan_month_grand_tzs ? t.remain_grand_tzs / t.plan_month_grand_tzs : null;
+      const tr = ws.getRow(r);
+      tr.values = ["Total", t.plan_month_tzs, t.plan_month_usd, t.actual_tzs, t.actual_usd, t.actual_grand_tzs, actPct, t.remain_tzs, t.remain_usd, t.remain_grand_tzs, remPct];
+      for (let i = 1; i <= COLS; i++) {
+        const cell = tr.getCell(i);
+        cell.font = { bold: true };
+        cell.fill = totalFill as any;
+        if (i > 1) {
+          cell.numFmt = pctCols.has(i) ? "0%" : "# ##0;[Red](# ##0);—";
+          cell.alignment = { horizontal: "right" };
+        }
+      }
+      r += 2;
+    };
+
     for (const g of data.groups) {
-      ws.mergeCells(`A${r}:K${r}`);
+      ws.mergeCells(`A${r}:${lastCol}${r}`);
       const gc = ws.getCell(`A${r}`);
       gc.value = g.name;
       gc.font = { bold: true, size: 12 };
       gc.fill = groupFill as any;
       r++;
       writeHeader();
-
-      for (const c of g.categories) {
-        const remTzs = c.plan_month_tzs - c.actual_tzs;
-        const remUsd = c.plan_month_usd - c.actual_usd;
-        const pctVal = c.plan_month_tzs ? c.actual_tzs / c.plan_month_tzs : null;
-        const remPct = c.plan_month_tzs ? remTzs / c.plan_month_tzs : null;
-        const row = ws.getRow(r);
-        row.values = [c.name, c.plan_year_tzs, c.plan_year_usd, c.plan_month_tzs, c.plan_month_usd, c.actual_tzs, c.actual_usd, pctVal, remTzs, remUsd, remPct];
-        for (let i = 2; i <= 11; i++) {
-          const cell = row.getCell(i);
-          cell.numFmt = (i === 8 || i === 11) ? "0%" : "# ##0;[Red](# ##0);—";
-          cell.alignment = { horizontal: "right" };
-        }
-        r++;
-      }
-
-      // Group total
-      const tr = ws.getRow(r);
-      tr.values = ["Total", g.totals.plan_year_tzs, g.totals.plan_year_usd, g.totals.plan_month_tzs, g.totals.plan_month_usd, g.totals.actual_tzs, g.totals.actual_usd,
-        g.totals.plan_month_tzs ? g.totals.actual_tzs / g.totals.plan_month_tzs : null,
-        g.totals.plan_month_tzs - g.totals.actual_tzs, g.totals.plan_month_usd - g.totals.actual_usd,
-        g.totals.plan_month_tzs ? (g.totals.plan_month_tzs - g.totals.actual_tzs) / g.totals.plan_month_tzs : null];
-      for (let i = 1; i <= 11; i++) {
-        const cell = tr.getCell(i);
-        cell.font = { bold: true };
-        cell.fill = totalFill as any;
-        if (i > 1) {
-          cell.numFmt = (i === 8 || i === 11) ? "0%" : "# ##0;[Red](# ##0);—";
-          cell.alignment = { horizontal: "right" };
-        }
-      }
-      r += 2;
+      for (const c of g.categories) writeCatRow(c);
+      writeTotalRow(g.totals);
     }
 
     // Collections section (excluded from grand)
     if (data.collections) {
       const col = data.collections;
-      ws.mergeCells(`A${r}:K${r}`);
+      ws.mergeCells(`A${r}:${lastCol}${r}`);
       const cc = ws.getCell(`A${r}`);
       cc.value = col.name;
       cc.font = { bold: true, size: 12 };
       cc.fill = groupFill as any;
       r++;
       writeHeader();
-      for (const c of col.categories) {
-        const remTzs = c.plan_month_tzs - c.actual_tzs;
-        const pctVal = c.plan_month_tzs ? c.actual_tzs / c.plan_month_tzs : null;
-        const row = ws.getRow(r);
-        row.values = [c.name, c.plan_year_tzs, c.plan_year_usd, c.plan_month_tzs, c.plan_month_usd, c.actual_tzs, c.actual_usd, pctVal, remTzs, c.plan_month_usd - c.actual_usd, c.plan_month_tzs ? remTzs / c.plan_month_tzs : null];
-        for (let i = 2; i <= 11; i++) {
-          const cell = row.getCell(i);
-          cell.numFmt = (i === 8 || i === 11) ? "0%" : "# ##0;[Red](# ##0);—";
-          cell.alignment = { horizontal: "right" };
-        }
-        r++;
-      }
-      const tr = ws.getRow(r);
-      tr.values = ["Total", col.totals.plan_year_tzs, col.totals.plan_year_usd, col.totals.plan_month_tzs, col.totals.plan_month_usd, col.totals.actual_tzs, col.totals.actual_usd, null, col.totals.plan_month_tzs - col.totals.actual_tzs, col.totals.plan_month_usd - col.totals.actual_usd, null];
-      for (let i = 1; i <= 11; i++) {
-        const cell = tr.getCell(i);
-        cell.font = { bold: true };
-        cell.fill = totalFill as any;
-        if (i > 1) {
-          cell.numFmt = (i === 8 || i === 11) ? "0%" : "# ##0;[Red](# ##0);—";
-          cell.alignment = { horizontal: "right" };
-        }
-      }
-      r += 2;
+      for (const c of col.categories) writeCatRow(c);
+      writeTotalRow(col.totals);
     }
 
 
     // Grand total
-    ws.mergeCells(`A${r}:K${r}`);
+    ws.mergeCells(`A${r}:${lastCol}${r}`);
     ws.getCell(`A${r}`).value = "GRAND TOTAL";
     ws.getCell(`A${r}`).font = { bold: true, size: 12 };
     ws.getCell(`A${r}`).fill = totalFill as any;
     r++;
+    const g = data.grand;
+    const gActPct = g.plan_month_grand_tzs ? g.actual_grand_tzs / g.plan_month_grand_tzs : null;
+    const gRemPct = g.plan_month_grand_tzs ? g.remain_grand_tzs / g.plan_month_grand_tzs : null;
     const gr = ws.getRow(r);
-    gr.values = ["", "", "", data.grand.plan_month_tzs, data.grand.plan_month_usd, data.grand.actual_tzs, data.grand.actual_usd,
-      data.grand.plan_month_tzs ? data.grand.actual_tzs / data.grand.plan_month_tzs : null,
-      data.grand.plan_month_tzs - data.grand.actual_tzs, data.grand.plan_month_usd - data.grand.actual_usd, null];
-    for (let i = 4; i <= 11; i++) {
+    gr.values = ["", g.plan_month_tzs, g.plan_month_usd, g.actual_tzs, g.actual_usd, g.actual_grand_tzs, gActPct, g.remain_tzs, g.remain_usd, g.remain_grand_tzs, gRemPct];
+    for (let i = 2; i <= COLS; i++) {
       const cell = gr.getCell(i);
       cell.font = { bold: true };
-      cell.numFmt = (i === 8 || i === 11) ? "0%" : "# ##0;[Red](# ##0);—";
+      cell.numFmt = pctCols.has(i) ? "0%" : "# ##0;[Red](# ##0);—";
       cell.alignment = { horizontal: "right" };
     }
 
     // Column widths
     ws.getColumn(1).width = 36;
-    for (let i = 2; i <= 11; i++) ws.getColumn(i).width = 14;
+    for (let i = 2; i <= COLS; i++) ws.getColumn(i).width = 14;
+
 
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -271,8 +252,6 @@ export default function FinancesMonthlyReportPage() {
           year={year}
           month={month}
           allCategories={allCats || []}
-          mtd={mtd?.map || {}}
-          mtdMonthLabel={mtdMonthLabel}
           onPlanCommit={(catId, currency, amount) =>
             upsertBudget.mutate({ year, month, category_id: catId, currency, planned_amount: amount })
           }
@@ -309,8 +288,6 @@ export default function FinancesMonthlyReportPage() {
           year={year}
           month={month}
           allCategories={allCats || []}
-          mtd={mtd?.map || {}}
-          mtdMonthLabel={mtdMonthLabel}
           onPlanCommit={(catId, currency, amount) =>
             upsertBudget.mutate({ year, month, category_id: catId, currency, planned_amount: amount })
           }
@@ -489,18 +466,15 @@ type EditCallbacks = {
   onRenameGroup: (newName: string) => void;
 };
 
-const GroupTable = ({ group, expandedId, onToggle, isNetwork, mtd, mtdMonthLabel, ...edit }: {
+const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
   group: ReportGroup;
   expandedId: string | null;
   onToggle: (id: string) => void;
   isNetwork: boolean;
-  mtd: Record<string, number>;
-  mtdMonthLabel: string;
 } & EditCallbacks) => {
 
   const { editMode, onAddCategory, onRenameGroup } = edit;
-  const colCount = 13; // Category + 6 USD/TZS pair cells + Grand + % + MTD + Remain TZS + USD + %
-  const groupMtd = group.categories.reduce((s, c) => s + (mtd[c.id] || 0), 0);
+  const colCount = 11; // Category + Plan(2) + Actual(4) + Remaining(4)
   const titleNode = editMode ? (
     <div className="min-w-[220px]">
       <InlineTextCell value={group.name} onCommit={(v) => { if (v.trim() && v.trim() !== group.name) onRenameGroup(v.trim()); }} />
@@ -510,6 +484,9 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, mtd, mtdMonthLabel
     const name = window.prompt(`New category in "${group.name}":`)?.trim();
     if (name) onAddCategory(name);
   };
+  const t = group.totals;
+  const actPct = t.plan_month_grand_tzs ? pct(t.actual_grand_tzs / t.plan_month_grand_tzs) : "—";
+  const remPct = t.plan_month_grand_tzs ? pct(t.remain_grand_tzs / t.plan_month_grand_tzs) : "—";
   return (
     <PageSection
       title={titleNode}
@@ -524,18 +501,21 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, mtd, mtdMonthLabel
         <table className="w-full text-[11px] border-collapse">
           <thead className="bg-muted/40">
             <tr className="[&>th]:h-7 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
-              <th className="text-left sticky left-0 z-10 bg-muted/40 min-w-[220px]">Category</th>
-              <th className="text-right w-[110px]">Plan/Year</th>
+              <th rowSpan={2} className="text-left sticky left-0 z-10 bg-muted/40 min-w-[220px] align-bottom">Category</th>
+              <th colSpan={2} className="text-center border-l border-border">Plan</th>
+              <th colSpan={4} className="text-center border-l border-border">Actual</th>
+              <th colSpan={4} className="text-center border-l border-border">Remaining</th>
+            </tr>
+            <tr className="[&>th]:h-7 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap border-t border-border">
+              <th className="text-right w-[110px] border-l border-border">TZS</th>
               <th className="text-right w-[80px]">USD</th>
-              <th className="text-right w-[110px]">Plan/Mo</th>
+              <th className="text-right w-[110px] border-l border-border">TZS</th>
               <th className="text-right w-[80px]">USD</th>
-              <th className="text-right w-[110px] border-l border-border">Actual</th>
-              <th className="text-right w-[80px]">USD</th>
-              <th className="text-right w-[110px] border-l border-border" title="Σ amount_tzs (TZS + USD converted)">Grand TZS</th>
+              <th className="text-right w-[110px]" title="Σ amount_tzs (TZS + USD converted)">Grand TZS</th>
               <th className="text-right w-[52px]">%</th>
-              <th className="text-right w-[110px] border-l border-border" title={`Month-to-date · ${mtdMonthLabel}`}>{mtdMonthLabel || "MTD"}</th>
-              <th className="text-right w-[110px] border-l border-border">Remain</th>
+              <th className="text-right w-[110px] border-l border-border">TZS</th>
               <th className="text-right w-[80px]">USD</th>
+              <th className="text-right w-[110px]">Grand Total</th>
               <th className="text-right w-[52px] pr-3">%</th>
             </tr>
           </thead>
@@ -548,7 +528,6 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, mtd, mtdMonthLabel
                 onToggle={() => onToggle(c.id)}
                 isNetwork={isNetwork}
                 colCount={colCount}
-                mtdValue={mtd[c.id] || 0}
                 {...edit}
               />
             ))}
@@ -568,18 +547,16 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, mtd, mtdMonthLabel
 
             <tr className="bg-muted/40 font-semibold border-t-2 border-border [&>td]:h-7 [&>td]:px-2 [&>td]:align-middle">
               <td className="sticky left-0 z-10 bg-muted/40">Total</td>
-              <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_year_tzs)}</td>
-              <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_year_usd)}</td>
-              <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_month_tzs)}</td>
-              <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_month_usd)}</td>
-              <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(group.totals.actual_tzs)}</td>
-              <td className="text-right font-mono tabular-nums">{fmtT(group.totals.actual_usd)}</td>
-              <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(group.totals.actual_grand_tzs)}</td>
-              <td className="text-right font-mono tabular-nums">{group.totals.plan_month_grand_tzs ? pct(group.totals.actual_grand_tzs / group.totals.plan_month_grand_tzs) : "—"}</td>
-              <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(groupMtd)}</td>
-              <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(group.totals.plan_month_tzs - group.totals.actual_tzs))}>{fmtT(group.totals.plan_month_tzs - group.totals.actual_tzs)}</td>
-              <td className={cn("text-right font-mono tabular-nums", cls(group.totals.plan_month_usd - group.totals.actual_usd))}>{fmtT(group.totals.plan_month_usd - group.totals.actual_usd)}</td>
-              <td className="text-right font-mono tabular-nums pr-3">{group.totals.plan_month_grand_tzs ? pct((group.totals.plan_month_grand_tzs - group.totals.actual_grand_tzs) / group.totals.plan_month_grand_tzs) : "—"}</td>
+              <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(t.plan_month_tzs)}</td>
+              <td className="text-right font-mono tabular-nums">{fmtT(t.plan_month_usd)}</td>
+              <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(t.actual_tzs)}</td>
+              <td className="text-right font-mono tabular-nums">{fmtT(t.actual_usd)}</td>
+              <td className="text-right font-mono tabular-nums">{fmtT(t.actual_grand_tzs)}</td>
+              <td className="text-right font-mono tabular-nums">{actPct}</td>
+              <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(t.remain_tzs))}>{fmtT(t.remain_tzs)}</td>
+              <td className={cn("text-right font-mono tabular-nums", cls(t.remain_usd))}>{fmtT(t.remain_usd)}</td>
+              <td className={cn("text-right font-mono tabular-nums", cls(t.remain_grand_tzs))}>{fmtT(t.remain_grand_tzs)}</td>
+              <td className="text-right font-mono tabular-nums pr-3">{remPct}</td>
             </tr>
           </tbody>
         </table>
@@ -589,11 +566,11 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, mtd, mtdMonthLabel
 };
 
 
-const Row = ({ c, expanded, onToggle, isNetwork, colCount, mtdValue, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onArchiveCategory, onEditExpense }: {
-  c: ReportCategory; expanded: boolean; onToggle: () => void; isNetwork: boolean; colCount: number; mtdValue: number;
+const Row = ({ c, expanded, onToggle, isNetwork, colCount, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onArchiveCategory, onEditExpense }: {
+  c: ReportCategory; expanded: boolean; onToggle: () => void; isNetwork: boolean; colCount: number;
 } & EditCallbacks) => {
-  const remTzs = c.plan_month_tzs - c.actual_tzs;
-  const remUsd = c.plan_month_usd - c.actual_usd;
+  const actPct = c.plan_month_grand_tzs ? pct(c.actual_grand_tzs / c.plan_month_grand_tzs) : "—";
+  const remPct = c.plan_month_grand_tzs ? pct(c.remain_grand_tzs / c.plan_month_grand_tzs) : "—";
   return (
     <>
       <tr
@@ -633,13 +610,7 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, mtdValue, editMode, y
             )}
           </div>
         </td>
-        <td className="text-right">
-          <InlineNumberCell value={c.plan_year_tzs} disabled onCommit={() => {}} />
-        </td>
-        <td className="text-right text-muted-foreground">
-          <InlineNumberCell value={c.plan_year_usd} disabled onCommit={() => {}} className="text-muted-foreground" />
-        </td>
-        <td className="text-right">
+        <td className="text-right border-l border-border">
           <InlineNumberCell
             value={c.plan_month_tzs}
             disabled={!editMode}
@@ -656,13 +627,15 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, mtdValue, editMode, y
         </td>
         <td className="text-right font-mono tabular-nums border-l border-border">{fmt(c.actual_tzs)}</td>
         <td className="text-right font-mono tabular-nums text-muted-foreground">{fmt(c.actual_usd)}</td>
-        <td className="text-right font-mono tabular-nums border-l border-border">{fmt(c.actual_grand_tzs)}</td>
-        <td className="text-right font-mono tabular-nums">{c.plan_month_grand_tzs ? pct(c.actual_grand_tzs / c.plan_month_grand_tzs) : "—"}</td>
-        <td className="text-right font-mono tabular-nums border-l border-border">{fmt(mtdValue)}</td>
-        <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(remTzs))}>{fmt(remTzs)}</td>
-        <td className={cn("text-right font-mono tabular-nums text-muted-foreground", cls(remUsd))}>{fmt(remUsd)}</td>
-        <td className="text-right font-mono tabular-nums pr-3">{c.plan_month_grand_tzs ? pct((c.plan_month_grand_tzs - c.actual_grand_tzs) / c.plan_month_grand_tzs) : "—"}</td>
+        <td className="text-right font-mono tabular-nums">{fmt(c.actual_grand_tzs)}</td>
+        <td className="text-right font-mono tabular-nums">{actPct}</td>
+        <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(c.remain_tzs))}>{fmt(c.remain_tzs)}</td>
+        <td className={cn("text-right font-mono tabular-nums text-muted-foreground", cls(c.remain_usd))}>{fmt(c.remain_usd)}</td>
+        <td className={cn("text-right font-mono tabular-nums", cls(c.remain_grand_tzs))}>{fmt(c.remain_grand_tzs)}</td>
+        <td className="text-right font-mono tabular-nums pr-3">{remPct}</td>
       </tr>
+
+
 
 
       {expanded && (
