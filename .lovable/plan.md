@@ -1,62 +1,76 @@
-## Monthly Report — двухуровневая шапка групповых таблиц
+## Distinguish USD vs TZS visually in report tables
 
-### Новая структура колонок (11)
+Currently TZS and USD numeric cells look identical — small numbers blur together. Three approaches, each on its own. Pick one (or combine A+B).
+
+---
+
+### Option A — Currency badge on USD cells (recommended, lightest touch)
+
+Add a tiny `$` glyph as a leading badge inside every USD cell. TZS stays clean (it's the default), USD always shows a small green `$` chip.
 
 ```text
-┌──────────┬──────────────┬──────────────────────────┬──────────────────────────┐
-│ Category │     Plan     │          Actual          │        Remaining         │
-│          ├──────┬───────┼──────┬──────┬───────┬────┼──────┬──────┬───────┬────┤
-│          │ TZS  │  USD  │ TZS  │ USD  │ Grand │ %  │ TZS  │ USD  │ Grand │ %  │
-│          │      │       │      │      │  TZS  │    │      │      │  TZS  │    │
-└──────────┴──────┴───────┴──────┴──────┴───────┴────┴──────┴──────┴───────┴────┘
+Plan TZS    Plan USD       Actual TZS   Actual USD
+1 250 000   $ 4 500        980 000      $ 3 200
 ```
 
-Что убираем по сравнению с текущей таблицей:
-- `Plan/Year TZS` и `Plan/Year USD` — годовой план в месячном отчёте не нужен.
-- `MTD` (колонка «June» / месяц‑to‑date) — убираем.
+- Implementation: small `<span className="text-[10px] font-semibold text-emerald-600/80 mr-1">$</span>` prefix in every USD-rendering `<td>` (Plan USD, Actual USD, Remain USD).
+- Also color the entire USD numeric in a slightly different tone: `text-emerald-700 dark:text-emerald-400` (kept subtle, NOT the signed red/green for losses — those still win for `cls()`).
+- Header label changes from `USD` to `$ USD`.
+- Pros: minimal noise, scannable at a glance, currency self-evident even out of context (e.g. exported screenshot).
+- Cons: adds a tiny element to every USD cell.
 
-Что оставляем и группируем:
-- **Plan** → TZS, USD (`plan_month_tzs`, `plan_month_usd`, инлайн‑редактируются как сейчас).
-- **Actual** → TZS, USD, **Grand TZS**, **%**
-  - `actual_tzs`, `actual_usd` — нативные валюты.
-  - Grand TZS = `actual_grand_tzs` (Σ `amount_tzs`).
-  - % = `actual_grand_tzs / plan_month_grand_tzs` — общий процент исполнения (считается по сумме TZS + сконвертированный USD, потому что расходы бывают в двух валютах).
-- **Remaining** → TZS, USD, **Grand Total**, **%**
-  - `remain_tzs`, `remain_usd`, `remain_grand_tzs` из хука.
-  - % = `remain_grand_tzs / plan_month_grand_tzs`.
-  - Цвета: `cms-amount-positive` / `cms-amount-negative` через `cls()`.
+### Option B — Vertical-stripe background tint on USD column block
 
-Между группами Plan / Actual / Remaining — вертикальные разделители `border-l border-border`.
+Apply a faint background tint to the `Plan USD`, `Actual USD`, `Remain USD` columns so they read as a "USD strip" running down the table.
 
-### Реализация
+```text
+Plan        |Plan|         Actual        |Actual|       Remain        |Remain|
+TZS         |USD |         TZS    Grand  |USD   |       TZS   Grand   |USD   |
+…tinted column backgrounds…
+```
 
-Файл: `src/pages/finances/FinancesMonthlyReportPage.tsx`.
+- Implementation: add `bg-amber-50/40 dark:bg-amber-950/20` (or sky/violet — pick one neutral hue) to USD `<th>`/`<td>` in the GroupTable and SummaryBlock.
+- Pros: zero extra glyphs, very strong column-level grouping, works at any zoom.
+- Cons: fights with row hover tint; needs careful contrast so the stripe doesn't drown the signed-amount colors.
 
-1. **`GroupTable`** — переписать `<thead>` двумя строками:
-   - row 1: `Category` (rowSpan=2, sticky), `Plan` (colSpan=2), `Actual` (colSpan=4), `Remaining` (colSpan=4).
-   - row 2: `TZS`, `USD` × Plan; `TZS`, `USD`, `Grand TZS`, `%` × Actual; `TZS`, `USD`, `Grand Total`, `%` × Remaining.
-   - В строке `Total` группы — соответствующие 11 ячеек из `group.totals`.
-   - `colCount` → 11.
+### Option C — Dashed divider + suffix label inside each block
 
-2. **`Row`** — те же 11 колонок:
-   - Plan TZS/USD: `InlineNumberCell` с `onPlanCommit(c.id, "TZS"|"USD", v)` (как сейчас).
-   - Actual TZS/USD/Grand: `fmt(c.actual_tzs)`, `fmt(c.actual_usd)`, `fmt(c.actual_grand_tzs)`.
-   - Actual %: `c.plan_month_grand_tzs ? pct(c.actual_grand_tzs / c.plan_month_grand_tzs) : "—"`.
-   - Remaining TZS/USD/Grand: `c.remain_tzs`, `c.remain_usd`, `c.remain_grand_tzs` с `cls()`.
-   - Remaining %: `c.plan_month_grand_tzs ? pct(c.remain_grand_tzs / c.plan_month_grand_tzs) : "—"`.
+Inside each `Plan`/`Actual`/`Remain` block, add a dashed vertical divider between TZS and USD columns, and append a tiny `TZS`/`USD` suffix next to non-zero values.
 
-3. **Drill‑down раскрывашка по расходам** — без изменений, только `colSpan={11}`.
+```text
+Plan TZS ┊ Plan USD     Actual TZS ┊ Actual USD     …
+1 250 000┊  4 500 USD   980 000   ┊ 3 200 USD
+```
 
-4. **Excel‑экспорт `exportXlsx`** — синхронизировать колонки:
-   `Category | Plan TZS | Plan USD | Actual TZS | Actual USD | Actual Grand TZS | Actual % | Remain TZS | Remain USD | Remain Grand TZS | Remain %` (11 шт). Убрать Plan/Year и MTD из header‑writer, групп‑итогов и Grand Total.
+- Implementation: replace `border-l border-border` between block sub-columns with `border-l border-dashed border-border/60`; add `<span className="text-[9px] text-muted-foreground ml-1">USD</span>` after USD amounts only.
+- Pros: keeps a unified visual rhythm.
+- Cons: suffix repeats in every row → visual noise; dashed lines can look "draft-y".
 
-5. **Хук `useMonthlyReport`** — не трогаем, все нужные поля (`remain_*`, `plan_month_grand_tzs`, `actual_grand_tzs`) уже есть.
+---
 
-6. **`useCategoryMtd`** — больше не используется в групповых таблицах; пропсы `mtd`, `mtdMonthLabel` и вызов `useCategoryMtd` из `FinancesMonthlyReportPage` убираем.
+### Recommendation
 
-### Что НЕ меняется
+**A + B combined, restrained:**
 
-- `SummaryBlock` сверху (Incomes / Budget / Result).
-- Инлайн‑редактирование плана, добавление/архив категорий, переименование группы.
-- Drill‑down по расходам и `EditExpenseDialog`.
-- `Plan/Year` остаётся в БД и в редакторе бюджета, просто не показывается в этом отчёте.
+1. Tiny green `$` glyph in front of every USD value, plus subtle emerald text tint on USD numerics (option A).
+2. Very faint `bg-muted/30` column tint on the three USD columns (Plan USD / Actual USD / Remain USD) so they read as a continuous vertical strip (option B, neutral hue — not amber — so it doesn't clash with the % heat-map).
+3. Headers: rename `USD` → `$ USD` and add the same column tint.
+
+This makes USD instantly recognisable without changing any number formatting or breaking the existing red/green signed-amount colors.
+
+### Files touched
+
+- `src/pages/finances/FinancesMonthlyReportPage.tsx`
+  - `GroupTable` header & `Row` cells: add USD glyph + tint to the 3 USD columns and totals row.
+  - `SummaryBlock`: apply the same USD glyph + tint to the USD row(s) in Incomes / Budget cards.
+- No hook, no data, no Excel-export changes (Excel already labels columns explicitly).
+
+### Behaviour preserved
+
+- All amounts, formulas, and signed colors unchanged.
+- `cls()` (positive/negative) still wins over the USD tint on `Remain USD`.
+- Heat-map `pctTone()` on `%` cells unchanged.
+
+---
+
+Tell me **A**, **B**, **C**, or **A+B (recommended)** and I'll implement.
