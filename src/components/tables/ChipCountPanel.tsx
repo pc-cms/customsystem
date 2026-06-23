@@ -437,7 +437,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
           <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
             <History className="w-4 h-4 text-muted-foreground" />
             <h4 className="text-sm font-semibold text-card-foreground">Snapshot history · {date}</h4>
-            <span className="text-[10px] text-muted-foreground ml-auto">{history.length} saves</span>
+            <span className="text-[10px] text-muted-foreground ml-auto">{history.length} saves · raw chip delta (without Fill/Credit)</span>
           </div>
           <div className="overflow-auto max-h-[280px]">
             <table className="w-full border-collapse text-xs">
@@ -472,6 +472,38 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                   );
                 })}
               </tbody>
+              <tfoot className="sticky bottom-0 bg-card">
+                <tr className="border-t-2 border-border">
+                  <td className="px-2 py-1 text-muted-foreground text-[10px] uppercase tracking-wider">Fill/Credit (shift)</td>
+                  {historyColumns.map(loc => {
+                    const adj = adjustmentFor(loc.id);
+                    if (!adj) return <td key={loc.id} className="px-2 py-1 text-right text-muted-foreground/30">·</td>;
+                    return (
+                      <td key={loc.id} className={`px-2 py-1 text-right font-mono ${adj >= 0 ? "text-success" : "text-destructive"}`}>
+                        {adj >= 0 ? "+" : ""}{formatCurrency(adj)}
+                      </td>
+                    );
+                  })}
+                  <td className={`px-2 py-1 text-right font-mono font-semibold ${historyColumns.reduce((s, l) => s + adjustmentFor(l.id), 0) >= 0 ? "text-success" : "text-destructive"}`}>
+                    {(() => { const t = historyColumns.reduce((s, l) => s + adjustmentFor(l.id), 0); return (t >= 0 ? "+" : "") + formatCurrency(t); })()}
+                  </td>
+                </tr>
+                <tr className="border-t border-border bg-muted/20">
+                  <td className="px-2 py-1 text-card-foreground text-[10px] uppercase tracking-wider font-semibold">Current (latest + Fill/Credit)</td>
+                  {historyColumns.map(loc => {
+                    const r = rowResults.find(rr => rr.key === loc.key);
+                    const v = r?.total ?? 0;
+                    return (
+                      <td key={loc.id} className={`px-2 py-1 text-right font-mono font-semibold ${v >= 0 ? "text-success" : "text-destructive"}`}>
+                        {v >= 0 ? "+" : ""}{formatCurrency(v)}
+                      </td>
+                    );
+                  })}
+                  <td className={`px-2 py-1 text-right font-mono font-bold ${grandTotal >= 0 ? "text-success" : "text-destructive"}`}>
+                    {grandTotal >= 0 ? "+" : ""}{formatCurrency(grandTotal)}
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>
