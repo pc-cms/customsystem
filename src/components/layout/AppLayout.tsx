@@ -8,13 +8,14 @@ import { PWAUpdateNotification } from "@/components/PWAUpdateNotification";
 import { LocalServerBadge } from "@/components/LocalServerBadge";
 import { OfflineBanner } from "@/components/OfflineBanner";
 
+import { PageSkeleton } from "@/components/ui/skeleton";
+
 import { cn } from "@/lib/utils";
 
-const PageLoader = () => (
-  <div className="flex items-center justify-center py-20">
-    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-  </div>
-);
+// Suspense fallback while a lazy route chunk loads. Skeleton (layout-aware)
+// feels much faster than a centered spinner because the page structure
+// is already painted by the time data arrives.
+const PageLoader = () => <PageSkeleton />;
 
 // Routes that need full-bleed width (no max-w container)
 const FULL_WIDTH_ROUTES = [
