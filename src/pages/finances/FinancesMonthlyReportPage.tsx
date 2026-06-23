@@ -385,7 +385,7 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
             <tr className="[&>th]:h-7 [&>th]:px-3 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
               <th className="text-left min-w-[180px]">Incomes</th>
               <th className="text-right w-[140px]">TZS</th>
-              <th className="text-right w-[120px]">USD</th>
+              <th className={cn("text-right w-[120px]", USD_COL)}>$ USD</th>
               <th className="text-right w-[160px] border-l border-border">Grand TZS</th>
               <th className="text-right w-[60px] pr-3">%</th>
             </tr>
@@ -394,28 +394,28 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
             <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
               <td className="font-sans text-muted-foreground">Live Game</td>
               <td className="text-right">{fmtT(incomes.live_game)}</td>
-              <td className="text-right text-muted-foreground">—</td>
+              <td className={cn("text-right text-muted-foreground", USD_COL)}>—</td>
               <td className="text-right border-l border-border">{fmtT(incomes.live_game)}</td>
               <td className="text-right text-muted-foreground pr-3">—</td>
             </tr>
             <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
               <td className="font-sans text-muted-foreground">Slots</td>
               <td className="text-right">{fmtT(incomes.slots)}</td>
-              <td className="text-right text-muted-foreground">—</td>
+              <td className={cn("text-right text-muted-foreground", USD_COL)}>—</td>
               <td className="text-right border-l border-border">{fmtT(incomes.slots)}</td>
               <td className="text-right text-muted-foreground pr-3">—</td>
             </tr>
             <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
               <td className="font-sans text-muted-foreground">Other</td>
               <td className="text-right">{fmtT(incomes.other)}</td>
-              <td className="text-right text-muted-foreground">—</td>
+              <td className={cn("text-right text-muted-foreground", USD_COL)}>—</td>
               <td className="text-right border-l border-border">{fmtT(incomes.other)}</td>
               <td className="text-right text-muted-foreground pr-3">—</td>
             </tr>
             <tr className="border-t-2 border-border bg-muted/30 font-bold [&>td]:h-8 [&>td]:px-3">
               <td className="font-sans">Total Income</td>
               <td className="text-right">{fmtT(incomes.total)}</td>
-              <td className="text-right text-muted-foreground">—</td>
+              <td className={cn("text-right text-muted-foreground", USD_COL)}>—</td>
               <td className="text-right border-l border-border">{fmtT(incomes.total)}</td>
               <td className="text-right text-muted-foreground pr-3">—</td>
             </tr>
