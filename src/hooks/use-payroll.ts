@@ -514,6 +514,7 @@ export const useLatestPayeBrackets = () => {
       return ((data as unknown) as PayeBracket[]) || [];
     },
     enabled: !!activeCasinoId,
+    staleTime: 1000 * 60 * 60 * 24,
   });
 };
 
