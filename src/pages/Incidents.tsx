@@ -273,8 +273,8 @@ const Incidents = () => {
         icon={AlertTriangle}
         title="Incidents"
         subtitle={`Violation journal · ${filtered.length} entries · ${totalPts} pts`}
-        centerSlot={
-          <div className="flex items-center gap-1.5 flex-wrap">
+        belowHeader={
+          <div className="flex items-center gap-2 flex-wrap w-full">
             <DateRangePresets
               preset={datePreset}
               from={datePreset === "day" ? form.incident_date : rangeFrom}
@@ -294,19 +294,19 @@ const Incidents = () => {
                 Today
               </Button>
             )}
+            <div className="relative ml-auto">
+              <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 w-56"
+              />
+            </div>
           </div>
         }
-      >
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="Search…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 w-56"
-          />
-        </div>
-      </PageHeader>
+      />
+
 
       <PageSection title="Journal" card={false}>
         <div className="rounded-md border border-border overflow-x-auto">
