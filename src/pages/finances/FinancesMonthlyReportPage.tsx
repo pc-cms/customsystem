@@ -550,16 +550,17 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
             </tr>
             <tr className="[&>th]:h-8 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[11px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap border-t border-border">
               <th className="text-right w-[110px] border-l border-border">TZS</th>
-              <th className={cn("text-right w-[80px]", USD_COL)}>$ USD</th>
+              <th className={cn("text-right w-[80px]", USD_COL)}>$</th>
               <th className="text-right w-[110px] border-l border-border">TZS</th>
-              <th className={cn("text-right w-[80px]", USD_COL)}>$ USD</th>
+              <th className={cn("text-right w-[80px]", USD_COL)}>$</th>
               <th className="text-right w-[110px]" title="Σ amount_tzs (TZS + USD converted)">Grand TZS</th>
               <th className="text-right w-[56px]">%</th>
               <th className="text-right w-[110px] border-l border-border">TZS</th>
-              <th className={cn("text-right w-[80px]", USD_COL)}>$ USD</th>
-              <th className="text-right w-[110px]">Grand Total</th>
+              <th className={cn("text-right w-[80px]", USD_COL)}>$</th>
+              <th className="text-right w-[110px]">Grand TZS</th>
               <th className="text-right w-[56px] pr-3">%</th>
             </tr>
+
           </thead>
           <tbody>
             {group.categories.map((c) => (
