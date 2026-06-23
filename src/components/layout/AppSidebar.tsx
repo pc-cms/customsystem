@@ -734,6 +734,8 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
         currentTab={currentTab}
         currentGroup={currentGroup}
         roles={roles as AppRole[]}
+        isSuper={isSuper}
+        allowedModules={allowedModules}
         onNavigate={onNavigate}
         renderSubItems={renderSubItems}
       />
