@@ -325,7 +325,7 @@ const Tables = () => {
   }, [transactions, shift]);
 
   const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
-  const { adjustmentMap } = useShiftTableAdjustments(shift?.id ?? null);
+  const { adjustmentMap } = useShiftTableAdjustments(effectiveDate === businessDay ? (shift?.id ?? null) : null);
 
   // Table DROP = simple sum of all Cash In on the table for the current business day (no NEP logic).
   const tableStats = useMemo(() => {
