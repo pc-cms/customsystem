@@ -503,7 +503,8 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
     if (name) onAddCategory(name);
   };
   const t = group.totals;
-  const actPct = t.plan_month_grand_tzs ? pct(t.actual_grand_tzs / t.plan_month_grand_tzs) : "—";
+  const tSpent = t.plan_month_grand_tzs ? t.actual_grand_tzs / t.plan_month_grand_tzs : null;
+  const actPct = tSpent == null ? "—" : pct(tSpent);
   const remPct = t.plan_month_grand_tzs ? pct(t.remain_grand_tzs / t.plan_month_grand_tzs) : "—";
   return (
     <PageSection
@@ -516,25 +517,25 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
       card={false}
     >
       <div className="rounded-md border border-border overflow-auto bg-card">
-        <table className="w-full text-[11px] border-collapse">
+        <table className="w-full text-[13px] border-collapse">
           <thead className="bg-muted/40">
-            <tr className="[&>th]:h-7 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
+            <tr className="[&>th]:h-8 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[11px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
               <th rowSpan={2} className="text-left sticky left-0 z-10 bg-muted/40 min-w-[220px] align-bottom">Category</th>
               <th colSpan={2} className="text-center border-l border-border">Plan</th>
               <th colSpan={4} className="text-center border-l border-border">Actual</th>
               <th colSpan={4} className="text-center border-l border-border">Remaining</th>
             </tr>
-            <tr className="[&>th]:h-7 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap border-t border-border">
+            <tr className="[&>th]:h-8 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[11px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap border-t border-border">
               <th className="text-right w-[110px] border-l border-border">TZS</th>
               <th className="text-right w-[80px]">USD</th>
               <th className="text-right w-[110px] border-l border-border">TZS</th>
               <th className="text-right w-[80px]">USD</th>
               <th className="text-right w-[110px]" title="Σ amount_tzs (TZS + USD converted)">Grand TZS</th>
-              <th className="text-right w-[52px]">%</th>
+              <th className="text-right w-[56px]">%</th>
               <th className="text-right w-[110px] border-l border-border">TZS</th>
               <th className="text-right w-[80px]">USD</th>
               <th className="text-right w-[110px]">Grand Total</th>
-              <th className="text-right w-[52px] pr-3">%</th>
+              <th className="text-right w-[56px] pr-3">%</th>
             </tr>
           </thead>
           <tbody>
@@ -551,11 +552,11 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
             ))}
 
             {editMode && (
-              <tr className="border-t border-dashed border-border [&>td]:h-7 [&>td]:px-2">
+              <tr className="border-t border-dashed border-border [&>td]:h-8 [&>td]:px-2">
                 <td colSpan={colCount} className="text-left">
                   <button
                     onClick={handleAdd}
-                    className="text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                    className="text-[12px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
                   >
                     <Plus className="w-3 h-3" /> Add category to {group.name}
                   </button>
@@ -563,18 +564,18 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
               </tr>
             )}
 
-            <tr className="bg-muted/40 font-semibold border-t-2 border-border [&>td]:h-7 [&>td]:px-2 [&>td]:align-middle">
+            <tr className="bg-muted/40 font-semibold border-t-2 border-border [&>td]:h-9 [&>td]:px-2 [&>td]:align-middle">
               <td className="sticky left-0 z-10 bg-muted/40">Total</td>
               <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(t.plan_month_tzs)}</td>
               <td className="text-right font-mono tabular-nums">{fmtT(t.plan_month_usd)}</td>
               <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(t.actual_tzs)}</td>
               <td className="text-right font-mono tabular-nums">{fmtT(t.actual_usd)}</td>
               <td className="text-right font-mono tabular-nums">{fmtT(t.actual_grand_tzs)}</td>
-              <td className="text-right font-mono tabular-nums">{actPct}</td>
+              <td className={cn("text-right font-mono tabular-nums", pctTone(tSpent))}>{actPct}</td>
               <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(t.remain_tzs))}>{fmtT(t.remain_tzs)}</td>
               <td className={cn("text-right font-mono tabular-nums", cls(t.remain_usd))}>{fmtT(t.remain_usd)}</td>
               <td className={cn("text-right font-mono tabular-nums", cls(t.remain_grand_tzs))}>{fmtT(t.remain_grand_tzs)}</td>
-              <td className="text-right font-mono tabular-nums pr-3">{remPct}</td>
+              <td className={cn("text-right font-mono tabular-nums pr-3", pctTone(tSpent))}>{remPct}</td>
             </tr>
           </tbody>
         </table>
