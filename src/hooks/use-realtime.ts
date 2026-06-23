@@ -1,30 +1,63 @@
 import { useEffect, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
+import { useMyModulePermissions } from "@/hooks/use-module-permissions";
+import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
 /**
- * Realtime subscriptions for wired LAN environment.
- * Always uses full Supabase realtime — no polling fallback needed.
- * Brief disconnections are handled by Supabase client reconnection.
+ * Realtime subscriptions, module-aware.
  *
- * CRITICAL: filters use the ACTIVE casino (from subdomain), not the user's
- * profile casino. Otherwise a user whose profile is in Mwanza but currently
- * working on the Arusha subdomain would receive events for the wrong casino,
- * and worse — invalidations from another casino could trigger refetches in
- * the active one.
+ * One channel per casino (fewer reconnects, fewer auth handshakes) — but
+ * each `.on('postgres_changes', ...)` filter is conditionally attached
+ * based on the user's `allowedModules`. Pit-Boss without finance access
+ * never receives expense/wallet/day-closing events, never invalidates
+ * unrelated query keys.
+ *
+ * Catch-up after disconnect/sleep:
+ *  - Active query keys (currently visible page) → refetch
+ *  - Other keys (cached but off-screen) → mark stale; React Query refetches
+ *    silently on next mount → stale-while-revalidate, no flicker.
+ *
+ * Filters use the ACTIVE casino (subdomain), not the user's profile
+ * casino, so cross-casino accounts work correctly.
  */
+
+type Channel = ReturnType<typeof supabase.channel>;
+
+const debounceMap = new Map<string, NodeJS.Timeout>();
+
+/** Debounced invalidate — collapses a burst of Realtime events into one refetch. */
+function debouncedInvalidate(qc: QueryClient, key: string, queryKey: unknown[], wait = 250) {
+  const prev = debounceMap.get(key);
+  if (prev) clearTimeout(prev);
+  debounceMap.set(
+    key,
+    setTimeout(() => {
+      debounceMap.delete(key);
+      qc.invalidateQueries({ queryKey });
+    }, wait),
+  );
+}
+
 export const useRealtimeSubscriptions = () => {
   const qc = useQueryClient();
   const { activeCasinoId: casinoId } = useCasino();
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const crossChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const { roles } = useAuth();
+  const { data: allowedModules } = useMyModulePermissions();
+  const channelRef = useRef<Channel | null>(null);
   const wasDisconnectedRef = useRef(false);
   const subscribedOnceRef = useRef(false);
 
   useEffect(() => {
     if (!casinoId) return;
+    // Wait for modules to load — otherwise we'd subscribe to nothing
+    // and then have to tear down & rebuild as soon as they arrive.
+    if (allowedModules === undefined) return;
+
+    const isSuperAdmin = roles.includes("super_admin");
+    const has = (mod: string) => isSuperAdmin || allowedModules.has(mod);
 
     // Cleanup previous channel fully before creating new one
     const prevChannel = channelRef.current;
@@ -35,262 +68,279 @@ export const useRealtimeSubscriptions = () => {
     subscribedOnceRef.current = false;
 
     const channelName = `casino:${casinoId}:cms-realtime-${Date.now()}`;
-    // Expose minimal diagnostic state on window for live debugging
     const status = (window as any).__realtimeStatus ?? {};
     status.channelName = channelName;
     status.subscribed = false;
     status.lastEventAt = 0;
     (window as any).__realtimeStatus = status;
 
-    const bump = () => { status.lastEventAt = Date.now(); };
-
     try {
-      const channel = supabase
-        .channel(channelName)
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "transactions", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["transactions"] });
-            qc.invalidateQueries({ queryKey: ["player-economy"] });
-          }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "players" },
-          (payload) => {
-            qc.invalidateQueries({ queryKey: ["players"] });
-            qc.invalidateQueries({ queryKey: ["player-economy"] });
+      let channel = supabase.channel(channelName);
 
-            if (payload.eventType === "UPDATE" && payload.new && payload.old) {
-              const newRow = payload.new as any;
-              const oldRow = payload.old as any;
+      // ═════════════ CORE (always-on for everyone) ═════════════
+      // Players + cards + tags — global player base, universal.
+      channel = channel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "players" },
+        (payload) => {
+          debouncedInvalidate(qc, "players", ["players"]);
+          debouncedInvalidate(qc, "player-economy", ["player-economy"]);
 
-              if (newRow.status === "blacklist" && oldRow.status !== "blacklist") {
-                toast.error(`🚫 ${newRow.first_name} ${newRow.last_name} added to blacklist`, { duration: 8000 });
-              } else if (oldRow.status === "blacklist" && newRow.status !== "blacklist") {
-                toast.info(`✅ ${newRow.first_name} ${newRow.last_name} removed from blacklist`, { duration: 6000 });
-              }
+          if (payload.eventType === "UPDATE" && payload.new && payload.old) {
+            const newRow = payload.new as any;
+            const oldRow = payload.old as any;
 
-              if (newRow.category !== oldRow.category) {
-                const upgrades = ["diamond", "platinum"];
-                if (upgrades.includes(newRow.category)) {
-                  toast.info(`⭐ ${newRow.first_name} ${newRow.last_name} upgraded to ${newRow.category.toUpperCase()}`, { duration: 5000 });
-                }
-              }
+            if (newRow.status === "blacklist" && oldRow.status !== "blacklist") {
+              toast.error(`🚫 ${newRow.first_name} ${newRow.last_name} added to blacklist`, { duration: 8000 });
+            } else if (oldRow.status === "blacklist" && newRow.status !== "blacklist") {
+              toast.info(`✅ ${newRow.first_name} ${newRow.last_name} removed from blacklist`, { duration: 6000 });
             }
 
-            if (payload.eventType === "INSERT" && payload.new) {
-              const newPlayer = payload.new as any;
-              if (newPlayer.casino_id !== casinoId) {
-                toast.info(`👤 New player registered: ${newPlayer.first_name} ${newPlayer.last_name}`, { duration: 4000 });
+            if (newRow.category !== oldRow.category) {
+              const upgrades = ["diamond", "platinum"];
+              if (upgrades.includes(newRow.category)) {
+                toast.info(`⭐ ${newRow.first_name} ${newRow.last_name} upgraded to ${newRow.category.toUpperCase()}`, { duration: 5000 });
               }
             }
           }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "breaklist", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["breaklist", casinoId] });
+
+          if (payload.eventType === "INSERT" && payload.new) {
+            const newPlayer = payload.new as any;
+            if (newPlayer.casino_id !== casinoId) {
+              toast.info(`👤 New player registered: ${newPlayer.first_name} ${newPlayer.last_name}`, { duration: 4000 });
+            }
           }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "dealer_attendance", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["dealer-attendance-range", casinoId] });
-          }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "expenses", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["expenses"] });
-            qc.invalidateQueries({ queryKey: ["player-economy"] });
-          }
-        )
+        },
+      )
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "player_tags" },
-          () => { qc.invalidateQueries({ queryKey: ["players"] }); }
+          () => debouncedInvalidate(qc, "players", ["players"]),
         )
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "player_cards" },
-          () => { qc.invalidateQueries({ queryKey: ["players"] }); }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "table_tracker", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["table-tracker", casinoId] });
-          }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "chip_snapshots", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["chip-snapshots", casinoId] });
-            qc.invalidateQueries({ queryKey: ["chip-snapshots-full", casinoId] });
-            // Cassa P&L depends on latest chip snapshot — invalidate canonical key.
-            qc.invalidateQueries({ queryKey: ["shift_tables_result_total"] });
-          }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "pit_rota", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["pit-rota-range", casinoId] });
-          }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "activity_logs", filter: `casino_id=eq.${casinoId}` },
-          () => { qc.invalidateQueries({ queryKey: ["activity-logs"] }); }
+          () => debouncedInvalidate(qc, "players", ["players"]),
         )
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "casino_visits", filter: `casino_id=eq.${casinoId}` },
-          () => { qc.invalidateQueries({ queryKey: ["casino-visits-live"] }); }
+          () => debouncedInvalidate(qc, "casino-visits-live", ["casino-visits-live"]),
         )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "gaming_tables", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["gaming-tables"] });
-            qc.invalidateQueries({ queryKey: ["table-tracker", casinoId] });
-          }
-        )
-        // ===== Pit module: Floor Staff rota + attendance =====
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "staff_rota", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["staff-rota-range", casinoId] });
-            qc.invalidateQueries({ queryKey: ["staff-rota", casinoId] });
-          }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "staff_attendance", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["staff-attendance-range", casinoId] });
-            qc.invalidateQueries({ queryKey: ["staff-attendance", casinoId] });
-          }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "rota_locks", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["rota-locks", casinoId] });
-          }
-        )
-        // ===== Shifts (Pit shift badge + Player Stats P&L) =====
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "shifts", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["shifts"] });
-            qc.invalidateQueries({ queryKey: ["shift"] });
-            qc.invalidateQueries({ queryKey: ["shift_tables_result_total"] });
-          }
-        )
-        // ===== Player Statistics: bank checks, transfers, cashless, adjustments =====
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "bank_checks", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["bank-checks"] });
-            qc.invalidateQueries({ queryKey: ["cash-checks-by-date"] });
-            qc.invalidateQueries({ queryKey: ["player-economy"] });
-          }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "cage_transfers", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["cage-transfers"] });
-            qc.invalidateQueries({ queryKey: ["shift_tables_result_total"] });
-          }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "cashless_transactions", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["cashless"] });
-            qc.invalidateQueries({ queryKey: ["cashless-transactions"] });
-          }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "player_chip_adjustments", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["player-chip-adjustments"] });
-            qc.invalidateQueries({ queryKey: ["player-economy"] });
-          }
-        )
-        // ===== Player tracker: position grid + average bets =====
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "player_daily_zones", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["player-daily-zones"] });
-            qc.invalidateQueries({ queryKey: ["casino-visits-live"] });
-          }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "player_daily_avg_bets", filter: `casino_id=eq.${casinoId}` },
-          () => {
-            qc.invalidateQueries({ queryKey: ["player-daily-avg-bets"] });
-            qc.invalidateQueries({ queryKey: ["player-economy"] });
-          }
-        )
-        // ===== Business day closures (drives current-day rollover everywhere) =====
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "business_day_closures", filter: `casino_id=eq.${casinoId}` },
           () => {
-            qc.invalidateQueries({ queryKey: ["business-day-closure"] });
-            qc.invalidateQueries({ queryKey: ["effective-business-date"] });
-            qc.invalidateQueries({ queryKey: ["business-day-history"] });
-          }
+            debouncedInvalidate(qc, "business-day-closure", ["business-day-closure"]);
+            debouncedInvalidate(qc, "effective-business-date", ["effective-business-date"]);
+            debouncedInvalidate(qc, "business-day-history", ["business-day-history"]);
+          },
         )
-        // ===== Player notes (PlayerProfile + intelligence panel) =====
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "player_notes" },
           () => {
-            qc.invalidateQueries({ queryKey: ["player-notes"] });
-            qc.invalidateQueries({ queryKey: ["player-profile"] });
+            debouncedInvalidate(qc, "player-notes", ["player-notes"]);
+            debouncedInvalidate(qc, "player-profile", ["player-profile"]);
+          },
+        );
+
+      // ═════════════ PIT (breaklist / rota / dealers / attendance) ═════════════
+      if (has("pit_breaklist") || has("pit_rota") || has("pit_attendance") || has("pit_dealers")) {
+        channel = channel
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "breaklist", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, `breaklist:${casinoId}`, ["breaklist", casinoId]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "dealer_attendance", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, `dealer-att:${casinoId}`, ["dealer-attendance-range", casinoId]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "pit_rota", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, `pit-rota:${casinoId}`, ["pit-rota-range", casinoId]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "staff_rota", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, `staff-rota-range:${casinoId}`, ["staff-rota-range", casinoId]);
+              debouncedInvalidate(qc, `staff-rota:${casinoId}`, ["staff-rota", casinoId]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "staff_attendance", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, `staff-att-range:${casinoId}`, ["staff-attendance-range", casinoId]);
+              debouncedInvalidate(qc, `staff-att:${casinoId}`, ["staff-attendance", casinoId]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "rota_locks", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, `rota-locks:${casinoId}`, ["rota-locks", casinoId]),
+          );
+      }
+
+      // ═════════════ TABLES ═════════════
+      if (has("tables") || has("table_tracker") || has("table_results")) {
+        channel = channel
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "table_tracker", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, `table-tracker:${casinoId}`, ["table-tracker", casinoId]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "chip_snapshots", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, `chip-snap:${casinoId}`, ["chip-snapshots", casinoId]);
+              debouncedInvalidate(qc, `chip-snap-full:${casinoId}`, ["chip-snapshots-full", casinoId]);
+              debouncedInvalidate(qc, "shift_tables_result", ["shift_tables_result_total"]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "gaming_tables", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, "gaming-tables", ["gaming-tables"]);
+              debouncedInvalidate(qc, `table-tracker:${casinoId}`, ["table-tracker", casinoId]);
+            },
+          );
+      }
+
+      // ═════════════ CAGE ═════════════
+      if (has("cage") || has("cage_view") || has("closings")) {
+        channel = channel
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "transactions", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, "transactions", ["transactions"]);
+              debouncedInvalidate(qc, "player-economy", ["player-economy"]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "shifts", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, "shifts", ["shifts"]);
+              debouncedInvalidate(qc, "shift", ["shift"]);
+              debouncedInvalidate(qc, "active-shift", ["active-shift"]);
+              debouncedInvalidate(qc, "shift_tables_result", ["shift_tables_result_total"]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "cage_transfers", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, "cage-transfers", ["cage-transfers"]);
+              debouncedInvalidate(qc, "shift_tables_result", ["shift_tables_result_total"]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "cashless_transactions", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, "cashless", ["cashless"]);
+              debouncedInvalidate(qc, "cashless-transactions", ["cashless-transactions"]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "player_chip_adjustments", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, "pca", ["player-chip-adjustments"]);
+              debouncedInvalidate(qc, "player-economy", ["player-economy"]);
+            },
+          );
+      }
+
+      // ═════════════ BANK CHECKS ═════════════
+      if (has("bank_checks")) {
+        channel = channel.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "bank_checks", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            debouncedInvalidate(qc, "bank-checks", ["bank-checks"]);
+            debouncedInvalidate(qc, "cash-checks-by-date", ["cash-checks-by-date"]);
+            debouncedInvalidate(qc, "player-economy", ["player-economy"]);
+          },
+        );
+      }
+
+      // ═════════════ EXPENSES ═════════════
+      if (has("expenses") || has("daily_expenses") || has("expenses_approvals")) {
+        channel = channel.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "expenses", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            debouncedInvalidate(qc, "expenses", ["expenses"]);
+            debouncedInvalidate(qc, "player-economy", ["player-economy"]);
+          },
+        );
+      }
+
+      // ═════════════ PLAYER TRACKER ═════════════
+      if (has("pit_active_players")) {
+        channel = channel
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "player_daily_zones", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, "pdz", ["player_daily_zones"]);
+              debouncedInvalidate(qc, "casino-visits-live", ["casino-visits-live"]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "player_daily_avg_bets", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, "pdab", ["player-daily-avg-bets"]);
+              debouncedInvalidate(qc, "player-economy", ["player-economy"]);
+            },
+          );
+      }
+
+      // ═════════════ LOGS ═════════════
+      if (has("logs")) {
+        channel = channel.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "activity_logs", filter: `casino_id=eq.${casinoId}` },
+          () => debouncedInvalidate(qc, "activity-logs", ["activity-logs"], 500),
+        );
+      }
+
+      channel.subscribe((subStatus, err) => {
+        if (subStatus === "SUBSCRIBED") {
+          status.subscribed = true;
+          status.lastEventAt = Date.now();
+          console.info(`[Realtime] ✓ subscribed (casino=${casinoId})`);
+          if (subscribedOnceRef.current && wasDisconnectedRef.current) {
+            wasDisconnectedRef.current = false;
+            // Catch-up: refetch the active page (visible to the user), and
+            // mark everything else stale so it refreshes silently on next
+            // mount (stale-while-revalidate) — no flicker.
+            qc.invalidateQueries({ refetchType: "active" });
+            qc.invalidateQueries({ refetchType: "none" });
           }
-        )
-        .subscribe((subStatus, err) => {
-          if (subStatus === "SUBSCRIBED") {
-            status.subscribed = true;
-            status.lastEventAt = Date.now();
-            console.info(`[Realtime] ✓ subscribed (casino=${casinoId})`);
-            if (subscribedOnceRef.current && wasDisconnectedRef.current) {
-              wasDisconnectedRef.current = false;
-              // Reconnect: refetch all active queries to catch up missed events
-              qc.invalidateQueries({ refetchType: "active" });
-            }
-            subscribedOnceRef.current = true;
-          } else if (
-            subStatus === "CHANNEL_ERROR" ||
-            subStatus === "TIMED_OUT" ||
-            subStatus === "CLOSED"
-          ) {
-            status.subscribed = false;
-            wasDisconnectedRef.current = true;
-            console.warn(`[Realtime] ✗ ${subStatus}`, err ?? "");
-          }
-        });
+          subscribedOnceRef.current = true;
+        } else if (
+          subStatus === "CHANNEL_ERROR" ||
+          subStatus === "TIMED_OUT" ||
+          subStatus === "CLOSED"
+        ) {
+          status.subscribed = false;
+          wasDisconnectedRef.current = true;
+          console.warn(`[Realtime] ✗ ${subStatus}`, err ?? "");
+        }
+      });
 
       channelRef.current = channel;
-      // Suppress unused warning for bump (kept for future event-level tracking)
-      void bump;
     } catch (err) {
       console.error("[Realtime] Failed to setup channel:", err);
     }
@@ -301,5 +351,5 @@ export const useRealtimeSubscriptions = () => {
         channelRef.current = null;
       }
     };
-  }, [casinoId, qc]);
+  }, [casinoId, qc, allowedModules, roles]);
 };
