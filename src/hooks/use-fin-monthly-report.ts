@@ -258,6 +258,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         const a = actualMap.get(c.id) || { tzs: 0, usd: 0, grand: 0, perCasino: {}, list: [] };
         const py = planYearFor(c.id);
         const pm = planMap.get(c.id) || { tzs: 0, usd: 0 };
+        const plan_month_grand_tzs = pm.tzs + (avgUsdTzs ? pm.usd * avgUsdTzs : 0);
         const cat: ReportCategory = {
           id: c.id,
           name: c.name,
@@ -267,10 +268,13 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           plan_year_usd: py.usd,
           plan_month_tzs: pm.tzs,
           plan_month_usd: pm.usd,
-          plan_month_grand_tzs: pm.tzs + (avgUsdTzs ? pm.usd * avgUsdTzs : 0),
+          plan_month_grand_tzs,
           actual_tzs: a.tzs,
           actual_usd: a.usd,
           actual_grand_tzs: a.grand,
+          remain_tzs: pm.tzs - a.tzs,
+          remain_usd: pm.usd - a.usd,
+          remain_grand_tzs: plan_month_grand_tzs - a.grand,
           expenses: a.list.sort((x, y) => x.business_date.localeCompare(y.business_date)),
           per_casino: a.perCasino as any,
         };
