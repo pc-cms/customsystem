@@ -187,11 +187,13 @@ export const useBatchChipSnapshot = () => {
       });
       if (result.error) throw new Error(result.error);
       if (!result.offline) {
-        await logAction(casinoId, "system", "CHIP_COUNT_RECORDED", {
+        // Fire-and-forget: don't make the user wait for the audit-log
+        // roundtrip — it adds 1-2s of perceived latency on cloud links.
+        void logAction(casinoId, "system", "CHIP_COUNT_RECORDED", {
           date: input.date,
           total_denominations: input.counts.length,
           total_miss: rows.reduce((s, r) => s + (r.actual_quantity - r.expected_quantity), 0),
-        });
+        }).catch(() => {});
       }
       return { offline: result.offline };
     },
@@ -219,13 +221,17 @@ export const useBatchChipSnapshot = () => {
       // Mirror into the "full history" cache so the Snapshot history panel
       // updates instantly after Save (instead of waiting for realtime).
       qc.setQueryData<any[]>(queryKeyFull, (old = []) => [...optimisticRows, ...old]);
+      // Show success toast OPTIMISTICALLY — the optimistic cache update
+      // already makes the snapshot visible, so the operator shouldn't wait
+      // 5-20s of cloud RTT to see a confirmation. Errors still surface via
+      // onError (with rollback), keeping correctness intact.
+      toast.success("Chip count recorded");
       return { queryKey, queryKeyFull, optimisticIds: optimisticRows.map(r => r.id) };
     },
     onSuccess: (res: any) => {
-      // Optimistic rows already cover the UI; realtime will reconcile across
-      // tabs/devices. Skip invalidateQueries — a refetch of 2000+ rows on a
-      // slow PC was the main cause of the "freeze" after Save.
-      toast.success(res?.offline ? "Chip count saved offline" : "Chip count recorded");
+      // Optimistic toast already fired in onMutate. Only notify here if the
+      // network path explicitly enqueued offline (different UX).
+      if (res?.offline) toast.info("Chip count queued — will sync when connected");
     },
     onError: (e, _input, ctx: any) => {
       if (ctx?.optimisticIds) {
