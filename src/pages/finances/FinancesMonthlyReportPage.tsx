@@ -255,15 +255,8 @@ export default function FinancesMonthlyReportPage() {
         <Button variant="outline" size="sm" onClick={exportXlsx} disabled={!data}><Download className="w-4 h-4" /> XLSX</Button>
       </PageHeader>
 
-      {/* INCOMES */}
-      <PageSection title="Incomes" card>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <Income label="Live Game" v={data?.incomes.live_game ?? 0} />
-          <Income label="Slots" v={data?.incomes.slots ?? 0} />
-          <Income label="Other Incomes" v={data?.incomes.other ?? 0} />
-          <Income label="Total in TZS" v={data?.incomes.total ?? 0} bold />
-        </div>
-      </PageSection>
+      {/* SUMMARY — Incomes + Budget (Plan/Actual/Remain) + Profit & Net Balance, single compact table */}
+      {data && <SummaryBlock data={data} />}
 
       {/* GROUPS */}
       {isLoading && <div className="text-sm text-muted-foreground text-center py-6">Loading…</div>}
@@ -304,163 +297,42 @@ export default function FinancesMonthlyReportPage() {
         />
       ))}
 
-      {/* GRAND TOTAL — in-table headline row across all operating groups */}
-      {data && (
-        <PageSection title="Grand Total" card={false}>
-          <div className="rounded-md border-2 border-border overflow-auto bg-card">
-            <table className="w-full text-[11px] border-collapse">
-              <thead className="bg-muted/40">
-                <tr className="[&>th]:h-7 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
-                  <th className="text-left sticky left-0 z-10 bg-muted/40 min-w-[220px]">All operating groups</th>
-                  <th className="text-right w-[110px]">Plan/Mo</th>
-                  <th className="text-right w-[80px]">USD</th>
-                  <th className="text-right w-[110px] border-l border-border">Actual</th>
-                  <th className="text-right w-[80px]">USD</th>
-                  <th className="text-right w-[110px] border-l border-border">Grand TZS</th>
-                  <th className="text-right w-[52px]">%</th>
-                  <th className="text-right w-[110px] border-l border-border">Remain TZS</th>
-                  <th className="text-right w-[80px]">USD</th>
-                  <th className="text-right w-[110px] pr-3">Remain Grand</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="bg-muted/50 font-bold [&>td]:h-8 [&>td]:px-2 [&>td]:align-middle">
-                  <td className="sticky left-0 z-10 bg-muted/50">TOTAL</td>
-                  <td className="text-right font-mono tabular-nums">{fmtT(data.grand.plan_month_tzs)}</td>
-                  <td className="text-right font-mono tabular-nums">{fmtT(data.grand.plan_month_usd)}</td>
-                  <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(data.grand.actual_tzs)}</td>
-                  <td className="text-right font-mono tabular-nums">{fmtT(data.grand.actual_usd)}</td>
-                  <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(data.grand.actual_grand_tzs)}</td>
-                  <td className="text-right font-mono tabular-nums">{data.grand.plan_month_grand_tzs ? pct(data.grand.actual_grand_tzs / data.grand.plan_month_grand_tzs) : "—"}</td>
-                  <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(data.grand.plan_month_tzs - data.grand.actual_tzs))}>{fmtT(data.grand.plan_month_tzs - data.grand.actual_tzs)}</td>
-                  <td className={cn("text-right font-mono tabular-nums", cls(data.grand.plan_month_usd - data.grand.actual_usd))}>{fmtT(data.grand.plan_month_usd - data.grand.actual_usd)}</td>
-                  <td className={cn("text-right font-mono tabular-nums pr-3", cls(data.grand.plan_month_grand_tzs - data.grand.actual_grand_tzs))}>{fmtT(data.grand.plan_month_grand_tzs - data.grand.actual_grand_tzs)}</td>
-                </tr>
-              </tbody>
-            </table>
-            {data.usd_rate > 0 && (
-              <div className="text-[10px] text-muted-foreground px-3 py-1.5 border-t border-border">
-                Grand TZS uses USD→TZS @ {formatNumberSpaces(Math.round(data.usd_rate))}
-              </div>
-            )}
-          </div>
-        </PageSection>
+      {/* COLLECTIONS — owner withdrawals, group table below operating groups */}
+      {data?.collections && (
+        <GroupTable
+          key={data.collections.code}
+          group={data.collections}
+          expandedId={expanded}
+          onToggle={toggle}
+          isNetwork={isNetwork}
+          editMode={editMode}
+          year={year}
+          month={month}
+          allCategories={allCats || []}
+          mtd={mtd?.map || {}}
+          mtdMonthLabel={mtdMonthLabel}
+          onPlanCommit={(catId, currency, amount) =>
+            upsertBudget.mutate({ year, month, category_id: catId, currency, planned_amount: amount })
+          }
+          onRenameCategory={(catId, newName) =>
+            renameCategory.mutate({ id: catId, name: newName })
+          }
+          onArchiveCategory={(catId) => archiveCategory.mutate(catId)}
+          onAddCategory={(name) => createCategory.mutate({ group_code: data.collections!.code, group_name: data.collections!.name, name, is_income: false })}
+          onRenameGroup={(newName) => renameGroup.mutate({ group_code: data.collections!.code, name: newName })}
+          onEditExpense={(e) => setEditRow({
+            id: e.id,
+            fin_category_id: e.fin_category_id,
+            wallet_id: e.wallet_id,
+            amount: e.amount,
+            currency: e.currency,
+            description: e.description,
+            player_id: e.player_id,
+            player_name: e.player_name,
+            source: e.source,
+          })}
+        />
       )}
-
-
-
-
-      {/* TOTAL BUDGET — после расходов, до Collections */}
-      {data && (
-        <PageSection title="Total Budget" card>
-          <div className="overflow-auto rounded-md border border-border">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
-                <tr className="[&>th]:px-3 [&>th]:py-2">
-                  <th className="text-left w-[140px]">Metric</th>
-                  <th className="text-right">TZS</th>
-                  <th className="text-right">USD</th>
-                  <th className="text-right">Grand TZS</th>
-                </tr>
-              </thead>
-              <tbody className="font-mono tabular-nums">
-                <tr className="border-t border-border [&>td]:px-3 [&>td]:py-2">
-                  <td className="font-sans text-muted-foreground">Plan Month</td>
-                  <td className="text-right">{fmtT(data.grand.plan_month_tzs)}</td>
-                  <td className="text-right">{fmtT(data.grand.plan_month_usd)}</td>
-                  <td className="text-right">{fmtT(data.grand.plan_month_grand_tzs)}</td>
-                </tr>
-                <tr className="border-t border-border [&>td]:px-3 [&>td]:py-2">
-                  <td className="font-sans text-muted-foreground">Actual</td>
-                  <td className="text-right">{fmtT(data.grand.actual_tzs)}</td>
-                  <td className="text-right">{fmtT(data.grand.actual_usd)}</td>
-                  <td className="text-right">{fmtT(data.grand.actual_grand_tzs)}</td>
-                </tr>
-                <tr className="border-t-2 border-border bg-muted/30 font-semibold [&>td]:px-3 [&>td]:py-2">
-                  <td className="font-sans">Remain</td>
-                  <td className={cn("text-right", cls(data.grand.plan_month_tzs - data.grand.actual_tzs))}>
-                    {fmtT(data.grand.plan_month_tzs - data.grand.actual_tzs)}
-                  </td>
-                  <td className={cn("text-right", cls(data.grand.plan_month_usd - data.grand.actual_usd))}>
-                    {fmtT(data.grand.plan_month_usd - data.grand.actual_usd)}
-                  </td>
-                  <td className={cn("text-right", cls(data.grand.plan_month_grand_tzs - data.grand.actual_grand_tzs))}>
-                    {fmtT(data.grand.plan_month_grand_tzs - data.grand.actual_grand_tzs)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            {data.usd_rate > 0 && (
-              <div className="text-[10px] text-muted-foreground px-3 py-1.5 border-t border-border">
-                Grand TZS uses USD→TZS @ {formatNumberSpaces(Math.round(data.usd_rate))}
-              </div>
-            )}
-          </div>
-        </PageSection>
-      )}
-
-      {/* PROFIT = Incomes − Total Budget Actual (Grand TZS) */}
-      {data && (() => {
-        const profit = data.incomes.total - data.grand.actual_grand_tzs;
-        const collectionsTzs = data.collections?.totals.actual_grand_tzs ?? 0;
-        const netBalance = profit - collectionsTzs;
-        return (
-          <>
-            <PageSection title="Profit" card>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                <Kpi label="Total Income TZS" v={data.incomes.total} />
-                <Kpi label="Total Expenses (Grand TZS)" v={data.grand.actual_grand_tzs} />
-                <Kpi label="Profit TZS" v={profit} signed />
-              </div>
-            </PageSection>
-
-            {/* COLLECTIONS — owner withdrawals, после Profit, влияют на Net Balance */}
-            {data.collections && (
-              <GroupTable
-                key={data.collections.code}
-                group={data.collections}
-                expandedId={expanded}
-                onToggle={toggle}
-                isNetwork={isNetwork}
-                editMode={editMode}
-                year={year}
-                month={month}
-                allCategories={allCats || []}
-                mtd={mtd?.map || {}}
-                mtdMonthLabel={mtdMonthLabel}
-                onPlanCommit={(catId, currency, amount) =>
-                  upsertBudget.mutate({ year, month, category_id: catId, currency, planned_amount: amount })
-                }
-                onRenameCategory={(catId, newName) =>
-                  renameCategory.mutate({ id: catId, name: newName })
-                }
-                onArchiveCategory={(catId) => archiveCategory.mutate(catId)}
-                onAddCategory={(name) => createCategory.mutate({ group_code: data.collections!.code, group_name: data.collections!.name, name, is_income: false })}
-                onRenameGroup={(newName) => renameGroup.mutate({ group_code: data.collections!.code, name: newName })}
-                onEditExpense={(e) => setEditRow({
-                  id: e.id,
-                  fin_category_id: e.fin_category_id,
-                  wallet_id: e.wallet_id,
-                  amount: e.amount,
-                  currency: e.currency,
-                  description: e.description,
-                  player_id: e.player_id,
-                  player_name: e.player_name,
-                  source: e.source,
-                })}
-              />
-            )}
-
-            <PageSection title="Net Balance" card>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                <Kpi label="Profit TZS" v={profit} signed />
-                <Kpi label="Collections TZS" v={collectionsTzs} />
-                <Kpi label="Net Balance TZS" v={netBalance} signed />
-              </div>
-            </PageSection>
-          </>
-        );
-      })()}
 
 
       <EditExpenseDialog
@@ -472,19 +344,137 @@ export default function FinancesMonthlyReportPage() {
   );
 }
 
-const Income = ({ label, v, bold }: { label: string; v: number; bold?: boolean }) => (
-  <div className="rounded-md border border-border p-3">
-    <div className="text-xs uppercase text-muted-foreground">{label}</div>
-    <div className={cn("font-mono mt-1", bold ? "text-lg font-bold" : "text-base")}>{fmt(v)}</div>
-  </div>
-);
 
-const Kpi = ({ label, v, signed }: { label: string; v: number; signed?: boolean }) => (
-  <div className="rounded-md border border-border p-3">
-    <div className="text-xs uppercase text-muted-foreground">{label}</div>
-    <div className={cn("font-mono mt-1 text-base font-semibold", signed && cls(v))}>{formatNumberSpaces(v)}</div>
-  </div>
-);
+/**
+ * Summary block — one compact table combining Incomes, Budget (Plan / Actual / Remain)
+ * and Result (Profit / Collections / Net Balance). Remain = Plan/Month − Actual everywhere.
+ */
+const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report").MonthlyReport }) => {
+  const incomes = data.incomes;
+  const g = data.grand;
+  const collectionsTzs = data.collections?.totals.actual_grand_tzs ?? 0;
+  const profit = incomes.total - g.actual_grand_tzs;
+  const netBalance = profit - collectionsTzs;
+  const pctTxt = (n: number, d: number) => (d ? pct(n / d) : "—");
+
+  return (
+    <PageSection title="Month Summary" card={false}>
+      <div className="rounded-md border-2 border-border overflow-auto bg-card">
+        <table className="w-full text-[12px] border-collapse">
+          {/* INCOMES */}
+          <thead className="bg-muted/40">
+            <tr className="[&>th]:h-7 [&>th]:px-3 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
+              <th className="text-left min-w-[180px]">Incomes</th>
+              <th className="text-right w-[140px]">TZS</th>
+              <th className="text-right w-[120px]">USD</th>
+              <th className="text-right w-[160px] border-l border-border">Grand TZS</th>
+              <th className="text-right w-[60px] pr-3">%</th>
+            </tr>
+          </thead>
+          <tbody className="font-mono tabular-nums">
+            <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
+              <td className="font-sans text-muted-foreground">Live Game</td>
+              <td className="text-right">{fmtT(incomes.live_game)}</td>
+              <td className="text-right text-muted-foreground">—</td>
+              <td className="text-right border-l border-border">{fmtT(incomes.live_game)}</td>
+              <td className="text-right text-muted-foreground pr-3">—</td>
+            </tr>
+            <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
+              <td className="font-sans text-muted-foreground">Slots</td>
+              <td className="text-right">{fmtT(incomes.slots)}</td>
+              <td className="text-right text-muted-foreground">—</td>
+              <td className="text-right border-l border-border">{fmtT(incomes.slots)}</td>
+              <td className="text-right text-muted-foreground pr-3">—</td>
+            </tr>
+            <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
+              <td className="font-sans text-muted-foreground">Other</td>
+              <td className="text-right">{fmtT(incomes.other)}</td>
+              <td className="text-right text-muted-foreground">—</td>
+              <td className="text-right border-l border-border">{fmtT(incomes.other)}</td>
+              <td className="text-right text-muted-foreground pr-3">—</td>
+            </tr>
+            <tr className="border-t-2 border-border bg-muted/30 font-bold [&>td]:h-8 [&>td]:px-3">
+              <td className="font-sans">Total Income</td>
+              <td className="text-right">{fmtT(incomes.total)}</td>
+              <td className="text-right text-muted-foreground">—</td>
+              <td className="text-right border-l border-border">{fmtT(incomes.total)}</td>
+              <td className="text-right text-muted-foreground pr-3">—</td>
+            </tr>
+          </tbody>
+
+          {/* BUDGET — Plan / Actual / Remain (the headline "unpaid balance for the month") */}
+          <thead className="bg-muted/40">
+            <tr className="[&>th]:h-7 [&>th]:px-3 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap border-t-2 border-border">
+              <th className="text-left">Budget (Month)</th>
+              <th className="text-right">Plan/Mo</th>
+              <th className="text-right">Actual</th>
+              <th className="text-right border-l border-border">Remain (Plan − Actual)</th>
+              <th className="text-right pr-3">%</th>
+            </tr>
+          </thead>
+          <tbody className="font-mono tabular-nums">
+            <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
+              <td className="font-sans text-muted-foreground">TZS</td>
+              <td className="text-right">{fmtT(g.plan_month_tzs)}</td>
+              <td className="text-right">{fmtT(g.actual_tzs)}</td>
+              <td className={cn("text-right border-l border-border", cls(g.remain_tzs))}>{fmtT(g.remain_tzs)}</td>
+              <td className="text-right text-muted-foreground pr-3">{pctTxt(g.actual_tzs, g.plan_month_tzs)}</td>
+            </tr>
+            <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
+              <td className="font-sans text-muted-foreground">USD</td>
+              <td className="text-right">{fmtT(g.plan_month_usd)}</td>
+              <td className="text-right">{fmtT(g.actual_usd)}</td>
+              <td className={cn("text-right border-l border-border", cls(g.remain_usd))}>{fmtT(g.remain_usd)}</td>
+              <td className="text-right text-muted-foreground pr-3">{pctTxt(g.actual_usd, g.plan_month_usd)}</td>
+            </tr>
+            <tr className="border-t-2 border-border bg-muted/30 font-bold [&>td]:h-8 [&>td]:px-3">
+              <td className="font-sans">Grand TZS</td>
+              <td className="text-right">{fmtT(g.plan_month_grand_tzs)}</td>
+              <td className="text-right">{fmtT(g.actual_grand_tzs)}</td>
+              <td className={cn("text-right border-l border-border", cls(g.remain_grand_tzs))}>{fmtT(g.remain_grand_tzs)}</td>
+              <td className="text-right pr-3">{pctTxt(g.actual_grand_tzs, g.plan_month_grand_tzs)}</td>
+            </tr>
+          </tbody>
+
+          {/* RESULT — Profit & Net Balance */}
+          <thead className="bg-muted/40">
+            <tr className="[&>th]:h-7 [&>th]:px-3 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap border-t-2 border-border">
+              <th className="text-left">Result</th>
+              <th className="text-right" colSpan={2}>Calculation</th>
+              <th className="text-right border-l border-border">Grand TZS</th>
+              <th className="text-right pr-3"></th>
+            </tr>
+          </thead>
+          <tbody className="font-mono tabular-nums">
+            <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
+              <td className="font-sans text-muted-foreground">Profit</td>
+              <td className="text-right text-muted-foreground font-sans text-[11px]" colSpan={2}>Income − Actual (Grand)</td>
+              <td className={cn("text-right border-l border-border", cls(profit))}>{fmtT(profit)}</td>
+              <td className="pr-3"></td>
+            </tr>
+            <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
+              <td className="font-sans text-muted-foreground">Collections</td>
+              <td className="text-right text-muted-foreground font-sans text-[11px]" colSpan={2}>Owner withdrawals</td>
+              <td className="text-right border-l border-border">{fmtT(collectionsTzs)}</td>
+              <td className="pr-3"></td>
+            </tr>
+            <tr className="border-t-2 border-border bg-muted/30 font-bold [&>td]:h-8 [&>td]:px-3">
+              <td className="font-sans">Net Balance</td>
+              <td className="text-right text-muted-foreground font-sans text-[11px]" colSpan={2}>Profit − Collections</td>
+              <td className={cn("text-right border-l border-border", cls(netBalance))}>{fmtT(netBalance)}</td>
+              <td className="pr-3"></td>
+            </tr>
+          </tbody>
+        </table>
+        {data.usd_rate > 0 && (
+          <div className="text-[10px] text-muted-foreground px-3 py-1.5 border-t border-border">
+            Grand TZS uses USD→TZS @ {formatNumberSpaces(Math.round(data.usd_rate))}
+          </div>
+        )}
+      </div>
+    </PageSection>
+  );
+};
 
 type EditCallbacks = {
   editMode: boolean;

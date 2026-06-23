@@ -44,6 +44,10 @@ export type ReportCategory = {
   actual_usd: number;
   /** Σ amount_tzs across all currencies — for grand totals in TZS. */
   actual_grand_tzs: number;
+  /** Plan/Month − Actual (centralized so UI + Excel agree). */
+  remain_tzs: number;
+  remain_usd: number;
+  remain_grand_tzs: number;
   expenses: ReportExpense[];
   per_casino?: Record<string, { actual_tzs: number; actual_usd: number; actual_grand_tzs: number }>;
 };
@@ -61,6 +65,9 @@ export type ReportGroup = {
     actual_tzs: number;
     actual_usd: number;
     actual_grand_tzs: number;
+    remain_tzs: number;
+    remain_usd: number;
+    remain_grand_tzs: number;
   };
 };
 
@@ -76,6 +83,9 @@ export type MonthlyReport = {
     actual_tzs: number;
     actual_usd: number;
     actual_grand_tzs: number;
+    remain_tzs: number;
+    remain_usd: number;
+    remain_grand_tzs: number;
   };
   /** USD→TZS rate used for Grand TZS conversion (avg of period, or 0 if no rate set). */
   usd_rate: number;
@@ -248,6 +258,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         const a = actualMap.get(c.id) || { tzs: 0, usd: 0, grand: 0, perCasino: {}, list: [] };
         const py = planYearFor(c.id);
         const pm = planMap.get(c.id) || { tzs: 0, usd: 0 };
+        const plan_month_grand_tzs = pm.tzs + (avgUsdTzs ? pm.usd * avgUsdTzs : 0);
         const cat: ReportCategory = {
           id: c.id,
           name: c.name,
@@ -257,10 +268,13 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           plan_year_usd: py.usd,
           plan_month_tzs: pm.tzs,
           plan_month_usd: pm.usd,
-          plan_month_grand_tzs: pm.tzs + (avgUsdTzs ? pm.usd * avgUsdTzs : 0),
+          plan_month_grand_tzs,
           actual_tzs: a.tzs,
           actual_usd: a.usd,
           actual_grand_tzs: a.grand,
+          remain_tzs: pm.tzs - a.tzs,
+          remain_usd: pm.usd - a.usd,
+          remain_grand_tzs: plan_month_grand_tzs - a.grand,
           expenses: a.list.sort((x, y) => x.business_date.localeCompare(y.business_date)),
           per_casino: a.perCasino as any,
         };
@@ -282,9 +296,15 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
             actual_tzs: s.actual_tzs + c.actual_tzs,
             actual_usd: s.actual_usd + c.actual_usd,
             actual_grand_tzs: s.actual_grand_tzs + c.actual_grand_tzs,
+            remain_tzs: 0,
+            remain_usd: 0,
+            remain_grand_tzs: 0,
           }),
-          { plan_year_tzs: 0, plan_year_usd: 0, plan_month_tzs: 0, plan_month_usd: 0, plan_month_grand_tzs: 0, actual_tzs: 0, actual_usd: 0, actual_grand_tzs: 0 },
+          { plan_year_tzs: 0, plan_year_usd: 0, plan_month_tzs: 0, plan_month_usd: 0, plan_month_grand_tzs: 0, actual_tzs: 0, actual_usd: 0, actual_grand_tzs: 0, remain_tzs: 0, remain_usd: 0, remain_grand_tzs: 0 },
         );
+        totals.remain_tzs = totals.plan_month_tzs - totals.actual_tzs;
+        totals.remain_usd = totals.plan_month_usd - totals.actual_usd;
+        totals.remain_grand_tzs = totals.plan_month_grand_tzs - totals.actual_grand_tzs;
         return { code: g, name: first?.group_name || g, categories: list, totals };
       };
 
@@ -299,10 +319,16 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           actual_tzs: s.actual_tzs + g.totals.actual_tzs,
           actual_usd: s.actual_usd + g.totals.actual_usd,
           actual_grand_tzs: s.actual_grand_tzs + g.totals.actual_grand_tzs,
+          remain_tzs: 0,
+          remain_usd: 0,
+          remain_grand_tzs: 0,
         }),
-        { plan_month_tzs: 0, plan_month_usd: 0, plan_month_grand_tzs: 0, actual_tzs: 0, actual_usd: 0, actual_grand_tzs: 0 },
+        { plan_month_tzs: 0, plan_month_usd: 0, plan_month_grand_tzs: 0, actual_tzs: 0, actual_usd: 0, actual_grand_tzs: 0, remain_tzs: 0, remain_usd: 0, remain_grand_tzs: 0 },
       );
       grand.plan_month_grand_tzs = grand.plan_month_tzs + (avgUsdTzs ? grand.plan_month_usd * avgUsdTzs : 0);
+      grand.remain_tzs = grand.plan_month_tzs - grand.actual_tzs;
+      grand.remain_usd = grand.plan_month_usd - grand.actual_usd;
+      grand.remain_grand_tzs = grand.plan_month_grand_tzs - grand.actual_grand_tzs;
 
       return {
         incomes: { live_game: liveGame, slots: slotsIncome, other, total: liveGame + slotsIncome + other },
