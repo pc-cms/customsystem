@@ -8,8 +8,11 @@
  */
 import { cn } from "@/lib/utils";
 
-export const Skeleton = ({ className }: { className?: string }) => (
+type DivProps = React.HTMLAttributes<HTMLDivElement>;
+
+export const Skeleton = ({ className, ...props }: DivProps) => (
   <div
+    {...props}
     className={cn(
       "animate-pulse rounded-md bg-muted/60",
       className,
