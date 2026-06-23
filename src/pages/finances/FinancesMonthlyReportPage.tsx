@@ -439,11 +439,11 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
               <td className={cn("text-right border-l border-border", cls(g.remain_tzs))}>{fmtT(g.remain_tzs)}</td>
               <td className="text-right text-muted-foreground pr-3">{pctTxt(g.actual_tzs, g.plan_month_tzs)}</td>
             </tr>
-            <tr className="border-t border-border [&>td]:h-7 [&>td]:px-3">
-              <td className="font-sans text-muted-foreground">USD</td>
-              <td className="text-right">{fmtT(g.plan_month_usd)}</td>
-              <td className="text-right">{fmtT(g.actual_usd)}</td>
-              <td className={cn("text-right border-l border-border", cls(g.remain_usd))}>{fmtT(g.remain_usd)}</td>
+            <tr className={cn("border-t border-border [&>td]:h-7 [&>td]:px-3", USD_COL)}>
+              <td className="font-sans text-sky-600 dark:text-sky-400 font-semibold">$ USD</td>
+              <td className="text-right"><UsdAmt value={g.plan_month_usd} total /></td>
+              <td className="text-right"><UsdAmt value={g.actual_usd} total /></td>
+              <td className={cn("text-right border-l border-border", cls(g.remain_usd))}><UsdAmt value={g.remain_usd} total /></td>
               <td className="text-right text-muted-foreground pr-3">{pctTxt(g.actual_usd, g.plan_month_usd)}</td>
             </tr>
             <tr className="border-t-2 border-border bg-muted/30 font-bold [&>td]:h-8 [&>td]:px-3">
