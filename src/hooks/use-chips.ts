@@ -187,11 +187,13 @@ export const useBatchChipSnapshot = () => {
       });
       if (result.error) throw new Error(result.error);
       if (!result.offline) {
-        await logAction(casinoId, "system", "CHIP_COUNT_RECORDED", {
+        // Fire-and-forget: don't make the user wait for the audit-log
+        // roundtrip — it adds 1-2s of perceived latency on cloud links.
+        void logAction(casinoId, "system", "CHIP_COUNT_RECORDED", {
           date: input.date,
           total_denominations: input.counts.length,
           total_miss: rows.reduce((s, r) => s + (r.actual_quantity - r.expected_quantity), 0),
-        });
+        }).catch(() => {});
       }
       return { offline: result.offline };
     },
