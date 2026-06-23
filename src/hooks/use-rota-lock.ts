@@ -107,5 +107,11 @@ export const useRolesAtDate = (onDate: string) => {
     },
     enabled: !!casinoId,
     staleTime: 60_000,
+    select: (d: any) => {
+      if (d instanceof Map) return d;
+      const m = new Map<string, { department: string; position: string; dealer_category: string | null; is_pit_boss: boolean }>();
+      for (const [k, v] of Object.entries(d ?? {})) m.set(k, v as any);
+      return m;
+    },
   });
 };
