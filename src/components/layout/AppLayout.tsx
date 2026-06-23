@@ -7,7 +7,6 @@ import { MobileHeader } from "./AppSidebar";
 import { PWAUpdateNotification } from "@/components/PWAUpdateNotification";
 import { LocalServerBadge } from "@/components/LocalServerBadge";
 import { OfflineBanner } from "@/components/OfflineBanner";
-import { prefetchRouteChunks } from "@/lib/route-prefetch";
 
 import { cn } from "@/lib/utils";
 
