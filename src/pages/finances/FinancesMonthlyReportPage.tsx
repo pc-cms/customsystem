@@ -483,18 +483,15 @@ type EditCallbacks = {
   onRenameGroup: (newName: string) => void;
 };
 
-const GroupTable = ({ group, expandedId, onToggle, isNetwork, mtd, mtdMonthLabel, ...edit }: {
+const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
   group: ReportGroup;
   expandedId: string | null;
   onToggle: (id: string) => void;
   isNetwork: boolean;
-  mtd: Record<string, number>;
-  mtdMonthLabel: string;
 } & EditCallbacks) => {
 
   const { editMode, onAddCategory, onRenameGroup } = edit;
-  const colCount = 13; // Category + 6 USD/TZS pair cells + Grand + % + MTD + Remain TZS + USD + %
-  const groupMtd = group.categories.reduce((s, c) => s + (mtd[c.id] || 0), 0);
+  const colCount = 11; // Category + Plan(2) + Actual(4) + Remaining(4)
   const titleNode = editMode ? (
     <div className="min-w-[220px]">
       <InlineTextCell value={group.name} onCommit={(v) => { if (v.trim() && v.trim() !== group.name) onRenameGroup(v.trim()); }} />
@@ -504,6 +501,9 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, mtd, mtdMonthLabel
     const name = window.prompt(`New category in "${group.name}":`)?.trim();
     if (name) onAddCategory(name);
   };
+  const t = group.totals;
+  const actPct = t.plan_month_grand_tzs ? pct(t.actual_grand_tzs / t.plan_month_grand_tzs) : "—";
+  const remPct = t.plan_month_grand_tzs ? pct(t.remain_grand_tzs / t.plan_month_grand_tzs) : "—";
   return (
     <PageSection
       title={titleNode}
@@ -518,18 +518,21 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, mtd, mtdMonthLabel
         <table className="w-full text-[11px] border-collapse">
           <thead className="bg-muted/40">
             <tr className="[&>th]:h-7 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
-              <th className="text-left sticky left-0 z-10 bg-muted/40 min-w-[220px]">Category</th>
-              <th className="text-right w-[110px]">Plan/Year</th>
+              <th rowSpan={2} className="text-left sticky left-0 z-10 bg-muted/40 min-w-[220px] align-bottom">Category</th>
+              <th colSpan={2} className="text-center border-l border-border">Plan</th>
+              <th colSpan={4} className="text-center border-l border-border">Actual</th>
+              <th colSpan={4} className="text-center border-l border-border">Remaining</th>
+            </tr>
+            <tr className="[&>th]:h-7 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap border-t border-border">
+              <th className="text-right w-[110px] border-l border-border">TZS</th>
               <th className="text-right w-[80px]">USD</th>
-              <th className="text-right w-[110px]">Plan/Mo</th>
+              <th className="text-right w-[110px] border-l border-border">TZS</th>
               <th className="text-right w-[80px]">USD</th>
-              <th className="text-right w-[110px] border-l border-border">Actual</th>
-              <th className="text-right w-[80px]">USD</th>
-              <th className="text-right w-[110px] border-l border-border" title="Σ amount_tzs (TZS + USD converted)">Grand TZS</th>
+              <th className="text-right w-[110px]" title="Σ amount_tzs (TZS + USD converted)">Grand TZS</th>
               <th className="text-right w-[52px]">%</th>
-              <th className="text-right w-[110px] border-l border-border" title={`Month-to-date · ${mtdMonthLabel}`}>{mtdMonthLabel || "MTD"}</th>
-              <th className="text-right w-[110px] border-l border-border">Remain</th>
+              <th className="text-right w-[110px] border-l border-border">TZS</th>
               <th className="text-right w-[80px]">USD</th>
+              <th className="text-right w-[110px]">Grand Total</th>
               <th className="text-right w-[52px] pr-3">%</th>
             </tr>
           </thead>
@@ -542,7 +545,6 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, mtd, mtdMonthLabel
                 onToggle={() => onToggle(c.id)}
                 isNetwork={isNetwork}
                 colCount={colCount}
-                mtdValue={mtd[c.id] || 0}
                 {...edit}
               />
             ))}
@@ -562,19 +564,95 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, mtd, mtdMonthLabel
 
             <tr className="bg-muted/40 font-semibold border-t-2 border-border [&>td]:h-7 [&>td]:px-2 [&>td]:align-middle">
               <td className="sticky left-0 z-10 bg-muted/40">Total</td>
-              <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_year_tzs)}</td>
-              <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_year_usd)}</td>
-              <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_month_tzs)}</td>
-              <td className="text-right font-mono tabular-nums">{fmtT(group.totals.plan_month_usd)}</td>
-              <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(group.totals.actual_tzs)}</td>
-              <td className="text-right font-mono tabular-nums">{fmtT(group.totals.actual_usd)}</td>
-              <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(group.totals.actual_grand_tzs)}</td>
-              <td className="text-right font-mono tabular-nums">{group.totals.plan_month_grand_tzs ? pct(group.totals.actual_grand_tzs / group.totals.plan_month_grand_tzs) : "—"}</td>
-              <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(groupMtd)}</td>
-              <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(group.totals.plan_month_tzs - group.totals.actual_tzs))}>{fmtT(group.totals.plan_month_tzs - group.totals.actual_tzs)}</td>
-              <td className={cn("text-right font-mono tabular-nums", cls(group.totals.plan_month_usd - group.totals.actual_usd))}>{fmtT(group.totals.plan_month_usd - group.totals.actual_usd)}</td>
-              <td className="text-right font-mono tabular-nums pr-3">{group.totals.plan_month_grand_tzs ? pct((group.totals.plan_month_grand_tzs - group.totals.actual_grand_tzs) / group.totals.plan_month_grand_tzs) : "—"}</td>
+              <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(t.plan_month_tzs)}</td>
+              <td className="text-right font-mono tabular-nums">{fmtT(t.plan_month_usd)}</td>
+              <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(t.actual_tzs)}</td>
+              <td className="text-right font-mono tabular-nums">{fmtT(t.actual_usd)}</td>
+              <td className="text-right font-mono tabular-nums">{fmtT(t.actual_grand_tzs)}</td>
+              <td className="text-right font-mono tabular-nums">{actPct}</td>
+              <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(t.remain_tzs))}>{fmtT(t.remain_tzs)}</td>
+              <td className={cn("text-right font-mono tabular-nums", cls(t.remain_usd))}>{fmtT(t.remain_usd)}</td>
+              <td className={cn("text-right font-mono tabular-nums", cls(t.remain_grand_tzs))}>{fmtT(t.remain_grand_tzs)}</td>
+              <td className="text-right font-mono tabular-nums pr-3">{remPct}</td>
             </tr>
+          </tbody>
+        </table>
+      </div>
+    </PageSection>
+  );
+};
+
+
+const Row = ({ c, expanded, onToggle, isNetwork, colCount, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onArchiveCategory, onEditExpense }: {
+  c: ReportCategory; expanded: boolean; onToggle: () => void; isNetwork: boolean; colCount: number;
+} & EditCallbacks) => {
+  const actPct = c.plan_month_grand_tzs ? pct(c.actual_grand_tzs / c.plan_month_grand_tzs) : "—";
+  const remPct = c.plan_month_grand_tzs ? pct(c.remain_grand_tzs / c.plan_month_grand_tzs) : "—";
+  return (
+    <>
+      <tr
+        className={cn(
+          "border-t border-border hover:bg-muted/30 cursor-pointer [&>td]:h-7 [&>td]:px-2 [&>td]:align-middle",
+          expanded && "bg-muted/30",
+        )}
+        onClick={onToggle}
+      >
+        <td className="sticky left-0 z-10 bg-card">
+          <div className="flex items-center gap-1 min-w-0">
+            {expanded ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
+            <div className="flex-1 min-w-0">
+              <InlineTextCell
+                value={c.name}
+                disabled={!editMode}
+                onCommit={(v) => onRenameCategory(c.id, v)}
+              />
+            </div>
+            {c.expenses.length > 0 && <span className="text-[10px] text-muted-foreground shrink-0">({c.expenses.length})</span>}
+            {editMode && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 shrink-0 text-muted-foreground hover:text-destructive"
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  if (confirm(`Archive category "${c.name}"?\n\nIt will be hidden from the Monthly Report and from new expense forms, but past expenses and budgets remain intact.`)) {
+                    onArchiveCategory(c.id);
+                  }
+                }}
+                aria-label="Archive category"
+                title="Archive category"
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            )}
+          </div>
+        </td>
+        <td className="text-right border-l border-border">
+          <InlineNumberCell
+            value={c.plan_month_tzs}
+            disabled={!editMode}
+            onCommit={(v) => onPlanCommit(c.id, "TZS", v)}
+          />
+        </td>
+        <td className="text-right text-muted-foreground">
+          <InlineNumberCell
+            value={c.plan_month_usd}
+            disabled={!editMode}
+            onCommit={(v) => onPlanCommit(c.id, "USD", v)}
+            className="text-muted-foreground"
+          />
+        </td>
+        <td className="text-right font-mono tabular-nums border-l border-border">{fmt(c.actual_tzs)}</td>
+        <td className="text-right font-mono tabular-nums text-muted-foreground">{fmt(c.actual_usd)}</td>
+        <td className="text-right font-mono tabular-nums">{fmt(c.actual_grand_tzs)}</td>
+        <td className="text-right font-mono tabular-nums">{actPct}</td>
+        <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(c.remain_tzs))}>{fmt(c.remain_tzs)}</td>
+        <td className={cn("text-right font-mono tabular-nums text-muted-foreground", cls(c.remain_usd))}>{fmt(c.remain_usd)}</td>
+        <td className={cn("text-right font-mono tabular-nums", cls(c.remain_grand_tzs))}>{fmt(c.remain_grand_tzs)}</td>
+        <td className="text-right font-mono tabular-nums pr-3">{remPct}</td>
+      </tr>
+
+
           </tbody>
         </table>
       </div>
