@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export type CellPickerOption = {
   value: string;
@@ -44,8 +45,7 @@ export const CellPicker: React.FC<CellPickerProps> = ({
   onPaste,
 }) => {
   const [open, setOpen] = useState(false);
-  const [dropUp, setDropUp] = useState(false);
-  const [dropLeft, setDropLeft] = useState(false);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
 
@@ -57,22 +57,26 @@ export const CellPicker: React.FC<CellPickerProps> = ({
       setOpen(false);
     };
     const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const onScroll = () => setOpen(false);
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onEsc);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onScroll);
     return () => {
       document.removeEventListener("mousedown", onDoc);
       document.removeEventListener("keydown", onEsc);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onScroll);
     };
   }, [open]);
 
   const handleOpen = () => {
     if (disabled) return;
-    setDropUp(false);
-    setDropLeft(false);
     setOpen(o => !o);
   };
 
-  // Measure actual popup after render and flip if it overflows viewport bottom/right.
+  // Measure actual popup after render and position via fixed coords so it
+  // escapes any `overflow:hidden` ancestor (panels, scrollable grids).
   useLayoutEffect(() => {
     if (!open) return;
     const btn = btnRef.current;
@@ -81,11 +85,29 @@ export const CellPicker: React.FC<CellPickerProps> = ({
     const btnRect = btn.getBoundingClientRect();
     const popH = pop.offsetHeight;
     const popW = pop.offsetWidth;
-    const spaceBelow = window.innerHeight - btnRect.bottom - 8;
-    const spaceAbove = btnRect.top - 8;
-    if (popH > spaceBelow && spaceAbove > spaceBelow) setDropUp(true);
-    const spaceRight = window.innerWidth - btnRect.left - 8;
-    if (popW > spaceRight) setDropLeft(true);
+    const margin = 8;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    // Vertical: prefer below, flip above if not enough room
+    let top = btnRect.bottom + 4;
+    if (top + popH + margin > vh && btnRect.top - popH - 4 > margin) {
+      top = btnRect.top - popH - 4;
+    }
+    // Clamp inside viewport
+    top = Math.max(margin, Math.min(top, vh - popH - margin));
+
+    // Horizontal: align to button's left, shift left if overflowing right edge
+    let left = btnRect.left;
+    if (left + popW + margin > vw) left = vw - popW - margin;
+    left = Math.max(margin, left);
+
+    setCoords({ top, left });
+  }, [open]);
+
+  // Reset coords when closing so next open re-measures cleanly
+  useEffect(() => {
+    if (!open) setCoords(null);
   }, [open]);
 
   const choose = (v: string | null) => {
@@ -107,10 +129,16 @@ export const CellPicker: React.FC<CellPickerProps> = ({
       >
         {display ?? value ?? "·"}
       </button>
-      {open && (
+      {open && typeof document !== "undefined" && createPortal(
         <div
           ref={popRef}
-          className={`absolute z-50 ${dropUp ? "bottom-9" : "top-9"} ${dropLeft ? "right-0" : "left-0"} bg-popover border border-border rounded-md shadow-lg p-1 min-w-[140px]`}
+          style={{
+            position: "fixed",
+            top: coords?.top ?? -9999,
+            left: coords?.left ?? -9999,
+            visibility: coords ? "visible" : "hidden",
+          }}
+          className="z-50 bg-popover border border-border rounded-md shadow-lg p-1 min-w-[140px]"
         >
           {rows.map((row, i) => (
             <div key={i} className={i > 0 ? "mt-1 pt-1 border-t border-border" : ""}>
@@ -145,7 +173,8 @@ export const CellPicker: React.FC<CellPickerProps> = ({
               </button>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
