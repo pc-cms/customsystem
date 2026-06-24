@@ -155,6 +155,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       });
     });
     setCounts(initial);
+    setTouched({});
     setHcDraft({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableSetKey]);
