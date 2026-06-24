@@ -134,12 +134,9 @@ services:
     container_name: cms-realtime
     <<: [*restart_policy, *default_logging]
     entrypoint:
-      - /usr/bin/tini
-      - -s
-      - -g
-      - --
       - /bin/bash
       - -lc
+
     command:
       - |
         printf '%s\n' \
