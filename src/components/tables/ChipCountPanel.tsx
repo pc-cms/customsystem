@@ -162,8 +162,6 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
         if (!loc.denoms.includes(d)) return;
         const expected = tableBaseline[d] || 0;
         const entered = locCounts[d];
-        // Empty / NaN cell → use last check value (= placeholder) so partial entry
-        // is intuitive: untouched denoms keep last reading, only edits move the result.
         const actual = entered === undefined || Number.isNaN(entered as any)
           ? getLastCheck(loc.id, d)
           : (entered as number);
@@ -190,21 +188,20 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       const tableBaseline = baselineMap[loc.id] || {};
       loc.denoms.forEach(d => {
         const entered = locCounts[d];
-        // Strictly skip cells the user did not touch — empty/NaN means
-        // "no change", so we do NOT write a new snapshot row for this
-        // (table, denomination). The latest existing snapshot remains
-        // the authoritative reading for downstream consumers.
-        if (entered === undefined || Number.isNaN(entered as any)) return;
+        // Each Save Snapshot writes a full snapshot for every denomination of
+        // every open table: input always shows the current count (defaulted to
+        // last-check on open), so the displayed number is the value to persist.
+        const actual = entered === undefined || Number.isNaN(entered as any)
+          ? getLastCheck(loc.id, d)
+          : (entered as number);
         const expected = tableBaseline[d] || 0;
-        rows.push({ location_type: loc.type, location_id: loc.id, denomination: d, expected_quantity: expected, actual_quantity: entered as number });
+        rows.push({ location_type: loc.type, location_id: loc.id, denomination: d, expected_quantity: expected, actual_quantity: actual });
       });
     });
     batchSnapshot.mutate({ date, counts: rows });
 
     // Auto-write per-table row result into Number Count tracker for the rounded slot.
     // On-time (:50–:10) always writes; fallback (:11–:49) writes only if slot is empty.
-    // Batch all tracker writes into ONE upsert — firing 10-20 parallel
-    // upserts was a major cause of the post-Save freeze on slow PCs.
     const target = slotForChipCount(nowEAT());
     if (target) {
       const { slot, onlyIfEmpty } = target;
@@ -224,24 +221,6 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       if (entries.length > 0) batchTracker.mutate({ date, entries });
     }
     void setTrackerValue; // retained for backwards-compat (unused here)
-
-    // Head count batch — only entries the user actually typed AND that differ
-    // from the existing slot value. HC never feeds chip math; written to the
-    // same hourly slot as the chip count for alignment with the Number Count grid.
-    if (hcSlot && !readOnly) {
-      const hcEntries: Array<{ table_id: string; time_slot: string; value: number }> = [];
-      countLocations.forEach(loc => {
-        const raw = hcDraft[loc.id];
-        if (raw === undefined || raw === "") return;
-        const n = Math.min(99, Math.max(0, parseInt(raw, 10) || 0));
-        const existing = headCountRows.find(
-          (r: any) => r.table_id === loc.id && r.time_slot === hcSlot,
-        );
-        if (existing && Number(existing.value) === n) return;
-        hcEntries.push({ table_id: loc.id, time_slot: hcSlot, value: n });
-      });
-      if (hcEntries.length > 0) batchHeadCount.mutate({ date, entries: hcEntries });
-    }
   };
 
   // Early-return moved below all hooks to keep hook order stable (React #310).
