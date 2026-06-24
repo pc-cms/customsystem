@@ -305,13 +305,22 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                   {SLOTS.map((slot) => {
                     const isActive = isToday && slot === currentSlot;
                     const tot = getSlotTotal(slot);
+                    const hcTot = getSlotHeadCountTotal(slot);
                     const colorClass = tot > 0 ? "cms-amount-positive" : tot < 0 ? "cms-amount-negative" : "text-card-foreground";
                     return (
                       <td
                         key={slot}
-                        className={`px-2 py-2 text-center font-mono tabular-nums text-sm font-bold whitespace-nowrap ${colorClass} ${isActive ? "bg-primary/10" : ""}`}
+                        className={`px-2 py-2 text-center whitespace-nowrap ${isActive ? "bg-primary/10" : ""}`}
                       >
-                        {tot ? formatCurrency(tot) : "·"}
+                        <div className={`font-mono tabular-nums text-sm font-bold ${colorClass}`}>
+                          {tot ? formatCurrency(tot) : "·"}
+                        </div>
+                        <div
+                          className="mt-0.5 text-[10px] font-mono tabular-nums text-muted-foreground leading-none"
+                          title="Head count total"
+                        >
+                          HC {hcTot || 0}
+                        </div>
                       </td>
                     );
                   })}
