@@ -117,6 +117,10 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
 
   // NaN sentinel means "empty input" → treated as "same as last check" for math.
   const [counts, setCounts] = useState<Record<string, Record<number, number>>>({});
+  // Per-cell "touched" flag. Untouched cells show the last-check value as real
+  // white text (not gray placeholder). On focus the field clears so the operator
+  // types the new count; on blur with no input the cell reverts to untouched.
+  const [touched, setTouched] = useState<Record<string, Record<number, boolean>>>({});
   const [hcDraft, setHcDraft] = useState<Record<string, string>>({});
   const [fullscreen, setFullscreen] = useState(false);
   const [tabletMode, setTabletMode] = useState(false);
@@ -151,6 +155,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       });
     });
     setCounts(initial);
+    setTouched({});
     setHcDraft({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableSetKey]);
@@ -383,13 +388,33 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                       const lastCheck = getLastCheck(loc.id, d);
                       const raw = locCounts[d];
                       const isEmpty = raw === undefined || Number.isNaN(raw as any);
+                      const isTouched = !!touched[loc.key]?.[d];
+                      // Untouched → show last-check value as real white text.
+                      // Touched   → show current typed value (or empty after focus-clear).
+                      const displayValue = isTouched
+                        ? (isEmpty ? "" : String(raw))
+                        : String(lastCheck);
                       return (
                         <td key={d} className={`${t.rowPadX} ${t.rowPadY}`}>
                           <input
                             type="number" min="0" max="999" maxLength={3}
-                            value={isEmpty ? "" : (raw as number)}
-                            onFocus={e => {
-                              requestAnimationFrame(() => e.target.select());
+                            value={displayValue}
+                            onFocus={() => {
+                              // Mark touched and clear so operator types the new count.
+                              setTouched(tt => ({ ...tt, [loc.key]: { ...(tt[loc.key] || {}), [d]: true } }));
+                              setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: NaN as any } }));
+                            }}
+                            onBlur={() => {
+                              // If still empty after blur, revert to "untouched" so the
+                              // last-check value is shown again (no false save).
+                              const cur = (counts[loc.key] || {})[d];
+                              if (cur === undefined || Number.isNaN(cur as any)) {
+                                setTouched(tt => {
+                                  const row = { ...(tt[loc.key] || {}) };
+                                  delete row[d];
+                                  return { ...tt, [loc.key]: row };
+                                });
+                              }
                             }}
                             onChange={e => {
                               if (e.target.value === "") {
@@ -402,8 +427,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                               if (val < 0) val = 0;
                               setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: val } }));
                             }}
-                            className={`no-spin w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground placeholder:text-muted-foreground/50`}
-                            placeholder={String(lastCheck)}
+                            className={`no-spin w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground`}
                           />
                         </td>
                       );
@@ -463,26 +487,32 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
 
 
   // ===== Snapshot history (per save = group of rows sharing created_at) =====
+  // Each history row shows the CUMULATIVE chip state as of that save: latest
+  // (actual, expected) per (table, denom) for all snapshots with created_at <= ts.
+  // This makes the latest history row equal the Chip Count grid raw delta and
+  // the values written to the Number Count tracker (which uses the same totals).
   const history = useMemo(() => {
-    const groups: Record<string, { ts: string; perTableDenoms: Record<string, { actual: Record<number, number>; expected: Record<number, number> }> }> = {};
-    snapshotsFull.forEach((s: any) => {
-      if (s.location_type !== "table" || !s.location_id) return;
-      const ts = s.created_at;
-      if (!groups[ts]) groups[ts] = { ts, perTableDenoms: {} };
-      if (!groups[ts].perTableDenoms[s.location_id]) {
-        groups[ts].perTableDenoms[s.location_id] = { actual: {}, expected: {} };
+    const tableRows = (snapshotsFull as any[])
+      .filter(s => s.location_type === "table" && s.location_id)
+      .sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
+    const tsList = Array.from(new Set(tableRows.map(s => s.created_at))).sort();
+
+    return tsList.map(ts => {
+      const perTableDenoms: Record<string, { actual: Record<number, number>; expected: Record<number, number> }> = {};
+      for (const s of tableRows) {
+        if ((s.created_at || "") > ts) break;
+        const tid = s.location_id as string;
+        if (!perTableDenoms[tid]) perTableDenoms[tid] = { actual: {}, expected: {} };
+        perTableDenoms[tid].actual[Number(s.denomination)] = Number(s.actual_quantity);
+        perTableDenoms[tid].expected[Number(s.denomination)] = Number(s.expected_quantity);
       }
-      groups[ts].perTableDenoms[s.location_id].actual[Number(s.denomination)] = Number(s.actual_quantity);
-      groups[ts].perTableDenoms[s.location_id].expected[Number(s.denomination)] = Number(s.expected_quantity);
-    });
-    return Object.values(groups).map(g => {
       const perTable: Record<string, number> = {};
-      Object.entries(g.perTableDenoms).forEach(([tableId, denoms]) => {
-        perTable[tableId] = chipSnapshotResult(denoms.actual, denoms.expected);
+      Object.entries(perTableDenoms).forEach(([tid, dn]) => {
+        perTable[tid] = chipSnapshotResult(dn.actual, dn.expected);
       });
-      return { ts: g.ts, perTable, perTableDenoms: g.perTableDenoms, total: Object.values(perTable).reduce((s, v) => s + v, 0) };
+      return { ts, perTable, perTableDenoms, total: Object.values(perTable).reduce((s, v) => s + v, 0) };
     }).sort((a, b) => b.ts.localeCompare(a.ts));
-  }, [snapshotsFull, baselineMap]);
+  }, [snapshotsFull]);
 
   const detailGroup = useMemo(
     () => (detailTs ? history.find(h => h.ts === detailTs) ?? null : null),
@@ -523,7 +553,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
           <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
             <History className="w-4 h-4 text-muted-foreground" />
             <h4 className="text-sm font-semibold text-card-foreground">Snapshot history · {date}</h4>
-            <span className="text-[10px] text-muted-foreground ml-auto">{history.length} saves · raw chip delta (without Fill/Credit)</span>
+            <span className="text-[10px] text-muted-foreground ml-auto">{history.length} saves · cumulative chip delta as of save (without Fill/Credit)</span>
           </div>
           <div className="overflow-auto max-h-[280px]">
             <table className="w-full border-collapse text-xs">
