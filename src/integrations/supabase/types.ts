@@ -8596,6 +8596,54 @@ export type Database = {
           },
         ]
       }
+      table_head_count: {
+        Row: {
+          casino_id: string
+          created_at: string
+          date: string
+          id: string
+          table_id: string
+          time_slot: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          date: string
+          id?: string
+          table_id: string
+          time_slot: string
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          table_id?: string
+          time_slot?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_head_count_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_head_count_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "gaming_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       table_tracker: {
         Row: {
           casino_id: string

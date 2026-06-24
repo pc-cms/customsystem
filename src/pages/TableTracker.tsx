@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { getBusinessDate, nowEAT } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
-import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
+import { useGamingTables, useTableTracker, useSetTableTrackerValue, useTableHeadCount } from "@/hooks/use-casino-data";
 import { Input } from "@/components/ui/input";
 import { DateNavigator } from "@/components/ui/date-navigator";
 import { formatCurrency, formatInputWithSpaces } from "@/lib/currency";
@@ -22,9 +22,10 @@ const parseSignedNumber = (str: string): number => {
 };
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Target, Lock, Hash, Coins } from "lucide-react";
+import { Target, Lock, Hash, Coins, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { ChipCountPanel } from "@/components/tables/ChipCountPanel";
+import { HeadCountPanel } from "@/components/tables/HeadCountPanel";
 import { TableAnalyticsChart } from "@/components/tables/TableAnalyticsChart";
 import { Button } from "@/components/ui/button";
 
@@ -52,10 +53,11 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
   const [date, setDate] = useSessionState<string>("date", today);
-  const [mode, setMode] = useSessionState<"numbers" | "chips">("mode", "numbers");
+  const [mode, setMode] = useSessionState<"numbers" | "chips" | "headcount">("mode", "numbers");
   const { isManager } = useAuth();
   const { data: tables = [] } = useGamingTables();
   const { data: trackerData = [] } = useTableTracker(date);
+  const { data: headCountData = [] } = useTableHeadCount(date);
   const setValue = useSetTableTrackerValue();
 
   // Include closed tables that still have tracker data for the selected date,
@@ -98,6 +100,14 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
 
   const getSlotTotal = (slot: string) =>
     trackerData.filter(t => t.time_slot === slot).reduce((s, t) => s + Number(t.value), 0);
+
+  const getHeadCount = (tableId: string, slot: string): number | null => {
+    const e = headCountData.find((h: any) => h.table_id === tableId && h.time_slot === slot);
+    return e ? Number(e.value) : null;
+  };
+
+  const getSlotHeadCountTotal = (slot: string) =>
+    headCountData.filter((h: any) => h.time_slot === slot).reduce((s: number, h: any) => s + Number(h.value), 0);
 
   const grandTotal = trackerData.reduce((s, t) => s + Number(t.value), 0);
 
@@ -156,6 +166,15 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
             >
               <Coins className="h-4 w-4" /> Chips
             </Button>
+            <Button
+              type="button"
+              variant={mode === "headcount" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setMode("headcount")}
+              className="rounded-none gap-1.5 h-9 px-3"
+            >
+              <Users className="h-4 w-4" /> Head Count
+            </Button>
           </div>
           {isManager ? (
             <DateNavigator
@@ -186,12 +205,19 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
           <Button type="button" variant={mode === "chips" ? "default" : "ghost"} size="sm" onClick={() => setMode("chips")} className="rounded-none gap-1.5 h-8 px-3">
             <Coins className="h-3.5 w-3.5" /> Chips
           </Button>
+          <Button type="button" variant={mode === "headcount" ? "default" : "ghost"} size="sm" onClick={() => setMode("headcount")} className="rounded-none gap-1.5 h-8 px-3">
+            <Users className="h-3.5 w-3.5" /> Head Count
+          </Button>
         </div>
       )}
 
       {mode === "chips" ? (
         <PageSection card={false}>
           <ChipCountPanel date={date} />
+        </PageSection>
+      ) : mode === "headcount" ? (
+        <PageSection card={false}>
+          <HeadCountPanel date={date} />
         </PageSection>
       ) : (
       <>
@@ -234,6 +260,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                     </td>
                     {SLOTS.map((slot, si) => {
                       const val = getVal(table.id, slot);
+                      const hc = getHeadCount(table.id, slot);
                       const isActive = isToday && slot === currentSlot;
                       return (
                         <td key={slot} className={`px-1 py-0.5 ${isActive ? "bg-primary/5" : ""}`}>
@@ -260,6 +287,12 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                             } ${isActive ? "border-primary/30" : ""} ${readOnly ? "cursor-not-allowed opacity-70" : ""}`}
                             placeholder="·"
                           />
+                          <div
+                            className="mt-0.5 text-center text-[10px] font-mono tabular-nums text-muted-foreground leading-none"
+                            title="Head count"
+                          >
+                            {hc !== null ? String(hc).padStart(2, "0") : "·"}
+                          </div>
                         </td>
                       );
                     })}
@@ -272,13 +305,22 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                   {SLOTS.map((slot) => {
                     const isActive = isToday && slot === currentSlot;
                     const tot = getSlotTotal(slot);
+                    const hcTot = getSlotHeadCountTotal(slot);
                     const colorClass = tot > 0 ? "cms-amount-positive" : tot < 0 ? "cms-amount-negative" : "text-card-foreground";
                     return (
                       <td
                         key={slot}
-                        className={`px-2 py-2 text-center font-mono tabular-nums text-sm font-bold whitespace-nowrap ${colorClass} ${isActive ? "bg-primary/10" : ""}`}
+                        className={`px-2 py-2 text-center whitespace-nowrap ${isActive ? "bg-primary/10" : ""}`}
                       >
-                        {tot ? formatCurrency(tot) : "·"}
+                        <div className={`font-mono tabular-nums text-sm font-bold ${colorClass}`}>
+                          {tot ? formatCurrency(tot) : "·"}
+                        </div>
+                        <div
+                          className="mt-0.5 text-[10px] font-mono tabular-nums text-muted-foreground leading-none"
+                          title="Head count total"
+                        >
+                          HC {hcTot || 0}
+                        </div>
                       </td>
                     );
                   })}

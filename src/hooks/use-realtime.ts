@@ -217,6 +217,11 @@ export const useRealtimeSubscriptions = () => {
               debouncedInvalidate(qc, "gaming-tables", ["gaming-tables"]);
               debouncedInvalidate(qc, `table-tracker:${casinoId}`, ["table-tracker", casinoId]);
             },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "table_head_count", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, `table-head-count:${casinoId}`, ["table-head-count", casinoId]),
           );
       }
 
