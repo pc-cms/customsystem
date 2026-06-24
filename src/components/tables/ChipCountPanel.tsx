@@ -487,26 +487,32 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
 
 
   // ===== Snapshot history (per save = group of rows sharing created_at) =====
+  // Each history row shows the CUMULATIVE chip state as of that save: latest
+  // (actual, expected) per (table, denom) for all snapshots with created_at <= ts.
+  // This makes the latest history row equal the Chip Count grid raw delta and
+  // the values written to the Number Count tracker (which uses the same totals).
   const history = useMemo(() => {
-    const groups: Record<string, { ts: string; perTableDenoms: Record<string, { actual: Record<number, number>; expected: Record<number, number> }> }> = {};
-    snapshotsFull.forEach((s: any) => {
-      if (s.location_type !== "table" || !s.location_id) return;
-      const ts = s.created_at;
-      if (!groups[ts]) groups[ts] = { ts, perTableDenoms: {} };
-      if (!groups[ts].perTableDenoms[s.location_id]) {
-        groups[ts].perTableDenoms[s.location_id] = { actual: {}, expected: {} };
+    const tableRows = (snapshotsFull as any[])
+      .filter(s => s.location_type === "table" && s.location_id)
+      .sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
+    const tsList = Array.from(new Set(tableRows.map(s => s.created_at))).sort();
+
+    return tsList.map(ts => {
+      const perTableDenoms: Record<string, { actual: Record<number, number>; expected: Record<number, number> }> = {};
+      for (const s of tableRows) {
+        if ((s.created_at || "") > ts) break;
+        const tid = s.location_id as string;
+        if (!perTableDenoms[tid]) perTableDenoms[tid] = { actual: {}, expected: {} };
+        perTableDenoms[tid].actual[Number(s.denomination)] = Number(s.actual_quantity);
+        perTableDenoms[tid].expected[Number(s.denomination)] = Number(s.expected_quantity);
       }
-      groups[ts].perTableDenoms[s.location_id].actual[Number(s.denomination)] = Number(s.actual_quantity);
-      groups[ts].perTableDenoms[s.location_id].expected[Number(s.denomination)] = Number(s.expected_quantity);
-    });
-    return Object.values(groups).map(g => {
       const perTable: Record<string, number> = {};
-      Object.entries(g.perTableDenoms).forEach(([tableId, denoms]) => {
-        perTable[tableId] = chipSnapshotResult(denoms.actual, denoms.expected);
+      Object.entries(perTableDenoms).forEach(([tid, dn]) => {
+        perTable[tid] = chipSnapshotResult(dn.actual, dn.expected);
       });
-      return { ts: g.ts, perTable, perTableDenoms: g.perTableDenoms, total: Object.values(perTable).reduce((s, v) => s + v, 0) };
+      return { ts, perTable, perTableDenoms, total: Object.values(perTable).reduce((s, v) => s + v, 0) };
     }).sort((a, b) => b.ts.localeCompare(a.ts));
-  }, [snapshotsFull, baselineMap]);
+  }, [snapshotsFull]);
 
   const detailGroup = useMemo(
     () => (detailTs ? history.find(h => h.ts === detailTs) ?? null : null),
