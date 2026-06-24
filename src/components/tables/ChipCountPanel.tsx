@@ -319,14 +319,6 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                     </th>
                   );
                 })}
-                <th
-                  className={`text-center ${t.headerPadY} px-0.5 font-medium bg-primary/15 ring-1 ring-inset ring-primary/40`}
-                  title={hcSlot ? `Head Count → slot ${hcSlot === "05:00" ? "Final" : hcSlot}` : "Head Count (no active slot)"}
-                >
-                  <span className={`inline-flex items-center gap-1 ${t.headerText} font-bold uppercase tracking-wider text-primary`}>
-                    <Users className="w-3 h-3" /> HC
-                  </span>
-                </th>
                 <th className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider`}>Result</th>
               </tr>
             </thead>
