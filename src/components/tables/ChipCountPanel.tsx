@@ -553,7 +553,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
           <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
             <History className="w-4 h-4 text-muted-foreground" />
             <h4 className="text-sm font-semibold text-card-foreground">Snapshot history · {date}</h4>
-            <span className="text-[10px] text-muted-foreground ml-auto">{history.length} saves · raw chip delta (without Fill/Credit)</span>
+            <span className="text-[10px] text-muted-foreground ml-auto">{history.length} saves · cumulative chip delta as of save (without Fill/Credit)</span>
           </div>
           <div className="overflow-auto max-h-[280px]">
             <table className="w-full border-collapse text-xs">
