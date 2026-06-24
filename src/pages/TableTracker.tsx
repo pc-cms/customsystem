@@ -22,10 +22,9 @@ const parseSignedNumber = (str: string): number => {
 };
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Target, Lock, Hash, Coins, Users } from "lucide-react";
+import { Target, Lock, Hash, Coins } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { ChipCountPanel } from "@/components/tables/ChipCountPanel";
-import { HeadCountPanel } from "@/components/tables/HeadCountPanel";
 import { TableAnalyticsChart } from "@/components/tables/TableAnalyticsChart";
 import { Button } from "@/components/ui/button";
 
@@ -53,7 +52,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
   const [date, setDate] = useSessionState<string>("date", today);
-  const [mode, setMode] = useSessionState<"numbers" | "chips" | "headcount">("mode", "numbers");
+  const [mode, setMode] = useSessionState<"numbers" | "chips">("mode", "numbers");
   const { isManager } = useAuth();
   const { data: tables = [] } = useGamingTables();
   const { data: trackerData = [] } = useTableTracker(date);
@@ -166,15 +165,6 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
             >
               <Coins className="h-4 w-4" /> Chips
             </Button>
-            <Button
-              type="button"
-              variant={mode === "headcount" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setMode("headcount")}
-              className="rounded-none gap-1.5 h-9 px-3"
-            >
-              <Users className="h-4 w-4" /> Head Count
-            </Button>
           </div>
           {isManager ? (
             <DateNavigator
@@ -205,19 +195,12 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
           <Button type="button" variant={mode === "chips" ? "default" : "ghost"} size="sm" onClick={() => setMode("chips")} className="rounded-none gap-1.5 h-8 px-3">
             <Coins className="h-3.5 w-3.5" /> Chips
           </Button>
-          <Button type="button" variant={mode === "headcount" ? "default" : "ghost"} size="sm" onClick={() => setMode("headcount")} className="rounded-none gap-1.5 h-8 px-3">
-            <Users className="h-3.5 w-3.5" /> Head Count
-          </Button>
         </div>
       )}
 
       {mode === "chips" ? (
         <PageSection card={false}>
           <ChipCountPanel date={date} />
-        </PageSection>
-      ) : mode === "headcount" ? (
-        <PageSection card={false}>
-          <HeadCountPanel date={date} />
         </PageSection>
       ) : (
       <>
