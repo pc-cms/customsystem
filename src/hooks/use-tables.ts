@@ -227,3 +227,107 @@ export const useBatchSetTableTrackerValue = () => {
     onError: () => { toast.error("Sync error (tracker batch) — will retry", { duration: 2000 }); },
   });
 };
+
+// ============ TABLE HEAD COUNT (per-table, per-hour, 0-99) ============
+export const useTableHeadCount = (date: string) => {
+  const { activeCasinoId: casinoId } = useCasino();
+  return useQuery({
+    queryKey: ["table-head-count", casinoId, date],
+    queryFn: async () => {
+      if (!casinoId) return [];
+      const { data, error } = await supabase
+        .from("table_head_count")
+        .select("*")
+        .eq("casino_id", casinoId)
+        .eq("date", date);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!casinoId,
+  });
+};
+
+export const useSetTableHeadCount = () => {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
+  return useMutation({
+    mutationFn: async (input: { table_id: string; date: string; time_slot: string; value: number }) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      const payload = {
+        casino_id: casinoId,
+        table_id: input.table_id,
+        date: input.date,
+        time_slot: input.time_slot,
+        value: input.value,
+      };
+      const result = await offlineMutation({
+        table: "table_head_count",
+        operation: "upsert",
+        payload,
+        upsertConflict: "casino_id,table_id,date,time_slot",
+      });
+      if (result.error) throw new Error(result.error);
+      return { offline: result.offline };
+    },
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["table-head-count", casinoId] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["table-head-count"] })
+        .filter(([key]) => (key as any[])[1] === casinoId);
+      queries.forEach(([key, data]) => {
+        if (!data) return;
+        const idx = data.findIndex((t: any) => t.table_id === input.table_id && t.time_slot === input.time_slot);
+        const updated = [...data];
+        const entry = { table_id: input.table_id, date: input.date, time_slot: input.time_slot, value: input.value, casino_id: casinoId, id: `temp-${Date.now()}` };
+        if (idx >= 0) updated[idx] = { ...updated[idx], value: input.value };
+        else updated.push(entry);
+        qc.setQueryData(key, updated);
+      });
+    },
+    onError: () => { toast.error("Sync error (head count) — will retry", { duration: 2000 }); },
+  });
+};
+
+export const useBatchSetTableHeadCount = () => {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const { activeCasinoId: casinoId } = useCasino();
+  return useMutation({
+    mutationFn: async (input: { date: string; entries: Array<{ table_id: string; time_slot: string; value: number }> }) => {
+      if (!casinoId || !user) throw new Error("Not authenticated");
+      if (input.entries.length === 0) return { offline: false };
+      const payload = input.entries.map((e) => ({
+        casino_id: casinoId,
+        table_id: e.table_id,
+        date: input.date,
+        time_slot: e.time_slot,
+        value: e.value,
+      }));
+      const result = await offlineMutation({
+        table: "table_head_count",
+        operation: "upsert",
+        payload,
+        upsertConflict: "casino_id,table_id,date,time_slot",
+      });
+      if (result.error) throw new Error(result.error);
+      return { offline: result.offline };
+    },
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["table-head-count", casinoId] });
+      const queries = qc.getQueriesData<any[]>({ queryKey: ["table-head-count"] })
+        .filter(([key]) => (key as any[])[1] === casinoId);
+      queries.forEach(([key, data]) => {
+        if (!data) return;
+        let updated = [...data];
+        for (const e of input.entries) {
+          const idx = updated.findIndex((t: any) => t.table_id === e.table_id && t.time_slot === e.time_slot);
+          const entry = { table_id: e.table_id, date: input.date, time_slot: e.time_slot, value: e.value, casino_id: casinoId, id: `temp-${Date.now()}-${e.table_id}-${e.time_slot}` };
+          if (idx >= 0) updated[idx] = { ...updated[idx], value: e.value };
+          else updated.push(entry);
+        }
+        qc.setQueryData(key, updated);
+      });
+    },
+    onError: () => { toast.error("Sync error (head count batch) — will retry", { duration: 2000 }); },
+  });
+};
