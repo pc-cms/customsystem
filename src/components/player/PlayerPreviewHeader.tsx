@@ -504,20 +504,8 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
             </div>
           </div>
 
+          {/* Chip Adjustment removed from the preview card — entered via the table row instead. */}
 
-          {/* Chip adjustment — inline click-to-edit cells */}
-          {canAdjust && (
-            <ChipAdjustInline
-              chipIn={chipIn}
-              chipOut={chipOut}
-              note={note}
-              setChipIn={setChipIn}
-              setChipOut={setChipOut}
-              setNote={setNote}
-              onSubmit={submitAdj}
-              pending={createAdj.isPending}
-            />
-          )}
 
 
           {/* Right-side: Notes toggle + Close button */}
