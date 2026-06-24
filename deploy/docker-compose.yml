@@ -133,6 +133,22 @@ services:
     image: supabase/realtime:v2.33.72
     container_name: cms-realtime
     <<: [*restart_policy, *default_logging]
+    entrypoint:
+      - /usr/bin/tini
+      - -s
+      - -g
+      - --
+      - /bin/bash
+      - -lc
+    command:
+      - |
+        printf '%s\n' \
+          'Defaults env_keep += "APP_NAME PORT DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME DB_AFTER_CONNECT_QUERY"' \
+          'Defaults env_keep += "DB_ENC_KEY API_JWT_SECRET SECRET_KEY_BASE ERL_AFLAGS DNS_NODES RLIMIT_NOFILE"' \
+          'Defaults env_keep += "FLY_ALLOC_ID FLY_APP_NAME ECTO_IPV6 MIX_ENV LANG LANGUAGE LC_ALL"' \
+          > /etc/sudoers.d/realtime-env
+        chmod 0440 /etc/sudoers.d/realtime-env
+        exec /app/run.sh /app/bin/server
     depends_on:
       postgres:
         condition: service_healthy
