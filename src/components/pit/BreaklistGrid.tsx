@@ -82,7 +82,8 @@ const isClearedBreaklistCell = (cell: any) => cell?.role === "CLR";
 const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const { data: dealers = [] } = useDealers();
   const { data: breaklist = [] } = useBreaklistData(date);
-  const scrollMem = useScrollMemory<HTMLDivElement>("breaklist-scroll", dealers.length > 0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const didAnchorRef = useRef(false);
   const { data: tables = [] } = useGamingTables();
   const { data: rota = [] } = usePitRotaRange(date, date);
   const { data: attendance = [] } = useDealerAttendance(date);
