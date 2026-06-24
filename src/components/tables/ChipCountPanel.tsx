@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
-import { Save, Maximize2, Minimize2, History, Tablet } from "lucide-react";
+import { Save, Maximize2, Minimize2, History, Tablet, Users } from "lucide-react";
 import { useChipSnapshots, useChipSnapshotsFull, useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
-import { useGamingTables, useSetTableTrackerValue, useBatchSetTableTrackerValue, useTableTracker } from "@/hooks/use-casino-data";
+import { useGamingTables, useSetTableTrackerValue, useBatchSetTableTrackerValue, useTableTracker, useTableHeadCount, useBatchSetTableHeadCount } from "@/hooks/use-casino-data";
 import { CHIP_DENOMS, formatChipLabel, formatCurrency } from "@/lib/currency";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useChipColors, resolveChipColor, useVisibleChipDenoms } from "@/hooks/use-chip-colors";
-import { nowEAT } from "@/lib/business-day";
+import { nowEAT, getBusinessDate } from "@/lib/business-day";
 import { chipSnapshotResult } from "@/lib/table-live-result";
 import { useShiftTableAdjustments } from "@/hooks/use-shift-table-adjustments";
+import { useAuth } from "@/lib/auth-context";
 
 /** Compute the Number-Count tracker slot for a Chip Count taken at the given EAT time.
  *  Returns the target slot plus an `onlyIfEmpty` flag — when true, the caller must
@@ -48,6 +49,10 @@ interface ChipCountPanelProps {
  * Tablet-optimized: compact cells, sticky first column, single horizontal scroll.
  */
 export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
+  const { isManager } = useAuth();
+  const today = getBusinessDate();
+  const readOnly = date !== today && !isManager;
+
   const { data: tables = [] } = useGamingTables();
   const { data: snapshots = [] } = useChipSnapshots(date);
   // History panel must show ALL saves (not just the latest per location/denom),
@@ -56,7 +61,9 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const { data: snapshotsFull = [] } = useChipSnapshotsFull(date);
   const { data: baseline = [] } = useChipBaseline();
   const { data: chipColorOverrides } = useChipColors();
+  const { data: headCountRows = [] } = useTableHeadCount(date);
   const batchSnapshot = useBatchChipSnapshot();
+  const batchHeadCount = useBatchSetTableHeadCount();
 
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
   // Include closed tables that already have a chip-count snapshot for the selected
@@ -110,8 +117,21 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
 
   // NaN sentinel means "empty input" → treated as "same as last check" for math.
   const [counts, setCounts] = useState<Record<string, Record<number, number>>>({});
+  const [hcDraft, setHcDraft] = useState<Record<string, string>>({});
   const [fullscreen, setFullscreen] = useState(false);
   const [tabletMode, setTabletMode] = useState(false);
+  const [detailTs, setDetailTs] = useState<string | null>(null);
+
+  // Head-count target slot (same rounding rules as chip count → tracker).
+  // Memoize per render; only used at save time and for the placeholder lookup.
+  const hcTarget = useMemo(() => slotForChipCount(nowEAT()), [date, snapshots.length, headCountRows.length]);
+  const hcSlot = hcTarget?.slot ?? null;
+
+  const hcSlotValue = (tableId: string): string => {
+    if (!hcSlot) return "";
+    const r = headCountRows.find((x: any) => x.table_id === tableId && x.time_slot === hcSlot);
+    return r && r.value !== null && r.value !== undefined ? String(r.value) : "";
+  };
 
   // Reset typed-in counts ONLY when the SET of tables changes (open/close, or
   // table added). Do NOT reset on snapshots.length changing — realtime delivery
@@ -131,6 +151,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       });
     });
     setCounts(initial);
+    setHcDraft({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableSetKey]);
 
@@ -214,6 +235,24 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       if (entries.length > 0) batchTracker.mutate({ date, entries });
     }
     void setTrackerValue; // retained for backwards-compat (unused here)
+
+    // Head count batch — only entries the user actually typed AND that differ
+    // from the existing slot value. HC never feeds chip math; written to the
+    // same hourly slot as the chip count for alignment with the Number Count grid.
+    if (hcSlot && !readOnly) {
+      const hcEntries: Array<{ table_id: string; time_slot: string; value: number }> = [];
+      countLocations.forEach(loc => {
+        const raw = hcDraft[loc.id];
+        if (raw === undefined || raw === "") return;
+        const n = Math.min(99, Math.max(0, parseInt(raw, 10) || 0));
+        const existing = headCountRows.find(
+          (r: any) => r.table_id === loc.id && r.time_slot === hcSlot,
+        );
+        if (existing && Number(existing.value) === n) return;
+        hcEntries.push({ table_id: loc.id, time_slot: hcSlot, value: n });
+      });
+      if (hcEntries.length > 0) batchHeadCount.mutate({ date, entries: hcEntries });
+    }
   };
 
   // Early-return moved below all hooks to keep hook order stable (React #310).
@@ -292,6 +331,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
               {visibleDenoms.map(d => (
                 <col key={d} style={{ width: t.chipColW }} />
               ))}
+              <col style={{ width: t.chipColW }} />
               <col style={{ width: t.resultColW }} />
             </colgroup>
             <thead>
@@ -312,14 +352,23 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                     </th>
                   );
                 })}
+                <th
+                  className={`text-center ${t.headerPadY} px-0.5 font-medium bg-primary/15 ring-1 ring-inset ring-primary/40`}
+                  title={hcSlot ? `Head Count → slot ${hcSlot === "05:00" ? "Final" : hcSlot}` : "Head Count (no active slot)"}
+                >
+                  <span className={`inline-flex items-center gap-1 ${t.headerText} font-bold uppercase tracking-wider text-primary`}>
+                    <Users className="w-3 h-3" /> HC
+                  </span>
+                </th>
                 <th className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider`}>Result</th>
               </tr>
             </thead>
             <tbody>
               {countLocations.map((loc, ri) => {
                 const locCounts = counts[loc.key] || {};
-                const tableBaseline = baselineMap[loc.id] || {};
                 const rowResult = rowResults[ri]?.total ?? 0;
+                const hcPlaceholder = hcSlotValue(loc.id);
+                const hcRaw = hcDraft[loc.id];
                 return (
                   <tr key={loc.key} className={`border-b border-border last:border-0 ${ri % 2 === 1 ? "bg-muted/10" : ""}`}>
                     <td
@@ -359,6 +408,25 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                         </td>
                       );
                     })}
+                    <td className={`${t.rowPadX} ${t.rowPadY} bg-primary/10`}>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={2}
+                        value={hcRaw ?? ""}
+                        readOnly={readOnly || !hcSlot}
+                        onFocus={e => { requestAnimationFrame(() => (e.target as HTMLInputElement).select()); }}
+                        onChange={e => {
+                          if (readOnly || !hcSlot) return;
+                          const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
+                          if (digits === "") { setHcDraft(d => ({ ...d, [loc.id]: "" })); return; }
+                          const n = Math.min(99, Math.max(0, parseInt(digits, 10)));
+                          setHcDraft(d => ({ ...d, [loc.id]: String(n) }));
+                        }}
+                        className={`no-spin w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-primary/40 bg-primary/5 focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground placeholder:text-muted-foreground/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                        placeholder={hcPlaceholder || "·"}
+                      />
+                    </td>
                     <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} font-bold whitespace-nowrap ${rowResult >= 0 ? "text-success" : "text-destructive"}`}>
                       {rowResult >= 0 ? "+" : ""}{formatCurrency(rowResult)}
                     </td>
@@ -370,6 +438,18 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                   Total
                 </td>
                 <td colSpan={visibleDenoms.length} />
+                <td className={`px-2 py-2 text-center font-mono ${t.totalText} font-bold bg-primary/15 text-primary`}>
+                  {(() => {
+                    const total = countLocations.reduce((s, loc) => {
+                      const raw = hcDraft[loc.id];
+                      const n = raw !== undefined && raw !== ""
+                        ? parseInt(raw, 10) || 0
+                        : parseInt(hcSlotValue(loc.id) || "0", 10) || 0;
+                      return s + n;
+                    }, 0);
+                    return total || "·";
+                  })()}
+                </td>
                 <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${grandTotal >= 0 ? "text-success" : "text-destructive"}`}>
                   {grandTotal >= 0 ? "+" : ""}{formatCurrency(grandTotal)}
                 </td>
@@ -380,6 +460,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       </div>
     );
   };
+
 
   // ===== Snapshot history (per save = group of rows sharing created_at) =====
   const history = useMemo(() => {
@@ -399,9 +480,14 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       Object.entries(g.perTableDenoms).forEach(([tableId, denoms]) => {
         perTable[tableId] = chipSnapshotResult(denoms.actual, denoms.expected);
       });
-      return { ts: g.ts, perTable, total: Object.values(perTable).reduce((s, v) => s + v, 0) };
+      return { ts: g.ts, perTable, perTableDenoms: g.perTableDenoms, total: Object.values(perTable).reduce((s, v) => s + v, 0) };
     }).sort((a, b) => b.ts.localeCompare(a.ts));
   }, [snapshotsFull, baselineMap]);
+
+  const detailGroup = useMemo(
+    () => (detailTs ? history.find(h => h.ts === detailTs) ?? null : null),
+    [detailTs, history],
+  );
 
   // Columns for the history table = every table that has any snapshot today
   // (including ones that were closed mid-shift), in the same order as the
@@ -454,7 +540,12 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                 {history.map((g, i) => {
                   const time = new Date(g.ts).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" });
                   return (
-                    <tr key={g.ts} className={`border-b border-border last:border-0 ${i % 2 === 1 ? "bg-muted/10" : ""}`}>
+                    <tr
+                      key={g.ts}
+                      onClick={() => setDetailTs(g.ts)}
+                      className={`border-b border-border last:border-0 cursor-pointer transition-colors hover:bg-primary/5 ${i % 2 === 1 ? "bg-muted/10" : ""}`}
+                      title="Click to view per-denomination details"
+                    >
                       <td className="px-2 py-1 font-mono text-card-foreground">{time}</td>
                       {historyColumns.map(loc => {
                         const v = g.perTable[loc.id];
@@ -508,6 +599,107 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
           </div>
         </div>
       )}
+
+      <Dialog open={!!detailTs} onOpenChange={o => !o && setDetailTs(null)}>
+        <DialogContent className="max-w-4xl w-[96vw] max-h-[88vh] p-0 sm:rounded-lg overflow-hidden flex flex-col">
+          <DialogHeader className="px-4 py-3 border-b border-border">
+            <DialogTitle className="text-sm">
+              Snapshot details ·{" "}
+              {detailGroup ? new Date(detailGroup.ts).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" }) : ""}
+              {detailGroup && (
+                <span className={`ml-3 font-mono ${detailGroup.total >= 0 ? "text-success" : "text-destructive"}`}>
+                  {detailGroup.total >= 0 ? "+" : ""}{formatCurrency(detailGroup.total)}
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {detailGroup && (() => {
+            const denomsSet = new Set<number>();
+            Object.values(detailGroup.perTableDenoms).forEach(d => {
+              Object.keys(d.actual).forEach(k => denomsSet.add(Number(k)));
+              Object.keys(d.expected).forEach(k => denomsSet.add(Number(k)));
+            });
+            const denoms = CHIP_DENOMS.filter(d => denomsSet.has(d));
+            const tableEntries = historyColumns.filter(loc => detailGroup.perTableDenoms[loc.id]);
+            return (
+              <div className="overflow-auto flex-1">
+                <table className="w-full border-collapse text-xs">
+                  <thead className="sticky top-0 bg-card z-10">
+                    <tr className="border-b border-border">
+                      <th className="text-left px-2 py-2 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Table</th>
+                      {denoms.map(d => {
+                        const c = resolveChipColor(d, chipColorOverrides);
+                        return (
+                          <th key={d} className="text-center px-1 py-2">
+                            <span className="cms-chip-token" style={{ "--chip-bg": c.bg, "--chip-edge": c.edge, "--chip-text": c.text } as CSSProperties}>
+                              {formatChipLabel(d)}
+                            </span>
+                          </th>
+                        );
+                      })}
+                      <th className="text-right px-2 py-2 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableEntries.map((loc, ri) => {
+                      const dn = detailGroup.perTableDenoms[loc.id];
+                      const rowResult = chipSnapshotResult(dn.actual, dn.expected);
+                      return (
+                        <tr key={loc.id} className={`border-b border-border last:border-0 ${ri % 2 === 1 ? "bg-muted/10" : ""}`}>
+                          <td className="px-2 py-1.5 font-semibold text-card-foreground whitespace-nowrap">{loc.label}</td>
+                          {denoms.map(d => {
+                            const a = dn.actual[d];
+                            const e = dn.expected[d];
+                            if (a === undefined && e === undefined) {
+                              return <td key={d} className="px-1 py-1.5 text-center text-muted-foreground/30">·</td>;
+                            }
+                            const actual = a ?? 0;
+                            const expected = e ?? 0;
+                            const delta = (actual - expected) * d;
+                            return (
+                              <td key={d} className="px-1 py-1.5 text-center font-mono">
+                                <div className="text-card-foreground tabular-nums">{actual}</div>
+                                <div className="text-[9px] text-muted-foreground tabular-nums">/{expected}</div>
+                                <div className={`text-[9px] tabular-nums ${delta > 0 ? "text-success" : delta < 0 ? "text-destructive" : "text-muted-foreground/60"}`}>
+                                  {delta > 0 ? "+" : ""}{delta !== 0 ? formatCurrency(delta) : "·"}
+                                </div>
+                              </td>
+                            );
+                          })}
+                          <td className={`px-2 py-1.5 text-right font-mono font-bold whitespace-nowrap ${rowResult >= 0 ? "text-success" : "text-destructive"}`}>
+                            {rowResult >= 0 ? "+" : ""}{formatCurrency(rowResult)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="sticky bottom-0 bg-card">
+                    <tr className="border-t-2 border-primary/30 bg-muted/30">
+                      <td className="px-2 py-2 font-bold uppercase text-card-foreground">Total</td>
+                      {denoms.map(d => {
+                        const sum = tableEntries.reduce((s, loc) => {
+                          const dn = detailGroup.perTableDenoms[loc.id];
+                          const a = dn.actual[d] ?? 0;
+                          const e = dn.expected[d] ?? 0;
+                          return s + (a - e) * d;
+                        }, 0);
+                        return (
+                          <td key={d} className={`px-1 py-2 text-center font-mono text-[10px] ${sum > 0 ? "text-success" : sum < 0 ? "text-destructive" : "text-muted-foreground/60"}`}>
+                            {sum > 0 ? "+" : ""}{sum !== 0 ? formatCurrency(sum) : "·"}
+                          </td>
+                        );
+                      })}
+                      <td className={`px-2 py-2 text-right font-mono font-bold ${detailGroup.total >= 0 ? "text-success" : "text-destructive"}`}>
+                        {detailGroup.total >= 0 ? "+" : ""}{formatCurrency(detailGroup.total)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
