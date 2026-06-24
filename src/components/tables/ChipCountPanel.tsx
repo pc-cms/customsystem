@@ -49,6 +49,10 @@ interface ChipCountPanelProps {
  * Tablet-optimized: compact cells, sticky first column, single horizontal scroll.
  */
 export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
+  const { isManager } = useAuth();
+  const today = getBusinessDate();
+  const readOnly = date !== today && !isManager;
+
   const { data: tables = [] } = useGamingTables();
   const { data: snapshots = [] } = useChipSnapshots(date);
   // History panel must show ALL saves (not just the latest per location/denom),
@@ -57,7 +61,9 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const { data: snapshotsFull = [] } = useChipSnapshotsFull(date);
   const { data: baseline = [] } = useChipBaseline();
   const { data: chipColorOverrides } = useChipColors();
+  const { data: headCountRows = [] } = useTableHeadCount(date);
   const batchSnapshot = useBatchChipSnapshot();
+  const batchHeadCount = useBatchSetTableHeadCount();
 
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
   // Include closed tables that already have a chip-count snapshot for the selected
