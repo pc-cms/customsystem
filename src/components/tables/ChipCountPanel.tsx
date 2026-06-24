@@ -388,13 +388,33 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                       const lastCheck = getLastCheck(loc.id, d);
                       const raw = locCounts[d];
                       const isEmpty = raw === undefined || Number.isNaN(raw as any);
+                      const isTouched = !!touched[loc.key]?.[d];
+                      // Untouched → show last-check value as real white text.
+                      // Touched   → show current typed value (or empty after focus-clear).
+                      const displayValue = isTouched
+                        ? (isEmpty ? "" : String(raw))
+                        : String(lastCheck);
                       return (
                         <td key={d} className={`${t.rowPadX} ${t.rowPadY}`}>
                           <input
                             type="number" min="0" max="999" maxLength={3}
-                            value={isEmpty ? "" : (raw as number)}
-                            onFocus={e => {
-                              requestAnimationFrame(() => e.target.select());
+                            value={displayValue}
+                            onFocus={() => {
+                              // Mark touched and clear so operator types the new count.
+                              setTouched(tt => ({ ...tt, [loc.key]: { ...(tt[loc.key] || {}), [d]: true } }));
+                              setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: NaN as any } }));
+                            }}
+                            onBlur={() => {
+                              // If still empty after blur, revert to "untouched" so the
+                              // last-check value is shown again (no false save).
+                              const cur = (counts[loc.key] || {})[d];
+                              if (cur === undefined || Number.isNaN(cur as any)) {
+                                setTouched(tt => {
+                                  const row = { ...(tt[loc.key] || {}) };
+                                  delete row[d];
+                                  return { ...tt, [loc.key]: row };
+                                });
+                              }
                             }}
                             onChange={e => {
                               if (e.target.value === "") {
@@ -407,8 +427,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                               if (val < 0) val = 0;
                               setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: val } }));
                             }}
-                            className={`no-spin w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground placeholder:text-muted-foreground/50`}
-                            placeholder={String(lastCheck)}
+                            className={`no-spin w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground`}
                           />
                         </td>
                       );
