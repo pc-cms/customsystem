@@ -480,9 +480,14 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       Object.entries(g.perTableDenoms).forEach(([tableId, denoms]) => {
         perTable[tableId] = chipSnapshotResult(denoms.actual, denoms.expected);
       });
-      return { ts: g.ts, perTable, total: Object.values(perTable).reduce((s, v) => s + v, 0) };
+      return { ts: g.ts, perTable, perTableDenoms: g.perTableDenoms, total: Object.values(perTable).reduce((s, v) => s + v, 0) };
     }).sort((a, b) => b.ts.localeCompare(a.ts));
   }, [snapshotsFull, baselineMap]);
+
+  const detailGroup = useMemo(
+    () => (detailTs ? history.find(h => h.ts === detailTs) ?? null : null),
+    [detailTs, history],
+  );
 
   // Columns for the history table = every table that has any snapshot today
   // (including ones that were closed mid-shift), in the same order as the
