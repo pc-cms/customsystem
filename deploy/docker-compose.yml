@@ -134,8 +134,8 @@ services:
     container_name: cms-realtime
     <<: [*restart_policy, *default_logging]
     entrypoint:
-      - /bin/bash
-      - -lc
+      - /bin/sh
+      - -c
 
     command:
       - |
