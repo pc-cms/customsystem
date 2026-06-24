@@ -327,13 +327,17 @@ const Tables = () => {
   const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
   const { adjustmentMap } = useShiftTableAdjustments(effectiveDate === businessDay ? (shift?.id ?? null) : null);
 
-  // Table DROP = simple sum of all Cash In on the table for the current business day (no NEP logic).
+  // Table DROP = NEP-aware Drop R (external cash only), same source of truth
+  // as Player Statistics. Computed by `compute_tables_drop_split` RPC over the
+  // current business-day window so the two pages always agree.
+  const dropWindowStart = businessDayHourUTC(effectiveDate, 7);
+  const dropWindowEnd = businessDayHourUTC(effectiveDate, 7 + 24);
+  const { data: tablesDropSplit } = useTablesDropSplit(dropWindowStart, dropWindowEnd);
+
   const tableStats = useMemo(() => {
     const stats: Record<string, { drop: number; result: number }> = {};
     tables.forEach(t => {
-      const drop = shiftTransactions
-        .filter(tx => tx.table_id === t.id && (tx.type === "buy" || tx.type === "in"))
-        .reduce((s, tx) => s + Number(tx.amount), 0);
+      const drop = tablesDropSplit?.get(t.id)?.dropR ?? 0;
       const result = liveTableResult({
         tableId: t.id,
         closingResult: t.closing_result as any,
@@ -344,7 +348,7 @@ const Tables = () => {
       stats[t.id] = { drop, result };
     });
     return stats;
-  }, [tables, shiftTransactions, snapshotIndex, baselineMap, adjustmentMap]);
+  }, [tables, tablesDropSplit, snapshotIndex, baselineMap, adjustmentMap, effectiveDate]);
 
   const handleOpenAll = () => {
     const ids = closedTables.map(t => t.id);
