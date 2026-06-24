@@ -326,8 +326,6 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
               {countLocations.map((loc, ri) => {
                 const locCounts = counts[loc.key] || {};
                 const rowResult = rowResults[ri]?.total ?? 0;
-                const hcPlaceholder = hcSlotValue(loc.id);
-                const hcRaw = hcDraft[loc.id];
                 return (
                   <tr key={loc.key} className={`border-b border-border last:border-0 ${ri % 2 === 1 ? "bg-muted/10" : ""}`}>
                     <td
@@ -342,34 +340,17 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                       const lastCheck = getLastCheck(loc.id, d);
                       const raw = locCounts[d];
                       const isEmpty = raw === undefined || Number.isNaN(raw as any);
-                      const isTouched = !!touched[loc.key]?.[d];
-                      // Untouched → show last-check value as real white text.
-                      // Touched   → show current typed value (or empty after focus-clear).
-                      const displayValue = isTouched
-                        ? (isEmpty ? "" : String(raw))
-                        : String(lastCheck);
+                      // Inputs always show a real white number: the live count
+                      // (defaulted to last-check on mount / when a peer save
+                      // arrives). Operator just edits the number; on focus the
+                      // text is selected for quick overwrite.
+                      const displayValue = isEmpty ? String(lastCheck) : String(raw);
                       return (
                         <td key={d} className={`${t.rowPadX} ${t.rowPadY}`}>
                           <input
                             type="number" min="0" max="999" maxLength={3}
                             value={displayValue}
-                            onFocus={() => {
-                              // Mark touched and clear so operator types the new count.
-                              setTouched(tt => ({ ...tt, [loc.key]: { ...(tt[loc.key] || {}), [d]: true } }));
-                              setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: NaN as any } }));
-                            }}
-                            onBlur={() => {
-                              // If still empty after blur, revert to "untouched" so the
-                              // last-check value is shown again (no false save).
-                              const cur = (counts[loc.key] || {})[d];
-                              if (cur === undefined || Number.isNaN(cur as any)) {
-                                setTouched(tt => {
-                                  const row = { ...(tt[loc.key] || {}) };
-                                  delete row[d];
-                                  return { ...tt, [loc.key]: row };
-                                });
-                              }
-                            }}
+                            onFocus={e => { requestAnimationFrame(() => (e.target as HTMLInputElement).select()); }}
                             onChange={e => {
                               if (e.target.value === "") {
                                 setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: NaN as any } }));
@@ -386,25 +367,6 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                         </td>
                       );
                     })}
-                    <td className={`${t.rowPadX} ${t.rowPadY} bg-primary/10`}>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={2}
-                        value={hcRaw ?? ""}
-                        readOnly={readOnly || !hcSlot}
-                        onFocus={e => { requestAnimationFrame(() => (e.target as HTMLInputElement).select()); }}
-                        onChange={e => {
-                          if (readOnly || !hcSlot) return;
-                          const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
-                          if (digits === "") { setHcDraft(d => ({ ...d, [loc.id]: "" })); return; }
-                          const n = Math.min(99, Math.max(0, parseInt(digits, 10)));
-                          setHcDraft(d => ({ ...d, [loc.id]: String(n) }));
-                        }}
-                        className={`no-spin w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-primary/40 bg-primary/5 focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground placeholder:text-muted-foreground/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
-                        placeholder={hcPlaceholder || "·"}
-                      />
-                    </td>
                     <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} font-bold whitespace-nowrap ${rowResult >= 0 ? "text-success" : "text-destructive"}`}>
                       {rowResult >= 0 ? "+" : ""}{formatCurrency(rowResult)}
                     </td>
@@ -416,18 +378,6 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                   Total
                 </td>
                 <td colSpan={visibleDenoms.length} />
-                <td className={`px-2 py-2 text-center font-mono ${t.totalText} font-bold bg-primary/15 text-primary`}>
-                  {(() => {
-                    const total = countLocations.reduce((s, loc) => {
-                      const raw = hcDraft[loc.id];
-                      const n = raw !== undefined && raw !== ""
-                        ? parseInt(raw, 10) || 0
-                        : parseInt(hcSlotValue(loc.id) || "0", 10) || 0;
-                      return s + n;
-                    }, 0);
-                    return total || "·";
-                  })()}
-                </td>
                 <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${grandTotal >= 0 ? "text-success" : "text-destructive"}`}>
                   {grandTotal >= 0 ? "+" : ""}{formatCurrency(grandTotal)}
                 </td>
