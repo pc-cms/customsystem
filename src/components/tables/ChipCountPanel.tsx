@@ -117,8 +117,21 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
 
   // NaN sentinel means "empty input" → treated as "same as last check" for math.
   const [counts, setCounts] = useState<Record<string, Record<number, number>>>({});
+  const [hcDraft, setHcDraft] = useState<Record<string, string>>({});
   const [fullscreen, setFullscreen] = useState(false);
   const [tabletMode, setTabletMode] = useState(false);
+  const [detailTs, setDetailTs] = useState<string | null>(null);
+
+  // Head-count target slot (same rounding rules as chip count → tracker).
+  // Memoize per render; only used at save time and for the placeholder lookup.
+  const hcTarget = useMemo(() => slotForChipCount(nowEAT()), [date, snapshots.length, headCountRows.length]);
+  const hcSlot = hcTarget?.slot ?? null;
+
+  const hcSlotValue = (tableId: string): string => {
+    if (!hcSlot) return "";
+    const r = headCountRows.find((x: any) => x.table_id === tableId && x.time_slot === hcSlot);
+    return r && r.value !== null && r.value !== undefined ? String(r.value) : "";
+  };
 
   // Reset typed-in counts ONLY when the SET of tables changes (open/close, or
   // table added). Do NOT reset on snapshots.length changing — realtime delivery
@@ -138,6 +151,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       });
     });
     setCounts(initial);
+    setHcDraft({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableSetKey]);
 
