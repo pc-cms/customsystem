@@ -154,6 +154,9 @@ services:
       RLIMIT_NOFILE: "10000"
       FLY_ALLOC_ID: local
       FLY_APP_NAME: realtime
+    volumes:
+      # Realtime image starts migrations through sudo; keep required env vars.
+      - ./realtime/sudoers-env:/etc/sudoers.d/realtime-env:ro
     networks:
       - cms-net
 
