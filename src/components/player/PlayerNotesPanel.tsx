@@ -34,33 +34,45 @@ export const PlayerNotesPanel = ({ playerId, canPost, selfFetch = true, notes: n
   return (
     <div className="space-y-3">
       {allowPost && (
-        <div className="space-y-2">
+        <div className="flex items-start gap-2">
           <Textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Write a note about this player…"
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                e.preventDefault();
+                submit();
+              }
+            }}
+            placeholder="Write a note about this player… (⌘/Ctrl+Enter to post)"
             rows={2}
-            className="text-sm resize-none"
+            className="text-sm resize-none bg-background flex-1"
           />
-          <div className="flex justify-end">
-            <Button size="sm" onClick={submit} disabled={!text.trim() || create.isPending}>
-              Post Note
-            </Button>
-          </div>
+          <Button
+            size="sm"
+            onClick={submit}
+            disabled={!text.trim() || create.isPending}
+            className="shrink-0"
+          >
+            {create.isPending ? "Posting…" : "Post"}
+          </Button>
         </div>
       )}
       {notes.length === 0 ? (
-        <div className="text-sm text-muted-foreground">No notes yet.</div>
+        <div className="text-xs text-muted-foreground italic">No notes yet.</div>
       ) : (
-        <div className="space-y-2 max-h-[320px] overflow-y-auto">
+        <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
           {notes.map((n: any) => (
             <div
               key={n.id}
-              className="text-xs p-2 rounded bg-muted/40 border border-border border-l-2 border-l-primary"
+              className="text-sm px-2.5 py-1.5 rounded bg-muted/40 border border-border border-l-2 border-l-primary"
             >
-              <div className="text-[9px] font-mono uppercase text-muted-foreground">{n.note_type || "info"}</div>
-              <div className="text-card-foreground mt-0.5 whitespace-pre-wrap">{n.content}</div>
-              <div className="text-[10px] text-muted-foreground mt-1">{fmtDateTime(n.created_at)}</div>
+              <div className="flex items-center gap-2 text-[10px] font-mono uppercase text-muted-foreground mb-0.5">
+                <span>{n.note_type || "info"}</span>
+                <span className="opacity-60">·</span>
+                <span>{fmtDateTime(n.created_at)}</span>
+              </div>
+              <div className="text-card-foreground whitespace-pre-wrap leading-snug">{n.content}</div>
             </div>
           ))}
         </div>
