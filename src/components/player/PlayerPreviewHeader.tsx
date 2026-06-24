@@ -526,8 +526,8 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
 
 
 
-          {/* Right-side: Notes toggle + Close button */}
-          <div className="shrink-0 flex flex-col items-end justify-start py-0.5 gap-1">
+          {/* Right-side: Close button */}
+          <div className="shrink-0 flex flex-col items-end justify-start py-0.5">
             <Button
               size="sm"
               variant="ghost"
@@ -536,23 +536,11 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
             >
               <X className="h-5 w-5" />
             </Button>
-            <Button
-              size="sm"
-              variant={notesOpen ? "secondary" : "outline"}
-              onClick={() => setNotesOpen((v) => !v)}
-              className="gap-1 text-xs"
-              aria-label="Toggle notes"
-            >
-              <MessageSquare className="w-3.5 h-3.5" /> Notes ({notes.length})
-            </Button>
           </div>
         </div>
       )}
       {notesOpen && playerId && (
         <div className="mt-3 pt-3 border-t border-border">
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono mb-2">
-            Notes ({notes.length})
-          </div>
           <PlayerNotesPanel playerId={playerId} selfFetch={false} notes={notes} />
         </div>
       )}
