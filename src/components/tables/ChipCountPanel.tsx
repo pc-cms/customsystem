@@ -599,6 +599,107 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
           </div>
         </div>
       )}
+
+      <Dialog open={!!detailTs} onOpenChange={o => !o && setDetailTs(null)}>
+        <DialogContent className="max-w-4xl w-[96vw] max-h-[88vh] p-0 sm:rounded-lg overflow-hidden flex flex-col">
+          <DialogHeader className="px-4 py-3 border-b border-border">
+            <DialogTitle className="text-sm">
+              Snapshot details ·{" "}
+              {detailGroup ? new Date(detailGroup.ts).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" }) : ""}
+              {detailGroup && (
+                <span className={`ml-3 font-mono ${detailGroup.total >= 0 ? "text-success" : "text-destructive"}`}>
+                  {detailGroup.total >= 0 ? "+" : ""}{formatCurrency(detailGroup.total)}
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {detailGroup && (() => {
+            const denomsSet = new Set<number>();
+            Object.values(detailGroup.perTableDenoms).forEach(d => {
+              Object.keys(d.actual).forEach(k => denomsSet.add(Number(k)));
+              Object.keys(d.expected).forEach(k => denomsSet.add(Number(k)));
+            });
+            const denoms = CHIP_DENOMS.filter(d => denomsSet.has(d));
+            const tableEntries = historyColumns.filter(loc => detailGroup.perTableDenoms[loc.id]);
+            return (
+              <div className="overflow-auto flex-1">
+                <table className="w-full border-collapse text-xs">
+                  <thead className="sticky top-0 bg-card z-10">
+                    <tr className="border-b border-border">
+                      <th className="text-left px-2 py-2 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Table</th>
+                      {denoms.map(d => {
+                        const c = resolveChipColor(d, chipColorOverrides);
+                        return (
+                          <th key={d} className="text-center px-1 py-2">
+                            <span className="cms-chip-token" style={{ "--chip-bg": c.bg, "--chip-edge": c.edge, "--chip-text": c.text } as CSSProperties}>
+                              {formatChipLabel(d)}
+                            </span>
+                          </th>
+                        );
+                      })}
+                      <th className="text-right px-2 py-2 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableEntries.map((loc, ri) => {
+                      const dn = detailGroup.perTableDenoms[loc.id];
+                      const rowResult = chipSnapshotResult(dn.actual, dn.expected);
+                      return (
+                        <tr key={loc.id} className={`border-b border-border last:border-0 ${ri % 2 === 1 ? "bg-muted/10" : ""}`}>
+                          <td className="px-2 py-1.5 font-semibold text-card-foreground whitespace-nowrap">{loc.label}</td>
+                          {denoms.map(d => {
+                            const a = dn.actual[d];
+                            const e = dn.expected[d];
+                            if (a === undefined && e === undefined) {
+                              return <td key={d} className="px-1 py-1.5 text-center text-muted-foreground/30">·</td>;
+                            }
+                            const actual = a ?? 0;
+                            const expected = e ?? 0;
+                            const delta = (actual - expected) * d;
+                            return (
+                              <td key={d} className="px-1 py-1.5 text-center font-mono">
+                                <div className="text-card-foreground tabular-nums">{actual}</div>
+                                <div className="text-[9px] text-muted-foreground tabular-nums">/{expected}</div>
+                                <div className={`text-[9px] tabular-nums ${delta > 0 ? "text-success" : delta < 0 ? "text-destructive" : "text-muted-foreground/60"}`}>
+                                  {delta > 0 ? "+" : ""}{delta !== 0 ? formatCurrency(delta) : "·"}
+                                </div>
+                              </td>
+                            );
+                          })}
+                          <td className={`px-2 py-1.5 text-right font-mono font-bold whitespace-nowrap ${rowResult >= 0 ? "text-success" : "text-destructive"}`}>
+                            {rowResult >= 0 ? "+" : ""}{formatCurrency(rowResult)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="sticky bottom-0 bg-card">
+                    <tr className="border-t-2 border-primary/30 bg-muted/30">
+                      <td className="px-2 py-2 font-bold uppercase text-card-foreground">Total</td>
+                      {denoms.map(d => {
+                        const sum = tableEntries.reduce((s, loc) => {
+                          const dn = detailGroup.perTableDenoms[loc.id];
+                          const a = dn.actual[d] ?? 0;
+                          const e = dn.expected[d] ?? 0;
+                          return s + (a - e) * d;
+                        }, 0);
+                        return (
+                          <td key={d} className={`px-1 py-2 text-center font-mono text-[10px] ${sum > 0 ? "text-success" : sum < 0 ? "text-destructive" : "text-muted-foreground/60"}`}>
+                            {sum > 0 ? "+" : ""}{sum !== 0 ? formatCurrency(sum) : "·"}
+                          </td>
+                        );
+                      })}
+                      <td className={`px-2 py-2 text-right font-mono font-bold ${detailGroup.total >= 0 ? "text-success" : "text-destructive"}`}>
+                        {detailGroup.total >= 0 ? "+" : ""}{formatCurrency(detailGroup.total)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
