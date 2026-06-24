@@ -215,8 +215,10 @@ export const useUpdatePlayerCategory = () => {
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
+      // Refetch (not just invalidate) so Player Tracking and other consumers
+      // pick up the new level immediately, even if their query is inactive.
       qc.invalidateQueries({ queryKey: ["player", vars.player_id] });
-      qc.invalidateQueries({ queryKey: ["players"] });
+      qc.refetchQueries({ queryKey: ["players"], type: "all" });
       toast.success("Status updated");
     },
     onError: (e: any) => toast.error(e.message || "Failed to update status"),
