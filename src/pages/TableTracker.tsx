@@ -53,7 +53,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
   const [date, setDate] = useSessionState<string>("date", today);
-  const [mode, setMode] = useSessionState<"numbers" | "chips">("mode", "numbers");
+  const [mode, setMode] = useSessionState<"numbers" | "chips" | "headcount">("mode", "numbers");
   const { isManager } = useAuth();
   const { data: tables = [] } = useGamingTables();
   const { data: trackerData = [] } = useTableTracker(date);
