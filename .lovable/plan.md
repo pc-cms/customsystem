@@ -1,66 +1,44 @@
-## Issue diagnosis
+## Goal
 
-### 1. Miss Chips sign — Live Game printed shift report
-File: `src/components/cage/ShiftClosingReport.tsx:562-565`
-```tsx
-<td>Miss Chips</td>
-<td>{missTotal === 0 ? "" : `-${numAlways(Math.abs(missTotal))}`}</td>
-```
-The cell hard-codes a leading `-` and prints `|missTotal|`, so the row is **always negative**, regardless of whether chips are short or surplus.
+1. Snapshot history снова per-save vs baseline + Fill/Credit (откат недавнего «cumulative»).
+2. Полностью убрать колонку **HC** из грида Chip Count и запись в `table_head_count` при Save Snapshot. HC в Number Count tracker и так считается из активных игроков в казино — наш ручной HC дублировал/конфликтовал и не нужен.
+3. Убрать `touched` state из инпутов. Поле — просто всегда белая цифра последнего счёта, оператор редактирует прямо.
 
-Stored convention (`shift.miss_total`, set by `CloseShiftDialog`):
-- `+` = chips missing (deficit, e.g. Mwanza 21/06 = +115 000 and +1 487 000)
-- `−` = chips surplus
+## Changes (one file: `src/components/tables/ChipCountPanel.tsx`)
 
-The natural "physical chip" sign is the opposite (`counted − opening`, matching `computeMissByDenom`). The on-screen close dialog already uses the signed form (`−(+115 000)`), but the print bypasses it.
+### 1. Snapshot history → per-save vs baseline + F/C
 
-### 2. Cards Miss sign — Slots printed shift report
-File: `src/components/cage-slots/PrintSlotsShiftDialog.tsx:263-292`
-```ts
-const missCardCount = opening - closing;   // 15 − 16 = −1
-...
-missCards: -Math.abs(missCardCount),       // forced to −1
-```
-For Mwanza 21/06 (opening 15 → closing 16) the DB has `miss_card_count = +1` (surplus, `closing − opening`), but the print layer flips the sign and forces it negative, so the report shows `-1` instead of `+1`.
+В `const history = useMemo(...)`:
+- группировать строго по `created_at` (как раньше);
+- результат стола = `Σ (actual − expected) × denom` ТОЛЬКО по сохранённым в этом save (denom);
+- к итогу добавлять `adjustmentFor(table.id)` (shift Fill/Credit), чтобы последняя строка совпадала с Result в гриде;
+- подпись справа: `N saves · result vs baseline (incl. Fill/Credit)`.
 
-`SlotsConsolidatedReport.tsx:209` prints the raw number, so once the source value is corrected the row renders the right sign automatically (just needs an explicit `+` for positives).
+`<tfoot>` со строками «Fill/Credit (shift)» и «Current (latest + Fill/Credit)» удалить — F/C уже в каждой строке.
 
-## Fix
+### 2. Удалить колонку HC
 
-### A. `src/components/cage/ShiftClosingReport.tsx`
-Replace the always-negative Miss Chips cell with a signed display that mirrors the physical chip convention (deficit → `−`, surplus → `+`):
-```tsx
-{(() => {
-  const v = -missTotal;                          // invert storage convention
-  if (v === 0) return "";
-  return (v > 0 ? "+" : "−") + numAlways(Math.abs(v));
-})()}
-```
-No change to the Shift Balance formula (which still uses raw `missTotal`).
+- `<col>` для HC в `<colgroup>`, `<th>` HC в `<thead>`, `<td>` с HC-инпутом в каждой `<tr>`, HC-ячейка в строке Total — удалить. `colSpan` пересчитать.
+- Удалить state `hcDraft`/`setHcDraft`, hooks `useTableHeadCount`, `useBatchSetTableHeadCount`, `batchHeadCount`, `hcTarget`, `hcSlot`, `hcSlotValue`.
+- Удалить ветку записи HC в `handleSave` (от `if (hcSlot && !readOnly)` до конца блока).
+- Удалить `setHcDraft({})` из `useEffect`.
+- Убрать импорт `Users` (становится unused).
 
-### B. `src/components/cage-slots/PrintSlotsShiftDialog.tsx`
-Pass the signed count, not the forced-negative one:
-```ts
-const missCardCount = cards
-  ? Number(cards.closing_card_count || 0) - Number(cards.opening_card_count || 0)
-  : 0;
-...
-missCards: missCardCount,   // signed: +surplus / −deficit
-```
+### 3. Inputs без touched state
 
-### C. `src/components/cage-slots/SlotsConsolidatedReport.tsx`
-Render `missCards` with explicit sign so `+1` shows the plus:
-```tsx
-{missCards !== 0 ? (missCards > 0 ? "+" : "") + missCards : ""}
-```
-(Negative numbers already render their own `−`.)
+Откатить недавно добавленный `touched`/`onFocus`-clear/`onBlur`-revert. Логика:
+- `counts[loc.key][d]` инициализируется в `useEffect` значением `getLastCheck(loc.id, d)` (а не `NaN`).
+- Тот же `useEffect` запускается при изменении `tableSetKey` и при появлении новых snapshot'ов (`latestSnapshotPerTable`) — но только для ячеек, которые равны прежнему `lastCheck` (чтобы не затирать вводимое оператором). Простой вариант: при изменении `tableSetKey` инициализировать все ячейки `lastCheck`; при поступлении нового snapshot — пере-инициализировать только если ячейка совпадает с прошлым `lastCheck` (т.е. оператор её не правил после).
+- `displayValue` = `String(counts[loc.key][d] ?? lastCheck)`, реальный белый текст, без placeholder.
+- `onChange`: пишет число (или 0 при пустом).
+- `onFocus`: `e.target.select()` чтобы было удобно перепечатать.
+- `rowResults`: `actual = counts[loc.key][d] ?? lastCheck` — без NaN-веток.
+- `handleSave`: пишет snapshot по всем (table, denom) с текущим `counts` (полный snapshot стола каждый раз) — это ровно то, что хочет пользователь: «каждый snapshot = текущая разница с baseline».
 
-## Out of scope
-- No DB / trigger changes — both stored values are already correct.
-- No change to the on-screen Active views; they already display signed values.
-- No change to chip / card balance formulas — only the printed-cell formatting changes.
+## Acceptance
 
-## Verification
-1. Reprint Mwanza Live Game shift 21/06/2026 → `Miss Chips` shows `−115 000` (deficit) and `−1 487 000`.
-2. Reprint Mwanza Slots shift 21/06/2026 → `Miss Cards` shows `+1` (surplus).
-3. Reprint a shift with a surplus chip miss → `Miss Chips` shows `+X` (no longer forced negative).
+- В гриде Chip Count нет колонки HC. Save Snapshot пишет только в `chip_snapshots`, не трогает `table_head_count`.
+- Все ячейки — белые цифры (последний счёт или baseline). Клик → текст выделяется, можно сразу ввести новое.
+- Save Snapshot создаёт полный snapshot по всем денoм всех открытых столов с текущими цифрами.
+- В Snapshot history каждая строка = baseline-дельта этого save + shift F/C; последняя строка совпадает с Result в гриде. Лишних footer-строк нет.
+- Number Count tracker и его HC не трогаем — он сам считается из активных игроков.
