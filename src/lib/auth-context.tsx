@@ -5,6 +5,20 @@ import { setSessionUserId } from "@/hooks/use-session-state";
 
 type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager";
 
+const PROFILE_LOAD_TIMEOUT_MS = 8000;
+
+const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
 type ManagerOverride = {
   active: boolean;
   managerId: string | null;
@@ -60,10 +74,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const profileVersionRef = useRef(0);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const [{ data: profile, error: profileError }, { data: userRoles, error: rolesError }] = await Promise.all([
-      supabase.from("profiles").select("casino_id, display_name, disabled_at").eq("user_id", userId).maybeSingle(),
-      supabase.from("user_roles").select("role").eq("user_id", userId),
-    ]);
+    const [{ data: profile, error: profileError }, { data: userRoles, error: rolesError }] = await withTimeout(
+      Promise.all([
+        supabase.from("profiles").select("casino_id, display_name, disabled_at").eq("user_id", userId).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", userId),
+      ]),
+      PROFILE_LOAD_TIMEOUT_MS,
+      "Profile load",
+    );
 
     if ((profile as { disabled_at?: string | null } | null)?.disabled_at) {
       await supabase.auth.signOut();
