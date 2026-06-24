@@ -22,6 +22,8 @@
  *     stale tokens to be reintroduced into storage).
  */
 
+import { clearStoredAuthSession, isInvalidRefreshTokenResponse, notifyInvalidRefreshToken } from "@/lib/auth-storage";
+
 const TOKEN_PATH = "/auth/v1/token";
 const RATE_LIMIT_COOLDOWN_MS = 30_000;
 const MAX_429_RETRIES = 1;
@@ -77,6 +79,12 @@ async function guardedRefreshFetch(input: RequestInfo | URL, init?: RequestInit)
 
       for (let attempt = 0; attempt <= MAX_429_RETRIES; attempt += 1) {
         const res = await originalFetch(input, init);
+        if (await isInvalidRefreshTokenResponse(res)) {
+          console.warn("[auth-throttle] invalid refresh token — clearing stale local session");
+          clearStoredAuthSession();
+          notifyInvalidRefreshToken();
+          return res;
+        }
         if (res.status !== 429) return res;
 
         cooldownUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS;
