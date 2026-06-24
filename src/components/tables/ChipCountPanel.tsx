@@ -299,7 +299,6 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
               {visibleDenoms.map(d => (
                 <col key={d} style={{ width: t.chipColW }} />
               ))}
-              <col style={{ width: t.chipColW }} />
               <col style={{ width: t.resultColW }} />
             </colgroup>
             <thead>
