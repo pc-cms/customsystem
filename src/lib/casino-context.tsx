@@ -67,6 +67,17 @@ export const ONPREM_SLUG_ALIASES: Record<string, string> = {
   mbi: "mbeya",
 };
 
+const LOCAL_HOST_SLUG_ALIASES: Record<string, string> = {
+  arusha: "arusha",
+  arucms: "arusha",
+  mwanza: "mwanza",
+  mwzcms: "mwanza",
+  dodoma: "dodoma",
+  dodcms: "dodoma",
+  mbeya: "mbeya",
+  mbicms: "mbeya",
+};
+
 /** Normalize a raw slug through the on-prem alias table. */
 export const resolveSlugAlias = (raw: string): string =>
   ONPREM_SLUG_ALIASES[raw] ?? raw;
@@ -78,9 +89,19 @@ export const getSlugFromHostname = (): string | null => {
   // Cloud builds get a placeholder which cleanValue() turns into null, so this
   // branch is silently skipped in production.
   const rc = getCachedRuntimeConfig();
-  if (rc?.casinoSlug) return resolveSlugAlias(rc.casinoSlug.toLowerCase());
+  const runtimeSlug = rc?.casinoSlug?.toLowerCase() ?? null;
+  if (runtimeSlug && runtimeSlug !== "local") return resolveSlugAlias(runtimeSlug);
 
   const hostname = window.location.hostname;
+
+  // On-prem fallback when runtime-config was left with the default slug `local`:
+  // arusha.local / arucms.local should still resolve to the Arusha casino, not
+  // query `casinos.slug = local` and leave the app on Loading CMS.
+  const localMatch = hostname.match(/^([a-z0-9-]+)\.local$/i);
+  if (localMatch) {
+    const localSlug = LOCAL_HOST_SLUG_ALIASES[localMatch[1].toLowerCase()];
+    if (localSlug) return localSlug;
+  }
 
   // Production: arusha.casinosystem.app / mwz.casinosystem.app / etc.
   const match = hostname.match(/^([a-z0-9-]+)\.(casinosystem\.app|casinosystem\.lovable\.app|casinosystem\.local)$/i);

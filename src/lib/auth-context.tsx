@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { setSessionUserId } from "@/hooks/use-session-state";
+import { AUTH_INVALID_REFRESH_EVENT, clearStoredAuthSession, isInvalidRefreshTokenError } from "@/lib/auth-storage";
 
 type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager";
 
@@ -169,6 +170,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let mounted = true;
     let timeoutId: ReturnType<typeof setTimeout>;
 
+    const clearInvalidSession = () => {
+      if (!mounted) return;
+      clearStoredAuthSession();
+      handleSignedOut();
+      setAuthReady(true);
+      void supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+    };
+
+    window.addEventListener(AUTH_INVALID_REFRESH_EVENT, clearInvalidSession);
+
     // Safety timeout: if getSession hangs (known Supabase issue), force ready after 5s.
     // Additionally — if we have a token stashed in localStorage but no session
     // materialised, try refreshSession() so the user doesn't get stuck with
@@ -186,6 +197,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             void supabase.auth.refreshSession().then(({ data, error }) => {
               if (error) {
                 console.error("[Auth] refreshSession failed", error);
+                if (isInvalidRefreshTokenError(error)) clearInvalidSession();
                 return;
               }
               if (data.session && mounted) processSession(data.session);
@@ -229,6 +241,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       .catch((error) => {
         console.error("getSession error", error);
+        if (isInvalidRefreshTokenError(error)) clearInvalidSession();
       })
       .finally(() => {
         if (mounted) {
@@ -240,6 +253,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       mounted = false;
       clearTimeout(timeoutId);
+      window.removeEventListener(AUTH_INVALID_REFRESH_EVENT, clearInvalidSession);
       subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
