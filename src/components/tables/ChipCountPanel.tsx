@@ -235,6 +235,24 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       if (entries.length > 0) batchTracker.mutate({ date, entries });
     }
     void setTrackerValue; // retained for backwards-compat (unused here)
+
+    // Head count batch — only entries the user actually typed AND that differ
+    // from the existing slot value. HC never feeds chip math; written to the
+    // same hourly slot as the chip count for alignment with the Number Count grid.
+    if (hcSlot && !readOnly) {
+      const hcEntries: Array<{ table_id: string; time_slot: string; value: number }> = [];
+      countLocations.forEach(loc => {
+        const raw = hcDraft[loc.id];
+        if (raw === undefined || raw === "") return;
+        const n = Math.min(99, Math.max(0, parseInt(raw, 10) || 0));
+        const existing = headCountRows.find(
+          (r: any) => r.table_id === loc.id && r.time_slot === hcSlot,
+        );
+        if (existing && Number(existing.value) === n) return;
+        hcEntries.push({ table_id: loc.id, time_slot: hcSlot, value: n });
+      });
+      if (hcEntries.length > 0) batchHeadCount.mutate({ date, entries: hcEntries });
+    }
   };
 
   // Early-return moved below all hooks to keep hook order stable (React #310).
