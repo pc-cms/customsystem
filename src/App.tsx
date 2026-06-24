@@ -241,7 +241,7 @@ const LegacyStaffRedirect = () => {
 
 const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode }) => {
   const { roles } = useAuth();
-  const { data: allowedModules, isLoading } = useMyModulePermissions();
+  const { data: allowedModules, isLoading, isError, error } = useMyModulePermissions();
   const isSuper = roles.includes("super_admin");
   if (isSuper) return <>{children}</>;
 
@@ -251,6 +251,15 @@ const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode
 
   // Still loading → render nothing yet (avoid flicker / wrong redirect)
   if (isLoading || allowedModules === undefined) return <FullScreenLoader />;
+
+  // Permission Matrix is a UI gate only; RLS remains the security boundary.
+  // If the RPC/table is temporarily unavailable on an on-prem node, never leave
+  // operators stuck on "Loading CMS..." forever — allow the screen to render and
+  // let backend policies decide what data/actions are actually available.
+  if (isError) {
+    console.error("Module permissions failed", error);
+    return <>{children}</>;
+  }
 
   if (!allowedModules.has(moduleKey)) {
     const fallback = roles.includes("cashier") ? "/cage" : roles.includes("cashier_slots") ? "/cage-slots" : "/";
