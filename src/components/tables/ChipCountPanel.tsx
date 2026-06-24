@@ -102,61 +102,47 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     return map;
   }, [snapshots]);
 
-  // "Last check" placeholder value for a (table, denom): latest snapshot's
-  // actual quantity if any was recorded this shift, otherwise the chip baseline.
-  // Per UX request: input fields start EMPTY; this number is displayed as a
-  // gray placeholder so Pit types only what changed instead of deleting prefilled
-  // digits. When the field is left empty, computations fall back to this value.
+  // "Last check" value for a (table, denom): latest snapshot's actual quantity
+  // if any was recorded this shift, otherwise the chip baseline. This is the
+  // value shown as the default white text in each input — the operator edits
+  // it directly. A fresh Save Snapshot writes a full snapshot for all denoms.
   const getLastCheck = (tableId: string, denom: number): number => {
     const snap = latestSnapshotPerTable[tableId]?.actual[denom];
     if (snap !== undefined) return snap;
     return baselineMap[tableId]?.[denom] ?? 0;
   };
 
-  // NaN sentinel means "empty input" → treated as "same as last check" for math.
   const [counts, setCounts] = useState<Record<string, Record<number, number>>>({});
-  // Per-cell "touched" flag. Untouched cells show the last-check value as real
-  // white text (not gray placeholder). On focus the field clears so the operator
-  // types the new count; on blur with no input the cell reverts to untouched.
-  const [touched, setTouched] = useState<Record<string, Record<number, boolean>>>({});
-  const [hcDraft, setHcDraft] = useState<Record<string, string>>({});
   const [fullscreen, setFullscreen] = useState(false);
   const [tabletMode, setTabletMode] = useState(false);
   const [detailTs, setDetailTs] = useState<string | null>(null);
 
-  // Head-count target slot (same rounding rules as chip count → tracker).
-  // Memoize per render; only used at save time and for the placeholder lookup.
-  const hcTarget = useMemo(() => slotForChipCount(nowEAT()), [date, snapshots.length, headCountRows.length]);
-  const hcSlot = hcTarget?.slot ?? null;
-
-  const hcSlotValue = (tableId: string): string => {
-    if (!hcSlot) return "";
-    const r = headCountRows.find((x: any) => x.table_id === tableId && x.time_slot === hcSlot);
-    return r && r.value !== null && r.value !== undefined ? String(r.value) : "";
-  };
-
-  // Reset typed-in counts ONLY when the SET of tables changes (open/close, or
-  // table added). Do NOT reset on snapshots.length changing — realtime delivery
-  // of a peer save (or our own save) was wiping in-progress typing.
-  // The placeholder (`getLastCheck`) already reflects the newest snapshot, so
-  // untouched cells stay visually correct without clobbering user input.
+  // Re-seed inputs with the latest checked value whenever the set of tables
+  // changes OR when a new snapshot arrives (so peer Saves refresh the visible
+  // numbers). HC was removed — Number Count tracker computes HC from active
+  // players directly.
   const tableSetKey = useMemo(
     () => countLocations.map(l => l.key).sort().join("|"),
     [countLocations],
   );
+  const snapshotSignature = useMemo(() => {
+    const parts: string[] = [];
+    Object.entries(latestSnapshotPerTable).forEach(([tid, dn]) => {
+      Object.entries(dn.actual).forEach(([d, v]) => parts.push(`${tid}:${d}:${v}`));
+    });
+    return parts.sort().join("|");
+  }, [latestSnapshotPerTable]);
   useEffect(() => {
     const initial: Record<string, Record<number, number>> = {};
     countLocations.forEach(loc => {
       initial[loc.key] = {};
       loc.denoms.forEach(d => {
-        initial[loc.key][d] = NaN as any; // empty by default — placeholder shows last check
+        initial[loc.key][d] = getLastCheck(loc.id, d);
       });
     });
     setCounts(initial);
-    setTouched({});
-    setHcDraft({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableSetKey]);
+  }, [tableSetKey, snapshotSignature]);
 
   const visibleDenoms = useMemo(
     () => CHIP_DENOMS.filter(d => countLocations.some(loc => loc.denoms.includes(d))),
