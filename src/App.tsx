@@ -249,9 +249,6 @@ const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode
   // No mapping → not gated by matrix (auxiliary route)
   if (!moduleKey) return <>{children}</>;
 
-  // Still loading → render nothing yet (avoid flicker / wrong redirect)
-  if (isLoading || allowedModules === undefined) return <FullScreenLoader />;
-
   // Permission Matrix is a UI gate only; RLS remains the security boundary.
   // If the RPC/table is temporarily unavailable on an on-prem node, never leave
   // operators stuck on "Loading CMS..." forever — allow the screen to render and
@@ -260,6 +257,9 @@ const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode
     console.error("Module permissions failed", error);
     return <>{children}</>;
   }
+
+  // Still loading → render nothing yet (avoid flicker / wrong redirect)
+  if (isLoading || allowedModules === undefined) return <FullScreenLoader />;
 
   if (!allowedModules.has(moduleKey)) {
     const fallback = roles.includes("cashier") ? "/cage" : roles.includes("cashier_slots") ? "/cage-slots" : "/";
