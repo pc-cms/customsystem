@@ -197,18 +197,18 @@ const Dashboard = () => {
     return totals;
   }, [trackerData]);
 
-  // Table DROP = simple sum of all Cash In on the table for the current business day (no NEP logic).
+  // Table DROP = NEP-aware Drop R (external cash only) over the business-day window,
+  // same source as Player Tracking and the Total Drop KPI. Raw cash-in sums double-count
+  // returned winnings and caused per-table Drop to disagree with the dashboard total.
   // Table RESULT = canonical per-shift RPC sum (same source as shifts.tables_result).
   const tableStats = useMemo(() => {
     const stats: Record<string, { drop: number; result: number }> = {};
     tables.forEach(t => {
-      const drop = transactions
-        .filter(tx => tx.table_id === t.id && (tx.type === "buy" || tx.type === "in"))
-        .reduce((s, tx) => s + Number(tx.amount), 0);
+      const drop = Number(tablesDropSplit?.get(t.id)?.dropR || 0);
       stats[t.id] = { drop, result: Number(tableResultMap[t.id] || 0) };
     });
     return stats;
-  }, [tables, transactions, tableResultMap]);
+  }, [tables, tablesDropSplit, tableResultMap]);
 
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { drop: number; result: number; label: string }> = {};
