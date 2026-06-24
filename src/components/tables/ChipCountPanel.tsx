@@ -540,7 +540,12 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                 {history.map((g, i) => {
                   const time = new Date(g.ts).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" });
                   return (
-                    <tr key={g.ts} className={`border-b border-border last:border-0 ${i % 2 === 1 ? "bg-muted/10" : ""}`}>
+                    <tr
+                      key={g.ts}
+                      onClick={() => setDetailTs(g.ts)}
+                      className={`border-b border-border last:border-0 cursor-pointer transition-colors hover:bg-primary/5 ${i % 2 === 1 ? "bg-muted/10" : ""}`}
+                      title="Click to view per-denomination details"
+                    >
                       <td className="px-2 py-1 font-mono text-card-foreground">{time}</td>
                       {historyColumns.map(loc => {
                         const v = g.perTable[loc.id];
