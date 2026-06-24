@@ -451,6 +451,24 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
                   <UtensilsCrossed className="h-3.5 w-3.5" /> F&B
                 </Button>
               )}
+              <Button
+                size="sm"
+                variant={notesOpen ? "default" : "outline"}
+                onClick={() => setNotesOpen((v) => !v)}
+                className="gap-1"
+                aria-label="Toggle notes"
+              >
+                <MessageSquare className="h-3.5 w-3.5" />
+                Notes
+                {notes.length > 0 && (
+                  <span className={cn(
+                    "ml-0.5 px-1.5 rounded-full text-[10px] font-mono tabular-nums",
+                    notesOpen ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/15 text-primary"
+                  )}>
+                    {notes.length}
+                  </span>
+                )}
+              </Button>
             </div>
 
             {/* Row 2 — Visits + Drop / Cash In / Result for the active period */}
