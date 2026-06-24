@@ -443,7 +443,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
 
   return (
     <>
-      <div ref={scrollMem.ref} onScroll={scrollMem.onScroll} className="cms-panel overflow-auto" style={{ zoom: `${zoom}%` }}>
+      <div ref={scrollRef} className="cms-panel overflow-auto" style={{ zoom: `${zoom}%` }}>
         <div className="min-w-[1400px]">
           <table className="w-full border-collapse">
             <thead>
