@@ -117,6 +117,10 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
 
   // NaN sentinel means "empty input" → treated as "same as last check" for math.
   const [counts, setCounts] = useState<Record<string, Record<number, number>>>({});
+  // Per-cell "touched" flag. Untouched cells show the last-check value as real
+  // white text (not gray placeholder). On focus the field clears so the operator
+  // types the new count; on blur with no input the cell reverts to untouched.
+  const [touched, setTouched] = useState<Record<string, Record<number, boolean>>>({});
   const [hcDraft, setHcDraft] = useState<Record<string, string>>({});
   const [fullscreen, setFullscreen] = useState(false);
   const [tabletMode, setTabletMode] = useState(false);
