@@ -205,12 +205,19 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
           <Button type="button" variant={mode === "chips" ? "default" : "ghost"} size="sm" onClick={() => setMode("chips")} className="rounded-none gap-1.5 h-8 px-3">
             <Coins className="h-3.5 w-3.5" /> Chips
           </Button>
+          <Button type="button" variant={mode === "headcount" ? "default" : "ghost"} size="sm" onClick={() => setMode("headcount")} className="rounded-none gap-1.5 h-8 px-3">
+            <Users className="h-3.5 w-3.5" /> Head Count
+          </Button>
         </div>
       )}
 
       {mode === "chips" ? (
         <PageSection card={false}>
           <ChipCountPanel date={date} />
+        </PageSection>
+      ) : mode === "headcount" ? (
+        <PageSection card={false}>
+          <HeadCountPanel date={date} />
         </PageSection>
       ) : (
       <>
