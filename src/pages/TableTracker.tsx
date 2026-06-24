@@ -22,10 +22,9 @@ const parseSignedNumber = (str: string): number => {
 };
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Target, Lock, Hash, Coins, Users } from "lucide-react";
+import { Target, Lock, Hash, Coins } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { ChipCountPanel } from "@/components/tables/ChipCountPanel";
-import { HeadCountPanel } from "@/components/tables/HeadCountPanel";
 import { TableAnalyticsChart } from "@/components/tables/TableAnalyticsChart";
 import { Button } from "@/components/ui/button";
 
