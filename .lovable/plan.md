@@ -1,59 +1,47 @@
-
 ## Goal
+1. Embed Head Count entry inside the Chip Count grid (one extra cell per row, after denom 500), visually highlighted, excluded from the chip-money total, and written to `table_head_count` for the current hour slot.
+2. Make rows in the Snapshot History panel clickable to drill down into that save's chip details (per-denomination actual / expected / delta per table).
 
-Track a per-hour "Head Count" (0–99) for each open table on the Table Check page, entered through a dedicated panel (like Chip Count) and surfaced inline inside each hour column of the Numbers grid.
+Both changes live in `src/components/tables/ChipCountPanel.tsx`. No backend / schema changes — `table_head_count` and its hooks already exist.
 
-## UI changes (`src/pages/TableTracker.tsx`)
+---
 
-1. Top mode toggle: add a third button **Head Count** (Users icon) next to **Numbers / Chips**. Behaves the same way (sets `mode`).
-2. New `HeadCountPanel` rendered when `mode === "headcount"` — same shell as `ChipCountPanel`.
-3. Numbers grid hour cells (unchanged width / column count):
-   - Below the existing money input, render a small read-only line showing the saved head count as 2 digits (`07`, `12`, `·` if empty), muted/monospace, centered.
-   - Active slot still highlighted; cell still resolves to one visual column.
-4. Totals row (last row of Numbers grid): under the existing currency total, show the per-hour Head Count sum (small, muted) on the same cell — "next to the result" as requested.
+## 1. Head Count column inside Chip Count
 
-No changes to keyboard navigation of the money inputs; head count is not edited from the grid.
+**Placement & styling**
+- New column inserted **after the 500-chip column** (i.e. after the largest denom in `visibleDenoms`, since 500 is the top denom).
+- Column header: chip-style "HC" badge with a distinct accent fill (`bg-primary/15` cell background + `ring-1 ring-primary/40`) so it visually stands out from the chip columns.
+- Body cells reuse the same `bg-primary/10` fill, same input sizing as chip cells (respects `tabletMode` / `fullscreen`).
+- Input: numeric text, 0–99, 2-char max, no spinners (same `clamp99` pattern already used in `HeadCountPanel`).
 
-## Head Count panel (`src/components/tables/HeadCountPanel.tsx`, new)
+**Data flow**
+- Read existing values via `useTableHeadCount(date)`.
+- Slot resolution: reuse `slotForChipCount(nowEAT())` so the head-count cell writes to the same hourly slot a Chip Count save targets (Final 05:00 in the closing window, on-time write otherwise, fallback only-if-empty in the :11–:49 window). Per-row placeholder shows the existing saved value for that slot if any.
+- Local state: extend existing `counts` flow with a parallel `hcDraft: Record<tableId, string>` map; reset alongside `counts` when the table set changes.
+- Save: `handleSave` additionally builds a `head_count` batch (skipping untouched cells and skipping cells whose value already matches the stored slot value) and dispatches `useBatchSetTableHeadCount`. Runs in parallel with the existing chip snapshot + tracker batch — no ordering dependency.
 
-- Slot picker = current hour by default (19:00 → 05:00), navigable left/right like Chip Count.
-- One row per open table (same filter as Numbers grid: `status === "open"` OR has existing head count for the date).
-- One numeric input per table: plain `<input type="text" inputMode="numeric" maxlength=2>`, no spinners, accepts 0–99 only (regex strip + clamp).
-- "Save" button writes a batch upsert for the active slot; auto-save on blur per cell, mirroring Chip Count UX.
-- Read-only when not today and user is not manager (same rule as Numbers).
+**Totals**
+- Chip math (`rowResults`, `grandTotal`) is untouched — HC never enters the chip sum.
+- Footer row gets a new HC total cell (sum of slot HC values across rows) rendered in the same column, in the same accent style. The existing "Total" footer span is shortened by 1 (`colSpan={visibleDenoms.length}` stays, HC column gets its own footer cell, then Result).
+- Read-only behaviour mirrors `HeadCountPanel` (managers can edit past dates; others can't).
 
-## Data layer
+---
 
-New table `public.table_head_count`:
+## 2. Clickable Snapshot History rows → detail view
 
-```
-id uuid pk default gen_random_uuid()
-casino_id uuid not null references casinos(id) on delete cascade
-table_id  uuid not null references gaming_tables(id) on delete cascade
-date      date not null
-time_slot text not null            -- '19:00' … '05:00'
-value     smallint not null check (value between 0 and 99)
-created_at timestamptz default now()
-updated_at timestamptz default now()
-unique (casino_id, table_id, date, time_slot)
-```
+- Snapshot history rows in the bottom panel become buttons (cursor-pointer + hover state). Clicking opens a `Dialog` showing that single save (`ts`).
+- Detail dialog content:
+  - Header: time + raw total for that save.
+  - Table: rows = each table present in that save, columns = the denominations used (chip-token header like the main grid), plus an `Actual / Expected / Δ×denom` triplet per cell (compact stacked layout), and a per-row Result column matching `chipSnapshotResult`.
+  - Footer row: column totals + grand total.
+- Data: already in `snapshotsFull` grouped by `created_at` inside the `history` memo — extend the memo to also keep the raw `perTableDenoms` map (it's already computed there, just stop discarding it) and pass the selected group's slice into the dialog.
+- No new queries, no schema work.
 
-- GRANT SELECT/INSERT/UPDATE/DELETE to `authenticated`; GRANT ALL to `service_role`.
-- RLS: SELECT for users in same casino; INSERT/UPDATE for `pit` or `manager`; super_admin sees all (mirrors `table_tracker` policies).
-- Add to `supabase_realtime` publication.
-- New hooks in `src/hooks/use-tables.ts`: `useTableHeadCount(date)`, `useSetTableHeadCount()`, `useBatchSetTableHeadCount()` — copy-paste from the matching `table_tracker` hooks.
-- Re-export from `use-casino-data.ts`.
-- Add `table_head_count` to realtime + prefetch invalidation lists in `use-realtime.ts` / `use-prefetch.ts`.
+---
 
-## Out of scope
-
-- No business-day snapshotting (closure history) in this pass — can be added later if needed.
-- No edit of head count from the Numbers grid; entry stays in the Head Count panel.
-- No change to existing money tracker behavior, totals, or analytics.
-
-## Acceptance
-
-- Numbers grid columns visually unchanged; each hour cell shows saved Head Count as a 2-digit number under the money input.
-- Totals row shows per-hour Head Count sum beside the money result.
-- Head Count button opens a Chip-Count-style panel that saves 0–99 per table per hour.
-- Read-only enforcement and date scoping match the existing Numbers/Chips views.
+## Technical notes
+- Files touched: `src/components/tables/ChipCountPanel.tsx` (only).
+- Hooks already imported elsewhere: `useTableHeadCount`, `useBatchSetTableHeadCount` from `@/hooks/use-casino-data` — add to the existing import line.
+- `HeadCountPanel.tsx` stays as-is (still reachable from the Head Count button above the grid); the new inline cell is an additional, faster entry path for Pit during the chip count.
+- Conservation-law / chip-visibility memories unaffected: HC is outside chip math by construction.
+- Audit: writes go through existing hooks → DB triggers handle `tg_activity_log` (no client-side `logAction`).
