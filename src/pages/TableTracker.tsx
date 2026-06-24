@@ -57,6 +57,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const { isManager } = useAuth();
   const { data: tables = [] } = useGamingTables();
   const { data: trackerData = [] } = useTableTracker(date);
+  const { data: headCountData = [] } = useTableHeadCount(date);
   const setValue = useSetTableTrackerValue();
 
   // Include closed tables that still have tracker data for the selected date,
