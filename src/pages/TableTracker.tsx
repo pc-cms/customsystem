@@ -260,6 +260,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                     </td>
                     {SLOTS.map((slot, si) => {
                       const val = getVal(table.id, slot);
+                      const hc = getHeadCount(table.id, slot);
                       const isActive = isToday && slot === currentSlot;
                       return (
                         <td key={slot} className={`px-1 py-0.5 ${isActive ? "bg-primary/5" : ""}`}>
@@ -286,6 +287,12 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                             } ${isActive ? "border-primary/30" : ""} ${readOnly ? "cursor-not-allowed opacity-70" : ""}`}
                             placeholder="·"
                           />
+                          <div
+                            className="mt-0.5 text-center text-[10px] font-mono tabular-nums text-muted-foreground leading-none"
+                            title="Head count"
+                          >
+                            {hc !== null ? String(hc).padStart(2, "0") : "·"}
+                          </div>
                         </td>
                       );
                     })}
