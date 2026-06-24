@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
-import { Save, Maximize2, Minimize2, History, Tablet, Users } from "lucide-react";
+import { Save, Maximize2, Minimize2, History, Tablet } from "lucide-react";
 import { useChipSnapshots, useChipSnapshotsFull, useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
-import { useGamingTables, useSetTableTrackerValue, useBatchSetTableTrackerValue, useTableTracker, useTableHeadCount, useBatchSetTableHeadCount } from "@/hooks/use-casino-data";
+import { useGamingTables, useSetTableTrackerValue, useBatchSetTableTrackerValue, useTableTracker } from "@/hooks/use-casino-data";
 import { CHIP_DENOMS, formatChipLabel, formatCurrency } from "@/lib/currency";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useChipColors, resolveChipColor, useVisibleChipDenoms } from "@/hooks/use-chip-colors";
@@ -61,9 +61,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const { data: snapshotsFull = [] } = useChipSnapshotsFull(date);
   const { data: baseline = [] } = useChipBaseline();
   const { data: chipColorOverrides } = useChipColors();
-  const { data: headCountRows = [] } = useTableHeadCount(date);
   const batchSnapshot = useBatchChipSnapshot();
-  const batchHeadCount = useBatchSetTableHeadCount();
 
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
   // Include closed tables that already have a chip-count snapshot for the selected
@@ -104,61 +102,47 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     return map;
   }, [snapshots]);
 
-  // "Last check" placeholder value for a (table, denom): latest snapshot's
-  // actual quantity if any was recorded this shift, otherwise the chip baseline.
-  // Per UX request: input fields start EMPTY; this number is displayed as a
-  // gray placeholder so Pit types only what changed instead of deleting prefilled
-  // digits. When the field is left empty, computations fall back to this value.
+  // "Last check" value for a (table, denom): latest snapshot's actual quantity
+  // if any was recorded this shift, otherwise the chip baseline. This is the
+  // value shown as the default white text in each input — the operator edits
+  // it directly. A fresh Save Snapshot writes a full snapshot for all denoms.
   const getLastCheck = (tableId: string, denom: number): number => {
     const snap = latestSnapshotPerTable[tableId]?.actual[denom];
     if (snap !== undefined) return snap;
     return baselineMap[tableId]?.[denom] ?? 0;
   };
 
-  // NaN sentinel means "empty input" → treated as "same as last check" for math.
   const [counts, setCounts] = useState<Record<string, Record<number, number>>>({});
-  // Per-cell "touched" flag. Untouched cells show the last-check value as real
-  // white text (not gray placeholder). On focus the field clears so the operator
-  // types the new count; on blur with no input the cell reverts to untouched.
-  const [touched, setTouched] = useState<Record<string, Record<number, boolean>>>({});
-  const [hcDraft, setHcDraft] = useState<Record<string, string>>({});
   const [fullscreen, setFullscreen] = useState(false);
   const [tabletMode, setTabletMode] = useState(false);
   const [detailTs, setDetailTs] = useState<string | null>(null);
 
-  // Head-count target slot (same rounding rules as chip count → tracker).
-  // Memoize per render; only used at save time and for the placeholder lookup.
-  const hcTarget = useMemo(() => slotForChipCount(nowEAT()), [date, snapshots.length, headCountRows.length]);
-  const hcSlot = hcTarget?.slot ?? null;
-
-  const hcSlotValue = (tableId: string): string => {
-    if (!hcSlot) return "";
-    const r = headCountRows.find((x: any) => x.table_id === tableId && x.time_slot === hcSlot);
-    return r && r.value !== null && r.value !== undefined ? String(r.value) : "";
-  };
-
-  // Reset typed-in counts ONLY when the SET of tables changes (open/close, or
-  // table added). Do NOT reset on snapshots.length changing — realtime delivery
-  // of a peer save (or our own save) was wiping in-progress typing.
-  // The placeholder (`getLastCheck`) already reflects the newest snapshot, so
-  // untouched cells stay visually correct without clobbering user input.
+  // Re-seed inputs with the latest checked value whenever the set of tables
+  // changes OR when a new snapshot arrives (so peer Saves refresh the visible
+  // numbers). HC was removed — Number Count tracker computes HC from active
+  // players directly.
   const tableSetKey = useMemo(
     () => countLocations.map(l => l.key).sort().join("|"),
     [countLocations],
   );
+  const snapshotSignature = useMemo(() => {
+    const parts: string[] = [];
+    Object.entries(latestSnapshotPerTable).forEach(([tid, dn]) => {
+      Object.entries(dn.actual).forEach(([d, v]) => parts.push(`${tid}:${d}:${v}`));
+    });
+    return parts.sort().join("|");
+  }, [latestSnapshotPerTable]);
   useEffect(() => {
     const initial: Record<string, Record<number, number>> = {};
     countLocations.forEach(loc => {
       initial[loc.key] = {};
       loc.denoms.forEach(d => {
-        initial[loc.key][d] = NaN as any; // empty by default — placeholder shows last check
+        initial[loc.key][d] = getLastCheck(loc.id, d);
       });
     });
     setCounts(initial);
-    setTouched({});
-    setHcDraft({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableSetKey]);
+  }, [tableSetKey, snapshotSignature]);
 
   const visibleDenoms = useMemo(
     () => CHIP_DENOMS.filter(d => countLocations.some(loc => loc.denoms.includes(d))),
@@ -178,8 +162,6 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
         if (!loc.denoms.includes(d)) return;
         const expected = tableBaseline[d] || 0;
         const entered = locCounts[d];
-        // Empty / NaN cell → use last check value (= placeholder) so partial entry
-        // is intuitive: untouched denoms keep last reading, only edits move the result.
         const actual = entered === undefined || Number.isNaN(entered as any)
           ? getLastCheck(loc.id, d)
           : (entered as number);
@@ -206,21 +188,20 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       const tableBaseline = baselineMap[loc.id] || {};
       loc.denoms.forEach(d => {
         const entered = locCounts[d];
-        // Strictly skip cells the user did not touch — empty/NaN means
-        // "no change", so we do NOT write a new snapshot row for this
-        // (table, denomination). The latest existing snapshot remains
-        // the authoritative reading for downstream consumers.
-        if (entered === undefined || Number.isNaN(entered as any)) return;
+        // Each Save Snapshot writes a full snapshot for every denomination of
+        // every open table: input always shows the current count (defaulted to
+        // last-check on open), so the displayed number is the value to persist.
+        const actual = entered === undefined || Number.isNaN(entered as any)
+          ? getLastCheck(loc.id, d)
+          : (entered as number);
         const expected = tableBaseline[d] || 0;
-        rows.push({ location_type: loc.type, location_id: loc.id, denomination: d, expected_quantity: expected, actual_quantity: entered as number });
+        rows.push({ location_type: loc.type, location_id: loc.id, denomination: d, expected_quantity: expected, actual_quantity: actual });
       });
     });
     batchSnapshot.mutate({ date, counts: rows });
 
     // Auto-write per-table row result into Number Count tracker for the rounded slot.
     // On-time (:50–:10) always writes; fallback (:11–:49) writes only if slot is empty.
-    // Batch all tracker writes into ONE upsert — firing 10-20 parallel
-    // upserts was a major cause of the post-Save freeze on slow PCs.
     const target = slotForChipCount(nowEAT());
     if (target) {
       const { slot, onlyIfEmpty } = target;
@@ -240,24 +221,6 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       if (entries.length > 0) batchTracker.mutate({ date, entries });
     }
     void setTrackerValue; // retained for backwards-compat (unused here)
-
-    // Head count batch — only entries the user actually typed AND that differ
-    // from the existing slot value. HC never feeds chip math; written to the
-    // same hourly slot as the chip count for alignment with the Number Count grid.
-    if (hcSlot && !readOnly) {
-      const hcEntries: Array<{ table_id: string; time_slot: string; value: number }> = [];
-      countLocations.forEach(loc => {
-        const raw = hcDraft[loc.id];
-        if (raw === undefined || raw === "") return;
-        const n = Math.min(99, Math.max(0, parseInt(raw, 10) || 0));
-        const existing = headCountRows.find(
-          (r: any) => r.table_id === loc.id && r.time_slot === hcSlot,
-        );
-        if (existing && Number(existing.value) === n) return;
-        hcEntries.push({ table_id: loc.id, time_slot: hcSlot, value: n });
-      });
-      if (hcEntries.length > 0) batchHeadCount.mutate({ date, entries: hcEntries });
-    }
   };
 
   // Early-return moved below all hooks to keep hook order stable (React #310).
@@ -336,7 +299,6 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
               {visibleDenoms.map(d => (
                 <col key={d} style={{ width: t.chipColW }} />
               ))}
-              <col style={{ width: t.chipColW }} />
               <col style={{ width: t.resultColW }} />
             </colgroup>
             <thead>
@@ -357,14 +319,6 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                     </th>
                   );
                 })}
-                <th
-                  className={`text-center ${t.headerPadY} px-0.5 font-medium bg-primary/15 ring-1 ring-inset ring-primary/40`}
-                  title={hcSlot ? `Head Count → slot ${hcSlot === "05:00" ? "Final" : hcSlot}` : "Head Count (no active slot)"}
-                >
-                  <span className={`inline-flex items-center gap-1 ${t.headerText} font-bold uppercase tracking-wider text-primary`}>
-                    <Users className="w-3 h-3" /> HC
-                  </span>
-                </th>
                 <th className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider`}>Result</th>
               </tr>
             </thead>
@@ -372,8 +326,6 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
               {countLocations.map((loc, ri) => {
                 const locCounts = counts[loc.key] || {};
                 const rowResult = rowResults[ri]?.total ?? 0;
-                const hcPlaceholder = hcSlotValue(loc.id);
-                const hcRaw = hcDraft[loc.id];
                 return (
                   <tr key={loc.key} className={`border-b border-border last:border-0 ${ri % 2 === 1 ? "bg-muted/10" : ""}`}>
                     <td
@@ -388,34 +340,17 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                       const lastCheck = getLastCheck(loc.id, d);
                       const raw = locCounts[d];
                       const isEmpty = raw === undefined || Number.isNaN(raw as any);
-                      const isTouched = !!touched[loc.key]?.[d];
-                      // Untouched → show last-check value as real white text.
-                      // Touched   → show current typed value (or empty after focus-clear).
-                      const displayValue = isTouched
-                        ? (isEmpty ? "" : String(raw))
-                        : String(lastCheck);
+                      // Inputs always show a real white number: the live count
+                      // (defaulted to last-check on mount / when a peer save
+                      // arrives). Operator just edits the number; on focus the
+                      // text is selected for quick overwrite.
+                      const displayValue = isEmpty ? String(lastCheck) : String(raw);
                       return (
                         <td key={d} className={`${t.rowPadX} ${t.rowPadY}`}>
                           <input
                             type="number" min="0" max="999" maxLength={3}
                             value={displayValue}
-                            onFocus={() => {
-                              // Mark touched and clear so operator types the new count.
-                              setTouched(tt => ({ ...tt, [loc.key]: { ...(tt[loc.key] || {}), [d]: true } }));
-                              setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: NaN as any } }));
-                            }}
-                            onBlur={() => {
-                              // If still empty after blur, revert to "untouched" so the
-                              // last-check value is shown again (no false save).
-                              const cur = (counts[loc.key] || {})[d];
-                              if (cur === undefined || Number.isNaN(cur as any)) {
-                                setTouched(tt => {
-                                  const row = { ...(tt[loc.key] || {}) };
-                                  delete row[d];
-                                  return { ...tt, [loc.key]: row };
-                                });
-                              }
-                            }}
+                            onFocus={e => { requestAnimationFrame(() => (e.target as HTMLInputElement).select()); }}
                             onChange={e => {
                               if (e.target.value === "") {
                                 setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: NaN as any } }));
@@ -432,25 +367,6 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                         </td>
                       );
                     })}
-                    <td className={`${t.rowPadX} ${t.rowPadY} bg-primary/10`}>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={2}
-                        value={hcRaw ?? ""}
-                        readOnly={readOnly || !hcSlot}
-                        onFocus={e => { requestAnimationFrame(() => (e.target as HTMLInputElement).select()); }}
-                        onChange={e => {
-                          if (readOnly || !hcSlot) return;
-                          const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
-                          if (digits === "") { setHcDraft(d => ({ ...d, [loc.id]: "" })); return; }
-                          const n = Math.min(99, Math.max(0, parseInt(digits, 10)));
-                          setHcDraft(d => ({ ...d, [loc.id]: String(n) }));
-                        }}
-                        className={`no-spin w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-primary/40 bg-primary/5 focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground placeholder:text-muted-foreground/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
-                        placeholder={hcPlaceholder || "·"}
-                      />
-                    </td>
                     <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} font-bold whitespace-nowrap ${rowResult >= 0 ? "text-success" : "text-destructive"}`}>
                       {rowResult >= 0 ? "+" : ""}{formatCurrency(rowResult)}
                     </td>
@@ -462,18 +378,6 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                   Total
                 </td>
                 <td colSpan={visibleDenoms.length} />
-                <td className={`px-2 py-2 text-center font-mono ${t.totalText} font-bold bg-primary/15 text-primary`}>
-                  {(() => {
-                    const total = countLocations.reduce((s, loc) => {
-                      const raw = hcDraft[loc.id];
-                      const n = raw !== undefined && raw !== ""
-                        ? parseInt(raw, 10) || 0
-                        : parseInt(hcSlotValue(loc.id) || "0", 10) || 0;
-                      return s + n;
-                    }, 0);
-                    return total || "·";
-                  })()}
-                </td>
                 <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${grandTotal >= 0 ? "text-success" : "text-destructive"}`}>
                   {grandTotal >= 0 ? "+" : ""}{formatCurrency(grandTotal)}
                 </td>
@@ -487,32 +391,29 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
 
 
   // ===== Snapshot history (per save = group of rows sharing created_at) =====
-  // Each history row shows the CUMULATIVE chip state as of that save: latest
-  // (actual, expected) per (table, denom) for all snapshots with created_at <= ts.
-  // This makes the latest history row equal the Chip Count grid raw delta and
-  // the values written to the Number Count tracker (which uses the same totals).
+  // Each row = the snapshot saved at that timestamp: baseline-delta over the
+  // denoms written in this save, plus the shift's Fill/Credit adjustment so the
+  // latest row equals the Result column in the grid above.
   const history = useMemo(() => {
-    const tableRows = (snapshotsFull as any[])
-      .filter(s => s.location_type === "table" && s.location_id)
-      .sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
-    const tsList = Array.from(new Set(tableRows.map(s => s.created_at))).sort();
-
-    return tsList.map(ts => {
-      const perTableDenoms: Record<string, { actual: Record<number, number>; expected: Record<number, number> }> = {};
-      for (const s of tableRows) {
-        if ((s.created_at || "") > ts) break;
-        const tid = s.location_id as string;
-        if (!perTableDenoms[tid]) perTableDenoms[tid] = { actual: {}, expected: {} };
-        perTableDenoms[tid].actual[Number(s.denomination)] = Number(s.actual_quantity);
-        perTableDenoms[tid].expected[Number(s.denomination)] = Number(s.expected_quantity);
+    const groups: Record<string, { ts: string; perTableDenoms: Record<string, { actual: Record<number, number>; expected: Record<number, number> }> }> = {};
+    (snapshotsFull as any[]).forEach((s) => {
+      if (s.location_type !== "table" || !s.location_id) return;
+      const ts = s.created_at;
+      if (!groups[ts]) groups[ts] = { ts, perTableDenoms: {} };
+      if (!groups[ts].perTableDenoms[s.location_id]) {
+        groups[ts].perTableDenoms[s.location_id] = { actual: {}, expected: {} };
       }
+      groups[ts].perTableDenoms[s.location_id].actual[Number(s.denomination)] = Number(s.actual_quantity);
+      groups[ts].perTableDenoms[s.location_id].expected[Number(s.denomination)] = Number(s.expected_quantity);
+    });
+    return Object.values(groups).map(g => {
       const perTable: Record<string, number> = {};
-      Object.entries(perTableDenoms).forEach(([tid, dn]) => {
-        perTable[tid] = chipSnapshotResult(dn.actual, dn.expected);
+      Object.entries(g.perTableDenoms).forEach(([tid, dn]) => {
+        perTable[tid] = chipSnapshotResult(dn.actual, dn.expected) + adjustmentFor(tid);
       });
-      return { ts, perTable, perTableDenoms, total: Object.values(perTable).reduce((s, v) => s + v, 0) };
+      return { ts: g.ts, perTable, perTableDenoms: g.perTableDenoms, total: Object.values(perTable).reduce((s, v) => s + v, 0) };
     }).sort((a, b) => b.ts.localeCompare(a.ts));
-  }, [snapshotsFull]);
+  }, [snapshotsFull, adjustmentFor]);
 
   const detailGroup = useMemo(
     () => (detailTs ? history.find(h => h.ts === detailTs) ?? null : null),
@@ -553,7 +454,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
           <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
             <History className="w-4 h-4 text-muted-foreground" />
             <h4 className="text-sm font-semibold text-card-foreground">Snapshot history · {date}</h4>
-            <span className="text-[10px] text-muted-foreground ml-auto">{history.length} saves · cumulative chip delta as of save (without Fill/Credit)</span>
+            <span className="text-[10px] text-muted-foreground ml-auto">{history.length} saves · result vs baseline (incl. Fill/Credit)</span>
           </div>
           <div className="overflow-auto max-h-[280px]">
             <table className="w-full border-collapse text-xs">
@@ -593,38 +494,6 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                   );
                 })}
               </tbody>
-              <tfoot className="sticky bottom-0 bg-card">
-                <tr className="border-t-2 border-border">
-                  <td className="px-2 py-1 text-muted-foreground text-[10px] uppercase tracking-wider">Fill/Credit (shift)</td>
-                  {historyColumns.map(loc => {
-                    const adj = adjustmentFor(loc.id);
-                    if (!adj) return <td key={loc.id} className="px-2 py-1 text-right text-muted-foreground/30">·</td>;
-                    return (
-                      <td key={loc.id} className={`px-2 py-1 text-right font-mono ${adj >= 0 ? "text-success" : "text-destructive"}`}>
-                        {adj >= 0 ? "+" : ""}{formatCurrency(adj)}
-                      </td>
-                    );
-                  })}
-                  <td className={`px-2 py-1 text-right font-mono font-semibold ${historyColumns.reduce((s, l) => s + adjustmentFor(l.id), 0) >= 0 ? "text-success" : "text-destructive"}`}>
-                    {(() => { const t = historyColumns.reduce((s, l) => s + adjustmentFor(l.id), 0); return (t >= 0 ? "+" : "") + formatCurrency(t); })()}
-                  </td>
-                </tr>
-                <tr className="border-t border-border bg-muted/20">
-                  <td className="px-2 py-1 text-card-foreground text-[10px] uppercase tracking-wider font-semibold">Current (latest + Fill/Credit)</td>
-                  {historyColumns.map(loc => {
-                    const r = rowResults.find(rr => rr.key === loc.key);
-                    const v = r?.total ?? 0;
-                    return (
-                      <td key={loc.id} className={`px-2 py-1 text-right font-mono font-semibold ${v >= 0 ? "text-success" : "text-destructive"}`}>
-                        {v >= 0 ? "+" : ""}{formatCurrency(v)}
-                      </td>
-                    );
-                  })}
-                  <td className={`px-2 py-1 text-right font-mono font-bold ${grandTotal >= 0 ? "text-success" : "text-destructive"}`}>
-                    {grandTotal >= 0 ? "+" : ""}{formatCurrency(grandTotal)}
-                  </td>
-                </tr>
-              </tfoot>
             </table>
           </div>
         </div>
