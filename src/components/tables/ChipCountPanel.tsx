@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
-import { Save, Maximize2, Minimize2, History, Tablet, Users } from "lucide-react";
+import { Save, Maximize2, Minimize2, History, Tablet } from "lucide-react";
 import { useChipSnapshots, useChipSnapshotsFull, useBatchChipSnapshot } from "@/hooks/use-chips";
 import { useChipBaseline, baselineToMap } from "@/hooks/use-table-lifecycle";
-import { useGamingTables, useSetTableTrackerValue, useBatchSetTableTrackerValue, useTableTracker, useTableHeadCount, useBatchSetTableHeadCount } from "@/hooks/use-casino-data";
+import { useGamingTables, useSetTableTrackerValue, useBatchSetTableTrackerValue, useTableTracker } from "@/hooks/use-casino-data";
 import { CHIP_DENOMS, formatChipLabel, formatCurrency } from "@/lib/currency";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useChipColors, resolveChipColor, useVisibleChipDenoms } from "@/hooks/use-chip-colors";
