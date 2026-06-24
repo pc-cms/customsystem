@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useUpsertWarningCommentByKey } from "@/hooks/use-staff-warnings";
 import { isExtraShift } from "@/lib/shift-colors";
-import { useScrollMemory } from "@/hooks/use-scroll-memory";
+
 
 const CATEGORY_LABELS: Record<string, string> = {
   trainee: "T",
