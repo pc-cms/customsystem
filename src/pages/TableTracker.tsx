@@ -166,6 +166,15 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
             >
               <Coins className="h-4 w-4" /> Chips
             </Button>
+            <Button
+              type="button"
+              variant={mode === "headcount" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setMode("headcount")}
+              className="rounded-none gap-1.5 h-9 px-3"
+            >
+              <Users className="h-4 w-4" /> Head Count
+            </Button>
           </div>
           {isManager ? (
             <DateNavigator
