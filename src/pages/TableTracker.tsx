@@ -101,6 +101,14 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const getSlotTotal = (slot: string) =>
     trackerData.filter(t => t.time_slot === slot).reduce((s, t) => s + Number(t.value), 0);
 
+  const getHeadCount = (tableId: string, slot: string): number | null => {
+    const e = headCountData.find((h: any) => h.table_id === tableId && h.time_slot === slot);
+    return e ? Number(e.value) : null;
+  };
+
+  const getSlotHeadCountTotal = (slot: string) =>
+    headCountData.filter((h: any) => h.time_slot === slot).reduce((s: number, h: any) => s + Number(h.value), 0);
+
   const grandTotal = trackerData.reduce((s, t) => s + Number(t.value), 0);
 
   const focusCell = (ti: number, si: number) => {
