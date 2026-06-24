@@ -206,7 +206,7 @@ const SlotsConsolidatedReport = ({
             <td className="border border-black px-1.5 py-0.5">Cash Desk Cards FILL</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{cashDeskCardsFill ? formatNumberSpaces(cashDeskCardsFill) : ""}</td>
             <td className="border border-black px-1.5 py-0.5">Miss Cards</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{missCards !== 0 ? missCards : ""}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{missCards !== 0 ? (missCards > 0 ? "+" : "") + missCards : ""}</td>
           </tr>
           <tr>
             <td className="border border-black px-1.5 py-0.5">Cash Desk Cards CREDIT</td>

@@ -261,7 +261,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
 
     const cardDepositTzs = 5000;
     const missCardCount = cards
-      ? Number(cards.opening_card_count || 0) - Number(cards.closing_card_count || 0)
+      ? Number(cards.closing_card_count || 0) - Number(cards.opening_card_count || 0)
       : 0;
 
     return {
@@ -289,7 +289,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       cashFlowCredit: tx.collection,
       cashDeskCardsFill: 0,
       cashDeskCardsCredit: 0,
-      missCards: -Math.abs(missCardCount),  // shown as negative like paper
+      missCards: missCardCount,  // signed: + surplus / − deficit
       casinoExpenses,
       tipsCollection: (tipsCd || []).reduce((s: number, t: any) => s + Number(t.amount || 0), 0),
       tipsCollectionDay: (tipsCd || []).filter((t: any) => tipsBucketOf(t.created_at) === "day").reduce((s: number, t: any) => s + Number(t.amount || 0), 0),

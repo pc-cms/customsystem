@@ -561,7 +561,11 @@ const ShiftClosingReport = ({
             <td className="border border-black px-1.5 py-0.5 text-right"></td>
             <td className="border border-black px-1.5 py-0.5 font-semibold">Miss Chips</td>
             <td className="border border-black px-1.5 py-0.5 text-right font-bold">
-              {missTotal === 0 ? "" : `-${numAlways(Math.abs(missTotal))}`}
+              {(() => {
+                const v = -missTotal; // invert storage convention: + surplus / − deficit
+                if (v === 0) return "";
+                return (v > 0 ? "+" : "−") + numAlways(Math.abs(v));
+              })()}
             </td>
           </tr>
           <tr>
