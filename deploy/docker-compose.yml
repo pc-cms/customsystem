@@ -130,7 +130,7 @@ services:
   # REALTIME
   # ────────────────────────────────────────────────────────────────
   realtime:
-    image: supabase/realtime:v2.30.34
+    image: supabase/realtime:v2.33.72
     container_name: cms-realtime
     <<: [*restart_policy, *default_logging]
     depends_on:
