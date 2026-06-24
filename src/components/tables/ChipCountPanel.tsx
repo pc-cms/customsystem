@@ -331,6 +331,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
               {visibleDenoms.map(d => (
                 <col key={d} style={{ width: t.chipColW }} />
               ))}
+              <col style={{ width: t.chipColW }} />
               <col style={{ width: t.resultColW }} />
             </colgroup>
             <thead>
@@ -351,14 +352,23 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                     </th>
                   );
                 })}
+                <th
+                  className={`text-center ${t.headerPadY} px-0.5 font-medium bg-primary/15 ring-1 ring-inset ring-primary/40`}
+                  title={hcSlot ? `Head Count → slot ${hcSlot === "05:00" ? "Final" : hcSlot}` : "Head Count (no active slot)"}
+                >
+                  <span className={`inline-flex items-center gap-1 ${t.headerText} font-bold uppercase tracking-wider text-primary`}>
+                    <Users className="w-3 h-3" /> HC
+                  </span>
+                </th>
                 <th className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider`}>Result</th>
               </tr>
             </thead>
             <tbody>
               {countLocations.map((loc, ri) => {
                 const locCounts = counts[loc.key] || {};
-                const tableBaseline = baselineMap[loc.id] || {};
                 const rowResult = rowResults[ri]?.total ?? 0;
+                const hcPlaceholder = hcSlotValue(loc.id);
+                const hcRaw = hcDraft[loc.id];
                 return (
                   <tr key={loc.key} className={`border-b border-border last:border-0 ${ri % 2 === 1 ? "bg-muted/10" : ""}`}>
                     <td
@@ -398,6 +408,25 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                         </td>
                       );
                     })}
+                    <td className={`${t.rowPadX} ${t.rowPadY} bg-primary/10`}>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={2}
+                        value={hcRaw ?? ""}
+                        readOnly={readOnly || !hcSlot}
+                        onFocus={e => { requestAnimationFrame(() => (e.target as HTMLInputElement).select()); }}
+                        onChange={e => {
+                          if (readOnly || !hcSlot) return;
+                          const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
+                          if (digits === "") { setHcDraft(d => ({ ...d, [loc.id]: "" })); return; }
+                          const n = Math.min(99, Math.max(0, parseInt(digits, 10)));
+                          setHcDraft(d => ({ ...d, [loc.id]: String(n) }));
+                        }}
+                        className={`no-spin w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-primary/40 bg-primary/5 focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground placeholder:text-muted-foreground/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                        placeholder={hcPlaceholder || "·"}
+                      />
+                    </td>
                     <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} font-bold whitespace-nowrap ${rowResult >= 0 ? "text-success" : "text-destructive"}`}>
                       {rowResult >= 0 ? "+" : ""}{formatCurrency(rowResult)}
                     </td>
@@ -409,6 +438,18 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                   Total
                 </td>
                 <td colSpan={visibleDenoms.length} />
+                <td className={`px-2 py-2 text-center font-mono ${t.totalText} font-bold bg-primary/15 text-primary`}>
+                  {(() => {
+                    const total = countLocations.reduce((s, loc) => {
+                      const raw = hcDraft[loc.id];
+                      const n = raw !== undefined && raw !== ""
+                        ? parseInt(raw, 10) || 0
+                        : parseInt(hcSlotValue(loc.id) || "0", 10) || 0;
+                      return s + n;
+                    }, 0);
+                    return total || "·";
+                  })()}
+                </td>
                 <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${grandTotal >= 0 ? "text-success" : "text-destructive"}`}>
                   {grandTotal >= 0 ? "+" : ""}{formatCurrency(grandTotal)}
                 </td>
@@ -419,6 +460,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       </div>
     );
   };
+
 
   // ===== Snapshot history (per save = group of rows sharing created_at) =====
   const history = useMemo(() => {
