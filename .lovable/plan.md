@@ -1,51 +1,34 @@
-## Цель
+## Проблема
 
-Убрать «капризную» память горизонтальной прокрутки в `BreaklistGrid` и заменить её на детерминированный якорь: при каждом маунте/смене даты сетка автоматически центрируется на текущем 20-минутном слоте (`currentSlot`). Никакого sessionStorage, никаких сбросов в 0.
+Подсветка ZONE на Player Tracking не показывается, хотя в БД зоны проставлены (`player_daily_zones` за 2026-06-24 содержит LG для всех активных). RLS открытый (`zones_select_authenticated USING true`), данные доступны.
 
-## Поведение
+Причина: после предыдущего фикса (queryFn возвращает `Record` вместо `Map`) у клиента в персистентном кэше остался старый снапшот — Map, сериализованный JSON-ом, превращался в `{}`, и без `refetchOnMount: "always"` React Query считает рехидратированный `{}` свежим (`staleTime: 15_000`) и не делает фоновый запрос ровно до истечения staleTime. Если пользователь смотрит на страницу и сразу видит «·», он не понимает, что через 15 секунд цвета появятся.
 
-- **Сегодняшняя дата (`isToday`)**: после загрузки данных скроллим контейнер так, чтобы колонка `currentSlot` оказалась примерно по центру видимой области (`scrollLeft = slotLeft − (viewportWidth − slotWidth) / 2`, кламп в `[0, scrollWidth − clientWidth]`).
-- **Прошлые/будущие даты**: якорим на 18:00 (начало смены) — слева, `scrollLeft = 0`. Это естественное «домой» для просмотра архива.
-- **Ручная прокрутка пользователя**: разрешена и ничем не блокируется. Авто-центрирование срабатывает только один раз за маунт + при смене `date`. Реалтайм-инвалидации данных не двигают скролл.
-- **Кнопки/панель**: не добавляем (пользователь выбрал вариант C — без памяти, без кнопок).
+## Решение
 
-## Технические изменения
+Привести `usePlayerDailyZones` к тому же режиму, что и `useChipSnapshots` (кросс-устройство, всегда свежие данные на маунте):
 
-Файлы:
+`src/hooks/use-player-daily-zones.ts`:
 
-- `src/components/pit/BreaklistGrid.tsx`
-  - Удалить импорт и использование `useScrollMemory` (строки 19, 85). Снять `ref`/`onScroll` со скролл-контейнера (строка 445), оставить обычный `<div className="cms-panel overflow-auto">`.
-  - Завести локальный `scrollRef = useRef<HTMLDivElement>(null)` и `data-slot={slot}` атрибут на ячейках заголовка времени (или на первой ячейке столбца), чтобы найти координату нужного слота через `querySelector('[data-slot="HH:MM"]')`.
-  - Новый `useEffect`, ключи: `[date, isToday, dealers.length, currentSlot]`, флаг `didAnchorRef` сбрасывается при смене `date`. Логика:
-    ```text
-    if (!scrollRef.current || dealers.length === 0) return;
-    if (didAnchorRef.current) return;
-    const target = isToday ? currentSlot : "18:00";
-    const el = scrollRef.current.querySelector(`[data-slot="${target}"]`);
-    if (!el) return;
-    requestAnimationFrame(() => {
-      const rect = el.getBoundingClientRect();
-      const wrap = scrollRef.current!;
-      const wrapRect = wrap.getBoundingClientRect();
-      const delta = rect.left - wrapRect.left - (wrap.clientWidth - rect.width) / 2;
-      wrap.scrollLeft = Math.max(0, Math.min(wrap.scrollWidth - wrap.clientWidth, wrap.scrollLeft + delta));
-      didAnchorRef.current = true;
-    });
-    ```
-  - При смене `date` сбрасывать `didAnchorRef.current = false` отдельным `useEffect`.
+```ts
+enabled: !!casinoId && !!businessDate,
+staleTime: 15_000,
+refetchOnMount: "always",      // ← новое: игнорировать рехидрированный пустой кэш
+refetchOnWindowFocus: true,    // ← новое: возврат в таб → свежие зоны
+refetchOnReconnect: true,      // ← новое: после обрыва сети
+refetchInterval: 30_000,
+```
 
-- `src/hooks/use-scroll-memory.ts`
-  - Оставить файл как есть (используется только в брейклисте; на случай, если понадобится вернуть — пусть лежит). Если хочешь чистоту — удалить; уточним при имплементации, но по умолчанию оставляем.
+`select` остаётся как есть (Record → Map, мемоизируется по референсной равности `data`).
 
 ## Что НЕ меняем
 
-- Никаких изменений в данных, реалтайме, ролях, ячейках, попап-пикере, attendance.
-- Никаких новых кнопок, тулбаров или настроек.
-- Вертикальная прокрутка/зум — без изменений.
+- БД, RLS, бэкфил, триггеры — без изменений.
+- UI/таблица — без изменений.
+- Сам Map-маппинг и обработчик `useSetPlayerDailyZone` — без изменений.
 
 ## Проверка
 
-1. Открыть `/pit?tab=breaklist` на сегодняшнюю дату → колонка текущего слота должна оказаться в центре видимой части без ручной прокрутки.
-2. Прокрутить вручную влево/вправо → позиция держится, реалтайм-обновления ячеек её не трогают.
-3. Сменить дату на вчерашнюю → скролл «домой» (18:00 слева).
-4. Вернуться на сегодня → снова авто-центр на `currentSlot`.
+1. Открыть Player Tracking → колонка ZONE сразу окрашена в синие чипы `LG`.
+2. Свернуть/развернуть вкладку → значения остаются (или подтягиваются за один тик).
+3. Поменять зону вручную у одного игрока → видно изменение, у других — без мерцаний.

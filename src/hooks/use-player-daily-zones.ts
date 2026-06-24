@@ -37,6 +37,9 @@ export function usePlayerDailyZones(businessDate: string | undefined) {
     },
     enabled: !!casinoId && !!businessDate,
     staleTime: 15_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     refetchInterval: 30_000,
     // React Query memoizes select output by structural equality of input,
     // so the resulting Map is stable across renders until data actually changes.
