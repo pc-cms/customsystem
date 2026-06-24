@@ -40,6 +40,11 @@ export const useMyEffectivePerms = () => {
       return fetchEffective(user.id);
     },
     enabled: !!user?.id,
+    // On older on-prem nodes the RPC may be temporarily missing until schema
+    // repair catches up. Don't keep the whole CMS on Loading while retrying a
+    // UI-only permission check; RoleGuard falls back to rendering and RLS stays
+    // the real security boundary.
+    retry: false,
     // Permissions effectively never change mid-session. Cache for the
     // entire session; mutations explicitly invalidate this key.
     staleTime: Infinity,
