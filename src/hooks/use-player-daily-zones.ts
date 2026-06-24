@@ -19,27 +19,34 @@ export function usePlayerDailyZones(businessDate: string | undefined) {
   const { casinoId } = useAuth();
   return useQuery({
     queryKey: [KEY, casinoId, businessDate],
-    queryFn: async () => {
-      const m = new Map<string, PlayerZone>();
-      if (!casinoId || !businessDate) return m;
+    // IMPORTANT: queryFn returns a plain Record so the data survives JSON
+    // serialization (the persistent query cache cannot store Map instances —
+    // they round-trip as `{}` and the zone column flickers empty on rehydrate).
+    queryFn: async (): Promise<Record<string, PlayerZone>> => {
+      if (!casinoId || !businessDate) return {};
       const { data, error } = await (supabase.from as any)("player_daily_zones")
         .select("player_id, zone")
         .eq("casino_id", casinoId)
         .eq("business_date", businessDate);
       if (error) throw error;
+      const rec: Record<string, PlayerZone> = {};
       for (const r of (data || []) as Array<{ player_id: string; zone: PlayerZone }>) {
-        m.set(r.player_id, r.zone);
+        rec[r.player_id] = r.zone;
       }
-      return m;
+      return rec;
     },
     enabled: !!casinoId && !!businessDate,
     staleTime: 15_000,
     refetchInterval: 30_000,
-    // Defensive: if persisted cache rehydrated as plain object (legacy),
-    // rebuild a Map so consumers' `.get()` always works.
-    select: (d: any) => (d instanceof Map ? d : new Map<string, PlayerZone>(Object.entries(d ?? {}))),
+    // React Query memoizes select output by structural equality of input,
+    // so the resulting Map is stable across renders until data actually changes.
+    select: (d: Record<string, PlayerZone> | Map<string, PlayerZone> | null | undefined) => {
+      if (d instanceof Map) return d;
+      return new Map<string, PlayerZone>(Object.entries(d ?? {}));
+    },
   });
 }
+
 
 /** Upsert (or clear) a zone for one player on one business day. */
 export function useSetPlayerDailyZone() {
