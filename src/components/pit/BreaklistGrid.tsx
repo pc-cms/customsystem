@@ -478,6 +478,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                   return (
                     <th
                       key={slot}
+                      data-slot={slot}
                       className={`text-center text-[9px] font-mono px-0.5 py-2 min-w-[52px] ${
                         isActive ? "bg-primary text-primary-foreground font-bold border-x-2 border-primary" : "text-muted-foreground"
                       } ${isHourStart && !isActive ? "border-l-2 border-foreground/25" : ""}`}
