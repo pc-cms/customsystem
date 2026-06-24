@@ -1,44 +1,51 @@
-## Goal
+## Цель
 
-1. Snapshot history снова per-save vs baseline + Fill/Credit (откат недавнего «cumulative»).
-2. Полностью убрать колонку **HC** из грида Chip Count и запись в `table_head_count` при Save Snapshot. HC в Number Count tracker и так считается из активных игроков в казино — наш ручной HC дублировал/конфликтовал и не нужен.
-3. Убрать `touched` state из инпутов. Поле — просто всегда белая цифра последнего счёта, оператор редактирует прямо.
+Убрать «капризную» память горизонтальной прокрутки в `BreaklistGrid` и заменить её на детерминированный якорь: при каждом маунте/смене даты сетка автоматически центрируется на текущем 20-минутном слоте (`currentSlot`). Никакого sessionStorage, никаких сбросов в 0.
 
-## Changes (one file: `src/components/tables/ChipCountPanel.tsx`)
+## Поведение
 
-### 1. Snapshot history → per-save vs baseline + F/C
+- **Сегодняшняя дата (`isToday`)**: после загрузки данных скроллим контейнер так, чтобы колонка `currentSlot` оказалась примерно по центру видимой области (`scrollLeft = slotLeft − (viewportWidth − slotWidth) / 2`, кламп в `[0, scrollWidth − clientWidth]`).
+- **Прошлые/будущие даты**: якорим на 18:00 (начало смены) — слева, `scrollLeft = 0`. Это естественное «домой» для просмотра архива.
+- **Ручная прокрутка пользователя**: разрешена и ничем не блокируется. Авто-центрирование срабатывает только один раз за маунт + при смене `date`. Реалтайм-инвалидации данных не двигают скролл.
+- **Кнопки/панель**: не добавляем (пользователь выбрал вариант C — без памяти, без кнопок).
 
-В `const history = useMemo(...)`:
-- группировать строго по `created_at` (как раньше);
-- результат стола = `Σ (actual − expected) × denom` ТОЛЬКО по сохранённым в этом save (denom);
-- к итогу добавлять `adjustmentFor(table.id)` (shift Fill/Credit), чтобы последняя строка совпадала с Result в гриде;
-- подпись справа: `N saves · result vs baseline (incl. Fill/Credit)`.
+## Технические изменения
 
-`<tfoot>` со строками «Fill/Credit (shift)» и «Current (latest + Fill/Credit)» удалить — F/C уже в каждой строке.
+Файлы:
 
-### 2. Удалить колонку HC
+- `src/components/pit/BreaklistGrid.tsx`
+  - Удалить импорт и использование `useScrollMemory` (строки 19, 85). Снять `ref`/`onScroll` со скролл-контейнера (строка 445), оставить обычный `<div className="cms-panel overflow-auto">`.
+  - Завести локальный `scrollRef = useRef<HTMLDivElement>(null)` и `data-slot={slot}` атрибут на ячейках заголовка времени (или на первой ячейке столбца), чтобы найти координату нужного слота через `querySelector('[data-slot="HH:MM"]')`.
+  - Новый `useEffect`, ключи: `[date, isToday, dealers.length, currentSlot]`, флаг `didAnchorRef` сбрасывается при смене `date`. Логика:
+    ```text
+    if (!scrollRef.current || dealers.length === 0) return;
+    if (didAnchorRef.current) return;
+    const target = isToday ? currentSlot : "18:00";
+    const el = scrollRef.current.querySelector(`[data-slot="${target}"]`);
+    if (!el) return;
+    requestAnimationFrame(() => {
+      const rect = el.getBoundingClientRect();
+      const wrap = scrollRef.current!;
+      const wrapRect = wrap.getBoundingClientRect();
+      const delta = rect.left - wrapRect.left - (wrap.clientWidth - rect.width) / 2;
+      wrap.scrollLeft = Math.max(0, Math.min(wrap.scrollWidth - wrap.clientWidth, wrap.scrollLeft + delta));
+      didAnchorRef.current = true;
+    });
+    ```
+  - При смене `date` сбрасывать `didAnchorRef.current = false` отдельным `useEffect`.
 
-- `<col>` для HC в `<colgroup>`, `<th>` HC в `<thead>`, `<td>` с HC-инпутом в каждой `<tr>`, HC-ячейка в строке Total — удалить. `colSpan` пересчитать.
-- Удалить state `hcDraft`/`setHcDraft`, hooks `useTableHeadCount`, `useBatchSetTableHeadCount`, `batchHeadCount`, `hcTarget`, `hcSlot`, `hcSlotValue`.
-- Удалить ветку записи HC в `handleSave` (от `if (hcSlot && !readOnly)` до конца блока).
-- Удалить `setHcDraft({})` из `useEffect`.
-- Убрать импорт `Users` (становится unused).
+- `src/hooks/use-scroll-memory.ts`
+  - Оставить файл как есть (используется только в брейклисте; на случай, если понадобится вернуть — пусть лежит). Если хочешь чистоту — удалить; уточним при имплементации, но по умолчанию оставляем.
 
-### 3. Inputs без touched state
+## Что НЕ меняем
 
-Откатить недавно добавленный `touched`/`onFocus`-clear/`onBlur`-revert. Логика:
-- `counts[loc.key][d]` инициализируется в `useEffect` значением `getLastCheck(loc.id, d)` (а не `NaN`).
-- Тот же `useEffect` запускается при изменении `tableSetKey` и при появлении новых snapshot'ов (`latestSnapshotPerTable`) — но только для ячеек, которые равны прежнему `lastCheck` (чтобы не затирать вводимое оператором). Простой вариант: при изменении `tableSetKey` инициализировать все ячейки `lastCheck`; при поступлении нового snapshot — пере-инициализировать только если ячейка совпадает с прошлым `lastCheck` (т.е. оператор её не правил после).
-- `displayValue` = `String(counts[loc.key][d] ?? lastCheck)`, реальный белый текст, без placeholder.
-- `onChange`: пишет число (или 0 при пустом).
-- `onFocus`: `e.target.select()` чтобы было удобно перепечатать.
-- `rowResults`: `actual = counts[loc.key][d] ?? lastCheck` — без NaN-веток.
-- `handleSave`: пишет snapshot по всем (table, denom) с текущим `counts` (полный snapshot стола каждый раз) — это ровно то, что хочет пользователь: «каждый snapshot = текущая разница с baseline».
+- Никаких изменений в данных, реалтайме, ролях, ячейках, попап-пикере, attendance.
+- Никаких новых кнопок, тулбаров или настроек.
+- Вертикальная прокрутка/зум — без изменений.
 
-## Acceptance
+## Проверка
 
-- В гриде Chip Count нет колонки HC. Save Snapshot пишет только в `chip_snapshots`, не трогает `table_head_count`.
-- Все ячейки — белые цифры (последний счёт или baseline). Клик → текст выделяется, можно сразу ввести новое.
-- Save Snapshot создаёт полный snapshot по всем денoм всех открытых столов с текущими цифрами.
-- В Snapshot history каждая строка = baseline-дельта этого save + shift F/C; последняя строка совпадает с Result в гриде. Лишних footer-строк нет.
-- Number Count tracker и его HC не трогаем — он сам считается из активных игроков.
+1. Открыть `/pit?tab=breaklist` на сегодняшнюю дату → колонка текущего слота должна оказаться в центре видимой части без ручной прокрутки.
+2. Прокрутить вручную влево/вправо → позиция держится, реалтайм-обновления ячеек её не трогают.
+3. Сменить дату на вчерашнюю → скролл «домой» (18:00 слева).
+4. Вернуться на сегодня → снова авто-центр на `currentSlot`.

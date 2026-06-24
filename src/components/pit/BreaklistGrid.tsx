@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCasino } from "@/lib/casino-context";
@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useUpsertWarningCommentByKey } from "@/hooks/use-staff-warnings";
 import { isExtraShift } from "@/lib/shift-colors";
-import { useScrollMemory } from "@/hooks/use-scroll-memory";
+
 
 const CATEGORY_LABELS: Record<string, string> = {
   trainee: "T",
@@ -82,7 +82,8 @@ const isClearedBreaklistCell = (cell: any) => cell?.role === "CLR";
 const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const { data: dealers = [] } = useDealers();
   const { data: breaklist = [] } = useBreaklistData(date);
-  const scrollMem = useScrollMemory<HTMLDivElement>("breaklist-scroll", dealers.length > 0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const didAnchorRef = useRef(false);
   const { data: tables = [] } = useGamingTables();
   const { data: rota = [] } = usePitRotaRange(date, date);
   const { data: attendance = [] } = useDealerAttendance(date);
@@ -181,6 +182,30 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   // Pit role is the on-duty operator and must be able to prepare the breaklist
   // ahead of the 18:00 shift start, so they bypass the morning-lock window.
   const isEditable = isToday && (!pastLock || isManager || isPit);
+
+  // Reset anchor flag when the date changes — re-center on next layout.
+  useEffect(() => { didAnchorRef.current = false; }, [date]);
+
+  // One-shot horizontal auto-center: today → current 20-min slot, other days → 18:00.
+  // Runs after data is available; subsequent realtime updates do not re-trigger it,
+  // so the user's manual scroll position is preserved.
+  useEffect(() => {
+    if (didAnchorRef.current) return;
+    const wrap = scrollRef.current;
+    if (!wrap || dealers.length === 0) return;
+    const target = isToday ? currentSlot : "18:00";
+    const raf = requestAnimationFrame(() => {
+      const el = wrap.querySelector<HTMLElement>(`[data-slot="${target}"]`);
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const wrapRect = wrap.getBoundingClientRect();
+      const delta = rect.left - wrapRect.left - (wrap.clientWidth - rect.width) / 2;
+      const next = Math.max(0, Math.min(wrap.scrollWidth - wrap.clientWidth, wrap.scrollLeft + delta));
+      wrap.scrollLeft = isToday ? next : 0;
+      didAnchorRef.current = true;
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [date, isToday, currentSlot, dealers.length]);
 
   // Inline role picker state
   const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string; dropUp: boolean; dropLeft: boolean; rect: { top: number; left: number; bottom: number; right: number; width: number; height: number } } | null>(null);
@@ -442,7 +467,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
 
   return (
     <>
-      <div ref={scrollMem.ref} onScroll={scrollMem.onScroll} className="cms-panel overflow-auto" style={{ zoom: `${zoom}%` }}>
+      <div ref={scrollRef} className="cms-panel overflow-auto" style={{ zoom: `${zoom}%` }}>
         <div className="min-w-[1400px]">
           <table className="w-full border-collapse">
             <thead>
@@ -477,6 +502,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                   return (
                     <th
                       key={slot}
+                      data-slot={slot}
                       className={`text-center text-[9px] font-mono px-0.5 py-2 min-w-[52px] ${
                         isActive ? "bg-primary text-primary-foreground font-bold border-x-2 border-primary" : "text-muted-foreground"
                       } ${isHourStart && !isActive ? "border-l-2 border-foreground/25" : ""}`}
