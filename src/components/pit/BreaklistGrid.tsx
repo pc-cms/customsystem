@@ -183,6 +183,30 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   // ahead of the 18:00 shift start, so they bypass the morning-lock window.
   const isEditable = isToday && (!pastLock || isManager || isPit);
 
+  // Reset anchor flag when the date changes — re-center on next layout.
+  useEffect(() => { didAnchorRef.current = false; }, [date]);
+
+  // One-shot horizontal auto-center: today → current 20-min slot, other days → 18:00.
+  // Runs after data is available; subsequent realtime updates do not re-trigger it,
+  // so the user's manual scroll position is preserved.
+  useEffect(() => {
+    if (didAnchorRef.current) return;
+    const wrap = scrollRef.current;
+    if (!wrap || dealers.length === 0) return;
+    const target = isToday ? currentSlot : "18:00";
+    const raf = requestAnimationFrame(() => {
+      const el = wrap.querySelector<HTMLElement>(`[data-slot="${target}"]`);
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const wrapRect = wrap.getBoundingClientRect();
+      const delta = rect.left - wrapRect.left - (wrap.clientWidth - rect.width) / 2;
+      const next = Math.max(0, Math.min(wrap.scrollWidth - wrap.clientWidth, wrap.scrollLeft + delta));
+      wrap.scrollLeft = isToday ? next : 0;
+      didAnchorRef.current = true;
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [date, isToday, currentSlot, dealers.length]);
+
   // Inline role picker state
   const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string; dropUp: boolean; dropLeft: boolean; rect: { top: number; left: number; bottom: number; right: number; width: number; height: number } } | null>(null);
   // HR comment dialog state (opens after A/S/SP/LT to capture a short note)
