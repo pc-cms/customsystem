@@ -61,16 +61,31 @@ Deno.serve(async (req) => {
     return new Response("unauthorized", { status: 401, headers: corsHeaders });
   }
 
-  const { data, error } = await admin.rpc("export_full_schema_ddl");
-  if (error) {
-    return new Response(`-- export_full_schema_ddl failed: ${error.message}`, {
+  // Stream directly from PostgREST as text to avoid loading the full DDL
+  // into memory twice (JSON parse + re-stringify) which triggers the
+  // 256MB edge-function memory cap on large schemas.
+  const rpcResp = await fetch(`${supabaseUrl}/rest/v1/rpc/export_full_schema_ddl`, {
+    method: "POST",
+    headers: {
+      apikey: serviceRoleKey,
+      authorization: `Bearer ${serviceRoleKey}`,
+      "content-type": "application/json",
+      accept: "text/plain",
+    },
+    body: "{}",
+  });
+
+  if (!rpcResp.ok) {
+    const msg = await rpcResp.text().catch(() => "");
+    return new Response(`-- export_full_schema_ddl failed (${rpcResp.status}): ${msg}`, {
       status: 500,
       headers: { ...corsHeaders, "content-type": "text/plain; charset=utf-8" },
     });
   }
 
-  return new Response(String(data ?? ""), {
+  return new Response(rpcResp.body, {
     status: 200,
     headers: { ...corsHeaders, "content-type": "text/plain; charset=utf-8" },
   });
 });
+
