@@ -522,12 +522,23 @@ const PlayerStatistics = () => {
     });
   }, [displayRows, tab, categoryFilter, zoneFilter, activeOnly, search, sortKey, sortDir]);
 
-  const counts = useMemo(() => ({
-    day: displayRows.length,
-    present: displayRows.filter((r: any) => r.isPresent).length,
-    left: displayRows.filter((r: any) => !r.isPresent).length,
-    active: displayRows.filter(isActiveRow).length,
-  }), [displayRows]);
+  const counts = useMemo(() => {
+    const activeRows = displayRows.filter(isActiveRow);
+    const tabActive = tab === "present"
+      ? activeRows.filter((r: any) => r.isPresent).length
+      : tab === "left"
+        ? activeRows.filter((r: any) => !r.isPresent).length
+        : activeRows.length;
+    return {
+      day: displayRows.length,
+      present: displayRows.filter((r: any) => r.isPresent).length,
+      left: displayRows.filter((r: any) => !r.isPresent).length,
+      active: tabActive,
+      activeDay: activeRows.length,
+      activePresent: activeRows.filter((r: any) => r.isPresent).length,
+      activeLeft: activeRows.filter((r: any) => !r.isPresent).length,
+    };
+  }, [displayRows, tab]);
 
   // Totals across the currently filtered list (period + tab + filters + search).
   const totals = useMemo(() => {
