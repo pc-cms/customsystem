@@ -131,8 +131,13 @@ export const useTableTracker = (date: string) => {
       return data;
     },
     enabled: !!casinoId,
+    staleTime: 15_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 };
+
 
 export const useSetTableTrackerValue = () => {
   const qc = useQueryClient();
