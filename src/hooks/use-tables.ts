@@ -131,8 +131,13 @@ export const useTableTracker = (date: string) => {
       return data;
     },
     enabled: !!casinoId,
+    staleTime: 15_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 };
+
 
 export const useSetTableTrackerValue = () => {
   const qc = useQueryClient();
@@ -164,19 +169,31 @@ export const useSetTableTrackerValue = () => {
       await qc.cancelQueries({ queryKey: ["table-tracker", casinoId] });
       const queries = qc.getQueriesData<any[]>({ queryKey: ["table-tracker"] })
         .filter(([key]) => (key as any[])[1] === casinoId);
+      const seenKeys = new Set<string>();
       queries.forEach(([key, data]) => {
-        if (!data) return;
-        const idx = data.findIndex((t: any) => t.table_id === input.table_id && t.time_slot === input.time_slot);
-        const updated = [...data];
+        seenKeys.add(JSON.stringify(key));
+        const base = data ?? [];
+        const idx = base.findIndex((t: any) => t.table_id === input.table_id && t.time_slot === input.time_slot);
+        const updated = [...base];
         const entry = { table_id: input.table_id, date: input.date, time_slot: input.time_slot, value: input.value, casino_id: casinoId, id: `temp-${Date.now()}` };
         if (idx >= 0) { updated[idx] = { ...updated[idx], value: input.value }; } else { updated.push(entry); }
         qc.setQueryData(key, updated);
       });
+      // Seed cache for this exact date if no query was loaded yet — so the
+      // Numbers tab sees the value the moment it mounts.
+      const exactKey = ["table-tracker", casinoId, input.date];
+      if (!seenKeys.has(JSON.stringify(exactKey))) {
+        qc.setQueryData(exactKey, [{
+          table_id: input.table_id, date: input.date, time_slot: input.time_slot,
+          value: input.value, casino_id: casinoId, id: `temp-${Date.now()}`,
+        }]);
+      }
     },
     onError: (_err) => { toast.error("Sync error (tracker) — will retry", { duration: 2000 }); },
-    onSettled: () => {},
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["table-tracker", casinoId] }); },
   });
 };
+
 
 /**
  * Batched tracker writes — single network round-trip for N tables.
@@ -212,9 +229,10 @@ export const useBatchSetTableTrackerValue = () => {
       await qc.cancelQueries({ queryKey: ["table-tracker", casinoId] });
       const queries = qc.getQueriesData<any[]>({ queryKey: ["table-tracker"] })
         .filter(([key]) => (key as any[])[1] === casinoId);
+      const seenKeys = new Set<string>();
       queries.forEach(([key, data]) => {
-        if (!data) return;
-        let updated = [...data];
+        seenKeys.add(JSON.stringify(key));
+        let updated = [...(data ?? [])];
         for (const e of input.entries) {
           const idx = updated.findIndex((t: any) => t.table_id === e.table_id && t.time_slot === e.time_slot);
           const entry = { table_id: e.table_id, date: input.date, time_slot: e.time_slot, value: e.value, casino_id: casinoId, id: `temp-${Date.now()}-${e.table_id}-${e.time_slot}` };
@@ -223,10 +241,20 @@ export const useBatchSetTableTrackerValue = () => {
         }
         qc.setQueryData(key, updated);
       });
+      const exactKey = ["table-tracker", casinoId, input.date];
+      if (!seenKeys.has(JSON.stringify(exactKey))) {
+        qc.setQueryData(exactKey, input.entries.map((e) => ({
+          table_id: e.table_id, date: input.date, time_slot: e.time_slot,
+          value: e.value, casino_id: casinoId,
+          id: `temp-${Date.now()}-${e.table_id}-${e.time_slot}`,
+        })));
+      }
     },
     onError: () => { toast.error("Sync error (tracker batch) — will retry", { duration: 2000 }); },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["table-tracker", casinoId] }); },
   });
 };
+
 
 // ============ TABLE HEAD COUNT (per-table, per-hour, 0-99) ============
 export const useTableHeadCount = (date: string) => {
@@ -244,8 +272,13 @@ export const useTableHeadCount = (date: string) => {
       return data;
     },
     enabled: !!casinoId,
+    staleTime: 15_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 };
+
 
 export const useSetTableHeadCount = () => {
   const qc = useQueryClient();
@@ -274,19 +307,30 @@ export const useSetTableHeadCount = () => {
       await qc.cancelQueries({ queryKey: ["table-head-count", casinoId] });
       const queries = qc.getQueriesData<any[]>({ queryKey: ["table-head-count"] })
         .filter(([key]) => (key as any[])[1] === casinoId);
+      const seenKeys = new Set<string>();
       queries.forEach(([key, data]) => {
-        if (!data) return;
-        const idx = data.findIndex((t: any) => t.table_id === input.table_id && t.time_slot === input.time_slot);
-        const updated = [...data];
+        seenKeys.add(JSON.stringify(key));
+        const base = data ?? [];
+        const idx = base.findIndex((t: any) => t.table_id === input.table_id && t.time_slot === input.time_slot);
+        const updated = [...base];
         const entry = { table_id: input.table_id, date: input.date, time_slot: input.time_slot, value: input.value, casino_id: casinoId, id: `temp-${Date.now()}` };
         if (idx >= 0) updated[idx] = { ...updated[idx], value: input.value };
         else updated.push(entry);
         qc.setQueryData(key, updated);
       });
+      const exactKey = ["table-head-count", casinoId, input.date];
+      if (!seenKeys.has(JSON.stringify(exactKey))) {
+        qc.setQueryData(exactKey, [{
+          table_id: input.table_id, date: input.date, time_slot: input.time_slot,
+          value: input.value, casino_id: casinoId, id: `temp-${Date.now()}`,
+        }]);
+      }
     },
     onError: () => { toast.error("Sync error (head count) — will retry", { duration: 2000 }); },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["table-head-count", casinoId] }); },
   });
 };
+
 
 export const useBatchSetTableHeadCount = () => {
   const qc = useQueryClient();
@@ -316,9 +360,10 @@ export const useBatchSetTableHeadCount = () => {
       await qc.cancelQueries({ queryKey: ["table-head-count", casinoId] });
       const queries = qc.getQueriesData<any[]>({ queryKey: ["table-head-count"] })
         .filter(([key]) => (key as any[])[1] === casinoId);
+      const seenKeys = new Set<string>();
       queries.forEach(([key, data]) => {
-        if (!data) return;
-        let updated = [...data];
+        seenKeys.add(JSON.stringify(key));
+        let updated = [...(data ?? [])];
         for (const e of input.entries) {
           const idx = updated.findIndex((t: any) => t.table_id === e.table_id && t.time_slot === e.time_slot);
           const entry = { table_id: e.table_id, date: input.date, time_slot: e.time_slot, value: e.value, casino_id: casinoId, id: `temp-${Date.now()}-${e.table_id}-${e.time_slot}` };
@@ -327,7 +372,17 @@ export const useBatchSetTableHeadCount = () => {
         }
         qc.setQueryData(key, updated);
       });
+      const exactKey = ["table-head-count", casinoId, input.date];
+      if (!seenKeys.has(JSON.stringify(exactKey))) {
+        qc.setQueryData(exactKey, input.entries.map((e) => ({
+          table_id: e.table_id, date: input.date, time_slot: e.time_slot,
+          value: e.value, casino_id: casinoId,
+          id: `temp-${Date.now()}-${e.table_id}-${e.time_slot}`,
+        })));
+      }
     },
     onError: () => { toast.error("Sync error (head count batch) — will retry", { duration: 2000 }); },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["table-head-count", casinoId] }); },
   });
 };
+
