@@ -169,19 +169,31 @@ export const useSetTableTrackerValue = () => {
       await qc.cancelQueries({ queryKey: ["table-tracker", casinoId] });
       const queries = qc.getQueriesData<any[]>({ queryKey: ["table-tracker"] })
         .filter(([key]) => (key as any[])[1] === casinoId);
+      const seenKeys = new Set<string>();
       queries.forEach(([key, data]) => {
-        if (!data) return;
-        const idx = data.findIndex((t: any) => t.table_id === input.table_id && t.time_slot === input.time_slot);
-        const updated = [...data];
+        seenKeys.add(JSON.stringify(key));
+        const base = data ?? [];
+        const idx = base.findIndex((t: any) => t.table_id === input.table_id && t.time_slot === input.time_slot);
+        const updated = [...base];
         const entry = { table_id: input.table_id, date: input.date, time_slot: input.time_slot, value: input.value, casino_id: casinoId, id: `temp-${Date.now()}` };
         if (idx >= 0) { updated[idx] = { ...updated[idx], value: input.value }; } else { updated.push(entry); }
         qc.setQueryData(key, updated);
       });
+      // Seed cache for this exact date if no query was loaded yet — so the
+      // Numbers tab sees the value the moment it mounts.
+      const exactKey = ["table-tracker", casinoId, input.date];
+      if (!seenKeys.has(JSON.stringify(exactKey))) {
+        qc.setQueryData(exactKey, [{
+          table_id: input.table_id, date: input.date, time_slot: input.time_slot,
+          value: input.value, casino_id: casinoId, id: `temp-${Date.now()}`,
+        }]);
+      }
     },
     onError: (_err) => { toast.error("Sync error (tracker) — will retry", { duration: 2000 }); },
-    onSettled: () => {},
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["table-tracker", casinoId] }); },
   });
 };
+
 
 /**
  * Batched tracker writes — single network round-trip for N tables.
