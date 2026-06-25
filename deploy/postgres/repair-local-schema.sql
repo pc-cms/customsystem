@@ -80,24 +80,37 @@ CREATE INDEX IF NOT EXISTS idx_player_position_history_player_started
 -- Drop Recycled = chips returned by previous cashouts). Until full NEP RPC is
 -- ported to on-prem, approximate: Drop R = total buy minus cashout, Drop Recycled
 -- = min(buy, cashout). Keeps "Drop result" non-zero in Player Statistics.
-CREATE OR REPLACE FUNCTION public.player_drop_split_lifetime(_player_id uuid)
-RETURNS TABLE (drop_r bigint, drop_recycled bigint)
-LANGUAGE sql
-STABLE
-SECURITY INVOKER
-SET search_path = public
-AS $$
-  WITH s AS (
-    SELECT
-      COALESCE(SUM(CASE WHEN type IN ('buy','in')      THEN amount END), 0)::bigint AS buy,
-      COALESCE(SUM(CASE WHEN type IN ('cashout','out') THEN amount END), 0)::bigint AS cash
-    FROM public.transactions
-    WHERE player_id = _player_id
-  )
-  SELECT GREATEST(buy - cash, 0)::bigint AS drop_r,
-         LEAST(buy, cash)::bigint        AS drop_recycled
-  FROM s
-$$;
+DO $wrap$
+BEGIN
+  IF to_regclass('public.transactions') IS NULL THEN
+    RAISE NOTICE 'Skipping player_drop_split_lifetime: public.transactions not present yet';
+  ELSE
+    EXECUTE $ddl$
+      CREATE OR REPLACE FUNCTION public.player_drop_split_lifetime(_player_id uuid)
+      RETURNS TABLE (drop_r bigint, drop_recycled bigint)
+      LANGUAGE sql
+      STABLE
+      SECURITY INVOKER
+      SET search_path = public
+      AS $fn$
+        WITH s AS (
+          SELECT
+            COALESCE(SUM(CASE WHEN type IN ('buy','in')      THEN amount END), 0)::bigint AS buy,
+            COALESCE(SUM(CASE WHEN type IN ('cashout','out') THEN amount END), 0)::bigint AS cash
+          FROM public.transactions
+          WHERE player_id = _player_id
+        )
+        SELECT GREATEST(buy - cash, 0)::bigint AS drop_r,
+               LEAST(buy, cash)::bigint        AS drop_recycled
+        FROM s
+      $fn$;
+    $ddl$;
+  END IF;
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'Skipped player_drop_split_lifetime: %', SQLERRM;
+END
+$wrap$;
+
 
 DO $$
 BEGIN
