@@ -657,7 +657,8 @@ DECLARE
     'client_sessions','incidents',
     'payroll_settings','payroll_periods','payroll_entries',
     'monthly_tips_pools','monthly_tips_entries',
-    'weekly_bonus_pools','weekly_bonus_entries'
+    'weekly_bonus_pools','weekly_bonus_entries',
+    'player_daily_zones'
   ];
 BEGIN
   FOREACH t IN ARRAY tables LOOP
