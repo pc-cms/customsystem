@@ -307,19 +307,30 @@ export const useSetTableHeadCount = () => {
       await qc.cancelQueries({ queryKey: ["table-head-count", casinoId] });
       const queries = qc.getQueriesData<any[]>({ queryKey: ["table-head-count"] })
         .filter(([key]) => (key as any[])[1] === casinoId);
+      const seenKeys = new Set<string>();
       queries.forEach(([key, data]) => {
-        if (!data) return;
-        const idx = data.findIndex((t: any) => t.table_id === input.table_id && t.time_slot === input.time_slot);
-        const updated = [...data];
+        seenKeys.add(JSON.stringify(key));
+        const base = data ?? [];
+        const idx = base.findIndex((t: any) => t.table_id === input.table_id && t.time_slot === input.time_slot);
+        const updated = [...base];
         const entry = { table_id: input.table_id, date: input.date, time_slot: input.time_slot, value: input.value, casino_id: casinoId, id: `temp-${Date.now()}` };
         if (idx >= 0) updated[idx] = { ...updated[idx], value: input.value };
         else updated.push(entry);
         qc.setQueryData(key, updated);
       });
+      const exactKey = ["table-head-count", casinoId, input.date];
+      if (!seenKeys.has(JSON.stringify(exactKey))) {
+        qc.setQueryData(exactKey, [{
+          table_id: input.table_id, date: input.date, time_slot: input.time_slot,
+          value: input.value, casino_id: casinoId, id: `temp-${Date.now()}`,
+        }]);
+      }
     },
     onError: () => { toast.error("Sync error (head count) — will retry", { duration: 2000 }); },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["table-head-count", casinoId] }); },
   });
 };
+
 
 export const useBatchSetTableHeadCount = () => {
   const qc = useQueryClient();
