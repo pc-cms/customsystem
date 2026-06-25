@@ -187,6 +187,16 @@ AS $$
   SELECT casino_id FROM public.profiles WHERE user_id = _user_id LIMIT 1
 $$;
 
+-- Create before user_has_casino_access() so PostgreSQL can validate the SQL body
+-- even on old/broken local schemas where the table is still missing.
+CREATE TABLE IF NOT EXISTS public.user_casino_access (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  casino_id uuid NOT NULL,
+  granted_by uuid,
+  granted_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE OR REPLACE FUNCTION public.user_has_casino_access(_user_id uuid, _casino_id uuid)
 RETURNS boolean
 LANGUAGE sql
