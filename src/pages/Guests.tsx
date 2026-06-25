@@ -337,21 +337,27 @@ const Guests = () => {
               className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-primary/40 border border-transparent"
             >
               Daily
-              <Badge className="ml-1.5 text-[10px] bg-primary/20 text-primary border-primary/30 hover:bg-primary/20">{counts.day}</Badge>
+              <Badge className="ml-1.5 text-[10px] bg-primary/20 text-primary border-primary/30 hover:bg-primary/20 tabular-nums">
+                {counts.day}<span className="opacity-60 font-normal ml-1">·{counts.activeDay}</span>
+              </Badge>
             </TabsTrigger>
             <TabsTrigger
               value="present"
               className="data-[state=active]:bg-success/15 data-[state=active]:text-success data-[state=active]:border-success/40 border border-transparent"
             >
               Present
-              <Badge className="ml-1.5 text-[10px] bg-success/20 text-success border-success/30 hover:bg-success/20">{counts.present}</Badge>
+              <Badge className="ml-1.5 text-[10px] bg-success/20 text-success border-success/30 hover:bg-success/20 tabular-nums">
+                {counts.present}<span className="opacity-60 font-normal ml-1">·{counts.activePresent}</span>
+              </Badge>
             </TabsTrigger>
             <TabsTrigger
               value="left"
               className="data-[state=active]:bg-muted data-[state=active]:text-muted-foreground data-[state=active]:border-border border border-transparent"
             >
               Left
-              <Badge variant="secondary" className="ml-1.5 text-[10px]">{counts.left}</Badge>
+              <Badge variant="secondary" className="ml-1.5 text-[10px] tabular-nums">
+                {counts.left}<span className="opacity-60 font-normal ml-1">·{counts.activeLeft}</span>
+              </Badge>
             </TabsTrigger>
           </TabsList>
 
