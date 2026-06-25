@@ -272,8 +272,13 @@ export const useTableHeadCount = (date: string) => {
       return data;
     },
     enabled: !!casinoId,
+    staleTime: 15_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 };
+
 
 export const useSetTableHeadCount = () => {
   const qc = useQueryClient();
