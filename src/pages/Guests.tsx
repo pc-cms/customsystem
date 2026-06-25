@@ -137,11 +137,25 @@ const Guests = () => {
     });
   }, [rows, tab, posFilter, categoryFilter, search, sortKey, sortDir]);
 
-  const counts = useMemo(() => ({
-    day: rows.length,
-    present: rows.filter(r => r.isInside).length,
-    left: rows.filter(r => !r.isInside).length,
-  }), [rows]);
+  const { data: txToday = [] } = useTransactions(getBusinessDate());
+  const activePlayerIds = useMemo(() => {
+    const s = new Set<string>();
+    (txToday as any[]).forEach(t => { if (t.player_id) s.add(t.player_id); });
+    return s;
+  }, [txToday]);
+
+  const counts = useMemo(() => {
+    const active = rows.filter(r => activePlayerIds.has(r.playerId));
+    return {
+      day: rows.length,
+      present: rows.filter(r => r.isInside).length,
+      left: rows.filter(r => !r.isInside).length,
+      activeDay: active.length,
+      activePresent: active.filter(r => r.isInside).length,
+      activeLeft: active.filter(r => !r.isInside).length,
+    };
+  }, [rows, activePlayerIds]);
+
 
   const confirmExit = useMutation({
     mutationFn: async (visitId: string) => {
