@@ -636,6 +636,81 @@ BEGIN
 END;
 $$;
 
+-- ---------- player_daily_zones (Pit zone highlighting) ----------
+CREATE TABLE IF NOT EXISTS public.player_daily_zones (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  casino_id uuid NOT NULL,
+  player_id uuid NOT NULL REFERENCES public.players(id) ON DELETE CASCADE,
+  business_date date NOT NULL,
+  zone text NOT NULL CHECK (zone IN ('S','LG','CP')),
+  created_by uuid,
+  updated_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (casino_id, player_id, business_date)
+);
+CREATE INDEX IF NOT EXISTS player_daily_zones_casino_date_idx
+  ON public.player_daily_zones (casino_id, business_date);
+CREATE INDEX IF NOT EXISTS player_daily_zones_player_idx
+  ON public.player_daily_zones (player_id);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.player_daily_zones TO authenticated;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+    GRANT ALL ON public.player_daily_zones TO service_role;
+  END IF;
+END $$;
+
+ALTER TABLE public.player_daily_zones ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "zones_select_authenticated" ON public.player_daily_zones;
+CREATE POLICY "zones_select_authenticated"
+  ON public.player_daily_zones FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "zones_write_ops_roles" ON public.player_daily_zones;
+CREATE POLICY "zones_write_ops_roles"
+  ON public.player_daily_zones FOR INSERT TO authenticated
+  WITH CHECK (
+    public.has_role(auth.uid(), 'pit'::app_role)
+    OR public.has_role(auth.uid(), 'manager'::app_role)
+    OR public.has_role(auth.uid(), 'reception'::app_role)
+    OR public.has_role(auth.uid(), 'super_admin'::app_role)
+  );
+
+DROP POLICY IF EXISTS "zones_update_ops_roles" ON public.player_daily_zones;
+CREATE POLICY "zones_update_ops_roles"
+  ON public.player_daily_zones FOR UPDATE TO authenticated
+  USING (
+    public.has_role(auth.uid(), 'pit'::app_role)
+    OR public.has_role(auth.uid(), 'manager'::app_role)
+    OR public.has_role(auth.uid(), 'reception'::app_role)
+    OR public.has_role(auth.uid(), 'super_admin'::app_role)
+  )
+  WITH CHECK (
+    public.has_role(auth.uid(), 'pit'::app_role)
+    OR public.has_role(auth.uid(), 'manager'::app_role)
+    OR public.has_role(auth.uid(), 'reception'::app_role)
+    OR public.has_role(auth.uid(), 'super_admin'::app_role)
+  );
+
+DROP POLICY IF EXISTS "zones_delete_ops_roles" ON public.player_daily_zones;
+CREATE POLICY "zones_delete_ops_roles"
+  ON public.player_daily_zones FOR DELETE TO authenticated
+  USING (
+    public.has_role(auth.uid(), 'pit'::app_role)
+    OR public.has_role(auth.uid(), 'manager'::app_role)
+    OR public.has_role(auth.uid(), 'reception'::app_role)
+    OR public.has_role(auth.uid(), 'super_admin'::app_role)
+  );
+
+DO $$ BEGIN
+  CREATE TRIGGER update_player_daily_zones_updated_at
+    BEFORE UPDATE ON public.player_daily_zones
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+
+
 DO $$
 DECLARE
   t text;
@@ -644,7 +719,7 @@ DECLARE
     'chip_initial_baseline','chip_baseline','chip_inventory','chip_snapshots',
     'financial_wallets','budget_categories','budget_periods','budget_items',
     'dealers','staff_members','employees','employee_bank_accounts',
-    'profiles','user_casino_access','user_module_permissions',
+    'profiles','user_casino_access','user_module_permissions','player_daily_zones',
     'players','player_cards','player_groups','group_members','player_tags','player_notes',
     'transactions','shifts','cage_transfers','expenses','wallet_transactions',
     'chip_emissions','chip_transfers','casino_visits',
@@ -657,7 +732,8 @@ DECLARE
     'client_sessions','incidents',
     'payroll_settings','payroll_periods','payroll_entries',
     'monthly_tips_pools','monthly_tips_entries',
-    'weekly_bonus_pools','weekly_bonus_entries'
+    'weekly_bonus_pools','weekly_bonus_entries',
+    'player_daily_zones'
   ];
 BEGIN
   FOREACH t IN ARRAY tables LOOP
