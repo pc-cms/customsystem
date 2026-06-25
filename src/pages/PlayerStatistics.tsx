@@ -522,12 +522,23 @@ const PlayerStatistics = () => {
     });
   }, [displayRows, tab, categoryFilter, zoneFilter, activeOnly, search, sortKey, sortDir]);
 
-  const counts = useMemo(() => ({
-    day: displayRows.length,
-    present: displayRows.filter((r: any) => r.isPresent).length,
-    left: displayRows.filter((r: any) => !r.isPresent).length,
-    active: displayRows.filter(isActiveRow).length,
-  }), [displayRows]);
+  const counts = useMemo(() => {
+    const activeRows = displayRows.filter(isActiveRow);
+    const tabActive = tab === "present"
+      ? activeRows.filter((r: any) => r.isPresent).length
+      : tab === "left"
+        ? activeRows.filter((r: any) => !r.isPresent).length
+        : activeRows.length;
+    return {
+      day: displayRows.length,
+      present: displayRows.filter((r: any) => r.isPresent).length,
+      left: displayRows.filter((r: any) => !r.isPresent).length,
+      active: tabActive,
+      activeDay: activeRows.length,
+      activePresent: activeRows.filter((r: any) => r.isPresent).length,
+      activeLeft: activeRows.filter((r: any) => !r.isPresent).length,
+    };
+  }, [displayRows, tab]);
 
   // Totals across the currently filtered list (period + tab + filters + search).
   const totals = useMemo(() => {
@@ -902,21 +913,27 @@ const PlayerStatistics = () => {
               className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-primary/40 border border-transparent"
             >
               Daily
-              <Badge className="ml-1.5 text-[15px] font-bold bg-primary/20 text-primary border-primary/30 hover:bg-primary/20">{counts.day}</Badge>
+              <Badge className="ml-1.5 text-[15px] font-bold bg-primary/20 text-primary border-primary/30 hover:bg-primary/20 tabular-nums">
+                {counts.day}<span className="opacity-60 font-normal text-[11px] ml-1">·{counts.activeDay}</span>
+              </Badge>
             </TabsTrigger>
             <TabsTrigger
               value="present"
               className="data-[state=active]:bg-success/15 data-[state=active]:text-success data-[state=active]:border-success/40 border border-transparent"
             >
               Present
-              <Badge className="ml-1.5 text-[15px] font-bold bg-success/20 text-success border-success/30 hover:bg-success/20">{counts.present}</Badge>
+              <Badge className="ml-1.5 text-[15px] font-bold bg-success/20 text-success border-success/30 hover:bg-success/20 tabular-nums">
+                {counts.present}<span className="opacity-60 font-normal text-[11px] ml-1">·{counts.activePresent}</span>
+              </Badge>
             </TabsTrigger>
             <TabsTrigger
               value="left"
               className="data-[state=active]:bg-muted data-[state=active]:text-muted-foreground data-[state=active]:border-border border border-transparent"
             >
               Left
-              <Badge variant="secondary" className="ml-1.5 text-[15px] font-bold">{counts.left}</Badge>
+              <Badge variant="secondary" className="ml-1.5 text-[15px] font-bold tabular-nums">
+                {counts.left}<span className="opacity-60 font-normal text-[11px] ml-1">·{counts.activeLeft}</span>
+              </Badge>
             </TabsTrigger>
           </TabsList>
 
