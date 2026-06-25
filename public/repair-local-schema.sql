@@ -644,7 +644,7 @@ DECLARE
     'chip_initial_baseline','chip_baseline','chip_inventory','chip_snapshots',
     'financial_wallets','budget_categories','budget_periods','budget_items',
     'dealers','staff_members','employees','employee_bank_accounts',
-    'profiles','user_casino_access','user_module_permissions',
+    'profiles','user_casino_access','user_module_permissions','player_daily_zones',
     'players','player_cards','player_groups','group_members','player_tags','player_notes',
     'transactions','shifts','cage_transfers','expenses','wallet_transactions',
     'chip_emissions','chip_transfers','casino_visits',
