@@ -360,9 +360,10 @@ export const useBatchSetTableHeadCount = () => {
       await qc.cancelQueries({ queryKey: ["table-head-count", casinoId] });
       const queries = qc.getQueriesData<any[]>({ queryKey: ["table-head-count"] })
         .filter(([key]) => (key as any[])[1] === casinoId);
+      const seenKeys = new Set<string>();
       queries.forEach(([key, data]) => {
-        if (!data) return;
-        let updated = [...data];
+        seenKeys.add(JSON.stringify(key));
+        let updated = [...(data ?? [])];
         for (const e of input.entries) {
           const idx = updated.findIndex((t: any) => t.table_id === e.table_id && t.time_slot === e.time_slot);
           const entry = { table_id: e.table_id, date: input.date, time_slot: e.time_slot, value: e.value, casino_id: casinoId, id: `temp-${Date.now()}-${e.table_id}-${e.time_slot}` };
@@ -371,7 +372,17 @@ export const useBatchSetTableHeadCount = () => {
         }
         qc.setQueryData(key, updated);
       });
+      const exactKey = ["table-head-count", casinoId, input.date];
+      if (!seenKeys.has(JSON.stringify(exactKey))) {
+        qc.setQueryData(exactKey, input.entries.map((e) => ({
+          table_id: e.table_id, date: input.date, time_slot: e.time_slot,
+          value: e.value, casino_id: casinoId,
+          id: `temp-${Date.now()}-${e.table_id}-${e.time_slot}`,
+        })));
+      }
     },
     onError: () => { toast.error("Sync error (head count batch) — will retry", { duration: 2000 }); },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["table-head-count", casinoId] }); },
   });
 };
+
