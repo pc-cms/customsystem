@@ -322,6 +322,22 @@ const SEED_TABLE_GROUPS = [
 
 const SEED_CHUNK_ROWS = Math.max(500, Math.min(10000, parseInt(process.env.SEED_CHUNK_ROWS || "5000", 10) || 5000));
 
+// Some seed tables carry large JSON snapshot payloads. Exporting them in the
+// default 5k-row windows can make the Cloud function hit its memory limit and
+// close the stream before the final `_done` marker. Keep those windows small;
+// the import remains idempotent and just performs more short requests.
+const SEED_TABLE_CHUNK_ROWS = {
+  business_day_closures: 10,
+  cash_count_snapshots: 250,
+  chip_snapshots: 1000,
+};
+
+function seedChunkRowsFor(table) {
+  return table && SEED_TABLE_CHUNK_ROWS[table]
+    ? Math.min(SEED_CHUNK_ROWS, SEED_TABLE_CHUNK_ROWS[table])
+    : SEED_CHUNK_ROWS;
+}
+
 const SKIP_SEED_TABLES = new Set(["player_economy", "player_session_stats", "player_session_drops"]);
 
 async function applySeedChunk(client, seedUrl, headers, counts, casinoId, label, resetOutbox) {
@@ -466,16 +482,17 @@ async function triggerSync() {
       while (true) {
         const params = new URLSearchParams({ casino_id: casinoId, days: "all", tables: g.tables.join(",") });
         if (!g.auth) params.set("auth", "0");
+        const chunkRows = seedChunkRowsFor(singleTable);
         if (singleTable) {
           params.set("offset", String(offset));
-          params.set("max_rows", String(SEED_CHUNK_ROWS));
+          params.set("max_rows", String(chunkRows));
         }
         const seedUrl = `${row.cloud_url}/functions/v1/cloud-seed-export?${params.toString()}`;
         const exportedCounts = await applySeedChunk(client, seedUrl, headers, counts, casinoId, singleTable ? `${g.label}@${offset}` : g.label, i === 0 && offset === 0);
         if (!singleTable) break;
         const exported = Number(exportedCounts?.[singleTable] || 0);
-        if (exported < SEED_CHUNK_ROWS) break;
-        offset += SEED_CHUNK_ROWS;
+        if (exported < chunkRows) break;
+        offset += chunkRows;
       }
     }
   } finally {
