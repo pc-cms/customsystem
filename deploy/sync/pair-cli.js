@@ -45,11 +45,11 @@ async function importAuthUser(client, u, counts) {
        email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
        created_at, updated_at, phone)
     VALUES
-      ('00000000-0000-0000-0000-000000000000', $1,
-       COALESCE($2,'authenticated'), COALESCE($3,'authenticated'),
-       $4, $5, COALESCE($6, now()),
+      ('00000000-0000-0000-0000-000000000000'::uuid, $1::uuid,
+       COALESCE($2::text,'authenticated'), COALESCE($3::text,'authenticated'),
+       $4::text, $5::text, COALESCE($6::timestamptz, now()),
        COALESCE($7::jsonb, '{"provider":"email","providers":["email"],"role":"authenticated"}'::jsonb),
-       COALESCE($8::jsonb, '{}'::jsonb), COALESCE($9, now()), now(), $10)
+       COALESCE($8::jsonb, '{}'::jsonb), COALESCE($9::timestamptz, now()), now(), $10::text)
     ON CONFLICT (id) DO UPDATE SET
       email = EXCLUDED.email,
       encrypted_password = EXCLUDED.encrypted_password,
