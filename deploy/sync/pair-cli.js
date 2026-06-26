@@ -291,45 +291,79 @@ async function ping() {
   return result;
 }
 
-async function triggerSync() {
-  const row = await getRow();
-  if (!row || row.status !== "connected") throw new Error("Not connected to Cloud");
-  const casinoId = row.casino_id;
+const SEED_TABLE_GROUPS = [
+  {
+    label: "core",
+    auth: true,
+    tables: [
+      "casinos", "tax_brackets", "payroll_paye_brackets", "role_module_defaults", "blacklist",
+      "gaming_tables", "chip_color_settings", "chip_initial_baseline", "chip_baseline", "chip_inventory",
+      "fin_categories", "fin_wallets", "fin_budget", "payroll_settings", "attendance_holidays",
+      "dealers", "staff_members", "employees", "players", "player_cards", "player_groups",
+      "group_members", "player_tags", "player_notes", "user_casino_access", "user_module_permissions",
+      "profiles", "user_roles", "user_credentials",
+    ],
+  },
+  {
+    label: "operations-a",
+    tables: [
+      "shifts", "transactions", "casino_visits", "breaklist", "pit_rota", "staff_rota",
+      "dealer_attendance", "staff_attendance", "attendance_hours", "cage_transfers", "expenses",
+      "fin_wallet_tx", "fin_day_closing", "fin_money_change", "fin_audit_log", "chip_emissions",
+    ],
+  },
+  {
+    label: "chip-snapshots",
+    tables: ["chip_snapshots"],
+  },
+  {
+    label: "operations-b",
+    tables: [
+      "table_tracker", "table_daily_results", "business_day_closures", "cash_counts",
+      "cash_count_snapshots", "cashless_transactions", "bank_checks", "cctv_observations",
+      "chip_transfers", "player_chip_adjustments", "player_position_history", "client_sessions",
+      "staff_warnings", "transaction_cancellations", "player_daily_avg_bets",
+      "player_daily_avg_bet_changes", "incidents", "payroll_periods", "payroll_entries",
+      "monthly_tips_pools", "monthly_tips_entries", "weekly_bonus_pools", "weekly_bonus_entries",
+    ],
+  },
+  {
+    label: "logs",
+    tables: [
+      "activity_logs", "activity_logs_archive", "breaklist_logs", "breaklist_logs_archive",
+      "casino_visits_archive", "client_sessions_archive", "incidents_audit", "payroll_audit_log",
+    ],
+  },
+];
 
-  // Stream cloud-seed-export NDJSON directly into local Postgres.
-  // (initial-sync-trigger edge fn was removed in v2 — see deploy/MIGRATION-v2.md)
-  const seedUrl = `${row.cloud_url}/functions/v1/cloud-seed-export?casino_id=${casinoId}&days=all`;
-  const r = await fetch(seedUrl, {
-    headers: { "x-sync-secret": row.sync_secret, "x-casino-id": casinoId },
-  });
+const SKIP_SEED_TABLES = new Set(["player_economy", "player_session_stats", "player_session_drops"]);
+
+async function applySeedChunk(client, seedUrl, headers, counts, casinoId, label, resetOutbox) {
+  const r = await fetch(seedUrl, { headers });
   if (!r.ok || !r.body) {
-    throw new Error(`cloud-seed-export ${r.status}: ${(await r.text().catch(()=>""))?.slice(0,300)}`);
+    throw new Error(`cloud-seed-export ${label} ${r.status}: ${(await r.text().catch(()=>""))?.slice(0,300)}`);
   }
 
-  const client = await pool.connect();
-  const counts = {};
+  await client.query("BEGIN");
   try {
-    await client.query("BEGIN");
     await client.query(`SELECT set_config('sync.applying','on', true)`);
-    // Initial/backfill import must behave like Clone from Cloud: local FK and
-    // validation triggers can reject historical rows (notably player_cards RFID
-    // uniqueness and auth/user references) before their dependencies land.
-    // sync.applying prevents outbox echo; replica mode lets the seed be a true
-    // Cloud snapshot overlay instead of a UI-style write.
     await client.query(`SET LOCAL session_replication_role = replica`);
-    try {
-      await client.query("SAVEPOINT seed_reset");
-      await client.query(`SELECT public.sync_reset_outbox($1::uuid, true)`, [casinoId]);
-      await client.query("RELEASE SAVEPOINT seed_reset");
-    } catch (e) {
-      await client.query("ROLLBACK TO SAVEPOINT seed_reset").catch(() => {});
-      await client.query("RELEASE SAVEPOINT seed_reset").catch(() => {});
-      console.error(`[seed] sync_reset_outbox skipped: ${String(e?.message || e).slice(0, 160)}`);
+    if (resetOutbox) {
+      try {
+        await client.query("SAVEPOINT seed_reset");
+        await client.query(`SELECT public.sync_reset_outbox($1::uuid, true)`, [casinoId]);
+        await client.query("RELEASE SAVEPOINT seed_reset");
+      } catch (e) {
+        await client.query("ROLLBACK TO SAVEPOINT seed_reset").catch(() => {});
+        await client.query("RELEASE SAVEPOINT seed_reset").catch(() => {});
+        console.error(`[seed] sync_reset_outbox skipped: ${String(e?.message || e).slice(0, 160)}`);
+      }
     }
 
     const reader = r.body.getReader();
     const decoder = new TextDecoder();
     let buf = "";
+    let sawDone = false;
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
@@ -341,7 +375,13 @@ async function triggerSync() {
         if (!line) continue;
         let obj;
         try { obj = JSON.parse(line); } catch { continue; }
-        if (obj._meta || obj._done || obj._error || obj._fatal) continue;
+        if (obj._meta) continue;
+        if (obj._done) { sawDone = true; continue; }
+        if (obj._fatal) throw new Error(`cloud-seed-export fatal in ${label}: ${String(obj._fatal).slice(0, 240)}`);
+        if (obj._error) {
+          console.error(`[seed] export.warn ${obj._error?.table || label}: ${String(obj._error?.msg || obj._error).slice(0, 160)}`);
+          continue;
+        }
         if (obj.auth_user) {
           try {
             await client.query("SAVEPOINT seed_auth_user");
@@ -354,10 +394,7 @@ async function triggerSync() {
           }
           continue;
         }
-        if (!obj.table || !obj.row) continue;
-        // Skip derived views and strip GENERATED ALWAYS / identity columns — Postgres rejects explicit inserts.
-        const SKIP_TABLES = new Set(["player_economy", "player_session_stats", "player_session_drops"]);
-        if (SKIP_TABLES.has(obj.table)) continue;
+        if (!obj.table || !obj.row || SKIP_SEED_TABLES.has(obj.table)) continue;
         const generatedColumns = await getGeneratedColumns(client, obj.table);
         for (const c of generatedColumns) delete obj.row[c];
         const cols = Object.keys(obj.row);
@@ -408,10 +445,39 @@ async function triggerSync() {
         }
       }
     }
+    if (buf.trim()) {
+      try {
+        const obj = JSON.parse(buf.trim());
+        if (obj._done) sawDone = true;
+        if (obj._fatal) throw new Error(`cloud-seed-export fatal in ${label}: ${String(obj._fatal).slice(0, 240)}`);
+      } catch (e) {
+        if (String(e?.message || e).includes("cloud-seed-export fatal")) throw e;
+      }
+    }
+    if (!sawDone) throw new Error(`cloud-seed-export ${label} ended before _done marker`);
     await client.query("COMMIT");
   } catch (e) {
     await client.query("ROLLBACK").catch(() => {});
     throw e;
+  }
+}
+
+async function triggerSync() {
+  const row = await getRow();
+  if (!row || row.status !== "connected") throw new Error("Not connected to Cloud");
+  const casinoId = row.casino_id;
+
+  const client = await pool.connect();
+  const counts = {};
+  try {
+    const headers = { "x-sync-secret": row.sync_secret, "x-casino-id": casinoId };
+    for (let i = 0; i < SEED_TABLE_GROUPS.length; i++) {
+      const g = SEED_TABLE_GROUPS[i];
+      const params = new URLSearchParams({ casino_id: casinoId, days: "all", tables: g.tables.join(",") });
+      if (!g.auth) params.set("auth", "0");
+      const seedUrl = `${row.cloud_url}/functions/v1/cloud-seed-export?${params.toString()}`;
+      await applySeedChunk(client, seedUrl, headers, counts, casinoId, g.label, i === 0);
+    }
   } finally {
     client.release();
   }

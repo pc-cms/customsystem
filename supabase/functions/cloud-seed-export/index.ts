@@ -147,6 +147,13 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_us
 
 const PAGE_SIZE = 1000;
 
+const tableNames = new Set(TABLES.map((t) => t.name));
+const parseTableList = (value: string | null) =>
+  new Set((value ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean));
+
 // Поле даты, по которому фильтруем "последние N дней" для каждой таблицы.
 const DATE_COLUMN: Record<string, string> = {
   shifts: "created_at",
@@ -277,6 +284,19 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const casinoId = tokenCasinoId ?? url.searchParams.get("casino_id") ?? "";
   const daysParam = url.searchParams.get("days") ?? "90";
+  const includeAuth = url.searchParams.get("auth") !== "0";
+  const onlyTables = parseTableList(url.searchParams.get("tables"));
+  const excludedTables = parseTableList(url.searchParams.get("exclude"));
+  const unknownTables = [...onlyTables, ...excludedTables].filter((name) => !tableNames.has(name));
+  if (unknownTables.length > 0) {
+    return new Response(JSON.stringify({ error: `unknown table(s): ${unknownTables.join(",")}` }), { status: 400, headers: corsHeaders });
+  }
+  const selectedTables = TABLES.filter((t) =>
+    (onlyTables.size === 0 || onlyTables.has(t.name)) && !excludedTables.has(t.name)
+  );
+  if (selectedTables.length === 0) {
+    return new Response(JSON.stringify({ error: "no tables selected" }), { status: 400, headers: corsHeaders });
+  }
   const allHistory = daysParam === "all";
   const days = allHistory ? 0 : Math.max(1, Math.min(3650, parseInt(daysParam, 10)));
   if (!/^[0-9a-f-]{36}$/i.test(casinoId)) {
@@ -297,7 +317,7 @@ Deno.serve(async (req) => {
           casino_id: casinoId,
           exported_at: new Date().toISOString(),
           since_days: allHistory ? "all" : days,
-          tables: TABLES.map((t) => t.name),
+          tables: selectedTables.map((t) => t.name),
         },
       });
 
@@ -328,7 +348,7 @@ Deno.serve(async (req) => {
         // ── Step 2: auth.users — отдельным потоком, через SECURITY DEFINER RPC.
         //    Сначала чтобы FK profiles/user_roles/user_credentials → auth.users(id)
         //    выполнялись при импорте.
-        try {
+        if (includeAuth) try {
           const { data: authRows, error: authErr } = await admin.rpc(
             "seed_export_auth_users",
             { p_casino_id: casinoId },
@@ -346,7 +366,7 @@ Deno.serve(async (req) => {
           writeLine({ _error: { table: "auth.users", msg: String((e as Error)?.message ?? e) } });
         }
 
-        for (const t of TABLES) {
+        for (const t of selectedTables) {
           counts[t.name] = 0;
           let from = 0;
 
