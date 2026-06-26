@@ -30,8 +30,10 @@ const CASINO_TABLES = [
 ];
 // Scoped via players.casino_id (no direct casino_id column)
 const PLAYER_JOIN_TABLES = ["player_cards", "player_tags"];
-// Global tables (no casino_id)
-const GLOBAL_TABLES = ["casinos", "user_roles", "user_casino_access", "sync_table_registry"];
+// Global tables (no casino_id). `casinos` is handled separately as a single
+// paired-casino row, otherwise local one-casino mirrors falsely show DIFF
+// against all Cloud casinos.
+const GLOBAL_TABLES = ["user_roles", "user_casino_access", "sync_table_registry"];
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -92,6 +94,15 @@ Deno.serve(async (req) => {
       .eq("players.casino_id", casinoId);
     counts[t] = error ? errLabel(error) : (count ?? 0);
   }
+
+  {
+    const { count, error } = await admin
+      .from("casinos")
+      .select("*", { count: "exact", head: true })
+      .eq("id", casinoId);
+    counts.casinos = error ? errLabel(error) : (count ?? 0);
+  }
+
   for (const t of GLOBAL_TABLES) {
     const { count, error } = await admin
       .from(t)
