@@ -194,8 +194,16 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     if (didAnchorRef.current) return;
     const wrap = scrollRef.current;
     if (!wrap || dealers.length === 0) return;
+    // If scroll memory already restored a non-zero position, skip auto-center.
+    const hasSavedPos = (() => {
+      try {
+        const keys = Object.keys(window.sessionStorage);
+        return keys.some(k => k.includes(`::breaklist:${date}`) && (JSON.parse(window.sessionStorage.getItem(k) || "{}")?.x ?? 0) > 0);
+      } catch { return false; }
+    })();
     const target = isToday ? currentSlot : "18:00";
     const raf = requestAnimationFrame(() => {
+      if (hasSavedPos) { didAnchorRef.current = true; return; }
       const el = wrap.querySelector<HTMLElement>(`[data-slot="${target}"]`);
       if (!el) return;
       const rect = el.getBoundingClientRect();
@@ -206,7 +214,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       didAnchorRef.current = true;
     });
     return () => cancelAnimationFrame(raf);
-  }, [date, isToday, currentSlot, dealers.length]);
+  }, [date, isToday, currentSlot, dealers.length, scrollRef]);
 
   // Inline role picker state
   const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string; dropUp: boolean; dropLeft: boolean; rect: { top: number; left: number; bottom: number; right: number; width: number; height: number } } | null>(null);
