@@ -132,6 +132,12 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   );
   const [cashierNote, setCashierNote] = useState<string>(shift.cashier_note || "");
 
+  // Dirty refs — block DB→state re-hydration while the cashier has unsaved
+  // edits in a provider block. Cleared after a successful onBlur save.
+  const dirtyInRef = useRef(false);
+  const dirtyOutRef = useRef(false);
+  const dirtyFinalRef = useRef(false);
+
   // Persist cashless provider blocks (onBlur from the inputs).
   const saveCashlessProviders = async (
     field: "cashless_in_providers" | "cashless_out_providers" | "cashless_final_providers",
@@ -141,7 +147,31 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
       .from("cage_slots_shifts")
       .update({ [field]: value } as any)
       .eq("id", shift.id);
+    if (field === "cashless_in_providers") dirtyInRef.current = false;
+    else if (field === "cashless_out_providers") dirtyOutRef.current = false;
+    else dirtyFinalRef.current = false;
   };
+
+  // Re-sync local provider state with DB when the shift row updates (realtime
+  // / refetch) — but ONLY if the cashier has no unsaved edits in that block.
+  // Without this, useState's lazy init runs once at mount and any later blur
+  // would push stale local values back into DB.
+  useEffect(() => {
+    if (dirtyInRef.current) return;
+    setCashlessInProviders({ ...emptyMobile(), ...((shift as any).cashless_in_providers || {}) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [(shift as any).cashless_in_providers, (shift as any).updated_at]);
+  useEffect(() => {
+    if (dirtyOutRef.current) return;
+    setCashlessOutProviders({ ...emptyMobile(), ...((shift as any).cashless_out_providers || {}) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [(shift as any).cashless_out_providers, (shift as any).updated_at]);
+  useEffect(() => {
+    if (dirtyFinalRef.current) return;
+    setCashlessFinalProviders({ ...emptyMobile(), ...((shift as any).cashless_final_providers || {}) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [(shift as any).cashless_final_providers, (shift as any).updated_at]);
+
 
   // Hydrate closing from persisted closing inventory + cards
   useEffect(() => {
@@ -788,7 +818,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                   title="Cashless IN"
                   tone="in"
                   values={cashlessInProviders}
-                  onChange={setCashlessInProviders}
+                  onChange={(v) => { dirtyInRef.current = true; setCashlessInProviders(v); }}
                   onBlur={(value) => saveCashlessProviders("cashless_in_providers", value || cashlessInProviders)}
                   disabled={shift.status !== "open"}
                   suggestions={cashlessSug?.in}
@@ -797,7 +827,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                   title="Cashless OUT"
                   tone="out"
                   values={cashlessOutProviders}
-                  onChange={setCashlessOutProviders}
+                  onChange={(v) => { dirtyOutRef.current = true; setCashlessOutProviders(v); }}
                   onBlur={(value) => saveCashlessProviders("cashless_out_providers", value || cashlessOutProviders)}
                   disabled={shift.status !== "open"}
                   suggestions={cashlessSug?.out}
@@ -807,6 +837,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                   tone="final"
                   values={cashlessFinalProviders}
                   onChange={(v) => {
+                    dirtyFinalRef.current = true;
                     setCashlessFinalProviders(v);
                     const total = mobileTotal(v);
                     setCashlessFinalInput(String(total));
@@ -821,6 +852,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                   }}
                   disabled={shift.status !== "open"}
                 />
+
               </div>
 
               {/* Checks history (was a separate tab) */}
@@ -1225,9 +1257,10 @@ const CashlessProvidersBlock = ({
   disabled?: boolean;
   onBlur?: (value?: MobileProviders) => void;
   tone?: "default" | "in" | "out" | "final";
-  /** Per-provider /cashless sum for the business day. Auto-prefilled
-   *  into the cell (gray italic), like chip prefills — cashier can
-   *  overwrite, clear or keep. */
+  /** Per-provider /cashless sum for the business day. Shown ONLY as an
+   *  inline hint under each empty row — NEVER auto-written to the DB.
+   *  Manual entry is the single source of truth (the auto-prefill version
+   *  silently overwrote cashier entries on remount and is removed). */
   suggestions?: Partial<Record<string, number>>;
 }) => {
   const total = mobileTotal(values);
@@ -1238,55 +1271,43 @@ const CashlessProvidersBlock = ({
                        "border-border";
   const row = "flex items-center gap-2";
   const chip = "cms-chip text-[10px] bg-muted text-foreground h-7 w-16 shrink-0 justify-center";
-  const inputBase = "no-spin font-mono text-sm h-8 w-24 flex-1 min-w-0 rounded border border-border bg-background px-2 text-right focus:outline-none focus:ring-1 focus:ring-primary";
-
-  // One-shot prefill of suggestions into empty rows + per-row "still gray" tracking.
-  const [prefilled, setPrefilled] = useState<Set<string>>(new Set());
-  const initRef = useRef(false);
-  useEffect(() => {
-    if (initRef.current || disabled || !suggestions) return;
-    const hasAny = MOBILE_PROVIDERS.some(p => Number(suggestions[p]) > 0);
-    if (!hasAny) return;
-    initRef.current = true;
-    const next: MobileProviders = { ...values };
-    const pre = new Set<string>();
-    MOBILE_PROVIDERS.forEach(p => {
-      const s = Number(suggestions[p]) || 0;
-      if (!values[p] && s) { next[p] = s; pre.add(p); }
-    });
-    if (pre.size) {
-      setPrefilled(pre);
-      onChange(next);
-      onBlur?.(next);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [suggestions, disabled]);
-
-  const markTouched = (provider: string) => {
-    if (!prefilled.has(provider)) return;
-    setPrefilled(prev => { const n = new Set(prev); n.delete(provider); return n; });
-  };
+  const inputBase = "no-spin font-mono text-sm h-8 w-24 flex-1 min-w-0 rounded border border-border bg-background px-2 text-right focus:outline-none focus:ring-1 focus:ring-primary text-foreground";
 
   return (
     <section className={`rounded-xl border ${toneCls} bg-background/40 p-3 flex flex-col`}>
       <p className="text-xs font-bold text-foreground uppercase tracking-[0.22em] mb-2">{title}</p>
       <div className="space-y-1">
         {MOBILE_PROVIDERS.map(provider => {
-          const isPrefill = prefilled.has(provider);
+          const hint = Number(suggestions?.[provider]) || 0;
+          const isEmpty = !values[provider];
+          const showHint = !!suggestions && hint > 0 && isEmpty && !disabled;
           return (
             <div key={provider} className={row}>
               <span className={chip}>{provider}</span>
-              <NumberInput
-                value={values[provider] || ""}
-                onChange={v => {
-                  markTouched(provider);
-                  onChange({ ...values, [provider]: Number(v) || 0 });
-                }}
-                onBlur={() => onBlur?.(values)}
-                className={`${inputBase} ${isPrefill ? "text-muted-foreground italic" : "text-foreground"}`}
-                placeholder="0"
-                disabled={disabled}
-              />
+              <div className="flex-1 min-w-0 flex flex-col items-end">
+                <NumberInput
+                  value={values[provider] || ""}
+                  onChange={v => onChange({ ...values, [provider]: Number(v) || 0 })}
+                  onBlur={() => onBlur?.(values)}
+                  className={inputBase}
+                  placeholder={showHint ? formatNumberSpaces(hint) : "0"}
+                  disabled={disabled}
+                />
+                {showHint && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = { ...values, [provider]: hint };
+                      onChange(next);
+                      onBlur?.(next);
+                    }}
+                    className="text-[9px] text-muted-foreground hover:text-primary leading-none mt-0.5"
+                    title="Click to use suggested value from cashless transactions"
+                  >
+                    hint: {formatNumberSpaces(hint)}
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}
