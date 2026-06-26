@@ -104,16 +104,37 @@ const Blacklist = () => {
     staleTime: 1000 * 60 * 5,
   });
 
+  // Map of player_id -> timestamp of last PLAYER_BLACKLISTED action (source of truth).
+  const { data: blacklistedAt = {} as Record<string, string> } = useQuery({
+    queryKey: ["blacklist-events"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("activity_logs")
+        .select("details, created_at")
+        .eq("action", "PLAYER_BLACKLISTED")
+        .order("created_at", { ascending: false })
+        .limit(5000);
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      (data || []).forEach((row: any) => {
+        const pid = row?.details?.player_id;
+        if (pid && !map[pid]) map[pid] = row.created_at;
+      });
+      return map;
+    },
+    staleTime: 1000 * 60,
+  });
+
   const blacklisted = useMemo(
     () =>
       players
         .filter(p => p.status === "blacklist")
         .sort((a: any, b: any) => {
-          const ta = new Date(a.updated_at || a.created_at || 0).getTime();
-          const tb = new Date(b.updated_at || b.created_at || 0).getTime();
+          const ta = new Date(blacklistedAt[a.id] || a.updated_at || 0).getTime();
+          const tb = new Date(blacklistedAt[b.id] || b.updated_at || 0).getTime();
           return tb - ta;
         }),
-    [players]
+    [players, blacklistedAt]
   );
 
   const filteredBL = useMemo(() => {
