@@ -663,7 +663,7 @@ $$;
 CREATE TABLE IF NOT EXISTS public.player_daily_zones (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   casino_id uuid NOT NULL,
-  player_id uuid NOT NULL REFERENCES public.players(id) ON DELETE CASCADE,
+  player_id uuid NOT NULL,  -- FK to public.players added by seed step (avoid bootstrap chicken-and-egg)
   business_date date NOT NULL,
   zone text NOT NULL CHECK (zone IN ('S','LG','CP')),
   created_by uuid,
