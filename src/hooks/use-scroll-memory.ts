@@ -63,16 +63,31 @@ export function useScrollMemory<T extends HTMLElement = HTMLDivElement>(
     const el = ref.current;
     if (!el) return;
     const pos = read(fullKey, mode);
-    if (pos) {
-      requestAnimationFrame(() => {
-        if (!ref.current) return;
-        ref.current.scrollLeft = pos.x;
-        ref.current.scrollTop = pos.y;
-        restoredRef.current = true;
-      });
-    } else {
+    if (!pos || (pos.x === 0 && pos.y === 0)) {
       restoredRef.current = true;
+      return;
     }
+    // Wait until layout is wide/tall enough to honor the saved position.
+    // Otherwise scrollLeft gets clamped to 0 because inner content is still rendering.
+    let cancelled = false;
+    let attempts = 0;
+    const tryApply = () => {
+      if (cancelled || !ref.current) return;
+      const node = ref.current;
+      const maxX = node.scrollWidth - node.clientWidth;
+      const maxY = node.scrollHeight - node.clientHeight;
+      const ready2 = (pos.x === 0 || maxX >= pos.x - 1) && (pos.y === 0 || maxY >= pos.y - 1);
+      if (ready2 || attempts > 60) {
+        node.scrollLeft = Math.min(pos.x, Math.max(0, maxX));
+        node.scrollTop = Math.min(pos.y, Math.max(0, maxY));
+        restoredRef.current = true;
+        return;
+      }
+      attempts += 1;
+      requestAnimationFrame(tryApply);
+    };
+    requestAnimationFrame(tryApply);
+    return () => { cancelled = true; };
   }, [ready, fullKey, mode]);
 
   // Reset restore flag if user/path changes.
