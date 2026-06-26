@@ -352,6 +352,22 @@ export const useRealtimeSubscriptions = () => {
             // mount (stale-while-revalidate) — no flicker.
             qc.invalidateQueries({ refetchType: "active" });
             qc.invalidateQueries({ refetchType: "none" });
+            // Force-refresh the Pit-Boss / Manager operational keys so the
+            // dashboards reflect any edits made while disconnected, even if
+            // the corresponding screen is not currently mounted.
+            const HOT_KEYS = [
+              ["table-tracker", casinoId],
+              ["breaklist", casinoId],
+              ["pit-rota-range", casinoId],
+              ["dealer-attendance-range", casinoId],
+              ["casino-visits-live"],
+              ["chip-snapshots", casinoId],
+              ["dashboard-table-results", casinoId],
+              ["players"],
+            ];
+            for (const k of HOT_KEYS) {
+              qc.invalidateQueries({ queryKey: k });
+            }
           }
           subscribedOnceRef.current = true;
         } else if (
@@ -376,5 +392,6 @@ export const useRealtimeSubscriptions = () => {
         channelRef.current = null;
       }
     };
-  }, [casinoId, qc, allowedModules, roles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- scalar keys cover the Set/array deps
+  }, [casinoId, qc, modulesKey, rolesKey]);
 };
