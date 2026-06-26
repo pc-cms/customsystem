@@ -1011,8 +1011,8 @@ const PlayerStatistics = () => {
         </div>
 
         <TabsContent value={tab} className="mt-0">
-          <div className="cms-panel rounded-lg" style={{ overflowX: "clip", overflowY: "visible" }}>
-            <div style={{ overflowX: "clip", overflowY: "visible" }}>
+          <div className="cms-panel rounded-lg" style={{ overflowX: "auto", overflowY: "visible", WebkitOverflowScrolling: "touch" }}>
+            <div style={{ overflowX: "auto", overflowY: "visible", WebkitOverflowScrolling: "touch" }}>
               <table className="w-full text-xs">
                 <thead className="bg-zinc-900 border-b border-border">
                   <tr className="text-sm uppercase tracking-wider text-white">

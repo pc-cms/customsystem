@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useUpsertWarningCommentByKey } from "@/hooks/use-staff-warnings";
 import { isExtraShift } from "@/lib/shift-colors";
+import { useScrollMemory } from "@/hooks/use-scroll-memory";
 
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -82,7 +83,7 @@ const isClearedBreaklistCell = (cell: any) => cell?.role === "CLR";
 const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const { data: dealers = [] } = useDealers();
   const { data: breaklist = [] } = useBreaklistData(date);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const { ref: scrollRef, onScroll: onScrollMemory } = useScrollMemory<HTMLDivElement>(`breaklist:${date}`, dealers.length > 0);
   const didAnchorRef = useRef(false);
   const { data: tables = [] } = useGamingTables();
   const { data: rota = [] } = usePitRotaRange(date, date);
@@ -193,8 +194,16 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     if (didAnchorRef.current) return;
     const wrap = scrollRef.current;
     if (!wrap || dealers.length === 0) return;
+    // If scroll memory already restored a non-zero position, skip auto-center.
+    const hasSavedPos = (() => {
+      try {
+        const keys = Object.keys(window.sessionStorage);
+        return keys.some(k => k.includes(`::breaklist:${date}`) && (JSON.parse(window.sessionStorage.getItem(k) || "{}")?.x ?? 0) > 0);
+      } catch { return false; }
+    })();
     const target = isToday ? currentSlot : "18:00";
     const raf = requestAnimationFrame(() => {
+      if (hasSavedPos) { didAnchorRef.current = true; return; }
       const el = wrap.querySelector<HTMLElement>(`[data-slot="${target}"]`);
       if (!el) return;
       const rect = el.getBoundingClientRect();
@@ -205,7 +214,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       didAnchorRef.current = true;
     });
     return () => cancelAnimationFrame(raf);
-  }, [date, isToday, currentSlot, dealers.length]);
+  }, [date, isToday, currentSlot, dealers.length, scrollRef]);
 
   // Inline role picker state
   const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string; dropUp: boolean; dropLeft: boolean; rect: { top: number; left: number; bottom: number; right: number; width: number; height: number } } | null>(null);
@@ -467,7 +476,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
 
   return (
     <>
-      <div ref={scrollRef} className="cms-panel overflow-auto" style={{ zoom: `${zoom}%` }}>
+      <div ref={scrollRef} onScroll={onScrollMemory} className="cms-panel overflow-auto" style={{ zoom: `${zoom}%` }}>
         <div className="min-w-[1400px]">
           <table className="w-full border-collapse">
             <thead>
