@@ -194,16 +194,21 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     if (didAnchorRef.current) return;
     const wrap = scrollRef.current;
     if (!wrap || dealers.length === 0) return;
-    // Skip auto-center if a non-zero saved position exists — restore wins.
-    const hasSavedPos = (() => {
-      try {
-        const check = (store: Storage) => Object.keys(store).some(k =>
-          k.includes(`::breaklist:${date}`) && (JSON.parse(store.getItem(k) || "{}")?.x ?? 0) > 0,
-        );
-        return check(window.localStorage) || check(window.sessionStorage);
-      } catch { return false; }
-    })();
-    if (hasSavedPos) { didAnchorRef.current = true; return; }
+    // For TODAY: always center on the current 20-min slot (ignore saved scroll —
+    // the user explicitly wants the active slot in the middle of the viewport).
+    // For other days: only auto-anchor to 18:00 when there is no saved position;
+    // otherwise let the scroll-memory hook restore the user's last position.
+    if (!isToday) {
+      const hasSavedPos = (() => {
+        try {
+          const check = (store: Storage) => Object.keys(store).some(k =>
+            k.includes(`::breaklist:${date}`) && (JSON.parse(store.getItem(k) || "{}")?.x ?? 0) > 0,
+          );
+          return check(window.localStorage) || check(window.sessionStorage);
+        } catch { return false; }
+      })();
+      if (hasSavedPos) { didAnchorRef.current = true; return; }
+    }
     const target = isToday ? currentSlot : "18:00";
 
     let cancelled = false;
