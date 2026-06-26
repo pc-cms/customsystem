@@ -938,8 +938,8 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
   const endDate = `${month}-${String(daysInMonth).padStart(2, "0")}`;
 
   const { data: staff = [] } = useStaffMembers();
-  const { data: attendance = [] } = useStaffAttendanceRange(startDate, endDate);
-  const { data: rota = [] } = useStaffRotaRange(startDate, endDate);
+  const { data: attendance = [], isSuccess: attendanceLoaded, isFetching: attendanceFetching } = useStaffAttendanceRange(startDate, endDate);
+  const { data: rota = [], isSuccess: rotaLoaded } = useStaffRotaRange(startDate, endDate);
   const { data: closedDates = new Set<string>() } = useClosedBusinessDates(startDate, endDate);
   const { data: effectiveBusinessDate } = useEffectiveBusinessDate();
   const setAttendanceRaw = useSetStaffAttendance();
