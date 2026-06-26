@@ -19,11 +19,15 @@ import { useAuth } from "@/lib/auth-context";
 export type TableSplit = { dropR: number; recycled: number };
 export type SplitLookup = {
   get(id: string | null | undefined): TableSplit | undefined;
+  forEach(cb: (value: TableSplit, key: string) => void): void;
+  values(): TableSplit[];
   size: number;
 };
 
 const toLookup = (rec: Record<string, TableSplit>): SplitLookup => ({
   get: (id) => (id ? rec[id] : undefined),
+  forEach: (cb) => { for (const k of Object.keys(rec)) cb(rec[k], k); },
+  values: () => Object.values(rec),
   get size() { return Object.keys(rec).length; },
 });
 
