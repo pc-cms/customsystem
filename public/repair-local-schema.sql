@@ -726,6 +726,18 @@ CREATE POLICY "zones_delete_ops_roles"
     OR public.has_role(auth.uid(), 'super_admin'::app_role)
   );
 
+-- Ensure helper function exists before the trigger (idempotent)
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public
+AS $func$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$func$;
+
 DO $$ BEGIN
   CREATE TRIGGER update_player_daily_zones_updated_at
     BEFORE UPDATE ON public.player_daily_zones
