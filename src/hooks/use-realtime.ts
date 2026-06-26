@@ -154,6 +154,19 @@ export const useRealtimeSubscriptions = () => {
             debouncedInvalidate(qc, "player-notes", ["player-notes"]);
             debouncedInvalidate(qc, "player-profile", ["player-profile"]);
           },
+        )
+        // Drop-split (Player Statistics / Dashboard) must update in realtime
+        // for ALL roles, not only those with cage access. Pit-Boss + Manager
+        // without cage module otherwise had to F5 to see new Drop values.
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "transactions", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            debouncedInvalidate(qc, "players-drop-split", ["players-drop-split"]);
+            debouncedInvalidate(qc, "tables-drop-split", ["tables-drop-split"]);
+            debouncedInvalidate(qc, "player-drop-split", ["player-drop-split"]);
+            debouncedInvalidate(qc, "dashboard-table-results", ["dashboard-table-results", casinoId]);
+          },
         );
 
       // ═════════════ PIT (breaklist / rota / dealers / attendance) ═════════════
