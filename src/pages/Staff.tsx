@@ -991,6 +991,11 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
   useEffect(() => {
     if (readOnly) return;
     if (!staff.length) return;
+    // CRITICAL: never auto-fill before attendance has actually been fetched.
+    // Without this guard, the effect can fire while `attendance = []` (default)
+    // and overwrite real A/S/SP entries in the DB with "8" derived from rota.
+    if (!attendanceLoaded || attendanceFetching) return;
+    if (!rotaLoaded) return;
     if (!closedDates || closedDates.size === 0) return;
 
     const todayBd = effectiveBusinessDate || getBusinessDate();
