@@ -344,6 +344,23 @@ const ProtectedRoutes = () => {
     return () => window.removeEventListener("cms:reconnected", onReconnect);
   }, []);
 
+  // Refresh actively-mounted queries when the tab becomes visible or the
+  // network comes back. This guarantees Pit-Boss / Manager screens are fresh
+  // after wake-from-sleep, tab-switch, or a hard reload without requiring
+  // the user to navigate or press refresh.
+  useEffect(() => {
+    const refreshActive = () => {
+      queryClient.invalidateQueries({ refetchType: "active" });
+    };
+    const onVis = () => { if (document.visibilityState === "visible") refreshActive(); };
+    window.addEventListener("online", refreshActive);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.removeEventListener("online", refreshActive);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, []);
+
   if (loading) {
     return <FullScreenLoader />;
   }
