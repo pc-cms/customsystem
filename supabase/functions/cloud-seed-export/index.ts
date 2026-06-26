@@ -51,7 +51,6 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_us
   { name: "tax_brackets", scope: "global" },
   { name: "payroll_paye_brackets", scope: "global" },
   { name: "role_module_defaults", scope: "global" },
-  { name: "blacklist", scope: "global" },
 
   // 2. Конфиг этого казино (полностью)
   { name: "gaming_tables", scope: "full" },
@@ -59,17 +58,14 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_us
   { name: "chip_initial_baseline", scope: "full" },
   { name: "chip_baseline", scope: "full" },
   { name: "chip_inventory", scope: "full" },
-  { name: "fin_categories", scope: "full" },
+  { name: "fin_categories", scope: "global" },
   { name: "fin_wallets", scope: "full" },
   { name: "fin_budget", scope: "full" },
   { name: "payroll_settings", scope: "full" },
   { name: "attendance_holidays", scope: "full" },
 
   // 3. Сотрудники
-  { name: "dealers", scope: "full" },
-  { name: "staff_members", scope: "full" },
-
-  // 3b. Employees (HR master list — separate from dealers/staff_members which are role-specific)
+  // 3b. Employees (HR master list; legacy dealers/staff_members tables are no longer seeded)
   { name: "employees", scope: "full" },
 
   // 4. Игроки и карты
@@ -77,7 +73,7 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_us
   // player_cards и player_tags не имеют casino_id — фильтруем через player_id ∈ players_of_casino
   { name: "player_cards", scope: "by_player" },
   { name: "player_groups", scope: "full" },
-  { name: "group_members", scope: "full" },
+  { name: "group_members", scope: "by_player" },
   { name: "player_tags", scope: "by_player" },
   { name: "player_notes", scope: "full" },
   // player_economy / player_session_stats / player_session_drops are VIEWs — never seed
@@ -85,7 +81,7 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global" | "by_us
   // 5. Пользователи системы — auth.users шлются отдельным потоком (см. ниже)
   //    после обычных таблиц. Здесь — связанные с ними public-таблицы.
   { name: "user_casino_access", scope: "full" },
-  { name: "user_module_permissions", scope: "full" },
+  { name: "user_module_permissions", scope: "by_user", userIdCol: "user_id" },
   { name: "profiles",         scope: "by_user", userIdCol: "user_id" },
   { name: "user_roles",       scope: "by_user", userIdCol: "user_id" },
   { name: "user_credentials", scope: "by_user", userIdCol: "user_id" },
@@ -153,6 +149,15 @@ const parseTableList = (value: string | null) =>
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean));
+
+const ORDER_COLUMNS: Record<string, string> = {
+  role_module_defaults: "module_key",
+  fin_categories: "sort_order",
+};
+
+const orderColumnFor = (tableName: string) => ORDER_COLUMNS[tableName] ?? "id";
+
+const needsUserIds = (tables: typeof TABLES) => tables.some((t) => t.scope === "by_user") || tables.length === 0;
 
 // Поле даты, по которому фильтруем "последние N дней" для каждой таблицы.
 const DATE_COLUMN: Record<string, string> = {
@@ -325,7 +330,7 @@ Deno.serve(async (req) => {
         // ── Step 1: список user_id, относящихся к этому казино ──
         //    (используется для scope: by_user — profiles / user_roles / user_credentials).
         let userIds: string[] = [];
-        {
+        if (needsUserIds(selectedTables)) {
           const { data: uca } = await admin
             .from("user_casino_access")
             .select("user_id")
@@ -386,7 +391,7 @@ Deno.serve(async (req) => {
             for (let i = 0; i < userIds.length; i += 500) {
               const slice = userIds.slice(i, i + 500);
               const { data, error } = await admin
-                .from(t.name).select("*").in(col, slice);
+                .from(t.name).select("*").in(col, slice).order(orderColumnFor(t.name), { ascending: true });
               if (error) {
                 writeLine({ _error: { table: t.name, msg: error.message } });
                 break;
@@ -419,7 +424,7 @@ Deno.serve(async (req) => {
             for (let i = 0; i < playerIds.length; i += 100) {
               const slice = playerIds.slice(i, i + 100);
               const { data, error } = await admin
-                .from(t.name).select("*").in("player_id", slice);
+                .from(t.name).select("*").in("player_id", slice).order(orderColumnFor(t.name), { ascending: true });
               if (error) {
                 writeLine({ _error: { table: t.name, msg: error.message } });
                 break;
@@ -431,7 +436,7 @@ Deno.serve(async (req) => {
           }
 
           while (true) {
-            let q = admin.from(t.name).select("*").order("id", { ascending: true }).range(from, from + PAGE_SIZE - 1);
+            let q = admin.from(t.name).select("*").order(orderColumnFor(t.name), { ascending: true }).range(from, from + PAGE_SIZE - 1);
             if (t.scope === "full") q = q.eq("casino_id", casinoId);
             if (!allHistory && t.sinceDays && DATE_COLUMN[t.name] && sinceIso) {
               q = q.gte(DATE_COLUMN[t.name], sinceIso);

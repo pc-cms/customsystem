@@ -296,44 +296,28 @@ const SEED_TABLE_GROUPS = [
     label: "core",
     auth: true,
     tables: [
-      "casinos", "tax_brackets", "payroll_paye_brackets", "role_module_defaults", "blacklist",
+      "casinos", "tax_brackets", "payroll_paye_brackets", "role_module_defaults",
       "gaming_tables", "chip_color_settings", "chip_initial_baseline", "chip_baseline", "chip_inventory",
       "fin_categories", "fin_wallets", "fin_budget", "payroll_settings", "attendance_holidays",
-      "dealers", "staff_members", "employees", "players", "player_cards", "player_groups",
+      "employees", "players", "player_cards", "player_groups",
       "group_members", "player_tags", "player_notes", "user_casino_access", "user_module_permissions",
       "profiles", "user_roles", "user_credentials",
     ],
   },
-  {
-    label: "operations-a",
-    tables: [
-      "shifts", "transactions", "casino_visits", "breaklist", "pit_rota", "staff_rota",
-      "dealer_attendance", "staff_attendance", "attendance_hours", "cage_transfers", "expenses",
-      "fin_wallet_tx", "fin_day_closing", "fin_money_change", "fin_audit_log", "chip_emissions",
-    ],
-  },
-  {
-    label: "chip-snapshots",
-    tables: ["chip_snapshots"],
-  },
-  {
-    label: "operations-b",
-    tables: [
-      "table_tracker", "table_daily_results", "business_day_closures", "cash_counts",
-      "cash_count_snapshots", "cashless_transactions", "bank_checks", "cctv_observations",
-      "chip_transfers", "player_chip_adjustments", "player_position_history", "client_sessions",
-      "staff_warnings", "transaction_cancellations", "player_daily_avg_bets",
-      "player_daily_avg_bet_changes", "incidents", "payroll_periods", "payroll_entries",
-      "monthly_tips_pools", "monthly_tips_entries", "weekly_bonus_pools", "weekly_bonus_entries",
-    ],
-  },
-  {
-    label: "logs",
-    tables: [
-      "activity_logs", "activity_logs_archive", "breaklist_logs", "breaklist_logs_archive",
-      "casino_visits_archive", "client_sessions_archive", "incidents_audit", "payroll_audit_log",
-    ],
-  },
+  ...[
+    "shifts", "transactions", "casino_visits", "breaklist", "pit_rota", "staff_rota",
+    "dealer_attendance", "staff_attendance", "attendance_hours", "cage_transfers", "expenses",
+    "fin_wallet_tx", "fin_day_closing", "fin_money_change", "fin_audit_log", "chip_emissions",
+    "table_tracker", "table_daily_results", "business_day_closures", "cash_counts",
+    "cash_count_snapshots", "cashless_transactions", "bank_checks", "cctv_observations",
+    "chip_transfers", "player_chip_adjustments", "player_position_history", "client_sessions",
+    "staff_warnings", "transaction_cancellations", "player_daily_avg_bets",
+    "player_daily_avg_bet_changes", "incidents", "payroll_periods", "payroll_entries",
+    "monthly_tips_pools", "monthly_tips_entries", "weekly_bonus_pools", "weekly_bonus_entries",
+    "chip_snapshots",
+    "activity_logs", "activity_logs_archive", "breaklist_logs", "breaklist_logs_archive",
+    "casino_visits_archive", "client_sessions_archive", "incidents_audit", "payroll_audit_log",
+  ].map((table) => ({ label: table, tables: [table] })),
 ];
 
 const SKIP_SEED_TABLES = new Set(["player_economy", "player_session_stats", "player_session_drops"]);
