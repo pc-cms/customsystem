@@ -132,6 +132,12 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   );
   const [cashierNote, setCashierNote] = useState<string>(shift.cashier_note || "");
 
+  // Dirty refs — block DB→state re-hydration while the cashier has unsaved
+  // edits in a provider block. Cleared after a successful onBlur save.
+  const dirtyInRef = useRef(false);
+  const dirtyOutRef = useRef(false);
+  const dirtyFinalRef = useRef(false);
+
   // Persist cashless provider blocks (onBlur from the inputs).
   const saveCashlessProviders = async (
     field: "cashless_in_providers" | "cashless_out_providers" | "cashless_final_providers",
@@ -141,7 +147,31 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
       .from("cage_slots_shifts")
       .update({ [field]: value } as any)
       .eq("id", shift.id);
+    if (field === "cashless_in_providers") dirtyInRef.current = false;
+    else if (field === "cashless_out_providers") dirtyOutRef.current = false;
+    else dirtyFinalRef.current = false;
   };
+
+  // Re-sync local provider state with DB when the shift row updates (realtime
+  // / refetch) — but ONLY if the cashier has no unsaved edits in that block.
+  // Without this, useState's lazy init runs once at mount and any later blur
+  // would push stale local values back into DB.
+  useEffect(() => {
+    if (dirtyInRef.current) return;
+    setCashlessInProviders({ ...emptyMobile(), ...((shift as any).cashless_in_providers || {}) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [(shift as any).cashless_in_providers, (shift as any).updated_at]);
+  useEffect(() => {
+    if (dirtyOutRef.current) return;
+    setCashlessOutProviders({ ...emptyMobile(), ...((shift as any).cashless_out_providers || {}) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [(shift as any).cashless_out_providers, (shift as any).updated_at]);
+  useEffect(() => {
+    if (dirtyFinalRef.current) return;
+    setCashlessFinalProviders({ ...emptyMobile(), ...((shift as any).cashless_final_providers || {}) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [(shift as any).cashless_final_providers, (shift as any).updated_at]);
+
 
   // Hydrate closing from persisted closing inventory + cards
   useEffect(() => {
