@@ -1121,6 +1121,9 @@ CREATE TABLE IF NOT EXISTS public.player_daily_avg_bet_changes (
   changed_by uuid,
   changed_at timestamptz NOT NULL DEFAULT now()
 );
+-- Fix legacy typo: old constraint allowed 'bg' instead of 'bj'
+ALTER TABLE public.player_daily_avg_bet_changes DROP CONSTRAINT IF EXISTS player_daily_avg_bet_changes_game_group_check;
+ALTER TABLE public.player_daily_avg_bet_changes ADD CONSTRAINT player_daily_avg_bet_changes_game_group_check CHECK (game_group IN ('ar','bj','poker'));
 CREATE INDEX IF NOT EXISTS idx_player_daily_avg_bet_changes_lookup ON public.player_daily_avg_bet_changes(casino_id, business_date, player_id, game_group);
 
 CREATE TABLE IF NOT EXISTS public.cutover_sessions (
