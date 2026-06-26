@@ -902,8 +902,8 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   const endDate = `${month}-${String(daysInMonth).padStart(2, "0")}`;
 
   const { data: dealers = [] } = useDealers();
-  const { data: monthAttendance = [] } = useDealerAttendanceRange(startDate, endDate);
-  const { data: rota = [] } = usePitRotaRange(startDate, endDate);
+  const { data: monthAttendance = [], isSuccess: attendanceLoaded, isFetching: attendanceFetching } = useDealerAttendanceRange(startDate, endDate);
+  const { data: rota = [], isSuccess: rotaLoaded } = usePitRotaRange(startDate, endDate);
   const { data: closedDates = new Set<string>() } = useClosedBusinessDates(startDate, endDate);
   const { data: effectiveBusinessDate } = useEffectiveBusinessDate();
   const setAttendanceRaw = useSetDealerAttendance();
@@ -976,6 +976,11 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   useEffect(() => {
     if (readOnly) return;
     if (!dealers.length) return;
+    // CRITICAL: never auto-fill before attendance has actually been fetched.
+    // Otherwise the effect can fire while `monthAttendance = []` (default) and
+    // overwrite real A/S/SP entries in the DB with hours derived from rota.
+    if (!attendanceLoaded || attendanceFetching) return;
+    if (!rotaLoaded) return;
     if (!closedDates || closedDates.size === 0) return;
 
     const todayBd = effectiveBusinessDate || getBusinessDate();
