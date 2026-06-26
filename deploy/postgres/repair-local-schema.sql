@@ -1116,7 +1116,7 @@ CREATE TABLE IF NOT EXISTS public.player_daily_avg_bet_changes (
   casino_id uuid NOT NULL,
   player_id uuid NOT NULL,
   business_date date NOT NULL,
-  game_group text NOT NULL CHECK (game_group IN ('ar','bg','poker')),
+  game_group text NOT NULL CHECK (game_group IN ('ar','bj','poker')),
   value numeric NOT NULL,
   changed_by uuid,
   changed_at timestamptz NOT NULL DEFAULT now()
