@@ -16,7 +16,7 @@
 #
 set -euo pipefail
 
-INSTALLER_VERSION="2.1.5"
+INSTALLER_VERSION="2.1.6"
 
 # Resolve script directory robustly. Falls back when piped through
 # `curl ... | bash` (no BASH_SOURCE) — then we look for an installed
@@ -351,7 +351,7 @@ if [[ $VERIFY -eq 1 ]]; then
   PG_RUN=(docker compose exec -T -e PGPASSWORD="${POSTGRES_PASSWORD}" postgres
           psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-postgres}" -At -F'|')
 
-  TABLES=(players gaming_tables shifts daily_summaries employees casinos
+  TABLES=(players gaming_tables shifts employees casinos
           transactions expenses casino_visits client_sessions
           player_cards player_tags player_notes player_chip_adjustments
           chip_inventory chip_emissions cash_counts
@@ -359,7 +359,7 @@ if [[ $VERIFY -eq 1 ]]; then
           player_position_history mirror_cutover_state node_modes
           sync_table_registry user_roles user_casino_access)
 
-  PASS=0; DIFF=0; MISS=0
+  PASS=0; DIFF=0; MISS=0; LOCAL_MORE=0; LOCAL_LESS=0
   printf "\n  ${BOLD}%-32s %12s %12s   %s${NC}\n" "Table" "Local" "Cloud" "Status"
   printf "  %-32s %12s %12s   %s\n" "────────────────────────────────" "────────────" "────────────" "──────"
 
@@ -393,7 +393,10 @@ if [[ $VERIFY -eq 1 ]]; then
       player_cards|player_tags)
         LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T} t JOIN public.players p ON p.id=t.player_id WHERE p.casino_id='${CASINO_ID}'" 2>/dev/null || true)
         ;;
-      casinos|user_roles|user_casino_access|sync_table_registry|node_modes)
+      casinos)
+        LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.casinos WHERE id='${CASINO_ID}'" 2>/dev/null || true)
+        ;;
+      user_roles|user_casino_access|sync_table_registry|node_modes)
         LOC=$("${PG_RUN[@]}" -c "SELECT count(*) FROM public.${T}" 2>/dev/null || true)
         ;;
       *)
@@ -412,6 +415,12 @@ if [[ $VERIFY -eq 1 ]]; then
     elif is_info_table "$T"; then
       printf "  %-32s %12s %12s   ${CYAN}%s${NC}\n" "$T" "$LOC" "$CLD" "INFO"
       INFO=$((INFO+1))
+    elif [[ "$LOC" =~ ^[0-9]+$ && "$CLD" =~ ^[0-9]+$ && "$LOC" -gt "$CLD" ]]; then
+      printf "  %-32s %12s %12s   ${YELLOW}%s${NC}\n" "$T" "$LOC" "$CLD" "DIFF local+"
+      DIFF=$((DIFF+1)); LOCAL_MORE=$((LOCAL_MORE+1))
+    elif [[ "$LOC" =~ ^[0-9]+$ && "$CLD" =~ ^[0-9]+$ && "$LOC" -lt "$CLD" ]]; then
+      printf "  %-32s %12s %12s   ${YELLOW}%s${NC}\n" "$T" "$LOC" "$CLD" "DIFF cloud+"
+      DIFF=$((DIFF+1)); LOCAL_LESS=$((LOCAL_LESS+1))
     else
       printf "  %-32s %12s %12s   ${YELLOW}%s${NC}\n" "$T" "$LOC" "$CLD" "DIFF"
       DIFF=$((DIFF+1))
@@ -451,8 +460,15 @@ if [[ $VERIFY -eq 1 ]]; then
   printf "  ${BOLD}Итог:${NC}  ${GREEN}OK: %d${NC}   ${YELLOW}DIFF: %d${NC}   ${CYAN}INFO: %d${NC}   ${RED}MISSING: %d${NC}\n" "$PASS" "$DIFF" "$INFO" "$MISS"
   if [[ $DIFF -gt 0 ]]; then
     echo
-    warn "Есть расхождения. Запустите дозалив из Cloud:"
-    echo "    sudo casino-update --backfill"
+    if [[ $LOCAL_LESS -gt 0 ]]; then
+      warn "Есть строки, которых не хватает локально (DIFF cloud+). Запустите дозалив из Cloud:"
+      echo "    sudo casino-update --backfill"
+    fi
+    if [[ $LOCAL_MORE -gt 0 ]]; then
+      warn "Есть local-only строки (DIFF local+). Backfill их не удаляет и не исправит."
+      echo "    Если это свежие локальные операции — дождитесь push-sync и повторите verify."
+      echo "    Если нужен точный клон Cloud→Local — используйте destructive clone / wipe, не backfill."
+    fi
   fi
   hr
   exit 0
