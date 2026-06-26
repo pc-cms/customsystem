@@ -282,7 +282,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                   </tr>
                 ))}
                 <tr className="border-t-2 border-primary/30 bg-muted/30">
-                  <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase sticky left-0 bg-muted/30 z-10">
+                  <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase sticky left-0 bg-card z-10">
                     Total
                   </td>
                   {SLOTS.map((slot) => {

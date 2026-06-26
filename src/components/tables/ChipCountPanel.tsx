@@ -374,7 +374,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                 );
               })}
               <tr className="border-t-2 border-primary/30 bg-muted/30">
-                <td className={`py-2 px-2 ${t.totalText} font-bold uppercase text-card-foreground sticky left-0 bg-muted/30 z-10`}>
+                <td className={`py-2 px-2 ${t.totalText} font-bold uppercase text-card-foreground sticky left-0 bg-card z-10`}>
                   Total
                 </td>
                 <td colSpan={visibleDenoms.length} />

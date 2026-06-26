@@ -1,56 +1,52 @@
-## Проблема
 
-Вчера в Arusha → Slots Cage блоки **Cashless IN / OUT / FINAL** опять самопроизвольно перезаписали то, что кассир ввёл вручную. Это та же гонка, что была во Floor Attendance, но в другом компоненте.
+## 1. Sticky columns Card / Name (LEVEL) — opaque on scroll
 
-## Где баг
+**File:** `src/pages/PlayerStatistics.tsx` (~line 747-773)
 
-`src/components/cage-slots/ActiveSlotsShiftView.tsx` — внутренний компонент `CashlessProvidersBlock` (≈ строки 1244–1263):
+Today the "Name" sticky column uses translucent tints (e.g. `bg-blue-100/70`, `bg-yellow-500/15`, `bg-muted/40`). When the user scrolls horizontally, the columns underneath show through.
 
-```text
-useEffect(() => {
-  if (initRef.current || disabled || !suggestions) return;
-  ...
-  next[p] = suggestion              // подставляет цифры из cashless_transactions
-  onChange(next)
-  onBlur?.(next)                    // → пишет в DB cage_slots_shifts.cashless_*_providers
-}, [suggestions, disabled])
-```
+Fix:
+- Replace tints in `CATEGORY_NAME_TINT` with **solid** colors (no `/70`, `/15`):
+  - diamond → `bg-blue-50 dark:bg-blue-950`
+  - platinum → `bg-purple-50 dark:bg-purple-950`
+  - gold → `bg-yellow-50 dark:bg-yellow-950`
+  - normal → `bg-card`
+- Same for the selected-row variant (`bg-primary/10` → keep, but add `backdrop-filter: none` and a solid fallback: wrap in a layer like `bg-card` then overlay `bg-primary/10` is fine because base is solid).
+- Card cell (left:0) already uses `bg-card` — keep, but ensure no parent applies opacity.
+- Apply the same treatment to any other table that uses translucent sticky cells (search `sticky left-` + `/70|/15|/20|/30|/40`).
 
-Сценарии перезаписи:
-1. Кассир ввёл значения → ушёл со страницы → вернулся. Внутренний компонент **ремаунтится**, `initRef` обнуляется. Если в этот момент `suggestions` от `useCashlessSuggestions` пришли позже, чем родитель успел прокинуть свежий `values`, пустые ячейки заполняются "подсказкой" и `onBlur(next)` пишет в БД целиком объект — старые ручные цифры в провайдерах с `0` тоже затираются.
-2. `disabled` переключается `true → false` (например, статус смены меняется при рефетче) — `initRef.current` ещё `false`, эффект срабатывает снова.
-3. Родительский `useState(shift.cashless_in_providers || {})` инициализируется один раз. Если реалтайм обновил `shift`, локальный стейт остаётся старым — следующий blur записывает stale-данные поверх свежих.
+## 2. Real-time updates everywhere — fix churn after force-update
 
-## Решение
+**File:** `src/hooks/use-realtime.ts`
 
-Ручной ввод — это **единственный источник истины**. Подсказки показываем как placeholder/hint, но никогда не пишем в БД автоматически.
+Symptoms after a forced page reload: data lags until manual refresh. Causes:
+- Channel name uses `Date.now()` → every effect re-run creates a brand-new channel and tears down the prior one (race with WebSocket reconnect leaves a window without listeners).
+- Effect deps include `roles` (array) and `allowedModules` (Set). New identity each render triggers full unsubscribe/resubscribe cycles, eating Realtime quota.
 
-### 1. Убрать авто-prefill из `CashlessProvidersBlock`
-- Удалить `useEffect` с `initRef` + `onChange(next)` + `onBlur?.(next)`.
-- Оставить только `suggestions` как **placeholder** в `NumberInput` (серым курсивом) — кассир видит подсказку, но если не введёт сам, в БД ничего не пишется.
+Fix:
+- Drop `Date.now()` from channel name: `casino:${casinoId}:cms-realtime`.
+- Memoize the dependency signature: compute `const modulesKey = useMemo(() => [...allowedModules ?? []].sort().join(","), [allowedModules]);` and `const rolesKey = roles.join(",")`. Use those scalar keys in the effect deps instead of the array/Set references.
+- On `SUBSCRIBED` after a reconnect, in addition to `refetchType: "active"`, also call `qc.refetchQueries({ queryKey: ["casino-visits-live"] })` etc. for the small set of *Pit-Boss / Manager dashboards* that must be fresh immediately (table-tracker, breaklist, dealer-attendance, chip-snapshots, pit-rota, players).
+- Add a `visibilitychange` + `online` listener at the top of `App.tsx` (or in `useRealtimeSubscriptions`) that triggers `qc.invalidateQueries({ refetchType: "active" })` when the tab becomes visible or network returns. This guarantees the open page is fresh after a wake/reload without user action.
 
-### 2. Ресинк родительского состояния с DB
-В `ActiveSlotsShiftView` для трёх блоков (`cashlessInProviders`, `cashlessOutProviders`, `cashlessFinalProviders`) добавить `useEffect`, который **сливает** свежие значения из `shift.cashless_*_providers` в локальный стейт, **только если у пользователя нет несохранённых правок**. Отслеживаем dirty-флаг (`useRef<Set<string>>`) и обновляем стейт по `shift.updated_at`.
+## 3. Pitboss / Manager pages — force fresh data on focus
 
-```text
-const dirtyIn = useRef(false);
-useEffect(() => {
-  if (dirtyIn.current) return;
-  setCashlessInProviders({ ...emptyMobile(), ...(shift.cashless_in_providers || {}) });
-}, [shift.cashless_in_providers, shift.updated_at]);
-// onChange → dirtyIn.current = true
-// после успешного onBlur/save → dirtyIn.current = false
-```
+**Files:** `src/pages/Pit.tsx`, `src/pages/TableTracker.tsx`, `src/pages/Dashboard.tsx`, `src/pages/PlayerStatistics.tsx`
 
-### 3. Защита `recordMidCheck` / `confirmSubmitForReview`
-Перед сохранением читать `cashless_*_providers` свежим запросом (как уже делается `fetchFreshTransfersAgg`) и мерджить с локальным стейтом, чтобы при закрытии смены не затереть параллельные правки.
+- Set `refetchOnWindowFocus: true` and `refetchOnReconnect: true` for the heavy queries used here (currently they default to false in `queryClient`). Apply per-query (not global) so we don't thrash less critical lists.
+- Lower `staleTime` for: `["table-tracker", casinoId]`, `["breaklist", casinoId]`, `["casino-visits-live"]`, `["pit-rota-range"]`, `["dealer-attendance-range"]` to `10_000` ms so realtime gaps are imperceptible.
+- Add a single `useEffect` in `AppLayout` listening to `casinoId` change → `qc.invalidateQueries({ refetchType: "active" })` so subdomain switches refresh visibly-mounted data.
 
-## Файлы
+## 4. Version + verification
 
-- `src/components/cage-slots/ActiveSlotsShiftView.tsx` — удалить auto-prefill в `CashlessProvidersBlock`, добавить ресинк-эффекты с dirty-флагом для трёх блоков, защитить `recordMidCheck` и `confirmSubmitForReview`.
-- `package.json` — поднять версию до `1.3.414`.
+- Bump `package.json` version to `1.3.418`.
+- Manual check:
+  1. Open Player Statistics, scroll right — Name column stays fully opaque over scrolling columns.
+  2. Open Pit / Table Tracker on a second device, edit data on first — second device updates within ~1s without refresh.
+  3. Force-reload (Ctrl+Shift+R) and confirm initial data loads in < 2s and updates flow in without further reload.
 
-## Что НЕ меняется
+## Out of scope
 
-- Логика баланса (`computeSlotsShiftBalance`), формулы CDR, отчёт, печатные формы — без изменений.
-- Прочие компоненты Cashless (Live Game cage) — отдельный компонент, в этой задаче не трогаем (если нужно — отдельной задачей по аналогии).
+- No backend / RPC changes.
+- No data-model changes.
+- No POS or Cage UI changes beyond the realtime hook.

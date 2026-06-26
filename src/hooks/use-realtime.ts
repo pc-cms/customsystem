@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
@@ -50,6 +50,15 @@ export const useRealtimeSubscriptions = () => {
   const wasDisconnectedRef = useRef(false);
   const subscribedOnceRef = useRef(false);
 
+  // Stable scalar keys — array/Set identity changes every render and would
+  // tear down + rebuild the channel on each parent re-render, leaking
+  // websocket handshakes and creating gaps where no listener is attached.
+  const rolesKey = useMemo(() => [...roles].sort().join(","), [roles]);
+  const modulesKey = useMemo(
+    () => (allowedModules ? [...allowedModules].sort().join(",") : "__undef__"),
+    [allowedModules],
+  );
+
   useEffect(() => {
     if (!casinoId) return;
     // Wait for modules to load — otherwise we'd subscribe to nothing
@@ -67,7 +76,9 @@ export const useRealtimeSubscriptions = () => {
     }
     subscribedOnceRef.current = false;
 
-    const channelName = `casino:${casinoId}:cms-realtime-${Date.now()}`;
+    // Stable channel name (no Date.now()): a re-render of the parent must
+    // not produce a brand-new channel each time.
+    const channelName = `casino:${casinoId}:cms-realtime`;
     const status = (window as any).__realtimeStatus ?? {};
     status.channelName = channelName;
     status.subscribed = false;
@@ -341,6 +352,22 @@ export const useRealtimeSubscriptions = () => {
             // mount (stale-while-revalidate) — no flicker.
             qc.invalidateQueries({ refetchType: "active" });
             qc.invalidateQueries({ refetchType: "none" });
+            // Force-refresh the Pit-Boss / Manager operational keys so the
+            // dashboards reflect any edits made while disconnected, even if
+            // the corresponding screen is not currently mounted.
+            const HOT_KEYS = [
+              ["table-tracker", casinoId],
+              ["breaklist", casinoId],
+              ["pit-rota-range", casinoId],
+              ["dealer-attendance-range", casinoId],
+              ["casino-visits-live"],
+              ["chip-snapshots", casinoId],
+              ["dashboard-table-results", casinoId],
+              ["players"],
+            ];
+            for (const k of HOT_KEYS) {
+              qc.invalidateQueries({ queryKey: k });
+            }
           }
           subscribedOnceRef.current = true;
         } else if (
@@ -365,5 +392,6 @@ export const useRealtimeSubscriptions = () => {
         channelRef.current = null;
       }
     };
-  }, [casinoId, qc, allowedModules, roles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- scalar keys cover the Set/array deps
+  }, [casinoId, qc, modulesKey, rolesKey]);
 };

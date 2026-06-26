@@ -744,11 +744,12 @@ const PlayerStatistics = () => {
   const { playerId: selectedPlayerId, select: selectPlayer } = useSelectedPlayer();
 
   // Tint applied to the Name cell — matches CategoryBadge palette.
+  // Sticky column: MUST be fully opaque so scrolling columns don't bleed through.
   const CATEGORY_NAME_TINT: Record<string, string> = {
-    diamond: "bg-blue-100/70 dark:bg-blue-500/15",
-    platinum: "bg-purple-100/70 dark:bg-purple-500/15",
-    gold: "bg-yellow-100/70 dark:bg-yellow-500/15",
-    normal: "bg-muted/40",
+    diamond: "bg-blue-50 dark:bg-blue-950",
+    platinum: "bg-purple-50 dark:bg-purple-950",
+    gold: "bg-yellow-50 dark:bg-yellow-950",
+    normal: "bg-card",
   };
 
   const renderRow = (r: any, idx: number) => {
