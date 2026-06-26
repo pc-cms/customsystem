@@ -105,7 +105,14 @@ const Blacklist = () => {
   });
 
   const blacklisted = useMemo(
-    () => players.filter(p => p.status === "blacklist"),
+    () =>
+      players
+        .filter(p => p.status === "blacklist")
+        .sort((a: any, b: any) => {
+          const ta = new Date(a.updated_at || a.created_at || 0).getTime();
+          const tb = new Date(b.updated_at || b.created_at || 0).getTime();
+          return tb - ta;
+        }),
     [players]
   );
 
