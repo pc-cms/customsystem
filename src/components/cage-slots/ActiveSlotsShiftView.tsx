@@ -818,7 +818,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                   title="Cashless IN"
                   tone="in"
                   values={cashlessInProviders}
-                  onChange={setCashlessInProviders}
+                  onChange={(v) => { dirtyInRef.current = true; setCashlessInProviders(v); }}
                   onBlur={(value) => saveCashlessProviders("cashless_in_providers", value || cashlessInProviders)}
                   disabled={shift.status !== "open"}
                   suggestions={cashlessSug?.in}
@@ -827,7 +827,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                   title="Cashless OUT"
                   tone="out"
                   values={cashlessOutProviders}
-                  onChange={setCashlessOutProviders}
+                  onChange={(v) => { dirtyOutRef.current = true; setCashlessOutProviders(v); }}
                   onBlur={(value) => saveCashlessProviders("cashless_out_providers", value || cashlessOutProviders)}
                   disabled={shift.status !== "open"}
                   suggestions={cashlessSug?.out}
@@ -837,6 +837,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                   tone="final"
                   values={cashlessFinalProviders}
                   onChange={(v) => {
+                    dirtyFinalRef.current = true;
                     setCashlessFinalProviders(v);
                     const total = mobileTotal(v);
                     setCashlessFinalInput(String(total));
@@ -851,6 +852,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                   }}
                   disabled={shift.status !== "open"}
                 />
+
               </div>
 
               {/* Checks history (was a separate tab) */}
