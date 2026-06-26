@@ -411,7 +411,7 @@ Deno.serve(async (req) => {
           }
 
           while (true) {
-            let q = admin.from(t.name).select("*").range(from, from + PAGE_SIZE - 1);
+            let q = admin.from(t.name).select("*").order("id", { ascending: true }).range(from, from + PAGE_SIZE - 1);
             if (t.scope === "full") q = q.eq("casino_id", casinoId);
             if (!allHistory && t.sinceDays && DATE_COLUMN[t.name] && sinceIso) {
               q = q.gte(DATE_COLUMN[t.name], sinceIso);
