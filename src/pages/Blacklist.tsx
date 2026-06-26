@@ -278,7 +278,7 @@ const Blacklist = () => {
                 <div className="grid grid-cols-2 gap-1 text-[9px] font-mono text-muted-foreground">
                   <div>
                     <p className="uppercase tracking-wider opacity-70">Banned</p>
-                    <p className="text-foreground">{fmtDate((p as any).updated_at)}</p>
+                    <p className="text-foreground">{fmtDate(blacklistedAt[p.id] || (p as any).updated_at)}</p>
                   </div>
                   <div>
                     <p className="uppercase tracking-wider opacity-70">Last visit</p>
