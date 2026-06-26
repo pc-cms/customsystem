@@ -292,6 +292,9 @@ Deno.serve(async (req) => {
   const includeAuth = url.searchParams.get("auth") !== "0";
   const onlyTables = parseTableList(url.searchParams.get("tables"));
   const excludedTables = parseTableList(url.searchParams.get("exclude"));
+  const offsetParam = Math.max(0, parseInt(url.searchParams.get("offset") ?? "0", 10) || 0);
+  const maxRowsParam = url.searchParams.get("max_rows");
+  const maxRows = maxRowsParam ? Math.max(1, Math.min(10000, parseInt(maxRowsParam, 10) || PAGE_SIZE)) : null;
   const unknownTables = [...onlyTables, ...excludedTables].filter((name) => !tableNames.has(name));
   if (unknownTables.length > 0) {
     return new Response(JSON.stringify({ error: `unknown table(s): ${unknownTables.join(",")}` }), { status: 400, headers: corsHeaders });
@@ -299,6 +302,7 @@ Deno.serve(async (req) => {
   const selectedTables = TABLES.filter((t) =>
     (onlyTables.size === 0 || onlyTables.has(t.name)) && !excludedTables.has(t.name)
   );
+  const windowedSingleTable = selectedTables.length === 1 && maxRows !== null;
   if (selectedTables.length === 0) {
     return new Response(JSON.stringify({ error: "no tables selected" }), { status: 400, headers: corsHeaders });
   }
@@ -373,7 +377,8 @@ Deno.serve(async (req) => {
 
         for (const t of selectedTables) {
           counts[t.name] = 0;
-          let from = 0;
+          let from = windowedSingleTable ? offsetParam : 0;
+          const stopBefore = windowedSingleTable && maxRows !== null ? offsetParam + maxRows : Number.POSITIVE_INFINITY;
 
           // single — одна строка из casinos
           if (t.scope === "single") {
@@ -436,7 +441,9 @@ Deno.serve(async (req) => {
           }
 
           while (true) {
-            let q = admin.from(t.name).select("*").order(orderColumnFor(t.name), { ascending: true }).range(from, from + PAGE_SIZE - 1);
+            if (from >= stopBefore) break;
+            const to = Math.min(from + PAGE_SIZE - 1, stopBefore - 1);
+            let q = admin.from(t.name).select("*").order(orderColumnFor(t.name), { ascending: true }).range(from, to);
             if (t.scope === "full") q = q.eq("casino_id", casinoId);
             if (!allHistory && t.sinceDays && DATE_COLUMN[t.name] && sinceIso) {
               q = q.gte(DATE_COLUMN[t.name], sinceIso);
@@ -449,7 +456,7 @@ Deno.serve(async (req) => {
             if (!data || data.length === 0) break;
             for (const row of data) writeLine({ table: t.name, row });
             counts[t.name] += data.length;
-            if (data.length < PAGE_SIZE) break;
+            if (data.length < PAGE_SIZE || from + data.length >= stopBefore) break;
             from += PAGE_SIZE;
           }
         }
