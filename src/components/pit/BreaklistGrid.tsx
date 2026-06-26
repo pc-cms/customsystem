@@ -187,17 +187,14 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   // Reset anchor flag when the date changes — re-center on next layout.
   useEffect(() => { didAnchorRef.current = false; }, [date]);
 
-  // One-shot horizontal auto-center: today → current 20-min slot, other days → 18:00.
-  // Runs after data is available; subsequent realtime updates do not re-trigger it,
-  // so the user's manual scroll position is preserved.
+  // Horizontal auto-anchor:
+  //  • TODAY → place the current 20-min slot exactly 5 columns from the left edge,
+  //    snapped to the column grid. Re-runs whenever currentSlot ticks over.
+  //  • Other days → anchor to 18:00 on first load, otherwise restore saved scroll.
   useEffect(() => {
-    if (didAnchorRef.current) return;
     const wrap = scrollRef.current;
     if (!wrap || dealers.length === 0) return;
-    // For TODAY: always center on the current 20-min slot (ignore saved scroll —
-    // the user explicitly wants the active slot in the middle of the viewport).
-    // For other days: only auto-anchor to 18:00 when there is no saved position;
-    // otherwise let the scroll-memory hook restore the user's last position.
+    if (!isToday && didAnchorRef.current) return;
     if (!isToday) {
       const hasSavedPos = (() => {
         try {
@@ -210,30 +207,41 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       if (hasSavedPos) { didAnchorRef.current = true; return; }
     }
     const target = isToday ? currentSlot : "18:00";
+    const OFFSET_COLS = 5; // current slot sits this many columns from the left edge
 
     let cancelled = false;
     let attempts = 0;
-    const tryCenter = () => {
-      if (cancelled || didAnchorRef.current) return;
+    const tryAnchor = () => {
+      if (cancelled) return;
       const w = scrollRef.current;
       if (!w) return;
       const el = w.querySelector<HTMLElement>(`[data-slot="${target}"]`);
       const maxX = w.scrollWidth - w.clientWidth;
       if (!el || maxX <= 0) {
         if (attempts++ > 60) { didAnchorRef.current = true; return; }
-        requestAnimationFrame(tryCenter);
+        requestAnimationFrame(tryAnchor);
         return;
       }
       const rect = el.getBoundingClientRect();
       const wrapRect = w.getBoundingClientRect();
-      const delta = rect.left - wrapRect.left - (w.clientWidth - rect.width) / 2;
-      const next = Math.max(0, Math.min(maxX, w.scrollLeft + delta));
-      w.scrollLeft = isToday ? next : 0;
+      const slotLeft = (rect.left - wrapRect.left) + w.scrollLeft;
+      const colW = rect.width || 1;
+      // Snap to the column grid so the cell edges line up cleanly.
+      const desired = Math.round((slotLeft - OFFSET_COLS * colW) / colW) * colW;
+      const next = Math.max(0, Math.min(maxX, isToday ? desired : 0));
+      w.scrollLeft = next;
       didAnchorRef.current = true;
     };
-    requestAnimationFrame(tryCenter);
+    requestAnimationFrame(tryAnchor);
     return () => { cancelled = true; };
   }, [date, isToday, currentSlot, dealers.length, scrollRef]);
+
+  // Re-anchor today's view when the active slot ticks over.
+  useEffect(() => {
+    if (!isToday) return;
+    const t = window.setInterval(() => { didAnchorRef.current = false; }, 60_000);
+    return () => window.clearInterval(t);
+  }, [isToday]);
 
   // Inline role picker state
   const [activeCell, setActiveCell] = useState<{ dealerId: string; timeSlot: string; dropUp: boolean; dropLeft: boolean; rect: { top: number; left: number; bottom: number; right: number; width: number; height: number } } | null>(null);
