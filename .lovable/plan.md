@@ -1,48 +1,126 @@
-## Проблема
 
-После `Save Snapshot` в Chip Count, переключение на Numbers на **той же вкладке** не показывает только что записанные значения почасового слота — нужен Ctrl+Shift+R. То есть авто-запись в `table_tracker` уходит на сервер, но локальный кэш не обновляется так, чтобы Numbers увидел значение мгновенно.
+# План: Полное зеркало Arusha Cloud → Local Master
 
-## Причина
+Цель: локальный сервер `arusha.local` = байт-в-байт копия Cloud Arusha. После cutover Cloud становится read-only зеркалом, видимым на `arusha.casinosystem.app`. Записи только локально, в Cloud летят через sync_outbox.
 
-`useBatchSetTableTrackerValue` (см. `src/hooks/use-tables.ts:186–229`) делает оптимистический апдейт ТОЛЬКО так:
+## A. Подготовка фронта (одна сборка работает в обоих режимах)
 
-```ts
-const queries = qc.getQueriesData<any[]>({ queryKey: ["table-tracker"] })
-  .filter(([key]) => key[1] === casinoId);
-queries.forEach(([key, data]) => {
-  if (!data) return;            // ← если кэш пуст — пропускает
-  ...
-  qc.setQueryData(key, updated);
-});
+Frontend образ один и тот же. Все различия — через `runtime-config.json`, который entrypoint подставляет ДО старта nginx:
+
+```text
+Cloud build  → runtime-config.json содержит публичный Cloud URL
+Local build  → entrypoint меняет на http://arusha.local/api + локальный anon key
 ```
 
-Плюс у мутации нет `onSuccess`/`onSettled` → нет финальной инвалидизации/refetch. Если query Numbers ещё не был хоть раз отрендерен (пользователь зашёл прямо в Chips), `data` пуст → ветка `if (!data) return` отбрасывает запись, и серверного перезапроса тоже нет, потому что Numbers не подписан на cancelQueries+invalidate.
+Захардкоженные вещи (логотипы, манифесты, активные players, шрифты, дизайн) уже в `src/`. Локалка получит тот же `dist/` что и Cloud. Не должно быть НИКАКОЙ ветки `if (isLocalMode)` в визуале.
 
-Realtime тут не помогает — событие приходит «себе же», но `staleTime` по умолчанию + отсутствие `refetchOnMount: "always"` для `useTableTracker` могут «съесть» обновление при первом монтировании вкладки.
+**Проверочный чек-лист** (что обязано совпасть с Cloud):
+- логотипы Arusha (`public/manifest-arusha.json`, `public/manifest-aru.json`)
+- цветовые токены, шрифты, density
+- все компоненты Active Players (Daily/Present/Left с активными)
+- иконки PWA, favicon
+- набор страниц по ролям (Pit, Cage, Tables, Reception, ...)
 
-## Решение
+Audit перед cutover: я прогоняю `bun run build` в Cloud-режиме и сравниваю `dist/` с тем что собирает `Dockerfile.frontend`. Любая разница → правлю Dockerfile.
 
-1. **`src/hooks/use-tables.ts` — `useBatchSetTableTrackerValue`:**
-   - В `onMutate` убрать ранний выход `if (!data) return`. Если кэша нет, создавать массив на месте: `const base = data ?? []`. Тогда оптимистический ряд всегда попадает в кэш `["table-tracker", casinoId, date]`.
-   - Добавить `onSettled: () => qc.invalidateQueries({ queryKey: ["table-tracker", casinoId] })` — после ответа сервера принудительный refetch с реальными `id`/`recorded_by`, гарантирует точное совпадение с БД.
-   - Тот же фикс применить к одиночному `useSetTableTrackerValue` (та же ветка `if (!data) return` и нет `onSettled`).
-   - Аналогично — `useSetTableHeadCount` и `useBatchSetTableHeadCount`: одинаковая болезнь, одинаковый фикс (HeadCount в Numbers тоже мерцает).
+## B. Backfill всей истории Arusha
 
-2. **`src/hooks/use-tables.ts` — `useTableTracker` и `useTableHeadCount`:**
-   - Добавить `staleTime: 15_000`, `refetchOnMount: "always"`, `refetchOnWindowFocus: true`, `refetchOnReconnect: true` — по аналогии с уже исправленным `usePlayerDailyZones` (см. `.lovable/plan.md`). Это страхует случаи, когда персистентный кэш React Query рехидратируется пустым.
+Новая edge function `cloud-full-export`:
+- auth: `x-service-key` ИЛИ `x-sync-secret + x-casino-id`
+- стримит NDJSON по таблицам в порядке зависимостей (FK-safe)
+- использует `TransformStream` (как уже было сделано в `cloud-schema-export`)
+- параметр `?since=<timestamp>` для инкрементального догона
 
-3. **`src/components/tables/ChipCountPanel.tsx` — `handleSave`:**
-   - После `batchTracker.mutate(...)` вызвать `qc.invalidateQueries({ queryKey: ["table-tracker", casinoId, date] })` сразу же (мгновенный refetch + повторный паблиш в подписки). Это резервный путь на случай, если оптимистика не пройдёт.
+Таблицы (полный список ~170, scope `casino_id = <arusha>`):
+- Global: `casinos`, `user_roles`, `user_casino_access`, `profiles`, `chip_color_settings`, `expense_categories`, `fin_categories`, всё `pos_*` справочное
+- Players: `players`, `player_cards`, `player_tags`, `player_notes`, `player_chip_adjustments`, `player_daily_*`, `casino_visits`, `client_sessions`
+- Operational: `gaming_tables`, `employees`, `shifts`, `transactions`, `cage_*`, `chip_*`, `cash_*`, `breaklist*`, `incidents`, `staff_*`, `attendance_*`
+- Reports: `fin_*`, `table_daily_results`, `business_day_closures`, `payroll_*`, `monthly_tips_*`, `weekly_bonus_*`
+- Logs (последние 90 дней чтобы не раздувать): `activity_logs`, `breaklist_logs`, `sync_*_log`
 
-## Что НЕ трогаем
+Импорт на локалке:
+- скрипт `deploy/import-full-snapshot.sh`
+- стримит NDJSON → `psql COPY` (быстрее чем INSERT по строке)
+- ON CONFLICT (id) DO NOTHING — идемпотентно
+- сохраняет последний `synced_at` для инкрементального dogon
 
-- БД, RLS, таблицы, триггеры, публикация Realtime — без изменений.
-- Логика `slotForChipCount` и окно :50–:10 — без изменений.
-- ChipCountPanel UI/раскладка — без изменений, только один лишний `invalidateQueries` в `handleSave`.
+## C. Перенос auth (хеши паролей)
 
-## Проверка
+Cloud GoTrue хранит bcrypt в `auth.users.encrypted_password`. Локальный GoTrue читает тот же столбец и формат — хеши совместимы.
 
-1. На пустой странице открыть Table Check → сразу Chips → ввести числа → Save Snapshot → переключить на Numbers: значения и HC видны мгновенно, без Ctrl+Shift+R.
-2. Открыть Numbers заранее → перейти в Chips → Save: вернуться в Numbers — те же значения сразу.
-3. В :50–:10 значения попадают в текущий слот (или :HH+1:00 для :50–:59), в :11–:49 — только в пустой слот (поведение не меняем).
-4. На втором устройстве через Realtime значения по-прежнему появляются за ≤2 сек (доп. проверка, что не сломали broadcast-путь).
+Новая edge function `cloud-auth-export`:
+- auth: только `x-service-key`
+- возвращает строки `auth.users` (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data) для пользователей с доступом к Arusha
+- НИКОГДА не показывается в UI, только installer вызывает
+
+Локальный installer:
+- INSERT в `auth.users` с теми же id и хешами
+- юзеры заходят теми же логинами/паролями
+- JWT signing key локального GoTrue — свой (хеши паролей это не ломает, токены генерятся локально)
+
+## D. Cutover процедура (5–10 минут даунтайма)
+
+Скрипт `deploy/cutover-to-local.sh` запускается super_admin'ом:
+
+```text
+[0] Pre-flight на локалке: docker compose ps все Up, healthcheck зелёный
+[1] В Cloud: вставить запись в system_locks → readonly_mode=true для casino_id
+    Триггер блокирует INSERT/UPDATE на operational таблицы (кроме sync_*)
+[2] Сообщение всем сессиям через realtime: "Maintenance, переподключитесь через 10 мин"
+[3] Финальный delta-export: cloud-full-export?since=<last_sync_ts>
+[4] Импорт дельты на локалке
+[5] Verify-parity: cloud-parity-counts vs local counts по каждой таблице. Mismatch → abort.
+[6] Локально: UPDATE node_modes SET mode='local_primary' WHERE casino_id=arusha
+[7] Cloud: UPDATE node_modes SET mode='cloud_replica' WHERE casino_id=arusha  
+    + триггер sync_outbox начинает СЛУШАТЬ входящие от локалки, а не генерить свои
+[8] Снять readonly_mode в Cloud
+[9] LAN-юзеры → arusha.local (записи летят в локалку)
+    Внешние юзеры → arusha.casinosystem.app (читают Cloud, который зеркалирует локалку)
+```
+
+Roll-back: на любом шаге до [6] просто снять readonly_mode и Cloud снова master. После [6] — обратный flip скриптом `cutover-rollback.sh`.
+
+## E. Двусторонняя репликация после cutover
+
+Локалка = master. Cloud = replica.
+
+- На локалке: каждая мутация триггером `tg_sync_outbox` пишет в локальный `sync_outbox`
+- Воркер `cms-sync` (уже есть в `deploy/sync/`) каждые 2 сек POST'ит в Cloud edge `pull-changes` (reverse direction добавим)
+- Cloud применяет с `set_config('sync.loopback', 'true')` чтобы не зацикливалось
+- При offline воркер копит в outbox, при возврате интернета — догоняет
+
+Конфликты: невозможны, т.к. писатель один (локалка). Cloud принимает безусловно.
+
+## F. Network admin UI (объединяем с предыдущим планом)
+
+Страница `/admin/network`:
+- **Status**: online/offline, версия, uptime, размер БД
+- **Role**: MASTER/REPLICA бейдж + кнопка switch (super_admin, audit log)
+- **Sync**: last sync, pending count, failed count, "Force sync now"
+- **Other nodes**: read-only список других casino-нод
+
+Удаляем: Update Commands, Initial Sync Jobs UI, Peer Bootstrap UI, Cron Health, Sync Outbox Health overview, Endpoint Health checks, Secret rotation, VPN peers, Cloudflare UI.
+
+## G. Удаление мёртвого "Local Casino"
+
+Через `read_query` найти casino_id записи "Local Casino" (которую снесли в попытках), затем миграцией удалить:
+- `peer_links`, `node_identity`, `node_modes`, `pending_server_registrations`, `cutover_sessions`, `mirror_cutover_state` где `casino_id` совпадает
+- `casinos` сама запись
+
+## Этапы выполнения
+
+1. **Cleanup**: удалить "Local Casino" из Cloud
+2. **Cloud edge functions**: `cloud-full-export`, `cloud-auth-export`, расширение `pull-changes` для reverse-direction
+3. **Cloud lock**: триггер `enforce_readonly_mode()` + таблица флагов
+4. **Frontend audit**: убедиться что Cloud build = Local build (только runtime-config различается)
+5. **Installer rewrite**: `deploy/bootstrap.sh` v2 с `--mirror-from-cloud --casino arusha`
+6. **Import scripts**: `import-full-snapshot.sh`, `cutover-to-local.sh`, `cutover-rollback.sh`
+7. **Reverse sync**: воркер `cms-sync` начинает push в Cloud когда `node_modes.mode=local_primary`
+8. **Network admin UI**: новый `/admin/network` с 4 блоками, удаление мёртвых страниц
+9. **Документация**: `deploy/CUTOVER-ARUSHA.md` пошагово
+10. **Тест на Arusha**: cutover, верификация. После успеха — копируем процедуру для Mwanza. Dodoma стартует сразу с локалки.
+
+## Что НЕ делаем сейчас
+
+- Cloudflare Tunnel снаружи — оставляем `arusha.casinosystem.app` на Cloud (read-only зеркало). Cutover Cloud-домена на локалку = отдельный этап после доказательства стабильности.
+- Control-Agent для прямого ssh-управления — отдельный план, не блокирует cutover.
