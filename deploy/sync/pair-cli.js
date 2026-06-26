@@ -296,45 +296,31 @@ const SEED_TABLE_GROUPS = [
     label: "core",
     auth: true,
     tables: [
-      "casinos", "tax_brackets", "payroll_paye_brackets", "role_module_defaults", "blacklist",
+      "casinos", "tax_brackets", "payroll_paye_brackets", "role_module_defaults",
       "gaming_tables", "chip_color_settings", "chip_initial_baseline", "chip_baseline", "chip_inventory",
       "fin_categories", "fin_wallets", "fin_budget", "payroll_settings", "attendance_holidays",
-      "dealers", "staff_members", "employees", "players", "player_cards", "player_groups",
+      "employees", "players", "player_cards", "player_groups",
       "group_members", "player_tags", "player_notes", "user_casino_access", "user_module_permissions",
       "profiles", "user_roles", "user_credentials",
     ],
   },
-  {
-    label: "operations-a",
-    tables: [
-      "shifts", "transactions", "casino_visits", "breaklist", "pit_rota", "staff_rota",
-      "dealer_attendance", "staff_attendance", "attendance_hours", "cage_transfers", "expenses",
-      "fin_wallet_tx", "fin_day_closing", "fin_money_change", "fin_audit_log", "chip_emissions",
-    ],
-  },
-  {
-    label: "chip-snapshots",
-    tables: ["chip_snapshots"],
-  },
-  {
-    label: "operations-b",
-    tables: [
-      "table_tracker", "table_daily_results", "business_day_closures", "cash_counts",
-      "cash_count_snapshots", "cashless_transactions", "bank_checks", "cctv_observations",
-      "chip_transfers", "player_chip_adjustments", "player_position_history", "client_sessions",
-      "staff_warnings", "transaction_cancellations", "player_daily_avg_bets",
-      "player_daily_avg_bet_changes", "incidents", "payroll_periods", "payroll_entries",
-      "monthly_tips_pools", "monthly_tips_entries", "weekly_bonus_pools", "weekly_bonus_entries",
-    ],
-  },
-  {
-    label: "logs",
-    tables: [
-      "activity_logs", "activity_logs_archive", "breaklist_logs", "breaklist_logs_archive",
-      "casino_visits_archive", "client_sessions_archive", "incidents_audit", "payroll_audit_log",
-    ],
-  },
+  ...[
+    "shifts", "transactions", "casino_visits", "breaklist", "pit_rota", "staff_rota",
+    "dealer_attendance", "staff_attendance", "attendance_hours", "cage_transfers", "expenses",
+    "fin_wallet_tx", "fin_day_closing", "fin_money_change", "fin_audit_log", "chip_emissions",
+    "table_tracker", "table_daily_results", "business_day_closures", "cash_counts",
+    "cash_count_snapshots", "cashless_transactions", "bank_checks", "cctv_observations",
+    "chip_transfers", "player_chip_adjustments", "player_position_history", "client_sessions",
+    "staff_warnings", "transaction_cancellations", "player_daily_avg_bets",
+    "player_daily_avg_bet_changes", "incidents", "payroll_periods", "payroll_entries",
+    "monthly_tips_pools", "monthly_tips_entries", "weekly_bonus_pools", "weekly_bonus_entries",
+    "chip_snapshots",
+    "activity_logs", "activity_logs_archive", "breaklist_logs", "breaklist_logs_archive",
+    "casino_visits_archive", "client_sessions_archive", "incidents_audit", "payroll_audit_log",
+  ].map((table) => ({ label: table, tables: [table] })),
 ];
+
+const SEED_CHUNK_ROWS = Math.max(500, Math.min(10000, parseInt(process.env.SEED_CHUNK_ROWS || "5000", 10) || 5000));
 
 const SKIP_SEED_TABLES = new Set(["player_economy", "player_session_stats", "player_session_drops"]);
 
@@ -364,6 +350,7 @@ async function applySeedChunk(client, seedUrl, headers, counts, casinoId, label,
     const decoder = new TextDecoder();
     let buf = "";
     let sawDone = false;
+    let doneCounts = {};
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
@@ -376,7 +363,7 @@ async function applySeedChunk(client, seedUrl, headers, counts, casinoId, label,
         let obj;
         try { obj = JSON.parse(line); } catch { continue; }
         if (obj._meta) continue;
-        if (obj._done) { sawDone = true; continue; }
+        if (obj._done) { sawDone = true; doneCounts = obj.counts || {}; continue; }
         if (obj._fatal) throw new Error(`cloud-seed-export fatal in ${label}: ${String(obj._fatal).slice(0, 240)}`);
         if (obj._error) {
           console.error(`[seed] export.warn ${obj._error?.table || label}: ${String(obj._error?.msg || obj._error).slice(0, 160)}`);
@@ -448,7 +435,7 @@ async function applySeedChunk(client, seedUrl, headers, counts, casinoId, label,
     if (buf.trim()) {
       try {
         const obj = JSON.parse(buf.trim());
-        if (obj._done) sawDone = true;
+        if (obj._done) { sawDone = true; doneCounts = obj.counts || {}; }
         if (obj._fatal) throw new Error(`cloud-seed-export fatal in ${label}: ${String(obj._fatal).slice(0, 240)}`);
       } catch (e) {
         if (String(e?.message || e).includes("cloud-seed-export fatal")) throw e;
@@ -456,6 +443,7 @@ async function applySeedChunk(client, seedUrl, headers, counts, casinoId, label,
     }
     if (!sawDone) throw new Error(`cloud-seed-export ${label} ended before _done marker`);
     await client.query("COMMIT");
+    return doneCounts;
   } catch (e) {
     await client.query("ROLLBACK").catch(() => {});
     throw e;
@@ -473,10 +461,22 @@ async function triggerSync() {
     const headers = { "x-sync-secret": row.sync_secret, "x-casino-id": casinoId };
     for (let i = 0; i < SEED_TABLE_GROUPS.length; i++) {
       const g = SEED_TABLE_GROUPS[i];
-      const params = new URLSearchParams({ casino_id: casinoId, days: "all", tables: g.tables.join(",") });
-      if (!g.auth) params.set("auth", "0");
-      const seedUrl = `${row.cloud_url}/functions/v1/cloud-seed-export?${params.toString()}`;
-      await applySeedChunk(client, seedUrl, headers, counts, casinoId, g.label, i === 0);
+      const singleTable = g.tables.length === 1 ? g.tables[0] : null;
+      let offset = 0;
+      while (true) {
+        const params = new URLSearchParams({ casino_id: casinoId, days: "all", tables: g.tables.join(",") });
+        if (!g.auth) params.set("auth", "0");
+        if (singleTable) {
+          params.set("offset", String(offset));
+          params.set("max_rows", String(SEED_CHUNK_ROWS));
+        }
+        const seedUrl = `${row.cloud_url}/functions/v1/cloud-seed-export?${params.toString()}`;
+        const exportedCounts = await applySeedChunk(client, seedUrl, headers, counts, casinoId, singleTable ? `${g.label}@${offset}` : g.label, i === 0 && offset === 0);
+        if (!singleTable) break;
+        const exported = Number(exportedCounts?.[singleTable] || 0);
+        if (exported < SEED_CHUNK_ROWS) break;
+        offset += SEED_CHUNK_ROWS;
+      }
     }
   } finally {
     client.release();
