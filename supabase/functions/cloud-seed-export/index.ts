@@ -386,6 +386,7 @@ Deno.serve(async (req) => {
               while (true) {
                 const { data, error } = await admin
                   .from("players").select("id").eq("casino_id", casinoId)
+                  .order("id", { ascending: true })
                   .range(pf, pf + PAGE_SIZE - 1);
                 if (error) { writeLine({ _error: { table: t.name, msg: `players lookup: ${error.message}` } }); break; }
                 if (!data || data.length === 0) break;
