@@ -902,8 +902,8 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   const endDate = `${month}-${String(daysInMonth).padStart(2, "0")}`;
 
   const { data: dealers = [] } = useDealers();
-  const { data: monthAttendance = [] } = useDealerAttendanceRange(startDate, endDate);
-  const { data: rota = [] } = usePitRotaRange(startDate, endDate);
+  const { data: monthAttendance = [], isSuccess: attendanceLoaded, isFetching: attendanceFetching } = useDealerAttendanceRange(startDate, endDate);
+  const { data: rota = [], isSuccess: rotaLoaded } = usePitRotaRange(startDate, endDate);
   const { data: closedDates = new Set<string>() } = useClosedBusinessDates(startDate, endDate);
   const { data: effectiveBusinessDate } = useEffectiveBusinessDate();
   const setAttendanceRaw = useSetDealerAttendance();
