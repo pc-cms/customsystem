@@ -197,8 +197,10 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     // If scroll memory already restored a non-zero position, skip auto-center.
     const hasSavedPos = (() => {
       try {
-        const keys = Object.keys(window.sessionStorage);
-        return keys.some(k => k.includes(`::breaklist:${date}`) && (JSON.parse(window.sessionStorage.getItem(k) || "{}")?.x ?? 0) > 0);
+        const check = (store: Storage) => Object.keys(store).some(k =>
+          k.includes(`::breaklist:${date}`) && (JSON.parse(store.getItem(k) || "{}")?.x ?? 0) > 0,
+        );
+        return check(window.localStorage) || check(window.sessionStorage);
       } catch { return false; }
     })();
     const target = isToday ? currentSlot : "18:00";
