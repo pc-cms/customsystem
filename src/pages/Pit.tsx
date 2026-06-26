@@ -864,8 +864,8 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
           {pitBosses.length > 0 && (
             <>
               <tr className="border-t-2 border-border bg-muted/20 no-print">
-                <th className="text-center text-xs font-medium text-muted-foreground uppercase px-0.5 py-2 sticky left-0 bg-muted/20 z-10 w-7">C</th>
-                <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-[28px] bg-muted/20 z-10 w-[180px]">Name</th>
+                <th className="text-center text-xs font-medium text-muted-foreground uppercase px-0.5 py-2 sticky left-0 bg-card z-10 w-7">C</th>
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-[28px] bg-card z-10 w-[180px]">Name</th>
                 {days.map(day => {
                   const dateObj = new Date(y, m - 1, day);
                   const weekday = WEEKDAYS[dateObj.getDay()];
@@ -1190,8 +1190,8 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
           {pitBosses.length > 0 && (
             <>
               <tr className="border-t-2 border-border bg-muted/20">
-                <th className="text-center text-xs font-medium text-muted-foreground uppercase px-0.5 py-2 sticky left-0 bg-muted/20 z-10 w-7">C</th>
-                <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-[28px] bg-muted/20 z-10 w-[180px]">Name</th>
+                <th className="text-center text-xs font-medium text-muted-foreground uppercase px-0.5 py-2 sticky left-0 bg-card z-10 w-7">C</th>
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-[28px] bg-card z-10 w-[180px]">Name</th>
                 {days.map(day => {
                   const dateObj = new Date(y, m - 1, day);
                   const weekday = WEEKDAYS[dateObj.getDay()];
