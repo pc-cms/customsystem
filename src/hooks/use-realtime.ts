@@ -245,6 +245,9 @@ export const useRealtimeSubscriptions = () => {
             () => {
               debouncedInvalidate(qc, "transactions", ["transactions"]);
               debouncedInvalidate(qc, "player-economy", ["player-economy"]);
+              debouncedInvalidate(qc, "players-drop-split", ["players-drop-split"]);
+              debouncedInvalidate(qc, "tables-drop-split", ["tables-drop-split"]);
+              debouncedInvalidate(qc, "player-drop-split", ["player-drop-split"]);
             },
           )
           .on(
