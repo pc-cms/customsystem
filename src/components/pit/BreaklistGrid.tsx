@@ -194,7 +194,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     if (didAnchorRef.current) return;
     const wrap = scrollRef.current;
     if (!wrap || dealers.length === 0) return;
-    // If scroll memory already restored a non-zero position, skip auto-center.
+    // Skip auto-center if a non-zero saved position exists — restore wins.
     const hasSavedPos = (() => {
       try {
         const check = (store: Storage) => Object.keys(store).some(k =>
@@ -203,19 +203,31 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
         return check(window.localStorage) || check(window.sessionStorage);
       } catch { return false; }
     })();
+    if (hasSavedPos) { didAnchorRef.current = true; return; }
     const target = isToday ? currentSlot : "18:00";
-    const raf = requestAnimationFrame(() => {
-      if (hasSavedPos) { didAnchorRef.current = true; return; }
-      const el = wrap.querySelector<HTMLElement>(`[data-slot="${target}"]`);
-      if (!el) return;
+
+    let cancelled = false;
+    let attempts = 0;
+    const tryCenter = () => {
+      if (cancelled || didAnchorRef.current) return;
+      const w = scrollRef.current;
+      if (!w) return;
+      const el = w.querySelector<HTMLElement>(`[data-slot="${target}"]`);
+      const maxX = w.scrollWidth - w.clientWidth;
+      if (!el || maxX <= 0) {
+        if (attempts++ > 60) { didAnchorRef.current = true; return; }
+        requestAnimationFrame(tryCenter);
+        return;
+      }
       const rect = el.getBoundingClientRect();
-      const wrapRect = wrap.getBoundingClientRect();
-      const delta = rect.left - wrapRect.left - (wrap.clientWidth - rect.width) / 2;
-      const next = Math.max(0, Math.min(wrap.scrollWidth - wrap.clientWidth, wrap.scrollLeft + delta));
-      wrap.scrollLeft = isToday ? next : 0;
+      const wrapRect = w.getBoundingClientRect();
+      const delta = rect.left - wrapRect.left - (w.clientWidth - rect.width) / 2;
+      const next = Math.max(0, Math.min(maxX, w.scrollLeft + delta));
+      w.scrollLeft = isToday ? next : 0;
       didAnchorRef.current = true;
-    });
-    return () => cancelAnimationFrame(raf);
+    };
+    requestAnimationFrame(tryCenter);
+    return () => { cancelled = true; };
   }, [date, isToday, currentSlot, dealers.length, scrollRef]);
 
   // Inline role picker state
