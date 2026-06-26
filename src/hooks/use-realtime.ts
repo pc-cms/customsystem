@@ -50,6 +50,15 @@ export const useRealtimeSubscriptions = () => {
   const wasDisconnectedRef = useRef(false);
   const subscribedOnceRef = useRef(false);
 
+  // Stable scalar keys — array/Set identity changes every render and would
+  // tear down + rebuild the channel on each parent re-render, leaking
+  // websocket handshakes and creating gaps where no listener is attached.
+  const rolesKey = useMemo(() => [...roles].sort().join(","), [roles]);
+  const modulesKey = useMemo(
+    () => (allowedModules ? [...allowedModules].sort().join(",") : "__undef__"),
+    [allowedModules],
+  );
+
   useEffect(() => {
     if (!casinoId) return;
     // Wait for modules to load — otherwise we'd subscribe to nothing
@@ -67,7 +76,9 @@ export const useRealtimeSubscriptions = () => {
     }
     subscribedOnceRef.current = false;
 
-    const channelName = `casino:${casinoId}:cms-realtime-${Date.now()}`;
+    // Stable channel name (no Date.now()): a re-render of the parent must
+    // not produce a brand-new channel each time.
+    const channelName = `casino:${casinoId}:cms-realtime`;
     const status = (window as any).__realtimeStatus ?? {};
     status.channelName = channelName;
     status.subscribed = false;
