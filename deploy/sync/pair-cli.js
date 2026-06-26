@@ -66,7 +66,7 @@ async function importAuthUser(client, u, counts) {
   ]);
   await client.query(`
     INSERT INTO auth.identities (id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at)
-    VALUES (gen_random_uuid(), $1,
+    VALUES (gen_random_uuid(), $1::uuid,
             jsonb_build_object('sub', $1::text, 'email', $2::text, 'email_verified', true),
             'email', $1::text, now(), now(), now())
     ON CONFLICT (provider, provider_id) DO NOTHING
