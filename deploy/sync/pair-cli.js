@@ -74,6 +74,24 @@ async function importAuthUser(client, u, counts) {
   counts["auth.users"] = (counts["auth.users"] || 0) + 1;
 }
 
+const generatedColumnsCache = new Map();
+
+async function getGeneratedColumns(client, tableName) {
+  if (generatedColumnsCache.has(tableName)) return generatedColumnsCache.get(tableName);
+
+  const { rows } = await client.query(
+    `SELECT column_name
+       FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = $1
+        AND (is_generated <> 'NEVER' OR is_identity = 'YES')`,
+    [tableName]
+  );
+  const cols = new Set(rows.map((r) => r.column_name));
+  generatedColumnsCache.set(tableName, cols);
+  return cols;
+}
+
 async function getRow() {
   const { rows } = await pool.query(`SELECT * FROM public.cloud_connection WHERE id = 1`);
   return rows[0] || null;
@@ -337,11 +355,11 @@ async function triggerSync() {
           continue;
         }
         if (!obj.table || !obj.row) continue;
-        // Skip derived views and strip GENERATED ALWAYS columns — Postgres rejects explicit inserts.
+        // Skip derived views and strip GENERATED ALWAYS / identity columns — Postgres rejects explicit inserts.
         const SKIP_TABLES = new Set(["player_economy", "player_session_stats", "player_session_drops"]);
         if (SKIP_TABLES.has(obj.table)) continue;
-        const STRIP = { player_position_history: ["duration_seconds"] };
-        for (const c of (STRIP[obj.table] || [])) delete obj.row[c];
+        const generatedColumns = await getGeneratedColumns(client, obj.table);
+        for (const c of generatedColumns) delete obj.row[c];
         const cols = Object.keys(obj.row);
         if (cols.length === 0) continue;
         const placeholders = cols.map((_, i) => `$${i + 1}`).join(",");
