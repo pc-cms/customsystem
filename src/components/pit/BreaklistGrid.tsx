@@ -40,6 +40,11 @@ interface BreaklistGridProps {
   zoom?: number;
 }
 
+export interface BreaklistGridRef {
+  /** Scroll the grid horizontally by N slots (direction: -1 left, 1 right). */
+  scrollBy: (direction: -1 | 1) => void;
+}
+
 // 18:00 → 05:00, 20-minute intervals
 const generateTimeSlots = () => {
   const slots: string[] = [];
