@@ -304,23 +304,12 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const [notesOpen, setNotesOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  // Expose header height as CSS var so downstream sticky elements (table headers,
-  // totals row) can offset themselves and stay visible while scrolling.
+  // Preview card is no longer sticky, so downstream sticky table headers
+  // don't need to offset for it. Keep the CSS var pinned at 0 in case any
+  // legacy callers still read it.
   useEffect(() => {
-    if (!playerId) {
-      document.documentElement.style.setProperty("--ppheader-h", "0px");
-      return;
-    }
-    const el = rootRef.current;
-    if (!el) return;
-    const update = () => {
-      document.documentElement.style.setProperty("--ppheader-h", `${el.offsetHeight}px`);
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
+    document.documentElement.style.setProperty("--ppheader-h", "0px");
     return () => {
-      ro.disconnect();
       document.documentElement.style.setProperty("--ppheader-h", "0px");
     };
   }, [playerId]);
@@ -360,7 +349,11 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
     <div
       ref={rootRef}
       className={cn(
-        "sticky top-0 z-30 -mx-4 mb-4 border-b border-border px-4 py-4 shadow-sm",
+        // Not sticky: the preview card scrolls away with the page so the
+        // table's own sticky column header + TOTAL row pin cleanly at the
+        // top of the viewport instead of floating in the middle below a
+        // tall pinned preview.
+        "relative z-30 -mx-4 mb-4 border-b border-border px-4 py-4 shadow-sm",
         tint,
         className
       )}
