@@ -158,6 +158,9 @@ export const useTablesDropCacheToday = (businessDate: string | null | undefined)
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
+  });
+
+
 
   const data = useMemo(() => toLookup(q.data ?? {}), [q.data]);
   return { ...q, data };
