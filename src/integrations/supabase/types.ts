@@ -5023,6 +5023,50 @@ export type Database = {
           },
         ]
       }
+      pit_book_entries: {
+        Row: {
+          author_id: string
+          author_name: string
+          author_role: string
+          body: string
+          business_date: string
+          casino_id: string
+          channel: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          author_id: string
+          author_name: string
+          author_role: string
+          body: string
+          business_date: string
+          casino_id: string
+          channel: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          author_id?: string
+          author_name?: string
+          author_role?: string
+          body?: string
+          business_date?: string
+          casino_id?: string
+          channel?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pit_book_entries_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pit_rota: {
         Row: {
           casino_id: string
