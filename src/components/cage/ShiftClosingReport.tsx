@@ -506,7 +506,7 @@ const ShiftClosingReport = ({
                   {(totIn - totOut) > 0 ? "+" : ""}{numAlways(totIn - totOut)}
                 </td>
                 <td className="border border-black px-1.5 py-0.5 text-right">
-                  {totBal === null ? "0" : numAlways(totBal)}
+                  {totBal === null ? "—" : numAlways(totBal)}
                 </td>
               </tr>
             </tbody>
