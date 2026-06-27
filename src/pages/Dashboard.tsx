@@ -133,15 +133,31 @@ const Dashboard = () => {
   const dropWindowStart = businessDayHourUTC(businessDate, 7);
   const dropWindowEnd = businessDayHourUTC(businessDate, 7 + 24);
   const { data: tablesDropSplit } = useTablesDropSplit(dropWindowStart, dropWindowEnd);
+  // Realtime cache (trigger-maintained). Used as the PRIMARY source for the
+  // current business day so Drop updates instantly after a Buy-In. The RPC
+  // above stays as authoritative fallback / historical days.
+  const isToday = businessDate === getBusinessDate();
+  const { data: tablesDropCache } = useTablesDropCacheToday(isToday ? businessDate : null);
 
   const isInitialLoading = loadingPlayers && loadingTx;
   const showFinancials = canSeePlayerFinancials(roles);
+  const pickDrop = (tid: string): number => {
+    const cached = isToday ? tablesDropCache?.get(tid)?.dropR : undefined;
+    if (cached !== undefined && cached !== 0) return cached;
+    return Number(tablesDropSplit?.get(tid)?.dropR || 0);
+  };
   const totalDrop = useMemo(() => {
-    if (!tablesDropSplit) return 0;
     let s = 0;
+    // Prefer cache totals on today; fall back to RPC totals otherwise.
+    if (isToday && tablesDropCache && tablesDropCache.size > 0) {
+      tablesDropCache.forEach(v => { s += v.dropR || 0; });
+      return s;
+    }
+    if (!tablesDropSplit) return 0;
     tablesDropSplit.forEach(v => { s += v.dropR || 0; });
     return s;
-  }, [tablesDropSplit]);
+  }, [tablesDropSplit, tablesDropCache, isToday]);
+
   // Pending expenses across BOTH cages (Live Game + Slots) — drives the
   // Approvals tile for manager / shift_manager / finance_manager / super_admin.
   const { data: pendingExpensesAll = 0 } = useQuery({
