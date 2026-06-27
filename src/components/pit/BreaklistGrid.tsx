@@ -291,7 +291,10 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const el = scrollRef.current;
     if (!el) return;
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+    // NOTE: do NOT call setPointerCapture here — capturing the pointer on the
+    // outer wrapper steals click events from the inner cell buttons, so Pit
+    // users can't pick a position. Capture is requested only after we detect a
+    // real drag (movement > threshold) inside handlePointerMove.
     dragStateRef.current = {
       pointerId: e.pointerId,
       startX: e.clientX,
@@ -309,6 +312,11 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     const dx = e.clientX - state.startX;
     const dy = e.clientY - state.startY;
     if (!state.dragged && Math.hypot(dx, dy) < 7) return;
+    if (!state.dragged) {
+      // First frame of a real drag — now safe to capture so we keep receiving
+      // pointermove even if the cursor leaves the wrapper.
+      try { e.currentTarget.setPointerCapture?.(e.pointerId); } catch {}
+    }
     state.dragged = true;
     suppressNextClickRef.current = true;
     userScrollIntentRef.current = true;
@@ -318,7 +326,11 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     e.preventDefault();
   };
 
-  const handlePointerEnd = () => {
+  const handlePointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    const state = dragStateRef.current;
+    if (state && e.currentTarget.hasPointerCapture?.(state.pointerId)) {
+      try { e.currentTarget.releasePointerCapture(state.pointerId); } catch {}
+    }
     dragStateRef.current = null;
   };
 
