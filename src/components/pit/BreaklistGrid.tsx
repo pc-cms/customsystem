@@ -293,7 +293,7 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
     const scrollAmount = Math.round(3 * slotWidth * (zoom / 100));
     el.scrollBy({ left: direction * scrollAmount, behavior: "smooth" });
     window.setTimeout(onScrollMemory, 260);
-  }, [zoom, onScrollMemory]);
+  }, [zoom, onScrollMemory, scrollRef]);
 
   useImperativeHandle(ref, () => ({ scrollBy: scrollGridBy }), [scrollGridBy]);
 
