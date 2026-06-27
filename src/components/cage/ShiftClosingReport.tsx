@@ -493,7 +493,7 @@ const ShiftClosingReport = ({
                       {n !== 0 ? (n > 0 ? "+" : "") + numAlways(n) : ""}
                     </td>
                     <td className="border border-black px-1.5 py-0.5 text-right font-semibold">
-                      {hasBal ? numAlways(Number(rawB)) : "0"}
+                      {hasBal ? numAlways(Number(rawB)) : "—"}
                     </td>
                   </tr>
                 );
