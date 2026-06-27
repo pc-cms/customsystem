@@ -134,7 +134,7 @@ export function useMarkPitBookRead() {
         .eq("casino_id", casinoId)
         .eq("channel", input.channel)
         .maybeSingle();
-      const exRow = existing as { id: string; last_read_at: string | null } | null;
+      const exRow = (existing as unknown) as { id: string; last_read_at: string | null } | null;
       if (exRow && exRow.last_read_at && exRow.last_read_at >= input.entryCreatedAt) {
         return; // already ahead
       }
