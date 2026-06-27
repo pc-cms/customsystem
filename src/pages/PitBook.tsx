@@ -100,11 +100,9 @@ function EntryRow({
         </span>
         <span className="font-semibold mr-1">{entry.author_name}</span>
         <span
-          className={`text-[10px] uppercase tracking-wide mr-1.5 ${
-            isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
-          }`}
+          className={`inline-flex items-center rounded px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide mr-1.5 align-middle ${roleChip(entry.author_role)}`}
         >
-          · {roleLabel}
+          {roleLabel}
         </span>
         <span className="whitespace-pre-wrap [overflow-wrap:anywhere]">{entry.body}</span>
       </div>
