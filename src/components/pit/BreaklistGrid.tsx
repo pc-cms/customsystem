@@ -5,7 +5,7 @@ import { useCasino } from "@/lib/casino-context";
 import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useClearBreaklistCell, useGamingTables, usePitRotaRange, useSetDealerAttendance, useDealerAttendance } from "@/hooks/use-casino-data";
 import { useCasinoInfo } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
-import { ChevronLeft, ChevronRight, Lock, Unlock, LockKeyhole } from "lucide-react";
+import { Lock, Unlock, LockKeyhole } from "lucide-react";
 import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
 import { getTableCellClasses } from "@/lib/table-colors";
