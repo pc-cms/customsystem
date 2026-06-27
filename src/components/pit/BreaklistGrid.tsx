@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCasino } from "@/lib/casino-context";
