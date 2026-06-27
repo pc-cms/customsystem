@@ -306,6 +306,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
         {activeTab === "attendance" && <AttendanceGrid month={month} readOnly={isPast && !isManager} />}
         {activeTab === "breaklist" && (
           <BreaklistGrid
+            ref={breaklistRef}
             date={date}
             zoom={breaklistZoom}
           />
