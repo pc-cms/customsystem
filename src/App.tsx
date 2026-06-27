@@ -97,6 +97,7 @@ const Cashless = lazy(() => import("@/pages/Cashless"));
 const Transfers = lazy(() => import("@/pages/Transfers"));
 
 const Incidents = lazy(() => import("@/pages/Incidents"));
+const PitBook = lazy(() => import("@/pages/PitBook"));
 const CloseShiftPage = lazy(() => import("@/pages/cage/CloseShiftPage"));
 const RegisterPlayerPage = lazy(() => import("@/pages/cage/RegisterPlayerPage"));
 const EditOpeningChipsPage = lazy(() => import("@/pages/cage/EditOpeningChipsPage"));
