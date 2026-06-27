@@ -85,25 +85,17 @@ function EntryRow({
         ref={ref}
         data-entry-id={entry.id}
         data-entry-created-at={entry.created_at}
-        className={`max-w-[min(76%,780px)] rounded-md px-3 py-2 text-sm leading-snug break-words ${
-          isOwn
-            ? "bg-primary text-primary-foreground"
-            : "bg-card text-foreground"
-        }`}
+        className="max-w-full text-sm leading-snug break-words text-foreground"
       >
-        <span
-          className={`text-[11px] font-mono tabular-nums mr-1 ${
-            isOwn ? "text-primary-foreground/75" : "text-muted-foreground"
-          }`}
-        >
+        <span className="text-[11px] font-mono tabular-nums font-bold text-foreground mr-1.5">
           {formatTime(entry.created_at)}
         </span>
-        <span className="font-semibold mr-1">{entry.author_name}</span>
         <span
           className={`inline-flex items-center rounded px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide mr-1.5 align-middle ${roleChip(entry.author_role)}`}
         >
           {roleLabel}
         </span>
+        <span className="font-semibold mr-1.5">{entry.author_name}</span>
         <span className="whitespace-pre-wrap [overflow-wrap:anywhere]">{entry.body}</span>
       </div>
     </div>
