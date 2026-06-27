@@ -333,8 +333,8 @@ const Incidents = () => {
             </colgroup>
             <thead className="bg-muted text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className={`px-3 py-2.5 text-left ${stickyDateHead} border-r border-border`}>Date</th>
-                <th className={`px-3 py-2.5 text-left ${stickyTimeHead} border-r border-border`} style={stickyTimeLeft}>
+                <th className={`px-3 py-2.5 text-left ${stickyDateHead} ${stickyDivider}`}>Date</th>
+                <th className={`px-3 py-2.5 text-left ${stickyTimeHead} ${stickyDivider}`} style={stickyTimeLeft}>
                   Time
                 </th>
                 <th className="px-3 py-2.5 text-left">CCTV</th>
@@ -357,7 +357,7 @@ const Incidents = () => {
               {/* Draft row — inline entry */}
               {canPost && (
                 <tr className="border-t border-border bg-primary/5">
-                  <td className={`px-1 py-1 ${stickyDate} border-r border-border`}>
+                  <td className={`px-1 py-1 ${stickyDate} ${stickyDivider}`}>
                     <Input
                       type="date"
                       value={form.incident_date}
@@ -365,7 +365,7 @@ const Incidents = () => {
                       className={cellInput}
                     />
                   </td>
-                  <td className={`px-1 py-1 ${stickyTime} border-r border-border`} style={stickyTimeLeft}>
+                  <td className={`px-1 py-1 ${stickyTime} ${stickyDivider}`} style={stickyTimeLeft}>
                     <Input
                       type="time"
                       value={form.incident_time}
