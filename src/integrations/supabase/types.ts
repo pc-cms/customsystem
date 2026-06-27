@@ -5067,6 +5067,39 @@ export type Database = {
           },
         ]
       }
+      pit_book_reads: {
+        Row: {
+          casino_id: string
+          channel: string
+          created_at: string
+          id: string
+          last_read_at: string
+          last_read_entry_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          casino_id: string
+          channel: string
+          created_at?: string
+          id?: string
+          last_read_at?: string
+          last_read_entry_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          casino_id?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          last_read_at?: string
+          last_read_entry_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pit_rota: {
         Row: {
           casino_id: string
