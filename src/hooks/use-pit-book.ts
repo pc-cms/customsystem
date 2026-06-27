@@ -106,7 +106,7 @@ export function useCreatePitBookEntry() {
           business_date: input.business_date,
           channel: input.channel,
           author_id: user.id,
-          author_name: displayName || user.email || "—",
+          author_name: (displayName && displayName.trim()) || "—",
           author_role: role,
           body,
         })
