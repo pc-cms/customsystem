@@ -13,7 +13,7 @@ import { formatCurrency } from "@/lib/currency";
 import { canSeePlayerFinancials } from "@/lib/role-access";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
-import { useTablesDropSplit } from "@/hooks/use-drop-split";
+import { useTablesDropSplit, useTablesDropCacheToday } from "@/hooks/use-drop-split";
 import {
   useStaffMembers, useStaffRotaRange,
   DEPARTMENT_LABELS, DEPARTMENT_ORDER,
