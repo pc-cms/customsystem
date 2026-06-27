@@ -205,18 +205,21 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   useEffect(() => { didAnchorRef.current = false; }, [date]);
 
   // Horizontal auto-anchor:
-  //  • If a saved scroll position exists (localStorage, per-user+path), let useScrollMemory restore it
-  //    and skip auto-anchor entirely so user preference is never overwritten.
-  //  • TODAY with no saved position → place the current 20-min slot exactly 5 columns from the left edge.
-  //  • Other days with no saved position → anchor to 18:00 on first load.
+  //  • Saved scroll position (per-user, localStorage) wins — skip auto-anchor entirely.
+  //  • TODAY:
+  //      - If ≥6 visible slots precede currentSlot, place currentSlot 5 columns from the left.
+  //      - Otherwise scroll to the very start (grid expands naturally as slots fill).
+  //  • Other days: scroll to the first visible (filled) slot.
   useEffect(() => {
     const wrap = scrollRef.current;
     if (!wrap || dealers.length === 0) return;
-    // A saved position wins over auto-anchor for every user and every role.
     if (hasSaved) { didAnchorRef.current = true; return; }
     if (!isToday && didAnchorRef.current) return;
-    const target = isToday ? currentSlot : "18:00";
-    const OFFSET_COLS = 5; // current slot sits this many columns from the left edge
+
+    const OFFSET_COLS = 5;
+    const currentIdxInVisible = visibleSlots.indexOf(currentSlot);
+    const shouldCenter = isToday && currentIdxInVisible > OFFSET_COLS;
+    const target = isToday ? currentSlot : visibleSlots[0];
 
     let cancelled = false;
     let attempts = 0;
@@ -224,6 +227,11 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       if (cancelled) return;
       const w = scrollRef.current;
       if (!w) return;
+      if (!shouldCenter) {
+        w.scrollLeft = 0;
+        didAnchorRef.current = true;
+        return;
+      }
       const el = w.querySelector<HTMLElement>(`[data-slot="${target}"]`);
       const maxX = w.scrollWidth - w.clientWidth;
       if (!el || maxX <= 0) {
@@ -235,15 +243,13 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       const wrapRect = w.getBoundingClientRect();
       const slotLeft = (rect.left - wrapRect.left) + w.scrollLeft;
       const colW = rect.width || 1;
-      // Snap to the column grid so the cell edges line up cleanly.
       const desired = Math.round((slotLeft - OFFSET_COLS * colW) / colW) * colW;
-      const next = Math.max(0, Math.min(maxX, isToday ? desired : 0));
-      w.scrollLeft = next;
+      w.scrollLeft = Math.max(0, Math.min(maxX, desired));
       didAnchorRef.current = true;
     };
     requestAnimationFrame(tryAnchor);
     return () => { cancelled = true; };
-  }, [date, isToday, currentSlot, dealers.length, scrollRef, hasSaved]);
+  }, [date, isToday, currentSlot, dealers.length, scrollRef, hasSaved, visibleSlots]);
 
   // Re-anchor today's view when the active slot ticks over.
   useEffect(() => {
