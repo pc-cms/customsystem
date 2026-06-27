@@ -951,6 +951,8 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
     </>
 
   );
-};
+});
+
+BreaklistGrid.displayName = "BreaklistGrid";
 
 export default BreaklistGrid;
