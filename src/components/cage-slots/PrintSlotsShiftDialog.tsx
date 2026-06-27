@@ -202,18 +202,16 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
     };
 
     const openerCashlessByProvider = collectProviderSnap((openingCheck?.denominations as any)?.mobile);
-    // Closer Balance comes STRICTLY from "Cashless FINAL · print only" manual entry
-    // (shifts.cashless_final_providers). If the cashier did not fill it, the report
-    // shows a dash — never falls back to the running snapshot / NET delta.
-    // Closer Balance comes STRICTLY from "Cashless FINAL · print only" manual
-    // entry (shifts.cashless_final_providers). Earlier shifts may have an
-    // empty `{}` column even though the cashier typed values into the closing
-    // check's denominations, so fall back to that snapshot before giving up.
+    // End Day per provider — STRICTLY the cashier's manual entry in the
+    // "End Day" block (shifts.cashless_final_providers, or the snapshot in
+    // the closing check's denominations.cashless_final_providers when the
+    // dedicated column is empty for legacy shifts). NEVER falls back to the
+    // running mobile snapshot or to NET (IN-OUT) — that was the bug that
+    // printed cashless results instead of manual balances.
     const nonEmpty = (v: any) => v && typeof v === "object" && Object.values(v).some((x: any) => Number(x) > 0);
     const finalProvRaw =
       (nonEmpty((shift as any).cashless_final_providers) && (shift as any).cashless_final_providers)
       || (nonEmpty((closingCheck?.denominations as any)?.cashless_final_providers) && (closingCheck?.denominations as any).cashless_final_providers)
-      || (nonEmpty((closingCheck?.denominations as any)?.mobile) && (closingCheck?.denominations as any).mobile)
       || null;
     const closerCashlessByProvider: Record<string, number> = finalProvRaw
       ? collectProviderSnap(finalProvRaw)

@@ -833,7 +833,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                   suggestions={cashlessSug?.out}
                 />
                 <CashlessProvidersBlock
-                  title="Cashless FINAL · print only"
+                  title="End Day · manual only"
                   tone="final"
                   values={cashlessFinalProviders}
                   onChange={(v) => {

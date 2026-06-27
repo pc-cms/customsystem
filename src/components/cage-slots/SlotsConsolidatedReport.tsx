@@ -234,7 +234,7 @@ const SlotsConsolidatedReport = ({
             <th className="border border-black px-1.5 py-0.5 text-right">Withdraw (OUT)</th>
 
             <th className="border border-black px-1.5 py-0.5 text-right">NET (IN − OUT)</th>
-            <th className="border border-black px-1.5 py-0.5 text-right">Balance</th>
+            <th className="border border-black px-1.5 py-0.5 text-right">End Day</th>
           </tr>
         </thead>
         <tbody>

@@ -1364,3 +1364,68 @@ DO $$ BEGIN
   PERFORM public.sync_attach('public.pos_stock_counts'::regclass);
   PERFORM public.sync_attach('public.pos_stock_count_items'::regclass);
 EXCEPTION WHEN undefined_function THEN NULL; WHEN undefined_table THEN NULL; END $$;
+
+-- =========================================================================
+-- Pit Book — shift handover journal (channels: pit_bosses, managers)
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.pit_book_entries (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  casino_id uuid NOT NULL REFERENCES public.casinos(id) ON DELETE CASCADE,
+  business_date date NOT NULL,
+  channel text NOT NULL CHECK (channel IN ('pit_bosses','managers')),
+  author_id uuid NOT NULL,
+  author_name text NOT NULL,
+  author_role text NOT NULL,
+  body text NOT NULL CHECK (length(btrim(body)) > 0),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS pit_book_entries_lookup_idx
+  ON public.pit_book_entries (casino_id, channel, business_date, created_at);
+
+GRANT SELECT, INSERT ON public.pit_book_entries TO authenticated;
+GRANT ALL ON public.pit_book_entries TO service_role;
+
+ALTER TABLE public.pit_book_entries ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "pit_book read" ON public.pit_book_entries;
+CREATE POLICY "pit_book read"
+  ON public.pit_book_entries FOR SELECT TO authenticated
+  USING (
+    (
+      public.has_role(auth.uid(), 'pit'::public.app_role)
+      OR public.has_role(auth.uid(), 'shift_manager'::public.app_role)
+      OR public.has_role(auth.uid(), 'manager'::public.app_role)
+      OR public.has_role(auth.uid(), 'surveillance'::public.app_role)
+      OR public.has_role(auth.uid(), 'super_admin'::public.app_role)
+    )
+    AND EXISTS (
+      SELECT 1 FROM public.user_casino_access uca
+      WHERE uca.user_id = auth.uid() AND uca.casino_id = pit_book_entries.casino_id
+    )
+  );
+
+DROP POLICY IF EXISTS "pit_book write" ON public.pit_book_entries;
+CREATE POLICY "pit_book write"
+  ON public.pit_book_entries FOR INSERT TO authenticated
+  WITH CHECK (
+    author_id = auth.uid()
+    AND (
+      public.has_role(auth.uid(), 'pit'::public.app_role)
+      OR public.has_role(auth.uid(), 'shift_manager'::public.app_role)
+      OR public.has_role(auth.uid(), 'manager'::public.app_role)
+      OR public.has_role(auth.uid(), 'super_admin'::public.app_role)
+    )
+    AND EXISTS (
+      SELECT 1 FROM public.user_casino_access uca
+      WHERE uca.user_id = auth.uid() AND uca.casino_id = pit_book_entries.casino_id
+    )
+  );
+
+DO $$ BEGIN
+  PERFORM public.sync_attach('public.pit_book_entries'::regclass);
+EXCEPTION WHEN undefined_function THEN NULL; WHEN undefined_table THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.pit_book_entries;
+EXCEPTION WHEN duplicate_object THEN NULL; WHEN undefined_object THEN NULL; END $$;

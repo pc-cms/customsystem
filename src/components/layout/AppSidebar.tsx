@@ -8,7 +8,7 @@ import {
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
   Wallet, DoorOpen, ShieldAlert, Menu, Upload,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
-  RefreshCw, AlertTriangle, User as UserIcon, Rows3, Rows2, Gift, CheckCircle2, Coffee, Megaphone, TrendingUp, ArrowLeftRight,
+  RefreshCw, AlertTriangle, User as UserIcon, Rows3, Rows2, Gift, CheckCircle2, Coffee, Megaphone, TrendingUp, ArrowLeftRight, BookOpen,
 } from "lucide-react";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { resetPWACache } from "@/lib/pwa-register";
@@ -53,6 +53,7 @@ const NAV_ITEMS: NavItem[] = [
   // PIT — alphabetical order (trackers + incidents).
   { to: "/breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/incidents", icon: AlertTriangle, label: "Incidents", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/pitbook", icon: BookOpen, label: "Pit Book", roles: ["super_admin", "manager", "shift_manager", "pit", "surveillance"], section: "PIT" },
   { to: "/player-statistics", icon: Users, label: "Player Tracking", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/table-tracker", icon: Target, label: "Table Check", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/tables", icon: Table2, label: "Tables Tracking", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "PIT" },

@@ -133,7 +133,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/cancelled-transactions") return "cancelled_transactions";
 
   // ============= PIT EXTRAS =============
-  if (base === "/pitbook") return null;
+  if (base === "/pitbook") return "pit_book";
   if (base === "/incidents") return "incidents";
 
   // ============= SYSTEM =============

@@ -473,7 +473,7 @@ const ShiftClosingReport = ({
                 <th className="border border-black px-1.5 py-0.5 text-right">Deposit (IN)</th>
                 <th className="border border-black px-1.5 py-0.5 text-right">Withdraw (OUT)</th>
                 <th className="border border-black px-1.5 py-0.5 text-right">NET (IN − OUT)</th>
-                <th className="border border-black px-1.5 py-0.5 text-right">Balance</th>
+                <th className="border border-black px-1.5 py-0.5 text-right">End Day</th>
               </tr>
             </thead>
 
@@ -493,7 +493,7 @@ const ShiftClosingReport = ({
                       {n !== 0 ? (n > 0 ? "+" : "") + numAlways(n) : ""}
                     </td>
                     <td className="border border-black px-1.5 py-0.5 text-right font-semibold">
-                      {hasBal ? numAlways(Number(rawB)) : "0"}
+                      {hasBal ? numAlways(Number(rawB)) : "—"}
                     </td>
                   </tr>
                 );
@@ -506,7 +506,7 @@ const ShiftClosingReport = ({
                   {(totIn - totOut) > 0 ? "+" : ""}{numAlways(totIn - totOut)}
                 </td>
                 <td className="border border-black px-1.5 py-0.5 text-right">
-                  {totBal === null ? "0" : numAlways(totBal)}
+                  {totBal === null ? "—" : numAlways(totBal)}
                 </td>
               </tr>
             </tbody>

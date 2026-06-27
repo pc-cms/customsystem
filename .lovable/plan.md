@@ -1,52 +1,86 @@
+# План: End Day (manual) + Pit Book
 
-## 1. Sticky columns Card / Name (LEVEL) — opaque on scroll
+## Задача 1 — "Balances" → "End Day" (manual only)
 
-**File:** `src/pages/PlayerStatistics.tsx` (~line 747-773)
+**Проблема:** в Slot Cage в распечатке Cashless вместо введённых вручную балансов появляются NET-результаты (Cashless IN − Cashless OUT). Это происходит, потому что блок `CashlessProvidersBlock` при пустом значении подставляет вычисленный NET как fallback и он попадает в печать.
 
-Today the "Name" sticky column uses translucent tints (e.g. `bg-blue-100/70`, `bg-yellow-500/15`, `bg-muted/40`). When the user scrolls horizontally, the columns underneath show through.
+**Решение — раз и навсегда:**
+1. Переименовать колонку/секцию `Balances` → `End Day` во всех местах (Slot Cage closing, Live Game cage closing, Shift Closing Report, печатные отчёты).
+2. End Day — **только ручной ввод**:
+   - Никаких автозаполнений из NET, из прошлой смены, из RPC — вообще ничего.
+   - Пустое поле в БД = `null` → в UI и в печати показываем `—` (em dash).
+   - Заполненное = показываем число как есть, даже если совпадает с предыдущей сменой.
+3. В **Live Game Cage** (`CloseShiftDialog`) сейчас этого блока нет — добавить компактно в шаге Closing, по той же схеме что в Slot Cage: одна строка на провайдера, единственное поле "End Day", без подсказок/префиллов.
+4. В печатных отчётах (Slot + Live Game `ShiftClosingReport`):
+   - Колонка называется `End Day`.
+   - Если `null` → `—`.
+   - Никогда не подставлять NET / Cashless Final / расчётные значения.
 
-Fix:
-- Replace tints in `CATEGORY_NAME_TINT` with **solid** colors (no `/70`, `/15`):
-  - diamond → `bg-blue-50 dark:bg-blue-950`
-  - platinum → `bg-purple-50 dark:bg-purple-950`
-  - gold → `bg-yellow-50 dark:bg-yellow-950`
-  - normal → `bg-card`
-- Same for the selected-row variant (`bg-primary/10` → keep, but add `backdrop-filter: none` and a solid fallback: wrap in a layer like `bg-card` then overlay `bg-primary/10` is fine because base is solid).
-- Card cell (left:0) already uses `bg-card` — keep, but ensure no parent applies opacity.
-- Apply the same treatment to any other table that uses translucent sticky cells (search `sticky left-` + `/70|/15|/20|/30|/40`).
+**Файлы:**
+- `src/components/cage/CashlessProvidersBlock.tsx` — переименовать, убрать любые fallback на NET, dirty-flag оставить.
+- `src/components/cage/CloseShiftDialog.tsx` (live game) — встроить компактный End Day блок.
+- `src/components/cage/ShiftClosingReport.tsx` — заголовок + рендер `—` для null.
+- `src/components/cage-slots/SlotsShiftClosingReport.tsx` (или эквивалент) — то же.
+- Hook/мутации записи: сохранять `null` если поле не трогали, не подставлять 0.
 
-## 2. Real-time updates everywhere — fix churn after force-update
+## Задача 2 — Pit Book (shift handover log)
 
-**File:** `src/hooks/use-realtime.ts`
+**Что это:** сквозной журнал смены, куда Pit Boss / Shift Manager / Floor Manager записывают события (incidents, гости, замены, проблемы с оборудованием, договорённости) — чтобы следующая смена прочитала и приняла дела. Индустриальный стандарт: "Pit Log" / "Shift Pass-Down Book" в казино — обычно хронологический фид с timestamp + автор + текст, без редактирования постфактум (audit), с возможностью acknowledge принимающей сменой.
 
-Symptoms after a forced page reload: data lags until manual refresh. Causes:
-- Channel name uses `Date.now()` → every effect re-run creates a brand-new channel and tears down the prior one (race with WebSocket reconnect leaves a window without listeners).
-- Effect deps include `roles` (array) and `allowedModules` (Set). New identity each render triggers full unsubscribe/resubscribe cycles, eating Realtime quota.
+**UX:**
+- Маршрут `/pit/pitbook` (возвращаем в Pit shell как новую вкладку рядом с Breaklist / Rota / Attendance).
+- Две внутренние вкладки: **Pit Bosses** и **Managers** (раздельные потоки, разные читатели).
+- Вид — чат-фид, наш стиль (не пузыри — inline таблица-как-чат, плотная, моноширинные timestamp):
+  ```text
+  09:42  P.Mwangi · PB    Table 4 dealer swap — Asha → John (10 min break overrun)
+  10:15  S.Otieno · SM    VIP Mr. K seated T7, comp dinner approved
+  10:40  P.Mwangi · PB    Camera 12 offline, reported to surveillance
+  ```
+- Composer внизу: textarea + Enter to post, Shift+Enter newline. Без вложений в v1.
+- Date picker сверху — любой день для чтения. Запись только в текущий business day.
+- Sticky-to-bottom поведение, jump-to-bottom кнопка.
 
-Fix:
-- Drop `Date.now()` from channel name: `casino:${casinoId}:cms-realtime`.
-- Memoize the dependency signature: compute `const modulesKey = useMemo(() => [...allowedModules ?? []].sort().join(","), [allowedModules]);` and `const rolesKey = roles.join(",")`. Use those scalar keys in the effect deps instead of the array/Set references.
-- On `SUBSCRIBED` after a reconnect, in addition to `refetchType: "active"`, also call `qc.refetchQueries({ queryKey: ["casino-visits-live"] })` etc. for the small set of *Pit-Boss / Manager dashboards* that must be fresh immediately (table-tracker, breaklist, dealer-attendance, chip-snapshots, pit-rota, players).
-- Add a `visibilitychange` + `online` listener at the top of `App.tsx` (or in `useRealtimeSubscriptions`) that triggers `qc.invalidateQueries({ refetchType: "active" })` when the tab becomes visible or network returns. This guarantees the open page is fresh after a wake/reload without user action.
+**Доступ:**
+- **Запись:** `pit_boss`, `shift_manager`, `floor_manager` — каждый видит обе вкладки, пишет в свою.
+- **Чтение (любая дата):** те же роли + `surveillance` / `cctv` + `manager` / `super_admin`.
+- Остальным — пункт меню скрыт.
 
-## 3. Pitboss / Manager pages — force fresh data on focus
+**Иммутабельность:** записи нельзя редактировать/удалять (как incidents). Опечатка → новая запись "correction: …".
 
-**Files:** `src/pages/Pit.tsx`, `src/pages/TableTracker.tsx`, `src/pages/Dashboard.tsx`, `src/pages/PlayerStatistics.tsx`
+**Данные:**
+```sql
+create table public.pit_book_entries (
+  id uuid primary key default gen_random_uuid(),
+  casino_id uuid not null references casinos(id),
+  business_date date not null,
+  channel text not null check (channel in ('pit_bosses','managers')),
+  author_id uuid not null,            -- auth.uid()
+  author_name text not null,          -- snapshot
+  author_role text not null,          -- snapshot (PB/SM/FM)
+  body text not null check (length(trim(body)) > 0),
+  created_at timestamptz not null default now()
+);
+-- GRANTs + RLS: SELECT for читателей по casino_id; INSERT для писателей по casino_id;
+-- никаких UPDATE/DELETE policies (иммутабельно).
+-- Realtime: ALTER PUBLICATION supabase_realtime ADD TABLE public.pit_book_entries;
+```
 
-- Set `refetchOnWindowFocus: true` and `refetchOnReconnect: true` for the heavy queries used here (currently they default to false in `queryClient`). Apply per-query (not global) so we don't thrash less critical lists.
-- Lower `staleTime` for: `["table-tracker", casinoId]`, `["breaklist", casinoId]`, `["casino-visits-live"]`, `["pit-rota-range"]`, `["dealer-attendance-range"]` to `10_000` ms so realtime gaps are imperceptible.
-- Add a single `useEffect` in `AppLayout` listening to `casinoId` change → `qc.invalidateQueries({ refetchType: "active" })` so subdomain switches refresh visibly-mounted data.
+**Файлы (новые):**
+- `src/pages/pit/PitBookPage.tsx`
+- `src/components/pit/PitBookFeed.tsx` (рендер строк)
+- `src/components/pit/PitBookComposer.tsx`
+- `src/hooks/use-pit-book.ts` (list + post + realtime invalidation)
+- Маршрут в `src/App.tsx` + пункт в Pit shell + access-matrix.
 
-## 4. Version + verification
+## Техническая часть (для меня, не для UI)
+- Bump версии до `1.3.419`.
+- AI Elements здесь **не используем** — это внутренний журнал, не AI-чат. Делаем плотной inline-таблицей в стиле проекта.
+- Realtime инвалидация через существующий `use-realtime` (добавить таблицу).
+- Печатные отчёты End Day: проверить и Slot Cage print view, и Live Game print view, и Cage History экспорт.
 
-- Bump `package.json` version to `1.3.418`.
-- Manual check:
-  1. Open Player Statistics, scroll right — Name column stays fully opaque over scrolling columns.
-  2. Open Pit / Table Tracker on a second device, edit data on first — second device updates within ~1s without refresh.
-  3. Force-reload (Ctrl+Shift+R) and confirm initial data loads in < 2s and updates flow in without further reload.
+## Порядок реализации
+1. End Day переименование + удаление NET fallback (Slot Cage) — фикс острой проблемы.
+2. End Day блок в Live Game Cage closing.
+3. Pit Book: миграция → hook → UI → роутинг → доступ.
 
-## Out of scope
-
-- No backend / RPC changes.
-- No data-model changes.
-- No POS or Cage UI changes beyond the realtime hook.
+Подтвердите, и я начну с пункта 1 (фикс печати).
