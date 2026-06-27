@@ -627,28 +627,6 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
   return (
     <>
       <div className="relative">
-        <div className="pointer-events-none absolute right-2 top-2 z-30 flex gap-1">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-xs"
-            className="pointer-events-auto bg-card/95 shadow-sm"
-            onClick={() => scrollGridBy(-1)}
-            title="Scroll left"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-xs"
-            className="pointer-events-auto bg-card/95 shadow-sm"
-            onClick={() => scrollGridBy(1)}
-            title="Scroll right"
-          >
-            <ChevronRight className="h-3.5 w-3.5" />
-          </Button>
-        </div>
         <div
           ref={scrollRef}
           onScroll={handleGridScroll}
