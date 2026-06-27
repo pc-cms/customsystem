@@ -114,3 +114,44 @@ export const usePlayerDropSplit = (
     staleTime: 1000 * 60,
   });
 };
+
+/**
+ * Per-table Drop R for a single business day, read from the
+ * `table_day_drop_cache` materialized cache (maintained by DB triggers on
+ * `transactions`). Updates arrive via Realtime on the cache table itself —
+ * no need to wait for the heavy `compute_tables_drop_split` RPC walk.
+ *
+ * Use this as the primary source for the CURRENT business day on dashboards
+ * (Dashboard, Tables). Keep the RPC for historical days where the cache is
+ * not maintained.
+ */
+export const useTablesDropCacheToday = (businessDate: string | null | undefined) => {
+  const { casinoId } = useAuth();
+  const q = useQuery({
+    queryKey: ["tables-drop-cache-today", casinoId, businessDate],
+    queryFn: async (): Promise<Record<string, TableSplit>> => {
+      if (!casinoId || !businessDate) return {};
+      const { data, error } = await supabase
+        .from("table_day_drop_cache")
+        .select("table_id, drop_r_share, recycled_share")
+        .eq("casino_id", casinoId)
+        .eq("business_date", businessDate);
+      if (error) throw error;
+      const rec: Record<string, TableSplit> = {};
+      (data || []).forEach((r: any) => {
+        if (!r?.table_id) return;
+        const prev = rec[r.table_id] || { dropR: 0, recycled: 0 };
+        rec[r.table_id] = {
+          dropR: prev.dropR + (Number(r.drop_r_share) || 0),
+          recycled: prev.recycled + (Number(r.recycled_share) || 0),
+        };
+      });
+      return rec;
+    },
+    enabled: !!casinoId && !!businessDate,
+    staleTime: 5_000,
+  });
+  const data = useMemo(() => toLookup(q.data ?? {}), [q.data]);
+  return { ...q, data };
+};
+
