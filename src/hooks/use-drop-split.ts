@@ -150,7 +150,15 @@ export const useTablesDropCacheToday = (businessDate: string | null | undefined)
     },
     enabled: !!casinoId && !!businessDate,
     staleTime: 5_000,
-  });
+    // Fallback polling in case a Realtime event for `table_day_drop_cache`
+    // is dropped (network blip, channel reconnect). 20s keeps the UI honest
+    // without hammering the DB — Realtime still delivers near-instant updates
+    // in the normal path; this is only the safety net.
+    refetchInterval: 20_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+
   const data = useMemo(() => toLookup(q.data ?? {}), [q.data]);
   return { ...q, data };
 };
