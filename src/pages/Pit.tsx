@@ -203,6 +203,23 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
     <>
       {activeTab === "breaklist" && (
         <>
+          <Button
+            variant="outline"
+            size="icon-xs"
+            onClick={() => breaklistRef.current?.scrollBy(-1)}
+            title="Scroll left 3 slots"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon-xs"
+            onClick={() => breaklistRef.current?.scrollBy(1)}
+            title="Scroll right 3 slots"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Button>
+          <span className="w-px h-4 bg-border mx-1" />
           <Button variant="outline" size="icon-xs" onClick={() => setBreaklistZoom(z => Math.max(60, z - 10))}>
             <ZoomOut className="w-3.5 h-3.5" />
           </Button>
