@@ -586,15 +586,16 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                 const shift = getDealerShift(dealer.id);
                 return (
                   <tr key={dealer.id} className={`border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
-                    <td className={`text-center py-1 sticky left-0 z-10 text-[10px] font-mono font-bold text-muted-foreground ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                    {(() => { const stickyBg = idx % 2 === 1 ? "bg-muted" : "bg-card"; return (<>
+                    <td className={`text-center py-1 sticky left-0 z-10 text-[10px] font-mono font-bold text-muted-foreground ${stickyBg}`}>
                       {idx + 1}
                     </td>
-                    <td className={`text-center py-1 sticky left-[26px] z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                    <td className={`text-center py-1 sticky left-[26px] z-10 ${stickyBg}`}>
                       <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[9px] font-mono font-bold ${CATEGORY_COLORS[dealer.category] || "text-muted-foreground"}`}>
                         {CATEGORY_LABELS[dealer.category] || "?"}
                       </span>
                     </td>
-                    <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-[60px] z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                    <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-[60px] z-10 ${stickyBg}`}>
                       <div className="flex items-center justify-between">
                         <span>{dealer.name}</span>
                         {lockedCount > 0 && (
@@ -604,13 +605,14 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                         )}
                       </div>
                     </td>
-                    <td className={`text-center py-1 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                    <td className={`text-center py-1 sticky left-[180px] z-10 shadow-[inset_-1px_0_0_hsl(var(--border))] ${stickyBg}`}>
                       {shift && (
                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold ${
                           shift === "M" ? "bg-teal-100 text-teal-800 dark:bg-teal-500/25 dark:text-teal-300" : shift === "N" ? "bg-sky-100 text-sky-700 dark:bg-sky-500/25 dark:text-sky-300" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/25 dark:text-emerald-300"
                         }`}>{shift}</span>
                       )}
                     </td>
+                    </>); })()}
                     {visibleSlots.map(slot => {
                       const cell = getCellData(dealer.id, slot);
                       const isCleared = cell?.role === "CLR";
