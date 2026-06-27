@@ -17,6 +17,7 @@ import { useDensity } from "@/lib/density";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
 import { useMyModulePermissions } from "@/hooks/use-module-permissions";
+import { usePitBookUnread } from "@/hooks/use-pit-book-unread";
 import { moduleKeyForRoute } from "@/lib/route-module-map";
 import { prefetchRoute } from "@/lib/route-prefetch";
 import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
