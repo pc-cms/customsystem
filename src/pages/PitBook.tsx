@@ -47,6 +47,18 @@ const ROLE_LABELS: Record<string, string> = {
   surveillance: "CCTV",
 };
 
+// Per-role chip palette. Kept self-contained — no semantic-token churn elsewhere.
+const ROLE_CHIP: Record<string, string> = {
+  super_admin:     "bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-300 ring-1 ring-fuchsia-500/30",
+  manager:         "bg-sky-500/15 text-sky-600 dark:text-sky-300 ring-1 ring-sky-500/30",
+  shift_manager:   "bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 ring-1 ring-cyan-500/30",
+  finance_manager: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 ring-1 ring-emerald-500/30",
+  pit:             "bg-amber-500/20 text-amber-600 dark:text-amber-300 ring-1 ring-amber-500/40",
+  surveillance:    "bg-violet-500/15 text-violet-600 dark:text-violet-300 ring-1 ring-violet-500/30",
+};
+const roleChip = (r: string) =>
+  ROLE_CHIP[r] || "bg-muted text-muted-foreground ring-1 ring-border";
+
 function formatTime(iso: string) {
   const d = new Date(iso);
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -88,11 +100,9 @@ function EntryRow({
         </span>
         <span className="font-semibold mr-1">{entry.author_name}</span>
         <span
-          className={`text-[10px] uppercase tracking-wide mr-1.5 ${
-            isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
-          }`}
+          className={`inline-flex items-center rounded px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide mr-1.5 align-middle ${roleChip(entry.author_role)}`}
         >
-          · {roleLabel}
+          {roleLabel}
         </span>
         <span className="whitespace-pre-wrap [overflow-wrap:anywhere]">{entry.body}</span>
       </div>
@@ -132,6 +142,24 @@ export default function PitBook() {
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [entries.length, channel, date]);
+
+  // Reliable read-receipt: whenever entries for this channel update and there
+  // are unread foreign messages, mark the latest one as read. The viewport
+  // observer can miss short feeds, off-screen tails or instant-render cases.
+  useEffect(() => {
+    if (!user?.id) return;
+    if ((unread?.[channel] ?? 0) === 0) return;
+    const latest = [...entries]
+      .reverse()
+      .find((e) => e.author_id !== user.id);
+    if (!latest) return;
+    markRead.mutate({
+      channel,
+      entryId: latest.id,
+      entryCreatedAt: latest.created_at,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries, channel, unread?.[channel], user?.id]);
 
   // IntersectionObserver: when a foreign entry enters viewport, mark up to its
   // created_at as read (debounced — only the latest visible wins).
