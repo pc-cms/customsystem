@@ -167,7 +167,18 @@ export const useRealtimeSubscriptions = () => {
             debouncedInvalidate(qc, "player-drop-split", ["player-drop-split"]);
             debouncedInvalidate(qc, "dashboard-table-results", ["dashboard-table-results", casinoId]);
           },
+        )
+        // Materialized per-table Drop cache — updated by triggers on transactions.
+        // Subscribing directly lets dashboards refresh instantly without waiting
+        // for the heavy compute_tables_drop_split RPC.
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "table_day_drop_cache", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            debouncedInvalidate(qc, "tables-drop-cache-today", ["tables-drop-cache-today"]);
+          },
         );
+
 
       // ═════════════ PIT (breaklist / rota / dealers / attendance) ═════════════
       if (has("pit_breaklist") || has("pit_rota") || has("pit_attendance") || has("pit_dealers")) {
