@@ -98,6 +98,7 @@ export const MODULES: ModuleDef[] = [
   { key: "pit_active_players", label: "Player Tracking", group: "Operations" },
   { key: "pit_dealers", label: "Live Game Dealers", group: "Operations" },
   { key: "incidents", label: "Incidents", group: "Operations" },
+  { key: "pit_book", label: "Pit Book", group: "Operations" },
 
   // Tables
   { key: "tables", label: "Tables", group: "Operations" },
