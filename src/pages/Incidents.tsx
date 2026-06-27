@@ -755,12 +755,12 @@ const IncidentRow = ({
 
   return (
     <tr className="border-t border-border hover:bg-muted/30">
-      <td className={`px-1 py-1 whitespace-nowrap ${stickyDate} border-r border-border`}>
+      <td className={`px-1 py-1 whitespace-nowrap ${stickyDate} ${stickyDivider}`}>
         {editing ? (
           <Input type="date" value={draft.incident_date} onChange={(e) => setD("incident_date", e.target.value)} className={cellInput} />
         ) : i.incident_date}
       </td>
-      <td className={`px-1 py-1 whitespace-nowrap ${stickyTime} border-r border-border`} style={stickyTimeLeft}>
+      <td className={`px-1 py-1 whitespace-nowrap ${stickyTime} ${stickyDivider}`} style={stickyTimeLeft}>
         {editing ? (
           <Input type="time" value={draft.incident_time} onChange={(e) => setD("incident_time", e.target.value)} className={cellInput} />
         ) : i.incident_time?.slice(0, 5)}
