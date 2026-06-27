@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 
 /**
@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context";
  * pass `persist: "local"` to survive tab close via localStorage.
  *
  * Usage:
- *   const { ref, onScroll } = useScrollMemory("breaklist-scroll", !isLoading, { persist: "local" });
+ *   const { ref, onScroll, hasSaved, savedPos } = useScrollMemory("breaklist-scroll", !isLoading, { persist: "local" });
  *   <div ref={ref} onScroll={onScroll} className="overflow-auto"> ... </div>
  */
 
@@ -28,7 +28,7 @@ function storageFor(mode: PersistMode): Storage | null {
   try { return mode === "local" ? window.localStorage : window.sessionStorage; } catch { return null; }
 }
 
-function read(fullKey: string, mode: PersistMode): ScrollPos | null {
+export function readScrollPos(fullKey: string, mode: PersistMode): ScrollPos | null {
   const store = storageFor(mode);
   if (!store) return null;
   try {
@@ -58,11 +58,18 @@ export function useScrollMemory<T extends HTMLElement = HTMLDivElement>(
   const restoredRef = useRef(false);
   const writeTimer = useRef<number | null>(null);
 
+  // Synchronously expose the saved position so consumers can decide whether to auto-anchor.
+  const savedPos = useMemo(() => readScrollPos(fullKey, mode), [fullKey, mode]);
+  const hasSaved = useMemo(
+    () => !!savedPos && (savedPos.x > 0 || savedPos.y > 0),
+    [savedPos],
+  );
+
   useEffect(() => {
     if (!ready || restoredRef.current) return;
     const el = ref.current;
     if (!el) return;
-    const pos = read(fullKey, mode);
+    const pos = readScrollPos(fullKey, mode);
     if (!pos || (pos.x === 0 && pos.y === 0)) {
       restoredRef.current = true;
       return;
@@ -107,5 +114,5 @@ export function useScrollMemory<T extends HTMLElement = HTMLDivElement>(
     if (writeTimer.current != null) window.clearTimeout(writeTimer.current);
   }, []);
 
-  return { ref, onScroll };
+  return { ref, onScroll, savedPos, hasSaved };
 }

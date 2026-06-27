@@ -87,8 +87,8 @@ const cellInput =
 
 // Column widths — generous so inputs are readable. (≈ +25% vs original)
 const COLS = {
-  date: 110,
-  time: 78,
+  date: 140,
+  time: 110,
   cctv: 110,
   manager: 110,
   dept: 90,
@@ -261,10 +261,12 @@ const Incidents = () => {
   };
 
   // Helpers for sticky-left columns. Header uses muted band; body uses solid background.
-  const stickyDateHead = "sticky left-0 z-30 bg-muted";
-  const stickyTimeHead = "sticky z-30 bg-muted";
-  const stickyDate = "sticky left-0 z-30 bg-background";
-  const stickyTime = "sticky z-30 bg-background";
+  // Inset shadow replaces border-r so border-collapse cannot eat/duplicate the 1px divider during scroll.
+  const stickyDivider = "shadow-[inset_-1px_0_0_hsl(var(--border))]";
+  const stickyDateHead = "sticky left-0 z-30 bg-muted overflow-hidden";
+  const stickyTimeHead = "sticky z-30 bg-muted overflow-hidden";
+  const stickyDate = "sticky left-0 z-30 bg-background overflow-hidden";
+  const stickyTime = "sticky z-30 bg-background overflow-hidden";
   const stickyTimeLeft = { left: COLS.date };
 
   return (
@@ -331,8 +333,8 @@ const Incidents = () => {
             </colgroup>
             <thead className="bg-muted text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className={`px-3 py-2.5 text-left ${stickyDateHead} border-r border-border`}>Date</th>
-                <th className={`px-3 py-2.5 text-left ${stickyTimeHead} border-r border-border`} style={stickyTimeLeft}>
+                <th className={`px-3 py-2.5 text-left ${stickyDateHead} ${stickyDivider}`}>Date</th>
+                <th className={`px-3 py-2.5 text-left ${stickyTimeHead} ${stickyDivider}`} style={stickyTimeLeft}>
                   Time
                 </th>
                 <th className="px-3 py-2.5 text-left">CCTV</th>
@@ -355,7 +357,7 @@ const Incidents = () => {
               {/* Draft row — inline entry */}
               {canPost && (
                 <tr className="border-t border-border bg-primary/5">
-                  <td className={`px-1 py-1 ${stickyDate} border-r border-border`}>
+                  <td className={`px-1 py-1 ${stickyDate} ${stickyDivider}`}>
                     <Input
                       type="date"
                       value={form.incident_date}
@@ -363,7 +365,7 @@ const Incidents = () => {
                       className={cellInput}
                     />
                   </td>
-                  <td className={`px-1 py-1 ${stickyTime} border-r border-border`} style={stickyTimeLeft}>
+                  <td className={`px-1 py-1 ${stickyTime} ${stickyDivider}`} style={stickyTimeLeft}>
                     <Input
                       type="time"
                       value={form.incident_time}
@@ -582,6 +584,7 @@ const Incidents = () => {
                     onView={(url) => setViewPhoto(url)}
                     stickyDate={stickyDate}
                     stickyTime={stickyTime}
+                    stickyDivider={stickyDivider}
                     stickyTimeLeft={stickyTimeLeft}
                     cellInput={cellInput}
                     tableOptions={tableOptions}
@@ -625,6 +628,7 @@ interface IncidentRowProps {
   onView: (url: string) => void;
   stickyDate: string;
   stickyTime: string;
+  stickyDivider: string;
   stickyTimeLeft: React.CSSProperties;
   cellInput: string;
   tableOptions: string[];
@@ -640,6 +644,7 @@ const IncidentRow = ({
   onView,
   stickyDate,
   stickyTime,
+  stickyDivider,
   stickyTimeLeft,
   cellInput,
   tableOptions,
@@ -750,12 +755,12 @@ const IncidentRow = ({
 
   return (
     <tr className="border-t border-border hover:bg-muted/30">
-      <td className={`px-1 py-1 whitespace-nowrap ${stickyDate} border-r border-border`}>
+      <td className={`px-1 py-1 whitespace-nowrap ${stickyDate} ${stickyDivider}`}>
         {editing ? (
           <Input type="date" value={draft.incident_date} onChange={(e) => setD("incident_date", e.target.value)} className={cellInput} />
         ) : i.incident_date}
       </td>
-      <td className={`px-1 py-1 whitespace-nowrap ${stickyTime} border-r border-border`} style={stickyTimeLeft}>
+      <td className={`px-1 py-1 whitespace-nowrap ${stickyTime} ${stickyDivider}`} style={stickyTimeLeft}>
         {editing ? (
           <Input type="time" value={draft.incident_time} onChange={(e) => setD("incident_time", e.target.value)} className={cellInput} />
         ) : i.incident_time?.slice(0, 5)}

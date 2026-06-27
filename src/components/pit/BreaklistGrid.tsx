@@ -83,7 +83,7 @@ const isClearedBreaklistCell = (cell: any) => cell?.role === "CLR";
 const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const { data: dealers = [] } = useDealers();
   const { data: breaklist = [] } = useBreaklistData(date);
-  const { ref: scrollRef, onScroll: onScrollMemory } = useScrollMemory<HTMLDivElement>(`breaklist:${date}`, dealers.length > 0, { persist: "local" });
+  const { ref: scrollRef, onScroll: onScrollMemory, hasSaved } = useScrollMemory<HTMLDivElement>(`breaklist:${date}`, dealers.length > 0, { persist: "local" });
   const didAnchorRef = useRef(false);
   const { data: tables = [] } = useGamingTables();
   const { data: rota = [] } = usePitRotaRange(date, date);
@@ -188,24 +188,16 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   useEffect(() => { didAnchorRef.current = false; }, [date]);
 
   // Horizontal auto-anchor:
-  //  • TODAY → place the current 20-min slot exactly 5 columns from the left edge,
-  //    snapped to the column grid. Re-runs whenever currentSlot ticks over.
-  //  • Other days → anchor to 18:00 on first load, otherwise restore saved scroll.
+  //  • If a saved scroll position exists (localStorage, per-user+path), let useScrollMemory restore it
+  //    and skip auto-anchor entirely so user preference is never overwritten.
+  //  • TODAY with no saved position → place the current 20-min slot exactly 5 columns from the left edge.
+  //  • Other days with no saved position → anchor to 18:00 on first load.
   useEffect(() => {
     const wrap = scrollRef.current;
     if (!wrap || dealers.length === 0) return;
+    // A saved position wins over auto-anchor for every user and every role.
+    if (hasSaved) { didAnchorRef.current = true; return; }
     if (!isToday && didAnchorRef.current) return;
-    if (!isToday) {
-      const hasSavedPos = (() => {
-        try {
-          const check = (store: Storage) => Object.keys(store).some(k =>
-            k.includes(`::breaklist:${date}`) && (JSON.parse(store.getItem(k) || "{}")?.x ?? 0) > 0,
-          );
-          return check(window.localStorage) || check(window.sessionStorage);
-        } catch { return false; }
-      })();
-      if (hasSavedPos) { didAnchorRef.current = true; return; }
-    }
     const target = isToday ? currentSlot : "18:00";
     const OFFSET_COLS = 5; // current slot sits this many columns from the left edge
 
@@ -234,7 +226,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     };
     requestAnimationFrame(tryAnchor);
     return () => { cancelled = true; };
-  }, [date, isToday, currentSlot, dealers.length, scrollRef]);
+  }, [date, isToday, currentSlot, dealers.length, scrollRef, hasSaved]);
 
   // Re-anchor today's view when the active slot ticks over.
   useEffect(() => {
