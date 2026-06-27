@@ -547,7 +547,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                 >
                   <span className="inline-flex items-center justify-center gap-0.5">S{sortBy === "shift" && <span className="text-[8px]">↓</span>}</span>
                 </th>
-                {TIME_SLOTS.map(slot => {
+                {visibleSlots.map(slot => {
                   const isActive = isToday && slot === currentSlot;
                   const isHourStart = slot.endsWith(":00");
                   return (
