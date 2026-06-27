@@ -229,6 +229,9 @@ const SidebarSections = ({
   currentTab, currentGroup, roles, isSuper, allowedModules, onNavigate, renderSubItems,
 }: SectionsProps) => {
   const location = useLocation();
+  const { data: pitBookUnread } = usePitBookUnread();
+  const pitBookUnreadCount = pitBookUnread?.total ?? 0;
+
 
   // Group items by section, preserving order
   const grouped = visibleItems.reduce<Record<string, NavItem[]>>((acc, item) => {
