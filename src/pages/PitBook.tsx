@@ -1,21 +1,24 @@
 /**
- * Pit Book — shift handover log.
+ * Pit Book — shift handover chat.
  *
- * Two channels (tabs): Pit Bosses and Managers.
- * Inline chat-like feed for the selected business date.
- * Entries are immutable; corrections = new entries.
+ * Tabs visible per role:
+ *   - pit: only "Pit Bosses"
+ *   - manager / shift_manager / finance_manager / surveillance / super_admin: both
  *
- * Roles:
- *   READ:  pit, shift_manager, manager, surveillance, super_admin
- *   WRITE: pit, shift_manager, manager, super_admin (surveillance read-only)
+ * Write per channel:
+ *   - pit_bosses: pit + managers + cctv + finance + super_admin
+ *   - managers:   managers + cctv + finance + super_admin (NOT pit)
+ *
+ * Layout: compact inline (time · name · role · body in one wrapping flow).
+ * Own messages bubble on the right with primary fill; others left, no fill.
+ * Read marker bumps via IntersectionObserver as messages enter the viewport.
  */
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DateNavigator } from "@/components/ui/date-navigator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Send, BookOpen, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
@@ -28,21 +31,20 @@ import {
   type PitBookChannel,
   type PitBookEntry,
 } from "@/hooks/use-pit-book";
+import {
+  visiblePitBookChannels,
+  canWritePitBook,
+  usePitBookUnread,
+  useMarkPitBookRead,
+} from "@/hooks/use-pit-book-unread";
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: "Super Admin",
   manager: "Manager",
-  shift_manager: "Shift Manager",
+  shift_manager: "Shift Mgr",
+  finance_manager: "Finance",
   pit: "Pit Boss",
   surveillance: "CCTV",
-};
-
-const ROLE_COLORS: Record<string, string> = {
-  super_admin: "bg-purple-500/15 text-purple-700 dark:text-purple-300",
-  manager: "bg-blue-500/15 text-blue-700 dark:text-blue-300",
-  shift_manager: "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300",
-  pit: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
-  surveillance: "bg-slate-500/15 text-slate-700 dark:text-slate-300",
 };
 
 function formatTime(iso: string) {
@@ -50,29 +52,49 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-function EntryRow({ entry, isOwn }: { entry: PitBookEntry; isOwn: boolean }) {
+function EntryRow({
+  entry,
+  isOwn,
+  observe,
+}: {
+  entry: PitBookEntry;
+  isOwn: boolean;
+  observe: (el: HTMLElement | null, entry: PitBookEntry) => void;
+}) {
   const roleLabel = ROLE_LABELS[entry.author_role] || entry.author_role;
-  const roleColor =
-    ROLE_COLORS[entry.author_role] || "bg-muted text-muted-foreground";
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    observe(ref.current, entry);
+  }, [entry, observe]);
+
   return (
-    <div
-      className={`flex flex-col gap-1 rounded-md border p-3 ${
-        isOwn ? "bg-primary/5 border-primary/30" : "bg-card border-border"
-      }`}
-    >
-      <div className="flex items-center justify-between gap-2 text-xs">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="font-semibold truncate">{entry.author_name}</span>
-          <Badge variant="secondary" className={`text-[10px] ${roleColor}`}>
-            {roleLabel}
-          </Badge>
-        </div>
-        <span className="text-muted-foreground tabular-nums shrink-0">
+    <div className={`flex w-full ${isOwn ? "justify-end" : "justify-start"}`}>
+      <div
+        ref={ref}
+        data-entry-id={entry.id}
+        data-entry-created-at={entry.created_at}
+        className={`max-w-[85%] rounded-md px-2.5 py-1.5 text-sm leading-snug break-words ${
+          isOwn
+            ? "bg-primary text-primary-foreground"
+            : "bg-muted/40 text-foreground"
+        }`}
+      >
+        <span
+          className={`text-[11px] font-mono tabular-nums mr-1 ${
+            isOwn ? "text-primary-foreground/75" : "text-muted-foreground"
+          }`}
+        >
           {formatTime(entry.created_at)}
         </span>
-      </div>
-      <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
-        {entry.body}
+        <span className="font-semibold mr-1">{entry.author_name}</span>
+        <span
+          className={`text-[10px] uppercase tracking-wide mr-1.5 ${
+            isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
+          }`}
+        >
+          · {roleLabel}
+        </span>
+        <span className="whitespace-pre-wrap">{entry.body}</span>
       </div>
     </div>
   );
@@ -82,21 +104,26 @@ export default function PitBook() {
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessToday = serverBusinessDate || getBusinessDate();
   const [date, setDate] = useState(businessToday);
-  const [channel, setChannel] = useState<PitBookChannel>("pit_bosses");
-  const [draft, setDraft] = useState("");
   const { user, roles } = useAuth();
 
-  const canWrite = useMemo(
-    () =>
-      roles.some((r) =>
-        ["super_admin", "manager", "shift_manager", "pit", "surveillance"].includes(r),
-      ),
-    [roles],
+  const visibleChannels = useMemo(() => visiblePitBookChannels(roles), [roles]);
+  const [channel, setChannel] = useState<PitBookChannel>(
+    visibleChannels[0] ?? "pit_bosses",
   );
+  useEffect(() => {
+    if (!visibleChannels.includes(channel) && visibleChannels[0]) {
+      setChannel(visibleChannels[0]);
+    }
+  }, [visibleChannels, channel]);
+
+  const [draft, setDraft] = useState("");
+  const canWrite = canWritePitBook(roles, channel);
   const isToday = date === businessToday;
 
   const { data: entries = [], isLoading } = usePitBookEntries(channel, date);
   const create = useCreatePitBookEntry();
+  const { data: unread } = usePitBookUnread();
+  const markRead = useMarkPitBookRead();
 
   // Auto-scroll feed to bottom on entries change.
   const feedRef = useRef<HTMLDivElement>(null);
@@ -105,6 +132,58 @@ export default function PitBook() {
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [entries.length, channel, date]);
+
+  // IntersectionObserver: when a foreign entry enters viewport, mark up to its
+  // created_at as read (debounced — only the latest visible wins).
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const pendingRef = useRef<{ id: string; at: string } | null>(null);
+  const flushTimer = useRef<number | null>(null);
+
+  const flush = useCallback(() => {
+    const p = pendingRef.current;
+    pendingRef.current = null;
+    if (!p) return;
+    markRead.mutate({ channel, entryId: p.id, entryCreatedAt: p.at });
+  }, [channel, markRead]);
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+    const root = feedRef.current;
+    if (!root) return;
+    const obs = new IntersectionObserver(
+      (records) => {
+        for (const rec of records) {
+          if (!rec.isIntersecting) continue;
+          const el = rec.target as HTMLElement;
+          const id = el.dataset.entryId;
+          const at = el.dataset.entryCreatedAt;
+          if (!id || !at) continue;
+          const cur = pendingRef.current;
+          if (!cur || at > cur.at) pendingRef.current = { id, at };
+        }
+        if (pendingRef.current) {
+          if (flushTimer.current) window.clearTimeout(flushTimer.current);
+          flushTimer.current = window.setTimeout(flush, 400);
+        }
+      },
+      { root, threshold: 0.6 },
+    );
+    observerRef.current = obs;
+    return () => {
+      obs.disconnect();
+      observerRef.current = null;
+      if (flushTimer.current) window.clearTimeout(flushTimer.current);
+    };
+  }, [flush, channel, date]);
+
+  const observe = useCallback(
+    (el: HTMLElement | null, entry: PitBookEntry) => {
+      if (!el) return;
+      if (entry.author_id === user?.id) return; // own = always read
+      observerRef.current?.observe(el);
+    },
+    [user?.id],
+  );
 
   const handleSend = async () => {
     const body = draft.trim();
@@ -122,7 +201,7 @@ export default function PitBook() {
       <PageHeader
         icon={BookOpen}
         title="Pit Book"
-        subtitle="Shift handover log — append-only journal for pit bosses and managers."
+        subtitle="Shift handover log — append-only journal."
       >
         <DateNavigator
           value={date}
@@ -132,19 +211,32 @@ export default function PitBook() {
       </PageHeader>
 
       <PageSection>
-        <Tabs
-          value={channel}
-          onValueChange={(v) => setChannel(v as PitBookChannel)}
-        >
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="pit_bosses">Pit Bosses</TabsTrigger>
-            <TabsTrigger value="managers">Managers</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {visibleChannels.length > 1 && (
+          <Tabs
+            value={channel}
+            onValueChange={(v) => setChannel(v as PitBookChannel)}
+          >
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              {visibleChannels.map((c) => {
+                const count = unread?.[c] ?? 0;
+                return (
+                  <TabsTrigger key={c} value={c} className="relative">
+                    {c === "pit_bosses" ? "Pit Bosses" : "Managers"}
+                    {count > 0 && (
+                      <span className="ml-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                        {count}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </Tabs>
+        )}
 
         <div
           ref={feedRef}
-          className="mt-4 flex flex-col gap-2 overflow-y-auto rounded-md border border-border bg-background/40 p-3"
+          className="mt-4 flex flex-col gap-1.5 overflow-y-auto rounded-md border border-border bg-background/40 p-3"
           style={{ maxHeight: "calc(100vh - 340px)", minHeight: 240 }}
         >
           {isLoading ? (
@@ -157,7 +249,12 @@ export default function PitBook() {
             </div>
           ) : (
             entries.map((e) => (
-              <EntryRow key={e.id} entry={e} isOwn={e.author_id === user?.id} />
+              <EntryRow
+                key={e.id}
+                entry={e}
+                isOwn={e.author_id === user?.id}
+                observe={observe}
+              />
             ))
           )}
         </div>
@@ -210,7 +307,7 @@ export default function PitBook() {
         ) : (
           <div className="mt-3 flex items-center gap-2 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
             <ShieldAlert className="h-4 w-4" />
-            Read-only access.
+            Read-only access for this channel.
           </div>
         )}
       </PageSection>
