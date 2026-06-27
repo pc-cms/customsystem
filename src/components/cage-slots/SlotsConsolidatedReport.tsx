@@ -87,6 +87,7 @@ const SlotsConsolidatedReport = ({
   missCards, casinoExpenses, tipsCollection, tipsCollectionDay = 0, tipsCollectionEvening = 0, aceBalance,
   cashlessDepositByProvider, cashlessWithdrawByProvider,
   cashlessDepositTotalTzs, cashlessWithdrawTotalTzs,
+  manualInputAtCloseByProvider,
 }: SlotsConsolidatedProps) => {
   const shiftLabel = shiftType.toUpperCase() === "DAY" ? "Day Shift" : "Night Shift";
   const providerDepositTotal = Object.values(cashlessDepositByProvider).reduce((s, v) => s + Number(v || 0), 0);
