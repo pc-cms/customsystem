@@ -584,6 +584,7 @@ const Incidents = () => {
                     onView={(url) => setViewPhoto(url)}
                     stickyDate={stickyDate}
                     stickyTime={stickyTime}
+                    stickyDivider={stickyDivider}
                     stickyTimeLeft={stickyTimeLeft}
                     cellInput={cellInput}
                     tableOptions={tableOptions}
