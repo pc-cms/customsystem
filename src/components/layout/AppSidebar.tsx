@@ -436,6 +436,8 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   const currentGroup = new URLSearchParams(location.search).get("group") || "floor";
 
   const { data: allowedModules } = useMyModulePermissions();
+  const { data: pitBookUnread } = usePitBookUnread();
+  const pitBookUnreadCount = pitBookUnread?.total ?? 0;
   const isSuper = roles.includes("super_admin" as AppRole);
   // Admin panel: super_admin always; others only if explicitly granted the "admin" module.
   // Currently only super_admin has it by role default — finance_manager can be granted via the access matrix.
