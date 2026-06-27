@@ -1,86 +1,48 @@
-## Drop integrity: backfill + защита триггера + материализация
+## Plan
 
-### Подтверждение формулы (важно)
+### 1. Incidents page — sticky Date/Time columns
 
-Drop считается **walk по каждой транзакции в хронологическом порядке** (window function в PostgreSQL), а не суммой за день:
+Fix the visual shift/jitter of the left-sticky Date and Time columns during horizontal scroll.
 
-```
-NEP = 0, peak = 0
-для каждой tx (ORDER BY created_at, id):
-   NEP += in_amt − out_amt
-   peak = max(peak, NEP)     -- peak только растёт
-Drop_day = peak
-Recycled_day = total_in − peak
-```
+Changes in `src/pages/Incidents.tsx` only:
 
-Проверено на примере `OUT 500 → IN 500 → IN 500 → OUT 500 → IN 50 → IN 50 → OUT 500 → OUT 500 → IN 1M → OUT 550`: Cash In = 1 001 100, **Drop = 999 100**. Sum-формула дала бы 0 — это было бы неверно.
+- Widen sticky columns to fit native browser date/time picker chrome:
+  - `COLS.date`: 110 px → 140 px
+  - `COLS.time`: 78 px → 110 px
+- Remove the `border-r border-border` class from the four sticky cells (header Date, header Time, body Date, body Time) and replace it with an inset right shadow that is independent of `border-collapse`:
+  - Add `shadow-[inset_-1px_0_0_hsl(var(--border))]` to those cells.
+- Add `overflow-hidden` to the sticky body `<td>` cells so the calendar/clock icons cannot bleed into the next column during scroll.
+- Keep fully opaque sticky backgrounds (`bg-muted` for header, `bg-background` for body, including the draft row) so the underlying row tint never shows through the sticky cell.
+- No business-logic, RPC, or schema changes.
 
-Текущие RPC `compute_player_drop_split` / `compute_players_drop_split` / `compute_tables_drop_split` уже работают именно так. Формулу не трогаем.
+### 2. PIT Breaklist — scroll position must work for every user and role
 
-### 9 случаев Drop=0
+Make the Breaklist scroll position stable and restored consistently across all users and roles.
 
-Уже показал тебе таблицей в чате. Все 9 — реальный carryover фишек с прошлого дня: NEP за весь день ни разу не вышел в плюс. Математически корректно. Backfill их не изменит.
+Investigate and fix the current combination of `useScrollMemory` and the auto-anchor logic in `src/components/pit/BreaklistGrid.tsx`:
 
-### Шаг 1. Backfill 145 NULL business_date
+- The current auto-anchor effect centers the current time slot for today and defaults to 18:00 for other days. This can race with the saved scroll restoration and override the user’s position.
+- Ensure the `useScrollMemory` restore wins when a non-zero saved position exists, regardless of role or whether the user is on a tablet/PC.
+- Make the saved position apply to all users and roles (not just pit/managers). The scroll persistence key is already per-user, so the fix is to stop the auto-anchor from clobbering it.
+- Harden the restore timing: retry restoration with `requestAnimationFrame` until the grid content is actually wide enough, so the saved `scrollLeft` is not clamped to 0.
+- Verify that `onScroll` is attached to the scroll container and that writes are debounced correctly.
 
-```sql
-UPDATE public.transactions
-SET business_date = public.business_date_of(created_at)
-WHERE business_date IS NULL;
-```
+Concrete changes:
 
-→ 145 транзакций (~20.7M TZS) попадают в свои бизнес-дни и появляются в Drop отчётах.
+- In `src/components/pit/BreaklistGrid.tsx`:
+  - Read the saved position from `useScrollMemory` (or query the same localStorage key) before running auto-anchor.
+  - If a saved position exists and is > 0, restore it and skip the auto-anchor.
+  - Keep auto-anchor as a fallback only when there is no saved position.
+- In `src/hooks/use-scroll-memory.ts`:
+  - Ensure the restore effect is not blocked by stale `ready` or `restoredRef` state across role changes.
+  - Consider resetting `restoredRef` when the user changes, not just when `fullKey` changes, so switching users in the same tab re-applies the correct saved position.
 
-### Шаг 2. Защита триггера
+### Verification
 
-`tg_set_business_date BEFORE INSERT OR UPDATE OF created_at`: безусловно перезаписывать `NEW.business_date := business_date_of(NEW.created_at)` если NULL, независимо от источника (sync, офлайн, edge function).
+- Build the frontend and check for TypeScript errors.
+- Visually confirm in the preview: Incidents table sticky Date/Time columns no longer jump during horizontal scroll and native inputs fit inside their cells.
+- Visually confirm: Breaklist scroll position is restored after reload and across tab close/reopen for representative roles (pit, manager, surveillance, etc.).
 
-### Шаг 3. Материализация Drop кэша (мгновенное отображение везде)
+### Version
 
-Сейчас 3 RPC при каждом запросе бегут window function по транзакциям — даёт задержку 200-800 мс на больших объёмах. Отсюда ощущение «Drop не появляется сразу».
-
-Новая таблица:
-```
-public.player_day_drop_cache (
-  player_id     uuid,
-  business_date date,
-  casino_id     uuid,
-  total_in      numeric,
-  peak          numeric,   -- Drop R за день (walk-формула)
-  recycled      numeric,
-  updated_at    timestamptz,
-  PRIMARY KEY (player_id, business_date)
-)
-```
-
-`AFTER INSERT/UPDATE/DELETE ON transactions FOR EACH ROW` триггер пересчитывает **только затронутый (player_id, business_date)** через ту же walk-формулу и upsert'ит. Цена записи — ≤50 строк одного дня одного игрока, микросекунды.
-
-Аналогично `table_player_day_drop_cache(table_id, player_id, business_date, drop_r_share, recycled_share)` — пропорциональное разделение peak по IN на стол в день. Тот же триггер пересчитывает обе таблицы.
-
-RPC переписываются на `SELECT SUM(peak), SUM(recycled) FROM player_day_drop_cache WHERE ...` — чтение с индекса, без window functions. Все 5 мест UI (Dashboard, Player Statistics, Tables, Player Card, TableTracker) читают **один и тот же кэш** — рассинхронов не будет.
-
-Бэкфилл кэша один раз: `INSERT ... SELECT GROUP BY player_id, business_date`. ~10 сек на проде.
-
-Дополнительно в `use-realtime.ts` подписаться на `player_day_drop_cache` — push-обновление UI при пересчёте.
-
-### Что НЕ делаем
-
-- Не меняем walk-формулу (уже корректна).
-- Не делаем отдельную Drop Audit страницу (проблема решается системно).
-- Не удаляем и не «корректируем» старые tx — только проставляем технический `business_date`.
-
-### Технические шаги
-
-1. **Миграция 1** — backfill 145 строк + обновлённый `tg_set_business_date`.
-2. **Миграция 2** — таблицы кэша с GRANT/RLS/индексами, триггеры пересчёта, бэкфилл из существующих tx.
-3. **Миграция 3** — переписать 3 RPC на чтение из кэша (API frontend'а не меняется).
-4. **Frontend** — добавить realtime подписку на `player_day_drop_cache` в `use-realtime.ts`. Bump `1.3.422`.
-
-### Ожидаемый эффект
-
-- 20.7M TZS «пропавшего» Cash In появится в Drop отчётах прошлых дней.
-- Показ Drop в любом UI — мгновенный (read с индекса вместо on-demand walk).
-- Невозможно создать tx без `business_date` — триггер форсирует.
-- Единый источник истины для Drop во всём приложении.
-
-Подтверди — реализую.
+Bump patch version to `1.3.423`.
