@@ -288,9 +288,14 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
     if (!el) return;
     userScrollIntentRef.current = true;
     userHasScrolledRef.current = true;
-    el.scrollBy({ left: direction * Math.max(260, Math.round(el.clientWidth * 0.65)), behavior: "smooth" });
+    // Each time slot is min-w-[52px]. Scroll 3 slots per click, adjusted by zoom.
+    const slotWidth = 52;
+    const scrollAmount = Math.round(3 * slotWidth * (zoom / 100));
+    el.scrollBy({ left: direction * scrollAmount, behavior: "smooth" });
     window.setTimeout(onScrollMemory, 260);
   };
+
+  useImperativeHandle(ref, () => ({ scrollBy: scrollGridBy }), [scrollGridBy]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
