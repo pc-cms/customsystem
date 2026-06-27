@@ -333,11 +333,17 @@ const Tables = () => {
   const dropWindowStart = businessDayHourUTC(effectiveDate, 7);
   const dropWindowEnd = businessDayHourUTC(effectiveDate, 7 + 24);
   const { data: tablesDropSplit } = useTablesDropSplit(dropWindowStart, dropWindowEnd);
+  // Realtime cache for instant updates on the CURRENT business day.
+  const isToday = effectiveDate === businessDay;
+  const { data: tablesDropCache } = useTablesDropCacheToday(isToday ? effectiveDate : null);
 
   const tableStats = useMemo(() => {
     const stats: Record<string, { drop: number; result: number }> = {};
     tables.forEach(t => {
-      const drop = tablesDropSplit?.get(t.id)?.dropR ?? 0;
+      const cached = isToday ? tablesDropCache?.get(t.id)?.dropR : undefined;
+      const drop = (cached !== undefined && cached !== 0)
+        ? cached
+        : (tablesDropSplit?.get(t.id)?.dropR ?? 0);
       const result = liveTableResult({
         tableId: t.id,
         closingResult: t.closing_result as any,
@@ -348,7 +354,8 @@ const Tables = () => {
       stats[t.id] = { drop, result };
     });
     return stats;
-  }, [tables, tablesDropSplit, snapshotIndex, baselineMap, adjustmentMap, effectiveDate]);
+  }, [tables, tablesDropSplit, tablesDropCache, isToday, snapshotIndex, baselineMap, adjustmentMap, effectiveDate]);
+
 
   const handleOpenAll = () => {
     const ids = closedTables.map(t => t.id);
