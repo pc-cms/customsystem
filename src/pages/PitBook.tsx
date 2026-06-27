@@ -85,10 +85,10 @@ function EntryRow({
         ref={ref}
         data-entry-id={entry.id}
         data-entry-created-at={entry.created_at}
-        className={`max-w-[min(76%,780px)] rounded-md px-3 py-2 text-sm leading-snug break-words shadow-sm ${
+        className={`max-w-[min(76%,780px)] rounded-md px-3 py-2 text-sm leading-snug break-words ${
           isOwn
             ? "bg-primary text-primary-foreground"
-            : "bg-card text-foreground border border-border"
+            : "bg-card text-foreground"
         }`}
       >
         <span
