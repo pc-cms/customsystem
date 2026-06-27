@@ -87,6 +87,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const didAnchorRef = useRef(false);
   const userScrollIntentRef = useRef(false);
   const userHasScrolledRef = useRef(false);
+  const suppressNextClickRef = useRef(false);
   const dragStateRef = useRef<{
     pointerId: number;
     startX: number;
@@ -300,6 +301,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const el = scrollRef.current;
     if (!el) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
     dragStateRef.current = {
       pointerId: e.pointerId,
       startX: e.clientX,
@@ -318,6 +320,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     const dy = e.clientY - state.startY;
     if (!state.dragged && Math.hypot(dx, dy) < 7) return;
     state.dragged = true;
+    suppressNextClickRef.current = true;
     userScrollIntentRef.current = true;
     userHasScrolledRef.current = true;
     el.scrollLeft = state.scrollLeft - dx;
@@ -330,9 +333,8 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   };
 
   const suppressClickAfterDrag = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!userHasScrolledRef.current) return;
-    const state = dragStateRef.current;
-    if (state?.dragged) {
+    if (suppressNextClickRef.current) {
+      suppressNextClickRef.current = false;
       e.preventDefault();
       e.stopPropagation();
     }
