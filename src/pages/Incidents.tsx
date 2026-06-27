@@ -628,6 +628,7 @@ interface IncidentRowProps {
   onView: (url: string) => void;
   stickyDate: string;
   stickyTime: string;
+  stickyDivider: string;
   stickyTimeLeft: React.CSSProperties;
   cellInput: string;
   tableOptions: string[];
@@ -643,6 +644,7 @@ const IncidentRow = ({
   onView,
   stickyDate,
   stickyTime,
+  stickyDivider,
   stickyTimeLeft,
   cellInput,
   tableOptions,
