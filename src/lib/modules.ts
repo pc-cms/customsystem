@@ -48,6 +48,7 @@ export type ModuleKey =
   | "tips_and_bonuses"
   | "hr_warnings"
   | "incidents"
+  | "pit_book"
   | "groups"
   | "staff_employees"
   | "employee_playlist"
