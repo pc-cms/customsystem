@@ -558,7 +558,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                 </th>
                 <th
                   onClick={() => setSortBy("shift")}
-                  className={`text-center text-[9px] font-medium uppercase px-1 py-2 min-w-[34px] whitespace-nowrap cursor-pointer hover:text-foreground select-none ${sortBy === "shift" ? "text-foreground" : "text-muted-foreground"}`}
+                  className={`text-center text-[9px] font-medium uppercase px-1 py-2 min-w-[34px] whitespace-nowrap sticky left-[180px] bg-card z-10 cursor-pointer hover:text-foreground select-none shadow-[inset_-1px_0_0_hsl(var(--border))] ${sortBy === "shift" ? "text-foreground" : "text-muted-foreground"}`}
                   title="Sort by Shift"
                 >
                   <span className="inline-flex items-center justify-center gap-0.5">S{sortBy === "shift" && <span className="text-[8px]">↓</span>}</span>
