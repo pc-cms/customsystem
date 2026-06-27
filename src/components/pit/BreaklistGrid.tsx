@@ -595,7 +595,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                         }`}>{shift}</span>
                       )}
                     </td>
-                    {TIME_SLOTS.map(slot => {
+                    {visibleSlots.map(slot => {
                       const cell = getCellData(dealer.id, slot);
                       const isCleared = cell?.role === "CLR";
                       const table = cell?.table_id ? assignableTables.find(t => t.id === cell.table_id) : null;
