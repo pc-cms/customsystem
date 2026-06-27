@@ -480,6 +480,7 @@ const ProtectedRoutes = () => {
           <Route path="/reports/poker-tips" element={<Navigate to="/tips-and-bonuses?tab=poker" replace />} />
           <Route path="/reports/floor-tips" element={<Navigate to="/tips-and-bonuses?tab=floor" replace />} />
           <Route path="/incidents" element={<RoleGuard path="/incidents"><ErrorBoundary><Incidents /></ErrorBoundary></RoleGuard>} />
+          <Route path="/pitbook" element={<RoleGuard path="/pitbook"><ErrorBoundary><PitBook /></ErrorBoundary></RoleGuard>} />
           <Route path="/staff/master" element={<RoleGuard path="/staff/master"><ErrorBoundary><StaffMaster /></ErrorBoundary></RoleGuard>} />
           <Route path="/attendance/monthly" element={<RoleGuard path="/attendance/monthly"><ErrorBoundary><AttendanceMonthly /></ErrorBoundary></RoleGuard>} />
           <Route path="/payroll" element={<RoleGuard path="/payroll"><ErrorBoundary><Payroll /></ErrorBoundary></RoleGuard>} />
