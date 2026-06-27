@@ -143,6 +143,24 @@ export default function PitBook() {
     el.scrollTop = el.scrollHeight;
   }, [entries.length, channel, date]);
 
+  // Reliable read-receipt: whenever entries for this channel update and there
+  // are unread foreign messages, mark the latest one as read. The viewport
+  // observer can miss short feeds, off-screen tails or instant-render cases.
+  useEffect(() => {
+    if (!user?.id) return;
+    if ((unread?.[channel] ?? 0) === 0) return;
+    const latest = [...entries]
+      .reverse()
+      .find((e) => e.author_id !== user.id);
+    if (!latest) return;
+    markRead.mutate({
+      channel,
+      entryId: latest.id,
+      entryCreatedAt: latest.created_at,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries, channel, unread?.[channel], user?.id]);
+
   // IntersectionObserver: when a foreign entry enters viewport, mark up to its
   // created_at as read (debounced — only the latest visible wins).
   const observerRef = useRef<IntersectionObserver | null>(null);
