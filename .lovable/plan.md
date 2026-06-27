@@ -1,48 +1,34 @@
-## Plan
+## Breaklist: smart default scroll + hide leading empty slots
 
-### 1. Incidents page — sticky Date/Time columns
+Apply only when there's no saved scroll position (current `hasSaved` logic still wins). All changes in `src/components/pit/BreaklistGrid.tsx`.
 
-Fix the visual shift/jitter of the left-sticky Date and Time columns during horizontal scroll.
+### Behavior
 
-Changes in `src/pages/Incidents.tsx` only:
+1. **Hide unused leading slots.** Compute `firstFilledSlot` = the earliest `TIME_SLOTS` entry that has any breaklist cell for the visible dealers on this date. Render the table starting from that slot — slots before it are not rendered at all (no empty leading hours like 18:00, 19:00 if the game opened at 20:00).
+   - If there are **zero filled slots**, fall back to current behavior: start at `18:00` (or current slot for today, see below).
 
-- Widen sticky columns to fit native browser date/time picker chrome:
-  - `COLS.date`: 110 px → 140 px
-  - `COLS.time`: 78 px → 110 px
-- Remove the `border-r border-border` class from the four sticky cells (header Date, header Time, body Date, body Time) and replace it with an inset right shadow that is independent of `border-collapse`:
-  - Add `shadow-[inset_-1px_0_0_hsl(var(--border))]` to those cells.
-- Add `overflow-hidden` to the sticky body `<td>` cells so the calendar/clock icons cannot bleed into the next column during scroll.
-- Keep fully opaque sticky backgrounds (`bg-muted` for header, `bg-background` for body, including the draft row) so the underlying row tint never shows through the sticky cell.
-- No business-logic, RPC, or schema changes.
+2. **Default scroll anchor for today.**
+   - Let `N` = number of visible slots between `firstFilledSlot` and `currentSlot` (inclusive).
+   - If `N > 6` → scroll so `currentSlot` sits in **column 6 from the left** (5 filled slots visible to its left). Same OFFSET_COLS=5 logic that exists today.
+   - If `N ≤ 6` → **do not center**; scroll to the very start so all visible slots fit from the left edge. Grid naturally expands as more slots fill (20:00 → at 21:00 shows 20–21, at 22:00 shows 20–22, etc.).
 
-### 2. PIT Breaklist — scroll position must work for every user and role
+3. **Non-today dates.** Same hide-leading-empty rule; anchor to the start (first visible slot) instead of `18:00`.
 
-Make the Breaklist scroll position stable and restored consistently across all users and roles.
+4. **Saved position still wins.** If `hasSaved` is true, skip everything above (unchanged).
 
-Investigate and fix the current combination of `useScrollMemory` and the auto-anchor logic in `src/components/pit/BreaklistGrid.tsx`:
+### Implementation notes (technical)
 
-- The current auto-anchor effect centers the current time slot for today and defaults to 18:00 for other days. This can race with the saved scroll restoration and override the user’s position.
-- Ensure the `useScrollMemory` restore wins when a non-zero saved position exists, regardless of role or whether the user is on a tablet/PC.
-- Make the saved position apply to all users and roles (not just pit/managers). The scroll persistence key is already per-user, so the fix is to stop the auto-anchor from clobbering it.
-- Harden the restore timing: retry restoration with `requestAnimationFrame` until the grid content is actually wide enough, so the saved `scrollLeft` is not clamped to 0.
-- Verify that `onScroll` is attached to the scroll container and that writes are debounced correctly.
+- Add `visibleSlots = useMemo(...)`: derive `firstFilledIdx` from `breaklist` rows (`b.time_slot`), then `TIME_SLOTS.slice(firstFilledIdx)`. Re-compute when `breaklist` changes.
+- Replace the two `TIME_SLOTS.map(...)` renders in `<thead>` and `<tbody>` with `visibleSlots.map(...)`.
+- Update the auto-anchor `useEffect` to:
+  - Use `visibleSlots` length and `visibleSlots.indexOf(currentSlot)` to decide between "center at col 6" and "scroll to 0".
+  - Keep the `requestAnimationFrame` retry loop for layout readiness.
+- Re-anchor when `visibleSlots` length changes (first cell added shifts the grid), gated by `!hasSaved`.
+- Keep the per-minute interval that resets `didAnchorRef` so today's grid re-centers as the current slot ticks over.
+- No schema, RPC, hook, or styling changes. Sticky columns, current-slot highlight, and hour separators continue to work because `isHourStart` / `isCurrentCol` are computed per rendered slot.
 
-Concrete changes:
+### Out of scope
 
-- In `src/components/pit/BreaklistGrid.tsx`:
-  - Read the saved position from `useScrollMemory` (or query the same localStorage key) before running auto-anchor.
-  - If a saved position exists and is > 0, restore it and skip the auto-anchor.
-  - Keep auto-anchor as a fallback only when there is no saved position.
-- In `src/hooks/use-scroll-memory.ts`:
-  - Ensure the restore effect is not blocked by stale `ready` or `restoredRef` state across role changes.
-  - Consider resetting `restoredRef` when the user changes, not just when `fullKey` changes, so switching users in the same tab re-applies the correct saved position.
-
-### Verification
-
-- Build the frontend and check for TypeScript errors.
-- Visually confirm in the preview: Incidents table sticky Date/Time columns no longer jump during horizontal scroll and native inputs fit inside their cells.
-- Visually confirm: Breaklist scroll position is restored after reload and across tab close/reopen for representative roles (pit, manager, surveillance, etc.).
-
-### Version
-
-Bump patch version to `1.3.423`.
+- Saved-position restoration logic (unchanged).
+- Vertical scroll, sort, attendance, and role-picker behavior (unchanged).
+- Version bump.
