@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown, ZoomIn, ZoomOut, Printer, Trash2, Users as UsersIcon, Lock } from "lucide-react";
 import EmployeePhotoCell from "@/components/EmployeePhotoCell";
-import BreaklistGrid from "@/components/pit/BreaklistGrid";
+import BreaklistGrid, { type BreaklistGridRef } from "@/components/pit/BreaklistGrid";
 import ActivePlayers from "@/components/pit/ActivePlayers";
 import TableTracker from "@/pages/TableTracker";
 import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
