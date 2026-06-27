@@ -94,6 +94,7 @@ export function useCreatePitBookEntry() {
         "super_admin",
         "manager",
         "shift_manager",
+        "finance_manager",
         "pit",
         "surveillance",
       ];

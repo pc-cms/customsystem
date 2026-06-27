@@ -17,6 +17,7 @@ import { useDensity } from "@/lib/density";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
 import { useMyModulePermissions } from "@/hooks/use-module-permissions";
+import { usePitBookUnread } from "@/hooks/use-pit-book-unread";
 import { moduleKeyForRoute } from "@/lib/route-module-map";
 import { prefetchRoute } from "@/lib/route-prefetch";
 import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
@@ -53,7 +54,7 @@ const NAV_ITEMS: NavItem[] = [
   // PIT — alphabetical order (trackers + incidents).
   { to: "/breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/incidents", icon: AlertTriangle, label: "Incidents", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "PIT" },
-  { to: "/pitbook", icon: BookOpen, label: "Pit Book", roles: ["super_admin", "manager", "shift_manager", "pit", "surveillance"], section: "PIT" },
+  { to: "/pitbook", icon: BookOpen, label: "Pit Book", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/player-statistics", icon: Users, label: "Player Tracking", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/table-tracker", icon: Target, label: "Table Check", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/tables", icon: Table2, label: "Tables Tracking", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "PIT" },
@@ -228,6 +229,9 @@ const SidebarSections = ({
   currentTab, currentGroup, roles, isSuper, allowedModules, onNavigate, renderSubItems,
 }: SectionsProps) => {
   const location = useLocation();
+  const { data: pitBookUnread } = usePitBookUnread();
+  const pitBookUnreadCount = pitBookUnread?.total ?? 0;
+
 
   // Group items by section, preserving order
   const grouped = visibleItems.reduce<Record<string, NavItem[]>>((acc, item) => {
@@ -370,8 +374,13 @@ const SidebarSections = ({
             }`;
           }}
         >
-          <item.icon className="w-4 h-4 shrink-0" />
+          <item.icon className={cn("w-4 h-4 shrink-0", item.to === "/pitbook" && pitBookUnreadCount > 0 && "fill-primary text-primary")} />
           <span className="flex-1">{item.label}</span>
+          {item.to === "/pitbook" && pitBookUnreadCount > 0 && (
+            <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+              {pitBookUnreadCount}
+            </span>
+          )}
         </NavLink>
       </div>
     );
@@ -435,6 +444,8 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   const currentGroup = new URLSearchParams(location.search).get("group") || "floor";
 
   const { data: allowedModules } = useMyModulePermissions();
+  const { data: pitBookUnread } = usePitBookUnread();
+  const pitBookUnreadCount = pitBookUnread?.total ?? 0;
   const isSuper = roles.includes("super_admin" as AppRole);
   // Admin panel: super_admin always; others only if explicitly granted the "admin" module.
   // Currently only super_admin has it by role default — finance_manager can be granted via the access matrix.
@@ -538,13 +549,18 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
                       onFocus={() => prefetchRoute(itemBase)}
                       onTouchStart={() => prefetchRoute(itemBase)}
                       className={cn(
-                        "w-10 h-10 flex items-center justify-center rounded-md transition-colors",
+                        "relative w-10 h-10 flex items-center justify-center rounded-md transition-colors",
                         isActive
                           ? "bg-sidebar-accent text-sidebar-primary"
                           : "text-sidebar-foreground hover:bg-sidebar-accent"
                       )}
                     >
-                      <item.icon className="w-4 h-4" />
+                      <item.icon className={cn("w-4 h-4", item.to === "/pitbook" && pitBookUnreadCount > 0 && "fill-primary text-primary")} />
+                      {item.to === "/pitbook" && pitBookUnreadCount > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                          {pitBookUnreadCount}
+                        </span>
+                      )}
                     </NavLink>
                   </TooltipTrigger>
                   <TooltipContent side="right">{item.label}</TooltipContent>
