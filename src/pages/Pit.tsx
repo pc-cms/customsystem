@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, UserPlus, ArrowUpDown, ZoomIn, ZoomOut, Printer, Trash2, Users as UsersIcon, Lock } from "lucide-react";
 import EmployeePhotoCell from "@/components/EmployeePhotoCell";
-import BreaklistGrid from "@/components/pit/BreaklistGrid";
+import BreaklistGrid, { type BreaklistGridRef } from "@/components/pit/BreaklistGrid";
 import ActivePlayers from "@/components/pit/ActivePlayers";
 import TableTracker from "@/pages/TableTracker";
 import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
@@ -118,6 +118,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
 
   // Breaklist zoom
   const [breaklistZoom, setBreaklistZoom] = useSessionState<number>("breaklistZoom", 125);
+  const breaklistRef = useRef<BreaklistGridRef>(null);
 
   // Free month navigation; write-protection enforced inside grids.
   // Rota allows next month (filled in advance); Attendance does not.
@@ -202,6 +203,23 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
     <>
       {activeTab === "breaklist" && (
         <>
+          <Button
+            variant="outline"
+            size="icon-xs"
+            onClick={() => breaklistRef.current?.scrollBy(-1)}
+            title="Scroll left 3 slots"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon-xs"
+            onClick={() => breaklistRef.current?.scrollBy(1)}
+            title="Scroll right 3 slots"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Button>
+          <span className="w-px h-4 bg-border mx-1" />
           <Button variant="outline" size="icon-xs" onClick={() => setBreaklistZoom(z => Math.max(60, z - 10))}>
             <ZoomOut className="w-3.5 h-3.5" />
           </Button>
@@ -288,6 +306,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
         {activeTab === "attendance" && <AttendanceGrid month={month} readOnly={isPast && !isManager} />}
         {activeTab === "breaklist" && (
           <BreaklistGrid
+            ref={breaklistRef}
             date={date}
             zoom={breaklistZoom}
           />

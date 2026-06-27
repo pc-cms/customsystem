@@ -1,11 +1,11 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCasino } from "@/lib/casino-context";
 import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useClearBreaklistCell, useGamingTables, usePitRotaRange, useSetDealerAttendance, useDealerAttendance } from "@/hooks/use-casino-data";
 import { useCasinoInfo } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
-import { ChevronLeft, ChevronRight, Lock, Unlock, LockKeyhole } from "lucide-react";
+import { Lock, Unlock, LockKeyhole } from "lucide-react";
 import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
 import { getTableCellClasses } from "@/lib/table-colors";
@@ -38,6 +38,11 @@ const CATEGORY_COLORS: Record<string, string> = {
 interface BreaklistGridProps {
   date: string;
   zoom?: number;
+}
+
+export interface BreaklistGridRef {
+  /** Scroll the grid horizontally by N slots (direction: -1 left, 1 right). */
+  scrollBy: (direction: -1 | 1) => void;
 }
 
 // 18:00 → 05:00, 20-minute intervals
@@ -80,7 +85,7 @@ const roleSlot = (r: string): "D" | "I" | "C" | null => {
 
 const isClearedBreaklistCell = (cell: any) => cell?.role === "CLR";
 
-const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
+const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, zoom = 100 }, ref) => {
   const { data: dealers = [] } = useDealers();
   const { data: breaklist = [] } = useBreaklistData(date);
   const { ref: scrollRef, onScroll: onScrollMemory, hasSaved } = useScrollMemory<HTMLDivElement>(`breaklist:v3:${date}`, dealers.length > 0, { persist: "local" });
@@ -278,14 +283,19 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     userScrollIntentRef.current = true;
   };
 
-  const scrollGridBy = (direction: -1 | 1) => {
+  const scrollGridBy = useCallback((direction: -1 | 1) => {
     const el = scrollRef.current;
     if (!el) return;
     userScrollIntentRef.current = true;
     userHasScrolledRef.current = true;
-    el.scrollBy({ left: direction * Math.max(260, Math.round(el.clientWidth * 0.65)), behavior: "smooth" });
+    // Each time slot is min-w-[52px]. Scroll 3 slots per click, adjusted by zoom.
+    const slotWidth = 52;
+    const scrollAmount = Math.round(3 * slotWidth * (zoom / 100));
+    el.scrollBy({ left: direction * scrollAmount, behavior: "smooth" });
     window.setTimeout(onScrollMemory, 260);
-  };
+  }, [zoom, onScrollMemory]);
+
+  useImperativeHandle(ref, () => ({ scrollBy: scrollGridBy }), [scrollGridBy]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -617,28 +627,6 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   return (
     <>
       <div className="relative">
-        <div className="pointer-events-none absolute right-2 top-2 z-30 flex gap-1">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-xs"
-            className="pointer-events-auto bg-card/95 shadow-sm"
-            onClick={() => scrollGridBy(-1)}
-            title="Scroll left"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-xs"
-            className="pointer-events-auto bg-card/95 shadow-sm"
-            onClick={() => scrollGridBy(1)}
-            title="Scroll right"
-          >
-            <ChevronRight className="h-3.5 w-3.5" />
-          </Button>
-        </div>
         <div
           ref={scrollRef}
           onScroll={handleGridScroll}
@@ -946,6 +934,8 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     </>
 
   );
-};
+});
+
+BreaklistGrid.displayName = "BreaklistGrid";
 
 export default BreaklistGrid;
