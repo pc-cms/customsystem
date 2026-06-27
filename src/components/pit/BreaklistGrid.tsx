@@ -184,6 +184,23 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   // ahead of the 18:00 shift start, so they bypass the morning-lock window.
   const isEditable = isToday && (!pastLock || isManager || isPit);
 
+  // Hide leading empty slots: render from the earliest slot that has any breaklist cell.
+  // If nothing is filled yet, fall back to current slot (today) or 18:00 (other days).
+  const visibleSlots = useMemo(() => {
+    const filledSlots = new Set<string>();
+    (breaklist as any[]).forEach((b: any) => { if (b?.time_slot) filledSlots.add(b.time_slot); });
+    let firstIdx = -1;
+    for (let i = 0; i < TIME_SLOTS.length; i++) {
+      if (filledSlots.has(TIME_SLOTS[i])) { firstIdx = i; break; }
+    }
+    if (firstIdx === -1) {
+      const fallback = isToday ? currentSlot : "18:00";
+      const fIdx = TIME_SLOTS.indexOf(fallback);
+      firstIdx = fIdx >= 0 ? fIdx : 0;
+    }
+    return TIME_SLOTS.slice(firstIdx);
+  }, [breaklist, isToday, currentSlot]);
+
   // Reset anchor flag when the date changes — re-center on next layout.
   useEffect(() => { didAnchorRef.current = false; }, [date]);
 
