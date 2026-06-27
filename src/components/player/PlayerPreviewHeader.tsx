@@ -360,7 +360,11 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
     <div
       ref={rootRef}
       className={cn(
-        "sticky top-0 z-30 -mx-4 mb-4 border-b border-border px-4 py-4 shadow-sm",
+        // Not sticky: the preview card scrolls away with the page so the
+        // table's own sticky column header + TOTAL row pin cleanly at the
+        // top of the viewport instead of floating in the middle below a
+        // tall pinned preview.
+        "relative z-30 -mx-4 mb-4 border-b border-border px-4 py-4 shadow-sm",
         tint,
         className
       )}
