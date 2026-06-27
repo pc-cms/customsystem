@@ -30,7 +30,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useBusinessDayFilter } from "@/hooks/use-business-day-filter";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { useReadOnlyMode } from "@/hooks/use-readonly-mode";
-import { useTablesDropSplit } from "@/hooks/use-drop-split";
+import { useTablesDropSplit, useTablesDropCacheToday } from "@/hooks/use-drop-split";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { offlineMutation } from "@/lib/offline-mutation";
