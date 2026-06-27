@@ -261,10 +261,12 @@ const Incidents = () => {
   };
 
   // Helpers for sticky-left columns. Header uses muted band; body uses solid background.
-  const stickyDateHead = "sticky left-0 z-30 bg-muted";
-  const stickyTimeHead = "sticky z-30 bg-muted";
-  const stickyDate = "sticky left-0 z-30 bg-background";
-  const stickyTime = "sticky z-30 bg-background";
+  // Inset shadow replaces border-r so border-collapse cannot eat/duplicate the 1px divider during scroll.
+  const stickyDivider = "shadow-[inset_-1px_0_0_hsl(var(--border))]";
+  const stickyDateHead = "sticky left-0 z-30 bg-muted overflow-hidden";
+  const stickyTimeHead = "sticky z-30 bg-muted overflow-hidden";
+  const stickyDate = "sticky left-0 z-30 bg-background overflow-hidden";
+  const stickyTime = "sticky z-30 bg-background overflow-hidden";
   const stickyTimeLeft = { left: COLS.date };
 
   return (
