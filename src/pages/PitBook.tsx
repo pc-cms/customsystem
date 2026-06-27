@@ -95,7 +95,7 @@ function EntryRow({
         >
           {roleLabel}
         </span>
-        <span className="font-semibold mr-1.5">{entry.author_name}</span>
+        <span className="font-semibold mr-1.5">{entry.author_name}:</span>
         <span className="whitespace-pre-wrap [overflow-wrap:anywhere]">{entry.body}</span>
       </div>
     </div>
