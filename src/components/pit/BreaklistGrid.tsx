@@ -85,7 +85,7 @@ const roleSlot = (r: string): "D" | "I" | "C" | null => {
 
 const isClearedBreaklistCell = (cell: any) => cell?.role === "CLR";
 
-const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
+const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, zoom = 100 }, ref) => {
   const { data: dealers = [] } = useDealers();
   const { data: breaklist = [] } = useBreaklistData(date);
   const { ref: scrollRef, onScroll: onScrollMemory, hasSaved } = useScrollMemory<HTMLDivElement>(`breaklist:v3:${date}`, dealers.length > 0, { persist: "local" });
