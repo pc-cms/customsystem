@@ -89,7 +89,7 @@ export default function PitBook() {
   const canWrite = useMemo(
     () =>
       roles.some((r) =>
-        ["super_admin", "manager", "shift_manager", "pit"].includes(r),
+        ["super_admin", "manager", "shift_manager", "pit", "surveillance"].includes(r),
       ),
     [roles],
   );

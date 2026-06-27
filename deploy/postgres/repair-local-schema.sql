@@ -1415,6 +1415,7 @@ CREATE POLICY "pit_book write"
       OR public.has_role(auth.uid(), 'shift_manager'::public.app_role)
       OR public.has_role(auth.uid(), 'manager'::public.app_role)
       OR public.has_role(auth.uid(), 'super_admin'::public.app_role)
+      OR public.has_role(auth.uid(), 'surveillance'::public.app_role)
     )
     AND EXISTS (
       SELECT 1 FROM public.user_casino_access uca

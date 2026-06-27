@@ -53,6 +53,8 @@ export type SlotsConsolidatedProps = {
   /** Fallback totals from the closing snapshot when provider detail is not stored. */
   cashlessDepositTotalTzs?: number;
   cashlessWithdrawTotalTzs?: number;
+  /** Manual End-Day per provider as recorded on the closing check (immutable snapshot, for audit). */
+  manualInputAtCloseByProvider?: Record<string, number> | null;
 };
 
 const Cell = ({ value, align = "right", emphasize = false }: { value: number | string; align?: "left" | "right" | "center"; emphasize?: boolean }) => {
@@ -85,6 +87,7 @@ const SlotsConsolidatedReport = ({
   missCards, casinoExpenses, tipsCollection, tipsCollectionDay = 0, tipsCollectionEvening = 0, aceBalance,
   cashlessDepositByProvider, cashlessWithdrawByProvider,
   cashlessDepositTotalTzs, cashlessWithdrawTotalTzs,
+  manualInputAtCloseByProvider,
 }: SlotsConsolidatedProps) => {
   const shiftLabel = shiftType.toUpperCase() === "DAY" ? "Day Shift" : "Night Shift";
   const providerDepositTotal = Object.values(cashlessDepositByProvider).reduce((s, v) => s + Number(v || 0), 0);
@@ -271,6 +274,50 @@ const SlotsConsolidatedReport = ({
           </tr>
         </tbody>
       </table>
+
+      {manualInputAtCloseByProvider ? (() => {
+        const m = manualInputAtCloseByProvider;
+        const mTotal = PROVIDERS.reduce((s, p) => s + Number(m[p.key] || 0), 0);
+        return (
+          <table className="w-full border-collapse mb-0.5" style={{ tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: "24%" }} />
+              {PROVIDERS.map(p => <col key={p.key} style={{ width: "15.2%" }} />)}
+              <col style={{ width: "15.2%" }} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th colSpan={6} className="border border-black bg-amber-100 px-1.5 py-0.5 text-left text-[10px]">
+                  Manual Input @ Close — values exactly as entered by cashier on the closing check (audit snapshot)
+                </th>
+              </tr>
+              <tr className="bg-gray-100 text-[10px]">
+                <th className="border border-black px-1.5 py-0.5 text-left">Field</th>
+                {PROVIDERS.map(p => (
+                  <th key={p.key} className="border border-black px-1.5 py-0.5 text-right">{p.label}</th>
+                ))}
+                <th className="border border-black px-1.5 py-0.5 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="border border-black px-1.5 py-0.5 italic">End Day (manual)</td>
+                {PROVIDERS.map(p => {
+                  const v = Number(m[p.key] || 0);
+                  return (
+                    <td key={p.key} className="border border-black px-1.5 py-0.5 text-right italic">
+                      {v ? formatNumberSpaces(v) : "—"}
+                    </td>
+                  );
+                })}
+                <td className="border border-black px-1.5 py-0.5 text-right italic font-semibold">
+                  {mTotal ? formatNumberSpaces(mTotal) : "—"}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        );
+      })() : null}
 
 
 
