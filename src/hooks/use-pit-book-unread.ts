@@ -63,7 +63,7 @@ export function usePitBookUnread() {
   useEffect(() => {
     if (!casinoId) return;
     const ch = supabase
-      .channel(`pit_book_unread:${casinoId}`)
+      .channel(`pit_book_unread:${casinoId}:${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         {
