@@ -371,8 +371,13 @@ const SidebarSections = ({
             }`;
           }}
         >
-          <item.icon className="w-4 h-4 shrink-0" />
+          <item.icon className={cn("w-4 h-4 shrink-0", item.to === "/pitbook" && pitBookUnreadCount > 0 && "fill-primary text-primary")} />
           <span className="flex-1">{item.label}</span>
+          {item.to === "/pitbook" && pitBookUnreadCount > 0 && (
+            <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+              {pitBookUnreadCount}
+            </span>
+          )}
         </NavLink>
       </div>
     );
