@@ -283,7 +283,7 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
     userScrollIntentRef.current = true;
   };
 
-  const scrollGridBy = (direction: -1 | 1) => {
+  const scrollGridBy = useCallback((direction: -1 | 1) => {
     const el = scrollRef.current;
     if (!el) return;
     userScrollIntentRef.current = true;
@@ -293,7 +293,7 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
     const scrollAmount = Math.round(3 * slotWidth * (zoom / 100));
     el.scrollBy({ left: direction * scrollAmount, behavior: "smooth" });
     window.setTimeout(onScrollMemory, 260);
-  };
+  }, [zoom, onScrollMemory]);
 
   useImperativeHandle(ref, () => ({ scrollBy: scrollGridBy }), [scrollGridBy]);
 
