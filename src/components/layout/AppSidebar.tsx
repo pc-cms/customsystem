@@ -549,13 +549,18 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
                       onFocus={() => prefetchRoute(itemBase)}
                       onTouchStart={() => prefetchRoute(itemBase)}
                       className={cn(
-                        "w-10 h-10 flex items-center justify-center rounded-md transition-colors",
+                        "relative w-10 h-10 flex items-center justify-center rounded-md transition-colors",
                         isActive
                           ? "bg-sidebar-accent text-sidebar-primary"
                           : "text-sidebar-foreground hover:bg-sidebar-accent"
                       )}
                     >
-                      <item.icon className="w-4 h-4" />
+                      <item.icon className={cn("w-4 h-4", item.to === "/pitbook" && pitBookUnreadCount > 0 && "fill-primary text-primary")} />
+                      {item.to === "/pitbook" && pitBookUnreadCount > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                          {pitBookUnreadCount}
+                        </span>
+                      )}
                     </NavLink>
                   </TooltipTrigger>
                   <TooltipContent side="right">{item.label}</TooltipContent>
