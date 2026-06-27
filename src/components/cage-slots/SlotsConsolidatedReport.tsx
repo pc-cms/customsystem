@@ -272,28 +272,6 @@ const SlotsConsolidatedReport = ({
               {closerCashlessTotalTzs ? formatNumberSpaces(closerCashlessTotalTzs) : "—"}
             </td>
           </tr>
-          {manualInputAtCloseByProvider ? (() => {
-            const m = manualInputAtCloseByProvider;
-            const mTotal = PROVIDERS.reduce((s, p) => s + Number(m[p.key] || 0), 0);
-            return (
-              <tr>
-                <td className="border border-black px-1.5 py-0.5 italic bg-amber-50" title="Manual End-Day values as entered on the closing check (immutable audit snapshot).">
-                  Manual Input @ Close
-                </td>
-                {PROVIDERS.map(p => {
-                  const v = Number(m[p.key] || 0);
-                  return (
-                    <td key={p.key} className="border border-black px-1.5 py-0.5 text-right italic bg-amber-50" colSpan={p.key === "MPESA" ? 1 : 1}>
-                      {v ? formatNumberSpaces(v) : "—"}
-                    </td>
-                  );
-                }).slice(0, 3)}
-                <td className="border border-black px-1.5 py-0.5 text-right italic bg-amber-50">
-                  {mTotal ? formatNumberSpaces(mTotal) : "—"}
-                </td>
-              </tr>
-            );
-          })() : null}
         </tbody>
       </table>
 
