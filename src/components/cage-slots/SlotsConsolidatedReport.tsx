@@ -53,6 +53,8 @@ export type SlotsConsolidatedProps = {
   /** Fallback totals from the closing snapshot when provider detail is not stored. */
   cashlessDepositTotalTzs?: number;
   cashlessWithdrawTotalTzs?: number;
+  /** Manual End-Day per provider as recorded on the closing check (immutable snapshot, for audit). */
+  manualInputAtCloseByProvider?: Record<string, number> | null;
 };
 
 const Cell = ({ value, align = "right", emphasize = false }: { value: number | string; align?: "left" | "right" | "center"; emphasize?: boolean }) => {
