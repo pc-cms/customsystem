@@ -5452,6 +5452,42 @@ export type Database = {
           },
         ]
       }
+      player_day_drop_cache: {
+        Row: {
+          business_date: string
+          casino_id: string
+          peak: number
+          player_id: string
+          recycled: number
+          total_in: number
+          total_out: number
+          tx_count: number
+          updated_at: string
+        }
+        Insert: {
+          business_date: string
+          casino_id: string
+          peak?: number
+          player_id: string
+          recycled?: number
+          total_in?: number
+          total_out?: number
+          tx_count?: number
+          updated_at?: string
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string
+          peak?: number
+          player_id?: string
+          recycled?: number
+          total_in?: number
+          total_out?: number
+          tx_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       player_groups: {
         Row: {
           casino_id: string
@@ -8640,6 +8676,39 @@ export type Database = {
           },
         ]
       }
+      table_day_drop_cache: {
+        Row: {
+          business_date: string
+          casino_id: string
+          drop_r_share: number
+          in_at_table: number
+          player_id: string
+          recycled_share: number
+          table_id: string
+          updated_at: string
+        }
+        Insert: {
+          business_date: string
+          casino_id: string
+          drop_r_share?: number
+          in_at_table?: number
+          player_id: string
+          recycled_share?: number
+          table_id: string
+          updated_at?: string
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string
+          drop_r_share?: number
+          in_at_table?: number
+          player_id?: string
+          recycled_share?: number
+          table_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       table_head_count: {
         Row: {
           casino_id: string
@@ -10233,6 +10302,10 @@ export type Database = {
           p_player_id: string
         }
         Returns: Json
+      }
+      recompute_drop_cache_for_day: {
+        Args: { _business_date: string; _player_id: string }
+        Returns: undefined
       }
       redeem_promo_fifo: {
         Args: {
