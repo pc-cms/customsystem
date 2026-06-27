@@ -220,11 +220,12 @@ const Dashboard = () => {
   const tableStats = useMemo(() => {
     const stats: Record<string, { drop: number; result: number }> = {};
     tables.forEach(t => {
-      const drop = Number(tablesDropSplit?.get(t.id)?.dropR || 0);
+      const drop = pickDrop(t.id);
       stats[t.id] = { drop, result: Number(tableResultMap[t.id] || 0) };
     });
     return stats;
-  }, [tables, tablesDropSplit, tableResultMap]);
+  }, [tables, tablesDropSplit, tablesDropCache, isToday, tableResultMap]);
+
 
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { drop: number; result: number; label: string }> = {};
