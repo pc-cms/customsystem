@@ -5,7 +5,7 @@ import { useCasino } from "@/lib/casino-context";
 import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useClearBreaklistCell, useGamingTables, usePitRotaRange, useSetDealerAttendance, useDealerAttendance } from "@/hooks/use-casino-data";
 import { useCasinoInfo } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
-import { Lock, Unlock, LockKeyhole } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock, Unlock, LockKeyhole } from "lucide-react";
 import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
 import { getTableCellClasses } from "@/lib/table-colors";
@@ -83,8 +83,18 @@ const isClearedBreaklistCell = (cell: any) => cell?.role === "CLR";
 const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   const { data: dealers = [] } = useDealers();
   const { data: breaklist = [] } = useBreaklistData(date);
-  const { ref: scrollRef, onScroll: onScrollMemory, hasSaved } = useScrollMemory<HTMLDivElement>(`breaklist:${date}`, dealers.length > 0, { persist: "local" });
+  const { ref: scrollRef, onScroll: onScrollMemory, hasSaved } = useScrollMemory<HTMLDivElement>(`breaklist:v2:${date}`, dealers.length > 0, { persist: "local" });
   const didAnchorRef = useRef(false);
+  const userScrollIntentRef = useRef(false);
+  const userHasScrolledRef = useRef(false);
+  const dragStateRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    scrollLeft: number;
+    scrollTop: number;
+    dragged: boolean;
+  } | null>(null);
   const { data: tables = [] } = useGamingTables();
   const { data: rota = [] } = usePitRotaRange(date, date);
   const { data: attendance = [] } = useDealerAttendance(date);
@@ -210,7 +220,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   useEffect(() => {
     const wrap = scrollRef.current;
     if (!wrap || dealers.length === 0) return;
-    if (hasSaved) { didAnchorRef.current = true; return; }
+    if (hasSaved || userHasScrolledRef.current) { didAnchorRef.current = true; return; }
     if (didAnchorRef.current && !isToday) return;
 
     const OFFSET_COLS = 5;
@@ -266,6 +276,67 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
     requestAnimationFrame(tryAnchor);
     return () => { cancelled = true; };
   }, [date, isToday, currentSlot, dealers.length, scrollRef, hasSaved, firstFilledIdx]);
+
+  const handleGridScroll = () => {
+    if (!userScrollIntentRef.current) return;
+    userHasScrolledRef.current = true;
+    onScrollMemory();
+  };
+
+  const markUserScrollIntent = () => {
+    userScrollIntentRef.current = true;
+  };
+
+  const scrollGridBy = (direction: -1 | 1) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    userScrollIntentRef.current = true;
+    userHasScrolledRef.current = true;
+    el.scrollBy({ left: direction * Math.max(260, Math.round(el.clientWidth * 0.65)), behavior: "smooth" });
+    window.setTimeout(onScrollMemory, 260);
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    dragStateRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      scrollLeft: el.scrollLeft,
+      scrollTop: el.scrollTop,
+      dragged: false,
+    };
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const state = dragStateRef.current;
+    const el = scrollRef.current;
+    if (!state || !el || state.pointerId !== e.pointerId) return;
+    const dx = e.clientX - state.startX;
+    const dy = e.clientY - state.startY;
+    if (!state.dragged && Math.hypot(dx, dy) < 7) return;
+    state.dragged = true;
+    userScrollIntentRef.current = true;
+    userHasScrolledRef.current = true;
+    el.scrollLeft = state.scrollLeft - dx;
+    el.scrollTop = state.scrollTop - dy;
+    e.preventDefault();
+  };
+
+  const handlePointerEnd = () => {
+    dragStateRef.current = null;
+  };
+
+  const suppressClickAfterDrag = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!userHasScrolledRef.current) return;
+    const state = dragStateRef.current;
+    if (state?.dragged) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
 
   // Re-anchor today's view when the active slot ticks over.
   useEffect(() => {
@@ -534,7 +605,42 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
 
   return (
     <>
-      <div ref={scrollRef} onScroll={onScrollMemory} className="cms-panel overflow-auto" style={{ zoom: `${zoom}%` }}>
+      <div className="relative">
+        <div className="pointer-events-none absolute right-2 top-2 z-30 flex gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-xs"
+            className="pointer-events-auto bg-card/95 shadow-sm"
+            onClick={() => scrollGridBy(-1)}
+            title="Scroll left"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-xs"
+            className="pointer-events-auto bg-card/95 shadow-sm"
+            onClick={() => scrollGridBy(1)}
+            title="Scroll right"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+        <div
+          ref={scrollRef}
+          onScroll={handleGridScroll}
+          onWheelCapture={markUserScrollIntent}
+          onTouchStartCapture={markUserScrollIntent}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerEnd}
+          onPointerCancel={handlePointerEnd}
+          onClickCapture={suppressClickAfterDrag}
+          className="cms-panel overflow-auto select-none touch-none overscroll-contain"
+          style={{ zoom: `${zoom}%`, WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+        >
         <div className="min-w-[1400px]">
           <table className="w-full border-collapse">
             <thead>
@@ -663,6 +769,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
             </tbody>
           </table>
         </div>
+      </div>
       </div>
 
       {/* Role picker — portal-rendered so it overflows the scrollable table.
