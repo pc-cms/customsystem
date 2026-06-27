@@ -184,42 +184,58 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   // ahead of the 18:00 shift start, so they bypass the morning-lock window.
   const isEditable = isToday && (!pastLock || isManager || isPit);
 
-  // Hide leading empty slots: render from the earliest slot that has any breaklist cell.
-  // If nothing is filled yet, fall back to current slot (today) or 18:00 (other days).
-  const visibleSlots = useMemo(() => {
-    const filledSlots = new Set<string>();
-    (breaklist as any[]).forEach((b: any) => { if (b?.time_slot) filledSlots.add(b.time_slot); });
-    let firstIdx = -1;
-    for (let i = 0; i < TIME_SLOTS.length; i++) {
-      if (filledSlots.has(TIME_SLOTS[i])) { firstIdx = i; break; }
-    }
-    if (firstIdx === -1) {
-      const fallback = isToday ? currentSlot : "18:00";
-      const fIdx = TIME_SLOTS.indexOf(fallback);
-      firstIdx = fIdx >= 0 ? fIdx : 0;
-    }
-    return TIME_SLOTS.slice(firstIdx);
-  }, [breaklist, isToday, currentSlot]);
+  // Show ALL time slots — never hide leading empties. Auto-anchor handles
+  // initial scroll so the visible window matches "5 left + current".
+  const visibleSlots = TIME_SLOTS;
 
-  // Reset anchor flag when the date changes — re-center on next layout.
+  // Earliest filled slot index in TIME_SLOTS, or -1 if grid is empty.
+  const firstFilledIdx = useMemo(() => {
+    const filled = new Set<string>();
+    (breaklist as any[]).forEach((b: any) => { if (b?.time_slot) filled.add(b.time_slot); });
+    for (let i = 0; i < TIME_SLOTS.length; i++) {
+      if (filled.has(TIME_SLOTS[i])) return i;
+    }
+    return -1;
+  }, [breaklist]);
+
+  // Reset anchor flag when the date changes — re-anchor on next layout.
   useEffect(() => { didAnchorRef.current = false; }, [date]);
 
-  // Horizontal auto-anchor:
-  //  • Saved scroll position (per-user, localStorage) wins — skip auto-anchor entirely.
-  //  • TODAY:
-  //      - If ≥6 visible slots precede currentSlot, place currentSlot 5 columns from the left.
-  //      - Otherwise scroll to the very start (grid expands naturally as slots fill).
-  //  • Other days: scroll to the first visible (filled) slot.
+  // Horizontal auto-anchor (only when there is NO saved scroll position):
+  //  • Goal: current 20-min slot is the 6th visible column (5 slots left + current).
+  //  • Today, if fewer than 5 filled slots precede currentSlot, anchor to the
+  //    earliest filled slot so all filled slots + current are visible.
+  //  • If nothing is filled, scroll to start.
+  //  • Other days: scroll to the first filled slot (or start).
   useEffect(() => {
     const wrap = scrollRef.current;
     if (!wrap || dealers.length === 0) return;
     if (hasSaved) { didAnchorRef.current = true; return; }
-    if (!isToday && didAnchorRef.current) return;
+    if (didAnchorRef.current && !isToday) return;
 
     const OFFSET_COLS = 5;
-    const currentIdxInVisible = visibleSlots.indexOf(currentSlot);
-    const shouldCenter = isToday && currentIdxInVisible > OFFSET_COLS;
-    const target = isToday ? currentSlot : visibleSlots[0];
+    const currentIdx = TIME_SLOTS.indexOf(currentSlot);
+
+    let target: string | null = null;
+    let placeAtCol = 0;
+
+    if (isToday && currentIdx >= 0) {
+      const filledBefore = firstFilledIdx >= 0 && firstFilledIdx < currentIdx
+        ? (currentIdx - firstFilledIdx)
+        : 0;
+      if (filledBefore >= OFFSET_COLS) {
+        target = currentSlot;
+        placeAtCol = OFFSET_COLS;
+      } else if (filledBefore > 0) {
+        target = TIME_SLOTS[firstFilledIdx];
+        placeAtCol = 0;
+      } else {
+        target = null; // scroll to start
+      }
+    } else if (firstFilledIdx >= 0) {
+      target = TIME_SLOTS[firstFilledIdx];
+      placeAtCol = 0;
+    }
 
     let cancelled = false;
     let attempts = 0;
@@ -227,7 +243,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       if (cancelled) return;
       const w = scrollRef.current;
       if (!w) return;
-      if (!shouldCenter) {
+      if (!target) {
         w.scrollLeft = 0;
         didAnchorRef.current = true;
         return;
@@ -243,13 +259,13 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       const wrapRect = w.getBoundingClientRect();
       const slotLeft = (rect.left - wrapRect.left) + w.scrollLeft;
       const colW = rect.width || 1;
-      const desired = Math.round((slotLeft - OFFSET_COLS * colW) / colW) * colW;
+      const desired = Math.round(slotLeft - placeAtCol * colW);
       w.scrollLeft = Math.max(0, Math.min(maxX, desired));
       didAnchorRef.current = true;
     };
     requestAnimationFrame(tryAnchor);
     return () => { cancelled = true; };
-  }, [date, isToday, currentSlot, dealers.length, scrollRef, hasSaved, visibleSlots]);
+  }, [date, isToday, currentSlot, dealers.length, scrollRef, hasSaved, firstFilledIdx]);
 
   // Re-anchor today's view when the active slot ticks over.
   useEffect(() => {
