@@ -118,6 +118,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
 
   // Breaklist zoom
   const [breaklistZoom, setBreaklistZoom] = useSessionState<number>("breaklistZoom", 125);
+  const breaklistRef = useRef<BreaklistGridRef>(null);
 
   // Free month navigation; write-protection enforced inside grids.
   // Rota allows next month (filled in advance); Attendance does not.
