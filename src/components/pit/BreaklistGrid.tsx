@@ -184,42 +184,58 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
   // ahead of the 18:00 shift start, so they bypass the morning-lock window.
   const isEditable = isToday && (!pastLock || isManager || isPit);
 
-  // Hide leading empty slots: render from the earliest slot that has any breaklist cell.
-  // If nothing is filled yet, fall back to current slot (today) or 18:00 (other days).
-  const visibleSlots = useMemo(() => {
-    const filledSlots = new Set<string>();
-    (breaklist as any[]).forEach((b: any) => { if (b?.time_slot) filledSlots.add(b.time_slot); });
-    let firstIdx = -1;
-    for (let i = 0; i < TIME_SLOTS.length; i++) {
-      if (filledSlots.has(TIME_SLOTS[i])) { firstIdx = i; break; }
-    }
-    if (firstIdx === -1) {
-      const fallback = isToday ? currentSlot : "18:00";
-      const fIdx = TIME_SLOTS.indexOf(fallback);
-      firstIdx = fIdx >= 0 ? fIdx : 0;
-    }
-    return TIME_SLOTS.slice(firstIdx);
-  }, [breaklist, isToday, currentSlot]);
+  // Show ALL time slots — never hide leading empties. Auto-anchor handles
+  // initial scroll so the visible window matches "5 left + current".
+  const visibleSlots = TIME_SLOTS;
 
-  // Reset anchor flag when the date changes — re-center on next layout.
+  // Earliest filled slot index in TIME_SLOTS, or -1 if grid is empty.
+  const firstFilledIdx = useMemo(() => {
+    const filled = new Set<string>();
+    (breaklist as any[]).forEach((b: any) => { if (b?.time_slot) filled.add(b.time_slot); });
+    for (let i = 0; i < TIME_SLOTS.length; i++) {
+      if (filled.has(TIME_SLOTS[i])) return i;
+    }
+    return -1;
+  }, [breaklist]);
+
+  // Reset anchor flag when the date changes — re-anchor on next layout.
   useEffect(() => { didAnchorRef.current = false; }, [date]);
 
-  // Horizontal auto-anchor:
-  //  • Saved scroll position (per-user, localStorage) wins — skip auto-anchor entirely.
-  //  • TODAY:
-  //      - If ≥6 visible slots precede currentSlot, place currentSlot 5 columns from the left.
-  //      - Otherwise scroll to the very start (grid expands naturally as slots fill).
-  //  • Other days: scroll to the first visible (filled) slot.
+  // Horizontal auto-anchor (only when there is NO saved scroll position):
+  //  • Goal: current 20-min slot is the 6th visible column (5 slots left + current).
+  //  • Today, if fewer than 5 filled slots precede currentSlot, anchor to the
+  //    earliest filled slot so all filled slots + current are visible.
+  //  • If nothing is filled, scroll to start.
+  //  • Other days: scroll to the first filled slot (or start).
   useEffect(() => {
     const wrap = scrollRef.current;
     if (!wrap || dealers.length === 0) return;
     if (hasSaved) { didAnchorRef.current = true; return; }
-    if (!isToday && didAnchorRef.current) return;
+    if (didAnchorRef.current && !isToday) return;
 
     const OFFSET_COLS = 5;
-    const currentIdxInVisible = visibleSlots.indexOf(currentSlot);
-    const shouldCenter = isToday && currentIdxInVisible > OFFSET_COLS;
-    const target = isToday ? currentSlot : visibleSlots[0];
+    const currentIdx = TIME_SLOTS.indexOf(currentSlot);
+
+    let target: string | null = null;
+    let placeAtCol = 0;
+
+    if (isToday && currentIdx >= 0) {
+      const filledBefore = firstFilledIdx >= 0 && firstFilledIdx < currentIdx
+        ? (currentIdx - firstFilledIdx)
+        : 0;
+      if (filledBefore >= OFFSET_COLS) {
+        target = currentSlot;
+        placeAtCol = OFFSET_COLS;
+      } else if (filledBefore > 0) {
+        target = TIME_SLOTS[firstFilledIdx];
+        placeAtCol = 0;
+      } else {
+        target = null; // scroll to start
+      }
+    } else if (firstFilledIdx >= 0) {
+      target = TIME_SLOTS[firstFilledIdx];
+      placeAtCol = 0;
+    }
 
     let cancelled = false;
     let attempts = 0;
@@ -227,7 +243,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       if (cancelled) return;
       const w = scrollRef.current;
       if (!w) return;
-      if (!shouldCenter) {
+      if (!target) {
         w.scrollLeft = 0;
         didAnchorRef.current = true;
         return;
@@ -243,13 +259,13 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
       const wrapRect = w.getBoundingClientRect();
       const slotLeft = (rect.left - wrapRect.left) + w.scrollLeft;
       const colW = rect.width || 1;
-      const desired = Math.round((slotLeft - OFFSET_COLS * colW) / colW) * colW;
+      const desired = Math.round(slotLeft - placeAtCol * colW);
       w.scrollLeft = Math.max(0, Math.min(maxX, desired));
       didAnchorRef.current = true;
     };
     requestAnimationFrame(tryAnchor);
     return () => { cancelled = true; };
-  }, [date, isToday, currentSlot, dealers.length, scrollRef, hasSaved, visibleSlots]);
+  }, [date, isToday, currentSlot, dealers.length, scrollRef, hasSaved, firstFilledIdx]);
 
   // Re-anchor today's view when the active slot ticks over.
   useEffect(() => {
@@ -542,7 +558,7 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                 </th>
                 <th
                   onClick={() => setSortBy("shift")}
-                  className={`text-center text-[9px] font-medium uppercase px-1 py-2 min-w-[34px] whitespace-nowrap cursor-pointer hover:text-foreground select-none ${sortBy === "shift" ? "text-foreground" : "text-muted-foreground"}`}
+                  className={`text-center text-[9px] font-medium uppercase px-1 py-2 min-w-[34px] whitespace-nowrap sticky left-[180px] bg-card z-10 cursor-pointer hover:text-foreground select-none shadow-[inset_-1px_0_0_hsl(var(--border))] ${sortBy === "shift" ? "text-foreground" : "text-muted-foreground"}`}
                   title="Sort by Shift"
                 >
                   <span className="inline-flex items-center justify-center gap-0.5">S{sortBy === "shift" && <span className="text-[8px]">↓</span>}</span>
@@ -570,15 +586,16 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                 const shift = getDealerShift(dealer.id);
                 return (
                   <tr key={dealer.id} className={`border-b border-border last:border-0 ${idx % 2 === 1 ? "bg-muted/10" : ""}`}>
-                    <td className={`text-center py-1 sticky left-0 z-10 text-[10px] font-mono font-bold text-muted-foreground ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                    {(() => { const stickyBg = idx % 2 === 1 ? "bg-muted" : "bg-card"; return (<>
+                    <td className={`text-center py-1 sticky left-0 z-10 text-[10px] font-mono font-bold text-muted-foreground ${stickyBg}`}>
                       {idx + 1}
                     </td>
-                    <td className={`text-center py-1 sticky left-[26px] z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                    <td className={`text-center py-1 sticky left-[26px] z-10 ${stickyBg}`}>
                       <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[9px] font-mono font-bold ${CATEGORY_COLORS[dealer.category] || "text-muted-foreground"}`}>
                         {CATEGORY_LABELS[dealer.category] || "?"}
                       </span>
                     </td>
-                    <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-[60px] z-10 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                    <td className={`px-3 py-1 text-xs font-medium text-card-foreground sticky left-[60px] z-10 ${stickyBg}`}>
                       <div className="flex items-center justify-between">
                         <span>{dealer.name}</span>
                         {lockedCount > 0 && (
@@ -588,13 +605,14 @@ const BreaklistGrid = ({ date, zoom = 100 }: BreaklistGridProps) => {
                         )}
                       </div>
                     </td>
-                    <td className={`text-center py-1 ${idx % 2 === 1 ? "bg-card/95" : "bg-card"}`}>
+                    <td className={`text-center py-1 sticky left-[180px] z-10 shadow-[inset_-1px_0_0_hsl(var(--border))] ${stickyBg}`}>
                       {shift && (
                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold ${
                           shift === "M" ? "bg-teal-100 text-teal-800 dark:bg-teal-500/25 dark:text-teal-300" : shift === "N" ? "bg-sky-100 text-sky-700 dark:bg-sky-500/25 dark:text-sky-300" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/25 dark:text-emerald-300"
                         }`}>{shift}</span>
                       )}
                     </td>
+                    </>); })()}
                     {visibleSlots.map(slot => {
                       const cell = getCellData(dealer.id, slot);
                       const isCleared = cell?.role === "CLR";
