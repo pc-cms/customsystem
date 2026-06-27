@@ -123,14 +123,13 @@ export default function PitBook() {
         icon={BookOpen}
         title="Pit Book"
         subtitle="Shift handover log — append-only journal for pit bosses and managers."
-        right={
-          <DateNavigator
-            value={date}
-            onChange={setDate}
-            maxDate={businessToday}
-          />
-        }
-      />
+      >
+        <DateNavigator
+          value={date}
+          onChange={setDate}
+          maxDate={new Date(businessToday)}
+        />
+      </PageHeader>
 
       <PageSection>
         <Tabs
