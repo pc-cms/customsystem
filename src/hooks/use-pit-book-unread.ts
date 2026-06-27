@@ -93,7 +93,7 @@ export function usePitBookUnread() {
         .select("channel,last_read_at,last_read_entry_id")
         .eq("user_id", user!.id)
         .eq("casino_id", casinoId!);
-      const reads = (readsRaw ?? []) as Array<{
+      const reads = ((readsRaw ?? []) as unknown) as Array<{
         channel: PitBookChannel;
         last_read_at: string | null;
         last_read_entry_id: string | null;
