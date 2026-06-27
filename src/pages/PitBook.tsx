@@ -73,10 +73,10 @@ function EntryRow({
         ref={ref}
         data-entry-id={entry.id}
         data-entry-created-at={entry.created_at}
-        className={`max-w-[85%] rounded-md px-2.5 py-1.5 text-sm leading-snug break-words ${
+        className={`max-w-[min(76%,780px)] rounded-md px-3 py-2 text-sm leading-snug break-words shadow-sm ${
           isOwn
             ? "bg-primary text-primary-foreground"
-            : "bg-muted/40 text-foreground"
+            : "bg-card text-foreground border border-border"
         }`}
       >
         <span
@@ -94,7 +94,7 @@ function EntryRow({
         >
           · {roleLabel}
         </span>
-        <span className="whitespace-pre-wrap">{entry.body}</span>
+        <span className="whitespace-pre-wrap [overflow-wrap:anywhere]">{entry.body}</span>
       </div>
     </div>
   );
@@ -210,7 +210,8 @@ export default function PitBook() {
         />
       </PageHeader>
 
-      <PageSection>
+      <PageSection card={false}>
+        <div className="rounded-md border border-border bg-card p-3">
         {visibleChannels.length > 1 && (
           <Tabs
             value={channel}
@@ -220,7 +221,11 @@ export default function PitBook() {
               {visibleChannels.map((c) => {
                 const count = unread?.[c] ?? 0;
                 return (
-                  <TabsTrigger key={c} value={c} className="relative">
+                  <TabsTrigger
+                    key={c}
+                    value={c}
+                    className={count > 0 ? "relative data-[state=inactive]:bg-primary/20 data-[state=inactive]:text-foreground" : "relative"}
+                  >
                     {c === "pit_bosses" ? "Pit Bosses" : "Managers"}
                     {count > 0 && (
                       <span className="ml-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
@@ -236,8 +241,8 @@ export default function PitBook() {
 
         <div
           ref={feedRef}
-          className="mt-4 flex flex-col gap-1.5 overflow-y-auto rounded-md border border-border bg-background/40 p-3"
-          style={{ maxHeight: "calc(100vh - 340px)", minHeight: 240 }}
+          className="mt-3 flex flex-col gap-2 overflow-y-auto rounded-md bg-background/45 p-3"
+          style={{ maxHeight: "calc(100vh - 330px)", minHeight: 260, WebkitOverflowScrolling: "touch" }}
         >
           {isLoading ? (
             <div className="text-center text-sm text-muted-foreground py-6">
@@ -310,6 +315,7 @@ export default function PitBook() {
             Read-only access for this channel.
           </div>
         )}
+        </div>
       </PageSection>
     </PageShell>
   );
