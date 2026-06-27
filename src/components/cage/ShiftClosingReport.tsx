@@ -509,10 +509,37 @@ const ShiftClosingReport = ({
                   {totBal === null ? "—" : numAlways(totBal)}
                 </td>
               </tr>
+              {/* Manual Input @ Close — immutable per-provider snapshot of the
+                  cashier's End Day entry captured at shift closing. Lets
+                  managers verify the printed End Day above against the
+                  original manual input. */}
+              {hasAnyBal && (
+                <tr style={{ backgroundColor: "#fff8c4" }}>
+                  <td className="border border-black px-1.5 py-0.5 italic" colSpan={4}>
+                    Manual Input @ Close
+                  </td>
+                  <td className="border border-black px-1.5 py-0.5 text-right font-semibold">
+                    {numAlways(totBal || 0)}
+                  </td>
+                </tr>
+              )}
+              {hasAnyBal && PROV.map(p => {
+                const rawB = (closerMobile as any)?.[finalProvKey(p.key)];
+                const hasBal = rawB !== undefined && rawB !== null && String(rawB) !== "";
+                if (!hasBal) return null;
+                return (
+                  <tr key={`mic-${p.key}`} style={{ backgroundColor: "#fff8c4" }}>
+                    <td className="border border-black px-1.5 py-0.5 pl-4 italic text-xs">↳ {p.label}</td>
+                    <td className="border border-black px-1.5 py-0.5" colSpan={3}></td>
+                    <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(Number(rawB))}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         );
       })()}
+
 
 
       {/* ============ SUMMARY PANEL (full width 4-col table) ============ */}
