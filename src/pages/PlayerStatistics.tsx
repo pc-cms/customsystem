@@ -240,14 +240,16 @@ const PlayerStatistics = () => {
   const { data: visits = [] } = useQuery({
     queryKey: ["casino_visits", casinoId, fromDate, toDate],
     queryFn: async () => {
-      const { data } = await supabase
+      if (!casinoId) return [] as any[];
+      return await fetchPaged<any>((from, to) => supabase
         .from("casino_visits")
         .select("*")
-        .eq("casino_id", casinoId!)
+        .eq("casino_id", casinoId)
         .gte("date", fromDate)
         .lte("date", toDate)
-        .range(0, 99999);
-      return (data || []) as any[];
+        .order("checked_in_at", { ascending: false })
+        .range(from, to)
+      );
     },
     enabled: !!casinoId,
     refetchInterval: isHistorical ? false : 15000,
