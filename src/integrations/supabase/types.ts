@@ -7785,6 +7785,7 @@ export type Database = {
         Row: {
           balance: number | null
           cash_desk_result: number | null
+          cash_flow_delta: number | null
           cash_result: number | null
           cashless_in_providers: Json
           cashless_out_providers: Json
@@ -7808,6 +7809,7 @@ export type Database = {
         Insert: {
           balance?: number | null
           cash_desk_result?: number | null
+          cash_flow_delta?: number | null
           cash_result?: number | null
           cashless_in_providers?: Json
           cashless_out_providers?: Json
@@ -7831,6 +7833,7 @@ export type Database = {
         Update: {
           balance?: number | null
           cash_desk_result?: number | null
+          cash_flow_delta?: number | null
           cash_result?: number | null
           cashless_in_providers?: Json
           cashless_out_providers?: Json
@@ -9570,10 +9573,14 @@ export type Database = {
       }
     }
     Functions: {
+      _cash_to_tzs: { Args: { cash: Json; rates: Json }; Returns: number }
       _close_open_position: {
         Args: { _at: string; _casino_id: string; _player_id: string }
         Returns: undefined
       }
+      _has_payload: { Args: { snap: Json }; Returns: boolean }
+      _sum_denoms: { Args: { p: Json }; Returns: number }
+      _sum_mobile: { Args: { p: Json }; Returns: number }
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
       am_issue_grant: {
         Args: {
@@ -9801,6 +9808,10 @@ export type Database = {
       compute_shift_balance_from_row: {
         Args: { s: Database["public"]["Tables"]["shifts"]["Row"] }
         Returns: Json
+      }
+      compute_shift_cash_flow_delta: {
+        Args: { closing_count: Json; exchange_rates: Json; opening_float: Json }
+        Returns: number
       }
       compute_shift_close: { Args: { p_shift_id: string }; Returns: Json }
       compute_shift_table_results: {
