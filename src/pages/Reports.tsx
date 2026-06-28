@@ -383,8 +383,8 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
       const { data, error } = await supabase
         .from("shifts")
         .select("id, opened_at, closed_at, miss_total, tables_result, balance, notes, opening_float, closing_count, exchange_rates")
-        .gte("closed_at", from.toISOString())
-        .lte("closed_at", to.toISOString())
+        .gte("closed_at", fromIso)
+        .lt("closed_at", toIso)
         .eq("casino_id", casinoId)
         .not("closed_at", "is", null)
         .order("closed_at", { ascending: false })
