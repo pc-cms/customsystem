@@ -437,22 +437,8 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
             <SortHeader label="Cash" k="cash" sort={sort as any} toggle={toggle} type="money" />
             <SortHeader label="Miss" k="miss" sort={sort as any} toggle={toggle} type="money" />
             <SortHeader label="Tables" k="tables" sort={sort as any} toggle={toggle} type="money" />
-            <DTHeader type="money">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 cursor-help"
-                    onClick={() => toggle("balance")}
-                  >
-                    Balance <Info className="w-3 h-3 opacity-60" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs text-xs">
-                  Cash Desk reconciliation: 0 = касса сошлась. Несхождения до 13/06/2026 — историческая фактика (до ужесточения End Day).
-                </TooltipContent>
-              </Tooltip>
-            </DTHeader>
+            <SortHeader label="Balance" k="balance" sort={sort as any} toggle={toggle} type="money" />
+
             <DTHeader type="actions" />
           </DTRow>
         </DTHead>
