@@ -277,7 +277,7 @@ const PlayerProfile = () => {
       lastVisit,
       daysSinceLast,
     };
-  }, [visits, economy, chipAdjustments]);
+  }, [visits, economy, chipAdjustments, dropByDay]);
 
   // Period summary — Drop = Σ peak-NEP across business days in range
   // (authoritative `player_day_drop_cache`). Cashout / chips / comps are
