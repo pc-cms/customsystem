@@ -469,22 +469,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
                   <span className={signCls(balance)}>{fmt(balance)}</span>
                 </DTCell>
 
-                <DTCell type="money">
-                  {legacyBalance ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className={`${signCls(balance)} cursor-help inline-flex items-center gap-1`}>
-                          {fmt(balance)} <Info className="w-3 h-3 opacity-60" />
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs text-xs">
-                        Историческое несхождение кассы (до 13/06/2026, до ужесточения End Day reconciliation).
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <span className={signCls(balance)}>{fmt(balance)}</span>
-                  )}
-                </DTCell>
+
                 <DTCell type="actions">
                   <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => setReprintId(s.id)}>
                     <Printer className="w-3 h-3" /> Print
