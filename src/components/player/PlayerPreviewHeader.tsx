@@ -22,7 +22,7 @@ import { canSeePlayerFinancials } from "@/lib/role-access";
 import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 import { useCreatePlayerChipAdjustment } from "@/hooks/use-player-chip-adjustments";
-import { usePlayerDropSplit } from "@/hooks/use-drop-split";
+import { usePlayerDropSplit, usePlayersDropCacheToday } from "@/hooks/use-drop-split";
 import { usePosPlayerOutstanding } from "@/hooks/use-pos-player-outstanding";
 
 interface Props {
@@ -284,11 +284,18 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const isMultiDay = !!fromDate && !!toDate && fromDate !== toDate;
   const periodSuffix = isMultiDay ? "(p)" : "(d)";
   const { data: dayStats } = usePeriodPlayerStats(playerId, fromDate, toDate);
-  const { data: dropSplit } = usePlayerDropSplit(
-    playerId || undefined,
+  // Single-day = read straight from `player_day_drop_cache` (realtime, same
+  // source as Tables/Dashboard). Multi-day window keeps the RPC.
+  const { data: dropCacheToday } = usePlayersDropCacheToday(!isMultiDay ? fromDate : null);
+  const { data: dropSplitRpc } = usePlayerDropSplit(
+    isMultiDay ? (playerId || undefined) : null,
     fromDate ? businessDayHourUTC(fromDate, 7) : undefined,
     toDate ? businessDayHourUTC(toDate, 7 + 24) : undefined,
   );
+  const dropSplit = isMultiDay
+    ? dropSplitRpc
+    : (playerId ? dropCacheToday?.get(playerId) : undefined);
+
   const { data: barOwed = 0 } = usePosPlayerOutstanding(playerId);
   const nav = useNavigate();
   const { roles } = useAuth();
