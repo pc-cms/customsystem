@@ -455,7 +455,10 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
           ) : sorted.map((s: any) => {
             const cashVal = s.cashDisplay == null ? null : Number(s.cashDisplay);
             const tables = Number(s.tables_result || 0);
-            const balance = s.cash_flow_delta == null ? null : Number(s.cash_flow_delta);
+            const snapshotBal = (s.closing_count as any)?.cash_desk_balance;
+            const balance = s.balance != null
+              ? Number(s.balance)
+              : (snapshotBal != null ? Number(snapshotBal) : null);
             const miss = Number(s.miss_total || 0);
             return (
               <DTRow key={s.id}>
