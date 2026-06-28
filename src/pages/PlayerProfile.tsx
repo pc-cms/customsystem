@@ -254,7 +254,7 @@ const PlayerProfile = () => {
     // Drop (peak-NEP) lives in its own tile and is NOT part of Result.
     const result = (cashout + chipOut) - (cashIn + chipIn);
     const total = result - comps;
-    const hold = holdPct(drop, cashout, comps); // Hold % on peak-NEP drop so it matches Player Statistics
+    const hold = holdPct(dropR, cashout, comps); // Hold % on peak-NEP drop
     const firstVisit = visits.length ? visits[visits.length - 1].checked_in_at : null;
     const lastVisit = visits[0] ? (visits[0].checked_out_at || visits[0].checked_in_at) : null;
     const daysSinceLast = lastVisit
@@ -265,7 +265,7 @@ const PlayerProfile = () => {
       visitCount: visits.length,
       totalMins,
       avgSession,
-      drop,
+      drop: dropR,
       cashout,
       comps,
       chipIn,
