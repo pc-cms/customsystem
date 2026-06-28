@@ -486,9 +486,13 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
         supabase.from("expenses").select("amount, created_at")
           .eq("casino_id", casinoId)
           .gte("created_at", fromIso).lt("created_at", toIso).limit(10000),
-        supabase.from("transactions").select("amount, created_at")
-          .eq("casino_id", casinoId).eq("type", "in").is("cancelled_at", null)
-          .gte("created_at", fromIso).lt("created_at", toIso).limit(50000),
+        // Drop Tables = Σ peak-NEP from player_day_drop_cache per business day.
+        // SAME source as Player Statistics / Dashboard / Tables — keeps every
+        // screen in sync. Replaces the previous raw `Σ transactions(buy/in)`
+        // which double-counted recycled buy-ins.
+        supabase.from("player_day_drop_cache").select("business_date, peak")
+          .eq("casino_id", casinoId)
+          .gte("business_date", from).lt("business_date", toStr).limit(50000),
       ]);
       if (liveRes.error) throw liveRes.error;
       if (slotsRes.error) throw slotsRes.error;
@@ -522,8 +526,9 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
         r.expenses += Number(e.amount || 0);
       });
       (dropRes.data || []).forEach((t: any) => {
-        const r = row(eatDate(t.created_at));
-        r.dropTables += Number(t.amount || 0);
+        if (!t.business_date) return;
+        const r = row(t.business_date);
+        r.dropTables += Number(t.peak || 0);
       });
       return Object.values(map);
     },
@@ -637,11 +642,38 @@ const DropSlotsCell = ({ value, canEdit, onSave }: { value: number; canEdit: boo
 };
 
 // =================== PLAYER REPORT ===================
+// Drop is peak-NEP per business day, summed across the range. Authoritative
+// source: `compute_players_drop_split` RPC — same formula as Player
+// Statistics, Tables and Dashboard. Cashout / expenses stay local sums.
 const PlayerReport = ({ from, to }: { from: string; to: string }) => {
   const fmt = useFormatMoney();
+  const { casinoId } = useAuth();
   const { data: players = [] } = usePlayers();
   const { data: transactions = [] } = useTransactions();
   const { data: expenses = [] } = useExpenses();
+
+  const fromIso = useMemo(() => businessDayHourUTC(from, 7), [from]);
+  const toIso = useMemo(() => {
+    const d = new Date(to + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() + 1);
+    return businessDayHourUTC(d.toISOString().slice(0, 10), 7);
+  }, [to]);
+
+  const { data: dropByPlayer = {} } = useQuery({
+    queryKey: ["reports-players-drop-split", casinoId, from, to],
+    queryFn: async (): Promise<Record<string, number>> => {
+      if (!casinoId || !from || !to) return {};
+      const { data, error } = await supabase.rpc("compute_players_drop_split" as any, {
+        _casino_id: casinoId, _from: fromIso, _to: toIso,
+      });
+      if (error) throw error;
+      const rec: Record<string, number> = {};
+      (data || []).forEach((r: any) => { if (r?.player_id) rec[r.player_id] = Number(r.drop_r) || 0; });
+      return rec;
+    },
+    enabled: !!casinoId,
+    staleTime: 30_000,
+  });
 
   const playerData = useMemo(() => {
     const filteredTx = transactions.filter(t => {
@@ -655,7 +687,7 @@ const PlayerReport = ({ from, to }: { from: string; to: string }) => {
     return players.filter(p => p.status === "active").map(p => {
       const pTx = filteredTx.filter(t => t.player_id === p.id);
       const pExp = filteredExp.filter((e: any) => e.player_id === p.id);
-      const drop = pTx.filter(t => (t.type === "buy" || t.type === "in")).reduce((s, t) => s + Number(t.amount), 0);
+      const drop = dropByPlayer[p.id] || 0;
       const cashout = pTx.filter(t => (t.type === "cashout" || t.type === "out")).reduce((s, t) => s + Number(t.amount), 0);
       const expTotal = pExp.reduce((s: number, e: any) => s + Number(e.amount), 0);
       const result = cashout - drop;
@@ -664,8 +696,8 @@ const PlayerReport = ({ from, to }: { from: string; to: string }) => {
         ...p, player_name: `${p.first_name} ${p.last_name}`,
         drop, cashout, expTotal, result, realResult, txCount: pTx.length,
       };
-    }).filter(p => p.txCount > 0);
-  }, [players, transactions, expenses, from, to]);
+    }).filter(p => p.txCount > 0 || (dropByPlayer[p.id] || 0) > 0);
+  }, [players, transactions, expenses, from, to, dropByPlayer]);
 
   const { sorted, sort, toggle } = useSorted(playerData, { key: "drop", dir: "desc" });
   const totals = useMemo(() => sorted.reduce(
@@ -722,12 +754,38 @@ const PlayerReport = ({ from, to }: { from: string; to: string }) => {
   );
 };
 
+
 // =================== GROUP REPORT ===================
 const GroupReport = ({ from, to }: { from: string; to: string }) => {
   const fmt = useFormatMoney();
+  const { casinoId } = useAuth();
   const { data: groups = [] } = usePlayerGroups();
   const { data: transactions = [] } = useTransactions();
   const { data: expenses = [] } = useExpenses();
+
+  const fromIso = useMemo(() => businessDayHourUTC(from, 7), [from]);
+  const toIso = useMemo(() => {
+    const d = new Date(to + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() + 1);
+    return businessDayHourUTC(d.toISOString().slice(0, 10), 7);
+  }, [to]);
+
+  // Authoritative per-player peak-NEP for the range — shared with Player tab.
+  const { data: dropByPlayer = {} } = useQuery({
+    queryKey: ["reports-groups-drop-split", casinoId, from, to],
+    queryFn: async (): Promise<Record<string, number>> => {
+      if (!casinoId || !from || !to) return {};
+      const { data, error } = await supabase.rpc("compute_players_drop_split" as any, {
+        _casino_id: casinoId, _from: fromIso, _to: toIso,
+      });
+      if (error) throw error;
+      const rec: Record<string, number> = {};
+      (data || []).forEach((r: any) => { if (r?.player_id) rec[r.player_id] = Number(r.drop_r) || 0; });
+      return rec;
+    },
+    enabled: !!casinoId,
+    staleTime: 30_000,
+  });
 
   const groupData = useMemo(() => {
     const filteredTx = transactions.filter(t => {
@@ -748,12 +806,14 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
         .map((m: any) => m.player_id);
       const gTx = filteredTx.filter(t => memberIds.includes(t.player_id));
       const gExp = filteredExp.filter((e: any) => e.player_id && memberIds.includes(e.player_id));
-      const drop = gTx.filter(t => (t.type === "buy" || t.type === "in")).reduce((s, t) => s + Number(t.amount), 0);
+      // Drop = Σ peak-NEP per member (sum of daily peaks across the range).
+      const drop = memberIds.reduce((s: number, pid: string) => s + (dropByPlayer[pid] || 0), 0);
       const cashout = gTx.filter(t => (t.type === "cashout" || t.type === "out")).reduce((s, t) => s + Number(t.amount), 0);
       const expTotal = gExp.reduce((s: number, e: any) => s + Number(e.amount), 0);
       return { id: g.id, name: g.name, members: memberIds.length, drop, cashout, result: cashout - drop, realResult: cashout - drop - expTotal, expTotal };
     }).filter(g => g.members > 0);
-  }, [groups, transactions, expenses, from, to]);
+  }, [groups, transactions, expenses, from, to, dropByPlayer]);
+
 
   const { sorted, sort, toggle } = useSorted(groupData, { key: "drop", dir: "desc" });
 

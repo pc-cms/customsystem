@@ -248,5 +248,47 @@ export const usePlayersDropCacheRange = (
   return { ...q, data };
 };
 
+/**
+ * Per-business-day Drop cache for a SINGLE player (all dates, all casinos).
+ * Used by PlayerProfile / PlayerVisitsBreakdown to display per-visit Drop as
+ * the day's peak-NEP (matching Player Statistics). Returns a Record keyed by
+ * `business_date` (YYYY-MM-DD) so callers can do day-level lookups.
+ */
+export type PlayerDayDropRow = { peak: number; recycled: number; totalIn: number; totalOut: number };
+export const usePlayerDropCacheByDays = (playerId: string | null | undefined) => {
+  const q = useQuery({
+    queryKey: ["player-drop-cache-by-days", playerId],
+    queryFn: async (): Promise<Record<string, PlayerDayDropRow>> => {
+      if (!playerId) return {};
+      const { data, error } = await supabase
+        .from("player_day_drop_cache")
+        .select("business_date, peak, recycled, total_in, total_out")
+        .eq("player_id", playerId);
+      if (error) throw error;
+      const rec: Record<string, PlayerDayDropRow> = {};
+      (data || []).forEach((r: any) => {
+        if (!r?.business_date) return;
+        const k = r.business_date as string;
+        const prev = rec[k] || { peak: 0, recycled: 0, totalIn: 0, totalOut: 0 };
+        rec[k] = {
+          peak: prev.peak + (Number(r.peak) || 0),
+          recycled: prev.recycled + (Number(r.recycled) || 0),
+          totalIn: prev.totalIn + (Number(r.total_in) || 0),
+          totalOut: prev.totalOut + (Number(r.total_out) || 0),
+        };
+      });
+      return rec;
+    },
+    enabled: !!playerId,
+    staleTime: 5_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+  });
+  return q;
+};
+
+
+
 
 

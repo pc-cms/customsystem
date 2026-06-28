@@ -18,6 +18,7 @@ import { buildLatestTableSnapshot, chipSnapshotResult, type BaselineMap } from "
 // Authoritative Result is computed server-side via compute_shift_table_results RPC.
 // Snapshot index is still loaded for backward-compatible fallback only.
 import type { Tables } from "@/integrations/supabase/types";
+import { splitTablesWindow, type NepTx } from "@/lib/nep-split";
 
 interface Props {
   shift: Tables<"shifts">;
@@ -58,8 +59,11 @@ const ShiftClosingReport = ({
   const [snapshotIndex, setSnapshotIndex] = useState<ReturnType<typeof buildLatestTableSnapshot>>({});
   const [fillCredits, setFillCredits] = useState<Record<string, { fill: number; credit: number }>>({});
   const [cashFlowTransfers, setCashFlowTransfers] = useState({ addFloat: 0, slotsOut: 0 });
-  /** IN per table = sum of all Cash Desk IN transactions (type 'buy' or 'in')
-   *  for this shift, grouped by table_id. */
+  /** Drop NEP per table — peak-NEP per (player, business-day) distributed
+   *  proportionally to each table's IN share within the SHIFT window.
+   *  Authoritative formula used everywhere (Player Statistics, Tables,
+   *  Dashboard) — keeps the printed shift report in sync with on-screen totals
+   *  instead of inflating by recycled buy-ins (raw Σ buy/in). */
   const [inByTable, setInByTable] = useState<Record<string, number>>({});
   /** Imported daily results (legacy import path) — when present, take precedence
    *  for Open/Fill/Credit/Close columns; Result still comes from snapshot. */
@@ -93,8 +97,8 @@ const ShiftClosingReport = ({
               .select("table_id, open, fill, credit, close, drop_amount, result")
               .eq("casino_id", casinoId).eq("date", businessDate)
           : Promise.resolve({ data: [] as any[] } as any),
-        supabase.from("transactions").select("table_id, type, amount")
-          .eq("shift_id", shift.id).in("type", ["buy", "in"]).is("cancelled_at", null),
+        supabase.from("transactions").select("table_id, player_id, type, amount, created_at, cancelled_at")
+          .eq("shift_id", shift.id).is("cancelled_at", null),
         // Pit's Chip Count snapshots for this shift's business day. Result =
         // (latest snapshot.actual − chip_baseline.expected) × denom per table.
         businessDate
@@ -129,11 +133,25 @@ const ShiftClosingReport = ({
       });
       setFillCredits(fc);
       setCashFlowTransfers({ addFloat, slotsOut });
+      // DROP NEP per table = peak-NEP per (player, business-day) split by
+      // each table's IN share within the shift window. Matches Player
+      // Statistics / Tables / Dashboard exactly.
+      const fromIso = (shift as any).opened_at as string | null;
+      const toIso = ((shift as any).closed_at as string | null) ?? new Date().toISOString();
       const inMap: Record<string, number> = {};
-      (tx || []).forEach((r: any) => {
-        if (!r.table_id) return;
-        inMap[r.table_id] = (inMap[r.table_id] || 0) + Number(r.amount || 0);
-      });
+      if (fromIso) {
+        const nepTxs: NepTx[] = (tx || []).map((r: any) => ({
+          id: undefined,
+          player_id: r.player_id,
+          table_id: r.table_id,
+          type: r.type,
+          amount: Number(r.amount) || 0,
+          created_at: r.created_at,
+          cancelled_at: r.cancelled_at,
+        }));
+        const split = splitTablesWindow(nepTxs, fromIso, toIso);
+        for (const [tid, v] of split) inMap[tid] = v.dropR;
+      }
       setInByTable(inMap);
       const dr: Record<string, any> = {};
       (tdr || []).forEach((r: any) => {
@@ -227,7 +245,7 @@ const ShiftClosingReport = ({
    *  - Open       = standard chip baseline sum per table (chip_baseline)
    *  - Fill/Credit= cage_transfers for this shift
    *  - Close      = latest Pit chip snapshot Σ(actual·denom)
-   *  - DROP (NEP) = Σ Cash Desk IN transactions (`buy`/`in`) of this shift
+   *  - DROP (NEP) = peak-NEP per (player, business-day) split by per-table IN
    *  - Result     = authoritative DB RPC `compute_shift_table_results`
    *                 (formula: (Σ(actual−baseline)·denom) − Fill + Credit) */
   const rowFor = (t: Tables<"gaming_tables">) => {

@@ -23,6 +23,7 @@ import {
   useCreatePlayerNote, useUpdatePlayerCategory,
 } from "@/hooks/use-player-profile";
 import { usePlayerChipAdjustments } from "@/hooks/use-player-chip-adjustments";
+import { usePlayerDropCacheByDays } from "@/hooks/use-drop-split";
 import { Textarea } from "@/components/ui/textarea";
 import { PlayerNotesPanel } from "@/components/player/PlayerNotesPanel";
 import { useAuth } from "@/lib/auth-context";
@@ -70,6 +71,9 @@ const PlayerProfile = () => {
   const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager", "shift_manager"].includes(r)) || isManager;
   const { data: notes = [] } = usePlayerNotes(id, canSeeNotes);
   const { data: chipAdjustments = [] } = usePlayerChipAdjustments(id);
+  // Authoritative per-business-day Drop (peak-NEP) for this player. Single
+  // source of truth shared with Player Statistics, Tables and Dashboard.
+  const { data: dropByDay = {} } = usePlayerDropCacheByDays(id);
 
   // Pit / Cashier / Reception are restricted to the current business day
   // unless the Manager Access override is active.
@@ -128,7 +132,10 @@ const PlayerProfile = () => {
   );
 
   // Map transactions to visits (same casino + within check-in / check-out window).
-  // dropR = NEP-aware external drop per visit (computed via lifetime walk).
+  // dropR per visit = day's peak-NEP from `player_day_drop_cache`, distributed
+  // by the visit's share of total cash-in on that business date. This keeps
+  // per-visit Drop in sync with Player Statistics (sum of daily peaks) and
+  // never disagrees with Tables / Dashboard.
   const visitFinancials = useMemo(() => {
     const map = new Map<string, { totalIn: number; cashout: number; comps: number; dropR: number; chipIn: number; chipOut: number }>();
     for (const v of visits) {
@@ -151,40 +158,15 @@ const PlayerProfile = () => {
       }
       return null;
     };
-    // NEP walk over all transactions chronologically. NEP resets at the start
-    // of every business day (Africa/Dar_es_Salaam, 05:00 rollover) so each day
-    // stands alone — lifetime is the sum of per-day results.
-    const sorted = [...transactions].sort((a: any, b: any) => String(a.created_at).localeCompare(String(b.created_at)));
-    const businessDateOf = (iso: string) => {
-      const d = new Date(iso);
-      // Africa/Dar_es_Salaam = UTC+3; subtract 5h to get business date
-      const eat = new Date(d.getTime() + 3 * 3600 * 1000 - 5 * 3600 * 1000);
-      return eat.toISOString().slice(0, 10);
-    };
-    let nep = 0;
-    let prevBd: string | null = null;
-    for (const t of sorted as any[]) {
+    // First pass — accumulate cash-in / cashout per visit (totals only).
+    for (const t of transactions as any[]) {
       const amt = Number(t.amount) || 0;
       const ts = new Date(t.created_at).getTime();
       const v = findVisit(t.casino_id, ts);
-      const bd = businessDateOf(t.created_at);
-      if (bd !== prevBd) { nep = 0; prevBd = bd; }
-      if (t.type === "buy" || t.type === "in") {
-        const rec = nep < 0 ? Math.min(amt, -nep) : 0;
-        const ext = amt - rec;
-        nep += amt;
-        if (v) {
-          const f = map.get(v.id)!;
-          f.totalIn += amt;
-          f.dropR += ext;
-        }
-      } else if (t.type === "cashout" || t.type === "out") {
-        nep -= amt;
-        if (v) {
-          const f = map.get(v.id)!;
-          f.cashout += amt;
-        }
-      }
+      if (!v) continue;
+      const f = map.get(v.id)!;
+      if (t.type === "buy" || t.type === "in") f.totalIn += amt;
+      else if (t.type === "cashout" || t.type === "out") f.cashout += amt;
     }
     for (const e of expenses) {
       const ts = new Date(e.created_at).getTime();
@@ -204,8 +186,31 @@ const PlayerProfile = () => {
         f.chipOut += Number(c.chip_out) || 0;
       }
     }
+    // Distribute the day's peak-NEP across visits sharing that business date,
+    // proportional to each visit's cash-in. If a date has cache.peak but no
+    // visit cash-in (rare; pre-visit walk-up?), attribute fully to the first
+    // visit on that date so totals still match.
+    const visitsByDate = new Map<string, any[]>();
+    for (const v of visits) {
+      if (!v.date) continue;
+      const arr = visitsByDate.get(v.date) || [];
+      arr.push(v);
+      visitsByDate.set(v.date, arr);
+    }
+    for (const [date, vs] of visitsByDate) {
+      const dayPeak = Number((dropByDay as any)[date]?.peak) || 0;
+      if (dayPeak <= 0) continue;
+      const ins = vs.map(v => map.get(v.id)?.totalIn || 0);
+      const sumIn = ins.reduce((s, x) => s + x, 0);
+      if (sumIn > 0) {
+        vs.forEach((v, i) => { map.get(v.id)!.dropR = dayPeak * (ins[i] / sumIn); });
+      } else {
+        map.get(vs[0].id)!.dropR = dayPeak;
+      }
+    }
     return map;
-  }, [visits, transactions, expenses, chipAdjustments]);
+  }, [visits, transactions, expenses, chipAdjustments, dropByDay]);
+
 
   // Per-visit transactions list (for the expandable row showing every IN/OUT with time + table).
   const visitTxs = useMemo(() => {
@@ -232,9 +237,14 @@ const PlayerProfile = () => {
   // total  = result − comps                          (with comps/expenses)
   const lifetime = useMemo(() => {
     const totalMins = visits.reduce((s, v) => s + visitDuration(v), 0);
+    // Lifetime "Drop" KPI = Σ peak-NEP across ALL business days from the
+    // authoritative `player_day_drop_cache`. Identical formula to Player
+    // Statistics / Tables / Dashboard — never disagrees again.
+    const dropR = Object.values(dropByDay as Record<string, any>).reduce(
+      (s, r) => s + (Number(r?.peak) || 0), 0,
+    );
     const dropGross = Number(economy?.total_drop) || 0;
-    const dropR = Number((economy as any)?.total_drop_r) || 0;
-    const drop = dropR; // Lifetime "Drop" KPI = NEP-aware Drop R (External part of cash-in)
+    const drop = dropR;
     const cashout = Number(economy?.total_cashout) || 0;
     const comps = Number(economy?.total_expenses) || 0;
     let chipIn = 0, chipOut = 0;
@@ -267,25 +277,21 @@ const PlayerProfile = () => {
       lastVisit,
       daysSinceLast,
     };
-  }, [visits, economy, chipAdjustments]);
+  }, [visits, economy, chipAdjustments, dropByDay]);
 
-  // Period summary (NEP-aware Drop R: lifetime walk, attribute External part to in-range cash-ins).
+  // Period summary — Drop = Σ peak-NEP across business days in range
+  // (authoritative `player_day_drop_cache`). Cashout / chips / comps are
+  // simple sums over in-range rows.
   const period = useMemo(() => {
-    const sorted = [...transactions].sort((a: any, b: any) => String(a.created_at).localeCompare(String(b.created_at)));
-    let nep = 0, pIn = 0, pOut = 0;
-    for (const t of sorted as any[]) {
-      const amt = Number(t.amount) || 0;
+    let pIn = 0;
+    for (const [d, row] of Object.entries(dropByDay as Record<string, any>)) {
+      if (d >= range.from && d <= range.to) pIn += Number(row?.peak) || 0;
+    }
+    let pOut = 0;
+    for (const t of transactions as any[]) {
       const ts = new Date(t.created_at).getTime();
-      const inRange = ts >= rangeStartMs && ts <= rangeEndMs;
-      if (t.type === "buy" || t.type === "in") {
-        const rec = nep < 0 ? Math.min(amt, -nep) : 0;
-        const ext = amt - rec;
-        nep += amt;
-        if (inRange) pIn += ext; // Drop R only
-      } else if (t.type === "cashout" || t.type === "out") {
-        nep -= amt;
-        if (inRange) pOut += amt;
-      }
+      if (ts < rangeStartMs || ts > rangeEndMs) continue;
+      if (t.type === "cashout" || t.type === "out") pOut += Number(t.amount) || 0;
     }
     const pComps = expensesInRange.reduce((s, e: any) => s + (Number(e.amount) || 0), 0);
     const pMins = visitsInRange.reduce((s, v) => s + visitDuration(v), 0);
@@ -297,7 +303,8 @@ const PlayerProfile = () => {
     const result = (pOut + pChipOut) - (pIn + pChipIn);
     const total = result - pComps;
     return { pIn, pOut, pComps, pMins, pChipIn, pChipOut, result, total, hold: holdPct(pIn, pOut, pComps), visits: visitsInRange.length };
-  }, [transactions, rangeStartMs, rangeEndMs, expensesInRange, visitsInRange, chipAdjInRange]);
+  }, [transactions, rangeStartMs, rangeEndMs, expensesInRange, visitsInRange, chipAdjInRange, dropByDay, range.from, range.to]);
+
 
   // Per-table aggregates (Position / Sessions / Hands / Avg bet / Duration / IN / OUT / Theo / Result / Hold).
   const tableStats = useMemo(() => {
@@ -720,6 +727,7 @@ const PlayerProfile = () => {
               expenses={expenses as any}
               chipAdjustments={chipAdjustments as any}
               showFinancials={canSeePlayerFinancials(roles)}
+              dropByDay={dropByDay as any}
             />
           </PageSection>
 

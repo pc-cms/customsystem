@@ -25,6 +25,8 @@ type Props = {
   expenses: Exp[];
   chipAdjustments?: ChipAdj[];
   showFinancials: boolean;
+  /** Authoritative per-business-day peak-NEP cache, keyed by `YYYY-MM-DD`. */
+  dropByDay?: Record<string, { peak?: number }>;
 };
 
 const fmtMoney = (n: number) => {
@@ -81,7 +83,7 @@ const add = (a: Agg, b: Agg): Agg => ({
 const result = (a: Agg) => (a.out + a.chipOut) - (a.drop + a.chipIn);
 const total = (a: Agg) => result(a) - a.comps;
 
-export default function PlayerVisitsBreakdown({ visits, transactions, expenses, chipAdjustments = [], showFinancials }: Props) {
+export default function PlayerVisitsBreakdown({ visits, transactions, expenses, chipAdjustments = [], showFinancials, dropByDay = {} }: Props) {
   const [openMonths, setOpenMonths] = useState<Record<string, boolean>>({});
   const [openWeeks, setOpenWeeks] = useState<Record<string, boolean>>({});
 
@@ -107,24 +109,18 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
       return null;
     };
 
-    // NEP walk over lifetime transactions
-    const sortedTx = [...transactions].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
-    let nep = 0;
-    for (const t of sortedTx) {
+    // Per-visit cash-in / cashout (totals only). Drop here is intentionally
+    // NOT computed from a lifetime NEP-walk anymore — we distribute the
+    // authoritative daily peak-NEP (`player_day_drop_cache`) across visits in
+    // a second pass below. This guarantees Σ visit.drop == Σ daily peaks,
+    // matching Player Statistics / Tables / Dashboard.
+    for (const t of transactions) {
       const amt = Number(t.amount) || 0;
       const ts = new Date(t.created_at).getTime();
       if (t.type === "buy" || (t.type as string) === "in") {
-        const rec = nep < 0 ? Math.min(amt, -nep) : 0;
-        const ext = amt - rec;
-        nep += amt;
         const vid = findVisit(t.casino_id, ts);
-        if (vid) {
-          const cur = m.get(vid)!;
-          cur.drop += ext;     // Drop R only — recycled excluded from "real drop"
-          cur.inGross += amt;  // Gross IN — every buy-in including recycled
-        }
+        if (vid) m.get(vid)!.inGross += amt;
       } else if (t.type === "cashout" || (t.type as string) === "out") {
-        nep -= amt;
         const vid = findVisit(t.casino_id, ts);
         if (vid) m.get(vid)!.out += amt;
       }
@@ -145,8 +141,30 @@ export default function PlayerVisitsBreakdown({ visits, transactions, expenses, 
       const vid = findVisit(e.casino_id, ts);
       if (vid) m.get(vid)!.comps += Number(e.amount) || 0;
     }
+    // Distribute day's peak-NEP across visits sharing that business date,
+    // proportional to each visit's cash-in (Σ inGross). When no cash-in is
+    // recorded on a day but the cache has a value (rare), attribute fully to
+    // the first visit on that date so totals reconcile.
+    const visitsByDate = new Map<string, Visit[]>();
+    for (const v of visits) {
+      if (!v.date) continue;
+      const arr = visitsByDate.get(v.date) || [];
+      arr.push(v);
+      visitsByDate.set(v.date, arr);
+    }
+    for (const [date, vs] of visitsByDate) {
+      const dayPeak = Number((dropByDay as any)[date]?.peak) || 0;
+      if (dayPeak <= 0) continue;
+      const ins = vs.map(v => m.get(v.id)?.inGross || 0);
+      const sumIn = ins.reduce((s, x) => s + x, 0);
+      if (sumIn > 0) {
+        vs.forEach((v, i) => { m.get(v.id)!.drop = dayPeak * (ins[i] / sumIn); });
+      } else {
+        m.get(vs[0].id)!.drop = dayPeak;
+      }
+    }
     return m;
-  }, [visits, transactions, expenses, chipAdjustments]);
+  }, [visits, transactions, expenses, chipAdjustments, dropByDay]);
 
   // Build hierarchy: month → week → day → visits[].
   const months = useMemo(() => {
