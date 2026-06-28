@@ -1,66 +1,71 @@
-# Единый источник Drop: `player_day_drop_cache` для Players, Tables и Dashboard
+## Унификация Drop по всему приложению на peak-NEP per business day
 
-## Проблема (подтверждена ночью)
-Drop в **Player Statistics** оказался ниже, чем суммарный Drop по столам на **Dashboard (Manager)**. Страницы считают Drop из разных источников и формул, поэтому за ночь накапливаются видимые расхождения.
+Все 5 оставшихся мест переводим на одну формулу: **Drop = сумма дневных peak-NEP за бизнес-день** (то же, что считают триггеры в `player_day_drop_cache`). Никакого lifetime-NEP, никакого "Σ buy/in", никакого 200-row окна.
 
-Формула одна и та же — **peak-NEP за бизнес-день** (Africa/Dar_es_Salaam, rollover 07:00 EAT):
-```
-NEP = 0
-buy/in    → NEP += amount; peak = max(peak, NEP)
-cashout/out → NEP -= amount
-Drop R = peak дня;  Drop V (Recycled) = total_in − peak
-Период = Σ дневных peak
-```
-Авторитетная реализация — в БД: триггеры на `transactions` пишут готовые агрегаты в `player_day_drop_cache` и `table_day_drop_cache`. Но фронт сейчас читает их непоследовательно:
+---
 
-| Место | Источник | Проблема |
-|---|---|---|
-| Dashboard / Tables (per-table) | `table_day_drop_cache` + RPC fallback | OK |
-| **Tables.tsx — игроки за столом** | локальный NEP-walk по последним **200** транзакциям | срезает на больших объёмах, не учитывает бизнес-день |
-| PlayerStatistics | RPC `compute_players_drop_split` + локальный пересчёт через визиты (`playerInDropSum`) | фронтовая «уточняющая» арифметика |
-| PlayerPreviewHeader | RPC `compute_player_drop_split` | OK, но не realtime |
+### 1. ActivePlayers (Pit Floor Map)
+**Файл:** `src/components/pit/ActivePlayers.tsx`
 
-## Решение
-Сделать **`player_day_drop_cache` единственным источником правды** для Drop за бизнес-день. Фронт перестаёт делать любую арифметику Drop — только читает строки из кэша. Это гарантирует инвариант:
-```
-Σ player_day_drop_cache.peak (по игрокам за день, casino) ==
-Σ table_day_drop_cache.drop_r_share (по столам за день, casino)
-```
-То есть Players и Dashboard физически не смогут разойтись.
+- Убрать локальный NEP-walk `playerSplits` (строки 193-217).
+- Подключить `usePlayersDropCacheToday(today)` из `use-drop-split.ts`.
+- Для `result` нужен ещё cashout сегодня → добавить мемо `playerCashoutToday` (Σ `out`/`cashout` из уже загруженного `transactions` за бизнес-день — это локально и корректно, потому что cashout не зависит от формулы).
+- `sp.dropR = cache[pid]?.dropR ?? 0`, `sp.result = dropR − cashoutToday`.
 
-## Что меняется
+Результат: цифры на Floor Map = Player Statistics = Dashboard, мгновенно через realtime + 20s polling.
 
-1. **Хуки** (`src/hooks/use-drop-split.ts`)
-   - `usePlayersDropCacheToday(businessDate)` — `SELECT player_id, peak, recycled FROM player_day_drop_cache WHERE casino_id=? AND business_date=?`. `staleTime: 5s`, `refetchInterval: 20s` (страховка от потерянных realtime-событий).
-   - `usePlayersDropCacheRange(fromDate, toDate)` — то же с `BETWEEN`, суммируется на клиенте (sum-of-daily-peaks).
-   - Существующие RPC-хуки остаются как fallback для исторических периодов.
+---
 
-2. **Realtime** (`src/hooks/use-realtime.ts`)
-   - Подписка на `player_day_drop_cache` с фильтром `casino_id=eq.${casinoId}`, инвалидация `["players-drop-cache-today"]` и `["players-drop-cache-range"]`.
-   - Миграция: `REPLICA IDENTITY FULL` + `ALTER PUBLICATION supabase_realtime ADD TABLE` (уже выполнена).
+### 2. Reports → Players / Groups / Total tabs
+**Файл:** `src/pages/Reports.tsx` (строки ~524, 658, 751)
 
-3. **`src/pages/Tables.tsx`**
-   - Удалить локальный `playerSplitsForSeated` (NEP-walk по 200 транзакциям).
-   - Брать `dropR`/`cashout` игрока из `usePlayersDropCacheToday(effectiveDate)` + сумма `out` из текущего списка транзакций для `result`.
+- Players tab: заменить `Σ transactions.amount where type∈(buy,in)` на `compute_players_drop_split(casino_id, from, to)` (RPC уже существует, использует те же бизнес-дни).
+- Groups tab: агрегировать те же RPC-результаты по `group_id`.
+- Total tab: Σ по результатам RPC.
+- Tables tab уже корректен — не трогаем.
 
-4. **`src/pages/PlayerStatistics.tsx`**
-   - Заменить `usePlayersDropSplit` на `usePlayersDropCacheRange(fromDate, toDate)`.
-   - Убрать «уточнение» Drop через `playerInDropSum` поверх RPC — итог по игроку = ровно значение из кэша.
-   - Per-visit отображение оставить как пропорциональную разбивку дневного peak; итог по игроку гарантированно совпадает с Dashboard.
+Результат: Period Drop в Reports = сумма по Tables tab = Player Statistics.
 
-5. **`src/components/player/PlayerPreviewHeader.tsx`**
-   - Для одного бизнес-дня — `usePlayersDropCacheToday`. Для произвольного окна — текущий RPC.
+---
 
-## Эффект
-- Players, Tables и Dashboard читают одни и те же строки → ночные расхождения исключены по построению.
-- Никакой фронтовой арифметики Drop, никаких лимитов 200 транзакций.
-- Обновления мгновенные через realtime + 20s polling fallback.
-- RPC остаются для исторических периодов.
+### 3. PlayerProfile + PlayerVisitsBreakdown (per-visit Drop)
+**Файлы:** `src/pages/PlayerProfile.tsx` (131-200), `src/components/player/PlayerVisitsBreakdown.tsx` (88-130)
 
-## Файлы
-- `src/hooks/use-drop-split.ts`
-- `src/hooks/use-realtime.ts`
-- `src/pages/Tables.tsx`
-- `src/pages/PlayerStatistics.tsx`
-- `src/components/player/PlayerPreviewHeader.tsx`
-- Миграция: publication + `REPLICA IDENTITY FULL` для `player_day_drop_cache` (готово)
+Требование пользователя: **в профайле берём СУММУ БИЗНЕС-ДНЕЙ, а не lifetime-NEP**.
+
+- Удалить локальный lifetime NEP-walk.
+- Для каждого визита (= один бизнес-день) брать запись из `player_day_drop_cache` по `(player_id, business_date)`: `dropR = peak`, `recycled = total_in − peak`.
+- Lifetime totals = Σ всех `peak` из кэша по игроку (один SELECT с агрегатом).
+- Добавить hook `usePlayerDropCacheByDays(playerId)` в `use-drop-split.ts`: возвращает Map<business_date, {peak, recycled, total_in}>.
+
+Результат: цифры в карточке игрока = Player Statistics за тот же период, и можно открывать любой бизнес-день.
+
+---
+
+### 4. ShiftClosingReport (печатная форма)
+**Файл:** `src/components/cage/ShiftClosingReport.tsx` (230, 348)
+
+- Текущая логика: `DROP (NEP) = Σ Cash Desk IN per shift` — это raw Σ in, неправильно.
+- Меняем на **peak-NEP per shift**: внутри окна смены walk транзакций по столам, считаем peak. (Смена ≠ бизнес-день, поэтому кэш не подходит — нужен walk на лету, но по той же формуле что и в `nep-split.ts`.)
+- Использовать `splitTablesWindow(txs, shiftStart, shiftEnd)` из `src/lib/nep-split.ts` — она уже реализует ту же peak-NEP логику.
+- Miss Chips sign — уже починен ранее, не трогаем.
+
+Результат: печатные смены показывают тот же Drop, что и live-вьюхи (только разрезанный по сменам, не по бизнес-дню).
+
+---
+
+### Технические детали
+
+- Новый hook `usePlayerDropCacheByDays(playerId)` — SELECT из `player_day_drop_cache` по `player_id`, без `business_date` фильтра. Polling 20s + realtime подписка на `player_day_drop_cache` (уже добавлена в `use-realtime.ts`).
+- RPC `compute_players_drop_split` — уже существует и используется в `usePlayersDropSplit`; для Reports просто переиспользуем его (как fallback / источник для исторических периодов, где кэш может быть неполный).
+- Кэш `player_day_drop_cache` поддерживается триггерами при INSERT/UPDATE/DELETE/CANCEL транзакций — данные не разъедутся.
+- Для исторических дней до момента когда кэш появился — добавить backfill в migration: `INSERT INTO player_day_drop_cache SELECT ... FROM compute_players_drop_split` по всем казино/датам где есть транзакции, но строки в кэше нет.
+
+### Файлы, которые будут изменены
+- `src/components/pit/ActivePlayers.tsx`
+- `src/pages/Reports.tsx`
+- `src/pages/PlayerProfile.tsx`
+- `src/components/player/PlayerVisitsBreakdown.tsx`
+- `src/components/cage/ShiftClosingReport.tsx`
+- `src/hooks/use-drop-split.ts` (новый hook `usePlayerDropCacheByDays`)
+- Migration: backfill `player_day_drop_cache` для исторических бизнес-дней.
