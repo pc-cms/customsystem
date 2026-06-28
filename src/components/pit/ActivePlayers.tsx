@@ -16,6 +16,7 @@ import type { SeatedPlayer } from "./SeatedPlayerChip";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { useNavigate } from "react-router-dom";
+import { usePlayersDropCacheToday } from "@/hooks/use-drop-split";
 
 const POKER_GAMES = ["Poker", "Texas Holdem", "Omaha", "PLO"];
 
@@ -190,31 +191,19 @@ const ActivePlayers = () => {
     onError: (e: any) => toast.error(e.message),
   });
 
-  // NEP-aware per-player split walked over current transactions list (shift scope).
-  const playerSplits = useMemo(() => {
-    const byPlayer = new Map<string, any[]>();
+  // Drop R = today's peak-NEP per player, read from `player_day_drop_cache`
+  // (single source of truth, maintained by DB triggers; matches Player
+  // Statistics, Tables seated players and Dashboard exactly).
+  const { data: dropCacheToday } = usePlayersDropCacheToday(today);
+  // Cashout-today is still derived locally from already-loaded transactions
+  // (per-business-day window): cashout is a plain sum, not dependent on the
+  // peak-NEP formula, so this stays consistent with the cache.
+  const cashoutToday = useMemo(() => {
+    const out = new Map<string, number>();
     for (const t of transactions as any[]) {
       if (!t.player_id) continue;
-      let arr = byPlayer.get(t.player_id);
-      if (!arr) { arr = []; byPlayer.set(t.player_id, arr); }
-      arr.push(t);
-    }
-    const out = new Map<string, { dropR: number; cashout: number }>();
-    for (const [pid, txs] of byPlayer) {
-      txs.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
-      let nep = 0, dropR = 0, cashout = 0;
-      for (const t of txs) {
-        const amt = Number(t.amount) || 0;
-        if (t.type === "buy" || t.type === "in") {
-          const rec = nep < 0 ? Math.min(amt, -nep) : 0;
-          dropR += amt - rec;
-          nep += amt;
-        } else if (t.type === "cashout" || t.type === "out") {
-          cashout += amt;
-          nep -= amt;
-        }
-      }
-      out.set(pid, { dropR, cashout });
+      if (t.type !== "cashout" && t.type !== "out") continue;
+      out.set(t.player_id, (out.get(t.player_id) || 0) + (Number(t.amount) || 0));
     }
     return out;
   }, [transactions]);
