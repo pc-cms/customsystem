@@ -405,7 +405,7 @@ const PlayerStatistics = () => {
       const playerDropR = playersDropSplit?.get(v.player_id)?.dropR ?? 0;
       const totalIn = playerInDropSum.get(v.player_id) || 0;
       const visitDropR = totalIn > 0 ? playerDropR * (inDrop / totalIn) : 0;
-      const result = (out + chip.out) - (visitDropR + chip.in);
+      const result = (out + chip.out) - (inDrop + chip.in);
 
       return {
         id: v.id,
