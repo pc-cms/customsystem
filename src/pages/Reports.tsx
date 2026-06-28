@@ -382,7 +382,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
       const toIso = businessDayHourUTC(toDate.toISOString().slice(0, 10), 7);
       const { data, error } = await supabase
         .from("shifts")
-        .select("id, opened_at, closed_at, miss_total, tables_result, balance, notes, cash_flow_delta")
+        .select("id, opened_at, closed_at, miss_total, tables_result, notes, cash_flow_delta")
         .gte("closed_at", fromIso)
         .lt("closed_at", toIso)
         .eq("casino_id", casinoId)
@@ -395,18 +395,14 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
     enabled: !!casinoId,
   });
 
-  // Cash is persisted as `cash_flow_delta` (BEFORE-trigger keeps it in sync with
-  // opening_float / closing_count / exchange_rates). NULL = no snapshots.
+  // Cash & Balance both derive from `cash_flow_delta` (BEFORE-trigger keeps it
+  // in sync with opening_float / closing_count / exchange_rates). NULL = no snapshots.
   const enriched = useMemo(() => {
     return (shifts || []).map((s: any) => ({
       ...s,
       cashDisplay: s.cash_flow_delta == null ? null : Number(s.cash_flow_delta),
     }));
   }, [shifts]);
-
-  // Threshold: shifts closed before this date may have non-zero `balance`
-  // legitimately (pre-strict End Day reconciliation). Show an ⓘ hint.
-  const STRICT_BALANCE_FROM = new Date("2026-06-13T00:00:00Z").getTime();
 
   type K = "opened" | "closed" | "cash" | "miss" | "tables" | "balance";
   const [sort, setSort] = useState<{ key: K; dir: SortDir }>({ key: "closed", dir: "desc" });
@@ -416,8 +412,10 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
     const getter: Record<K, (s: any) => any> = {
       opened: s => s.opened_at, closed: s => s.closed_at,
       cash: s => Number(s.cashDisplay || 0), miss: s => Number(s.miss_total || 0),
-      tables: s => Number(s.tables_result || 0), balance: s => Number(s.balance || 0),
+      tables: s => Number(s.tables_result || 0),
+      balance: s => Number(s.cash_flow_delta || 0),
     };
+
     const g = getter[sort.key];
     return [...enriched].sort((a, b) => {
       const va = g(a), vb = g(b);
@@ -450,7 +448,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
           ) : sorted.map((s: any) => {
             const cashVal = s.cashDisplay == null ? null : Number(s.cashDisplay);
             const tables = Number(s.tables_result || 0);
-            const balance = Number(s.balance || 0);
+            const balance = s.cash_flow_delta == null ? null : Number(s.cash_flow_delta);
             const miss = Number(s.miss_total || 0);
             return (
               <DTRow key={s.id}>
@@ -466,8 +464,13 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
                 <DTCell type="money"><span className={signCls(-miss)}>{fmt(-miss)}</span></DTCell>
                 <DTCell type="money"><span className={`font-bold ${signCls(tables)}`}>{fmt(tables)}</span></DTCell>
                 <DTCell type="money">
-                  <span className={signCls(balance)}>{fmt(balance)}</span>
+                  {balance == null ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : (
+                    <span className={signCls(balance)}>{fmt(balance)}</span>
+                  )}
                 </DTCell>
+
 
 
                 <DTCell type="actions">
