@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { fetchPaged } from "@/lib/fetch-paged";
 import { toast } from "sonner";
 
 /** Single player + cards + tags. */
@@ -27,14 +28,12 @@ export const usePlayerVisits = (playerId: string | undefined) => {
     queryKey: ["player-visits", playerId],
     queryFn: async () => {
       if (!playerId) return [];
-      const { data, error } = await supabase
+      return await fetchPaged<any>((from, to) => supabase
         .from("casino_visits")
         .select("*, casinos(name, code)")
         .eq("player_id", playerId)
         .order("checked_in_at", { ascending: false })
-        .limit(500);
-      if (error) throw error;
-      return data || [];
+        .range(from, to));
     },
     enabled: !!playerId,
   });
@@ -49,17 +48,16 @@ export const usePlayerSessions = (
     queryKey: ["player-sessions", playerId, range?.from, range?.to],
     queryFn: async () => {
       if (!playerId) return [];
-      let q = supabase
-        .from("client_sessions")
-        .select("*, gaming_tables(name, game)")
-        .eq("player_id", playerId)
-        .order("started_at", { ascending: false })
-        .limit(1000);
-      if (range?.from) q = q.gte("started_at", `${range.from}T00:00:00`);
-      if (range?.to) q = q.lte("started_at", `${range.to}T23:59:59`);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data || [];
+      return await fetchPaged<any>((from, to) => {
+        let q = supabase
+          .from("client_sessions")
+          .select("*, gaming_tables(name, game)")
+          .eq("player_id", playerId)
+          .order("started_at", { ascending: false });
+        if (range?.from) q = q.gte("started_at", `${range.from}T00:00:00`);
+        if (range?.to) q = q.lte("started_at", `${range.to}T23:59:59`);
+        return q.range(from, to);
+      });
     },
     enabled: !!playerId,
   });
@@ -71,16 +69,14 @@ export const usePlayerTransactions = (playerId: string | undefined) => {
     queryKey: ["player-transactions", playerId],
     queryFn: async () => {
       if (!playerId) return [];
-      const { data, error } = await supabase
+      return await fetchPaged<any>((from, to) => supabase
         .from("transactions")
         .select("id, casino_id, table_id, type, amount, created_at, gaming_tables(name, game)")
         .eq("player_id", playerId)
         .in("type", ["buy", "cashout", "in", "out"])
         .is("cancelled_at", null)
         .order("created_at", { ascending: false })
-        .limit(5000);
-      if (error) throw error;
-      return data || [];
+        .range(from, to));
     },
     enabled: !!playerId,
   });
@@ -110,14 +106,12 @@ export const usePlayerExpenses = (playerId: string | undefined) => {
     queryKey: ["player-expenses", playerId],
     queryFn: async () => {
       if (!playerId) return [];
-      const { data, error } = await supabase
+      return await fetchPaged<any>((from, to) => supabase
         .from("expenses")
         .select("id, casino_id, category, amount, description, approved, created_at")
         .eq("player_id", playerId)
         .order("created_at", { ascending: false })
-        .limit(2000);
-      if (error) throw error;
-      return data || [];
+        .range(from, to));
     },
     enabled: !!playerId,
   });
