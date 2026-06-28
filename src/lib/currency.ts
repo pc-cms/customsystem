@@ -126,10 +126,11 @@ export const TABLE_ROLES: Record<string, string[]> = {
   "Texas Holdem": ["P", "Pi"],
   "Blackjack": ["BJ", "BJi"],
   "American Roulette": ["AR", "ARi", "ARc"],
+  "Club Poker": ["CP"],
 };
 
 // All possible breaklist roles (BR = break, TR = training, SRT = sorting, CLS = closing, S = sick — fills until shift end)
-export const ALL_ROLES = ["P", "Pi", "BJ", "BJi", "AR", "ARi", "ARc", "BR", "TR", "SRT", "CLS", "S", "LT"] as const;
+export const ALL_ROLES = ["P", "Pi", "BJ", "BJi", "AR", "ARi", "ARc", "CP", "BR", "TR", "SRT", "CLS", "S", "LT"] as const;
 
 // Chip distribution per location type
 export const CHIP_DISTRIBUTION = {
@@ -148,6 +149,7 @@ export const ROLE_COLORS: Record<string, string> = {
   AR: "bg-emerald-100 text-emerald-800 dark:bg-emerald-600/20 dark:text-emerald-400",
   ARi: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
   ARc: "bg-teal-50 text-teal-700 dark:bg-emerald-400/15 dark:text-emerald-200",
+  CP: "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-600/25 dark:text-fuchsia-300",
   BR: "bg-muted text-muted-foreground",
   // Training — distinct cyan, learning-on-the-floor position
   TR: "bg-cyan-100 text-cyan-800 dark:bg-cyan-500/25 dark:text-cyan-200",
