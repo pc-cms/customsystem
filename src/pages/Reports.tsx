@@ -448,7 +448,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
           ) : sorted.map((s: any) => {
             const cashVal = s.cashDisplay == null ? null : Number(s.cashDisplay);
             const tables = Number(s.tables_result || 0);
-            const balance = Number(s.balance || 0);
+            const balance = s.cash_flow_delta == null ? null : Number(s.cash_flow_delta);
             const miss = Number(s.miss_total || 0);
             return (
               <DTRow key={s.id}>
@@ -464,8 +464,13 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
                 <DTCell type="money"><span className={signCls(-miss)}>{fmt(-miss)}</span></DTCell>
                 <DTCell type="money"><span className={`font-bold ${signCls(tables)}`}>{fmt(tables)}</span></DTCell>
                 <DTCell type="money">
-                  <span className={signCls(balance)}>{fmt(balance)}</span>
+                  {balance == null ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : (
+                    <span className={signCls(balance)}>{fmt(balance)}</span>
+                  )}
                 </DTCell>
+
 
 
                 <DTCell type="actions">
