@@ -382,11 +382,12 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
       const toIso = businessDayHourUTC(toDate.toISOString().slice(0, 10), 7);
       const { data, error } = await supabase
         .from("shifts")
-        .select("id, opened_at, closed_at, cash_result, miss_total, tables_result, balance, notes, opening_float, closing_count, exchange_rates")
+        .select("id, opened_at, closed_at, miss_total, tables_result, balance, notes, opening_float, closing_count, exchange_rates")
+        .gte("closed_at", from.toISOString())
+        .lte("closed_at", to.toISOString())
         .eq("casino_id", casinoId)
-        .eq("status", "closed")
-        .gte("closed_at", fromIso)
-        .lt("closed_at", toIso)
+        .not("closed_at", "is", null)
+        .order("closed_at", { ascending: false })
         .limit(1000);
       if (error) throw error;
       return data || [];
@@ -394,17 +395,15 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
     enabled: !!casinoId,
   });
 
-  // Enrich each row with on-the-fly Cash Flow (closer − opener TZS) so it
-  // matches the Shift Closing Report exactly. Fall back to stored cash_result
-  // when the snapshot payload is missing (legacy/imported shifts).
+  // Cash is always computed on the fly from opener/closer snapshots so it
+  // matches the Shift Closing Report exactly. No fallback to legacy stored
+  // cash_result — shifts without snapshots show "—".
   const enriched = useMemo(() => {
     return (shifts || []).map((s: any) => {
       const flow = computeShiftCashFlow(s);
       return {
         ...s,
-        cashComputed: flow ? flow.cashDelta : null,
-        cashDisplay: flow ? flow.cashDelta : Number(s.cash_result || 0),
-        cashIsLegacy: flow == null,
+        cashDisplay: flow ? flow.cashDelta : null,
       };
     });
   }, [shifts]);
