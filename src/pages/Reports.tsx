@@ -439,7 +439,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
                 <DTCell type="date">{s.opened_at ? fmtDateTime(s.opened_at) : "—"}</DTCell>
                 <DTCell type="date">{s.closed_at ? fmtDateTime(s.closed_at) : "—"}</DTCell>
                 <DTCell type="money"><span className={signCls(cash)}>{fmt(cash)}</span></DTCell>
-                <DTCell type="money" className="text-muted-foreground">{fmt(miss)}</DTCell>
+                <DTCell type="money"><span className={signCls(-miss)}>{fmt(-miss)}</span></DTCell>
                 <DTCell type="money"><span className={`font-bold ${signCls(tables)}`}>{fmt(tables)}</span></DTCell>
                 <DTCell type="money"><span className={signCls(balance)}>{fmt(balance)}</span></DTCell>
                 <DTCell type="actions">
