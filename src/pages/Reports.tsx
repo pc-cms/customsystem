@@ -420,7 +420,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
       opened: s => s.opened_at, closed: s => s.closed_at,
       cash: s => Number(s.cashDisplay || 0), miss: s => Number(s.miss_total || 0),
       tables: s => Number(s.tables_result || 0),
-      balance: s => Number(s.cash_flow_delta || 0),
+      balance: s => Number(s.balance ?? (s.closing_count as any)?.cash_desk_balance ?? 0),
     };
 
     const g = getter[sort.key];
