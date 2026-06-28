@@ -10,7 +10,7 @@ import {
   Coins, CalendarDays, Joystick, CreditCard, Printer, Check, BarChart3, Info,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { computeShiftCashFlow } from "@/lib/shift-cash";
+
 import MissChips from "@/pages/MissChips";
 import Expenses from "@/pages/finances/FinancesExpensesPage";
 import SlotsHistoryReport from "@/components/reports/SlotsHistoryReport";
