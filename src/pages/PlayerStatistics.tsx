@@ -412,7 +412,6 @@ const PlayerStatistics = () => {
       const inDrop = f.inDrop;
       const out = f.out;
       const chip = { in: f.chipIn, out: f.chipOut };
-      const result = (out + chip.out) - (inDrop + chip.in);
 
       const activeSession = activeSessionByPlayer[v.player_id];
       const isPresent = !v.checked_out_at;
@@ -422,6 +421,7 @@ const PlayerStatistics = () => {
       const playerDropR = playersDropSplit?.get(v.player_id)?.dropR ?? 0;
       const totalIn = playerInDropSum.get(v.player_id) || 0;
       const visitDropR = totalIn > 0 ? playerDropR * (inDrop / totalIn) : 0;
+      const result = (out + chip.out) - (visitDropR + chip.in);
 
       return {
         id: v.id,
@@ -890,11 +890,10 @@ const PlayerStatistics = () => {
         <DateNavigator
           value={date}
           onChange={(iso) => {
-            if (iso < minDate || iso > today) return;
+            if (iso > today) return;
             setDate(iso);
             setRange({ from: iso, to: iso });
           }}
-          minDate={new Date(minDate + "T00:00:00")}
           maxDate={new Date(today + "T00:00:00")}
         />
       )}
