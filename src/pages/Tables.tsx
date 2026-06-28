@@ -324,8 +324,8 @@ const Tables = () => {
   const dropWindowEnd = businessDayHourUTC(effectiveDate, 7 + 24);
   const { data: tablesDropSplit } = useTablesDropSplit(dropWindowStart, dropWindowEnd);
   // Realtime cache for instant updates on the CURRENT business day.
-  const isToday = effectiveDate === businessDay;
   const { data: tablesDropCache } = useTablesDropCacheToday(isToday ? effectiveDate : null);
+
 
   const tableStats = useMemo(() => {
     const stats: Record<string, { drop: number; result: number }> = {};
