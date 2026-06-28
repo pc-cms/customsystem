@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { businessDayHourUTC } from "@/lib/business-day";
 import { fetchPaged } from "@/lib/fetch-paged";
+import { computeShiftCashFlow } from "@/lib/shift-cash";
 import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
 import { toast } from "sonner";
 import {
@@ -382,7 +383,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
       const toIso = businessDayHourUTC(toDate.toISOString().slice(0, 10), 7);
       const { data, error } = await supabase
         .from("shifts")
-        .select("id, opened_at, closed_at, miss_total, tables_result, notes, cash_flow_delta")
+        .select("id, opened_at, closed_at, miss_total, tables_result, notes, cash_flow_delta, opening_float, closing_count, exchange_rates")
         .gte("closed_at", fromIso)
         .lt("closed_at", toIso)
         .eq("casino_id", casinoId)
@@ -395,13 +396,19 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
     enabled: !!casinoId,
   });
 
-  // Cash & Balance both derive from `cash_flow_delta` (BEFORE-trigger keeps it
-  // in sync with opening_float / closing_count / exchange_rates). NULL = no snapshots.
+  // Prefer stored `cash_flow_delta` (kept in sync by BEFORE-trigger).
+  // Fallback: compute on the fly from snapshots — covers on-prem mirrors
+  // where the column exists but hasn't been backfilled yet.
   const enriched = useMemo(() => {
-    return (shifts || []).map((s: any) => ({
-      ...s,
-      cashDisplay: s.cash_flow_delta == null ? null : Number(s.cash_flow_delta),
-    }));
+    return (shifts || []).map((s: any) => {
+      let cashDisplay: number | null =
+        s.cash_flow_delta == null ? null : Number(s.cash_flow_delta);
+      if (cashDisplay == null) {
+        const cf = computeShiftCashFlow(s);
+        if (cf) cashDisplay = cf.cashDelta;
+      }
+      return { ...s, cashDisplay };
+    });
   }, [shifts]);
 
   type K = "opened" | "closed" | "cash" | "miss" | "tables" | "balance";
