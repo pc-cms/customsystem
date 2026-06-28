@@ -383,7 +383,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
       const toIso = businessDayHourUTC(toDate.toISOString().slice(0, 10), 7);
       const { data, error } = await supabase
         .from("shifts")
-        .select("id, opened_at, closed_at, miss_total, tables_result, notes, cash_flow_delta, opening_float, closing_count, exchange_rates")
+        .select("id, opened_at, closed_at, miss_total, tables_result, balance, notes, cash_flow_delta, opening_float, closing_count, exchange_rates")
         .gte("closed_at", fromIso)
         .lt("closed_at", toIso)
         .eq("casino_id", casinoId)
