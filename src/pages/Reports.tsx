@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { businessDayHourUTC } from "@/lib/business-day";
 import { fetchPaged } from "@/lib/fetch-paged";
+import { computeShiftCashFlow } from "@/lib/shift-cash";
 import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
 import { toast } from "sonner";
 import {
