@@ -283,15 +283,19 @@ const PlayerProfile = () => {
   // (authoritative `player_day_drop_cache`). Cashout / chips / comps are
   // simple sums over in-range rows.
   const period = useMemo(() => {
-    let pIn = 0;
+    // Drop tile = Σ peak-NEP across business days in range.
+    let pDrop = 0;
     for (const [d, row] of Object.entries(dropByDay as Record<string, any>)) {
-      if (d >= range.from && d <= range.to) pIn += Number(row?.peak) || 0;
+      if (d >= range.from && d <= range.to) pDrop += Number(row?.peak) || 0;
     }
+    // Raw Cash In = Σ buy/in amounts in window. Used by Result formula.
+    let pIn = 0;
     let pOut = 0;
     for (const t of transactions as any[]) {
       const ts = new Date(t.created_at).getTime();
       if (ts < rangeStartMs || ts > rangeEndMs) continue;
-      if (t.type === "cashout" || t.type === "out") pOut += Number(t.amount) || 0;
+      if (t.type === "buy" || t.type === "in") pIn += Number(t.amount) || 0;
+      else if (t.type === "cashout" || t.type === "out") pOut += Number(t.amount) || 0;
     }
     const pComps = expensesInRange.reduce((s, e: any) => s + (Number(e.amount) || 0), 0);
     const pMins = visitsInRange.reduce((s, v) => s + visitDuration(v), 0);
@@ -300,9 +304,10 @@ const PlayerProfile = () => {
       pChipIn += Number(c.chip_in) || 0;
       pChipOut += Number(c.chip_out) || 0;
     }
+    // Result uses raw Cash In — universal formula across the app.
     const result = (pOut + pChipOut) - (pIn + pChipIn);
     const total = result - pComps;
-    return { pIn, pOut, pComps, pMins, pChipIn, pChipOut, result, total, hold: holdPct(pIn, pOut, pComps), visits: visitsInRange.length };
+    return { pIn, pDrop, pOut, pComps, pMins, pChipIn, pChipOut, result, total, hold: holdPct(pDrop, pOut, pComps), visits: visitsInRange.length };
   }, [transactions, rangeStartMs, rangeEndMs, expensesInRange, visitsInRange, chipAdjInRange, dropByDay, range.from, range.to]);
 
 
