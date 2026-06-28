@@ -383,7 +383,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
       const toIso = businessDayHourUTC(toDate.toISOString().slice(0, 10), 7);
       const { data, error } = await supabase
         .from("shifts")
-        .select("id, opened_at, closed_at, miss_total, tables_result, notes, cash_flow_delta, opening_float, closing_count, exchange_rates")
+        .select("id, opened_at, closed_at, miss_total, tables_result, balance, notes, cash_flow_delta, opening_float, closing_count, exchange_rates")
         .gte("closed_at", fromIso)
         .lt("closed_at", toIso)
         .eq("casino_id", casinoId)
@@ -420,7 +420,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
       opened: s => s.opened_at, closed: s => s.closed_at,
       cash: s => Number(s.cashDisplay || 0), miss: s => Number(s.miss_total || 0),
       tables: s => Number(s.tables_result || 0),
-      balance: s => Number(s.cash_flow_delta || 0),
+      balance: s => Number(s.balance ?? (s.closing_count as any)?.cash_desk_balance ?? 0),
     };
 
     const g = getter[sort.key];
@@ -455,7 +455,10 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
           ) : sorted.map((s: any) => {
             const cashVal = s.cashDisplay == null ? null : Number(s.cashDisplay);
             const tables = Number(s.tables_result || 0);
-            const balance = s.cash_flow_delta == null ? null : Number(s.cash_flow_delta);
+            const snapshotBal = (s.closing_count as any)?.cash_desk_balance;
+            const balance = s.balance != null
+              ? Number(s.balance)
+              : (snapshotBal != null ? Number(snapshotBal) : null);
             const miss = Number(s.miss_total || 0);
             return (
               <DTRow key={s.id}>
