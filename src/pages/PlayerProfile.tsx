@@ -605,7 +605,10 @@ const PlayerProfile = () => {
                   <tbody>
                     {visitsInRange.slice(0, 200).map((v: any) => {
                       const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0, dropR: 0, chipIn: 0, chipOut: 0 };
-                      const result = (f.cashout + f.chipOut) - (f.totalIn + f.chipIn);
+                      // Result uses peak-NEP Drop (f.dropR), same source as Info/History
+                      // and the Drop tile. Using raw Cash In (f.totalIn) double-counts
+                      // recycled buy-ins and disagrees with the period total above.
+                      const result = (f.cashout + f.chipOut) - (f.dropR + f.chipIn);
                       const total = result - f.comps;
                       const colCount = 5 + (showFinancials ? 8 : 0);
                       const isExpanded = expandedVisit === v.id;
@@ -698,7 +701,7 @@ const PlayerProfile = () => {
                         pDropR += f.dropR; pIn += f.totalIn; pOut += f.cashout; pComps += f.comps;
                         pChipIn += f.chipIn; pChipOut += f.chipOut;
                       }
-                      const pRes = (pOut + pChipOut) - (pIn + pChipIn);
+                      const pRes = (pOut + pChipOut) - (pDropR + pChipIn);
                       const pTotal = pRes - pComps;
                       return (
                         <tr className="border-t-2 border-border font-semibold">
