@@ -382,7 +382,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
       const toIso = businessDayHourUTC(toDate.toISOString().slice(0, 10), 7);
       const { data, error } = await supabase
         .from("shifts")
-        .select("id, opened_at, closed_at, miss_total, tables_result, balance, notes, opening_float, closing_count, exchange_rates")
+        .select("id, opened_at, closed_at, miss_total, tables_result, balance, notes, cash_flow_delta")
         .gte("closed_at", fromIso)
         .lt("closed_at", toIso)
         .eq("casino_id", casinoId)
@@ -395,17 +395,13 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
     enabled: !!casinoId,
   });
 
-  // Cash is always computed on the fly from opener/closer snapshots so it
-  // matches the Shift Closing Report exactly. No fallback to legacy stored
-  // cash_result — shifts without snapshots show "—".
+  // Cash is persisted as `cash_flow_delta` (BEFORE-trigger keeps it in sync with
+  // opening_float / closing_count / exchange_rates). NULL = no snapshots.
   const enriched = useMemo(() => {
-    return (shifts || []).map((s: any) => {
-      const flow = computeShiftCashFlow(s);
-      return {
-        ...s,
-        cashDisplay: flow ? flow.cashDelta : null,
-      };
-    });
+    return (shifts || []).map((s: any) => ({
+      ...s,
+      cashDisplay: s.cash_flow_delta == null ? null : Number(s.cash_flow_delta),
+    }));
   }, [shifts]);
 
   // Threshold: shifts closed before this date may have non-zero `balance`
