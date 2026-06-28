@@ -142,7 +142,7 @@ const PlayerStatistics = () => {
     queryKey: ["player_chip_adjustments", "by-range", casinoId, fromDate, toDate],
     queryFn: async () => {
       if (!casinoId) return [] as Array<{ player_id: string; chip_in: number; chip_out: number; created_at: string }>;
-      return await fetchPaged<Array<{ player_id: string; chip_in: number; chip_out: number; created_at: string }>>((from, to) => (supabase.from as any)("player_chip_adjustments")
+      return await fetchPaged<{ player_id: string; chip_in: number; chip_out: number; created_at: string }>((from, to) => (supabase.from as any)("player_chip_adjustments")
         .select("player_id, chip_in, chip_out, created_at")
         .eq("casino_id", casinoId)
         .gte("created_at", windowStartUTC)
