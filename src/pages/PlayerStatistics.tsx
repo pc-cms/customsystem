@@ -25,7 +25,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
+import { DateRangePresets, type DatePreset } from "@/components/ui/date-range-presets";
 import { DateNavigator } from "@/components/ui/date-navigator";
 import { getTableCellClasses } from "@/lib/table-colors";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
@@ -52,11 +52,26 @@ const formatTime = (iso?: string | null) => {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
-const MAX_DAYS_BACK = 90;
-const subDays = (iso: string, n: number) => {
+const addDays = (iso: string, n: number) => {
   const d = new Date(iso + "T12:00:00Z");
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
+};
+
+const PAGE_SIZE = 1000;
+
+const fetchPaged = async <T,>(
+  run: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>,
+): Promise<T[]> => {
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await run(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+  }
+  return rows;
 };
 
 const PlayerStatistics = () => {
@@ -69,8 +84,6 @@ const PlayerStatistics = () => {
     canSeeAllTimeData(roles) ||
     roles.includes("manager") ||
     roles.includes("shift_manager");
-  const minDate = subDays(today, -MAX_DAYS_BACK);
-
   // Date model: anchor `date` for single-day mode + period preset/range for managers.
   const [date, setDate] = useSessionState<string>("pt:date", today);
   const [preset, setPreset] = useSessionState<DatePreset>("pt:preset", "day");
@@ -100,7 +113,7 @@ const PlayerStatistics = () => {
     queryKey: ["ps-transactions", casinoId, fromDate, toDate],
     queryFn: async () => {
       if (!casinoId) return [] as any[];
-      const { data, error } = await supabase
+      return await fetchPaged<any>((from, to) => supabase
         .from("transactions")
         .select("*, players(first_name, last_name, nickname), gaming_tables(name)")
         .eq("casino_id", casinoId)
@@ -108,9 +121,8 @@ const PlayerStatistics = () => {
         .gte("created_at", windowStartUTC)
         .lt("created_at", windowEndUTC)
         .order("created_at", { ascending: false })
-        .limit(5000);
-      if (error) throw error;
-      return data || [];
+        .range(from, to)
+      );
     },
     enabled: !!casinoId,
     staleTime: 1000 * 30,
@@ -121,15 +133,14 @@ const PlayerStatistics = () => {
     queryKey: ["ps-chip-transfers", casinoId, fromDate, toDate],
     queryFn: async () => {
       if (!casinoId) return [] as any[];
-      const { data, error } = await (supabase.from as any)("chip_transfers")
+      return await fetchPaged<any>((from, to) => (supabase.from as any)("chip_transfers")
         .select("*")
         .eq("casino_id", casinoId)
         .gte("created_at", windowStartUTC)
         .lt("created_at", windowEndUTC)
         .order("created_at", { ascending: false })
-        .limit(5000);
-      if (error) throw error;
-      return data || [];
+        .range(from, to)
+      );
     },
     enabled: !!casinoId,
     staleTime: 1000 * 30,
@@ -138,15 +149,15 @@ const PlayerStatistics = () => {
   const { data: chipAdjustments = [] } = useQuery({
     queryKey: ["player_chip_adjustments", "by-range", casinoId, fromDate, toDate],
     queryFn: async () => {
-      if (!casinoId) return [] as Array<{ player_id: string; chip_in: number; chip_out: number }>;
-      const { data, error } = await (supabase.from as any)("player_chip_adjustments")
-        .select("player_id, chip_in, chip_out")
+      if (!casinoId) return [] as Array<{ player_id: string; chip_in: number; chip_out: number; created_at: string }>;
+      return await fetchPaged<Array<{ player_id: string; chip_in: number; chip_out: number; created_at: string }>>((from, to) => (supabase.from as any)("player_chip_adjustments")
+        .select("player_id, chip_in, chip_out, created_at")
         .eq("casino_id", casinoId)
         .gte("created_at", windowStartUTC)
         .lt("created_at", windowEndUTC)
-        .limit(5000);
-      if (error) throw error;
-      return (data || []) as Array<{ player_id: string; chip_in: number; chip_out: number }>;
+        .order("created_at", { ascending: false })
+        .range(from, to)
+      );
     },
     enabled: !!casinoId,
     staleTime: 30_000,
@@ -184,8 +195,8 @@ const PlayerStatistics = () => {
   };
 
   const shiftDate = (delta: number) => {
-    const next = subDays(date, delta);
-    if (next < minDate || next > today) return;
+    const next = addDays(date, delta);
+    if (next > today) return;
     setDate(next);
   };
 
@@ -216,7 +227,6 @@ const PlayerStatistics = () => {
   };
 
   const showFinancials = canSeePlayerFinancials(roles);
-  const canTransfer = false;
   const canEditAvgBet = isSingleDay && roles.some(r => ["pit", "manager", "shift_manager", "super_admin"].includes(r));
   const canEditChips = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "shift_manager", "super_admin"].includes(r));
   const canEditZone = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "shift_manager", "reception", "super_admin"].includes(r));
@@ -249,7 +259,8 @@ const PlayerStatistics = () => {
         .select("*")
         .eq("casino_id", casinoId!)
         .gte("date", fromDate)
-        .lte("date", toDate);
+        .lte("date", toDate)
+        .range(0, 99999);
       return (data || []) as any[];
     },
     enabled: !!casinoId,
@@ -280,14 +291,15 @@ const PlayerStatistics = () => {
   const { data: sessions = [] } = useQuery({
     queryKey: ["client_sessions", casinoId, fromDate, toDate],
     queryFn: async () => {
-      const { data } = await supabase
+      return await fetchPaged<any>((from, to) => supabase
         .from("client_sessions")
         .select("*")
         .eq("casino_id", casinoId!)
         .gte("started_at", windowStartUTC)
         .lt("started_at", windowEndUTC)
-        .order("started_at", { ascending: false });
-      return (data || []) as any[];
+        .order("started_at", { ascending: false })
+        .range(from, to)
+      );
     },
     enabled: !!casinoId,
     refetchInterval: isHistorical ? false : 15000,
