@@ -218,7 +218,8 @@ const ActivePlayers = () => {
       if (!p || !s.table_id) continue;
       const cat = ((p as any).category as PlayerCategory) || "normal";
       if (!categoryFilter.has(cat)) continue;
-      const sp_split = playerSplits.get(p.id) || { dropR: 0, cashout: 0 };
+      const dropR = dropCacheToday.get(p.id)?.dropR || 0;
+      const co = cashoutToday.get(p.id) || 0;
       const sp: SeatedPlayer = {
         id: p.id,
         first_name: p.first_name,
@@ -227,8 +228,8 @@ const ActivePlayers = () => {
         category: cat,
         avgBet: Number(s.avg_bet || 0),
         startedAt: s.started_at ? new Date(s.started_at) : null,
-        dropR: sp_split.dropR,
-        result: sp_split.dropR - sp_split.cashout,
+        dropR,
+        result: dropR - co,
       };
       if (!map[s.table_id]) map[s.table_id] = [];
       map[s.table_id].push(sp);
@@ -243,7 +244,7 @@ const ActivePlayers = () => {
       return (a.startedAt?.getTime() ?? 0) - (b.startedAt?.getTime() ?? 0);
     }));
     return { seatedByTable: map, allSeatedIds: ids };
-  }, [sessions, players, playerSplits, categoryFilter]);
+  }, [sessions, players, dropCacheToday, cashoutToday, categoryFilter]);
 
   // Candidates: any player checked-in (present in casino) and not seated.
   // Falls back to status==="active" for legacy data without visits.
