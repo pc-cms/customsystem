@@ -338,7 +338,8 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const cards = ((player as any)?.player_cards || []) as Array<{ card_number: string; is_active?: boolean }>;
   const activeCard = cards.find((c) => c.is_active)?.card_number || cards[0]?.card_number || "";
   const visitsCount = visits.length;
-  const result = dayStats?.result ?? 0;
+  const drop = dropSplit?.dropR ?? 0;
+  const result = ((dayStats?.cashOut ?? 0) + (dayStats?.chipOut ?? 0)) - (drop + (dayStats?.chipIn ?? 0));
   const activePromo = promoTags.find((t) => t.status === "active") ?? promoTags[0];
 
   const submitAdj = () => {
