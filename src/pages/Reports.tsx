@@ -664,15 +664,20 @@ const PlayerReport = ({ from, to }: { from: string; to: string }) => {
   }, [to]);
 
   const { data: dropByPlayer = {} } = useQuery({
-    queryKey: ["reports-players-drop-split", casinoId, from, to],
+    queryKey: ["reports-players-drop-cache", casinoId, from, to],
     queryFn: async (): Promise<Record<string, number>> => {
       if (!casinoId || !from || !to) return {};
-      const { data, error } = await supabase.rpc("compute_players_drop_split" as any, {
-        _casino_id: casinoId, _from: fromIso, _to: toIso,
-      });
-      if (error) throw error;
+      const rows = await fetchPaged<any>((f, t) => supabase
+        .from("player_day_drop_cache")
+        .select("player_id, peak")
+        .eq("casino_id", casinoId)
+        .gte("business_date", from).lte("business_date", to)
+        .range(f, t));
       const rec: Record<string, number> = {};
-      (data || []).forEach((r: any) => { if (r?.player_id) rec[r.player_id] = Number(r.drop_r) || 0; });
+      rows.forEach((r) => {
+        if (!r?.player_id) return;
+        rec[r.player_id] = (rec[r.player_id] || 0) + (Number(r.peak) || 0);
+      });
       return rec;
     },
     enabled: !!casinoId,
