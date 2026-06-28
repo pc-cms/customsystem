@@ -25,7 +25,10 @@ import {
   differenceInCalendarDays,
 } from "date-fns";
 
-export type DatePreset = "day" | "week" | "month" | "year" | "custom";
+export type DatePreset = "day" | "week" | "month" | "year" | "all" | "custom";
+
+/** Default lower bound for the "All" preset — earliest plausible business date. */
+const DEFAULT_ALL_FROM = "2020-01-01";
 
 const iso = (d: Date) => format(d, "yyyy-MM-dd");
 const fromIso = (s: string): Date => {
@@ -56,6 +59,12 @@ interface DateRangePresetsProps {
   className?: string;
   /** Hide the prev/next arrows. Default false. */
   hideNav?: boolean;
+  /** Hide the Week button. Default false. */
+  hideWeek?: boolean;
+  /** Show the All button (after Year). Default false. */
+  showAll?: boolean;
+  /** Lower bound for "All" preset. Default 2020-01-01. */
+  allFrom?: string;
 }
 
 interface DatePickerButtonProps {
