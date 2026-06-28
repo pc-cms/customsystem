@@ -466,7 +466,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
           ) : sorted.length === 0 ? (
             <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">No closings in range</DTCell></DTRow>
           ) : sorted.map((s: any) => {
-            const cash = Number(s.cashDisplay || 0);
+            const cashVal = s.cashDisplay == null ? null : Number(s.cashDisplay);
             const tables = Number(s.tables_result || 0);
             const balance = Number(s.balance || 0);
             const miss = Number(s.miss_total || 0);
@@ -477,17 +477,10 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
                 <DTCell type="date">{s.opened_at ? fmtDateTime(s.opened_at) : "—"}</DTCell>
                 <DTCell type="date">{s.closed_at ? fmtDateTime(s.closed_at) : "—"}</DTCell>
                 <DTCell type="money">
-                  {s.cashIsLegacy ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className={`${signCls(cash)} opacity-60 cursor-help underline decoration-dotted`}>{fmt(cash)}</span>
-                      </TooltipTrigger>
-                      <TooltipContent className="text-xs">
-                        Legacy stored value — closing/opening cash snapshot отсутствует, показано сырое поле shifts.cash_result.
-                      </TooltipContent>
-                    </Tooltip>
+                  {cashVal == null ? (
+                    <span className="text-muted-foreground">—</span>
                   ) : (
-                    <span className={signCls(cash)}>{fmt(cash)}</span>
+                    <span className={signCls(cashVal)}>{fmt(cashVal)}</span>
                   )}
                 </DTCell>
                 <DTCell type="money"><span className={signCls(-miss)}>{fmt(-miss)}</span></DTCell>
