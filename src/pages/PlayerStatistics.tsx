@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
-import { useNavigate } from "react-router-dom";
-import { BarChart3, Search, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { BarChart3, Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -52,12 +51,6 @@ const formatTime = (iso?: string | null) => {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
-const addDays = (iso: string, n: number) => {
-  const d = new Date(iso + "T12:00:00Z");
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-};
-
 const PAGE_SIZE = 1000;
 
 const fetchPaged = async <T,>(
@@ -75,7 +68,6 @@ const fetchPaged = async <T,>(
 };
 
 const PlayerStatistics = () => {
-  const navigate = useNavigate();
   const { casinoId, roles, user } = useAuth();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
@@ -192,12 +184,6 @@ const PlayerStatistics = () => {
     if (!b) return 0;
     const vals = [b.ar, b.bj, b.poker, b.club].filter((v): v is number => v != null && v > 0);
     return vals.length ? Math.max(...vals) : 0;
-  };
-
-  const shiftDate = (delta: number) => {
-    const next = addDays(date, delta);
-    if (next > today) return;
-    setDate(next);
   };
 
   const [tab, setTab] = useSessionState<TabKey>("pt:tab", "day");
