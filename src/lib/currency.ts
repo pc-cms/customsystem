@@ -126,10 +126,11 @@ export const TABLE_ROLES: Record<string, string[]> = {
   "Texas Holdem": ["P", "Pi"],
   "Blackjack": ["BJ", "BJi"],
   "American Roulette": ["AR", "ARi", "ARc"],
+  "Club Poker": ["CP"],
 };
 
 // All possible breaklist roles (BR = break, TR = training, SRT = sorting, CLS = closing, S = sick — fills until shift end)
-export const ALL_ROLES = ["P", "Pi", "BJ", "BJi", "AR", "ARi", "ARc", "BR", "TR", "SRT", "CLS", "S", "LT"] as const;
+export const ALL_ROLES = ["P", "Pi", "BJ", "BJi", "AR", "ARi", "ARc", "CP", "BR", "TR", "SRT", "CLS", "S", "LT"] as const;
 
 // Chip distribution per location type
 export const CHIP_DISTRIBUTION = {
