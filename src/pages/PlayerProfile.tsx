@@ -606,10 +606,9 @@ const PlayerProfile = () => {
                   <tbody>
                     {visitsInRange.slice(0, 200).map((v: any) => {
                       const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0, dropR: 0, chipIn: 0, chipOut: 0 };
-                      // Result uses peak-NEP Drop (f.dropR), same source as Info/History
-                      // and the Drop tile. Using raw Cash In (f.totalIn) double-counts
-                      // recycled buy-ins and disagrees with the period total above.
-                      const result = (f.cashout + f.chipOut) - (f.dropR + f.chipIn);
+                      // Universal formula: Result = (Cashout + Chip Out) − (Cash In + Chip In).
+                      // Cash In is raw — Drop (peak-NEP) lives in its own column.
+                      const result = (f.cashout + f.chipOut) - (f.totalIn + f.chipIn);
                       const total = result - f.comps;
                       const colCount = 5 + (showFinancials ? 8 : 0);
                       const isExpanded = expandedVisit === v.id;
