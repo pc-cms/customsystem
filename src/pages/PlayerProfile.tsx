@@ -701,7 +701,7 @@ const PlayerProfile = () => {
                         pDropR += f.dropR; pIn += f.totalIn; pOut += f.cashout; pComps += f.comps;
                         pChipIn += f.chipIn; pChipOut += f.chipOut;
                       }
-                      const pRes = (pOut + pChipOut) - (pIn + pChipIn);
+                      const pRes = (pOut + pChipOut) - (pDropR + pChipIn);
                       const pTotal = pRes - pComps;
                       return (
                         <tr className="border-t-2 border-border font-semibold">
