@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { usePlayers, useGamingTables } from "@/hooks/use-casino-data";
-import { usePlayersDropSplit } from "@/hooks/use-drop-split";
+import { usePlayersDropSplit, usePlayersDropCacheRange } from "@/hooks/use-drop-split";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { canSeePlayerFinancials, canSeeAllTimeData } from "@/lib/role-access";
@@ -152,7 +152,17 @@ const PlayerStatistics = () => {
     staleTime: 30_000,
     refetchInterval: isHistorical ? false : 30_000,
   });
-  const { data: playersDropSplit } = usePlayersDropSplit(windowStartUTC, windowEndUTC);
+  // Drop = `player_day_drop_cache` (DB-trigger maintained peak-NEP per day).
+  // This is the SAME source the Dashboard/Tables read for per-table Drop, so
+  // Σ players-cache ≡ Σ tables-cache and the two screens cannot drift.
+  // RPC kept as fallback for any window the cache hasn't materialised yet.
+  const { data: playersDropCache } = usePlayersDropCacheRange(fromDate, toDate);
+  const { data: playersDropSplitRpc } = usePlayersDropSplit(windowStartUTC, windowEndUTC);
+  const playersDropSplit = useMemo(() => {
+    const cacheSize = playersDropCache?.size ?? 0;
+    return cacheSize > 0 ? playersDropCache : playersDropSplitRpc;
+  }, [playersDropCache, playersDropSplitRpc]);
+
 
   // Daily avg bet (manual entry). Single-day only — for multi-day periods we don't show breakdown.
   const isSingleDay = fromDate === toDate;
