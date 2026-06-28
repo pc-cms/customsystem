@@ -30,7 +30,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useBusinessDayFilter } from "@/hooks/use-business-day-filter";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { useReadOnlyMode } from "@/hooks/use-readonly-mode";
-import { useTablesDropSplit, useTablesDropCacheToday } from "@/hooks/use-drop-split";
+import { useTablesDropSplit, useTablesDropCacheToday, usePlayersDropCacheToday } from "@/hooks/use-drop-split";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { offlineMutation } from "@/lib/offline-mutation";
@@ -237,35 +237,23 @@ const Tables = () => {
     onError: (e: any) => toast.error(e.message),
   });
 
-  // Per-player Drop R for seated players (NEP-aware via useTablesDropSplit gives per-table; for per-player use windowed walk over current transactions list).
-  // Sufficient: take all txs of the player up to "now" and apply NEP locally.
-  const playerSplitsForSeated = useMemo(() => {
-    // Group all txs by player
-    const byPlayer = new Map<string, any[]>();
+  // Per-player Drop R for seated players — read from the authoritative
+  // `player_day_drop_cache` (peak-NEP per business day). Same source as
+  // PlayerStatistics and (via table_day_drop_cache) the Dashboard, so
+  // sums agree by construction.
+  const isToday = effectiveDate === businessDay;
+  const { data: playersDropCacheToday } = usePlayersDropCacheToday(isToday ? effectiveDate : null);
+
+  // Cashout sum per player for the day — used only for the row's Result.
+  const playerCashoutToday = useMemo(() => {
+    const m = new Map<string, number>();
     for (const t of transactions as any[]) {
-      if (!t.player_id) continue;
-      let arr = byPlayer.get(t.player_id);
-      if (!arr) { arr = []; byPlayer.set(t.player_id, arr); }
-      arr.push(t);
-    }
-    const out = new Map<string, { dropR: number; cashout: number }>();
-    for (const [pid, txs] of byPlayer) {
-      txs.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
-      let nep = 0, dropR = 0, cashout = 0;
-      for (const t of txs) {
-        const amt = Number(t.amount) || 0;
-        if (t.type === "buy" || t.type === "in") {
-          const rec = nep < 0 ? Math.min(amt, -nep) : 0;
-          dropR += amt - rec;
-          nep += amt;
-        } else if (t.type === "cashout" || t.type === "out") {
-          cashout += amt;
-          nep -= amt;
-        }
+      if (!t.player_id || t.cancelled_at) continue;
+      if (t.type === "cashout" || t.type === "out") {
+        m.set(t.player_id, (m.get(t.player_id) || 0) + (Number(t.amount) || 0));
       }
-      out.set(pid, { dropR, cashout });
     }
-    return out;
+    return m;
   }, [transactions]);
 
   const { seatedByTable, allSeatedIds } = useMemo(() => {
@@ -276,7 +264,8 @@ const Tables = () => {
       const p = players.find(pl => pl.id === s.player_id);
       if (!p || !s.table_id) continue;
       const cat = ((p as any).category as PlayerCategory) || "normal";
-      const sp_split = playerSplitsForSeated.get(p.id) || { dropR: 0, cashout: 0 };
+      const dropR = playersDropCacheToday?.get(p.id)?.dropR ?? 0;
+      const cashout = playerCashoutToday.get(p.id) ?? 0;
       const sp: SeatedPlayer = {
         id: p.id,
         first_name: p.first_name,
@@ -286,8 +275,8 @@ const Tables = () => {
         category: cat,
         avgBet: Number(s.avg_bet || 0),
         startedAt: s.started_at ? new Date(s.started_at) : null,
-        dropR: sp_split.dropR,
-        result: sp_split.dropR - sp_split.cashout,
+        dropR,
+        result: dropR - cashout,
       };
       if (!map[s.table_id]) map[s.table_id] = [];
       map[s.table_id].push(sp);
@@ -301,7 +290,8 @@ const Tables = () => {
       return (a.startedAt?.getTime() ?? 0) - (b.startedAt?.getTime() ?? 0);
     }));
     return { seatedByTable: map, allSeatedIds: ids };
-  }, [sessions, players, playerSplitsForSeated]);
+  }, [sessions, players, playersDropCacheToday, playerCashoutToday]);
+
 
   const candidates = useMemo(() => {
     const visitIds = new Set(
@@ -334,8 +324,8 @@ const Tables = () => {
   const dropWindowEnd = businessDayHourUTC(effectiveDate, 7 + 24);
   const { data: tablesDropSplit } = useTablesDropSplit(dropWindowStart, dropWindowEnd);
   // Realtime cache for instant updates on the CURRENT business day.
-  const isToday = effectiveDate === businessDay;
   const { data: tablesDropCache } = useTablesDropCacheToday(isToday ? effectiveDate : null);
+
 
   const tableStats = useMemo(() => {
     const stats: Record<string, { drop: number; result: number }> = {};

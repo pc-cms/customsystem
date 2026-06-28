@@ -177,7 +177,19 @@ export const useRealtimeSubscriptions = () => {
           () => {
             debouncedInvalidate(qc, "tables-drop-cache-today", ["tables-drop-cache-today"]);
           },
+        )
+        // Per-player Drop cache — single source of truth used by Tables (seated
+        // players), Player Statistics, and PlayerPreviewHeader. Subscribing here
+        // keeps Σ players-cache ≡ Σ tables-cache without waiting for any RPC.
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "player_day_drop_cache", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            debouncedInvalidate(qc, "players-drop-cache-today", ["players-drop-cache-today"]);
+            debouncedInvalidate(qc, "players-drop-cache-range", ["players-drop-cache-range"]);
+          },
         );
+
 
 
       // ═════════════ PIT (breaklist / rota / dealers / attendance) ═════════════
