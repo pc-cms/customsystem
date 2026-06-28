@@ -237,9 +237,14 @@ const PlayerProfile = () => {
   // total  = result − comps                          (with comps/expenses)
   const lifetime = useMemo(() => {
     const totalMins = visits.reduce((s, v) => s + visitDuration(v), 0);
+    // Lifetime "Drop" KPI = Σ peak-NEP across ALL business days from the
+    // authoritative `player_day_drop_cache`. Identical formula to Player
+    // Statistics / Tables / Dashboard — never disagrees again.
+    const dropR = Object.values(dropByDay as Record<string, any>).reduce(
+      (s, r) => s + (Number(r?.peak) || 0), 0,
+    );
     const dropGross = Number(economy?.total_drop) || 0;
-    const dropR = Number((economy as any)?.total_drop_r) || 0;
-    const drop = dropR; // Lifetime "Drop" KPI = NEP-aware Drop R (External part of cash-in)
+    const drop = dropR;
     const cashout = Number(economy?.total_cashout) || 0;
     const comps = Number(economy?.total_expenses) || 0;
     let chipIn = 0, chipOut = 0;
