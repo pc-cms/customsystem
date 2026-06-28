@@ -252,9 +252,13 @@ const PlayerProfile = () => {
       chipIn += Number(c.chip_in) || 0;
       chipOut += Number(c.chip_out) || 0;
     }
-    const result = (cashout + chipOut) - (dropGross + chipIn); // result includes chip adjustments
+    // Result uses peak-NEP Drop (sum of business-day peaks) — same source as the
+    // Drop tile and the Visits Breakdown LIFETIME TOTAL row. Using raw `dropGross`
+    // here double-counts recycled cash and produces a different number than the
+    // breakdown immediately below (the "каша" the user reported).
+    const result = (cashout + chipOut) - (drop + chipIn);
     const total = result - comps;
-    const hold = holdPct(dropGross, cashout, comps); // Hold % stays on cash drop only (audit-only chips don't bias hold)
+    const hold = holdPct(drop, cashout, comps); // Hold % on peak-NEP drop so it matches Player Statistics
     const firstVisit = visits.length ? visits[visits.length - 1].checked_in_at : null;
     const lastVisit = visits[0] ? (visits[0].checked_out_at || visits[0].checked_in_at) : null;
     const daysSinceLast = lastVisit
