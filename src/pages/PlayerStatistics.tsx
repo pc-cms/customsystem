@@ -1,12 +1,11 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
-import { useNavigate } from "react-router-dom";
-import { BarChart3, Search, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { BarChart3, Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { usePlayers, useGamingTables } from "@/hooks/use-casino-data";
-import { usePlayersDropSplit, usePlayersDropCacheRange } from "@/hooks/use-drop-split";
+import { usePlayersDropCacheRange } from "@/hooks/use-drop-split";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { canSeePlayerFinancials, canSeeAllTimeData } from "@/lib/role-access";
@@ -25,7 +24,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
+import { DateRangePresets, type DatePreset } from "@/components/ui/date-range-presets";
 import { DateNavigator } from "@/components/ui/date-navigator";
 import { getTableCellClasses } from "@/lib/table-colors";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
@@ -52,15 +51,23 @@ const formatTime = (iso?: string | null) => {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
-const MAX_DAYS_BACK = 90;
-const subDays = (iso: string, n: number) => {
-  const d = new Date(iso + "T12:00:00Z");
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
+const PAGE_SIZE = 1000;
+
+const fetchPaged = async <T,>(
+  run: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>,
+): Promise<T[]> => {
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await run(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+  }
+  return rows;
 };
 
 const PlayerStatistics = () => {
-  const navigate = useNavigate();
   const { casinoId, roles, user } = useAuth();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
@@ -69,8 +76,6 @@ const PlayerStatistics = () => {
     canSeeAllTimeData(roles) ||
     roles.includes("manager") ||
     roles.includes("shift_manager");
-  const minDate = subDays(today, -MAX_DAYS_BACK);
-
   // Date model: anchor `date` for single-day mode + period preset/range for managers.
   const [date, setDate] = useSessionState<string>("pt:date", today);
   const [preset, setPreset] = useSessionState<DatePreset>("pt:preset", "day");
@@ -84,8 +89,10 @@ const PlayerStatistics = () => {
   }, [canBrowseHistory, today, preset, date, range]);
   const isValidIsoDate = (s: string | undefined | null): s is string =>
     !!s && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(new Date(`${s}T00:00:00.000Z`).getTime());
-  const fromDate = isValidIsoDate(effectiveRange.from) ? effectiveRange.from : today;
-  const toDate = isValidIsoDate(effectiveRange.to) ? effectiveRange.to : today;
+  const rawFromDate = isValidIsoDate(effectiveRange.from) ? effectiveRange.from : today;
+  const rawToDate = isValidIsoDate(effectiveRange.to) ? effectiveRange.to : today;
+  const fromDate = rawFromDate <= rawToDate ? rawFromDate : rawToDate;
+  const toDate = rawFromDate <= rawToDate ? rawToDate : rawFromDate;
   const isMultiDay = fromDate !== toDate;
   const isHistorical = toDate !== today || fromDate !== today;
   const windowStartUTC = businessDayHourUTC(fromDate, 7);
@@ -100,7 +107,7 @@ const PlayerStatistics = () => {
     queryKey: ["ps-transactions", casinoId, fromDate, toDate],
     queryFn: async () => {
       if (!casinoId) return [] as any[];
-      const { data, error } = await supabase
+      return await fetchPaged<any>((from, to) => supabase
         .from("transactions")
         .select("*, players(first_name, last_name, nickname), gaming_tables(name)")
         .eq("casino_id", casinoId)
@@ -108,9 +115,8 @@ const PlayerStatistics = () => {
         .gte("created_at", windowStartUTC)
         .lt("created_at", windowEndUTC)
         .order("created_at", { ascending: false })
-        .limit(5000);
-      if (error) throw error;
-      return data || [];
+        .range(from, to)
+      );
     },
     enabled: !!casinoId,
     staleTime: 1000 * 30,
@@ -121,15 +127,14 @@ const PlayerStatistics = () => {
     queryKey: ["ps-chip-transfers", casinoId, fromDate, toDate],
     queryFn: async () => {
       if (!casinoId) return [] as any[];
-      const { data, error } = await (supabase.from as any)("chip_transfers")
+      return await fetchPaged<any>((from, to) => (supabase.from as any)("chip_transfers")
         .select("*")
         .eq("casino_id", casinoId)
         .gte("created_at", windowStartUTC)
         .lt("created_at", windowEndUTC)
         .order("created_at", { ascending: false })
-        .limit(5000);
-      if (error) throw error;
-      return data || [];
+        .range(from, to)
+      );
     },
     enabled: !!casinoId,
     staleTime: 1000 * 30,
@@ -138,15 +143,15 @@ const PlayerStatistics = () => {
   const { data: chipAdjustments = [] } = useQuery({
     queryKey: ["player_chip_adjustments", "by-range", casinoId, fromDate, toDate],
     queryFn: async () => {
-      if (!casinoId) return [] as Array<{ player_id: string; chip_in: number; chip_out: number }>;
-      const { data, error } = await (supabase.from as any)("player_chip_adjustments")
-        .select("player_id, chip_in, chip_out")
+      if (!casinoId) return [] as Array<{ player_id: string; chip_in: number; chip_out: number; created_at: string }>;
+      return await fetchPaged<{ player_id: string; chip_in: number; chip_out: number; created_at: string }>((from, to) => (supabase.from as any)("player_chip_adjustments")
+        .select("player_id, chip_in, chip_out, created_at")
         .eq("casino_id", casinoId)
         .gte("created_at", windowStartUTC)
         .lt("created_at", windowEndUTC)
-        .limit(5000);
-      if (error) throw error;
-      return (data || []) as Array<{ player_id: string; chip_in: number; chip_out: number }>;
+        .order("created_at", { ascending: false })
+        .range(from, to)
+      );
     },
     enabled: !!casinoId,
     staleTime: 30_000,
@@ -155,13 +160,7 @@ const PlayerStatistics = () => {
   // Drop = `player_day_drop_cache` (DB-trigger maintained peak-NEP per day).
   // This is the SAME source the Dashboard/Tables read for per-table Drop, so
   // Σ players-cache ≡ Σ tables-cache and the two screens cannot drift.
-  // RPC kept as fallback for any window the cache hasn't materialised yet.
-  const { data: playersDropCache } = usePlayersDropCacheRange(fromDate, toDate);
-  const { data: playersDropSplitRpc } = usePlayersDropSplit(windowStartUTC, windowEndUTC);
-  const playersDropSplit = useMemo(() => {
-    const cacheSize = playersDropCache?.size ?? 0;
-    return cacheSize > 0 ? playersDropCache : playersDropSplitRpc;
-  }, [playersDropCache, playersDropSplitRpc]);
+  const { data: playersDropSplit } = usePlayersDropCacheRange(fromDate, toDate);
 
 
   // Daily avg bet (manual entry). Single-day only — for multi-day periods we don't show breakdown.
@@ -181,12 +180,6 @@ const PlayerStatistics = () => {
     if (!b) return 0;
     const vals = [b.ar, b.bj, b.poker, b.club].filter((v): v is number => v != null && v > 0);
     return vals.length ? Math.max(...vals) : 0;
-  };
-
-  const shiftDate = (delta: number) => {
-    const next = subDays(date, delta);
-    if (next < minDate || next > today) return;
-    setDate(next);
   };
 
   const [tab, setTab] = useSessionState<TabKey>("pt:tab", "day");
@@ -216,7 +209,6 @@ const PlayerStatistics = () => {
   };
 
   const showFinancials = canSeePlayerFinancials(roles);
-  const canTransfer = false;
   const canEditAvgBet = isSingleDay && roles.some(r => ["pit", "manager", "shift_manager", "super_admin"].includes(r));
   const canEditChips = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "shift_manager", "super_admin"].includes(r));
   const canEditZone = isSingleDay && fromDate === today && roles.some(r => ["pit", "manager", "shift_manager", "reception", "super_admin"].includes(r));
@@ -244,13 +236,16 @@ const PlayerStatistics = () => {
   const { data: visits = [] } = useQuery({
     queryKey: ["casino_visits", casinoId, fromDate, toDate],
     queryFn: async () => {
-      const { data } = await supabase
+      if (!casinoId) return [] as any[];
+      return await fetchPaged<any>((from, to) => supabase
         .from("casino_visits")
         .select("*")
-        .eq("casino_id", casinoId!)
+        .eq("casino_id", casinoId)
         .gte("date", fromDate)
-        .lte("date", toDate);
-      return (data || []) as any[];
+        .lte("date", toDate)
+        .order("checked_in_at", { ascending: false })
+        .range(from, to)
+      );
     },
     enabled: !!casinoId,
     refetchInterval: isHistorical ? false : 15000,
@@ -280,14 +275,15 @@ const PlayerStatistics = () => {
   const { data: sessions = [] } = useQuery({
     queryKey: ["client_sessions", casinoId, fromDate, toDate],
     queryFn: async () => {
-      const { data } = await supabase
+      return await fetchPaged<any>((from, to) => supabase
         .from("client_sessions")
         .select("*")
         .eq("casino_id", casinoId!)
         .gte("started_at", windowStartUTC)
         .lt("started_at", windowEndUTC)
-        .order("started_at", { ascending: false });
-      return (data || []) as any[];
+        .order("started_at", { ascending: false })
+        .range(from, to)
+      );
     },
     enabled: !!casinoId,
     refetchInterval: isHistorical ? false : 15000,
@@ -400,7 +396,6 @@ const PlayerStatistics = () => {
       const inDrop = f.inDrop;
       const out = f.out;
       const chip = { in: f.chipIn, out: f.chipOut };
-      const result = (out + chip.out) - (inDrop + chip.in);
 
       const activeSession = activeSessionByPlayer[v.player_id];
       const isPresent = !v.checked_out_at;
@@ -410,6 +405,7 @@ const PlayerStatistics = () => {
       const playerDropR = playersDropSplit?.get(v.player_id)?.dropR ?? 0;
       const totalIn = playerInDropSum.get(v.player_id) || 0;
       const visitDropR = totalIn > 0 ? playerDropR * (inDrop / totalIn) : 0;
+      const result = (out + chip.out) - (visitDropR + chip.in);
 
       return {
         id: v.id,
@@ -878,11 +874,10 @@ const PlayerStatistics = () => {
         <DateNavigator
           value={date}
           onChange={(iso) => {
-            if (iso < minDate || iso > today) return;
+            if (iso > today) return;
             setDate(iso);
             setRange({ from: iso, to: iso });
           }}
-          minDate={new Date(minDate + "T00:00:00")}
           maxDate={new Date(today + "T00:00:00")}
         />
       )}
@@ -914,7 +909,7 @@ const PlayerStatistics = () => {
         date={!canBrowseHistory}
       />
 
-      <PlayerPreviewHeader range={effectiveRange} />
+      <PlayerPreviewHeader range={{ from: fromDate, to: toDate }} />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">

@@ -4,6 +4,22 @@ import { useAuth } from "@/lib/auth-context";
 import { logAction } from "@/lib/logging";
 import { toast } from "sonner";
 
+const PAGE_SIZE = 1000;
+
+const fetchPaged = async <T,>(
+  run: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>,
+): Promise<T[]> => {
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await run(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+  }
+  return rows;
+};
+
 // ============ PLAYERS ============
 /**
  * Global player base — all players across all casinos.
@@ -14,12 +30,12 @@ export const usePlayers = () => {
   return useQuery({
     queryKey: ["players"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      return await fetchPaged<any>((from, to) => supabase
         .from("players")
         .select("*, player_cards(*), player_tags(*)")
-        .order("last_name");
-      if (error) throw error;
-      return data;
+        .order("last_name")
+        .range(from, to)
+      );
     },
     staleTime: 1000 * 60 * 5,
   });
@@ -199,8 +215,8 @@ export const usePlayerEconomyRange = (range: { from: string; to: string }) => {
       const fromIso = `${range.from}T00:00:00`;
       const toIso = `${range.to}T23:59:59`;
 
-      const [txRes, expRes, visRes] = await Promise.all([
-        supabase
+      const [txRows, expRows, visRows] = await Promise.all([
+        fetchPaged<any>((from, to) => supabase
           .from("transactions")
           .select("player_id, type, amount, created_at")
           .eq("casino_id", casinoId)
@@ -208,26 +224,29 @@ export const usePlayerEconomyRange = (range: { from: string; to: string }) => {
           .is("cancelled_at", null)
           .gte("created_at", fromIso)
           .lte("created_at", toIso)
-          .limit(50000),
-        supabase
+          .order("created_at", { ascending: false })
+          .range(from, to)
+        ),
+        fetchPaged<any>((from, to) => supabase
           .from("expenses")
           .select("player_id, amount, created_at")
           .eq("casino_id", casinoId)
           .not("player_id", "is", null)
           .gte("created_at", fromIso)
           .lte("created_at", toIso)
-          .limit(20000),
-        supabase
+          .order("created_at", { ascending: false })
+          .range(from, to)
+        ),
+        fetchPaged<any>((from, to) => supabase
           .from("casino_visits")
           .select("player_id, checked_in_at")
           .eq("casino_id", casinoId)
           .gte("checked_in_at", fromIso)
           .lte("checked_in_at", toIso)
-          .limit(20000),
+          .order("checked_in_at", { ascending: false })
+          .range(from, to)
+        ),
       ]);
-      if (txRes.error) throw txRes.error;
-      if (expRes.error) throw expRes.error;
-      if (visRes.error) throw visRes.error;
 
       const m = new Map<string, { drop: number; cashout: number; comps: number; visits: number; lastVisit: string | null }>();
       const get = (pid: string) => {
@@ -235,18 +254,18 @@ export const usePlayerEconomyRange = (range: { from: string; to: string }) => {
         if (!cur) { cur = { drop: 0, cashout: 0, comps: 0, visits: 0, lastVisit: null }; m.set(pid, cur); }
         return cur;
       };
-      for (const t of txRes.data || []) {
+      for (const t of txRows) {
         if (!t.player_id) continue;
         const cur = get(t.player_id);
         const amt = Number(t.amount) || 0;
         if (t.type === "buy" || t.type === "in") cur.drop += amt;
         else if (t.type === "cashout" || t.type === "out") cur.cashout += amt;
       }
-      for (const e of expRes.data || []) {
+      for (const e of expRows) {
         if (!e.player_id) continue;
         get(e.player_id).comps += Number(e.amount) || 0;
       }
-      for (const v of visRes.data || []) {
+      for (const v of visRows) {
         if (!v.player_id) continue;
         const cur = get(v.player_id);
         cur.visits += 1;

@@ -31,6 +31,22 @@ const toLookup = (rec: Record<string, TableSplit>): SplitLookup => ({
   get size() { return Object.keys(rec).length; },
 });
 
+const PAGE_SIZE = 1000;
+
+const fetchPaged = async <T,>(
+  run: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>,
+): Promise<T[]> => {
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await run(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+  }
+  return rows;
+};
+
 /** Returns a Map-like lookup keyed by table_id. */
 export const useTablesDropSplit = (fromIso: string | null, toIso: string | null) => {
   const { casinoId } = useAuth();
@@ -219,15 +235,17 @@ export const usePlayersDropCacheRange = (
     queryKey: ["players-drop-cache-range", casinoId, fromDate, toDate],
     queryFn: async (): Promise<Record<string, TableSplit>> => {
       if (!casinoId || !fromDate || !toDate) return {};
-      const { data, error } = await supabase
+      const rows = await fetchPaged<any>((from, to) => supabase
         .from("player_day_drop_cache")
         .select("player_id, peak, recycled")
         .eq("casino_id", casinoId)
         .gte("business_date", fromDate)
-        .lte("business_date", toDate);
-      if (error) throw error;
+        .lte("business_date", toDate)
+        .order("business_date", { ascending: true })
+        .range(from, to)
+      );
       const rec: Record<string, TableSplit> = {};
-      (data || []).forEach((r: any) => {
+      rows.forEach((r: any) => {
         if (!r?.player_id) return;
         const prev = rec[r.player_id] || { dropR: 0, recycled: 0 };
         rec[r.player_id] = {
