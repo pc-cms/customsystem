@@ -233,18 +233,15 @@ const PlayerProfile = () => {
   }, [visits, transactions]);
 
   // Lifetime KPIs — perspective: PLAYER (positive = player won, negative = player lost).
-  // result = (cashout + chipOut) − (drop + chipIn)   (clean play + chip adjustments)
-  // total  = result − comps                          (with comps/expenses)
+  // result = (cashout + chipOut) − (cash_in_raw + chipIn)   (raw Cash In, no formulas)
+  // total  = result − comps                                   (with comps/expenses)
   const lifetime = useMemo(() => {
     const totalMins = visits.reduce((s, v) => s + visitDuration(v), 0);
-    // Lifetime "Drop" KPI = Σ peak-NEP across ALL business days from the
-    // authoritative `player_day_drop_cache`. Identical formula to Player
-    // Statistics / Tables / Dashboard — never disagrees again.
+    // Drop KPI (separate tile) — Σ peak-NEP across business days from cache.
     const dropR = Object.values(dropByDay as Record<string, any>).reduce(
       (s, r) => s + (Number(r?.peak) || 0), 0,
     );
-    const dropGross = Number(economy?.total_drop) || 0;
-    const drop = dropR;
+    const cashIn = Number(economy?.total_drop) || 0;     // raw lifetime Cash In
     const cashout = Number(economy?.total_cashout) || 0;
     const comps = Number(economy?.total_expenses) || 0;
     let chipIn = 0, chipOut = 0;
@@ -252,11 +249,10 @@ const PlayerProfile = () => {
       chipIn += Number(c.chip_in) || 0;
       chipOut += Number(c.chip_out) || 0;
     }
-    // Result uses peak-NEP Drop (sum of business-day peaks) — same source as the
-    // Drop tile and the Visits Breakdown LIFETIME TOTAL row. Using raw `dropGross`
-    // here double-counts recycled cash and produces a different number than the
-    // breakdown immediately below (the "каша" the user reported).
-    const result = (cashout + chipOut) - (drop + chipIn);
+    // Result uses raw Cash In — the universal formula:
+    //   Result = (Cashout + Chip Out) − (Cash In + Chip In)
+    // Drop (peak-NEP) lives in its own tile and is NOT part of Result.
+    const result = (cashout + chipOut) - (cashIn + chipIn);
     const total = result - comps;
     const hold = holdPct(drop, cashout, comps); // Hold % on peak-NEP drop so it matches Player Statistics
     const firstVisit = visits.length ? visits[visits.length - 1].checked_in_at : null;
