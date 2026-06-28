@@ -437,22 +437,8 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
             <SortHeader label="Cash" k="cash" sort={sort as any} toggle={toggle} type="money" />
             <SortHeader label="Miss" k="miss" sort={sort as any} toggle={toggle} type="money" />
             <SortHeader label="Tables" k="tables" sort={sort as any} toggle={toggle} type="money" />
-            <DTHeader type="money">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 cursor-help"
-                    onClick={() => toggle("balance")}
-                  >
-                    Balance <Info className="w-3 h-3 opacity-60" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs text-xs">
-                  Cash Desk reconciliation: 0 = касса сошлась. Несхождения до 13/06/2026 — историческая фактика (до ужесточения End Day).
-                </TooltipContent>
-              </Tooltip>
-            </DTHeader>
+            <SortHeader label="Balance" k="balance" sort={sort as any} toggle={toggle} type="money" />
+
             <DTHeader type="actions" />
           </DTRow>
         </DTHead>
@@ -466,8 +452,6 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
             const tables = Number(s.tables_result || 0);
             const balance = Number(s.balance || 0);
             const miss = Number(s.miss_total || 0);
-            const closedTs = s.closed_at ? new Date(s.closed_at).getTime() : 0;
-            const legacyBalance = balance !== 0 && closedTs > 0 && closedTs < STRICT_BALANCE_FROM;
             return (
               <DTRow key={s.id}>
                 <DTCell type="date">{s.opened_at ? fmtDateTime(s.opened_at) : "—"}</DTCell>
@@ -482,21 +466,10 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
                 <DTCell type="money"><span className={signCls(-miss)}>{fmt(-miss)}</span></DTCell>
                 <DTCell type="money"><span className={`font-bold ${signCls(tables)}`}>{fmt(tables)}</span></DTCell>
                 <DTCell type="money">
-                  {legacyBalance ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className={`${signCls(balance)} cursor-help inline-flex items-center gap-1`}>
-                          {fmt(balance)} <Info className="w-3 h-3 opacity-60" />
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs text-xs">
-                        Историческое несхождение кассы (до 13/06/2026, до ужесточения End Day reconciliation).
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <span className={signCls(balance)}>{fmt(balance)}</span>
-                  )}
+                  <span className={signCls(balance)}>{fmt(balance)}</span>
                 </DTCell>
+
+
                 <DTCell type="actions">
                   <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => setReprintId(s.id)}>
                     <Printer className="w-3 h-3" /> Print
