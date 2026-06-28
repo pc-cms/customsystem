@@ -166,3 +166,87 @@ export const useTablesDropCacheToday = (businessDate: string | null | undefined)
   return { ...q, data };
 };
 
+/**
+ * Per-PLAYER Drop R / Recycled for a single business day, read from the
+ * `player_day_drop_cache` materialized cache. DB triggers on `transactions`
+ * maintain it with per-business-day peak-NEP — the authoritative formula.
+ *
+ * Use as PRIMARY source for the current business day everywhere (Tables
+ * seated players, Player Statistics, Player Preview). Guarantees
+ *   Σ player_day_drop_cache.peak == Σ table_day_drop_cache.drop_r_share
+ * so Players and Dashboard cannot drift.
+ */
+export const usePlayersDropCacheToday = (businessDate: string | null | undefined) => {
+  const { casinoId } = useAuth();
+  const q = useQuery({
+    queryKey: ["players-drop-cache-today", casinoId, businessDate],
+    queryFn: async (): Promise<Record<string, TableSplit>> => {
+      if (!casinoId || !businessDate) return {};
+      const { data, error } = await supabase
+        .from("player_day_drop_cache")
+        .select("player_id, peak, recycled")
+        .eq("casino_id", casinoId)
+        .eq("business_date", businessDate);
+      if (error) throw error;
+      const rec: Record<string, TableSplit> = {};
+      (data || []).forEach((r: any) => {
+        if (!r?.player_id) return;
+        rec[r.player_id] = {
+          dropR: Number(r.peak) || 0,
+          recycled: Number(r.recycled) || 0,
+        };
+      });
+      return rec;
+    },
+    enabled: !!casinoId && !!businessDate,
+    staleTime: 5_000,
+    refetchInterval: 20_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+  });
+  const data = useMemo(() => toLookup(q.data ?? {}), [q.data]);
+  return { ...q, data };
+};
+
+/** Per-player Drop summed across [fromDate, toDate] business days (sum of daily peaks). */
+export const usePlayersDropCacheRange = (
+  fromDate: string | null | undefined,
+  toDate: string | null | undefined,
+) => {
+  const { casinoId } = useAuth();
+  const q = useQuery({
+    queryKey: ["players-drop-cache-range", casinoId, fromDate, toDate],
+    queryFn: async (): Promise<Record<string, TableSplit>> => {
+      if (!casinoId || !fromDate || !toDate) return {};
+      const { data, error } = await supabase
+        .from("player_day_drop_cache")
+        .select("player_id, peak, recycled")
+        .eq("casino_id", casinoId)
+        .gte("business_date", fromDate)
+        .lte("business_date", toDate);
+      if (error) throw error;
+      const rec: Record<string, TableSplit> = {};
+      (data || []).forEach((r: any) => {
+        if (!r?.player_id) return;
+        const prev = rec[r.player_id] || { dropR: 0, recycled: 0 };
+        rec[r.player_id] = {
+          dropR: prev.dropR + (Number(r.peak) || 0),
+          recycled: prev.recycled + (Number(r.recycled) || 0),
+        };
+      });
+      return rec;
+    },
+    enabled: !!casinoId && !!fromDate && !!toDate,
+    staleTime: 5_000,
+    refetchInterval: 20_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+  });
+  const data = useMemo(() => toLookup(q.data ?? {}), [q.data]);
+  return { ...q, data };
+};
+
+
+
