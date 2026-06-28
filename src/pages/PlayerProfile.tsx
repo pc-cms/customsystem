@@ -233,18 +233,15 @@ const PlayerProfile = () => {
   }, [visits, transactions]);
 
   // Lifetime KPIs — perspective: PLAYER (positive = player won, negative = player lost).
-  // result = (cashout + chipOut) − (drop + chipIn)   (clean play + chip adjustments)
-  // total  = result − comps                          (with comps/expenses)
+  // result = (cashout + chipOut) − (cash_in_raw + chipIn)   (raw Cash In, no formulas)
+  // total  = result − comps                                   (with comps/expenses)
   const lifetime = useMemo(() => {
     const totalMins = visits.reduce((s, v) => s + visitDuration(v), 0);
-    // Lifetime "Drop" KPI = Σ peak-NEP across ALL business days from the
-    // authoritative `player_day_drop_cache`. Identical formula to Player
-    // Statistics / Tables / Dashboard — never disagrees again.
+    // Drop KPI (separate tile) — Σ peak-NEP across business days from cache.
     const dropR = Object.values(dropByDay as Record<string, any>).reduce(
       (s, r) => s + (Number(r?.peak) || 0), 0,
     );
-    const dropGross = Number(economy?.total_drop) || 0;
-    const drop = dropR;
+    const cashIn = Number(economy?.total_drop) || 0;     // raw lifetime Cash In
     const cashout = Number(economy?.total_cashout) || 0;
     const comps = Number(economy?.total_expenses) || 0;
     let chipIn = 0, chipOut = 0;
@@ -252,13 +249,12 @@ const PlayerProfile = () => {
       chipIn += Number(c.chip_in) || 0;
       chipOut += Number(c.chip_out) || 0;
     }
-    // Result uses peak-NEP Drop (sum of business-day peaks) — same source as the
-    // Drop tile and the Visits Breakdown LIFETIME TOTAL row. Using raw `dropGross`
-    // here double-counts recycled cash and produces a different number than the
-    // breakdown immediately below (the "каша" the user reported).
-    const result = (cashout + chipOut) - (drop + chipIn);
+    // Result uses raw Cash In — the universal formula:
+    //   Result = (Cashout + Chip Out) − (Cash In + Chip In)
+    // Drop (peak-NEP) lives in its own tile and is NOT part of Result.
+    const result = (cashout + chipOut) - (cashIn + chipIn);
     const total = result - comps;
-    const hold = holdPct(drop, cashout, comps); // Hold % on peak-NEP drop so it matches Player Statistics
+    const hold = holdPct(dropR, cashout, comps); // Hold % on peak-NEP drop
     const firstVisit = visits.length ? visits[visits.length - 1].checked_in_at : null;
     const lastVisit = visits[0] ? (visits[0].checked_out_at || visits[0].checked_in_at) : null;
     const daysSinceLast = lastVisit
@@ -269,7 +265,7 @@ const PlayerProfile = () => {
       visitCount: visits.length,
       totalMins,
       avgSession,
-      drop,
+      drop: dropR,
       cashout,
       comps,
       chipIn,
@@ -287,15 +283,19 @@ const PlayerProfile = () => {
   // (authoritative `player_day_drop_cache`). Cashout / chips / comps are
   // simple sums over in-range rows.
   const period = useMemo(() => {
-    let pIn = 0;
+    // Drop tile = Σ peak-NEP across business days in range.
+    let pDrop = 0;
     for (const [d, row] of Object.entries(dropByDay as Record<string, any>)) {
-      if (d >= range.from && d <= range.to) pIn += Number(row?.peak) || 0;
+      if (d >= range.from && d <= range.to) pDrop += Number(row?.peak) || 0;
     }
+    // Raw Cash In = Σ buy/in amounts in window. Used by Result formula.
+    let pIn = 0;
     let pOut = 0;
     for (const t of transactions as any[]) {
       const ts = new Date(t.created_at).getTime();
       if (ts < rangeStartMs || ts > rangeEndMs) continue;
-      if (t.type === "cashout" || t.type === "out") pOut += Number(t.amount) || 0;
+      if (t.type === "buy" || t.type === "in") pIn += Number(t.amount) || 0;
+      else if (t.type === "cashout" || t.type === "out") pOut += Number(t.amount) || 0;
     }
     const pComps = expensesInRange.reduce((s, e: any) => s + (Number(e.amount) || 0), 0);
     const pMins = visitsInRange.reduce((s, v) => s + visitDuration(v), 0);
@@ -304,9 +304,10 @@ const PlayerProfile = () => {
       pChipIn += Number(c.chip_in) || 0;
       pChipOut += Number(c.chip_out) || 0;
     }
+    // Result uses raw Cash In — universal formula across the app.
     const result = (pOut + pChipOut) - (pIn + pChipIn);
     const total = result - pComps;
-    return { pIn, pOut, pComps, pMins, pChipIn, pChipOut, result, total, hold: holdPct(pIn, pOut, pComps), visits: visitsInRange.length };
+    return { pIn, pDrop, pOut, pComps, pMins, pChipIn, pChipOut, result, total, hold: holdPct(pDrop, pOut, pComps), visits: visitsInRange.length };
   }, [transactions, rangeStartMs, rangeEndMs, expensesInRange, visitsInRange, chipAdjInRange, dropByDay, range.from, range.to]);
 
 
@@ -605,10 +606,9 @@ const PlayerProfile = () => {
                   <tbody>
                     {visitsInRange.slice(0, 200).map((v: any) => {
                       const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0, dropR: 0, chipIn: 0, chipOut: 0 };
-                      // Result uses peak-NEP Drop (f.dropR), same source as Info/History
-                      // and the Drop tile. Using raw Cash In (f.totalIn) double-counts
-                      // recycled buy-ins and disagrees with the period total above.
-                      const result = (f.cashout + f.chipOut) - (f.dropR + f.chipIn);
+                      // Universal formula: Result = (Cashout + Chip Out) − (Cash In + Chip In).
+                      // Cash In is raw — Drop (peak-NEP) lives in its own column.
+                      const result = (f.cashout + f.chipOut) - (f.totalIn + f.chipIn);
                       const total = result - f.comps;
                       const colCount = 5 + (showFinancials ? 8 : 0);
                       const isExpanded = expandedVisit === v.id;
@@ -701,7 +701,7 @@ const PlayerProfile = () => {
                         pDropR += f.dropR; pIn += f.totalIn; pOut += f.cashout; pComps += f.comps;
                         pChipIn += f.chipIn; pChipOut += f.chipOut;
                       }
-                      const pRes = (pOut + pChipOut) - (pDropR + pChipIn);
+                      const pRes = (pOut + pChipOut) - (pIn + pChipIn);
                       const pTotal = pRes - pComps;
                       return (
                         <tr className="border-t-2 border-border font-semibold">
@@ -751,7 +751,7 @@ const PlayerProfile = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
             <Kpi label="Visits" value={period.visits.toString()} />
             <Kpi label="Time" value={fmtDuration(period.pMins)} />
-            <Kpi label="Drop" value={fmtMoney(period.pIn)} />
+            <Kpi label="Drop" value={fmtMoney(period.pDrop)} />
             <Kpi label="Cashout" value={fmtMoney(period.pOut)} />
             <Kpi
               label="Result"

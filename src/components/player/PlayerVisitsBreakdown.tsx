@@ -79,8 +79,8 @@ const add = (a: Agg, b: Agg): Agg => ({
   drop: a.drop + b.drop, inGross: a.inGross + b.inGross, out: a.out + b.out, comps: a.comps + b.comps,
   chipIn: a.chipIn + b.chipIn, chipOut: a.chipOut + b.chipOut,
 });
-// Player perspective: chip_in adds to drop-side, chip_out adds to cashout-side.
-const result = (a: Agg) => (a.out + a.chipOut) - (a.drop + a.chipIn);
+// Universal formula: Result = (Cashout + Chip Out) − (Cash In raw + Chip In).
+const result = (a: Agg) => (a.out + a.chipOut) - (a.inGross + a.chipIn);
 const total = (a: Agg) => result(a) - a.comps;
 
 export default function PlayerVisitsBreakdown({ visits, transactions, expenses, chipAdjustments = [], showFinancials, dropByDay = {} }: Props) {
