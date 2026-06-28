@@ -382,7 +382,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
       const toIso = businessDayHourUTC(toDate.toISOString().slice(0, 10), 7);
       const { data, error } = await supabase
         .from("shifts")
-        .select("id, opened_at, closed_at, cash_result, miss_total, tables_result, balance, notes")
+        .select("id, opened_at, closed_at, cash_result, miss_total, tables_result, balance, notes, opening_float, closing_count, exchange_rates")
         .eq("casino_id", casinoId)
         .eq("status", "closed")
         .gte("closed_at", fromIso)
@@ -394,6 +394,25 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
     enabled: !!casinoId,
   });
 
+  // Enrich each row with on-the-fly Cash Flow (closer − opener TZS) so it
+  // matches the Shift Closing Report exactly. Fall back to stored cash_result
+  // when the snapshot payload is missing (legacy/imported shifts).
+  const enriched = useMemo(() => {
+    return (shifts || []).map((s: any) => {
+      const flow = computeShiftCashFlow(s);
+      return {
+        ...s,
+        cashComputed: flow ? flow.cashDelta : null,
+        cashDisplay: flow ? flow.cashDelta : Number(s.cash_result || 0),
+        cashIsLegacy: flow == null,
+      };
+    });
+  }, [shifts]);
+
+  // Threshold: shifts closed before this date may have non-zero `balance`
+  // legitimately (pre-strict End Day reconciliation). Show an ⓘ hint.
+  const STRICT_BALANCE_FROM = new Date("2026-06-13T00:00:00Z").getTime();
+
   type K = "opened" | "closed" | "cash" | "miss" | "tables" | "balance";
   const [sort, setSort] = useState<{ key: K; dir: SortDir }>({ key: "closed", dir: "desc" });
   const toggle = (k: string) => setSort(s => s.key === k ? { key: k as K, dir: s.dir === "asc" ? "desc" : "asc" } : { key: k as K, dir: "desc" });
@@ -401,18 +420,19 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
   const sorted = useMemo(() => {
     const getter: Record<K, (s: any) => any> = {
       opened: s => s.opened_at, closed: s => s.closed_at,
-      cash: s => Number(s.cash_result || 0), miss: s => Number(s.miss_total || 0),
+      cash: s => Number(s.cashDisplay || 0), miss: s => Number(s.miss_total || 0),
       tables: s => Number(s.tables_result || 0), balance: s => Number(s.balance || 0),
     };
     const g = getter[sort.key];
-    return [...shifts].sort((a, b) => {
+    return [...enriched].sort((a, b) => {
       const va = g(a), vb = g(b);
       if (typeof va === "number" && typeof vb === "number") return sort.dir === "asc" ? va - vb : vb - va;
       return sort.dir === "asc" ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
     });
-  }, [shifts, sort]);
+  }, [enriched, sort]);
 
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="space-y-3">
       <DataTable>
         <DTHead>
@@ -422,7 +442,22 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
             <SortHeader label="Cash" k="cash" sort={sort as any} toggle={toggle} type="money" />
             <SortHeader label="Miss" k="miss" sort={sort as any} toggle={toggle} type="money" />
             <SortHeader label="Tables" k="tables" sort={sort as any} toggle={toggle} type="money" />
-            <SortHeader label="Balance" k="balance" sort={sort as any} toggle={toggle} type="money" />
+            <DTHeader type="money">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 cursor-help"
+                    onClick={() => toggle("balance")}
+                  >
+                    Balance <Info className="w-3 h-3 opacity-60" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-xs">
+                  Cash Desk reconciliation: 0 = касса сошлась. Несхождения до 13/06/2026 — историческая фактика (до ужесточения End Day).
+                </TooltipContent>
+              </Tooltip>
+            </DTHeader>
             <DTHeader type="actions" />
           </DTRow>
         </DTHead>
@@ -432,18 +467,48 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
           ) : sorted.length === 0 ? (
             <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">No closings in range</DTCell></DTRow>
           ) : sorted.map((s: any) => {
-            const cash = Number(s.cash_result || 0);
+            const cash = Number(s.cashDisplay || 0);
             const tables = Number(s.tables_result || 0);
             const balance = Number(s.balance || 0);
             const miss = Number(s.miss_total || 0);
+            const closedTs = s.closed_at ? new Date(s.closed_at).getTime() : 0;
+            const legacyBalance = balance !== 0 && closedTs > 0 && closedTs < STRICT_BALANCE_FROM;
             return (
               <DTRow key={s.id}>
                 <DTCell type="date">{s.opened_at ? fmtDateTime(s.opened_at) : "—"}</DTCell>
                 <DTCell type="date">{s.closed_at ? fmtDateTime(s.closed_at) : "—"}</DTCell>
-                <DTCell type="money"><span className={signCls(cash)}>{fmt(cash)}</span></DTCell>
+                <DTCell type="money">
+                  {s.cashIsLegacy ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className={`${signCls(cash)} opacity-60 cursor-help underline decoration-dotted`}>{fmt(cash)}</span>
+                      </TooltipTrigger>
+                      <TooltipContent className="text-xs">
+                        Legacy stored value — closing/opening cash snapshot отсутствует, показано сырое поле shifts.cash_result.
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <span className={signCls(cash)}>{fmt(cash)}</span>
+                  )}
+                </DTCell>
                 <DTCell type="money"><span className={signCls(-miss)}>{fmt(-miss)}</span></DTCell>
                 <DTCell type="money"><span className={`font-bold ${signCls(tables)}`}>{fmt(tables)}</span></DTCell>
-                <DTCell type="money"><span className={signCls(balance)}>{fmt(balance)}</span></DTCell>
+                <DTCell type="money">
+                  {legacyBalance ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className={`${signCls(balance)} cursor-help inline-flex items-center gap-1`}>
+                          {fmt(balance)} <Info className="w-3 h-3 opacity-60" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-xs">
+                        Историческое несхождение кассы (до 13/06/2026, до ужесточения End Day reconciliation).
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <span className={signCls(balance)}>{fmt(balance)}</span>
+                  )}
+                </DTCell>
                 <DTCell type="actions">
                   <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => setReprintId(s.id)}>
                     <Printer className="w-3 h-3" /> Print
@@ -458,6 +523,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
         <ReprintShiftDialog open onClose={() => setReprintId(null)} shiftId={reprintId} casinoId={casinoId} />
       )}
     </div>
+    </TooltipProvider>
   );
 };
 
