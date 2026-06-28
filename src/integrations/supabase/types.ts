@@ -9611,6 +9611,16 @@ export type Database = {
         Args: { p_expense_id: string; p_manager_id: string }
         Returns: undefined
       }
+      audit_drop_caches: {
+        Args: { _from?: string; _to?: string }
+        Returns: {
+          business_date: string
+          casino_id: string
+          diff: number
+          players_peak: number
+          tables_share: number
+        }[]
+      }
       auto_close_business_day: { Args: never; Returns: Json }
       auto_close_forgotten_business_days: { Args: never; Returns: undefined }
       build_business_day_snapshot: {
@@ -10320,6 +10330,10 @@ export type Database = {
       }
       purge_endpoint_health_checks: { Args: never; Returns: undefined }
       purge_mbeya_demo: { Args: never; Returns: Json }
+      rebuild_drop_caches_for_day: {
+        Args: { _business_date: string; _casino_id: string }
+        Returns: number
+      }
       recalc_shift_tables_result: {
         Args: { p_shift_id: string }
         Returns: number
