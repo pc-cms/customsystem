@@ -909,7 +909,7 @@ const PlayerStatistics = () => {
         date={!canBrowseHistory}
       />
 
-      <PlayerPreviewHeader range={effectiveRange} />
+      <PlayerPreviewHeader range={{ from: fromDate, to: toDate }} />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
