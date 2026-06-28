@@ -25,7 +25,10 @@ import {
   differenceInCalendarDays,
 } from "date-fns";
 
-export type DatePreset = "day" | "week" | "month" | "year" | "custom";
+export type DatePreset = "day" | "week" | "month" | "year" | "all" | "custom";
+
+/** Default lower bound for the "All" preset — earliest plausible business date. */
+const DEFAULT_ALL_FROM = "2020-01-01";
 
 const iso = (d: Date) => format(d, "yyyy-MM-dd");
 const fromIso = (s: string): Date => {
@@ -44,7 +47,7 @@ export const presetRange = (p: DatePreset, anchor: Date = new Date()): { from: s
   }
 };
 
-const PRESET_LABELS: Record<Exclude<DatePreset, "custom">, string> = {
+const PRESET_LABELS: Record<Exclude<DatePreset, "custom" | "all">, string> = {
   day: "Day", week: "Week", month: "Month", year: "Year",
 };
 
@@ -56,6 +59,12 @@ interface DateRangePresetsProps {
   className?: string;
   /** Hide the prev/next arrows. Default false. */
   hideNav?: boolean;
+  /** Hide the Week button. Default false. */
+  hideWeek?: boolean;
+  /** Show the All button (after Year). Default false. */
+  showAll?: boolean;
+  /** Lower bound for "All" preset. Default 2020-01-01. */
+  allFrom?: string;
 }
 
 interface DatePickerButtonProps {
@@ -119,6 +128,9 @@ const shiftRange = (
       const ref = direction > 0 ? addYears(anchorFrom, 1) : subYears(anchorFrom, 1);
       return presetRange("year", ref);
     }
+    case "all":
+      // "All" is a single fixed span — prev/next don't shift it.
+      return { from, to };
     case "custom":
     default: {
       // Shift both endpoints by (range length + 1) days.
@@ -129,28 +141,40 @@ const shiftRange = (
   }
 };
 
-export const DateRangePresets = ({ preset, from, to, onChange, className, hideNav = false }: DateRangePresetsProps) => {
+export const DateRangePresets = ({
+  preset, from, to, onChange, className,
+  hideNav = false, hideWeek = false, showAll = false, allFrom = DEFAULT_ALL_FROM,
+}: DateRangePresetsProps) => {
   const setPreset = (p: DatePreset) => {
     if (p === "custom") {
       onChange({ preset: p, from, to });
+    } else if (p === "all") {
+      onChange({ preset: "all", from: allFrom, to: iso(new Date()) });
     } else {
       const r = presetRange(p);
       onChange({ preset: p, from: r.from, to: r.to });
     }
   };
   const shift = (dir: -1 | 1) => {
+    if (preset === "all") return; // no-op for All
     const r = shiftRange(preset, from, to, dir);
     onChange({ preset, from: r.from, to: r.to });
   };
+  const visiblePresets = (Object.keys(PRESET_LABELS) as Array<keyof typeof PRESET_LABELS>)
+    .filter((p) => !(hideWeek && p === "week"));
   return (
     <div className={`flex items-center gap-2 flex-wrap ${className ?? ""}`}>
       {!hideNav && (
-        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => shift(-1)} aria-label="Previous period">
+        <Button
+          variant="outline" size="icon" className="h-9 w-9"
+          onClick={() => shift(-1)} aria-label="Previous period"
+          disabled={preset === "all"}
+        >
           <ChevronLeft className="w-4 h-4" />
         </Button>
       )}
       <div className="flex gap-1">
-        {(Object.keys(PRESET_LABELS) as Array<keyof typeof PRESET_LABELS>).map((p) => (
+        {visiblePresets.map((p) => (
           <Button
             key={p}
             size="sm"
@@ -161,6 +185,16 @@ export const DateRangePresets = ({ preset, from, to, onChange, className, hideNa
             {PRESET_LABELS[p]}
           </Button>
         ))}
+        {showAll && (
+          <Button
+            size="sm"
+            variant={preset === "all" ? "default" : "outline"}
+            onClick={() => setPreset("all")}
+            className="h-9"
+          >
+            All
+          </Button>
+        )}
         <Button
           size="sm"
           variant={preset === "custom" ? "default" : "outline"}
@@ -171,7 +205,11 @@ export const DateRangePresets = ({ preset, from, to, onChange, className, hideNa
         </Button>
       </div>
       {!hideNav && (
-        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => shift(1)} aria-label="Next period">
+        <Button
+          variant="outline" size="icon" className="h-9 w-9"
+          onClick={() => shift(1)} aria-label="Next period"
+          disabled={preset === "all"}
+        >
           <ChevronRight className="w-4 h-4" />
         </Button>
       )}

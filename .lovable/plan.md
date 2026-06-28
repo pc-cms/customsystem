@@ -1,71 +1,76 @@
-## Унификация Drop по всему приложению на peak-NEP per business day
+## 1. Кнопки периода в Player Statistics
 
-Все 5 оставшихся мест переводим на одну формулу: **Drop = сумма дневных peak-NEP за бизнес-день** (то же, что считают триггеры в `player_day_drop_cache`). Никакого lifetime-NEP, никакого "Σ buy/in", никакого 200-row окна.
+**Файл:** `src/components/ui/date-range-presets.tsx`
 
----
+- Добавить новые опциональные props:
+  - `hideWeek?: boolean` — скрывает кнопку «Week».
+  - `showAll?: boolean` — показывает кнопку «All» сразу после «Year».
+  - `allFrom?: string` — стартовая дата для «All» (по умолчанию `2020-01-01`).
+- Расширить тип `DatePreset` значением `"all"` (трактуется как `custom` для shift-логики, чтобы Prev/Next не ломался — при `preset==="all"` стрелки no-op).
+- Кнопка «All» при клике вызывает `onChange({ preset: "all", from: "2020-01-01", to: <today EAT> })`.
+- Никаких изменений в других экранах: они продолжают использовать компонент без новых пропсов.
 
-### 1. ActivePlayers (Pit Floor Map)
-**Файл:** `src/components/pit/ActivePlayers.tsx`
+**Файл:** `src/pages/PlayerStatistics.tsx`
 
-- Убрать локальный NEP-walk `playerSplits` (строки 193-217).
-- Подключить `usePlayersDropCacheToday(today)` из `use-drop-split.ts`.
-- Для `result` нужен ещё cashout сегодня → добавить мемо `playerCashoutToday` (Σ `out`/`cashout` из уже загруженного `transactions` за бизнес-день — это локально и корректно, потому что cashout не зависит от формулы).
-- `sp.dropR = cache[pid]?.dropR ?? 0`, `sp.result = dropR − cashoutToday`.
+- Передать `hideWeek showAll` в `<DateRangePresets>`.
+- При выборе `preset === "all"` использовать `from = 2020-01-01`, `to = today` (логика нормализации `fromDate/toDate` уже на месте).
 
-Результат: цифры на Floor Map = Player Statistics = Dashboard, мгновенно через realtime + 20s polling.
+## 2. Глобальный аудит DROP и снятие лимитов (фронт)
 
----
+Единый принцип: **только `player_day_drop_cache` / `table_day_drop_cache` (peak-NEP per business day)**. Все списочные запросы — через `fetchPaged` (страницы по 1000, без `.limit(...)`).
 
-### 2. Reports → Players / Groups / Total tabs
-**Файл:** `src/pages/Reports.tsx` (строки ~524, 658, 751)
+### 2.1 `src/pages/Reports.tsx`
+- Заменить `compute_players_drop_split` RPC (в `PlayerReport` и `GroupReport`) на чтение `player_day_drop_cache` за диапазон через `fetchPaged` (sum `peak` по `player_id`).
+- Снять `.limit(1000/10000/50000)` в `TotalReport`: `shifts`, `cage_slots_shifts`, `expenses`, `player_day_drop_cache` загружать через `fetchPaged`.
+- Подтянуть `usePlayers()` / `useTransactions()` / `useExpenses()` без лимитов (см. пункт 2.4).
 
-- Players tab: заменить `Σ transactions.amount where type∈(buy,in)` на `compute_players_drop_split(casino_id, from, to)` (RPC уже существует, использует те же бизнес-дни).
-- Groups tab: агрегировать те же RPC-результаты по `group_id`.
-- Total tab: Σ по результатам RPC.
-- Tables tab уже корректен — не трогаем.
+### 2.2 `src/hooks/use-transactions.ts`, `use-expenses.ts`, `use-chip-transfers.ts`, `use-player-chip-adjustments.ts`, `use-cashless.ts`, `use-incidents.ts`, `use-daily-expenses.ts`, `use-category-mtd.ts`, `use-fin-monthly-report.ts`, `use-bank-checks.ts`, `use-cctv-observations.ts`
+- Хуки, которые читают «весь список за бизнес-день/диапазон», перевести на `fetchPaged`. Точечные «последние N» (`use-last-visit`, `use-shift`, `use-pos-shift` и т.п.) — оставить как есть.
+- Вынести `fetchPaged` в общий модуль `src/lib/fetch-paged.ts` и переиспользовать.
 
-Результат: Period Drop в Reports = сумма по Tables tab = Player Statistics.
+### 2.3 `src/hooks/use-player-profile.ts`
+- Убрать `.limit(500/1000/5000/2000)` для визитов/транзакций/корректировок — через `fetchPaged`. Tile «Result/Drop/Hold%» уже считается из `player_day_drop_cache` (PlayerProfile.tsx).
 
----
+### 2.4 `src/hooks/use-players.ts`
+- `usePlayerEconomyRange`: убрать оставшиеся лимиты, использовать `fetchPaged`.
 
-### 3. PlayerProfile + PlayerVisitsBreakdown (per-visit Drop)
-**Файлы:** `src/pages/PlayerProfile.tsx` (131-200), `src/components/player/PlayerVisitsBreakdown.tsx` (88-130)
+### 2.5 `src/components/cage/ShiftClosingReport.tsx`, `src/pages/PlayerVisitsBreakdown.tsx`, `src/components/pit/ActivePlayers.tsx`, `src/components/player/PlayerPreviewHeader.tsx`, `src/pages/Tables.tsx`
+- Сверить, что Drop берётся ТОЛЬКО из `player_day_drop_cache` / `table_day_drop_cache`. Где остался NEP-walk на фронте — удалить.
 
-Требование пользователя: **в профайле берём СУММУ БИЗНЕС-ДНЕЙ, а не lifetime-NEP**.
+### 2.6 `src/pages/reports/*.tsx` (Promo/Cashback/Lottery/AmBudget)
+- Снять `.limit(2000/3000)` — пагинировать через `fetchPaged`.
 
-- Удалить локальный lifetime NEP-walk.
-- Для каждого визита (= один бизнес-день) брать запись из `player_day_drop_cache` по `(player_id, business_date)`: `dropR = peak`, `recycled = total_in − peak`.
-- Lifetime totals = Σ всех `peak` из кэша по игроку (один SELECT с агрегатом).
-- Добавить hook `usePlayerDropCacheByDays(playerId)` в `use-drop-split.ts`: возвращает Map<business_date, {peak, recycled, total_in}>.
+## 3. Серверная сверка DROP (миграция)
 
-Результат: цифры в карточке игрока = Player Statistics за тот же период, и можно открывать любой бизнес-день.
+**Цель:** гарантировать `Σ player_day_drop_cache.peak == Σ table_day_drop_cache.drop_r_share` и отсутствие протухших строк после старых багов.
 
----
+Создать миграцию `recheck_drop_caches`:
 
-### 4. ShiftClosingReport (печатная форма)
-**Файл:** `src/components/cage/ShiftClosingReport.tsx` (230, 348)
+1. **Функция `public.rebuild_drop_caches_for_day(_casino_id, _business_date)`**
+   - Полный пересчёт двух кэшей для указанного бизнес-дня (использует существующую логику триггеров `tg_player_day_drop_cache_*` / `tg_table_day_drop_cache_*`).
+   - Транзакционно: `DELETE ... WHERE casino_id=_ AND business_date=_; INSERT ... SELECT ... FROM transactions ...`.
+2. **Функция `public.audit_drop_caches(_from date, _to date)`**
+   - Возвращает строки, где `Σ peak(players) != Σ drop_r_share(tables)` или где есть транзакции без cache-row.
+3. **Backfill-вызов** в той же миграции:
+   ```sql
+   SELECT public.rebuild_drop_caches_for_day(casino_id, d)
+   FROM (SELECT DISTINCT casino_id, business_date AS d FROM player_day_drop_cache
+         UNION
+         SELECT DISTINCT casino_id, business_date FROM table_day_drop_cache) x;
+   ```
+4. **GRANT** на функции: `authenticated, service_role`.
+5. После миграции прогнать `audit_drop_caches('2020-01-01', current_date)` через `supabase--read_query` — отчёт о расхождениях прикреплю в чат.
 
-- Текущая логика: `DROP (NEP) = Σ Cash Desk IN per shift` — это raw Σ in, неправильно.
-- Меняем на **peak-NEP per shift**: внутри окна смены walk транзакций по столам, считаем peak. (Смена ≠ бизнес-день, поэтому кэш не подходит — нужен walk на лету, но по той же формуле что и в `nep-split.ts`.)
-- Использовать `splitTablesWindow(txs, shiftStart, shiftEnd)` из `src/lib/nep-split.ts` — она уже реализует ту же peak-NEP логику.
-- Miss Chips sign — уже починен ранее, не трогаем.
+## 4. Verify
 
-Результат: печатные смены показывают тот же Drop, что и live-вьюхи (только разрезанный по сменам, не по бизнес-дню).
+- `tsgo` — типы (новый `DatePreset = "all"` обрабатывается).
+- Открыть Player Statistics → проверить кнопки `Day · Month · Year · All · Custom`.
+- Year/All в Arusha: число игроков и тоталы стабильны, не зависят от перезагрузки.
+- Reports / Player tab: суммы Drop совпадают с Player Statistics за тот же диапазон.
 
----
+## Technical notes
 
-### Технические детали
-
-- Новый hook `usePlayerDropCacheByDays(playerId)` — SELECT из `player_day_drop_cache` по `player_id`, без `business_date` фильтра. Polling 20s + realtime подписка на `player_day_drop_cache` (уже добавлена в `use-realtime.ts`).
-- RPC `compute_players_drop_split` — уже существует и используется в `usePlayersDropSplit`; для Reports просто переиспользуем его (как fallback / источник для исторических периодов, где кэш может быть неполный).
-- Кэш `player_day_drop_cache` поддерживается триггерами при INSERT/UPDATE/DELETE/CANCEL транзакций — данные не разъедутся.
-- Для исторических дней до момента когда кэш появился — добавить backfill в migration: `INSERT INTO player_day_drop_cache SELECT ... FROM compute_players_drop_split` по всем казино/датам где есть транзакции, но строки в кэше нет.
-
-### Файлы, которые будут изменены
-- `src/components/pit/ActivePlayers.tsx`
-- `src/pages/Reports.tsx`
-- `src/pages/PlayerProfile.tsx`
-- `src/components/player/PlayerVisitsBreakdown.tsx`
-- `src/components/cage/ShiftClosingReport.tsx`
-- `src/hooks/use-drop-split.ts` (новый hook `usePlayerDropCacheByDays`)
-- Migration: backfill `player_day_drop_cache` для исторических бизнес-дней.
+- Где остались лимиты, которые НЕ снимаем: «последний N» запросы (`.order(...).limit(1)`), POS dropdown'ы, network/admin списки.
+- «All» = `2020-01-01 → today` (фикс). Стрелки prev/next при `preset==="all"` отключены, чтобы не уехать в будущее.
+- `fetchPaged` уже есть в трёх файлах — выношу в `src/lib/fetch-paged.ts`, остальные импортируют оттуда.
+- Серверный backfill идемпотентен (через `DELETE+INSERT` на (casino_id, business_date)).

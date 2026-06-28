@@ -20,6 +20,7 @@ import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { businessDayHourUTC } from "@/lib/business-day";
+import { fetchPaged } from "@/lib/fetch-paged";
 import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
 import { toast } from "sonner";
 import {
@@ -476,24 +477,27 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
       const toStr = toDate.toISOString().slice(0, 10);
       const toIso = businessDayHourUTC(toStr, 7);
 
-      const [liveRes, slotsRes, expRes, dropRes] = await Promise.all([
-        supabase.from("shifts").select("id, closed_at, tables_result")
+      const [liveData, slotsData, expData, dropData] = await Promise.all([
+        fetchPaged<any>((f, t) => supabase.from("shifts").select("id, closed_at, tables_result")
           .eq("casino_id", casinoId).eq("status", "closed")
-          .gte("closed_at", fromIso).lt("closed_at", toIso).limit(1000),
-        supabase.from("cage_slots_shifts").select("id, business_date, status, slots_result, manual_drop_slots")
+          .gte("closed_at", fromIso).lt("closed_at", toIso).range(f, t)),
+        fetchPaged<any>((f, t) => supabase.from("cage_slots_shifts").select("id, business_date, status, slots_result, manual_drop_slots")
           .eq("casino_id", casinoId).eq("status", "closed")
-          .gte("business_date", from).lt("business_date", toStr).limit(1000),
-        supabase.from("expenses").select("amount, created_at")
+          .gte("business_date", from).lt("business_date", toStr).range(f, t)),
+        fetchPaged<any>((f, t) => supabase.from("expenses").select("amount, created_at")
           .eq("casino_id", casinoId)
-          .gte("created_at", fromIso).lt("created_at", toIso).limit(10000),
+          .gte("created_at", fromIso).lt("created_at", toIso).range(f, t)),
         // Drop Tables = Σ peak-NEP from player_day_drop_cache per business day.
         // SAME source as Player Statistics / Dashboard / Tables — keeps every
-        // screen in sync. Replaces the previous raw `Σ transactions(buy/in)`
-        // which double-counted recycled buy-ins.
-        supabase.from("player_day_drop_cache").select("business_date, peak")
+        // screen in sync. Paged so long periods (year / All) aren't truncated.
+        fetchPaged<any>((f, t) => supabase.from("player_day_drop_cache").select("business_date, peak")
           .eq("casino_id", casinoId)
-          .gte("business_date", from).lt("business_date", toStr).limit(50000),
+          .gte("business_date", from).lt("business_date", toStr).range(f, t)),
       ]);
+      const liveRes = { data: liveData, error: null };
+      const slotsRes = { data: slotsData, error: null };
+      const expRes = { data: expData, error: null };
+      const dropRes = { data: dropData, error: null };
       if (liveRes.error) throw liveRes.error;
       if (slotsRes.error) throw slotsRes.error;
       if (expRes.error) throw expRes.error;
@@ -660,15 +664,20 @@ const PlayerReport = ({ from, to }: { from: string; to: string }) => {
   }, [to]);
 
   const { data: dropByPlayer = {} } = useQuery({
-    queryKey: ["reports-players-drop-split", casinoId, from, to],
+    queryKey: ["reports-players-drop-cache", casinoId, from, to],
     queryFn: async (): Promise<Record<string, number>> => {
       if (!casinoId || !from || !to) return {};
-      const { data, error } = await supabase.rpc("compute_players_drop_split" as any, {
-        _casino_id: casinoId, _from: fromIso, _to: toIso,
-      });
-      if (error) throw error;
+      const rows = await fetchPaged<any>((f, t) => supabase
+        .from("player_day_drop_cache")
+        .select("player_id, peak")
+        .eq("casino_id", casinoId)
+        .gte("business_date", from).lte("business_date", to)
+        .range(f, t));
       const rec: Record<string, number> = {};
-      (data || []).forEach((r: any) => { if (r?.player_id) rec[r.player_id] = Number(r.drop_r) || 0; });
+      rows.forEach((r) => {
+        if (!r?.player_id) return;
+        rec[r.player_id] = (rec[r.player_id] || 0) + (Number(r.peak) || 0);
+      });
       return rec;
     },
     enabled: !!casinoId,
@@ -772,15 +781,20 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
 
   // Authoritative per-player peak-NEP for the range — shared with Player tab.
   const { data: dropByPlayer = {} } = useQuery({
-    queryKey: ["reports-groups-drop-split", casinoId, from, to],
+    queryKey: ["reports-groups-drop-cache", casinoId, from, to],
     queryFn: async (): Promise<Record<string, number>> => {
       if (!casinoId || !from || !to) return {};
-      const { data, error } = await supabase.rpc("compute_players_drop_split" as any, {
-        _casino_id: casinoId, _from: fromIso, _to: toIso,
-      });
-      if (error) throw error;
+      const rows = await fetchPaged<any>((f, t) => supabase
+        .from("player_day_drop_cache")
+        .select("player_id, peak")
+        .eq("casino_id", casinoId)
+        .gte("business_date", from).lte("business_date", to)
+        .range(f, t));
       const rec: Record<string, number> = {};
-      (data || []).forEach((r: any) => { if (r?.player_id) rec[r.player_id] = Number(r.drop_r) || 0; });
+      rows.forEach((r) => {
+        if (!r?.player_id) return;
+        rec[r.player_id] = (rec[r.player_id] || 0) + (Number(r.peak) || 0);
+      });
       return rec;
     },
     enabled: !!casinoId,

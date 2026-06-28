@@ -860,6 +860,9 @@ const PlayerStatistics = () => {
         preset={preset}
         from={range.from}
         to={range.to}
+        hideWeek
+        showAll
+        allFrom="2020-01-01"
         onChange={(next) => {
           setPreset(next.preset);
           if (next.preset === "day") {
