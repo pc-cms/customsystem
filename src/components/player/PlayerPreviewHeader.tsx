@@ -33,9 +33,10 @@ interface Props {
   range?: { from: string; to: string };
 }
 
-/** CASH IN and RESULT for one player over an arbitrary business-day range.
- *  Result mirrors PlayerStatistics formula:
- *    (cashOut + chipOut) − (cashIn + chipIn)
+/** CASH IN / CASH OUT / CHIP IN / CHIP OUT for one player over a business-day range.
+ *  Result is computed by the caller as (cashOut + chipOut) − (drop + chipIn),
+ *  where `drop` is the authoritative peak-NEP Drop (matches the table rows and
+ *  the Drop tile). Using raw cashIn here would contradict the Drop tile.
  */
 const usePeriodPlayerStats = (
   playerId: string | undefined | null,
@@ -45,7 +46,7 @@ const usePeriodPlayerStats = (
   return useQuery({
     queryKey: ["player-period-stats", playerId, fromDate, toDate],
     queryFn: async () => {
-      if (!playerId || !fromDate || !toDate) return { cashIn: 0, result: 0 };
+      if (!playerId || !fromDate || !toDate) return { cashIn: 0, cashOut: 0, chipIn: 0, chipOut: 0 };
       const start = businessDayHourUTC(fromDate, 7);
       const end = businessDayHourUTC(toDate, 7 + 24);
       const [txRes, adjRes] = await Promise.all([
@@ -76,7 +77,7 @@ const usePeriodPlayerStats = (
         chipIn += Number(a.chip_in) || 0;
         chipOut += Number(a.chip_out) || 0;
       }
-      return { cashIn, result: (cashOut + chipOut) - (cashIn + chipIn) };
+      return { cashIn, cashOut, chipIn, chipOut };
     },
     enabled: !!playerId && !!fromDate && !!toDate,
     staleTime: 30_000,
@@ -337,7 +338,8 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const cards = ((player as any)?.player_cards || []) as Array<{ card_number: string; is_active?: boolean }>;
   const activeCard = cards.find((c) => c.is_active)?.card_number || cards[0]?.card_number || "";
   const visitsCount = visits.length;
-  const result = dayStats?.result ?? 0;
+  const drop = dropSplit?.dropR ?? 0;
+  const result = ((dayStats?.cashOut ?? 0) + (dayStats?.chipOut ?? 0)) - (drop + (dayStats?.chipIn ?? 0));
   const activePromo = promoTags.find((t) => t.status === "active") ?? promoTags[0];
 
   const submitAdj = () => {
