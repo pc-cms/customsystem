@@ -722,6 +722,7 @@ const PlayerProfile = () => {
               expenses={expenses as any}
               chipAdjustments={chipAdjustments as any}
               showFinancials={canSeePlayerFinancials(roles)}
+              dropByDay={dropByDay as any}
             />
           </PageSection>
 
