@@ -170,7 +170,7 @@ export const useTablesDropCacheToday = (businessDate: string | null | undefined)
     // is dropped (network blip, channel reconnect). 20s keeps the UI honest
     // without hammering the DB — Realtime still delivers near-instant updates
     // in the normal path; this is only the safety net.
-    refetchInterval: 20_000,
+    refetchInterval: 5_000,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
@@ -216,7 +216,7 @@ export const usePlayersDropCacheToday = (businessDate: string | null | undefined
     },
     enabled: !!casinoId && !!businessDate,
     staleTime: 5_000,
-    refetchInterval: 20_000,
+    refetchInterval: 5_000,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
@@ -257,7 +257,7 @@ export const usePlayersDropCacheRange = (
     },
     enabled: !!casinoId && !!fromDate && !!toDate,
     staleTime: 5_000,
-    refetchInterval: 20_000,
+    refetchInterval: 5_000,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
