@@ -452,8 +452,6 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
             const tables = Number(s.tables_result || 0);
             const balance = Number(s.balance || 0);
             const miss = Number(s.miss_total || 0);
-            const closedTs = s.closed_at ? new Date(s.closed_at).getTime() : 0;
-            const legacyBalance = balance !== 0 && closedTs > 0 && closedTs < STRICT_BALANCE_FROM;
             return (
               <DTRow key={s.id}>
                 <DTCell type="date">{s.opened_at ? fmtDateTime(s.opened_at) : "—"}</DTCell>
@@ -467,6 +465,10 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
                 </DTCell>
                 <DTCell type="money"><span className={signCls(-miss)}>{fmt(-miss)}</span></DTCell>
                 <DTCell type="money"><span className={`font-bold ${signCls(tables)}`}>{fmt(tables)}</span></DTCell>
+                <DTCell type="money">
+                  <span className={signCls(balance)}>{fmt(balance)}</span>
+                </DTCell>
+
                 <DTCell type="money">
                   {legacyBalance ? (
                     <Tooltip>
