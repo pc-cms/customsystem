@@ -480,6 +480,7 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
                 tipsTotal={state.tipsTotal}
                 cashlessOverride={state.cashlessIO}
                 cashFlowTransfersOverride={{ addFloat: state.addFloat, slotsOut: state.slotsOut }}
+                tableRowOverrides={tableRowOverrides}
               />
               <ChipMovementReport
                 shift={shift}
