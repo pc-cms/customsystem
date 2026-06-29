@@ -21,7 +21,7 @@ import ShiftClosingReport from "@/components/cage/ShiftClosingReport";
 import ChipMovementReport from "@/components/cage/ChipMovementReport";
 import PrintPortal from "@/components/cage/PrintPortal";
 import { printLiveGameReport } from "@/components/cage/printLiveGameReport";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/lib/auth-context";
 import type { Tables } from "@/integrations/supabase/types";
 
 const businessDateForEAT = (iso: string): string => {
