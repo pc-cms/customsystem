@@ -56,6 +56,7 @@ const ShiftClosingReport = ({
   shift, tables, closingCount, openingFloat, exchangeRates,
   totalExpenses, missTotal, resultTable, balance, businessDate,
   tipsTotal, cashierName, managerName,
+  tableRowOverrides, cashlessOverride, tipsByShiftOverride, cashFlowTransfersOverride,
 }: Props) => {
 
   const { casinoId } = useAuth();
