@@ -404,17 +404,26 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
                           (s, tt) => s + (tt.id === t.id ? n : (Number(nextMap[tt.id]) || 0)),
                           0,
                         );
+                        // Per-table edits ALWAYS redistribute close chips
+                        // (full chain: result → CLOSE chips → printed report).
+                        // Disable conflicting auto-result toggle.
                         setResultAuto(false);
-                        const patch: any = { ...state, tableRes: nextMap, resultTable: sum };
-                        if (chipsAuto) patch.closeChips = redistributeCloseChips(sum);
-                        setState(patch);
+                        setChipsAuto(true);
+                        setState({
+                          ...state,
+                          tableRes: nextMap,
+                          resultTable: sum,
+                          closeChips: redistributeCloseChips(sum),
+                        });
                       }}
                     />
                   ))}
                 </div>
-                <div className="text-[11px] text-muted-foreground pt-1 border-t border-border mt-2 flex justify-between">
-                  <span>Sum of table results</span>
-                  <span className="font-mono">{formatNumberSpaces(tablesResSum)}</span>
+                <div className="text-[11px] text-muted-foreground pt-1 border-t border-border mt-2 flex justify-between gap-2">
+                  <span className="text-[10px]">
+                    Editing a row auto-recalculates CLOSE chips for that delta (print only, DB untouched).
+                  </span>
+                  <span className="font-mono whitespace-nowrap">Σ {formatNumberSpaces(tablesResSum)}</span>
                 </div>
               </Section>
 
