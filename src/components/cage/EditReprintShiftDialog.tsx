@@ -276,6 +276,26 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
     return { openingFloat, closingCount };
   }, [state, shift]);
 
+  // Per-table result overrides for ShiftClosingReport
+  const tableRowOverrides = useMemo(() => {
+    if (!state) return undefined;
+    const out: Record<string, { res: number }> = {};
+    Object.entries(state.tableRes || {}).forEach(([id, v]) => {
+      out[id] = { res: Number(v) || 0 };
+    });
+    return out;
+  }, [state?.tableRes]);
+
+  const reportTables = useMemo(
+    () => (tables || []).filter(t => !t.is_archived).sort((a, b) => a.name.localeCompare(b.name)),
+    [tables],
+  );
+
+  const tablesResSum = useMemo(() => {
+    if (!state) return 0;
+    return reportTables.reduce((s, t) => s + (Number(state.tableRes?.[t.id]) || 0), 0);
+  }, [state?.tableRes, reportTables]);
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-6xl max-h-[92vh] overflow-hidden flex flex-col p-0">
