@@ -405,7 +405,9 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
                           0,
                         );
                         setResultAuto(false);
-                        setState({ ...state, tableRes: nextMap, resultTable: sum });
+                        const patch: any = { ...state, tableRes: nextMap, resultTable: sum };
+                        if (chipsAuto) patch.closeChips = redistributeCloseChips(sum);
+                        setState(patch);
                       }}
                     />
                   ))}
@@ -419,19 +421,33 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
               {/* Totals & balance */}
               <Section title="Totals & balance">
                 <div className="grid grid-cols-[1fr,160px] gap-2 items-center text-xs">
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-2 flex-wrap">
                     Tables Result
                     <label className="inline-flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
                       <input
                         type="checkbox"
                         className="h-3 w-3"
                         checked={resultAuto}
-                        onChange={(e) => setResultAuto(e.target.checked)}
+                        onChange={(e) => { setResultAuto(e.target.checked); if (e.target.checked) setChipsAuto(false); }}
                       />
-                      auto
+                      auto result
+                    </label>
+                    <label className="inline-flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="h-3 w-3"
+                        checked={chipsAuto}
+                        onChange={(e) => { setChipsAuto(e.target.checked); if (e.target.checked) setResultAuto(false); }}
+                      />
+                      auto chips
                     </label>
                   </span>
-                  <NumInput value={state.resultTable} onChange={(n) => { setResultAuto(false); setState({ ...state, resultTable: n }); }} />
+                  <NumInput value={state.resultTable} onChange={(n) => {
+                    setResultAuto(false);
+                    const patch: any = { ...state, resultTable: n };
+                    if (chipsAuto) patch.closeChips = redistributeCloseChips(n);
+                    setState(patch);
+                  }} />
                   <span>Casino Expenses</span>
                   <NumInput value={state.totalExpenses} onChange={(n) => setState({ ...state, totalExpenses: n })} />
                   <span>Tips (this shift)</span>
