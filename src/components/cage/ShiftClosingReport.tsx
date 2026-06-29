@@ -488,8 +488,8 @@ const ShiftClosingReport = ({
           if (p === "HALOTEL") return "Halo";
           return "AirTel";
         };
-        const totIn  = PROV.reduce((s, p) => s + Number(cashlessIO.inByProv[p.key]  || 0), 0);
-        const totOut = PROV.reduce((s, p) => s + Number(cashlessIO.outByProv[p.key] || 0), 0);
+        const totIn  = PROV.reduce((s, p) => s + Number(effCashlessIO.inByProv[p.key]  || 0), 0);
+        const totOut = PROV.reduce((s, p) => s + Number(effCashlessIO.outByProv[p.key] || 0), 0);
         const totBalRaw = closerMobile;
         const hasAnyBal = PROV.some(p => {
           const v = (totBalRaw as any)?.[finalProvKey(p.key)];
@@ -520,8 +520,8 @@ const ShiftClosingReport = ({
 
             <tbody>
               {PROV.map(p => {
-                const i = Number(cashlessIO.inByProv[p.key]  || 0);
-                const o = Number(cashlessIO.outByProv[p.key] || 0);
+                const i = Number(effCashlessIO.inByProv[p.key]  || 0);
+                const o = Number(effCashlessIO.outByProv[p.key] || 0);
                 const n = i - o;
                 const rawB = (closerMobile as any)?.[finalProvKey(p.key)];
                 const hasBal = rawB !== undefined && rawB !== null && String(rawB) !== "";
@@ -603,15 +603,15 @@ const ShiftClosingReport = ({
 
           <tr>
             <td className="border border-black px-1.5 py-0.5">Cash Flow FILL</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{num(cashFlowTransfers.addFloat)}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{num(effCashFlowTransfers.addFloat)}</td>
             <td className="border border-black px-1.5 py-0.5">Tips Day</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{num(tipsByShift.day)}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{num(effTipsByShift.day)}</td>
           </tr>
           <tr>
             <td className="border border-black px-1.5 py-0.5">Cash Flow CREDIT</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{num(cashFlowTransfers.slotsOut)}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{num(effCashFlowTransfers.slotsOut)}</td>
             <td className="border border-black px-1.5 py-0.5">Tips Night</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{num(tipsByShift.night)}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{num(effTipsByShift.night)}</td>
           </tr>
           <tr>
             <td className="border border-black px-1.5 py-0.5">Cash Desk Chips FILL</td>
@@ -619,7 +619,7 @@ const ShiftClosingReport = ({
             <td className="border border-black px-1.5 py-0.5">− Tips (this shift)</td>
             <td className="border border-black px-1.5 py-0.5 text-right">
               {(() => {
-                const v = tipsTotal ?? (tipsByShift.day + tipsByShift.night);
+                const v = tipsTotal ?? (effTipsByShift.day + effTipsByShift.night);
                 return v === 0 ? "" : `-${numAlways(Math.abs(v))}`;
               })()}
             </td>
