@@ -1,47 +1,56 @@
-## Reprint with edits — Live Game
+## Цель
 
-Add the ability to re-print a shift's Consolidating Cash Desk Report и Chips Movement Report с возможностью править цифры локально (без сохранения в БД).
+В модалке `EditReprintShiftDialog`: при изменении результата конкретного стола (per-table) автоматически пересчитывать CLOSE chips этого стола по номиналам, чтобы Tables Result соответствовал введённому значению. Только для печати, без записи в БД.
 
-### UI
+## Поведение
 
-- В `src/pages/Reports.tsx` (вкладка Live Game) в каждой строке смены добавить кнопку **"Reprint (edit)"** рядом с существующей "Reprint" (`ReprintShiftDialog`).
-- При клике — открывается новый диалог `EditReprintShiftDialog` с префилом всех данных смены.
+- При редактировании любой строки в "Table results (per table)" — для этого стола применяется дельта = `(newResult − initialTableResult)` к его per-table CLOSE chips.
+- Распределение: жадно от крупной к мелкой денеоминации, остаток уносится вниз.
+- Отрицательные количества разрешены (если дельта больше имеющихся фишек номинала).
+- Тоггл "auto chips per-table" всегда активен при редактировании per-table; работает независимо от существующих "auto result" / "auto chips" (общий).
+- Затем суммарный `closeChips` казино пересчитывается как сумма всех per-table close + кэш‑деск/сейф (неизменно) → подставляется в печатный отчёт.
+- Сам Tables Result (сумма) обновляется как сумма всех per-table результатов (как сейчас).
+- В DB ничего не пишется. Все правки — только для печатного preview/print.
 
-### Editable preview dialog
+## Технические шаги
 
-Создать `src/components/cage/EditReprintShiftDialog.tsx`:
+1. **`compute_shift_table_results` уже возвращает per-table результат**. Дополнительно нужны per-table baseline CLOSE chips по номиналам. Источник:
+   - Использовать последний snapshot per table из `chip_snapshots` (как уже делает существующий RPC). Если данных не хватает — добавить параллельный лёгкий запрос в `EditReprintShiftDialog`, собирающий `{ table_id → { denom → actual_quantity } }` из snapshot'ов за смену (или RPC `shift_table_close_chips_by_denom(p_shift_id)` если потребуется — обсудим перед добавлением).
 
-- Загружает ту же выборку, что и `ReprintShiftDialog` (shift, tables, expenses) + `cashless_transactions`, `tips`, `table_daily_results` для смены.
-- Слева — форма редактирования, сгруппированная по блокам:
-  - **Cash open/close** по валютам (TZS/USD/EUR/GBP/KES) — купюры по номиналам.
-  - **Chips open/close** по номиналам + автопересчёт Miss (тот же `computeMissByDenom`).
-  - **Table results** — Drop / Result по столам (override строк).
-  - **Cashless In/Out**, **Expenses** (итог по категориям), **Tips**.
-  - **Exchange rates** на смену.
-- Справа — live-preview из `ShiftClosingReport` + `ChipMovementReport`, который перерисовывается по edited-state.
-- Все правки хранятся **только в локальном `useState`**. Никаких мутаций в БД, никаких audit-записей.
-- Кнопки: **Reset to original** (возвращает префил), **Print**, **Close**.
+2. **State** в `EditReprintShiftDialog.tsx`:
+   - `perTableCloseChips: Record<tableId, Record<denom, qty>>` — baseline из snapshot.
+   - `perTableCloseOverrides: Record<tableId, Record<denom, qty>>` — после авто‑распределения.
+   - `perTableResults: Record<tableId, number>` — уже есть.
 
-### Print pipeline
+3. **`redistributeTableCloseChips(tableId, targetResult)`**:
+   - delta = `targetResult − initialPerTableResult[tableId]`.
+   - greedy от крупной к мелкой: qty[d] += floor(remaining/d), remaining %= d; в конце мелкая денеоминация добирает остаток (может стать отрицательной).
+   - Возвращает новый `Record<denom, qty>` для стола.
 
-- Переиспользовать `PrintPortal` + `printLiveGameReport` из `ReprintShiftDialog.tsx` (вынести функцию в `src/components/cage/printLiveGameReport.ts`, чтобы не дублировать).
-- В `<PrintPortal>` рендерим те же два отчёта, но с пропсами из edited-state (а не из исходного `shift`).
+4. **`onChange` per-table input**:
+   - Обновить `perTableResults[tableId]`.
+   - Вызвать redistribute и записать в `perTableCloseOverrides[tableId]`.
+   - Пересчитать общий `resultTable` = Σ perTableResults.
+   - Пересчитать общий `closeChips` = (baseline closeChips казино) + Σ дельт per-table chip overrides.
+   - Выключить общие `resultAuto` и `chipsAuto` (чтобы не конфликтовали).
 
-### Технические детали
+5. **Передача в печать**:
+   - В `tableRowOverrides` уже идёт `result`. Добавить опциональное поле `closeChipsByDenom?: Record<number, number>` и пробросить в `ShiftClosingReport` / `ChipMovementReport` так, чтобы per-table breakdown в печатном отчёте отражал новые количества (только визуально).
+   - Общий `closeChipsOverride` уже поддерживается — использовать его для total CLOSE.
 
-- Edited-state — глубокая копия данных смены при открытии диалога; при `Reset` — пересборка из исходных props.
-- `missTotal`, `resultTable`, `balance` пересчитываются на лету из изменённых значений (формулы уже есть в `ShiftClosingReport` / `computeShiftCashFlow`).
-- `ChipMovementReport` уже принимает `openingChips`/`closingChips`/`missPerDenom` пропсами — изменения подхватятся автоматически.
-- Никаких изменений БД, схемы, RLS, миграций.
+6. **UI**:
+   - Под секцией "Table results (per table)" добавить мелкий хинт: "Изменение результата автоматически пересчитывает CLOSE по номиналам этого стола (только для печати)."
+   - Никаких новых тоггл‑чекбоксов: per-table авто всегда включено.
 
-### Файлы
+## Файлы
 
-- new: `src/components/cage/EditReprintShiftDialog.tsx`
-- new: `src/components/cage/printLiveGameReport.ts` (вынос existing функции)
-- edit: `src/components/cage/ReprintShiftDialog.tsx` — импорт вынесенной функции
-- edit: `src/pages/Reports.tsx` — добавить вторую кнопку в Live Game-таблице и состояние для нового диалога
+- `src/components/cage/EditReprintShiftDialog.tsx` — state, redistribute, onChange, проброс override.
+- `src/components/cage/ShiftClosingReport.tsx` — принять `tableRowOverrides[*].closeChipsByDenom` и использовать в per-table chips breakdown печатного отчёта (если такой раздел есть; если нет — только пересчитать total close).
+- `src/components/cage/ChipMovementReport.tsx` — аналогично, если в нём есть per-table chip breakdown.
+- (Опционально) `src/components/cage/printLiveGameReport.ts` — пробросить новые поля.
 
-### Out of scope
+## Что НЕ делаем
 
-- Сохранение правок в БД (отдельный аудит-flow на будущее, по флагу из вопроса).
-- Сводный отчёт за весь бизнес-день — пока только конкретная смена.
+- БД не трогаем, миграций нет, реальные snapshot'ы не меняются.
+- Кэш‑деск/сейф фишки не трогаем.
+- Существующие режимы "auto result" / "auto chips" (общие) остаются как есть.
