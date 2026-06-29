@@ -74,25 +74,24 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
     queryKey: ["edit-reprint-shift", shiftId],
     enabled: open && !!shiftId && !!casinoId,
     queryFn: async () => {
+      const { data: shift } = await supabase.from("shifts").select("*").eq("id", shiftId).maybeSingle();
+      const fromIso = (shift as any)?.opened_at ?? "1970-01-01T00:00:00Z";
+      const toIso = (shift as any)?.closed_at ?? new Date().toISOString();
       const [
-        { data: shift },
         { data: tables },
         { data: exp },
         { data: transfers },
         { data: cashless },
       ] = await Promise.all([
-        supabase.from("shifts").select("*").eq("id", shiftId).maybeSingle(),
         supabase.from("gaming_tables").select("*").eq("casino_id", casinoId),
         supabase.from("expenses").select("amount").eq("shift_id", shiftId),
-        supabase.from("cage_transfers")
-          .select("transfer_type, amount, chips")
-          .eq("shift_id", shiftId),
+        supabase.from("cage_transfers").select("transfer_type, amount, chips, table_id").eq("shift_id", shiftId),
         (supabase as any).from("cashless_transactions")
           .select("direction, provider, amount, created_at")
           .eq("casino_id", casinoId)
           .eq("cage_type", "live_game")
-          .gte("created_at", (await supabase.from("shifts").select("opened_at").eq("id", shiftId).maybeSingle()).data?.opened_at ?? "1970-01-01")
-          .lte("created_at", new Date().toISOString()),
+          .gte("created_at", fromIso)
+          .lte("created_at", toIso),
       ]);
       const totalExpenses = (exp || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
       return { shift, tables: tables || [], totalExpenses, transfers: transfers || [], cashless: cashless || [] };
