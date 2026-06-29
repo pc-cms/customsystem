@@ -204,6 +204,7 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
       balance: Number((shift as any).balance ?? closing.cash_desk_balance ?? 0),
       missTotal: Number((shift as any).miss_total ?? -(closing.chip_miss_total ?? 0)),
       exchangeRates: ((shift as any).exchange_rates || {}) as Record<string, number>,
+      tableRes: { ...(data?.tableResults || {}) } as Record<string, number>,
     };
   }, [shift, data]);
 
