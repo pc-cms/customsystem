@@ -211,6 +211,7 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
   // -------- Editable state --------
   const [state, setState] = useState<typeof initial>(null);
   const [resultAuto, setResultAuto] = useState(true);
+  const [chipsAuto, setChipsAuto] = useState(false);
   useEffect(() => { if (initial) setState(initial); }, [initial]);
 
   // Baseline chip value (from initial snapshot) to compute drift on edits
@@ -221,6 +222,26 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
       0,
     );
   }, [initial]);
+
+  // Redistribute a target Tables Result back into close chips (print-only).
+  // Keeps openChips fixed; starts from initial.closeChips and greedily splits
+  // the value diff (initial.resultTable − targetResult) across denominations
+  // from largest to smallest.
+  const redistributeCloseChips = (targetResult: number): ChipMap => {
+    if (!initial) return {} as ChipMap;
+    const out: ChipMap = { ...initial.closeChips };
+    let remaining = initial.resultTable - targetResult; // value to add on top of initial close
+    const denoms = [...(CHIP_DENOMS as readonly number[])].sort((a, b) => b - a);
+    for (const d of denoms) {
+      if (remaining === 0) break;
+      const q = remaining > 0 ? Math.floor(remaining / d) : Math.ceil(remaining / d);
+      if (q !== 0) {
+        out[d] = (out[d] || 0) + q;
+        remaining -= q * d;
+      }
+    }
+    return out;
+  };
 
   // Auto-recompute Tables Result when chips change.
   // Formula: tables paid out chips ⇒ if cage closes with fewer chips than opened,
