@@ -31,11 +31,16 @@ interface Props {
   casinoName?: string;
   cashierName?: string;
   managerName?: string;
+  /** Optional overrides for "Reprint with edits" — replace the values
+   *  normally fetched from cage_transfers. Memory-only. */
+  fillByDenomOverride?: Record<number, number>;
+  creditByDenomOverride?: Record<number, number>;
 }
 
 const ChipMovementReport = ({
   shift, openingChips, openingDiff = {}, closingChips, missPerDenom,
   businessDate, casinoName = "Casino", cashierName, managerName,
+  fillByDenomOverride, creditByDenomOverride,
 }: Props) => {
   const [fillByDenom, setFillByDenom] = useState<Record<number, number>>({});
   const [creditByDenom, setCreditByDenom] = useState<Record<number, number>>({});
