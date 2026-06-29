@@ -342,8 +342,19 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
               {/* Totals & balance */}
               <Section title="Totals & balance">
                 <div className="grid grid-cols-[1fr,160px] gap-2 items-center text-xs">
-                  <span>Tables Result (override)</span>
-                  <NumInput value={state.resultTable} onChange={(n) => setState({ ...state, resultTable: n })} />
+                  <span className="flex items-center gap-2">
+                    Tables Result
+                    <label className="inline-flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="h-3 w-3"
+                        checked={resultAuto}
+                        onChange={(e) => setResultAuto(e.target.checked)}
+                      />
+                      auto
+                    </label>
+                  </span>
+                  <NumInput value={state.resultTable} onChange={(n) => { setResultAuto(false); setState({ ...state, resultTable: n }); }} />
                   <span>Casino Expenses</span>
                   <NumInput value={state.totalExpenses} onChange={(n) => setState({ ...state, totalExpenses: n })} />
                   <span>Tips (this shift)</span>
