@@ -62,14 +62,14 @@ const parseSpaces = (s: string): number => {
 };
 
 const NumInput = ({ value, onChange, className = "" }: { value: number; onChange: (n: number) => void; className?: string }) => {
-  const [text, setText] = (require("react") as typeof import("react")).useState(() => formatSpaces(value));
-  const lastExternal = (require("react") as typeof import("react")).useRef(value);
-  (require("react") as typeof import("react")).useEffect(() => {
+  const [text, setText] = useState(() => formatSpaces(value));
+  const lastExternal = useRef(value);
+  useEffect(() => {
     if (value !== lastExternal.current && value !== parseSpaces(text)) {
       setText(formatSpaces(value));
       lastExternal.current = value;
     }
-  }, [value]);
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <Input
       type="text"
