@@ -265,6 +265,17 @@ const ShiftClosingReport = ({
       : 0;
     const inVal = inByTable[t.id] || 0;
     const res = serverResults[t.id] ?? 0;
+    const ov = tableRowOverrides?.[t.id];
+    if (ov) {
+      return {
+        op: ov.op ?? op,
+        fl: ov.fl ?? fl,
+        cr: ov.cr ?? cr,
+        cl: ov.cl ?? cl,
+        inVal: ov.inVal ?? inVal,
+        res: ov.res ?? res,
+      };
+    }
     return { op, fl, cr, cl, inVal, res };
   };
 
