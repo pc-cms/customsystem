@@ -101,6 +101,7 @@ const PitBook = lazy(() => import("@/pages/PitBook"));
 const CloseShiftPage = lazy(() => import("@/pages/cage/CloseShiftPage"));
 const RegisterPlayerPage = lazy(() => import("@/pages/cage/RegisterPlayerPage"));
 const EditOpeningChipsPage = lazy(() => import("@/pages/cage/EditOpeningChipsPage"));
+const EditReprintShiftPage = lazy(() => import("@/pages/EditReprintShiftPage"));
 const CageClosingsPage = lazy(() => import("@/pages/cage/CageClosingsPage"));
 const CageViewPage = lazy(() => import("@/pages/cage/CageViewPage"));
 // ClosingsPage retired — merged into /reports (tabs: total, live, slots, expenses).
