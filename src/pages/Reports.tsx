@@ -25,7 +25,7 @@ import { businessDayHourUTC } from "@/lib/business-day";
 import { fetchPaged } from "@/lib/fetch-paged";
 import { computeShiftCashFlow } from "@/lib/shift-cash";
 import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
-import EditReprintShiftDialog from "@/components/cage/EditReprintShiftDialog";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell,
