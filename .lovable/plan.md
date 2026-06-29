@@ -1,23 +1,47 @@
-## Удалить legacy Cash, оставить только on-the-fly расчёт
+## Reprint with edits — Live Game
 
-### Что меняем в `src/pages/Reports.tsx` (Live Game)
+Add the ability to re-print a shift's Consolidating Cash Desk Report и Chips Movement Report с возможностью править цифры локально (без сохранения в БД).
 
-1. **Колонка Cash**
-   - Убрать fallback на `shift.cash_result` и tooltip "Legacy stored value".
-   - Всегда показывать `computeShiftCashFlow(shift).cashDelta` (closer TZS − opener TZS, без float/collection).
-   - Если данных для расчёта нет (нет opener/closer снапшотов) — показывать `—`, а не сохранённую цифру.
+### UI
 
-2. **Экспорт / печать**
-   - В CSV/печатный отчёт писать тот же `cashDelta`, без `cash_result`.
+- В `src/pages/Reports.tsx` (вкладка Live Game) в каждой строке смены добавить кнопку **"Reprint (edit)"** рядом с существующей "Reprint" (`ReprintShiftDialog`).
+- При клике — открывается новый диалог `EditReprintShiftDialog` с префилом всех данных смены.
 
-3. **Итоги (Total Cash)**
-   - Сумма по `cashDelta` всех смен периода (смены без снапшотов = 0 в сумме).
+### Editable preview dialog
 
-### Что НЕ трогаем
-- `shifts.cash_result` в БД остаётся (исторические данные, используется другими местами).
-- Логика Balance, Miss Chips, Drop — без изменений.
-- Файл `src/lib/shift-cash.ts` — без изменений (он и есть «правильное»).
+Создать `src/components/cage/EditReprintShiftDialog.tsx`:
 
-### Проверка
-- Tsgo typecheck.
-- Глазами: открыть Mwanza Live Game за июнь — Cash в строках = Cash в Shift Closing Report.
+- Загружает ту же выборку, что и `ReprintShiftDialog` (shift, tables, expenses) + `cashless_transactions`, `tips`, `table_daily_results` для смены.
+- Слева — форма редактирования, сгруппированная по блокам:
+  - **Cash open/close** по валютам (TZS/USD/EUR/GBP/KES) — купюры по номиналам.
+  - **Chips open/close** по номиналам + автопересчёт Miss (тот же `computeMissByDenom`).
+  - **Table results** — Drop / Result по столам (override строк).
+  - **Cashless In/Out**, **Expenses** (итог по категориям), **Tips**.
+  - **Exchange rates** на смену.
+- Справа — live-preview из `ShiftClosingReport` + `ChipMovementReport`, который перерисовывается по edited-state.
+- Все правки хранятся **только в локальном `useState`**. Никаких мутаций в БД, никаких audit-записей.
+- Кнопки: **Reset to original** (возвращает префил), **Print**, **Close**.
+
+### Print pipeline
+
+- Переиспользовать `PrintPortal` + `printLiveGameReport` из `ReprintShiftDialog.tsx` (вынести функцию в `src/components/cage/printLiveGameReport.ts`, чтобы не дублировать).
+- В `<PrintPortal>` рендерим те же два отчёта, но с пропсами из edited-state (а не из исходного `shift`).
+
+### Технические детали
+
+- Edited-state — глубокая копия данных смены при открытии диалога; при `Reset` — пересборка из исходных props.
+- `missTotal`, `resultTable`, `balance` пересчитываются на лету из изменённых значений (формулы уже есть в `ShiftClosingReport` / `computeShiftCashFlow`).
+- `ChipMovementReport` уже принимает `openingChips`/`closingChips`/`missPerDenom` пропсами — изменения подхватятся автоматически.
+- Никаких изменений БД, схемы, RLS, миграций.
+
+### Файлы
+
+- new: `src/components/cage/EditReprintShiftDialog.tsx`
+- new: `src/components/cage/printLiveGameReport.ts` (вынос existing функции)
+- edit: `src/components/cage/ReprintShiftDialog.tsx` — импорт вынесенной функции
+- edit: `src/pages/Reports.tsx` — добавить вторую кнопку в Live Game-таблице и состояние для нового диалога
+
+### Out of scope
+
+- Сохранение правок в БД (отдельный аудит-flow на будущее, по флагу из вопроса).
+- Сводный отчёт за весь бизнес-день — пока только конкретная смена.

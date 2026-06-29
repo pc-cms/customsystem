@@ -31,11 +31,16 @@ interface Props {
   casinoName?: string;
   cashierName?: string;
   managerName?: string;
+  /** Optional overrides for "Reprint with edits" — replace the values
+   *  normally fetched from cage_transfers. Memory-only. */
+  fillByDenomOverride?: Record<number, number>;
+  creditByDenomOverride?: Record<number, number>;
 }
 
 const ChipMovementReport = ({
   shift, openingChips, openingDiff = {}, closingChips, missPerDenom,
   businessDate, casinoName = "Casino", cashierName, managerName,
+  fillByDenomOverride, creditByDenomOverride,
 }: Props) => {
   const [fillByDenom, setFillByDenom] = useState<Record<number, number>>({});
   const [creditByDenom, setCreditByDenom] = useState<Record<number, number>>({});
@@ -69,14 +74,17 @@ const ChipMovementReport = ({
   const total = (m: Record<number, number>) =>
     CHIP_DENOMS.reduce((s, d) => s + d * (m[d] || 0), 0);
 
+  const effFill = fillByDenomOverride ?? fillByDenom;
+  const effCredit = creditByDenomOverride ?? creditByDenom;
+
   const totals = useMemo(() => ({
     opener: total(openingChips),
     diff: total(openingDiff),
-    fill: total(fillByDenom),
-    credit: total(creditByDenom),
+    fill: total(effFill),
+    credit: total(effCredit),
     miss: total(missPerDenom),
     close: total(closingChips),
-  }), [openingChips, openingDiff, fillByDenom, creditByDenom, missPerDenom, closingChips]);
+  }), [openingChips, openingDiff, effFill, effCredit, missPerDenom, closingChips]);
 
   return (
     <div
@@ -117,8 +125,8 @@ const ChipMovementReport = ({
       <div className="grid grid-cols-2 gap-2 mb-2">
         <DenomTable title="Cash Desk Chips Opener" data={openingChips} total={totals.opener} />
         <DenomTable title="Opening Chips Diff" data={openingDiff} total={totals.diff} signed />
-        <DenomTable title="Cash Desk Float Fill" data={fillByDenom} total={totals.fill} />
-        <DenomTable title="Cash Desk Float Credit" data={creditByDenom} total={totals.credit} />
+        <DenomTable title="Cash Desk Float Fill" data={effFill} total={totals.fill} />
+        <DenomTable title="Cash Desk Float Credit" data={effCredit} total={totals.credit} />
       </div>
 
       <p className="font-semibold border-b border-black mb-1 text-[11px]">Chips Closing Report</p>

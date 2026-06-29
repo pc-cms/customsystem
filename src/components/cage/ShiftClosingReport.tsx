@@ -39,6 +39,12 @@ interface Props {
   tipsTotal?: number;
   cashierName?: string;
   managerName?: string;
+  /** ===== Optional in-memory overrides for "Reprint with edits" =====
+   *  When provided, replace internally-fetched values without touching DB. */
+  tableRowOverrides?: Record<string, Partial<{ op: number; fl: number; cr: number; cl: number; inVal: number; res: number }>>;
+  cashlessOverride?: { inByProv: Record<string, number>; outByProv: Record<string, number> };
+  tipsByShiftOverride?: { day: number; night: number };
+  cashFlowTransfersOverride?: { addFloat: number; slotsOut: number };
 }
 
 const sumChipsObj = (chips: Record<string | number, number> | undefined) => {
@@ -50,6 +56,7 @@ const ShiftClosingReport = ({
   shift, tables, closingCount, openingFloat, exchangeRates,
   totalExpenses, missTotal, resultTable, balance, businessDate,
   tipsTotal, cashierName, managerName,
+  tableRowOverrides, cashlessOverride, tipsByShiftOverride, cashFlowTransfersOverride,
 }: Props) => {
 
   const { casinoId } = useAuth();
@@ -258,6 +265,17 @@ const ShiftClosingReport = ({
       : 0;
     const inVal = inByTable[t.id] || 0;
     const res = serverResults[t.id] ?? 0;
+    const ov = tableRowOverrides?.[t.id];
+    if (ov) {
+      return {
+        op: ov.op ?? op,
+        fl: ov.fl ?? fl,
+        cr: ov.cr ?? cr,
+        cl: ov.cl ?? cl,
+        inVal: ov.inVal ?? inVal,
+        res: ov.res ?? res,
+      };
+    }
     return { op, fl, cr, cl, inVal, res };
   };
 
@@ -268,7 +286,12 @@ const ShiftClosingReport = ({
       open += op; fill += fl; credit += cr; close += cl; inSum += inVal; result += res;
     });
     return { open, fill, credit, close, in: inSum, result };
-  }, [reportTables, baselines, fillCredits, dailyResults, inByTable, serverResults]);
+  }, [reportTables, baselines, fillCredits, dailyResults, inByTable, serverResults, tableRowOverrides]);
+
+  // Effective values — overrides win when provided.
+  const effCashlessIO = cashlessOverride ?? cashlessIO;
+  const effTipsByShift = tipsByShiftOverride ?? tipsByShift;
+  const effCashFlowTransfers = cashFlowTransfersOverride ?? cashFlowTransfers;
 
   // Cash flow opener (per currency cash + mobile from opening_float)
   const openerCash = (openingFloat?.cash || {}) as Record<string, Record<string | number, number>>;
@@ -465,8 +488,8 @@ const ShiftClosingReport = ({
           if (p === "HALOTEL") return "Halo";
           return "AirTel";
         };
-        const totIn  = PROV.reduce((s, p) => s + Number(cashlessIO.inByProv[p.key]  || 0), 0);
-        const totOut = PROV.reduce((s, p) => s + Number(cashlessIO.outByProv[p.key] || 0), 0);
+        const totIn  = PROV.reduce((s, p) => s + Number(effCashlessIO.inByProv[p.key]  || 0), 0);
+        const totOut = PROV.reduce((s, p) => s + Number(effCashlessIO.outByProv[p.key] || 0), 0);
         const totBalRaw = closerMobile;
         const hasAnyBal = PROV.some(p => {
           const v = (totBalRaw as any)?.[finalProvKey(p.key)];
@@ -497,8 +520,8 @@ const ShiftClosingReport = ({
 
             <tbody>
               {PROV.map(p => {
-                const i = Number(cashlessIO.inByProv[p.key]  || 0);
-                const o = Number(cashlessIO.outByProv[p.key] || 0);
+                const i = Number(effCashlessIO.inByProv[p.key]  || 0);
+                const o = Number(effCashlessIO.outByProv[p.key] || 0);
                 const n = i - o;
                 const rawB = (closerMobile as any)?.[finalProvKey(p.key)];
                 const hasBal = rawB !== undefined && rawB !== null && String(rawB) !== "";
@@ -580,15 +603,15 @@ const ShiftClosingReport = ({
 
           <tr>
             <td className="border border-black px-1.5 py-0.5">Cash Flow FILL</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{num(cashFlowTransfers.addFloat)}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{num(effCashFlowTransfers.addFloat)}</td>
             <td className="border border-black px-1.5 py-0.5">Tips Day</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{num(tipsByShift.day)}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{num(effTipsByShift.day)}</td>
           </tr>
           <tr>
             <td className="border border-black px-1.5 py-0.5">Cash Flow CREDIT</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{num(cashFlowTransfers.slotsOut)}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{num(effCashFlowTransfers.slotsOut)}</td>
             <td className="border border-black px-1.5 py-0.5">Tips Night</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{num(tipsByShift.night)}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{num(effTipsByShift.night)}</td>
           </tr>
           <tr>
             <td className="border border-black px-1.5 py-0.5">Cash Desk Chips FILL</td>
@@ -596,7 +619,7 @@ const ShiftClosingReport = ({
             <td className="border border-black px-1.5 py-0.5">− Tips (this shift)</td>
             <td className="border border-black px-1.5 py-0.5 text-right">
               {(() => {
-                const v = tipsTotal ?? (tipsByShift.day + tipsByShift.night);
+                const v = tipsTotal ?? (effTipsByShift.day + effTipsByShift.night);
                 return v === 0 ? "" : `-${numAlways(Math.abs(v))}`;
               })()}
             </td>
