@@ -8,7 +8,7 @@
  * written to the database. The Print button renders the printable area with
  * the edited values via overrides on ShiftClosingReport / ChipMovementReport.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -49,18 +49,43 @@ type CashlessIO = { inByProv: Record<string, number>; outByProv: Record<string, 
 const PROV_KEYS = ["MPESA", "TIGO", "HALOTEL", "AIRTEL"];
 const PROV_LABELS: Record<string, string> = { MPESA: "M Pesa", TIGO: "T Pesa", HALOTEL: "H Pesa", AIRTEL: "Airtel" };
 
-const NumInput = ({ value, onChange, className = "" }: { value: number; onChange: (n: number) => void; className?: string }) => (
-  <Input
-    type="number"
-    inputMode="numeric"
-    className={`h-8 text-right font-mono tabular-nums ${className}`}
-    value={Number.isFinite(value) ? value : 0}
-    onChange={(e) => {
-      const n = Number(e.target.value);
-      onChange(Number.isFinite(n) ? n : 0);
-    }}
-  />
-);
+const formatSpaces = (n: number): string => {
+  if (!Number.isFinite(n) || n === 0) return n === 0 ? "0" : "";
+  const sign = n < 0 ? "-" : "";
+  const abs = Math.abs(n).toString();
+  return sign + abs.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+};
+const parseSpaces = (s: string): number => {
+  const cleaned = s.replace(/[^\d-]/g, "").replace(/(?!^)-/g, "");
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const NumInput = ({ value, onChange, className = "" }: { value: number; onChange: (n: number) => void; className?: string }) => {
+  const [text, setText] = useState(() => formatSpaces(value));
+  const lastExternal = useRef(value);
+  useEffect(() => {
+    if (value !== lastExternal.current && value !== parseSpaces(text)) {
+      setText(formatSpaces(value));
+      lastExternal.current = value;
+    }
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <Input
+      type="text"
+      inputMode="numeric"
+      className={`h-8 text-right font-mono tabular-nums ${className}`}
+      value={text}
+      onChange={(e) => {
+        const raw = e.target.value;
+        const n = parseSpaces(raw);
+        setText(raw === "" ? "" : formatSpaces(n));
+        lastExternal.current = n;
+        onChange(n);
+      }}
+    />
+  );
+};
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className="cms-panel p-3 space-y-2">
@@ -178,11 +203,37 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
 
   // -------- Editable state --------
   const [state, setState] = useState<typeof initial>(null);
+  const [resultAuto, setResultAuto] = useState(true);
   useEffect(() => { if (initial) setState(initial); }, [initial]);
+
+  // Baseline chip value (from initial snapshot) to compute drift on edits
+  const baselineChipDelta = useMemo(() => {
+    if (!initial) return 0;
+    return (CHIP_DENOMS as any).reduce(
+      (s: number, d: number) => s + d * ((initial.closeChips[d] || 0) - (initial.openChips[d] || 0)),
+      0,
+    );
+  }, [initial]);
+
+  // Auto-recompute Tables Result when chips change.
+  // Formula: tables paid out chips ⇒ if cage closes with fewer chips than opened,
+  //   tables took chips (won), result increases. Drift = (curΔ - baselineΔ).
+  // autoResult = initialResult - (currentChipDelta - baselineChipDelta)
+  useEffect(() => {
+    if (!resultAuto || !state || !initial) return;
+    const cur = (CHIP_DENOMS as any).reduce(
+      (s: number, d: number) => s + d * ((state.closeChips[d] || 0) - (state.openChips[d] || 0)),
+      0,
+    );
+    const next = initial.resultTable - (cur - baselineChipDelta);
+    if (next !== state.resultTable) {
+      setState({ ...state, resultTable: next });
+    }
+  }, [state?.openChips, state?.closeChips, resultAuto, initial, baselineChipDelta]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!open) return null;
 
-  const reset = () => { if (initial) setState({ ...initial }); };
+  const reset = () => { if (initial) { setState({ ...initial }); setResultAuto(true); } };
 
   // Derived: auto-recomputed Miss from current chip qty deltas
   const recomputedMiss = useMemo(() => {
@@ -291,8 +342,19 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
               {/* Totals & balance */}
               <Section title="Totals & balance">
                 <div className="grid grid-cols-[1fr,160px] gap-2 items-center text-xs">
-                  <span>Tables Result (override)</span>
-                  <NumInput value={state.resultTable} onChange={(n) => setState({ ...state, resultTable: n })} />
+                  <span className="flex items-center gap-2">
+                    Tables Result
+                    <label className="inline-flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="h-3 w-3"
+                        checked={resultAuto}
+                        onChange={(e) => setResultAuto(e.target.checked)}
+                      />
+                      auto
+                    </label>
+                  </span>
+                  <NumInput value={state.resultTable} onChange={(n) => { setResultAuto(false); setState({ ...state, resultTable: n }); }} />
                   <span>Casino Expenses</span>
                   <NumInput value={state.totalExpenses} onChange={(n) => setState({ ...state, totalExpenses: n })} />
                   <span>Tips (this shift)</span>
