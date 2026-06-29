@@ -504,7 +504,6 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
         <ReprintShiftDialog open onClose={() => setReprintId(null)} shiftId={reprintId} casinoId={casinoId} />
       )}
     </div>
-    </div>
     </TooltipProvider>
   );
 };
