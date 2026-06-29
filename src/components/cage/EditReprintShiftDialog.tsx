@@ -523,4 +523,15 @@ const FragmentRow = ({ label, o, cV, onO, onC }: {
   </>
 );
 
+// Single-input row helper
+const FragmentRowSingle = ({ label, value, onChange }: {
+  label: string; value: number; onChange: (n: number) => void;
+}) => (
+  <>
+    <div className="text-xs font-medium text-muted-foreground truncate" title={label}>{label}</div>
+    <NumInput value={value} onChange={onChange} />
+  </>
+);
+
+
 export default EditReprintShiftDialog;
