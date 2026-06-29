@@ -39,6 +39,12 @@ interface Props {
   tipsTotal?: number;
   cashierName?: string;
   managerName?: string;
+  /** ===== Optional in-memory overrides for "Reprint with edits" =====
+   *  When provided, replace internally-fetched values without touching DB. */
+  tableRowOverrides?: Record<string, Partial<{ op: number; fl: number; cr: number; cl: number; inVal: number; res: number }>>;
+  cashlessOverride?: { inByProv: Record<string, number>; outByProv: Record<string, number> };
+  tipsByShiftOverride?: { day: number; night: number };
+  cashFlowTransfersOverride?: { addFloat: number; slotsOut: number };
 }
 
 const sumChipsObj = (chips: Record<string | number, number> | undefined) => {
