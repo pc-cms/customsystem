@@ -49,18 +49,43 @@ type CashlessIO = { inByProv: Record<string, number>; outByProv: Record<string, 
 const PROV_KEYS = ["MPESA", "TIGO", "HALOTEL", "AIRTEL"];
 const PROV_LABELS: Record<string, string> = { MPESA: "M Pesa", TIGO: "T Pesa", HALOTEL: "H Pesa", AIRTEL: "Airtel" };
 
-const NumInput = ({ value, onChange, className = "" }: { value: number; onChange: (n: number) => void; className?: string }) => (
-  <Input
-    type="number"
-    inputMode="numeric"
-    className={`h-8 text-right font-mono tabular-nums ${className}`}
-    value={Number.isFinite(value) ? value : 0}
-    onChange={(e) => {
-      const n = Number(e.target.value);
-      onChange(Number.isFinite(n) ? n : 0);
-    }}
-  />
-);
+const formatSpaces = (n: number): string => {
+  if (!Number.isFinite(n) || n === 0) return n === 0 ? "0" : "";
+  const sign = n < 0 ? "-" : "";
+  const abs = Math.abs(n).toString();
+  return sign + abs.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+};
+const parseSpaces = (s: string): number => {
+  const cleaned = s.replace(/[^\d-]/g, "").replace(/(?!^)-/g, "");
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const NumInput = ({ value, onChange, className = "" }: { value: number; onChange: (n: number) => void; className?: string }) => {
+  const [text, setText] = (require("react") as typeof import("react")).useState(() => formatSpaces(value));
+  const lastExternal = (require("react") as typeof import("react")).useRef(value);
+  (require("react") as typeof import("react")).useEffect(() => {
+    if (value !== lastExternal.current && value !== parseSpaces(text)) {
+      setText(formatSpaces(value));
+      lastExternal.current = value;
+    }
+  }, [value]);
+  return (
+    <Input
+      type="text"
+      inputMode="numeric"
+      className={`h-8 text-right font-mono tabular-nums ${className}`}
+      value={text}
+      onChange={(e) => {
+        const raw = e.target.value;
+        const n = parseSpaces(raw);
+        setText(raw === "" ? "" : formatSpaces(n));
+        lastExternal.current = n;
+        onChange(n);
+      }}
+    />
+  );
+};
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className="cms-panel p-3 space-y-2">
