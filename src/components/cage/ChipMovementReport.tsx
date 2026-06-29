@@ -125,8 +125,8 @@ const ChipMovementReport = ({
       <div className="grid grid-cols-2 gap-2 mb-2">
         <DenomTable title="Cash Desk Chips Opener" data={openingChips} total={totals.opener} />
         <DenomTable title="Opening Chips Diff" data={openingDiff} total={totals.diff} signed />
-        <DenomTable title="Cash Desk Float Fill" data={fillByDenom} total={totals.fill} />
-        <DenomTable title="Cash Desk Float Credit" data={creditByDenom} total={totals.credit} />
+        <DenomTable title="Cash Desk Float Fill" data={effFill} total={totals.fill} />
+        <DenomTable title="Cash Desk Float Credit" data={effCredit} total={totals.credit} />
       </div>
 
       <p className="font-semibold border-b border-black mb-1 text-[11px]">Chips Closing Report</p>
