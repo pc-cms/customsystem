@@ -366,6 +366,35 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
                 </div>
               </Section>
 
+              {/* Per-table results */}
+              <Section title="Table results (per table)">
+                <div className="grid grid-cols-[1fr,160px] gap-2 items-center text-xs">
+                  {reportTables.length === 0 && (
+                    <div className="col-span-2 text-muted-foreground text-[11px]">No tables.</div>
+                  )}
+                  {reportTables.map(t => (
+                    <FragmentRowSingle
+                      key={t.id}
+                      label={t.name}
+                      value={Number(state.tableRes?.[t.id]) || 0}
+                      onChange={(n) => {
+                        const nextMap = { ...(state.tableRes || {}), [t.id]: n };
+                        const sum = reportTables.reduce(
+                          (s, tt) => s + (tt.id === t.id ? n : (Number(nextMap[tt.id]) || 0)),
+                          0,
+                        );
+                        setResultAuto(false);
+                        setState({ ...state, tableRes: nextMap, resultTable: sum });
+                      }}
+                    />
+                  ))}
+                </div>
+                <div className="text-[11px] text-muted-foreground pt-1 border-t border-border mt-2 flex justify-between">
+                  <span>Sum of table results</span>
+                  <span className="font-mono">{formatNumberSpaces(tablesResSum)}</span>
+                </div>
+              </Section>
+
               {/* Totals & balance */}
               <Section title="Totals & balance">
                 <div className="grid grid-cols-[1fr,160px] gap-2 items-center text-xs">
@@ -415,6 +444,7 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
                       tipsTotal={state.tipsTotal}
                       cashlessOverride={state.cashlessIO}
                       cashFlowTransfersOverride={{ addFloat: state.addFloat, slotsOut: state.slotsOut }}
+                      tableRowOverrides={tableRowOverrides}
                     />
                     <ChipMovementReport
                       shift={shift}
