@@ -107,6 +107,7 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
         { data: exp },
         { data: transfers },
         { data: cashless },
+        { data: tableResRpc },
       ] = await Promise.all([
         supabase.from("gaming_tables").select("*").eq("casino_id", casinoId),
         supabase.from("expenses").select("amount").eq("shift_id", shiftId),
@@ -117,9 +118,14 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
           .eq("cage_type", "live_game")
           .gte("created_at", fromIso)
           .lte("created_at", toIso),
+        (supabase as any).rpc("compute_shift_table_results", { p_shift_id: shiftId }),
       ]);
       const totalExpenses = (exp || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-      return { shift, tables: tables || [], totalExpenses, transfers: transfers || [], cashless: cashless || [] };
+      const tableResults: Record<string, number> = {};
+      (tableResRpc || []).forEach((r: any) => {
+        if (r?.table_id) tableResults[r.table_id] = Number(r.result ?? 0);
+      });
+      return { shift, tables: tables || [], totalExpenses, transfers: transfers || [], cashless: cashless || [], tableResults };
     },
   });
 
@@ -198,6 +204,7 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
       balance: Number((shift as any).balance ?? closing.cash_desk_balance ?? 0),
       missTotal: Number((shift as any).miss_total ?? -(closing.chip_miss_total ?? 0)),
       exchangeRates: ((shift as any).exchange_rates || {}) as Record<string, number>,
+      tableRes: { ...(data?.tableResults || {}) } as Record<string, number>,
     };
   }, [shift, data]);
 
@@ -269,6 +276,26 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
     return { openingFloat, closingCount };
   }, [state, shift]);
 
+  // Per-table result overrides for ShiftClosingReport
+  const tableRowOverrides = useMemo(() => {
+    if (!state) return undefined;
+    const out: Record<string, { res: number }> = {};
+    Object.entries(state.tableRes || {}).forEach(([id, v]) => {
+      out[id] = { res: Number(v) || 0 };
+    });
+    return out;
+  }, [state?.tableRes]);
+
+  const reportTables = useMemo(
+    () => (tables || []).filter(t => !t.is_archived).sort((a, b) => a.name.localeCompare(b.name)),
+    [tables],
+  );
+
+  const tablesResSum = useMemo(() => {
+    if (!state) return 0;
+    return reportTables.reduce((s, t) => s + (Number(state.tableRes?.[t.id]) || 0), 0);
+  }, [state?.tableRes, reportTables]);
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-6xl max-h-[92vh] overflow-hidden flex flex-col p-0">
@@ -339,6 +366,35 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
                 </div>
               </Section>
 
+              {/* Per-table results */}
+              <Section title="Table results (per table)">
+                <div className="grid grid-cols-[1fr,160px] gap-2 items-center text-xs">
+                  {reportTables.length === 0 && (
+                    <div className="col-span-2 text-muted-foreground text-[11px]">No tables.</div>
+                  )}
+                  {reportTables.map(t => (
+                    <FragmentRowSingle
+                      key={t.id}
+                      label={t.name}
+                      value={Number(state.tableRes?.[t.id]) || 0}
+                      onChange={(n) => {
+                        const nextMap = { ...(state.tableRes || {}), [t.id]: n };
+                        const sum = reportTables.reduce(
+                          (s, tt) => s + (tt.id === t.id ? n : (Number(nextMap[tt.id]) || 0)),
+                          0,
+                        );
+                        setResultAuto(false);
+                        setState({ ...state, tableRes: nextMap, resultTable: sum });
+                      }}
+                    />
+                  ))}
+                </div>
+                <div className="text-[11px] text-muted-foreground pt-1 border-t border-border mt-2 flex justify-between">
+                  <span>Sum of table results</span>
+                  <span className="font-mono">{formatNumberSpaces(tablesResSum)}</span>
+                </div>
+              </Section>
+
               {/* Totals & balance */}
               <Section title="Totals & balance">
                 <div className="grid grid-cols-[1fr,160px] gap-2 items-center text-xs">
@@ -388,6 +444,7 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
                       tipsTotal={state.tipsTotal}
                       cashlessOverride={state.cashlessIO}
                       cashFlowTransfersOverride={{ addFloat: state.addFloat, slotsOut: state.slotsOut }}
+                      tableRowOverrides={tableRowOverrides}
                     />
                     <ChipMovementReport
                       shift={shift}
@@ -423,6 +480,7 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
                 tipsTotal={state.tipsTotal}
                 cashlessOverride={state.cashlessIO}
                 cashFlowTransfersOverride={{ addFloat: state.addFloat, slotsOut: state.slotsOut }}
+                tableRowOverrides={tableRowOverrides}
               />
               <ChipMovementReport
                 shift={shift}
@@ -464,5 +522,16 @@ const FragmentRow = ({ label, o, cV, onO, onC }: {
     <NumInput value={cV} onChange={onC} />
   </>
 );
+
+// Single-input row helper
+const FragmentRowSingle = ({ label, value, onChange }: {
+  label: string; value: number; onChange: (n: number) => void;
+}) => (
+  <>
+    <div className="text-xs font-medium text-muted-foreground truncate" title={label}>{label}</div>
+    <NumInput value={value} onChange={onChange} />
+  </>
+);
+
 
 export default EditReprintShiftDialog;
