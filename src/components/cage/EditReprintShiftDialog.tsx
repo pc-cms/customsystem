@@ -203,11 +203,37 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
 
   // -------- Editable state --------
   const [state, setState] = useState<typeof initial>(null);
+  const [resultAuto, setResultAuto] = useState(true);
   useEffect(() => { if (initial) setState(initial); }, [initial]);
+
+  // Baseline chip value (from initial snapshot) to compute drift on edits
+  const baselineChipDelta = useMemo(() => {
+    if (!initial) return 0;
+    return (CHIP_DENOMS as any).reduce(
+      (s: number, d: number) => s + d * ((initial.closeChips[d] || 0) - (initial.openChips[d] || 0)),
+      0,
+    );
+  }, [initial]);
+
+  // Auto-recompute Tables Result when chips change.
+  // Formula: tables paid out chips ⇒ if cage closes with fewer chips than opened,
+  //   tables took chips (won), result increases. Drift = (curΔ - baselineΔ).
+  // autoResult = initialResult - (currentChipDelta - baselineChipDelta)
+  useEffect(() => {
+    if (!resultAuto || !state || !initial) return;
+    const cur = (CHIP_DENOMS as any).reduce(
+      (s: number, d: number) => s + d * ((state.closeChips[d] || 0) - (state.openChips[d] || 0)),
+      0,
+    );
+    const next = initial.resultTable - (cur - baselineChipDelta);
+    if (next !== state.resultTable) {
+      setState({ ...state, resultTable: next });
+    }
+  }, [state?.openChips, state?.closeChips, resultAuto, initial, baselineChipDelta]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!open) return null;
 
-  const reset = () => { if (initial) setState({ ...initial }); };
+  const reset = () => { if (initial) { setState({ ...initial }); setResultAuto(true); } };
 
   // Derived: auto-recomputed Miss from current chip qty deltas
   const recomputedMiss = useMemo(() => {
