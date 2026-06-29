@@ -490,7 +490,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
                     <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => setReprintId(s.id)}>
                       <Printer className="w-3 h-3" /> Print
                     </Button>
-                    <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => setEditReprintId(s.id)}>
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => navigate(`/cage/shift/${s.id}/edit-reprint`)}>
                       <Printer className="w-3 h-3" /> Edit&Print
                     </Button>
                   </div>
