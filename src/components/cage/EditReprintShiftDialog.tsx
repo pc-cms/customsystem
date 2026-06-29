@@ -360,8 +360,8 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
                     <FragmentRow key={d} label={formatChipLabel(d)}
                       o={state.openChips[d] || 0}
                       cV={state.closeChips[d] || 0}
-                      onO={(n) => setState({ ...state, openChips: { ...state.openChips, [d]: n } })}
-                      onC={(n) => setState({ ...state, closeChips: { ...state.closeChips, [d]: n } })}
+                      onO={(n) => { setChipsAuto(false); setState({ ...state, openChips: { ...state.openChips, [d]: n } }); }}
+                      onC={(n) => { setChipsAuto(false); setState({ ...state, closeChips: { ...state.closeChips, [d]: n } }); }}
                     />
                   ))}
                 </div>
