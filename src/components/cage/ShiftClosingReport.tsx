@@ -286,7 +286,12 @@ const ShiftClosingReport = ({
       open += op; fill += fl; credit += cr; close += cl; inSum += inVal; result += res;
     });
     return { open, fill, credit, close, in: inSum, result };
-  }, [reportTables, baselines, fillCredits, dailyResults, inByTable, serverResults]);
+  }, [reportTables, baselines, fillCredits, dailyResults, inByTable, serverResults, tableRowOverrides]);
+
+  // Effective values — overrides win when provided.
+  const effCashlessIO = cashlessOverride ?? cashlessIO;
+  const effTipsByShift = tipsByShiftOverride ?? tipsByShift;
+  const effCashFlowTransfers = cashFlowTransfersOverride ?? cashFlowTransfers;
 
   // Cash flow opener (per currency cash + mobile from opening_float)
   const openerCash = (openingFloat?.cash || {}) as Record<string, Record<string | number, number>>;
