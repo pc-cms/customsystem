@@ -101,6 +101,7 @@ const PitBook = lazy(() => import("@/pages/PitBook"));
 const CloseShiftPage = lazy(() => import("@/pages/cage/CloseShiftPage"));
 const RegisterPlayerPage = lazy(() => import("@/pages/cage/RegisterPlayerPage"));
 const EditOpeningChipsPage = lazy(() => import("@/pages/cage/EditOpeningChipsPage"));
+const EditReprintShiftPage = lazy(() => import("@/pages/EditReprintShiftPage"));
 const CageClosingsPage = lazy(() => import("@/pages/cage/CageClosingsPage"));
 const CageViewPage = lazy(() => import("@/pages/cage/CageViewPage"));
 // ClosingsPage retired — merged into /reports (tabs: total, live, slots, expenses).
@@ -382,6 +383,7 @@ const ProtectedRoutes = () => {
           <Route path="/cage/closings" element={<Navigate to="/reports?tab=live" replace />} />
           <Route path="/closings" element={<Navigate to="/reports?tab=total" replace />} />
           <Route path="/cage/shift/:id/edit-opening" element={<RoleGuard path="/cage"><ErrorBoundary><EditOpeningChipsPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/cage/shift/:id/edit-reprint" element={<RoleGuard path="/cage"><ErrorBoundary><EditReprintShiftPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage-slots" element={<RoleGuard path="/cage-slots"><ErrorBoundary><CageSlots /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage-slots/cashless" element={<Navigate to="/cashless" replace />} />
           <Route path="/cage-slots/transfers" element={<Navigate to="/transfers" replace />} />

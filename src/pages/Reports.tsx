@@ -25,7 +25,7 @@ import { businessDayHourUTC } from "@/lib/business-day";
 import { fetchPaged } from "@/lib/fetch-paged";
 import { computeShiftCashFlow } from "@/lib/shift-cash";
 import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
-import EditReprintShiftDialog from "@/components/cage/EditReprintShiftDialog";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell,
@@ -372,7 +372,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
   const fmt = useFormatMoney();
   const { casinoId } = useAuth();
   const [reprintId, setReprintId] = useState<string | null>(null);
-  const [editReprintId, setEditReprintId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const { data: shifts = [], isLoading } = useQuery({
     queryKey: ["reports-live", casinoId, from, to],
@@ -490,7 +490,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
                     <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => setReprintId(s.id)}>
                       <Printer className="w-3 h-3" /> Print
                     </Button>
-                    <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => setEditReprintId(s.id)}>
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => navigate(`/cage/shift/${s.id}/edit-reprint`)}>
                       <Printer className="w-3 h-3" /> Edit&Print
                     </Button>
                   </div>
@@ -502,9 +502,6 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
       </DataTable>
       {reprintId && casinoId && (
         <ReprintShiftDialog open onClose={() => setReprintId(null)} shiftId={reprintId} casinoId={casinoId} />
-      )}
-      {editReprintId && casinoId && (
-        <EditReprintShiftDialog open onClose={() => setEditReprintId(null)} shiftId={editReprintId} casinoId={casinoId} />
       )}
     </div>
     </TooltipProvider>

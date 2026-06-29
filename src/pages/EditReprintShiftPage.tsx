@@ -1,36 +1,28 @@
 /**
- * EditReprintShiftDialog — "Reprint with edits".
+ * EditReprintShiftPage — full-page version of "Reprint with edits".
  *
- * Loads a closed shift's snapshot data exactly like ReprintShiftDialog, but
- * surfaces editable fields for cash open/close (per currency, native totals),
- * chips open/close (per denomination), tips, expenses, table results, cashless
- * IN/OUT and balance. Edits are kept in local React state only — NOTHING is
- * written to the database. The Print button renders the printable area with
- * the edited values via overrides on ShiftClosingReport / ChipMovementReport.
+ * Loads a closed shift's snapshot data, surfaces editable fields for cash
+ * open/close (per currency, native totals), chips open/close (per
+ * denomination), tips, expenses, table results, cashless IN/OUT and balance.
+ * Edits are kept in local React state only — NOTHING is written to the
+ * database. The Print button renders the printable area with the edited
+ * values via overrides on ShiftClosingReport / ChipMovementReport.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Printer, X, RotateCcw } from "lucide-react";
+import { Printer, ArrowLeft, RotateCcw } from "lucide-react";
 import { CHIP_DENOMS, CURRENCIES, formatNumberSpaces, formatChipLabel } from "@/lib/currency";
 import { computeMissByDenom } from "@/components/cage/CageHelpers";
 import ShiftClosingReport from "@/components/cage/ShiftClosingReport";
 import ChipMovementReport from "@/components/cage/ChipMovementReport";
 import PrintPortal from "@/components/cage/PrintPortal";
 import { printLiveGameReport } from "@/components/cage/printLiveGameReport";
+import { useAuth } from "@/lib/auth-context";
 import type { Tables } from "@/integrations/supabase/types";
-
-interface Props {
-  open: boolean;
-  onClose: () => void;
-  shiftId: string;
-  casinoId: string;
-}
 
 const businessDateForEAT = (iso: string): string => {
   const d = new Date(iso);
@@ -74,7 +66,7 @@ const NumInput = ({ value, onChange, className = "" }: { value: number; onChange
     <Input
       type="text"
       inputMode="numeric"
-      className={`h-8 text-right font-mono tabular-nums ${className}`}
+      className={`h-7 text-right font-mono tabular-nums text-[11px] px-1.5 ${className}`}
       value={text}
       onChange={(e) => {
         const raw = e.target.value;
@@ -87,17 +79,21 @@ const NumInput = ({ value, onChange, className = "" }: { value: number; onChange
   );
 };
 
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div className="cms-panel p-3 space-y-2">
-    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</div>
+const Section = ({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) => (
+  <div className={`cms-panel p-2 space-y-1.5 ${className}`}>
+    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</div>
     {children}
   </div>
 );
 
-const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => {
+const EditReprintShiftPage = () => {
+  const { id: shiftId = "" } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { casinoId } = useAuth();
+
   const { data, isLoading } = useQuery({
     queryKey: ["edit-reprint-shift", shiftId],
-    enabled: open && !!shiftId && !!casinoId,
+    enabled: !!shiftId && !!casinoId,
     queryFn: async () => {
       const { data: shift } = await supabase.from("shifts").select("*").eq("id", shiftId).maybeSingle();
       const fromIso = (shift as any)?.opened_at ?? "1970-01-01T00:00:00Z";
@@ -109,12 +105,12 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
         { data: cashless },
         { data: tableResRpc },
       ] = await Promise.all([
-        supabase.from("gaming_tables").select("*").eq("casino_id", casinoId),
+        supabase.from("gaming_tables").select("*").eq("casino_id", casinoId!),
         supabase.from("expenses").select("amount").eq("shift_id", shiftId),
         supabase.from("cage_transfers").select("transfer_type, amount, chips, table_id").eq("shift_id", shiftId),
         (supabase as any).from("cashless_transactions")
           .select("direction, provider, amount, created_at")
-          .eq("casino_id", casinoId)
+          .eq("casino_id", casinoId!)
           .eq("cage_type", "live_game")
           .gte("created_at", fromIso)
           .lte("created_at", toIso),
@@ -136,29 +132,24 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
     [shift?.closed_at],
   );
 
-  // -------- Build initial editable state from snapshot --------
   const initial = useMemo(() => {
     if (!shift) return null;
     const closing: any = shift.closing_count || {};
     const opening: any = shift.opening_float || {};
-
     const cashTotal = (m: any): number =>
       m ? Object.entries(m).reduce((s, [d, q]) => s + Number(d) * (Number(q) || 0), 0) : 0;
-
     const openCashByCcy: CashByCurrency = Object.fromEntries(
       CURRENCIES.map(c => [c, cashTotal((opening.cash || {})[c])]),
     );
     const closeCashByCcy: CashByCurrency = Object.fromEntries(
       CURRENCIES.map(c => [c, cashTotal((closing.cash || {})[c])]),
     );
-
     const openChips: ChipMap = {};
     const closeChips: ChipMap = {};
     CHIP_DENOMS.forEach(d => {
       openChips[d] = Number((opening.chips || {})[d] ?? (opening.chips || {})[String(d)] ?? 0);
       closeChips[d] = Number((closing.chips || {})[d] ?? (closing.chips || {})[String(d)] ?? 0);
     });
-
     const cashlessIO: CashlessIO = { inByProv: {}, outByProv: {} };
     (data?.cashless || []).forEach((r: any) => {
       const p = String(r.provider || "").toUpperCase();
@@ -166,40 +157,26 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
       if (r.direction === "IN") cashlessIO.inByProv[p] = (cashlessIO.inByProv[p] || 0) + a;
       else if (r.direction === "OUT") cashlessIO.outByProv[p] = (cashlessIO.outByProv[p] || 0) + a;
     });
-
     let addFloat = 0, slotsOut = 0;
     const fillByDenom: ChipMap = {};
     const creditByDenom: ChipMap = {};
-    const tableFill: Record<string, number> = {};
-    const tableCredit: Record<string, number> = {};
     (data?.transfers || []).forEach((r: any) => {
       if (r.transfer_type === "add_float") addFloat += Number(r.amount || 0);
       else if (r.transfer_type === "slots_out") slotsOut += Number(r.amount || 0);
       else if (r.transfer_type === "fill") {
-        if (r.table_id) tableFill[r.table_id] = (tableFill[r.table_id] || 0) + Number(r.amount || 0);
         Object.entries((r.chips || {}) as Record<string, number>).forEach(([d, q]) => {
           fillByDenom[Number(d)] = (fillByDenom[Number(d)] || 0) + Number(q || 0);
         });
       } else if (r.transfer_type === "credit") {
-        if (r.table_id) tableCredit[r.table_id] = (tableCredit[r.table_id] || 0) + Number(r.amount || 0);
         Object.entries((r.chips || {}) as Record<string, number>).forEach(([d, q]) => {
           creditByDenom[Number(d)] = (creditByDenom[Number(d)] || 0) + Number(q || 0);
         });
       }
     });
-
     return {
-      openCashByCcy,
-      closeCashByCcy,
-      openChips,
-      closeChips,
+      openCashByCcy, closeCashByCcy, openChips, closeChips,
       totalExpenses: data?.totalExpenses || 0,
-      tipsTotal: 0,
-      addFloat,
-      slotsOut,
-      fillByDenom,
-      creditByDenom,
-      cashlessIO,
+      tipsTotal: 0, addFloat, slotsOut, fillByDenom, creditByDenom, cashlessIO,
       resultTable: Number((shift as any).tables_result ?? closing.result_table ?? 0),
       balance: Number((shift as any).balance ?? closing.cash_desk_balance ?? 0),
       missTotal: Number((shift as any).miss_total ?? -(closing.chip_miss_total ?? 0)),
@@ -208,13 +185,11 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
     };
   }, [shift, data]);
 
-  // -------- Editable state --------
   const [state, setState] = useState<typeof initial>(null);
   const [resultAuto, setResultAuto] = useState(true);
   const [chipsAuto, setChipsAuto] = useState(false);
   useEffect(() => { if (initial) setState(initial); }, [initial]);
 
-  // Baseline chip value (from initial snapshot) to compute drift on edits
   const baselineChipDelta = useMemo(() => {
     if (!initial) return 0;
     return (CHIP_DENOMS as any).reduce(
@@ -223,30 +198,19 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
     );
   }, [initial]);
 
-  // Redistribute a target Tables Result back into close chips (print-only).
-  // Keeps openChips fixed; starts from initial.closeChips and greedily splits
-  // the value diff (initial.resultTable − targetResult) across denominations
-  // from largest to smallest.
   const redistributeCloseChips = (targetResult: number): ChipMap => {
     if (!initial) return {} as ChipMap;
     const out: ChipMap = { ...initial.closeChips };
-    let remaining = initial.resultTable - targetResult; // value to add on top of initial close
+    let remaining = initial.resultTable - targetResult;
     const denoms = [...(CHIP_DENOMS as readonly number[])].sort((a, b) => b - a);
     for (const d of denoms) {
       if (remaining === 0) break;
       const q = remaining > 0 ? Math.floor(remaining / d) : Math.ceil(remaining / d);
-      if (q !== 0) {
-        out[d] = (out[d] || 0) + q;
-        remaining -= q * d;
-      }
+      if (q !== 0) { out[d] = (out[d] || 0) + q; remaining -= q * d; }
     }
     return out;
   };
 
-  // Auto-recompute Tables Result when chips change.
-  // Formula: tables paid out chips ⇒ if cage closes with fewer chips than opened,
-  //   tables took chips (won), result increases. Drift = (curΔ - baselineΔ).
-  // autoResult = initialResult - (currentChipDelta - baselineChipDelta)
   useEffect(() => {
     if (!resultAuto || !state || !initial) return;
     const cur = (CHIP_DENOMS as any).reduce(
@@ -254,16 +218,11 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
       0,
     );
     const next = initial.resultTable - (cur - baselineChipDelta);
-    if (next !== state.resultTable) {
-      setState({ ...state, resultTable: next });
-    }
+    if (next !== state.resultTable) setState({ ...state, resultTable: next });
   }, [state?.openChips, state?.closeChips, resultAuto, initial, baselineChipDelta]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!open) return null;
+  const reset = () => { if (initial) { setState({ ...initial }); setResultAuto(true); setChipsAuto(false); } };
 
-  const reset = () => { if (initial) { setState({ ...initial }); setResultAuto(true); } };
-
-  // Derived: auto-recomputed Miss from current chip qty deltas
   const recomputedMiss = useMemo(() => {
     if (!state) return { perDenom: {} as ChipMap, total: 0 };
     const perDenom = computeMissByDenom(state.openChips, state.closeChips, CHIP_DENOMS as any);
@@ -271,39 +230,22 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
     return { perDenom, total };
   }, [state?.openChips, state?.closeChips]);
 
-  // Build overrides for the printable components
   const built = useMemo(() => {
     if (!state || !shift) return null;
-    // Build cash objects with a single synthetic "denom = native total" so
-    // the per-currency totals match the edited values exactly (the report
-    // only displays per-currency sums, not per-denom breakdowns).
     const buildCashObj = (byCcy: CashByCurrency) => {
       const out: Record<string, Record<string, number>> = {};
-      CURRENCIES.forEach(c => {
-        out[c] = { "1": Number(byCcy[c] || 0) };
-      });
+      CURRENCIES.forEach(c => { out[c] = { "1": Number(byCcy[c] || 0) }; });
       return out;
     };
-    const openingFloat = {
-      ...(shift.opening_float as any || {}),
-      cash: buildCashObj(state.openCashByCcy),
-      chips: state.openChips,
-    };
-    const closingCount = {
-      ...(shift.closing_count as any || {}),
-      cash: buildCashObj(state.closeCashByCcy),
-      chips: state.closeChips,
-    };
+    const openingFloat = { ...(shift.opening_float as any || {}), cash: buildCashObj(state.openCashByCcy), chips: state.openChips };
+    const closingCount = { ...(shift.closing_count as any || {}), cash: buildCashObj(state.closeCashByCcy), chips: state.closeChips };
     return { openingFloat, closingCount };
   }, [state, shift]);
 
-  // Per-table result overrides for ShiftClosingReport
   const tableRowOverrides = useMemo(() => {
     if (!state) return undefined;
     const out: Record<string, { res: number }> = {};
-    Object.entries(state.tableRes || {}).forEach(([id, v]) => {
-      out[id] = { res: Number(v) || 0 };
-    });
+    Object.entries(state.tableRes || {}).forEach(([id, v]) => { out[id] = { res: Number(v) || 0 }; });
     return out;
   }, [state?.tableRes]);
 
@@ -318,27 +260,44 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
   }, [state?.tableRes, reportTables]);
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-6xl max-h-[92vh] overflow-hidden flex flex-col p-0">
-        <DialogHeader className="px-5 pt-4 pb-2 border-b border-border">
-          <DialogTitle>Reprint with edits — Live Game</DialogTitle>
-          <p className="text-xs text-muted-foreground">
-            Edits are kept only in memory for this print. Nothing is saved to the database.
-          </p>
-        </DialogHeader>
+    <div className="h-[calc(100vh-var(--app-header-h,56px))] flex flex-col print:h-auto print:block">
+      {/* Header bar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border print:hidden">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1.5">
+            <ArrowLeft className="w-4 h-4" /> Back
+          </Button>
+          <div>
+            <div className="text-sm font-semibold">Reprint with edits — Live Game</div>
+            <div className="text-[11px] text-muted-foreground">
+              Edits are kept only in memory for this print. Nothing is saved to the database.
+              {businessDate && <span className="ml-2 font-mono">{businessDate}</span>}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={reset} className="gap-1.5" disabled={!state}>
+            <RotateCcw className="w-4 h-4" /> Reset
+          </Button>
+          <Button size="sm" onClick={printLiveGameReport} className="gap-1.5" disabled={!state}>
+            <Printer className="w-4 h-4" /> Print
+          </Button>
+        </div>
+      </div>
 
-        {isLoading || !shift || !state ? (
-          <div className="text-center text-muted-foreground py-16 text-sm">Loading…</div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 p-4 overflow-y-auto flex-1">
-            {/* ============ LEFT — EDIT FORM ============ */}
-            <div className="space-y-3">
-              {/* Cash per currency */}
-              <Section title="Cash open / close (per currency, native total)">
-                <div className="grid grid-cols-[60px,1fr,1fr] gap-2 items-center text-xs">
+      {isLoading || !shift || !state ? (
+        <div className="text-center text-muted-foreground py-16 text-sm">Loading…</div>
+      ) : (
+        <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 p-2 print:block print:overflow-visible">
+          {/* ============ LEFT — EDIT FORM ============ */}
+          <div className="min-h-0 overflow-auto pr-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 auto-rows-min">
+              {/* Cash */}
+              <Section title="Cash open / close (per currency)">
+                <div className="grid grid-cols-[44px,1fr,1fr] gap-1 items-center">
                   <div />
-                  <div className="text-[10px] uppercase text-muted-foreground text-center">Open</div>
-                  <div className="text-[10px] uppercase text-muted-foreground text-center">Close</div>
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Open</div>
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Close</div>
                   {CURRENCIES.map(c => (
                     <FragmentRow key={c} label={c}
                       o={state.openCashByCcy[c] || 0}
@@ -350,32 +309,12 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
                 </div>
               </Section>
 
-              {/* Chips open/close per denom */}
-              <Section title="Chips open / close (per denomination, qty)">
-                <div className="grid grid-cols-[60px,1fr,1fr] gap-2 items-center text-xs">
+              {/* Cashless */}
+              <Section title="Cashless IN / OUT per provider">
+                <div className="grid grid-cols-[44px,1fr,1fr] gap-1 items-center">
                   <div />
-                  <div className="text-[10px] uppercase text-muted-foreground text-center">Open qty</div>
-                  <div className="text-[10px] uppercase text-muted-foreground text-center">Close qty</div>
-                  {CHIP_DENOMS.map(d => (
-                    <FragmentRow key={d} label={formatChipLabel(d)}
-                      o={state.openChips[d] || 0}
-                      cV={state.closeChips[d] || 0}
-                      onO={(n) => { setChipsAuto(false); setState({ ...state, openChips: { ...state.openChips, [d]: n } }); }}
-                      onC={(n) => { setChipsAuto(false); setState({ ...state, closeChips: { ...state.closeChips, [d]: n } }); }}
-                    />
-                  ))}
-                </div>
-                <div className="text-[11px] text-muted-foreground pt-1 border-t border-border mt-2">
-                  Miss recalculated: <span className="font-mono">{formatNumberSpaces(recomputedMiss.total)}</span>
-                </div>
-              </Section>
-
-              {/* Cashless IN/OUT per provider */}
-              <Section title="Cashless (IN / OUT per provider)">
-                <div className="grid grid-cols-[60px,1fr,1fr] gap-2 items-center text-xs">
-                  <div />
-                  <div className="text-[10px] uppercase text-muted-foreground text-center">IN</div>
-                  <div className="text-[10px] uppercase text-muted-foreground text-center">OUT</div>
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">IN</div>
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">OUT</div>
                   {PROV_KEYS.map(p => (
                     <FragmentRow key={p} label={PROV_LABELS[p]}
                       o={state.cashlessIO.inByProv[p] || 0}
@@ -387,11 +326,41 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
                 </div>
               </Section>
 
+              {/* Chips spans both columns */}
+              <Section title="Chips open / close (per denomination, qty)" className="md:col-span-2">
+                <div className="grid grid-cols-[60px,1fr,1fr,60px,1fr,1fr] gap-1 items-center">
+                  <div />
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Open</div>
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Close</div>
+                  <div />
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Open</div>
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Close</div>
+                  {(() => {
+                    const denoms = [...CHIP_DENOMS];
+                    const mid = Math.ceil(denoms.length / 2);
+                    const left = denoms.slice(0, mid);
+                    const right = denoms.slice(mid);
+                    const rows = Math.max(left.length, right.length);
+                    return Array.from({ length: rows }).map((_, i) => (
+                      <FragmentChipDoubleRow
+                        key={i}
+                        leftD={left[i]} rightD={right[i]}
+                        state={state}
+                        onChange={(patch) => { setChipsAuto(false); setState({ ...state, ...patch }); }}
+                      />
+                    ));
+                  })()}
+                </div>
+                <div className="text-[10px] text-muted-foreground pt-1 border-t border-border mt-1">
+                  Miss recalculated: <span className="font-mono">{formatNumberSpaces(recomputedMiss.total)}</span>
+                </div>
+              </Section>
+
               {/* Per-table results */}
               <Section title="Table results (per table)">
-                <div className="grid grid-cols-[1fr,160px] gap-2 items-center text-xs">
+                <div className="grid grid-cols-[1fr,110px,1fr,110px] gap-1 items-center">
                   {reportTables.length === 0 && (
-                    <div className="col-span-2 text-muted-foreground text-[11px]">No tables.</div>
+                    <div className="col-span-4 text-muted-foreground text-[11px]">No tables.</div>
                   )}
                   {reportTables.map(t => (
                     <FragmentRowSingle
@@ -404,50 +373,32 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
                           (s, tt) => s + (tt.id === t.id ? n : (Number(nextMap[tt.id]) || 0)),
                           0,
                         );
-                        // Per-table edits ALWAYS redistribute close chips
-                        // (full chain: result → CLOSE chips → printed report).
-                        // Disable conflicting auto-result toggle.
                         setResultAuto(false);
                         setChipsAuto(true);
-                        setState({
-                          ...state,
-                          tableRes: nextMap,
-                          resultTable: sum,
-                          closeChips: redistributeCloseChips(sum),
-                        });
+                        setState({ ...state, tableRes: nextMap, resultTable: sum, closeChips: redistributeCloseChips(sum) });
                       }}
                     />
                   ))}
                 </div>
-                <div className="text-[11px] text-muted-foreground pt-1 border-t border-border mt-2 flex justify-between gap-2">
-                  <span className="text-[10px]">
-                    Editing a row auto-recalculates CLOSE chips for that delta (print only, DB untouched).
-                  </span>
+                <div className="text-[10px] text-muted-foreground pt-1 border-t border-border mt-1 flex justify-between gap-2">
+                  <span>Editing a row auto-recalculates CLOSE chips (print only).</span>
                   <span className="font-mono whitespace-nowrap">Σ {formatNumberSpaces(tablesResSum)}</span>
                 </div>
               </Section>
 
               {/* Totals & balance */}
               <Section title="Totals & balance">
-                <div className="grid grid-cols-[1fr,160px] gap-2 items-center text-xs">
+                <div className="grid grid-cols-[1fr,140px] gap-1 items-center text-[11px]">
                   <span className="flex items-center gap-2 flex-wrap">
                     Tables Result
-                    <label className="inline-flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="h-3 w-3"
-                        checked={resultAuto}
-                        onChange={(e) => { setResultAuto(e.target.checked); if (e.target.checked) setChipsAuto(false); }}
-                      />
+                    <label className="inline-flex items-center gap-1 text-[9px] text-muted-foreground cursor-pointer">
+                      <input type="checkbox" className="h-3 w-3" checked={resultAuto}
+                        onChange={(e) => { setResultAuto(e.target.checked); if (e.target.checked) setChipsAuto(false); }} />
                       auto result
                     </label>
-                    <label className="inline-flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="h-3 w-3"
-                        checked={chipsAuto}
-                        onChange={(e) => { setChipsAuto(e.target.checked); if (e.target.checked) setResultAuto(false); }}
-                      />
+                    <label className="inline-flex items-center gap-1 text-[9px] text-muted-foreground cursor-pointer">
+                      <input type="checkbox" className="h-3 w-3" checked={chipsAuto}
+                        onChange={(e) => { setChipsAuto(e.target.checked); if (e.target.checked) setResultAuto(false); }} />
                       auto chips
                     </label>
                   </span>
@@ -470,114 +421,126 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
                 </div>
               </Section>
             </div>
+          </div>
 
-            {/* ============ RIGHT — LIVE PREVIEW ============ */}
-            <div className="border border-border rounded-md overflow-auto bg-white text-black max-h-[80vh]">
-              <div className="origin-top-left scale-[0.55] w-[182%]">
-                {built && (
-                  <>
-                    <ShiftClosingReport
-                      shift={shift}
-                      tables={tables}
-                      closingCount={built.closingCount}
-                      openingFloat={built.openingFloat}
-                      exchangeRates={state.exchangeRates}
-                      totalExpenses={state.totalExpenses}
-                      missTotal={recomputedMiss.total}
-                      resultTable={state.resultTable}
-                      balance={state.balance}
-                      businessDate={businessDate}
-                      tipsTotal={state.tipsTotal}
-                      cashlessOverride={state.cashlessIO}
-                      cashFlowTransfersOverride={{ addFloat: state.addFloat, slotsOut: state.slotsOut }}
-                      tableRowOverrides={tableRowOverrides}
-                    />
-                    <ChipMovementReport
-                      shift={shift}
-                      openingChips={state.openChips}
-                      closingChips={state.closeChips}
-                      missPerDenom={recomputedMiss.perDenom}
-                      businessDate={businessDate}
-                      fillByDenomOverride={state.fillByDenom}
-                      creditByDenomOverride={state.creditByDenom}
-                    />
-                  </>
-                )}
-              </div>
+          {/* ============ RIGHT — LIVE PREVIEW ============ */}
+          <div className="min-h-0 border border-border rounded-md overflow-auto bg-white text-black print:hidden">
+            <div className="origin-top-left scale-[0.6] w-[166%]">
+              {built && (
+                <>
+                  <ShiftClosingReport
+                    shift={shift}
+                    tables={tables}
+                    closingCount={built.closingCount}
+                    openingFloat={built.openingFloat}
+                    exchangeRates={state.exchangeRates}
+                    totalExpenses={state.totalExpenses}
+                    missTotal={recomputedMiss.total}
+                    resultTable={state.resultTable}
+                    balance={state.balance}
+                    businessDate={businessDate}
+                    tipsTotal={state.tipsTotal}
+                    cashlessOverride={state.cashlessIO}
+                    cashFlowTransfersOverride={{ addFloat: state.addFloat, slotsOut: state.slotsOut }}
+                    tableRowOverrides={tableRowOverrides}
+                  />
+                  <ChipMovementReport
+                    shift={shift}
+                    openingChips={state.openChips}
+                    closingChips={state.closeChips}
+                    missPerDenom={recomputedMiss.perDenom}
+                    businessDate={businessDate}
+                    fillByDenomOverride={state.fillByDenom}
+                    creditByDenomOverride={state.creditByDenom}
+                  />
+                </>
+              )}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Print-only area (lives outside the dialog via portal) */}
-        {built && state && shift && (
-          <PrintPortal>
-            <div className="live-game-print-area hidden print:block">
-              <ShiftClosingReport
-                shift={shift}
-                tables={tables}
-                closingCount={built.closingCount}
-                openingFloat={built.openingFloat}
-                exchangeRates={state.exchangeRates}
-                totalExpenses={state.totalExpenses}
-                missTotal={recomputedMiss.total}
-                resultTable={state.resultTable}
-                balance={state.balance}
-                businessDate={businessDate}
-                tipsTotal={state.tipsTotal}
-                cashlessOverride={state.cashlessIO}
-                cashFlowTransfersOverride={{ addFloat: state.addFloat, slotsOut: state.slotsOut }}
-                tableRowOverrides={tableRowOverrides}
-              />
-              <ChipMovementReport
-                shift={shift}
-                openingChips={state.openChips}
-                closingChips={state.closeChips}
-                missPerDenom={recomputedMiss.perDenom}
-                businessDate={businessDate}
-                fillByDenomOverride={state.fillByDenom}
-                creditByDenomOverride={state.creditByDenom}
-              />
-            </div>
-          </PrintPortal>
-        )}
-
-        <DialogFooter className="px-5 py-3 border-t border-border print:hidden">
-          <Button variant="outline" onClick={reset} className="gap-1.5" disabled={!state}>
-            <RotateCcw className="w-4 h-4" /> Reset
-          </Button>
-          <Button variant="outline" onClick={onClose} className="gap-1.5">
-            <X className="w-4 h-4" /> Close
-          </Button>
-          <Button onClick={printLiveGameReport} className="gap-1.5" disabled={!state}>
-            <Printer className="w-4 h-4" /> Print
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      {/* Print-only area via portal */}
+      {built && state && shift && (
+        <PrintPortal>
+          <div className="live-game-print-area hidden print:block">
+            <ShiftClosingReport
+              shift={shift}
+              tables={tables}
+              closingCount={built.closingCount}
+              openingFloat={built.openingFloat}
+              exchangeRates={state.exchangeRates}
+              totalExpenses={state.totalExpenses}
+              missTotal={recomputedMiss.total}
+              resultTable={state.resultTable}
+              balance={state.balance}
+              businessDate={businessDate}
+              tipsTotal={state.tipsTotal}
+              cashlessOverride={state.cashlessIO}
+              cashFlowTransfersOverride={{ addFloat: state.addFloat, slotsOut: state.slotsOut }}
+              tableRowOverrides={tableRowOverrides}
+            />
+            <ChipMovementReport
+              shift={shift}
+              openingChips={state.openChips}
+              closingChips={state.closeChips}
+              missPerDenom={recomputedMiss.perDenom}
+              businessDate={businessDate}
+              fillByDenomOverride={state.fillByDenom}
+              creditByDenomOverride={state.creditByDenom}
+            />
+          </div>
+        </PrintPortal>
+      )}
+    </div>
   );
 };
 
-// Row helper — label + two numeric inputs
 const FragmentRow = ({ label, o, cV, onO, onC }: {
   label: string; o: number; cV: number;
   onO: (n: number) => void; onC: (n: number) => void;
 }) => (
   <>
-    <div className="text-xs font-medium text-muted-foreground">{label}</div>
+    <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
     <NumInput value={o} onChange={onO} />
     <NumInput value={cV} onChange={onC} />
   </>
 );
 
-// Single-input row helper
 const FragmentRowSingle = ({ label, value, onChange }: {
   label: string; value: number; onChange: (n: number) => void;
 }) => (
   <>
-    <div className="text-xs font-medium text-muted-foreground truncate" title={label}>{label}</div>
+    <div className="text-[11px] font-medium text-muted-foreground truncate" title={label}>{label}</div>
     <NumInput value={value} onChange={onChange} />
   </>
 );
 
+const FragmentChipDoubleRow = ({ leftD, rightD, state, onChange }: {
+  leftD?: number; rightD?: number;
+  state: any;
+  onChange: (patch: any) => void;
+}) => (
+  <>
+    {leftD !== undefined ? (
+      <>
+        <div className="text-[11px] font-medium text-muted-foreground">{formatChipLabel(leftD)}</div>
+        <NumInput value={state.openChips[leftD] || 0}
+          onChange={(n) => onChange({ openChips: { ...state.openChips, [leftD]: n } })} />
+        <NumInput value={state.closeChips[leftD] || 0}
+          onChange={(n) => onChange({ closeChips: { ...state.closeChips, [leftD]: n } })} />
+      </>
+    ) : (<><div /><div /><div /></>)}
+    {rightD !== undefined ? (
+      <>
+        <div className="text-[11px] font-medium text-muted-foreground">{formatChipLabel(rightD)}</div>
+        <NumInput value={state.openChips[rightD] || 0}
+          onChange={(n) => onChange({ openChips: { ...state.openChips, [rightD]: n } })} />
+        <NumInput value={state.closeChips[rightD] || 0}
+          onChange={(n) => onChange({ closeChips: { ...state.closeChips, [rightD]: n } })} />
+      </>
+    ) : (<><div /><div /><div /></>)}
+  </>
+);
 
-export default EditReprintShiftDialog;
+export default EditReprintShiftPage;
