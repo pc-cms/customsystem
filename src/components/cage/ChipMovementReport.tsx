@@ -74,14 +74,17 @@ const ChipMovementReport = ({
   const total = (m: Record<number, number>) =>
     CHIP_DENOMS.reduce((s, d) => s + d * (m[d] || 0), 0);
 
+  const effFill = fillByDenomOverride ?? fillByDenom;
+  const effCredit = creditByDenomOverride ?? creditByDenom;
+
   const totals = useMemo(() => ({
     opener: total(openingChips),
     diff: total(openingDiff),
-    fill: total(fillByDenom),
-    credit: total(creditByDenom),
+    fill: total(effFill),
+    credit: total(effCredit),
     miss: total(missPerDenom),
     close: total(closingChips),
-  }), [openingChips, openingDiff, fillByDenom, creditByDenom, missPerDenom, closingChips]);
+  }), [openingChips, openingDiff, effFill, effCredit, missPerDenom, closingChips]);
 
   return (
     <div
