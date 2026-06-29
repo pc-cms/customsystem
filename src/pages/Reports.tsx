@@ -372,6 +372,7 @@ const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
   const fmt = useFormatMoney();
   const { casinoId } = useAuth();
   const [reprintId, setReprintId] = useState<string | null>(null);
+  const [editReprintId, setEditReprintId] = useState<string | null>(null);
 
   const { data: shifts = [], isLoading } = useQuery({
     queryKey: ["reports-live", casinoId, from, to],
