@@ -107,6 +107,7 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
         { data: exp },
         { data: transfers },
         { data: cashless },
+        { data: tableResRpc },
       ] = await Promise.all([
         supabase.from("gaming_tables").select("*").eq("casino_id", casinoId),
         supabase.from("expenses").select("amount").eq("shift_id", shiftId),
@@ -117,9 +118,14 @@ const EditReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => 
           .eq("cage_type", "live_game")
           .gte("created_at", fromIso)
           .lte("created_at", toIso),
+        (supabase as any).rpc("compute_shift_table_results", { p_shift_id: shiftId }),
       ]);
       const totalExpenses = (exp || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-      return { shift, tables: tables || [], totalExpenses, transfers: transfers || [], cashless: cashless || [] };
+      const tableResults: Record<string, number> = {};
+      (tableResRpc || []).forEach((r: any) => {
+        if (r?.table_id) tableResults[r.table_id] = Number(r.result ?? 0);
+      });
+      return { shift, tables: tables || [], totalExpenses, transfers: transfers || [], cashless: cashless || [], tableResults };
     },
   });
 
