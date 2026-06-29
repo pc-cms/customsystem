@@ -8,7 +8,7 @@
  * written to the database. The Print button renders the printable area with
  * the edited values via overrides on ShiftClosingReport / ChipMovementReport.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
