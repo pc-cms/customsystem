@@ -70,8 +70,16 @@ const NumInput = ({ value, onChange, className = "" }: { value: number; onChange
       value={text}
       onChange={(e) => {
         const raw = e.target.value;
+        // Allow a lone "-" (or "-0") while user is typing a negative number.
+        const isPartialNegative = /^-\d*$/.test(raw.replace(/\s/g, "")) && !/\d/.test(raw);
+        if (raw === "" || isPartialNegative) {
+          setText(raw);
+          lastExternal.current = 0;
+          onChange(0);
+          return;
+        }
         const n = parseSpaces(raw);
-        setText(raw === "" ? "" : formatSpaces(n));
+        setText(formatSpaces(n));
         lastExternal.current = n;
         onChange(n);
       }}
