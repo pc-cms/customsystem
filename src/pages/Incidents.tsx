@@ -151,34 +151,30 @@ const Incidents = () => {
     [gamingTables],
   );
 
-  // Pit rota → dealers / inspectors / pit bosses (managers).
+  // Dealer / Inspector / Pit Boss lists — from the FULL employees roster,
+  // independent of the day's rota. Incidents can involve any staff member.
   const rotaNames = useMemo(() => {
     const dealers = new Set<string>();
     const inspectors = new Set<string>();
     const pitBosses = new Set<string>();
-    const dealersMap = new Map(allDealers.map((d: any) => [d.id, d]));
-    for (const r of rota as any[]) {
-      const d = dealersMap.get(r.dealer_id) as any;
-      if (!d) continue;
+    for (const d of allDealers as any[]) {
+      if (d.is_active === false) continue;
       const name = d.name;
+      if (!name) continue;
       if (d.is_pit_boss) pitBosses.add(name);
-      else if (d.category === "I") inspectors.add(name);
+      else if (d.category === "I" || d.category === "inspector") inspectors.add(name);
       else dealers.add(name);
     }
-    // Dealer & Inspector share the same list. Pit Bosses are NOT managers —
-    // they appear only under Department=Pit as Employee.
     const dealerInspector = [...new Set([...dealers, ...inspectors])].sort();
     return {
       dealerInspector,
       managers: [...STANDING_MANAGERS].sort(),
-      pitBosses: [...pitBosses],
+      pitBosses: [...pitBosses].sort(),
     };
-  }, [rota, allDealers]);
+  }, [allDealers]);
 
   // Full staff list for "Employee" column, filtered by selected department.
-  // - pit       → only pit bosses
-  // - others    → staff_members whose department matches DEPT_STAFF_FILTER
-  // - fallback  → all active staff (only if filter yields nothing)
+  // Always from the full roster (not rota-bound).
   const staffOptions = useMemo(() => {
     const dept = form.department || "";
     if (dept === "game" || !dept) return [];
