@@ -13,7 +13,7 @@
  */
 import { useMemo, useRef, useState } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
-import { AlertTriangle, Camera, Check, ChevronLeft, ChevronRight, ImageIcon, Loader2, RotateCcw, Search, X } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Camera, Check, ChevronLeft, ChevronRight, ImageIcon, Loader2, RotateCcw, Search, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -213,6 +213,47 @@ const Incidents = () => {
     );
   }, [incidents, search]);
 
+  // Sorting -----------------------------------------------------------------
+  type SortKey =
+    | "datetime"
+    | "cctv_observer"
+    | "manager"
+    | "department"
+    | "table_name"
+    | "dealer_name"
+    | "inspector_name"
+    | "employees"
+    | "violation_type"
+    | "points";
+  const [sortKey, setSortKey] = useSessionState<SortKey>("sortKey", "datetime");
+  const [sortDir, setSortDir] = useSessionState<"asc" | "desc">("sortDir", "desc");
+  const toggleSort = (k: SortKey) => {
+    if (sortKey === k) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else {
+      setSortKey(k);
+      setSortDir(k === "points" || k === "datetime" ? "desc" : "asc");
+    }
+  };
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    const dir = sortDir === "asc" ? 1 : -1;
+    arr.sort((a: any, b: any) => {
+      if (sortKey === "datetime") {
+        const av = `${a.incident_date || ""} ${a.incident_time || ""}`;
+        const bv = `${b.incident_date || ""} ${b.incident_time || ""}`;
+        return av < bv ? -dir : av > bv ? dir : 0;
+      }
+      if (sortKey === "points") {
+        return ((a.points || 0) - (b.points || 0)) * dir;
+      }
+      const av = (a[sortKey] || "").toString().toLowerCase();
+      const bv = (b[sortKey] || "").toString().toLowerCase();
+      return av < bv ? -dir : av > bv ? dir : 0;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
   const totalPts = useMemo(() => filtered.reduce((s, i) => s + (i.points || 0), 0), [filtered]);
 
   const setF = <K extends keyof IncidentInput>(k: K, v: IncidentInput[K]) =>
@@ -329,30 +370,61 @@ const Incidents = () => {
             </colgroup>
             <thead className="bg-muted text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className={`px-3 py-2.5 text-left ${stickyDateHead} ${stickyDivider}`}>Date</th>
-                <th className={`px-3 py-2.5 text-left ${stickyTimeHead} ${stickyDivider}`} style={stickyTimeLeft}>
-                  Time
-                </th>
-                <th className="px-3 py-2.5 text-left">CCTV</th>
-                <th className="px-3 py-2.5 text-left">Manager</th>
-                <th className="px-3 py-2.5 text-left">Dept</th>
-                <th className="px-3 py-2.5 text-left">Table</th>
-                <th className="px-3 py-2.5 text-left">Dealer</th>
-                <th className="px-3 py-2.5 text-left">Inspector</th>
-                <th className="px-3 py-2.5 text-left">Employee</th>
-                <th className="px-3 py-2.5 text-left">Type</th>
+                <SortableTh label="Date" sortKey="datetime" current={sortKey} dir={sortDir} onClick={toggleSort} className={`${stickyDateHead} ${stickyDivider}`} />
+                <SortableTh label="Time" sortKey="datetime" current={sortKey} dir={sortDir} onClick={toggleSort} className={`${stickyTimeHead} ${stickyDivider}`} style={stickyTimeLeft} />
+                <SortableTh label="CCTV" sortKey="cctv_observer" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="Manager" sortKey="manager" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="Dept" sortKey="department" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="Table" sortKey="table_name" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="Dealer" sortKey="dealer_name" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="Inspector" sortKey="inspector_name" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="Employee" sortKey="employees" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="Type" sortKey="violation_type" current={sortKey} dir={sortDir} onClick={toggleSort} />
                 <th className="px-3 py-2.5 text-left">Incident *</th>
                 <th className="px-3 py-2.5 text-left">Outcome</th>
-                <th className="px-3 py-2.5 text-right">Pts</th>
+                <SortableTh label="Pts" sortKey="points" current={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
                 <th className="px-3 py-2.5 text-left">Comments</th>
                 <th className="px-3 py-2.5 text-center">Photo</th>
                 {canPost && <th className="px-3 py-2.5 text-center">Save</th>}
               </tr>
             </thead>
             <tbody>
-              {/* Draft row — inline entry */}
+              {isLoading ? (
+                <tr>
+                  <td colSpan={canPost ? 16 : 15} className="text-center py-8 text-muted-foreground">
+                    Loading…
+                  </td>
+                </tr>
+              ) : sorted.length === 0 ? (
+                <tr>
+                  <td colSpan={canPost ? 16 : 15} className="text-center py-8 text-muted-foreground">
+                    {incidents.length === 0 ? "No incidents yet." : "No matches for the search."}
+                  </td>
+                </tr>
+              ) : (
+                sorted.map((i) => (
+                  <IncidentRow
+                    key={i.id}
+                    incident={i}
+                    canEdit={canPost}
+                    onView={(url) => setViewPhoto(url)}
+                    stickyDate={stickyDate}
+                    stickyTime={stickyTime}
+                    stickyDivider={stickyDivider}
+                    stickyTimeLeft={stickyTimeLeft}
+                    cellInput={cellInput}
+                    tableOptions={tableOptions}
+                    dealerOptions={rotaNames.dealerInspector}
+                    managerOptions={rotaNames.managers}
+                    pitBosses={rotaNames.pitBosses}
+                    staffMembers={staffMembers as any[]}
+                  />
+                ))
+              )}
+
+              {/* Draft row — inline entry, always at the bottom */}
               {canPost && (
-                <tr className="border-t border-border bg-primary/5">
+                <tr className="border-t-2 border-primary/30 bg-muted/20 hover:bg-muted/30">
                   <td className={`px-1 py-1 ${stickyDate} ${stickyDivider}`}>
                     <Input
                       type="date"
@@ -557,39 +629,6 @@ const Incidents = () => {
                     </div>
                   </td>
                 </tr>
-              )}
-
-              {isLoading ? (
-                <tr>
-                  <td colSpan={canPost ? 16 : 15} className="text-center py-8 text-muted-foreground">
-                    Loading…
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={canPost ? 16 : 15} className="text-center py-8 text-muted-foreground">
-                    {incidents.length === 0 ? "No incidents yet." : "No matches for the search."}
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((i) => (
-                  <IncidentRow
-                    key={i.id}
-                    incident={i}
-                    canEdit={canPost}
-                    onView={(url) => setViewPhoto(url)}
-                    stickyDate={stickyDate}
-                    stickyTime={stickyTime}
-                    stickyDivider={stickyDivider}
-                    stickyTimeLeft={stickyTimeLeft}
-                    cellInput={cellInput}
-                    tableOptions={tableOptions}
-                    dealerOptions={rotaNames.dealerInspector}
-                    managerOptions={rotaNames.managers}
-                    pitBosses={rotaNames.pitBosses}
-                    staffMembers={staffMembers as any[]}
-                  />
-                ))
               )}
             </tbody>
           </table>
@@ -888,3 +927,45 @@ const IncidentRow = ({
   );
 };
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sortable column header
+// ─────────────────────────────────────────────────────────────────────────────
+interface SortableThProps<K extends string> {
+  label: string;
+  sortKey: K;
+  current: K;
+  dir: "asc" | "desc";
+  onClick: (k: K) => void;
+  className?: string;
+  style?: React.CSSProperties;
+  align?: "left" | "right" | "center";
+}
+function SortableTh<K extends string>({
+  label,
+  sortKey,
+  current,
+  dir,
+  onClick,
+  className = "",
+  style,
+  align = "left",
+}: SortableThProps<K>) {
+  const active = current === sortKey;
+  const Icon = active ? (dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  const justify =
+    align === "right" ? "justify-end" : align === "center" ? "justify-center" : "justify-start";
+  return (
+    <th className={`px-3 py-2.5 text-${align} ${className}`} style={style}>
+      <button
+        type="button"
+        onClick={() => onClick(sortKey)}
+        className={`group inline-flex items-center gap-1 w-full ${justify} uppercase tracking-wide text-xs font-semibold ${active ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+        title={`Sort by ${label}`}
+      >
+        <span>{label}</span>
+        <Icon className={`w-3 h-3 ${active ? "opacity-100" : "opacity-40 group-hover:opacity-80"}`} />
+      </button>
+    </th>
+  );
+}
