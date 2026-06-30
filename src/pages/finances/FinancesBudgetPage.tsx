@@ -34,6 +34,9 @@ export default function FinancesBudgetPage() {
   const [sortKey, setSortKey] = useState<SortKey>("group");
   const [compact, setCompact] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1); // 1..12
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [copySrc, setCopySrc] = useState<number>(now.getMonth() + 1);
+  const [copyTargets, setCopyTargets] = useState<Set<number>>(new Set());
 
   const fmtN = (n: number) => (n ? (compact ? formatMoneyCompact(n) : formatNumberSpaces(n)) : "");
   const fmtT = (n: number) => (compact ? formatMoneyCompact(n || 0) : formatNumberSpaces(n || 0));
