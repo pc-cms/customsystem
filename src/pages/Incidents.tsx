@@ -469,7 +469,7 @@ const Incidents = () => {
                     <select
                       value={form.department || ""}
                       onChange={(e) => setF("department", e.target.value)}
-                      className={`${cellInput} bg-transparent`}
+                      className={`${cellInput} bg-background`}
                     >
                       {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
                     </select>
@@ -527,7 +527,7 @@ const Incidents = () => {
                     <select
                       value={form.violation_type || ""}
                       onChange={(e) => setF("violation_type", e.target.value)}
-                      className={`${cellInput} bg-transparent`}
+                      className={`${cellInput} bg-background`}
                     >
                       {VIOLATION_TYPES.map((d) => <option key={d} value={d}>{d}</option>)}
                     </select>
@@ -818,7 +818,7 @@ const IncidentRow = ({
       </td>
       <td className="px-1 py-1">
         {editing ? (
-          <select value={draft.department || ""} onChange={(e) => setD("department", e.target.value)} className={`${cellInput} bg-transparent`}>
+          <select value={draft.department || ""} onChange={(e) => setD("department", e.target.value)} className={`${cellInput} bg-background`}>
             {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
         ) : ro(i.department)}
@@ -854,7 +854,7 @@ const IncidentRow = ({
       </td>
       <td className="px-1 py-1">
         {editing ? (
-          <select value={draft.violation_type || ""} onChange={(e) => setD("violation_type", e.target.value)} className={`${cellInput} bg-transparent`}>
+          <select value={draft.violation_type || ""} onChange={(e) => setD("violation_type", e.target.value)} className={`${cellInput} bg-background`}>
             {VIOLATION_TYPES.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
         ) : i.violation_type ? <Badge variant="outline" className="text-xs">{i.violation_type}</Badge> : "·"}
