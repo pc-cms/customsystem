@@ -393,10 +393,10 @@ export default function FinancesBudgetPage() {
                             </Fragment>
                           );
                         })}
-                        <td className={cn("sticky z-10 bg-accent/40 text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border", stickyRightEdge)} style={{ right: yearW }}>
+                        <td className={cn("sticky z-10 bg-primary/20 text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border text-foreground", stickyRightEdge)} style={{ right: yearW }}>
                           {fmtN(subYearTzs)}
                         </td>
-                        <td className={cn("sticky right-0 z-10 bg-accent/40 text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap border-l-2 border-border", stickyRightEdge)}>
+                        <td className={cn("sticky right-0 z-10 bg-primary/20 text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border text-foreground", stickyRightEdge)}>
                           {fmtN(subYearUsd)}
                         </td>
                       </tr>
