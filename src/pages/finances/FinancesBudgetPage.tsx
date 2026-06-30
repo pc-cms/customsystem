@@ -482,18 +482,27 @@ export default function FinancesBudgetPage() {
 function Cell({ value, compact, onCommit }: { value: number; compact: boolean; onCommit: (raw: string) => void }) {
   const [local, setLocal] = useState<string>(value ? String(value) : "");
   const [focused, setFocused] = useState(false);
-  const display = !focused && compact && value ? formatMoneyCompact(value) : local;
+  const display = focused
+    ? local
+    : value
+      ? compact
+        ? formatMoneyCompact(value)
+        : formatNumberSpaces(value)
+      : "";
   return (
     <Input
       value={display}
       onFocus={(e) => { setFocused(true); setLocal(value ? String(value) : ""); e.currentTarget.select(); }}
-      onChange={(e) => setLocal(e.target.value.replace(/[^\d.-]/g, ""))}
-      onBlur={() => { setFocused(false); onCommit(local); }}
+      onChange={(e) => setLocal(e.target.value.replace(/[^\d.\-\s]/g, ""))}
+      onBlur={() => {
+        setFocused(false);
+        onCommit(local.replace(/\s+/g, ""));
+      }}
       onKeyDown={(e) => {
         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
       }}
-      className="h-7 rounded-none border-0 bg-transparent text-right font-mono tabular-nums text-[11px] px-1 focus-visible:ring-1 focus-visible:ring-primary focus-visible:bg-primary/5"
-      placeholder=""
+      className="h-7 rounded-none border-0 bg-transparent text-right font-mono tabular-nums text-[12px] px-1.5 text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-primary focus-visible:bg-primary/10 focus-visible:text-foreground"
+      placeholder="·"
     />
   );
 }
