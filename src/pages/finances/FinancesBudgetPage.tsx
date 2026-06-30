@@ -181,7 +181,7 @@ export default function FinancesBudgetPage() {
             scrollPaddingLeft: catW,
           }}
         >
-          <table className="text-[11px] border-separate border-spacing-0" style={{ minWidth: minW }}>
+          <table className="text-[12px] border-separate border-spacing-0" style={{ minWidth: minW }}>
             <colgroup>
               <col style={{ width: catW, minWidth: catW }} />
               {MONTHS.map((_, i) => (
