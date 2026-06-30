@@ -424,7 +424,7 @@ const Incidents = () => {
 
               {/* Draft row — inline entry, always at the bottom */}
               {canPost && (
-                <tr className="border-t-2 border-primary/30 bg-muted/20 hover:bg-muted/30">
+                <tr className="border-t-2 border-primary bg-muted hover:bg-muted">
                   <td className={`px-1 py-1 ${stickyDate} ${stickyDivider}`}>
                     <Input
                       type="date"
