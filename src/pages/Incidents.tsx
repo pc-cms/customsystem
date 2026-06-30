@@ -213,6 +213,47 @@ const Incidents = () => {
     );
   }, [incidents, search]);
 
+  // Sorting -----------------------------------------------------------------
+  type SortKey =
+    | "datetime"
+    | "cctv_observer"
+    | "manager"
+    | "department"
+    | "table_name"
+    | "dealer_name"
+    | "inspector_name"
+    | "employees"
+    | "violation_type"
+    | "points";
+  const [sortKey, setSortKey] = useSessionState<SortKey>("sortKey", "datetime");
+  const [sortDir, setSortDir] = useSessionState<"asc" | "desc">("sortDir", "desc");
+  const toggleSort = (k: SortKey) => {
+    if (sortKey === k) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else {
+      setSortKey(k);
+      setSortDir(k === "points" || k === "datetime" ? "desc" : "asc");
+    }
+  };
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    const dir = sortDir === "asc" ? 1 : -1;
+    arr.sort((a: any, b: any) => {
+      if (sortKey === "datetime") {
+        const av = `${a.incident_date || ""} ${a.incident_time || ""}`;
+        const bv = `${b.incident_date || ""} ${b.incident_time || ""}`;
+        return av < bv ? -dir : av > bv ? dir : 0;
+      }
+      if (sortKey === "points") {
+        return ((a.points || 0) - (b.points || 0)) * dir;
+      }
+      const av = (a[sortKey] || "").toString().toLowerCase();
+      const bv = (b[sortKey] || "").toString().toLowerCase();
+      return av < bv ? -dir : av > bv ? dir : 0;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
   const totalPts = useMemo(() => filtered.reduce((s, i) => s + (i.points || 0), 0), [filtered]);
 
   const setF = <K extends keyof IncidentInput>(k: K, v: IncidentInput[K]) =>
