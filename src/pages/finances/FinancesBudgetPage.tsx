@@ -163,6 +163,33 @@ export default function FinancesBudgetPage() {
         >
           {compact ? "Compact" : "Full"}
         </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            const src = selectedMonth;
+            if (!confirm(`Copy ${MONTHS[src - 1]} values to all 12 months (overwrite)?`)) return;
+            let n = 0;
+            categories.forEach((c: any) => {
+              const tzs = grid[c.id]?.TZS?.[src] || 0;
+              const usd = grid[c.id]?.USD?.[src] || 0;
+              for (let m = 1; m <= 12; m++) {
+                if (m === src) continue;
+                if (tzs !== (grid[c.id]?.TZS?.[m] || 0)) {
+                  upsert.mutate({ year, month: m, category_id: c.id, currency: "TZS", planned_amount: tzs });
+                  n++;
+                }
+                if (usd !== (grid[c.id]?.USD?.[m] || 0)) {
+                  upsert.mutate({ year, month: m, category_id: c.id, currency: "USD", planned_amount: usd });
+                  n++;
+                }
+              }
+            });
+          }}
+          title={`Copy ${MONTHS[selectedMonth - 1]} budget to all months`}
+        >
+          Copy {MONTHS[selectedMonth - 1]} → all
+        </Button>
         <Button size="sm" variant="outline" onClick={() => scrollByMonths(-1)} aria-label="Previous month">
           <ChevronLeft className="w-4 h-4" />
         </Button>
@@ -279,13 +306,13 @@ export default function FinancesBudgetPage() {
                 return (
                   <Fragment key={sec.groupCode || "all"}>
                     {showGroups && (
-                      <tr className="bg-muted border-t border-border">
+                      <tr className="border-t-[3px] border-primary/50 bg-primary/10">
                         <td
-                          className={cn("sticky left-0 z-20 bg-muted px-3 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-foreground", stickyLeftEdge)}
+                          className={cn("sticky left-0 z-20 bg-primary/15 px-3 py-2 font-bold text-[11px] uppercase tracking-widest text-primary", stickyLeftEdge)}
                         >
-                          {sec.groupName}
+                          ▸ {sec.groupName}
                         </td>
-                        <td colSpan={24 + 2} className="bg-muted" />
+                        <td colSpan={24 + 2} className="bg-primary/10 border-b border-primary/30" />
                       </tr>
                     )}
 
@@ -347,8 +374,8 @@ export default function FinancesBudgetPage() {
                     })}
 
                     {showGroups && (
-                      <tr className="border-t border-border bg-muted font-semibold [&>td]:h-7">
-                        <td className={cn("sticky left-0 z-10 bg-muted px-3 text-[10px] uppercase tracking-wider text-muted-foreground", stickyLeftEdge)}>
+                      <tr className="border-t-2 border-primary/40 bg-accent/30 font-bold [&>td]:h-8 [&>td]:text-[12px]">
+                        <td className={cn("sticky left-0 z-10 bg-accent/40 px-3 text-[11px] uppercase tracking-wider text-accent-foreground font-bold", stickyLeftEdge)}>
                           Σ {sec.groupName}
                         </td>
                         {MONTHS.map((_, i) => {
@@ -357,7 +384,7 @@ export default function FinancesBudgetPage() {
                             <Fragment key={`s-${sec.groupCode}-${i}`}>
                               <td
                                 className={cn(
-                                  "border-l-2 border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap",
+                                  "border-l-2 border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap bg-accent/30",
                                   sel && selBg,
                                 )}
                               >
@@ -365,7 +392,7 @@ export default function FinancesBudgetPage() {
                               </td>
                               <td
                                 className={cn(
-                                  "border-l border-border/40 text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap",
+                                  "border-l border-border/40 text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap bg-accent/30",
                                   sel && selBg,
                                 )}
                               >
@@ -374,14 +401,15 @@ export default function FinancesBudgetPage() {
                             </Fragment>
                           );
                         })}
-                        <td className={cn("sticky z-10 bg-muted text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border", stickyRightEdge)} style={{ right: yearW }}>
+                        <td className={cn("sticky z-10 bg-accent/40 text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border", stickyRightEdge)} style={{ right: yearW }}>
                           {fmtN(subYearTzs)}
                         </td>
-                        <td className={cn("sticky right-0 z-10 bg-muted text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap border-l-2 border-border", stickyRightEdge)}>
+                        <td className={cn("sticky right-0 z-10 bg-accent/40 text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap border-l-2 border-border", stickyRightEdge)}>
                           {fmtN(subYearUsd)}
                         </td>
                       </tr>
                     )}
+                    {showGroups && <tr aria-hidden><td colSpan={26} className="h-2 bg-background border-b border-border/30 p-0" /></tr>}
                   </Fragment>
                 );
               })}
@@ -479,8 +507,19 @@ export default function FinancesBudgetPage() {
   );
 }
 
+function formatLiveInput(raw: string): string {
+  // Allow optional leading '-', digits, and optional single '.' with decimals.
+  const cleaned = raw.replace(/[^\d.\-]/g, "");
+  const neg = cleaned.startsWith("-") ? "-" : "";
+  const body = cleaned.replace(/-/g, "");
+  const [intPart, ...rest] = body.split(".");
+  const dec = rest.length ? "." + rest.join("").slice(0, 2) : "";
+  const intFmt = (intPart || "").replace(/^0+(?=\d)/, "").replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return neg + intFmt + dec;
+}
+
 function Cell({ value, compact, onCommit }: { value: number; compact: boolean; onCommit: (raw: string) => void }) {
-  const [local, setLocal] = useState<string>(value ? String(value) : "");
+  const [local, setLocal] = useState<string>(value ? formatNumberSpaces(value) : "");
   const [focused, setFocused] = useState(false);
   const display = focused
     ? local
@@ -492,8 +531,8 @@ function Cell({ value, compact, onCommit }: { value: number; compact: boolean; o
   return (
     <Input
       value={display}
-      onFocus={(e) => { setFocused(true); setLocal(value ? String(value) : ""); e.currentTarget.select(); }}
-      onChange={(e) => setLocal(e.target.value.replace(/[^\d.\-\s]/g, ""))}
+      onFocus={(e) => { setFocused(true); setLocal(value ? formatNumberSpaces(value) : ""); e.currentTarget.select(); }}
+      onChange={(e) => setLocal(formatLiveInput(e.target.value))}
       onBlur={() => {
         setFocused(false);
         onCommit(local.replace(/\s+/g, ""));
