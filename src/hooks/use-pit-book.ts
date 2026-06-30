@@ -25,18 +25,20 @@ export interface PitBookEntry {
   created_at: string;
 }
 
-const queryKey = (casinoId: string | null, channel: PitBookChannel, date: string) =>
-  ["pit_book", casinoId, channel, date] as const;
+const queryKey = (casinoId: string | null, channel: PitBookChannel) =>
+  ["pit_book", casinoId, channel] as const;
 
-export function usePitBookEntries(channel: PitBookChannel, businessDate: string) {
+const FEED_LIMIT = 500;
+
+export function usePitBookEntries(channel: PitBookChannel) {
   const { casinoId } = useAuth();
   const qc = useQueryClient();
 
-  // Realtime invalidation for this channel/date.
+  // Realtime invalidation for this channel (any date).
   useEffect(() => {
     if (!casinoId) return;
     const ch = supabase
-      .channel(`pit_book:${casinoId}:${channel}:${businessDate}`)
+      .channel(`pit_book:${casinoId}:${channel}`)
       .on(
         "postgres_changes",
         {
@@ -47,19 +49,18 @@ export function usePitBookEntries(channel: PitBookChannel, businessDate: string)
         },
         (payload: any) => {
           const row = payload?.new;
-          if (!row) return;
-          if (row.channel !== channel || row.business_date !== businessDate) return;
-          qc.invalidateQueries({ queryKey: queryKey(casinoId, channel, businessDate) });
+          if (!row || row.channel !== channel) return;
+          qc.invalidateQueries({ queryKey: queryKey(casinoId, channel) });
         },
       )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [casinoId, channel, businessDate, qc]);
+  }, [casinoId, channel, qc]);
 
   return useQuery({
-    queryKey: queryKey(casinoId, channel, businessDate),
+    queryKey: queryKey(casinoId, channel),
     enabled: !!casinoId,
     queryFn: async (): Promise<PitBookEntry[]> => {
       const { data, error } = await supabase
@@ -67,10 +68,10 @@ export function usePitBookEntries(channel: PitBookChannel, businessDate: string)
         .select("*")
         .eq("casino_id", casinoId!)
         .eq("channel", channel)
-        .eq("business_date", businessDate)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false })
+        .limit(FEED_LIMIT);
       if (error) throw error;
-      return (data ?? []) as unknown as PitBookEntry[];
+      return ((data ?? []) as unknown as PitBookEntry[]).slice().reverse();
     },
     staleTime: 15_000,
   });
@@ -118,7 +119,7 @@ export function useCreatePitBookEntry() {
     },
     onSuccess: (entry) => {
       qc.invalidateQueries({
-        queryKey: queryKey(casinoId, entry.channel, entry.business_date),
+        queryKey: queryKey(casinoId, entry.channel),
       });
     },
   });
