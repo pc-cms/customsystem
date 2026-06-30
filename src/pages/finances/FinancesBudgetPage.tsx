@@ -104,10 +104,10 @@ export default function FinancesBudgetPage() {
   const yearTotalUsd = monthTotals.usd.reduce((s, v) => s + v, 0);
   const yearGrandTzs = yearTotalTzs + yearTotalUsd * (usdRate || 0);
 
-  const subColW = compact ? 70 : 110;
+  const subColW = compact ? 78 : 118;
   const monthW = subColW * 2;
   const catW = 240;
-  const yearW = compact ? 100 : 130;
+  const yearW = compact ? 110 : 140;
   const minW = catW + 12 * monthW + 2 * yearW;
 
   type Section = { groupCode: string; groupName: string; rows: any[] };
