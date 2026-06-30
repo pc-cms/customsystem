@@ -279,13 +279,13 @@ export default function FinancesBudgetPage() {
                 return (
                   <Fragment key={sec.groupCode || "all"}>
                     {showGroups && (
-                      <tr className="bg-muted border-t border-border">
+                      <tr className="border-t-[3px] border-primary/50 bg-primary/10">
                         <td
-                          className={cn("sticky left-0 z-20 bg-muted px-3 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-foreground", stickyLeftEdge)}
+                          className={cn("sticky left-0 z-20 bg-primary/15 px-3 py-2 font-bold text-[11px] uppercase tracking-widest text-primary", stickyLeftEdge)}
                         >
-                          {sec.groupName}
+                          ▸ {sec.groupName}
                         </td>
-                        <td colSpan={24 + 2} className="bg-muted" />
+                        <td colSpan={24 + 2} className="bg-primary/10 border-b border-primary/30" />
                       </tr>
                     )}
 
