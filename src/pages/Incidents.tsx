@@ -83,7 +83,7 @@ const emptyForm = (): IncidentInput => ({
 });
 
 const cellInput =
-  "h-10 px-2 text-sm font-mono border-0 bg-transparent focus-visible:bg-background focus-visible:ring-1 rounded-sm w-full";
+  "h-8 px-2 text-sm font-mono border-0 bg-background focus-visible:bg-background focus-visible:ring-1 rounded-sm w-full";
 
 // Column widths — generous so inputs are readable. (≈ +25% vs original)
 const COLS = {
