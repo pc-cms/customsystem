@@ -297,13 +297,13 @@ const Incidents = () => {
     }
   };
 
-  // Helpers for sticky-left columns. Header uses muted band; body uses solid background.
-  // Inset shadow replaces border-r so border-collapse cannot eat/duplicate the 1px divider during scroll.
-  const stickyDivider = "shadow-[inset_-1px_0_0_hsl(var(--border))]";
-  const stickyDateHead = "sticky left-0 z-30 bg-muted overflow-hidden";
-  const stickyTimeHead = "sticky z-30 bg-muted overflow-hidden";
-  const stickyDate = "sticky left-0 z-30 bg-background overflow-hidden";
-  const stickyTime = "sticky z-30 bg-background overflow-hidden";
+  // Sticky helpers for Date/Time columns. Solid card surface + inset divider
+  // so columns stay visually fixed and opaque during horizontal scroll.
+  const stickyDivider = "shadow-[inset_-1px_0_0_hsl(var(--border)),inset_-4px_0_6px_-4px_hsl(var(--foreground)/0.06)]";
+  const stickyDateHead = "sticky left-0 z-40 bg-card overflow-hidden";
+  const stickyTimeHead = "sticky z-40 bg-card overflow-hidden";
+  const stickyDate = "sticky left-0 z-40 bg-card overflow-hidden";
+  const stickyTime = "sticky z-40 bg-card overflow-hidden";
   const stickyTimeLeft = { left: COLS.date };
 
   return (
