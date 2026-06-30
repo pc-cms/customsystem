@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, Fragment } from "react";
-import { Target, ChevronLeft, ChevronRight } from "lucide-react";
+import { Target, ChevronLeft, ChevronRight, Copy } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { YearSelect } from "@/components/ui/year-select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useFinBudget, useFinCategories, useUpsertFinBudget } from "@/hooks/use-fin";
 import { useFinDailyRatesForDate } from "@/hooks/use-fin-daily-rates";
 import { formatNumberSpaces } from "@/lib/currency";
