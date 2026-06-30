@@ -299,7 +299,7 @@ const Incidents = () => {
 
   // Sticky helpers for Date/Time columns. Solid muted band + inset divider
   // so columns stay visually fixed and opaque during horizontal scroll.
-  const stickyDivider = "shadow-[inset_-1px_0_0_hsl(var(--border)),inset_-4px_0_6px_-4px_hsl(var(--foreground)/0.06)]";
+  const stickyDivider = "shadow-[inset_-2px_0_0_hsl(var(--border))]";
   const stickyDateHead = "sticky left-0 z-40 bg-muted overflow-hidden";
   const stickyTimeHead = "sticky z-40 bg-muted overflow-hidden";
   const stickyDate = "sticky left-0 z-40 bg-muted overflow-hidden";
