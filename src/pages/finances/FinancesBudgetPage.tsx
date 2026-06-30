@@ -347,8 +347,8 @@ export default function FinancesBudgetPage() {
                     })}
 
                     {showGroups && (
-                      <tr className="border-t border-border bg-muted font-semibold [&>td]:h-7">
-                        <td className={cn("sticky left-0 z-10 bg-muted px-3 text-[10px] uppercase tracking-wider text-muted-foreground", stickyLeftEdge)}>
+                      <tr className="border-t-2 border-primary/40 bg-accent/30 font-bold [&>td]:h-8 [&>td]:text-[12px]">
+                        <td className={cn("sticky left-0 z-10 bg-accent/40 px-3 text-[11px] uppercase tracking-wider text-accent-foreground font-bold", stickyLeftEdge)}>
                           Σ {sec.groupName}
                         </td>
                         {MONTHS.map((_, i) => {
@@ -357,7 +357,7 @@ export default function FinancesBudgetPage() {
                             <Fragment key={`s-${sec.groupCode}-${i}`}>
                               <td
                                 className={cn(
-                                  "border-l-2 border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap",
+                                  "border-l-2 border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap bg-accent/30",
                                   sel && selBg,
                                 )}
                               >
@@ -365,7 +365,7 @@ export default function FinancesBudgetPage() {
                               </td>
                               <td
                                 className={cn(
-                                  "border-l border-border/40 text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap",
+                                  "border-l border-border/40 text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap bg-accent/30",
                                   sel && selBg,
                                 )}
                               >
@@ -374,14 +374,15 @@ export default function FinancesBudgetPage() {
                             </Fragment>
                           );
                         })}
-                        <td className={cn("sticky z-10 bg-muted text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border", stickyRightEdge)} style={{ right: yearW }}>
+                        <td className={cn("sticky z-10 bg-accent/40 text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border", stickyRightEdge)} style={{ right: yearW }}>
                           {fmtN(subYearTzs)}
                         </td>
-                        <td className={cn("sticky right-0 z-10 bg-muted text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap border-l-2 border-border", stickyRightEdge)}>
+                        <td className={cn("sticky right-0 z-10 bg-accent/40 text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap border-l-2 border-border", stickyRightEdge)}>
                           {fmtN(subYearUsd)}
                         </td>
                       </tr>
                     )}
+                    {showGroups && <tr aria-hidden><td colSpan={26} className="h-2 bg-background border-b border-border/30 p-0" /></tr>}
                   </Fragment>
                 );
               })}
