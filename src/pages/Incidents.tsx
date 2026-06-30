@@ -83,7 +83,7 @@ const emptyForm = (): IncidentInput => ({
 });
 
 const cellInput =
-  "h-10 px-2 text-sm font-mono border-0 bg-transparent focus-visible:bg-background focus-visible:ring-1 rounded-sm w-full";
+  "h-8 px-2 text-sm font-mono border-0 bg-background focus-visible:bg-background focus-visible:ring-1 rounded-sm w-full";
 
 // Column widths — generous so inputs are readable. (≈ +25% vs original)
 const COLS = {
@@ -297,13 +297,13 @@ const Incidents = () => {
     }
   };
 
-  // Helpers for sticky-left columns. Header uses muted band; body uses solid background.
-  // Inset shadow replaces border-r so border-collapse cannot eat/duplicate the 1px divider during scroll.
-  const stickyDivider = "shadow-[inset_-1px_0_0_hsl(var(--border))]";
-  const stickyDateHead = "sticky left-0 z-30 bg-muted overflow-hidden";
-  const stickyTimeHead = "sticky z-30 bg-muted overflow-hidden";
-  const stickyDate = "sticky left-0 z-30 bg-background overflow-hidden";
-  const stickyTime = "sticky z-30 bg-background overflow-hidden";
+  // Sticky helpers for Date/Time columns. Solid muted band + inset divider
+  // so columns stay visually fixed and opaque during horizontal scroll.
+  const stickyDivider = "shadow-[inset_-2px_0_0_hsl(var(--border))]";
+  const stickyDateHead = "sticky left-0 z-40 bg-muted overflow-hidden";
+  const stickyTimeHead = "sticky z-40 bg-muted overflow-hidden";
+  const stickyDate = "sticky left-0 z-40 bg-muted overflow-hidden";
+  const stickyTime = "sticky z-40 bg-muted overflow-hidden";
   const stickyTimeLeft = { left: COLS.date };
 
   return (
@@ -348,7 +348,7 @@ const Incidents = () => {
 
 
       <PageSection title="Journal" card={false}>
-        <div className="rounded-md border border-border overflow-x-auto">
+        <div className="rounded-md border border-border overflow-x-auto bg-card">
           <table className="text-sm font-mono border-collapse" style={{ minWidth: "2250px" }}>
             <colgroup>
               <col style={{ width: COLS.date }} />
@@ -424,7 +424,7 @@ const Incidents = () => {
 
               {/* Draft row — inline entry, always at the bottom */}
               {canPost && (
-                <tr className="border-t-2 border-primary/30 bg-muted/20 hover:bg-muted/30">
+                <tr className="border-t-2 border-primary bg-muted hover:bg-muted">
                   <td className={`px-1 py-1 ${stickyDate} ${stickyDivider}`}>
                     <Input
                       type="date"
@@ -469,7 +469,7 @@ const Incidents = () => {
                     <select
                       value={form.department || ""}
                       onChange={(e) => setF("department", e.target.value)}
-                      className={`${cellInput} bg-transparent`}
+                      className={`${cellInput} bg-background`}
                     >
                       {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
                     </select>
@@ -527,7 +527,7 @@ const Incidents = () => {
                     <select
                       value={form.violation_type || ""}
                       onChange={(e) => setF("violation_type", e.target.value)}
-                      className={`${cellInput} bg-transparent`}
+                      className={`${cellInput} bg-background`}
                     >
                       {VIOLATION_TYPES.map((d) => <option key={d} value={d}>{d}</option>)}
                     </select>
@@ -595,7 +595,7 @@ const Incidents = () => {
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploading}
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-muted hover:bg-muted/70 text-muted-foreground"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-muted hover:bg-secondary text-muted-foreground"
                         title="Attach photo"
                       >
                         {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
@@ -789,7 +789,7 @@ const IncidentRow = ({
   const ro = (v: any) => v || "·";
 
   return (
-    <tr className="border-t border-border hover:bg-muted/30">
+    <tr className="border-t border-border hover:bg-secondary">
       <td className={`px-1 py-1 whitespace-nowrap ${stickyDate} ${stickyDivider}`}>
         {editing ? (
           <Input type="date" value={draft.incident_date} onChange={(e) => setD("incident_date", e.target.value)} className={cellInput} />
@@ -818,7 +818,7 @@ const IncidentRow = ({
       </td>
       <td className="px-1 py-1">
         {editing ? (
-          <select value={draft.department || ""} onChange={(e) => setD("department", e.target.value)} className={`${cellInput} bg-transparent`}>
+          <select value={draft.department || ""} onChange={(e) => setD("department", e.target.value)} className={`${cellInput} bg-background`}>
             {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
         ) : ro(i.department)}
@@ -854,7 +854,7 @@ const IncidentRow = ({
       </td>
       <td className="px-1 py-1">
         {editing ? (
-          <select value={draft.violation_type || ""} onChange={(e) => setD("violation_type", e.target.value)} className={`${cellInput} bg-transparent`}>
+          <select value={draft.violation_type || ""} onChange={(e) => setD("violation_type", e.target.value)} className={`${cellInput} bg-background`}>
             {VIOLATION_TYPES.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
         ) : i.violation_type ? <Badge variant="outline" className="text-xs">{i.violation_type}</Badge> : "·"}
@@ -890,12 +890,12 @@ const IncidentRow = ({
               </button>
             </div>
           ) : (
-            <button type="button" onClick={() => editFileRef.current?.click()} disabled={uploadingPhoto} className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-muted hover:bg-muted/70 text-muted-foreground" title="Attach photo">
+            <button type="button" onClick={() => editFileRef.current?.click()} disabled={uploadingPhoto} className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-muted hover:bg-secondary text-muted-foreground" title="Attach photo">
               {uploadingPhoto ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
             </button>
           )
         ) : i.photo_url ? (
-          <button type="button" onClick={() => onView(i.photo_url!)} className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 hover:bg-primary/20 text-primary" title="View photo">
+          <button type="button" onClick={() => onView(i.photo_url!)} className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary text-primary-foreground hover:bg-primary" title="View photo">
             <ImageIcon className="w-3.5 h-3.5" />
           </button>
         ) : (
