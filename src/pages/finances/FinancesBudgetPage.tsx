@@ -172,28 +172,15 @@ export default function FinancesBudgetPage() {
           size="sm"
           variant="outline"
           onClick={() => {
-            const src = selectedMonth;
-            if (!confirm(`Copy ${MONTHS[src - 1]} values to all 12 months (overwrite)?`)) return;
-            let n = 0;
-            categories.forEach((c: any) => {
-              const tzs = grid[c.id]?.TZS?.[src] || 0;
-              const usd = grid[c.id]?.USD?.[src] || 0;
-              for (let m = 1; m <= 12; m++) {
-                if (m === src) continue;
-                if (tzs !== (grid[c.id]?.TZS?.[m] || 0)) {
-                  upsert.mutate({ year, month: m, category_id: c.id, currency: "TZS", planned_amount: tzs });
-                  n++;
-                }
-                if (usd !== (grid[c.id]?.USD?.[m] || 0)) {
-                  upsert.mutate({ year, month: m, category_id: c.id, currency: "USD", planned_amount: usd });
-                  n++;
-                }
-              }
-            });
+            setCopySrc(selectedMonth);
+            setCopyTargets(new Set());
+            setCopyOpen(true);
           }}
-          title={`Copy ${MONTHS[selectedMonth - 1]} budget to all months`}
+          title="Copy month budget to other months"
+          className="gap-1.5"
         >
-          Copy {MONTHS[selectedMonth - 1]} → all
+          <Copy className="w-3.5 h-3.5" />
+          Copy month…
         </Button>
         <Button size="sm" variant="outline" onClick={() => scrollByMonths(-1)} aria-label="Previous month">
           <ChevronLeft className="w-4 h-4" />
