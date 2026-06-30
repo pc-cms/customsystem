@@ -927,3 +927,45 @@ const IncidentRow = ({
   );
 };
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sortable column header
+// ─────────────────────────────────────────────────────────────────────────────
+interface SortableThProps<K extends string> {
+  label: string;
+  sortKey: K;
+  current: K;
+  dir: "asc" | "desc";
+  onClick: (k: K) => void;
+  className?: string;
+  style?: React.CSSProperties;
+  align?: "left" | "right" | "center";
+}
+function SortableTh<K extends string>({
+  label,
+  sortKey,
+  current,
+  dir,
+  onClick,
+  className = "",
+  style,
+  align = "left",
+}: SortableThProps<K>) {
+  const active = current === sortKey;
+  const Icon = active ? (dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  const justify =
+    align === "right" ? "justify-end" : align === "center" ? "justify-center" : "justify-start";
+  return (
+    <th className={`px-3 py-2.5 text-${align} ${className}`} style={style}>
+      <button
+        type="button"
+        onClick={() => onClick(sortKey)}
+        className={`group inline-flex items-center gap-1 w-full ${justify} uppercase tracking-wide text-xs font-semibold ${active ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+        title={`Sort by ${label}`}
+      >
+        <span>{label}</span>
+        <Icon className={`w-3 h-3 ${active ? "opacity-100" : "opacity-40 group-hover:opacity-80"}`} />
+      </button>
+    </th>
+  );
+}
