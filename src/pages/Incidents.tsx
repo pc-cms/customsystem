@@ -13,7 +13,7 @@
  */
 import { useMemo, useRef, useState } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
-import { AlertTriangle, Camera, Check, ChevronLeft, ChevronRight, ImageIcon, Loader2, RotateCcw, Search, X } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Camera, Check, ChevronLeft, ChevronRight, ImageIcon, Loader2, RotateCcw, Search, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
