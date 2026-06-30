@@ -370,21 +370,19 @@ const Incidents = () => {
             </colgroup>
             <thead className="bg-muted text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className={`px-3 py-2.5 text-left ${stickyDateHead} ${stickyDivider}`}>Date</th>
-                <th className={`px-3 py-2.5 text-left ${stickyTimeHead} ${stickyDivider}`} style={stickyTimeLeft}>
-                  Time
-                </th>
-                <th className="px-3 py-2.5 text-left">CCTV</th>
-                <th className="px-3 py-2.5 text-left">Manager</th>
-                <th className="px-3 py-2.5 text-left">Dept</th>
-                <th className="px-3 py-2.5 text-left">Table</th>
-                <th className="px-3 py-2.5 text-left">Dealer</th>
-                <th className="px-3 py-2.5 text-left">Inspector</th>
-                <th className="px-3 py-2.5 text-left">Employee</th>
-                <th className="px-3 py-2.5 text-left">Type</th>
+                <SortableTh label="Date" sortKey="datetime" current={sortKey} dir={sortDir} onClick={toggleSort} className={`${stickyDateHead} ${stickyDivider}`} />
+                <SortableTh label="Time" sortKey="datetime" current={sortKey} dir={sortDir} onClick={toggleSort} className={`${stickyTimeHead} ${stickyDivider}`} style={stickyTimeLeft} />
+                <SortableTh label="CCTV" sortKey="cctv_observer" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="Manager" sortKey="manager" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="Dept" sortKey="department" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="Table" sortKey="table_name" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="Dealer" sortKey="dealer_name" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="Inspector" sortKey="inspector_name" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="Employee" sortKey="employees" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="Type" sortKey="violation_type" current={sortKey} dir={sortDir} onClick={toggleSort} />
                 <th className="px-3 py-2.5 text-left">Incident *</th>
                 <th className="px-3 py-2.5 text-left">Outcome</th>
-                <th className="px-3 py-2.5 text-right">Pts</th>
+                <SortableTh label="Pts" sortKey="points" current={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
                 <th className="px-3 py-2.5 text-left">Comments</th>
                 <th className="px-3 py-2.5 text-center">Photo</th>
                 {canPost && <th className="px-3 py-2.5 text-center">Save</th>}
