@@ -366,8 +366,8 @@ export default function FinancesBudgetPage() {
                     })}
 
                     {showGroups && (
-                      <tr className="border-t-2 border-primary/40 bg-accent/30 font-bold [&>td]:h-8 [&>td]:text-[12px]">
-                        <td className={cn("sticky left-0 z-10 bg-accent/40 px-3 text-[11px] uppercase tracking-wider text-accent-foreground font-bold", stickyLeftEdge)}>
+                      <tr className="border-t-2 border-primary/50 bg-primary/15 [&>td]:h-9 [&>td]:text-[12px]">
+                        <td className={cn("sticky left-0 z-10 bg-primary/20 px-3 text-[11px] uppercase tracking-wider text-foreground font-semibold", stickyLeftEdge)}>
                           Σ {sec.groupName}
                         </td>
                         {MONTHS.map((_, i) => {
@@ -376,7 +376,7 @@ export default function FinancesBudgetPage() {
                             <Fragment key={`s-${sec.groupCode}-${i}`}>
                               <td
                                 className={cn(
-                                  "border-l-2 border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap bg-accent/30",
+                                  "border-l-2 border-border text-right pr-2 font-mono tabular-nums whitespace-nowrap bg-primary/15 text-foreground",
                                   sel && selBg,
                                 )}
                               >
@@ -384,7 +384,7 @@ export default function FinancesBudgetPage() {
                               </td>
                               <td
                                 className={cn(
-                                  "border-l border-border/40 text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap bg-accent/30",
+                                  "border-l border-border/40 text-right pr-2 font-mono tabular-nums whitespace-nowrap bg-primary/15 text-foreground",
                                   sel && selBg,
                                 )}
                               >
@@ -393,10 +393,10 @@ export default function FinancesBudgetPage() {
                             </Fragment>
                           );
                         })}
-                        <td className={cn("sticky z-10 bg-accent/40 text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border", stickyRightEdge)} style={{ right: yearW }}>
+                        <td className={cn("sticky z-10 bg-primary/20 text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border text-foreground", stickyRightEdge)} style={{ right: yearW }}>
                           {fmtN(subYearTzs)}
                         </td>
-                        <td className={cn("sticky right-0 z-10 bg-accent/40 text-right pr-2 font-mono tabular-nums text-muted-foreground whitespace-nowrap border-l-2 border-border", stickyRightEdge)}>
+                        <td className={cn("sticky right-0 z-10 bg-primary/20 text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border text-foreground", stickyRightEdge)}>
                           {fmtN(subYearUsd)}
                         </td>
                       </tr>
