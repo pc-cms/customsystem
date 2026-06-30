@@ -389,9 +389,42 @@ const Incidents = () => {
               </tr>
             </thead>
             <tbody>
-              {/* Draft row — inline entry */}
+              {isLoading ? (
+                <tr>
+                  <td colSpan={canPost ? 16 : 15} className="text-center py-8 text-muted-foreground">
+                    Loading…
+                  </td>
+                </tr>
+              ) : sorted.length === 0 ? (
+                <tr>
+                  <td colSpan={canPost ? 16 : 15} className="text-center py-8 text-muted-foreground">
+                    {incidents.length === 0 ? "No incidents yet." : "No matches for the search."}
+                  </td>
+                </tr>
+              ) : (
+                sorted.map((i) => (
+                  <IncidentRow
+                    key={i.id}
+                    incident={i}
+                    canEdit={canPost}
+                    onView={(url) => setViewPhoto(url)}
+                    stickyDate={stickyDate}
+                    stickyTime={stickyTime}
+                    stickyDivider={stickyDivider}
+                    stickyTimeLeft={stickyTimeLeft}
+                    cellInput={cellInput}
+                    tableOptions={tableOptions}
+                    dealerOptions={rotaNames.dealerInspector}
+                    managerOptions={rotaNames.managers}
+                    pitBosses={rotaNames.pitBosses}
+                    staffMembers={staffMembers as any[]}
+                  />
+                ))
+              )}
+
+              {/* Draft row — inline entry, always at the bottom */}
               {canPost && (
-                <tr className="border-t border-border bg-primary/5">
+                <tr className="border-t-2 border-primary/30 bg-muted/20 hover:bg-muted/30">
                   <td className={`px-1 py-1 ${stickyDate} ${stickyDivider}`}>
                     <Input
                       type="date"
@@ -596,39 +629,6 @@ const Incidents = () => {
                     </div>
                   </td>
                 </tr>
-              )}
-
-              {isLoading ? (
-                <tr>
-                  <td colSpan={canPost ? 16 : 15} className="text-center py-8 text-muted-foreground">
-                    Loading…
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={canPost ? 16 : 15} className="text-center py-8 text-muted-foreground">
-                    {incidents.length === 0 ? "No incidents yet." : "No matches for the search."}
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((i) => (
-                  <IncidentRow
-                    key={i.id}
-                    incident={i}
-                    canEdit={canPost}
-                    onView={(url) => setViewPhoto(url)}
-                    stickyDate={stickyDate}
-                    stickyTime={stickyTime}
-                    stickyDivider={stickyDivider}
-                    stickyTimeLeft={stickyTimeLeft}
-                    cellInput={cellInput}
-                    tableOptions={tableOptions}
-                    dealerOptions={rotaNames.dealerInspector}
-                    managerOptions={rotaNames.managers}
-                    pitBosses={rotaNames.pitBosses}
-                    staffMembers={staffMembers as any[]}
-                  />
-                ))
               )}
             </tbody>
           </table>
