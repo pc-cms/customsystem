@@ -104,10 +104,10 @@ export default function FinancesBudgetPage() {
   const yearTotalUsd = monthTotals.usd.reduce((s, v) => s + v, 0);
   const yearGrandTzs = yearTotalTzs + yearTotalUsd * (usdRate || 0);
 
-  const subColW = compact ? 70 : 110;
+  const subColW = compact ? 78 : 118;
   const monthW = subColW * 2;
   const catW = 240;
-  const yearW = compact ? 100 : 130;
+  const yearW = compact ? 110 : 140;
   const minW = catW + 12 * monthW + 2 * yearW;
 
   type Section = { groupCode: string; groupName: string; rows: any[] };
@@ -181,7 +181,7 @@ export default function FinancesBudgetPage() {
             scrollPaddingLeft: catW,
           }}
         >
-          <table className="text-[11px] border-separate border-spacing-0" style={{ minWidth: minW }}>
+          <table className="text-[12px] border-separate border-spacing-0" style={{ minWidth: minW }}>
             <colgroup>
               <col style={{ width: catW, minWidth: catW }} />
               {MONTHS.map((_, i) => (
@@ -482,18 +482,27 @@ export default function FinancesBudgetPage() {
 function Cell({ value, compact, onCommit }: { value: number; compact: boolean; onCommit: (raw: string) => void }) {
   const [local, setLocal] = useState<string>(value ? String(value) : "");
   const [focused, setFocused] = useState(false);
-  const display = !focused && compact && value ? formatMoneyCompact(value) : local;
+  const display = focused
+    ? local
+    : value
+      ? compact
+        ? formatMoneyCompact(value)
+        : formatNumberSpaces(value)
+      : "";
   return (
     <Input
       value={display}
       onFocus={(e) => { setFocused(true); setLocal(value ? String(value) : ""); e.currentTarget.select(); }}
-      onChange={(e) => setLocal(e.target.value.replace(/[^\d.-]/g, ""))}
-      onBlur={() => { setFocused(false); onCommit(local); }}
+      onChange={(e) => setLocal(e.target.value.replace(/[^\d.\-\s]/g, ""))}
+      onBlur={() => {
+        setFocused(false);
+        onCommit(local.replace(/\s+/g, ""));
+      }}
       onKeyDown={(e) => {
         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
       }}
-      className="h-7 rounded-none border-0 bg-transparent text-right font-mono tabular-nums text-[11px] px-1 focus-visible:ring-1 focus-visible:ring-primary focus-visible:bg-primary/5"
-      placeholder=""
+      className="h-7 rounded-none border-0 bg-transparent text-right font-mono tabular-nums text-[12px] px-1.5 text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-primary focus-visible:bg-primary/10 focus-visible:text-foreground"
+      placeholder="·"
     />
   );
 }
