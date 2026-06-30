@@ -789,7 +789,7 @@ const IncidentRow = ({
   const ro = (v: any) => v || "·";
 
   return (
-    <tr className="border-t border-border hover:bg-muted/30">
+    <tr className="border-t border-border hover:bg-secondary">
       <td className={`px-1 py-1 whitespace-nowrap ${stickyDate} ${stickyDivider}`}>
         {editing ? (
           <Input type="date" value={draft.incident_date} onChange={(e) => setD("incident_date", e.target.value)} className={cellInput} />
