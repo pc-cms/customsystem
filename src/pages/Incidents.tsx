@@ -300,8 +300,8 @@ const Incidents = () => {
   // Sticky helpers for Date/Time columns. Solid muted band + inset divider
   // so columns stay visually fixed and opaque during horizontal scroll.
   const stickyDivider = "shadow-[inset_-2px_0_0_hsl(var(--border))]";
-  const stickyDateHead = "sticky left-0 z-40 bg-muted overflow-hidden";
-  const stickyTimeHead = "sticky z-40 bg-muted overflow-hidden";
+  const stickyDateHead = "sticky left-0 z-[60] bg-muted overflow-hidden";
+  const stickyTimeHead = "sticky z-[60] bg-muted overflow-hidden";
   const stickyDate = "sticky left-0 z-40 bg-muted overflow-hidden";
   const stickyTime = "sticky z-40 bg-muted overflow-hidden";
   const stickyTimeLeft = { left: COLS.date };
@@ -368,7 +368,7 @@ const Incidents = () => {
               <col style={{ width: COLS.photo }} />
               {canPost && <col style={{ width: COLS.save }} />}
             </colgroup>
-            <thead className="bg-muted text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="sticky top-0 z-50 bg-muted text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <SortableTh label="Date" sortKey="datetime" current={sortKey} dir={sortDir} onClick={toggleSort} className={`${stickyDateHead} ${stickyDivider}`} />
                 <SortableTh label="Time" sortKey="datetime" current={sortKey} dir={sortDir} onClick={toggleSort} className={`${stickyTimeHead} ${stickyDivider}`} style={stickyTimeLeft} />
