@@ -348,7 +348,7 @@ const Incidents = () => {
 
 
       <PageSection title="Journal" card={false}>
-        <div className="rounded-md border border-border overflow-x-auto">
+        <div className="rounded-md border border-border overflow-x-auto bg-card">
           <table className="text-sm font-mono border-collapse" style={{ minWidth: "2250px" }}>
             <colgroup>
               <col style={{ width: COLS.date }} />
