@@ -119,7 +119,7 @@ export function useCreatePitBookEntry() {
     },
     onSuccess: (entry) => {
       qc.invalidateQueries({
-        queryKey: queryKey(casinoId, entry.channel, entry.business_date),
+        queryKey: queryKey(casinoId, entry.channel),
       });
     },
   });
