@@ -595,7 +595,7 @@ const Incidents = () => {
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploading}
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-muted hover:bg-muted/70 text-muted-foreground"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-muted hover:bg-secondary text-muted-foreground"
                         title="Attach photo"
                       >
                         {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
@@ -890,12 +890,12 @@ const IncidentRow = ({
               </button>
             </div>
           ) : (
-            <button type="button" onClick={() => editFileRef.current?.click()} disabled={uploadingPhoto} className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-muted hover:bg-muted/70 text-muted-foreground" title="Attach photo">
+            <button type="button" onClick={() => editFileRef.current?.click()} disabled={uploadingPhoto} className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-muted hover:bg-secondary text-muted-foreground" title="Attach photo">
               {uploadingPhoto ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
             </button>
           )
         ) : i.photo_url ? (
-          <button type="button" onClick={() => onView(i.photo_url!)} className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 hover:bg-primary/20 text-primary" title="View photo">
+          <button type="button" onClick={() => onView(i.photo_url!)} className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary text-primary-foreground hover:bg-primary" title="View photo">
             <ImageIcon className="w-3.5 h-3.5" />
           </button>
         ) : (
