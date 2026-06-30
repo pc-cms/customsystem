@@ -1,22 +1,17 @@
 /**
  * Pit Book — shift handover chat.
  *
+ * Continuous feed (no date picker). Date separators are rendered inline
+ * between messages whenever the business_date changes. Posts always go
+ * to the current business day.
+ *
  * Tabs visible per role:
  *   - pit: only "Pit Bosses"
  *   - manager / shift_manager / finance_manager / surveillance / super_admin: both
- *
- * Write per channel:
- *   - pit_bosses: pit + managers + cctv + finance + super_admin
- *   - managers:   managers + cctv + finance + super_admin (NOT pit)
- *
- * Layout: compact inline (time · name · role · body in one wrapping flow).
- * Own messages bubble on the right with primary fill; others left, no fill.
- * Read marker bumps via IntersectionObserver as messages enter the viewport.
  */
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { DateNavigator } from "@/components/ui/date-navigator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,6 +20,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { getBusinessDate } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
+import { fmtDateOnly } from "@/lib/format-date";
 import {
   usePitBookEntries,
   useCreatePitBookEntry,
@@ -47,7 +43,6 @@ const ROLE_LABELS: Record<string, string> = {
   surveillance: "CCTV",
 };
 
-// Per-role chip palette. Kept self-contained — no semantic-token churn elsewhere.
 const ROLE_CHIP: Record<string, string> = {
   super_admin:     "bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-300 ring-1 ring-fuchsia-500/30",
   manager:         "bg-sky-500/15 text-sky-600 dark:text-sky-300 ring-1 ring-sky-500/30",
@@ -102,10 +97,21 @@ function EntryRow({
   );
 }
 
+function DateDivider({ date }: { date: string }) {
+  return (
+    <div className="flex items-center gap-2 py-1.5 my-1">
+      <div className="h-px flex-1 bg-border" />
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground px-2 py-0.5 rounded-full bg-muted/60">
+        {fmtDateOnly(date)}
+      </span>
+      <div className="h-px flex-1 bg-border" />
+    </div>
+  );
+}
+
 export default function PitBook() {
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessToday = serverBusinessDate || getBusinessDate();
-  const [date, setDate] = useState(businessToday);
   const { user, roles } = useAuth();
 
   const visibleChannels = useMemo(() => visiblePitBookChannels(roles), [roles]);
@@ -120,24 +126,21 @@ export default function PitBook() {
 
   const [draft, setDraft] = useState("");
   const canWrite = canWritePitBook(roles, channel);
-  const isToday = date === businessToday;
 
-  const { data: entries = [], isLoading } = usePitBookEntries(channel, date);
+  const { data: entries = [], isLoading } = usePitBookEntries(channel);
   const create = useCreatePitBookEntry();
   const { data: unread } = usePitBookUnread();
   const markRead = useMarkPitBookRead();
 
-  // Auto-scroll feed to bottom on entries change.
+  // Auto-scroll feed to bottom on entries change / tab switch.
   const feedRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = feedRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [entries.length, channel, date]);
+  }, [entries.length, channel]);
 
-  // Reliable read-receipt: whenever entries for this channel update and there
-  // are unread foreign messages, mark the latest one as read. The viewport
-  // observer can miss short feeds, off-screen tails or instant-render cases.
+  // Reliable read-receipt fallback.
   useEffect(() => {
     if (!user?.id) return;
     if ((unread?.[channel] ?? 0) === 0) return;
@@ -153,8 +156,7 @@ export default function PitBook() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, channel, unread?.[channel], user?.id]);
 
-  // IntersectionObserver: when a foreign entry enters viewport, mark up to its
-  // created_at as read (debounced — only the latest visible wins).
+  // IntersectionObserver-driven read marker.
   const observerRef = useRef<IntersectionObserver | null>(null);
   const pendingRef = useRef<{ id: string; at: string } | null>(null);
   const flushTimer = useRef<number | null>(null);
@@ -194,12 +196,12 @@ export default function PitBook() {
       observerRef.current = null;
       if (flushTimer.current) window.clearTimeout(flushTimer.current);
     };
-  }, [flush, channel, date]);
+  }, [flush, channel]);
 
   const observe = useCallback(
     (el: HTMLElement | null, entry: PitBookEntry) => {
       if (!el) return;
-      if (entry.author_id === user?.id) return; // own = always read
+      if (entry.author_id === user?.id) return;
       observerRef.current?.observe(el);
     },
     [user?.id],
@@ -209,12 +211,29 @@ export default function PitBook() {
     const body = draft.trim();
     if (!body) return;
     try {
-      await create.mutateAsync({ channel, business_date: date, body });
+      await create.mutateAsync({ channel, business_date: businessToday, body });
       setDraft("");
     } catch (e: any) {
       toast.error(e?.message || "Failed to post entry");
     }
   };
+
+  // Build feed with date dividers.
+  const feed = useMemo(() => {
+    const out: Array<
+      | { kind: "date"; date: string; key: string }
+      | { kind: "entry"; entry: PitBookEntry }
+    > = [];
+    let lastDate: string | null = null;
+    for (const e of entries) {
+      if (e.business_date !== lastDate) {
+        out.push({ kind: "date", date: e.business_date, key: `d-${e.business_date}-${e.id}` });
+        lastDate = e.business_date;
+      }
+      out.push({ kind: "entry", entry: e });
+    }
+    return out;
+  }, [entries]);
 
   return (
     <PageShell>
@@ -222,13 +241,7 @@ export default function PitBook() {
         icon={BookOpen}
         title="Pit Book"
         subtitle="Shift handover log — append-only journal."
-      >
-        <DateNavigator
-          value={date}
-          onChange={setDate}
-          maxDate={new Date(businessToday)}
-        />
-      </PageHeader>
+      />
 
       <PageSection card={false}>
         <div className="rounded-md border border-border bg-card p-3">
@@ -262,73 +275,69 @@ export default function PitBook() {
         <div
           ref={feedRef}
           className="mt-3 flex flex-col gap-2 overflow-y-auto rounded-md bg-background/45 p-3"
-          style={{ maxHeight: "calc(100vh - 330px)", minHeight: 260, WebkitOverflowScrolling: "touch" }}
+          style={{ maxHeight: "calc(100vh - 290px)", minHeight: 260, WebkitOverflowScrolling: "touch" }}
         >
           {isLoading ? (
             <div className="text-center text-sm text-muted-foreground py-6">
               Loading…
             </div>
-          ) : entries.length === 0 ? (
+          ) : feed.length === 0 ? (
             <div className="text-center text-sm text-muted-foreground py-6">
-              No entries for this date yet.
+              No entries yet.
             </div>
           ) : (
-            entries.map((e) => (
-              <EntryRow
-                key={e.id}
-                entry={e}
-                isOwn={e.author_id === user?.id}
-                observe={observe}
-              />
-            ))
+            feed.map((item) =>
+              item.kind === "date" ? (
+                <DateDivider key={item.key} date={item.date} />
+              ) : (
+                <EntryRow
+                  key={item.entry.id}
+                  entry={item.entry}
+                  isOwn={item.entry.author_id === user?.id}
+                  observe={observe}
+                />
+              ),
+            )
           )}
         </div>
 
         {canWrite ? (
-          isToday ? (
-            <div className="mt-3 flex flex-col gap-2">
-              <Textarea
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (
-                    (e.metaKey || e.ctrlKey) &&
-                    e.key === "Enter" &&
-                    !create.isPending
-                  ) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                placeholder={
-                  channel === "pit_bosses"
-                    ? "Note an event, table issue, hand-over for the next shift…"
-                    : "Manager-level note, decision, escalation…"
+          <div className="mt-3 flex flex-col gap-2">
+            <Textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (
+                  (e.metaKey || e.ctrlKey) &&
+                  e.key === "Enter" &&
+                  !create.isPending
+                ) {
+                  e.preventDefault();
+                  handleSend();
                 }
-                rows={3}
-                className="resize-none"
-              />
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-muted-foreground">
-                  ⌘/Ctrl + Enter to post · entries are permanent
-                </div>
-                <Button
-                  onClick={handleSend}
-                  disabled={!draft.trim() || create.isPending}
-                  className="gap-2"
-                >
-                  <Send className="h-4 w-4" />
-                  Post
-                </Button>
+              }}
+              placeholder={
+                channel === "pit_bosses"
+                  ? "Note an event, table issue, hand-over for the next shift…"
+                  : "Manager-level note, decision, escalation…"
+              }
+              rows={3}
+              className="resize-none"
+            />
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-muted-foreground">
+                ⌘/Ctrl + Enter to post · entries are permanent
               </div>
+              <Button
+                onClick={handleSend}
+                disabled={!draft.trim() || create.isPending}
+                className="gap-2"
+              >
+                <Send className="h-4 w-4" />
+                Post
+              </Button>
             </div>
-          ) : (
-            <div className="mt-3 flex items-center gap-2 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-              <ShieldAlert className="h-4 w-4" />
-              Read-only — new entries can only be posted for the current
-              business day ({businessToday}).
-            </div>
-          )
+          </div>
         ) : (
           <div className="mt-3 flex items-center gap-2 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
             <ShieldAlert className="h-4 w-4" />
