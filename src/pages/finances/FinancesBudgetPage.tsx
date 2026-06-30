@@ -495,6 +495,97 @@ export default function FinancesBudgetPage() {
           </div>
         )}
       </PageSection>
+
+      <Dialog open={copyOpen} onOpenChange={setCopyOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Copy budget across months</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Source month (copy from)</Label>
+              <div className="grid grid-cols-6 gap-1.5 mt-2">
+                {MONTHS.map((m, i) => (
+                  <Button
+                    key={`src-${i}`}
+                    size="sm"
+                    variant={copySrc === i + 1 ? "default" : "outline"}
+                    className="h-8 text-xs"
+                    onClick={() => { setCopySrc(i + 1); setCopyTargets((prev) => { const n = new Set(prev); n.delete(i + 1); return n; }); }}
+                  >
+                    {m}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Target months (copy to)</Label>
+                <div className="flex gap-1">
+                  <Button size="sm" variant="ghost" className="h-6 text-[10px]"
+                    onClick={() => setCopyTargets(new Set(MONTHS.map((_, i) => i + 1).filter((m) => m !== copySrc)))}>
+                    All
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-6 text-[10px]"
+                    onClick={() => setCopyTargets(new Set())}>
+                    None
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-6 gap-1.5 mt-2">
+                {MONTHS.map((m, i) => {
+                  const monthNum = i + 1;
+                  const isSrc = monthNum === copySrc;
+                  const isOn = copyTargets.has(monthNum);
+                  return (
+                    <Button
+                      key={`tgt-${i}`}
+                      size="sm"
+                      variant={isOn ? "default" : "outline"}
+                      disabled={isSrc}
+                      className={cn("h-8 text-xs", isSrc && "opacity-30")}
+                      onClick={() => setCopyTargets((prev) => {
+                        const n = new Set(prev);
+                        if (n.has(monthNum)) n.delete(monthNum); else n.add(monthNum);
+                        return n;
+                      })}
+                    >
+                      {m}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              All categories (TZS + USD) from <b>{MONTHS[copySrc - 1]}</b> will overwrite values in {copyTargets.size} month(s).
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCopyOpen(false)}>Cancel</Button>
+            <Button
+              disabled={copyTargets.size === 0}
+              onClick={() => {
+                const src = copySrc;
+                categories.forEach((c: any) => {
+                  const tzs = grid[c.id]?.TZS?.[src] || 0;
+                  const usd = grid[c.id]?.USD?.[src] || 0;
+                  copyTargets.forEach((m) => {
+                    if (tzs !== (grid[c.id]?.TZS?.[m] || 0)) {
+                      upsert.mutate({ year, month: m, category_id: c.id, currency: "TZS", planned_amount: tzs });
+                    }
+                    if (usd !== (grid[c.id]?.USD?.[m] || 0)) {
+                      upsert.mutate({ year, month: m, category_id: c.id, currency: "USD", planned_amount: usd });
+                    }
+                  });
+                });
+                setCopyOpen(false);
+              }}
+            >
+              Copy to {copyTargets.size} month{copyTargets.size === 1 ? "" : "s"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }
