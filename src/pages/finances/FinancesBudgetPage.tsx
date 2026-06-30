@@ -479,8 +479,19 @@ export default function FinancesBudgetPage() {
   );
 }
 
+function formatLiveInput(raw: string): string {
+  // Allow optional leading '-', digits, and optional single '.' with decimals.
+  const cleaned = raw.replace(/[^\d.\-]/g, "");
+  const neg = cleaned.startsWith("-") ? "-" : "";
+  const body = cleaned.replace(/-/g, "");
+  const [intPart, ...rest] = body.split(".");
+  const dec = rest.length ? "." + rest.join("").slice(0, 2) : "";
+  const intFmt = (intPart || "").replace(/^0+(?=\d)/, "").replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return neg + intFmt + dec;
+}
+
 function Cell({ value, compact, onCommit }: { value: number; compact: boolean; onCommit: (raw: string) => void }) {
-  const [local, setLocal] = useState<string>(value ? String(value) : "");
+  const [local, setLocal] = useState<string>(value ? formatNumberSpaces(value) : "");
   const [focused, setFocused] = useState(false);
   const display = focused
     ? local
@@ -492,8 +503,8 @@ function Cell({ value, compact, onCommit }: { value: number; compact: boolean; o
   return (
     <Input
       value={display}
-      onFocus={(e) => { setFocused(true); setLocal(value ? String(value) : ""); e.currentTarget.select(); }}
-      onChange={(e) => setLocal(e.target.value.replace(/[^\d.\-\s]/g, ""))}
+      onFocus={(e) => { setFocused(true); setLocal(value ? formatNumberSpaces(value) : ""); e.currentTarget.select(); }}
+      onChange={(e) => setLocal(formatLiveInput(e.target.value))}
       onBlur={() => {
         setFocused(false);
         onCommit(local.replace(/\s+/g, ""));
