@@ -131,6 +131,7 @@ const StatTile = ({
 );
 
 const LEVEL_TINT: Record<string, string> = {
+  casino: "bg-[hsl(var(--casino)/0.12)] dark:bg-[hsl(var(--casino)/0.18)] border-[hsl(var(--casino)/0.25)] dark:border-[hsl(var(--casino)/0.40)]",
   diamond: "bg-blue-100 dark:bg-[hsl(220_50%_18%)] border-blue-200 dark:border-blue-500/40",
   platinum: "bg-purple-100 dark:bg-[hsl(270_40%_18%)] border-purple-200 dark:border-purple-500/40",
   gold: "bg-yellow-100 dark:bg-[hsl(45_50%_18%)] border-yellow-200 dark:border-yellow-500/40",
