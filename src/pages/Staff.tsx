@@ -92,7 +92,13 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
   const { isManager: isMgr, roles } = useAuth();
   // Only manager/HR (and super_admin via isManager) can edit Floor/Security/Office schedules.
   // Pit can navigate here (read-only) but must not write to non-Live-Game personnel.
-  const canManagePersonnel = isMgr || roles.includes("hr");
+  const isHr = roles.includes("hr");
+  const canManagePersonnel = isMgr || isHr;
+  // HR owns the schedule end-to-end — same reach as managers for lock/unlock,
+  // template download/upload and past-month editing. Without this HR could see
+  // the buttons but the past-month guard (`isPast && !isMgr`) still forced the
+  // grid into read-only, so Import silently no-oped for prior months.
+  const canEditRota = isMgr || isHr;
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessToday = serverBusinessDate || getBusinessDate();
   const currentMonth = useMemo(() => {
@@ -192,7 +198,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
                 </Button>
                 <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center inline-flex items-center justify-center gap-1.5">
                   {monthLabel}
-                  {isPast && !isMgr && <Lock className="w-3 h-3 text-muted-foreground" />}
+                  {isPast && !canEditRota && <Lock className="w-3 h-3 text-muted-foreground" />}
                 </span>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => canGoNext && navigateMonth(1)} disabled={!canGoNext}>
                   <ChevronRight className="w-4 h-4" />
@@ -250,7 +256,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
 
 
       {activeTab === "employee" && <EmployeeList />}
-      {isRotaTab && rotaGroupKey && <StaffRotaGrid month={month} groupKey={rotaGroupKey} monthLabel={monthLabel} readOnly={(isPast && !isMgr) || !canManagePersonnel || isLocked} />}
+      {isRotaTab && rotaGroupKey && <StaffRotaGrid month={month} groupKey={rotaGroupKey} monthLabel={monthLabel} readOnly={(isPast && !canEditRota) || !canManagePersonnel || isLocked} />}
       {activeTab === "attendance" && <StaffAttendanceGrid month={month} monthLabel={monthLabel} groupKey={attGroupKey} readOnly={(isPast && !isMgr) || !canManagePersonnel} />}
     </div>
   );
