@@ -137,6 +137,8 @@
     --warning: 38 78% 48%;
     --danger: 0 65% 50%;
     --info: 210 70% 48%;
+    --casino: 340 75% 48%;              /* Casino tier — vivid rose/pink */
+    --casino-foreground: 0 0% 100%;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 20% 10%;
