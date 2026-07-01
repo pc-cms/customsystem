@@ -45,7 +45,7 @@ const Guests = () => {
   const [posFilter, setPosFilter] = useSessionState<"all" | "table" | "slots" | "hall">("posFilter", "all");
 
   const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(
-    new Set(["diamond", "platinum", "gold", "normal"])
+    new Set(["casino", "diamond", "platinum", "gold", "normal"])
   );
   const [sortKey, setSortKey] = useSessionState<SortKey | null>("sortKey", null);
   const [sortDir, setSortDir] = useSessionState<"asc" | "desc">("sortDir", "desc");
