@@ -752,6 +752,7 @@ const PlayerStatistics = () => {
   // Tint applied to the Name cell — matches CategoryBadge palette.
   // Sticky column: MUST be fully opaque so scrolling columns don't bleed through.
   const CATEGORY_NAME_TINT: Record<string, string> = {
+    casino: "bg-[hsl(var(--casino)/0.12)] dark:bg-[hsl(var(--casino)/0.18)]",
     diamond: "bg-blue-50 dark:bg-blue-950",
     platinum: "bg-purple-50 dark:bg-purple-950",
     gold: "bg-yellow-50 dark:bg-yellow-950",
