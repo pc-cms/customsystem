@@ -92,7 +92,13 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
   const { isManager: isMgr, roles } = useAuth();
   // Only manager/HR (and super_admin via isManager) can edit Floor/Security/Office schedules.
   // Pit can navigate here (read-only) but must not write to non-Live-Game personnel.
-  const canManagePersonnel = isMgr || roles.includes("hr");
+  const isHr = roles.includes("hr");
+  const canManagePersonnel = isMgr || isHr;
+  // HR owns the schedule end-to-end — same reach as managers for lock/unlock,
+  // template download/upload and past-month editing. Without this HR could see
+  // the buttons but the past-month guard (`isPast && !isMgr`) still forced the
+  // grid into read-only, so Import silently no-oped for prior months.
+  const canEditRota = isMgr || isHr;
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessToday = serverBusinessDate || getBusinessDate();
   const currentMonth = useMemo(() => {
