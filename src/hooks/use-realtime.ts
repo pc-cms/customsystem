@@ -391,6 +391,379 @@ export const useRealtimeSubscriptions = () => {
         );
       }
 
+      // ═════════════ FINANCE / OFFICE ═════════════
+      if (
+        has("finance_dashboard") || has("finance_wallets") || has("finance_cash_count") ||
+        has("finance_budget") || has("finance_review") || has("finance_transfers") ||
+        has("finance_summary") || has("finance_payments") || has("closings") || has("daily_expenses")
+      ) {
+        channel = channel
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "fin_day_closing", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, "fin-day-closing", ["fin-day-closing"]);
+              debouncedInvalidate(qc, "fin-day-closing-list", ["fin-day-closing-list"]);
+              debouncedInvalidate(qc, "bdc-snapshot", ["bdc-snapshot"]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "fin_wallets", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, "fin-wallets", ["fin-wallets"]);
+              debouncedInvalidate(qc, "fin-wallet-balances", ["fin-wallet-balances"]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "fin_wallet_tx", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, "fin-wallet-tx", ["fin-wallet-tx"]);
+              debouncedInvalidate(qc, "fin-wallet-balances", ["fin-wallet-balances"]);
+              debouncedInvalidate(qc, "fin-monthly-report", ["fin-monthly-report"]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "fin_money_change", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, "fin-money-change", ["fin-money-change"]);
+              debouncedInvalidate(qc, "fin-wallet-balances", ["fin-wallet-balances"]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "fin_incomes", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, "fin-incomes", ["fin-incomes"]);
+              debouncedInvalidate(qc, "fin-monthly-report", ["fin-monthly-report"]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "fin_daily_rates", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, "fin-daily-rates", ["fin-daily-rates"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "fin_budget", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, "fin-budget", ["fin-budget"]);
+              debouncedInvalidate(qc, "fin-monthly-report", ["fin-monthly-report"]);
+            },
+          );
+      }
+
+      // ═════════════ CAGE SLOTS (shift sub-tables) ═════════════
+      if (has("cage_slots")) {
+        channel = channel
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "cage_slots_cash_counts" },
+            () => debouncedInvalidate(qc, "cage-slots-cash-counts", ["cage-slots-cash-counts"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "cage_slots_cards" },
+            () => {
+              debouncedInvalidate(qc, "cage-slots-cards", ["cage-slots-cards"]);
+              debouncedInvalidate(qc, "cage-slots-last-closed-cards", ["cage-slots-last-closed-cards"]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "cage_slots_comments" },
+            () => debouncedInvalidate(qc, "cage-slots-comments", ["cage-slots-comments"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "cage_slots_transfers", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, "cage-slots-transfers", ["cage-slots-transfers"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "cage_slots_tips_cd", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, "slots-tips-cd", ["slots-tips-cd"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "cage_slots_tips_cd_payouts", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, "slots-tips-cd-payouts", ["slots-tips-cd-payouts"]),
+          );
+      }
+
+      // ═════════════ CHIP MOVEMENTS ═════════════
+      if (has("cage") || has("tables") || has("table_tracker")) {
+        channel = channel
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "chip_transfers", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, "chip-transfers", ["chip-transfers"]);
+              debouncedInvalidate(qc, "chip-inventory", ["chip-inventory"]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "chip_inventory", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, "chip-inventory", ["chip-inventory"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "chip_emissions", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, "chip-emissions", ["chip-emissions"]),
+          );
+      }
+
+      // ═════════════ TABLE DAILY RESULTS ═════════════
+      if (has("table_results") || has("cage") || has("closings")) {
+        channel = channel.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "table_daily_results", filter: `casino_id=eq.${casinoId}` },
+          () => {
+            debouncedInvalidate(qc, "table-daily-results", ["table-daily-results"]);
+            debouncedInvalidate(qc, "shift_tables_result", ["shift_tables_result_total"]);
+            debouncedInvalidate(qc, `dashboard-table-results:${casinoId}`, ["dashboard-table-results", casinoId]);
+          },
+        );
+      }
+
+      // ═════════════ PIT BOOK (chat) ═════════════
+      if (has("pit_book")) {
+        channel = channel
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "pit_book_entries", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, "pit-book", ["pit-book"]);
+              debouncedInvalidate(qc, "pit-book-unread", ["pit-book-unread"]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "pit_book_reads" },
+            () => debouncedInvalidate(qc, "pit-book-unread", ["pit-book-unread"]),
+          );
+      }
+
+      // ═════════════ INCIDENTS / CCTV ═════════════
+      if (has("incidents") || has("cctv")) {
+        channel = channel
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "incidents", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, "incidents", ["incidents"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "cctv_observations", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, "cctv-observations", ["cctv-observations"]),
+          );
+      }
+
+      // ═════════════ ROLES & MODULE PERMISSIONS ═════════════
+      // Always on: if an admin grants/revokes roles or module access, the
+      // current session must reflect it without a manual sign-out.
+      channel = channel
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "user_roles" },
+          () => {
+            debouncedInvalidate(qc, "user-roles", ["user-roles"]);
+            debouncedInvalidate(qc, "my-roles", ["my-roles"]);
+            debouncedInvalidate(qc, "my-modules", ["my-module-permissions"]);
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "user_module_permissions" },
+          () => debouncedInvalidate(qc, "my-modules", ["my-module-permissions"]),
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "user_casino_access" },
+          () => debouncedInvalidate(qc, "user-casino-access", ["user-casino-access"]),
+        );
+
+      // ═════════════ PAYROLL ═════════════
+      if (has("payroll")) {
+        channel = channel
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "payroll_entries" },
+            () => debouncedInvalidate(qc, "payroll-entries", ["payroll-entries"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "payroll_periods" },
+            () => debouncedInvalidate(qc, "payroll-periods", ["payroll-periods"]),
+          );
+      }
+
+      // ═════════════ EMPLOYEES / STAFF MASTER / WARNINGS ═════════════
+      if (has("staff_employees") || has("staff_master") || has("employee_playlist") || has("hr_warnings")) {
+        channel = channel
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "employees" },
+            () => {
+              debouncedInvalidate(qc, "employees", ["employees"]);
+              debouncedInvalidate(qc, "staff-master", ["staff-master"]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "staff_warnings" },
+            () => debouncedInvalidate(qc, "staff-warnings", ["staff-warnings"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "employee_playlist_notes" },
+            () => debouncedInvalidate(qc, "employee-playlist-notes", ["employee-playlist-notes"]),
+          );
+      }
+
+      // ═════════════ ATTENDANCE MONTHLY (hours / holidays) ═════════════
+      if (has("staff_attendance") || has("pit_attendance")) {
+        channel = channel
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "attendance_hours", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, "attendance-hours", ["attendance-hours"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "attendance_holidays", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, "attendance-holidays", ["attendance-holidays"]),
+          );
+      }
+
+      // ═════════════ TIPS & BONUSES ═════════════
+      if (has("tips_and_bonuses")) {
+        channel = channel
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "monthly_tips_pools", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, "monthly-tips", ["monthly-tips"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "monthly_tips_entries" },
+            () => debouncedInvalidate(qc, "monthly-tips", ["monthly-tips"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "weekly_bonus_pools", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, "weekly-bonus", ["weekly-bonus"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "weekly_bonus_entries" },
+            () => debouncedInvalidate(qc, "weekly-bonus", ["weekly-bonus"]),
+          );
+      }
+
+      // ═════════════ CLUB / PROMO / MARKETING ═════════════
+      if (
+        has("marketing_campaigns") || has("promo_codes") || has("promo_grants") ||
+        has("kyc_reviews") || has("shop_orders") || has("shop_catalog") || has("lotteries") ||
+        has("am_budget") || has("am_performance") || has("fm_topups")
+      ) {
+        channel = channel
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "promo_grants", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, "promo-grants", ["promo-grants"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "promo_redemptions", filter: `casino_id=eq.${casinoId}` },
+            () => debouncedInvalidate(qc, "promo-redemptions", ["promo-redemptions"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "promo_codes" },
+            () => debouncedInvalidate(qc, "promo-codes", ["promo-codes"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "promo_wallet_ledger" },
+            () => debouncedInvalidate(qc, "promo-wallet-ledger", ["promo-wallet-ledger"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "kyc_reviews" },
+            () => debouncedInvalidate(qc, "kyc-reviews", ["kyc-reviews"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "shop_orders" },
+            () => debouncedInvalidate(qc, "shop-orders", ["shop-orders"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "lottery_tickets" },
+            () => debouncedInvalidate(qc, "lottery-tickets", ["lottery-tickets"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "am_budget_ledger" },
+            () => debouncedInvalidate(qc, "am-budget-ledger", ["am-budget-ledger"]),
+          );
+      }
+
+      // ═════════════ POS (bar / kitchen / inventory) ═════════════
+      // No dedicated module keys today — gate to anyone who can reach any
+      // POS surface via the generic operational modules (managers, cage).
+      if (has("cage") || has("closings") || has("finance_dashboard") || isSuperAdmin) {
+        channel = channel
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "pos_orders" },
+            () => {
+              debouncedInvalidate(qc, "pos-orders", ["pos-orders"]);
+              debouncedInvalidate(qc, "pos-shift", ["pos-shift"]);
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "pos_order_items" },
+            () => debouncedInvalidate(qc, "pos-orders", ["pos-orders"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "pos_tabs" },
+            () => debouncedInvalidate(qc, "pos-tabs", ["pos-tabs"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "pos_shifts" },
+            () => debouncedInvalidate(qc, "pos-shifts", ["pos-shifts"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "pos_player_charges" },
+            () => debouncedInvalidate(qc, "pos-player-charges", ["pos-player-charges"]),
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "pos_inventory_movements" },
+            () => debouncedInvalidate(qc, "pos-inventory", ["pos-inventory"]),
+          );
+      }
+
+      // ═════════════ CANCELLED TRANSACTIONS ═════════════
+      if (has("cancelled_transactions") || has("cage")) {
+        channel = channel.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "transaction_cancellations", filter: `casino_id=eq.${casinoId}` },
+          () => debouncedInvalidate(qc, "transaction-cancellations", ["transaction-cancellations"]),
+        );
+      }
+
+
+
       channel.subscribe((subStatus, err) => {
         if (subStatus === "SUBSCRIBED") {
           status.subscribed = true;
