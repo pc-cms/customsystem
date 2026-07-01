@@ -525,6 +525,9 @@ export const useShiftsTablesResultForDate = (businessDate?: string) => {
       return (data || []).reduce((s: number, r: any) => s + Number(r.tables_result || 0), 0);
     },
     enabled: !!activeCasinoId && !!businessDate,
+    staleTime: 30_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 };
 
@@ -546,8 +549,12 @@ export const useSlotsAutoForDate = (businessDate?: string) => {
       );
     },
     enabled: !!activeCasinoId && !!businessDate,
+    staleTime: 30_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 };
+
 
 /* =====================  MONEY CHANGE  ===================== */
 export const useFinMoneyChange = (opts?: { from?: string; to?: string }) => {

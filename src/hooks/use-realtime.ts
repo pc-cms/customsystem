@@ -294,8 +294,20 @@ export const useRealtimeSubscriptions = () => {
               debouncedInvalidate(qc, "shift", ["shift"]);
               debouncedInvalidate(qc, "active-shift", ["active-shift"]);
               debouncedInvalidate(qc, "shift_tables_result", ["shift_tables_result_total"]);
+              debouncedInvalidate(qc, "shifts-tables-result", ["shifts-tables-result"]);
+              debouncedInvalidate(qc, "closed-shifts", ["closed-shifts"]);
             },
           )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "cage_slots_shifts", filter: `casino_id=eq.${casinoId}` },
+            () => {
+              debouncedInvalidate(qc, "slots-auto-for-date", ["slots-auto-for-date"]);
+              debouncedInvalidate(qc, "cage-slots-shifts", ["cage-slots-shifts"]);
+              debouncedInvalidate(qc, "cage-slots-shift", ["cage-slots-shift"]);
+            },
+          )
+
           .on(
             "postgres_changes",
             { event: "*", schema: "public", table: "cage_transfers", filter: `casino_id=eq.${casinoId}` },
