@@ -126,48 +126,71 @@ export async function setupPWA() {
  *   5. Hard navigate to current URL with a cache-buster.
  */
 export async function resetPWACache(): Promise<void> {
-  try {
-    // 1) Wipe every Cache Storage bucket
-    const cacheNames = await caches.keys().catch(() => [] as string[]);
-    await Promise.all(cacheNames.map((n) => caches.delete(n).catch(() => false)));
+  // Guarantee we navigate away even if any await below hangs (iOS Safari
+  // has been observed to stall on fetch() / caches.delete() when the
+  // network is flaky). A hard 4s watchdog forces a reload no matter what.
+  const watchdog = window.setTimeout(() => {
+    try { hardReload(); } catch { window.location.reload(); }
+  }, 4000);
 
-    // 2) Unregister every service worker on this origin
-    const regs = await navigator.serviceWorker?.getRegistrations?.().catch(() => []);
-    if (regs) {
-      await Promise.all(regs.map((r) => r.unregister().catch(() => false)));
+  const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T | undefined> =>
+    Promise.race<T | undefined>([
+      p.catch(() => undefined),
+      new Promise<undefined>((res) => window.setTimeout(() => res(undefined), ms)),
+    ]);
+
+  try {
+    // 1) Wipe Cache Storage (guarded — iOS private mode has no `caches`)
+    if (typeof caches !== "undefined") {
+      const cacheNames = (await withTimeout(caches.keys(), 1500)) ?? [];
+      await withTimeout(
+        Promise.all(cacheNames.map((n) => caches.delete(n).catch(() => false))),
+        1500,
+      );
     }
 
-    // 3) Sync the version-buster key (no longer triggers a reload — see main.tsx)
+    // 2) Unregister every service worker on this origin
+    if (typeof navigator !== "undefined" && navigator.serviceWorker?.getRegistrations) {
+      const regs = (await withTimeout(navigator.serviceWorker.getRegistrations(), 1500)) ?? [];
+      await withTimeout(
+        Promise.all(regs.map((r) => r.unregister().catch(() => false))),
+        1500,
+      );
+    }
+
+    // 3) Sync version-buster key
     try {
       // @ts-expect-error injected by Vite define()
       const v = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "";
       if (v) localStorage.setItem("cms:app-version", v);
     } catch { /* ignore */ }
 
-    // 4) Drop stale persisted React Query cache from both legacy localStorage
-    // and the current IndexedDB persister.
+    // 4) Drop stale persisted React Query cache
     try {
       localStorage.removeItem("REACT_QUERY_OFFLINE_CACHE");
-      await clearIDBPersistedQueryCache();
+      await withTimeout(clearIDBPersistedQueryCache(), 1500);
     } catch { /* ignore */ }
   } catch (e) {
     console.warn("[PWA] reset failed:", e);
+  } finally {
+    window.clearTimeout(watchdog);
+    hardReload();
   }
+}
 
-  // 5) Force a network fetch for the current page so we get the latest
-  //    index.html (with new hashed chunk URLs) instead of a stale
-  //    browser-cache or SW-cached copy.
-  try {
-    await fetch(window.location.href, { cache: "no-store", credentials: "same-origin" });
-  } catch { /* ignore */ }
-
-  // 6) Hard navigation with cache-buster — bypasses HTTP cache AND any SW
-  //    controller still claiming this page. `replace` keeps history clean.
+/**
+ * Hard reload with cache-buster. Safari/iOS often ignores query-only changes
+ * via `location.replace`, so we use `assign` + a plain `reload` fallback.
+ */
+function hardReload() {
   try {
     const url = new URL(window.location.href);
     url.searchParams.set("_cb", Date.now().toString(36));
-    window.location.replace(url.toString());
+    window.location.assign(url.toString());
   } catch {
-    window.location.reload();
+    /* fall through */
   }
+  window.setTimeout(() => {
+    try { window.location.reload(); } catch { /* noop */ }
+  }, 500);
 }
