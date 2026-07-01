@@ -376,7 +376,7 @@ export function usePrefetchCriticalData() {
     const tasks = buildAllTasks(qc, casinoId, roles, allowedModules, today);
 
     // Fire-and-forget; sequential.
-    void runSequential(tasks);
+    void runBatched(tasks);
   }, [isReady, casinoId, user, roles, allowedModules, qc]);
 }
 
@@ -396,7 +396,7 @@ export function useResyncAllData() {
     // Mark every cached query stale so subsequent reads re-fetch.
     await qc.invalidateQueries({ refetchType: "none" });
     const tasks = buildAllTasks(qc, casinoId, roles, allowedModules, today);
-    await runSequential(tasks);
+    await runBatched(tasks);
   };
 }
 
