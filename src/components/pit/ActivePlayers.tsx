@@ -238,7 +238,7 @@ const ActivePlayers = () => {
     // Sort players within each table by category priority then started time
     Object.values(map).forEach(arr => arr.sort((a, b) => {
       if (a.category !== b.category) {
-        const order: Record<PlayerCategory, number> = { diamond: 0, platinum: 1, gold: 2, normal: 3 };
+        const order: Record<PlayerCategory, number> = { casino: -1, diamond: 0, platinum: 1, gold: 2, normal: 3 };
         return order[a.category] - order[b.category];
       }
       return (a.startedAt?.getTime() ?? 0) - (b.startedAt?.getTime() ?? 0);
