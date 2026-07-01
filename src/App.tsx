@@ -324,6 +324,9 @@ const ProtectedRoutes = () => {
   // Adaptive realtime subscriptions (full/polling/off based on connection quality)
   useRealtimeSubscriptions();
 
+  // Detect business-day rollover (07:00 EAT) and invalidate stale "today" caches.
+  useBusinessDayWatcher();
+
   // Initialize offline sync engine on mount
   useEffect(() => { initSyncEngine(); }, []);
 
