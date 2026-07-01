@@ -15,6 +15,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { createIDBPersister } from "@/lib/query-persister";
 import { usePrefetchCriticalData } from "@/hooks/use-prefetch";
 import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
+import { useBusinessDayWatcher } from "@/hooks/use-business-day-watcher";
 import { initSyncEngine } from "@/lib/sync-engine";
 import { clearSelectedPlayer } from "@/hooks/use-selected-player";
 import Login from "@/pages/Login";
@@ -322,6 +323,9 @@ const ProtectedRoutes = () => {
 
   // Adaptive realtime subscriptions (full/polling/off based on connection quality)
   useRealtimeSubscriptions();
+
+  // Detect business-day rollover (07:00 EAT) and invalidate stale "today" caches.
+  useBusinessDayWatcher();
 
   // Initialize offline sync engine on mount
   useEffect(() => { initSyncEngine(); }, []);
