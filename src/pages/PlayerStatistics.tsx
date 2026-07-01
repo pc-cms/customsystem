@@ -186,10 +186,10 @@ const PlayerStatistics = () => {
   const [search, setSearch] = useSessionState<string>("pt:search", "");
   const [categoryFilterArr, setCategoryFilterArr] = useSessionState<PlayerCategory[]>(
     "pt:categoryFilter",
-    ["diamond", "platinum", "gold", "normal"]
+    ["casino", "diamond", "platinum", "gold", "normal"]
   );
   const categoryFilter = useMemo(
-    () => new Set(Array.isArray(categoryFilterArr) ? categoryFilterArr : ["diamond","platinum","gold","normal"]) as Set<PlayerCategory>,
+    () => new Set(Array.isArray(categoryFilterArr) ? categoryFilterArr : ["casino","diamond","platinum","gold","normal"]) as Set<PlayerCategory>,
     [categoryFilterArr]
   );
   const setCategoryFilter = useCallback((updater: React.SetStateAction<Set<PlayerCategory>>) => {
