@@ -326,9 +326,16 @@ function modulePrefetchTasks(
   }
 }
 
-async function runSequential(tasks: Task[]) {
-  for (const task of tasks) {
-    try { await task(); } catch { /* keep warming the rest */ }
+/**
+ * Run tasks in small parallel batches. Fully sequential (batch=1) added many
+ * seconds of latency for super-admin (~30 tasks); fully parallel triggered
+ * 429s on /token when many tabs shared an account. Batch of 4 keeps warm-up
+ * ~4x faster while staying under Supabase's shared-IP auth ceiling.
+ */
+async function runBatched(tasks: Task[], batchSize = 4) {
+  for (let i = 0; i < tasks.length; i += batchSize) {
+    const chunk = tasks.slice(i, i + batchSize);
+    await Promise.all(chunk.map((t) => t().catch(() => { /* keep warming */ })));
   }
 }
 
