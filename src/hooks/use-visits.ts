@@ -31,6 +31,9 @@ export const useVisitsToday = (selectFields = "*, players(first_name, last_name,
       return data;
     },
     enabled: !!casinoId,
-    staleTime: 1000 * 30,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 };
