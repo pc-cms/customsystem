@@ -29,7 +29,13 @@ export const useTransactions = (date?: string) => {
       return data;
     },
     enabled: !!casinoId,
-    staleTime: 1000 * 30,
+    // Live operational data: refetch on focus + on remount, no stale window.
+    // Realtime handles most updates; this covers the "just came back to
+    // the tab" case within 100ms instead of waiting for the next event.
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 };
 
