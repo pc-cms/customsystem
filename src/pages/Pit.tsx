@@ -100,6 +100,8 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
 
   const { roles, isManager } = useAuth();
   const isHR = roles.includes("hr") && !roles.includes("pit") && !roles.includes("manager");
+  // HR gets full rota control (lock/unlock, template, past-month edits) just like manager.
+  const canEditRota = isManager || roles.includes("hr");
   const [searchParams] = useSearchParams();
   // Flat-URL wrappers pass forcedTab; legacy /pit?tab=… still supported via query param.
   const activeTab = forcedTab || searchParams.get("tab") || (isHR ? "employee" : "breaklist");
