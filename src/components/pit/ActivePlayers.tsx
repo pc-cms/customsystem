@@ -34,7 +34,7 @@ const ActivePlayers = () => {
 
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<Set<PlayerCategory>>(
-    new Set(["diamond", "platinum", "gold", "normal"])
+    new Set(["casino", "diamond", "platinum", "gold", "normal"])
   );
   const [openTableId, setOpenTableId] = useState<string | null>(null);
   const [pendingDropPlayer, setPendingDropPlayer] = useState<string | null>(null);
