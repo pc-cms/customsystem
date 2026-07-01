@@ -233,7 +233,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
       )}
       {activeTab === "rota" && (
         <>
-          {isManager && (
+          {canEditRota && (
             <RotaExcelButtons
               scope="live-game"
               month={month}
