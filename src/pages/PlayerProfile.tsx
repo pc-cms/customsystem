@@ -472,7 +472,7 @@ const PlayerProfile = () => {
                   <h1 className="text-2xl font-semibold text-card-foreground">{fullName}</h1>
                   <LevelPicker
                     value={(player.category as PlayerCategory) || "normal"}
-                    onPick={(v) => updateCategory.mutate({ player_id: player.id, category: v })}
+                    onPick={(v) => updateCategory.mutate({ player_id: player.id, category: v as any })}
                     canEdit={canEditLevel}
                   />
                   {player.status === "blacklist" && (
