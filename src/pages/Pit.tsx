@@ -304,8 +304,8 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
 
       <Suspense fallback={<><CardSkeleton count={2} /><TableSkeleton rows={5} cols={4} /></>}>
         {activeTab === "employee" && <DealerEmployeeList />}
-        {activeTab === "rota" && <RotaGrid month={month} readOnly={(isPast && !isManager) || !!pitLock} />}
-        {activeTab === "attendance" && <AttendanceGrid month={month} readOnly={isPast && !isManager} />}
+        {activeTab === "rota" && <RotaGrid month={month} readOnly={(isPast && !canEditRota) || !!pitLock} />}
+        {activeTab === "attendance" && <AttendanceGrid month={month} readOnly={isPast && !canEditRota} />}
         {activeTab === "breaklist" && (
           <BreaklistGrid
             ref={breaklistRef}
