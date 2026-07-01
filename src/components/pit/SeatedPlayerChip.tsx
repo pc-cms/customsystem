@@ -5,7 +5,7 @@ import type { PlayerCategory } from "@/components/player/CategoryBadge";
 import { X } from "lucide-react";
 
 const CATEGORY_DOT: Record<PlayerCategory, string> = {
-  casino: "bg-red-500",
+  casino: "bg-[hsl(var(--casino))]",
   diamond: "bg-blue-500",
   platinum: "bg-purple-500",
   gold: "bg-yellow-500",

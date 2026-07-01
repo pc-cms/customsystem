@@ -186,10 +186,10 @@ const PlayerStatistics = () => {
   const [search, setSearch] = useSessionState<string>("pt:search", "");
   const [categoryFilterArr, setCategoryFilterArr] = useSessionState<PlayerCategory[]>(
     "pt:categoryFilter",
-    ["diamond", "platinum", "gold", "normal"]
+    ["casino", "diamond", "platinum", "gold", "normal"]
   );
   const categoryFilter = useMemo(
-    () => new Set(Array.isArray(categoryFilterArr) ? categoryFilterArr : ["diamond","platinum","gold","normal"]) as Set<PlayerCategory>,
+    () => new Set(Array.isArray(categoryFilterArr) ? categoryFilterArr : ["casino","diamond","platinum","gold","normal"]) as Set<PlayerCategory>,
     [categoryFilterArr]
   );
   const setCategoryFilter = useCallback((updater: React.SetStateAction<Set<PlayerCategory>>) => {
@@ -495,7 +495,7 @@ const PlayerStatistics = () => {
             case "card": return r.cardNo || "\uffff";
             case "name": return `${r.firstName} ${r.lastName}`.toLowerCase();
             case "level": {
-              const order: Record<string, number> = { diamond: 0, platinum: 1, gold: 2, normal: 3 };
+              const order: Record<string, number> = { casino: -1, diamond: 0, platinum: 1, gold: 2, normal: 3 };
               return order[r.category] ?? 9;
             }
             case "visits": return r.visits || 0;
@@ -752,6 +752,7 @@ const PlayerStatistics = () => {
   // Tint applied to the Name cell — matches CategoryBadge palette.
   // Sticky column: MUST be fully opaque so scrolling columns don't bleed through.
   const CATEGORY_NAME_TINT: Record<string, string> = {
+    casino: "bg-[hsl(var(--casino)/0.12)] dark:bg-[hsl(var(--casino)/0.18)]",
     diamond: "bg-blue-50 dark:bg-blue-950",
     platinum: "bg-purple-50 dark:bg-purple-950",
     gold: "bg-yellow-50 dark:bg-yellow-950",
