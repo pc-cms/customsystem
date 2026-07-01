@@ -100,6 +100,8 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
 
   const { roles, isManager } = useAuth();
   const isHR = roles.includes("hr") && !roles.includes("pit") && !roles.includes("manager");
+  // HR gets full rota control (lock/unlock, template, past-month edits) just like manager.
+  const canEditRota = isManager || roles.includes("hr");
   const [searchParams] = useSearchParams();
   // Flat-URL wrappers pass forcedTab; legacy /pit?tab=… still supported via query param.
   const activeTab = forcedTab || searchParams.get("tab") || (isHR ? "employee" : "breaklist");
@@ -163,7 +165,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
         </Button>
         <span className="text-sm font-semibold text-card-foreground min-w-[140px] text-center inline-flex items-center justify-center gap-1.5">
           {monthLabel}
-          {isPast && !isManager && <Lock className="w-3 h-3 text-muted-foreground" />}
+          {isPast && !canEditRota && <Lock className="w-3 h-3 text-muted-foreground" />}
         </span>
         <Button variant="ghost" size="icon-sm" onClick={() => canGoNext && navigateMonth(1)} disabled={!canGoNext}>
           <ChevronRight className="w-4 h-4" />
@@ -231,7 +233,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
       )}
       {activeTab === "rota" && (
         <>
-          {isManager && (
+          {canEditRota && (
             <RotaExcelButtons
               scope="live-game"
               month={month}
@@ -302,8 +304,8 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
 
       <Suspense fallback={<><CardSkeleton count={2} /><TableSkeleton rows={5} cols={4} /></>}>
         {activeTab === "employee" && <DealerEmployeeList />}
-        {activeTab === "rota" && <RotaGrid month={month} readOnly={(isPast && !isManager) || !!pitLock} />}
-        {activeTab === "attendance" && <AttendanceGrid month={month} readOnly={isPast && !isManager} />}
+        {activeTab === "rota" && <RotaGrid month={month} readOnly={(isPast && !canEditRota) || !!pitLock} />}
+        {activeTab === "attendance" && <AttendanceGrid month={month} readOnly={isPast && !canEditRota} />}
         {activeTab === "breaklist" && (
           <BreaklistGrid
             ref={breaklistRef}
