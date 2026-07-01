@@ -433,4 +433,33 @@ export const useRealtimeSubscriptions = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- scalar keys cover the Set/array deps
   }, [casinoId, qc, modulesKey, rolesKey]);
+
+  // Foreground catch-up: when the tab is refocused (laptop lid, PWA switch,
+  // phone unlock), force-refetch active queries and re-check the realtime
+  // socket. Supabase-js auto-reconnects, but this guarantees the UI reflects
+  // any events missed while the socket was suspended — no more "3-4 minute"
+  // gaps where Table Tracker looks frozen until F5.
+  useEffect(() => {
+    if (!casinoId) return;
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      // Always refetch the on-screen queries; other keys are marked stale.
+      qc.invalidateQueries({ refetchType: "active" });
+      qc.invalidateQueries({ refetchType: "none" });
+      // Nudge realtime: if the socket dropped, re-subscribing the channel
+      // is handled by supabase-js; touching it forces a status callback.
+      const ch = channelRef.current;
+      if (ch && ch.state !== "joined") {
+        try { ch.subscribe(); } catch { /* ignore */ }
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    window.addEventListener("online", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+      window.removeEventListener("online", onVisible);
+    };
+  }, [casinoId, qc]);
 };
