@@ -1,0 +1,1 @@
+ALTER TYPE public.player_category ADD VALUE IF NOT EXISTS 'casino' BEFORE 'diamond';

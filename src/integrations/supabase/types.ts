@@ -10680,7 +10680,7 @@ export type Database = {
         | "debts"
         | "adjustments"
         | "other_office"
-      player_category: "diamond" | "platinum" | "gold" | "normal"
+      player_category: "casino" | "diamond" | "platinum" | "gold" | "normal"
       player_crm_segment: "vip" | "regular" | "new" | "dormant" | "custom"
       player_status: "active" | "blacklist"
       player_type: "slots" | "table" | "mix"
@@ -10991,7 +10991,7 @@ export const Constants = {
         "adjustments",
         "other_office",
       ],
-      player_category: ["diamond", "platinum", "gold", "normal"],
+      player_category: ["casino", "diamond", "platinum", "gold", "normal"],
       player_crm_segment: ["vip", "regular", "new", "dormant", "custom"],
       player_status: ["active", "blacklist"],
       player_type: ["slots", "table", "mix"],

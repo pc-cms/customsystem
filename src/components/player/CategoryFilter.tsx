@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ALL_CATEGORIES, type PlayerCategory } from "./CategoryBadge";
 
 const CATEGORY_CHIP: Record<PlayerCategory, string> = {
+  casino: "bg-red-100 text-red-700 border-red-300 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/40",
   diamond: "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/40",
   platinum: "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-500/20 dark:text-purple-400 dark:border-purple-500/40",
   gold: "bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/40",
@@ -13,6 +14,7 @@ const CATEGORY_CHIP: Record<PlayerCategory, string> = {
 };
 
 const CATEGORY_LABEL: Record<PlayerCategory, string> = {
+  casino: "Casino",
   diamond: "Diamond",
   platinum: "Platinum",
   gold: "Gold",
@@ -20,6 +22,7 @@ const CATEGORY_LABEL: Record<PlayerCategory, string> = {
 };
 
 const CATEGORY_LETTER: Record<PlayerCategory, string> = {
+  casino: "C",
   diamond: "D",
   platinum: "P",
   gold: "G",
