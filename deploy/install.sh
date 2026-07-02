@@ -1141,6 +1141,10 @@ fi
 if [[ -f "${SCRIPT_DIR}/ota-verify.sh" ]]; then
   install -m 0755 "${SCRIPT_DIR}/ota-verify.sh" /usr/local/sbin/casino-ota-verify
 fi
+if [[ -f "${SCRIPT_DIR}/ota-rollback.sh" ]]; then
+  install -m 0755 "${SCRIPT_DIR}/ota-rollback.sh" /usr/local/sbin/casino-ota-rollback
+  ok "OTA rollback script установлен (/usr/local/sbin/casino-ota-rollback)"
+fi
 
 # ── финал ──
 echo; hr
