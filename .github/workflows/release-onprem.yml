@@ -144,16 +144,26 @@ jobs:
       # Requires repo secret COSIGN_PRIVATE_KEY (cosign generate-key-pair output)
       # and optionally COSIGN_PASSWORD. Public key must be committed as deploy/ota.pub
       # so on-prem boxes can verify without contacting a KMS.
-      - name: Install cosign
-        if: ${{ env.COSIGN_PRIVATE_KEY != '' }}
+      - name: Detect cosign availability
+        id: cosign_check
         env:
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+        run: |
+          if [[ -n "$COSIGN_PRIVATE_KEY" ]]; then
+            echo "have=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::COSIGN_PRIVATE_KEY not configured — skipping signed OTA step"
+          fi
+
+      - name: Install cosign
+        if: steps.cosign_check.outputs.have == 'true'
         uses: sigstore/cosign-installer@v3
         with:
           cosign-release: v2.4.1
 
       - name: Sign release tarball
-        if: ${{ env.COSIGN_PRIVATE_KEY != '' }}
+        if: steps.cosign_check.outputs.have == 'true'
         env:
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
           COSIGN_PASSWORD:    ${{ secrets.COSIGN_PASSWORD }}
