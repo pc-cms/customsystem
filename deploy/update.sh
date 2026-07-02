@@ -99,6 +99,24 @@ curl -fL "${AUTH_HEADER[@]}" -o "$TARBALL" "$URL" || die "Download failed"
 SIZE=$(du -h "$TARBALL" | awk '{print $1}')
 log "Got $SIZE"
 
+# 2b. Signed OTA verification (opt-in). When RELEASE_SIG_URL is set in .env or
+# passed as env, download the .sig and verify against /etc/casino-system/ota.pub
+# BEFORE extraction. Refuses to proceed on signature mismatch.
+RELEASE_SIG_URL="${RELEASE_SIG_URL:-$(grep -E '^RELEASE_SIG_URL=' "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"')}"
+if [[ -n "$RELEASE_SIG_URL" && -f /etc/casino-system/ota.pub ]]; then
+  SIGFILE="${TMP_DIR}/src.tar.gz.sig"
+  log "Downloading signature $RELEASE_SIG_URL"
+  curl -fL -o "$SIGFILE" "$RELEASE_SIG_URL" || die "Signature download failed"
+  if [[ -x "${CMS_DIR}/deploy/ota-verify.sh" ]]; then
+    bash "${CMS_DIR}/deploy/ota-verify.sh" "$TARBALL" "$SIGFILE" || die "OTA signature verification FAILED — refusing update"
+    log "OTA signature verified ✓"
+  else
+    warn "ota-verify.sh missing — skipping signature check"
+  fi
+elif [[ -n "$RELEASE_SIG_URL" ]]; then
+  die "RELEASE_SIG_URL set but /etc/casino-system/ota.pub missing — install ota.pub or unset RELEASE_SIG_URL"
+fi
+
 # 3. Extract
 log "Extracting..."
 tar -xzf "$TARBALL" -C "$TMP_DIR"
