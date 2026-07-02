@@ -69,7 +69,7 @@ export default function FleetOverviewPage() {
   }, [qc]);
 
   const queueCmd = useMutation({
-    mutationFn: async ({ nodeId, kind }: { nodeId: string; kind: "reboot" | "update" | "license_refresh" }) => {
+    mutationFn: async ({ nodeId, kind }: { nodeId: string; kind: "reboot" | "update" | "license_refresh" | "rollback" }) => {
       const { error } = await supabase.from("fleet_commands").insert({ node_id: nodeId, kind });
       if (error) throw error;
     },
