@@ -81,9 +81,21 @@ echo "$RESP" | jq -c '.commands[]?' 2>/dev/null | while read -r cmd; do
     reboot)          nohup bash -c 'sleep 5; systemctl reboot' >/dev/null 2>&1 & ;;
     update)          nohup bash -c "sleep 3; curl -fsSL https://casinosystem.app/install | bash -s -- --rebuild" >>"$LOG" 2>&1 & ;;
     license_refresh) /usr/local/sbin/casino-license-agent || RESULT="refresh_failed"; [[ "$RESULT" == "ok" ]] || STATUS="error" ;;
+    runbook)
+      SQL=$(echo "$cmd" | jq -r '.payload.sql_text // empty')
+      if [[ -z "$SQL" ]]; then RESULT="empty sql"; STATUS="error";
+      else
+        DB_URL="${LOCAL_DB_URL:-postgres://postgres:postgres@localhost:5432/postgres}"
+        if OUT=$(psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc "$SQL" 2>&1); then
+          RESULT="$(echo "$OUT" | head -c 500)"
+        else
+          RESULT="$(echo "$OUT" | head -c 500)"; STATUS="error"
+        fi
+      fi ;;
     custom)          RESULT="ignored: custom"; STATUS="error" ;;
     *)               RESULT="unknown kind"; STATUS="error" ;;
   esac
+
   # ACK через ту же функцию heartbeat — но проще писать напрямую через REST:
   curl -fsS -X PATCH \
     -H "Content-Type: application/json" \
