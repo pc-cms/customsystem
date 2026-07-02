@@ -3930,6 +3930,8 @@ export type Database = {
       }
       fleet_heartbeats: {
         Row: {
+          auto_rollback_at: string | null
+          auto_rollback_reason: string | null
           casino_id: string | null
           cms_version: string | null
           cpu_load: number | null
@@ -3948,6 +3950,8 @@ export type Database = {
           uptime_seconds: number | null
         }
         Insert: {
+          auto_rollback_at?: string | null
+          auto_rollback_reason?: string | null
           casino_id?: string | null
           cms_version?: string | null
           cpu_load?: number | null
@@ -3966,6 +3970,8 @@ export type Database = {
           uptime_seconds?: number | null
         }
         Update: {
+          auto_rollback_at?: string | null
+          auto_rollback_reason?: string | null
           casino_id?: string | null
           cms_version?: string | null
           cpu_load?: number | null
