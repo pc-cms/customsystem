@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
-import { RefreshCw, Power, Download, ShieldCheck, ShieldAlert, Ban, HardDrive, Rocket } from "lucide-react";
+import { RefreshCw, Power, Download, ShieldCheck, ShieldAlert, Ban, HardDrive, Rocket, RotateCcw } from "lucide-react";
 import { useEffect } from "react";
 
 interface FleetRow {
@@ -173,6 +173,11 @@ export default function FleetOverviewPage() {
                           onClick={() => { setBusyId(r.node_id); queueCmd.mutate({ nodeId: r.node_id, kind: "update" }); }}
                           title="Trigger update">
                           <Download className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" disabled={busyId === r.node_id}
+                          onClick={() => { if (confirm(`Rollback ${r.hostname ?? r.node_id} to previous release?`)) { setBusyId(r.node_id); queueCmd.mutate({ nodeId: r.node_id, kind: "rollback" }); } }}
+                          title="Rollback to previous release">
+                          <RotateCcw className="h-4 w-4" />
                         </Button>
                         <Button size="sm" variant="ghost" disabled={busyId === r.node_id}
                           onClick={() => { if (confirm(`Reboot ${r.hostname ?? r.node_id}?`)) { setBusyId(r.node_id); queueCmd.mutate({ nodeId: r.node_id, kind: "reboot" }); } }}
