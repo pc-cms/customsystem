@@ -159,6 +159,8 @@ const ClubVerifyWizard = lazy(() => import("@/pages/club/ClubVerifyWizard"));
 const ClubPrivacyPolicy = lazy(() => import("@/pages/club/legal/PrivacyPolicy"));
 const ClubDataProtection = lazy(() => import("@/pages/club/legal/DataProtection"));
 const ClubResponsibleGaming = lazy(() => import("@/pages/club/legal/ResponsibleGaming"));
+const FirstRunWizard = lazy(() => import("@/pages/setup/FirstRunWizard"));
+const LicenseStatusPage = lazy(() => import("@/pages/admin/LicenseStatusPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
