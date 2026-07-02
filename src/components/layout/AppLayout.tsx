@@ -63,6 +63,7 @@ export const AppLayout = () => {
         </div>
       )}
       <div className="flex-1 flex flex-col overflow-hidden relative">
+        <LicenseBanner />
         <OfflineBanner />
         <PWAUpdateNotification />
         {isMobile && <div className="no-print"><MobileHeader /></div>}
