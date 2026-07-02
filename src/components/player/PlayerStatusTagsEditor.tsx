@@ -45,7 +45,7 @@ const LEVEL_LETTER: Record<PlayerCategory, string> = {
   casino: "C", diamond: "D", platinum: "P", gold: "G", normal: "N",
 };
 const LEVEL_TINT: Record<PlayerCategory, string> = {
-  casino: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/40",
+  casino: "bg-[hsl(var(--casino)/0.15)] text-[hsl(var(--casino))] border-[hsl(var(--casino)/0.5)] dark:bg-[hsl(var(--casino)/0.2)]",
   diamond: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/40",
   platinum: "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/40",
   gold: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 border-yellow-500/40",
