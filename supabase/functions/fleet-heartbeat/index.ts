@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
 
   // Return any pending commands so the agent can execute them
   const { data: cmds } = await admin
-    .from("node_commands")
+    .from("fleet_commands")
     .select("id, kind, payload, issued_at")
     .eq("node_id", nodeId)
     .eq("status", "pending")
