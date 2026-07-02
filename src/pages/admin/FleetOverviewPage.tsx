@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
-import { RefreshCw, Power, Download, ShieldCheck, ShieldAlert, Ban } from "lucide-react";
+import { RefreshCw, Power, Download, ShieldCheck, ShieldAlert, Ban, HardDrive } from "lucide-react";
 import { useEffect } from "react";
 
 interface FleetRow {
@@ -100,9 +100,14 @@ export default function FleetOverviewPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Fleet</CardTitle>
-          <Button size="sm" variant="ghost" onClick={() => qc.invalidateQueries({ queryKey: ["fleet-heartbeats"] })}>
-            <RefreshCw className="h-4 w-4 mr-1" /> Refresh
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button size="sm" variant="ghost" asChild>
+              <a href="/admin/fleet/clones"><HardDrive className="h-4 w-4 mr-1" />Clones</a>
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => qc.invalidateQueries({ queryKey: ["fleet-heartbeats"] })}>
+              <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
