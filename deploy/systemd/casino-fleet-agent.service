@@ -1,0 +1,11 @@
+[Unit]
+Description=Casino System — fleet agent (telemetry + remote commands)
+After=docker.service network-online.target
+Wants=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/opt/casino-system/deploy/.env
+ExecStart=/usr/local/sbin/casino-fleet-agent
+StandardOutput=journal
+StandardError=journal
