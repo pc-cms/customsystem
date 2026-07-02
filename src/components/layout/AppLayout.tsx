@@ -7,6 +7,7 @@ import { MobileHeader } from "./AppSidebar";
 import { PWAUpdateNotification } from "@/components/PWAUpdateNotification";
 import { LocalServerBadge } from "@/components/LocalServerBadge";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { LicenseBanner } from "@/components/box/LicenseBanner";
 
 import { PageSkeleton } from "@/components/ui/skeleton";
 
