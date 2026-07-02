@@ -1106,6 +1106,28 @@ if [[ -f "${SCRIPT_DIR}/fleet-agent.sh" ]]; then
   fi
 fi
 
+# ── Cloud Clone uploader (systemd timer, ежедневно в 03:30 EAT) ──
+if [[ -f "${SCRIPT_DIR}/cloud-clone.sh" ]]; then
+  install -m 0755 "${SCRIPT_DIR}/cloud-clone.sh" /usr/local/sbin/casino-cloud-clone
+  if [[ -d "${SCRIPT_DIR}/systemd" ]]; then
+    install -m 0644 "${SCRIPT_DIR}/systemd/casino-cloud-clone.service" /etc/systemd/system/
+    install -m 0644 "${SCRIPT_DIR}/systemd/casino-cloud-clone.timer"   /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable --now casino-cloud-clone.timer >/dev/null 2>&1 || warn "не удалось активировать casino-cloud-clone.timer"
+    ok "Cloud Clone uploader зарегистрирован (ежедневно 03:30 EAT → Cloud cloud-clone-upload)"
+  fi
+fi
+
+# ── OTA signing pubkey (для signed update.sh) ──
+if [[ -f "${SCRIPT_DIR}/ota.pub" ]]; then
+  install -d -m 0755 /etc/casino-system
+  install -m 0644 "${SCRIPT_DIR}/ota.pub" /etc/casino-system/ota.pub
+  ok "OTA public key установлен в /etc/casino-system/ota.pub"
+fi
+if [[ -f "${SCRIPT_DIR}/ota-verify.sh" ]]; then
+  install -m 0755 "${SCRIPT_DIR}/ota-verify.sh" /usr/local/sbin/casino-ota-verify
+fi
+
 # ── финал ──
 echo; hr
 echo -e "${GREEN}${BOLD}  ✓ Установка завершена!${NC}"
