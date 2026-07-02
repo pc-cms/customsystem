@@ -1,0 +1,11 @@
+[Unit]
+Description=Casino System — nightly Cloud Clone uploader
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/casino-cloud-clone
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6
