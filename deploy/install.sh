@@ -1082,6 +1082,18 @@ EOF
   ok "systemd unit установлен"
 fi
 
+# ── License agent (systemd timer) ──
+if [[ -f "${SCRIPT_DIR}/license-agent.sh" ]]; then
+  install -m 0755 "${SCRIPT_DIR}/license-agent.sh" /usr/local/sbin/casino-license-agent
+  if [[ -d "${SCRIPT_DIR}/systemd" ]]; then
+    install -m 0644 "${SCRIPT_DIR}/systemd/casino-license-agent.service" /etc/systemd/system/
+    install -m 0644 "${SCRIPT_DIR}/systemd/casino-license-agent.timer"   /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable --now casino-license-agent.timer >/dev/null 2>&1 || warn "не удалось активировать casino-license-agent.timer"
+    ok "License agent зарегистрирован (запуск раз в час)"
+  fi
+fi
+
 # ── финал ──
 echo; hr
 echo -e "${GREEN}${BOLD}  ✓ Установка завершена!${NC}"
