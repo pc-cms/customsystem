@@ -92,6 +92,13 @@ echo "$RESP" | jq -c '.commands[]?' 2>/dev/null | while read -r cmd; do
           RESULT="$(echo "$OUT" | head -c 500)"; STATUS="error"
         fi
       fi ;;
+    rollback)
+      if [[ -x /usr/local/sbin/casino-ota-rollback ]]; then
+        nohup bash -c "sleep 3; /usr/local/sbin/casino-ota-rollback" >>"$LOG" 2>&1 &
+        RESULT="rollback dispatched"
+      else
+        RESULT="rollback script missing"; STATUS="error"
+      fi ;;
     custom)          RESULT="ignored: custom"; STATUS="error" ;;
     *)               RESULT="unknown kind"; STATUS="error" ;;
   esac
