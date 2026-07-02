@@ -75,7 +75,7 @@ export default function CloneStatusPage() {
         .order("ran_at", { ascending: false })
         .limit(200);
       if (error) throw error;
-      return (data ?? []) as ReportRow[];
+      return (data ?? []) as unknown as ReportRow[];
     },
     refetchInterval: 60_000,
   });
