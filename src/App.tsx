@@ -598,8 +598,11 @@ const AppRoutes = () => {
           <Route path="charges" element={<PosCharges />} />
           <Route path="purchases" element={<PosPurchases />} />
         </Route>
+        <Route path="/setup" element={<FirstRunWizard />} />
+        <Route path="/admin/license" element={<LicenseStatusPage />} />
         <Route path="/login" element={user ? <Navigate to={defaultRoute} replace /> : <Login />} />
         <Route path="/*" element={<ProtectedRoutes />} />
+
       </Routes>
     </Suspense>
   );
