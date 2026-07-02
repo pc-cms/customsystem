@@ -3747,6 +3747,71 @@ export type Database = {
           },
         ]
       }
+      fleet_heartbeats: {
+        Row: {
+          casino_id: string | null
+          cms_version: string | null
+          cpu_load: number | null
+          disk_used_pct: number | null
+          first_seen_at: string
+          hostname: string | null
+          last_seen_at: string
+          license_expires_at: string | null
+          license_mode: string | null
+          local_ip: unknown
+          node_id: string
+          notes: Json
+          public_ip: unknown
+          ram_used_pct: number | null
+          tailscale_ip: unknown
+          uptime_seconds: number | null
+        }
+        Insert: {
+          casino_id?: string | null
+          cms_version?: string | null
+          cpu_load?: number | null
+          disk_used_pct?: number | null
+          first_seen_at?: string
+          hostname?: string | null
+          last_seen_at?: string
+          license_expires_at?: string | null
+          license_mode?: string | null
+          local_ip?: unknown
+          node_id: string
+          notes?: Json
+          public_ip?: unknown
+          ram_used_pct?: number | null
+          tailscale_ip?: unknown
+          uptime_seconds?: number | null
+        }
+        Update: {
+          casino_id?: string | null
+          cms_version?: string | null
+          cpu_load?: number | null
+          disk_used_pct?: number | null
+          first_seen_at?: string
+          hostname?: string | null
+          last_seen_at?: string
+          license_expires_at?: string | null
+          license_mode?: string | null
+          local_ip?: unknown
+          node_id?: string
+          notes?: Json
+          public_ip?: unknown
+          ram_used_pct?: number | null
+          tailscale_ip?: unknown
+          uptime_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_heartbeats_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gaming_tables: {
         Row: {
           casino_id: string
