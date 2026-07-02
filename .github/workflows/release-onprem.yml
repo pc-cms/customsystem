@@ -140,6 +140,33 @@ jobs:
             -C supabase migrations
           (cd release && sha256sum migrations-${{ steps.meta.outputs.version }}.tar.gz > migrations-${{ steps.meta.outputs.version }}.tar.gz.sha256)
 
+      # ─── Signed OTA: cosign sign-blob over the migrations bundle ───
+      # Requires repo secret COSIGN_PRIVATE_KEY (cosign generate-key-pair output)
+      # and optionally COSIGN_PASSWORD. Public key must be committed as deploy/ota.pub
+      # so on-prem boxes can verify without contacting a KMS.
+      - name: Install cosign
+        if: ${{ env.COSIGN_PRIVATE_KEY != '' }}
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: v2.4.1
+
+      - name: Sign release tarball
+        if: ${{ env.COSIGN_PRIVATE_KEY != '' }}
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD:    ${{ secrets.COSIGN_PASSWORD }}
+        run: |
+          echo "$COSIGN_PRIVATE_KEY" > /tmp/cosign.key
+          cosign sign-blob --yes --key /tmp/cosign.key \
+            --output-signature release/migrations-${{ steps.meta.outputs.version }}.tar.gz.sig \
+            release/migrations-${{ steps.meta.outputs.version }}.tar.gz
+          rm -f /tmp/cosign.key
+          echo "Signed. Verify locally with:"
+          echo "  cosign verify-blob --key deploy/ota.pub --signature release/migrations-${{ steps.meta.outputs.version }}.tar.gz.sig release/migrations-${{ steps.meta.outputs.version }}.tar.gz"
+          cp deploy/ota.pub release/ota.pub 2>/dev/null || true
+
       # ─── M0: schema-only dump from Cloud → shipped as release asset ───
       # Requires repo secret CLOUD_DB_URL = postgres://...:.@db.<ref>.supabase.co:5432/postgres
       # Local installs use this dump to bootstrap an empty Postgres 1-to-1 with Cloud.
