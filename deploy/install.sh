@@ -52,7 +52,7 @@ trap 'rc=$?; ln="${BASH_LINENO[0]:-?}"; cmd="${BASH_COMMAND:-?}"; echo -e "${RED
 require_root() { [[ $EUID -eq 0 ]] || fail "Запустите от root: sudo ./deploy/install.sh"; }
 
 # ── CLI ──
-RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0; UPDATE=0; UPDATE_FRONT=0; MENU=0; REPAIR=0; VERIFY=0; BACKFILL=0
+RESET=0; REBUILD=0; RECONFIGURE=0; WIPE=0; UPDATE=0; UPDATE_FRONT=0; MENU=0; REPAIR=0; VERIFY=0; BACKFILL=0; BOXED=0
 ENABLE_REMOTE=0; DISABLE_REMOTE=0; SKIP_NET_CHECK=0
 PRESET_CASINO_SLUG=""; PRESET_NODE_ID=""; LEGACY_ROLE=""; LEGACY_SEED=0
 while [[ $# -gt 0 ]]; do
@@ -74,6 +74,7 @@ while [[ $# -gt 0 ]]; do
     --seed)          LEGACY_SEED=1; shift ;;
     --menu)          MENU=1; shift ;;
     --skip-net-check|--offline) SKIP_NET_CHECK=1; shift ;;
+    --boxed)         BOXED=1; SKIP_NET_CHECK=1; shift ;;
     -h|--help)       sed -n '4,16p' "$0"; exit 0 ;;
     *) fail "Неизвестный аргумент: $1" ;;
   esac
@@ -146,7 +147,7 @@ if [[ $ENABLE_REMOTE -eq 1 || $DISABLE_REMOTE -eq 1 ]]; then
 fi
 
 # ── Interactive menu (default when запущен без флагов в TTY) ──
-if [[ $MENU -eq 0 && $RESET -eq 0 && $REBUILD -eq 0 && $RECONFIGURE -eq 0 && $WIPE -eq 0 && $UPDATE -eq 0 && $UPDATE_FRONT -eq 0 && $REPAIR -eq 0 && $VERIFY -eq 0 && $BACKFILL -eq 0 ]]; then
+if [[ $BOXED -eq 0 && $MENU -eq 0 && $RESET -eq 0 && $REBUILD -eq 0 && $RECONFIGURE -eq 0 && $WIPE -eq 0 && $UPDATE -eq 0 && $UPDATE_FRONT -eq 0 && $REPAIR -eq 0 && $VERIFY -eq 0 && $BACKFILL -eq 0 ]]; then
   if [[ -t 0 || -e /dev/tty ]]; then MENU=1; fi
 fi
 
@@ -1079,6 +1080,18 @@ EOF
   systemctl daemon-reload
   systemctl enable casino-system.service
   ok "systemd unit установлен"
+fi
+
+# ── License agent (systemd timer) ──
+if [[ -f "${SCRIPT_DIR}/license-agent.sh" ]]; then
+  install -m 0755 "${SCRIPT_DIR}/license-agent.sh" /usr/local/sbin/casino-license-agent
+  if [[ -d "${SCRIPT_DIR}/systemd" ]]; then
+    install -m 0644 "${SCRIPT_DIR}/systemd/casino-license-agent.service" /etc/systemd/system/
+    install -m 0644 "${SCRIPT_DIR}/systemd/casino-license-agent.timer"   /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable --now casino-license-agent.timer >/dev/null 2>&1 || warn "не удалось активировать casino-license-agent.timer"
+    ok "License agent зарегистрирован (запуск раз в час)"
+  fi
 fi
 
 # ── финал ──
