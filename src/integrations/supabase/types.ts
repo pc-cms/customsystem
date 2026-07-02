@@ -2238,6 +2238,92 @@ export type Database = {
         }
         Relationships: []
       }
+      cloud_clone_reports: {
+        Row: {
+          checks: Json
+          created_at: string
+          id: string
+          node_id: string
+          overall: string
+          ran_at: string
+          regressions: number
+          upload_id: string
+        }
+        Insert: {
+          checks?: Json
+          created_at?: string
+          id?: string
+          node_id: string
+          overall?: string
+          ran_at?: string
+          regressions?: number
+          upload_id: string
+        }
+        Update: {
+          checks?: Json
+          created_at?: string
+          id?: string
+          node_id?: string
+          overall?: string
+          ran_at?: string
+          regressions?: number
+          upload_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_clone_reports_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_clone_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cloud_clone_uploads: {
+        Row: {
+          casino_id: string | null
+          chunk_count: number
+          created_at: string
+          id: string
+          node_id: string
+          notes: Json
+          rows_by_table: Json
+          sha256: string
+          size_bytes: number
+          status: string
+          storage_path: string | null
+          uploaded_at: string
+        }
+        Insert: {
+          casino_id?: string | null
+          chunk_count: number
+          created_at?: string
+          id?: string
+          node_id: string
+          notes?: Json
+          rows_by_table?: Json
+          sha256: string
+          size_bytes: number
+          status?: string
+          storage_path?: string | null
+          uploaded_at?: string
+        }
+        Update: {
+          casino_id?: string | null
+          chunk_count?: number
+          created_at?: string
+          id?: string
+          node_id?: string
+          notes?: Json
+          rows_by_table?: Json
+          sha256?: string
+          size_bytes?: number
+          status?: string
+          storage_path?: string | null
+          uploaded_at?: string
+        }
+        Relationships: []
+      }
       cloud_connection: {
         Row: {
           casino_id: string | null
