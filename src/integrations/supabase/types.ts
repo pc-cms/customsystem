@@ -324,6 +324,96 @@ export type Database = {
           },
         ]
       }
+      box_config: {
+        Row: {
+          branding: Json
+          casino_name: string | null
+          casino_slug: string | null
+          cloud_link: Json
+          created_at: string
+          id: string
+          is_setup_complete: boolean
+          network: Json
+          node_id: string
+          peer_mode: string
+          tailscale: Json
+          updated_at: string
+        }
+        Insert: {
+          branding?: Json
+          casino_name?: string | null
+          casino_slug?: string | null
+          cloud_link?: Json
+          created_at?: string
+          id?: string
+          is_setup_complete?: boolean
+          network?: Json
+          node_id: string
+          peer_mode?: string
+          tailscale?: Json
+          updated_at?: string
+        }
+        Update: {
+          branding?: Json
+          casino_name?: string | null
+          casino_slug?: string | null
+          cloud_link?: Json
+          created_at?: string
+          id?: string
+          is_setup_complete?: boolean
+          network?: Json
+          node_id?: string
+          peer_mode?: string
+          tailscale?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      box_licenses: {
+        Row: {
+          activated_at: string
+          challenge_nonce: string | null
+          created_at: string
+          full_days: number
+          id: string
+          last_heartbeat_at: string
+          license_expires_at: string | null
+          license_key: string | null
+          node_id: string
+          notes: string | null
+          restricted_days: number
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string
+          challenge_nonce?: string | null
+          created_at?: string
+          full_days?: number
+          id?: string
+          last_heartbeat_at?: string
+          license_expires_at?: string | null
+          license_key?: string | null
+          node_id: string
+          notes?: string | null
+          restricted_days?: number
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string
+          challenge_nonce?: string | null
+          created_at?: string
+          full_days?: number
+          id?: string
+          last_heartbeat_at?: string
+          license_expires_at?: string | null
+          license_key?: string | null
+          node_id?: string
+          notes?: string | null
+          restricted_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       breaklist: {
         Row: {
           casino_id: string
@@ -9630,6 +9720,7 @@ export type Database = {
       }
       auto_close_business_day: { Args: never; Returns: Json }
       auto_close_forgotten_business_days: { Args: never; Returns: undefined }
+      box_license_mode: { Args: never; Returns: string }
       build_business_day_snapshot: {
         Args: { _business_date: string; _casino_id: string }
         Returns: Json
