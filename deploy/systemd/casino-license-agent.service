@@ -1,0 +1,11 @@
+[Unit]
+Description=Casino System — license agent (heartbeat + mode recalculation)
+After=docker.service network-online.target
+Wants=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/opt/casino-system/deploy/.env
+ExecStart=/usr/local/sbin/casino-license-agent
+StandardOutput=journal
+StandardError=journal
