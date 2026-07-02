@@ -3747,6 +3747,42 @@ export type Database = {
           },
         ]
       }
+      fleet_commands: {
+        Row: {
+          completed_at: string | null
+          id: string
+          issued_at: string
+          issued_by: string | null
+          kind: string
+          node_id: string
+          payload: Json
+          result_text: string | null
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          kind: string
+          node_id: string
+          payload?: Json
+          result_text?: string | null
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          kind?: string
+          node_id?: string
+          payload?: Json
+          result_text?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       fleet_heartbeats: {
         Row: {
           casino_id: string | null
