@@ -214,6 +214,15 @@ done
 # 8. Cleanup tmp
 rm -rf "$TMP_DIR"
 
+# 9. Record this backup as the "previous release" for OTA rollback and rotate old ones.
+STATE_DIR="/var/lib/casino-system"
+mkdir -p "$STATE_DIR"
+ln -sfn "$BACKUP_DIR" "$STATE_DIR/ota-prev"
+# Keep only the 3 most recent /opt/casino-system.bak.* trees
+ls -1dt /opt/casino-system.bak.* 2>/dev/null | tail -n +4 | xargs -r rm -rf
+
 echo
 log "✓ Update finished. Backup kept at: $BACKUP_DIR"
+log "  ota-prev symlink → $BACKUP_DIR (rollback target)"
 log "  Open https://$(hostname -I | awk '{print $1}')/admin to verify."
+
