@@ -161,6 +161,7 @@ const ClubDataProtection = lazy(() => import("@/pages/club/legal/DataProtection"
 const ClubResponsibleGaming = lazy(() => import("@/pages/club/legal/ResponsibleGaming"));
 const FirstRunWizard = lazy(() => import("@/pages/setup/FirstRunWizard"));
 const LicenseStatusPage = lazy(() => import("@/pages/admin/LicenseStatusPage"));
+const FleetOverviewPage = lazy(() => import("@/pages/admin/FleetOverviewPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -600,6 +601,7 @@ const AppRoutes = () => {
         </Route>
         <Route path="/setup" element={<FirstRunWizard />} />
         <Route path="/admin/license" element={<LicenseStatusPage />} />
+        <Route path="/admin/fleet" element={<FleetOverviewPage />} />
         <Route path="/login" element={user ? <Navigate to={defaultRoute} replace /> : <Login />} />
         <Route path="/*" element={<ProtectedRoutes />} />
 
