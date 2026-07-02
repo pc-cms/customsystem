@@ -1,0 +1,11 @@
+[Unit]
+Description=Forward local incidents to Cloud every 5 minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+Unit=casino-fleet-incident.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target
