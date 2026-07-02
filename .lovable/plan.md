@@ -1,52 +1,160 @@
-## Goal
-Extend the "tips auto-check-in at 13:00 EAT" logic from Arusha to Mwanza, Dodoma, and Mbeya. Rename Arusha tips players with a city prefix. Introduce a new player category **Casino** with a reddish badge for these special players.
 
-## 1. New player category: `casino`
+# Enterprise Server-in-a-Box — финальный план
 
-- Add `'casino'` to the `player_category` Postgres enum.
-- Update `PlayerCategory` type in `src/components/player/CategoryBadge.tsx`:
-  - Add `casino: { letter: "C", label: "Casino", classes: <reddish tokens> }`.
-  - Highest priority (`CATEGORY_PRIORITY.casino = -1`) so it sorts on top of Diamond.
-  - Include in `ALL_CATEGORIES`.
-- Reddish styling using tailwind rose/red tokens consistent with existing style:
-  `bg-red-100 text-red-700 border-red-300 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/40`.
-- Verify usages in `PlayerStatusTagsEditor`, `CategoryFilter`, `SeatedPlayerChip`, `ActivePlayers`, `use-player-profile`, `Guests`, `PlayerStatistics`, `Tables`, `ClubWallet` still compile with the new value; extend any local `Record<PlayerCategory,…>` maps that don't fall through to a default.
+## 0. Стек-решение (важно)
 
-## 2. Rename Arusha players and create new ones
+**Оставляем Supabase self-hosted.** Это и есть чистый Postgres 15 + готовый API-слой (GoTrue, PostgREST, Realtime, Storage). Смена на «голый Postgres» = 3 месяца переписывания auth/RLS/realtime без выигрыша. Ставим **официальные образы Supabase** (не форки) — это даёт 100% паритет с Cloud, что решает главную боль «не удалось получить точную копию».
 
-Data migration/insert:
+**Железо N150 / 32GB / 512GB SSD** тянет полный стек с большим запасом. Реальный target: 2–4GB RAM, 20GB данных/год, <5% CPU в пике.
 
-- Update the 3 existing Arusha players:
-  - `TIPS LIVE GAME`  → first_name `ARK`, last_name `LIVE GAME`, category `casino`
-  - `TIPS CLUB POKER` → `ARK` / `CLUB POKER`, category `casino`
-  - `TIPS FLOOR`      → `ARK` / `FLOOR`, category `casino`
-- Insert new active players with `player_type='table'`, `category='casino'`, `status='active'`:
-  - Mwanza (`MWZ`): `MWZ LIVE GAME`, `MWZ FLOOR`
-  - Dodoma (`DOD`): `DOD LIVE GAME`, `DOD FLOOR`
-  - Mbeya  (`MBI`): `MBI LIVE GAME`, `MBI FLOOR` (note: user requested prefix `MBI` even though casino code is `MBY`)
-- Idempotent: use `ON CONFLICT` on `(casino_id, first_name, last_name)` where possible, or a `WHERE NOT EXISTS` guard.
+## 1. Ответы, зафиксированные из вопросов
 
-## 3. Auto check-in edge function
+| Решение | Выбор |
+|---|---|
+| Автономность | Managed с grace period |
+| Cloud | Опционален (для мульти-сайт агрегации) |
+| Обновления | Signed OTA через Tailscale |
+| Multi-casino на боксе | Один бокс = одно казино |
+| Grace period | 60 дн full → 30 дн «cashier + pit open/close столов, без Player Stats» → stop |
+| Backup | Локально: USB + NAS |
+| Пайринг | Peer-to-peer **и** central hub (клиент выбирает) |
+| Compliance | v2, через OTA после релиза Box v1 |
+| First-boot | Hotspot + HDMI (оба параллельно) |
+| Demo data | Мини-демо + одна кнопка «Clear» |
 
-Rewrite `supabase/functions/auto-checkin-tips/index.ts` to iterate over ALL four casinos instead of hard-coded Arusha:
+## 2. Архитектура бокса
 
-- Query: `players` where `category = 'casino'` AND `status='active'` (drops the fragile name pattern).
-- For each such player, upsert today's `casino_visits` row exactly like today:
-  - insert with `position: 'hall'` if none,
-  - clear `checked_out_at` if closed,
-  - skip if already open.
-- Return per-casino counters in the response.
-- Keep the daily cron at 13:00 EAT (10:00 UTC). Cron entry already exists — no change needed since we're not renaming the function.
+```text
+┌────────────────────────────────────────────────┐
+│  Ubuntu 24.04 LTS (минимальная установка)      │
+├────────────────────────────────────────────────┤
+│  Docker Compose stack:                         │
+│   - caddy         (HTTPS через local CA)       │
+│   - supabase-db   (Postgres 15, оф. образ)     │
+│   - supabase-auth (GoTrue)                     │
+│   - supabase-rest (PostgREST)                  │
+│   - supabase-realtime                          │
+│   - supabase-storage                           │
+│   - cms-frontend  (наш Vite build, nginx)      │
+│   - cms-fleet-agent (WSS к Cloud, опц.)        │
+│   - cms-license   (grace-period enforcer)      │
+│   - cms-backup    (pg_dump → USB/NAS, cron)    │
+├────────────────────────────────────────────────┤
+│  Host services:                                │
+│   - tailscaled  (SSH + OTA канал)              │
+│   - avahi       (mDNS: casino.local)           │
+│   - hostapd     (Wi-Fi hotspot, только setup)  │
+│   - casino-firstboot.service                   │
+└────────────────────────────────────────────────┘
+```
 
-## 4. Verification
+## 3. Фазы поставки
 
-- Run edge function manually once after deploy; check `casino_visits` for the 4 casinos on today's date.
-- Load `Guests` page for Mwanza / Dodoma / Mbeya and confirm the new C-badged players show up in the Active list.
-- Reddish badge visible in `SeatedPlayerChip`, `CategoryFilter`, `PlayerPreviewHeader`.
+### Фаза A — Factory Image (наш сборочный процесс)
+- `deploy/factory-image.sh`: заливает Ubuntu 24.04, ставит Docker + Tailscale + Avahi + hostapd, вшивает наш SSH-ключ, пуллит все образы, вшивает Tailscale auth-key под tag `tag:casino-box`.
+- Результат: клонируемый образ SSD или USB-инсталлятор.
+- Заводской тест: 30 автоматических проверок, включая Playwright smoke.
 
-## Files touched
+### Фаза B — First Boot (клиент)
+1. Клиент включает бокс в розетку, подключает Ethernet **или** оставляет без сети.
+2. Бокс параллельно:
+   - выводит на HDMI: IP, QR-код, PIN;
+   - поднимает Wi-Fi hotspot `CASINO-SETUP-<serial>` с captive portal.
+3. Клиент открывает `https://casino.local` (или сканирует QR / подключается к hotspot) → `/setup` wizard:
+   - Название казино, логотип, primary color
+   - LAN IP (static/DHCP)
+   - Основная валюта (default TZS), номиналы
+   - Создание первого `super_admin` (email + password)
+   - **Tailscale**: один клик «Enable remote support» → login-link → клиент подтверждает в браузере
+   - Cloud pairing (опц.): вставляет URL Cloud + pairing code
+4. Wizard применяет настройки, гасит hotspot, показывает «Готово, `https://casino.local`».
+5. Мини-демо загружено; кнопка **«Clear demo data»** доступна до первой реальной транзакции.
 
-- `supabase/migrations/<new>.sql` — enum add, player upserts.
-- `src/components/player/CategoryBadge.tsx` — new tier + color.
-- Any strict `Record<PlayerCategory, …>` map that would fail typecheck (spot-fix on typecheck output).
-- `supabase/functions/auto-checkin-tips/index.ts` — multi-casino loop.
+### Фаза C — Ежедневная работа
+- LAN: 22 (SSH локально), 80/443 (UI).
+- Remote support: только через Tailscale SSH.
+- Автообновления: fleet-agent слушает WSS → команда `pull image X → verify → restart → healthcheck → rollback on fail`.
+- Backup: `pg_dump` каждые 2 часа → `/backup/local` + монтированный USB; ежедневный полный дамп на NAS через SMB/NFS.
+
+### Фаза D — Cloud clone (One-click Cloud → Local)
+- В UI Cloud: `super_admin` жмёт «Clone to box».
+- Cloud блокирует запись (maintenance lock) → атомарный `pg_dump` + storage bundle.
+- Бокс тянет по Tailscale, восстанавливает в staging-БД, прогоняет 30 self-tests + Playwright smoke.
+- `super_admin` на боксе жмёт «Cutover: local becomes primary». Cloud уходит в mirror-mode.
+
+### Фаза E — Fleet management (наш Cloud)
+- `/admin/fleet`: список боксов, версии, health, disk, uptime, last-seen, license status.
+- Действия: restart container, force update, request logs, remote shell (через Tailscale), rotate keys, revoke.
+- Signed release: SQL-миграции + образы подписаны Ed25519, бокс проверяет подпись до применения.
+
+## 4. Grace period (лицензия)
+
+```text
+День 0–60 :  Full functionality
+День 61–90:  Restricted mode
+             ✓ Cashier: buy-in/cash-out/tips/cashless
+             ✓ Pit: open/close столов, chip counts
+             ✗ Player Statistics скрыт
+             ✗ Reports read-only (текущий день OK)
+             ✗ Настройки/HR/Finances заблокированы
+             Баннер: "Contact support to renew"
+День 91+  :  Full stop, read-only, кнопка "Enter activation code"
+```
+Активация: challenge-response — бокс показывает 8-символьный challenge, мы даём 12-символьный response, работает offline.
+
+## 5. Пайринг двух+ боксов одной сети
+
+- **Peer-to-peer**: справочники (players, employees, currencies, chip settings, expenses categories) синхронизируются через Tailscale mesh с CRDT-подобным конфликт-резолвом (last-write-wins по `updated_at`, аудит конфликтов в `sync_apply_errors`). Оперативные данные остаются на своём боксе.
+- **Central hub**: каждый бокс дополнительно пушит read-only копию транзакций в hub (наш Cloud или бокс главного офиса) для агрегированных отчётов. Hub — только читает.
+- Клиент выбирает режим в `/admin/network`.
+
+## 6. Файлы, которые создадим/изменим
+
+**Новые:**
+- `deploy/factory-image.sh` — сборка золотого образа
+- `deploy/boxed-setup.sh` — first-boot orchestrator
+- `deploy/hotspot-portal/` — captive portal (лёгкий Node)
+- `deploy/firstboot.service` — systemd unit
+- `deploy/license-agent/` — Go/Node service для grace-period
+- `deploy/fleet-agent/` — WSS клиент к Cloud
+- `deploy/backup/` — pg_dump + rclone → USB/NAS
+- `src/pages/setup/FirstRunWizard.tsx` — UI wizard
+- `src/pages/admin/FleetDashboard.tsx` (в Cloud) — управление парком
+- `src/pages/admin/BoxNetwork.tsx` — peer/hub настройки
+- `src/pages/admin/LicenseStatus.tsx` — grace UI
+- `supabase/migrations/*` — `fleet_heartbeat`, `node_commands`, `box_licenses`, `sync_peers_config`
+
+**Изменяем:**
+- `deploy/docker-compose.yml` — перевод на офиц. Supabase-образы (parity fix)
+- `deploy/install.sh` + `deploy/bootstrap.sh` — новый режим `--boxed`
+- `src/App.tsx` — guard на wizard если `is_setup_complete=false`; grace-mode gate
+- `src/hooks/use-realtime.ts` — режим local-realtime без Cloud
+- `deploy/update.sh` — hooks для fleet-agent
+
+## 7. Порядок реализации
+
+1. **Stack parity** — миграция docker-compose на офиц. Supabase-образы, повторное тестирование Cloud→Local clone до 100% зелёного self-test.
+2. **First-Run Wizard + firstboot service** (hotspot + HDMI).
+3. **Factory image script + Tailscale prebake**.
+4. **License agent** (grace-period 60/30/stop).
+5. **Fleet agent + Cloud dashboard** (OTA, remote logs).
+6. **Peer-to-peer sync + central hub option**.
+7. **Backup service** (USB + NAS).
+8. **Полевой прогон**: 3 тестовых бокса → Arusha (mirror), Mwanza (mirror), новый demo-клиент.
+
+## 8. Что клиент получает в коробке
+
+- Mini-PC N150 / 32GB / 512GB с предустановленным Ubuntu + всем стеком
+- Ethernet-кабель, HDMI-кабель, USB-стик для бэкапов
+- QR-карточка «Scan to setup»
+- Печатный quick-start (1 страница): «Включи → подключи к роутеру → отсканируй QR → следуй wizard»
+
+## 9. Технические детали (для тебя)
+
+- Официальные образы Supabase закреплены по SHA256 в compose.
+- Postgres `wal_level=logical` для будущей peer-репликации.
+- Caddy получает локальный CA (mkcert) → `https://casino.local` без предупреждений на устройствах, где мы установим корневой сертификат (iOS/Android — QR на установку CA в wizard).
+- Fleet-agent авторизуется TLS-client-cert; сервер отдаёт команды через Supabase Realtime канал `node_commands` c row-level фильтрацией по `node_id`.
+- License challenge: HMAC(server_secret, node_id || day_bucket), response — расшифрованный AES-GCM пейлоад со сроком.
+
+По подтверждению — переключусь в build mode и начну с Фазы 1 (stack parity), потому что без неё Cloud→Local clone не даст 100% результата, ради которого всё это делается.

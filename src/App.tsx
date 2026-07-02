@@ -159,6 +159,8 @@ const ClubVerifyWizard = lazy(() => import("@/pages/club/ClubVerifyWizard"));
 const ClubPrivacyPolicy = lazy(() => import("@/pages/club/legal/PrivacyPolicy"));
 const ClubDataProtection = lazy(() => import("@/pages/club/legal/DataProtection"));
 const ClubResponsibleGaming = lazy(() => import("@/pages/club/legal/ResponsibleGaming"));
+const FirstRunWizard = lazy(() => import("@/pages/setup/FirstRunWizard"));
+const LicenseStatusPage = lazy(() => import("@/pages/admin/LicenseStatusPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -596,8 +598,11 @@ const AppRoutes = () => {
           <Route path="charges" element={<PosCharges />} />
           <Route path="purchases" element={<PosPurchases />} />
         </Route>
+        <Route path="/setup" element={<FirstRunWizard />} />
+        <Route path="/admin/license" element={<LicenseStatusPage />} />
         <Route path="/login" element={user ? <Navigate to={defaultRoute} replace /> : <Login />} />
         <Route path="/*" element={<ProtectedRoutes />} />
+
       </Routes>
     </Suspense>
   );

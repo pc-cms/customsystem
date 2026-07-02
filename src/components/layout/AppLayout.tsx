@@ -7,6 +7,7 @@ import { MobileHeader } from "./AppSidebar";
 import { PWAUpdateNotification } from "@/components/PWAUpdateNotification";
 import { LocalServerBadge } from "@/components/LocalServerBadge";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { LicenseBanner } from "@/components/box/LicenseBanner";
 
 import { PageSkeleton } from "@/components/ui/skeleton";
 
@@ -62,6 +63,7 @@ export const AppLayout = () => {
         </div>
       )}
       <div className="flex-1 flex flex-col overflow-hidden relative">
+        <LicenseBanner />
         <OfflineBanner />
         <PWAUpdateNotification />
         {isMobile && <div className="no-print"><MobileHeader /></div>}
