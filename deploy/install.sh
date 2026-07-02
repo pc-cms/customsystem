@@ -1094,6 +1094,18 @@ if [[ -f "${SCRIPT_DIR}/license-agent.sh" ]]; then
   fi
 fi
 
+# ── Fleet agent (systemd timer, каждые 5 минут) ──
+if [[ -f "${SCRIPT_DIR}/fleet-agent.sh" ]]; then
+  install -m 0755 "${SCRIPT_DIR}/fleet-agent.sh" /usr/local/sbin/casino-fleet-agent
+  if [[ -d "${SCRIPT_DIR}/systemd" ]]; then
+    install -m 0644 "${SCRIPT_DIR}/systemd/casino-fleet-agent.service" /etc/systemd/system/
+    install -m 0644 "${SCRIPT_DIR}/systemd/casino-fleet-agent.timer"   /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable --now casino-fleet-agent.timer >/dev/null 2>&1 || warn "не удалось активировать casino-fleet-agent.timer"
+    ok "Fleet agent зарегистрирован (каждые 5 мин → Cloud fleet-heartbeat)"
+  fi
+fi
+
 # ── финал ──
 echo; hr
 echo -e "${GREEN}${BOLD}  ✓ Установка завершена!${NC}"
