@@ -3833,8 +3833,62 @@ export type Database = {
           },
         ]
       }
+      fleet_bulk_operations: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          done_count: number
+          error_count: number
+          id: string
+          kind: string
+          payload: Json
+          runbook_id: string | null
+          status: string
+          target_node_ids: string[]
+          total_count: number
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          done_count?: number
+          error_count?: number
+          id?: string
+          kind: string
+          payload?: Json
+          runbook_id?: string | null
+          status?: string
+          target_node_ids?: string[]
+          total_count?: number
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          done_count?: number
+          error_count?: number
+          id?: string
+          kind?: string
+          payload?: Json
+          runbook_id?: string | null
+          status?: string
+          target_node_ids?: string[]
+          total_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_bulk_operations_runbook_id_fkey"
+            columns: ["runbook_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_runbooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fleet_commands: {
         Row: {
+          bulk_op_id: string | null
           completed_at: string | null
           id: string
           issued_at: string
@@ -3843,9 +3897,11 @@ export type Database = {
           node_id: string
           payload: Json
           result_text: string | null
+          runbook_id: string | null
           status: string
         }
         Insert: {
+          bulk_op_id?: string | null
           completed_at?: string | null
           id?: string
           issued_at?: string
@@ -3854,9 +3910,11 @@ export type Database = {
           node_id: string
           payload?: Json
           result_text?: string | null
+          runbook_id?: string | null
           status?: string
         }
         Update: {
+          bulk_op_id?: string | null
           completed_at?: string | null
           id?: string
           issued_at?: string
@@ -3865,6 +3923,7 @@ export type Database = {
           node_id?: string
           payload?: Json
           result_text?: string | null
+          runbook_id?: string | null
           status?: string
         }
         Relationships: []
@@ -3933,6 +3992,87 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fleet_incident_forwards: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          body: string | null
+          category: string | null
+          id: string
+          local_incident_id: string | null
+          metadata: Json
+          node_id: string
+          occurred_at: string
+          received_at: string
+          severity: string
+          title: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          body?: string | null
+          category?: string | null
+          id?: string
+          local_incident_id?: string | null
+          metadata?: Json
+          node_id: string
+          occurred_at?: string
+          received_at?: string
+          severity?: string
+          title: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          body?: string | null
+          category?: string | null
+          id?: string
+          local_incident_id?: string | null
+          metadata?: Json
+          node_id?: string
+          occurred_at?: string
+          received_at?: string
+          severity?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      fleet_runbooks: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_destructive: boolean
+          name: string
+          requires_confirmation: boolean
+          sql_text: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_destructive?: boolean
+          name: string
+          requires_confirmation?: boolean
+          sql_text: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_destructive?: boolean
+          name?: string
+          requires_confirmation?: boolean
+          sql_text?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       gaming_tables: {
         Row: {
@@ -10260,6 +10400,7 @@ export type Database = {
         Args: { p_business_date: string; p_casino_id: string }
         Returns: number
       }
+      fleet_dispatch_bulk: { Args: { _bulk_id: string }; Returns: number }
       fm_topup_am_budget: {
         Args: {
           p_am_user_id: string

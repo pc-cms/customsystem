@@ -1,0 +1,9 @@
+[Unit]
+Description=Casino System — forward local incidents to Cloud
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/opt/casino-system/deploy/.env
+ExecStart=/opt/casino-system/deploy/fleet-incident-push.sh

@@ -1118,6 +1118,20 @@ if [[ -f "${SCRIPT_DIR}/cloud-clone.sh" ]]; then
   fi
 fi
 
+# ── Fleet Incident forwarder (systemd timer, каждые 5 минут) ──
+if [[ -f "${SCRIPT_DIR}/fleet-incident-push.sh" ]]; then
+  install -m 0755 "${SCRIPT_DIR}/fleet-incident-push.sh" /usr/local/sbin/casino-fleet-incident
+  if [[ -d "${SCRIPT_DIR}/systemd" ]]; then
+    install -m 0644 "${SCRIPT_DIR}/systemd/casino-fleet-incident.service" /etc/systemd/system/
+    install -m 0644 "${SCRIPT_DIR}/systemd/casino-fleet-incident.timer"   /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable --now casino-fleet-incident.timer >/dev/null 2>&1 || warn "не удалось активировать casino-fleet-incident.timer"
+    ok "Fleet incident forwarder зарегистрирован (каждые 5 мин → Cloud fleet-incident-forward)"
+  fi
+fi
+
+
+
 # ── OTA signing pubkey (для signed update.sh) ──
 if [[ -f "${SCRIPT_DIR}/ota.pub" ]]; then
   install -d -m 0755 /etc/casino-system
