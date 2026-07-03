@@ -1639,75 +1639,123 @@ export type Database = {
       }
       casinos: {
         Row: {
+          apple_touch_icon_url: string | null
+          background_color: string | null
           brand_accent_hsl: string | null
           brand_primary_hsl: string | null
           breaklist_lock: string
           breaklist_lock_pending: string | null
           breaklist_lock_pending_from: string | null
+          cage_close_deadline_min: number | null
           cage_float: number
           chip_conservation_mode: string
           code: string
           created_at: string
+          d_shift_start: string | null
+          favicon_url: string | null
           float_locked: boolean
           id: string
           logo_url: string | null
+          manager_override_window_min: number | null
+          meta_description: string | null
+          meta_title: string | null
+          n_shift_start: string | null
           name: string
+          og_image_url: string | null
+          pwa_display: string | null
+          pwa_icon_192_url: string | null
+          pwa_icon_512_url: string | null
           shift_end: string
           shift_end_pending: string | null
           shift_end_pending_from: string | null
           shift_start: string
+          short_name: string | null
           slug: string | null
           tables_open: string
+          tagline: string | null
+          theme_color: string | null
           timezone: string
           verification_bonus_amount: number
           verification_bonus_funding_pool: string
           verification_bonus_lifetime_days: number
         }
         Insert: {
+          apple_touch_icon_url?: string | null
+          background_color?: string | null
           brand_accent_hsl?: string | null
           brand_primary_hsl?: string | null
           breaklist_lock?: string
           breaklist_lock_pending?: string | null
           breaklist_lock_pending_from?: string | null
+          cage_close_deadline_min?: number | null
           cage_float?: number
           chip_conservation_mode?: string
           code: string
           created_at?: string
+          d_shift_start?: string | null
+          favicon_url?: string | null
           float_locked?: boolean
           id?: string
           logo_url?: string | null
+          manager_override_window_min?: number | null
+          meta_description?: string | null
+          meta_title?: string | null
+          n_shift_start?: string | null
           name: string
+          og_image_url?: string | null
+          pwa_display?: string | null
+          pwa_icon_192_url?: string | null
+          pwa_icon_512_url?: string | null
           shift_end?: string
           shift_end_pending?: string | null
           shift_end_pending_from?: string | null
           shift_start?: string
+          short_name?: string | null
           slug?: string | null
           tables_open?: string
+          tagline?: string | null
+          theme_color?: string | null
           timezone?: string
           verification_bonus_amount?: number
           verification_bonus_funding_pool?: string
           verification_bonus_lifetime_days?: number
         }
         Update: {
+          apple_touch_icon_url?: string | null
+          background_color?: string | null
           brand_accent_hsl?: string | null
           brand_primary_hsl?: string | null
           breaklist_lock?: string
           breaklist_lock_pending?: string | null
           breaklist_lock_pending_from?: string | null
+          cage_close_deadline_min?: number | null
           cage_float?: number
           chip_conservation_mode?: string
           code?: string
           created_at?: string
+          d_shift_start?: string | null
+          favicon_url?: string | null
           float_locked?: boolean
           id?: string
           logo_url?: string | null
+          manager_override_window_min?: number | null
+          meta_description?: string | null
+          meta_title?: string | null
+          n_shift_start?: string | null
           name?: string
+          og_image_url?: string | null
+          pwa_display?: string | null
+          pwa_icon_192_url?: string | null
+          pwa_icon_512_url?: string | null
           shift_end?: string
           shift_end_pending?: string | null
           shift_end_pending_from?: string | null
           shift_start?: string
+          short_name?: string | null
           slug?: string | null
           tables_open?: string
+          tagline?: string | null
+          theme_color?: string | null
           timezone?: string
           verification_bonus_amount?: number
           verification_bonus_funding_pool?: string
@@ -9597,6 +9645,7 @@ export type Database = {
           created_at: string
           day_horizon: Database["public"]["Enums"]["day_horizon"] | null
           granted_by: string | null
+          history_horizon: Database["public"]["Enums"]["history_horizon"] | null
           id: string
           module_key: string
           updated_at: string
@@ -9608,6 +9657,9 @@ export type Database = {
           created_at?: string
           day_horizon?: Database["public"]["Enums"]["day_horizon"] | null
           granted_by?: string | null
+          history_horizon?:
+            | Database["public"]["Enums"]["history_horizon"]
+            | null
           id?: string
           module_key: string
           updated_at?: string
@@ -9619,6 +9671,9 @@ export type Database = {
           created_at?: string
           day_horizon?: Database["public"]["Enums"]["day_horizon"] | null
           granted_by?: string | null
+          history_horizon?:
+            | Database["public"]["Enums"]["history_horizon"]
+            | null
           id?: string
           module_key?: string
           updated_at?: string
@@ -11076,6 +11131,7 @@ export type Database = {
         | "other"
         | "pos_comp"
         | "bar_charge"
+      history_horizon: "today" | "7d" | "30d" | "all"
       kyc_review_source: "reception" | "club" | "club_app"
       kyc_review_status:
         | "pending"
@@ -11384,6 +11440,7 @@ export const Constants = {
         "pos_comp",
         "bar_charge",
       ],
+      history_horizon: ["today", "7d", "30d", "all"],
       kyc_review_source: ["reception", "club", "club_app"],
       kyc_review_status: [
         "pending",
