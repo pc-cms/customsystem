@@ -33,11 +33,12 @@ Deno.serve(async (req) => {
 
     const bodyText = await req.text();
 
-    const { data: peer } = await admin
+    const { data: peer, error: peerErr } = await admin
       .from("peer_links")
       .select("sync_secret")
-      .eq("node_id", nodeId)
+      .eq("peer_node_id", nodeId)
       .maybeSingle();
+    if (peerErr) return new Response(`peer lookup failed: ${peerErr.message}`, { status: 500, headers: corsHeaders });
     if (!peer?.sync_secret) return new Response("unknown node", { status: 401, headers: corsHeaders });
 
     const expected = await hmac(peer.sync_secret, bodyText);

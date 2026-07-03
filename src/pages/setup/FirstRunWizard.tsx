@@ -24,6 +24,8 @@ interface Draft {
   cloud_url: string;
   cloud_pairing_code: string;
   seed_demo: boolean;
+  admin_email: string;
+  admin_password: string;
 }
 
 const DEFAULT: Draft = {
@@ -38,6 +40,8 @@ const DEFAULT: Draft = {
   cloud_url: "",
   cloud_pairing_code: "",
   seed_demo: true,
+  admin_email: "",
+  admin_password: "",
 };
 
 /**
@@ -70,11 +74,30 @@ export default function FirstRunWizard() {
     setDraft((d) => ({ ...d, [k]: v }));
 
   const finish = async () => {
+    if (!draft.admin_email || draft.admin_password.length < 8) {
+      toast.error("Provide super admin email and a password (min 8 chars).");
+      return;
+    }
     setSaving(true);
-    const { error } = await supabase.from("box_config").upsert(
-      {
-        node_id: nodeId,
-        is_setup_complete: true,
+
+    // 1) Create the initial super-admin auth user (anon signUp allowed on first run).
+    const { error: signUpErr } = await supabase.auth.signUp({
+      email: draft.admin_email,
+      password: draft.admin_password,
+      options: { emailRedirectTo: `${window.location.origin}/login` },
+    });
+    if (signUpErr && !/already registered/i.test(signUpErr.message)) {
+      setSaving(false);
+      toast.error(`Setup failed: ${signUpErr.message}`);
+      return;
+    }
+
+    // 2) SECURITY DEFINER RPC: grants super_admin role + persists box_config.
+    const { error } = await supabase.rpc("finish_first_run", {
+      _node_id: nodeId,
+      _email: draft.admin_email,
+      _password: draft.admin_password,
+      _config: {
         casino_slug: draft.casino_slug || null,
         casino_name: draft.casino_name || null,
         branding: { primary_color: draft.primary_color },
@@ -91,13 +114,13 @@ export default function FirstRunWizard() {
           paired_at: draft.cloud_url ? new Date().toISOString() : null,
         },
       },
-      { onConflict: "node_id" }
-    );
+    });
     setSaving(false);
     if (error) {
       toast.error(`Setup failed: ${error.message}`);
       return;
     }
+    await supabase.auth.signOut().catch(() => {});
     toast.success("Setup complete. Welcome!");
     navigate("/login", { replace: true });
   };
@@ -317,6 +340,29 @@ export default function FirstRunWizard() {
                 <div><b>Tailscale:</b> {draft.tailscale_enabled ? "Enabled" : "Skipped"}</div>
                 <div><b>Cloud:</b> {draft.cloud_url || "Standalone"}</div>
                 <div><b>Demo data:</b> {draft.seed_demo ? "Yes" : "No"}</div>
+              </div>
+              <div className="space-y-3 pt-2 border-t border-border/40">
+                <div className="text-xs font-medium text-muted-foreground">
+                  Create the first super-admin account (owner of this box):
+                </div>
+                <div className="space-y-1">
+                  <Label>Admin email</Label>
+                  <Input
+                    type="email"
+                    value={draft.admin_email}
+                    onChange={(e) => set("admin_email", e.target.value)}
+                    placeholder="owner@example.com"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Admin password (min 8 chars)</Label>
+                  <Input
+                    type="password"
+                    value={draft.admin_password}
+                    onChange={(e) => set("admin_password", e.target.value)}
+                    placeholder="••••••••"
+                  />
+                </div>
               </div>
             </div>
           )}

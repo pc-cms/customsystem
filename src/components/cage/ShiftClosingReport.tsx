@@ -188,12 +188,12 @@ const ShiftClosingReport = ({
         const toUtc = `${nx.toISOString().slice(0, 10)}T02:00:00Z`;
         const { data: bdShifts } = await supabase
           .from("shifts")
-          .select("id, shift_type")
+          .select("id, shift")
           .eq("casino_id", casinoId)
           .gte("opened_at", fromUtc)
           .lt("opened_at", toUtc);
         const idMap = new Map<string, string>();
-        (bdShifts || []).forEach((s: any) => idMap.set(s.id, s.shift_type));
+        (bdShifts || []).forEach((s: any) => idMap.set(s.id, s.shift));
         if (bdShifts && bdShifts.length) {
           const { data: tipTx } = await supabase
             .from("transactions")
