@@ -862,12 +862,46 @@ apply_local_schema_repair
 if [[ ! -f "$SEED_DONE_FILE" && "${SKIP_SEED:-0}" != "1" ]]; then
   log "Пытаюсь загрузить baked snapshot для '${CASINO_SLUG}' из Cloud..."
   SEED_TMP="/tmp/seed-${CASINO_SLUG}-$$.ndjson.gz"
-  SEED_URL="${CLOUD_URL}/storage/v1/object/sign/installer-snapshots/${CASINO_SLUG}/latest.ndjson.gz"
-  # Try public-style fetch first (works if bucket has public read policy added later)
-  if curl -fsSL --max-time 120 -o "$SEED_TMP" \
-       "${CLOUD_URL}/storage/v1/object/public/installer-snapshots/${CASINO_SLUG}/latest.ndjson.gz" 2>/dev/null \
-     && [[ -s "$SEED_TMP" ]]; then
-    log "Snapshot скачан ($(du -h "$SEED_TMP" | awk '{print $1}'))."
+  SEED_DOWNLOADED=0
+
+  # Пробуем получить short-lived signed URL через installer-snapshot-url
+  # (bucket приватный; edge-функция сама подпишет service_role'ом).
+  if [[ -n "${CLOUD_URL:-}" && -n "${CLOUD_ANON_KEY:-}" ]]; then
+    SIGN_RESP="$(curl -fsS --max-time 20 \
+      -H "apikey: ${CLOUD_ANON_KEY}" \
+      -H "Authorization: Bearer ${CLOUD_ANON_KEY}" \
+      -H "Content-Type: application/json" \
+      -X POST \
+      -d "{\"slug\":\"${CASINO_SLUG}\"}" \
+      "${CLOUD_URL}/functions/v1/installer-snapshot-url" 2>/dev/null || echo "")"
+    SIGNED_URL="$(echo "$SIGN_RESP" | grep -oE '"signed_url"[[:space:]]*:[[:space:]]*"[^"]+"' | sed -E 's/.*"([^"]+)"$/\1/')"
+    if [[ -n "$SIGNED_URL" ]]; then
+      # signed URL от Supabase возвращается относительным ("/object/sign/…") — префиксуем
+      case "$SIGNED_URL" in
+        /*) SIGNED_URL="${CLOUD_URL}/storage/v1${SIGNED_URL}" ;;
+      esac
+      if curl -fsSL --max-time 300 -o "$SEED_TMP" "$SIGNED_URL" 2>/dev/null && [[ -s "$SEED_TMP" ]]; then
+        SEED_DOWNLOADED=1
+        ok "Snapshot скачан по signed URL ($(du -h "$SEED_TMP" | awk '{print $1}'))."
+      else
+        warn "Signed URL получен, но скачать не удалось."
+      fi
+    else
+      warn "installer-snapshot-url не вернул signed_url (ответ: ${SIGN_RESP:0:200})."
+    fi
+  fi
+
+  # Fallback: старый публичный путь (если у bucket'а всё-таки есть public policy)
+  if [[ "$SEED_DOWNLOADED" -eq 0 ]]; then
+    if curl -fsSL --max-time 120 -o "$SEED_TMP" \
+         "${CLOUD_URL}/storage/v1/object/public/installer-snapshots/${CASINO_SLUG}/latest.ndjson.gz" 2>/dev/null \
+       && [[ -s "$SEED_TMP" ]]; then
+      SEED_DOWNLOADED=1
+      ok "Snapshot скачан по public URL ($(du -h "$SEED_TMP" | awk '{print $1}'))."
+    fi
+  fi
+
+  if [[ "$SEED_DOWNLOADED" -eq 1 ]]; then
     if command -v gzip >/dev/null && command -v node >/dev/null && [[ -x "${SCRIPT_DIR}/sync/seed-import.js" ]]; then
       gzip -dc "$SEED_TMP" | LOCAL_DB_URL="postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@127.0.0.1:5432/${POSTGRES_DB:-postgres}" \
         node "${SCRIPT_DIR}/sync/seed-import.js" - \
@@ -878,8 +912,8 @@ if [[ ! -f "$SEED_DONE_FILE" && "${SKIP_SEED:-0}" != "1" ]]; then
     fi
     rm -f "$SEED_TMP"
   else
-    warn "Baked snapshot недоступен (нет публичного URL или не сгенерирован)."
-    warn "БД останется пустой — данные подтянутся через cms-sync после pairing."
+    warn "Baked snapshot недоступен для '${CASINO_SLUG}'."
+    warn "БД останется пустой — данные подтянутся через cms-sync после Connect to Cloud."
   fi
 fi
 touch "$SEED_DONE_FILE"
