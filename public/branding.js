@@ -169,7 +169,14 @@
       }
 
 
+      if (info.kind === "dynamic") {
+        var manifestLinkDyn = document.getElementById("app-manifest");
+        if (manifestLinkDyn) manifestLinkDyn.setAttribute("href", info.manifest);
+        return; // title/icons will be augmented by augmentFromDB()
+      }
+
       if (info.kind === "default") return;
+
 
       replaceTag('title', function () {
         var t = document.createElement('title'); t.textContent = info.displayName; return t;
