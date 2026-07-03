@@ -1,62 +1,106 @@
-## Что делаем в этот заход
+## Итоговая структура
 
-Две завершающие подсистемы «Enterprise Server-in-a-Box»:
+```text
+Admin
+├── Casino Settings         (super_admin, manager)
+├── Branding                (super_admin, manager — своё казино)
+├── Users & Roles           (super_admin: все; manager: своё казино, без роли super_admin)
+└── Cloud Management        (super_admin ONLY)
+```
 
-### Phase D — Cloud Clone (репликация Local → Cloud) и Smoke-tests
+`HR Schedules` не создаём (это была моя лишняя вкладка). Убираем: Casinos, Casino Access, Peers, Working Hours, Tables, Float Management, Chip Colors, Finance Categories, Expense Categories, Role Defaults, Branding — как отдельные вкладки. Всё перегруппируется внутрь.
 
-**Цель:** каждый бокс раз в сутки заливает свой снапшот в Cloud (для DR и Fleet-обзора данных), Cloud автоматически прогоняет smoke-tests на свежих данных.
+## Вкладки — состав
 
-1. **`deploy/cloud-clone.sh`** (systemd timer, 03:30 EAT):
-   - `pg_dump --format=custom --exclude-schema=auth,storage,realtime,supabase_functions,vault` в `/var/lib/casino-system/backups/clone-YYYYMMDD.dump`
-   - шифрует AES-256 (`CLOUD_CLONE_KEY` из `.env`), режет на 50 МБ чанки
-   - POST в edge `cloud-clone-upload` с HMAC-подписью (peer_links.sync_secret)
-   - хранит последние 7 локальных копий
-2. **Edge `cloud-clone-upload`** — приём чанков, сборка, restore в изолированную БД `clone_<node_id>` в Cloud (используем `pg_restore` через SQL); пишет `cloud_clone_uploads` (node_id, uploaded_at, size, rows_by_table, sha256).
-3. **Edge `cloud-clone-smoketest`** (cron 04:00 EAT):
-   - для каждого свежего clone гоняет 6 проверок: parity counts vs. cloud master, orphan FK, RLS drift, cron_run_log freshness, chip conservation, cage vs. shifts balance
-   - результат в `cloud_clone_reports` + отправка `fleet_commands` (kind=`notify`) при регрессиях
-4. **UI `/admin/fleet/clones`** — таблица боксов с датой последнего clone, размером, статусом smoke-tests, кнопка «Download dump» (signed URL, только super_admin).
+### 1. Casino Settings (sub-tabs)
+- **Time Settings** — новый объединённый блок:
+  - Tables Open, Shift Start, Shift End, Breaklist Lock (текущие поля)
+  - **N shift start / D shift start** (новые, customizable, используются в rota и live)
+  - **Cage close deadline, Manager override window** (новые)
+- **Tables** — TableManagement
+- **Float Management** — текущий FloatManagement
+- **Chip Colors** — ChipColorSettings (переносим сюда — операционная настройка)
+- **Chip Conservation Mode** — текущий ChipConservationModeCard
 
-### Signed OTA
+### 2. Branding (полностью per-casino, dynamic)
+Одна страница с секциями:
+- **Identity**: display_name, short_name (для меню), tagline, meta_title, meta_description
+- **Logos**: main logo (light/dark), favicon, apple-touch-icon, PWA icons (192/512), OG image — все через Lovable Assets в storage bucket `casino-branding`
+- **Colors**: primary / accent / background / palette
+- **PWA**: manifest name, theme_color, background_color, display mode
 
-**Цель:** невозможно залить фейковый образ на бокс — все releases подписаны ключом мейнтейнера, `update.sh` проверяет подпись до `docker compose up`.
+Runtime-загрузка: `public/branding.js` перерабатываем в тонкий loader, который читает конфиг per-casino из БД (endpoint edge function `casino-branding` без auth, кешируется CDN). Favicon/manifest/apple-touch-icon подставляются динамически по hostname → casino → branding row.
 
-1. **CI (`release-onprem.yml`)**:
-   - после сборки `.tar.gz` — `cosign sign-blob --key env://COSIGN_KEY release.tar.gz > release.sig`
-   - публикация трёх артефактов: tarball, `.sig`, `.pub` (public key стабилен)
-2. **`deploy/update.sh`**:
-   - скачивает `release.tar.gz` + `.sig`
-   - `cosign verify-blob --key /etc/casino-system/ota.pub --signature release.sig release.tar.gz` (жёсткий exit при провале)
-   - только после успеха — распаковка и `docker compose up -d`
-3. **`deploy/install.sh --boxed`** — при первой установке кладёт `ota.pub` в `/etc/casino-system/ota.pub` из встроенного factory-tree.
-4. **Rollback safety** — сохраняет предыдущий tarball в `/var/lib/casino-system/ota-prev/`; при 3 подряд провалах smoke-теста license-agent'ом откатывает.
+### 3. Users & Roles (sub-tabs)
+- **Users** — SmartTable: Name, Email, Casino, Roles (badges), Status, Last login, Created. Фильтры: casino, role, status, search. На казино-сабдомене видны только пользователи этого казино (убираем дубли). Клик по строке → редактор.
+- **Role Defaults** — существующий RoleDefaultsEditor
+- **Casino Access** — существующий CasinoAccessManagement (только super_admin видит этот sub-tab)
 
-## Файлы (создание/правка)
+**Редактор пользователя (максимум):**
+- Все модули из `src/lib/modules.ts`, сгруппированные по разделам сайдбара (Overview / Pit / Cashier / Reception / Finance / HR / Analytics / System)
+- Кнопка **Apply role defaults** — заливает permissions из `role_module_defaults` по выбранным ролям
+- **Per-user history horizon**: today / 7d / 30d / all (ось A из ACCESS-MATRIX)
+- Manager не может назначить/снять роль `super_admin`
 
-**Новые:**
-- `deploy/cloud-clone.sh`
-- `deploy/systemd/casino-cloud-clone.service`, `.timer`
-- `deploy/ota-verify.sh` (helper для `update.sh`)
-- `supabase/functions/cloud-clone-upload/index.ts`
-- `supabase/functions/cloud-clone-smoketest/index.ts`
-- `src/pages/admin/CloneStatusPage.tsx` (маршрут `/admin/fleet/clones`)
-- Migration: `cloud_clone_uploads`, `cloud_clone_reports` (RLS: super_admin read, service_role write; realtime on)
+### 4. Cloud Management (super_admin only, sub-tabs)
+- **Casinos** — существующий CasinoManagement (CRUD казино сети)
+- **Servers & Peers** — переработанная страница управления серверами (см. ниже)
+- **Snapshots** — существующий CloudSnapshotsPage
 
-**Правка:**
-- `deploy/update.sh` — вставить verify перед distributed rollout
-- `deploy/install.sh` — регистрация clone timer + копирование `ota.pub`
-- `deploy/factory-image.sh` — pre-fetch `cosign` binary в offline-tree
-- `.github/workflows/release-onprem.yml` — cosign sign-blob шаг
-- `src/App.tsx` — маршрут `/admin/fleet/clones`
-- `src/pages/admin/FleetOverviewPage.tsx` — вкладка «Clones»
+**Servers & Peers (максимум):**
+- Таблица серверов: name / URL / casino / node_id (fingerprint) / status (Healthy | Syncing | Unreachable | Error | Duplicate | Paused | Snapshot required) / last contact / push+pull cursors / outbox / apply errors
+- **Автодетект дублей**: одинаковый peer_url ИЛИ одинаковый peer_node_id ИЛИ несколько активных для одного casino → баннер "N duplicate records" + бейдж `Duplicate` в строках
+- Actions per row: **Pause / Resume / Probe / Delete / Open**
+- Кнопка **Cleanup duplicates** — авто-удаление старых без контакта (сохраняет самый свежий по last_seen)
+- Индикатор **Replica Confidence**: Full copy likely / Catching up / Not verified / Broken (по outbox=0, cursor догнан, нет apply errors, свежий heartbeat, schema match)
+- Ниже — существующие панели (Sync Exchange Log, Mirror Health, Apply Errors) как collapsible
 
-## Секреты, которые понадобятся
+## Что удаляем из UI
+- Вкладки `Finance Categories`, `Expense Categories` — из TabsList в `Admin.tsx`, компоненты остаются на диске, данные в БД нетронуты.
 
-- `COSIGN_PRIVATE_KEY` (GitHub Actions secret) — для подписи releases в CI
-- `CLOUD_CLONE_KEY` — генерируется на каждом боксе firstboot'ом, зеркалится в `peer_links.clone_key`
+## Технические детали
 
-## Что НЕ делаем в этот проход
+**Файлы:**
+- `src/pages/Admin.tsx` — ужимаем до оболочки с 4 TabsTrigger + роль-гейтингом
+- `src/pages/admin/CasinoSettingsPage.tsx` — новый, sub-tabs
+- `src/pages/admin/BrandingPage.tsx` — новый, sub-tabs
+- `src/pages/admin/UsersAndRolesPage.tsx` — новый, sub-tabs (Users через SmartTable + расширенный редактор)
+- `src/pages/admin/CloudManagementPage.tsx` — новый, sub-tabs
+- `src/components/admin/ServersAndPeersPanel.tsx` — новый (замена главного контента Peers)
+- `src/components/admin/TimeSettingsPanel.tsx` — новый (расширяет текущий ScheduleSettings)
+- Существующие панели (`RoleDefaultsEditor`, `PeerLinksPanel`, `SyncStatusPanel`, `MirrorHealthPanel`, `ChipColorSettings`, `BrandingSettings`, `FloatManagement`, `TableManagement`, `ChipConservationModeCard`, `CasinoManagement`, `CasinoAccessManagement`, `CloudSnapshotsPage`, `UsersTab`) — переиспользуем как строительные блоки.
 
-- полноценный streaming logical replication (избыточно для 20-строчных таблиц; snapshot-based clone покрывает DR)
-- восстановление из clone на другой бокс через UI — только вручную командой `pg_restore` из Cloud dump (документируется в `ARCHIVE-RESTORE.md`)
-- ротацию ключа `COSIGN` (делается один раз в год руками; переиздание `ota.pub` через OTA-команду)
+**Миграции БД (одна миграция, с GRANT):**
+- `casinos`: добавить `short_name`, `tagline`, `meta_title`, `meta_description`, `theme_color`, `background_color`, `pwa_display`, `n_shift_start`, `d_shift_start`, `cage_close_deadline`, `manager_override_window`
+- `user_module_permissions`: добавить `history_horizon` enum (`today`/`7d`/`30d`/`all`), nullable — override role default
+- Storage bucket `casino-branding` (public) для логотипов/иконок
+- Edge function `casino-branding` (без auth) для runtime branding loader
+
+**Роль-гейтинг:**
+- Cloud Management + `Casino Access` sub-tab — `super_admin` only
+- В редакторе пользователя: `manager` не может назначить/снять `super_admin` (проверка на клиенте + RLS на `user_roles`)
+- На казино-сабдомене `useProfiles` фильтрует по `casino_id` для всех ролей, включая super_admin (убирает дубли)
+
+## Фазы
+
+**Phase 1 (этот заход):**
+- Новая структура 4 вкладок + удаление 2 категорий из UI
+- Casino Settings со всеми sub-tabs включая расширенный Time Settings (N/D shift, cage deadline, override window)
+- Users & Roles: SmartTable + расширенный редактор с полной матрицей модулей и history_horizon и Apply role defaults
+- Cloud Management с Servers & Peers (автодетект дублей, Cleanup, Replica Confidence)
+- Миграция БД (поля в casinos + user_module_permissions.history_horizon)
+- Bucket `casino-branding` создан
+- Branding-страница: **UI + сохранение в БД + загрузка ассетов**. Runtime-подхват favicon/manifest/palette на сабдомене работает.
+
+**Phase 2 (отдельный заход, если понадобится):**
+- Полный аудит матрицы модулей на реальные страницы vs. `src/lib/modules.ts`
+- Тонкая настройка `casino-branding` edge fn под кеш/CDN
+- Миграция существующих статических манифестов из `public/manifest-*.json` в БД
+
+## Как поймём, что стало хорошо
+- 4 вкладки в админке вместо 13; каждая имеет осмысленные sub-tabs
+- Finance/Expense Categories убраны
+- Casino Settings содержит Time Settings с N/D shift, cage deadline, override window
+- Branding — полноценный редактор per-casino: name, logo, favicon, PWA, palette. Меняешь favicon в UI → он реально меняется на сабдомене
+- Users — таблица с фильтрами, без дублей, редактор со всеми модулями + horizon + Apply role defaults
+- Cloud Management только у super_admin, Servers & Peers показывает дубли явно, кнопки Delete и Cleanup работают, Replica Confidence честно показывает состояние
