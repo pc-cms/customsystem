@@ -137,6 +137,18 @@ export const CasinoIdentityPanel = () => {
         <Textarea value={metaDescription} onChange={e => setMetaDescription(e.target.value)} rows={2} maxLength={160} />
         <p className="text-[10px] text-muted-foreground mt-0.5">{metaDescription.length}/160 chars</p>
       </div>
+      <div className="border-t border-border/60 pt-4">
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Social Preview Image (OG)</label>
+        <div className="flex items-start gap-3">
+          {ogImageUrl && (
+            <img src={ogImageUrl} alt="OG preview" className="w-20 h-12 rounded border border-border object-cover bg-muted/30 shrink-0" />
+          )}
+          <div className="flex-1 space-y-1">
+            <Input value={ogImageUrl} onChange={e => setOgImageUrl(e.target.value)} placeholder="https://... (1200×630 recommended)" className="font-mono text-xs" />
+            <p className="text-[10px] text-muted-foreground">Shown when the URL is shared on social networks or messengers.</p>
+          </div>
+        </div>
+      </div>
       <Button onClick={handleSave} disabled={saving}>{saving ? "Saving..." : "Save Identity"}</Button>
     </div>
   );
