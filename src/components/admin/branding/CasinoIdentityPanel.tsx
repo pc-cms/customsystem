@@ -22,6 +22,7 @@ export const CasinoIdentityPanel = () => {
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
+  const [ogImageUrl, setOgImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -34,6 +35,7 @@ export const CasinoIdentityPanel = () => {
     setMetaTitle(casino.meta_title || "");
     setMetaDescription(casino.meta_description || "");
     setLogoUrl(casino.logo_url || "");
+    setOgImageUrl(casino.og_image_url || "");
     setLoaded(true);
   }, [casino, loaded]);
 
