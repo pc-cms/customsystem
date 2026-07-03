@@ -10406,6 +10406,15 @@ export type Database = {
         Args: { p_business_date: string; p_casino_id: string }
         Returns: number
       }
+      finish_first_run: {
+        Args: {
+          _config: Json
+          _email: string
+          _node_id: string
+          _password: string
+        }
+        Returns: Json
+      }
       fleet_dispatch_bulk: { Args: { _bulk_id: string }; Returns: number }
       fm_topup_am_budget: {
         Args: {
