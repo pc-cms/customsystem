@@ -164,6 +164,11 @@ const Admin = () => {
             <TabsContent value="access"><CasinoAccessManagement /></TabsContent>
             <TabsContent value="peers">
               <div className="space-y-4">
+                <div className="flex justify-end">
+                  <Button variant="outline" size="sm" asChild className="gap-1.5">
+                    <a href="/admin/cloud-snapshots"><Network className="w-3.5 h-3.5" /> Cloud Snapshots</a>
+                  </Button>
+                </div>
                 <ServerIdentityPanel />
                 <SyncStatusPanel />
                 <MirrorHealthPanel />
