@@ -164,6 +164,7 @@ const LicenseStatusPage = lazy(() => import("@/pages/admin/LicenseStatusPage"));
 const FleetOverviewPage = lazy(() => import("@/pages/admin/FleetOverviewPage"));
 const CloneStatusPage = lazy(() => import("@/pages/admin/CloneStatusPage"));
 const FleetActionsPage = lazy(() => import("@/pages/admin/FleetActionsPage"));
+const CloudSnapshotsPage = lazy(() => import("@/pages/admin/CloudSnapshotsPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
