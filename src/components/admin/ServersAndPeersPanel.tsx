@@ -132,16 +132,27 @@ export const ServersAndPeersPanel = () => {
         </div>
       )}
 
+      {/* Core: this server + its peers */}
       <ServerIdentityPanel />
       <PeerLinksPanel />
       <SyncStatusPanel />
       <MirrorHealthPanel />
-      <ApplyErrorsPanel />
-      <CutoverWizardPanel />
-      <MirrorCutoverPanel />
-      <DataInventoryPanel />
-      <LocalUpdaterPanel />
-      <SyncMirrorPanel />
+
+      {/* Advanced: rarely-used tools, collapsed by default */}
+      <details className="cms-panel p-4 group">
+        <summary className="cursor-pointer text-sm font-semibold text-card-foreground select-none flex items-center gap-2">
+          <span className="i-lucide-chevron-right group-open:rotate-90 transition-transform">›</span>
+          Advanced — cutover, inventory, updater
+        </summary>
+        <div className="mt-4 space-y-4">
+          <ApplyErrorsPanel />
+          <CutoverWizardPanel />
+          <MirrorCutoverPanel />
+          <DataInventoryPanel />
+          <LocalUpdaterPanel />
+          <SyncMirrorPanel />
+        </div>
+      </details>
     </div>
   );
 };
