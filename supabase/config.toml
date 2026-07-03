@@ -40,3 +40,7 @@ verify_jwt = false
 # installer-list-casinos: public read of casino slugs/names for cms-installer.sh.
 [functions.installer-list-casinos]
 verify_jwt = false
+
+# installer-snapshot-url: returns short-lived signed URL for baked snapshot.
+[functions.installer-snapshot-url]
+verify_jwt = false
