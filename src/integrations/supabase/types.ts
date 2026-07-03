@@ -1668,6 +1668,7 @@ export type Database = {
           shift_end: string
           shift_end_pending: string | null
           shift_end_pending_from: string | null
+          shift_matrix: Json
           shift_start: string
           short_name: string | null
           slug: string | null
@@ -1709,6 +1710,7 @@ export type Database = {
           shift_end?: string
           shift_end_pending?: string | null
           shift_end_pending_from?: string | null
+          shift_matrix?: Json
           shift_start?: string
           short_name?: string | null
           slug?: string | null
@@ -1750,6 +1752,7 @@ export type Database = {
           shift_end?: string
           shift_end_pending?: string | null
           shift_end_pending_from?: string | null
+          shift_matrix?: Json
           shift_start?: string
           short_name?: string | null
           slug?: string | null
