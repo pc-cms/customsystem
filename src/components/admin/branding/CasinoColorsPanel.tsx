@@ -1,6 +1,6 @@
 /**
- * CasinoColorsPanel — theme/background colors + chip colors editor.
- * Theme color also feeds the PWA manifest.
+ * CasinoThemePanel — theme & background color for PWA / OS chrome.
+ * Chip colors moved back to Casino Settings (to avoid duplication).
  */
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,9 +10,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import ChipColorSettings from "@/components/admin/ChipColorSettings";
 
-export const CasinoColorsPanel = () => {
+export const CasinoThemePanel = () => {
   const { data: casino } = useCasinoInfo() as { data: any };
   const { activeCasinoId } = useCasino();
   const qc = useQueryClient();
@@ -38,7 +37,7 @@ export const CasinoColorsPanel = () => {
       } as any).eq("id", activeCasinoId);
       if (error) throw error;
       qc.invalidateQueries({ queryKey: ["casino-info"] });
-      toast.success("Colors saved");
+      toast.success("Theme saved");
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -47,36 +46,28 @@ export const CasinoColorsPanel = () => {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="cms-panel p-6 max-w-2xl space-y-4">
-        <h3 className="text-sm font-semibold text-card-foreground">Theme Colors</h3>
-        <p className="text-xs text-muted-foreground">Used for PWA theme, address-bar tint, and splash screen.</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Theme Color</label>
-            <div className="flex gap-2 items-center">
-              <Input type="color" value={themeColor} onChange={e => setThemeColor(e.target.value)} className="w-14 h-10 p-1" />
-              <Input value={themeColor} onChange={e => setThemeColor(e.target.value)} className="font-mono" />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Background Color</label>
-            <div className="flex gap-2 items-center">
-              <Input type="color" value={backgroundColor} onChange={e => setBackgroundColor(e.target.value)} className="w-14 h-10 p-1" />
-              <Input value={backgroundColor} onChange={e => setBackgroundColor(e.target.value)} className="font-mono" />
-            </div>
+    <div className="cms-panel p-6 max-w-2xl space-y-4">
+      <h3 className="text-sm font-semibold text-card-foreground">Theme Colors</h3>
+      <p className="text-xs text-muted-foreground">Used for PWA theme, address-bar tint, and splash screen. Chip colors live in Casino Settings → Chip Colors.</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Theme Color</label>
+          <div className="flex gap-2 items-center">
+            <Input type="color" value={themeColor} onChange={e => setThemeColor(e.target.value)} className="w-14 h-10 p-1" />
+            <Input value={themeColor} onChange={e => setThemeColor(e.target.value)} className="font-mono" />
           </div>
         </div>
-        <Button onClick={handleSave} disabled={saving}>{saving ? "Saving..." : "Save Colors"}</Button>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Background Color</label>
+          <div className="flex gap-2 items-center">
+            <Input type="color" value={backgroundColor} onChange={e => setBackgroundColor(e.target.value)} className="w-14 h-10 p-1" />
+            <Input value={backgroundColor} onChange={e => setBackgroundColor(e.target.value)} className="font-mono" />
+          </div>
+        </div>
       </div>
-
-      <div className="cms-panel p-6">
-        <h3 className="text-sm font-semibold text-card-foreground mb-1">Chip Colors</h3>
-        <p className="text-xs text-muted-foreground mb-4">Per-denomination chip colors and visibility.</p>
-        <ChipColorSettings />
-      </div>
+      <Button onClick={handleSave} disabled={saving}>{saving ? "Saving..." : "Save Theme"}</Button>
     </div>
   );
 };
 
-export default CasinoColorsPanel;
+export default CasinoThemePanel;
