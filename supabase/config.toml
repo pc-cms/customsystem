@@ -44,3 +44,8 @@ verify_jwt = false
 # installer-snapshot-url: returns short-lived signed URL for baked snapshot.
 [functions.installer-snapshot-url]
 verify_jwt = false
+
+# cloud-snapshot-build: super_admin builds baked NDJSON snapshot for on-prem installers.
+# verify_jwt=false — function validates Bearer token + super_admin role in code.
+[functions.cloud-snapshot-build]
+verify_jwt = false
