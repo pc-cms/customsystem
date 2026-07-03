@@ -188,12 +188,16 @@ const ShiftClosingReport = ({
         const toUtc = `${nx.toISOString().slice(0, 10)}T02:00:00Z`;
         const { data: bdShifts } = await supabase
           .from("shifts")
-          .select("id, shift")
+          .select("id, opened_at")
           .eq("casino_id", casinoId)
           .gte("opened_at", fromUtc)
           .lt("opened_at", toUtc);
+        // Africa/Dar_es_Salaam (UTC+3): day shift 07:00-18:59 local, otherwise night.
         const idMap = new Map<string, string>();
-        (bdShifts || []).forEach((s: any) => idMap.set(s.id, s.shift));
+        (bdShifts || []).forEach((s: any) => {
+          const localHour = (new Date(s.opened_at).getUTCHours() + 3) % 24;
+          idMap.set(s.id, localHour >= 7 && localHour < 19 ? "day" : "night");
+        });
         if (bdShifts && bdShifts.length) {
           const { data: tipTx } = await supabase
             .from("transactions")
