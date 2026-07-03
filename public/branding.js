@@ -202,6 +202,80 @@
     } catch (e) { /* noop — branding is best-effort */ }
   }
 
+  // ---- Async DB augmentation --------------------------------------------
+  // After the sync static branding is applied, ask the casino-branding edge
+  // function for DB overrides (favicon/theme-color/title/OG). Best-effort —
+  // any error keeps the static config. Manifest URL is NOT swapped after
+  // install (iOS/Android pinned it already), but cold visitors see fresh
+  // favicon + title without a redeploy.
+  var SUPABASE_FN_URL = "https://rpehngjvwcnipvkouluu.supabase.co/functions/v1/casino-branding";
+
+  function augmentFromDB() {
+    try {
+      var host = (window.location.hostname || "").toLowerCase();
+      var label = host.split(".")[0];
+      var canonical = Object.prototype.hasOwnProperty.call(ALIAS, label) ? ALIAS[label] : label;
+      if (!canonical || canonical === "localhost" || /^\d+$/.test(canonical)) return;
+
+      fetch(SUPABASE_FN_URL + "?slug=" + encodeURIComponent(canonical), { credentials: "omit" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (row) {
+          if (!row) return;
+          if (row.meta_title || row.short_name || row.name) {
+            replaceTag('title', function () {
+              var t = document.createElement('title');
+              t.textContent = row.meta_title || row.short_name || row.name;
+              return t;
+            });
+          }
+          if (row.short_name || row.name) {
+            replaceTag('meta[name="apple-mobile-web-app-title"]', function () {
+              var m = document.createElement('meta');
+              m.setAttribute('name', 'apple-mobile-web-app-title');
+              m.setAttribute('content', row.short_name || row.name);
+              return m;
+            });
+          }
+          if (row.favicon_url) {
+            replaceTag('link[rel="icon"]', function () {
+              var l = document.createElement('link');
+              l.setAttribute('rel', 'icon');
+              l.setAttribute('type', 'image/png');
+              l.setAttribute('href', row.favicon_url);
+              return l;
+            });
+          }
+          if (row.apple_touch_icon_url) {
+            replaceTag('link[rel="apple-touch-icon"]', function () {
+              var l = document.createElement('link');
+              l.setAttribute('rel', 'apple-touch-icon');
+              l.setAttribute('sizes', '180x180');
+              l.setAttribute('href', row.apple_touch_icon_url);
+              return l;
+            });
+          }
+          if (row.theme_color) {
+            var tc = document.querySelector('meta[name="theme-color"]');
+            if (tc) tc.setAttribute("content", row.theme_color);
+          }
+          if (row.meta_description) {
+            var desc = document.querySelector('meta[name="description"]');
+            if (desc) desc.setAttribute("content", row.meta_description);
+          }
+          if (row.og_image_url) {
+            var og = document.querySelector('meta[property="og:image"]');
+            if (!og) {
+              og = document.createElement('meta');
+              og.setAttribute('property', 'og:image');
+              document.head.appendChild(og);
+            }
+            og.setAttribute('content', row.og_image_url);
+          }
+        })
+        .catch(function () { /* noop */ });
+    } catch (e) { /* noop */ }
+  }
+
   window.__cmsBranding = {
     ALIAS: ALIAS,
     BRANCHES: BRANCHES,
@@ -210,7 +284,11 @@
     resolve: resolve,
   };
   window.__cmsApplyBranding = apply;
+  window.__cmsAugmentBrandingFromDB = augmentFromDB;
 
   // Run immediately — index.html loads this synchronously in <head>.
   apply();
+  // Async DB augmentation — non-blocking.
+  augmentFromDB();
 })();
+
