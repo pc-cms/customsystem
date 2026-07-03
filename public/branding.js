@@ -72,7 +72,21 @@
     var canonical = Object.prototype.hasOwnProperty.call(ALIAS, label) ? ALIAS[label] : label;
     var isOnPrem = Object.prototype.hasOwnProperty.call(ALIAS, label);
     var branch = Object.prototype.hasOwnProperty.call(BRANCHES, canonical) ? BRANCHES[canonical] : null;
-    if (!branch) return { kind: "default" };
+    if (!branch) {
+      // Unknown slug — could be a new casino added via admin. Point the manifest
+      // at the dynamic edge function; if it's really garbage (localhost, IP,
+      // preview host), the function returns a safe fallback manifest.
+      var isPlausibleSlug = label && label !== "localhost" && !/^\d+$/.test(label) && !/^\d+\.\d+/.test(host);
+      if (isPlausibleSlug) {
+        return {
+          kind: "dynamic",
+          label: label,
+          canonical: canonical,
+          manifest: "https://rpehngjvwcnipvkouluu.supabase.co/functions/v1/casino-manifest?slug=" + encodeURIComponent(canonical),
+        };
+      }
+      return { kind: "default" };
+    }
 
     return {
       kind: "branch",
@@ -90,6 +104,7 @@
       ogDescription: branch.ogDescription,
     };
   }
+
 
   // ---- DOM application ----------------------------------------------------
 
