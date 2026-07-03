@@ -607,6 +607,7 @@ const AppRoutes = () => {
         <Route path="/admin/fleet" element={<FleetOverviewPage />} />
         <Route path="/admin/fleet/clones" element={<CloneStatusPage />} />
         <Route path="/admin/fleet/actions" element={<FleetActionsPage />} />
+        <Route path="/admin/cloud-snapshots" element={<CloudSnapshotsPage />} />
         <Route path="/login" element={user ? <Navigate to={defaultRoute} replace /> : <Login />} />
         <Route path="/*" element={<ProtectedRoutes />} />
 
