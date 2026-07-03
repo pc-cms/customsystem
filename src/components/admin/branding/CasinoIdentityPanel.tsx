@@ -67,6 +67,7 @@ export const CasinoIdentityPanel = () => {
         meta_title: metaTitle || null,
         meta_description: metaDescription || null,
         logo_url: logoUrl || null,
+        og_image_url: ogImageUrl || null,
       } as any).eq("id", activeCasinoId);
       if (error) throw error;
       qc.invalidateQueries({ queryKey: ["casino-info"] });
