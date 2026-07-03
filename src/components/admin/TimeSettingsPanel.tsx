@@ -1,8 +1,12 @@
 /**
- * TimeSettingsPanel — extended casino working-hours settings.
- * Adds N/D shift starts + cage deadlines to the classic schedule form.
- * Shift End / Breaklist Lock changes are deferred to next business day
- * (see useUpdateCasinoSchedule).
+ * TimeSettingsPanel — casino working-hours settings.
+ * Layout: two-column grid.
+ *   Left  = Classic working hours (Tables Open / Shift Start / Shift End / Breaklist Lock / Cage Float).
+ *   Right = Shift Matrix (Day/Night/Middle...) + Cage close deadlines.
+ *
+ * The shift matrix is stored on casinos.shift_matrix (jsonb array) and can be
+ * consumed by rota, breaklist and cage-close logic via `applies_to`.
+ * Legacy n_shift_start/d_shift_start remain as fallback.
  */
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
@@ -11,8 +15,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Clock } from "lucide-react";
+import { Clock, Plus, Trash2 } from "lucide-react";
 import { useCasinoInfo, useUpdateCasinoSchedule, useCancelPendingSchedule } from "@/hooks/use-table-lifecycle";
+import { Checkbox } from "@/components/ui/checkbox";
+
+type ShiftApplyTarget = "rota" | "breaklist" | "cage";
+interface ShiftRow {
+  key: string;
+  label: string;
+  start: string;
+  end: string;
+  applies_to: ShiftApplyTarget[];
+}
+
+const APPLY_TARGETS: { key: ShiftApplyTarget; label: string }[] = [
+  { key: "rota", label: "Rota" },
+  { key: "breaklist", label: "Breaklist" },
+  { key: "cage", label: "Cage" },
+];
+
+const DEFAULT_MATRIX: ShiftRow[] = [
+  { key: "D", label: "Day",    start: "06:00", end: "18:00", applies_to: ["rota", "breaklist", "cage"] },
+  { key: "N", label: "Night",  start: "18:00", end: "05:00", applies_to: ["rota", "breaklist", "cage"] },
+  { key: "M", label: "Middle", start: "12:00", end: "00:00", applies_to: ["rota"] },
+];
 
 export const TimeSettingsPanel = () => {
   const { data: casino } = useCasinoInfo() as { data: any };
@@ -26,11 +52,10 @@ export const TimeSettingsPanel = () => {
   const [shiftEnd, setShiftEnd] = useState("");
   const [breaklistLock, setBreaklistLock] = useState("");
   const [cageFloat, setCageFloat] = useState("");
-  const [nShiftStart, setNShiftStart] = useState("");
-  const [dShiftStart, setDShiftStart] = useState("");
   const [cageDeadline, setCageDeadline] = useState("");
   const [overrideWindow, setOverrideWindow] = useState("");
-  const [savingExtended, setSavingExtended] = useState(false);
+  const [matrix, setMatrix] = useState<ShiftRow[]>(DEFAULT_MATRIX);
+  const [savingRight, setSavingRight] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -40,10 +65,12 @@ export const TimeSettingsPanel = () => {
     setShiftEnd(casino.shift_end || "05:00");
     setBreaklistLock(casino.breaklist_lock || "05:30");
     setCageFloat(String(casino.cage_float || 0));
-    setNShiftStart(casino.n_shift_start || "18:00");
-    setDShiftStart(casino.d_shift_start || "06:00");
     setCageDeadline(String(casino.cage_close_deadline_min ?? 30));
     setOverrideWindow(String(casino.manager_override_window_min ?? 15));
+    const m = Array.isArray(casino.shift_matrix) && casino.shift_matrix.length > 0
+      ? (casino.shift_matrix as ShiftRow[])
+      : DEFAULT_MATRIX;
+    setMatrix(m.map(r => ({ ...r, applies_to: r.applies_to ?? [] })));
     setLoaded(true);
   }, [casino, loaded]);
 
@@ -59,26 +86,35 @@ export const TimeSettingsPanel = () => {
     });
   };
 
-  const handleSaveExtended = async () => {
+  const handleSaveRight = async () => {
     if (!activeCasinoId) return;
-    setSavingExtended(true);
+    setSavingRight(true);
     try {
+      // Validate matrix
+      const keys = new Set<string>();
+      for (const r of matrix) {
+        if (!r.key.trim()) throw new Error("Shift key is required");
+        if (keys.has(r.key)) throw new Error(`Duplicate shift key: ${r.key}`);
+        keys.add(r.key);
+      }
       const { error } = await supabase
         .from("casinos")
         .update({
-          n_shift_start: nShiftStart || null,
-          d_shift_start: dShiftStart || null,
+          shift_matrix: matrix as any,
           cage_close_deadline_min: Number(cageDeadline) || null,
           manager_override_window_min: Number(overrideWindow) || null,
+          // Sync legacy fields from matrix for backward compat with rota/breaklist reads
+          d_shift_start: (matrix.find(r => r.key === "D")?.start || null) as any,
+          n_shift_start: (matrix.find(r => r.key === "N")?.start || null) as any,
         } as any)
         .eq("id", activeCasinoId);
       if (error) throw error;
       qc.invalidateQueries({ queryKey: ["casino-info"] });
-      toast.success("Extended time settings saved");
+      toast.success("Shift matrix saved");
     } catch (e: any) {
       toast.error(e.message);
     } finally {
-      setSavingExtended(false);
+      setSavingRight(false);
     }
   };
 
@@ -86,6 +122,23 @@ export const TimeSettingsPanel = () => {
     if (!d) return "";
     const [y, m, day] = d.split("-");
     return `${day}.${m}.${y}`;
+  };
+
+  const updateShift = (idx: number, patch: Partial<ShiftRow>) => {
+    setMatrix(prev => prev.map((r, i) => i === idx ? { ...r, ...patch } : r));
+  };
+  const toggleApply = (idx: number, target: ShiftApplyTarget) => {
+    setMatrix(prev => prev.map((r, i) => {
+      if (i !== idx) return r;
+      const has = r.applies_to.includes(target);
+      return { ...r, applies_to: has ? r.applies_to.filter(t => t !== target) : [...r.applies_to, target] };
+    }));
+  };
+  const addShift = () => {
+    setMatrix(prev => [...prev, { key: "S" + (prev.length + 1), label: "Shift", start: "09:00", end: "17:00", applies_to: ["rota"] }]);
+  };
+  const removeShift = (idx: number) => {
+    setMatrix(prev => prev.filter((_, i) => i !== idx));
   };
 
   type Field = { label: string; value: string; set: (v: string) => void; hint: string;
@@ -103,8 +156,9 @@ export const TimeSettingsPanel = () => {
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="cms-panel p-6 max-w-lg">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* LEFT: Classic working hours */}
+      <div className="cms-panel p-6">
         <h3 className="text-sm font-semibold text-card-foreground mb-4">Working Hours</h3>
         <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-[11px] text-warning-foreground mb-4">
           Shift End and Breaklist Lock changes apply from the <strong>next business day</strong>. The current shift continues with old values.
@@ -137,35 +191,61 @@ export const TimeSettingsPanel = () => {
         </Button>
       </div>
 
-      <div className="cms-panel p-6 max-w-lg">
-        <h3 className="text-sm font-semibold text-card-foreground mb-1">Shift & Cage Times</h3>
-        <p className="text-xs text-muted-foreground mb-4">
-          Customizable boundaries used by rota, live, and cage close windows.
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">N Shift Start</label>
-            <Input type="time" value={nShiftStart} onChange={e => setNShiftStart(e.target.value)} className="w-32 font-mono" />
-            <p className="text-[10px] text-muted-foreground mt-0.5">Night shift starts at this time</p>
+      {/* RIGHT: Shift matrix + cage deadlines */}
+      <div className="space-y-4">
+        <div className="cms-panel p-6">
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <h3 className="text-sm font-semibold text-card-foreground">Shift Matrix</h3>
+              <p className="text-xs text-muted-foreground">Custom shifts used by rota / breaklist / cage.</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={addShift} className="gap-1"><Plus className="w-3 h-3" /> Add</Button>
           </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">D Shift Start</label>
-            <Input type="time" value={dShiftStart} onChange={e => setDShiftStart(e.target.value)} className="w-32 font-mono" />
-            <p className="text-[10px] text-muted-foreground mt-0.5">Day shift starts at this time</p>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Cage Close Deadline (min)</label>
-            <Input type="number" value={cageDeadline} onChange={e => setCageDeadline(e.target.value)} className="w-32 font-mono" placeholder="30" />
-            <p className="text-[10px] text-muted-foreground mt-0.5">Minutes after shift end</p>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Manager Override (min)</label>
-            <Input type="number" value={overrideWindow} onChange={e => setOverrideWindow(e.target.value)} className="w-32 font-mono" placeholder="15" />
-            <p className="text-[10px] text-muted-foreground mt-0.5">Extra minutes managers can grant</p>
+          <div className="space-y-2">
+            <div className="hidden md:grid grid-cols-[40px_1fr_90px_90px_1fr_36px] gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold px-1">
+              <span>Key</span><span>Label</span><span>Start</span><span>End</span><span>Applies to</span><span/>
+            </div>
+            {matrix.map((row, i) => (
+              <div key={i} className="grid grid-cols-[40px_1fr_90px_90px_1fr_36px] gap-2 items-center">
+                <Input value={row.key} maxLength={3} onChange={e => updateShift(i, { key: e.target.value.toUpperCase() })} className="h-8 text-center font-mono text-xs" />
+                <Input value={row.label} onChange={e => updateShift(i, { label: e.target.value })} className="h-8 text-xs" />
+                <Input type="time" value={row.start} onChange={e => updateShift(i, { start: e.target.value })} className="h-8 font-mono text-xs" />
+                <Input type="time" value={row.end} onChange={e => updateShift(i, { end: e.target.value })} className="h-8 font-mono text-xs" />
+                <div className="flex flex-wrap gap-2">
+                  {APPLY_TARGETS.map(t => (
+                    <label key={t.key} className="flex items-center gap-1 text-[11px] cursor-pointer">
+                      <Checkbox checked={row.applies_to.includes(t.key)} onCheckedChange={() => toggleApply(i, t.key)} className="h-3.5 w-3.5" />
+                      {t.label}
+                    </label>
+                  ))}
+                </div>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => removeShift(i)}>
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              </div>
+            ))}
           </div>
         </div>
-        <Button onClick={handleSaveExtended} className="mt-5" disabled={savingExtended}>
-          {savingExtended ? "Saving..." : "Save Shift & Cage Times"}
+
+        <div className="cms-panel p-6">
+          <h3 className="text-sm font-semibold text-card-foreground mb-1">Cage Close Window</h3>
+          <p className="text-xs text-muted-foreground mb-4">How long cage can stay open after shift end.</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Cage Close Deadline (min)</label>
+              <Input type="number" value={cageDeadline} onChange={e => setCageDeadline(e.target.value)} className="w-32 font-mono" placeholder="30" />
+              <p className="text-[10px] text-muted-foreground mt-0.5">Minutes after shift end</p>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Manager Override (min)</label>
+              <Input type="number" value={overrideWindow} onChange={e => setOverrideWindow(e.target.value)} className="w-32 font-mono" placeholder="15" />
+              <p className="text-[10px] text-muted-foreground mt-0.5">Extra minutes managers can grant</p>
+            </div>
+          </div>
+        </div>
+
+        <Button onClick={handleSaveRight} disabled={savingRight}>
+          {savingRight ? "Saving..." : "Save Shift Matrix & Cage Window"}
         </Button>
       </div>
     </div>
