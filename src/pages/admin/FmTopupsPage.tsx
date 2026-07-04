@@ -233,54 +233,49 @@ export default function FmTopupsPage() {
 
       <PageSection title="Current AM Balances" bodyClassName="p-0">
         <DataTable>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/30 text-xs uppercase">
-                <th className="text-left p-2">AM User</th>
-                <th className="text-left p-2">Casino</th>
-                <th className="text-right p-2">Balance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {amBalances.length === 0 && <tr><td colSpan={3} className="p-4 text-center text-muted-foreground">No AM budgets allocated yet</td></tr>}
-              {amBalances.map((b: any) => {
-                const u = amUsers.find((x: any) => x.user_id === b.am_user_id);
-                return (
-                  <tr key={b.id} className="border-b border-border/50">
-                    <td className="p-2">{u?.profiles?.full_name ?? u?.profiles?.email ?? b.am_user_id.slice(0, 8)}</td>
-                    <td className="p-2">{b.casinos?.name ?? casinoMap.get(b.casino_id) ?? "—"}</td>
-                    <td className="p-2 text-right font-mono">{fmt(b.balance)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <thead>
+            <tr className="border-b border-border bg-muted/30 text-xs uppercase">
+              <th className="text-left p-2">AM User</th>
+              <th className="text-left p-2">Casino</th>
+              <th className="text-right p-2">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {amBalances.length === 0 && <tr><td colSpan={3} className="p-4 text-center text-muted-foreground">No AM budgets allocated yet</td></tr>}
+            {amBalances.map((b: any) => {
+              const u = amUsers.find((x: any) => x.user_id === b.am_user_id);
+              return (
+                <tr key={b.id} className="border-b border-border/50">
+                  <td className="p-2">{u?.profiles?.full_name ?? u?.profiles?.email ?? b.am_user_id.slice(0, 8)}</td>
+                  <td className="p-2">{b.casinos?.name ?? casinoMap.get(b.casino_id) ?? "—"}</td>
+                  <td className="p-2 text-right font-mono">{fmt(b.balance)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
         </DataTable>
       </PageSection>
 
       <PageSection title="House Funds" bodyClassName="p-0">
         <DataTable>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/30 text-xs uppercase">
-                <th className="text-left p-2">Casino</th>
-                <th className="text-right p-2">Balance</th>
-                <th className="text-left p-2">Updated</th>
+          <thead>
+            <tr className="border-b border-border bg-muted/30 text-xs uppercase">
+              <th className="text-left p-2">Casino</th>
+              <th className="text-right p-2">Balance</th>
+              <th className="text-left p-2">Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            {houseFunds.length === 0 && <tr><td colSpan={3} className="p-4 text-center text-muted-foreground">No house funds yet</td></tr>}
+            {houseFunds.map((f: any) => (
+              <tr key={f.casino_id} className="border-b border-border/50">
+                <td className="p-2">{casinoMap.get(f.casino_id) ?? f.casino_id.slice(0, 8)}</td>
+                <td className="p-2 text-right font-mono">{fmt(f.balance)}</td>
+                <td className="p-2 text-xs text-muted-foreground">{fmtDateTime(f.updated_at)}</td>
               </tr>
-            </thead>
-            <tbody>
-              {houseFunds.length === 0 && <tr><td colSpan={3} className="p-4 text-center text-muted-foreground">No house funds yet</td></tr>}
-              {houseFunds.map((f: any) => (
-                <tr key={f.casino_id} className="border-b border-border/50">
-                  <td className="p-2">{casinoMap.get(f.casino_id) ?? f.casino_id.slice(0, 8)}</td>
-                  <td className="p-2 text-right font-mono">{fmt(f.balance)}</td>
-                  <td className="p-2 text-xs text-muted-foreground">{fmtDateTime(f.updated_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            ))}
+          </tbody>
         </DataTable>
-      </PageSection>
-    </PageShell>
+      </PageShell>
   );
 }
