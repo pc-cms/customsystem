@@ -32,12 +32,22 @@ export default function FmTopupsPage() {
   const { data: amUsers = [] } = useQuery({
     queryKey: ["am-users"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: roles, error: rErr } = await supabase
         .from("user_roles")
-        .select("user_id, profiles!inner(id, full_name, email)")
+        .select("user_id")
         .eq("role", "account_manager");
-      if (error) throw error;
-      return (data as any[]) ?? [];
+      if (rErr) throw rErr;
+      const ids = (roles ?? []).map((r: any) => r.user_id);
+      if (ids.length === 0) return [];
+      const { data: profs, error: pErr } = await supabase
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", ids);
+      if (pErr) throw pErr;
+      return (profs ?? []).map((p: any) => ({
+        user_id: p.user_id,
+        profiles: { id: p.user_id, full_name: p.display_name, email: null },
+      }));
     },
   });
 
