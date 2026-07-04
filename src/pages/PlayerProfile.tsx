@@ -1,7 +1,11 @@
 import { Fragment, useMemo, useState } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, Ban, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays } from "lucide-react";
+import { ArrowLeft, Ban, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays, Pencil, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import BlacklistPlayerDialog from "@/components/player/BlacklistPlayerDialog";
 import { formatCardId } from "@/lib/card-number";
@@ -92,6 +96,37 @@ const PlayerProfile = () => {
   // Range bounds (apply to all tabs).
   const rangeStartMs = useMemo(() => new Date(`${range.from}T00:00:00`).getTime(), [range.from]);
   const rangeEndMs = useMemo(() => new Date(`${range.to}T23:59:59`).getTime(), [range.to]);
+
+  // Blacklist reason inline edit (manager / shift_manager / super_admin).
+  const canEditBlacklistReason = roles.some((r) => ["manager", "shift_manager", "super_admin"].includes(r));
+  const qc = useQueryClient();
+  const [editingReason, setEditingReason] = useState(false);
+  const [reasonDraft, setReasonDraft] = useState("");
+  const [savingReason, setSavingReason] = useState(false);
+  const rawBlacklistNote = (notes as any[]).find((n: any) => n.note_type === "blacklist")?.content || "";
+  const blacklistReason = rawBlacklistNote
+    .replace(/^Added to blacklist(?:\s+by manager)?\.\s*Reason:\s*/i, "")
+    .replace(/\s*\(v(\d+)\)\s*$/, "");
+  const blacklistVersion = (() => {
+    const m = rawBlacklistNote.match(/\(v(\d+)\)\s*$/);
+    return m ? parseInt(m[1], 10) : (rawBlacklistNote ? 1 : 0);
+  })();
+  const commitBlacklistReason = () => {
+    if (!id) return;
+    const next = reasonDraft.trim();
+    if (!next || next === blacklistReason) { setEditingReason(false); return; }
+    setSavingReason(true);
+    supabase.rpc("manager_edit_blacklist_reason" as any, { _player_id: id, _reason: next })
+      .then(({ error }: any) => {
+        if (error) toast.error(error.message || "Failed to update reason");
+        else {
+          toast.success("Reason updated");
+          qc.invalidateQueries({ queryKey: ["player-notes", id] });
+        }
+        setEditingReason(false);
+        setSavingReason(false);
+      });
+  };
 
   // Filter visits by BUSINESS date (v.date YYYY-MM-DD) — not by checked_in_at
   // timestamp. A visit that opens after midnight but before 07:00 EAT still
@@ -477,6 +512,54 @@ const PlayerProfile = () => {
                   />
                   {player.status === "blacklist" && (
                     <span className="text-xs font-bold text-destructive border border-destructive rounded px-1.5 py-0.5">BL</span>
+                  )}
+                  {player.status === "blacklist" && (
+                    editingReason ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Input
+                          autoFocus
+                          value={reasonDraft}
+                          onChange={(e) => setReasonDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Escape") { e.preventDefault(); setEditingReason(false); }
+                            if (e.key === "Enter") { e.preventDefault(); commitBlacklistReason(); }
+                          }}
+                          className="h-7 text-xs w-[360px]"
+                          placeholder="Blacklist reason"
+                          maxLength={500}
+                          disabled={savingReason}
+                        />
+                        <Button
+                          type="button" size="sm" variant="ghost" className="h-7 px-2"
+                          disabled={savingReason}
+                          onClick={() => setEditingReason(false)}
+                          aria-label="Cancel"
+                        ><X className="w-3 h-3" /></Button>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 max-w-[560px] min-w-0">
+                        {blacklistReason ? (
+                          <span className="text-xs text-destructive truncate" title={blacklistReason}>
+                            — {blacklistReason}
+                            {blacklistVersion > 1 && (
+                              <span className="ml-1 font-mono opacity-70">(v{blacklistVersion})</span>
+                            )}
+                          </span>
+                        ) : (
+                          canEditBlacklistReason && (
+                            <span className="text-xs text-muted-foreground italic">— no reason</span>
+                          )
+                        )}
+                        {canEditBlacklistReason && (
+                          <Button
+                            type="button" size="sm" variant="ghost" className="h-6 px-1 text-destructive/70 hover:text-destructive"
+                            onClick={() => { setReasonDraft(blacklistReason); setEditingReason(true); }}
+                            aria-label="Edit blacklist reason"
+                            title="Edit blacklist reason"
+                          ><Pencil className="w-3 h-3" /></Button>
+                        )}
+                      </span>
+                    )
                   )}
                   {player.casino_id && <CasinoBadge casinoId={player.casino_id} />}
                 </div>
