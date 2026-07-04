@@ -10597,6 +10597,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      manager_edit_blacklist_reason: {
+        Args: { _player_id: string; _reason: string }
+        Returns: Json
+      }
       manager_set_player_blacklist: {
         Args: {
           _manager_id: string
