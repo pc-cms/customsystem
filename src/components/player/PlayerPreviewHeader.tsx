@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import PlayerPhotoLightbox from "@/components/player/PlayerPhotoLightbox";
 import { useNavigate } from "react-router-dom";
-import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check, UtensilsCrossed, Megaphone, MessageSquare } from "lucide-react";
+import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check, UtensilsCrossed, Megaphone, MessageSquare, Pencil } from "lucide-react";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { PlayerNotesPanel } from "@/components/player/PlayerNotesPanel";
 import { PitQuickOrderDialog } from "@/components/pos/PitQuickOrderDialog";
 import { usePlayerPromoCampaigns } from "@/hooks/use-promo-campaigns";
@@ -303,6 +305,11 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const { roles } = useAuth();
   const showFinancials = canSeePlayerFinancials(roles || []);
   const canAdjust = (roles || []).some((r) => r === "pit" || r === "manager" || r === "shift_manager");
+  const canEditBlacklistReason = (roles || []).some((r) => r === "manager" || r === "shift_manager" || r === "super_admin");
+  const qc = useQueryClient();
+  const [editingReason, setEditingReason] = useState(false);
+  const [reasonDraft, setReasonDraft] = useState("");
+  const [savingReason, setSavingReason] = useState(false);
 
   const [chipIn, setChipIn] = useState("");
   const [chipOut, setChipOut] = useState("");
@@ -331,9 +338,16 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
 
   const handleClose = () => { onClose ? onClose() : ctx.clear(); };
 
-  const blacklistReason = isBlacklisted
-    ? (notes.find((n: any) => n.note_type === "blacklist")?.content || "").replace(/^Added to blacklist\.\s*Reason:\s*/i, "")
+  const rawBlacklistNote = isBlacklisted
+    ? (notes.find((n: any) => n.note_type === "blacklist")?.content || "")
     : "";
+  const blacklistReason = rawBlacklistNote
+    .replace(/^Added to blacklist(?:\s+by manager)?\.\s*Reason:\s*/i, "")
+    .replace(/\s*\(v(\d+)\)\s*$/, "");
+  const blacklistVersion = (() => {
+    const m = rawBlacklistNote.match(/\(v(\d+)\)\s*$/);
+    return m ? parseInt(m[1], 10) : (rawBlacklistNote ? 1 : 0);
+  })();
   const tagRows = ((player as any)?.player_tags || []) as Array<{ tag: string; source?: string | null }>;
   const { floor: floorTags, cctv: cctvTags } = splitTagsBySource(tagRows);
   const cards = ((player as any)?.player_cards || []) as Array<{ card_number: string; is_active?: boolean }>;
@@ -417,10 +431,68 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
                   Blacklist
                 </span>
               )}
-              {isBlacklisted && blacklistReason && (
-                <span className="text-xs text-destructive truncate max-w-[520px]" title={blacklistReason}>
-                  — {blacklistReason}
-                </span>
+              {isBlacklisted && (
+                editingReason ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Input
+                      autoFocus
+                      value={reasonDraft}
+                      onChange={(e) => setReasonDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") { e.preventDefault(); setEditingReason(false); }
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const next = reasonDraft.trim();
+                          if (!next || next === blacklistReason) { setEditingReason(false); return; }
+                          setSavingReason(true);
+                          supabase.rpc("manager_edit_blacklist_reason" as any, { _player_id: playerId, _reason: next })
+                            .then(({ error }: any) => {
+                              if (error) toast.error(error.message || "Failed to update reason");
+                              else {
+                                toast.success("Reason updated");
+                                qc.invalidateQueries({ queryKey: ["player-notes", playerId] });
+                              }
+                              setEditingReason(false);
+                              setSavingReason(false);
+                            });
+                        }
+                      }}
+                      className="h-6 text-xs w-[360px]"
+                      placeholder="Blacklist reason"
+                      maxLength={500}
+                      disabled={savingReason}
+                    />
+                    <Button
+                      type="button" size="sm" variant="ghost" className="h-6 px-2"
+                      disabled={savingReason}
+                      onClick={() => setEditingReason(false)}
+                      aria-label="Cancel"
+                    ><X className="w-3 h-3" /></Button>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 max-w-[560px] min-w-0">
+                    {blacklistReason ? (
+                      <span className="text-xs text-destructive truncate" title={blacklistReason}>
+                        — {blacklistReason}
+                        {blacklistVersion > 1 && (
+                          <span className="ml-1 font-mono opacity-70">(v{blacklistVersion})</span>
+                        )}
+                      </span>
+                    ) : (
+                      canEditBlacklistReason && (
+                        <span className="text-xs text-muted-foreground italic">— no reason</span>
+                      )
+                    )}
+                    {canEditBlacklistReason && (
+                      <Button
+                        type="button" size="sm" variant="ghost" className="h-5 px-1 text-destructive/70 hover:text-destructive"
+                        onClick={() => { setReasonDraft(blacklistReason); setEditingReason(true); }}
+                        aria-label="Edit blacklist reason"
+                        title="Edit blacklist reason"
+                      ><Pencil className="w-3 h-3" /></Button>
+                    )}
+                  </span>
+                )
               )}
               {activePromo && (
                 <button
