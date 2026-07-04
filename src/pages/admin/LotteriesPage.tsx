@@ -91,42 +91,40 @@ const LotteriesPage = () => {
 
       <PageSection title="All Lotteries" bodyClassName="p-0">
         <DataTable>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/30 text-xs uppercase">
-                <th className="text-left p-2">Name</th>
-                <th className="text-left p-2">Draw Date</th>
-                <th className="text-right p-2">Price</th>
-                <th className="text-right p-2">Max/Player</th>
-                <th className="text-right p-2">Tickets Sold</th>
-                <th className="text-left p-2">Status</th>
-                <th className="text-right p-2"></th>
+          <thead>
+            <tr className="border-b border-border bg-muted/30 text-xs uppercase">
+              <th className="text-left p-2">Name</th>
+              <th className="text-left p-2">Draw Date</th>
+              <th className="text-right p-2">Price</th>
+              <th className="text-right p-2">Max/Player</th>
+              <th className="text-right p-2">Tickets Sold</th>
+              <th className="text-left p-2">Status</th>
+              <th className="text-right p-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
+            {!isLoading && lotteries.length === 0 && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">No lotteries</td></tr>}
+            {lotteries.map((l: any) => (
+              <tr key={l.id} className="border-b border-border/50 hover:bg-muted/20">
+                <td className="p-2 font-medium">{l.name}</td>
+                <td className="p-2">{fmtDate(l.draw_business_date)}</td>
+                <td className="p-2 text-right font-mono">{fmt(l.ticket_price_credits)}</td>
+                <td className="p-2 text-right font-mono">{l.max_tickets_per_player ?? "∞"}</td>
+                <td className="p-2 text-right font-mono">{l.lottery_tickets?.[0]?.count ?? 0}</td>
+                <td className="p-2">
+                  <Badge variant={l.status === "open" ? "default" : "secondary"} className="text-xs">{l.status}</Badge>
+                </td>
+                <td className="p-2 text-right">
+                  {l.status === "open" && (
+                    <Button size="sm" variant="outline" onClick={() => close.mutate(l.id)} disabled={close.isPending}>
+                      <Lock className="size-3.5" /> Close
+                    </Button>
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {isLoading && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
-              {!isLoading && lotteries.length === 0 && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">No lotteries</td></tr>}
-              {lotteries.map((l: any) => (
-                <tr key={l.id} className="border-b border-border/50 hover:bg-muted/20">
-                  <td className="p-2 font-medium">{l.name}</td>
-                  <td className="p-2">{fmtDate(l.draw_business_date)}</td>
-                  <td className="p-2 text-right font-mono">{fmt(l.ticket_price_credits)}</td>
-                  <td className="p-2 text-right font-mono">{l.max_tickets_per_player ?? "∞"}</td>
-                  <td className="p-2 text-right font-mono">{l.lottery_tickets?.[0]?.count ?? 0}</td>
-                  <td className="p-2">
-                    <Badge variant={l.status === "open" ? "default" : "secondary"} className="text-xs">{l.status}</Badge>
-                  </td>
-                  <td className="p-2 text-right">
-                    {l.status === "open" && (
-                      <Button size="sm" variant="outline" onClick={() => close.mutate(l.id)} disabled={close.isPending}>
-                        <Lock className="size-3.5" /> Close
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            ))}
+          </tbody>
         </DataTable>
       </PageSection>
 

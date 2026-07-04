@@ -100,40 +100,38 @@ const ShopCatalogPage = () => {
 
       <PageSection title="Items" bodyClassName="p-0">
         <DataTable>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/30 text-xs uppercase">
-                <th className="text-left p-2">Name</th>
-                <th className="text-left p-2">SKU</th>
-                <th className="text-right p-2">Price</th>
-                <th className="text-right p-2">Stock</th>
-                <th className="text-left p-2">Status</th>
-                <th className="text-right p-2"></th>
+          <thead>
+            <tr className="border-b border-border bg-muted/30 text-xs uppercase">
+              <th className="text-left p-2">Name</th>
+              <th className="text-left p-2">SKU</th>
+              <th className="text-right p-2">Price</th>
+              <th className="text-right p-2">Stock</th>
+              <th className="text-left p-2">Status</th>
+              <th className="text-right p-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
+            {!isLoading && items.length === 0 && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">No items</td></tr>}
+            {items.map((it) => (
+              <tr key={it.id} className="border-b border-border/50 hover:bg-muted/20">
+                <td className="p-2 font-medium">{it.name}</td>
+                <td className="p-2 text-xs text-muted-foreground">{it.sku ?? "—"}</td>
+                <td className="p-2 text-right font-mono">{fmt(it.price_credits)}</td>
+                <td className="p-2 text-right font-mono">{fmt(it.stock_qty)}</td>
+                <td className="p-2">
+                  {it.is_active
+                    ? <Badge className="text-xs">Active</Badge>
+                    : <Badge variant="secondary" className="text-xs">Inactive</Badge>}
+                </td>
+                <td className="p-2 text-right">
+                  <Button size="sm" variant="ghost" onClick={() => openEdit(it)}>
+                    <Edit2 className="size-3.5" />
+                  </Button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {isLoading && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
-              {!isLoading && items.length === 0 && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">No items</td></tr>}
-              {items.map((it) => (
-                <tr key={it.id} className="border-b border-border/50 hover:bg-muted/20">
-                  <td className="p-2 font-medium">{it.name}</td>
-                  <td className="p-2 text-xs text-muted-foreground">{it.sku ?? "—"}</td>
-                  <td className="p-2 text-right font-mono">{fmt(it.price_credits)}</td>
-                  <td className="p-2 text-right font-mono">{fmt(it.stock_qty)}</td>
-                  <td className="p-2">
-                    {it.is_active
-                      ? <Badge className="text-xs">Active</Badge>
-                      : <Badge variant="secondary" className="text-xs">Inactive</Badge>}
-                  </td>
-                  <td className="p-2 text-right">
-                    <Button size="sm" variant="ghost" onClick={() => openEdit(it)}>
-                      <Edit2 className="size-3.5" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            ))}
+          </tbody>
         </DataTable>
       </PageSection>
 
