@@ -1,7 +1,11 @@
 import { Fragment, useMemo, useState } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, Ban, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays } from "lucide-react";
+import { ArrowLeft, Ban, User, Users as UsersIcon, BarChart3, Ticket, Trophy, History, MapPin, Gift, CalendarDays, Pencil, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import BlacklistPlayerDialog from "@/components/player/BlacklistPlayerDialog";
 import { formatCardId } from "@/lib/card-number";
