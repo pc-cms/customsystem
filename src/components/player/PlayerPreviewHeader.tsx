@@ -333,9 +333,16 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
 
   const handleClose = () => { onClose ? onClose() : ctx.clear(); };
 
-  const blacklistReason = isBlacklisted
-    ? (notes.find((n: any) => n.note_type === "blacklist")?.content || "").replace(/^Added to blacklist\.\s*Reason:\s*/i, "")
+  const rawBlacklistNote = isBlacklisted
+    ? (notes.find((n: any) => n.note_type === "blacklist")?.content || "")
     : "";
+  const blacklistReason = rawBlacklistNote
+    .replace(/^Added to blacklist(?:\s+by manager)?\.\s*Reason:\s*/i, "")
+    .replace(/\s*\(v(\d+)\)\s*$/, "");
+  const blacklistVersion = (() => {
+    const m = rawBlacklistNote.match(/\(v(\d+)\)\s*$/);
+    return m ? parseInt(m[1], 10) : (rawBlacklistNote ? 1 : 0);
+  })();
   const tagRows = ((player as any)?.player_tags || []) as Array<{ tag: string; source?: string | null }>;
   const { floor: floorTags, cctv: cctvTags } = splitTagsBySource(tagRows);
   const cards = ((player as any)?.player_cards || []) as Array<{ card_number: string; is_active?: boolean }>;
