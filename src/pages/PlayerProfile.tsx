@@ -97,6 +97,37 @@ const PlayerProfile = () => {
   const rangeStartMs = useMemo(() => new Date(`${range.from}T00:00:00`).getTime(), [range.from]);
   const rangeEndMs = useMemo(() => new Date(`${range.to}T23:59:59`).getTime(), [range.to]);
 
+  // Blacklist reason inline edit (manager / shift_manager / super_admin).
+  const canEditBlacklistReason = roles.some((r) => ["manager", "shift_manager", "super_admin"].includes(r));
+  const qc = useQueryClient();
+  const [editingReason, setEditingReason] = useState(false);
+  const [reasonDraft, setReasonDraft] = useState("");
+  const [savingReason, setSavingReason] = useState(false);
+  const rawBlacklistNote = (notes as any[]).find((n: any) => n.note_type === "blacklist")?.content || "";
+  const blacklistReason = rawBlacklistNote
+    .replace(/^Added to blacklist(?:\s+by manager)?\.\s*Reason:\s*/i, "")
+    .replace(/\s*\(v(\d+)\)\s*$/, "");
+  const blacklistVersion = (() => {
+    const m = rawBlacklistNote.match(/\(v(\d+)\)\s*$/);
+    return m ? parseInt(m[1], 10) : (rawBlacklistNote ? 1 : 0);
+  })();
+  const commitBlacklistReason = () => {
+    if (!id) return;
+    const next = reasonDraft.trim();
+    if (!next || next === blacklistReason) { setEditingReason(false); return; }
+    setSavingReason(true);
+    supabase.rpc("manager_edit_blacklist_reason" as any, { _player_id: id, _reason: next })
+      .then(({ error }: any) => {
+        if (error) toast.error(error.message || "Failed to update reason");
+        else {
+          toast.success("Reason updated");
+          qc.invalidateQueries({ queryKey: ["player-notes", id] });
+        }
+        setEditingReason(false);
+        setSavingReason(false);
+      });
+  };
+
   // Filter visits by BUSINESS date (v.date YYYY-MM-DD) — not by checked_in_at
   // timestamp. A visit that opens after midnight but before 07:00 EAT still
   // belongs to the previous business day (date stays the same), so a
