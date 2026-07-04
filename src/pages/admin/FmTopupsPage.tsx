@@ -276,6 +276,7 @@ export default function FmTopupsPage() {
             ))}
           </tbody>
         </DataTable>
-      </PageShell>
+      </PageSection>
+    </PageShell>
   );
 }
