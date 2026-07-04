@@ -305,6 +305,11 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const { roles } = useAuth();
   const showFinancials = canSeePlayerFinancials(roles || []);
   const canAdjust = (roles || []).some((r) => r === "pit" || r === "manager" || r === "shift_manager");
+  const canEditBlacklistReason = (roles || []).some((r) => r === "manager" || r === "shift_manager" || r === "super_admin");
+  const qc = useQueryClient();
+  const [editingReason, setEditingReason] = useState(false);
+  const [reasonDraft, setReasonDraft] = useState("");
+  const [savingReason, setSavingReason] = useState(false);
 
   const [chipIn, setChipIn] = useState("");
   const [chipOut, setChipOut] = useState("");
