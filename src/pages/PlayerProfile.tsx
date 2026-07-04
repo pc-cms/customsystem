@@ -513,6 +513,54 @@ const PlayerProfile = () => {
                   {player.status === "blacklist" && (
                     <span className="text-xs font-bold text-destructive border border-destructive rounded px-1.5 py-0.5">BL</span>
                   )}
+                  {player.status === "blacklist" && (
+                    editingReason ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Input
+                          autoFocus
+                          value={reasonDraft}
+                          onChange={(e) => setReasonDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Escape") { e.preventDefault(); setEditingReason(false); }
+                            if (e.key === "Enter") { e.preventDefault(); commitBlacklistReason(); }
+                          }}
+                          className="h-7 text-xs w-[360px]"
+                          placeholder="Blacklist reason"
+                          maxLength={500}
+                          disabled={savingReason}
+                        />
+                        <Button
+                          type="button" size="sm" variant="ghost" className="h-7 px-2"
+                          disabled={savingReason}
+                          onClick={() => setEditingReason(false)}
+                          aria-label="Cancel"
+                        ><X className="w-3 h-3" /></Button>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 max-w-[560px] min-w-0">
+                        {blacklistReason ? (
+                          <span className="text-xs text-destructive truncate" title={blacklistReason}>
+                            — {blacklistReason}
+                            {blacklistVersion > 1 && (
+                              <span className="ml-1 font-mono opacity-70">(v{blacklistVersion})</span>
+                            )}
+                          </span>
+                        ) : (
+                          canEditBlacklistReason && (
+                            <span className="text-xs text-muted-foreground italic">— no reason</span>
+                          )
+                        )}
+                        {canEditBlacklistReason && (
+                          <Button
+                            type="button" size="sm" variant="ghost" className="h-6 px-1 text-destructive/70 hover:text-destructive"
+                            onClick={() => { setReasonDraft(blacklistReason); setEditingReason(true); }}
+                            aria-label="Edit blacklist reason"
+                            title="Edit blacklist reason"
+                          ><Pencil className="w-3 h-3" /></Button>
+                        )}
+                      </span>
+                    )
+                  )}
                   {player.casino_id && <CasinoBadge casinoId={player.casino_id} />}
                 </div>
                 {player.nickname && (
