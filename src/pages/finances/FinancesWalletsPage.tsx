@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSessionState } from "@/hooks/use-session-state";
-import { Wallet, Plus, Pencil, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Wallet, Plus, Pencil, ArrowUpRight, ArrowDownLeft, ChevronRight, ChevronDown, Scale } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
@@ -16,14 +18,18 @@ import {
 } from "@/components/ui/date-range-presets";
 import { useFinWallets, useUpsertFinWallet, useFinWalletTx } from "@/hooks/use-fin";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCasino } from "@/lib/casino-context";
-import { formatNumberSpaces } from "@/lib/currency";
+import { useAuth } from "@/lib/auth-context";
+import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
+import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const CURRENCIES = ["TZS", "USD", "EUR", "GBP", "KES"];
 const KINDS = ["cash", "bank", "safe", "cage", "external"];
+const CASH_LIKE_KINDS = new Set(["cash", "safe"]);
 
 /* ============ Period dashboard data ============ */
 
