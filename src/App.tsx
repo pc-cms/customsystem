@@ -135,6 +135,7 @@ const PromoExpiryReport = lazy(() => import("@/pages/reports/PromoExpiryReport")
 const CashbackReport = lazy(() => import("@/pages/reports/CashbackReport"));
 const AmBudgetReport = lazy(() => import("@/pages/reports/AmBudgetReport"));
 const FmTopupsPage = lazy(() => import("@/pages/admin/FmTopupsPage"));
+const MergePlayersPage = lazy(() => import("@/pages/admin/MergePlayersPage"));
 const PromoCodesReport = lazy(() => import("@/pages/reports/PromoCodesReport"));
 const LotterySalesReport = lazy(() => import("@/pages/reports/LotterySalesReport"));
 const TipsAndBonuses = lazy(() => import("@/pages/TipsAndBonuses"));
