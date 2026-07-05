@@ -330,52 +330,173 @@ export default function FinancesWalletsPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted text-xs uppercase">
               <tr>
+                <th className="w-6"></th>
                 <th className="px-3 py-2 text-left">Name</th>
                 <th className="px-3 py-2 text-left">Kind</th>
                 <th className="px-3 py-2 text-left">Currency</th>
                 <th className="px-3 py-2 text-right">Starting Float</th>
                 <th className="px-3 py-2 text-right">Balance (TZS)</th>
-                <th className="w-20"></th>
+                <th className="w-12"></th>
               </tr>
             </thead>
             <tbody>
-              {(wallets as any[]).map((w) => (
-                <tr key={w.id} className="border-t border-border hover:bg-muted/40">
-                  <td className="px-3 py-1.5">{w.name}</td>
-                  <td className="capitalize">{w.kind}</td>
-                  <td className="font-mono">{w.currency}</td>
-                  <td className="text-right font-mono tabular-nums text-xs">
-                    {w.starting_float_amount
-                      ? `${formatNumberSpaces(Number(w.starting_float_amount))} ${w.currency}`
-                      : "·"}
-                    {w.starting_float_date && (
-                      <div className="text-[10px] text-muted-foreground">
-                        from {fmtDateOnly(w.starting_float_date)}
-                      </div>
-                    )}
-                  </td>
-                  <td className="text-right font-mono tabular-nums">
-                    {formatNumberSpaces(Number(balAsOf?.perWallet.get(w.id) || 0))}
-                  </td>
-                  <td className="text-right pr-3">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => {
-                        setWalletForm(w);
-                        setWalletOpen(true);
-                      }}
-                      aria-label="Edit wallet"
+              {(wallets as any[]).map((w) => {
+                const isOpen = !!expanded[w.id];
+                const useDenoms = CASH_LIKE_KINDS.has(w.kind);
+                const denoms = CASH_DENOMS[w.currency] || CASH_DENOMS.TZS;
+                const denomVals = denomCounts[w.id] || {};
+                const counted = useDenoms
+                  ? cashSum(denomVals)
+                  : Number(amountInput[w.id] || 0);
+                const ledger = Number(balAsOf?.perWallet.get(w.id) || 0);
+                const variance = counted - ledger;
+                return (
+                  <>
+                    <tr
+                      key={w.id}
+                      className="border-t border-border hover:bg-muted/40 cursor-pointer"
+                      onClick={() => toggleRow(w.id)}
                     >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+                      <td className="pl-2">
+                        {isOpen ? (
+                          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                        )}
+                      </td>
+                      <td className="px-3 py-1.5">{w.name}</td>
+                      <td className="capitalize">{w.kind}</td>
+                      <td className="font-mono">{w.currency}</td>
+                      <td className="text-right font-mono tabular-nums text-xs">
+                        {w.starting_float_amount
+                          ? `${formatNumberSpaces(Number(w.starting_float_amount))} ${w.currency}`
+                          : "·"}
+                        {w.starting_float_date && (
+                          <div className="text-[10px] text-muted-foreground">
+                            from {fmtDateOnly(w.starting_float_date)}
+                          </div>
+                        )}
+                      </td>
+                      <td className="text-right font-mono tabular-nums">
+                        {formatNumberSpaces(ledger)}
+                      </td>
+                      <td className="text-right pr-3">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setWalletForm(w);
+                            setWalletOpen(true);
+                          }}
+                          aria-label="Edit wallet"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                      </td>
+                    </tr>
+                    {isOpen && (
+                      <tr className="bg-muted/30 border-t border-border">
+                        <td colSpan={7} className="p-4">
+                          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                                Physical count · {w.currency}
+                              </div>
+                              {useDenoms ? (
+                                <CashDenomInput
+                                  values={denomVals}
+                                  onChange={(v) =>
+                                    setDenomCounts((s) => ({ ...s, [w.id]: v }))
+                                  }
+                                  denoms={denoms}
+                                  currency={w.currency}
+                                  size="sm"
+                                />
+                              ) : (
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder={`Amount (${w.currency})`}
+                                  value={amountInput[w.id] || ""}
+                                  onChange={(e) =>
+                                    setAmountInput((s) => ({
+                                      ...s,
+                                      [w.id]: e.target.value,
+                                    }))
+                                  }
+                                  className="font-mono"
+                                />
+                              )}
+                            </div>
+                            <div className="space-y-3">
+                              <div className="rounded-md border border-border bg-card p-3 space-y-1">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-muted-foreground">Ledger (TZS)</span>
+                                  <span className="font-mono tabular-nums">
+                                    {formatNumberSpaces(ledger)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-muted-foreground">Counted</span>
+                                  <span className="font-mono tabular-nums">
+                                    {formatNumberSpaces(counted)} {w.currency}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm font-semibold pt-1 border-t border-border">
+                                  <span>Variance</span>
+                                  <span
+                                    className={cn(
+                                      "font-mono tabular-nums",
+                                      variance === 0
+                                        ? "text-muted-foreground"
+                                        : variance < 0
+                                          ? "cms-amount-negative"
+                                          : "cms-amount-positive",
+                                    )}
+                                  >
+                                    {variance > 0 ? "+" : ""}
+                                    {formatNumberSpaces(variance)}
+                                  </span>
+                                </div>
+                              </div>
+                              <Textarea
+                                placeholder="Note (optional)"
+                                value={countNote[w.id] || ""}
+                                onChange={(e) =>
+                                  setCountNote((s) => ({ ...s, [w.id]: e.target.value }))
+                                }
+                                rows={2}
+                                className="text-xs"
+                              />
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => toggleRow(w.id)}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => saveCount(w)}
+                                  disabled={savingId === w.id}
+                                >
+                                  {savingId === w.id ? "Saving…" : "Save Physical Count"}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                );
+              })}
               {!wallets.length && (
                 <tr>
-                  <td colSpan={6} className="text-center text-muted-foreground py-6">
+                  <td colSpan={7} className="text-center text-muted-foreground py-6">
                     No wallets yet
                   </td>
                 </tr>
@@ -384,6 +505,7 @@ export default function FinancesWalletsPage() {
           </table>
         </div>
       </PageSection>
+
 
       {/* TRANSACTIONS */}
       <PageSection title={`Transactions · ${txRows.length}`} card={false}>
