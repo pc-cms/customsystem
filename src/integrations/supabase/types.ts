@@ -10539,6 +10539,10 @@ export type Database = {
           job_position: string
         }[]
       }
+      ensure_fin_daily_rates: {
+        Args: { _business_date: string; _casino_id: string }
+        Returns: undefined
+      }
       export_full_schema_ddl: { Args: never; Returns: string }
       fin_archive_old_audit_log: { Args: never; Returns: number }
       fin_budget_set_annual: {
