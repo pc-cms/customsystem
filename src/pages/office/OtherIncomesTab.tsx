@@ -122,10 +122,11 @@ export default function OtherIncomesTab() {
     {
       key: "date",
       header: "Date",
+      type: "date",
       accessor: (r) => (
         <span className="font-mono text-xs">{fmtDateOnly(r.business_date)}</span>
       ),
-      width: "110px",
+      style: { width: 110 },
     },
     {
       key: "source",
@@ -133,7 +134,7 @@ export default function OtherIncomesTab() {
       accessor: (r) => (
         <span className="text-xs uppercase tracking-wider">{SOURCE_LABEL[r.source] || r.source}</span>
       ),
-      width: "160px",
+      style: { width: 160 },
     },
     {
       key: "category",
@@ -155,7 +156,7 @@ export default function OtherIncomesTab() {
     {
       key: "amount",
       header: "Amount",
-      type: "number",
+      type: "money",
       accessor: (r) => {
         const isReversal = !!r.reverses_id;
         const isReversed = !!r.reversed_by_id;
@@ -173,7 +174,7 @@ export default function OtherIncomesTab() {
           </span>
         );
       },
-      width: "140px",
+      style: { width: 140 },
     },
     {
       key: "note",
@@ -187,6 +188,7 @@ export default function OtherIncomesTab() {
     {
       key: "actions",
       header: "",
+      type: "actions",
       accessor: (r) => {
         if (r.reverses_id || r.reversed_by_id) return null;
         if (!canWrite) return null;
@@ -204,7 +206,7 @@ export default function OtherIncomesTab() {
           </Button>
         );
       },
-      width: "60px",
+      style: { width: 60 },
     },
   ];
 
