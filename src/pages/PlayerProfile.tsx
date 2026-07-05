@@ -20,6 +20,7 @@ import CategoryBadge, { type PlayerCategory } from "@/components/player/Category
 import CasinoBadge from "@/components/player/CasinoBadge";
 import PlayerStatusTagsEditor, { LevelPicker } from "@/components/player/PlayerStatusTagsEditor";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
+import { MergedBanner } from "@/components/merge/MergedBanner";
 import { fmtDate, fmtDateTime, fmtTime } from "@/lib/format-date";
 import {
   usePlayer, usePlayerVisits, usePlayerSessions, usePlayerGroupHistory,
@@ -486,6 +487,8 @@ const PlayerProfile = () => {
           )}
         </div>
       </div>
+
+      <MergedBanner playerId={player.id} mergedIntoId={(player as any).merged_into_id} />
 
       {/* Header card: photo left, info right */}
       <PageSection card>

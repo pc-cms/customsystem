@@ -4638,6 +4638,30 @@ export type Database = {
           },
         ]
       }
+      merge_group_dismissed: {
+        Row: {
+          dismissed_at: string
+          dismissed_by: string | null
+          expires_at: string
+          id: string
+          player_ids: string[]
+        }
+        Insert: {
+          dismissed_at?: string
+          dismissed_by?: string | null
+          expires_at?: string
+          id?: string
+          player_ids: string[]
+        }
+        Update: {
+          dismissed_at?: string
+          dismissed_by?: string | null
+          expires_at?: string
+          id?: string
+          player_ids?: string[]
+        }
+        Relationships: []
+      }
       mirror_cutover_state: {
         Row: {
           casino_id: string
@@ -6027,6 +6051,78 @@ export type Database = {
           },
         ]
       }
+      player_merges: {
+        Row: {
+          affected_counts: Json
+          casino_id: string | null
+          created_at: string
+          field_choices: Json
+          id: string
+          loser_ids: string[]
+          loser_snapshots: Json
+          migrations: Json
+          performed_at: string
+          performed_by: string | null
+          reason: string
+          survivor_id: string
+          survivor_snapshot: Json
+          undone_at: string | null
+          undone_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          affected_counts?: Json
+          casino_id?: string | null
+          created_at?: string
+          field_choices?: Json
+          id?: string
+          loser_ids: string[]
+          loser_snapshots: Json
+          migrations?: Json
+          performed_at?: string
+          performed_by?: string | null
+          reason: string
+          survivor_id: string
+          survivor_snapshot: Json
+          undone_at?: string | null
+          undone_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          affected_counts?: Json
+          casino_id?: string | null
+          created_at?: string
+          field_choices?: Json
+          id?: string
+          loser_ids?: string[]
+          loser_snapshots?: Json
+          migrations?: Json
+          performed_at?: string
+          performed_by?: string | null
+          reason?: string
+          survivor_id?: string
+          survivor_snapshot?: Json
+          undone_at?: string | null
+          undone_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_merges_survivor_id_fkey"
+            columns: ["survivor_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "player_merges_survivor_id_fkey"
+            columns: ["survivor_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_notes: {
         Row: {
           casino_id: string
@@ -6214,6 +6310,9 @@ export type Database = {
           id_number: string
           last_name: string
           locked_at: string | null
+          merged_at: string | null
+          merged_by: string | null
+          merged_into_id: string | null
           nickname: string
           phone: string
           photo_url: string | null
@@ -6239,6 +6338,9 @@ export type Database = {
           id_number?: string
           last_name: string
           locked_at?: string | null
+          merged_at?: string | null
+          merged_by?: string | null
+          merged_into_id?: string | null
           nickname?: string
           phone?: string
           photo_url?: string | null
@@ -6264,6 +6366,9 @@ export type Database = {
           id_number?: string
           last_name?: string
           locked_at?: string | null
+          merged_at?: string | null
+          merged_by?: string | null
+          merged_into_id?: string | null
           nickname?: string
           phone?: string
           photo_url?: string | null
@@ -6281,6 +6386,20 @@ export type Database = {
             columns: ["casino_id"]
             isOneToOne: false
             referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "players_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "players_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "players"
             referencedColumns: ["id"]
           },
         ]
@@ -10464,6 +10583,14 @@ export type Database = {
         Args: { p_business_date: string; p_casino_id: string }
         Returns: number
       }
+      find_duplicate_groups: {
+        Args: { _casino_id?: string; _limit?: number }
+        Returns: {
+          group_key: string
+          match_reason: string
+          players: Json
+        }[]
+      }
       finish_first_run: {
         Args: {
           _config: Json
@@ -10609,6 +10736,15 @@ export type Database = {
           _status: string
         }
         Returns: undefined
+      }
+      merge_players: {
+        Args: {
+          _field_choices: Json
+          _loser_ids: string[]
+          _reason: string
+          _survivor_id: string
+        }
+        Returns: string
       }
       mirror_freeze_writes: { Args: { p_casino_id: string }; Returns: Json }
       mirror_full_parity_snapshot: {
@@ -11042,6 +11178,7 @@ export type Database = {
         Args: { p_casino_id: string; p_confirm_slug: string }
         Returns: Json
       }
+      undo_player_merge: { Args: { _merge_id: string }; Returns: undefined }
       update_user_roles: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
@@ -11179,7 +11316,7 @@ export type Database = {
         | "other_office"
       player_category: "casino" | "diamond" | "platinum" | "gold" | "normal"
       player_crm_segment: "vip" | "regular" | "new" | "dormant" | "custom"
-      player_status: "active" | "blacklist"
+      player_status: "active" | "blacklist" | "merged"
       player_type: "slots" | "table" | "mix"
       player_verification_status: "unverified" | "verified" | "rejected"
       pos_order_status: "pending" | "preparing" | "ready" | "served" | "void"
@@ -11491,7 +11628,7 @@ export const Constants = {
       ],
       player_category: ["casino", "diamond", "platinum", "gold", "normal"],
       player_crm_segment: ["vip", "regular", "new", "dormant", "custom"],
-      player_status: ["active", "blacklist"],
+      player_status: ["active", "blacklist", "merged"],
       player_type: ["slots", "table", "mix"],
       player_verification_status: ["unverified", "verified", "rejected"],
       pos_order_status: ["pending", "preparing", "ready", "served", "void"],

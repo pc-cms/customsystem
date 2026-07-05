@@ -33,6 +33,7 @@ export const usePlayers = () => {
       return await fetchPaged<any>((from, to) => supabase
         .from("players")
         .select("*, player_cards(*), player_tags(*)")
+        .neq("status", "merged")
         .order("last_name")
         .range(from, to)
       );
