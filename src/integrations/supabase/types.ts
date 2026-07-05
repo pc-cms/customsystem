@@ -11179,7 +11179,7 @@ export type Database = {
         | "other_office"
       player_category: "casino" | "diamond" | "platinum" | "gold" | "normal"
       player_crm_segment: "vip" | "regular" | "new" | "dormant" | "custom"
-      player_status: "active" | "blacklist"
+      player_status: "active" | "blacklist" | "merged"
       player_type: "slots" | "table" | "mix"
       player_verification_status: "unverified" | "verified" | "rejected"
       pos_order_status: "pending" | "preparing" | "ready" | "served" | "void"
@@ -11491,7 +11491,7 @@ export const Constants = {
       ],
       player_category: ["casino", "diamond", "platinum", "gold", "normal"],
       player_crm_segment: ["vip", "regular", "new", "dormant", "custom"],
-      player_status: ["active", "blacklist"],
+      player_status: ["active", "blacklist", "merged"],
       player_type: ["slots", "table", "mix"],
       player_verification_status: ["unverified", "verified", "rejected"],
       pos_order_status: ["pending", "preparing", "ready", "served", "void"],
