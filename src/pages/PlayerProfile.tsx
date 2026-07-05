@@ -487,6 +487,8 @@ const PlayerProfile = () => {
         </div>
       </div>
 
+      <MergedBanner playerId={player.id} mergedIntoId={(player as any).merged_into_id} />
+
       {/* Header card: photo left, info right */}
       <PageSection card>
         <div className="flex flex-col md:flex-row gap-4">
