@@ -7,16 +7,14 @@ import RatesTab from "./RatesTab";
 import BalanceTab from "./BalanceTab";
 import { BalanceBanner } from "@/components/office/BalanceBanner";
 
-const FinancesOfficeSafePage = lazy(() => import("@/pages/finances/FinancesOfficeSafePage"));
 const FinancesMoneyChangePage = lazy(() => import("@/pages/finances/FinancesMoneyChangePage"));
 const FinancesWalletsPage = lazy(() => import("@/pages/finances/FinancesWalletsPage"));
 
 const TABS = [
   { value: "balance", label: "Balance" },
-  { value: "safe", label: "Safe" },
+  { value: "wallets", label: "Wallets" },
   { value: "day-closings", label: "Day Closings" },
   { value: "money-change", label: "Money Change" },
-  { value: "wallets", label: "Wallets" },
   { value: "other-incomes", label: "Other Incomes" },
   { value: "rates", label: "Rates" },
 ] as const;
