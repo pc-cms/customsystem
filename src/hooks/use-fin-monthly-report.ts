@@ -169,7 +169,37 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       const liveGame = (dayClosings.data || []).reduce((s, r: any) => s + Number(r.tables_result || 0), 0);
       const slotsIncome = (dayClosings.data || []).reduce((s, r: any) => s + Number(r.slots_result || 0), 0);
       const rateList = ((rates as any)?.data || []).map((r: any) => Number(r.rate_to_tzs || 0)).filter((n: number) => n > 0);
-      const avgUsdTzs = rateList.length ? rateList.reduce((s: number, n: number) => s + n, 0) / rateList.length : 0;
+      let avgUsdTzs = rateList.length ? rateList.reduce((s: number, n: number) => s + n, 0) / rateList.length : 0;
+      // Fallback: if no USD rate was entered in the selected period, use the
+      // most recent rate on/before the period end so USD budgets & expenses
+      // still convert into Grand TZS (otherwise USD silently drops out of totals).
+      if (avgUsdTzs === 0) {
+        let fbQ = supabase
+          .from("fin_daily_rates")
+          .select("rate_to_tzs")
+          .eq("currency", "USD")
+          .lt("business_date", endExclusive)
+          .gt("rate_to_tzs", 0)
+          .order("business_date", { ascending: false })
+          .limit(1);
+        if (!network && casinoId) fbQ = fbQ.eq("casino_id", casinoId);
+        const fb = await fbQ;
+        const fbRate = Number((fb.data as any)?.[0]?.rate_to_tzs || 0);
+        if (fbRate > 0) avgUsdTzs = fbRate;
+        else {
+          // Last resort: any casino's latest USD rate (network-wide).
+          const fb2 = await supabase
+            .from("fin_daily_rates")
+            .select("rate_to_tzs")
+            .eq("currency", "USD")
+            .lt("business_date", endExclusive)
+            .gt("rate_to_tzs", 0)
+            .order("business_date", { ascending: false })
+            .limit(1);
+          const fb2Rate = Number((fb2.data as any)?.[0]?.rate_to_tzs || 0);
+          if (fb2Rate > 0) avgUsdTzs = fb2Rate;
+        }
+      }
       const other = ((incomes as any)?.data || []).reduce((s: number, r: any) => {
         const amt = Number(r.amount || 0);
         if (r.currency === "USD") return s + (avgUsdTzs ? amt * avgUsdTzs : 0);
