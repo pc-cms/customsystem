@@ -242,7 +242,7 @@ export const MergeWizard = ({ open, onOpenChange, onDone }: Props) => {
           </div>
           <label className="flex items-start gap-2 text-sm cursor-pointer">
             <Checkbox checked={ack} onCheckedChange={v => setAck(!!v)} className="mt-0.5" />
-            <span>I understand this action moves all visits, transactions, cards and notes to the survivor. It can be undone within 30 days by a manager.</span>
+            <span>I understand this action moves all visits, transactions, cards and notes to the survivor. <strong>This action is permanent and cannot be undone.</strong></span>
           </label>
         </div>
       )}
