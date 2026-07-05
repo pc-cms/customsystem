@@ -49,7 +49,6 @@ export default function OfficePage() {
 
       <Suspense fallback={<div className="text-sm text-muted-foreground p-4">Loading…</div>}>
         {tab === "balance" && <BalanceTab />}
-        {tab === "safe" && <FinancesOfficeSafePage />}
         {tab === "day-closings" && <DayClosingsTab />}
         {tab === "money-change" && <FinancesMoneyChangePage />}
         {tab === "wallets" && <FinancesWalletsPage />}
