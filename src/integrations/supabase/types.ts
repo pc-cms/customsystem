@@ -3754,6 +3754,156 @@ export type Database = {
           },
         ]
       }
+      fin_month_closures: {
+        Row: {
+          casino_id: string
+          closed_at: string
+          closed_by: string
+          collection_details: Json
+          collection_total_tzs: number
+          collection_total_usd: number
+          created_at: string
+          id: string
+          month: number
+          new_float_details: Json
+          note: string | null
+          year: number
+        }
+        Insert: {
+          casino_id: string
+          closed_at?: string
+          closed_by: string
+          collection_details?: Json
+          collection_total_tzs?: number
+          collection_total_usd?: number
+          created_at?: string
+          id?: string
+          month: number
+          new_float_details?: Json
+          note?: string | null
+          year: number
+        }
+        Update: {
+          casino_id?: string
+          closed_at?: string
+          closed_by?: string
+          collection_details?: Json
+          collection_total_tzs?: number
+          collection_total_usd?: number
+          created_at?: string
+          id?: string
+          month?: number
+          new_float_details?: Json
+          note?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_month_closures_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_other_incomes: {
+        Row: {
+          amount: number
+          business_date: string
+          casino_id: string
+          created_at: string
+          created_by: string
+          currency: string
+          fin_category_id: string | null
+          fx_rate: number
+          id: string
+          note: string | null
+          reversed_by_id: string | null
+          reverses_id: string | null
+          source: string
+          wallet_id: string
+          wallet_tx_id: string | null
+        }
+        Insert: {
+          amount: number
+          business_date: string
+          casino_id: string
+          created_at?: string
+          created_by: string
+          currency: string
+          fin_category_id?: string | null
+          fx_rate?: number
+          id?: string
+          note?: string | null
+          reversed_by_id?: string | null
+          reverses_id?: string | null
+          source: string
+          wallet_id: string
+          wallet_tx_id?: string | null
+        }
+        Update: {
+          amount?: number
+          business_date?: string
+          casino_id?: string
+          created_at?: string
+          created_by?: string
+          currency?: string
+          fin_category_id?: string | null
+          fx_rate?: number
+          id?: string
+          note?: string | null
+          reversed_by_id?: string | null
+          reverses_id?: string | null
+          source?: string
+          wallet_id?: string
+          wallet_tx_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_other_incomes_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_other_incomes_fin_category_id_fkey"
+            columns: ["fin_category_id"]
+            isOneToOne: false
+            referencedRelation: "fin_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_other_incomes_reversed_by_id_fkey"
+            columns: ["reversed_by_id"]
+            isOneToOne: false
+            referencedRelation: "fin_other_incomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_other_incomes_reverses_id_fkey"
+            columns: ["reverses_id"]
+            isOneToOne: false
+            referencedRelation: "fin_other_incomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_other_incomes_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_other_incomes_wallet_tx_id_fkey"
+            columns: ["wallet_tx_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallet_tx"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_wallet_tx: {
         Row: {
           amount: number
@@ -3850,6 +4000,9 @@ export type Database = {
           kind: string
           name: string
           sort_order: number
+          starting_float_amount: number
+          starting_float_date: string | null
+          starting_float_note: string | null
           updated_at: string
         }
         Insert: {
@@ -3861,6 +4014,9 @@ export type Database = {
           kind: string
           name: string
           sort_order?: number
+          starting_float_amount?: number
+          starting_float_date?: string | null
+          starting_float_note?: string | null
           updated_at?: string
         }
         Update: {
@@ -3872,6 +4028,9 @@ export type Database = {
           kind?: string
           name?: string
           sort_order?: number
+          starting_float_amount?: number
+          starting_float_date?: string | null
+          starting_float_note?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -10545,6 +10704,14 @@ export type Database = {
       }
       export_full_schema_ddl: { Args: never; Returns: string }
       fin_archive_old_audit_log: { Args: never; Returns: number }
+      fin_balance_snapshot: {
+        Args: {
+          p_casino_id: string
+          p_period_end: string
+          p_period_start: string
+        }
+        Returns: Json
+      }
       fin_budget_set_annual: {
         Args: {
           p_annual: number

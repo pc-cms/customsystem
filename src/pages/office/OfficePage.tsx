@@ -4,12 +4,15 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DayClosingsTab from "./DayClosingsTab";
 import OtherIncomesTab from "./OtherIncomesTab";
 import RatesTab from "./RatesTab";
+import BalanceTab from "./BalanceTab";
+import { BalanceBanner } from "@/components/office/BalanceBanner";
 
 const FinancesOfficeSafePage = lazy(() => import("@/pages/finances/FinancesOfficeSafePage"));
 const FinancesMoneyChangePage = lazy(() => import("@/pages/finances/FinancesMoneyChangePage"));
 const FinancesWalletsPage = lazy(() => import("@/pages/finances/FinancesWalletsPage"));
 
 const TABS = [
+  { value: "balance", label: "Balance" },
   { value: "safe", label: "Safe" },
   { value: "day-closings", label: "Day Closings" },
   { value: "money-change", label: "Money Change" },
@@ -20,7 +23,7 @@ const TABS = [
 
 type TabValue = (typeof TABS)[number]["value"];
 
-const DEFAULT_TAB: TabValue = "safe";
+const DEFAULT_TAB: TabValue = "balance";
 
 export default function OfficePage() {
   const [params, setParams] = useSearchParams();
@@ -35,6 +38,7 @@ export default function OfficePage() {
 
   return (
     <div className="space-y-4">
+      <BalanceBanner />
       <Tabs value={tab} onValueChange={onChange}>
         <TabsList className="h-9 flex-wrap">
           {TABS.map((t) => (
@@ -46,6 +50,7 @@ export default function OfficePage() {
       </Tabs>
 
       <Suspense fallback={<div className="text-sm text-muted-foreground p-4">Loading…</div>}>
+        {tab === "balance" && <BalanceTab />}
         {tab === "safe" && <FinancesOfficeSafePage />}
         {tab === "day-closings" && <DayClosingsTab />}
         {tab === "money-change" && <FinancesMoneyChangePage />}

@@ -188,7 +188,7 @@ export const useUpsertFinWallet = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: any) => {
-      const payload = {
+      const payload: any = {
         id: input.id,
         casino_id: input.casino_id,
         name: input.name,
@@ -197,12 +197,20 @@ export const useUpsertFinWallet = () => {
         is_active: input.is_active ?? true,
         sort_order: input.sort_order ?? 0,
       };
+      // Starting Float fields (editable by manager/finance_manager/super_admin)
+      if (input.starting_float_amount !== undefined)
+        payload.starting_float_amount = Number(input.starting_float_amount) || 0;
+      if (input.starting_float_date !== undefined)
+        payload.starting_float_date = input.starting_float_date || null;
+      if (input.starting_float_note !== undefined)
+        payload.starting_float_note = input.starting_float_note || null;
       const { error } = await supabase.from("fin_wallets").upsert(payload);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["fin-wallets"] });
       qc.invalidateQueries({ queryKey: ["fin-wallet-balances"] });
+      qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
       toast.success("Wallet saved");
     },
     onError: (e: any) => toast.error(e.message),

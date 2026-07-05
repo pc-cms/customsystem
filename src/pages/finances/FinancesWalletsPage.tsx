@@ -257,6 +257,7 @@ export default function FinancesWalletsPage() {
                 <th className="px-3 py-2 text-left">Name</th>
                 <th className="px-3 py-2 text-left">Kind</th>
                 <th className="px-3 py-2 text-left">Currency</th>
+                <th className="px-3 py-2 text-right">Starting Float</th>
                 <th className="px-3 py-2 text-right">Balance (TZS)</th>
                 <th className="w-20"></th>
               </tr>
@@ -267,6 +268,16 @@ export default function FinancesWalletsPage() {
                   <td className="px-3 py-1.5">{w.name}</td>
                   <td className="capitalize">{w.kind}</td>
                   <td className="font-mono">{w.currency}</td>
+                  <td className="text-right font-mono tabular-nums text-xs">
+                    {w.starting_float_amount
+                      ? `${formatNumberSpaces(Number(w.starting_float_amount))} ${w.currency}`
+                      : "·"}
+                    {w.starting_float_date && (
+                      <div className="text-[10px] text-muted-foreground">
+                        from {fmtDateOnly(w.starting_float_date)}
+                      </div>
+                    )}
+                  </td>
                   <td className="text-right font-mono tabular-nums">
                     {formatNumberSpaces(Number(balAsOf?.perWallet.get(w.id) || 0))}
                   </td>
@@ -288,7 +299,7 @@ export default function FinancesWalletsPage() {
               ))}
               {!wallets.length && (
                 <tr>
-                  <td colSpan={5} className="text-center text-muted-foreground py-6">
+                  <td colSpan={6} className="text-center text-muted-foreground py-6">
                     No wallets yet
                   </td>
                 </tr>
@@ -461,6 +472,40 @@ export default function FinancesWalletsPage() {
               onChange={(e) =>
                 setWalletForm({ ...walletForm, sort_order: Number(e.target.value) })
               }
+            />
+          </FormField>
+
+          <FormField span={12}>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1 mb-1 border-t border-border pt-2">
+              Starting Float (edited by manager / finance / super-admin · logged)
+            </div>
+          </FormField>
+          <FormField span={5} label={`Amount (${walletForm.currency || "TZS"})`}>
+            <Input
+              type="number"
+              step="0.01"
+              value={walletForm.starting_float_amount ?? 0}
+              onChange={(e) =>
+                setWalletForm({ ...walletForm, starting_float_amount: e.target.value })
+              }
+            />
+          </FormField>
+          <FormField span={4} label="From date">
+            <Input
+              type="date"
+              value={walletForm.starting_float_date || ""}
+              onChange={(e) =>
+                setWalletForm({ ...walletForm, starting_float_date: e.target.value })
+              }
+            />
+          </FormField>
+          <FormField span={3} label="Note">
+            <Input
+              value={walletForm.starting_float_note || ""}
+              onChange={(e) =>
+                setWalletForm({ ...walletForm, starting_float_note: e.target.value })
+              }
+              placeholder="Optional"
             />
           </FormField>
         </FormGrid>
