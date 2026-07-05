@@ -31,6 +31,14 @@ export default function RatesTab() {
   const to = dates[0];
   const today = dates[0];
   const { data: rows = [] } = useFinDailyRates(from, to);
+  const ensure = useEnsureDailyRates();
+
+  // Auto-carry today's rate from the most recent prior day so the row is
+  // never blank. Managers can override before first cage/slots transaction.
+  useEffect(() => {
+    ensure.mutate(today);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [today]);
 
   const byKey = useMemo(() => {
     const m = new Map<string, number>();
