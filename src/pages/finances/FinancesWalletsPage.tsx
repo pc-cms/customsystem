@@ -295,6 +295,9 @@ export default function FinancesWalletsPage() {
             setRange({ from, to });
           }}
         />
+        <Button variant="outline" onClick={() => navigate("/office?tab=balance")}>
+          <Scale className="w-4 h-4" /> Reconciliation
+        </Button>
         <Button onClick={openNewWallet}>
           <Plus className="w-4 h-4" /> Add Wallet
         </Button>
