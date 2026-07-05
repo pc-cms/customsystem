@@ -474,6 +474,40 @@ export default function FinancesWalletsPage() {
               }
             />
           </FormField>
+
+          <FormField span={12}>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1 mb-1 border-t border-border pt-2">
+              Starting Float (edited by manager / finance / super-admin · logged)
+            </div>
+          </FormField>
+          <FormField span={5} label={`Amount (${walletForm.currency || "TZS"})`}>
+            <Input
+              type="number"
+              step="0.01"
+              value={walletForm.starting_float_amount ?? 0}
+              onChange={(e) =>
+                setWalletForm({ ...walletForm, starting_float_amount: e.target.value })
+              }
+            />
+          </FormField>
+          <FormField span={4} label="From date">
+            <Input
+              type="date"
+              value={walletForm.starting_float_date || ""}
+              onChange={(e) =>
+                setWalletForm({ ...walletForm, starting_float_date: e.target.value })
+              }
+            />
+          </FormField>
+          <FormField span={3} label="Note">
+            <Input
+              value={walletForm.starting_float_note || ""}
+              onChange={(e) =>
+                setWalletForm({ ...walletForm, starting_float_note: e.target.value })
+              }
+              placeholder="Optional"
+            />
+          </FormField>
         </FormGrid>
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="outline" onClick={() => setWalletOpen(false)}>
