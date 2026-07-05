@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
+import { useAuth } from "@/lib/auth-context";
 import { getBusinessDate } from "@/lib/business-day";
 import { toast } from "sonner";
 
@@ -37,6 +38,7 @@ function writeBusinessDateCache(casinoId: string, value: string) {
  */
 export function useEffectiveBusinessDate() {
   const { activeCasinoId: casinoId } = useCasino();
+  const { user } = useAuth();
   return useQuery({
     queryKey: ["effective-business-date", casinoId],
     queryFn: async (): Promise<string> => {
@@ -61,7 +63,7 @@ export function useEffectiveBusinessDate() {
     // business day after opening the PWA/browser, otherwise Tables/Dashboard can
     // boot on the previous date until the interval fires.
     initialDataUpdatedAt: 0,
-    enabled: !!casinoId,
+    enabled: !!casinoId && !!user,
     staleTime: 60_000,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,

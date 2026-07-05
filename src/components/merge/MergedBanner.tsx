@@ -1,8 +1,6 @@
 import { Link } from "react-router-dom";
-import { AlertTriangle, RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { usePlayerMergeHistory, useUndoMergePlayers } from "@/hooks/use-merge-players";
-import { useAuth } from "@/lib/auth-context";
+import { AlertTriangle } from "lucide-react";
+import { usePlayerMergeHistory } from "@/hooks/use-merge-players";
 import { fmtDate } from "@/lib/format-date";
 
 interface Props {
@@ -10,19 +8,12 @@ interface Props {
   mergedIntoId?: string | null;
 }
 
-const canManageMerge = (roles: string[]) =>
-  roles.includes("super_admin") || roles.includes("manager") || roles.includes("shift_manager");
-
 export const MergedBanner = ({ playerId, mergedIntoId }: Props) => {
-  const { roles } = useAuth();
   const { data: history = [] } = usePlayerMergeHistory(playerId);
-  const undo = useUndoMergePlayers();
-
-  const isManager = canManageMerge(roles);
 
   // Case A: this player was merged into another → show link to survivor
   if (mergedIntoId) {
-    const rec = history.find(h => h.loser_ids.includes(playerId) && !h.undone_at);
+    const rec = history.find(h => h.loser_ids.includes(playerId));
     return (
       <div className="rounded-lg border-2 border-amber-500/60 bg-amber-500/10 p-3 flex items-start gap-3 text-sm">
         <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
@@ -34,17 +25,12 @@ export const MergedBanner = ({ playerId, mergedIntoId }: Props) => {
             {rec && <> · merged {fmtDate(rec.performed_at)}</>}
           </div>
         </div>
-        {rec && isManager && !rec.undone_at && (
-          <Button size="sm" variant="outline" onClick={() => undo.mutate(rec.id)} disabled={undo.isPending}>
-            <RotateCcw className="h-3.5 w-3.5 mr-1" /> Undo
-          </Button>
-        )}
       </div>
     );
   }
 
   // Case B: this player is a survivor of one or more merges
-  const asSurvivor = history.filter(h => h.survivor_id === playerId && !h.undone_at);
+  const asSurvivor = history.filter(h => h.survivor_id === playerId);
   if (asSurvivor.length === 0) return null;
 
   const total = asSurvivor.reduce((n, h) => n + h.loser_ids.length, 0);
@@ -58,11 +44,6 @@ export const MergedBanner = ({ playerId, mergedIntoId }: Props) => {
           Last merge on {fmtDate(latest.performed_at)} — {latest.reason}
         </div>
       </div>
-      {isManager && (
-        <Button size="sm" variant="outline" onClick={() => undo.mutate(latest.id)} disabled={undo.isPending}>
-          <RotateCcw className="h-3.5 w-3.5 mr-1" /> Undo last
-        </Button>
-      )}
     </div>
   );
 };

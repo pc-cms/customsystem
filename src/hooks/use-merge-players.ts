@@ -60,20 +60,6 @@ export const useMergePlayers = () => {
   });
 };
 
-export const useUndoMergePlayers = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (mergeId: string) => {
-      const { error } = await supabase.rpc("undo_player_merge" as any, { _merge_id: mergeId });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      invalidateAll(qc);
-      toast.success("Merge undone");
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Undo failed"),
-  });
-};
 
 export const usePlayerMergeHistory = (playerId: string | null) => {
   return useQuery({

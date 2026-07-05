@@ -25,7 +25,7 @@ const MergePlayersPage = () => {
       <PageHeader
         icon={Users}
         title="Merge duplicate players"
-        subtitle="Combine 2–5 duplicate profiles into a single surviving record. Reversible within 30 days."
+        subtitle="Combine 2–5 duplicate profiles into a single surviving record. This action is permanent."
       />
       <PageSection>
         <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
