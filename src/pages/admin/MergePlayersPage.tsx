@@ -23,7 +23,7 @@ const MergePlayersPage = () => {
   return (
     <PageShell>
       <PageHeader
-        icon={<Users className="h-5 w-5" />}
+        icon={Users}
         title="Merge duplicate players"
         subtitle="Combine 2–5 duplicate profiles into a single surviving record. Reversible within 30 days."
       />
