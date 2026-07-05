@@ -1,178 +1,80 @@
-## Что делаем
+## Цель
 
-Превращаем Office Safe в **настоящую большую кассу** с формальной сверкой баланса. Добавляем: Starting Float на кошелёк, Other Income как транзакции, Missed Chips в формулу Income, страницу Balance и месячный ритуал Close Month.
+Убрать дублирование «Safe» и «Wallets» — оставить единый экран Wallets, где:
+- каждая строка = один кошелёк (cash / safe / bank / cashless / cage / external);
+- клик по строке = разворот с покупюрным вводом для любой валюты;
+- кнопка Reconciliation = ссылка на Balance-таб (никакого отдельного экрана свёрки);
+- Starting Float редактируется только карандашиком (как сейчас).
 
-## Формула
+## Изменения
 
-```text
-Expected Cash = Starting Float
-              + Live Game Result
-              + Slots Result
-              + Other Income
-              ± Missed Chips (MISS = −, OVER = +)
-              − Expenses
-              − Collections
+### 1. БД — миграция (переименование сейфов)
 
-Actual Cash   = Σ Physical Balance по кошелькам (последний cash_count)
-
-Variance      = Actual − Expected
-                > 0  зелёный  (излишек)
-                = 0  ок
-                < 0  красный (недостача)
+```sql
+UPDATE public.fin_wallets
+SET name = 'Safe ' || currency
+WHERE kind = 'safe';
 ```
 
-Период по умолчанию — **Lifetime** (с даты последнего Starting Float, т.е. с 1-го числа текущего месяца), переключатели Today / MTD / Custom.
+Один UPDATE, идемпотентный. Никаких схемных изменений. Пользователь потом сможет вручную переименовать в диалоге.
 
----
+### 2. OfficePage — убрать таб Safe
 
-## 1. База данных
+`src/pages/office/OfficePage.tsx`:
+- удалить пункт `{ value: "safe", label: "Safe" }` из TABS;
+- удалить lazy-импорт `FinancesOfficeSafePage` и его ветку в Suspense;
+- если `?tab=safe` в URL — редирект на `wallets` (safe-fallback в парсере).
 
-### `fin_wallets` — добавить поля
-- `starting_float_amount NUMERIC` — стартовый баланс кошелька в его валюте
-- `starting_float_date DATE` — дата, с которой считается (обычно 1-е число месяца)
-- `starting_float_note TEXT`
-- Редактируют `manager`, `finance_manager`, `super_admin`, запись в `activity_logs`
+Файл `src/pages/finances/FinancesOfficeSafePage.tsx` остаётся в репо на всякий (можно удалить позже), но не подключён нигде — все ссылки уходят.
 
-### Новая таблица `fin_other_incomes`
-Транзакции прихода «извне» (инвестиции, transfer из другого казино, refund, bonus).
-- `casino_id`, `business_date`, `wallet_id → fin_wallets`, `fin_category_id → fin_categories` (`is_income=true`)
-- `source` ENUM: `investment | inter_casino_transfer | owner_topup | refund | bonus | other`
-- `currency`, `amount NUMERIC`, `note`, `created_by`, `reversed_by`, `reverses_id`
-- **Иммутабельная** (правки только через reversal, как expenses)
-- Триггер → зеркальная запись в `fin_wallet_tx` с `kind='income'` → баланс кошелька растёт
-- **RLS**: SELECT для всех с доступом к казино; INSERT/UPDATE — `manager`, `finance_manager`, `super_admin`
-- GRANT SELECT/INSERT/UPDATE/DELETE authenticated; GRANT ALL service_role
+### 3. FinancesWalletsPage — раскрывающиеся строки + покупюрный ввод
 
-### Новая таблица `fin_month_closures`
-Фиксация ритуала Close Month (месячный ресет).
-- `casino_id`, `year`, `month`, `closed_at`, `closed_by`
-- `collection_total_tzs`, `collection_total_usd`, `collection_details JSONB` (сколько снято с каждого кошелька)
-- `new_float_details JSONB` (новые Starting Float на 1-е число следующего месяца)
-- После закрытия месяца — прошлые данные становятся **read-only**
+`src/pages/finances/FinancesWalletsPage.tsx`, секция «WALLETS TABLE»:
 
-### RPC `fin_balance_snapshot(casino_id, period_start, period_end)`
-Возвращает JSON:
-```json
-{
-  "starting_float": { "tzs": ..., "usd": ..., "per_wallet": [...] },
-  "incomes": { "live_game": ..., "slots": ..., "other": ..., "missed_chips": ..., "total": ... },
-  "expenses_total": ..., "collections_total": ...,
-  "expected": { "tzs": ..., "usd": ..., "grand_tzs": ... },
-  "actual":   { "tzs": ..., "usd": ..., "grand_tzs": ..., "per_wallet": [...] },
-  "variance": { "tzs": ..., "usd": ..., "grand_tzs": ... },
-  "rates":    { "usd_tzs": ... }
-}
-```
-Missed Chips читаются из `shifts.closing_count.chip_miss_total` по business_date (MISS→−, OVER→+).
+- перевести таблицу на аккордеон: каждая строка кошелька имеет `▸` слева, клик = раскрытие;
+- в раскрытой панели:
+  - `CashDenomInput` (уже используется в Safe-странице) с `denoms = CASH_DENOMS[w.currency] || CASH_DENOMS.TZS` — работает для всех валют, включая bank/cashless/cage (там просто вводится одно число «total», см. ниже);
+  - **fallback для bank / cashless / external** (у них нет купюр): вместо `CashDenomInput` — одно поле `Amount` + `Note`;
+  - две кнопки: **Save Physical Count** и **Cancel**;
+- кнопка «Pencil» (карандаш) продолжает открывать диалог редактирования кошелька — там правится Name / Kind / Currency / Starting Float. Никаких физических остатков в этом диалоге.
 
-### Миграция старых `fin_incomes`
-При первом Close Month старые записи `fin_incomes` признаются legacy — показываются только в исторических Monthly Reports. Новые вводятся только через `fin_other_incomes`.
+### 4. Сохранение физического остатка
 
----
+Сейчас `physical` в `BalanceSnapshot.wallets` берётся из RPC `fin_balance_snapshot`. Ту же логику, что использует `FinancesOfficeSafePage` (insert в `fin_audit_log` с `action='office_safe_reconciliation'` и `meta.lines`), переносим в новый inline-разворот на Wallets-странице:
 
-## 2. UI
+- функция `saveWalletCount(wallet, denomsMap | totalAmount, note)` пишет одну строку в `fin_audit_log` с одной wallet в `meta.lines` (RPC уже читает эту таблицу для physical);
+- после сохранения — invalidate `fin-wallet-bal-asof`, `fin-balance-snapshot`;
+- toast «Physical count saved».
 
-### Office → Balance (новая страница)
+Никаких новых таблиц, никаких изменений в RPC.
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│ BALANCE                     [Lifetime ▾] [Today] [MTD] [Custom] │
-├──────────────────────────────────────────────────────────────────┤
-│ ╔ EXPECTED ═════╗ ╔ ACTUAL ═══════╗ ╔ VARIANCE ═════╗           │
-│ ║  245 600 000  ║ ║  244 200 000  ║ ║  −1 400 000  ║  Grand TZS │
-│ ║      +$12 400 ║ ║      +$12 200 ║ ║        −$200 ║            │
-│ ╚═══════════════╝ ╚═══════════════╝ ╚══════════════╝            │
-├──────────────────────────────────────────────────────────────────┤
-│ BREAKDOWN (Expected)          │ WALLETS (компактная таблица)     │
-│ Starting Float      +50.0M    │ Type  Wallet     Physical Ledger │
-│ Live Game          +180.5M    │ Cash  Safe TZS   80.0M   80.0M ✓ │
-│ Slots               +40.2M    │ Cash  Cage TZS   45.0M   45.0M ✓ │
-│ Other Income        +15.0M    │ Bank  NMB        60.0M   60.0M ✓ │
-│ Missed Chips ±       −0.6M    │ Mobile M-Pesa    34.8M   35.0M ⚠ │
-│ − Expenses          −32.5M    │ Cash  Safe USD  $12 200 $12 200✓ │
-│ − Collections        −7.0M    │ ──────────────────────────────── │
-│ ═══════════════════════════   │ Grand TZS       244.2M           │
-│ = Expected         245.6M     │ [Reconcile Now]                  │
-└──────────────────────────────────────────────────────────────────┘
-```
+### 5. Balance-таб — кнопка / ссылка Reconciliation
 
-- Кошельки — **строки-таблица (как Cash Desk)**, не карточки-полотно
-- Клик по строке кошелька → drill-down (последние транзакции + физический пересчёт)
-- Клик по строке Breakdown → список исходных транзакций
-- Physical подтягивается автоматически при новом `cash_count`
+На `BalanceTab` уже есть «Reconcile Now» (refetch). Оставляем как есть.
+На `FinancesWalletsPage` в PageHeader добавляем кнопку **Reconciliation** → `navigate('/office?tab=balance')`. Никакого нового диалога.
 
-### Global banner
-При Variance ≠ 0 — баннер в шапке Office (красный при недостаче, зелёный при излишке), клик → Balance page.
+### 6. WalletsCompactTable (Balance-таб)
 
-### Office → Other Incomes (заменяем текущий plan/fact-грид)
-Список транзакций (SmartTable) + кнопка `[+ Add Income]`:
-```
-Date        Category      Source           Wallet      Amount        By
-05/07/2026  Investment    Owner Top-up     Safe TZS    50 000 000    Boss
-02/07/2026  Inter-Casino  Mwanza→Arusha    Cash TZS    20 000 000    FinMgr
-```
-Диалог Add Income: дата · категория · source · wallet · валюта · сумма · note.
-Права: `manager`, `finance_manager`, `super_admin`.
-Reversal кнопка вместо редактирования.
+Оставляем как есть — она читает те же `snap.wallets`, а строки теперь именуются `Safe TZS`, `Safe USD`, `CRDB TZS`, `Airtel Cashless` и т.д. автоматически из БД.
 
-### Finance → Wallets
-Добавляем поля Starting Float (amount / date / note) — редактируют `manager`, `finance_manager`, `super_admin` с записью в `activity_logs`.
+## Что НЕ трогаем
 
-### Monthly Report
-Добавляем строку **Missed Chips (±)** между Slots и Other Incomes с drill-down по дням.
-Other Incomes теперь показывает сумму транзакций за месяц (клик → фильтр по месяцу на странице Other Incomes).
-
-### Office → Close Month (новый ритуал, только super_admin)
-Кнопка появляется 1-го числа. Мастер из 3 шагов:
-1. **Collection** — по каждому кошельку показывается фактический остаток → super_admin подтверждает сумму, которая уходит из кассы (запись в `expenses` с категорией Collection)
-2. **New Starting Float** — вводится новый стартовый баланс по каждому кошельку (может быть 0)
-3. **Confirm & Lock** — фиксация в `fin_month_closures`, прошлый месяц становится read-only
-
----
-
-## 3. Права
-
-| Роль | Balance page | Other Income | Starting Float | Close Month |
-|------|--------------|--------------|----------------|-------------|
-| cashier | view | — | — | — |
-| manager | view | create/reverse | edit | — |
-| finance_manager | view | create/reverse | edit | — |
-| super_admin | view | create/reverse | edit | run |
-
----
-
-## 4. Технические детали
-
-- Валютное отображение: TZS с пробелами (`245 600 000`), USD с префиксом `$12 400`, Grand TZS = сумма всех валют по текущему курсу из `fin_daily_rates`
-- Даты: `DD/MM/YYYY`
-- SmartTable для всех новых списков
-- Иммутабельность + reversal (следуем memory `Strict manual-entry, immutable data`)
-- Все транзакции пишутся через триггер в `activity_logs` (memory `Audit Logging Rule`)
-- Отрицательный Variance не блокирует работу — только визуальный сигнал
-
-## Что НЕ делаем в этой итерации
-
-- Не автоматизируем Missed Chips редактирование (только чтение из shifts)
-- Не блокируем расходы при отрицательном балансе
-- Не делаем бюджет/план для Other Income
-- Не связываем Other Income → Expense через FK (просто попадает в общий котёл)
-- Не трогаем существующую логику Day Closing / Shift Balance
+- RPC `fin_balance_snapshot` — без изменений.
+- `CASH_DENOMS` — уже есть для TZS/USD/EUR/GBP/KES.
+- Права: редактирование Starting Float остаётся у manager / finance_manager / super_admin.
+- Логика Balance / Expected / Variance — без изменений.
 
 ## Файлы
 
-**Миграции:**
-- `fin_wallets` + `starting_float_*` поля
-- `fin_other_incomes` + триггер зеркала в `fin_wallet_tx`
-- `fin_month_closures`
-- RPC `fin_balance_snapshot`
+**Миграция**
+- новая миграция: UPDATE fin_wallets → `Safe {CURRENCY}`.
 
-**Код:**
-- `src/pages/office/BalancePage.tsx` (новая)
-- `src/pages/office/OtherIncomesPage.tsx` (переписать с грида на транзакции)
-- `src/pages/office/CloseMonthWizard.tsx` (новый)
-- `src/components/office/WalletsCompactTable.tsx` (новый, для Balance page)
-- `src/components/office/BalanceBanner.tsx` (global)
-- `src/hooks/use-fin-balance.ts` (обёртка вокруг RPC)
-- `src/hooks/use-other-incomes.ts` (новый)
-- `src/pages/finances/FinancesWalletsPage.tsx` — добавить поля Starting Float
-- `src/hooks/use-fin-monthly-report.ts` — добавить строку Missed Chips
+**Код**
+- `src/pages/office/OfficePage.tsx` — убрать таб Safe.
+- `src/pages/finances/FinancesWalletsPage.tsx` — аккордеон-строки, inline `CashDenomInput` / Amount, save-функция, кнопка Reconciliation в шапке.
+
+## Открытые допущения (принято по умолчанию, скажи если не так)
+
+- Для bank / cashless / external / cage (kind ≠ 'cash' и ≠ 'safe') в раскрытии показываем одно поле «Amount», без купюр — реальных купюр там нет.
+- Физический остаток пишется в `fin_audit_log` (тот же контракт, что у существующей Safe-страницы) — RPC `fin_balance_snapshot` уже это читает.
+- Кнопка «Reconciliation» на Wallets — просто навигация на Balance-таб, без модалок.
