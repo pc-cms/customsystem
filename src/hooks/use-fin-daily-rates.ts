@@ -107,6 +107,12 @@ export const useFinDailyRatesForDate = (businessDate?: string) => {
     queryKey: ["fin-daily-rates-for-date", activeCasinoId, date],
     queryFn: async () => {
       if (!activeCasinoId || !date) return {} as Record<string, number>;
+      // Auto-carry: if today's rates are missing, copy the most recent
+      // prior day's value per currency. Managers may override manually.
+      await supabase.rpc("ensure_fin_daily_rates", {
+        _casino_id: activeCasinoId,
+        _business_date: date,
+      });
       const { data, error } = await supabase
         .from("fin_daily_rates")
         .select("currency, rate_to_tzs")
@@ -122,6 +128,33 @@ export const useFinDailyRatesForDate = (businessDate?: string) => {
       return out;
     },
     enabled: !!activeCasinoId && !!date,
+  });
+};
+
+/**
+ * Auto-carry today's daily rates from the most recent prior day.
+ * Called on cage/slots shift open and Office → Rates load so today's
+ * row is always present; managers can override the value manually.
+ */
+export const useEnsureDailyRates = () => {
+  const qc = useQueryClient();
+  const { activeCasinoId } = useCasino();
+  const { data: today } = useEffectiveBusinessDate();
+  return useMutation({
+    mutationFn: async (businessDate?: string) => {
+      const date = businessDate ?? today;
+      if (!activeCasinoId || !date) return;
+      const { error } = await supabase.rpc("ensure_fin_daily_rates", {
+        _casino_id: activeCasinoId,
+        _business_date: date,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fin-daily-rates"] });
+      qc.invalidateQueries({ queryKey: ["fin-daily-rates-for-date"] });
+      qc.invalidateQueries({ queryKey: ["fin-daily-rate-today"] });
+    },
   });
 };
 
