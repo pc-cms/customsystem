@@ -1,11 +1,13 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSessionState } from "@/hooks/use-session-state";
-import { Wallet, Plus, Pencil, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Wallet, Plus, Pencil, ArrowUpRight, ArrowDownLeft, ChevronRight, ChevronDown, Scale } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
@@ -16,14 +18,18 @@ import {
 } from "@/components/ui/date-range-presets";
 import { useFinWallets, useUpsertFinWallet, useFinWalletTx } from "@/hooks/use-fin";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCasino } from "@/lib/casino-context";
-import { formatNumberSpaces } from "@/lib/currency";
+import { useAuth } from "@/lib/auth-context";
+import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
+import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const CURRENCIES = ["TZS", "USD", "EUR", "GBP", "KES"];
 const KINDS = ["cash", "bank", "safe", "cage", "external"];
+const CASH_LIKE_KINDS = new Set(["cash", "safe"]);
 
 /* ============ Period dashboard data ============ */
 
@@ -156,6 +162,9 @@ const usePeriodExpenses = (from: string, to: string) => {
 
 export default function FinancesWalletsPage() {
   const { activeCasinoId } = useCasino();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const navigate = useNavigate();
   const { data: wallets = [] } = useFinWallets();
   const upsert = useUpsertFinWallet();
 
@@ -209,6 +218,70 @@ export default function FinancesWalletsPage() {
     setWalletOpen(true);
   };
 
+  /* ===== physical count (inline expandable) ===== */
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [denomCounts, setDenomCounts] = useState<Record<string, Record<number, number>>>({});
+  const [amountInput, setAmountInput] = useState<Record<string, string>>({});
+  const [countNote, setCountNote] = useState<Record<string, string>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  const toggleRow = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
+
+  const saveCount = async (w: any) => {
+    if (!user || !activeCasinoId) {
+      toast.error("Not authorised");
+      return;
+    }
+    const useDenoms = CASH_LIKE_KINDS.has(w.kind);
+    const counted = useDenoms
+      ? cashSum(denomCounts[w.id] || {})
+      : Number(amountInput[w.id] || 0);
+    if (!counted) {
+      toast.error("Enter physical count");
+      return;
+    }
+    setSavingId(w.id);
+    try {
+      const ledger = Number(balAsOf?.perWallet.get(w.id) || 0);
+      const line = {
+        wallet_id: w.id,
+        wallet_name: w.name,
+        currency: w.currency,
+        ledger,
+        counted,
+        variance: counted - ledger,
+        denominations: useDenoms ? (denomCounts[w.id] || {}) : null,
+      };
+      const { error } = await supabase.from("fin_audit_log").insert({
+        casino_id: activeCasinoId,
+        actor: user.id,
+        action: "office_safe_reconciliation",
+        entity_table: "fin_wallets",
+        entity_id: w.id,
+        meta: {
+          lines: [line],
+          note: countNote[w.id] || "",
+          business_date: new Date().toISOString().slice(0, 10),
+        },
+      } as any);
+      if (error) throw error;
+      toast.success(`Physical count saved · ${w.name}`);
+      setDenomCounts((s) => ({ ...s, [w.id]: {} }));
+      setAmountInput((s) => ({ ...s, [w.id]: "" }));
+      setCountNote((s) => ({ ...s, [w.id]: "" }));
+      setExpanded((s) => ({ ...s, [w.id]: false }));
+      qc.invalidateQueries({ queryKey: ["fin-wallet-bal-asof"] });
+      qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
+      qc.invalidateQueries({ queryKey: ["fin-audit-log"] });
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+
+
   return (
     <PageShell>
       <PageHeader icon={Wallet} title="Wallets" subtitle="Cash, bank, safe & cage ledger">
@@ -222,6 +295,9 @@ export default function FinancesWalletsPage() {
             setRange({ from, to });
           }}
         />
+        <Button variant="outline" onClick={() => navigate("/office?tab=balance")}>
+          <Scale className="w-4 h-4" /> Reconciliation
+        </Button>
         <Button onClick={openNewWallet}>
           <Plus className="w-4 h-4" /> Add Wallet
         </Button>
@@ -254,52 +330,173 @@ export default function FinancesWalletsPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted text-xs uppercase">
               <tr>
+                <th className="w-6"></th>
                 <th className="px-3 py-2 text-left">Name</th>
                 <th className="px-3 py-2 text-left">Kind</th>
                 <th className="px-3 py-2 text-left">Currency</th>
                 <th className="px-3 py-2 text-right">Starting Float</th>
                 <th className="px-3 py-2 text-right">Balance (TZS)</th>
-                <th className="w-20"></th>
+                <th className="w-12"></th>
               </tr>
             </thead>
             <tbody>
-              {(wallets as any[]).map((w) => (
-                <tr key={w.id} className="border-t border-border hover:bg-muted/40">
-                  <td className="px-3 py-1.5">{w.name}</td>
-                  <td className="capitalize">{w.kind}</td>
-                  <td className="font-mono">{w.currency}</td>
-                  <td className="text-right font-mono tabular-nums text-xs">
-                    {w.starting_float_amount
-                      ? `${formatNumberSpaces(Number(w.starting_float_amount))} ${w.currency}`
-                      : "·"}
-                    {w.starting_float_date && (
-                      <div className="text-[10px] text-muted-foreground">
-                        from {fmtDateOnly(w.starting_float_date)}
-                      </div>
-                    )}
-                  </td>
-                  <td className="text-right font-mono tabular-nums">
-                    {formatNumberSpaces(Number(balAsOf?.perWallet.get(w.id) || 0))}
-                  </td>
-                  <td className="text-right pr-3">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => {
-                        setWalletForm(w);
-                        setWalletOpen(true);
-                      }}
-                      aria-label="Edit wallet"
+              {(wallets as any[]).map((w) => {
+                const isOpen = !!expanded[w.id];
+                const useDenoms = CASH_LIKE_KINDS.has(w.kind);
+                const denoms = CASH_DENOMS[w.currency] || CASH_DENOMS.TZS;
+                const denomVals = denomCounts[w.id] || {};
+                const counted = useDenoms
+                  ? cashSum(denomVals)
+                  : Number(amountInput[w.id] || 0);
+                const ledger = Number(balAsOf?.perWallet.get(w.id) || 0);
+                const variance = counted - ledger;
+                return (
+                  <Fragment key={w.id}>
+                    <tr
+                      key={w.id}
+                      className="border-t border-border hover:bg-muted/40 cursor-pointer"
+                      onClick={() => toggleRow(w.id)}
                     >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+                      <td className="pl-2">
+                        {isOpen ? (
+                          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                        )}
+                      </td>
+                      <td className="px-3 py-1.5">{w.name}</td>
+                      <td className="capitalize">{w.kind}</td>
+                      <td className="font-mono">{w.currency}</td>
+                      <td className="text-right font-mono tabular-nums text-xs">
+                        {w.starting_float_amount
+                          ? `${formatNumberSpaces(Number(w.starting_float_amount))} ${w.currency}`
+                          : "·"}
+                        {w.starting_float_date && (
+                          <div className="text-[10px] text-muted-foreground">
+                            from {fmtDateOnly(w.starting_float_date)}
+                          </div>
+                        )}
+                      </td>
+                      <td className="text-right font-mono tabular-nums">
+                        {formatNumberSpaces(ledger)}
+                      </td>
+                      <td className="text-right pr-3">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setWalletForm(w);
+                            setWalletOpen(true);
+                          }}
+                          aria-label="Edit wallet"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                      </td>
+                    </tr>
+                    {isOpen && (
+                      <tr className="bg-muted/30 border-t border-border">
+                        <td colSpan={7} className="p-4">
+                          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                                Physical count · {w.currency}
+                              </div>
+                              {useDenoms ? (
+                                <CashDenomInput
+                                  values={denomVals}
+                                  onChange={(v) =>
+                                    setDenomCounts((s) => ({ ...s, [w.id]: v }))
+                                  }
+                                  denoms={denoms}
+                                  currency={w.currency}
+                                  size="sm"
+                                />
+                              ) : (
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder={`Amount (${w.currency})`}
+                                  value={amountInput[w.id] || ""}
+                                  onChange={(e) =>
+                                    setAmountInput((s) => ({
+                                      ...s,
+                                      [w.id]: e.target.value,
+                                    }))
+                                  }
+                                  className="font-mono"
+                                />
+                              )}
+                            </div>
+                            <div className="space-y-3">
+                              <div className="rounded-md border border-border bg-card p-3 space-y-1">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-muted-foreground">Ledger (TZS)</span>
+                                  <span className="font-mono tabular-nums">
+                                    {formatNumberSpaces(ledger)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-muted-foreground">Counted</span>
+                                  <span className="font-mono tabular-nums">
+                                    {formatNumberSpaces(counted)} {w.currency}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm font-semibold pt-1 border-t border-border">
+                                  <span>Variance</span>
+                                  <span
+                                    className={cn(
+                                      "font-mono tabular-nums",
+                                      variance === 0
+                                        ? "text-muted-foreground"
+                                        : variance < 0
+                                          ? "cms-amount-negative"
+                                          : "cms-amount-positive",
+                                    )}
+                                  >
+                                    {variance > 0 ? "+" : ""}
+                                    {formatNumberSpaces(variance)}
+                                  </span>
+                                </div>
+                              </div>
+                              <Textarea
+                                placeholder="Note (optional)"
+                                value={countNote[w.id] || ""}
+                                onChange={(e) =>
+                                  setCountNote((s) => ({ ...s, [w.id]: e.target.value }))
+                                }
+                                rows={2}
+                                className="text-xs"
+                              />
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => toggleRow(w.id)}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => saveCount(w)}
+                                  disabled={savingId === w.id}
+                                >
+                                  {savingId === w.id ? "Saving…" : "Save Physical Count"}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
               {!wallets.length && (
                 <tr>
-                  <td colSpan={6} className="text-center text-muted-foreground py-6">
+                  <td colSpan={7} className="text-center text-muted-foreground py-6">
                     No wallets yet
                   </td>
                 </tr>
@@ -308,6 +505,7 @@ export default function FinancesWalletsPage() {
           </table>
         </div>
       </PageSection>
+
 
       {/* TRANSACTIONS */}
       <PageSection title={`Transactions · ${txRows.length}`} card={false}>
