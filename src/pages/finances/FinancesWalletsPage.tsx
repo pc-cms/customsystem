@@ -491,7 +491,7 @@ export default function FinancesWalletsPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
               {!wallets.length && (
