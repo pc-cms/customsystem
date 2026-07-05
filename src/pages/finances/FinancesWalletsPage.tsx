@@ -162,6 +162,9 @@ const usePeriodExpenses = (from: string, to: string) => {
 
 export default function FinancesWalletsPage() {
   const { activeCasinoId } = useCasino();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const navigate = useNavigate();
   const { data: wallets = [] } = useFinWallets();
   const upsert = useUpsertFinWallet();
 
@@ -214,6 +217,70 @@ export default function FinancesWalletsPage() {
     setWalletForm({ name: "", kind: "cash", currency: "TZS", sort_order: 0, is_active: true });
     setWalletOpen(true);
   };
+
+  /* ===== physical count (inline expandable) ===== */
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [denomCounts, setDenomCounts] = useState<Record<string, Record<number, number>>>({});
+  const [amountInput, setAmountInput] = useState<Record<string, string>>({});
+  const [countNote, setCountNote] = useState<Record<string, string>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  const toggleRow = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
+
+  const saveCount = async (w: any) => {
+    if (!user || !activeCasinoId) {
+      toast.error("Not authorised");
+      return;
+    }
+    const useDenoms = CASH_LIKE_KINDS.has(w.kind);
+    const counted = useDenoms
+      ? cashSum(denomCounts[w.id] || {})
+      : Number(amountInput[w.id] || 0);
+    if (!counted) {
+      toast.error("Enter physical count");
+      return;
+    }
+    setSavingId(w.id);
+    try {
+      const ledger = Number(balAsOf?.perWallet.get(w.id) || 0);
+      const line = {
+        wallet_id: w.id,
+        wallet_name: w.name,
+        currency: w.currency,
+        ledger,
+        counted,
+        variance: counted - ledger,
+        denominations: useDenoms ? (denomCounts[w.id] || {}) : null,
+      };
+      const { error } = await supabase.from("fin_audit_log").insert({
+        casino_id: activeCasinoId,
+        actor: user.id,
+        action: "office_safe_reconciliation",
+        entity_table: "fin_wallets",
+        entity_id: w.id,
+        meta: {
+          lines: [line],
+          note: countNote[w.id] || "",
+          business_date: new Date().toISOString().slice(0, 10),
+        },
+      } as any);
+      if (error) throw error;
+      toast.success(`Physical count saved · ${w.name}`);
+      setDenomCounts((s) => ({ ...s, [w.id]: {} }));
+      setAmountInput((s) => ({ ...s, [w.id]: "" }));
+      setCountNote((s) => ({ ...s, [w.id]: "" }));
+      setExpanded((s) => ({ ...s, [w.id]: false }));
+      qc.invalidateQueries({ queryKey: ["fin-wallet-bal-asof"] });
+      qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
+      qc.invalidateQueries({ queryKey: ["fin-audit-log"] });
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+
 
   return (
     <PageShell>
