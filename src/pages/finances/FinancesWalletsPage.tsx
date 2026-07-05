@@ -351,7 +351,7 @@ export default function FinancesWalletsPage() {
                 const ledger = Number(balAsOf?.perWallet.get(w.id) || 0);
                 const variance = counted - ledger;
                 return (
-                  <>
+                  <Fragment key={w.id}>
                     <tr
                       key={w.id}
                       className="border-t border-border hover:bg-muted/40 cursor-pointer"
