@@ -281,10 +281,7 @@ export const usePlayerDropCacheByDays = (playerId: string | null | undefined) =>
       return rec;
     },
     enabled: !!playerId,
-    staleTime: 5_000,
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
+    ...liveQueryOptions(),
   });
   return q;
 };
