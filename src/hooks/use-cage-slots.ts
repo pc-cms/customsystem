@@ -132,6 +132,7 @@ export const useSlotsInventory = (shiftId: string | undefined) => {
       return data || [];
     },
     enabled: !!shiftId,
+    ...liveQueryOptions(),
   });
 };
 
