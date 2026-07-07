@@ -363,7 +363,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
           />
         </TabsContent>
         <TabsContent value="check" className="space-y-3">
-          <CashCheckForm expectedBalance={expectedTotal} shiftId={shift.id} exchangeRates={exchangeRates} cashChecks={cashChecks} businessDate={businessDate} />
+          <CashCheckForm expectedBalance={expectedTotal} shift={shift} shiftTransactions={shiftTransactions} exchangeRates={exchangeRates} cashChecks={cashChecks} businessDate={businessDate} />
           <TransactionsTable
             transactions={shiftTransactions}
             tableMap={tableMap}
