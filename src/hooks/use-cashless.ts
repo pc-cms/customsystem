@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { logAction } from "@/lib/logging";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { toast } from "sonner";
 
 export type CashlessProvider = "AIRTEL" | "MPESA" | "TIGO" | "HALOTEL";
@@ -50,7 +51,7 @@ export const useCashless = (date?: string, source: CashlessSource = "live_game")
       return (data || []) as CashlessRow[];
     },
     enabled: !!casinoId,
-    staleTime: 1000 * 60,
+    ...liveQueryOptions(),
   });
 };
 
@@ -97,7 +98,7 @@ export const useCashlessSuggestions = (
 
     },
     enabled: !!casinoId && !!businessDate,
-    staleTime: 1000 * 30,
+    ...liveQueryOptions(),
   });
 };
 

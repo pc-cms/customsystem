@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { toast } from "sonner";
 import type { SafeBankCheckInsert, SafeBankCheckUpdate } from "@/lib/safe-inserts";
 
@@ -53,7 +54,7 @@ export const useBankChecks = (fromDate?: string, toDate?: string) => {
       if (error) throw error;
       return (data || []) as BankCheck[];
     },
-    staleTime: 15_000,
+    ...liveQueryOptions(),
   });
 };
 

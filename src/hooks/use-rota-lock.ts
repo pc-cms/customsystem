@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { toast } from "sonner";
 
 export type RotaScope = "pit" | "floor" | "security" | "office";
@@ -33,7 +34,7 @@ export const useRotaLock = (scope: RotaScope, month: string) => {
       return data as unknown as { casino_id: string; scope: RotaScope; month: string; locked_by: string; locked_at: string } | null;
     },
     enabled: !!casinoId,
-    staleTime: 30_000,
+    ...liveQueryOptions(),
   });
 };
 
@@ -106,7 +107,7 @@ export const useRolesAtDate = (onDate: string) => {
       return m;
     },
     enabled: !!casinoId,
-    staleTime: 60_000,
+    ...liveQueryOptionsWithFallback(60_000),
     select: (d: any) => {
       if (d instanceof Map) return d;
       const m = new Map<string, { department: string; position: string; dealer_category: string | null; is_pit_boss: boolean }>();
