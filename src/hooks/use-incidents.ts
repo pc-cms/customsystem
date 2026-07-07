@@ -4,10 +4,10 @@
  * - Insert new incident (CCTV / Manager / Super admin).
  * - Immutable: no updates, no deletes (per core principles).
  */
-import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { liveQueryOptions } from "@/lib/live-query-options";
 
 export type Incident = {
   id: string;
@@ -46,7 +46,6 @@ export const useIncidents = (
   range: { from: string; to: string } | null = null,
 ) => {
   const { casinoId } = useAuth();
-  const qc = useQueryClient();
 
   const sinceDate = days != null
     ? (() => { const d = new Date(); d.setDate(d.getDate() - days); return d.toISOString().slice(0, 10); })()
@@ -56,7 +55,7 @@ export const useIncidents = (
     ? (() => { const d = new Date(businessDate + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); })()
     : null;
 
-  const query = useQuery({
+  return useQuery({
     queryKey: ["incidents", casinoId, days, businessDate, range?.from, range?.to],
     queryFn: async () => {
       if (!casinoId) return [] as Incident[];
@@ -83,23 +82,9 @@ export const useIncidents = (
       return (data || []) as Incident[];
     },
     enabled: !!casinoId,
-    staleTime: 15_000,
+    // Realtime: `incidents` subscribed via useModuleLiveSync (incidents/cctv).
+    ...liveQueryOptions(),
   });
-
-  useEffect(() => {
-    if (!casinoId) return;
-    const channel = supabase
-      .channel(`casino:${casinoId}:incidents`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "incidents", filter: `casino_id=eq.${casinoId}` },
-        () => qc.invalidateQueries({ queryKey: ["incidents", casinoId] }),
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [casinoId, qc]);
-
-  return query;
 };
 
 export const useCreateIncident = () => {
