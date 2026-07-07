@@ -4,6 +4,7 @@
  * UI may settle/void (cashier/manager/finance/super_admin only via RLS).
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PlayerCharge = {
@@ -33,7 +34,7 @@ export function usePlayerCharges(
   return useQuery({
     queryKey: ["pos-player-charges", casinoId, status, filter.playerId ?? null],
     enabled: !!casinoId,
-    staleTime: 15_000,
+    ...liveQueryOptions(),
     queryFn: async (): Promise<PlayerChargeRow[]> => {
       let q = supabase
         .from("pos_player_charges")

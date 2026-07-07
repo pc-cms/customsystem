@@ -156,7 +156,7 @@ export const useStaffMembers = () => {
       return normalizeEmployeesToStaff(raw);
     },
     enabled: !!casinoId,
-    staleTime: 1000 * 60 * 30, // 30 min — staff roster changes rarely
+    ...liveQueryOptions(), // 30 min — staff roster changes rarely
     refetchOnMount: "always", // always re-validate on navigation so malformed/stale
                               // persisted cache cannot render an empty rota/attendance grid.
   });

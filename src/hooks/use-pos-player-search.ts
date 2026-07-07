@@ -4,6 +4,7 @@
  * NEVER returns money fields — only identity + masked phone.
  */
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PosPlayerSearchRow = {
@@ -22,7 +23,7 @@ export function usePosPlayerSearch(casinoId: string | null, q: string) {
   return useQuery({
     queryKey: ["pos-player-search", casinoId, term],
     enabled: !!casinoId && term.length >= 2,
-    staleTime: 30_000,
+    ...liveQueryOptionsWithFallback(30000),
     queryFn: async (): Promise<PosPlayerSearchRow[]> => {
       const { data, error } = await supabase.rpc("pos_player_search" as any, {
         _casino_id: casinoId,

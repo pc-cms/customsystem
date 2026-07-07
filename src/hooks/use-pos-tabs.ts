@@ -2,6 +2,7 @@
  * POS Tabs hooks — open tabs of the shift + close/void.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -87,7 +88,7 @@ export function usePosShiftClosedTabs(casinoId: string | null, shiftId: string |
       if (error) throw error;
       return (data ?? []) as unknown as PosTab[];
     },
-    staleTime: 10_000,
+    ...liveQueryOptions(),
   });
 }
 

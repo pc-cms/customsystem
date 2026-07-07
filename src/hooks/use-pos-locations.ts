@@ -3,6 +3,7 @@
  * Archive-only (no hard delete). Default Main Bar is auto-created per casino.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PosLocationType = "bar" | "coffee" | "vip_service" | "other";
@@ -30,7 +31,7 @@ export function usePosLocations(casinoId: string | null, activeOnly = true) {
       if (error) throw error;
       return (data ?? []) as PosLocation[];
     },
-    staleTime: 1000 * 60 * 30, // 30 min — POS locations rarely change
+    ...liveQueryOptions(), // 30 min — POS locations rarely change
   });
 }
 

@@ -5,6 +5,7 @@
  * Archive-only (no hard delete) so old order snapshots remain readable.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PosModifier = {
@@ -40,7 +41,7 @@ export function usePosModifiers(casinoId: string | null, activeOnly = true) {
       if (error) throw error;
       return (data ?? []) as PosModifier[];
     },
-    staleTime: 1000 * 60 * 30,
+    ...liveQueryOptions(),
   });
 }
 

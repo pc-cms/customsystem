@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 
 export type BoxLicenseMode = "full" | "restricted" | "stopped";
@@ -88,7 +89,7 @@ export function useBoxLicense(): BoxLicenseState {
         isCloud: false,
       };
     },
-    staleTime: 5 * 60_000,
+    ...liveQueryOptionsWithFallback(300000),
     refetchInterval: 15 * 60_000,
   });
 

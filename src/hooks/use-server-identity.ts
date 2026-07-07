@@ -4,6 +4,7 @@
  * the new runtime-config takes effect (~30 s downtime).
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { getCachedRuntimeConfig } from "@/lib/runtime-config";
 import { toast } from "sonner";
@@ -40,7 +41,7 @@ export const useServerIdentity = () =>
     queryKey: ["server-identity"],
     queryFn: (): Promise<ServerIdentity> => authedFetch("/api/node/server-identity"),
     enabled: isLocalServer(),
-    staleTime: 30_000,
+    ...liveQueryOptionsWithFallback(30000),
   });
 
 export const useSaveServerIdentity = () => {

@@ -26,7 +26,7 @@ export const useChipConservationMode = () => {
       return ((data as any)?.chip_conservation_mode ?? "strict") as ChipConservationMode;
     },
     enabled: !!casinoId,
-    staleTime: 1000 * 60 * 60 * 24, // 24h — casino config flag
+    ...liveQueryOptions(), // 24h — casino config flag
   });
 };
 

@@ -39,7 +39,7 @@ export const useFinDailyRates = (from: string, to: string) => {
       return (data || []) as FinDailyRate[];
     },
     enabled: !!activeCasinoId,
-    staleTime: 1000 * 60 * 60, // 1h — daily rates set once per day
+    ...liveQueryOptions(), // 1h — daily rates set once per day
   });
 };
 
