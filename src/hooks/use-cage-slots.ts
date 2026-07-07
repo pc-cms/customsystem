@@ -252,6 +252,7 @@ export const useSlotsCashless = (shiftId: string | undefined) => {
       return data || [];
     },
     enabled: !!shiftId,
+    ...liveQueryOptions(),
   });
 };
 
