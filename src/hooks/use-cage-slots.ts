@@ -214,7 +214,7 @@ export const useSlotsCashCounts = (shiftId: string | undefined) => {
       return data || [];
     },
     enabled: !!shiftId,
-    staleTime: 5_000,
+    ...liveQueryOptions(),
   });
 };
 
