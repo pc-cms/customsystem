@@ -1006,19 +1006,36 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               </div>
             )}
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-border">
-              <Button variant="outline" size="sm" onClick={() => setShowClosingPreview(false)}>
-                <ArrowLeftRight className="w-3.5 h-3.5 mr-1.5" /> Back to Edit
-              </Button>
-              <Button
-                size="sm"
-                onClick={confirmSubmitForReview}
-                disabled={submit.isPending}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                <Send className="w-3.5 h-3.5 mr-1.5" /> Submit for Review
-              </Button>
-            </div>
+            {(() => {
+              const hadCashlessActivity =
+                (cashless && cashless.length > 0) ||
+                cashlessInManualTzs > 0 ||
+                cashlessOutManualTzs > 0;
+              const endDayEmpty = mobileTotal(cashlessFinalProviders) === 0;
+              const missingEndDay = hadCashlessActivity && endDayEmpty;
+              return (
+                <>
+                  {missingEndDay && (
+                    <div className="rounded-md border border-destructive/60 bg-destructive/10 p-2 text-xs text-destructive">
+                      Enter <b>End Day Cashless balance</b> (M-Pesa, Tigo, Halotel, Airtel) before submitting — this shift had cashless transactions.
+                    </div>
+                  )}
+                  <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                    <Button variant="outline" size="sm" onClick={() => setShowClosingPreview(false)}>
+                      <ArrowLeftRight className="w-3.5 h-3.5 mr-1.5" /> Back to Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={confirmSubmitForReview}
+                      disabled={submit.isPending || missingEndDay}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      <Send className="w-3.5 h-3.5 mr-1.5" /> Submit for Review
+                    </Button>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
