@@ -32,6 +32,7 @@ export const useCageSlotsSettings = () => {
       return data;
     },
     enabled: !!casinoId,
+    ...liveQueryOptions(),
   });
 };
 
