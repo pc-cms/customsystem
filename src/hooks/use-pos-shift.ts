@@ -2,6 +2,7 @@
  * POS Shift hooks — current waiter's open shift, open/close shift, Z-report.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PosShiftType = "day" | "night";
@@ -180,7 +181,7 @@ export function usePosAnyOpenShift(casinoId: string | null) {
       if (error) throw error;
       return (data ?? null) as unknown as PosShift | null;
     },
-    staleTime: 15_000,
+    ...liveQueryOptions(),
   });
 }
 

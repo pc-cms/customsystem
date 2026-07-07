@@ -6,6 +6,7 @@
  * - KPI via promo_campaign_kpi RPC (server-computed)
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PromoCampaignType = "event" | "bonus" | "advertising" | "sponsorship" | "other";
@@ -259,7 +260,7 @@ export function usePlayerPromoCampaigns(playerId: string | null) {
   return useQuery({
     queryKey: ["player-promo-campaigns", playerId],
     enabled: !!playerId,
-    staleTime: 60_000,
+    ...liveQueryOptions(),
     queryFn: async (): Promise<PlayerPromoTag[]> => {
       const { data, error } = await supabase
         .from("promo_campaign_players")

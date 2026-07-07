@@ -3,6 +3,7 @@
  * Archive-only (no hard delete). Default Main Bar is auto-created per casino.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PosLocationType = "bar" | "coffee" | "vip_service" | "other";

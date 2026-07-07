@@ -3,6 +3,7 @@
  * Records are immutable. Creates a pending-approval slots-cage expense.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PosPurchaseRow = {
@@ -53,7 +54,7 @@ export function usePosPurchases(casinoId: string | null, limit = 100) {
       if (error) throw error;
       return (data ?? []) as unknown as PosPurchaseRow[];
     },
-    staleTime: 15_000,
+    ...liveQueryOptions(),
   });
 }
 

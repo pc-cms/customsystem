@@ -4,6 +4,7 @@
  * stock deduction — Phase 1 direct-stock lifecycle remains authoritative until 3B.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PosRecipe = {
@@ -42,7 +43,7 @@ export function usePosRecipes(casinoId: string | null) {
       if (error) throw error;
       return (data ?? []) as PosRecipe[];
     },
-    staleTime: 1000 * 60 * 30,
+    ...liveQueryOptions(),
   });
 }
 

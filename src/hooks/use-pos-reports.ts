@@ -3,6 +3,7 @@
  * scoped by casino + business date range.
  */
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import type { PaymentSplit } from "@/hooks/use-pos-tabs";
 
@@ -49,7 +50,7 @@ export function usePosReport(casinoId: string | null, range: PosReportRange) {
   return useQuery({
     queryKey: ["pos-report", casinoId, range.from, range.to],
     enabled: !!casinoId && !!range.from && !!range.to,
-    staleTime: 30_000,
+    ...liveQueryOptionsWithFallback(30000),
     queryFn: async (): Promise<PosReport> => {
       // Tabs in range
       const { data: tabs, error: tabsErr } = await supabase

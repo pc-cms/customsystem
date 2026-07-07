@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PosItemAvailabilityStatus =
@@ -36,7 +37,7 @@ export function usePosItemAvailability(casinoId: string | null | undefined) {
   const query = useQuery({
     queryKey: KEY(casinoId ?? null),
     enabled: !!casinoId,
-    staleTime: 15_000,
+    ...liveQueryOptions(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("v_pos_item_availability" as any)
@@ -102,7 +103,7 @@ export function usePosItemAvailabilityDetail(itemId: string | null | undefined) 
   return useQuery({
     queryKey: ["pos-item-availability-detail", itemId],
     enabled: !!itemId,
-    staleTime: 10_000,
+    ...liveQueryOptions(),
     queryFn: async () => {
       const { data, error } = await supabase.rpc("pos_item_availability_detail" as any, {
         item_id: itemId!,

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 
 export type CogsGroupBy =
@@ -41,7 +42,7 @@ export function usePosCogsReport(params: {
   return useQuery({
     queryKey: ["pos-cogs", casinoId, from, to, locationId ?? null, groupBy],
     enabled: !!casinoId && !!from && !!to,
-    staleTime: 30_000,
+    ...liveQueryOptions(),
     queryFn: async (): Promise<CogsRow[]> => {
       const { data, error } = await (supabase as any).rpc("pos_cogs_report", {
         _casino_id: casinoId,

@@ -5,6 +5,7 @@
  * Price changes for items are mirrored into pos_menu_price_history by DB trigger.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -67,7 +68,7 @@ export function usePosMenuCategories(casinoId: string | null) {
       if (error) throw error;
       return (data ?? []) as PosMenuCategory[];
     },
-    staleTime: 1000 * 60 * 30,
+    ...liveQueryOptions(),
   });
 
   useEffect(() => {
@@ -138,7 +139,7 @@ export function usePosMenuItems(casinoId: string | null) {
       if (error) throw error;
       return (data ?? []) as PosMenuItem[];
     },
-    staleTime: 1000 * 60 * 10,
+    ...liveQueryOptions(),
   });
 
   useEffect(() => {

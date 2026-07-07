@@ -3,6 +3,7 @@
  * Reads via pos_comp_budget_status RPC; writes via pos_comp_budgets table.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 
 export type CompBudgetStatus = {
@@ -27,7 +28,7 @@ export function usePosCompBudgetStatus(casinoId: string | null) {
       if (error) throw error;
       return data as unknown as CompBudgetStatus;
     },
-    staleTime: 30_000,
+    ...liveQueryOptions(),
   });
 }
 
@@ -70,7 +71,7 @@ export function usePosCompBudgetOverrides(casinoId: string | null, monthStart?: 
   return useQuery({
     queryKey: ["pos-comp-budget-overrides", casinoId, monthStart ?? "current"],
     enabled: !!casinoId,
-    staleTime: 30_000,
+    ...liveQueryOptions(),
     queryFn: async (): Promise<CompBudgetOverride[]> => {
       let q = supabase
         .from("pos_comp_budget_overrides")

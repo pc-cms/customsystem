@@ -3,6 +3,7 @@
  * Used by PlayerPreviewHeader to surface "F&B Owed" tile.
  */
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 
 export function usePosPlayerOutstanding(playerId: string | null | undefined) {
@@ -18,6 +19,6 @@ export function usePosPlayerOutstanding(playerId: string | null | undefined) {
       if (error) throw error;
       return (data ?? []).reduce((s, r: any) => s + Number(r.amount_tzs || 0), 0);
     },
-    staleTime: 30_000,
+    ...liveQueryOptions(),
   });
 }

@@ -4,6 +4,7 @@
  * Used by SlotsExpenses / Expenses / DailyExpenses (Add Office) and Admin CRUD.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";

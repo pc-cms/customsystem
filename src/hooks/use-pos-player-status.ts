@@ -5,6 +5,7 @@
  * Errors degrade silently to `unknown` (grey pill) — no toast spam in waiter UI.
  */
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PosPlayerStatus = "allowed" | "warning" | "approval" | "unknown";
@@ -13,7 +14,7 @@ export function usePosPlayerStatus(playerId: string | null, casinoId: string | n
   return useQuery<PosPlayerStatus>({
     queryKey: ["pos-player-status", playerId, casinoId],
     enabled: !!playerId && !!casinoId,
-    staleTime: 60_000,
+    ...liveQueryOptionsWithFallback(60000),
     retry: 1,
     queryFn: async (): Promise<PosPlayerStatus> => {
       try {

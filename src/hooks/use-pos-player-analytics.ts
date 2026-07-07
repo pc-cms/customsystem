@@ -4,6 +4,7 @@
  * Manual scope only: read-only aggregates scoped by casino + business date range.
  */
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import type { PaymentSplit } from "@/hooks/use-pos-tabs";
 
@@ -46,7 +47,7 @@ export function usePosPlayerAnalytics(
   return useQuery({
     queryKey: ["pos-player-analytics", casinoId, range.from, range.to],
     enabled: !!casinoId && !!range.from && !!range.to,
-    staleTime: 30_000,
+    ...liveQueryOptionsWithFallback(30000),
     queryFn: async (): Promise<PlayerAnalytics> => {
       const { data: tabs, error } = await supabase
         .from("pos_tabs")
@@ -124,7 +125,7 @@ export function usePosPlayerItems(
   return useQuery({
     queryKey: ["pos-player-items", casinoId, playerId, range.from, range.to],
     enabled: !!casinoId && !!playerId && !!range.from && !!range.to,
-    staleTime: 30_000,
+    ...liveQueryOptionsWithFallback(30000),
     queryFn: async (): Promise<PlayerItemRow[]> => {
       const { data: tabs } = await supabase
         .from("pos_tabs")
