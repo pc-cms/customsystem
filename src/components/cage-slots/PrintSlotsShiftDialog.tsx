@@ -206,12 +206,13 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
     // "End Day" block (shifts.cashless_final_providers, or the snapshot in
     // the closing check's denominations.cashless_final_providers when the
     // dedicated column is empty for legacy shifts). NEVER falls back to the
-    // running mobile snapshot or to NET (IN-OUT) — that was the bug that
-    // printed cashless results instead of manual balances.
-    const nonEmpty = (v: any) => v && typeof v === "object" && Object.values(v).some((x: any) => Number(x) > 0);
+    // running mobile snapshot or to NET (IN-OUT).
+    // A saved value of `{ Mpesa: 0, Tigo: 0, ... }` is treated as filled
+    // (manager confirmed zeros) — we print zeros, we do NOT hide the block.
+    const hasKeys = (v: any) => v && typeof v === "object" && Object.keys(v).length > 0;
     const finalProvRaw =
-      (nonEmpty((shift as any).cashless_final_providers) && (shift as any).cashless_final_providers)
-      || (nonEmpty((closingCheck?.denominations as any)?.cashless_final_providers) && (closingCheck?.denominations as any).cashless_final_providers)
+      (hasKeys((shift as any).cashless_final_providers) && (shift as any).cashless_final_providers)
+      || (hasKeys((closingCheck?.denominations as any)?.cashless_final_providers) && (closingCheck?.denominations as any).cashless_final_providers)
       || null;
     const closerCashlessByProvider: Record<string, number> = finalProvRaw
       ? collectProviderSnap(finalProvRaw)
