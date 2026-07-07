@@ -107,7 +107,7 @@ export const useRolesAtDate = (onDate: string) => {
       return m;
     },
     enabled: !!casinoId,
-    staleTime: 60_000,
+    ...liveQueryOptionsWithFallback(60_000),
     select: (d: any) => {
       if (d instanceof Map) return d;
       const m = new Map<string, { department: string; position: string; dealer_category: string | null; is_pit_boss: boolean }>();
