@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { logAction } from "@/lib/logging";
 import { toast } from "sonner";
 import { offlineMutation } from "@/lib/offline-mutation";
@@ -31,6 +32,7 @@ export const useCageSlotsSettings = () => {
       return data;
     },
     enabled: !!casinoId,
+    ...liveQueryOptions(),
   });
 };
 
@@ -53,6 +55,7 @@ export const useActiveCageSlotsShift = () => {
       return data;
     },
     enabled: !!casinoId,
+    ...liveQueryOptions(),
   });
 };
 
@@ -71,7 +74,7 @@ export const useCageSlotsShift = (shiftId: string | undefined) => {
       return data;
     },
     enabled: !!shiftId,
-    refetchInterval: 15_000,
+    ...liveQueryOptions(),
   });
 };
 
@@ -93,6 +96,7 @@ export const useCageSlotsHistory = (limit = 60) => {
       return data || [];
     },
     enabled: !!casinoId,
+    ...liveQueryOptions(),
   });
 };
 
@@ -110,6 +114,7 @@ export const useSlotsRates = (shiftId: string | undefined) => {
       return data || [];
     },
     enabled: !!shiftId,
+    ...liveQueryOptions(),
   });
 };
 
@@ -127,6 +132,7 @@ export const useSlotsInventory = (shiftId: string | undefined) => {
       return data || [];
     },
     enabled: !!shiftId,
+    ...liveQueryOptions(),
   });
 };
 
@@ -145,6 +151,7 @@ export const useSlotsCards = (shiftId: string | undefined) => {
       return data;
     },
     enabled: !!shiftId,
+    ...liveQueryOptions(),
   });
 };
 
@@ -185,7 +192,7 @@ export const useLastClosedSlotsCards = () => {
       return null;
     },
     enabled: !!casinoId,
-    staleTime: 30_000,
+    ...liveQueryOptions(),
   });
 };
 
@@ -207,7 +214,7 @@ export const useSlotsCashCounts = (shiftId: string | undefined) => {
       return data || [];
     },
     enabled: !!shiftId,
-    staleTime: 5_000,
+    ...liveQueryOptions(),
   });
 };
 
@@ -226,6 +233,7 @@ export const useSlotsComments = (shiftId: string | undefined) => {
       return data || [];
     },
     enabled: !!shiftId,
+    ...liveQueryOptions(),
   });
 };
 
@@ -244,6 +252,7 @@ export const useSlotsCashless = (shiftId: string | undefined) => {
       return data || [];
     },
     enabled: !!shiftId,
+    ...liveQueryOptions(),
   });
 };
 
@@ -278,7 +287,7 @@ export const useSlotsCashlessAggByShift = (shiftIds: string[]) => {
       return out;
     },
     enabled: shiftIds.length > 0,
-    staleTime: 30_000,
+    ...liveQueryOptions(),
   });
 };
 
@@ -319,7 +328,7 @@ export const useSlotsClosingTotalsByShift = (shiftIds: string[]) => {
       return out;
     },
     enabled: shiftIds.length > 0,
-    staleTime: 30_000,
+    ...liveQueryOptions(),
   });
 };
 

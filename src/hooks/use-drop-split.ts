@@ -15,6 +15,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 
 export type TableSplit = { dropR: number; recycled: number };
 export type SplitLookup = {
@@ -70,8 +71,7 @@ export const useTablesDropSplit = (fromIso: string | null, toIso: string | null)
       return rec;
     },
     enabled: !!casinoId && !!fromIso && !!toIso,
-    staleTime: 1000 * 30,
-    refetchInterval: 60_000,
+    ...liveQueryOptionsWithFallback(60_000),
   });
   const data = useMemo(() => toLookup(q.data ?? {}), [q.data]);
   return { ...q, data };
@@ -100,8 +100,7 @@ export const usePlayersDropSplit = (fromIso: string | null, toIso: string | null
       return rec;
     },
     enabled: !!casinoId && !!fromIso && !!toIso,
-    staleTime: 1000 * 30,
-    refetchInterval: 60_000,
+    ...liveQueryOptionsWithFallback(60_000),
   });
   const data = useMemo(() => toLookup(q.data ?? {}), [q.data]);
   return { ...q, data };
@@ -127,7 +126,7 @@ export const usePlayerDropSplit = (
       return { dropR: Number(row?.drop_r) || 0, recycled: Number(row?.drop_recycled) || 0 };
     },
     enabled: !!playerId,
-    staleTime: 1000 * 60,
+    ...liveQueryOptionsWithFallback(60_000),
   });
 };
 
@@ -165,15 +164,7 @@ export const useTablesDropCacheToday = (businessDate: string | null | undefined)
       return rec;
     },
     enabled: !!casinoId && !!businessDate,
-    staleTime: 5_000,
-    // Fallback polling in case a Realtime event for `table_day_drop_cache`
-    // is dropped (network blip, channel reconnect). 20s keeps the UI honest
-    // without hammering the DB — Realtime still delivers near-instant updates
-    // in the normal path; this is only the safety net.
-    refetchInterval: 5_000,
-    refetchIntervalInBackground: false,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
+    ...liveQueryOptions(),
   });
 
 
@@ -215,11 +206,7 @@ export const usePlayersDropCacheToday = (businessDate: string | null | undefined
       return rec;
     },
     enabled: !!casinoId && !!businessDate,
-    staleTime: 5_000,
-    refetchInterval: 5_000,
-    refetchIntervalInBackground: false,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
+    ...liveQueryOptions(),
   });
   const data = useMemo(() => toLookup(q.data ?? {}), [q.data]);
   return { ...q, data };
@@ -256,11 +243,7 @@ export const usePlayersDropCacheRange = (
       return rec;
     },
     enabled: !!casinoId && !!fromDate && !!toDate,
-    staleTime: 5_000,
-    refetchInterval: 5_000,
-    refetchIntervalInBackground: false,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
+    ...liveQueryOptions(),
   });
   const data = useMemo(() => toLookup(q.data ?? {}), [q.data]);
   return { ...q, data };
@@ -298,10 +281,7 @@ export const usePlayerDropCacheByDays = (playerId: string | null | undefined) =>
       return rec;
     },
     enabled: !!playerId,
-    staleTime: 5_000,
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
+    ...liveQueryOptions(),
   });
   return q;
 };

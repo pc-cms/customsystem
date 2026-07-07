@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { toast } from "sonner";
 import { formatNumberSpaces } from "@/lib/currency";
 import { logAction } from "@/lib/logging";
@@ -57,7 +58,7 @@ export const useSlotsTransfers = (shiftId: string | undefined) => {
       return (data ?? []) as SlotsTransferRow[];
     },
     enabled: !!shiftId,
-    staleTime: 15_000,
+    ...liveQueryOptions(),
   });
 };
 
@@ -167,6 +168,6 @@ export const usePendingSlotsApprovals = (lgShiftId: string | undefined) => {
       return count ?? 0;
     },
     enabled: !!lgShiftId,
-    refetchInterval: 15_000,
+    ...liveQueryOptions(),
   });
 };
