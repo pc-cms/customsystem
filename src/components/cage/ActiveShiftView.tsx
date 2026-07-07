@@ -523,15 +523,23 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
         <PlayerSearch players={players} value={playerId} onChange={setPlayerId} autoFocus />
       </div>
       <div>
-        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">2. Table</label>
-        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
-          {tables.map(t => (
-            <button key={t.id} onClick={() => setTableId(t.id)}
-              className={`px-2.5 py-1 rounded text-xs font-mono shrink-0 transition-colors ${tableId === t.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-primary/20"}`}>
-              {t.name}
-            </button>
-          ))}
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">2. Table <span className="normal-case text-muted-foreground/60">(optional)</span></label>
+          <label className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-wider cursor-pointer">
+            <span>Show</span>
+            <Switch checked={showTable} onCheckedChange={(v) => { setShowTable(v); if (!v) setTableId(""); }} />
+          </label>
         </div>
+        {showTable && (
+          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+            {tables.map(t => (
+              <button key={t.id} onClick={() => setTableId(t.id)}
+                className={`px-2.5 py-1 rounded text-xs font-mono shrink-0 transition-colors ${tableId === t.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-primary/20"}`}>
+                {t.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <div className="flex gap-2 items-end">
         <div className="flex-1">
