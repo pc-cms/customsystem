@@ -5,6 +5,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
+import { liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 
 export type WalletBalanceRow = {
   wallet_id: string;
