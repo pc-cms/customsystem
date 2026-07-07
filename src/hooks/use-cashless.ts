@@ -51,7 +51,7 @@ export const useCashless = (date?: string, source: CashlessSource = "live_game")
       return (data || []) as CashlessRow[];
     },
     enabled: !!casinoId,
-    staleTime: 1000 * 60,
+    ...liveQueryOptions(),
   });
 };
 
