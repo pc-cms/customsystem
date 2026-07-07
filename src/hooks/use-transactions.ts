@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { formatNumberSpaces } from "@/lib/currency";
 import type { SafeTransactionInsert } from "@/lib/safe-inserts";
 import { businessDayHourUTC } from "@/lib/business-day";
+import { liveQueryOptions } from "@/lib/live-query-options";
 
 export const useTransactions = (date?: string) => {
   const { casinoId } = useAuth();
@@ -29,13 +30,9 @@ export const useTransactions = (date?: string) => {
       return data;
     },
     enabled: !!casinoId,
-    // Live operational data: refetch on focus + on remount, no stale window.
-    // Realtime handles most updates; this covers the "just came back to
-    // the tab" case within 100ms instead of waiting for the next event.
-    staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
+    // Realtime-first: `transactions` is subscribed via useModuleLiveSync
+    // for the `cage` / `cage_view` modules. No poll / no refetchOnMount.
+    ...liveQueryOptions(),
   });
 };
 

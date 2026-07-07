@@ -7,9 +7,9 @@
  * date; writers exclude surveillance.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { liveQueryOptions } from "@/lib/live-query-options";
 
 export type PitBookChannel = "pit_bosses" | "managers";
 
@@ -32,32 +32,6 @@ const FEED_LIMIT = 500;
 
 export function usePitBookEntries(channel: PitBookChannel) {
   const { casinoId } = useAuth();
-  const qc = useQueryClient();
-
-  // Realtime invalidation for this channel (any date).
-  useEffect(() => {
-    if (!casinoId) return;
-    const ch = supabase
-      .channel(`pit_book:${casinoId}:${channel}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "pit_book_entries",
-          filter: `casino_id=eq.${casinoId}`,
-        },
-        (payload: any) => {
-          const row = payload?.new;
-          if (!row || row.channel !== channel) return;
-          qc.invalidateQueries({ queryKey: queryKey(casinoId, channel) });
-        },
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
-  }, [casinoId, channel, qc]);
 
   return useQuery({
     queryKey: queryKey(casinoId, channel),
@@ -73,7 +47,8 @@ export function usePitBookEntries(channel: PitBookChannel) {
       if (error) throw error;
       return ((data ?? []) as unknown as PitBookEntry[]).slice().reverse();
     },
-    staleTime: 15_000,
+    // Realtime: `pit_book_entries` subscribed via useModuleLiveSync (pit_book).
+    ...liveQueryOptions(),
   });
 }
 

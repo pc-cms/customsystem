@@ -12,6 +12,7 @@ import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 import { buildDisplayNames, splitFullName } from "@/lib/display-name";
 import { invalidateEmployeeCaches } from "@/lib/invalidate-employees";
+import { liveQueryOptions } from "@/lib/live-query-options";
 
 // ============ DEALERS (= employees WHERE department='Pit') ============
 
@@ -139,7 +140,8 @@ export const useDealers = () => {
       return disambiguateNames(raw.map(mapEmployeeToDealer), raw);
     },
     enabled: isReady,
-    staleTime: 1000 * 60 * 30, // 30 min — dealer roster changes rarely
+    // Realtime: `employees` subscribed via useModuleLiveSync (pit_dealers/staff_employees).
+    ...liveQueryOptions(),
   });
 };
 
@@ -210,7 +212,8 @@ export const usePitRota = (date: string) => {
       return (await fetchPitRotaRows(casinoId, date)).map(aliasRotaRow);
     },
     enabled: !!casinoId,
-    refetchOnMount: "always",
+    // Realtime: `pit_rota` subscribed via useModuleLiveSync.
+    ...liveQueryOptions(),
   });
 };
 
@@ -223,7 +226,7 @@ export const usePitRotaRange = (startDate: string, endDate: string) => {
       return (await fetchPitRotaRows(casinoId, startDate, endDate)).map(aliasRotaRow);
     },
     enabled: !!casinoId,
-    refetchOnMount: "always",
+    ...liveQueryOptions(),
   });
 };
 
@@ -319,7 +322,8 @@ export const useDealerAttendance = (date: string) => {
       return (await fetchDealerAttendanceRows(casinoId, date)).map(aliasAttRow);
     },
     enabled: !!casinoId,
-    refetchOnMount: "always",
+    // Realtime: `dealer_attendance` subscribed via useModuleLiveSync.
+    ...liveQueryOptions(),
   });
 };
 
@@ -375,7 +379,7 @@ export const useDealerAttendanceRange = (startDate: string, endDate: string) => 
       return (await fetchDealerAttendanceRows(casinoId, startDate, endDate)).map(aliasAttRow);
     },
     enabled: !!casinoId,
-    refetchOnMount: "always",
+    ...liveQueryOptions(),
   });
 };
 
