@@ -41,6 +41,9 @@ import CashCheckViewerDialog from "@/components/cage/CashCheckViewerDialog";
 import { useCashChecksByBusinessDate } from "@/hooks/use-cash-checks-by-date";
 import { useAuth } from "@/lib/auth-context";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { useExpectedCheckState } from "@/hooks/use-expected-check-state";
+import CashCheckNewGrid from "@/components/cage/CashCheckNewGrid";
 
 import {
   MOBILE_PROVIDERS, emptyMobile, emptyBanks, mobileTotal, bankTotalTzs,
@@ -350,7 +353,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
           />
         </TabsContent>
         <TabsContent value="out" className="space-y-3">
-          <OutForm players={activePlayers} tables={openTables} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} shiftTransactions={shiftTransactions} />
+          <OutForm players={activePlayers} tables={openTables} exchangeRates={exchangeRates} shiftId={shift.id} onSubmit={createTx.mutate} loading={createTx.isPending} shiftTransactions={shiftTransactions} />
           <TransactionsTable
             transactions={shiftTransactions.filter(t => isOutTx(t.type))}
             tableMap={tableMap}
@@ -360,7 +363,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
           />
         </TabsContent>
         <TabsContent value="check" className="space-y-3">
-          <CashCheckForm expectedBalance={expectedTotal} shiftId={shift.id} exchangeRates={exchangeRates} cashChecks={cashChecks} businessDate={businessDate} />
+          <CashCheckForm expectedBalance={expectedTotal} shift={shift} shiftTransactions={shiftTransactions} exchangeRates={exchangeRates} cashChecks={cashChecks} businessDate={businessDate} />
           <TransactionsTable
             transactions={shiftTransactions}
             tableMap={tableMap}
@@ -456,6 +459,7 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
 }) => {
   const [playerId, setPlayerId] = useState("");
   const [tableId, setTableId] = useState("");
+  const [showTable, setShowTable] = useState(true);
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("TZS");
   const [chips, setChips] = useState<Record<number, number>>({});
@@ -495,7 +499,7 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
   const selectedPlayer = useMemo(() => players.find(p => p.id === playerId) || null, [players, playerId]);
 
   const handleSubmit = () => {
-    if (!playerId || !tableId || tzsAmount <= 0) return;
+    if (!playerId || tzsAmount <= 0) return;
     if (Number(amount) <= 0) { toast.error("Amount must be greater than zero"); return; }
     if (selectedPlayer?.status === "blacklist") { toast.error("BLOCKED — Player is blacklisted"); return; }
     const chipsPayload: Record<string, unknown> = { ...chips };
@@ -507,7 +511,7 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
       };
     }
     onSubmit({
-      player_id: playerId, table_id: tableId, type: "in" as const, amount: tzsAmount, shift_id: shiftId,
+      player_id: playerId, table_id: tableId || null, type: "in" as const, amount: tzsAmount, shift_id: shiftId,
       chips: Object.keys(chips).length > 0 ? chipsPayload : undefined,
     }, { onSuccess: () => { setAmount(""); setChips({}); amountRef.current?.focus(); } });
   };
@@ -519,15 +523,23 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
         <PlayerSearch players={players} value={playerId} onChange={setPlayerId} autoFocus />
       </div>
       <div>
-        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">2. Table</label>
-        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
-          {tables.map(t => (
-            <button key={t.id} onClick={() => setTableId(t.id)}
-              className={`px-2.5 py-1 rounded text-xs font-mono shrink-0 transition-colors ${tableId === t.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-primary/20"}`}>
-              {t.name}
-            </button>
-          ))}
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">2. Table <span className="normal-case text-muted-foreground/60">(optional)</span></label>
+          <label className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-wider cursor-pointer">
+            <span>Show</span>
+            <Switch checked={showTable} onCheckedChange={(v) => { setShowTable(v); if (!v) setTableId(""); }} />
+          </label>
         </div>
+        {showTable && (
+          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+            {tables.map(t => (
+              <button key={t.id} onClick={() => setTableId(t.id)}
+                className={`px-2.5 py-1 rounded text-xs font-mono shrink-0 transition-colors ${tableId === t.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-primary/20"}`}>
+                {t.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <div className="flex gap-2 items-end">
         <div className="flex-1">
@@ -565,7 +577,7 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
         />
       </div>
 
-      <Button onClick={handleSubmit} disabled={!playerId || !tableId || tzsAmount <= 0 || loading} className="w-full mt-2 gap-1.5 h-11">
+      <Button onClick={handleSubmit} disabled={!playerId || tzsAmount <= 0 || loading} className="w-full mt-2 gap-1.5 h-11">
         <ArrowDownToLine className="w-4 h-4" /> {loading ? "Recording…" : "IN"} {tzsAmount > 0 && `· ${formatCurrency(tzsAmount)}`}
       </Button>
     </div>
@@ -584,9 +596,10 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
 };
 
 // =================== OUT FORM (was Cashout) ===================
-const OutForm = ({ players, tables, shiftId, onSubmit, loading, shiftTransactions = [] }: {
+const OutForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, shiftTransactions = [] }: {
   players: Tables<"players">[];
   tables: Tables<"gaming_tables">[];
+  exchangeRates: Record<string, number>;
   shiftId: string;
   onSubmit: (data: Record<string, unknown>, opts?: Record<string, unknown>) => void;
   loading: boolean;
@@ -594,14 +607,39 @@ const OutForm = ({ players, tables, shiftId, onSubmit, loading, shiftTransaction
 }) => {
   const [playerId, setPlayerId] = useState("");
   const [chips, setChips] = useState<Record<number, number>>({});
+  const [payoutCurrency, setPayoutCurrency] = useState("TZS");
+  const [payoutAmount, setPayoutAmount] = useState("");
   const total = useMemo(() => sumChips(chips), [chips]);
   const selectedPlayer = useMemo(() => players.find(p => p.id === playerId) || null, [players, playerId]);
+
+  // Payout TZS-equivalent. When currency is TZS or amount blank — defaults to
+  // the sum of returned chips (so the cage releases exactly that much cash).
+  const payoutTzs = useMemo(() => {
+    const raw = Number(payoutAmount) || 0;
+    if (!raw) return total;
+    if (payoutCurrency === "TZS") return raw;
+    return raw * (exchangeRates[payoutCurrency] || 0);
+  }, [payoutAmount, payoutCurrency, exchangeRates, total]);
 
   const handleSubmit = () => {
     if (!playerId || total <= 0) return;
     if (selectedPlayer?.status === "blacklist") { toast.error("BLOCKED — Player is blacklisted"); return; }
-    onSubmit({ player_id: playerId, table_id: null, type: "out" as const, amount: total, chips, shift_id: shiftId },
-      { onSuccess: () => setChips({}) });
+    const raw = Number(payoutAmount) || 0;
+    const chipsPayload: Record<string, unknown> = { ...chips };
+    if (payoutCurrency !== "TZS" && raw > 0) {
+      chipsPayload._meta = {
+        payout_currency: payoutCurrency,
+        payout_amount: raw,
+        rate: exchangeRates[payoutCurrency],
+      };
+    } else if (payoutCurrency === "TZS" && raw > 0 && raw !== total) {
+      chipsPayload._meta = {
+        payout_currency: "TZS",
+        payout_amount: raw,
+      };
+    }
+    onSubmit({ player_id: playerId, table_id: null, type: "out" as const, amount: payoutTzs, chips: chipsPayload, shift_id: shiftId },
+      { onSuccess: () => { setChips({}); setPayoutAmount(""); } });
   };
 
   const form = (
@@ -620,8 +658,30 @@ const OutForm = ({ players, tables, shiftId, onSubmit, loading, shiftTransaction
           onSubmit={handleSubmit}
         />
       </div>
+      <div className="flex gap-2 items-end">
+        <div className="flex-1">
+          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">
+            3. Payout amount <span className="normal-case text-muted-foreground/60">(blank = auto TZS)</span>
+          </label>
+          <NumberInput
+            value={payoutAmount}
+            onChange={setPayoutAmount}
+            className="text-lg h-11" placeholder={total > 0 ? String(total) : "0"}
+            onKeyDown={e => e.key === "Enter" && handleSubmit()}
+          />
+        </div>
+        <div className="w-20">
+          <Select value={payoutCurrency} onValueChange={setPayoutCurrency}>
+            <SelectTrigger className="font-mono h-11"><SelectValue /></SelectTrigger>
+            <SelectContent>{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+      </div>
+      {payoutCurrency !== "TZS" && Number(payoutAmount) > 0 && (
+        <p className="text-xs font-mono text-muted-foreground text-right">= {formatCurrency(payoutTzs)} (1 {payoutCurrency} = {formatNumberSpaces(exchangeRates[payoutCurrency] || 0)} TZS)</p>
+      )}
       <Button onClick={handleSubmit} disabled={!playerId || total <= 0 || loading} className="w-full mt-2 gap-1.5 h-11">
-        <ArrowUpFromLine className="w-4 h-4" /> {loading ? "Recording…" : "OUT"} {total > 0 && `· ${formatCurrency(total)}`}
+        <ArrowUpFromLine className="w-4 h-4" /> {loading ? "Recording…" : "OUT"} {payoutTzs > 0 && `· ${formatCurrency(payoutTzs)}`}
       </Button>
     </div>
   );
@@ -639,13 +699,15 @@ const OutForm = ({ players, tables, shiftId, onSubmit, loading, shiftTransaction
 };
 
 // =================== CASH CHECK ===================
-const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, businessDate }: {
+const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRates, cashChecks, businessDate }: {
   expectedBalance: number;
-  shiftId: string;
+  shift: Tables<"shifts">;
+  shiftTransactions: Tables<"transactions">[];
   exchangeRates: Record<string, number>;
   cashChecks: Tables<"cash_counts">[];
   businessDate: string;
 }) => {
+  const shiftId = shift.id;
   const { hasRole } = useAuth();
   const { data: cashlessSug } = useCashlessSuggestions(businessDate, "live_game");
   const canBrowseHistory = hasRole("manager") || hasRole("pit") || hasRole("surveillance") || hasRole("finance_manager") || hasRole("super_admin");
@@ -704,6 +766,33 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, bu
   const [showDiff, setShowDiff] = useState(false);
   useEffect(() => { setShowDiff(false); }, [chipCounts, cash, bankBal, mobileBal, cashlessIn, cashlessOut]);
 
+  // New UI toggle (Old / New) — session-local, no persist.
+  const [mode, setMode] = useState<"old" | "new">("old");
+  const expected = useExpectedCheckState(shift, shiftTransactions);
+
+  // Per-cell variance for New mode: any chip denom or cash currency where
+  // counted ≠ expected. Used to render "Balanced · variance" in red when the
+  // TZS grand total accidentally nets to zero.
+  const perCellVariance = useMemo(() => {
+    const chipDenoms = new Set<number>([
+      ...Object.keys(expected.expectedChips).map(Number),
+      ...Object.keys(chipCounts).map(Number),
+    ]);
+    const chipVariance: Record<number, number> = {};
+    let anyChip = false;
+    for (const d of chipDenoms) {
+      const diff = (Number(chipCounts[d]) || 0) - (Number(expected.expectedChips[d]) || 0);
+      if (diff !== 0) { chipVariance[d] = diff; anyChip = true; }
+    }
+    const cashVariance: Record<string, number> = {};
+    let anyCash = false;
+    for (const c of CURRENCIES) {
+      const diff = cashSum(cash[c] || {}) - (expected.expectedCashByCurrency[c] || 0);
+      if (diff !== 0) { cashVariance[c] = diff; anyCash = true; }
+    }
+    return { chipVariance, cashVariance, any: anyChip || anyCash };
+  }, [chipCounts, cash, expected]);
+
   // History viewer
   const [viewerCheck, setViewerCheck] = useState<Tables<"cash_counts"> | null>(null);
   const [historyDate, setHistoryDate] = useState<string>(businessDate);
@@ -732,32 +821,70 @@ const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, bu
           counted: totalTzs,
           difference,
           balanced: difference === 0,
+          // New-UI-only extras (harmless to Old readers)
+          expected_chips: expected.expectedChips,
+          expected_cash_by_currency: expected.expectedCashByCurrency,
+          chip_variance: perCellVariance.chipVariance,
+          cash_variance: perCellVariance.cashVariance,
+          balanced_by_totals: difference === 0,
+          balanced_by_cells: !perCellVariance.any,
+          ui_mode: mode,
         },
       },
       total: totalTzs,
     }, { onSuccess: () => setShowDiff(true) });
   };
 
+  const diffLabel = (() => {
+    if (!showDiff) return "·";
+    if (difference !== 0) return `${difference >= 0 ? "+" : ""}${formatCurrency(difference)}`;
+    return perCellVariance.any ? "Balanced · variance" : "Balanced";
+  })();
+  const diffCls = !showDiff
+    ? "text-muted-foreground"
+    : difference !== 0
+      ? "text-destructive"
+      : perCellVariance.any
+        ? "text-destructive"
+        : "text-success";
+
   return (
     <div className="space-y-3">
       <div className="cms-panel p-4">
-        <CashCountGrid chips={chipCounts} onChipsChange={setChipCounts} cash={cash}
-          onCashChange={(cur, v) => setCash(c => ({ ...c, [cur]: v }))} banks={bankBal} onBanksChange={setBankBal}
-          mobile={mobileBal} onMobileChange={setMobileBal} rates={exchangeRates}
-          mobileSuggestion={cashlessSug?.net}
-          cashlessIn={cashlessIn} onCashlessInChange={setCashlessIn} cashlessInSuggestion={cashlessSug?.in}
-          cashlessOut={cashlessOut} onCashlessOutChange={setCashlessOut} cashlessOutSuggestion={cashlessSug?.out} />
+        <div className="flex items-center justify-end gap-2 mb-3">
+          <span className={`text-[10px] uppercase tracking-wider ${mode === "old" ? "text-foreground font-semibold" : "text-muted-foreground"}`}>Old</span>
+          <Switch checked={mode === "new"} onCheckedChange={(v) => setMode(v ? "new" : "old")} />
+          <span className={`text-[10px] uppercase tracking-wider ${mode === "new" ? "text-foreground font-semibold" : "text-muted-foreground"}`}>New</span>
+        </div>
+
+        {mode === "old" ? (
+          <CashCountGrid chips={chipCounts} onChipsChange={setChipCounts} cash={cash}
+            onCashChange={(cur, v) => setCash(c => ({ ...c, [cur]: v }))} banks={bankBal} onBanksChange={setBankBal}
+            mobile={mobileBal} onMobileChange={setMobileBal} rates={exchangeRates}
+            mobileSuggestion={cashlessSug?.net}
+            cashlessIn={cashlessIn} onCashlessInChange={setCashlessIn} cashlessInSuggestion={cashlessSug?.in}
+            cashlessOut={cashlessOut} onCashlessOutChange={setCashlessOut} cashlessOutSuggestion={cashlessSug?.out} />
+        ) : (
+          <CashCheckNewGrid
+            chips={chipCounts}
+            onChipsChange={setChipCounts}
+            cash={cash}
+            onCashChange={(cur, v) => setCash(c => ({ ...c, [cur]: v }))}
+            expected={expected}
+          />
+        )}
 
         <div className="grid grid-cols-3 gap-2 pt-3 mt-3 border-t border-border">
           <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Expected</p><p className="font-mono text-xl font-bold text-card-foreground">{formatCurrency(expectedBalance)}</p></div>
           <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Counted</p><p className="font-mono text-xl font-bold text-card-foreground">{formatCurrency(totalTzs)}</p></div>
-          <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Diff</p><p className={`font-mono text-xl font-bold ${!showDiff ? "text-muted-foreground" : difference === 0 ? "text-success" : "text-destructive"}`}>{showDiff ? `${difference >= 0 ? "+" : ""}${formatCurrency(difference)}` : "·"}</p></div>
+          <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Diff</p><p className={`font-mono text-xl font-bold ${diffCls}`}>{diffLabel}</p></div>
         </div>
 
         <Button variant="outline" onClick={handleRecord} disabled={createCount.isPending} className="w-full mt-3">
           <Calculator className="w-4 h-4 mr-1.5" /> Record Check
         </Button>
       </div>
+
 
       <div className="cms-panel">
         <div className="cms-header text-xs flex items-center justify-between gap-2">
