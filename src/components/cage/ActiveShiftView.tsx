@@ -41,6 +41,9 @@ import CashCheckViewerDialog from "@/components/cage/CashCheckViewerDialog";
 import { useCashChecksByBusinessDate } from "@/hooks/use-cash-checks-by-date";
 import { useAuth } from "@/lib/auth-context";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { useExpectedCheckState } from "@/hooks/use-expected-check-state";
+import CashCheckNewGrid from "@/components/cage/CashCheckNewGrid";
 
 import {
   MOBILE_PROVIDERS, emptyMobile, emptyBanks, mobileTotal, bankTotalTzs,
