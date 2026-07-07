@@ -125,7 +125,7 @@ export const MODULE_LIVE_SPEC: Partial<Record<ModuleKey, LiveTableSpec[]>> = {
     { table: "expenses", queryKeyPrefixes: ["expenses", "expenses-approvals"] },
   ],
   cashless: [
-    { table: "cashless_transactions", queryKeyPrefixes: ["cashless", "cashless-transactions"] },
+    { table: "cashless_transactions", queryKeyPrefixes: ["cashless", "cashless-transactions", "cashless-suggestions", "cage-slots-cashless"] },
   ],
   finance_wallets: [
     { table: "fin_wallets", queryKeyPrefixes: ["fin-wallets"] },
