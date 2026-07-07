@@ -34,7 +34,7 @@ export const useRotaLock = (scope: RotaScope, month: string) => {
       return data as unknown as { casino_id: string; scope: RotaScope; month: string; locked_by: string; locked_at: string } | null;
     },
     enabled: !!casinoId,
-    staleTime: 30_000,
+    ...liveQueryOptions(),
   });
 };
 
