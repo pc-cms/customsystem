@@ -114,6 +114,7 @@ export const useSlotsRates = (shiftId: string | undefined) => {
       return data || [];
     },
     enabled: !!shiftId,
+    ...liveQueryOptions(),
   });
 };
 
