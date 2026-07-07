@@ -120,47 +120,27 @@ export function splitPlayersWindow(
   return out;
 }
 
-/** Per-table split: one peak per (player, day), distributed proportionally to IN per table. */
+/**
+ * Per-table Drop = raw SUM of buy-in amounts at each table over the window.
+ * No peak split, no proportional distribution, no recycled share.
+ * Buy-ins without table_id are excluded (they aren't attributed to any table).
+ * `recycled` is always 0 by design.
+ */
 export function splitTablesWindow(
   txs: NepTx[],
   fromIso: string,
   toIso: string
 ): Map<string, SplitTotals> {
-  const byPlayer = new Map<string, NepTx[]>();
-  for (const t of txs) {
-    if (!t.player_id) continue;
-    if (t.cancelled_at) continue;
-    if (t.created_at < fromIso || t.created_at > toIso) continue;
-    let arr = byPlayer.get(t.player_id);
-    if (!arr) { arr = []; byPlayer.set(t.player_id, arr); }
-    arr.push(t);
-  }
   const result = new Map<string, SplitTotals>();
-  const bump = (tableId: string, ext: number, rec: number) => {
-    let cur = result.get(tableId);
-    if (!cur) { cur = { dropR: 0, recycled: 0 }; result.set(tableId, cur); }
-    cur.dropR += ext;
-    cur.recycled += rec;
-  };
-  for (const [, plist] of byPlayer) {
-    const days = groupByDay(plist);
-    for (const [, dayTxs] of days) {
-      const { peak, totalIn } = dayPeak(dayTxs);
-      if (totalIn <= 0) continue;
-      // sum IN per table for the day
-      const inByTable = new Map<string, number>();
-      for (const t of dayTxs) {
-        if (!isCashIn(t) || !t.table_id) continue;
-        const amt = Number(t.amount) || 0;
-        inByTable.set(t.table_id, (inByTable.get(t.table_id) || 0) + amt);
-      }
-      const recycledTotal = totalIn - peak;
-      for (const [tid, inT] of inByTable) {
-        const dr = (peak * inT) / totalIn;
-        const dv = (recycledTotal * inT) / totalIn;
-        bump(tid, dr, dv);
-      }
-    }
+  for (const t of txs) {
+    if (t.cancelled_at) continue;
+    if (!t.table_id) continue;
+    if (!isCashIn(t)) continue;
+    if (t.created_at < fromIso || t.created_at > toIso) continue;
+    const amt = Number(t.amount) || 0;
+    let cur = result.get(t.table_id);
+    if (!cur) { cur = { dropR: 0, recycled: 0 }; result.set(t.table_id, cur); }
+    cur.dropR += amt;
   }
   return result;
 }
