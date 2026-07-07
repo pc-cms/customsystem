@@ -287,7 +287,7 @@ export const useSlotsCashlessAggByShift = (shiftIds: string[]) => {
       return out;
     },
     enabled: shiftIds.length > 0,
-    staleTime: 30_000,
+    ...liveQueryOptions(),
   });
 };
 
