@@ -96,6 +96,7 @@ export const useCageSlotsHistory = (limit = 60) => {
       return data || [];
     },
     enabled: !!casinoId,
+    ...liveQueryOptions(),
   });
 };
 
