@@ -13,6 +13,7 @@
  */
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useActiveShift } from "@/hooks/use-shift";
@@ -39,7 +40,7 @@ export const useShiftTableAdjustments = (shiftIdOverride?: string | null) => {
       return (data ?? []) as Array<{ table_id: string | null; transfer_type: string; amount: number }>;
     },
     enabled: !!casinoId && !!shiftId,
-    staleTime: 15_000,
+    ...liveQueryOptions(),
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,

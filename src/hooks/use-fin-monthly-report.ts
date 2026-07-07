@@ -3,6 +3,7 @@
  * with drill-down expense rows. Supports per-casino + network (premier only).
  */
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 
@@ -368,7 +369,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         usd_rate: avgUsdTzs,
       };
     },
-    staleTime: 60_000,
+    ...liveQueryOptionsWithFallback(60000),
   });
 };
 

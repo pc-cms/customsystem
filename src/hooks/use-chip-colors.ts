@@ -9,6 +9,7 @@
  */
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { CHIP_DENOMS } from "@/lib/currency";
@@ -97,7 +98,7 @@ export const useChipColors = () => {
     },
     enabled: !!casinoId,
     // Chip colors change extremely rarely; Realtime patches invalidate.
-    staleTime: 1000 * 60 * 60 * 24,
+    ...liveQueryOptions(),
     gcTime: 1000 * 60 * 60 * 24 * 7,
   });
 };
@@ -124,7 +125,7 @@ export const useChipVisibility = () => {
       return map;
     },
     enabled: !!casinoId,
-    staleTime: 1000 * 60 * 60 * 24,
+    ...liveQueryOptions(),
     gcTime: 1000 * 60 * 60 * 24 * 7,
   });
 };

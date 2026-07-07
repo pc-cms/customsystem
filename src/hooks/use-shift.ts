@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { logAction } from "@/lib/logging";
@@ -24,7 +25,7 @@ export const useLastClosedShift = () => {
       return data;
     },
     enabled: !!casinoId,
-    staleTime: 0,
+    ...liveQueryOptions(),
     refetchOnMount: "always",
   });
 };
@@ -47,7 +48,7 @@ export const useActiveShift = () => {
     },
     enabled: !!casinoId,
     // Hot KPI: active shift drives Cage / Pit headers; must always be fresh.
-    staleTime: 0,
+    ...liveQueryOptions(),
     refetchOnMount: "always",
   });
 };

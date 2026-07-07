@@ -4,6 +4,7 @@
  * UI only reads them and lets authorized roles edit the `comment` field.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { toast } from "sonner";
@@ -40,7 +41,7 @@ export const useStaffWarnings = (startIso: string, endIso: string) => {
       if (error) throw error;
       return (data || []) as any;
     },
-    staleTime: 30_000,
+    ...liveQueryOptions(),
   });
 };
 

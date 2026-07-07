@@ -5,6 +5,7 @@
  * Corrections happen through reversal only.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { toast } from "sonner";
@@ -63,7 +64,7 @@ export const useOtherIncomes = (from: string, to: string) => {
       if (error) throw error;
       return (data || []) as OtherIncomeRow[];
     },
-    staleTime: 15_000,
+    ...liveQueryOptions(),
   });
 };
 

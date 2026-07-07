@@ -5,6 +5,7 @@
  * Does NOT touch cash, wallets, chip inventory, or shift results.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
@@ -43,7 +44,7 @@ export const useChipTransfers = (date?: string) => {
       return (data || []) as ChipTransfer[];
     },
     enabled: !!casinoId,
-    staleTime: 1000 * 30,
+    ...liveQueryOptions(),
     refetchInterval: 30_000,
   });
 };
@@ -63,7 +64,7 @@ export const usePlayerChipTransfers = (playerId: string | null | undefined) => {
       return (data || []) as ChipTransfer[];
     },
     enabled: !!playerId,
-    staleTime: 1000 * 60,
+    ...liveQueryOptions(),
   });
 };
 

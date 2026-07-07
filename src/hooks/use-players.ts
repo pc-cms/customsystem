@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { logAction } from "@/lib/logging";
@@ -38,7 +39,7 @@ export const usePlayers = () => {
         .range(from, to)
       );
     },
-    staleTime: 1000 * 60 * 5,
+    ...liveQueryOptions(),
   });
 };
 
@@ -198,7 +199,7 @@ export const usePlayerEconomy = (limit = 500) => {
       return data;
     },
     enabled: !!casinoId,
-    staleTime: 1000 * 60 * 3,
+    ...liveQueryOptions(),
   });
 };
 
@@ -275,7 +276,7 @@ export const usePlayerEconomyRange = (range: { from: string; to: string }) => {
       return m;
     },
     enabled: !!casinoId,
-    staleTime: 1000 * 60 * 2,
+    ...liveQueryOptions(),
     select: (d: any) => {
       if (d instanceof Map) return d;
       const m = new Map<string, any>();

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -74,7 +75,7 @@ export const usePlayerMergeHistory = (playerId: string | null) => {
       if (error) throw error;
       return (data ?? []) as unknown as PlayerMergeRow[];
     },
-    staleTime: 30_000,
+    ...liveQueryOptionsWithFallback(30000),
   });
 };
 
@@ -90,6 +91,6 @@ export const useBasketPlayers = (ids: string[]) => {
       if (error) throw error;
       return data ?? [];
     },
-    staleTime: 5_000,
+    ...liveQueryOptionsWithFallback(5000),
   });
 };

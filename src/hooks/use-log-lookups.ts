@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import type { LogLookups, NameMap } from "@/lib/format-log";
@@ -33,6 +34,6 @@ export const useLogLookups = () => {
       return { dealers, players, tables, users };
     },
     enabled: !!casinoId,
-    staleTime: 60_000,
+    ...liveQueryOptionsWithFallback(60000),
   });
 };
