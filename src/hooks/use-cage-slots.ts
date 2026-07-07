@@ -192,7 +192,7 @@ export const useLastClosedSlotsCards = () => {
       return null;
     },
     enabled: !!casinoId,
-    staleTime: 30_000,
+    ...liveQueryOptions(),
   });
 };
 
