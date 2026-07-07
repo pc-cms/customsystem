@@ -58,6 +58,7 @@ export const MODULE_LIVE_SPEC: Partial<Record<ModuleKey, LiveTableSpec[]>> = {
   // ─────────── TABLES ───────────
   tables: [
     { table: "gaming_tables", queryKeyPrefixes: ["gaming-tables", "tables"] },
+    { table: "table_day_drop_cache", queryKeyPrefixes: ["tables-drop-cache-today", "tables-drop-split"] },
   ],
   table_tracker: [
     { table: "table_tracker", queryKeyPrefixes: ["table-tracker"] },
@@ -84,10 +85,14 @@ export const MODULE_LIVE_SPEC: Partial<Record<ModuleKey, LiveTableSpec[]>> = {
     { table: "business_day_closures", queryKeyPrefixes: ["business-day-closure", "business-day-history"] },
   ],
   cage_slots: [
-    { table: "cage_slots_shifts", queryKeyPrefixes: ["cage-slots-shifts", "cage-slots"] },
-    { table: "cage_slots_transfers", queryKeyPrefixes: ["cage-slots-transfers"] },
-    { table: "cage_slots_cash_counts", queryKeyPrefixes: ["cage-slots-cash-counts"] },
-    { table: "cage_slots_cash_inventory", queryKeyPrefixes: ["cage-slots-cash-inventory"] },
+    { table: "cage_slots_shifts", queryKeyPrefixes: ["cage-slots-shifts", "cage-slots", "cage-slots-active-shift", "cage-slots-shift", "cage-slots-history", "cage-slots-closing-totals"] },
+    { table: "cage_slots_transfers", queryKeyPrefixes: ["cage-slots-transfers", "cage-slots-pending-for-lg"] },
+    { table: "cage_slots_cash_counts", queryKeyPrefixes: ["cage-slots-cash-counts", "cage-slots-closing-totals"] },
+    { table: "cage_slots_cash_inventory", queryKeyPrefixes: ["cage-slots-cash-inventory", "cage-slots-inventory"] },
+    { table: "cage_slots_cards", queryKeyPrefixes: ["cage-slots-cards", "cage-slots-last-closed-cards"] },
+    { table: "cage_slots_comments", queryKeyPrefixes: ["cage-slots-comments"] },
+    { table: "cage_slots_exchange_rates", queryKeyPrefixes: ["cage-slots-rates"] },
+    { table: "cashless_transactions", queryKeyPrefixes: ["cage-slots-cashless", "cage-slots-cashless-agg"] },
   ],
 
   // ─────────── PLAYERS / RECEPTION ───────────
