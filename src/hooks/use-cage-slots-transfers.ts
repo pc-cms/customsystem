@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { toast } from "sonner";
 import { formatNumberSpaces } from "@/lib/currency";
 import { logAction } from "@/lib/logging";
