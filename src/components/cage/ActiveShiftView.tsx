@@ -511,7 +511,7 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
       };
     }
     onSubmit({
-      player_id: playerId, table_id: tableId, type: "in" as const, amount: tzsAmount, shift_id: shiftId,
+      player_id: playerId, table_id: tableId || null, type: "in" as const, amount: tzsAmount, shift_id: shiftId,
       chips: Object.keys(chips).length > 0 ? chipsPayload : undefined,
     }, { onSuccess: () => { setAmount(""); setChips({}); amountRef.current?.focus(); } });
   };
