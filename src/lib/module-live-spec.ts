@@ -49,6 +49,7 @@ export const MODULE_LIVE_SPEC: Partial<Record<ModuleKey, LiveTableSpec[]>> = {
     { table: "player_daily_zones", queryKeyPrefixes: ["player_daily_zones"] },
     { table: "player_position_history", queryKeyPrefixes: ["player-position-history"] },
     { table: "table_head_count", queryKeyPrefixes: ["table-head-count"] },
+    { table: "player_day_drop_cache", queryKeyPrefixes: ["players-drop-cache-today", "players-drop-cache-range", "player-drop-cache-by-days", "players-drop-split", "player-drop-split"] },
   ],
   pit_book: [
     { table: "pit_book_entries", queryKeyPrefixes: ["pit-book", "pit-book-entries"] },
