@@ -766,6 +766,33 @@ const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRate
   const [showDiff, setShowDiff] = useState(false);
   useEffect(() => { setShowDiff(false); }, [chipCounts, cash, bankBal, mobileBal, cashlessIn, cashlessOut]);
 
+  // New UI toggle (Old / New) — session-local, no persist.
+  const [mode, setMode] = useState<"old" | "new">("old");
+  const expected = useExpectedCheckState(shift, shiftTransactions);
+
+  // Per-cell variance for New mode: any chip denom or cash currency where
+  // counted ≠ expected. Used to render "Balanced · variance" in red when the
+  // TZS grand total accidentally nets to zero.
+  const perCellVariance = useMemo(() => {
+    const chipDenoms = new Set<number>([
+      ...Object.keys(expected.expectedChips).map(Number),
+      ...Object.keys(chipCounts).map(Number),
+    ]);
+    const chipVariance: Record<number, number> = {};
+    let anyChip = false;
+    for (const d of chipDenoms) {
+      const diff = (Number(chipCounts[d]) || 0) - (Number(expected.expectedChips[d]) || 0);
+      if (diff !== 0) { chipVariance[d] = diff; anyChip = true; }
+    }
+    const cashVariance: Record<string, number> = {};
+    let anyCash = false;
+    for (const c of CURRENCIES) {
+      const diff = cashSum(cash[c] || {}) - (expected.expectedCashByCurrency[c] || 0);
+      if (diff !== 0) { cashVariance[c] = diff; anyCash = true; }
+    }
+    return { chipVariance, cashVariance, any: anyChip || anyCash };
+  }, [chipCounts, cash, expected]);
+
   // History viewer
   const [viewerCheck, setViewerCheck] = useState<Tables<"cash_counts"> | null>(null);
   const [historyDate, setHistoryDate] = useState<string>(businessDate);
@@ -794,32 +821,70 @@ const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRate
           counted: totalTzs,
           difference,
           balanced: difference === 0,
+          // New-UI-only extras (harmless to Old readers)
+          expected_chips: expected.expectedChips,
+          expected_cash_by_currency: expected.expectedCashByCurrency,
+          chip_variance: perCellVariance.chipVariance,
+          cash_variance: perCellVariance.cashVariance,
+          balanced_by_totals: difference === 0,
+          balanced_by_cells: !perCellVariance.any,
+          ui_mode: mode,
         },
       },
       total: totalTzs,
     }, { onSuccess: () => setShowDiff(true) });
   };
 
+  const diffLabel = (() => {
+    if (!showDiff) return "·";
+    if (difference !== 0) return `${difference >= 0 ? "+" : ""}${formatCurrency(difference)}`;
+    return perCellVariance.any ? "Balanced · variance" : "Balanced";
+  })();
+  const diffCls = !showDiff
+    ? "text-muted-foreground"
+    : difference !== 0
+      ? "text-destructive"
+      : perCellVariance.any
+        ? "text-destructive"
+        : "text-success";
+
   return (
     <div className="space-y-3">
       <div className="cms-panel p-4">
-        <CashCountGrid chips={chipCounts} onChipsChange={setChipCounts} cash={cash}
-          onCashChange={(cur, v) => setCash(c => ({ ...c, [cur]: v }))} banks={bankBal} onBanksChange={setBankBal}
-          mobile={mobileBal} onMobileChange={setMobileBal} rates={exchangeRates}
-          mobileSuggestion={cashlessSug?.net}
-          cashlessIn={cashlessIn} onCashlessInChange={setCashlessIn} cashlessInSuggestion={cashlessSug?.in}
-          cashlessOut={cashlessOut} onCashlessOutChange={setCashlessOut} cashlessOutSuggestion={cashlessSug?.out} />
+        <div className="flex items-center justify-end gap-2 mb-3">
+          <span className={`text-[10px] uppercase tracking-wider ${mode === "old" ? "text-foreground font-semibold" : "text-muted-foreground"}`}>Old</span>
+          <Switch checked={mode === "new"} onCheckedChange={(v) => setMode(v ? "new" : "old")} />
+          <span className={`text-[10px] uppercase tracking-wider ${mode === "new" ? "text-foreground font-semibold" : "text-muted-foreground"}`}>New</span>
+        </div>
+
+        {mode === "old" ? (
+          <CashCountGrid chips={chipCounts} onChipsChange={setChipCounts} cash={cash}
+            onCashChange={(cur, v) => setCash(c => ({ ...c, [cur]: v }))} banks={bankBal} onBanksChange={setBankBal}
+            mobile={mobileBal} onMobileChange={setMobileBal} rates={exchangeRates}
+            mobileSuggestion={cashlessSug?.net}
+            cashlessIn={cashlessIn} onCashlessInChange={setCashlessIn} cashlessInSuggestion={cashlessSug?.in}
+            cashlessOut={cashlessOut} onCashlessOutChange={setCashlessOut} cashlessOutSuggestion={cashlessSug?.out} />
+        ) : (
+          <CashCheckNewGrid
+            chips={chipCounts}
+            onChipsChange={setChipCounts}
+            cash={cash}
+            onCashChange={(cur, v) => setCash(c => ({ ...c, [cur]: v }))}
+            expected={expected}
+          />
+        )}
 
         <div className="grid grid-cols-3 gap-2 pt-3 mt-3 border-t border-border">
           <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Expected</p><p className="font-mono text-xl font-bold text-card-foreground">{formatCurrency(expectedBalance)}</p></div>
           <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Counted</p><p className="font-mono text-xl font-bold text-card-foreground">{formatCurrency(totalTzs)}</p></div>
-          <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Diff</p><p className={`font-mono text-xl font-bold ${!showDiff ? "text-muted-foreground" : difference === 0 ? "text-success" : "text-destructive"}`}>{showDiff ? `${difference >= 0 ? "+" : ""}${formatCurrency(difference)}` : "·"}</p></div>
+          <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Diff</p><p className={`font-mono text-xl font-bold ${diffCls}`}>{diffLabel}</p></div>
         </div>
 
         <Button variant="outline" onClick={handleRecord} disabled={createCount.isPending} className="w-full mt-3">
           <Calculator className="w-4 h-4 mr-1.5" /> Record Check
         </Button>
       </div>
+
 
       <div className="cms-panel">
         <div className="cms-header text-xs flex items-center justify-between gap-2">
