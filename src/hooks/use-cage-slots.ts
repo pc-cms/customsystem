@@ -151,6 +151,7 @@ export const useSlotsCards = (shiftId: string | undefined) => {
       return data;
     },
     enabled: !!shiftId,
+    ...liveQueryOptions(),
   });
 };
 
