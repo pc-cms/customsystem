@@ -30,7 +30,7 @@
  */
 
 export const liveQueryOptions = () => ({
-  staleTime: Infinity as const,
+  staleTime: Infinity,
   gcTime: 1000 * 60 * 60 * 24,
   refetchOnMount: false as const,
   refetchOnWindowFocus: false as const,
