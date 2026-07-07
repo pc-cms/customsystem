@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { getBusinessDate } from "@/lib/business-day";
+import { liveQueryOptions } from "@/lib/live-query-options";
 
 /**
  * Returns visits for the current business day.
@@ -12,6 +13,9 @@ import { getBusinessDate } from "@/lib/business-day";
  *  - "Checked out" = visits with date = today AND checked_out_at IS NOT NULL.
  *
  * The 05:00 EAT auto-close cron closes any open visits at the rollover.
+ *
+ * Realtime-first: `casino_visits` is subscribed at App level via
+ * useModuleLiveSync (ALWAYS_LIVE). No refetchOnMount/Focus needed.
  */
 export const useVisitsToday = (selectFields = "*, players(first_name, last_name, nickname, photo_url, status, id_number, category, player_type, player_cards(*), player_tags(*))") => {
   const { casinoId } = useAuth();
@@ -31,9 +35,6 @@ export const useVisitsToday = (selectFields = "*, players(first_name, last_name,
       return data;
     },
     enabled: !!casinoId,
-    staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
+    ...liveQueryOptions(),
   });
 };

@@ -8,6 +8,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
+import { liveQueryOptions } from "@/lib/live-query-options";
 
 export type TipsKind = "tips_live" | "tips_poker" | "tips_floor";
 
@@ -50,7 +51,7 @@ export const useTipsByRange = (
       if (error) throw error;
       return ((data || []) as any[]).filter(r => !r.cancelled_at) as TipsRow[];
     },
-    staleTime: 30_000,
+    ...liveQueryOptions(),
   });
 };
 
@@ -84,6 +85,6 @@ export const useTipsCollectedForPeriod = (startIso: string, endIso: string) => {
       });
       return { byDay, total };
     },
-    staleTime: 30_000,
+    ...liveQueryOptions(),
   });
 };

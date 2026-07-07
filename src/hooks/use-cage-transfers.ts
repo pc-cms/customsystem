@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { formatNumberSpaces } from "@/lib/currency";
 import type { Tables } from "@/integrations/supabase/types";
 import type { SafeCageTransferInsert } from "@/lib/safe-inserts";
+import { liveQueryOptions } from "@/lib/live-query-options";
 
 export type CageTransferType = "add_float" | "collection" | "fill" | "credit" | "slots_out" | "slots_in";
 export type CageTransferDirection = "cash_in" | "cash_out" | "chip_to_table" | "chip_from_table";
@@ -46,7 +47,7 @@ export const useCageTransfers = (shiftId?: string) => {
       return (data ?? []) as CageTransferRow[];
     },
     enabled: !!casinoId && !!shiftId,
-    staleTime: 1000 * 30,
+    ...liveQueryOptions(),
   });
 };
 
