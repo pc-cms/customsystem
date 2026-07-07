@@ -206,11 +206,7 @@ export const usePlayersDropCacheToday = (businessDate: string | null | undefined
       return rec;
     },
     enabled: !!casinoId && !!businessDate,
-    staleTime: 5_000,
-    refetchInterval: 5_000,
-    refetchIntervalInBackground: false,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
+    ...liveQueryOptions(),
   });
   const data = useMemo(() => toLookup(q.data ?? {}), [q.data]);
   return { ...q, data };
