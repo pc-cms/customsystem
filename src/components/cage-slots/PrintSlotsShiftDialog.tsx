@@ -307,7 +307,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       cashlessWithdrawTotalTzs: Object.values(withdraw).reduce((sum, value) => sum + Number(value || 0), 0) || fallbackCashlessOut,
       // Immutable audit snapshot — manual End-Day values exactly as entered
       // on the closing check, regardless of any later edits to shifts.cashless_final_providers.
-      manualInputAtCloseByProvider: nonEmpty((closingCheck?.denominations as any)?.cashless_final_providers)
+      manualInputAtCloseByProvider: hasKeys((closingCheck?.denominations as any)?.cashless_final_providers)
         ? collectProviderSnap((closingCheck?.denominations as any).cashless_final_providers)
         : null,
     };
