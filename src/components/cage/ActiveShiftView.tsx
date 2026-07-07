@@ -499,7 +499,7 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
   const selectedPlayer = useMemo(() => players.find(p => p.id === playerId) || null, [players, playerId]);
 
   const handleSubmit = () => {
-    if (!playerId || !tableId || tzsAmount <= 0) return;
+    if (!playerId || tzsAmount <= 0) return;
     if (Number(amount) <= 0) { toast.error("Amount must be greater than zero"); return; }
     if (selectedPlayer?.status === "blacklist") { toast.error("BLOCKED — Player is blacklisted"); return; }
     const chipsPayload: Record<string, unknown> = { ...chips };
