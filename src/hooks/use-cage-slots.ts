@@ -74,7 +74,7 @@ export const useCageSlotsShift = (shiftId: string | undefined) => {
       return data;
     },
     enabled: !!shiftId,
-    refetchInterval: 15_000,
+    ...liveQueryOptions(),
   });
 };
 
