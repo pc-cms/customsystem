@@ -168,6 +168,6 @@ export const usePendingSlotsApprovals = (lgShiftId: string | undefined) => {
       return count ?? 0;
     },
     enabled: !!lgShiftId,
-    refetchInterval: 15_000,
+    ...liveQueryOptions(),
   });
 };
