@@ -15,6 +15,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 
 export type TableSplit = { dropR: number; recycled: number };
 export type SplitLookup = {
