@@ -98,7 +98,7 @@ export const useCashlessSuggestions = (
 
     },
     enabled: !!casinoId && !!businessDate,
-    staleTime: 1000 * 30,
+    ...liveQueryOptions(),
   });
 };
 
