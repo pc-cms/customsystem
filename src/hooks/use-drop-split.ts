@@ -243,11 +243,7 @@ export const usePlayersDropCacheRange = (
       return rec;
     },
     enabled: !!casinoId && !!fromDate && !!toDate,
-    staleTime: 5_000,
-    refetchInterval: 5_000,
-    refetchIntervalInBackground: false,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
+    ...liveQueryOptions(),
   });
   const data = useMemo(() => toLookup(q.data ?? {}), [q.data]);
   return { ...q, data };
