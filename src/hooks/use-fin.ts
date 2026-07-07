@@ -3,6 +3,7 @@
  * Strictly per-casino isolated; categories are global.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
@@ -533,7 +534,7 @@ export const useShiftsTablesResultForDate = (businessDate?: string) => {
       return (data || []).reduce((s: number, r: any) => s + Number(r.tables_result || 0), 0);
     },
     enabled: !!activeCasinoId && !!businessDate,
-    staleTime: 30_000,
+    ...liveQueryOptionsWithFallback(30000),
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
@@ -557,7 +558,7 @@ export const useSlotsAutoForDate = (businessDate?: string) => {
       );
     },
     enabled: !!activeCasinoId && !!businessDate,
-    staleTime: 30_000,
+    ...liveQueryOptionsWithFallback(30000),
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });

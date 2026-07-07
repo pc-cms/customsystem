@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
@@ -36,7 +37,7 @@ export function usePlayerDailyZones(businessDate: string | undefined) {
       return rec;
     },
     enabled: !!casinoId && !!businessDate,
-    staleTime: 15_000,
+    ...liveQueryOptions(),
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,

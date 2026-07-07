@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 
@@ -36,6 +37,6 @@ export const useDuplicateGroups = () => {
       if (error) throw error;
       return (data ?? []) as DuplicateGroup[];
     },
-    staleTime: 60_000,
+    ...liveQueryOptionsWithFallback(60000),
   });
 };

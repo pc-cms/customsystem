@@ -4,6 +4,7 @@
  * Audit-only: does NOT touch cash, cage, wallets, NEP/Drop, chip inventory.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
@@ -34,7 +35,7 @@ export const usePlayerChipAdjustments = (playerId: string | null | undefined) =>
       return (data || []) as PlayerChipAdjustment[];
     },
     enabled: !!playerId,
-    staleTime: 30_000,
+    ...liveQueryOptions(),
   });
 };
 

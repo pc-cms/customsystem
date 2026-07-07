@@ -3,6 +3,7 @@
  * Replaces the legacy `expenses.is_income` hack with a dedicated table.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { toast } from "sonner";
@@ -32,7 +33,7 @@ export const useFinIncomes = (year: number) => {
       if (error) throw error;
       return (data || []) as FinIncomeRow[];
     },
-    staleTime: 30_000,
+    ...liveQueryOptions(),
   });
 };
 

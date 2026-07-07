@@ -6,6 +6,7 @@
  * Pit role only sees pit_bosses → unread for managers channel always 0 for them.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -85,7 +86,7 @@ export function usePitBookUnread() {
   return useQuery({
     queryKey: QK(casinoId, user?.id ?? null),
     enabled: !!casinoId && !!user && channels.length > 0,
-    staleTime: 10_000,
+    ...liveQueryOptions(),
     queryFn: async (): Promise<PitBookUnread> => {
       // Load read markers
       const { data: readsRaw } = await supabase

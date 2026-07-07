@@ -3,6 +3,7 @@
  * One server-side aggregated list + mutations to update CRM metadata.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -48,7 +49,7 @@ export const useCrmPlayers = (casinoId: string | null) => {
         visits_total: Number(r.visits_total || 0),
       })) as CrmPlayerRow[];
     },
-    staleTime: 60_000,
+    ...liveQueryOptionsWithFallback(60000),
   });
 };
 
@@ -120,6 +121,6 @@ export const useCasinoHosts = (casinoId: string | null) => {
       if (error) throw error;
       return (data ?? []) as { user_id: string; display_name: string }[];
     },
-    staleTime: 5 * 60_000,
+    ...liveQueryOptionsWithFallback(300000),
   });
 };

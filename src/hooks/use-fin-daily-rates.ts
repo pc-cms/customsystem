@@ -3,6 +3,7 @@
  * Cage should read today's rate from here on shift open (Phase next).
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
@@ -90,7 +91,7 @@ export const useFinDailyRate = (businessDate?: string, currency?: string) => {
       return data ? Number(data.rate_to_tzs) : null;
     },
     enabled: !!activeCasinoId && !!businessDate && !!currency,
-    staleTime: 1000 * 60 * 60,
+    ...liveQueryOptionsWithFallback(3600000),
   });
 };
 

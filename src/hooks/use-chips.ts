@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { logAction } from "@/lib/logging";
@@ -97,7 +98,7 @@ export const useChipSnapshots = (date: string) => {
     // Chip Counts are cross-device operational data. Do NOT pin today's data
     // forever and do NOT trust restored PWA cache here: if Realtime drops on a
     // weak network, another account's save must still appear shortly.
-    staleTime: isToday ? 0 : 5 * 60_000,
+    ...liveQueryOptions(),
     gcTime: 24 * 60 * 60_000,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
@@ -117,7 +118,7 @@ export const useChipSnapshotsFull = (date: string) => {
       return fetchChipSnapshots(casinoId, date);
     },
     enabled: !!casinoId,
-    staleTime: 15_000,
+    ...liveQueryOptions(),
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,

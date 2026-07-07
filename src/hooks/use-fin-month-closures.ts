@@ -2,6 +2,7 @@
  * fin_month_closures — monthly Close Month ritual (super_admin only).
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { toast } from "sonner";
@@ -35,7 +36,7 @@ export const useMonthClosures = () => {
       if (error) throw error;
       return (data || []) as MonthClosureRow[];
     },
-    staleTime: 60_000,
+    ...liveQueryOptionsWithFallback(60000),
   });
 };
 

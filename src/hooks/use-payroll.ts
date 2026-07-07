@@ -4,6 +4,7 @@
  * All financial computations live in DB triggers; UI sends raw inputs only.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
@@ -81,7 +82,7 @@ export const useEmployees = () => {
       })) as Employee[];
     },
     enabled: !!activeCasinoId,
-    staleTime: 1000 * 60 * 30,
+    ...liveQueryOptionsWithFallback(1800000),
   });
 };
 
@@ -482,7 +483,7 @@ export const useLatestPayrollSettings = () => {
       return (data as PayrollSettings | null) ?? null;
     },
     enabled: !!activeCasinoId,
-    staleTime: 1000 * 60 * 60 * 24,
+    ...liveQueryOptionsWithFallback(86400000),
   });
 };
 
@@ -514,7 +515,7 @@ export const useLatestPayeBrackets = () => {
       return ((data as unknown) as PayeBracket[]) || [];
     },
     enabled: !!activeCasinoId,
-    staleTime: 1000 * 60 * 60 * 24,
+    ...liveQueryOptionsWithFallback(86400000),
   });
 };
 

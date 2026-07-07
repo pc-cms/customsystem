@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 
@@ -39,7 +40,7 @@ export const useLastVisitsByPlayers = (playerIds: string[]) => {
       return result;
     },
     enabled: !!casinoId && playerIds.length > 0,
-    staleTime: 1000 * 60,
+    ...liveQueryOptions(),
   });
 };
 
@@ -64,6 +65,6 @@ export const useLastVisit = (playerId: string | undefined | null) => {
       return (data as any).checked_out_at || (data as any).checked_in_at;
     },
     enabled: !!casinoId && !!playerId,
-    staleTime: 1000 * 60,
+    ...liveQueryOptions(),
   });
 };

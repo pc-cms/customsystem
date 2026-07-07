@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
@@ -64,7 +65,7 @@ export function useEffectiveBusinessDate() {
     // boot on the previous date until the interval fires.
     initialDataUpdatedAt: 0,
     enabled: !!casinoId && !!user,
-    staleTime: 60_000,
+    ...liveQueryOptions(),
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
@@ -92,7 +93,7 @@ export function useLastBusinessDayClosure() {
       return data;
     },
     enabled: !!casinoId,
-    staleTime: 30_000,
+    ...liveQueryOptions(),
   });
 }
 
@@ -147,7 +148,7 @@ export function useClosedBusinessDates(fromDate: string, toDate: string) {
       return new Set((data || []).map((r: any) => r.business_date as string));
     },
     enabled: !!casinoId,
-    staleTime: 30_000,
+    ...liveQueryOptions(),
     refetchInterval: 60_000,
   });
 }

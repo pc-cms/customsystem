@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { logAction } from "@/lib/logging";
@@ -53,7 +54,7 @@ export const useExpenses = (
       return data;
     },
     enabled: !!casinoId,
-    staleTime: 0,
+    ...liveQueryOptions(),
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
@@ -80,7 +81,7 @@ export const useSlotsExpenses = (businessDate: string | undefined) => {
       return data;
     },
     enabled: !!casinoId && !!businessDate,
-    staleTime: 1000 * 60,
+    ...liveQueryOptions(),
   });
 };
 

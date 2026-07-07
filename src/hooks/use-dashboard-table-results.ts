@@ -12,6 +12,7 @@
  * Casino scope: filtered by active casino_id via the RPC. No cross-casino mix.
  */
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -45,7 +46,7 @@ export const useDashboardTableResults = (businessDate: string | undefined) => {
       return map;
     },
     enabled: !!casinoId && !!businessDate,
-    staleTime: 15_000,
+    ...liveQueryOptions(),
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,

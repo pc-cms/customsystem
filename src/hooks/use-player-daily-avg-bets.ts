@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
@@ -34,7 +35,7 @@ export function usePlayerDailyAvgBets(businessDate: string | undefined) {
       return (data || []) as PlayerDailyAvgBet[];
     },
     enabled: !!casinoId && !!businessDate,
-    staleTime: 15_000,
+    ...liveQueryOptionsWithFallback(15000),
     refetchInterval: 30_000,
   });
 }
@@ -55,7 +56,7 @@ export function usePlayerDailyAvgBetsRange(playerId: string | undefined, from: s
       return (data || []) as PlayerDailyAvgBet[];
     },
     enabled: !!playerId && !!from && !!to,
-    staleTime: 30_000,
+    ...liveQueryOptionsWithFallback(30000),
   });
 }
 

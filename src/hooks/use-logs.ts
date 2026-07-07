@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 
@@ -47,6 +48,6 @@ export const useClientSessionsTotalBet = (date?: string) => {
       return Number(data?.total_bet || 0);
     },
     enabled: !!casinoId,
-    staleTime: 1000 * 60 * 2,
+    ...liveQueryOptionsWithFallback(120000),
   });
 };

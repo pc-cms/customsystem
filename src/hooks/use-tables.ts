@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
@@ -27,7 +28,7 @@ export const useGamingTables = (includeArchived = false) => {
     },
     enabled: !!casinoId,
     // Gaming tables change rarely (config). Realtime invalidates on edits.
-    staleTime: 1000 * 60 * 5,
+    ...liveQueryOptions(),
   });
 };
 
@@ -131,7 +132,7 @@ export const useTableTracker = (date: string) => {
       return data;
     },
     enabled: !!casinoId,
-    staleTime: 15_000,
+    ...liveQueryOptions(),
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
@@ -272,7 +273,7 @@ export const useTableHeadCount = (date: string) => {
       return data;
     },
     enabled: !!casinoId,
-    staleTime: 15_000,
+    ...liveQueryOptions(),
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,

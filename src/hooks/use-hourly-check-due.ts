@@ -18,6 +18,7 @@
  * refresh. Cashier saves a check → on next poll (max 30s) the banner is gone.
  */
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 
@@ -92,7 +93,7 @@ export const useHourlyCheckDue = (kind: HourlyCheckKind): HourlyCheckState => {
     ],
     enabled: !!casinoId && !!window,
     refetchInterval: 30_000,
-    staleTime: 15_000,
+    ...liveQueryOptionsWithFallback(15000),
     queryFn: async (): Promise<boolean> => {
       if (!casinoId || !window) return false;
       const table = kind === "live" ? "cash_counts" : "cage_slots_cash_counts";

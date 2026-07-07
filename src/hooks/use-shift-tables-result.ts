@@ -9,6 +9,7 @@
  * a DB trigger on close + on snapshot change).
  */
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 
 export function useShiftTablesResultTotal(shiftId: string | null | undefined) {
@@ -25,7 +26,7 @@ export function useShiftTablesResultTotal(shiftId: string | null | undefined) {
     },
     enabled: !!shiftId,
     // Hot KPI: shift P&L must always be fresh.
-    staleTime: 0,
+    ...liveQueryOptions(),
     refetchOnMount: "always",
   });
 }

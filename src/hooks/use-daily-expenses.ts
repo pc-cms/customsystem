@@ -3,6 +3,7 @@
  * and the /expenses/daily manager page. Returns ALL sources (live_game, slots, office).
  */
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 
@@ -23,7 +24,7 @@ export const useDailyExpenses = (businessDate?: string) => {
       return data || [];
     },
     enabled: !!casinoId && !!businessDate,
-    staleTime: 0,
+    ...liveQueryOptions(),
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });

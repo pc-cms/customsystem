@@ -5,6 +5,7 @@
  * next to the Actual column in Monthly Report.
  */
 import { useQuery } from "@tanstack/react-query";
+import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 
@@ -53,6 +54,6 @@ export const useCategoryMtd = (scope?: string) => {
       });
       return { map, year, month };
     },
-    staleTime: 60_000,
+    ...liveQueryOptionsWithFallback(60000),
   });
 };

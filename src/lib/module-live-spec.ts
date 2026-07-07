@@ -139,8 +139,8 @@ export const MODULE_LIVE_SPEC: Partial<Record<ModuleKey, LiveTableSpec[]>> = {
   ],
   finance_dashboard: [
     { table: "fin_wallets", queryKeyPrefixes: ["fin-wallets", "fin-balance-snapshot"] },
-    { table: "fin_wallet_tx", queryKeyPrefixes: ["fin-wallet-tx", "fin-balance-snapshot"] },
-    { table: "fin_incomes", queryKeyPrefixes: ["fin-incomes", "fin-balance-snapshot"] },
+    { table: "fin_wallet_tx", queryKeyPrefixes: ["fin-wallet-tx", "fin-balance-snapshot", "fin-wallet-bal-asof"] },
+    { table: "fin_incomes", queryKeyPrefixes: ["fin-incomes", "fin-other-incomes", "fin-balance-snapshot"] },
   ],
   finance_budget: [
     { table: "fin_budget", queryKeyPrefixes: ["fin-budget"] },
