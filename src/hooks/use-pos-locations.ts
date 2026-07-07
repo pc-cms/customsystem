@@ -31,7 +31,7 @@ export function usePosLocations(casinoId: string | null, activeOnly = true) {
       if (error) throw error;
       return (data ?? []) as PosLocation[];
     },
-    staleTime: 1000 * 60 * 30, // 30 min — POS locations rarely change
+    ...liveQueryOptions(), // 30 min — POS locations rarely change
   });
 }
 

@@ -22,7 +22,7 @@ export const useFinCategories = () =>
       if (error) throw error;
       return data;
     },
-    staleTime: 1000 * 60 * 60 * 24, // 24h — categories rarely change
+    ...liveQueryOptions(), // 24h — categories rarely change
   });
 
 export const useUpsertFinCategory = () => {
@@ -181,7 +181,7 @@ export const useFinWallets = () => {
       return data;
     },
     enabled: isSummaryMode || !!activeCasinoId,
-    staleTime: 1000 * 60 * 60 * 6, // 6h — wallets are configuration
+    ...liveQueryOptions(), // 6h — wallets are configuration
   });
 };
 
