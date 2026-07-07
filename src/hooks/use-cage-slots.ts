@@ -233,6 +233,7 @@ export const useSlotsComments = (shiftId: string | undefined) => {
       return data || [];
     },
     enabled: !!shiftId,
+    ...liveQueryOptions(),
   });
 };
 
