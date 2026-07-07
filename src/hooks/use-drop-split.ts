@@ -71,8 +71,7 @@ export const useTablesDropSplit = (fromIso: string | null, toIso: string | null)
       return rec;
     },
     enabled: !!casinoId && !!fromIso && !!toIso,
-    staleTime: 1000 * 30,
-    refetchInterval: 60_000,
+    ...liveQueryOptionsWithFallback(60_000),
   });
   const data = useMemo(() => toLookup(q.data ?? {}), [q.data]);
   return { ...q, data };
