@@ -596,9 +596,10 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
 };
 
 // =================== OUT FORM (was Cashout) ===================
-const OutForm = ({ players, tables, shiftId, onSubmit, loading, shiftTransactions = [] }: {
+const OutForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, shiftTransactions = [] }: {
   players: Tables<"players">[];
   tables: Tables<"gaming_tables">[];
+  exchangeRates: Record<string, number>;
   shiftId: string;
   onSubmit: (data: Record<string, unknown>, opts?: Record<string, unknown>) => void;
   loading: boolean;
@@ -606,14 +607,39 @@ const OutForm = ({ players, tables, shiftId, onSubmit, loading, shiftTransaction
 }) => {
   const [playerId, setPlayerId] = useState("");
   const [chips, setChips] = useState<Record<number, number>>({});
+  const [payoutCurrency, setPayoutCurrency] = useState("TZS");
+  const [payoutAmount, setPayoutAmount] = useState("");
   const total = useMemo(() => sumChips(chips), [chips]);
   const selectedPlayer = useMemo(() => players.find(p => p.id === playerId) || null, [players, playerId]);
+
+  // Payout TZS-equivalent. When currency is TZS or amount blank — defaults to
+  // the sum of returned chips (so the cage releases exactly that much cash).
+  const payoutTzs = useMemo(() => {
+    const raw = Number(payoutAmount) || 0;
+    if (!raw) return total;
+    if (payoutCurrency === "TZS") return raw;
+    return raw * (exchangeRates[payoutCurrency] || 0);
+  }, [payoutAmount, payoutCurrency, exchangeRates, total]);
 
   const handleSubmit = () => {
     if (!playerId || total <= 0) return;
     if (selectedPlayer?.status === "blacklist") { toast.error("BLOCKED — Player is blacklisted"); return; }
-    onSubmit({ player_id: playerId, table_id: null, type: "out" as const, amount: total, chips, shift_id: shiftId },
-      { onSuccess: () => setChips({}) });
+    const raw = Number(payoutAmount) || 0;
+    const chipsPayload: Record<string, unknown> = { ...chips };
+    if (payoutCurrency !== "TZS" && raw > 0) {
+      chipsPayload._meta = {
+        payout_currency: payoutCurrency,
+        payout_amount: raw,
+        rate: exchangeRates[payoutCurrency],
+      };
+    } else if (payoutCurrency === "TZS" && raw > 0 && raw !== total) {
+      chipsPayload._meta = {
+        payout_currency: "TZS",
+        payout_amount: raw,
+      };
+    }
+    onSubmit({ player_id: playerId, table_id: null, type: "out" as const, amount: payoutTzs, chips: chipsPayload, shift_id: shiftId },
+      { onSuccess: () => { setChips({}); setPayoutAmount(""); } });
   };
 
   const form = (
@@ -632,8 +658,30 @@ const OutForm = ({ players, tables, shiftId, onSubmit, loading, shiftTransaction
           onSubmit={handleSubmit}
         />
       </div>
+      <div className="flex gap-2 items-end">
+        <div className="flex-1">
+          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">
+            3. Payout amount <span className="normal-case text-muted-foreground/60">(blank = auto TZS)</span>
+          </label>
+          <NumberInput
+            value={payoutAmount}
+            onChange={setPayoutAmount}
+            className="text-lg h-11" placeholder={total > 0 ? String(total) : "0"}
+            onKeyDown={e => e.key === "Enter" && handleSubmit()}
+          />
+        </div>
+        <div className="w-20">
+          <Select value={payoutCurrency} onValueChange={setPayoutCurrency}>
+            <SelectTrigger className="font-mono h-11"><SelectValue /></SelectTrigger>
+            <SelectContent>{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+      </div>
+      {payoutCurrency !== "TZS" && Number(payoutAmount) > 0 && (
+        <p className="text-xs font-mono text-muted-foreground text-right">= {formatCurrency(payoutTzs)} (1 {payoutCurrency} = {formatNumberSpaces(exchangeRates[payoutCurrency] || 0)} TZS)</p>
+      )}
       <Button onClick={handleSubmit} disabled={!playerId || total <= 0 || loading} className="w-full mt-2 gap-1.5 h-11">
-        <ArrowUpFromLine className="w-4 h-4" /> {loading ? "Recording…" : "OUT"} {total > 0 && `· ${formatCurrency(total)}`}
+        <ArrowUpFromLine className="w-4 h-4" /> {loading ? "Recording…" : "OUT"} {payoutTzs > 0 && `· ${formatCurrency(payoutTzs)}`}
       </Button>
     </div>
   );
