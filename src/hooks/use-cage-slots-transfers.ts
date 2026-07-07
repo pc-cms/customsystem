@@ -58,7 +58,7 @@ export const useSlotsTransfers = (shiftId: string | undefined) => {
       return (data ?? []) as SlotsTransferRow[];
     },
     enabled: !!shiftId,
-    staleTime: 15_000,
+    ...liveQueryOptions(),
   });
 };
 
