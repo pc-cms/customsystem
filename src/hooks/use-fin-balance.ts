@@ -45,7 +45,7 @@ export const useFinBalanceSnapshot = (from: string, to: string) => {
       if (error) throw error;
       return data as BalanceSnapshot;
     },
-    staleTime: 15_000,
+    ...liveQueryOptionsWithFallback(15_000),
   });
 };
 
