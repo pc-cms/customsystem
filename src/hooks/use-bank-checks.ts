@@ -54,7 +54,7 @@ export const useBankChecks = (fromDate?: string, toDate?: string) => {
       if (error) throw error;
       return (data || []) as BankCheck[];
     },
-    staleTime: 15_000,
+    ...liveQueryOptions(),
   });
 };
 
