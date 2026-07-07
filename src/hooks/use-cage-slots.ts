@@ -55,6 +55,7 @@ export const useActiveCageSlotsShift = () => {
       return data;
     },
     enabled: !!casinoId,
+    ...liveQueryOptions(),
   });
 };
 
