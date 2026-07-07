@@ -577,7 +577,7 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
         />
       </div>
 
-      <Button onClick={handleSubmit} disabled={!playerId || !tableId || tzsAmount <= 0 || loading} className="w-full mt-2 gap-1.5 h-11">
+      <Button onClick={handleSubmit} disabled={!playerId || tzsAmount <= 0 || loading} className="w-full mt-2 gap-1.5 h-11">
         <ArrowDownToLine className="w-4 h-4" /> {loading ? "Recording…" : "IN"} {tzsAmount > 0 && `· ${formatCurrency(tzsAmount)}`}
       </Button>
     </div>
