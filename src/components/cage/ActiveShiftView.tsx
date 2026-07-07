@@ -699,13 +699,15 @@ const OutForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, s
 };
 
 // =================== CASH CHECK ===================
-const CashCheckForm = ({ expectedBalance, shiftId, exchangeRates, cashChecks, businessDate }: {
+const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRates, cashChecks, businessDate }: {
   expectedBalance: number;
-  shiftId: string;
+  shift: Tables<"shifts">;
+  shiftTransactions: Tables<"transactions">[];
   exchangeRates: Record<string, number>;
   cashChecks: Tables<"cash_counts">[];
   businessDate: string;
 }) => {
+  const shiftId = shift.id;
   const { hasRole } = useAuth();
   const { data: cashlessSug } = useCashlessSuggestions(businessDate, "live_game");
   const canBrowseHistory = hasRole("manager") || hasRole("pit") || hasRole("surveillance") || hasRole("finance_manager") || hasRole("super_admin");
