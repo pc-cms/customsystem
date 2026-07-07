@@ -126,7 +126,7 @@ export const usePlayerDropSplit = (
       return { dropR: Number(row?.drop_r) || 0, recycled: Number(row?.drop_recycled) || 0 };
     },
     enabled: !!playerId,
-    staleTime: 1000 * 60,
+    ...liveQueryOptionsWithFallback(60_000),
   });
 };
 
