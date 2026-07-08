@@ -680,8 +680,24 @@ const ShiftClosingReport = ({
             </td>
           </tr>
           <tr>
+            <td className="border border-black px-1.5 py-0.5">+ Cashless IN</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">
+              {(() => {
+                const v = Object.values(effCashlessIO.inByProv).reduce((s, x) => s + Number(x || 0), 0);
+                return v === 0 ? "" : numAlways(v);
+              })()}
+            </td>
             <td className="border border-black px-1.5 py-0.5">Cash Desk Chips CREDIT</td>
             <td className="border border-black px-1.5 py-0.5 text-right"></td>
+          </tr>
+          <tr>
+            <td className="border border-black px-1.5 py-0.5">− Cashless OUT</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">
+              {(() => {
+                const v = Object.values(effCashlessIO.outByProv).reduce((s, x) => s + Number(x || 0), 0);
+                return v === 0 ? "" : `-${numAlways(v)}`;
+              })()}
+            </td>
             <td className="border border-black px-1.5 py-0.5 font-semibold">Miss Chips</td>
             <td className="border border-black px-1.5 py-0.5 text-right font-bold">
               {(() => {
@@ -690,6 +706,20 @@ const ShiftClosingReport = ({
                 return (v > 0 ? "+" : "−") + numAlways(Math.abs(v));
               })()}
             </td>
+          </tr>
+          <tr>
+            <td className="border border-black px-1.5 py-0.5 font-semibold">NET Cashless</td>
+            <td className="border border-black px-1.5 py-0.5 text-right font-bold">
+              {(() => {
+                const inS = Object.values(effCashlessIO.inByProv).reduce((s, x) => s + Number(x || 0), 0);
+                const outS = Object.values(effCashlessIO.outByProv).reduce((s, x) => s + Number(x || 0), 0);
+                const n = inS - outS;
+                if (n === 0) return "";
+                return (n > 0 ? "+" : "−") + numAlways(Math.abs(n));
+              })()}
+            </td>
+            <td className="border border-black px-1.5 py-0.5"></td>
+            <td className="border border-black px-1.5 py-0.5 text-right"></td>
           </tr>
           <tr>
             <td className="border border-black bg-gray-300 px-1.5 py-0.5 font-bold" colSpan={3}>Shift Balance</td>
