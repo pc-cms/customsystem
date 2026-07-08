@@ -289,22 +289,91 @@ const CashCheckViewerDialog = ({
             })()}
           </>
         ) : (
-          <div className="grid grid-cols-3 gap-2 cms-panel p-4">
-            <div className="text-center">
-              <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Expected</p>
-              <p className="font-mono text-2xl font-bold text-card-foreground whitespace-nowrap">{formatCurrency(expected)}</p>
+          <>
+            <div className="grid grid-cols-3 gap-2 cms-panel p-4">
+              <div className="text-center">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Expected</p>
+                <p className="font-mono text-2xl font-bold text-card-foreground whitespace-nowrap">{formatCurrency(expected)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Counted</p>
+                <p className="font-mono text-2xl font-bold text-card-foreground whitespace-nowrap">{formatCurrency(counted)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Diff</p>
+                <p className={`font-mono text-2xl font-bold whitespace-nowrap ${balanced ? "text-success" : "text-destructive"}`}>
+                  {balanced ? "Balanced" : `${diff >= 0 ? "+" : ""}${formatCurrency(diff)}`}
+                </p>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Counted</p>
-              <p className="font-mono text-2xl font-bold text-card-foreground whitespace-nowrap">{formatCurrency(counted)}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Diff</p>
-              <p className={`font-mono text-2xl font-bold whitespace-nowrap ${balanced ? "text-success" : "text-destructive"}`}>
-                {balanced ? "Balanced" : `${diff >= 0 ? "+" : ""}${formatCurrency(diff)}`}
-              </p>
-            </div>
-          </div>
+
+            {/* Cashless per-provider IN / OUT / NET — captured at Close Shift.
+                Present here so managers can see how cashless contributes to
+                Shift Balance (formula: CDR + CashlessIn − CashlessOut). */}
+            {(() => {
+              const inP = d.cashless_in_providers || {};
+              const outP = d.cashless_out_providers || {};
+              const anyData = SLOTS_PROVIDERS.some(p =>
+                Number(inP[p] || 0) || Number(outP[p] || 0)
+              ) || Number(t.cashless_in || 0) || Number(t.cashless_out || 0);
+              if (!anyData) return null;
+              const totalIn = SLOTS_PROVIDERS.reduce((s, p) => s + Number(inP[p] || 0), 0)
+                || Number(t.cashless_in || 0);
+              const totalOut = SLOTS_PROVIDERS.reduce((s, p) => s + Number(outP[p] || 0), 0)
+                || Number(t.cashless_out || 0);
+              const totalNet = totalIn - totalOut;
+              return (
+                <section className="rounded-xl border border-border bg-background/40 p-4 space-y-2">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">
+                    Cashless · IN − OUT = NET (manual @ close)
+                  </p>
+                  <table className="w-full text-xs font-mono">
+                    <thead className="text-muted-foreground border-b border-border">
+                      <tr>
+                        <th className="text-left py-1">Provider</th>
+                        <th className="text-right">IN</th>
+                        <th className="text-right">OUT</th>
+                        <th className="text-right">NET</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {SLOTS_PROVIDERS.map(p => {
+                        const i = Number(inP[p] || 0);
+                        const o = Number(outP[p] || 0);
+                        const n = i - o;
+                        if (!i && !o) return null;
+                        return (
+                          <tr key={p} className="border-b border-border/50">
+                            <td className="py-1">{p}</td>
+                            <td className={`text-right ${i ? "text-success" : "text-muted-foreground/40"}`}>
+                              {i ? "+" + formatNumberSpaces(i) : "·"}
+                            </td>
+                            <td className={`text-right ${o ? "text-destructive" : "text-muted-foreground/40"}`}>
+                              {o ? "−" + formatNumberSpaces(o) : "·"}
+                            </td>
+                            <td className={`text-right font-bold ${n < 0 ? "text-destructive" : n > 0 ? "text-success" : "text-muted-foreground/40"}`}>
+                              {n !== 0 ? (n > 0 ? "+" : "") + formatNumberSpaces(n) : "·"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="font-bold border-t border-border">
+                        <td className="py-1">TOTAL</td>
+                        <td className="text-right text-success">+{formatNumberSpaces(totalIn)}</td>
+                        <td className="text-right text-destructive">−{formatNumberSpaces(totalOut)}</td>
+                        <td className={`text-right ${totalNet < 0 ? "text-destructive" : "text-success"}`}>
+                          {totalNet > 0 ? "+" : ""}{formatNumberSpaces(totalNet)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <p className="text-[10px] text-muted-foreground">
+                    Влияет на Shift Balance через формулу CDR + CashlessIn − CashlessOut.
+                  </p>
+                </section>
+              );
+            })()}
+          </>
         )}
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">

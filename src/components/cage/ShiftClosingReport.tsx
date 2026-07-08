@@ -293,7 +293,48 @@ const ShiftClosingReport = ({
   }, [reportTables, baselines, fillCredits, dailyResults, inByTable, serverResults, tableRowOverrides]);
 
   // Effective values — overrides win when provided.
-  const effCashlessIO = cashlessOverride ?? cashlessIO;
+  // Cashless source of truth: manual per-provider input from `shift.closing_count`
+  // (this is what `compute_shift_balance` actually consumes). Falls back to
+  // ledger totals only when the manual snapshot is empty.
+  const manualCashlessIO = useMemo(() => {
+    const cc = ((shift as any)?.closing_count || {}) as Record<string, any>;
+    const inRaw = (cc.cashless_in_providers || {}) as Record<string, any>;
+    const outRaw = (cc.cashless_out_providers || {}) as Record<string, any>;
+    // Manual providers use display keys (Mpesa/Tigo/Halo/AirTel); ledger uses uppercase codes.
+    const NORM: Record<string, string> = {
+      Mpesa: "MPESA", Tigo: "TIGO", Halo: "HALOTEL", AirTel: "AIRTEL",
+      MPESA: "MPESA", TIGO: "TIGO", HALOTEL: "HALOTEL", AIRTEL: "AIRTEL",
+    };
+    const inByProv: Record<string, number> = {};
+    const outByProv: Record<string, number> = {};
+    for (const [k, v] of Object.entries(inRaw)) {
+      const key = NORM[k] || k.toUpperCase();
+      inByProv[key] = (inByProv[key] || 0) + (Number(v) || 0);
+    }
+    for (const [k, v] of Object.entries(outRaw)) {
+      const key = NORM[k] || k.toUpperCase();
+      outByProv[key] = (outByProv[key] || 0) + (Number(v) || 0);
+    }
+    const hasAny =
+      Object.values(inByProv).some(v => v > 0) ||
+      Object.values(outByProv).some(v => v > 0);
+    return { inByProv, outByProv, hasAny };
+  }, [shift]);
+
+  const cashlessMismatch = useMemo(() => {
+    if (!manualCashlessIO.hasAny) return false;
+    const mIn = Object.values(manualCashlessIO.inByProv).reduce((s, v) => s + v, 0);
+    const mOut = Object.values(manualCashlessIO.outByProv).reduce((s, v) => s + v, 0);
+    const lIn = Object.values(cashlessIO.inByProv).reduce((s, v) => s + v, 0);
+    const lOut = Object.values(cashlessIO.outByProv).reduce((s, v) => s + v, 0);
+    if (lIn === 0 && lOut === 0) return false;
+    return Math.abs(mIn - lIn) > 1 || Math.abs(mOut - lOut) > 1;
+  }, [manualCashlessIO, cashlessIO]);
+
+  const effCashlessIO = cashlessOverride
+    ?? (manualCashlessIO.hasAny
+      ? { inByProv: manualCashlessIO.inByProv, outByProv: manualCashlessIO.outByProv }
+      : cashlessIO);
   const effTipsByShift = tipsByShiftOverride ?? tipsByShift;
   const effCashFlowTransfers = cashFlowTransfersOverride ?? cashFlowTransfers;
 
@@ -512,7 +553,17 @@ const ShiftClosingReport = ({
               <col style={{ width: "19%" }} />
             </colgroup>
             <thead>
-              <tr><th colSpan={5} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">Cash Less Shift Transactions</th></tr>
+              <tr><th colSpan={5} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">
+                Cash Less Shift Transactions
+                <span className="font-normal text-[10px] ml-2">
+                  · source: {manualCashlessIO.hasAny ? "manual @ close" : "ledger"}
+                </span>
+                {cashlessMismatch && (
+                  <span className="font-normal text-[10px] ml-2" style={{ color: "#b45309" }}>
+                    ⚠ manual vs ledger mismatch
+                  </span>
+                )}
+              </th></tr>
               <tr className="bg-gray-100">
                 <th className="border border-black px-1.5 py-0.5 text-left">Provider</th>
                 <th className="border border-black px-1.5 py-0.5 text-right">Deposit (IN)</th>
@@ -629,8 +680,24 @@ const ShiftClosingReport = ({
             </td>
           </tr>
           <tr>
+            <td className="border border-black px-1.5 py-0.5">+ Cashless IN</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">
+              {(() => {
+                const v = Object.values(effCashlessIO.inByProv).reduce((s, x) => s + Number(x || 0), 0);
+                return v === 0 ? "" : numAlways(v);
+              })()}
+            </td>
             <td className="border border-black px-1.5 py-0.5">Cash Desk Chips CREDIT</td>
             <td className="border border-black px-1.5 py-0.5 text-right"></td>
+          </tr>
+          <tr>
+            <td className="border border-black px-1.5 py-0.5">− Cashless OUT</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">
+              {(() => {
+                const v = Object.values(effCashlessIO.outByProv).reduce((s, x) => s + Number(x || 0), 0);
+                return v === 0 ? "" : `-${numAlways(v)}`;
+              })()}
+            </td>
             <td className="border border-black px-1.5 py-0.5 font-semibold">Miss Chips</td>
             <td className="border border-black px-1.5 py-0.5 text-right font-bold">
               {(() => {
@@ -639,6 +706,20 @@ const ShiftClosingReport = ({
                 return (v > 0 ? "+" : "−") + numAlways(Math.abs(v));
               })()}
             </td>
+          </tr>
+          <tr>
+            <td className="border border-black px-1.5 py-0.5 font-semibold">NET Cashless</td>
+            <td className="border border-black px-1.5 py-0.5 text-right font-bold">
+              {(() => {
+                const inS = Object.values(effCashlessIO.inByProv).reduce((s, x) => s + Number(x || 0), 0);
+                const outS = Object.values(effCashlessIO.outByProv).reduce((s, x) => s + Number(x || 0), 0);
+                const n = inS - outS;
+                if (n === 0) return "";
+                return (n > 0 ? "+" : "−") + numAlways(Math.abs(n));
+              })()}
+            </td>
+            <td className="border border-black px-1.5 py-0.5"></td>
+            <td className="border border-black px-1.5 py-0.5 text-right"></td>
           </tr>
           <tr>
             <td className="border border-black bg-gray-300 px-1.5 py-0.5 font-bold" colSpan={3}>Shift Balance</td>
