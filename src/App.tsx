@@ -255,10 +255,21 @@ const LegacyStaffRedirect = () => {
 const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode }) => {
   const { roles } = useAuth();
   const { data: allowedModules, isLoading, isError, error } = useMyModulePermissions();
+  const license = useLicense();
   const isSuper = roles.includes("super_admin");
-  if (isSuper) return <>{children}</>;
 
   const moduleKey = resolveRouteModule(path);
+
+  // License gate: applies to everyone including super_admin, EXCEPT for the
+  // license management page itself and admin (so super_admin can always fix
+  // an expired/missing license). Auxiliary routes without a module key are
+  // ungated at the license layer too.
+  if (moduleKey && !path.startsWith("/admin") && !licenseHasModule(license, moduleKey)) {
+    return <UpgradeCard module={moduleKey} />;
+  }
+
+  if (isSuper) return <>{children}</>;
+
   // No mapping → not gated by matrix (auxiliary route)
   if (!moduleKey) return <>{children}</>;
 
