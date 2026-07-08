@@ -54,10 +54,41 @@ export function CloseMonthWizard({
     })),
   );
 
+  // Отслеживаем, редактировал ли пользователь вручную — чтобы не затирать
+  // введённые значения при подгрузке wallets.
+  const dirtyRef = useRef(false);
+
+  // Пересинхронизация при подгрузке/изменении wallets: если пользователь ещё
+  // ничего не редактировал (первое открытие с пустым snap), заполняем строки.
+  useEffect(() => {
+    if (dirtyRef.current) return;
+    setCollection(
+      wallets.map((w) => ({
+        wallet_id: w.wallet_id,
+        name: w.name,
+        currency: w.currency,
+        amount: Number(w.physical ?? w.ledger ?? 0),
+      })),
+    );
+    setNewFloat(
+      wallets.map((w) => ({
+        wallet_id: w.wallet_id,
+        name: w.name,
+        currency: w.currency,
+        amount: 0,
+      })),
+    );
+  }, [wallets]);
+
+  const markDirty = () => {
+    dirtyRef.current = true;
+  };
+
   // sync when wallets change / dialog opens fresh
   const resetAll = () => {
     setStep(1);
     setNote("");
+    dirtyRef.current = false;
     setCollection(
       wallets.map((w) => ({
         wallet_id: w.wallet_id,
@@ -75,6 +106,7 @@ export function CloseMonthWizard({
       })),
     );
   };
+
 
   const run = useRunCloseMonth();
 
