@@ -877,26 +877,30 @@ const DRCell = ({
   groupEnd?: boolean;
 }) => {
   const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
+  // RULE: per-table Drop is never displayed. Only the grand-total column
+  // (marked `bold`) shows Drop — from player_day_drop_cache upstream.
+  const showDrop = !!bold;
   if (!hasData && drop === 0 && result === 0) {
     return (
       <>
+        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5">·</TableCell>
         <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5">—</TableCell>
-        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5">—</TableCell>
-        <TableCell className={cn("text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5", endBorder)}>—</TableCell>
+        <TableCell className={cn("text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5", endBorder)}>·</TableCell>
       </>
     );
   }
   const isNeg = result < 0;
-  const pct = drop > 0 ? (result / drop) * 100 : 0;
+  const pct = showDrop && drop > 0 ? (result / drop) * 100 : 0;
   return (
     <>
       <TableCell
         className={cn(
           "text-right font-mono tabular-nums whitespace-nowrap px-1.5",
           bold && "font-semibold",
+          !showDrop && "text-muted-foreground/50",
         )}
       >
-        {drop === 0 ? "—" : formatSpaced(drop)}
+        {showDrop ? (drop === 0 ? "—" : formatSpaced(drop)) : "·"}
       </TableCell>
       <TableCell
         className={cn(
@@ -912,9 +916,10 @@ const DRCell = ({
           "text-right font-mono tabular-nums text-xs whitespace-nowrap px-1.5",
           isNeg && "text-destructive",
           endBorder,
+          !showDrop && "text-muted-foreground/50",
         )}
       >
-        {drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`}
+        {showDrop ? (drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`) : "·"}
       </TableCell>
     </>
   );
