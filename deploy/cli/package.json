@@ -1,7 +1,11 @@
 {
-  "name": "cms-status",
-  "version": "1.3.49",
+  "name": "cms-cli",
+  "version": "1.4.0",
   "type": "module",
-  "bin": { "cms-status": "./cms-status.mjs" },
+  "bin": {
+    "cms-status": "./cms-status.mjs",
+    "cms-license": "./cms-license.mjs",
+    "cms-license-keygen": "./generate-keys.mjs"
+  },
   "dependencies": { "pg": "^8.11.0" }
 }
