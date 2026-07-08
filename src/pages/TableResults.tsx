@@ -569,17 +569,17 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                 for (const t of tableCols) {
                   const c = totals.cellsTotal[t];
                   if (c) {
-                    totalsRow.push(c.drop, c.result, c.drop > 0 ? Number((c.result / c.drop * 100).toFixed(2)) : "");
+                    totalsRow.push("·", c.result, "·");
                   } else {
                     totalsRow.push("", "", "");
                   }
                 }
                 totalsRow.push(
-                  totals.arDrop, totals.arResult,
-                  totals.pkDrop, totals.pkResult,
-                  totals.bjDrop, totals.bjResult,
-                  totals.totalDrop, totals.totalResult,
-                  totals.totalDrop > 0 ? Number((totals.totalResult / totals.totalDrop * 100).toFixed(2)) : "",
+                  "·", totals.arResult,
+                  "·", totals.pkResult,
+                  "·", totals.bjResult,
+                  periodTotalDrop, totals.totalResult,
+                  periodTotalDrop > 0 ? Number((totals.totalResult / periodTotalDrop * 100).toFixed(2)) : "",
                 );
                 rows.push([]);
                 rows.push(totalsRow);
