@@ -647,7 +647,7 @@ const App = () => (
       persistOptions={{
         persister,
         maxAge: 1000 * 60 * 60 * 24, // 24h
-        buster: "v8-casino-category",
+        buster: "v9-drop-source-player-day-peak",
         dehydrateOptions: {
           // Skip queries whose data is a Map/Set — JSON dehydration loses them.
           // Also skip high-churn live tables: persisting these to IndexedDB on
