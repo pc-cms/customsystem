@@ -188,6 +188,30 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
 
   const { data = [], isLoading } = useDailyResults(from, to);
 
+  /* Total Drop — SINGLE source of truth: `player_day_drop_cache` (matches
+   * Player Statistics). Per-table Drop is never displayed anywhere on this
+   * screen (all per-table Drop / Hold cells render `·`). */
+  const { data: dropByDate = new Map<string, number>() } = useQuery({
+    queryKey: ["table-results-drop-cache", casinoId, from, to],
+    queryFn: async (): Promise<Map<string, number>> => {
+      const m = new Map<string, number>();
+      if (!casinoId || !from || !to) return m;
+      const { data: rows, error } = await supabase
+        .from("player_day_drop_cache")
+        .select("business_date, peak")
+        .eq("casino_id", casinoId)
+        .gte("business_date", from)
+        .lte("business_date", to);
+      if (error) { console.warn(error); return m; }
+      (rows ?? []).forEach((r: any) => {
+        m.set(r.business_date, (m.get(r.business_date) || 0) + Number(r.peak || 0));
+      });
+      return m;
+    },
+    enabled: !!casinoId && !!from && !!to,
+    staleTime: 30_000,
+  });
+
   /* Build full date range — fill missing days with empty buckets so gaps are visible. */
   const allDates = useMemo(() => {
     const out: string[] = [];
