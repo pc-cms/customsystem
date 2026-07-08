@@ -77,8 +77,24 @@ export function useModuleLiveSync() {
 
     const channels: ReturnType<typeof supabase.channel>[] = [];
 
+    // Таблицы, у которых нет колонки casino_id — фильтр по ней невалиден и
+    // блокирует все события. Их подписываем без фильтра.
+    const TABLES_WITHOUT_CASINO_ID = new Set<string>([
+      "player_tags",
+      "player_cards",
+      "group_members",
+      "player_groups",
+      "fin_categories",
+      "rota_locks",
+    ]);
+
     for (const [table, prefixes] of tableSpecs) {
       const channelName = `live:${table}:${casinoId}`;
+      const useCasinoFilter = !TABLES_WITHOUT_CASINO_ID.has(table);
+      // Реконсиляционный invalidate на КАЖДЫЙ переход в SUBSCRIBED кроме первого
+      // (первичная подписка после mount не должна триггерить лавину refetch,
+      //  но переподписка после разрыва — должна восстановить согласованность).
+      let subscribedOnce = false;
       const ch = supabase
         .channel(channelName)
         .on(
@@ -87,18 +103,24 @@ export function useModuleLiveSync() {
             event: "*",
             schema: "public",
             table,
-            // Пытаемся ужать поток по casino_id — большинство таблиц имеют
-            // эту колонку. Если её нет (напр. player_groups, fin_categories),
-            // фильтр вернёт ошибку и мы получим все события — приемлемо.
-            filter: `casino_id=eq.${casinoId}`,
+            ...(useCasinoFilter ? { filter: `casino_id=eq.${casinoId}` } : {}),
           },
           () => {
             prefixes.forEach(invalidatePrefix);
           },
         )
-        .subscribe();
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            if (subscribedOnce) {
+              // reconnect → dropped events may have occurred, reconcile.
+              prefixes.forEach(invalidatePrefix);
+            }
+            subscribedOnce = true;
+          }
+        });
       channels.push(ch);
     }
+
 
     return () => {
       pendingRef.current.forEach((t) => clearTimeout(t));
