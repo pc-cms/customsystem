@@ -780,7 +780,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                             className="p-0"
                           >
                             <div className="sticky left-0 w-[100cqw] max-w-full">
-                              <DayDetail rows={b.fullRows} date={b.date} />
+                              <DayDetail rows={b.fullRows} date={b.date} totalDropFromCache={dropForDay(b.date)} />
                             </div>
                           </TableCell>
                         </TableRow>
