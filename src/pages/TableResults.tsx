@@ -1001,7 +1001,8 @@ const GroupTotalCells = ({
     primary: "bg-primary/25",
   };
   const isNeg = result < 0;
-  const pct = drop > 0 ? (result / drop) * 100 : 0;
+  const showDrop = accent === "primary"; // only grand-total row shows Drop
+  const pct = showDrop && drop > 0 ? (result / drop) * 100 : 0;
   return (
     <TableCell
       colSpan={colSpan}
@@ -1012,14 +1013,14 @@ const GroupTotalCells = ({
       )}
     >
       <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-2">D</span>
-      <span className="font-semibold mr-3">{drop === 0 ? "—" : formatSpaced(drop)}</span>
+      <span className="font-semibold mr-3">{showDrop ? (drop === 0 ? "—" : formatSpaced(drop)) : "·"}</span>
       <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-2">R</span>
       <span className={cn("font-semibold mr-3", isNeg && "text-destructive")}>
         {result === 0 ? "—" : formatSpaced(result)}
       </span>
       <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-2">%</span>
       <span className={cn("text-xs", isNeg && "text-destructive")}>
-        {drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`}
+        {showDrop ? (drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`) : "·"}
       </span>
     </TableCell>
   );
