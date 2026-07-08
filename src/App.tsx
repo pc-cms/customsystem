@@ -225,6 +225,8 @@ const FullScreenLoader = ({ label = "Loading CMS..." }: { label?: string }) => (
 // mapping (auxiliary screens) are not gated here.
 import { moduleKeyForRoute as resolveRouteModule } from "@/lib/route-module-map";
 import { useMyModulePermissions } from "@/hooks/use-module-permissions";
+import { useLicense, hasModule as licenseHasModule } from "@/hooks/use-license";
+import { UpgradeCard } from "@/components/license/ModuleGate";
 
 // Legacy /pit?tab=… → flat /breaklist|/rota/live|/attendance/live|/dealers
 const LegacyPitRedirect = () => {
