@@ -939,7 +939,8 @@ const DRHeadCell = ({
 }) => {
   const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
   const isNeg = result < 0;
-  const pct = drop > 0 ? (result / drop) * 100 : 0;
+  const showDrop = !!bold; // only grand-total header cell shows Drop
+  const pct = showDrop && drop > 0 ? (result / drop) * 100 : 0;
   // top-16 = 64px (sum of first two header rows, both h-8)
   const stickyTop = "top-16 z-10 [background-image:linear-gradient(hsl(var(--primary)/0.2),hsl(var(--primary)/0.2)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]";
   return (
@@ -948,10 +949,11 @@ const DRHeadCell = ({
         className={cn(
           "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-foreground",
           bold && "font-bold",
+          !showDrop && "text-muted-foreground/60",
           stickyTop,
         )}
       >
-        {drop === 0 ? "—" : formatSpaced(drop)}
+        {showDrop ? (drop === 0 ? "—" : formatSpaced(drop)) : "·"}
       </TableHead>
       <TableHead
         className={cn(
@@ -967,11 +969,12 @@ const DRHeadCell = ({
         className={cn(
           "text-right font-mono tabular-nums text-xs whitespace-nowrap px-1.5 text-foreground",
           isNeg && "text-destructive",
+          !showDrop && "text-muted-foreground/60",
           endBorder,
           stickyTop,
         )}
       >
-        {drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`}
+        {showDrop ? (drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`) : "·"}
       </TableHead>
     </>
   );
