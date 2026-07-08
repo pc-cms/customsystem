@@ -61,12 +61,14 @@ export function useCasinoSetting<T = unknown>(key: string): UseSetting<T> {
       if (!activeCasinoId) throw new Error("no_active_casino");
       const { data: userRes } = await supabase.auth.getUser();
       const { error } = await supabase.from("casino_settings").upsert(
-        {
-          casino_id: activeCasinoId,
-          key,
-          value: v as unknown,
-          updated_by: userRes.user?.id,
-        },
+        [
+          {
+            casino_id: activeCasinoId,
+            key,
+            value: v as never,
+            updated_by: userRes.user?.id ?? null,
+          },
+        ],
         { onConflict: "casino_id,key" },
       );
       if (error) throw error;
