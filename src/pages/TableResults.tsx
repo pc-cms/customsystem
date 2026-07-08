@@ -317,6 +317,17 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
     };
   }, [buckets]);
 
+  /** Grand-total Drop for the entire period — from `player_day_drop_cache`
+   *  (single source of truth, matches Player Statistics). */
+  const periodTotalDrop = useMemo(() => {
+    let s = 0;
+    dropByDate.forEach((v) => { s += v; });
+    return s;
+  }, [dropByDate]);
+  const dropForDay = (date: string) => dropByDate.get(date) ?? 0;
+
+
+
   /* ---------------------------------------------------------------- */
   /* Render helpers                                                   */
   /* ---------------------------------------------------------------- */
