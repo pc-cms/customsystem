@@ -10,9 +10,12 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { getCachedRuntimeConfig } from "@/lib/runtime-config";
+import { clearIDBPersistedQueryCache } from "@/lib/query-persister";
+import { clearBlacklistCache } from "@/lib/blacklist-cache";
 
 type CasinoInfo = {
   id: string;
