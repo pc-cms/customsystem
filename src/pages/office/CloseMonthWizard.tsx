@@ -4,7 +4,7 @@
  * Step 2: New Starting Float per wallet (usually 0)
  * Step 3: Confirm & Lock
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,10 +54,41 @@ export function CloseMonthWizard({
     })),
   );
 
+  // Отслеживаем, редактировал ли пользователь вручную — чтобы не затирать
+  // введённые значения при подгрузке wallets.
+  const dirtyRef = useRef(false);
+
+  // Пересинхронизация при подгрузке/изменении wallets: если пользователь ещё
+  // ничего не редактировал (первое открытие с пустым snap), заполняем строки.
+  useEffect(() => {
+    if (dirtyRef.current) return;
+    setCollection(
+      wallets.map((w) => ({
+        wallet_id: w.wallet_id,
+        name: w.name,
+        currency: w.currency,
+        amount: Number(w.physical ?? w.ledger ?? 0),
+      })),
+    );
+    setNewFloat(
+      wallets.map((w) => ({
+        wallet_id: w.wallet_id,
+        name: w.name,
+        currency: w.currency,
+        amount: 0,
+      })),
+    );
+  }, [wallets]);
+
+  const markDirty = () => {
+    dirtyRef.current = true;
+  };
+
   // sync when wallets change / dialog opens fresh
   const resetAll = () => {
     setStep(1);
     setNote("");
+    dirtyRef.current = false;
     setCollection(
       wallets.map((w) => ({
         wallet_id: w.wallet_id,
@@ -75,6 +106,7 @@ export function CloseMonthWizard({
       })),
     );
   };
+
 
   const run = useRunCloseMonth();
 
@@ -138,7 +170,7 @@ export function CloseMonthWizard({
           <p className="text-xs text-muted-foreground">
             Confirm how much cash is withdrawn from each wallet (collection).
           </p>
-          <WalletAmountList rows={collection} onChange={setCollection} />
+          <WalletAmountList rows={collection} onChange={(next) => { markDirty(); setCollection(next); }} />
           <TotalRow label="Total Collection (TZS)" value={totalCollectionTzs} />
         </div>
       )}
@@ -148,7 +180,7 @@ export function CloseMonthWizard({
           <p className="text-xs text-muted-foreground">
             Enter new Starting Float for each wallet (usually 0).
           </p>
-          <WalletAmountList rows={newFloat} onChange={setNewFloat} />
+          <WalletAmountList rows={newFloat} onChange={(next) => { markDirty(); setNewFloat(next); }} />
           <TotalRow label="Total New Float (TZS)" value={totalFloatTzs} />
         </div>
       )}
