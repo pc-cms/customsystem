@@ -467,10 +467,16 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
     if (item.to === "/cage" && !isSuper && !roles.includes("cashier" as AppRole)) return false;
     if (item.to === "/cage/view" && !isSuper && roles.includes("cashier" as AppRole)) return false;
     if (item.to === "/crm/players" && !item.roles.some(r => roles.includes(r))) return false;
+
+    const mk = moduleKeyForRoute(item.to, item.label);
+
+    // License gate — applies to everyone including super_admin. Admin routes
+    // are always allowed so super_admin can fix / activate a license.
+    if (mk && !item.to.startsWith("/admin") && !licenseHasModule(license, mk)) return false;
+
     // (Unified /expenses is visible to all roles in its nav whitelist; gated via matrix module 'expenses'.)
     if (isSuper) return true;
     if (allowedModules === undefined) return false; // still loading → render nothing yet
-    const mk = moduleKeyForRoute(item.to, item.label);
     if (!mk) {
       // Unmapped auxiliary entry (e.g. /pos/*) — gate by item.roles whitelist
       // so cashier/cashier_slots/pit don't accidentally see BAR/POS nav items.
