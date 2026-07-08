@@ -1130,7 +1130,7 @@ const DayDetail = ({ rows, date, totalDropFromCache }: { rows: Row[]; date: stri
               <TableCell className="text-right font-mono">{formatSpaced(totals.fill)}</TableCell>
               <TableCell className="text-right font-mono">{formatSpaced(totals.credit)}</TableCell>
               <TableCell className="text-right font-mono">{formatSpaced(totals.close)}</TableCell>
-              <TableCell className="text-right font-mono">{formatSpaced(totals.drop)}</TableCell>
+              <TableCell className="text-right font-mono">{formatSpaced(totalDropFromCache)}</TableCell>
               <TableCell
                 className={cn(
                   "text-right font-mono",
