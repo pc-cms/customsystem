@@ -763,7 +763,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                         })}
 
                         {/* All */}
-                        <DRCell drop={b.totalDrop} result={b.totalResult} hasData bold />
+                        <DRCell drop={dropForDay(b.date)} result={b.totalResult} hasData bold />
                       </TableRow>
 
                       {/* Inline drilldown — full per-table report (third photo) */}
