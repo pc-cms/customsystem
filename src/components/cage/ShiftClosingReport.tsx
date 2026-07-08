@@ -19,6 +19,7 @@ import { buildLatestTableSnapshot, chipSnapshotResult, type BaselineMap } from "
 // Snapshot index is still loaded for backward-compatible fallback only.
 import type { Tables } from "@/integrations/supabase/types";
 import { splitTablesWindow, type NepTx } from "@/lib/nep-split";
+import { fetchTotalDrop } from "@/lib/drop-source";
 
 interface Props {
   shift: Tables<"shifts">;
