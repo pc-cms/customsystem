@@ -89,6 +89,19 @@ const ShiftClosingReport = ({
     inByProv: Record<string, number>;
     outByProv: Record<string, number>;
   }>({ inByProv: {}, outByProv: {} });
+  /** Total Drop for the shift's business date — SINGLE source of truth from
+   *  `player_day_drop_cache` (matches Player Statistics). Per-table Drop is
+   *  never displayed; every per-table cell renders `·`. */
+  const [totalDropFromCache, setTotalDropFromCache] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const total = await fetchTotalDrop({ casinoId, fromDate: businessDate });
+      if (!cancelled) setTotalDropFromCache(total);
+    })();
+    return () => { cancelled = true; };
+  }, [casinoId, businessDate]);
 
   useEffect(() => {
     let cancelled = false;
