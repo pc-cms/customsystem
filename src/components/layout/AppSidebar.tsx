@@ -446,6 +446,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   const currentGroup = new URLSearchParams(location.search).get("group") || "floor";
 
   const { data: allowedModules } = useMyModulePermissions();
+  const license = useLicense();
   const { data: pitBookUnread } = usePitBookUnread();
   const pitBookUnreadCount = pitBookUnread?.total ?? 0;
   const isSuper = roles.includes("super_admin" as AppRole);
