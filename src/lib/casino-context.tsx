@@ -33,7 +33,7 @@ type CasinoContextState = {
   /** Whether the user is in summary mode (FM/super_admin viewing all) */
   isSummaryMode: boolean;
   /** Switch to a different casino */
-  switchCasino: (casinoId: string | null) => void;
+  switchCasino: (casinoId: string | null) => void | Promise<void>;
   /** Detected slug from subdomain */
   detectedSlug: string | null;
   loading: boolean;
