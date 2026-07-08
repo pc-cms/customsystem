@@ -154,7 +154,7 @@ interface TableResultsProps {
 }
 
 const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResultsProps = {}) => {
-  const { roles } = useAuth();
+  const { roles, casinoId } = useAuth();
   const isSurveillanceOnly = roles.includes("surveillance" as any) &&
     !roles.some((r) => ["manager", "super_admin", "finance_manager"].includes(r as string));
   const currentYear = new Date().getFullYear();
