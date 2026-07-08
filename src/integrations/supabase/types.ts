@@ -1519,6 +1519,48 @@ export type Database = {
           },
         ]
       }
+      casino_packages: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          is_active: boolean
+          max_tables: number | null
+          max_users: number | null
+          modules: Json
+          name: string
+          price_usd: number | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          max_tables?: number | null
+          max_users?: number | null
+          modules?: Json
+          name: string
+          price_usd?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          max_tables?: number | null
+          max_users?: number | null
+          modules?: Json
+          name?: string
+          price_usd?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       casino_servers: {
         Row: {
           casino_id: string
