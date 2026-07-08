@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fmtDate, fmtWeekdayShort } from "@/lib/format-date";
 import { useAuth } from "@/lib/auth-context";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 /* ------------------------------------------------------------------ */
 /* Layout config — order of columns in the horizontal report          */
