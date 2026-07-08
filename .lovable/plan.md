@@ -1,31 +1,47 @@
-## Задача
-Добавить блок Cashless IN/OUT в hourly Cash Check «New Grid», симметрично тому, что уже есть в «Old Grid» (`CashCountGrid`).
+# Phase B — статус исполнения
 
-## Контекст (не меняется)
-- Состояние `cashlessIn` / `cashlessOut` в `CashCheckForm` (внутри `ActiveShiftView.tsx`) уже существует.
-- Snapshot чека уже сохраняет `denominations.cashless_in_providers/out_providers` + `totals.cashless_in/out`.
-- Формулы `totalTzs` уже учитывают `+ cashlessInTzs − cashlessOutTzs` — не трогаем.
-- `useCashlessSuggestions` уже подтягивает hint из ledger'а — не трогаем.
+## B1 — Signed License + Packages — ✅ DONE
 
-## Изменения
+- **B1.1** ✅ Ed25519 keygen + sign CLI + README
+  - `deploy/cli/generate-keys.mjs`, `deploy/cli/cms-license.mjs`, `deploy/cli/README.md`
+  - `src/lib/license/public-key.ts` (placeholder — заменить на прод-ключ перед первым релизом)
+- **B1.2** ✅ Таблица `casino_packages` + сид 9 пакетов
+  (starter, live_basic, live_pro, slots_basic, slots_pro, combo_basic, combo_pro, enterprise, demo)
+- **B1.3** ✅ Таблица `casino_license` + edge function `verify-license`
+  - Ed25519 verify через `@noble/ed25519` в Deno
+  - Требует секрет `LICENSE_PUBLIC_KEY_B64` в edge function env (после B1.1)
+- **B1.4** ✅ Хук `useLicense` + `hasModule()` (Cloud без строки → implicit enterprise)
+- **B1.5** ✅ `ModuleGate` + `UpgradeCard` + интеграция в `RoleGuard` и `AppSidebar`
+- **B1.6** ✅ `/superadmin/license` (upload/download/audit) + вкладка License в Admin
+- **B1.7** ✅ `LicenseBanner` расширен (expired hard-stop + ≤14 дней warning)
 
-### 1. `src/components/cage/CashCheckNewGrid.tsx`
-- Добавить опциональные пропы: `cashlessIn`, `onCashlessInChange`, `cashlessInSuggestion`, `cashlessOut`, `onCashlessOutChange`, `cashlessOutSuggestion` (типы как в `CashCountGrid`).
-- Отрендерить компактный ряд «Cashless IN / Cashless OUT / NET» на всю ширину под сеткой Chips+Cash — использовать существующий `MobileProviderBlock` из `CashCountGrid` (либо инлайн 2 блока провайдеров).
-- Показать суммарный NET (`IN − OUT`) с подписью «влияет на Counted через формулу Cash Desk», чтобы кассир понимал, что Cashless уже входит в total.
-- Не трогать expected-логику: `expectedChips` / `expectedCashByCurrency` — как есть.
+## B2 — Settings-driven Core — 🟡 INFRA DONE, MIGRATION PENDING
 
-### 2. `src/components/cage/ActiveShiftView.tsx`
-- Передать в `<CashCheckNewGrid …>` те же пропы cashless, что уже идут в `<CashCountGrid>` (Old ветка).
+- **B2.1** ✅ Таблица `casino_settings` + spec `src/lib/casino-settings-spec.ts`
+  Первые ключи: currency.enabled/primary, cashless.providers/max_per_tx_tzs,
+  tips.weekly_bonus_min_hours/monthly_pool_share_percent,
+  limits.hourly_check_interval_minutes/max_shift_duration_hours/cash_desk_imbalance_warning_tzs,
+  general.enable_incidents_ai_hints
+- **B2.2** ✅ Хук `useCasinoSetting<T>` + `useSettingsExport` (батчевый fetch, 5min кэш)
+- **B2.3** ✅ Универсальный `SettingCard` (number/text/toggle/select/currency-list/provider-list/denomination-list/json + irreversible confirm)
+- **B2.4** ⏳ Миграция хардкода — **не сделана**. Требует отдельного захода:
+  - B2.4a Currency (`src/lib/currency.ts` + CashCountGrid/CashCheckNewGrid)
+  - B2.4b Chips (проксирование через spec — опционально)
+  - B2.4c Cashless providers (useCashless, useSlotsCashless, все отчёты — заменить hardcoded ["MPESA","TIGO","HALOTEL","AIRTEL"] на `useCasinoSetting("cashless.providers")`)
+  - B2.4d Tips (weekly/monthly пороги)
+  - B2.4e Time (зеркалирование `business_day_start` в spec)
+  - B2.4f Limits (hourly check interval, shift duration warning, imbalance warning)
+- **B2.5** ✅ CasinoSettingsPage расширен — авто-генерация вкладок General/Currency/Cashless/Tips/Limits из spec
+- **B2.6** ✅ Export/Import settings.json (`SettingsExportImport` в General табе)
 
-## Что НЕ трогаем
-- Схему БД, snapshot формат, формулы totals/expected.
-- Old-ветку `CashCountGrid`.
-- Slots-версию (там hourly-check-flow другой, вне scope).
+## Что нужно сделать перед прод-релизом
 
-## Файлы
-- `src/components/cage/CashCheckNewGrid.tsx` (+~40 строк, новые пропы + JSX-блок)
-- `src/components/cage/ActiveShiftView.tsx` (+6 строк проп-пропаганда)
+1. Сгенерировать реальный Ed25519 ключ (`node deploy/cli/generate-keys.mjs`).
+2. Заменить `LICENSE_PUBLIC_KEY_B64` в `src/lib/license/public-key.ts`.
+3. Добавить секрет `LICENSE_PUBLIC_KEY_B64` в edge function environment.
+4. Выпустить первую лицензию для каждого казино и загрузить через `/superadmin/license`.
+5. (Опционально) выполнить B2.4 — миграцию хардкода на `useCasinoSetting`.
 
-## Результат
-В режиме «New» hourly Cash Check кассир видит и редактирует Cashless IN/OUT по провайдерам, значения сохраняются в snapshot (уже сохранялись), и видно как они влияют на Counted total.
+## Phase C/D
+
+Ещё не специфицированы. Открыть отдельный план когда потребуется.

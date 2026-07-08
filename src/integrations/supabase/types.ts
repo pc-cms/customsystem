@@ -1519,6 +1519,114 @@ export type Database = {
           },
         ]
       }
+      casino_license: {
+        Row: {
+          activated_at: string
+          activated_by: string | null
+          casino_id: string
+          created_at: string
+          expires_at: string
+          features: Json
+          id: string
+          issued_at: string
+          license_id: string
+          notes: string | null
+          package_code: string
+          payload: Json
+          signature: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string
+          activated_by?: string | null
+          casino_id: string
+          created_at?: string
+          expires_at: string
+          features?: Json
+          id?: string
+          issued_at: string
+          license_id: string
+          notes?: string | null
+          package_code: string
+          payload: Json
+          signature: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string
+          activated_by?: string | null
+          casino_id?: string
+          created_at?: string
+          expires_at?: string
+          features?: Json
+          id?: string
+          issued_at?: string
+          license_id?: string
+          notes?: string | null
+          package_code?: string
+          payload?: Json
+          signature?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "casino_license_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: true
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "casino_license_package_code_fkey"
+            columns: ["package_code"]
+            isOneToOne: false
+            referencedRelation: "casino_packages"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      casino_packages: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          is_active: boolean
+          max_tables: number | null
+          max_users: number | null
+          modules: Json
+          name: string
+          price_usd: number | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          max_tables?: number | null
+          max_users?: number | null
+          modules?: Json
+          name: string
+          price_usd?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          max_tables?: number | null
+          max_users?: number | null
+          modules?: Json
+          name?: string
+          price_usd?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       casino_servers: {
         Row: {
           casino_id: string
@@ -1548,6 +1656,41 @@ export type Database = {
           role?: Database["public"]["Enums"]["casino_server_role"]
         }
         Relationships: []
+      }
+      casino_settings: {
+        Row: {
+          casino_id: string
+          created_at: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "casino_settings_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       casino_visits: {
         Row: {

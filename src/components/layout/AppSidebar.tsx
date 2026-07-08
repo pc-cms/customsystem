@@ -19,6 +19,7 @@ import { useCasino } from "@/lib/casino-context";
 import { useMyModulePermissions } from "@/hooks/use-module-permissions";
 import { usePitBookUnread } from "@/hooks/use-pit-book-unread";
 import { moduleKeyForRoute } from "@/lib/route-module-map";
+import { useLicense, hasModule as licenseHasModule } from "@/hooks/use-license";
 import { prefetchRoute } from "@/lib/route-prefetch";
 import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
 import { VersionIndicator } from "@/components/VersionIndicator";
@@ -232,6 +233,7 @@ const SidebarSections = ({
   const location = useLocation();
   const { data: pitBookUnread } = usePitBookUnread();
   const pitBookUnreadCount = pitBookUnread?.total ?? 0;
+  const license = useLicense();
 
 
   // Group items by section, preserving order
@@ -295,9 +297,11 @@ const SidebarSections = ({
     // group is visible (it maps to pit_rota / pit_attendance which already
     // gates the parent). Super-admin sees everything.
     const subs = allSubs.filter(s => {
+      const mk = moduleKeyForRoute(s.to, s.label);
+      // License gate applies to everyone, including super_admin.
+      if (mk && !licenseHasModule(license, mk)) return false;
       if (isSuper) return true;
       if (allowedModules === undefined) return true; // avoid flicker while loading
-      const mk = moduleKeyForRoute(s.to, s.label);
       if (!mk) return true;
       return allowedModules.has(mk);
     });
@@ -445,6 +449,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   const currentGroup = new URLSearchParams(location.search).get("group") || "floor";
 
   const { data: allowedModules } = useMyModulePermissions();
+  const license = useLicense();
   const { data: pitBookUnread } = usePitBookUnread();
   const pitBookUnreadCount = pitBookUnread?.total ?? 0;
   const isSuper = roles.includes("super_admin" as AppRole);
@@ -462,10 +467,16 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
     if (item.to === "/cage" && !isSuper && !roles.includes("cashier" as AppRole)) return false;
     if (item.to === "/cage/view" && !isSuper && roles.includes("cashier" as AppRole)) return false;
     if (item.to === "/crm/players" && !item.roles.some(r => roles.includes(r))) return false;
+
+    const mk = moduleKeyForRoute(item.to, item.label);
+
+    // License gate — applies to everyone including super_admin. Admin routes
+    // are always allowed so super_admin can fix / activate a license.
+    if (mk && !item.to.startsWith("/admin") && !licenseHasModule(license, mk)) return false;
+
     // (Unified /expenses is visible to all roles in its nav whitelist; gated via matrix module 'expenses'.)
     if (isSuper) return true;
     if (allowedModules === undefined) return false; // still loading → render nothing yet
-    const mk = moduleKeyForRoute(item.to, item.label);
     if (!mk) {
       // Unmapped auxiliary entry (e.g. /pos/*) — gate by item.roles whitelist
       // so cashier/cashier_slots/pit don't accidentally see BAR/POS nav items.

@@ -8,12 +8,13 @@
  */
 import { useAuth } from "@/lib/auth-context";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Shield, Palette, Users, Network } from "lucide-react";
+import { Settings, Shield, Palette, Users, Network, KeyRound } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import CasinoSettingsPage from "@/pages/admin/CasinoSettingsPage";
 import BrandingPage from "@/pages/admin/BrandingPage";
 import UsersAndRolesPage from "@/pages/admin/UsersAndRolesPage";
 import CloudManagementPage from "@/pages/admin/CloudManagementPage";
+import SuperadminLicensePage from "@/pages/admin/SuperadminLicensePage";
 
 const Admin = () => {
   const { roles } = useAuth();
@@ -55,12 +56,18 @@ const Admin = () => {
               <Network className="w-3.5 h-3.5" /> Cloud Management
             </TabsTrigger>
           )}
+          {isSuperAdmin && (
+            <TabsTrigger value="license" className="gap-1.5">
+              <KeyRound className="w-3.5 h-3.5" /> License
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="casino-settings"><CasinoSettingsPage /></TabsContent>
         <TabsContent value="branding"><BrandingPage /></TabsContent>
         <TabsContent value="users"><UsersAndRolesPage /></TabsContent>
         {isSuperAdmin && <TabsContent value="cloud"><CloudManagementPage /></TabsContent>}
+        {isSuperAdmin && <TabsContent value="license"><SuperadminLicensePage /></TabsContent>}
       </Tabs>
     </div>
   );
