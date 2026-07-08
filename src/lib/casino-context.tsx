@@ -10,9 +10,12 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { getCachedRuntimeConfig } from "@/lib/runtime-config";
+import { clearIDBPersistedQueryCache } from "@/lib/query-persister";
+import { clearBlacklistCache } from "@/lib/blacklist-cache";
 
 type CasinoInfo = {
   id: string;
@@ -30,7 +33,7 @@ type CasinoContextState = {
   /** Whether the user is in summary mode (FM/super_admin viewing all) */
   isSummaryMode: boolean;
   /** Switch to a different casino */
-  switchCasino: (casinoId: string | null) => void;
+  switchCasino: (casinoId: string | null) => void | Promise<void>;
   /** Detected slug from subdomain */
   detectedSlug: string | null;
   loading: boolean;
@@ -251,9 +254,25 @@ export const CasinoProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [loading, accessibleCasinos, detectedSlug, primaryCasinoId, isSummaryMode, subdomainCasino]);
 
-  const switchCasino = useCallback((casinoId: string | null) => {
+  const queryClient = useQueryClient();
+
+  const switchCasino = useCallback(async (casinoId: string | null) => {
+    const prev = activeCasinoId;
+    // Cross-casino cache poisoning fix: React Query + IndexedDB persist cache
+    // both hold data keyed by (queryKey), not by casinoId. Switching to another
+    // casino without a full reset caused stale Table Check / Chip Count etc.
+    // from the previous casino to render (or block the new fetch entirely).
+    try {
+      await queryClient.cancelQueries();
+      queryClient.clear();
+      await clearIDBPersistedQueryCache();
+      await clearBlacklistCache();
+      console.info("[Cache] switched casino — cleared React Query + IndexedDB", { from: prev, to: casinoId });
+    } catch (e) {
+      console.warn("[Cache] switchCasino cache clear failed", e);
+    }
     setActiveCasinoId(casinoId);
-  }, []);
+  }, [activeCasinoId, queryClient]);
 
   // Sync activeCasinoId back to auth context so all hooks use the right casino
   useEffect(() => {

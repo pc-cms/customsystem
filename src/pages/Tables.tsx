@@ -415,7 +415,7 @@ const Tables = () => {
           </div>
           <div className="text-right">
             <p className="text-[9px] uppercase text-muted-foreground tracking-wider leading-none">Drop</p>
-            <p className="font-mono text-lg font-bold text-card-foreground whitespace-nowrap mt-0.5">{formatCurrency(r.drop)}</p>
+            <p className="font-mono text-lg font-bold text-muted-foreground whitespace-nowrap mt-0.5">·</p>
           </div>
           <div className="text-right">
             <p className="text-[9px] uppercase text-muted-foreground tracking-wider leading-none">Result</p>

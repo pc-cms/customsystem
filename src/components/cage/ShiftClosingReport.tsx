@@ -19,6 +19,7 @@ import { buildLatestTableSnapshot, chipSnapshotResult, type BaselineMap } from "
 // Snapshot index is still loaded for backward-compatible fallback only.
 import type { Tables } from "@/integrations/supabase/types";
 import { splitTablesWindow, type NepTx } from "@/lib/nep-split";
+import { fetchTotalDrop } from "@/lib/drop-source";
 
 interface Props {
   shift: Tables<"shifts">;
@@ -88,6 +89,19 @@ const ShiftClosingReport = ({
     inByProv: Record<string, number>;
     outByProv: Record<string, number>;
   }>({ inByProv: {}, outByProv: {} });
+  /** Total Drop for the shift's business date — SINGLE source of truth from
+   *  `player_day_drop_cache` (matches Player Statistics). Per-table Drop is
+   *  never displayed; every per-table cell renders `·`. */
+  const [totalDropFromCache, setTotalDropFromCache] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const total = await fetchTotalDrop({ casinoId, fromDate: businessDate });
+      if (!cancelled) setTotalDropFromCache(total);
+    })();
+    return () => { cancelled = true; };
+  }, [casinoId, businessDate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -446,7 +460,7 @@ const ShiftClosingReport = ({
                 <td className="border border-black px-1.5 py-0.5 text-right">{num(fl)}</td>
                 <td className="border border-black px-1.5 py-0.5 text-right">{num(cr)}</td>
                 <td className="border border-black px-1.5 py-0.5 text-right">{num(cl)}</td>
-                <td className="border border-black px-1.5 py-0.5 text-right">{num(inVal)}</td>
+                <td className="border border-black px-1.5 py-0.5 text-right text-gray-400">·</td>
                 <td className="border border-black px-1.5 py-0.5 text-right font-semibold">
                   {res === 0 ? "" : (res > 0 ? numAlways(res) : `-${numAlways(Math.abs(res))}`)}
                 </td>
@@ -459,7 +473,7 @@ const ShiftClosingReport = ({
             <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totals.fill)}</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totals.credit)}</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totals.close)}</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totals.in)}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totalDropFromCache)}</td>
             <td className="border border-black px-1.5 py-0.5 text-right">
               {totals.result >= 0 ? numAlways(totals.result) : `-${numAlways(Math.abs(totals.result))}`}
             </td>

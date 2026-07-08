@@ -14,6 +14,7 @@ import { canSeePlayerFinancials } from "@/lib/role-access";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { useTablesDropSplit, useTablesDropCacheToday } from "@/hooks/use-drop-split";
+import { useTotalDrop } from "@/lib/drop-source";
 import {
   useStaffMembers, useStaffRotaRange,
   DEPARTMENT_LABELS, DEPARTMENT_ORDER,
@@ -146,17 +147,9 @@ const Dashboard = () => {
     if (cached !== undefined && cached !== 0) return cached;
     return Number(tablesDropSplit?.get(tid)?.dropR || 0);
   };
-  const totalDrop = useMemo(() => {
-    let s = 0;
-    // Prefer cache totals on today; fall back to RPC totals otherwise.
-    if (isToday && tablesDropCache && tablesDropCache.size > 0) {
-      tablesDropCache.forEach(v => { s += v.dropR || 0; });
-      return s;
-    }
-    if (!tablesDropSplit) return 0;
-    tablesDropSplit.forEach(v => { s += v.dropR || 0; });
-    return s;
-  }, [tablesDropSplit, tablesDropCache, isToday]);
+  // Total Drop — single source of truth: `player_day_drop_cache` (same value
+  // shown on Player Statistics). Per-table Drop is never displayed.
+  const { data: totalDrop = 0 } = useTotalDrop({ casinoId, fromDate: businessDate });
 
   // Pending expenses across BOTH cages (Live Game + Slots) — drives the
   // Approvals tile for manager / shift_manager / finance_manager / super_admin.

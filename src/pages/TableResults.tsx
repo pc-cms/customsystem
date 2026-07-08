@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fmtDate, fmtWeekdayShort } from "@/lib/format-date";
 import { useAuth } from "@/lib/auth-context";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 /* ------------------------------------------------------------------ */
 /* Layout config — order of columns in the horizontal report          */
@@ -152,7 +154,7 @@ interface TableResultsProps {
 }
 
 const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResultsProps = {}) => {
-  const { roles } = useAuth();
+  const { roles, casinoId } = useAuth();
   const isSurveillanceOnly = roles.includes("surveillance" as any) &&
     !roles.some((r) => ["manager", "super_admin", "finance_manager"].includes(r as string));
   const currentYear = new Date().getFullYear();
@@ -185,6 +187,30 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
   const to = embedded && embeddedTo ? embeddedTo : computed.to;
 
   const { data = [], isLoading } = useDailyResults(from, to);
+
+  /* Total Drop — SINGLE source of truth: `player_day_drop_cache` (matches
+   * Player Statistics). Per-table Drop is never displayed anywhere on this
+   * screen (all per-table Drop / Hold cells render `·`). */
+  const { data: dropByDate = new Map<string, number>() } = useQuery({
+    queryKey: ["table-results-drop-cache", casinoId, from, to],
+    queryFn: async (): Promise<Map<string, number>> => {
+      const m = new Map<string, number>();
+      if (!casinoId || !from || !to) return m;
+      const { data: rows, error } = await supabase
+        .from("player_day_drop_cache")
+        .select("business_date, peak")
+        .eq("casino_id", casinoId)
+        .gte("business_date", from)
+        .lte("business_date", to);
+      if (error) { console.warn(error); return m; }
+      (rows ?? []).forEach((r: any) => {
+        m.set(r.business_date, (m.get(r.business_date) || 0) + Number(r.peak || 0));
+      });
+      return m;
+    },
+    enabled: !!casinoId && !!from && !!to,
+    staleTime: 30_000,
+  });
 
   /* Build full date range — fill missing days with empty buckets so gaps are visible. */
   const allDates = useMemo(() => {
@@ -290,6 +316,17 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
       totalResult: arResult + pkResult + bjResult,
     };
   }, [buckets]);
+
+  /** Grand-total Drop for the entire period — from `player_day_drop_cache`
+   *  (single source of truth, matches Player Statistics). */
+  const periodTotalDrop = useMemo(() => {
+    let s = 0;
+    dropByDate.forEach((v) => { s += v; });
+    return s;
+  }, [dropByDate]);
+  const dropForDay = (date: string) => dropByDate.get(date) ?? 0;
+
+
 
   /* ---------------------------------------------------------------- */
   /* Render helpers                                                   */
@@ -517,12 +554,13 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                       r.push("", "", "");
                     }
                   }
+                  const dayTot = dropForDay(b.date);
                   r.push(
-                    b.arDrop, b.arResult,
-                    b.pkDrop, b.pkResult,
-                    b.bjDrop, b.bjResult,
-                    b.totalDrop, b.totalResult,
-                    b.totalDrop > 0 ? Number((b.totalResult / b.totalDrop * 100).toFixed(2)) : "",
+                    "·", b.arResult,
+                    "·", b.pkResult,
+                    "·", b.bjResult,
+                    dayTot, b.totalResult,
+                    dayTot > 0 ? Number((b.totalResult / dayTot * 100).toFixed(2)) : "",
                   );
                   rows.push(r);
                 }
@@ -531,17 +569,17 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                 for (const t of tableCols) {
                   const c = totals.cellsTotal[t];
                   if (c) {
-                    totalsRow.push(c.drop, c.result, c.drop > 0 ? Number((c.result / c.drop * 100).toFixed(2)) : "");
+                    totalsRow.push("·", c.result, "·");
                   } else {
                     totalsRow.push("", "", "");
                   }
                 }
                 totalsRow.push(
-                  totals.arDrop, totals.arResult,
-                  totals.pkDrop, totals.pkResult,
-                  totals.bjDrop, totals.bjResult,
-                  totals.totalDrop, totals.totalResult,
-                  totals.totalDrop > 0 ? Number((totals.totalResult / totals.totalDrop * 100).toFixed(2)) : "",
+                  "·", totals.arResult,
+                  "·", totals.pkResult,
+                  "·", totals.bjResult,
+                  periodTotalDrop, totals.totalResult,
+                  periodTotalDrop > 0 ? Number((totals.totalResult / periodTotalDrop * 100).toFixed(2)) : "",
                 );
                 rows.push([]);
                 rows.push(totalsRow);
@@ -637,7 +675,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
                     return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === BJ_TABLES.length - 1} />;
                   })}
-                  <DRHeadCell drop={totals.totalDrop} result={totals.totalResult} bold />
+                  <DRHeadCell drop={periodTotalDrop} result={totals.totalResult} bold />
                 </TableRow>
               </TableHeader>
 
@@ -725,7 +763,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                         })}
 
                         {/* All */}
-                        <DRCell drop={b.totalDrop} result={b.totalResult} hasData bold />
+                        <DRCell drop={dropForDay(b.date)} result={b.totalResult} hasData bold />
                       </TableRow>
 
                       {/* Inline drilldown — full per-table report (third photo) */}
@@ -742,7 +780,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                             className="p-0"
                           >
                             <div className="sticky left-0 w-[100cqw] max-w-full">
-                              <DayDetail rows={b.fullRows} date={b.date} />
+                              <DayDetail rows={b.fullRows} date={b.date} totalDropFromCache={dropForDay(b.date)} />
                             </div>
                           </TableCell>
                         </TableRow>
@@ -759,7 +797,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                   <GroupTotalCells colSpan={AR_TABLES.length * 3} drop={totals.arDrop} result={totals.arResult} accent="warning" />
                   <GroupTotalCells colSpan={PK_TABLES.length * 3} drop={totals.pkDrop} result={totals.pkResult} accent="success" />
                   <GroupTotalCells colSpan={BJ_TABLES.length * 3} drop={totals.bjDrop} result={totals.bjResult} accent="destructive" />
-                  <GroupTotalCells colSpan={3} drop={totals.totalDrop} result={totals.totalResult} accent="primary" noBorder />
+                  <GroupTotalCells colSpan={3} drop={periodTotalDrop} result={totals.totalResult} accent="primary" noBorder />
                 </TableRow>
               </TableBody>
             </table>
@@ -851,26 +889,30 @@ const DRCell = ({
   groupEnd?: boolean;
 }) => {
   const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
+  // RULE: per-table Drop is never displayed. Only the grand-total column
+  // (marked `bold`) shows Drop — from player_day_drop_cache upstream.
+  const showDrop = !!bold;
   if (!hasData && drop === 0 && result === 0) {
     return (
       <>
+        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5">·</TableCell>
         <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5">—</TableCell>
-        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5">—</TableCell>
-        <TableCell className={cn("text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5", endBorder)}>—</TableCell>
+        <TableCell className={cn("text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5", endBorder)}>·</TableCell>
       </>
     );
   }
   const isNeg = result < 0;
-  const pct = drop > 0 ? (result / drop) * 100 : 0;
+  const pct = showDrop && drop > 0 ? (result / drop) * 100 : 0;
   return (
     <>
       <TableCell
         className={cn(
           "text-right font-mono tabular-nums whitespace-nowrap px-1.5",
           bold && "font-semibold",
+          !showDrop && "text-muted-foreground/50",
         )}
       >
-        {drop === 0 ? "—" : formatSpaced(drop)}
+        {showDrop ? (drop === 0 ? "—" : formatSpaced(drop)) : "·"}
       </TableCell>
       <TableCell
         className={cn(
@@ -886,9 +928,10 @@ const DRCell = ({
           "text-right font-mono tabular-nums text-xs whitespace-nowrap px-1.5",
           isNeg && "text-destructive",
           endBorder,
+          !showDrop && "text-muted-foreground/50",
         )}
       >
-        {drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`}
+        {showDrop ? (drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`) : "·"}
       </TableCell>
     </>
   );
@@ -908,7 +951,8 @@ const DRHeadCell = ({
 }) => {
   const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
   const isNeg = result < 0;
-  const pct = drop > 0 ? (result / drop) * 100 : 0;
+  const showDrop = !!bold; // only grand-total header cell shows Drop
+  const pct = showDrop && drop > 0 ? (result / drop) * 100 : 0;
   // top-16 = 64px (sum of first two header rows, both h-8)
   const stickyTop = "top-16 z-10 [background-image:linear-gradient(hsl(var(--primary)/0.2),hsl(var(--primary)/0.2)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]";
   return (
@@ -917,10 +961,11 @@ const DRHeadCell = ({
         className={cn(
           "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-foreground",
           bold && "font-bold",
+          !showDrop && "text-muted-foreground/60",
           stickyTop,
         )}
       >
-        {drop === 0 ? "—" : formatSpaced(drop)}
+        {showDrop ? (drop === 0 ? "—" : formatSpaced(drop)) : "·"}
       </TableHead>
       <TableHead
         className={cn(
@@ -936,11 +981,12 @@ const DRHeadCell = ({
         className={cn(
           "text-right font-mono tabular-nums text-xs whitespace-nowrap px-1.5 text-foreground",
           isNeg && "text-destructive",
+          !showDrop && "text-muted-foreground/60",
           endBorder,
           stickyTop,
         )}
       >
-        {drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`}
+        {showDrop ? (drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`) : "·"}
       </TableHead>
     </>
   );
@@ -967,7 +1013,8 @@ const GroupTotalCells = ({
     primary: "bg-primary/25",
   };
   const isNeg = result < 0;
-  const pct = drop > 0 ? (result / drop) * 100 : 0;
+  const showDrop = accent === "primary"; // only grand-total row shows Drop
+  const pct = showDrop && drop > 0 ? (result / drop) * 100 : 0;
   return (
     <TableCell
       colSpan={colSpan}
@@ -978,21 +1025,21 @@ const GroupTotalCells = ({
       )}
     >
       <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-2">D</span>
-      <span className="font-semibold mr-3">{drop === 0 ? "—" : formatSpaced(drop)}</span>
+      <span className="font-semibold mr-3">{showDrop ? (drop === 0 ? "—" : formatSpaced(drop)) : "·"}</span>
       <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-2">R</span>
       <span className={cn("font-semibold mr-3", isNeg && "text-destructive")}>
         {result === 0 ? "—" : formatSpaced(result)}
       </span>
       <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-2">%</span>
       <span className={cn("text-xs", isNeg && "text-destructive")}>
-        {drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`}
+        {showDrop ? (drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`) : "·"}
       </span>
     </TableCell>
   );
 };
 
 /* Inline drilldown — like the third photo (per-table full breakdown) */
-const DayDetail = ({ rows, date }: { rows: Row[]; date: string }) => {
+const DayDetail = ({ rows, date, totalDropFromCache }: { rows: Row[]; date: string; totalDropFromCache: number }) => {
   // Pick latest row per table name
   const byName = new Map<string, Row>();
   for (const r of rows) {
@@ -1057,7 +1104,7 @@ const DayDetail = ({ rows, date }: { rows: Row[]; date: string }) => {
                   <TableCell className="text-right font-mono">{formatSpaced(r.fill)}</TableCell>
                   <TableCell className="text-right font-mono">{formatSpaced(r.credit)}</TableCell>
                   <TableCell className="text-right font-mono">{formatSpaced(r.close)}</TableCell>
-                  <TableCell className="text-right font-mono">{formatSpaced(r.drop_amount)}</TableCell>
+                  <TableCell className="text-right font-mono text-muted-foreground">·</TableCell>
                   <TableCell
                     className={cn(
                       "text-right font-mono font-semibold",
@@ -1083,7 +1130,7 @@ const DayDetail = ({ rows, date }: { rows: Row[]; date: string }) => {
               <TableCell className="text-right font-mono">{formatSpaced(totals.fill)}</TableCell>
               <TableCell className="text-right font-mono">{formatSpaced(totals.credit)}</TableCell>
               <TableCell className="text-right font-mono">{formatSpaced(totals.close)}</TableCell>
-              <TableCell className="text-right font-mono">{formatSpaced(totals.drop)}</TableCell>
+              <TableCell className="text-right font-mono">{formatSpaced(totalDropFromCache)}</TableCell>
               <TableCell
                 className={cn(
                   "text-right font-mono",
