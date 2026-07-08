@@ -8,12 +8,13 @@
  */
 import { useAuth } from "@/lib/auth-context";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Shield, Palette, Users, Network } from "lucide-react";
+import { Settings, Shield, Palette, Users, Network, KeyRound } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import CasinoSettingsPage from "@/pages/admin/CasinoSettingsPage";
 import BrandingPage from "@/pages/admin/BrandingPage";
 import UsersAndRolesPage from "@/pages/admin/UsersAndRolesPage";
 import CloudManagementPage from "@/pages/admin/CloudManagementPage";
+import SuperadminLicensePage from "@/pages/admin/SuperadminLicensePage";
 
 const Admin = () => {
   const { roles } = useAuth();
