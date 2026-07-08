@@ -14,6 +14,7 @@ import { canSeePlayerFinancials } from "@/lib/role-access";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { useTablesDropSplit, useTablesDropCacheToday } from "@/hooks/use-drop-split";
+import { useTotalDrop } from "@/lib/drop-source";
 import {
   useStaffMembers, useStaffRotaRange,
   DEPARTMENT_LABELS, DEPARTMENT_ORDER,
