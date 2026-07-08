@@ -554,12 +554,13 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                       r.push("", "", "");
                     }
                   }
+                  const dayTot = dropForDay(b.date);
                   r.push(
-                    b.arDrop, b.arResult,
-                    b.pkDrop, b.pkResult,
-                    b.bjDrop, b.bjResult,
-                    b.totalDrop, b.totalResult,
-                    b.totalDrop > 0 ? Number((b.totalResult / b.totalDrop * 100).toFixed(2)) : "",
+                    "·", b.arResult,
+                    "·", b.pkResult,
+                    "·", b.bjResult,
+                    dayTot, b.totalResult,
+                    dayTot > 0 ? Number((b.totalResult / dayTot * 100).toFixed(2)) : "",
                   );
                   rows.push(r);
                 }
