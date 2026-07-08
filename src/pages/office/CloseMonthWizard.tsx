@@ -170,7 +170,7 @@ export function CloseMonthWizard({
           <p className="text-xs text-muted-foreground">
             Confirm how much cash is withdrawn from each wallet (collection).
           </p>
-          <WalletAmountList rows={collection} onChange={setCollection} />
+          <WalletAmountList rows={collection} onChange={(next) => { markDirty(); setCollection(next); }} />
           <TotalRow label="Total Collection (TZS)" value={totalCollectionTzs} />
         </div>
       )}
