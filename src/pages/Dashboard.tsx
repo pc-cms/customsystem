@@ -1,19 +1,17 @@
 import { useMemo, useState } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
-import { Landmark, Receipt, TrendingDown, LayoutDashboard, Filter, ArrowUpDown, Smartphone, Users } from "lucide-react";
+import { Receipt, LayoutDashboard, Filter, ArrowUpDown, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
-import { usePlayers, useTransactions, useGamingTables, useTableTracker } from "@/hooks/use-casino-data";
-import { useCashless } from "@/hooks/use-cashless";
+import { usePlayers, useTransactions, useGamingTables } from "@/hooks/use-casino-data";
 import { useDashboardTableResults } from "@/hooks/use-dashboard-table-results";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "@/lib/currency";
 import { canSeePlayerFinancials } from "@/lib/role-access";
-import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
+import { getBusinessDate } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
-import { useTablesDropSplit, useTablesDropCacheToday } from "@/hooks/use-drop-split";
 import { useTotalDrop } from "@/lib/drop-source";
 import {
   useStaffMembers, useStaffRotaRange,
@@ -27,26 +25,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CCTVDashboardSection } from "@/components/dashboard/CCTVDashboardSection";
-import { BentoGrid, BentoTile, BentoKpi } from "@/components/ui/bento-grid";
-
-const StatTile = ({ label, value, icon: Icon, href, col = 3 }: {
-  label: string; value: string | number; icon: any; href: string; col?: 1 | 2 | 3 | 4 | 6;
-}) => (
-  <BentoTile
-    col={col as any}
-    title={
-      <span className="inline-flex items-center gap-1.5">
-        <Icon className="w-3.5 h-3.5 text-primary" />
-        {label}
-      </span>
-    }
-    className="hover:border-primary/40"
-    onClick={() => { window.location.href = href; }}
-    style={{ cursor: "pointer" }}
-  >
-    <BentoKpi value={<span className="whitespace-nowrap">{value}</span>} />
-  </BentoTile>
-);
 
 /**
  * Single-panel summary strip — one bordered card, one row per metric.
@@ -117,36 +95,19 @@ const SummaryPanel = ({
 const ALL_SHIFTS = ["D", "M", "N", "G", "E", "L", "O"] as const;
 
 const Dashboard = () => {
-  const { displayName, roles, isManager, casinoId } = useAuth();
+  const { displayName, roles, casinoId } = useAuth();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
   const { data: players = [], isLoading: loadingPlayers } = usePlayers();
   const { data: transactions = [], isLoading: loadingTx } = useTransactions(businessDate);
   const { data: tables = [] } = useGamingTables();
   // (live-game expenses fetched separately via pending count query below)
-  const { data: trackerData = [] } = useTableTracker(businessDate);
   const { data: tableResultMap = {} } = useDashboardTableResults(businessDate);
   const { data: staffMembers = [] } = useStaffMembers();
   const { data: staffRota = [] } = useStaffRotaRange(businessDate, businessDate);
 
-  // NEP-aware Drop R for the current business day window — same source of truth as Player Tracking.
-  // Raw sum of buy/in transactions double-counts returned winnings; Drop R excludes recycled cash.
-  const dropWindowStart = businessDayHourUTC(businessDate, 7);
-  const dropWindowEnd = businessDayHourUTC(businessDate, 7 + 24);
-  const { data: tablesDropSplit } = useTablesDropSplit(dropWindowStart, dropWindowEnd);
-  // Realtime cache (trigger-maintained). Used as the PRIMARY source for the
-  // current business day so Drop updates instantly after a Buy-In. The RPC
-  // above stays as authoritative fallback / historical days.
-  const isToday = businessDate === getBusinessDate();
-  const { data: tablesDropCache } = useTablesDropCacheToday(isToday ? businessDate : null);
-
   const isInitialLoading = loadingPlayers && loadingTx;
   const showFinancials = canSeePlayerFinancials(roles);
-  const pickDrop = (tid: string): number => {
-    const cached = isToday ? tablesDropCache?.get(tid)?.dropR : undefined;
-    if (cached !== undefined && cached !== 0) return cached;
-    return Number(tablesDropSplit?.get(tid)?.dropR || 0);
-  };
   // Total Drop — single source of truth: `player_day_drop_cache` (same value
   // shown on Player Statistics). Per-table Drop is never displayed.
   const { data: totalDrop = 0 } = useTotalDrop({ casinoId, fromDate: businessDate });
@@ -197,31 +158,18 @@ const Dashboard = () => {
     return s.size;
   }, [transactions]);
 
-  // Per-table tracker totals (raw drop indicator)
-  const tableTrackerTotals = useMemo(() => {
-    const totals: Record<string, number> = {};
-    trackerData.forEach((d: any) => {
-      totals[d.table_id] = (totals[d.table_id] || 0) + Number(d.value);
-    });
-    return totals;
-  }, [trackerData]);
-
-  // Table DROP = NEP-aware Drop R (external cash only) over the business-day window,
-  // same source as Player Tracking and the Total Drop KPI. Raw cash-in sums double-count
-  // returned winnings and caused per-table Drop to disagree with the dashboard total.
   // Table RESULT = canonical per-shift RPC sum (same source as shifts.tables_result).
   const tableStats = useMemo(() => {
-    const stats: Record<string, { drop: number; result: number }> = {};
+    const stats: Record<string, { result: number }> = {};
     tables.forEach(t => {
-      const drop = pickDrop(t.id);
-      stats[t.id] = { drop, result: Number(tableResultMap[t.id] || 0) };
+      stats[t.id] = { result: Number(tableResultMap[t.id] || 0) };
     });
     return stats;
-  }, [tables, tablesDropSplit, tablesDropCache, isToday, tableResultMap]);
+  }, [tables, tableResultMap]);
 
 
   const gameTypeTotals = useMemo(() => {
-    const totals: Record<string, { drop: number; result: number; label: string }> = {};
+    const totals: Record<string, { result: number; label: string }> = {};
     const gameLabels: Record<string, string> = {
       "American Roulette": "TOTAL ARs",
       "Poker": "TOTAL POKER",
@@ -233,15 +181,13 @@ const Dashboard = () => {
     };
     tables.forEach(t => {
       const label = gameLabels[t.game] || `Total ${t.game}`;
-      if (!totals[label]) totals[label] = { drop: 0, result: 0, label };
-      const r = tableStats[t.id] || { drop: 0, result: 0 };
-      totals[label].drop += r.drop;
+      if (!totals[label]) totals[label] = { result: 0, label };
+      const r = tableStats[t.id] || { result: 0 };
       totals[label].result += r.result;
     });
     return totals;
   }, [tables, tableStats]);
 
-  const totalTablesDrop = Object.values(tableStats).reduce((s, r) => s + r.drop, 0);
   const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
   // Floor Staff filters & sort

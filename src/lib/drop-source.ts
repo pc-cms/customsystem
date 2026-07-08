@@ -69,6 +69,7 @@ export function useTotalDrop(params: Params) {
   return useQuery({
     queryKey: [
       "total-drop-cache",
+      "player-day-peak-v2",
       casinoId ?? null,
       fromDate ?? null,
       toDate ?? fromDate ?? null,

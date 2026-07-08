@@ -26,6 +26,7 @@ import { fmtDate, fmtWeekdayShort } from "@/lib/format-date";
 import { useAuth } from "@/lib/auth-context";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchPaged } from "@/lib/fetch-paged";
 
 /* ------------------------------------------------------------------ */
 /* Layout config — order of columns in the horizontal report          */
@@ -196,13 +197,15 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
     queryFn: async (): Promise<Map<string, number>> => {
       const m = new Map<string, number>();
       if (!casinoId || !from || !to) return m;
-      const { data: rows, error } = await supabase
+      const rows = await fetchPaged<any>((pageFrom, pageTo) => supabase
         .from("player_day_drop_cache")
         .select("business_date, peak")
         .eq("casino_id", casinoId)
         .gte("business_date", from)
-        .lte("business_date", to);
-      if (error) { console.warn(error); return m; }
+        .lte("business_date", to)
+        .order("business_date", { ascending: true })
+        .range(pageFrom, pageTo)
+      );
       (rows ?? []).forEach((r: any) => {
         m.set(r.business_date, (m.get(r.business_date) || 0) + Number(r.peak || 0));
       });
