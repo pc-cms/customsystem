@@ -239,8 +239,7 @@ const Tables = () => {
 
   // Per-player Drop R for seated players — read from the authoritative
   // `player_day_drop_cache` (peak-NEP per business day). Same source as
-  // PlayerStatistics and (via table_day_drop_cache) the Dashboard, so
-  // sums agree by construction.
+  // PlayerStatistics and Total Drop KPIs.
   const isToday = effectiveDate === businessDay;
   const { data: playersDropCacheToday } = usePlayersDropCacheToday(isToday ? effectiveDate : null);
 
