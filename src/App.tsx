@@ -479,7 +479,8 @@ const ProtectedRoutes = () => {
           <Route path="/stats" element={<Navigate to="/player-statistics" replace />} />
           <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />
           <Route path="/admin" element={<RoleGuard path="/admin"><Admin /></RoleGuard>} />
-          <Route path="/admin/users/new" element={<RoleGuard path="/admin"><ErrorBoundary><UserNewPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/superadmin/license" element={<RoleGuard path="/admin"><ErrorBoundary><SuperadminLicensePage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/admin/license" element={<Navigate to="/superadmin/license" replace />} />
           <Route path="/admin/users/:id/edit" element={<RoleGuard path="/admin"><ErrorBoundary><UserEditPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/sync-log" element={<RoleGuard path="/admin"><ErrorBoundary><SyncLogPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/sync-queue" element={<RoleGuard path="/admin"><ErrorBoundary><SyncQueuePage /></ErrorBoundary></RoleGuard>} />
