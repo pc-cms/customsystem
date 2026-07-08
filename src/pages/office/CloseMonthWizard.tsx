@@ -180,7 +180,7 @@ export function CloseMonthWizard({
           <p className="text-xs text-muted-foreground">
             Enter new Starting Float for each wallet (usually 0).
           </p>
-          <WalletAmountList rows={newFloat} onChange={setNewFloat} />
+          <WalletAmountList rows={newFloat} onChange={(next) => { markDirty(); setNewFloat(next); }} />
           <TotalRow label="Total New Float (TZS)" value={totalFloatTzs} />
         </div>
       )}
