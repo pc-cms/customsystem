@@ -68,6 +68,7 @@ const AttendanceOfficePage = lazy(() => import("@/pages/flat/StaffFlat").then(m 
 const Groups = lazy(() => import("@/pages/Groups"));
 const Reports = lazy(() => import("@/pages/Reports"));
 const Admin = lazy(() => import("@/pages/Admin"));
+const SuperadminLicensePage = lazy(() => import("@/pages/admin/SuperadminLicensePage"));
 const Staff = lazy(() => import("@/pages/Staff"));
 const FinancesDashboardPage = lazy(() => import("@/pages/finances/FinancesDashboardPage"));
 const FinancesWalletsPage = lazy(() => import("@/pages/finances/FinancesWalletsPage"));
