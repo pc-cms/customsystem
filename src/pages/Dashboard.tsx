@@ -1,11 +1,10 @@
 import { useMemo, useState } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
-import { Landmark, Receipt, TrendingDown, LayoutDashboard, Filter, ArrowUpDown, Smartphone, Users } from "lucide-react";
+import { Receipt, LayoutDashboard, Filter, ArrowUpDown, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
 import { usePlayers, useTransactions, useGamingTables } from "@/hooks/use-casino-data";
-import { useCashless } from "@/hooks/use-cashless";
 import { useDashboardTableResults } from "@/hooks/use-dashboard-table-results";
 import { useAuth } from "@/lib/auth-context";
 import { Link } from "react-router-dom";
@@ -26,26 +25,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CCTVDashboardSection } from "@/components/dashboard/CCTVDashboardSection";
-import { BentoGrid, BentoTile, BentoKpi } from "@/components/ui/bento-grid";
-
-const StatTile = ({ label, value, icon: Icon, href, col = 3 }: {
-  label: string; value: string | number; icon: any; href: string; col?: 1 | 2 | 3 | 4 | 6;
-}) => (
-  <BentoTile
-    col={col as any}
-    title={
-      <span className="inline-flex items-center gap-1.5">
-        <Icon className="w-3.5 h-3.5 text-primary" />
-        {label}
-      </span>
-    }
-    className="hover:border-primary/40"
-    onClick={() => { window.location.href = href; }}
-    style={{ cursor: "pointer" }}
-  >
-    <BentoKpi value={<span className="whitespace-nowrap">{value}</span>} />
-  </BentoTile>
-);
 
 /**
  * Single-panel summary strip — one bordered card, one row per metric.
@@ -116,7 +95,7 @@ const SummaryPanel = ({
 const ALL_SHIFTS = ["D", "M", "N", "G", "E", "L", "O"] as const;
 
 const Dashboard = () => {
-  const { displayName, roles, isManager, casinoId } = useAuth();
+  const { displayName, roles, casinoId } = useAuth();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
   const { data: players = [], isLoading: loadingPlayers } = usePlayers();
