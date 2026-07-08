@@ -4,7 +4,7 @@
  * Step 2: New Starting Float per wallet (usually 0)
  * Step 3: Confirm & Lock
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
