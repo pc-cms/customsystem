@@ -17,6 +17,8 @@ import {
   useChipColors, resolveChipColor, useVisibleChipDenoms,
 } from "@/hooks/use-chip-colors";
 import type { ExpectedCheckState } from "@/hooks/use-expected-check-state";
+import { ProviderBlock } from "./CashCountGrid";
+import { mobileTotal, type MobileProviders } from "./CageHelpers";
 
 const sumChips = (r: Record<number, number>) =>
   Object.entries(r).reduce((s, [d, q]) => s + Number(d) * (Number(q) || 0), 0);
