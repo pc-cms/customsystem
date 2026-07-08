@@ -25,7 +25,5 @@ export const useDailyExpenses = (businessDate?: string) => {
     },
     enabled: !!casinoId && !!businessDate,
     ...liveQueryOptions(),
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
   });
 };

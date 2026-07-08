@@ -405,9 +405,6 @@ export const useBreaklistData = (date: string) => {
     // event (token refresh edge cases, network blips), Pit operators on two PCs
     // must converge within seconds — not after a manual reload.
     refetchInterval: pendingBreaklistMutations > 0 ? false : 3_500,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: pendingBreaklistMutations === 0,
-    refetchOnReconnect: true,
   });
 };
 

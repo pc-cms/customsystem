@@ -27,6 +27,5 @@ export function useShiftTablesResultTotal(shiftId: string | null | undefined) {
     enabled: !!shiftId,
     // Hot KPI: shift P&L must always be fresh.
     ...liveQueryOptions(),
-    refetchOnMount: "always",
   });
 }
