@@ -189,12 +189,13 @@ export const usePlayersDropCacheToday = (businessDate: string | null | undefined
     queryKey: ["players-drop-cache-today", casinoId, businessDate],
     queryFn: async (): Promise<Record<string, TableSplit>> => {
       if (!casinoId || !businessDate) return {};
-      const { data, error } = await supabase
+      const data = await fetchPaged<any>((from, to) => supabase
         .from("player_day_drop_cache")
         .select("player_id, peak, recycled")
         .eq("casino_id", casinoId)
-        .eq("business_date", businessDate);
-      if (error) throw error;
+        .eq("business_date", businessDate)
+        .range(from, to)
+      );
       const rec: Record<string, TableSplit> = {};
       (data || []).forEach((r: any) => {
         if (!r?.player_id) return;

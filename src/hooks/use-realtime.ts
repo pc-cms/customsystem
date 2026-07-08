@@ -185,6 +185,7 @@ export const useRealtimeSubscriptions = () => {
           "postgres_changes",
           { event: "*", schema: "public", table: "player_day_drop_cache", filter: `casino_id=eq.${casinoId}` },
           () => {
+            debouncedInvalidate(qc, "total-drop-cache", ["total-drop-cache"]);
             debouncedInvalidate(qc, "players-drop-cache-today", ["players-drop-cache-today"]);
             debouncedInvalidate(qc, "players-drop-cache-range", ["players-drop-cache-range"]);
           },
