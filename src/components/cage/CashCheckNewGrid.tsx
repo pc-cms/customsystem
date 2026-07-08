@@ -71,12 +71,20 @@ const CashCheckNewGrid = ({
   chips, onChipsChange,
   cash, onCashChange,
   expected,
+  cashlessIn, onCashlessInChange, cashlessInSuggestion,
+  cashlessOut, onCashlessOutChange, cashlessOutSuggestion,
 }: {
   chips: Record<number, number>;
   onChipsChange: (v: Record<number, number>) => void;
   cash: Record<string, Record<number, number>>;
   onCashChange: (currency: string, v: Record<number, number>) => void;
   expected: ExpectedCheckState;
+  cashlessIn?: MobileProviders;
+  onCashlessInChange?: (v: MobileProviders) => void;
+  cashlessInSuggestion?: Partial<Record<string, number>>;
+  cashlessOut?: MobileProviders;
+  onCashlessOutChange?: (v: MobileProviders) => void;
+  cashlessOutSuggestion?: Partial<Record<string, number>>;
 }) => {
   const visibleDenoms = useVisibleChipDenoms();
   const denoms = [...new Set([
