@@ -19,6 +19,7 @@ import { useCasino } from "@/lib/casino-context";
 import { useMyModulePermissions } from "@/hooks/use-module-permissions";
 import { usePitBookUnread } from "@/hooks/use-pit-book-unread";
 import { moduleKeyForRoute } from "@/lib/route-module-map";
+import { useLicense, hasModule as licenseHasModule } from "@/hooks/use-license";
 import { prefetchRoute } from "@/lib/route-prefetch";
 import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
 import { VersionIndicator } from "@/components/VersionIndicator";
