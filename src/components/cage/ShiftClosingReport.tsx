@@ -293,7 +293,48 @@ const ShiftClosingReport = ({
   }, [reportTables, baselines, fillCredits, dailyResults, inByTable, serverResults, tableRowOverrides]);
 
   // Effective values — overrides win when provided.
-  const effCashlessIO = cashlessOverride ?? cashlessIO;
+  // Cashless source of truth: manual per-provider input from `shift.closing_count`
+  // (this is what `compute_shift_balance` actually consumes). Falls back to
+  // ledger totals only when the manual snapshot is empty.
+  const manualCashlessIO = useMemo(() => {
+    const cc = ((shift as any)?.closing_count || {}) as Record<string, any>;
+    const inRaw = (cc.cashless_in_providers || {}) as Record<string, any>;
+    const outRaw = (cc.cashless_out_providers || {}) as Record<string, any>;
+    // Manual providers use display keys (Mpesa/Tigo/Halo/AirTel); ledger uses uppercase codes.
+    const NORM: Record<string, string> = {
+      Mpesa: "MPESA", Tigo: "TIGO", Halo: "HALOTEL", AirTel: "AIRTEL",
+      MPESA: "MPESA", TIGO: "TIGO", HALOTEL: "HALOTEL", AIRTEL: "AIRTEL",
+    };
+    const inByProv: Record<string, number> = {};
+    const outByProv: Record<string, number> = {};
+    for (const [k, v] of Object.entries(inRaw)) {
+      const key = NORM[k] || k.toUpperCase();
+      inByProv[key] = (inByProv[key] || 0) + (Number(v) || 0);
+    }
+    for (const [k, v] of Object.entries(outRaw)) {
+      const key = NORM[k] || k.toUpperCase();
+      outByProv[key] = (outByProv[key] || 0) + (Number(v) || 0);
+    }
+    const hasAny =
+      Object.values(inByProv).some(v => v > 0) ||
+      Object.values(outByProv).some(v => v > 0);
+    return { inByProv, outByProv, hasAny };
+  }, [shift]);
+
+  const cashlessMismatch = useMemo(() => {
+    if (!manualCashlessIO.hasAny) return false;
+    const mIn = Object.values(manualCashlessIO.inByProv).reduce((s, v) => s + v, 0);
+    const mOut = Object.values(manualCashlessIO.outByProv).reduce((s, v) => s + v, 0);
+    const lIn = Object.values(cashlessIO.inByProv).reduce((s, v) => s + v, 0);
+    const lOut = Object.values(cashlessIO.outByProv).reduce((s, v) => s + v, 0);
+    if (lIn === 0 && lOut === 0) return false;
+    return Math.abs(mIn - lIn) > 1 || Math.abs(mOut - lOut) > 1;
+  }, [manualCashlessIO, cashlessIO]);
+
+  const effCashlessIO = cashlessOverride
+    ?? (manualCashlessIO.hasAny
+      ? { inByProv: manualCashlessIO.inByProv, outByProv: manualCashlessIO.outByProv }
+      : cashlessIO);
   const effTipsByShift = tipsByShiftOverride ?? tipsByShift;
   const effCashFlowTransfers = cashFlowTransfersOverride ?? cashFlowTransfers;
 
