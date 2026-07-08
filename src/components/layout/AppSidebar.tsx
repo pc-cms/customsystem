@@ -233,6 +233,7 @@ const SidebarSections = ({
   const location = useLocation();
   const { data: pitBookUnread } = usePitBookUnread();
   const pitBookUnreadCount = pitBookUnread?.total ?? 0;
+  const license = useLicense();
 
 
   // Group items by section, preserving order
