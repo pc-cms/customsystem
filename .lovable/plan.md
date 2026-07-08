@@ -1,47 +1,92 @@
-# Phase B — статус исполнения
 
-## B1 — Signed License + Packages — ✅ DONE
+## Часть A. Правило Drop (постоянное)
 
-- **B1.1** ✅ Ed25519 keygen + sign CLI + README
-  - `deploy/cli/generate-keys.mjs`, `deploy/cli/cms-license.mjs`, `deploy/cli/README.md`
-  - `src/lib/license/public-key.ts` (placeholder — заменить на прод-ключ перед первым релизом)
-- **B1.2** ✅ Таблица `casino_packages` + сид 9 пакетов
-  (starter, live_basic, live_pro, slots_basic, slots_pro, combo_basic, combo_pro, enterprise, demo)
-- **B1.3** ✅ Таблица `casino_license` + edge function `verify-license`
-  - Ed25519 verify через `@noble/ed25519` в Deno
-  - Требует секрет `LICENSE_PUBLIC_KEY_B64` в edge function env (после B1.1)
-- **B1.4** ✅ Хук `useLicense` + `hasModule()` (Cloud без строки → implicit enterprise)
-- **B1.5** ✅ `ModuleGate` + `UpgradeCard` + интеграция в `RoleGuard` и `AppSidebar`
-- **B1.6** ✅ `/superadmin/license` (upload/download/audit) + вкладка License в Admin
-- **B1.7** ✅ `LicenseBanner` расширен (expired hard-stop + ≤14 дней warning)
+**Per-table Drop = всегда `·` (прочерк).** Никакой per-table drop не считается и не показывается — ни как split NEP, ни как сумма транзакций стола, ни как 0. Прочерк везде, без условий.
 
-## B2 — Settings-driven Core — 🟡 INFRA DONE, MIGRATION PENDING
+**Total Drop = единственный источник — Player Statistics (`player_day_drop_cache`).**
+Тот же алгоритм, что уже отображается в блоке Player Statistics: `SUM(drop_amount)` из кэша за business_date смены/диапазона, для казино (и опционально для группы игроков).
 
-- **B2.1** ✅ Таблица `casino_settings` + spec `src/lib/casino-settings-spec.ts`
-  Первые ключи: currency.enabled/primary, cashless.providers/max_per_tx_tzs,
-  tips.weekly_bonus_min_hours/monthly_pool_share_percent,
-  limits.hourly_check_interval_minutes/max_shift_duration_hours/cash_desk_imbalance_warning_tzs,
-  general.enable_incidents_ai_hints
-- **B2.2** ✅ Хук `useCasinoSetting<T>` + `useSettingsExport` (батчевый fetch, 5min кэш)
-- **B2.3** ✅ Универсальный `SettingCard` (number/text/toggle/select/currency-list/provider-list/denomination-list/json + irreversible confirm)
-- **B2.4** ⏳ Миграция хардкода — **не сделана**. Требует отдельного захода:
-  - B2.4a Currency (`src/lib/currency.ts` + CashCountGrid/CashCheckNewGrid)
-  - B2.4b Chips (проксирование через spec — опционально)
-  - B2.4c Cashless providers (useCashless, useSlotsCashless, все отчёты — заменить hardcoded ["MPESA","TIGO","HALOTEL","AIRTEL"] на `useCasinoSetting("cashless.providers")`)
-  - B2.4d Tips (weekly/monthly пороги)
-  - B2.4e Time (зеркалирование `business_day_start` в spec)
-  - B2.4f Limits (hourly check interval, shift duration warning, imbalance warning)
-- **B2.5** ✅ CasinoSettingsPage расширен — авто-генерация вкладок General/Currency/Cashless/Tips/Limits из spec
-- **B2.6** ✅ Export/Import settings.json (`SettingsExportImport` в General табе)
+Расхождения между «суммой пустой колонки» и Total Drop не существуют — колонка пустая, сумма только внизу.
 
-## Что нужно сделать перед прод-релизом
+Все «фантомные» split-распределения (`splitTablesWindow` / `use-drop-split` в per-table контексте) — из UI-отображения убираются.
 
-1. Сгенерировать реальный Ed25519 ключ (`node deploy/cli/generate-keys.mjs`).
-2. Заменить `LICENSE_PUBLIC_KEY_B64` в `src/lib/license/public-key.ts`.
-3. Добавить секрет `LICENSE_PUBLIC_KEY_B64` в edge function environment.
-4. Выпустить первую лицензию для каждого казино и загрузить через `/superadmin/license`.
-5. (Опционально) выполнить B2.4 — миграцию хардкода на `useCasinoSetting`.
+### Файлы
 
-## Phase C/D
+**1. `src/components/cage/ShiftClosingReport.tsx` — печатный Shift Report**
+- В `rowFor(t)` установить `drop: null`.
+- Удалить загрузку `inByTable` через `splitTablesWindow` (осталась только для Result — проверить, не сломается ли RPC; если Result использует `inByTable` — оставить расчёт, но НЕ выводить в колонку Drop).
+- Колонка Drop в таблице столов: рендерить `·` для всех строк.
+- Итог `Total Drop` под таблицей: получить один запрос `player_day_drop_cache` по `casino_id + business_date` смены → сумма.
 
-Ещё не специфицированы. Открыть отдельный план когда потребуется.
+**2. `src/pages/Reports.tsx` (строки 802, 974, 1016 — три `totals.drop`)**
+- В `sorted[]` для строк-столов: колонка Drop = `·`.
+- `totals.drop` — заменить на суммы из `player_day_drop_cache` за диапазон.
+
+**3. `src/pages/Tables.tsx` (строка 368) + `src/pages/Dashboard.tsx` (строки 149, 348)**
+- Per-table колонка Drop → `·`.
+- KPI Total Drop → `player_day_drop_cache` (Dashboard уже близок к этому — верифицировать, чтобы был именно тот же источник).
+
+**4. `src/pages/TableResults.tsx`**
+- AR/PK/BJ per-row drop → `·` во всех ячейках столов (`DRCell`, `DRHeadCell` с `hasData=false`).
+- Group totals и `totals.totalDrop` внизу → `player_day_drop_cache` за business_date.
+- Excel-экспорт: колонки *Drop по столам* — пустое поле; Total Drop — из cache.
+
+**5. `src/pages/Groups.tsx` (строка 144)**
+- `totals.drop` для группы игроков → сумма `player_day_drop_cache` по `player_id IN (…)` за period.
+
+**6. Централизация**
+Создать `src/lib/drop-source.ts` c одной функцией:
+```ts
+export async function fetchTotalDrop(params: {
+  casinoId: string;
+  fromDate: string; toDate?: string;
+  playerIds?: string[];
+}): Promise<number>
+```
++ React Query хук `useTotalDrop(...)`. Все 5 экранов зовут этот хук — единый источник истины.
+
+**7. Memory**
+- Новый файл `mem://features/drop-source-of-truth`:
+  > Per-table Drop не отображается нигде (везде `·`). Total Drop в любом отчёте, KPI и печати = `SUM(drop_amount)` из `player_day_drop_cache` за business_date. Никаких split/NEP-распределений в UI.
+- В `mem://index.md` Core добавить одну строку с сутью правила.
+
+---
+
+## Часть B. Сброс кэша при switchCasino()
+
+**Файл: `src/lib/casino-context.tsx`**
+
+В функцию `switchCasino(nextCasinoId)` добавить перед `setActiveCasinoId(...)`:
+
+```ts
+// 1. Отменить активные фетчи и очистить React Query
+await queryClient.cancelQueries();
+queryClient.clear();
+
+// 2. Очистить IndexedDB-персист (query-persister)
+await clearIDBPersistedQueryCache();
+
+// 3. Сбросить in-memory кэши-словарики (blacklist-cache и т.п.)
+clearBlacklistCache?.();
+```
+
+Импорты:
+- `queryClient` — из общего `src/lib/query-client.ts` (или `useQueryClient()` через React, вынести на уровень провайдера).
+- `clearIDBPersistedQueryCache` — из `src/lib/query-persister.ts` (уже существует).
+- `clearBlacklistCache` — если есть в `src/lib/blacklist-cache.ts`.
+
+**Дополнительно:**
+- Добавить `console.info('[Cache] switched casino → cleared RQ + IDB', { from, to })` для отладки.
+- После `clear()` вызвать `queryClient.invalidateQueries()` уже не нужно — clear полностью сбрасывает.
+- Убедиться, что `casino-context` рендерит children с новым `key={activeCasinoId}` НЕ обязательно, но опционально можно добавить `key` на роутере в `App.tsx` — обсуждать отдельно, чтобы не форсить размонтирование всего дерева. По умолчанию не трогаем.
+
+**Проверка:** войти под юзером с доступом к 2 казино, переключить → в консоли `[Cache] switched...`, все хуки перезапрашивают данные для нового casino_id, старые данные не мелькают.
+
+---
+
+## Что НЕ трогаем
+
+- Server-side расчёт `player_day_drop_cache` — уже источник истины, изменений не требует.
+- Player Statistics страница — не меняется.
+- Split-логика `splitTablesWindow` в модуле — оставляем в коде на случай если нужна для Result-формулы; удаляем только вызовы в per-table Drop.
+- Auth / session — сброс кэша не трогает Supabase-сессию.
