@@ -553,7 +553,17 @@ const ShiftClosingReport = ({
               <col style={{ width: "19%" }} />
             </colgroup>
             <thead>
-              <tr><th colSpan={5} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">Cash Less Shift Transactions</th></tr>
+              <tr><th colSpan={5} className="border border-black bg-gray-200 px-1.5 py-0.5 text-left">
+                Cash Less Shift Transactions
+                <span className="font-normal text-[10px] ml-2">
+                  · source: {manualCashlessIO.hasAny ? "manual @ close" : "ledger"}
+                </span>
+                {cashlessMismatch && (
+                  <span className="font-normal text-[10px] ml-2" style={{ color: "#b45309" }}>
+                    ⚠ manual vs ledger mismatch
+                  </span>
+                )}
+              </th></tr>
               <tr className="bg-gray-100">
                 <th className="border border-black px-1.5 py-0.5 text-left">Provider</th>
                 <th className="border border-black px-1.5 py-0.5 text-right">Deposit (IN)</th>
