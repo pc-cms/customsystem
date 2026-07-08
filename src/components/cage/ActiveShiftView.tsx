@@ -871,6 +871,12 @@ const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRate
             cash={cash}
             onCashChange={(cur, v) => setCash(c => ({ ...c, [cur]: v }))}
             expected={expected}
+            cashlessIn={cashlessIn}
+            onCashlessInChange={setCashlessIn}
+            cashlessInSuggestion={cashlessSug?.in}
+            cashlessOut={cashlessOut}
+            onCashlessOutChange={setCashlessOut}
+            cashlessOutSuggestion={cashlessSug?.out}
           />
         )}
 

@@ -17,6 +17,8 @@ import {
   useChipColors, resolveChipColor, useVisibleChipDenoms,
 } from "@/hooks/use-chip-colors";
 import type { ExpectedCheckState } from "@/hooks/use-expected-check-state";
+import { ProviderBlock } from "./CashCountGrid";
+import { mobileTotal, type MobileProviders } from "./CageHelpers";
 
 const sumChips = (r: Record<number, number>) =>
   Object.entries(r).reduce((s, [d, q]) => s + Number(d) * (Number(q) || 0), 0);
@@ -69,12 +71,20 @@ const CashCheckNewGrid = ({
   chips, onChipsChange,
   cash, onCashChange,
   expected,
+  cashlessIn, onCashlessInChange, cashlessInSuggestion,
+  cashlessOut, onCashlessOutChange, cashlessOutSuggestion,
 }: {
   chips: Record<number, number>;
   onChipsChange: (v: Record<number, number>) => void;
   cash: Record<string, Record<number, number>>;
   onCashChange: (currency: string, v: Record<number, number>) => void;
   expected: ExpectedCheckState;
+  cashlessIn?: MobileProviders;
+  onCashlessInChange?: (v: MobileProviders) => void;
+  cashlessInSuggestion?: Partial<Record<string, number>>;
+  cashlessOut?: MobileProviders;
+  onCashlessOutChange?: (v: MobileProviders) => void;
+  cashlessOutSuggestion?: Partial<Record<string, number>>;
 }) => {
   const visibleDenoms = useVisibleChipDenoms();
   const denoms = [...new Set([
@@ -163,6 +173,61 @@ const CashCheckNewGrid = ({
           );
         })}
       </div>
+
+      {/* Cashless IN / OUT band — log-only for expected chips/cash, but IS
+          included in Counted total via Cash Desk formula
+          (+ CashlessIn − CashlessOut). Kept here so cashier can reconcile
+          per-provider during mid-shift checks, same as in "Old" grid. */}
+      {onCashlessInChange && onCashlessOutChange && cashlessIn && cashlessOut && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-start">
+          <ProviderBlock
+            title="Cashless IN"
+            values={cashlessIn}
+            onChange={onCashlessInChange}
+            suggestion={cashlessInSuggestion}
+            sectionCls={sectionCls}
+            titleCls={titleCls}
+          />
+          <ProviderBlock
+            title="Cashless OUT"
+            values={cashlessOut}
+            onChange={onCashlessOutChange}
+            suggestion={cashlessOutSuggestion}
+            sectionCls={sectionCls}
+            titleCls={titleCls}
+          />
+          <section className={sectionCls}>
+            <p className={titleCls}>NET (IN − OUT)</p>
+            {(() => {
+              const inT = mobileTotal(cashlessIn);
+              const outT = mobileTotal(cashlessOut);
+              const net = inT - outT;
+              const cls = net === 0 ? "text-muted-foreground" : net > 0 ? "cms-amount-positive" : "cms-amount-negative";
+              return (
+                <div className="space-y-2 pt-1">
+                  <div className="flex justify-between text-xs font-mono">
+                    <span className="text-muted-foreground">IN</span>
+                    <span className="text-card-foreground">{formatNumberSpaces(inT)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs font-mono">
+                    <span className="text-muted-foreground">OUT</span>
+                    <span className="text-card-foreground">{formatNumberSpaces(outT)}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 mt-1 border-t border-border">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">NET</span>
+                    <span className={`font-mono text-lg font-bold ${cls}`}>
+                      {net > 0 ? "+" : ""}{formatNumberSpaces(net)}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-tight pt-1">
+                    Входит в Counted через Cash Desk формулу. Не влияет на expected chips/cash.
+                  </p>
+                </div>
+              );
+            })()}
+          </section>
+        </div>
+      )}
     </div>
   );
 };
