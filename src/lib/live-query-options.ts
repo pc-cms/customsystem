@@ -34,7 +34,10 @@ export const liveQueryOptions = () => ({
   gcTime: 1000 * 60 * 60 * 24,
   refetchOnMount: false as const,
   refetchOnWindowFocus: false as const,
-  refetchOnReconnect: false as const,
+  // Страховка на случай, когда Realtime-канал пропустил события во время
+  // разрыва соединения (Wi-Fi blip / sleep). Реконнект браузера → React Query
+  // сделает один refetch, восстанавливая согласованность.
+  refetchOnReconnect: true as const,
 });
 
 /**
@@ -48,5 +51,6 @@ export const liveQueryOptionsWithFallback = (fallbackMs: number) => ({
   gcTime: 1000 * 60 * 60 * 24,
   refetchOnMount: false as const,
   refetchOnWindowFocus: false as const,
-  refetchOnReconnect: false as const,
+  refetchOnReconnect: true as const,
 });
+
