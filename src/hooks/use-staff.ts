@@ -157,7 +157,6 @@ export const useStaffMembers = () => {
     },
     enabled: !!casinoId,
     ...liveQueryOptions(), // 30 min — staff roster changes rarely
-    refetchOnMount: "always", // always re-validate on navigation so malformed/stale
                               // persisted cache cannot render an empty rota/attendance grid.
   });
 };
@@ -237,7 +236,6 @@ export const useStaffRotaRange = (startDate: string, endDate: string) => {
       return (data ?? []).map(aliasStaffRow);
     },
     enabled: !!casinoId,
-    refetchOnMount: "always",
   });
 };
 
@@ -307,7 +305,6 @@ export const useStaffAttendanceRange = (startDate: string, endDate: string) => {
       return (data ?? []).map(aliasStaffRow);
     },
     enabled: !!casinoId,
-    refetchOnMount: "always",
   });
 };
 

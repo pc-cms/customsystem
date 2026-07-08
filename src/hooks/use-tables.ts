@@ -133,9 +133,6 @@ export const useTableTracker = (date: string) => {
     },
     enabled: !!casinoId,
     ...liveQueryOptions(),
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
   });
 };
 
@@ -274,9 +271,6 @@ export const useTableHeadCount = (date: string) => {
     },
     enabled: !!casinoId,
     ...liveQueryOptions(),
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
   });
 };
 

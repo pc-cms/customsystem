@@ -100,9 +100,6 @@ export const useChipSnapshots = (date: string) => {
     // weak network, another account's save must still appear shortly.
     ...liveQueryOptions(),
     gcTime: 24 * 60 * 60_000,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
     refetchInterval: isToday ? 10_000 : false,
     refetchIntervalInBackground: false,
   });
@@ -119,9 +116,6 @@ export const useChipSnapshotsFull = (date: string) => {
     },
     enabled: !!casinoId,
     ...liveQueryOptions(),
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });

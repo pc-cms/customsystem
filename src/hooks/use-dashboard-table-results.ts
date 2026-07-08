@@ -47,9 +47,6 @@ export const useDashboardTableResults = (businessDate: string | undefined) => {
     },
     enabled: !!casinoId && !!businessDate,
     ...liveQueryOptions(),
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
     refetchInterval: 10_000,
   });
 

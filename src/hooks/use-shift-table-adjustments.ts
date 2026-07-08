@@ -41,9 +41,6 @@ export const useShiftTableAdjustments = (shiftIdOverride?: string | null) => {
     },
     enabled: !!casinoId && !!shiftId,
     ...liveQueryOptions(),
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
     refetchInterval: 10_000,
   });
 

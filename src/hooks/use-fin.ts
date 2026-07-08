@@ -535,8 +535,6 @@ export const useShiftsTablesResultForDate = (businessDate?: string) => {
     },
     enabled: !!activeCasinoId && !!businessDate,
     ...liveQueryOptionsWithFallback(30000),
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
   });
 };
 
@@ -559,8 +557,6 @@ export const useSlotsAutoForDate = (businessDate?: string) => {
     },
     enabled: !!activeCasinoId && !!businessDate,
     ...liveQueryOptionsWithFallback(30000),
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
   });
 };
 

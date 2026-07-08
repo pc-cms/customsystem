@@ -55,8 +55,6 @@ export const useExpenses = (
     },
     enabled: !!casinoId,
     ...liveQueryOptions(),
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
   });
 };
 
