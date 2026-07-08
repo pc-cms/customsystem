@@ -30,7 +30,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useBusinessDayFilter } from "@/hooks/use-business-day-filter";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { useReadOnlyMode } from "@/hooks/use-readonly-mode";
-import { useTablesDropSplit, useTablesDropCacheToday, usePlayersDropCacheToday } from "@/hooks/use-drop-split";
+import { usePlayersDropCacheToday } from "@/hooks/use-drop-split";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { offlineMutation } from "@/lib/offline-mutation";
@@ -317,23 +317,9 @@ const Tables = () => {
   const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
   const { adjustmentMap } = useShiftTableAdjustments(effectiveDate === businessDay ? (shift?.id ?? null) : null);
 
-  // Table DROP = NEP-aware Drop R (external cash only), same source of truth
-  // as Player Statistics. Computed by `compute_tables_drop_split` RPC over the
-  // current business-day window so the two pages always agree.
-  const dropWindowStart = businessDayHourUTC(effectiveDate, 7);
-  const dropWindowEnd = businessDayHourUTC(effectiveDate, 7 + 24);
-  const { data: tablesDropSplit } = useTablesDropSplit(dropWindowStart, dropWindowEnd);
-  // Realtime cache for instant updates on the CURRENT business day.
-  const { data: tablesDropCache } = useTablesDropCacheToday(isToday ? effectiveDate : null);
-
-
   const tableStats = useMemo(() => {
-    const stats: Record<string, { drop: number; result: number }> = {};
+    const stats: Record<string, { result: number }> = {};
     tables.forEach(t => {
-      const cached = isToday ? tablesDropCache?.get(t.id)?.dropR : undefined;
-      const drop = (cached !== undefined && cached !== 0)
-        ? cached
-        : (tablesDropSplit?.get(t.id)?.dropR ?? 0);
       const result = liveTableResult({
         tableId: t.id,
         closingResult: t.closing_result as any,
@@ -341,10 +327,10 @@ const Tables = () => {
         baselineMap,
         adjustmentMap,
       });
-      stats[t.id] = { drop, result };
+      stats[t.id] = { result };
     });
     return stats;
-  }, [tables, tablesDropSplit, tablesDropCache, isToday, snapshotIndex, baselineMap, adjustmentMap, effectiveDate]);
+  }, [tables, snapshotIndex, baselineMap, adjustmentMap]);
 
 
   const handleOpenAll = () => {
@@ -353,19 +339,17 @@ const Tables = () => {
   };
 
   const gameTypeTotals = useMemo(() => {
-    const totals: Record<string, { drop: number; result: number; label: string }> = {};
+    const totals: Record<string, { result: number; label: string }> = {};
     const gameLabels: Record<string, string> = { "American Roulette": "TOTAL ARs", "Poker": "TOTAL POKER", "Texas Holdem": "TOTAL POKER", "Omaha": "TOTAL POKER", "PLO": "TOTAL POKER", "Club Poker": "TOTAL POKER", "Blackjack": "TOTAL BJ" };
     tables.forEach(t => {
       const label = gameLabels[t.game] || `Total ${t.game}`;
-      if (!totals[label]) totals[label] = { drop: 0, result: 0, label };
-      const r = tableStats[t.id] || { drop: 0, result: 0 };
-      totals[label].drop += r.drop;
+      if (!totals[label]) totals[label] = { result: 0, label };
+      const r = tableStats[t.id] || { result: 0 };
       totals[label].result += r.result;
     });
     return totals;
   }, [tables, tableStats]);
 
-  const totalDrop = Object.values(tableStats).reduce((s, r) => s + r.drop, 0);
   const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
   const pokerGames = ["Poker", "Texas Holdem", "Omaha", "PLO", "Club Poker"];
@@ -392,7 +376,7 @@ const Tables = () => {
   };
 
   const renderTableCard = (table: typeof tables[0]) => {
-    const r = tableStats[table.id] || { drop: 0, result: 0 };
+    const r = tableStats[table.id] || { result: 0 };
     const isOpen = table.status === "open";
     const hasTableResult = table.closing_result !== null;
     const seated = seatedByTable[table.id] || [];
