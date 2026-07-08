@@ -9,7 +9,7 @@ import { MOBILE_PROVIDERS, mobileTotal, type MobileProviders, type Banks } from 
  *  Suggestion from /cashless transactions is *prefilled* into the cell itself
  *  (gray text, just like chip prefills). Cashier can overwrite, clear, or keep
  *  the value — once they type, the cell turns into a normal black entry. */
-const ProviderBlock = ({
+export const ProviderBlock = ({
   title, values, onChange, suggestion, sectionCls, titleCls, manualOnly = false,
 }: {
   title: string;
