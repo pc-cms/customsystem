@@ -797,7 +797,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                   <GroupTotalCells colSpan={AR_TABLES.length * 3} drop={totals.arDrop} result={totals.arResult} accent="warning" />
                   <GroupTotalCells colSpan={PK_TABLES.length * 3} drop={totals.pkDrop} result={totals.pkResult} accent="success" />
                   <GroupTotalCells colSpan={BJ_TABLES.length * 3} drop={totals.bjDrop} result={totals.bjResult} accent="destructive" />
-                  <GroupTotalCells colSpan={3} drop={totals.totalDrop} result={totals.totalResult} accent="primary" noBorder />
+                  <GroupTotalCells colSpan={3} drop={periodTotalDrop} result={totals.totalResult} accent="primary" noBorder />
                 </TableRow>
               </TableBody>
             </table>
