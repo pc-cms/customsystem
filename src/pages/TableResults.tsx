@@ -675,7 +675,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
                     return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === BJ_TABLES.length - 1} />;
                   })}
-                  <DRHeadCell drop={totals.totalDrop} result={totals.totalResult} bold />
+                  <DRHeadCell drop={periodTotalDrop} result={totals.totalResult} bold />
                 </TableRow>
               </TableHeader>
 
