@@ -6,6 +6,7 @@
  */
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
+import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
 
 const CURRENCIES = ["TZS", "USD", "EUR", "GBP", "KES"] as const;
 const PROVIDERS: Array<{ key: string; label: string }> = [
@@ -98,7 +99,9 @@ const SlotsConsolidatedReport = ({
   const closerTotal = closerCashTotalTzs + closerBankTotalTzs;
 
   return (
-    <div className="bg-white text-black p-2 flex flex-col" style={{ fontFamily: "Arial, sans-serif", fontSize: "14px", lineHeight: 1.3, width: "194mm", minHeight: "281mm", boxSizing: "border-box" }}>
+    <div id="slots-print-area" className="bg-white text-black p-2 flex flex-col" style={{ fontFamily: "Arial, sans-serif", fontSize: "14px", lineHeight: 1.3, width: "194mm", minHeight: "281mm", boxSizing: "border-box" }}>
+      <style>{PRINT_REPORT_ACCENTS_CSS}</style>
+
 
       {/* ============ TITLE ROW ============ */}
       <table className="w-full border-collapse mb-1" style={{ tableLayout: "fixed" }}>

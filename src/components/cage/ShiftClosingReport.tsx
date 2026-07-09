@@ -20,6 +20,7 @@ import { buildLatestTableSnapshot, chipSnapshotResult, type BaselineMap } from "
 import type { Tables } from "@/integrations/supabase/types";
 import { splitTablesWindow, type NepTx } from "@/lib/nep-split";
 import { fetchTotalDrop } from "@/lib/drop-source";
+import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
 
 interface Props {
   shift: Tables<"shifts">;
@@ -413,6 +414,7 @@ const ShiftClosingReport = ({
           padding-top: ${cellPadY} !important;
           padding-bottom: ${cellPadY} !important;
         }
+        ${PRINT_REPORT_ACCENTS_CSS}
       `}</style>
       {/* ============ TITLE ROW ============ */}
       <table className="w-full border-collapse mb-1" style={{ tableLayout: "fixed" }}>
