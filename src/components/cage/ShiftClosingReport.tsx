@@ -413,6 +413,7 @@ const ShiftClosingReport = ({
           padding-top: ${cellPadY} !important;
           padding-bottom: ${cellPadY} !important;
         }
+        ${PRINT_REPORT_ACCENTS_CSS}
       `}</style>
       {/* ============ TITLE ROW ============ */}
       <table className="w-full border-collapse mb-1" style={{ tableLayout: "fixed" }}>
