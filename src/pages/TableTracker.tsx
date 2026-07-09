@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { getBusinessDate, nowEAT } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
-import { useGamingTables, useTableTracker, useSetTableTrackerValue, useTableHeadCount } from "@/hooks/use-casino-data";
+import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import { Input } from "@/components/ui/input";
 import { DateNavigator } from "@/components/ui/date-navigator";
 import { formatCurrency, formatInputWithSpaces } from "@/lib/currency";
@@ -56,7 +56,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const { isManager } = useAuth();
   const { data: tables = [] } = useGamingTables();
   const { data: trackerData = [] } = useTableTracker(date);
-  const { data: headCountData = [] } = useTableHeadCount(date);
+  
   const setValue = useSetTableTrackerValue();
 
   // Include closed tables that still have tracker data for the selected date,
@@ -100,13 +100,6 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const getSlotTotal = (slot: string) =>
     trackerData.filter(t => t.time_slot === slot).reduce((s, t) => s + Number(t.value), 0);
 
-  const getHeadCount = (tableId: string, slot: string): number | null => {
-    const e = headCountData.find((h: any) => h.table_id === tableId && h.time_slot === slot);
-    return e ? Number(e.value) : null;
-  };
-
-  const getSlotHeadCountTotal = (slot: string) =>
-    headCountData.filter((h: any) => h.time_slot === slot).reduce((s: number, h: any) => s + Number(h.value), 0);
 
   const grandTotal = trackerData.reduce((s, t) => s + Number(t.value), 0);
 
@@ -243,7 +236,6 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                     </td>
                     {SLOTS.map((slot, si) => {
                       const val = getVal(table.id, slot);
-                      const hc = getHeadCount(table.id, slot);
                       const isActive = isToday && slot === currentSlot;
                       return (
                         <td key={slot} className={`px-1 py-0.5 ${isActive ? "bg-primary/5" : ""}`}>
@@ -270,12 +262,6 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                             } ${isActive ? "border-primary/30" : ""} ${readOnly ? "cursor-not-allowed opacity-70" : ""}`}
                             placeholder="·"
                           />
-                          <div
-                            className="mt-0.5 text-center text-[10px] font-mono tabular-nums text-muted-foreground leading-none"
-                            title="Head count"
-                          >
-                            {hc !== null ? String(hc).padStart(2, "0") : "·"}
-                          </div>
                         </td>
                       );
                     })}
@@ -288,7 +274,6 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                   {SLOTS.map((slot) => {
                     const isActive = isToday && slot === currentSlot;
                     const tot = getSlotTotal(slot);
-                    const hcTot = getSlotHeadCountTotal(slot);
                     const colorClass = tot > 0 ? "cms-amount-positive" : tot < 0 ? "cms-amount-negative" : "text-card-foreground";
                     return (
                       <td
@@ -297,12 +282,6 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                       >
                         <div className={`font-mono tabular-nums text-sm font-bold ${colorClass}`}>
                           {tot ? formatCurrency(tot) : "·"}
-                        </div>
-                        <div
-                          className="mt-0.5 text-[10px] font-mono tabular-nums text-muted-foreground leading-none"
-                          title="Head count total"
-                        >
-                          HC {hcTot || 0}
                         </div>
                       </td>
                     );

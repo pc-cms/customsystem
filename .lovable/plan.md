@@ -1,30 +1,20 @@
-## Правило: в Reports показываем только закрытые бизнес-дни
+Plan
 
-### Что меняем
-На странице **Reports** (все вкладки, где данные группируются по бизнес-дню) отфильтровываем строки так, чтобы отображались **только те business_date, по которым есть запись в `business_day_closures`** для текущего казино. Открытый (ещё не закрытый) бизнес-день скрывается полностью — ни в списке, ни в тоталах, ни в KPI (Days / Drop / Table Result / Hold %).
+Scope
+Remove head count from the live Table Check page (`src/pages/TableTracker.tsx`). Head count will remain available in the dedicated Head Count panel and in closure snapshots, but it will no longer appear under every Table Check cell or in the slot totals.
 
-### Почему это ускорит загрузку
-Помимо чистоты данных, сейчас `compute_daily_diff` считает и для сегодняшнего открытого дня — самый тяжёлый расчёт (peak-NEP по живым player_day_drop_cache). Отсекая незакрытые даты на клиенте (а вкладка Daily — ещё и на уровне запроса, сдвигая `to` до последней закрытой даты), убираем лишние сутки из выборки и снимаем «висящий» Loading.
+Changes
+1. `src/pages/TableTracker.tsx`
+   - Remove `useTableHeadCount` import and hook call.
+   - Remove `getHeadCount`, `getSlotHeadCountTotal` helper functions.
+   - Remove the per-cell head count sub-label rendered below each tracker input.
+   - Remove the "HC {total}" line from the slot-total footer row.
+   - Keep the Numbers/Chips toggle, the input grid, slot totals, and TableAnalyticsChart unchanged.
 
-### Скоуп вкладок
-- **Daily Balance** — фильтр по `business_day_closures` (главный кейс из скриншота).
-- **Shifts / Live Game / Slots / Tables / Players / Groups / Expenses / Cashless / Miss Chips** — тот же фильтр применяем к строкам, у которых есть `business_date`. Where нет business_date (например, чистый диапазон created_at) — оставляем как есть.
-- **Total** — считается из уже отфильтрованных источников, автоматически подхватит правило.
+Not in scope
+- `HeadCountPanel` component and its `useTableHeadCount` / mutation hooks are left intact; they are not part of the Table Check page UI.
+- No backend or database changes.
 
-### Реализация (технически)
-1. Общий хук `useClosedBusinessDates(from, to)` уже существует в `src/hooks/use-business-day-closure.ts` — возвращает `Set<string>` YYYY-MM-DD. Переиспользуем.
-2. В `Reports.tsx` в компоненте `DailyReport`:
-   - подтягиваем `closed = useClosedBusinessDates(from, to)`;
-   - в `useQuery` после получения `rows` из RPC делаем `rows.filter(r => closed.has(r.date))`;
-   - тоталы и KPI считаются уже по отфильтрованному массиву (они и так это делают).
-3. Аналогичный фильтр по `business_date` добавляем в остальные табы Reports, где строки имеют business_date (Shifts, Live Game, Slots, Expenses, Cashless, Miss Chips, Players, Groups агрегируется из daily → отсечётся автоматически).
-4. Если в диапазоне вообще нет закрытых дней — таблица показывает пустое состояние с подсказкой «No closed business days in range» вместо «No data».
-5. Тоталы `Days` = кол-во закрытых дней в диапазоне (совпадает с числом отображаемых строк).
-
-### Что НЕ трогаем
-- Cage / Dashboard / TableTracker / Live Game — там нужны живые данные текущего дня.
-- Логику `business_day_closures` и RPC не меняем — только фронтовая фильтрация.
-
-### Файлы
-- `src/pages/Reports.tsx` — добавить фильтрацию во все вкладки, где применимо.
-- (при необходимости) вспомогательный util `isClosedDate(date, closedSet)` внутри Reports.tsx.
+Verification
+- Build passes (`bun run build` / typecheck).
+- Open Table Check page: no "Head count" sub-labels below cells, no "HC" totals in the Total row.
