@@ -1011,7 +1011,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
           {isLoading ? (
             <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">Loading…</DTCell></DTRow>
           ) : sorted.length === 0 ? (
-            <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">No data in range</DTCell></DTRow>
+            <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">No closed business days in range</DTCell></DTRow>
           ) : sorted.map((r) => (
             <DTRow key={r.date}>
               <DTCell type="date">{fmtDate(r.date)}</DTCell>
