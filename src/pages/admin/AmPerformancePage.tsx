@@ -125,7 +125,7 @@ const AmPerformancePage = () => {
                 <SelectContent>
                   {amOptions.map((o: any) => (
                     <SelectItem key={o.user_id} value={o.user_id}>
-                      {o.profiles?.full_name ?? o.profiles?.email ?? o.user_id.slice(0, 8)}
+                      {o.profiles?.full_name ?? o.user_id.slice(0, 8)}
                     </SelectItem>
                   ))}
                 </SelectContent>
