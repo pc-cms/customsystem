@@ -956,6 +956,8 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
     [rawRows, closedSet],
   );
 
+  const { sorted, sort, toggle } = useSorted(rows, { key: "date", dir: "desc" });
+
 
 
   const totals = useMemo(() => {
