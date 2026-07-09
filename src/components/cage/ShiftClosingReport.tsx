@@ -693,48 +693,67 @@ const ShiftClosingReport = ({
               })()}
             </td>
           </tr>
-          <tr>
-            <td className="border border-black px-1.5 py-0.5">+ Cashless IN</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">
-              {(() => {
-                const v = Object.values(effCashlessIO.inByProv).reduce((s, x) => s + Number(x || 0), 0);
-                return v === 0 ? "" : numAlways(v);
-              })()}
-            </td>
-            <td className="border border-black px-1.5 py-0.5">Cash Desk Chips CREDIT</td>
-            <td className="border border-black px-1.5 py-0.5 text-right"></td>
-          </tr>
-          <tr>
-            <td className="border border-black px-1.5 py-0.5">− Cashless OUT</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">
-              {(() => {
-                const v = Object.values(effCashlessIO.outByProv).reduce((s, x) => s + Number(x || 0), 0);
-                return v === 0 ? "" : `-${numAlways(v)}`;
-              })()}
-            </td>
-            <td className="border border-black px-1.5 py-0.5 font-semibold">Miss Chips</td>
-            <td className="border border-black px-1.5 py-0.5 text-right font-bold">
-              {(() => {
-                const v = -missTotal; // invert storage convention: + surplus / − deficit
-                if (v === 0) return "";
-                return (v > 0 ? "+" : "−") + numAlways(Math.abs(v));
-              })()}
-            </td>
-          </tr>
-          <tr>
-            <td className="border border-black px-1.5 py-0.5 font-semibold">NET Cashless</td>
-            <td className="border border-black px-1.5 py-0.5 text-right font-bold">
-              {(() => {
-                const inS = Object.values(effCashlessIO.inByProv).reduce((s, x) => s + Number(x || 0), 0);
-                const outS = Object.values(effCashlessIO.outByProv).reduce((s, x) => s + Number(x || 0), 0);
-                const n = inS - outS;
-                if (n === 0) return "";
-                return (n > 0 ? "+" : "−") + numAlways(Math.abs(n));
-              })()}
-            </td>
-            <td className="border border-black px-1.5 py-0.5"></td>
-            <td className="border border-black px-1.5 py-0.5 text-right"></td>
-          </tr>
+          {(() => {
+            const PROV_ROWS: Array<{ key: string; label: string }> = [
+              { key: "MPESA",   label: "M Pesa" },
+              { key: "TIGO",    label: "T Pesa" },
+              { key: "HALOTEL", label: "H Pesa" },
+              { key: "AIRTEL",  label: "Airtel Money" },
+            ];
+            type LeftRow = { label: string; val: string; bold?: boolean };
+            const leftRows: LeftRow[] = [];
+            PROV_ROWS.forEach(p => {
+              const v = Number(effCashlessIO.inByProv[p.key] || 0);
+              if (v > 0) leftRows.push({ label: `+ Cashless IN · ${p.label}`, val: numAlways(v) });
+            });
+            PROV_ROWS.forEach(p => {
+              const v = Number(effCashlessIO.outByProv[p.key] || 0);
+              if (v > 0) leftRows.push({ label: `− Cashless OUT · ${p.label}`, val: `-${numAlways(v)}` });
+            });
+            const inS = Object.values(effCashlessIO.inByProv).reduce((s, x) => s + Number(x || 0), 0);
+            const outS = Object.values(effCashlessIO.outByProv).reduce((s, x) => s + Number(x || 0), 0);
+            const net = inS - outS;
+            leftRows.push({
+              label: "NET Cashless",
+              val: net === 0 ? "" : (net > 0 ? "+" : "−") + numAlways(Math.abs(net)),
+              bold: true,
+            });
+            // If there were no cashless movements at all, keep the single NET row
+            // as a placeholder so the report still shows the line.
+            const missVal = (() => {
+              const v = -missTotal; // + surplus / − deficit
+              if (v === 0) return "";
+              return (v > 0 ? "+" : "−") + numAlways(Math.abs(v));
+            })();
+            type RightRow = { label: string; val: string; boldLabel?: boolean; boldVal?: boolean };
+            const rightRows: RightRow[] = [
+              { label: "Cash Desk Chips CREDIT", val: "" },
+              { label: "Miss Chips", val: missVal, boldLabel: true, boldVal: true },
+            ];
+            const rowCount = Math.max(leftRows.length, rightRows.length);
+            const trs = [];
+            for (let i = 0; i < rowCount; i++) {
+              const L = leftRows[i];
+              const R = rightRows[i];
+              trs.push(
+                <tr key={`cl-${i}`}>
+                  <td className={`border border-black px-1.5 py-0.5${L?.bold ? " font-semibold" : ""}`}>
+                    {L?.label ?? ""}
+                  </td>
+                  <td className={`border border-black px-1.5 py-0.5 text-right${L?.bold ? " font-bold" : ""}`}>
+                    {L?.val ?? ""}
+                  </td>
+                  <td className={`border border-black px-1.5 py-0.5${R?.boldLabel ? " font-semibold" : ""}`}>
+                    {R?.label ?? ""}
+                  </td>
+                  <td className={`border border-black px-1.5 py-0.5 text-right${R?.boldVal ? " font-bold" : ""}`}>
+                    {R?.val ?? ""}
+                  </td>
+                </tr>
+              );
+            }
+            return trs;
+          })()}
           <tr>
             <td className="border border-black bg-gray-300 px-1.5 py-0.5 font-bold" colSpan={3}>Shift Balance</td>
             <td className="border border-black bg-gray-300 px-1.5 py-0.5 text-right font-bold">
