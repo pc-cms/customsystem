@@ -21,82 +21,89 @@ export const PRINT_REPORT_ACCENTS_CSS = `
   #shift-print-area table, #chip-print-area table, #slots-print-area table {
     box-shadow: inset 0 0 0 1.5px #000;
   }
-  /* --- Section title cells (dark strip, white text) --- */
+  /* --- Section title cells: solid BLACK strip with WHITE text --- */
   #shift-print-area th.bg-gray-200,
   #shift-print-area td.bg-gray-200,
   #slots-print-area th.bg-gray-200,
   #slots-print-area td.bg-gray-200,
   #chip-print-area .bg-gray-100 {
-    background-color: #1e293b !important;
+    background-color: #000 !important;
     color: #fff !important;
     font-weight: 700 !important;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
   }
-  /* Big casino title cell (font-bold text-lg) — heavy dark banner */
+  /* Big casino title banner */
   #shift-print-area td.text-lg,
   #slots-print-area td.text-lg {
-    background-color: #0f172a !important;
+    background-color: #000 !important;
     color: #fff !important;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
-  /* --- Sub-header rows (column labels) --- */
+  /* --- Sub-header rows (column labels): medium grey ~30% --- */
   #shift-print-area tr.bg-gray-100 > th,
   #shift-print-area tr.bg-gray-100 > td,
   #slots-print-area tr.bg-gray-100 > th,
   #slots-print-area tr.bg-gray-100 > td,
   #chip-print-area thead tr.bg-gray-50 > th {
-    background-color: #cbd5e1 !important;
-    color: #0f172a !important;
+    background-color: #bfbfbf !important;
+    color: #000 !important;
     font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
   }
-  /* --- Totals rows in body (tr.bg-gray-200 / tr.bg-gray-100 with font-bold) --- */
+  /* --- Totals rows in body: mid grey with double top border --- */
   #shift-print-area tbody tr.bg-gray-200 > td,
   #slots-print-area tbody tr.bg-gray-200 > td,
   #shift-print-area tbody tr.bg-gray-100.font-bold > td,
   #slots-print-area tbody tr.bg-gray-100.font-bold > td,
   #chip-print-area tbody tr.bg-gray-100.font-bold > td {
-    background-color: #94a3b8 !important;
-    color: #0f172a !important;
+    background-color: #d9d9d9 !important;
+    color: #000 !important;
     font-weight: 800 !important;
-    border-top: 2.5px double #000 !important;
+    border-top: 3px double #000 !important;
   }
-  /* --- Yellow highlight: final Total Closer / Shift Balance cells --- */
+  /* --- Grand-total / Shift Balance cells: heavy black frame, no fill --- */
   #shift-print-area td.bg-gray-300,
   #slots-print-area td.bg-gray-300,
   #shift-print-area tr.bg-gray-200.font-bold > td:last-child,
   #slots-print-area tr.bg-gray-200.font-bold > td:last-child {
-    background-color: #fde68a !important;
-    color: #0f172a !important;
-    font-weight: 800 !important;
+    background-color: #fff !important;
+    color: #000 !important;
+    font-weight: 900 !important;
+    font-size: 1.05em !important;
     border-top: 3px double #000 !important;
-    border-bottom: 2px solid #000 !important;
+    border-bottom: 3px double #000 !important;
+    border-left: 2px solid #000 !important;
+    border-right: 2px solid #000 !important;
+    outline: 1px solid #000;
   }
-  /* --- Zebra striping on plain body rows --- */
+  /* --- Zebra striping: very light grey ~7% --- */
   #shift-print-area tbody tr:not(.bg-gray-100):not(.bg-gray-200):not(.bg-gray-300):nth-child(even) > td:not(.bg-gray-100):not(.bg-gray-200):not(.bg-gray-300),
   #slots-print-area tbody tr:not(.bg-gray-100):not(.bg-gray-200):not(.bg-gray-300):nth-child(even) > td:not(.bg-gray-100):not(.bg-gray-200):not(.bg-gray-300),
   #chip-print-area tbody tr:not(.bg-gray-50):not(.bg-gray-100):nth-child(even) > td {
-    background-color: #f1f5f9 !important;
+    background-color: #efefef !important;
   }
-  /* --- Emphasise result / balance numbers already marked font-bold --- */
   #shift-print-area td.font-bold,
   #slots-print-area td.font-bold {
     font-weight: 800 !important;
   }
   /* --- Chip movement: section titles (the <p> strips) --- */
   #chip-print-area p.border-b {
-    background-color: #0f172a !important;
+    background-color: #000 !important;
     color: #fff !important;
     padding: 3px 6px !important;
     border-bottom: 0 !important;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     font-weight: 700 !important;
   }
-  /* --- Chip denom-table title bar (was bg-gray-100) --- */
   #chip-print-area p.bg-gray-100 {
-    background-color: #1e293b !important;
+    background-color: #000 !important;
     color: #fff !important;
     font-weight: 700 !important;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
   }
 `;
