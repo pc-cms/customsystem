@@ -214,6 +214,17 @@ const SlotsConsolidatedReport = ({
           <tr>
             <td className="border border-black px-1.5 py-0.5">Cash Desk Cards CREDIT</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{cashDeskCardsCredit ? formatNumberSpaces(cashDeskCardsCredit) : ""}</td>
+            <td className="border border-black bg-gray-100 px-1.5 py-0.5 font-semibold">Total Money (Cashless + Cash)</td>
+            <td className="border border-black bg-gray-100 px-1.5 py-0.5 text-right font-semibold">
+              {(() => {
+                const net = depositTotal - withdrawTotal;
+                const total = net + Number(closerCashTotalTzs || 0);
+                return total >= 0 ? formatNumberSpaces(total) : `-${formatNumberSpaces(Math.abs(total))}`;
+              })()}
+            </td>
+          </tr>
+          <tr>
+            <td className="border border-black px-1.5 py-0.5" colSpan={2}></td>
             <td className="border border-black bg-gray-300 px-1.5 py-0.5 font-bold">Shift Balance</td>
             <td className="border border-black bg-gray-300 px-1.5 py-0.5 text-right font-bold">{formatNumberSpaces(aceBalance)}</td>
           </tr>
