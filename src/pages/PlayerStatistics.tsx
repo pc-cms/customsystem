@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { usePlayers, useGamingTables } from "@/hooks/use-casino-data";
 import { usePlayersDropCacheRange } from "@/hooks/use-drop-split";
+import { useTotalDrop } from "@/lib/drop-source";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { canSeePlayerFinancials, canSeeAllTimeData } from "@/lib/role-access";
@@ -161,6 +162,12 @@ const PlayerStatistics = () => {
   // This is the SAME source the Dashboard/Tables read for per-table Drop, so
   // Σ players-cache ≡ Σ tables-cache and the two screens cannot drift.
   const { data: playersDropSplit } = usePlayersDropCacheRange(fromDate, toDate);
+  // Authoritative casino-wide Total Drop for the selected window — read straight
+  // from `player_day_drop_cache` (same source Dashboard uses). Displayed in the
+  // grand-total footer so it never drifts from Dashboard, regardless of the
+  // per-visit NEP allocation (`visitDropR = playerDropR * inDrop/totalIn`)
+  // which zeroes out drop for players with no cash-in transactions.
+  const { data: authoritativeTotalDrop = 0 } = useTotalDrop({ casinoId, fromDate, toDate });
 
 
   // Daily avg bet (manual entry). Single-day only — for multi-day periods we don't show breakdown.
@@ -535,16 +542,28 @@ const PlayerStatistics = () => {
       : tab === "left"
         ? activeRows.filter((r: any) => !r.isPresent).length
         : activeRows.length;
+    // People counters use RAW `visits` — same source (`casino_visits`) as the
+    // Dashboard Headcount KPI, so the two screens agree even for visits whose
+    // player row is missing from `usePlayers()` (archived, blacklist, etc.).
+    // For multi-day windows we count unique players (visits are grouped in
+    // `displayRows`); for single-day we count visits directly.
+    const rawTotal = isMultiDay
+      ? new Set((visits as any[]).map((v: any) => v.player_id)).size
+      : (visits as any[]).length;
+    const rawPresent = isMultiDay
+      ? new Set((visits as any[]).filter((v: any) => !v.checked_out_at).map((v: any) => v.player_id)).size
+      : (visits as any[]).filter((v: any) => !v.checked_out_at).length;
+    const rawLeft = Math.max(rawTotal - rawPresent, 0);
     return {
-      day: displayRows.length,
-      present: displayRows.filter((r: any) => r.isPresent).length,
-      left: displayRows.filter((r: any) => !r.isPresent).length,
+      day: rawTotal,
+      present: rawPresent,
+      left: rawLeft,
       active: tabActive,
       activeDay: activeRows.length,
       activePresent: activeRows.filter((r: any) => r.isPresent).length,
       activeLeft: activeRows.filter((r: any) => !r.isPresent).length,
     };
-  }, [displayRows, tab]);
+  }, [displayRows, tab, visits, isMultiDay]);
 
   // Totals across the currently filtered list (period + tab + filters + search).
   const totals = useMemo(() => {
@@ -1105,7 +1124,22 @@ const PlayerStatistics = () => {
                         return (
                           <>
                             <td style={stickyStyle} className={`px-2 py-2 ${stickyCls}`}></td>
-                            <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap text-amber-950 dark:text-amber-50 ${stickyCls}`}><Money value={totals.dropR} /></td>
+                            {(() => {
+                              // Grand-total Drop uses the AUTHORITATIVE cache
+                              // sum (`player_day_drop_cache`), matching Dashboard.
+                              // Falls back to the per-visit allocated sum only
+                              // when the user has narrowed the view via filters,
+                              // search, tab or the ACTIVE toggle — because then
+                              // the total should reflect what's actually visible.
+                              const filtersActive =
+                                tab !== "day" ||
+                                activeOnly ||
+                                !!search ||
+                                categoryFilter.size < 5 ||
+                                zoneFilter.size < 4;
+                              const drop = filtersActive ? totals.dropR : authoritativeTotalDrop;
+                              return <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap text-amber-950 dark:text-amber-50 ${stickyCls}`}><Money value={drop} /></td>;
+                            })()}
                             <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap text-amber-950 dark:text-amber-50 ${stickyCls}`}><Money value={totals.inDrop} /></td>
                             <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap text-amber-950 dark:text-amber-50 ${stickyCls}`}><Money value={totals.out} /></td>
                             <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap text-success ${stickyCls}`}><Money value={totals.chipIn} /></td>
