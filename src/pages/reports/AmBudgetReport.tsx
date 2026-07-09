@@ -110,7 +110,7 @@ export default function AmBudgetReport() {
               <SelectContent>
                 <SelectItem value="all">All AMs</SelectItem>
                 {amUsers.map((u: any) => (
-                  <SelectItem key={u.user_id} value={u.user_id}>{u.profiles?.full_name ?? u.profiles?.email}</SelectItem>
+                  <SelectItem key={u.user_id} value={u.user_id}>{u.profiles?.full_name ?? u.user_id.slice(0, 8)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
