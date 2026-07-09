@@ -22,6 +22,7 @@ import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { businessDayHourUTC } from "@/lib/business-day";
+import { useClosedBusinessDates } from "@/hooks/use-business-day-closure";
 import { fetchPaged } from "@/lib/fetch-paged";
 import { computeShiftCashFlow } from "@/lib/shift-cash";
 import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
@@ -918,8 +919,9 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
 const DailyReport = ({ from, to }: { from: string; to: string }) => {
   const fmt = useFormatMoney();
   const { casinoId } = useAuth();
+  const { data: closedSet } = useClosedBusinessDates(from, to);
 
-  const { data: rows = [], isLoading } = useQuery({
+  const { data: rawRows = [], isLoading } = useQuery({
     queryKey: ["daily-diff", casinoId, from, to],
     queryFn: async () => {
       if (!casinoId || !from || !to || from > to) return [] as any[];
@@ -947,7 +949,16 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
     staleTime: 30_000,
   });
 
+  // Rule: show only CLOSED business days. Open (not-yet-closed) day is hidden
+  // from the list, totals and KPIs.
+  const rows = useMemo(
+    () => (closedSet ? rawRows.filter((r: any) => closedSet.has(r.date)) : []),
+    [rawRows, closedSet],
+  );
+
   const { sorted, sort, toggle } = useSorted(rows, { key: "date", dir: "desc" });
+
+
 
   const totals = useMemo(() => {
     const t = rows.reduce(
@@ -1000,7 +1011,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
           {isLoading ? (
             <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">Loading…</DTCell></DTRow>
           ) : sorted.length === 0 ? (
-            <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">No data in range</DTCell></DTRow>
+            <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">No closed business days in range</DTCell></DTRow>
           ) : sorted.map((r) => (
             <DTRow key={r.date}>
               <DTCell type="date">{fmtDate(r.date)}</DTCell>

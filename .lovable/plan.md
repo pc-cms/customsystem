@@ -1,43 +1,30 @@
-## Что меняем
+## Правило: в Reports показываем только закрытые бизнес-дни
 
-В печатном отчёте **Live Game Cash Desk Report** (`src/components/cage/ShiftClosingReport.tsx`) в блоке нижней сводки «Cash Desk / Cash Flow» сейчас три строки-суммы:
+### Что меняем
+На странице **Reports** (все вкладки, где данные группируются по бизнес-дню) отфильтровываем строки так, чтобы отображались **только те business_date, по которым есть запись в `business_day_closures`** для текущего казино. Открытый (ещё не закрытый) бизнес-день скрывается полностью — ни в списке, ни в тоталах, ни в KPI (Days / Drop / Table Result / Hold %).
 
-- `+ Cashless IN` — общая сумма всех провайдеров
-- `− Cashless OUT` — общая сумма всех провайдеров
-- `NET Cashless` — разница
+### Почему это ускорит загрузку
+Помимо чистоты данных, сейчас `compute_daily_diff` считает и для сегодняшнего открытого дня — самый тяжёлый расчёт (peak-NEP по живым player_day_drop_cache). Отсекая незакрытые даты на клиенте (а вкладка Daily — ещё и на уровне запроса, сдвигая `to` до последней закрытой даты), убираем лишние сутки из выборки и снимаем «висящий» Loading.
 
-Пользователь хочет вместо этого разбивку по провайдерам (MPesa / TPesa / HPesa / Airtel) с их IN, OUT и NET.
+### Скоуп вкладок
+- **Daily Balance** — фильтр по `business_day_closures` (главный кейс из скриншота).
+- **Shifts / Live Game / Slots / Tables / Players / Groups / Expenses / Cashless / Miss Chips** — тот же фильтр применяем к строкам, у которых есть `business_date`. Where нет business_date (например, чистый диапазон created_at) — оставляем как есть.
+- **Total** — считается из уже отфильтрованных источников, автоматически подхватит правило.
 
-## План
+### Реализация (технически)
+1. Общий хук `useClosedBusinessDates(from, to)` уже существует в `src/hooks/use-business-day-closure.ts` — возвращает `Set<string>` YYYY-MM-DD. Переиспользуем.
+2. В `Reports.tsx` в компоненте `DailyReport`:
+   - подтягиваем `closed = useClosedBusinessDates(from, to)`;
+   - в `useQuery` после получения `rows` из RPC делаем `rows.filter(r => closed.has(r.date))`;
+   - тоталы и KPI считаются уже по отфильтрованному массиву (они и так это делают).
+3. Аналогичный фильтр по `business_date` добавляем в остальные табы Reports, где строки имеют business_date (Shifts, Live Game, Slots, Expenses, Cashless, Miss Chips, Players, Groups агрегируется из daily → отсечётся автоматически).
+4. Если в диапазоне вообще нет закрытых дней — таблица показывает пустое состояние с подсказкой «No closed business days in range» вместо «No data».
+5. Тоталы `Days` = кол-во закрытых дней в диапазоне (совпадает с числом отображаемых строк).
 
-### 1. Заменить строки Cashless в левой колонке нижней таблицы (`ShiftClosingReport.tsx`, ~стр. 696–737)
+### Что НЕ трогаем
+- Cage / Dashboard / TableTracker / Live Game — там нужны живые данные текущего дня.
+- Логику `business_day_closures` и RPC не меняем — только фронтовая фильтрация.
 
-Раскрыть три строки-суммы в **набор строк по провайдерам**, сохраняя структуру таблицы (два столбца слева: подпись + значение; правые столбцы Miss Chips / Cash Desk Chips / Tips не трогаем — они рендерятся в тех же tr справа).
-
-Формат (в порядке `PROV` из блока «Cash Less Shift Transactions»):
-
-```
-+ Cashless IN · M Pesa       5 840 000
-+ Cashless IN · T Pesa       1 250 000
-+ Cashless IN · H Pesa               —
-+ Cashless IN · Airtel Money   820 000
-− Cashless OUT · M Pesa              —
-− Cashless OUT · T Pesa              —
-− Cashless OUT · H Pesa              —
-− Cashless OUT · Airtel Money        —
-NET Cashless                +7 910 000   (жирным, итог)
-```
-
-Пустые (нулевые) строки провайдеров можно скрывать, чтобы не раздувать чек: показываем только те, где IN > 0 (для блока IN) и где OUT > 0 (для блока OUT). Итоговый `NET Cashless` остаётся всегда.
-
-### 2. Сохранить парность с правой колонкой
-
-Правая половина нижней таблицы (Tips / Miss Chips / Cash Desk Chips FILL/CREDIT / Shift Balance) не должна разъехаться: балансируем количество `<tr>` слева и справа. Если строк слева стало больше — правые ячейки в лишних `<tr>` рендерим пустыми (`<td></td><td></td>`).
-
-### 3. Не трогать
-- Отдельную таблицу «Cash Less Shift Transactions» выше (там уже есть разбивка + End Day).
-- Формулу CDR/Balance — суммы не меняются, только визуализация.
-- `ChipMovementReport`, экраны Slots, POS, RPC.
-
-### 4. Проверка
-- Открыть `/reports?tab=live` → Reprint для смены `bc90bf53-96bb-4e85-8873-928007267341` (Arusha, вчера) → печать → убедиться, что в нижней сводке видно строки по провайдерам, `NET` совпадает с суммой из блока «Cash Less Shift Transactions», а Shift Balance не изменился.
+### Файлы
+- `src/pages/Reports.tsx` — добавить фильтрацию во все вкладки, где применимо.
+- (при необходимости) вспомогательный util `isClosedDate(date, closedSet)` внутри Reports.tsx.
