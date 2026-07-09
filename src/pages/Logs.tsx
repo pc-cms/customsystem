@@ -107,72 +107,70 @@ interface LogRow {
  * many entries are in the result set. Replaces a full-list render that
  * previously janked badly past ~500 logs.
  */
+const COLS = "160px 110px 200px 1fr 160px";
+
 const VirtualLogTable = ({ rows, loading }: { rows: LogRow[]; loading: boolean }) => {
   const parentRef = useRef<HTMLDivElement>(null);
 
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 30,
-    overscan: 8,
+    estimateSize: () => 40,
+    overscan: 10,
+    measureElement: (el) => el.getBoundingClientRect().height,
   });
 
   const items = virtualizer.getVirtualItems();
 
   return (
     <div className="cms-panel overflow-hidden">
+      <div
+        className="grid text-[10px] font-medium text-muted-foreground uppercase border-b border-border bg-card px-3 py-2"
+        style={{ gridTemplateColumns: COLS, gap: "12px" }}
+      >
+        <div>Time</div><div>Category</div><div>Action</div><div>Details</div><div>Operator</div>
+      </div>
       <div ref={parentRef} className="max-h-[600px] overflow-y-auto">
-        <table className="w-full">
-          <thead className="sticky top-0 bg-card z-10">
-            <tr className="border-b border-border">
-              {["Time", "Category", "Action", "Details", "Operator"].map(h => (
-                <th key={h} className="text-left text-xs font-medium text-muted-foreground uppercase px-3 py-2">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          {loading ? (
-            <tbody>
-              <tr><td colSpan={5} className="text-center text-muted-foreground text-sm py-8">Loading...</td></tr>
-            </tbody>
-          ) : rows.length === 0 ? (
-            <tbody>
-              <tr><td colSpan={5} className="text-center text-muted-foreground text-sm py-8">No logs found</td></tr>
-            </tbody>
-          ) : (
-            <tbody style={{ display: "block", height: virtualizer.getTotalSize(), position: "relative" }}>
-              {items.map((vi) => {
-                const log = rows[vi.index];
-                return (
-                  <tr
-                    key={log.id}
-                    className="border-b border-border last:border-0 hover:bg-muted/30"
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      transform: `translateY(${vi.start}px)`,
-                      display: "table",
-                      tableLayout: "fixed",
-                    }}
-                  >
-                    <td className="px-3 py-1.5 font-mono text-[10px] text-muted-foreground whitespace-nowrap">
-                      {new Date(log.created_at).toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                    </td>
-                    <td className="px-3 py-1.5">
-                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded uppercase ${CATEGORY_STYLES[log.category] || ""}`}>{log.category}</span>
-                    </td>
-                    <td className="px-3 py-1.5 text-xs font-medium text-card-foreground">{log._label}</td>
-                    <td className="px-3 py-1.5 text-[11px] text-foreground/80 max-w-md truncate" title={log._pretty}>
-                      {log._pretty || <span className="text-muted-foreground">—</span>}
-                    </td>
-                    <td className="px-3 py-1.5 text-[10px] text-muted-foreground" title={log.operator_id}>{log._operator}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          )}
-        </table>
+        {loading ? (
+          <div className="text-center text-muted-foreground text-sm py-8">Loading...</div>
+        ) : rows.length === 0 ? (
+          <div className="text-center text-muted-foreground text-sm py-8">No logs found</div>
+        ) : (
+          <div style={{ height: virtualizer.getTotalSize(), position: "relative", width: "100%" }}>
+            {items.map((vi) => {
+              const log = rows[vi.index];
+              return (
+                <div
+                  key={log.id}
+                  data-index={vi.index}
+                  ref={virtualizer.measureElement}
+                  className="grid items-center border-b border-border hover:bg-muted/30 px-3 py-2"
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${vi.start}px)`,
+                    gridTemplateColumns: COLS,
+                    gap: "12px",
+                  }}
+                >
+                  <div className="font-mono text-[11px] text-muted-foreground whitespace-nowrap">
+                    {new Date(log.created_at).toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                  </div>
+                  <div>
+                    <span className={`inline-block text-[9px] font-mono px-1.5 py-0.5 rounded uppercase whitespace-nowrap ${CATEGORY_STYLES[log.category] || ""}`}>{log.category}</span>
+                  </div>
+                  <div className="text-xs font-medium text-card-foreground truncate" title={log._label}>{log._label}</div>
+                  <div className="text-[11px] text-foreground/80 truncate" title={log._pretty}>
+                    {log._pretty || <span className="text-muted-foreground">—</span>}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground truncate" title={log.operator_id}>{log._operator}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
