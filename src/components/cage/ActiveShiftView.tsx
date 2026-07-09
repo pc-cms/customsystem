@@ -459,7 +459,15 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
 }) => {
   const [playerId, setPlayerId] = useState("");
   const [tableId, setTableId] = useState("");
-  const [showTable, setShowTable] = useState(true);
+  const [showTable, setShowTable] = useState<boolean>(() => {
+    try {
+      const v = localStorage.getItem("cms:cage:in:showTable");
+      return v === null ? true : v === "1";
+    } catch { return true; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("cms:cage:in:showTable", showTable ? "1" : "0"); } catch { /* ignore */ }
+  }, [showTable]);
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("TZS");
   const [chips, setChips] = useState<Record<number, number>>({});
