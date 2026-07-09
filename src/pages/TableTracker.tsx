@@ -274,7 +274,6 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                   {SLOTS.map((slot) => {
                     const isActive = isToday && slot === currentSlot;
                     const tot = getSlotTotal(slot);
-                    const hcTot = getSlotHeadCountTotal(slot);
                     const colorClass = tot > 0 ? "cms-amount-positive" : tot < 0 ? "cms-amount-negative" : "text-card-foreground";
                     return (
                       <td
@@ -283,12 +282,6 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                       >
                         <div className={`font-mono tabular-nums text-sm font-bold ${colorClass}`}>
                           {tot ? formatCurrency(tot) : "·"}
-                        </div>
-                        <div
-                          className="mt-0.5 text-[10px] font-mono tabular-nums text-muted-foreground leading-none"
-                          title="Head count total"
-                        >
-                          HC {hcTot || 0}
                         </div>
                       </td>
                     );
