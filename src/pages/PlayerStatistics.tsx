@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { usePlayers, useGamingTables } from "@/hooks/use-casino-data";
 import { usePlayersDropCacheRange } from "@/hooks/use-drop-split";
+import { useTotalDrop } from "@/lib/drop-source";
 import { getBusinessDate, businessDayHourUTC } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { canSeePlayerFinancials, canSeeAllTimeData } from "@/lib/role-access";
