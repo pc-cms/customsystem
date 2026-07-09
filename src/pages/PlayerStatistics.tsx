@@ -162,6 +162,12 @@ const PlayerStatistics = () => {
   // This is the SAME source the Dashboard/Tables read for per-table Drop, so
   // Σ players-cache ≡ Σ tables-cache and the two screens cannot drift.
   const { data: playersDropSplit } = usePlayersDropCacheRange(fromDate, toDate);
+  // Authoritative casino-wide Total Drop for the selected window — read straight
+  // from `player_day_drop_cache` (same source Dashboard uses). Displayed in the
+  // grand-total footer so it never drifts from Dashboard, regardless of the
+  // per-visit NEP allocation (`visitDropR = playerDropR * inDrop/totalIn`)
+  // which zeroes out drop for players with no cash-in transactions.
+  const { data: authoritativeTotalDrop = 0 } = useTotalDrop({ casinoId, fromDate, toDate });
 
 
   // Daily avg bet (manual entry). Single-day only — for multi-day periods we don't show breakdown.
