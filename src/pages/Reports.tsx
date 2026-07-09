@@ -852,12 +852,13 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
   });
 
   const groupData = useMemo(() => {
-    const filteredTx = transactions.filter(t => {
-      const d = t.created_at.split("T")[0];
+    // Business-day scoped (matches Drop from player_day_drop_cache).
+    const filteredTx = transactions.filter((t: any) => {
+      const d = t.business_date || (t.created_at ? t.created_at.split("T")[0] : "");
       return d >= from && d <= to;
     });
     const filteredExp = expenses.filter((e: any) => {
-      const d = e.created_at.split("T")[0];
+      const d = e.business_date || (e.created_at ? e.created_at.split("T")[0] : "");
       return d >= from && d <= to && e.approved;
     });
     return groups.map((g: any) => {
