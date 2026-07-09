@@ -1124,7 +1124,22 @@ const PlayerStatistics = () => {
                         return (
                           <>
                             <td style={stickyStyle} className={`px-2 py-2 ${stickyCls}`}></td>
-                            <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap text-amber-950 dark:text-amber-50 ${stickyCls}`}><Money value={totals.dropR} /></td>
+                            {(() => {
+                              // Grand-total Drop uses the AUTHORITATIVE cache
+                              // sum (`player_day_drop_cache`), matching Dashboard.
+                              // Falls back to the per-visit allocated sum only
+                              // when the user has narrowed the view via filters,
+                              // search, tab or the ACTIVE toggle — because then
+                              // the total should reflect what's actually visible.
+                              const filtersActive =
+                                tab !== "day" ||
+                                activeOnly ||
+                                !!search ||
+                                categoryFilter.size < 5 ||
+                                zoneFilter.size < 4;
+                              const drop = filtersActive ? totals.dropR : authoritativeTotalDrop;
+                              return <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap text-amber-950 dark:text-amber-50 ${stickyCls}`}><Money value={drop} /></td>;
+                            })()}
                             <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap text-amber-950 dark:text-amber-50 ${stickyCls}`}><Money value={totals.inDrop} /></td>
                             <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap text-amber-950 dark:text-amber-50 ${stickyCls}`}><Money value={totals.out} /></td>
                             <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap text-success ${stickyCls}`}><Money value={totals.chipIn} /></td>
