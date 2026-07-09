@@ -53,7 +53,7 @@ const AmPerformancePage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("user_id, profiles(full_name, email)")
+        .select("user_id, profiles(full_name)")
         .eq("role", "account_manager" as any);
       if (error) throw error;
       return (data as any[]) ?? [];
