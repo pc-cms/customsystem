@@ -59,7 +59,7 @@ export default function AmBudgetReport() {
 
   const userMap = useMemo(() => {
     const m = new Map<string, string>();
-    for (const u of amUsers) m.set(u.user_id, u.profiles?.full_name ?? u.profiles?.email ?? u.user_id.slice(0, 8));
+    for (const u of amUsers) m.set(u.user_id, u.profiles?.full_name ?? u.user_id.slice(0, 8));
     return m;
   }, [amUsers]);
 
