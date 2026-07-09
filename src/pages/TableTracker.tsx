@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { getBusinessDate, nowEAT } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
-import { useGamingTables, useTableTracker, useSetTableTrackerValue, useTableHeadCount } from "@/hooks/use-casino-data";
+import { useGamingTables, useTableTracker, useSetTableTrackerValue } from "@/hooks/use-casino-data";
 import { Input } from "@/components/ui/input";
 import { DateNavigator } from "@/components/ui/date-navigator";
 import { formatCurrency, formatInputWithSpaces } from "@/lib/currency";
@@ -56,7 +56,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const { isManager } = useAuth();
   const { data: tables = [] } = useGamingTables();
   const { data: trackerData = [] } = useTableTracker(date);
-  const { data: headCountData = [] } = useTableHeadCount(date);
+  
   const setValue = useSetTableTrackerValue();
 
   // Include closed tables that still have tracker data for the selected date,
