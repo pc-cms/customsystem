@@ -14,6 +14,7 @@
  * after ShiftClosingReport.
  */
 import { useEffect, useMemo, useState } from "react";
+import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
 import { supabase } from "@/integrations/supabase/client";
 import { CHIP_DENOMS, formatNumberSpaces } from "@/lib/currency";
 import { useChipColors, resolveChipColor, useVisibleChipDenoms } from "@/hooks/use-chip-colors";
@@ -98,6 +99,7 @@ const ChipMovementReport = ({
         boxSizing: "border-box",
       }}
     >
+      <style>{PRINT_REPORT_ACCENTS_CSS}</style>
       {/* Header */}
       <table className="w-full border-collapse mb-1.5" style={{ tableLayout: "fixed" }}>
         <colgroup>
