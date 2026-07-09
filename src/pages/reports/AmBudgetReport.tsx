@@ -33,7 +33,7 @@ export default function AmBudgetReport() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("user_id, profiles!inner(id, full_name, email)")
+        .select("user_id, profiles!inner(id, full_name)")
         .eq("role", "account_manager");
       if (error) throw error;
       return (data as any[]) ?? [];
@@ -59,7 +59,7 @@ export default function AmBudgetReport() {
 
   const userMap = useMemo(() => {
     const m = new Map<string, string>();
-    for (const u of amUsers) m.set(u.user_id, u.profiles?.full_name ?? u.profiles?.email ?? u.user_id.slice(0, 8));
+    for (const u of amUsers) m.set(u.user_id, u.profiles?.full_name ?? u.user_id.slice(0, 8));
     return m;
   }, [amUsers]);
 
@@ -110,7 +110,7 @@ export default function AmBudgetReport() {
               <SelectContent>
                 <SelectItem value="all">All AMs</SelectItem>
                 {amUsers.map((u: any) => (
-                  <SelectItem key={u.user_id} value={u.user_id}>{u.profiles?.full_name ?? u.profiles?.email}</SelectItem>
+                  <SelectItem key={u.user_id} value={u.user_id}>{u.profiles?.full_name ?? u.user_id.slice(0, 8)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

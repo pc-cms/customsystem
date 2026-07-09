@@ -53,7 +53,7 @@ const AmPerformancePage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("user_id, profiles(full_name, email)")
+        .select("user_id, profiles(full_name)")
         .eq("role", "account_manager" as any);
       if (error) throw error;
       return (data as any[]) ?? [];
@@ -125,7 +125,7 @@ const AmPerformancePage = () => {
                 <SelectContent>
                   {amOptions.map((o: any) => (
                     <SelectItem key={o.user_id} value={o.user_id}>
-                      {o.profiles?.full_name ?? o.profiles?.email ?? o.user_id.slice(0, 8)}
+                      {o.profiles?.full_name ?? o.user_id.slice(0, 8)}
                     </SelectItem>
                   ))}
                 </SelectContent>
