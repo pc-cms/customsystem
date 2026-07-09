@@ -919,8 +919,9 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
 const DailyReport = ({ from, to }: { from: string; to: string }) => {
   const fmt = useFormatMoney();
   const { casinoId } = useAuth();
+  const { data: closedSet } = useClosedBusinessDates(from, to);
 
-  const { data: rows = [], isLoading } = useQuery({
+  const { data: rawRows = [], isLoading } = useQuery({
     queryKey: ["daily-diff", casinoId, from, to],
     queryFn: async () => {
       if (!casinoId || !from || !to || from > to) return [] as any[];
@@ -948,7 +949,14 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
     staleTime: 30_000,
   });
 
-  const { sorted, sort, toggle } = useSorted(rows, { key: "date", dir: "desc" });
+  // Rule: show only CLOSED business days. Open (not-yet-closed) day is hidden
+  // from the list, totals and KPIs.
+  const rows = useMemo(
+    () => (closedSet ? rawRows.filter((r: any) => closedSet.has(r.date)) : []),
+    [rawRows, closedSet],
+  );
+
+
 
   const totals = useMemo(() => {
     const t = rows.reduce(
