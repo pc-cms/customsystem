@@ -542,16 +542,28 @@ const PlayerStatistics = () => {
       : tab === "left"
         ? activeRows.filter((r: any) => !r.isPresent).length
         : activeRows.length;
+    // People counters use RAW `visits` — same source (`casino_visits`) as the
+    // Dashboard Headcount KPI, so the two screens agree even for visits whose
+    // player row is missing from `usePlayers()` (archived, blacklist, etc.).
+    // For multi-day windows we count unique players (visits are grouped in
+    // `displayRows`); for single-day we count visits directly.
+    const rawTotal = isMultiDay
+      ? new Set((visits as any[]).map((v: any) => v.player_id)).size
+      : (visits as any[]).length;
+    const rawPresent = isMultiDay
+      ? new Set((visits as any[]).filter((v: any) => !v.checked_out_at).map((v: any) => v.player_id)).size
+      : (visits as any[]).filter((v: any) => !v.checked_out_at).length;
+    const rawLeft = Math.max(rawTotal - rawPresent, 0);
     return {
-      day: displayRows.length,
-      present: displayRows.filter((r: any) => r.isPresent).length,
-      left: displayRows.filter((r: any) => !r.isPresent).length,
+      day: rawTotal,
+      present: rawPresent,
+      left: rawLeft,
       active: tabActive,
       activeDay: activeRows.length,
       activePresent: activeRows.filter((r: any) => r.isPresent).length,
       activeLeft: activeRows.filter((r: any) => !r.isPresent).length,
     };
-  }, [displayRows, tab]);
+  }, [displayRows, tab, visits, isMultiDay]);
 
   // Totals across the currently filtered list (period + tab + filters + search).
   const totals = useMemo(() => {
