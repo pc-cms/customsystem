@@ -1,60 +1,43 @@
-## Что нашёл
+## Что меняем
 
-Правило проекта: `Total Drop = SUM(peak) из player_day_drop_cache по business_date`. Прошёлся по всем отчётам в `src/pages/Reports.tsx` и связанным RPC. Итог:
+В печатном отчёте **Live Game Cash Desk Report** (`src/components/cage/ShiftClosingReport.tsx`) в блоке нижней сводки «Cash Desk / Cash Flow» сейчас три строки-суммы:
 
-| Отчёт | Источник Drop | Соответствие правилу |
-|---|---|---|
-| Reports → **Tables (Live)** | `player_day_drop_cache` по `business_date` | OK |
-| Reports → **Player** | `player_day_drop_cache` по `business_date` | OK по Drop |
-| Reports → **Groups** | `player_day_drop_cache` по `business_date` | OK по Drop |
-| Reports → **Daily Diff** | RPC `compute_daily_diff` → `compute_tables_drop_split(win_from, win_to)` по `transactions.created_at` в окне **13:00–05:00** | **НЕ OK** — это по факту «cash in по окну», а не Drop по бизнес-дню |
-| TableResults, Dashboard, ShiftClosingReport | `player_day_drop_cache` | OK |
+- `+ Cashless IN` — общая сумма всех провайдеров
+- `− Cashless OUT` — общая сумма всех провайдеров
+- `NET Cashless` — разница
 
-Дополнительные несоответствия по бизнес-дню (не Drop, но связаны):
-- Reports → Player / Groups: **Cashout и Expenses** фильтруются по `created_at.split("T")[0]` (календарный день), а не по `business_date`. Ночные транзакции 00:00–07:00 попадают не в тот день.
-- Reports → Daily Diff: `Player Result = cashout − cash_in` считается по тому же окну 13:00–05:00, а не по `business_date`.
+Пользователь хочет вместо этого разбивку по провайдерам (MPesa / TPesa / HPesa / Airtel) с их IN, OUT и NET.
 
-## Основная проблема
+## План
 
-`compute_daily_diff` строит Drop не из кэша, а из транзакций по искусственному окну 13:00–05:00 EAT. Это:
-- игнорирует транзакции 07:00–13:00 бизнес-дня;
-- по сути равно `cash_in` за окно, а не пик NEP (Drop R) из кэша;
-- расходится с числами на Dashboard, Player Statistics, Table Results и в печатных отчётах смены.
+### 1. Заменить строки Cashless в левой колонке нижней таблицы (`ShiftClosingReport.tsx`, ~стр. 696–737)
 
-## План правок
+Раскрыть три строки-суммы в **набор строк по провайдерам**, сохраняя структуру таблицы (два столбца слева: подпись + значение; правые столбцы Miss Chips / Cash Desk Chips / Tips не трогаем — они рендерятся в тех же tr справа).
 
-### 1. Переписать `public.compute_daily_diff` (миграция)
+Формат (в порядке `PROV` из блока «Cash Less Shift Transactions»):
 
-```text
-для каждого бизнес-дня d в диапазоне:
-  drop_r        := SUM(peak)  FROM player_day_drop_cache  WHERE casino_id=_c AND business_date=d
-  cash_in       := SUM(amount) FROM transactions WHERE type IN('buy','in')     AND business_date=d AND cancelled_at IS NULL
-  cashout       := SUM(amount) FROM transactions WHERE type IN('cashout','out') AND business_date=d AND cancelled_at IS NULL
-  player_result := cashout - cash_in
-  result, miss  := как сейчас (по shifts с business_date_of(opened_at)=d)
-  tips          := как сейчас (уже по business_date)
+```
++ Cashless IN · M Pesa       5 840 000
++ Cashless IN · T Pesa       1 250 000
++ Cashless IN · H Pesa               —
++ Cashless IN · Airtel Money   820 000
+− Cashless OUT · M Pesa              —
+− Cashless OUT · T Pesa              —
+− Cashless OUT · H Pesa              —
+− Cashless OUT · Airtel Money        —
+NET Cashless                +7 910 000   (жирным, итог)
 ```
 
-Убрать переменные `win_from`, `win_to` и вызов `compute_tables_drop_split` из этой функции. Это выравнивает Daily Diff с единственным источником Drop и с Dashboard.
+Пустые (нулевые) строки провайдеров можно скрывать, чтобы не раздувать чек: показываем только те, где IN > 0 (для блока IN) и где OUT > 0 (для блока OUT). Итоговый `NET Cashless` остаётся всегда.
 
-### 2. Reports → Player / Groups (`src/pages/Reports.tsx`)
+### 2. Сохранить парность с правой колонкой
 
-Фильтр транзакций и расходов заменить с календарного дня на `business_date`:
+Правая половина нижней таблицы (Tips / Miss Chips / Cash Desk Chips FILL/CREDIT / Shift Balance) не должна разъехаться: балансируем количество `<tr>` слева и справа. Если строк слева стало больше — правые ячейки в лишних `<tr>` рендерим пустыми (`<td></td><td></td>`).
 
-```ts
-const filteredTx  = transactions.filter(t => t.business_date >= from && t.business_date <= to);
-const filteredExp = expenses.filter(e => e.business_date >= from && e.business_date <= to && e.approved);
-```
+### 3. Не трогать
+- Отдельную таблицу «Cash Less Shift Transactions» выше (там уже есть разбивка + End Day).
+- Формулу CDR/Balance — суммы не меняются, только визуализация.
+- `ChipMovementReport`, экраны Slots, POS, RPC.
 
-Поле `business_date` уже есть в `transactions` и `expenses` (используется в RLS/триггерах и в других отчётах).
-
-### 3. Проверка после правок
-
-- Открыть Dashboard и Reports → Daily Diff за один и тот же день/период — Total Drop должен совпадать до копейки.
-- Открыть Reports → Player и Player Statistics за тот же диапазон — Drop по игроку совпадает; Cashout больше не «сползает» на соседний день для ночных выплат.
-- Запустить `bunx vitest run` (юнит-тесты бизнес-логики).
-
-### Что не трогаем
-
-- `src/lib/drop-source.ts`, `useTotalDrop`, TableResults, Dashboard, ShiftClosingReport, Cage, POS — там источник уже правильный.
-- `compute_tables_drop_split` / `compute_players_drop_split` оставляем: они используются на страницах игрока/визитов с настоящим временным окном (визиты, посещения), не в дневных отчётах.
+### 4. Проверка
+- Открыть `/reports?tab=live` → Reprint для смены `bc90bf53-96bb-4e85-8873-928007267341` (Arusha, вчера) → печать → убедиться, что в нижней сводке видно строки по провайдерам, `NET` совпадает с суммой из блока «Cash Less Shift Transactions», а Shift Balance не изменился.
