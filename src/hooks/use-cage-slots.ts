@@ -347,7 +347,14 @@ export const useOpenSlotsShift = () => {
       card_deposit_value_tzs: number;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
-      const bd = businessDate || new Date().toISOString().slice(0, 10);
+      // Always fetch fresh business_date from RPC — never trust cached hook
+      // value or local wall clock, otherwise the open shift can be tagged with
+      // yesterday's date after a rollover before caches refresh.
+      const { data: bdRpc, error: bdErr } = await supabase.rpc("get_current_business_date", {
+        _casino_id: casinoId,
+      });
+      if (bdErr || !bdRpc) throw new Error(bdErr?.message || "Failed to resolve business date");
+      const bd = bdRpc as string;
 
       const { data: shift, error: e1 } = await supabase
         .from("cage_slots_shifts")
