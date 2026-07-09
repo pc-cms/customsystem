@@ -754,6 +754,23 @@ const ShiftClosingReport = ({
             }
             return trs;
           })()}
+          {(() => {
+            const inS = Object.values(effCashlessIO.inByProv).reduce((s, x) => s + Number(x || 0), 0);
+            const outS = Object.values(effCashlessIO.outByProv).reduce((s, x) => s + Number(x || 0), 0);
+            const cashlessNet = inS - outS;
+            const cashTotal = closerCashTzs + closerOtherTzs;
+            const totalMoney = cashlessNet + cashTotal;
+            return (
+              <tr>
+                <td className="border border-black bg-gray-100 px-1.5 py-0.5 font-semibold" colSpan={3}>
+                  Total Money (Cashless + Cash)
+                </td>
+                <td className="border border-black bg-gray-100 px-1.5 py-0.5 text-right font-semibold">
+                  {totalMoney >= 0 ? numAlways(totalMoney) : `-${numAlways(Math.abs(totalMoney))}`}
+                </td>
+              </tr>
+            );
+          })()}
           <tr>
             <td className="border border-black bg-gray-300 px-1.5 py-0.5 font-bold" colSpan={3}>Shift Balance</td>
             <td className="border border-black bg-gray-300 px-1.5 py-0.5 text-right font-bold">
