@@ -33,7 +33,7 @@ export default function AmBudgetReport() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("user_id, profiles!inner(id, full_name, email)")
+        .select("user_id, profiles!inner(id, full_name)")
         .eq("role", "account_manager");
       if (error) throw error;
       return (data as any[]) ?? [];
