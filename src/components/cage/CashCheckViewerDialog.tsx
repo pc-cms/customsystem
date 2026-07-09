@@ -313,14 +313,23 @@ const CashCheckViewerDialog = ({
             {(() => {
               const inP = d.cashless_in_providers || {};
               const outP = d.cashless_out_providers || {};
-              const anyData = SLOTS_PROVIDERS.some(p =>
+              // Live Game shift cashless is captured with MOBILE_PROVIDERS keys
+              // ("Mpesa", "Tigo", "Halo", "AirTel"). Do NOT use SLOTS_PROVIDERS
+              // here — those uppercase keys belong to the slots shift and would
+              // make every per-provider row read zero, hiding the breakdown.
+              const providers = MOBILE_PROVIDERS as readonly string[];
+              const anyPerProvider = providers.some(p =>
                 Number(inP[p] || 0) || Number(outP[p] || 0)
-              ) || Number(t.cashless_in || 0) || Number(t.cashless_out || 0);
+              );
+              const anyData = anyPerProvider
+                || Number(t.cashless_in || 0) || Number(t.cashless_out || 0);
               if (!anyData) return null;
-              const totalIn = SLOTS_PROVIDERS.reduce((s, p) => s + Number(inP[p] || 0), 0)
-                || Number(t.cashless_in || 0);
-              const totalOut = SLOTS_PROVIDERS.reduce((s, p) => s + Number(outP[p] || 0), 0)
-                || Number(t.cashless_out || 0);
+              const totalIn = anyPerProvider
+                ? providers.reduce((s, p) => s + Number(inP[p] || 0), 0)
+                : Number(t.cashless_in || 0);
+              const totalOut = anyPerProvider
+                ? providers.reduce((s, p) => s + Number(outP[p] || 0), 0)
+                : Number(t.cashless_out || 0);
               const totalNet = totalIn - totalOut;
               return (
                 <section className="rounded-xl border border-border bg-background/40 p-4 space-y-2">
@@ -337,7 +346,7 @@ const CashCheckViewerDialog = ({
                       </tr>
                     </thead>
                     <tbody>
-                      {SLOTS_PROVIDERS.map(p => {
+                      {anyPerProvider ? providers.map(p => {
                         const i = Number(inP[p] || 0);
                         const o = Number(outP[p] || 0);
                         const n = i - o;
@@ -356,7 +365,14 @@ const CashCheckViewerDialog = ({
                             </td>
                           </tr>
                         );
-                      })}
+                      }) : (
+                        <tr className="border-b border-border/50">
+                          <td className="py-1 text-muted-foreground italic">Per-provider breakdown not captured</td>
+                          <td className="text-right text-muted-foreground/40">·</td>
+                          <td className="text-right text-muted-foreground/40">·</td>
+                          <td className="text-right text-muted-foreground/40">·</td>
+                        </tr>
+                      )}
                       <tr className="font-bold border-t border-border">
                         <td className="py-1">TOTAL</td>
                         <td className="text-right text-success">+{formatNumberSpaces(totalIn)}</td>
