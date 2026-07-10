@@ -158,8 +158,8 @@ interface TableResultsProps {
 const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResultsProps = {}) => {
   const { roles, casinoId } = useAuth();
   const { activeCasino } = useCasino();
-  // Per-user request: display per-table Drop for Mwanza and Arusha.
-  const showPerTableDrop = ["mwanza", "arusha"].includes((activeCasino?.slug ?? "").toLowerCase());
+  // Per-table Drop = raw Σ IN transactions per table (shown for ALL casinos).
+  const showPerTableDrop = true;
   const isSurveillanceOnly = roles.includes("surveillance" as any) &&
     !roles.some((r) => ["manager", "super_admin", "finance_manager"].includes(r as string));
   const currentYear = new Date().getFullYear();
