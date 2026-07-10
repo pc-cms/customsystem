@@ -110,7 +110,7 @@ const ShiftClosingReport = ({
     (async () => {
       if (!casinoId || !shift) return;
       const [{ data: c }, { data: bl }, { data: tr }, { data: tdr }, { data: tx }, { data: snaps }] = await Promise.all([
-        supabase.from("casinos").select("name").eq("id", casinoId).maybeSingle(),
+        supabase.from("casinos").select("name, slug").eq("id", casinoId).maybeSingle(),
         supabase.from("chip_baseline").select("location_id, denomination, expected_quantity")
           .eq("casino_id", casinoId).eq("location_type", "table"),
         supabase.from("cage_transfers").select("table_id, transfer_type, amount")
