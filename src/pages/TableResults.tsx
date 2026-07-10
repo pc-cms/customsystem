@@ -819,7 +819,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                             className="p-0"
                           >
                             <div className="sticky left-0 w-[100cqw] max-w-full">
-                              <DayDetail rows={b.fullRows} date={b.date} totalDropFromCache={dropForDay(b.date)} showPerTableDrop={showPerTableDrop} />
+                              <DayDetail rows={b.fullRows} date={b.date} totalDropFromCache={dropForDay(b.date)} inByTable={inByDateTable.get(b.date)} />
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1081,7 +1081,7 @@ const GroupTotalCells = ({
 };
 
 /* Inline drilldown — like the third photo (per-table full breakdown) */
-const DayDetail = ({ rows, date, totalDropFromCache, showPerTableDrop }: { rows: Row[]; date: string; totalDropFromCache: number; showPerTableDrop?: boolean }) => {
+const DayDetail = ({ rows, date, totalDropFromCache, inByTable }: { rows: Row[]; date: string; totalDropFromCache: number; inByTable?: Map<string, number> }) => {
   // Pick latest row per table name
   const byName = new Map<string, Row>();
   for (const r of rows) {
@@ -1095,13 +1095,15 @@ const DayDetail = ({ rows, date, totalDropFromCache, showPerTableDrop }: { rows:
     .map((n) => byName.get(n))
     .filter((r): r is Row => Boolean(r));
 
+  const dropOf = (r: Row) => Number(inByTable?.get(r.table_id) || 0);
+
   const totals = sorted.reduce(
     (acc, r) => {
       acc.open += Number(r.open || 0);
       acc.fill += Number(r.fill || 0);
       acc.credit += Number(r.credit || 0);
       acc.close += Number(r.close || 0);
-      acc.drop += Number(r.drop_amount || 0);
+      acc.drop += dropOf(r);
       acc.result += Number(r.result || 0);
       return acc;
     },
@@ -1146,8 +1148,8 @@ const DayDetail = ({ rows, date, totalDropFromCache, showPerTableDrop }: { rows:
                   <TableCell className="text-right font-mono">{formatSpaced(r.fill)}</TableCell>
                   <TableCell className="text-right font-mono">{formatSpaced(r.credit)}</TableCell>
                   <TableCell className="text-right font-mono">{formatSpaced(r.close)}</TableCell>
-                  <TableCell className={cn("text-right font-mono", !showPerTableDrop && "text-muted-foreground")}>
-                    {showPerTableDrop ? (Number(r.drop_amount || 0) === 0 ? "—" : formatSpaced(Number(r.drop_amount || 0))) : "·"}
+                  <TableCell className="text-right font-mono">
+                    {dropOf(r) === 0 ? "—" : formatSpaced(dropOf(r))}
                   </TableCell>
                   <TableCell
                     className={cn(
