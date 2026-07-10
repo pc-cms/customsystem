@@ -63,6 +63,7 @@ const ShiftClosingReport = ({
 
   const { casinoId } = useAuth();
   const [casinoName, setCasinoName] = useState("Casino");
+  const [casinoSlug, setCasinoSlug] = useState<string>("");
   const [baselines, setBaselines] = useState<Record<string, number>>({}); // tableId -> TZS value
   const [baselineByDenom, setBaselineByDenom] = useState<BaselineMap>({}); // tableId -> denom -> qty (Pit baseline)
   const [snapshotIndex, setSnapshotIndex] = useState<ReturnType<typeof buildLatestTableSnapshot>>({});
@@ -109,7 +110,7 @@ const ShiftClosingReport = ({
     (async () => {
       if (!casinoId || !shift) return;
       const [{ data: c }, { data: bl }, { data: tr }, { data: tdr }, { data: tx }, { data: snaps }] = await Promise.all([
-        supabase.from("casinos").select("name").eq("id", casinoId).maybeSingle(),
+        supabase.from("casinos").select("name, slug").eq("id", casinoId).maybeSingle(),
         supabase.from("chip_baseline").select("location_id, denomination, expected_quantity")
           .eq("casino_id", casinoId).eq("location_type", "table"),
         supabase.from("cage_transfers").select("table_id, transfer_type, amount")
@@ -131,6 +132,7 @@ const ShiftClosingReport = ({
       ]);
       if (cancelled) return;
       if (c?.name) setCasinoName(c.name);
+      if ((c as any)?.slug) setCasinoSlug(String((c as any).slug).toLowerCase());
       const blMap: Record<string, number> = {};
       const blByDenom: BaselineMap = {};
       (bl || []).forEach((r: any) => {
@@ -462,7 +464,15 @@ const ShiftClosingReport = ({
                 <td className="border border-black px-1.5 py-0.5 text-right">{num(fl)}</td>
                 <td className="border border-black px-1.5 py-0.5 text-right">{num(cr)}</td>
                 <td className="border border-black px-1.5 py-0.5 text-right">{num(cl)}</td>
-                <td className="border border-black px-1.5 py-0.5 text-right">{num(inByTable[t.id] || 0)}</td>
+                <td className="border border-black px-1.5 py-0.5 text-right">{
+                  (() => {
+                    const useReportsDrop = ["mwanza", "arusha"].includes(casinoSlug);
+                    const v = useReportsDrop
+                      ? Number(dailyResults[t.id]?.drop || 0)
+                      : Number(inByTable[t.id] || 0);
+                    return v === 0 ? "·" : num(v);
+                  })()
+                }</td>
                 <td className="border border-black px-1.5 py-0.5 text-right font-semibold">
                   {res === 0 ? "" : (res > 0 ? numAlways(res) : `-${numAlways(Math.abs(res))}`)}
                 </td>
