@@ -672,15 +672,15 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                   </TableHead>
                   {AR_TABLES.map((t, i) => {
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
-                    return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === AR_TABLES.length - 1} />;
+                    return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === AR_TABLES.length - 1} alwaysShowDrop={showPerTableDrop} />;
                   })}
                   {PK_TABLES.map((t, i) => {
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
-                    return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === PK_TABLES.length - 1} />;
+                    return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === PK_TABLES.length - 1} alwaysShowDrop={showPerTableDrop} />;
                   })}
                   {BJ_TABLES.map((t, i) => {
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
-                    return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === BJ_TABLES.length - 1} />;
+                    return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === BJ_TABLES.length - 1} alwaysShowDrop={showPerTableDrop} />;
                   })}
                   <DRHeadCell drop={periodTotalDrop} result={totals.totalResult} bold />
                 </TableRow>
