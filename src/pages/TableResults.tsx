@@ -737,6 +737,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                               result={c.result}
                               hasData={c.hasData}
                               groupEnd={i === AR_TABLES.length - 1}
+                              alwaysShowDrop={showPerTableDrop}
                             />
                           );
                         })}
@@ -751,6 +752,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                               result={c.result}
                               hasData={c.hasData}
                               groupEnd={i === PK_TABLES.length - 1}
+                              alwaysShowDrop={showPerTableDrop}
                             />
                           );
                         })}
@@ -765,6 +767,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                               result={c.result}
                               hasData={c.hasData}
                               groupEnd={i === BJ_TABLES.length - 1}
+                              alwaysShowDrop={showPerTableDrop}
                             />
                           );
                         })}
