@@ -592,9 +592,9 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                   }
                   const dayTot = dropForDay(b.date);
                   r.push(
-                    "·", b.arResult,
-                    "·", b.pkResult,
-                    "·", b.bjResult,
+                    b.arDrop, b.arResult,
+                    b.pkDrop, b.pkResult,
+                    b.bjDrop, b.bjResult,
                     dayTot, b.totalResult,
                     dayTot > 0 ? Number((b.totalResult / dayTot * 100).toFixed(2)) : "",
                   );
@@ -605,15 +605,15 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                 for (const t of tableCols) {
                   const c = totals.cellsTotal[t];
                   if (c) {
-                    totalsRow.push("·", c.result, "·");
+                    totalsRow.push(c.drop, c.result, c.drop > 0 ? Number((c.result / c.drop * 100).toFixed(2)) : "");
                   } else {
                     totalsRow.push("", "", "");
                   }
                 }
                 totalsRow.push(
-                  "·", totals.arResult,
-                  "·", totals.pkResult,
-                  "·", totals.bjResult,
+                  totals.arDrop, totals.arResult,
+                  totals.pkDrop, totals.pkResult,
+                  totals.bjDrop, totals.bjResult,
                   periodTotalDrop, totals.totalResult,
                   periodTotalDrop > 0 ? Number((totals.totalResult / periodTotalDrop * 100).toFixed(2)) : "",
                 );
