@@ -63,6 +63,7 @@ const ShiftClosingReport = ({
 
   const { casinoId } = useAuth();
   const [casinoName, setCasinoName] = useState("Casino");
+  const [casinoSlug, setCasinoSlug] = useState<string>("");
   const [baselines, setBaselines] = useState<Record<string, number>>({}); // tableId -> TZS value
   const [baselineByDenom, setBaselineByDenom] = useState<BaselineMap>({}); // tableId -> denom -> qty (Pit baseline)
   const [snapshotIndex, setSnapshotIndex] = useState<ReturnType<typeof buildLatestTableSnapshot>>({});
