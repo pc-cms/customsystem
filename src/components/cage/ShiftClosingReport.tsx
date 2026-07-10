@@ -464,7 +464,15 @@ const ShiftClosingReport = ({
                 <td className="border border-black px-1.5 py-0.5 text-right">{num(fl)}</td>
                 <td className="border border-black px-1.5 py-0.5 text-right">{num(cr)}</td>
                 <td className="border border-black px-1.5 py-0.5 text-right">{num(cl)}</td>
-                <td className="border border-black px-1.5 py-0.5 text-right">{num(inByTable[t.id] || 0)}</td>
+                <td className="border border-black px-1.5 py-0.5 text-right">{
+                  (() => {
+                    const useReportsDrop = ["mwanza", "arusha"].includes(casinoSlug);
+                    const v = useReportsDrop
+                      ? Number(dailyResults[t.id]?.drop || 0)
+                      : Number(inByTable[t.id] || 0);
+                    return v === 0 ? "·" : num(v);
+                  })()
+                }</td>
                 <td className="border border-black px-1.5 py-0.5 text-right font-semibold">
                   {res === 0 ? "" : (res > 0 ? numAlways(res) : `-${numAlways(Math.abs(res))}`)}
                 </td>
