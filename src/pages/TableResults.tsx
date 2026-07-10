@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fmtDate, fmtWeekdayShort } from "@/lib/format-date";
 import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchPaged } from "@/lib/fetch-paged";
