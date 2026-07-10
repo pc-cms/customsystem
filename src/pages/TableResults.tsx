@@ -954,15 +954,17 @@ const DRHeadCell = ({
   result,
   bold,
   groupEnd,
+  alwaysShowDrop,
 }: {
   drop: number;
   result: number;
   bold?: boolean;
   groupEnd?: boolean;
+  alwaysShowDrop?: boolean;
 }) => {
   const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
   const isNeg = result < 0;
-  const showDrop = !!bold; // only grand-total header cell shows Drop
+  const showDrop = !!bold || !!alwaysShowDrop;
   const pct = showDrop && drop > 0 ? (result / drop) * 100 : 0;
   // top-16 = 64px (sum of first two header rows, both h-8)
   const stickyTop = "top-16 z-10 [background-image:linear-gradient(hsl(var(--primary)/0.2),hsl(var(--primary)/0.2)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]";
