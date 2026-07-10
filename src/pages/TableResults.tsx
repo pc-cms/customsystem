@@ -285,9 +285,10 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
         const existing = byName.get(n);
         if (!existing || r.id.localeCompare(existing.id) > 0) byName.set(n, r);
       }
+      const dayIn = inByDateTable.get(date);
       for (const [name, r] of byName.entries()) {
         cells[name] = {
-          drop: Number(r.drop_amount || 0),
+          drop: Number(dayIn?.get(r.table_id) || 0),
           result: Number(r.result || 0),
           hasData: true,
         };
@@ -322,7 +323,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
       };
     });
     return list.sort((a, b) => a.date.localeCompare(b.date));
-  }, [data, allDates]);
+  }, [data, allDates, inByDateTable]);
 
   /* Period totals (bottom row) */
   const totals = useMemo(() => {
