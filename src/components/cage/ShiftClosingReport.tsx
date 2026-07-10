@@ -462,7 +462,7 @@ const ShiftClosingReport = ({
                 <td className="border border-black px-1.5 py-0.5 text-right">{num(fl)}</td>
                 <td className="border border-black px-1.5 py-0.5 text-right">{num(cr)}</td>
                 <td className="border border-black px-1.5 py-0.5 text-right">{num(cl)}</td>
-                <td className="border border-black px-1.5 py-0.5 text-right text-gray-400">·</td>
+                <td className="border border-black px-1.5 py-0.5 text-right">{num(inByTable[t.id] || 0)}</td>
                 <td className="border border-black px-1.5 py-0.5 text-right font-semibold">
                   {res === 0 ? "" : (res > 0 ? numAlways(res) : `-${numAlways(Math.abs(res))}`)}
                 </td>
