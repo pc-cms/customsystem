@@ -891,17 +891,18 @@ const DRCell = ({
   hasData,
   bold,
   groupEnd,
+  alwaysShowDrop,
 }: {
   drop: number;
   result: number;
   hasData: boolean;
   bold?: boolean;
   groupEnd?: boolean;
+  alwaysShowDrop?: boolean;
 }) => {
   const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
-  // RULE: per-table Drop is never displayed. Only the grand-total column
-  // (marked `bold`) shows Drop — from player_day_drop_cache upstream.
-  const showDrop = !!bold;
+  // Per-table Drop hidden by default; enabled for Mwanza via `alwaysShowDrop`.
+  const showDrop = !!bold || !!alwaysShowDrop;
   if (!hasData && drop === 0 && result === 0) {
     return (
       <>
