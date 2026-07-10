@@ -132,6 +132,7 @@ const ShiftClosingReport = ({
       ]);
       if (cancelled) return;
       if (c?.name) setCasinoName(c.name);
+      if ((c as any)?.slug) setCasinoSlug(String((c as any).slug).toLowerCase());
       const blMap: Record<string, number> = {};
       const blByDenom: BaselineMap = {};
       (bl || []).forEach((r: any) => {
