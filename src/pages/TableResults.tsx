@@ -158,8 +158,8 @@ interface TableResultsProps {
 const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResultsProps = {}) => {
   const { roles, casinoId } = useAuth();
   const { activeCasino } = useCasino();
-  // Per-user request: display per-table Drop for Mwanza and Arusha.
-  const showPerTableDrop = ["mwanza", "arusha"].includes((activeCasino?.slug ?? "").toLowerCase());
+  // Per-table Drop = raw Σ IN transactions per table (shown for ALL casinos).
+  const showPerTableDrop = true;
   const isSurveillanceOnly = roles.includes("surveillance" as any) &&
     !roles.some((r) => ["manager", "super_admin", "finance_manager"].includes(r as string));
   const currentYear = new Date().getFullYear();
@@ -194,8 +194,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
   const { data = [], isLoading } = useDailyResults(from, to);
 
   /* Total Drop — SINGLE source of truth: `player_day_drop_cache` (matches
-   * Player Statistics). Per-table Drop is never displayed anywhere on this
-   * screen (all per-table Drop / Hold cells render `·`). */
+   * Player Statistics). */
   const { data: dropByDate = new Map<string, number>() } = useQuery({
     queryKey: ["table-results-drop-cache", casinoId, from, to],
     queryFn: async (): Promise<Map<string, number>> => {
@@ -212,6 +211,35 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
       );
       (rows ?? []).forEach((r: any) => {
         m.set(r.business_date, (m.get(r.business_date) || 0) + Number(r.peak || 0));
+      });
+      return m;
+    },
+    enabled: !!casinoId && !!from && !!to,
+    staleTime: 30_000,
+  });
+
+  /* Per-table Drop = raw Σ IN transactions per (business_date, table_id).
+   * type in ('in','buy'), cancelled_at IS NULL. Simple sum — no NEP-split. */
+  const { data: inByDateTable = new Map<string, Map<string, number>>() } = useQuery({
+    queryKey: ["table-results-in-by-table", casinoId, from, to],
+    queryFn: async (): Promise<Map<string, Map<string, number>>> => {
+      const m = new Map<string, Map<string, number>>();
+      if (!casinoId || !from || !to) return m;
+      const rows = await fetchPaged<any>((pageFrom, pageTo) => supabase
+        .from("transactions")
+        .select("business_date, table_id, type, amount, cancelled_at")
+        .eq("casino_id", casinoId)
+        .gte("business_date", from)
+        .lte("business_date", to)
+        .in("type", ["in", "buy"])
+        .is("cancelled_at", null)
+        .range(pageFrom, pageTo)
+      );
+      (rows ?? []).forEach((r: any) => {
+        if (!r.business_date || !r.table_id) return;
+        let inner = m.get(r.business_date);
+        if (!inner) { inner = new Map(); m.set(r.business_date, inner); }
+        inner.set(r.table_id, (inner.get(r.table_id) || 0) + (Number(r.amount) || 0));
       });
       return m;
     },
@@ -257,9 +285,10 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
         const existing = byName.get(n);
         if (!existing || r.id.localeCompare(existing.id) > 0) byName.set(n, r);
       }
+      const dayIn = inByDateTable.get(date);
       for (const [name, r] of byName.entries()) {
         cells[name] = {
-          drop: Number(r.drop_amount || 0),
+          drop: Number(dayIn?.get(r.table_id) || 0),
           result: Number(r.result || 0),
           hasData: true,
         };
@@ -294,7 +323,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
       };
     });
     return list.sort((a, b) => a.date.localeCompare(b.date));
-  }, [data, allDates]);
+  }, [data, allDates, inByDateTable]);
 
   /* Period totals (bottom row) */
   const totals = useMemo(() => {
@@ -563,9 +592,9 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                   }
                   const dayTot = dropForDay(b.date);
                   r.push(
-                    "·", b.arResult,
-                    "·", b.pkResult,
-                    "·", b.bjResult,
+                    b.arDrop, b.arResult,
+                    b.pkDrop, b.pkResult,
+                    b.bjDrop, b.bjResult,
                     dayTot, b.totalResult,
                     dayTot > 0 ? Number((b.totalResult / dayTot * 100).toFixed(2)) : "",
                   );
@@ -576,15 +605,15 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                 for (const t of tableCols) {
                   const c = totals.cellsTotal[t];
                   if (c) {
-                    totalsRow.push("·", c.result, "·");
+                    totalsRow.push(c.drop, c.result, c.drop > 0 ? Number((c.result / c.drop * 100).toFixed(2)) : "");
                   } else {
                     totalsRow.push("", "", "");
                   }
                 }
                 totalsRow.push(
-                  "·", totals.arResult,
-                  "·", totals.pkResult,
-                  "·", totals.bjResult,
+                  totals.arDrop, totals.arResult,
+                  totals.pkDrop, totals.pkResult,
+                  totals.bjDrop, totals.bjResult,
                   periodTotalDrop, totals.totalResult,
                   periodTotalDrop > 0 ? Number((totals.totalResult / periodTotalDrop * 100).toFixed(2)) : "",
                 );
@@ -790,7 +819,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                             className="p-0"
                           >
                             <div className="sticky left-0 w-[100cqw] max-w-full">
-                              <DayDetail rows={b.fullRows} date={b.date} totalDropFromCache={dropForDay(b.date)} showPerTableDrop={showPerTableDrop} />
+                              <DayDetail rows={b.fullRows} date={b.date} totalDropFromCache={dropForDay(b.date)} inByTable={inByDateTable.get(b.date)} />
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1052,7 +1081,7 @@ const GroupTotalCells = ({
 };
 
 /* Inline drilldown — like the third photo (per-table full breakdown) */
-const DayDetail = ({ rows, date, totalDropFromCache, showPerTableDrop }: { rows: Row[]; date: string; totalDropFromCache: number; showPerTableDrop?: boolean }) => {
+const DayDetail = ({ rows, date, totalDropFromCache, inByTable }: { rows: Row[]; date: string; totalDropFromCache: number; inByTable?: Map<string, number> }) => {
   // Pick latest row per table name
   const byName = new Map<string, Row>();
   for (const r of rows) {
@@ -1066,13 +1095,15 @@ const DayDetail = ({ rows, date, totalDropFromCache, showPerTableDrop }: { rows:
     .map((n) => byName.get(n))
     .filter((r): r is Row => Boolean(r));
 
+  const dropOf = (r: Row) => Number(inByTable?.get(r.table_id) || 0);
+
   const totals = sorted.reduce(
     (acc, r) => {
       acc.open += Number(r.open || 0);
       acc.fill += Number(r.fill || 0);
       acc.credit += Number(r.credit || 0);
       acc.close += Number(r.close || 0);
-      acc.drop += Number(r.drop_amount || 0);
+      acc.drop += dropOf(r);
       acc.result += Number(r.result || 0);
       return acc;
     },
@@ -1117,8 +1148,8 @@ const DayDetail = ({ rows, date, totalDropFromCache, showPerTableDrop }: { rows:
                   <TableCell className="text-right font-mono">{formatSpaced(r.fill)}</TableCell>
                   <TableCell className="text-right font-mono">{formatSpaced(r.credit)}</TableCell>
                   <TableCell className="text-right font-mono">{formatSpaced(r.close)}</TableCell>
-                  <TableCell className={cn("text-right font-mono", !showPerTableDrop && "text-muted-foreground")}>
-                    {showPerTableDrop ? (Number(r.drop_amount || 0) === 0 ? "—" : formatSpaced(Number(r.drop_amount || 0))) : "·"}
+                  <TableCell className="text-right font-mono">
+                    {dropOf(r) === 0 ? "—" : formatSpaced(dropOf(r))}
                   </TableCell>
                   <TableCell
                     className={cn(

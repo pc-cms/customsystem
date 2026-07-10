@@ -18,7 +18,7 @@ import { buildLatestTableSnapshot, chipSnapshotResult, type BaselineMap } from "
 // Authoritative Result is computed server-side via compute_shift_table_results RPC.
 // Snapshot index is still loaded for backward-compatible fallback only.
 import type { Tables } from "@/integrations/supabase/types";
-import { splitTablesWindow, type NepTx } from "@/lib/nep-split";
+
 import { fetchTotalDrop } from "@/lib/drop-source";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
 
@@ -69,11 +69,8 @@ const ShiftClosingReport = ({
   const [snapshotIndex, setSnapshotIndex] = useState<ReturnType<typeof buildLatestTableSnapshot>>({});
   const [fillCredits, setFillCredits] = useState<Record<string, { fill: number; credit: number }>>({});
   const [cashFlowTransfers, setCashFlowTransfers] = useState({ addFloat: 0, slotsOut: 0 });
-  /** Drop NEP per table — peak-NEP per (player, business-day) distributed
-   *  proportionally to each table's IN share within the SHIFT window.
-   *  Authoritative formula used everywhere (Player Statistics, Tables,
-   *  Dashboard) — keeps the printed shift report in sync with on-screen totals
-   *  instead of inflating by recycled buy-ins (raw Σ buy/in). */
+  /** Per-table Drop = raw Σ IN transactions (type in ('in','buy'),
+   *  cancelled_at IS NULL) scoped to THIS shift. Simple sum, no NEP-split. */
   const [inByTable, setInByTable] = useState<Record<string, number>>({});
   /** Imported daily results (legacy import path) — when present, take precedence
    *  for Open/Fill/Credit/Close columns; Result still comes from snapshot. */
@@ -157,25 +154,14 @@ const ShiftClosingReport = ({
       });
       setFillCredits(fc);
       setCashFlowTransfers({ addFloat, slotsOut });
-      // DROP NEP per table = peak-NEP per (player, business-day) split by
-      // each table's IN share within the shift window. Matches Player
-      // Statistics / Tables / Dashboard exactly.
-      const fromIso = (shift as any).opened_at as string | null;
-      const toIso = ((shift as any).closed_at as string | null) ?? new Date().toISOString();
+      // Per-table Drop = raw Σ IN transactions for this shift.
       const inMap: Record<string, number> = {};
-      if (fromIso) {
-        const nepTxs: NepTx[] = (tx || []).map((r: any) => ({
-          id: undefined,
-          player_id: r.player_id,
-          table_id: r.table_id,
-          type: r.type,
-          amount: Number(r.amount) || 0,
-          created_at: r.created_at,
-          cancelled_at: r.cancelled_at,
-        }));
-        const split = splitTablesWindow(nepTxs, fromIso, toIso);
-        for (const [tid, v] of split) inMap[tid] = v.dropR;
-      }
+      (tx || []).forEach((r: any) => {
+        if (!r.table_id) return;
+        if (r.type !== "in" && r.type !== "buy") return;
+        if (r.cancelled_at) return;
+        inMap[r.table_id] = (inMap[r.table_id] || 0) + (Number(r.amount) || 0);
+      });
       setInByTable(inMap);
       const dr: Record<string, any> = {};
       (tdr || []).forEach((r: any) => {
@@ -465,13 +451,7 @@ const ShiftClosingReport = ({
                 <td className="border border-black px-1.5 py-0.5 text-right">{num(cr)}</td>
                 <td className="border border-black px-1.5 py-0.5 text-right">{num(cl)}</td>
                 <td className="border border-black px-1.5 py-0.5 text-right">{
-                  (() => {
-                    const useReportsDrop = ["mwanza", "arusha"].includes(casinoSlug);
-                    const v = useReportsDrop
-                      ? Number(dailyResults[t.id]?.drop || 0)
-                      : Number(inByTable[t.id] || 0);
-                    return v === 0 ? "·" : num(v);
-                  })()
+                  inVal === 0 ? "·" : num(inVal)
                 }</td>
                 <td className="border border-black px-1.5 py-0.5 text-right font-semibold">
                   {res === 0 ? "" : (res > 0 ? numAlways(res) : `-${numAlways(Math.abs(res))}`)}
