@@ -194,8 +194,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
   const { data = [], isLoading } = useDailyResults(from, to);
 
   /* Total Drop — SINGLE source of truth: `player_day_drop_cache` (matches
-   * Player Statistics). Per-table Drop is never displayed anywhere on this
-   * screen (all per-table Drop / Hold cells render `·`). */
+   * Player Statistics). */
   const { data: dropByDate = new Map<string, number>() } = useQuery({
     queryKey: ["table-results-drop-cache", casinoId, from, to],
     queryFn: async (): Promise<Map<string, number>> => {
@@ -212,6 +211,35 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
       );
       (rows ?? []).forEach((r: any) => {
         m.set(r.business_date, (m.get(r.business_date) || 0) + Number(r.peak || 0));
+      });
+      return m;
+    },
+    enabled: !!casinoId && !!from && !!to,
+    staleTime: 30_000,
+  });
+
+  /* Per-table Drop = raw Σ IN transactions per (business_date, table_id).
+   * type in ('in','buy'), cancelled_at IS NULL. Simple sum — no NEP-split. */
+  const { data: inByDateTable = new Map<string, Map<string, number>>() } = useQuery({
+    queryKey: ["table-results-in-by-table", casinoId, from, to],
+    queryFn: async (): Promise<Map<string, Map<string, number>>> => {
+      const m = new Map<string, Map<string, number>>();
+      if (!casinoId || !from || !to) return m;
+      const rows = await fetchPaged<any>((pageFrom, pageTo) => supabase
+        .from("transactions")
+        .select("business_date, table_id, type, amount, cancelled_at")
+        .eq("casino_id", casinoId)
+        .gte("business_date", from)
+        .lte("business_date", to)
+        .in("type", ["in", "buy"])
+        .is("cancelled_at", null)
+        .range(pageFrom, pageTo)
+      );
+      (rows ?? []).forEach((r: any) => {
+        if (!r.business_date || !r.table_id) return;
+        let inner = m.get(r.business_date);
+        if (!inner) { inner = new Map(); m.set(r.business_date, inner); }
+        inner.set(r.table_id, (inner.get(r.table_id) || 0) + (Number(r.amount) || 0));
       });
       return m;
     },
