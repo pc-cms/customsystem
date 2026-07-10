@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fmtDate, fmtWeekdayShort } from "@/lib/format-date";
 import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchPaged } from "@/lib/fetch-paged";
@@ -156,6 +157,9 @@ interface TableResultsProps {
 
 const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResultsProps = {}) => {
   const { roles, casinoId } = useAuth();
+  const { activeCasino } = useCasino();
+  // Per-user request: display per-table Drop for Mwanza only.
+  const showPerTableDrop = (activeCasino?.slug ?? "").toLowerCase() === "mwanza";
   const isSurveillanceOnly = roles.includes("surveillance" as any) &&
     !roles.some((r) => ["manager", "super_admin", "finance_manager"].includes(r as string));
   const currentYear = new Date().getFullYear();
@@ -668,15 +672,15 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                   </TableHead>
                   {AR_TABLES.map((t, i) => {
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
-                    return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === AR_TABLES.length - 1} />;
+                    return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === AR_TABLES.length - 1} alwaysShowDrop={showPerTableDrop} />;
                   })}
                   {PK_TABLES.map((t, i) => {
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
-                    return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === PK_TABLES.length - 1} />;
+                    return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === PK_TABLES.length - 1} alwaysShowDrop={showPerTableDrop} />;
                   })}
                   {BJ_TABLES.map((t, i) => {
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
-                    return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === BJ_TABLES.length - 1} />;
+                    return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === BJ_TABLES.length - 1} alwaysShowDrop={showPerTableDrop} />;
                   })}
                   <DRHeadCell drop={periodTotalDrop} result={totals.totalResult} bold />
                 </TableRow>
@@ -733,6 +737,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                               result={c.result}
                               hasData={c.hasData}
                               groupEnd={i === AR_TABLES.length - 1}
+                              alwaysShowDrop={showPerTableDrop}
                             />
                           );
                         })}
@@ -747,6 +752,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                               result={c.result}
                               hasData={c.hasData}
                               groupEnd={i === PK_TABLES.length - 1}
+                              alwaysShowDrop={showPerTableDrop}
                             />
                           );
                         })}
@@ -761,6 +767,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                               result={c.result}
                               hasData={c.hasData}
                               groupEnd={i === BJ_TABLES.length - 1}
+                              alwaysShowDrop={showPerTableDrop}
                             />
                           );
                         })}
@@ -783,7 +790,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                             className="p-0"
                           >
                             <div className="sticky left-0 w-[100cqw] max-w-full">
-                              <DayDetail rows={b.fullRows} date={b.date} totalDropFromCache={dropForDay(b.date)} />
+                              <DayDetail rows={b.fullRows} date={b.date} totalDropFromCache={dropForDay(b.date)} showPerTableDrop={showPerTableDrop} />
                             </div>
                           </TableCell>
                         </TableRow>
@@ -884,17 +891,18 @@ const DRCell = ({
   hasData,
   bold,
   groupEnd,
+  alwaysShowDrop,
 }: {
   drop: number;
   result: number;
   hasData: boolean;
   bold?: boolean;
   groupEnd?: boolean;
+  alwaysShowDrop?: boolean;
 }) => {
   const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
-  // RULE: per-table Drop is never displayed. Only the grand-total column
-  // (marked `bold`) shows Drop — from player_day_drop_cache upstream.
-  const showDrop = !!bold;
+  // Per-table Drop hidden by default; enabled for Mwanza via `alwaysShowDrop`.
+  const showDrop = !!bold || !!alwaysShowDrop;
   if (!hasData && drop === 0 && result === 0) {
     return (
       <>
@@ -946,15 +954,17 @@ const DRHeadCell = ({
   result,
   bold,
   groupEnd,
+  alwaysShowDrop,
 }: {
   drop: number;
   result: number;
   bold?: boolean;
   groupEnd?: boolean;
+  alwaysShowDrop?: boolean;
 }) => {
   const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
   const isNeg = result < 0;
-  const showDrop = !!bold; // only grand-total header cell shows Drop
+  const showDrop = !!bold || !!alwaysShowDrop;
   const pct = showDrop && drop > 0 ? (result / drop) * 100 : 0;
   // top-16 = 64px (sum of first two header rows, both h-8)
   const stickyTop = "top-16 z-10 [background-image:linear-gradient(hsl(var(--primary)/0.2),hsl(var(--primary)/0.2)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]";
@@ -1042,7 +1052,7 @@ const GroupTotalCells = ({
 };
 
 /* Inline drilldown — like the third photo (per-table full breakdown) */
-const DayDetail = ({ rows, date, totalDropFromCache }: { rows: Row[]; date: string; totalDropFromCache: number }) => {
+const DayDetail = ({ rows, date, totalDropFromCache, showPerTableDrop }: { rows: Row[]; date: string; totalDropFromCache: number; showPerTableDrop?: boolean }) => {
   // Pick latest row per table name
   const byName = new Map<string, Row>();
   for (const r of rows) {
@@ -1107,7 +1117,9 @@ const DayDetail = ({ rows, date, totalDropFromCache }: { rows: Row[]; date: stri
                   <TableCell className="text-right font-mono">{formatSpaced(r.fill)}</TableCell>
                   <TableCell className="text-right font-mono">{formatSpaced(r.credit)}</TableCell>
                   <TableCell className="text-right font-mono">{formatSpaced(r.close)}</TableCell>
-                  <TableCell className="text-right font-mono text-muted-foreground">·</TableCell>
+                  <TableCell className={cn("text-right font-mono", !showPerTableDrop && "text-muted-foreground")}>
+                    {showPerTableDrop ? (Number(r.drop_amount || 0) === 0 ? "—" : formatSpaced(Number(r.drop_amount || 0))) : "·"}
+                  </TableCell>
                   <TableCell
                     className={cn(
                       "text-right font-mono font-semibold",
