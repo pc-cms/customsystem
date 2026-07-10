@@ -1117,7 +1117,9 @@ const DayDetail = ({ rows, date, totalDropFromCache, showPerTableDrop }: { rows:
                   <TableCell className="text-right font-mono">{formatSpaced(r.fill)}</TableCell>
                   <TableCell className="text-right font-mono">{formatSpaced(r.credit)}</TableCell>
                   <TableCell className="text-right font-mono">{formatSpaced(r.close)}</TableCell>
-                  <TableCell className="text-right font-mono text-muted-foreground">·</TableCell>
+                  <TableCell className={cn("text-right font-mono", !showPerTableDrop && "text-muted-foreground")}>
+                    {showPerTableDrop ? (Number(r.drop_amount || 0) === 0 ? "—" : formatSpaced(Number(r.drop_amount || 0))) : "·"}
+                  </TableCell>
                   <TableCell
                     className={cn(
                       "text-right font-mono font-semibold",
