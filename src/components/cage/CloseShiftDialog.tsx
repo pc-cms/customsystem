@@ -600,6 +600,8 @@ const CloseShiftDialog = ({
                   cash: cashCounts,
                   mobile: mobileBal,
                   bank: bankBal,
+                  cashless_in_providers: cashlessIn,
+                  cashless_out_providers: cashlessOut,
                 }}
                 openingFloat={shift.opening_float as any}
                 exchangeRates={rates}
@@ -609,7 +611,20 @@ const CloseShiftDialog = ({
                 balance={balance}
                 tipsTotal={tipsTotal}
                 businessDate={businessDate}
-
+                cashlessOverride={{
+                  inByProv: {
+                    MPESA:   Number((cashlessIn as any)?.Mpesa  || 0),
+                    TIGO:    Number((cashlessIn as any)?.Tigo   || 0),
+                    HALOTEL: Number((cashlessIn as any)?.Halo   || 0),
+                    AIRTEL:  Number((cashlessIn as any)?.AirTel || 0),
+                  },
+                  outByProv: {
+                    MPESA:   Number((cashlessOut as any)?.Mpesa  || 0),
+                    TIGO:    Number((cashlessOut as any)?.Tigo   || 0),
+                    HALOTEL: Number((cashlessOut as any)?.Halo   || 0),
+                    AIRTEL:  Number((cashlessOut as any)?.AirTel || 0),
+                  },
+                }}
               />
               <ChipMovementReport
                 shift={shift}
