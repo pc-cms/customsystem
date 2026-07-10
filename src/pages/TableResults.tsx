@@ -1052,7 +1052,7 @@ const GroupTotalCells = ({
 };
 
 /* Inline drilldown — like the third photo (per-table full breakdown) */
-const DayDetail = ({ rows, date, totalDropFromCache }: { rows: Row[]; date: string; totalDropFromCache: number }) => {
+const DayDetail = ({ rows, date, totalDropFromCache, showPerTableDrop }: { rows: Row[]; date: string; totalDropFromCache: number; showPerTableDrop?: boolean }) => {
   // Pick latest row per table name
   const byName = new Map<string, Row>();
   for (const r of rows) {
