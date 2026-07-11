@@ -30,6 +30,23 @@ export type LiveTableSpec = {
 };
 
 export const MODULE_LIVE_SPEC: Partial<Record<ModuleKey, LiveTableSpec[]>> = {
+  // ─────────── DASHBOARD ───────────
+  // Без этих подписок Total Drop на Dashboard дрейфует от Player Statistics:
+  // новые IN-транзакции обновляют `player_day_drop_cache` в БД, но `useTotalDrop`
+  // (staleTime: 30s) ждёт Realtime-инвалидации, а её было некому послать.
+  dashboard: [
+    { table: "player_day_drop_cache", queryKeyPrefixes: [
+        "total-drop-cache",
+        "table-results-drop-cache",
+        "players-drop-cache-today",
+        "players-drop-cache-range",
+    ]},
+    { table: "transactions",        queryKeyPrefixes: ["transactions"] },
+    { table: "table_daily_results", queryKeyPrefixes: ["table-daily-results", "dashboard-table-results"] },
+    { table: "expenses",            queryKeyPrefixes: ["expenses", "expenses-approvals-count"] },
+    { table: "casino_visits",       queryKeyPrefixes: ["casino-visits", "casino-visits-live"] },
+  ],
+
   // ─────────── PIT ───────────
   pit_dealers: [
     { table: "employees", queryKeyPrefixes: ["dealers", "staff_members", "employees"] },
