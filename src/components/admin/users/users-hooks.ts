@@ -103,6 +103,7 @@ export const useUpdateUserProfile = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-users:list-v2"] });
       qc.invalidateQueries({ queryKey: ["admin-users:profiles"] });
+      qc.invalidateQueries({ queryKey: ["admin-users:roles"] });
       toast.success("User updated");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -237,6 +238,7 @@ export const useUpdateUserRoles = () => {
       if (error) throw error;
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users:list-v2"] });
       qc.invalidateQueries({ queryKey: ["admin-users:roles"] });
       toast.success("Roles updated");
     },
@@ -272,6 +274,7 @@ export const useCreateUser = () => {
       return data;
     },
     onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["admin-users:list-v2"] });
       qc.invalidateQueries({ queryKey: ["admin-users:profiles"] });
       qc.invalidateQueries({ queryKey: ["admin-users:roles"] });
       toast.success(`User "${vars.login}" created`);
@@ -309,6 +312,7 @@ export const useDisableUser = () => {
       return data;
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users:list-v2"] });
       qc.invalidateQueries({ queryKey: ["admin-users:profiles"] });
       toast.success("User disabled");
     },
