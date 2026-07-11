@@ -274,6 +274,7 @@ export const useCreateUser = () => {
       return data;
     },
     onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["admin-users:list-v2"] });
       qc.invalidateQueries({ queryKey: ["admin-users:profiles"] });
       qc.invalidateQueries({ queryKey: ["admin-users:roles"] });
       toast.success(`User "${vars.login}" created`);
