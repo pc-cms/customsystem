@@ -1,29 +1,53 @@
-## Контекст
 
-Finding утверждает, что джоб падает из-за «открытых визитов со вчера». Проверка БД показала: таких визитов нет (все 31 открытых — за сегодня, 2026-07-11). Значит **описанный в finding сценарий на ваших данных не воспроизводится**, и логику «переносить вчерашний открытый визит на сегодня» добавлять НЕ нужно — это противоречит вашему бизнес-правилу (визиты не переезжают между днями).
+## Что не так
 
-Однако сам код `supabase/functions/auto-checkin-tips/index.ts` имеет реальную слабость: любая ошибка на одном игроке (`throw error`) прерывает весь цикл и остальные игроки в этом запуске остаются без чек-ина. Причина ошибки может быть любой (гонка, испорченные данные, временный сбой сети) — но эффект один: HTTP 500 и часть казино не обработана.
+На скриншотах, Arusha, 11/07/2026:
+- Dashboard → **Total Drop = 1 655 000**
+- Player Tracking (Player Statistics) → **TOTAL DROP = 4 325 000**
 
-## Что меняем
+Проверил БД напрямую:
 
-Только устойчивость цикла в `supabase/functions/auto-checkin-tips/index.ts`. Никаких схем, индексов, cron, UI.
+```
+select sum(peak) from player_day_drop_cache
+where casino_id='…Arusha' and business_date='2026-07-11';
+-- 4 325 000
+```
 
-1. Обернуть блок обработки одного игрока в `try/catch`.
-2. При ошибке: `console.error` с `player_id`, `casino_id`, текстом ошибки; увеличить счётчик `errors`; `continue` к следующему игроку.
-3. В ответе возвращать `{ ok: true, opened, reopened, skipped, errors, per_casino }` со статусом 200 всегда, если сам запуск не упал на этапе выборки игроков.
-4. Общий `catch` снаружи оставить как есть — он ловит только глобальные сбои (не доступна БД, не удалось получить список игроков).
+То есть **правильная цифра — 4 325 000**. Dashboard показывает устаревшее значение.
 
-## Что НЕ меняем
+## Почему так
 
-- Не ищем открытые визиты по прошлым датам — по правилу проекта их не бывает.
-- Не трогаем `uniq_casino_visits_open_per_player`, не трогаем `casino_visits_casino_id_player_id_date_key`.
-- Не меняем расписание pg_cron, не меняем UI ручного чек-ина.
+Оба экрана читают из одного источника (`player_day_drop_cache` через `useTotalDrop` в `src/lib/drop-source.ts`). Хук помечен `staleTime: 30_000` и **обновляется только когда его queryKey (`total-drop-cache`) инвалидирует Realtime-подписка**.
 
-## Проверка
+В `src/lib/module-live-spec.ts` таблица `player_day_drop_cache` подписана **только** внутри модуля `pit_active_players` (строка 52). Модуля `dashboard` в списке нет вообще, поэтому на Dashboard подписка на `player_day_drop_cache` не монтируется. Новые `IN`-транзакции обновляют кэш в БД, Player Statistics их видит (модуль подписан), а Dashboard продолжает отдавать значение с момента первого фетча — отсюда 1 655 000 vs 4 325 000.
 
-- Ручной вызов функции после деплоя → ожидаем HTTP 200, `errors: 0`, `processed == opened + reopened + skipped`.
-- В логах функции при следующем запуске — при появлении редкой ошибки видно `player_id` и причину, батч не прерывается.
+Это точно тот же класс бага, что раньше был на Reports/Dashboard: «Dashboard drift-ует от Player Statistics», и лечится не в `drop-source.ts`, а в реестре подписок.
 
-## Технические детали
+## Правка
 
-Файл: `supabase/functions/auto-checkin-tips/index.ts`, строки 36–66 (цикл `for (const p of players ...)`) — обернуть тело в `try { ... } catch (e) { console.error(...); errors++; continue; }`. Добавить `let errors = 0` рядом с существующими счётчиками и включить в JSON-ответ.
+Единственный файл: `src/lib/module-live-spec.ts`.
+
+Добавить в `MODULE_LIVE_SPEC` запись для модуля `dashboard` (ключ модуля Dashboard в `src/lib/modules.ts` — оставлю тот же, что зарегистрирован у роута `/dashboard`; проверю точное имя перед правкой):
+
+```ts
+dashboard: [
+  { table: "player_day_drop_cache", queryKeyPrefixes: [
+      "total-drop-cache",
+      "table-results-drop-cache",
+      "players-drop-cache-today",
+      "players-drop-cache-range",
+  ]},
+  { table: "transactions",        queryKeyPrefixes: ["transactions"] },
+  { table: "table_daily_results", queryKeyPrefixes: ["table-daily-results", "dashboard-table-results"] },
+  { table: "expenses",            queryKeyPrefixes: ["expenses", "expenses-approvals-count"] },
+  { table: "casino_visits",       queryKeyPrefixes: ["casino-visits", "casino-visits-live"] },
+],
+```
+
+Ничего кроме реестра подписок не трогаю: сам `useTotalDrop`, Dashboard.tsx, drop-source.ts, БД, триггеры — остаются как есть. Правила "Drop rule" из core memory не меняются.
+
+## Проверка после правки
+
+1. Открыть Dashboard на Arusha, зафиксировать Total Drop.
+2. В другой вкладке провести ещё один IN в Cage.
+3. Dashboard должен подхватить новое значение автоматически (без F5), и совпасть с `Player Tracking → TOTAL DROP` и с `SELECT sum(peak) FROM player_day_drop_cache …`.
