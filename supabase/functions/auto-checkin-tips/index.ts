@@ -30,38 +30,49 @@ Deno.serve(async (req) => {
       .eq("category", "casino");
     if (pErr) throw pErr;
 
-    const perCasino: Record<string, { opened: number; reopened: number; skipped: number }> = {};
-    let opened = 0, reopened = 0, skipped = 0;
+    const perCasino: Record<string, { opened: number; reopened: number; skipped: number; errors: number }> = {};
+    let opened = 0, reopened = 0, skipped = 0, errors = 0;
 
     for (const p of players || []) {
-      const bucket = (perCasino[p.casino_id] ||= { opened: 0, reopened: 0, skipped: 0 });
+      const bucket = (perCasino[p.casino_id] ||= { opened: 0, reopened: 0, skipped: 0, errors: 0 });
 
-      const { data: existing } = await admin
-        .from("casino_visits")
-        .select("id, checked_out_at")
-        .eq("casino_id", p.casino_id)
-        .eq("player_id", p.id)
-        .eq("date", today)
-        .maybeSingle();
-
-      if (!existing) {
-        const { error } = await admin.from("casino_visits").insert({
-          casino_id: p.casino_id,
-          player_id: p.id,
-          position: "hall",
-          checked_in_by: SYSTEM_USER_ID,
-        });
-        if (error) throw error;
-        opened++; bucket.opened++;
-      } else if (existing.checked_out_at) {
-        const { error } = await admin
+      try {
+        const { data: existing, error: selErr } = await admin
           .from("casino_visits")
-          .update({ checked_out_at: null })
-          .eq("id", existing.id);
-        if (error) throw error;
-        reopened++; bucket.reopened++;
-      } else {
-        skipped++; bucket.skipped++;
+          .select("id, checked_out_at")
+          .eq("casino_id", p.casino_id)
+          .eq("player_id", p.id)
+          .eq("date", today)
+          .maybeSingle();
+        if (selErr) throw selErr;
+
+        if (!existing) {
+          const { error } = await admin.from("casino_visits").insert({
+            casino_id: p.casino_id,
+            player_id: p.id,
+            position: "hall",
+            checked_in_by: SYSTEM_USER_ID,
+          });
+          if (error) throw error;
+          opened++; bucket.opened++;
+        } else if (existing.checked_out_at) {
+          const { error } = await admin
+            .from("casino_visits")
+            .update({ checked_out_at: null })
+            .eq("id", existing.id);
+          if (error) throw error;
+          reopened++; bucket.reopened++;
+        } else {
+          skipped++; bucket.skipped++;
+        }
+      } catch (e) {
+        errors++; bucket.errors++;
+        console.error("auto-checkin-tips player failed:", {
+          player_id: p.id,
+          casino_id: p.casino_id,
+          error: String((e as any)?.message || e),
+        });
+        continue;
       }
     }
 
@@ -73,6 +84,7 @@ Deno.serve(async (req) => {
         opened,
         reopened,
         skipped,
+        errors,
         per_casino: perCasino,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
