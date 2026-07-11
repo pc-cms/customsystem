@@ -110,7 +110,7 @@ export const fetchDealerAttendanceRows = (casinoId: string, startDate: string, e
 export const fetchBreaklistRows = (casinoId: string, date: string) =>
   fetchPaged<any>((from, to) => supabase
     .from("breaklist")
-    .select("*, gaming_tables(name)")
+    .select("*")
     .eq("casino_id", casinoId)
     .eq("date", date)
     .order("time_slot")
