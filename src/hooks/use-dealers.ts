@@ -110,7 +110,7 @@ export const fetchDealerAttendanceRows = (casinoId: string, startDate: string, e
 export const fetchBreaklistRows = (casinoId: string, date: string) =>
   fetchPaged<any>((from, to) => supabase
     .from("breaklist")
-    .select("*, gaming_tables(name)")
+    .select("*")
     .eq("casino_id", casinoId)
     .eq("date", date)
     .order("time_slot")
@@ -404,7 +404,8 @@ export const useBreaklistData = (date: string) => {
     // Safety net for realtime: even if the websocket drops a postgres_changes
     // event (token refresh edge cases, network blips), Pit operators on two PCs
     // must converge within seconds — not after a manual reload.
-    refetchInterval: pendingBreaklistMutations > 0 ? false : 3_500,
+    refetchInterval: pendingBreaklistMutations > 0 ? false : 15_000,
+    staleTime: 10_000,
   });
 };
 
