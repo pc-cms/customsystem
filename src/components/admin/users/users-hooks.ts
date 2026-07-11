@@ -312,6 +312,7 @@ export const useDisableUser = () => {
       return data;
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users:list-v2"] });
       qc.invalidateQueries({ queryKey: ["admin-users:profiles"] });
       toast.success("User disabled");
     },
