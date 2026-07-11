@@ -238,6 +238,7 @@ export const useUpdateUserRoles = () => {
       if (error) throw error;
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users:list-v2"] });
       qc.invalidateQueries({ queryKey: ["admin-users:roles"] });
       toast.success("Roles updated");
     },
