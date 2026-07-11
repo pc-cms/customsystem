@@ -1,36 +1,29 @@
-# Drop по столам = сырая сумма IN (для всех казино)
+## Контекст
 
-## Новое правило
-Per-table Drop везде (экран Reports/Table + печатный Shift Closing Report, все казино) = **простая сумма `transactions.amount` по столу за период, где `type = 'buy_in'` и `cancelled_at IS NULL`**. Без NEP-сплита, без peak-per-player, без `table_daily_results.drop_amount`, без `player_day_drop_cache`.
+Finding утверждает, что джоб падает из-за «открытых визитов со вчера». Проверка БД показала: таких визитов нет (все 31 открытых — за сегодня, 2026-07-11). Значит **описанный в finding сценарий на ваших данных не воспроизводится**, и логику «переносить вчерашний открытый визит на сегодня» добавлять НЕ нужно — это противоречит вашему бизнес-правилу (визиты не переезжают между днями).
 
-Total Drop (итоговая строка/KPI) остаётся из `player_day_drop_cache` через `fetchTotalDrop`. Per-table сумма может не совпадать с Total — by design.
+Однако сам код `supabase/functions/auto-checkin-tips/index.ts` имеет реальную слабость: любая ошибка на одном игроке (`throw error`) прерывает весь цикл и остальные игроки в этом запуске остаются без чек-ина. Причина ошибки может быть любой (гонка, испорченные данные, временный сбой сети) — но эффект один: HTTP 500 и часть казино не обработана.
 
-## Изменения
+## Что меняем
 
-### 1. `src/components/cage/ShiftClosingReport.tsx`
-- Убрать NEP-split (`splitTablesWindow`, import из `@/lib/nep-split`), убрать использование `dailyResults[t.id].drop`.
-- `inByTable` заполнять прямой агрегацией из уже загружаемого `tx`:
-  ```
-  Σ tx.amount где tx.type = 'buy_in' AND tx.table_id = t.id AND cancelled_at IS NULL
-  ```
-- В строках таблицы печатать это значение для **всех казино** (снять гейт `mwanza/arusha`). `·` если 0.
-- Total row по колонке DROP — оставить `totalDropFromCache`.
+Только устойчивость цикла в `supabase/functions/auto-checkin-tips/index.ts`. Никаких схем, индексов, cron, UI.
 
-### 2. `src/pages/TableResults.tsx`
-- Убрать гейт `showPerTableDrop` — показывать Drop по столам всем и всегда.
-- Заменить источник `drop` в ячейках:
-  - Было: `drop: Number(r.drop_amount || 0)` из `table_daily_results`.
-  - Станет: сумма IN из `transactions` по (business-day, table_id) за выбранный диапазон.
-- Добавить запрос в `transactions` рядом с существующим (по `casino_id`, диапазон дат, `type='buy_in'`, `cancelled_at IS NULL`) и построить карту `{date -> {table_id -> sumIn}}`.
-- Бизнес-день: rollover 07:00 EAT (Africa/Dar_es_Salaam) — группировать через `date(created_at AT TIME ZONE 'Africa/Dar_es_Salaam' - interval '7 hours')` или существующую утилиту проекта.
-- Итоги за период и drill-down `DayDetail`: тот же источник (Σ IN), не `drop_amount`.
+1. Обернуть блок обработки одного игрока в `try/catch`.
+2. При ошибке: `console.error` с `player_id`, `casino_id`, текстом ошибки; увеличить счётчик `errors`; `continue` к следующему игроку.
+3. В ответе возвращать `{ ok: true, opened, reopened, skipped, errors, per_casino }` со статусом 200 всегда, если сам запуск не упал на этапе выборки игроков.
+4. Общий `catch` снаружи оставить как есть — он ловит только глобальные сбои (не доступна БД, не удалось получить список игроков).
 
-### 3. Память
-- Обновить Core-правило Drop в `mem://index.md`:
-  «Per-table Drop = Σ IN (raw buy-in transactions) per table, во всех казино, на экране и в печати. Total Drop = SUM(peak) из `player_day_drop_cache` — считается отдельно, значения могут расходиться».
-- Обновить `mem://features/drop-source-of-truth` под новое правило (удалить упоминания NEP-split и `drop_amount` как источника per-table).
+## Что НЕ меняем
+
+- Не ищем открытые визиты по прошлым датам — по правилу проекта их не бывает.
+- Не трогаем `uniq_casino_visits_open_per_player`, не трогаем `casino_visits_casino_id_player_id_date_key`.
+- Не меняем расписание pg_cron, не меняем UI ручного чек-ина.
+
+## Проверка
+
+- Ручной вызов функции после деплоя → ожидаем HTTP 200, `errors: 0`, `processed == opened + reopened + skipped`.
+- В логах функции при следующем запуске — при появлении редкой ошибки видно `player_id` и причину, батч не прерывается.
 
 ## Технические детали
-- Тип транзакции IN — `'buy_in'` (подтвердить перед правкой быстрым SELECT на `transactions.type`).
-- Отменённые исключаются через `cancelled_at IS NULL`.
-- Никаких изменений в БД, миграций и RLS не требуется.
+
+Файл: `supabase/functions/auto-checkin-tips/index.ts`, строки 36–66 (цикл `for (const p of players ...)`) — обернуть тело в `try { ... } catch (e) { console.error(...); errors++; continue; }`. Добавить `let errors = 0` рядом с существующими счётчиками и включить в JSON-ответ.
