@@ -103,6 +103,7 @@ export const useUpdateUserProfile = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-users:list-v2"] });
       qc.invalidateQueries({ queryKey: ["admin-users:profiles"] });
+      qc.invalidateQueries({ queryKey: ["admin-users:roles"] });
       toast.success("User updated");
     },
     onError: (e: Error) => toast.error(e.message),
