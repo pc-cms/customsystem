@@ -55,6 +55,7 @@ const STANDING_MANAGERS = [
   "Sergey T",
   "Sveta",
   "Taras",
+  "Vadim",
   "Yurii",
 ];
 
