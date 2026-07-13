@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    allowedHosts: ["casinosystem.app", "www.casinosystem.app", "*.casinosystem.app"],
     hmr: {
       overlay: false,
     },
