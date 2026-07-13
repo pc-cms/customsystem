@@ -24,6 +24,7 @@ export function useBusinessDayFilter() {
     roles.includes("reception");
 
   const isPrivileged =
+    roles.includes("boss") ||
     roles.includes("manager") ||
     roles.includes("finance_manager") ||
     roles.includes("super_admin") ||

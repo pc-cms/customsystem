@@ -38,21 +38,31 @@ const monthStart = (): string => {
 async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<CasinoDay> {
   const mStart = monthStart();
 
-  // ── Live drop = SUM(peak) from player_day_drop_cache (single source of truth
-  //    for Total Drop across the app — see src/lib/drop-source.ts).
-  //    Result via chip snapshots aggregate (actual - expected) * denom.
-  const [dropTodayRes, snapRes, hcRes, slotsRes, mtdDropRes, mtdSnapRes, mtdSlotsRes] = await Promise.all([
+  // Result source of truth = Daily Balance (`fin_day_closing.tables_result` / `slots_result`).
+  // Fallback for today (day not closed yet): sum `shifts.tables_result` for the business day
+  // and `cage_slots_shifts.slots_result`.
+  // Drop stays authoritative: player_day_drop_cache (live) + cage_slots_shifts.manual_drop_slots.
+  const dayStartIso = `${businessDate}T04:00:00.000Z`;
+  const nextDay = new Date(businessDate);
+  nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+  const dayEndIso = `${nextDay.toISOString().slice(0, 10)}T04:00:00.000Z`;
+
+  const [
+    dropTodayRes,
+    hcRes,
+    slotsRes,
+    closingTodayRes,
+    shiftsTodayRes,
+    mtdDropRes,
+    mtdSlotsRes,
+    mtdClosingsRes,
+  ] = await Promise.all([
     // Live drop today from player_day_drop_cache (authoritative)
     supabase
       .from("player_day_drop_cache")
       .select("peak")
       .eq("casino_id", casinoId)
       .eq("business_date", businessDate),
-    // Live result today (chip snapshots via RPC)
-    supabase.rpc("chip_snapshots_latest", {
-      _casino_id: casinoId,
-      _date: businessDate,
-    }),
     // Head count (active visits today)
     supabase
       .from("casino_visits")
@@ -60,12 +70,26 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
       .eq("casino_id", casinoId)
       .eq("date", businessDate)
       .is("checked_out_at", null),
-    // Slots today
+    // Slots today (drop + result fallback)
     supabase
       .from("cage_slots_shifts")
       .select("manual_drop_slots, slots_result")
       .eq("casino_id", casinoId)
       .eq("business_date", businessDate),
+    // Daily Balance for today (may not exist yet)
+    supabase
+      .from("fin_day_closing")
+      .select("tables_result, slots_result")
+      .eq("casino_id", casinoId)
+      .eq("business_date", businessDate)
+      .maybeSingle(),
+    // Live result fallback: shifts.tables_result for the business day
+    supabase
+      .from("shifts")
+      .select("tables_result")
+      .eq("casino_id", casinoId)
+      .gte("opened_at", dayStartIso)
+      .lt("opened_at", dayEndIso),
     // MTD live drop from player_day_drop_cache
     supabase
       .from("player_day_drop_cache")
@@ -73,44 +97,54 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
       .eq("casino_id", casinoId)
       .gte("business_date", mStart)
       .lte("business_date", businessDate),
-    // MTD live result: sum of all snapshots' actual-expected for the month
-    supabase
-      .from("chip_snapshots")
-      .select("actual_quantity, expected_quantity, denomination, location_type")
-      .eq("casino_id", casinoId)
-      .gte("date", mStart)
-      .lte("date", businessDate)
-      .eq("location_type", "table"),
-    // MTD slots
+    // MTD slots (drop)
     supabase
       .from("cage_slots_shifts")
-      .select("manual_drop_slots, slots_result")
+      .select("manual_drop_slots")
+      .eq("casino_id", casinoId)
+      .gte("business_date", mStart)
+      .lte("business_date", businessDate),
+    // MTD result from Daily Balance
+    supabase
+      .from("fin_day_closing")
+      .select("tables_result, slots_result")
       .eq("casino_id", casinoId)
       .gte("business_date", mStart)
       .lte("business_date", businessDate),
   ]);
 
   const liveDrop = (dropTodayRes.data || []).reduce((s: number, r: any) => s + Number(r.peak || 0), 0);
-  const liveResult = ((snapRes.data as any[]) || [])
-    .filter((r) => r.location_type === "table")
-    .reduce((s, r) => s + (Number(r.actual_quantity || 0) - Number(r.expected_quantity || 0)) * Number(r.denomination || 0), 0);
   const headCount = hcRes.count ?? 0;
 
   const slotsRows = slotsRes.data || [];
   const slotsDrop = slotsRows.reduce((s: number, r: any) => s + Number(r.manual_drop_slots || 0), 0);
-  const slotsResult = slotsRows.reduce((s: number, r: any) => s + Number(r.slots_result || 0), 0);
+  const slotsFallback = slotsRows.reduce((s: number, r: any) => s + Number(r.slots_result || 0), 0);
+  const shiftsFallback = (shiftsTodayRes.data || []).reduce(
+    (s: number, r: any) => s + Number(r.tables_result || 0),
+    0,
+  );
+
+  // Prefer Daily Balance; fall back to live aggregates when no closing exists yet.
+  const closing = closingTodayRes.data as any | null;
+  const liveResult =
+    closing && closing.tables_result != null ? Number(closing.tables_result) : shiftsFallback;
+  const slotsResult =
+    closing && closing.slots_result != null ? Number(closing.slots_result) : slotsFallback;
 
   const totalDrop = liveDrop + slotsDrop;
   const totalResult = liveResult + slotsResult;
   const hold = (d: number, r: number) => (d > 0 ? (r / d) * 100 : 0);
 
-  const mtdDrop = (mtdDropRes.data || []).reduce((s: number, r: any) => s + Number(r.peak || 0), 0);
-  const mtdLiveResult = (mtdSnapRes.data || []).reduce(
-    (s: number, r: any) => s + (Number(r.actual_quantity || 0) - Number(r.expected_quantity || 0)) * Number(r.denomination || 0),
+  const mtdLiveDrop = (mtdDropRes.data || []).reduce((s: number, r: any) => s + Number(r.peak || 0), 0);
+  const mtdSlotsDrop = (mtdSlotsRes.data || []).reduce(
+    (s: number, r: any) => s + Number(r.manual_drop_slots || 0),
     0,
   );
-  const mtdSlotsResult = (mtdSlotsRes.data || []).reduce((s: number, r: any) => s + Number(r.slots_result || 0), 0);
-  const mtdResult = mtdLiveResult + mtdSlotsResult;
+  const mtdDrop = mtdLiveDrop + mtdSlotsDrop;
+  const mtdResult = (mtdClosingsRes.data || []).reduce(
+    (s: number, r: any) => s + Number(r.tables_result || 0) + Number(r.slots_result || 0),
+    0,
+  );
 
   return {
     casinoId,
