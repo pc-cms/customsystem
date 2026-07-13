@@ -35,116 +35,90 @@ const monthStart = (): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 };
 
+// Slots rule for Boss Dashboard: per closed slot shift, effective result =
+// system_shift_result − SLOTS_SHIFT_ADJUSTMENT (1,000,000). Sum across shifts.
+const SLOTS_SHIFT_ADJUSTMENT = 1_000_000;
+
 async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<CasinoDay> {
   const mStart = monthStart();
 
-  // Result source of truth = Daily Balance (`fin_day_closing.tables_result` / `slots_result`).
-  // Fallback for today (day not closed yet): sum `shifts.tables_result` for the business day
-  // and `cage_slots_shifts.slots_result`.
-  // Drop stays authoritative: player_day_drop_cache (live) + cage_slots_shifts.manual_drop_slots.
-  const dayStartIso = `${businessDate}T04:00:00.000Z`;
-  const nextDay = new Date(businessDate);
-  nextDay.setUTCDate(nextDay.getUTCDate() + 1);
-  const dayEndIso = `${nextDay.toISOString().slice(0, 10)}T04:00:00.000Z`;
-
+  // Source of truth:
+  //   Tables (Live) → RPC `compute_daily_diff` (same as Reports → Daily Balance):
+  //     drop = Σ player_day_drop_cache.peak; result = Σ shifts.tables_result WHERE status='closed'.
+  //   Slots → cage_slots_shifts: drop = Σ manual_drop_slots;
+  //           result = Σ (system_shift_result − 1M) over shifts in status ('submitted','reviewed','closed').
   const [
-    dropTodayRes,
+    dailyTodayRes,
+    dailyMtdRes,
     hcRes,
-    slotsRes,
-    closingTodayRes,
-    shiftsTodayRes,
-    mtdDropRes,
-    mtdSlotsRes,
-    mtdClosingsRes,
+    slotsTodayRes,
+    slotsMtdRes,
   ] = await Promise.all([
-    // Live drop today from player_day_drop_cache (authoritative)
-    supabase
-      .from("player_day_drop_cache")
-      .select("peak")
-      .eq("casino_id", casinoId)
-      .eq("business_date", businessDate),
-    // Head count (active visits today)
+    (supabase as any).rpc("compute_daily_diff", {
+      _casino_id: casinoId, _from: businessDate, _to: businessDate,
+    }),
+    (supabase as any).rpc("compute_daily_diff", {
+      _casino_id: casinoId, _from: mStart, _to: businessDate,
+    }),
     supabase
       .from("casino_visits")
       .select("id", { count: "exact", head: true })
       .eq("casino_id", casinoId)
       .eq("date", businessDate)
       .is("checked_out_at", null),
-    // Slots today (drop + result fallback)
     supabase
       .from("cage_slots_shifts")
-      .select("manual_drop_slots, slots_result")
+      .select("status, system_shift_result, manual_drop_slots")
       .eq("casino_id", casinoId)
       .eq("business_date", businessDate),
-    // Daily Balance for today (may not exist yet)
-    supabase
-      .from("fin_day_closing")
-      .select("tables_result, slots_result")
-      .eq("casino_id", casinoId)
-      .eq("business_date", businessDate)
-      .maybeSingle(),
-    // Live result fallback: shifts.tables_result for the business day
-    supabase
-      .from("shifts")
-      .select("tables_result")
-      .eq("casino_id", casinoId)
-      .gte("opened_at", dayStartIso)
-      .lt("opened_at", dayEndIso),
-    // MTD live drop from player_day_drop_cache
-    supabase
-      .from("player_day_drop_cache")
-      .select("peak")
-      .eq("casino_id", casinoId)
-      .gte("business_date", mStart)
-      .lte("business_date", businessDate),
-    // MTD slots (drop)
     supabase
       .from("cage_slots_shifts")
-      .select("manual_drop_slots")
-      .eq("casino_id", casinoId)
-      .gte("business_date", mStart)
-      .lte("business_date", businessDate),
-    // MTD result from Daily Balance
-    supabase
-      .from("fin_day_closing")
-      .select("tables_result, slots_result")
+      .select("business_date, status, system_shift_result, manual_drop_slots")
       .eq("casino_id", casinoId)
       .gte("business_date", mStart)
       .lte("business_date", businessDate),
   ]);
 
-  const liveDrop = (dropTodayRes.data || []).reduce((s: number, r: any) => s + Number(r.peak || 0), 0);
   const headCount = hcRes.count ?? 0;
 
-  const slotsRows = slotsRes.data || [];
-  const slotsDrop = slotsRows.reduce((s: number, r: any) => s + Number(r.manual_drop_slots || 0), 0);
-  const slotsFallback = slotsRows.reduce((s: number, r: any) => s + Number(r.slots_result || 0), 0);
-  const shiftsFallback = (shiftsTodayRes.data || []).reduce(
-    (s: number, r: any) => s + Number(r.tables_result || 0),
+  // Tables today
+  const todayRow = (dailyTodayRes.data || [])[0] || {};
+  const liveDrop = Number(todayRow.drop_r || 0);
+  const liveResult = Number(todayRow.result || 0);
+
+  // Slots today: closed/submitted/reviewed shifts count toward the result;
+  // drop is the manager-entered manual_drop_slots regardless of status.
+  const slotsRows = (slotsTodayRes.data || []) as any[];
+  const slotsClosedRows = slotsRows.filter(
+    (r) => r.status === "closed" || r.status === "submitted" || r.status === "reviewed",
+  );
+  const slotsDrop = slotsRows.reduce((s, r) => s + Number(r.manual_drop_slots || 0), 0);
+  const slotsResult = slotsClosedRows.reduce(
+    (s, r) => s + (Number(r.system_shift_result || 0) - SLOTS_SHIFT_ADJUSTMENT),
     0,
   );
-
-  // Prefer Daily Balance; fall back to live aggregates when no closing exists yet.
-  const closing = closingTodayRes.data as any | null;
-  const liveResult =
-    closing && closing.tables_result != null ? Number(closing.tables_result) : shiftsFallback;
-  const slotsResult =
-    closing && closing.slots_result != null ? Number(closing.slots_result) : slotsFallback;
 
   const totalDrop = liveDrop + slotsDrop;
   const totalResult = liveResult + slotsResult;
   const hold = (d: number, r: number) => (d > 0 ? (r / d) * 100 : 0);
 
-  const mtdLiveDrop = (mtdDropRes.data || []).reduce((s: number, r: any) => s + Number(r.peak || 0), 0);
-  const mtdSlotsDrop = (mtdSlotsRes.data || []).reduce(
-    (s: number, r: any) => s + Number(r.manual_drop_slots || 0),
+  // MTD
+  const mtdRows = (dailyMtdRes.data || []) as any[];
+  const mtdLiveDrop = mtdRows.reduce((s, r) => s + Number(r.drop_r || 0), 0);
+  const mtdLiveResult = mtdRows.reduce((s, r) => s + Number(r.result || 0), 0);
+
+  const mtdSlotsRows = (slotsMtdRes.data || []) as any[];
+  const mtdSlotsClosedRows = mtdSlotsRows.filter(
+    (r) => r.status === "closed" || r.status === "submitted" || r.status === "reviewed",
+  );
+  const mtdSlotsDrop = mtdSlotsRows.reduce((s, r) => s + Number(r.manual_drop_slots || 0), 0);
+  const mtdSlotsResult = mtdSlotsClosedRows.reduce(
+    (s, r) => s + (Number(r.system_shift_result || 0) - SLOTS_SHIFT_ADJUSTMENT),
     0,
   );
+
   const mtdDrop = mtdLiveDrop + mtdSlotsDrop;
-  const mtdResult = (mtdClosingsRes.data || []).reduce(
-    (s: number, r: any) => s + Number(r.tables_result || 0) + Number(r.slots_result || 0),
-    0,
-  );
+  const mtdResult = mtdLiveResult + mtdSlotsResult;
 
   return {
     casinoId,
