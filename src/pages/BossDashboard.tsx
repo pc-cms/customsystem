@@ -1,16 +1,22 @@
 /**
  * BossDashboard — million-dollar TV overview of multiple casinos.
  *
- * Two layouts: Rows (default, best for 75" TVs) and Columns.
- * Two resolution presets: FHD (1x) and 4K (2x) — scales via --tv-scale.
+ * Layout: each casino renders as a double block (TODAY | MTD).
+ * Landscape TV = two panels side-by-side; portrait = stacked.
+ * A COMPANY TOTAL panel at the bottom aggregates all selected casinos
+ * plus two 100 %-stacked share bars (MTD Drop / MTD Result) by casino.
+ *
+ * Two resolution presets: FHD (1x) and 4K (2x) — scales via base font size.
  * Auto-refreshes every 10s. Deep dark stage, glowing accents, huge numerals.
+ * Boss dashboard is strictly current business day (no date picker).
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { formatMoneyFull } from "@/lib/format-money";
-import { Check, Monitor, LayoutGrid, Rows3, Sparkles, Users, UserPlus, TrendingUp, Tv, Maximize2, Minimize2, Type } from "lucide-react";
+import { getBusinessDate } from "@/lib/business-day";
+import { Monitor, LayoutGrid, Sparkles, Users, UserPlus, Tv, Maximize2, Minimize2, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,22 +24,18 @@ import {
   useBossCasinoDays,
   useBossTopPlayers,
   useBossNewPlayers,
-  type CasinoDay,
-  type CasinoMetric,
 } from "@/hooks/use-boss-dashboard";
+import { CasinoDoubleBlock } from "@/components/boss/casino-double-block";
+import { CompanyTotalPanel } from "@/components/boss/company-total-panel";
 
-type Layout = "rows" | "columns";
 type Resolution = "fhd" | "uhd";
 type FontPreset = "s" | "m" | "l" | "xl";
 
 const LS_CASINOS = "boss-tv:casinos";
-const LS_LAYOUT = "boss-tv:layout";
 const LS_RES = "boss-tv:resolution";
 const LS_TV = "boss-tv:tv-mode";
 const LS_FONT = "boss-tv:font-preset";
 
-// Font preset multipliers — applied on top of resolution scale.
-// Tuned so "L" is comfortable on 75" @ FHD from 4–6m viewing distance.
 const FONT_PRESETS: Record<FontPreset, { mult: number; label: string }> = {
   s:  { mult: 0.85, label: "S" },
   m:  { mult: 1.0,  label: "M" },
@@ -53,186 +55,21 @@ const CASINO_ACCENTS: Record<string, string> = {
   mbeya:  "hsl(280 90% 70%)",  // violet
 };
 
+const FALLBACK_ACCENTS = [
+  "hsl(24 95% 60%)",
+  "hsl(200 100% 60%)",
+  "hsl(150 80% 55%)",
+  "hsl(280 90% 70%)",
+];
+
 const accentFor = (slug: string | null, idx: number) => {
   if (slug && CASINO_ACCENTS[slug]) return CASINO_ACCENTS[slug];
-  const fallbacks = Object.values(CASINO_ACCENTS);
-  return fallbacks[idx % fallbacks.length];
+  return FALLBACK_ACCENTS[idx % FALLBACK_ACCENTS.length];
 };
-
-const formatSigned = (n: number) => {
-  const s = formatMoneyFull(Math.abs(Math.round(n)));
-  return (n < 0 ? "-" : n > 0 ? "+" : "") + s;
-};
-
-const holdColor = (n: number) => {
-  if (n > 0) return "text-emerald-400";
-  if (n < 0) return "text-rose-400";
-  return "text-muted-foreground";
-};
-
-const MetricValue = ({
-  value,
-  kind = "plain",
-  accent,
-  size = "md",
-}: {
-  value: string;
-  kind?: "plain" | "signed" | "hold";
-  accent?: string;
-  size?: "sm" | "md" | "lg" | "xl";
-}) => {
-  const sizeCls = {
-    sm: "text-[1.4em]",
-    md: "text-[2em]",
-    lg: "text-[2.8em]",
-    xl: "text-[3.6em]",
-  }[size];
-  const color =
-    kind === "signed"
-      ? value.startsWith("-")
-        ? "text-rose-400"
-        : value.startsWith("+")
-        ? "text-emerald-400"
-        : "text-foreground"
-      : kind === "hold"
-      ? "text-foreground"
-      : "text-foreground";
-  return (
-    <span
-      className={`font-mono font-bold tabular-nums tracking-tight ${sizeCls} ${color}`}
-      style={accent ? { textShadow: `0 0 24px ${accent}55` } : undefined}
-    >
-      {value}
-    </span>
-  );
-};
-
-const MetricCell = ({
-  label,
-  value,
-  kind = "plain",
-  accent,
-}: { label: string; value: string; kind?: "plain" | "signed" | "hold"; accent?: string }) => (
-  <div className="flex flex-col gap-1 min-w-0">
-    <span className="text-[0.72em] uppercase tracking-[0.2em] text-muted-foreground/80 font-semibold">{label}</span>
-    <MetricValue value={value} kind={kind} accent={accent} size="lg" />
-  </div>
-);
-
-const SegmentRow = ({
-  label,
-  metric,
-  accent,
-}: { label: string; metric: CasinoMetric; accent: string }) => (
-  <div className="grid grid-cols-[9em_1fr_1fr_1fr_1fr] gap-6 items-center py-4 px-6 border-t border-white/5">
-    <div className="text-[1.1em] font-bold tracking-[0.16em] uppercase" style={{ color: accent }}>
-      {label}
-    </div>
-    <MetricCell label="Drop" value={formatMoneyFull(metric.drop)} accent={accent} />
-    <MetricCell label="Result" value={formatSigned(metric.result)} kind="signed" />
-    <MetricCell label="Hold %" value={`${metric.hold.toFixed(1)}%`} kind="hold" />
-    <MetricCell label="Head Count" value={String(metric.headCount)} />
-  </div>
-);
-
-const CasinoRow = ({
-  name,
-  slug,
-  accent,
-  day,
-}: { name: string; slug: string | null; accent: string; day: CasinoDay | undefined }) => {
-  return (
-    <section
-      className="relative rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent overflow-hidden"
-      style={{ boxShadow: `inset 0 1px 0 0 ${accent}22, 0 0 40px -20px ${accent}` }}
-    >
-      <header
-        className="flex items-center justify-between px-6 py-4"
-        style={{ background: `linear-gradient(90deg, ${accent}22 0%, transparent 60%)` }}
-      >
-        <div className="flex items-center gap-4">
-          <span
-            className="inline-block w-3 h-3 rounded-full"
-            style={{ background: accent, boxShadow: `0 0 20px ${accent}` }}
-          />
-          <h2 className="text-[1.6em] font-extrabold tracking-[0.22em] uppercase" style={{ color: accent }}>
-            {name}
-          </h2>
-          {slug && <span className="text-[0.7em] uppercase tracking-widest text-muted-foreground">{slug}</span>}
-        </div>
-        {day && (
-          <div className="flex items-center gap-3 text-[0.75em] text-muted-foreground">
-            <TrendingUp className="w-4 h-4" style={{ color: accent }} />
-            <span>MTD Drop {formatMoneyFull(day.mtd.drop)}</span>
-            <span className={holdColor(day.mtd.result)}>· Result {formatSigned(day.mtd.result)}</span>
-            <span>· Hold {day.mtd.hold.toFixed(1)}%</span>
-          </div>
-        )}
-      </header>
-      {day ? (
-        <>
-          <SegmentRow label="Total" metric={day.total} accent={accent} />
-          <SegmentRow label="Live" metric={day.live} accent={accent} />
-          <SegmentRow label="Slots" metric={day.slots} accent={accent} />
-        </>
-      ) : (
-        <div className="py-10 text-center text-muted-foreground">Loading…</div>
-      )}
-    </section>
-  );
-};
-
-const CasinoColumn = ({
-  name,
-  slug,
-  accent,
-  day,
-}: { name: string; slug: string | null; accent: string; day: CasinoDay | undefined }) => (
-  <section
-    className="relative rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent overflow-hidden"
-    style={{ boxShadow: `inset 0 1px 0 0 ${accent}22, 0 0 40px -20px ${accent}` }}
-  >
-    <header
-      className="flex flex-col gap-1 px-5 py-4"
-      style={{ background: `linear-gradient(180deg, ${accent}22 0%, transparent 100%)` }}
-    >
-      <div className="flex items-center gap-3">
-        <span className="inline-block w-3 h-3 rounded-full" style={{ background: accent, boxShadow: `0 0 20px ${accent}` }} />
-        <h2 className="text-[1.4em] font-extrabold tracking-[0.2em] uppercase" style={{ color: accent }}>{name}</h2>
-      </div>
-      {slug && <span className="text-[0.65em] uppercase tracking-widest text-muted-foreground pl-6">{slug}</span>}
-    </header>
-    {day ? (
-      <div className="flex flex-col divide-y divide-white/5">
-        {(["total", "live", "slots"] as const).map((seg) => {
-          const m = day[seg];
-          return (
-            <div key={seg} className="px-5 py-4">
-              <div className="text-[0.85em] font-bold tracking-[0.18em] uppercase mb-3" style={{ color: accent }}>{seg}</div>
-              <div className="grid grid-cols-2 gap-y-3 gap-x-4">
-                <MetricCell label="Drop" value={formatMoneyFull(m.drop)} accent={accent} />
-                <MetricCell label="Result" value={formatSigned(m.result)} kind="signed" />
-                <MetricCell label="Hold" value={`${m.hold.toFixed(1)}%`} />
-                <MetricCell label="HC" value={String(m.headCount)} />
-              </div>
-            </div>
-          );
-        })}
-        <div className="px-5 py-3 text-[0.72em] text-muted-foreground">
-          MTD {formatMoneyFull(day.mtd.drop)} · {formatSigned(day.mtd.result)} · {day.mtd.hold.toFixed(1)}%
-        </div>
-      </div>
-    ) : (
-      <div className="py-10 text-center text-muted-foreground">Loading…</div>
-    )}
-  </section>
-);
 
 export default function BossDashboard() {
   const { accessibleCasinos: ctxCasinos } = useCasino();
 
-  // Direct fetch — Boss/SuperAdmin sees all casinos network-wide regardless of
-  // subdomain resolution or CasinoProvider timing. RLS filters what's visible.
   const { data: allCasinos = [] } = useQuery({
     queryKey: ["boss-dashboard-casinos"],
     queryFn: async () => {
@@ -249,7 +86,6 @@ export default function BossDashboard() {
   const accessibleCasinos = allCasinos.length > 0 ? allCasinos : ctxCasinos;
 
   const [selectedIds, setSelectedIds] = useState<string[]>(() => readArray(LS_CASINOS) ?? []);
-  const [layout, setLayout] = useState<Layout>(() => (localStorage.getItem(LS_LAYOUT) as Layout) || "rows");
   const [resolution, setResolution] = useState<Resolution>(() => (localStorage.getItem(LS_RES) as Resolution) || "fhd");
   const [tvMode, setTvMode] = useState<boolean>(() => localStorage.getItem(LS_TV) === "1");
   const [fontPreset, setFontPreset] = useState<FontPreset>(
@@ -257,7 +93,6 @@ export default function BossDashboard() {
   );
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() => !!document.fullscreenElement);
 
-  // Default to all casinos; also drop stale IDs from previous sessions.
   useEffect(() => {
     if (accessibleCasinos.length === 0) return;
     const valid = new Set(accessibleCasinos.map((c) => c.id));
@@ -267,12 +102,10 @@ export default function BossDashboard() {
   }, [accessibleCasinos, selectedIds]);
 
   useEffect(() => { localStorage.setItem(LS_CASINOS, JSON.stringify(selectedIds)); }, [selectedIds]);
-  useEffect(() => { localStorage.setItem(LS_LAYOUT, layout); }, [layout]);
   useEffect(() => { localStorage.setItem(LS_RES, resolution); }, [resolution]);
   useEffect(() => { localStorage.setItem(LS_TV, tvMode ? "1" : "0"); }, [tvMode]);
   useEffect(() => { localStorage.setItem(LS_FONT, fontPreset); }, [fontPreset]);
 
-  // Fullscreen sync
   useEffect(() => {
     const onFs = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", onFs);
@@ -286,7 +119,6 @@ export default function BossDashboard() {
     } catch { /* user gesture / permissions */ }
   }, []);
 
-  // Press "T" to toggle TV mode, "F" for fullscreen
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -315,20 +147,17 @@ export default function BossDashboard() {
     return m;
   }, [topPlayers]);
 
-  // Cross-casino MTD summary
-  const mtdAll = useMemo(() => {
-    const drop = days.reduce((s, d) => s + d.mtd.drop, 0);
-    const result = days.reduce((s, d) => s + d.mtd.result, 0);
-    return { drop, result, hold: drop > 0 ? (result / drop) * 100 : 0 };
-  }, [days]);
-
   const resScale = resolution === "uhd" ? 1.7 : 1;
   const tvBoost = tvMode ? 1.25 : 1;
   const baseFont = 16 * resScale * FONT_PRESETS[fontPreset].mult * tvBoost;
 
-  // Overscan-safe padding for 75" TVs (typical ~5% overscan on consumer sets).
   const outerPad = tvMode ? "px-[5vw] py-[3vh]" : "px-8 pt-6 pb-4";
   const mainPad = tvMode ? "px-[5vw] pb-[4vh]" : "px-8 pb-8";
+
+  const businessDate = getBusinessDate();
+  const dateLabel = new Date(businessDate).toLocaleDateString("en-GB", {
+    weekday: "short", day: "2-digit", month: "short", year: "numeric",
+  });
 
   return (
     <div
@@ -353,13 +182,12 @@ export default function BossDashboard() {
               Premier Casino
             </h1>
             <span className="text-[0.7em] tracking-[0.32em] uppercase text-muted-foreground mt-1">
-              Boss · Live Overview · {new Date().toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "short" })}
+              Boss · Live Overview · {dateLabel}
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          {/* Casino picker */}
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 border-white/10 bg-white/5">
@@ -387,22 +215,6 @@ export default function BossDashboard() {
               </div>
             </PopoverContent>
           </Popover>
-
-          {/* Layout toggle */}
-          <div className="inline-flex rounded-md border border-white/10 bg-white/5 p-0.5">
-            <button
-              className={`px-3 py-1 text-xs rounded-sm inline-flex items-center gap-1.5 ${layout === "rows" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-              onClick={() => setLayout("rows")}
-            >
-              <Rows3 className="w-3.5 h-3.5" /> Rows
-            </button>
-            <button
-              className={`px-3 py-1 text-xs rounded-sm inline-flex items-center gap-1.5 ${layout === "columns" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-              onClick={() => setLayout("columns")}
-            >
-              <LayoutGrid className="w-3.5 h-3.5" /> Columns
-            </button>
-          </div>
 
           {/* Resolution toggle */}
           <div className="inline-flex rounded-md border border-white/10 bg-white/5 p-0.5">
@@ -434,7 +246,6 @@ export default function BossDashboard() {
             ))}
           </div>
 
-          {/* TV mode */}
           <Button
             variant={tvMode ? "default" : "outline"}
             size="sm"
@@ -445,7 +256,6 @@ export default function BossDashboard() {
             <Tv className="w-4 h-4" /> TV
           </Button>
 
-          {/* Fullscreen */}
           <Button
             variant="outline"
             size="sm"
@@ -458,23 +268,24 @@ export default function BossDashboard() {
         </div>
       </header>
 
-      {/* Casinos */}
+      {/* Casino double-blocks */}
       <main className={mainPad}>
+        <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
+          {casinos.map((c, i) => (
+            <CasinoDoubleBlock
+              key={c.id}
+              name={c.name}
+              slug={c.slug}
+              accent={accentFor(c.slug, i)}
+              day={dayMap[c.id]}
+            />
+          ))}
+        </div>
 
-        {layout === "rows" ? (
-          <div className="flex flex-col gap-4">
-            {casinos.map((c, i) => (
-              <CasinoRow key={c.id} name={c.name} slug={c.slug} accent={accentFor(c.slug, i)} day={dayMap[c.id]} />
-            ))}
-          </div>
-        ) : (
-          <div
-            className="grid gap-4"
-            style={{ gridTemplateColumns: `repeat(${Math.max(1, casinos.length)}, minmax(0, 1fr))` }}
-          >
-            {casinos.map((c, i) => (
-              <CasinoColumn key={c.id} name={c.name} slug={c.slug} accent={accentFor(c.slug, i)} day={dayMap[c.id]} />
-            ))}
+        {/* Company Total */}
+        {casinos.length > 0 && (
+          <div className="mt-6">
+            <CompanyTotalPanel casinos={casinos} days={days} accentFor={accentFor} />
           </div>
         )}
 
@@ -530,7 +341,7 @@ export default function BossDashboard() {
               <div className="text-center text-muted-foreground text-sm py-4">No new players yet</div>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {newPlayers.map((p, i) => {
+                {newPlayers.map((p) => {
                   const c = casinos.find((x) => x.id === p.casinoId);
                   const accent = accentFor(c?.slug ?? null, casinos.findIndex((x) => x.id === p.casinoId));
                   return (
@@ -548,19 +359,6 @@ export default function BossDashboard() {
                 })}
               </div>
             )}
-          </div>
-        </section>
-
-        {/* MTD combined */}
-        <section className="mt-8 rounded-2xl border border-white/10 bg-gradient-to-r from-primary/10 via-transparent to-primary/10 p-6">
-          <div className="flex items-center gap-8 flex-wrap justify-between">
-            <div>
-              <div className="text-[0.72em] uppercase tracking-[0.24em] text-muted-foreground font-bold mb-1">Month-to-Date · All selected</div>
-              <div className="text-[0.72em] text-muted-foreground">{casinos.length} casino{casinos.length === 1 ? "" : "s"}</div>
-            </div>
-            <MetricCell label="Total Drop" value={formatMoneyFull(mtdAll.drop)} />
-            <MetricCell label="Total Result" value={formatSigned(mtdAll.result)} kind="signed" />
-            <MetricCell label="Hold %" value={`${mtdAll.hold.toFixed(1)}%`} kind="hold" />
           </div>
         </section>
       </main>
