@@ -13,6 +13,7 @@ export function SolutionsGrid() {
 
         <StaggerContainer
           as="div"
+          className="l-solutions-two"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
@@ -30,7 +31,7 @@ export function SolutionsGrid() {
                     letterSpacing: "0.2em",
                   }}
                 >
-                  SOL-{String(i + 1).padStart(2, "0")}
+                  {String(i + 1).padStart(2, "0")}
                 </span>
                 <h3 style={{ marginTop: 12, marginBottom: 10 }}>{s.title}</h3>
                 <p style={{ fontSize: 13.5, lineHeight: 1.6 }}>{s.desc}</p>
@@ -39,6 +40,12 @@ export function SolutionsGrid() {
           ))}
         </StaggerContainer>
       </div>
+
+      <style>{`
+        @media (min-width: 700px) {
+          .l-solutions-two { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+      `}</style>
     </section>
   );
 }
