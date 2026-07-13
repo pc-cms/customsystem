@@ -1,82 +1,31 @@
-## Scope
+# Boss TV — переставить блоки: MTD сверху, TODAY снизу
 
-Переверстать Boss TV под TV 75" (Full HD / 4K) так:
+Добавляем к предыдущему плану ещё одно изменение по компоновке.
 
-- Каждое казино рендерится **двойным блоком**: две панели рядом — **TODAY** и **MTD** (Month-to-date).
-- На широком экране (landscape TV, ≥ 1920px) две панели идут **в колонки** (Today слева, MTD справа).
-- На узком/вертикальном (portrait TV или ≤ 1280px) — **две строки** (Today сверху, MTD снизу).
-- Внизу страницы — большой блок **COMPANY TOTAL** (сумма по всем казино) с той же двойной структурой Today | MTD.
-- Внутри COMPANY TOTAL остаются 100%-stacked-полоски (Drop и Result) с раскладкой по казино цветами.
+## Изменение порядка внутри каждого казино
 
-Всё это в масштабе TV-пресета: очень крупные цифры, безопасные overscan-отступы (уже реализовано `tv:` классами).
+Сейчас в `CasinoDoubleBlock`:
+- Landscape: TODAY (слева) | MTD (справа)
+- Portrait:  TODAY (сверху) / MTD (снизу)
 
-## Что показывает каждый блок
+Меняем на:
+- Landscape: **MTD (слева) | TODAY (справа)** — MTD ближе к общему тоталу
+- Portrait:  **MTD (сверху) / TODAY (снизу)** — под TODAY идут топ-игроки / новые игроки
 
-**Casino Today** (одна панель на казино):
-- Total Drop (крупно)
-- Total Result (крупно, +/- цветом)
-- Hold %
-- Head Count
-- Мелким шрифтом: Live drop / Slots drop разбивка
+Причина: под TODAY-блоком дальше по странице идут «сегодняшние» списки (Top Players, New Players), логично поставить их прямо под сегодняшними метриками. MTD-«тотал» уходит наверх карточки — визуально подсказывает, что это накопительная сумма.
 
-**Casino MTD** (вторая панель):
-- MTD Drop
-- MTD Result (+/-)
-- MTD Hold %
-
-**Company Total** (внизу, во всю ширину):
-- Today: Sum(Drop), Sum(Result), Overall Hold, Sum(Head Count) — крупным TV-шрифтом
-- MTD: Sum(Drop), Sum(Result), Overall Hold
-- Две 100%-stacked-полоски: MTD Drop и MTD Result с долями казино (цвета из `--boss-casino-1..4`)
-
-## Раскладка
-
-```
-┌──────────── Header (Premier Casino logo · Business Date · Live indicator) ────────────┐
-
-┌── Arusha ──────────────────────────┐  ┌── Premier ─────────────────────────┐
-│  TODAY            │   MTD          │  │  TODAY            │   MTD          │
-│  Drop  ###        │   Drop  ###    │  │  Drop  ###        │   Drop  ###    │
-│  Result ###       │   Result ###   │  │  Result ###       │   Result ###   │
-│  Hold %  · HC     │   Hold %       │  │  Hold %  · HC     │   Hold %       │
-└────────────────────────────────────┘  └────────────────────────────────────┘
-
-┌── Mwanza ──────────────────────────┐  ┌── Club  ───────────────────────────┐
-│  TODAY            │   MTD          │  │  TODAY            │   MTD          │
-│  ...              │   ...          │  │  ...              │   ...          │
-└────────────────────────────────────┘  └────────────────────────────────────┘
-
-┌──────────────── COMPANY TOTAL ────────────────────────────────────────────────┐
-│  TODAY  Drop ###  Result ###  Hold %  HC ###                                  │
-│  MTD    Drop ###  Result ###  Hold %                                          │
-│                                                                                │
-│  MTD DROP    [▓▓▓▓▓▓▓▓▓▓░░░░░░░░]  Arusha 32% · Premier 28% · Mwanza 24% · … │
-│  MTD RESULT  [▓▓▓▓▓▓▓░░░░░░░░░░░]  Arusha 40% · Premier 30% · Mwanza 20% · … │
-└────────────────────────────────────────────────────────────────────────────────┘
-
-┌── Top players today (per casino, 5 each) ── │ ── New players today (network) ──┐
-```
-
-Top Players / New Players — оставляем как сейчас, ниже COMPANY TOTAL.
-
-## Технические детали
-
-- Grid CSS: `grid grid-cols-1 xl:grid-cols-2 gap-6` для сетки казино. Каждый casino card = `grid grid-cols-1 landscape:grid-cols-2` внутри (портретный TV → строки, ландшафт → колонки). Используем media-query `@media (orientation: portrait)` вместо breakpoint px, чтобы на 4K-портрете layout был правильный.
-- Общая структура остаётся адаптивной: 4K = увеличенный шрифт через уже существующий TV-preset (font-size scale).
-- Company Total = отдельный компонент `<CompanyTotalPanel>` с двумя `<StackedShareBar>` внутри.
-- Данные для агрегата — редьюсим существующий массив `CasinoDay[]` из `useBossCasinoDays`. Никаких новых запросов.
-- Overscan-safe area (5% padding) сохраняется.
+То же самое применяем к `CompanyTotalPanel`:
+- Сверху — MTD Company Total (с 100 %-полосками по казино).
+- Снизу — TODAY Company Total.
 
 ## Файлы
 
-- `src/pages/BossDashboard.tsx` — переверстать под double-block + company total.
-- `src/components/boss/casino-double-block.tsx` — новый компонент (Today + MTD, две панели).
-- `src/components/boss/company-total-panel.tsx` — новый компонент.
-- `src/components/boss/stacked-share-bar.tsx` — как в прошлом плане.
-- `src/index.css` — переменные `--boss-casino-1..4` (hsl).
+- `src/components/boss/casino-double-block.tsx` — поменять порядок двух подблоков (и подписей "TODAY" / "MTD"), сохранить landscape/portrait поведение.
+- `src/components/boss/company-total-panel.tsx` — тот же swap на уровне компании.
 
-Всё, что было в предыдущих итерациях плана, остаётся:
-1. Скрыть у boss в `role_module_defaults`: `finance_summary`, `finance_budget`, `hr_warnings`, `tips_and_bonuses`, `expenses`, `cashless`, `groups`, `bank_checks`, `pit_rota`, `staff_rota`, `pit_attendance`, `staff_attendance`, `table_tracker`.
-2. Landing → `/boss-dashboard` для boss (в `RoleGuard` fallback + early Navigate в `Dashboard.tsx`).
-3. Drop today считать из `player_day_drop_cache` (live) + `cage_slots_shifts.manual_drop_slots` (slots).
-4. Никакого date-picker — только сегодняшний бизнес-день.
+## Остаётся в силе из прошлого плана
+
+1. `use-boss-dashboard.ts`: Result (live/slots/total, today и MTD) читаем из `fin_day_closing` (`tables_result`, `slots_result`); fallback — `shifts.tables_result` и `cage_slots_shifts.slots_result`. Убрать `chip_snapshots` из хука.
+2. `use-business-day-filter.ts`: добавить `boss` в `isPrivileged` — Igor получает полную глубину истории для Player Tracker, Tables, Player Profile и т.п.
+
+Никаких изменений в SQL, RLS и данных.
