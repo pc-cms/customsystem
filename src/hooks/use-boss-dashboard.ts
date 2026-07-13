@@ -38,17 +38,16 @@ const monthStart = (): string => {
 async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<CasinoDay> {
   const mStart = monthStart();
 
-  // ── Live game: sum IN transactions per casino for today (drop),
-  //    result via chip snapshots aggregate (actual - expected) * denom.
-  const [dropRes, snapRes, hcRes, slotsRes, mtdDropRes, mtdSnapRes, mtdSlotsRes] = await Promise.all([
-    // Live drop today (transactions IN/BUY)
+  // ── Live drop = SUM(peak) from player_day_drop_cache (single source of truth
+  //    for Total Drop across the app — see src/lib/drop-source.ts).
+  //    Result via chip snapshots aggregate (actual - expected) * denom.
+  const [dropTodayRes, snapRes, hcRes, slotsRes, mtdDropRes, mtdSnapRes, mtdSlotsRes] = await Promise.all([
+    // Live drop today from player_day_drop_cache (authoritative)
     supabase
-      .from("transactions")
-      .select("amount")
+      .from("player_day_drop_cache")
+      .select("peak")
       .eq("casino_id", casinoId)
-      .eq("business_date", businessDate)
-      .is("cancelled_at", null)
-      .in("type", ["in", "buy"]),
+      .eq("business_date", businessDate),
     // Live result today (chip snapshots via RPC)
     supabase.rpc("chip_snapshots_latest", {
       _casino_id: casinoId,
@@ -67,7 +66,7 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
       .select("manual_drop_slots, slots_result")
       .eq("casino_id", casinoId)
       .eq("business_date", businessDate),
-    // MTD live drop from player_day_drop_cache (single source of truth for Total drop)
+    // MTD live drop from player_day_drop_cache
     supabase
       .from("player_day_drop_cache")
       .select("peak")
@@ -75,7 +74,6 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
       .gte("business_date", mStart)
       .lte("business_date", businessDate),
     // MTD live result: sum of all snapshots' actual-expected for the month
-    // (cheap proxy: latest per day is used per-day, but sum here suffices for TV)
     supabase
       .from("chip_snapshots")
       .select("actual_quantity, expected_quantity, denomination, location_type")
