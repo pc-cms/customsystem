@@ -90,7 +90,7 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
       .lte("business_date", businessDate),
   ]);
 
-  const liveDrop = (dropRes.data || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+  const liveDrop = (dropTodayRes.data || []).reduce((s: number, r: any) => s + Number(r.peak || 0), 0);
   const liveResult = ((snapRes.data as any[]) || [])
     .filter((r) => r.location_type === "table")
     .reduce((s, r) => s + (Number(r.actual_quantity || 0) - Number(r.expected_quantity || 0)) * Number(r.denomination || 0), 0);
