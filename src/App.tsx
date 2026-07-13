@@ -44,6 +44,7 @@ const PosManagerCogs = lazy(() => import("@/pages/pos/PosManagerCogs"));
 
 // Lazy-loaded pages — each becomes a separate chunk
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const BossDashboard = lazy(() => import("@/pages/BossDashboard"));
 
 const PlayerProfile = lazy(() => import("@/pages/PlayerProfile"));
 const Cage = lazy(() => import("@/pages/Cage"));
@@ -405,6 +406,8 @@ const ProtectedRoutes = () => {
       <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={<RoleGuard path="/"><Dashboard /></RoleGuard>} />
+          <Route path="/boss-dashboard" element={<RoleGuard path="/boss-dashboard"><ErrorBoundary><BossDashboard /></ErrorBoundary></RoleGuard>} />
+
           <Route path="/players" element={<Navigate to="/player-statistics" replace />} />
           <Route path="/players/:id" element={<RoleGuard path="/players/:id"><PlayerProfile /></RoleGuard>} />
           
