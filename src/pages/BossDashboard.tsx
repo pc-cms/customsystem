@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { formatMoneyFull } from "@/lib/format-money";
 import { getBusinessDate } from "@/lib/business-day";
-import { Monitor, LayoutGrid, Sparkles, Users, UserPlus, Tv, Maximize2, Minimize2, Type } from "lucide-react";
+import { Monitor, LayoutGrid, Sparkles, Users, UserPlus, Tv, Maximize2, Minimize2, Type, Rows3, Columns3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -30,11 +30,13 @@ import { CompanyTotalPanel } from "@/components/boss/company-total-panel";
 
 type Resolution = "fhd" | "uhd";
 type FontPreset = "s" | "m" | "l" | "xl";
+type BlockOrient = "auto" | "cols" | "rows";
 
 const LS_CASINOS = "boss-tv:casinos";
 const LS_RES = "boss-tv:resolution";
 const LS_TV = "boss-tv:tv-mode";
 const LS_FONT = "boss-tv:font-preset";
+const LS_ORIENT = "boss-tv:block-orient";
 
 const FONT_PRESETS: Record<FontPreset, { mult: number; label: string }> = {
   s:  { mult: 0.85, label: "S" },
@@ -91,6 +93,9 @@ export default function BossDashboard() {
   const [fontPreset, setFontPreset] = useState<FontPreset>(
     () => (localStorage.getItem(LS_FONT) as FontPreset) || "l",
   );
+  const [blockOrient, setBlockOrient] = useState<BlockOrient>(
+    () => (localStorage.getItem(LS_ORIENT) as BlockOrient) || "auto",
+  );
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() => !!document.fullscreenElement);
 
   useEffect(() => {
@@ -105,6 +110,7 @@ export default function BossDashboard() {
   useEffect(() => { localStorage.setItem(LS_RES, resolution); }, [resolution]);
   useEffect(() => { localStorage.setItem(LS_TV, tvMode ? "1" : "0"); }, [tvMode]);
   useEffect(() => { localStorage.setItem(LS_FONT, fontPreset); }, [fontPreset]);
+  useEffect(() => { localStorage.setItem(LS_ORIENT, blockOrient); }, [blockOrient]);
 
   useEffect(() => {
     const onFs = () => setIsFullscreen(!!document.fullscreenElement);
