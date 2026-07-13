@@ -5,10 +5,10 @@
  * Two resolution presets: FHD (1x) and 4K (2x) — scales via --tv-scale.
  * Auto-refreshes every 10s. Deep dark stage, glowing accents, huge numerals.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCasino } from "@/lib/casino-context";
 import { formatMoneyFull } from "@/lib/format-money";
-import { Check, Monitor, LayoutGrid, Rows3, Sparkles, Users, UserPlus, TrendingUp } from "lucide-react";
+import { Check, Monitor, LayoutGrid, Rows3, Sparkles, Users, UserPlus, TrendingUp, Tv, Maximize2, Minimize2, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,10 +22,22 @@ import {
 
 type Layout = "rows" | "columns";
 type Resolution = "fhd" | "uhd";
+type FontPreset = "s" | "m" | "l" | "xl";
 
 const LS_CASINOS = "boss-tv:casinos";
 const LS_LAYOUT = "boss-tv:layout";
 const LS_RES = "boss-tv:resolution";
+const LS_TV = "boss-tv:tv-mode";
+const LS_FONT = "boss-tv:font-preset";
+
+// Font preset multipliers — applied on top of resolution scale.
+// Tuned so "L" is comfortable on 75" @ FHD from 4–6m viewing distance.
+const FONT_PRESETS: Record<FontPreset, { mult: number; label: string }> = {
+  s:  { mult: 0.85, label: "S" },
+  m:  { mult: 1.0,  label: "M" },
+  l:  { mult: 1.3,  label: "L" },
+  xl: { mult: 1.65, label: "XL" },
+};
 
 const readArray = (key: string): string[] | null => {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; }
@@ -220,6 +232,11 @@ export default function BossDashboard() {
   const [selectedIds, setSelectedIds] = useState<string[]>(() => readArray(LS_CASINOS) ?? []);
   const [layout, setLayout] = useState<Layout>(() => (localStorage.getItem(LS_LAYOUT) as Layout) || "rows");
   const [resolution, setResolution] = useState<Resolution>(() => (localStorage.getItem(LS_RES) as Resolution) || "fhd");
+  const [tvMode, setTvMode] = useState<boolean>(() => localStorage.getItem(LS_TV) === "1");
+  const [fontPreset, setFontPreset] = useState<FontPreset>(
+    () => (localStorage.getItem(LS_FONT) as FontPreset) || "l",
+  );
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(() => !!document.fullscreenElement);
 
   // Default to all accessible casinos on first load.
   useEffect(() => {
@@ -231,6 +248,33 @@ export default function BossDashboard() {
   useEffect(() => { localStorage.setItem(LS_CASINOS, JSON.stringify(selectedIds)); }, [selectedIds]);
   useEffect(() => { localStorage.setItem(LS_LAYOUT, layout); }, [layout]);
   useEffect(() => { localStorage.setItem(LS_RES, resolution); }, [resolution]);
+  useEffect(() => { localStorage.setItem(LS_TV, tvMode ? "1" : "0"); }, [tvMode]);
+  useEffect(() => { localStorage.setItem(LS_FONT, fontPreset); }, [fontPreset]);
+
+  // Fullscreen sync
+  useEffect(() => {
+    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
+
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+      else await document.exitFullscreen();
+    } catch { /* user gesture / permissions */ }
+  }, []);
+
+  // Press "T" to toggle TV mode, "F" for fullscreen
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "t" || e.key === "T") setTvMode((v) => !v);
+      if (e.key === "f" || e.key === "F") toggleFullscreen();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [toggleFullscreen]);
 
   const casinos = useMemo(
     () => accessibleCasinos.filter((c) => selectedIds.includes(c.id)),
@@ -257,8 +301,13 @@ export default function BossDashboard() {
     return { drop, result, hold: drop > 0 ? (result / drop) * 100 : 0 };
   }, [days]);
 
-  const tvScale = resolution === "uhd" ? 1.7 : 1;
-  const baseFont = 16 * tvScale;
+  const resScale = resolution === "uhd" ? 1.7 : 1;
+  const tvBoost = tvMode ? 1.25 : 1;
+  const baseFont = 16 * resScale * FONT_PRESETS[fontPreset].mult * tvBoost;
+
+  // Overscan-safe padding for 75" TVs (typical ~5% overscan on consumer sets).
+  const outerPad = tvMode ? "px-[5vw] py-[3vh]" : "px-8 pt-6 pb-4";
+  const mainPad = tvMode ? "px-[5vw] pb-[4vh]" : "px-8 pb-8";
 
   return (
     <div
@@ -270,16 +319,25 @@ export default function BossDashboard() {
       }}
     >
       {/* Header */}
-      <header className="flex items-center justify-between gap-6 px-8 pt-6 pb-4">
-        <div className="flex items-center gap-3">
-          <Sparkles className="w-6 h-6 text-primary" />
-          <h1 className="text-[1.4em] font-extrabold tracking-[0.28em] uppercase">Boss · Live Overview</h1>
-          <span className="text-[0.72em] text-muted-foreground ml-4">
-            {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "short", year: "numeric" })}
-          </span>
+      <header className={`flex items-center justify-between gap-6 ${outerPad}`}>
+        <div className="flex items-center gap-4 min-w-0">
+          <div
+            className="relative flex items-center justify-center w-12 h-12 rounded-xl border border-white/10"
+            style={{ background: "linear-gradient(135deg, hsl(var(--primary) / 0.35), hsl(280 60% 40% / 0.25))", boxShadow: "0 0 30px hsl(var(--primary) / 0.35)" }}
+          >
+            <Sparkles className="w-6 h-6 text-primary" />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <h1 className="text-[1.5em] font-extrabold tracking-[0.28em] uppercase leading-none truncate">
+              Casino System
+            </h1>
+            <span className="text-[0.7em] tracking-[0.32em] uppercase text-muted-foreground mt-1">
+              Boss · Live Overview · {new Date().toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "short" })}
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           {/* Casino picker */}
           <Popover>
             <PopoverTrigger asChild>
@@ -340,11 +398,48 @@ export default function BossDashboard() {
               <Monitor className="w-3.5 h-3.5" /> 4K
             </button>
           </div>
+
+          {/* Font preset */}
+          <div className="inline-flex rounded-md border border-white/10 bg-white/5 p-0.5" title="Font size preset">
+            <span className="px-2 py-1 text-muted-foreground inline-flex items-center"><Type className="w-3.5 h-3.5" /></span>
+            {(Object.keys(FONT_PRESETS) as FontPreset[]).map((p) => (
+              <button
+                key={p}
+                className={`px-2 py-1 text-xs rounded-sm font-bold ${fontPreset === p ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                onClick={() => setFontPreset(p)}
+              >
+                {FONT_PRESETS[p].label}
+              </button>
+            ))}
+          </div>
+
+          {/* TV mode */}
+          <Button
+            variant={tvMode ? "default" : "outline"}
+            size="sm"
+            className={`gap-2 ${tvMode ? "" : "border-white/10 bg-white/5"}`}
+            onClick={() => setTvMode((v) => !v)}
+            title="Toggle TV mode (T) — overscan-safe padding & big text"
+          >
+            <Tv className="w-4 h-4" /> TV
+          </Button>
+
+          {/* Fullscreen */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 border-white/10 bg-white/5"
+            onClick={toggleFullscreen}
+            title="Fullscreen (F)"
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </Button>
         </div>
       </header>
 
       {/* Casinos */}
-      <main className="px-8 pb-8">
+      <main className={mainPad}>
+
         {layout === "rows" ? (
           <div className="flex flex-col gap-4">
             {casinos.map((c, i) => (
