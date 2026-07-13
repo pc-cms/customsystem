@@ -7,7 +7,7 @@ import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons"
 import { usePlayers, useTransactions, useGamingTables } from "@/hooks/use-casino-data";
 import { useDashboardTableResults } from "@/hooks/use-dashboard-table-results";
 import { useAuth } from "@/lib/auth-context";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/currency";
 import { canSeePlayerFinancials } from "@/lib/role-access";
 import { getBusinessDate } from "@/lib/business-day";
