@@ -150,10 +150,11 @@ export const CasinoProvider = ({ children }: { children: ReactNode }) => {
 
   const isSuperOrFM = roles.includes("super_admin") || roles.includes("finance_manager");
   const isSurveillance = roles.includes("surveillance");
-  // Surveillance has network-wide visibility (read-only via existing access controls).
+  const isBoss = roles.includes("boss");
+  // Surveillance and Boss have network-wide visibility (read-only via existing access controls).
   // Per-casino isolation is enforced by the subdomain → activeCasinoId resolver below.
-  const hasGlobalAccess = isSuperOrFM || isSurveillance;
-  const isSummaryMode = detectedSlug === "__premier__" && isSuperOrFM;
+  const hasGlobalAccess = isSuperOrFM || isSurveillance || isBoss;
+  const isSummaryMode = detectedSlug === "__premier__" && (isSuperOrFM || isBoss);
 
   // Resolve subdomain slug → casino regardless of user access list.
   // This guarantees that on `mwanza.casinosystem.app` the active casino is ALWAYS
