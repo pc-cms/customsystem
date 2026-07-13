@@ -77,9 +77,18 @@ interface Props {
   slug: string | null;
   accent: string;
   day: CasinoDay | undefined;
+  /** "auto" respects orientation media queries; "cols" forces horizontal; "rows" forces vertical. */
+  orientation?: "auto" | "cols" | "rows";
 }
 
-export function CasinoDoubleBlock({ name, slug, accent, day }: Props) {
+export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto" }: Props) {
+  const layoutClass =
+    orientation === "cols"
+      ? "flex flex-row divide-y-0 divide-x divide-white/5"
+      : orientation === "rows"
+      ? "flex flex-col divide-y divide-x-0 divide-white/5"
+      : "flex flex-col portrait:flex-col landscape:flex-row divide-y divide-white/5 landscape:divide-y-0 landscape:divide-x";
+
   return (
     <section
       className="relative rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent overflow-hidden"
@@ -109,7 +118,7 @@ export function CasinoDoubleBlock({ name, slug, accent, day }: Props) {
       </header>
 
       {day ? (
-        <div className="flex flex-col portrait:flex-col landscape:flex-row divide-y divide-white/5 landscape:divide-y-0 landscape:divide-x">
+        <div className={layoutClass}>
           <Panel title="MTD" accent={accent}>
             <Kpi label="Drop" value={formatMoneyFull(day.mtd.drop)} accent={accent} />
             <Kpi label="Result" value={formatSigned(day.mtd.result)} tone="signed" />
