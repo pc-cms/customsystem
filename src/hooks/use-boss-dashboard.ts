@@ -44,16 +44,10 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
 
   // Source of truth:
   //   Tables (Live) → RPC `compute_daily_diff` (same as Reports → Daily Balance):
-  //     drop = Σ player_day_drop_cache.peak; result = Σ shifts.tables_result WHERE status='closed'.
-  //   Slots → cage_slots_shifts: drop = Σ manual_drop_slots;
-  //           result = Σ (system_shift_result − 1M) over shifts in status ('submitted','reviewed','closed').
-  const [
-    dailyTodayRes,
-    dailyMtdRes,
-    hcRes,
-    slotsTodayRes,
-    slotsMtdRes,
-  ] = await Promise.all([
+  //     drop = Σ player_day_drop_cache.peak (same source as Player Statistics);
+  //     result = Σ shifts.tables_result WHERE status='closed'.
+  //   Slots → temporarily disabled on Boss TV (all zeros) by request.
+  const [dailyTodayRes, dailyMtdRes, hcRes] = await Promise.all([
     (supabase as any).rpc("compute_daily_diff", {
       _casino_id: casinoId, _from: businessDate, _to: businessDate,
     }),
@@ -66,65 +60,33 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
       .eq("casino_id", casinoId)
       .eq("date", businessDate)
       .is("checked_out_at", null),
-    supabase
-      .from("cage_slots_shifts")
-      .select("status, system_shift_result, manual_drop_slots")
-      .eq("casino_id", casinoId)
-      .eq("business_date", businessDate),
-    supabase
-      .from("cage_slots_shifts")
-      .select("business_date, status, system_shift_result, manual_drop_slots")
-      .eq("casino_id", casinoId)
-      .gte("business_date", mStart)
-      .lte("business_date", businessDate),
   ]);
 
   const headCount = hcRes.count ?? 0;
 
-  // Tables today
   const todayRow = (dailyTodayRes.data || [])[0] || {};
   const liveDrop = Number(todayRow.drop_r || 0);
   const liveResult = Number(todayRow.result || 0);
 
-  // Slots today: closed/submitted/reviewed shifts count toward the result;
-  // drop is the manager-entered manual_drop_slots regardless of status.
-  const slotsRows = (slotsTodayRes.data || []) as any[];
-  const slotsClosedRows = slotsRows.filter(
-    (r) => r.status === "closed" || r.status === "submitted" || r.status === "reviewed",
-  );
-  const slotsDrop = slotsRows.reduce((s, r) => s + Number(r.manual_drop_slots || 0), 0);
-  const slotsResult = slotsClosedRows.reduce(
-    (s, r) => s + (Number(r.system_shift_result || 0) - SLOTS_SHIFT_ADJUSTMENT),
-    0,
-  );
+  // Slots: intentionally zeroed on Boss TV for now.
+  const slotsDrop = 0;
+  const slotsResult = 0;
 
   const totalDrop = liveDrop + slotsDrop;
   const totalResult = liveResult + slotsResult;
   const hold = (d: number, r: number) => (d > 0 ? (r / d) * 100 : 0);
 
-  // MTD
   const mtdRows = (dailyMtdRes.data || []) as any[];
   const mtdLiveDrop = mtdRows.reduce((s, r) => s + Number(r.drop_r || 0), 0);
   const mtdLiveResult = mtdRows.reduce((s, r) => s + Number(r.result || 0), 0);
-
-  const mtdSlotsRows = (slotsMtdRes.data || []) as any[];
-  const mtdSlotsClosedRows = mtdSlotsRows.filter(
-    (r) => r.status === "closed" || r.status === "submitted" || r.status === "reviewed",
-  );
-  const mtdSlotsDrop = mtdSlotsRows.reduce((s, r) => s + Number(r.manual_drop_slots || 0), 0);
-  const mtdSlotsResult = mtdSlotsClosedRows.reduce(
-    (s, r) => s + (Number(r.system_shift_result || 0) - SLOTS_SHIFT_ADJUSTMENT),
-    0,
-  );
-
-  const mtdDrop = mtdLiveDrop + mtdSlotsDrop;
-  const mtdResult = mtdLiveResult + mtdSlotsResult;
+  const mtdDrop = mtdLiveDrop;
+  const mtdResult = mtdLiveResult;
 
   return {
     casinoId,
     total: { drop: totalDrop, result: totalResult, headCount, hold: hold(totalDrop, totalResult) },
     live: { drop: liveDrop, result: liveResult, headCount, hold: hold(liveDrop, liveResult) },
-    slots: { drop: slotsDrop, result: slotsResult, headCount: 0, hold: hold(slotsDrop, slotsResult) },
+    slots: { drop: 0, result: 0, headCount: 0, hold: 0 },
     mtd: { drop: mtdDrop, result: mtdResult, hold: hold(mtdDrop, mtdResult) },
   };
 }
