@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 import arushaLogo from "@/assets/arusha-logo.png";
 import mwanzaLogo from "@/assets/mwanza-logo.png";
 
-type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager";
+type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager" | "boss";
 
 // Section labels for the hybrid grouping (roles + shared ANALYTICS)
 type Section = "OVERVIEW" | "PIT" | "STAFF" | "CASHIER" | "RECEPTION" | "FINANCE" | "HR" | "ANALYTICS" | "CRM" | "MARKETING" | "BAR" | "PROMO" | "SYSTEM";
@@ -50,6 +50,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   // OVERVIEW
   { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "OVERVIEW" },
+  { to: "/boss-dashboard", icon: LayoutDashboard, label: "Boss TV", roles: ["super_admin", "boss" as AppRole], section: "OVERVIEW" },
 
 
   // PIT — alphabetical order (trackers + incidents).

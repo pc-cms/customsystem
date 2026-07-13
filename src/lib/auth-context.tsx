@@ -4,7 +4,7 @@ import type { User, Session } from "@supabase/supabase-js";
 import { setSessionUserId } from "@/hooks/use-session-state";
 import { AUTH_INVALID_REFRESH_EVENT, clearStoredAuthSession, isInvalidRefreshTokenError } from "@/lib/auth-storage";
 
-type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager";
+type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager" | "boss";
 
 const PROFILE_LOAD_TIMEOUT_MS = 8000;
 
@@ -92,10 +92,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (profileError) console.error("fetchProfile profile error", profileError);
     if (rolesError) console.error("fetchProfile roles error", rolesError);
 
+    const rawRoles = (userRoles ?? []).map(r => r.role as AppRole);
+    // Boss inherits all manager UI permissions: synthesize a "manager" role
+    // so every hardcoded `.includes("manager")` check across the app grants
+    // access without having to touch dozens of call sites.
+    if (rawRoles.includes("boss") && !rawRoles.includes("manager")) {
+      rawRoles.push("manager");
+    }
     return {
       profileCasinoId: profile?.casino_id ?? null,
       displayName: profile?.display_name ?? null,
-      roles: (userRoles ?? []).map(r => r.role as AppRole),
+      roles: rawRoles,
     };
   }, []);
 
