@@ -6,6 +6,8 @@
  * Auto-refreshes every 10s. Deep dark stage, glowing accents, huge numerals.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { formatMoneyFull } from "@/lib/format-money";
 import { Check, Monitor, LayoutGrid, Rows3, Sparkles, Users, UserPlus, TrendingUp, Tv, Maximize2, Minimize2, Type } from "lucide-react";
