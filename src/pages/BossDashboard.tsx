@@ -5,10 +5,10 @@
  * Two resolution presets: FHD (1x) and 4K (2x) — scales via --tv-scale.
  * Auto-refreshes every 10s. Deep dark stage, glowing accents, huge numerals.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCasino } from "@/lib/casino-context";
 import { formatMoneyFull } from "@/lib/format-money";
-import { Check, Monitor, LayoutGrid, Rows3, Sparkles, Users, UserPlus, TrendingUp } from "lucide-react";
+import { Check, Monitor, LayoutGrid, Rows3, Sparkles, Users, UserPlus, TrendingUp, Tv, Maximize2, Minimize2, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,10 +22,22 @@ import {
 
 type Layout = "rows" | "columns";
 type Resolution = "fhd" | "uhd";
+type FontPreset = "s" | "m" | "l" | "xl";
 
 const LS_CASINOS = "boss-tv:casinos";
 const LS_LAYOUT = "boss-tv:layout";
 const LS_RES = "boss-tv:resolution";
+const LS_TV = "boss-tv:tv-mode";
+const LS_FONT = "boss-tv:font-preset";
+
+// Font preset multipliers — applied on top of resolution scale.
+// Tuned so "L" is comfortable on 75" @ FHD from 4–6m viewing distance.
+const FONT_PRESETS: Record<FontPreset, { mult: number; label: string }> = {
+  s:  { mult: 0.85, label: "S" },
+  m:  { mult: 1.0,  label: "M" },
+  l:  { mult: 1.3,  label: "L" },
+  xl: { mult: 1.65, label: "XL" },
+};
 
 const readArray = (key: string): string[] | null => {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; }
