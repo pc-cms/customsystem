@@ -101,7 +101,7 @@ export function ProductScreens() {
   return (
     <section className="l-section" style={{ background: "rgba(10,13,18,0.5)" }}>
       <div className="l-container">
-        <SectionLabel code="07" label={t.screens.eyebrow} />
+        <SectionLabel code="06" label={t.screens.eyebrow} />
         <h2 className="l-section-title">{t.screens.title}</h2>
         <p className="l-section-sub">{t.screens.sub}</p>
 

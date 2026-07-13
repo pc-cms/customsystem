@@ -28,7 +28,7 @@ export function WhyCustom() {
           }}
         >
           <div>
-            <SectionLabel code="05" label={t.whyCustom.eyebrow} />
+            <SectionLabel code="04" label={t.whyCustom.eyebrow} />
             <h2 className="l-section-title">{t.whyCustom.title}</h2>
             <p className="l-section-sub" style={{ marginBottom: 32 }}>
               {t.whyCustom.sub}

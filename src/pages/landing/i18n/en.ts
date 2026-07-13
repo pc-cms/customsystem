@@ -113,12 +113,16 @@ export const en = {
     cta: "Request Consultation",
   },
   solutions: {
-    eyebrow: "Project types",
-    title: "Greenfield or Brownfield",
-    sub: "Two ways casinos start with CMS. The same system, scoped to where you are starting from.",
+    eyebrow: "Solutions",
+    title: "Solutions for Casino Businesses Worldwide",
+    sub: "CMS adapts to single-room operators, multi-location groups and casinos with strict local-server or compliance requirements.",
     items: [
-      { title: "Greenfield", desc: "A new casino or operation being built from scratch. We design the system around your floor, workflows and compliance from day one." },
-      { title: "Brownfield", desc: "An existing casino with staff, systems and current processes. We integrate and migrate without stopping the floor." },
+      { title: "Single Land-Based Casino", desc: "A complete operational system for one location — cage, pit, finance, players, staff." },
+      { title: "Multi-Location Casino Group", desc: "Centralized visibility across locations with strict per-casino data isolation." },
+      { title: "Casino with Local Server Requirement", desc: "On-premise deployment with offline-first workflows and optional cloud mirroring." },
+      { title: "Casino Needing Finance Control", desc: "Wallet ledger, budgets, reserves, daily review and audit-ready financial trails." },
+      { title: "Casino Replacing Excel and Paper Logs", desc: "Replace fragmented spreadsheets with one operational system the whole team uses." },
+      { title: "Operator Building a Player Club / Loyalty App", desc: "Branded mobile club app with wallet, verification, shop and promotions." },
     ],
   },
   about: {

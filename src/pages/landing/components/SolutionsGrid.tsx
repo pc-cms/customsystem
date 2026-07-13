@@ -7,13 +7,12 @@ export function SolutionsGrid() {
   return (
     <section id="solutions" className="l-section">
       <div className="l-container">
-        <SectionLabel code="03" label={t.solutions.eyebrow} />
+        <SectionLabel code="09" label={t.solutions.eyebrow} />
         <h2 className="l-section-title">{t.solutions.title}</h2>
         <p className="l-section-sub">{t.solutions.sub}</p>
 
         <StaggerContainer
           as="div"
-          className="l-solutions-two"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
@@ -31,7 +30,7 @@ export function SolutionsGrid() {
                     letterSpacing: "0.2em",
                   }}
                 >
-                  {String(i + 1).padStart(2, "0")}
+                  SOL-{String(i + 1).padStart(2, "0")}
                 </span>
                 <h3 style={{ marginTop: 12, marginBottom: 10 }}>{s.title}</h3>
                 <p style={{ fontSize: 13.5, lineHeight: 1.6 }}>{s.desc}</p>
@@ -40,12 +39,6 @@ export function SolutionsGrid() {
           ))}
         </StaggerContainer>
       </div>
-
-      <style>{`
-        @media (min-width: 700px) {
-          .l-solutions-two { grid-template-columns: repeat(2, 1fr) !important; }
-        }
-      `}</style>
     </section>
   );
 }

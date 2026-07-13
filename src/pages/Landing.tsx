@@ -10,7 +10,6 @@ import { SiteHeader } from "./landing/components/SiteHeader";
 import { Hero } from "./landing/components/Hero";
 import { OperatorsStrip } from "./landing/components/OperatorsStrip";
 import { BuiltForLandBased } from "./landing/components/BuiltForLandBased";
-import { SolutionsGrid } from "./landing/components/SolutionsGrid";
 import { ModulesGrid } from "./landing/components/ModulesGrid";
 import { WhyCustom } from "./landing/components/WhyCustom";
 import { IntegrationsLanguages } from "./landing/components/IntegrationsLanguages";
@@ -33,7 +32,6 @@ export default function Landing() {
           <Hero />
           <OperatorsStrip />
           <BuiltForLandBased />
-          <SolutionsGrid />
           <ModulesGrid />
           <WhyCustom />
           <IntegrationsLanguages />

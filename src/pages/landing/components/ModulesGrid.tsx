@@ -22,7 +22,7 @@ export function ModulesGrid() {
   return (
     <section id="modules" className="l-section">
       <div className="l-container">
-        <SectionLabel code="04" label={t.modules.eyebrow} />
+        <SectionLabel code="03" label={t.modules.eyebrow} />
         <h2 className="l-section-title">{t.modules.title}</h2>
         <p className="l-section-sub">{t.modules.sub}</p>
 

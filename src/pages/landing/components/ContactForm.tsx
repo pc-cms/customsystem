@@ -52,7 +52,7 @@ export function ContactForm() {
   return (
     <section id="contact" className="l-section">
       <div className="l-container">
-        <SectionLabel code="10" label={t.contact.eyebrow} />
+        <SectionLabel code="11" label={t.contact.eyebrow} />
         <h2 className="l-section-title">{t.contact.title}</h2>
         <p className="l-section-sub" style={{ maxWidth: 680 }}>{t.contact.sub}</p>
 

@@ -18,7 +18,7 @@ const QUOTES: Quote[] = [
   {
     initials: "AR",
     name: "Cage Manager",
-    role: "Land-based casino operator",
+    role: "Land-based casino, Africa",
     quote:
       "Cage shifts, cash counts and daily closing finally match the actual money in the safe. The audit trail alone is worth it.",
   },
