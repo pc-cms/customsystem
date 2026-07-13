@@ -251,6 +251,23 @@ export default function BossDashboard() {
               </button>
             ))}
           </div>
+          {/* Block orientation: MTD vs TODAY layout */}
+          <div className="inline-flex rounded-md border border-white/10 bg-white/5 p-0.5" title="Layout: auto / columns / rows">
+            <button
+              className={`px-2 py-1 text-xs rounded-sm ${blockOrient === "auto" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+              onClick={() => setBlockOrient("auto")}
+            >Auto</button>
+            <button
+              className={`px-2 py-1 rounded-sm inline-flex items-center ${blockOrient === "cols" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+              onClick={() => setBlockOrient("cols")}
+              title="Columns (MTD | Today)"
+            ><Columns3 className="w-3.5 h-3.5" /></button>
+            <button
+              className={`px-2 py-1 rounded-sm inline-flex items-center ${blockOrient === "rows" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+              onClick={() => setBlockOrient("rows")}
+              title="Rows (MTD / Today)"
+            ><Rows3 className="w-3.5 h-3.5" /></button>
+          </div>
 
           <Button
             variant={tvMode ? "default" : "outline"}
