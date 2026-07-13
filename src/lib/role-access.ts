@@ -1,7 +1,7 @@
 // Role-based data visibility configuration
 // Controls what financial/sensitive data each role can see
 
-type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "pos_waiter" | "pos_bartender" | "pos_manager";
+type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "pos_waiter" | "pos_bartender" | "pos_manager" | "boss";
 
 export type FinancialScope = "all" | "shift" | "none";
 
@@ -16,7 +16,7 @@ export type FinancialScope = "all" | "shift" | "none";
  * but in player-card / player-report contexts they get "none" — no lifetime totals.
  */
 export const getFinancialScope = (roles: string[]): FinancialScope => {
-  if (roles.includes("manager") || roles.includes("finance_manager") || roles.includes("surveillance") || roles.includes("super_admin")) {
+  if (roles.includes("boss") || roles.includes("manager") || roles.includes("finance_manager") || roles.includes("surveillance") || roles.includes("super_admin")) {
     return "all";
   }
   if (roles.includes("pit") || roles.includes("shift_manager")) {
@@ -44,13 +44,14 @@ export const canSeeAllTimeData = (roles: string[]): boolean => {
  * always show only the primary one (or hide entirely).
  */
 const ROLE_PRIORITY: AppRole[] = [
-  "super_admin", "finance_manager", "manager", "shift_manager", "hr",
+  "super_admin", "boss", "finance_manager", "manager", "shift_manager", "hr",
   "pit", "cashier", "cashier_slots", "reception", "surveillance",
   "pos_manager", "pos_bartender", "pos_waiter",
 ];
 
 const ROLE_LABELS: Record<AppRole, string> = {
   super_admin: "Super Admin",
+  boss: "Boss",
   finance_manager: "Finance",
   manager: "Manager",
   shift_manager: "Shift Manager",

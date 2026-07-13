@@ -10,6 +10,7 @@
  */
 export type ModuleKey =
   | "dashboard"
+  | "boss_dashboard"
   | "pit_rota"
   | "pit_breaklist"
   | "pit_attendance"
