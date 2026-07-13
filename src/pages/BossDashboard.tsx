@@ -301,6 +301,7 @@ export default function BossDashboard() {
               slug={c.slug}
               accent={accentFor(c.slug, i)}
               day={dayMap[c.id]}
+              orientation={blockOrient}
             />
           ))}
         </div>
