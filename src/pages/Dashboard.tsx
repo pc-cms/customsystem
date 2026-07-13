@@ -96,6 +96,10 @@ const ALL_SHIFTS = ["D", "M", "N", "G", "E", "L", "O"] as const;
 
 const Dashboard = () => {
   const { displayName, roles, casinoId } = useAuth();
+  // Boss role lands on the TV overview instead of the operational dashboard.
+  if (roles.includes("boss") && !roles.includes("super_admin")) {
+    return <Navigate to="/boss-dashboard" replace />;
+  }
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
   const { data: players = [], isLoading: loadingPlayers } = usePlayers();
