@@ -110,6 +110,12 @@ export function CasinoDoubleBlock({ name, slug, accent, day }: Props) {
 
       {day ? (
         <div className="flex flex-col portrait:flex-col landscape:flex-row divide-y divide-white/5 landscape:divide-y-0 landscape:divide-x">
+          <Panel title="MTD" accent={accent}>
+            <Kpi label="Drop" value={formatMoneyFull(day.mtd.drop)} accent={accent} />
+            <Kpi label="Result" value={formatSigned(day.mtd.result)} tone="signed" />
+            <Kpi label="Hold %" value={`${day.mtd.hold.toFixed(1)}%`} />
+          </Panel>
+
           <Panel title="Today" accent={accent}>
             <Kpi label="Drop" value={formatMoneyFull(day.total.drop)} accent={accent} />
             <Kpi label="Result" value={formatSigned(day.total.result)} tone="signed" />
@@ -143,12 +149,6 @@ export function CasinoDoubleBlock({ name, slug, accent, day }: Props) {
                 </span>
               </div>
             </div>
-          </Panel>
-
-          <Panel title="MTD" accent={accent}>
-            <Kpi label="Drop" value={formatMoneyFull(day.mtd.drop)} accent={accent} />
-            <Kpi label="Result" value={formatSigned(day.mtd.result)} tone="signed" />
-            <Kpi label="Hold %" value={`${day.mtd.hold.toFixed(1)}%`} />
           </Panel>
         </div>
       ) : (

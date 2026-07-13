@@ -110,6 +110,15 @@ export function CompanyTotalPanel({ casinos, days, accentFor }: Props) {
       <div className="flex flex-col landscape:flex-row divide-y landscape:divide-y-0 landscape:divide-x divide-white/5">
         <div className="flex-1 p-6 flex flex-col gap-5">
           <div className="text-[0.72em] font-extrabold tracking-[0.28em] uppercase text-primary/90">
+            MTD
+          </div>
+          <Kpi label="Total Drop" value={formatMoneyFull(mtd.drop)} />
+          <Kpi label="Total Result" value={formatSigned(mtd.result)} tone="signed" />
+          <Kpi label="Hold %" value={`${mtdHold.toFixed(1)}%`} />
+        </div>
+
+        <div className="flex-1 p-6 flex flex-col gap-5">
+          <div className="text-[0.72em] font-extrabold tracking-[0.28em] uppercase text-primary/90">
             Today
           </div>
           <Kpi label="Total Drop" value={formatMoneyFull(today.drop)} />
@@ -118,15 +127,6 @@ export function CompanyTotalPanel({ casinos, days, accentFor }: Props) {
             <Kpi label="Hold %" value={`${todayHold.toFixed(1)}%`} />
             <Kpi label="Head Count" value={String(today.headCount)} />
           </div>
-        </div>
-
-        <div className="flex-1 p-6 flex flex-col gap-5">
-          <div className="text-[0.72em] font-extrabold tracking-[0.28em] uppercase text-primary/90">
-            MTD
-          </div>
-          <Kpi label="Total Drop" value={formatMoneyFull(mtd.drop)} />
-          <Kpi label="Total Result" value={formatSigned(mtd.result)} tone="signed" />
-          <Kpi label="Hold %" value={`${mtdHold.toFixed(1)}%`} />
         </div>
       </div>
 
