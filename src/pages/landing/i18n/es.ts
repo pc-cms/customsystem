@@ -115,16 +115,12 @@ export const es: Dict = {
     cta: "Solicitar Consulta",
   },
   solutions: {
-    eyebrow: "Soluciones",
-    title: "Soluciones para Casinos en Todo el Mundo",
-    sub: "CMS se adapta a operadores de una sola sala, grupos multi-ubicación y casinos con requerimientos estrictos de servidor local o cumplimiento.",
+    eyebrow: "Tipos de proyecto",
+    title: "Greenfield o Brownfield",
+    sub: "Dos formas de comenzar con CMS. El mismo sistema, adaptado a su punto de partida.",
     items: [
-      { title: "Casino Físico Único", desc: "Sistema operativo completo para una ubicación — caja, pit, finanzas, jugadores, personal." },
-      { title: "Grupo Multi-Ubicación", desc: "Visibilidad centralizada con aislamiento estricto de datos por casino." },
-      { title: "Casino con Servidor Local", desc: "Despliegue on-premise con flujos offline-first y mirroring opcional al cloud." },
-      { title: "Casino con Control Financiero", desc: "Wallet ledger, presupuestos, reservas, revisión diaria y trazas de auditoría." },
-      { title: "Reemplazo de Excel y Papel", desc: "Reemplace hojas fragmentadas por un sistema operativo que todo el equipo usa." },
-      { title: "Operador con Club / Loyalty", desc: "App móvil de club con wallet, verificación, tienda y promociones." },
+      { title: "Greenfield", desc: "Un casino u operación nueva construida desde cero. Diseñamos el sistema alrededor de su sala, flujos y cumplimiento desde el día uno." },
+      { title: "Brownfield", desc: "Un casino existente con personal, sistemas y procesos actuales. Integramos y migramos sin detener la sala." },
     ],
   },
   about: {
