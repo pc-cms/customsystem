@@ -33,6 +33,7 @@ export default function Landing() {
           <Hero />
           <OperatorsStrip />
           <BuiltForLandBased />
+          <SolutionsGrid />
           <ModulesGrid />
           <WhyCustom />
           <IntegrationsLanguages />
