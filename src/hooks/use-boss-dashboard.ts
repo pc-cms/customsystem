@@ -176,24 +176,35 @@ export function useBossNewPlayers(casinoIds: string[]) {
     queryKey: ["boss-new-players", casinoIds, today],
     queryFn: async () => {
       if (!casinoIds.length) return [] as NewPlayer[];
-      const { data } = await supabase
+      // Today's visits with player info
+      const { data: todayVisits } = await supabase
         .from("casino_visits")
-        .select("casino_id, player_id, players!inner(first_name, last_name, nickname, visits_count)")
+        .select("casino_id, player_id, players!inner(first_name, last_name, nickname)")
         .in("casino_id", casinoIds)
-        .eq("date", today)
-        .limit(500);
-      const rows = (data || []) as any[];
-      const seen = new Set<string>();
-      const out: NewPlayer[] = [];
+        .eq("date", today);
+      const rows = (todayVisits || []) as any[];
+      // Dedup (casino, player)
+      const uniq = new Map<string, { casinoId: string; playerId: string; name: string }>();
       for (const r of rows) {
         const key = `${r.casino_id}:${r.player_id}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
+        if (uniq.has(key)) continue;
         const p = r.players || {};
-        const visits = Number(p.visits_count || 0);
-        if (visits > 3) continue;
         const name = p.nickname || `${p.first_name || ""} ${p.last_name || ""}`.trim() || "—";
-        out.push({ casinoId: r.casino_id, playerId: r.player_id, name, visits });
+        uniq.set(key, { casinoId: r.casino_id, playerId: r.player_id, name });
+      }
+      if (uniq.size === 0) return [];
+      // Count all-time visits per player_id via a single grouped fetch (approximate: fetch counts)
+      const playerIds = Array.from(new Set(Array.from(uniq.values()).map((v) => v.playerId)));
+      const { data: counts } = await supabase
+        .from("casino_visits")
+        .select("player_id")
+        .in("player_id", playerIds);
+      const cmap = new Map<string, number>();
+      (counts || []).forEach((r: any) => cmap.set(r.player_id, (cmap.get(r.player_id) || 0) + 1));
+      const out: NewPlayer[] = [];
+      for (const v of uniq.values()) {
+        const visits = cmap.get(v.playerId) || 1;
+        if (visits <= 3) out.push({ ...v, visits });
       }
       return out.slice(0, 40);
     },
@@ -201,3 +212,4 @@ export function useBossNewPlayers(casinoIds: string[]) {
     refetchInterval: 30_000,
   });
 }
+
