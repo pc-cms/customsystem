@@ -329,7 +329,7 @@ export default function BossDashboard() {
           </div>
           <div className="flex flex-col min-w-0">
             <h1 className="text-[1.5em] font-extrabold tracking-[0.28em] uppercase leading-none truncate">
-              Casino System
+              Premier Casino
             </h1>
             <span className="text-[0.7em] tracking-[0.32em] uppercase text-muted-foreground mt-1">
               Boss · Live Overview · {new Date().toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "short" })}
