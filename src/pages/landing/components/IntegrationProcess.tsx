@@ -7,7 +7,7 @@ export function IntegrationProcess() {
   return (
     <section id="partners" className="l-section">
       <div className="l-container">
-        <SectionLabel code="05" label={t.integration.eyebrow} />
+        <SectionLabel code="06" label={t.integration.eyebrow} />
         <h2 className="l-section-title">{t.integration.title}</h2>
         <p className="l-section-sub">{t.integration.sub}</p>
 

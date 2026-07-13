@@ -17,7 +17,7 @@ export function AboutCMS() {
           }}
         >
           <div>
-            <SectionLabel code="10" label={t.about.eyebrow} />
+            <SectionLabel code="09" label={t.about.eyebrow} />
             <h2 className="l-section-title">{t.about.title}</h2>
           </div>
           <div>

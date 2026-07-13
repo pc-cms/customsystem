@@ -7,7 +7,7 @@ export function SolutionsGrid() {
   return (
     <section id="solutions" className="l-section">
       <div className="l-container">
-        <SectionLabel code="09" label={t.solutions.eyebrow} />
+        <SectionLabel code="03" label={t.solutions.eyebrow} />
         <h2 className="l-section-title">{t.solutions.title}</h2>
         <p className="l-section-sub">{t.solutions.sub}</p>
 
