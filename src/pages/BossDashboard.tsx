@@ -6,6 +6,8 @@
  * Auto-refreshes every 10s. Deep dark stage, glowing accents, huge numerals.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { formatMoneyFull } from "@/lib/format-money";
 import { Check, Monitor, LayoutGrid, Rows3, Sparkles, Users, UserPlus, TrendingUp, Tv, Maximize2, Minimize2, Type } from "lucide-react";
@@ -227,7 +229,24 @@ const CasinoColumn = ({
 );
 
 export default function BossDashboard() {
-  const { accessibleCasinos } = useCasino();
+  const { accessibleCasinos: ctxCasinos } = useCasino();
+
+  // Direct fetch — Boss/SuperAdmin sees all casinos network-wide regardless of
+  // subdomain resolution or CasinoProvider timing. RLS filters what's visible.
+  const { data: allCasinos = [] } = useQuery({
+    queryKey: ["boss-dashboard-casinos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("casinos")
+        .select("id, name, slug, code")
+        .order("name");
+      if (error) throw error;
+      return (data ?? []) as { id: string; name: string; slug: string | null; code: string }[];
+    },
+    staleTime: 60_000,
+  });
+
+  const accessibleCasinos = allCasinos.length > 0 ? allCasinos : ctxCasinos;
 
   const [selectedIds, setSelectedIds] = useState<string[]>(() => readArray(LS_CASINOS) ?? []);
   const [layout, setLayout] = useState<Layout>(() => (localStorage.getItem(LS_LAYOUT) as Layout) || "rows");
@@ -238,12 +257,14 @@ export default function BossDashboard() {
   );
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() => !!document.fullscreenElement);
 
-  // Default to all accessible casinos on first load.
+  // Default to all casinos; also drop stale IDs from previous sessions.
   useEffect(() => {
-    if (selectedIds.length === 0 && accessibleCasinos.length > 0) {
-      setSelectedIds(accessibleCasinos.map((c) => c.id));
-    }
-  }, [accessibleCasinos, selectedIds.length]);
+    if (accessibleCasinos.length === 0) return;
+    const valid = new Set(accessibleCasinos.map((c) => c.id));
+    const kept = selectedIds.filter((id) => valid.has(id));
+    if (kept.length === 0) setSelectedIds(accessibleCasinos.map((c) => c.id));
+    else if (kept.length !== selectedIds.length) setSelectedIds(kept);
+  }, [accessibleCasinos, selectedIds]);
 
   useEffect(() => { localStorage.setItem(LS_CASINOS, JSON.stringify(selectedIds)); }, [selectedIds]);
   useEffect(() => { localStorage.setItem(LS_LAYOUT, layout); }, [layout]);
