@@ -16,7 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { formatMoneyFull } from "@/lib/format-money";
 import { getBusinessDate } from "@/lib/business-day";
-import { Monitor, LayoutGrid, Sparkles, Users, UserPlus, Tv, Maximize2, Minimize2, Type, Rows3, Columns3 } from "lucide-react";
+import { Monitor, LayoutGrid, Users, UserPlus, Tv, Maximize2, Minimize2, Type, Rows3, Columns3 } from "lucide-react";
+import premierClubLogo from "/premier-club-logo.svg";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -178,10 +179,10 @@ export default function BossDashboard() {
       <header className={`flex items-center justify-between gap-6 ${outerPad}`}>
         <div className="flex items-center gap-4 min-w-0">
           <div
-            className="relative flex items-center justify-center w-12 h-12 rounded-xl border border-white/10"
-            style={{ background: "linear-gradient(135deg, hsl(var(--primary) / 0.35), hsl(280 60% 40% / 0.25))", boxShadow: "0 0 30px hsl(var(--primary) / 0.35)" }}
+            className="relative flex items-center justify-center w-14 h-14 rounded-full border border-white/10 overflow-hidden bg-white/5"
+            style={{ boxShadow: "0 0 30px hsl(var(--primary) / 0.35)" }}
           >
-            <Sparkles className="w-6 h-6 text-primary" />
+            <img src={premierClubLogo} alt="Premier Club" className="w-11 h-11 object-contain" />
           </div>
           <div className="flex flex-col min-w-0">
             <h1 className="text-[1.5em] font-extrabold tracking-[0.28em] uppercase leading-none truncate">
