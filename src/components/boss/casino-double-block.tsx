@@ -1,14 +1,12 @@
 /**
  * CasinoDoubleBlock — per-casino card showing TODAY and MTD side-by-side.
  *
- * Layout rules:
- *   - Landscape (default TV orientation): two columns (Today | MTD).
- *   - Portrait: two rows (Today on top, MTD below).
- *
- * All colors read from the accent passed in (already a semantic hsl value).
+ * Each panel = a 3×3 grid: rows Tables / Slots / TOTAL × cols Drop / Result / Hold%.
+ * The TOTAL row is the headline (huge numbers, glowing). Six headline figures
+ * per casino (3 Today + 3 MTD) with tables/slots breakdown right above them.
  */
 import { formatMoneyFull } from "@/lib/format-money";
-import type { CasinoDay } from "@/hooks/use-boss-dashboard";
+import type { CasinoDay, CasinoMetric } from "@/hooks/use-boss-dashboard";
 
 const formatSigned = (n: number) => {
   const s = formatMoneyFull(Math.abs(Math.round(n)));
@@ -16,17 +14,17 @@ const formatSigned = (n: number) => {
 };
 
 const signedColor = (n: number) =>
-  n > 0 ? "text-emerald-400" : n < 0 ? "text-rose-400" : "text-foreground";
+  n > 0 ? "text-emerald-400" : n < 0 ? "text-rose-400" : "text-foreground/80";
 
-const Kpi = ({
-  label,
+const Cell = ({
   value,
   tone = "plain",
+  size = "sm",
   accent,
 }: {
-  label: string;
   value: string;
   tone?: "plain" | "signed";
+  size?: "sm" | "xl";
   accent?: string;
 }) => {
   const color =
@@ -37,36 +35,100 @@ const Kpi = ({
         ? "text-emerald-400"
         : "text-foreground"
       : "text-foreground";
+  const sizeClass =
+    size === "xl"
+      ? "text-[2.2em] leading-none font-bold"
+      : "text-[0.95em] leading-none font-medium text-foreground/75";
   return (
-    <div className="flex flex-col gap-1 min-w-0">
-      <span className="text-[0.62em] uppercase tracking-[0.24em] text-muted-foreground/80 font-semibold">
-        {label}
-      </span>
-      <span
-        className={`font-mono font-bold tabular-nums tracking-tight text-[2.4em] leading-none ${color}`}
-        style={accent ? { textShadow: `0 0 24px ${accent}55` } : undefined}
-      >
-        {value}
-      </span>
-    </div>
+    <span
+      className={`font-mono tabular-nums tracking-tight text-right ${sizeClass} ${color}`}
+      style={size === "xl" && accent ? { textShadow: `0 0 22px ${accent}55` } : undefined}
+    >
+      {value}
+    </span>
   );
 };
 
-const Panel = ({
-  title,
-  children,
+const MetricsGrid = ({
+  tables,
+  slots,
+  total,
   accent,
 }: {
+  tables: CasinoMetric;
+  slots: CasinoMetric;
+  total: CasinoMetric;
+  accent: string;
+}) => (
+  <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-x-4 gap-y-2 items-baseline">
+    {/* header row */}
+    <span />
+    <span className="text-[0.58em] uppercase tracking-[0.24em] text-muted-foreground/70 font-semibold text-right">
+      Drop
+    </span>
+    <span className="text-[0.58em] uppercase tracking-[0.24em] text-muted-foreground/70 font-semibold text-right">
+      Result
+    </span>
+    <span className="text-[0.58em] uppercase tracking-[0.24em] text-muted-foreground/70 font-semibold text-right">
+      Hold %
+    </span>
+
+    {/* Tables */}
+    <span className="text-[0.68em] uppercase tracking-[0.2em] text-muted-foreground font-semibold">
+      Tables
+    </span>
+    <Cell value={formatMoneyFull(tables.drop)} />
+    <Cell value={formatSigned(tables.result)} tone="signed" />
+    <Cell value={`${tables.hold.toFixed(1)}%`} />
+
+    {/* Slots */}
+    <span className="text-[0.68em] uppercase tracking-[0.2em] text-muted-foreground font-semibold">
+      Slots
+    </span>
+    <Cell value={formatMoneyFull(slots.drop)} />
+    <Cell value={formatSigned(slots.result)} tone="signed" />
+    <Cell value={`${slots.hold.toFixed(1)}%`} />
+
+    {/* divider */}
+    <span className="col-span-4 h-px bg-white/10 my-1" />
+
+    {/* TOTAL — headline row */}
+    <span
+      className="text-[0.7em] uppercase tracking-[0.24em] font-extrabold"
+      style={{ color: accent }}
+    >
+      Total
+    </span>
+    <Cell value={formatMoneyFull(total.drop)} size="xl" accent={accent} />
+    <Cell value={formatSigned(total.result)} tone="signed" size="xl" accent={accent} />
+    <Cell value={`${total.hold.toFixed(1)}%`} size="xl" accent={accent} />
+  </div>
+);
+
+const Panel = ({
+  title,
+  subtitle,
+  accent,
+  children,
+}: {
   title: string;
+  subtitle?: string;
   accent: string;
   children: React.ReactNode;
 }) => (
-  <div className="flex-1 min-w-0 flex flex-col gap-4 p-5 min-h-0">
-    <div
-      className="text-[0.72em] font-extrabold tracking-[0.28em] uppercase"
-      style={{ color: accent }}
-    >
-      {title}
+  <div className="flex-1 min-w-0 flex flex-col gap-4 p-5">
+    <div className="flex items-baseline justify-between">
+      <div
+        className="text-[0.78em] font-extrabold tracking-[0.28em] uppercase"
+        style={{ color: accent }}
+      >
+        {title}
+      </div>
+      {subtitle && (
+        <div className="text-[0.6em] uppercase tracking-[0.22em] text-muted-foreground">
+          {subtitle}
+        </div>
+      )}
     </div>
     {children}
   </div>
@@ -77,7 +139,6 @@ interface Props {
   slug: string | null;
   accent: string;
   day: CasinoDay | undefined;
-  /** "auto" respects orientation media queries; "cols" forces horizontal; "rows" forces vertical. */
   orientation?: "auto" | "cols" | "rows";
 }
 
@@ -115,54 +176,54 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
             </span>
           )}
         </div>
+        {day && (
+          <div className="flex items-center gap-3 text-[0.62em] uppercase tracking-[0.22em] text-muted-foreground">
+            <span>Head</span>
+            <span className="font-mono font-bold text-foreground text-[1.4em]">
+              {day.total.headCount}
+            </span>
+          </div>
+        )}
       </header>
 
       {day ? (
         <div className={layoutClass}>
-          <Panel title="MTD" accent={accent}>
-            <Kpi label="Drop" value={formatMoneyFull(day.mtd.drop)} accent={accent} />
-            <Kpi label="Result" value={formatSigned(day.mtd.result)} tone="signed" />
-            <Kpi label="Hold %" value={`${day.mtd.hold.toFixed(1)}%`} />
+          <Panel title="Today" accent={accent}>
+            <MetricsGrid
+              tables={day.live}
+              slots={day.slots}
+              total={day.total}
+              accent={accent}
+            />
           </Panel>
 
-          <Panel title="Today" accent={accent}>
-            <Kpi label="Drop" value={formatMoneyFull(day.total.drop)} accent={accent} />
-            <Kpi label="Result" value={formatSigned(day.total.result)} tone="signed" />
-            <div className="grid grid-cols-2 gap-4">
-              <Kpi label="Hold %" value={`${day.total.hold.toFixed(1)}%`} />
-              <Kpi label="Head Count" value={String(day.total.headCount)} />
-            </div>
-            <div className="mt-1 grid grid-cols-2 gap-3 text-[0.68em] text-muted-foreground border-t border-white/5 pt-3">
-              <div className="flex flex-col">
-                <span className="uppercase tracking-widest">Live drop</span>
-                <span className="font-mono tabular-nums text-foreground/80">
-                  {formatMoneyFull(day.live.drop)}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="uppercase tracking-widest">Slots drop</span>
-                <span className="font-mono tabular-nums text-foreground/80">
-                  {formatMoneyFull(day.slots.drop)}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="uppercase tracking-widest">Live result</span>
-                <span className={`font-mono tabular-nums ${signedColor(day.live.result)}`}>
-                  {formatSigned(day.live.result)}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="uppercase tracking-widest">Slots result</span>
-                <span className={`font-mono tabular-nums ${signedColor(day.slots.result)}`}>
-                  {formatSigned(day.slots.result)}
-                </span>
-              </div>
-            </div>
+          <Panel title="MTD" accent={accent}>
+            <MetricsGrid
+              tables={{
+                drop: day.mtd.drop,
+                result: day.mtd.result,
+                headCount: 0,
+                hold: day.mtd.hold,
+              }}
+              slots={{ drop: 0, result: 0, headCount: 0, hold: 0 }}
+              total={{
+                drop: day.mtd.drop,
+                result: day.mtd.result,
+                headCount: 0,
+                hold: day.mtd.hold,
+              }}
+              accent={accent}
+            />
           </Panel>
         </div>
       ) : (
         <div className="py-16 text-center text-muted-foreground">Loading…</div>
       )}
+
+      <div className="px-6 py-2 border-t border-white/5 flex items-center justify-between text-[0.55em] uppercase tracking-[0.22em] text-muted-foreground/70">
+        <span>Tables · Reports Daily Balance</span>
+        <span>Slots · soon</span>
+      </div>
     </section>
   );
 }
