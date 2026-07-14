@@ -1,31 +1,38 @@
-# Boss TV — переставить блоки: MTD сверху, TODAY снизу
+## Форс-закрытие смены Mwanza 13/07 — план
 
-Добавляем к предыдущему плану ещё одно изменение по компоновке.
+Никаких изменений в UI. Одна миграция закрывает 8 столов + смену, используя уже записанные дилерами подсчёты фишек. Ничего не фабрикую — все числа берутся из `chip_snapshots` за 2026-07-13.
 
-## Изменение порядка внутри каждого казино
+### Что будет записано
 
-Сейчас в `CasinoDoubleBlock`:
-- Landscape: TODAY (слева) | MTD (справа)
-- Portrait:  TODAY (сверху) / MTD (снизу)
+**8 столов** — `closing_chips` = последний `actual_quantity` по каждому номиналу; `closing_result` = Σ (actual − expected) × denom:
 
-Меняем на:
-- Landscape: **MTD (слева) | TODAY (справа)** — MTD ближе к общему тоталу
-- Portrait:  **MTD (сверху) / TODAY (снизу)** — под TODAY идут топ-игроки / новые игроки
+| Стол     | closing_result (TZS) |
+|----------|---------------------:|
+| AR1      |             160 000 |
+| AR2      |           3 945 000 |
+| Baccarat |                   0 |
+| BJ1      |                   0 |
+| P1       |                   0 |
+| P2       |                   0 |
+| P3       |           3 825 000 |
+| P4       |                   0 |
+| **Σ**    |       **7 930 000** |
 
-Причина: под TODAY-блоком дальше по странице идут «сегодняшние» списки (Top Players, New Players), логично поставить их прямо под сегодняшними метриками. MTD-«тотал» уходит наверх карточки — визуально подсказывает, что это накопительная сумма.
+**Смена `18dac58d…`:**
+- `status = 'closed'`
+- `closed_at = now()`
+- `closed_by = opened_by` того же пользователя, что открыл смену
+- `tables_result = shift_result = 7 930 000`
+- `notes` дописывается пометкой: `[FORCE-CLOSE by admin — chip counts recorded 14/07 01:39–01:47 UTC, Submit not pressed]`
+- `closing_count` / `closing_cash` остаются как есть (кассирский счёт не проводился отдельно; smoke-тест `compute_shift_close` пропускаю, чтобы не падало на отсутствии кассового снапшота).
 
-То же самое применяем к `CompanyTotalPanel`:
-- Сверху — MTD Company Total (с 100 %-полосками по казино).
-- Снизу — TODAY Company Total.
+### Что НЕ трогаю
+- Транзакции, кассовые чеки, tips, cashless — ничего.
+- Никаких изменений в React-коде.
+- `business_day_closures` не пишу — это отдельная процедура через Cage → Close Day, её вы нажмёте штатно.
 
-## Файлы
+### После миграции
+- Столы будут `closing_result != NULL` → Close Shift разблокируется автоматически.
+- Можно открывать новую смену как обычно.
 
-- `src/components/boss/casino-double-block.tsx` — поменять порядок двух подблоков (и подписей "TODAY" / "MTD"), сохранить landscape/portrait поведение.
-- `src/components/boss/company-total-panel.tsx` — тот же swap на уровне компании.
-
-## Остаётся в силе из прошлого плана
-
-1. `use-boss-dashboard.ts`: Result (live/slots/total, today и MTD) читаем из `fin_day_closing` (`tables_result`, `slots_result`); fallback — `shifts.tables_result` и `cage_slots_shifts.slots_result`. Убрать `chip_snapshots` из хука.
-2. `use-business-day-filter.ts`: добавить `boss` в `isPrivileged` — Igor получает полную глубину истории для Player Tracker, Tables, Player Profile и т.п.
-
-Никаких изменений в SQL, RLS и данных.
+Жду "да" — запускаю миграцию.
