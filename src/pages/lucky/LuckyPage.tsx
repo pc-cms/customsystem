@@ -21,14 +21,14 @@ const WHAT_ITEMS = [
   {
     icon: HandCoins,
     title: "Redeem With Us",
-    text: "Bring it to any Premier Casino. Play it, or use it as slots promo credits at the cage.",
+    text: "Bring it to any Premier Casino. Play it on the tables — or exchange it for slot credits.",
   },
 ];
 
 const STEPS = [
   { n: "01", t: "Visit Us", d: "Come to any Premier Casino in Tanzania." },
   { n: "02", t: "Present the Chip", d: "Show your Lucky Chip at the cage counter." },
-  { n: "03", t: "Play or Use as Promo Credits", d: "Take it to the tables — or convert it into slots promo credits." },
+  { n: "03", t: "Play on Tables or Slots", d: "Play this chip on the tables — or exchange it for slot credits." },
 ];
 
 const scrollToLocations = () => {
