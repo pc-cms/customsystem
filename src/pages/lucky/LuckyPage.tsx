@@ -69,40 +69,8 @@ export default function LuckyPage() {
       <ClubBackdrop />
 
       {/* ============ TOP NAV ============ */}
-      <nav
-        className="sticky top-0 z-40 backdrop-blur-md"
-        style={{
-          backgroundColor: "rgba(20,0,3,0.72)",
-          borderBottom: `1px solid ${GOLD}33`,
-        }}
-      >
-        <div className="max-w-xl mx-auto px-4 h-14 grid grid-cols-3 items-center">
-          <a
-            href="https://premiercasino.tz"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="justify-self-start font-faberge text-[11px] tracking-[0.3em] uppercase px-3 py-2 -ml-3 min-h-11 flex items-center hover:opacity-80"
-            style={{ color: GOLD }}
-          >
-            Home
-          </a>
-          <span
-            className="justify-self-center font-faberge text-[13px] sm:text-[15px] tracking-[0.28em] uppercase whitespace-nowrap"
-            style={{ color: GOLD }}
-          >
-            PREMIER CASINO
-          </span>
-          <a
-            href="https://premiercasino.tz/#locations"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="justify-self-end font-faberge text-[11px] tracking-[0.3em] uppercase px-3 py-2 -mr-3 min-h-11 flex items-center hover:opacity-80"
-            style={{ color: GOLD }}
-          >
-            Locations
-          </a>
-        </div>
-      </nav>
+      <PremierNav />
+
 
       <div className="relative max-w-xl mx-auto px-5 pb-24">
         {/* ============ HERO ============ */}
