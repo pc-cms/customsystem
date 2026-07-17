@@ -28,7 +28,7 @@ const WHAT_ITEMS = [
 const STEPS = [
   { n: "01", t: "Visit Us", d: "Come to any Premier Casino in Tanzania." },
   { n: "02", t: "Present the Chip", d: "Show your Lucky Chip at the cage counter." },
-  { n: "03", t: "Play or Cash Out", d: "Take it to the tables — or convert it into cash." },
+  { n: "03", t: "Play or Use as Promo Credits", d: "Take it to the tables — or convert it into slots promo credits." },
 ];
 
 const scrollToLocations = () => {
