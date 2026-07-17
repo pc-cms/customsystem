@@ -11,7 +11,7 @@ const WHAT_ITEMS = [
   {
     icon: Coins,
     title: "A Real Chip",
-    text: "You are holding a genuine Premier Casino Lucky Chip with cash value.",
+    text: "You are holding a genuine Premier Casino Lucky Chip with game value.",
   },
   {
     icon: Sparkles,
@@ -21,7 +21,7 @@ const WHAT_ITEMS = [
   {
     icon: HandCoins,
     title: "Redeem With Us",
-    text: "Bring it to any Premier Casino. Play it, or cash it out at the cage.",
+    text: "Bring it to any Premier Casino. Play it, or use it as slots promo credits at the cage.",
   },
 ];
 
