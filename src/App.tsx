@@ -153,6 +153,7 @@ const PayrollBankExportPage = lazy(() => import("@/pages/payroll/PayrollBankExpo
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const ClubLayout = lazy(() => import("@/pages/club/ClubLayout"));
 const ClubLanding = lazy(() => import("@/pages/club/ClubLanding"));
+const LuckyPage = lazy(() => import("@/pages/lucky/LuckyPage"));
 const ClubLogin = lazy(() => import("@/pages/club/ClubLogin"));
 const ClubRegister = lazy(() => import("@/pages/club/ClubRegister"));
 const ClubWallet = lazy(() => import("@/pages/club/ClubWallet"));
@@ -558,6 +559,7 @@ const AppRoutes = () => {
     return (
       <Suspense fallback={<PageLoader />}>
         <Routes>
+          <Route path="/lucky" element={<LuckyPage />} />
           <Route path="*" element={<Landing />} />
         </Routes>
       </Suspense>
