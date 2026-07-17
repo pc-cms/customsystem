@@ -1,4 +1,4 @@
-import { Helmet } from "react-helmet-async";
+import { useEffect } from "react";
 import { MapPin, Sparkles, Coins, HandCoins, ArrowRight } from "lucide-react";
 import ClubBackdrop from "@/components/club/ClubBackdrop";
 import ClubFooter from "@/components/club/ClubFooter";
