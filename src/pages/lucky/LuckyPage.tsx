@@ -337,21 +337,13 @@ export default function LuckyPage() {
                 className="rounded-xl p-5 border bg-black/50 backdrop-blur-sm"
                 style={{ borderColor: `${GOLD}44` }}
               >
-                <div className="flex items-baseline justify-between mb-1">
+                <div className="mb-1">
                   <h3
                     className="font-faberge text-xl tracking-[0.2em] uppercase"
                     style={{ color: GOLD }}
                   >
                     {loc.city}
                   </h3>
-                  {loc.comingSoon && (
-                    <span
-                      className="text-[10px] tracking-[0.25em] uppercase"
-                      style={{ color: GOLD_DEEP }}
-                    >
-                      Coming Soon
-                    </span>
-                  )}
                 </div>
                 <p
                   className="text-sm mb-4"
