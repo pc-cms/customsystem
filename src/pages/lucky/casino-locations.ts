@@ -29,10 +29,9 @@ export const LUCKY_LOCATIONS: LuckyLocation[] = [
   },
   {
     city: "Mbeya",
-    venue: "Near Mbeya Hotel",
-    address: "Mbeya Hotel area, Mbeya, Tanzania",
-    mapsQuery: "Premier Casino Mbeya Hotel",
-    comingSoon: true,
+    venue: "City Park Garden",
+    address: "City Park Garden, Mbeya, Tanzania",
+    mapsQuery: "Premier Casino Mbeya, City Park Garden",
   },
 ];
 
