@@ -31,6 +31,99 @@ const STEPS = [
   { n: "03", t: "Play on Tables or Slots", d: "Play this chip on the tables — or exchange it for slot credits." },
 ];
 
+const NAV_LOCATIONS = [
+  { name: "Arusha", href: "https://premiercasino.tz/arusha" },
+  { name: "Dodoma", href: "https://premiercasino.tz/dodoma" },
+  { name: "Mbeya", href: "https://premiercasino.tz/mbeya", comingSoon: true },
+  { name: "Mwanza", href: "https://premiercasino.tz/mwanza" },
+];
+
+function PremierNav() {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  return (
+    <nav
+      className="sticky top-0 z-50 backdrop-blur-md"
+      style={{
+        backgroundColor: "rgba(10,0,2,0.78)",
+        borderBottom: `1px solid ${GOLD}22`,
+      }}
+    >
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
+        <a
+          href="https://premiercasino.tz"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-faberge text-[12px] sm:text-[13px] tracking-[0.35em] uppercase px-2 py-3 min-h-11 flex items-center hover:opacity-80 transition-opacity"
+          style={{ color: GOLD }}
+        >
+          Home
+        </a>
+
+        <div ref={wrapRef} className="relative">
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="font-faberge text-[12px] sm:text-[13px] tracking-[0.35em] uppercase px-2 py-3 min-h-11 flex items-center gap-2 hover:opacity-80 transition-opacity"
+            style={{ color: GOLD }}
+            aria-expanded={open}
+            aria-haspopup="menu"
+          >
+            Locations
+            <ChevronDown
+              className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`}
+              style={{ color: GOLD }}
+            />
+          </button>
+          {open && (
+            <div
+              role="menu"
+              className="absolute right-0 mt-2 min-w-[220px] rounded-md border py-2 shadow-2xl"
+              style={{
+                backgroundColor: "rgba(10,0,2,0.96)",
+                borderColor: `${GOLD}33`,
+                backdropFilter: "blur(10px)",
+              }}
+            >
+              {NAV_LOCATIONS.map((loc) => (
+                <a
+                  key={loc.name}
+                  href={loc.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-4 px-5 py-3 font-faberge text-[12px] tracking-[0.3em] uppercase hover:bg-white/5 transition-colors"
+                  style={{ color: GOLD }}
+                >
+                  <span>{loc.name}</span>
+                  {loc.comingSoon && (
+                    <span
+                      className="text-[9px] tracking-[0.25em] px-2 py-1 rounded border"
+                      style={{ color: GOLD_DEEP, borderColor: `${GOLD_DEEP}55` }}
+                    >
+                      Coming Soon
+                    </span>
+                  )}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+
+
 const scrollToLocations = () => {
   document.getElementById("locations")?.scrollIntoView({ behavior: "smooth", block: "start" });
 };
