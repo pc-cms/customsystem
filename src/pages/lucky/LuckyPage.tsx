@@ -36,22 +36,37 @@ const scrollToLocations = () => {
 };
 
 export default function LuckyPage() {
+  useEffect(() => {
+    const prevTitle = document.title;
+    document.title = "The Lucky One — Premier Casino";
+    const setMeta = (attr: "name" | "property", key: string, content: string) => {
+      let el = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attr, key);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", content);
+      return el;
+    };
+    const desc = "You've received a Premier Lucky Chip. Redeem it at any Premier Casino in Arusha, Mwanza, Dodoma or Mbeya.";
+    const created = [
+      setMeta("name", "description", desc),
+      setMeta("name", "robots", "noindex"),
+      setMeta("property", "og:title", "The Lucky One — Premier Casino"),
+      setMeta("property", "og:description", desc),
+      setMeta("property", "og:type", "website"),
+    ];
+    return () => {
+      document.title = prevTitle;
+      // leave meta tags in place — cheaper than tracking created vs. pre-existing
+      void created;
+    };
+  }, []);
+
   return (
     <div className="relative min-h-screen text-white" style={{ backgroundColor: "#A0000D" }}>
-      <Helmet>
-        <title>The Lucky One — Premier Casino</title>
-        <meta
-          name="description"
-          content="You've received a Premier Lucky Chip. Redeem it at any Premier Casino in Arusha, Mwanza, Dodoma or Mbeya."
-        />
-        <meta name="robots" content="noindex" />
-        <meta property="og:title" content="The Lucky One — Premier Casino" />
-        <meta
-          property="og:description"
-          content="You've received a Premier Lucky Chip. Visit any of our casinos to redeem it."
-        />
-        <meta property="og:type" content="website" />
-      </Helmet>
+
 
       <ClubBackdrop />
 
