@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { MapPin, Sparkles, Coins, HandCoins, ArrowRight } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { MapPin, Sparkles, Coins, HandCoins, ArrowRight, ChevronDown } from "lucide-react";
 import ClubBackdrop from "@/components/club/ClubBackdrop";
 import ClubFooter from "@/components/club/ClubFooter";
 import { LUCKY_LOCATIONS, mapsUrl } from "./casino-locations";
