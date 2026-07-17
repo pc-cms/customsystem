@@ -1,127 +1,37 @@
-# Промо-страница `/lucky` — "The Lucky One"
+## Изменения на `/lucky`
 
-Мобильная промо-страница для гостей, отсканировавших QR на обратной стороне физического Lucky Chip. Объясняет, что человек стал обладателем счастливого жетона, и приглашает в одно из 4 казино.
+### 1. Верхняя навигационная шапка (sticky)
+Новая шапка вместо текущей строки `PREMIER · CASINO`:
 
-## Маршрут и доступ
+- **Слева:** кнопка-ссылка `Home` → `https://premiercasino.tz` (новая вкладка)
+- **По центру:** крупная надпись **PREMIER CASINO** (шрифт Faberge, крупно, tracking 0.35em, золото) — как лого-заголовок, **без слоника** `/premier-club-logo.svg`
+- **Справа:** кнопка-ссылка `Locations` → `https://premiercasino.tz/#locations` (новая вкладка)
+- Sticky сверху, полупрозрачный тёмный фон с blur, тонкая золотая линия снизу
+- Тап-цели ≥ 44px, адаптивно на мобильном (лого центр, ссылки по краям в один ряд)
 
-- Публичный маршрут `/lucky` (без авторизации).
-- Регистрируется рядом с существующими Club-маршрутами в `src/App.tsx`.
-- Работает на всех доменах, включая `casinosystem.app` и `premier.casinosystem.app`.
-- Дизайн mobile-first (макс. ширина `max-w-xl`, как ClubLanding), но корректно смотрится и на десктопе.
+### 2. Hero — слоник встраивается внутрь фишки
+- Убрать отдельный `<img src="/premier-club-logo.svg">` над чипом
+- Внутрь SVG-фишки (в центральный круг r=34) добавить `<image href="/premier-club-logo.svg">` — слоник становится «лицом» фишки и **крутится вместе с ней** (анимация `spin 18s` уже на SVG)
+- Убрать нижний текст `LUCKY` в центре (место занимает слоник) — либо оставить как маленькую подпись под слоном; решаю **убрать**, чтобы центр читался чисто
+- Заголовок `THE LUCKY ONE` и подпись `Congratulations` остаются
 
-## Визуальный стиль (наследует Club guideline)
+### 3. Тексты про «tables / slot credits»
+Уточнить формулировку в двух местах:
 
-Используем те же токены и компоненты, что и `ClubLanding`:
-- Фон: `ClubBackdrop` (тёмно-красный `#A0000D` + золотые концентрические кольца + точечная сетка).
-- Золото: `#E8C688` (основное), `#A68E61` (приглушённое).
-- Шрифт: `font-faberge` (уже подключён), трекинг `[0.3em]–[0.4em]` для caps.
-- Карточки: чёрный полупрозрачный фон `bg-black/50` с золотой hairline-рамкой.
-- Логотип: `/premier-club-logo.svg`.
-- Футер: `ClubFooter` (Privacy / Data / Responsible Gaming + copyright).
+- Карточка `Redeem With Us`:  
+  «Bring it to any Premier Casino. **Play it on the tables — or exchange it for slot credits.**»
+- Шаг `03`:  
+  Заголовок: `Play on Tables or Slots`  
+  Описание: `Play this chip on the tables — or exchange it for slot credits.`
 
-## Структура страницы (сверху вниз)
+### 4. Футер с политиками (как в Club)
+Заменить `<ClubFooter minimal />` на `<ClubFooter />` — выводит ссылки Privacy Policy / Personal Data Protection / Responsible Gaming (`/club/privacy`, `/club/data-protection`, `/club/responsible-gaming`) + copyright.
 
-```text
-┌──────────────────────────────────┐
-│ HERO                             │
-│  [Premier logo]                  │
-│  eyebrow: "CONGRATULATIONS"      │
-│  H1: "THE LUCKY ONE"             │
-│  анимированный "чип" (SVG)       │
-│  sub: "You've received a         │
-│        Premier Lucky Chip."      │
-├──────────────────────────────────┤
-│ WHAT IS THIS?                    │
-│  3 короткие карточки:            │
-│  ① You hold a real chip          │
-│  ② It has a cash value           │
-│  ③ Redeem it at any Premier      │
-├──────────────────────────────────┤
-│ HOW TO REDEEM (3 шага)           │
-│  01 Visit any Premier Casino     │
-│  02 Present your Lucky Chip      │
-│     at the cage                  │
-│  03 Play or cash out             │
-├──────────────────────────────────┤
-│ FIND US — 4 CITIES               │
-│  Карточки Arusha / Mwanza /      │
-│  Dodoma / Mbeya. Каждая:         │
-│   • название города              │
-│   • адрес (текстом)              │
-│   • кнопка "Open in Maps" →      │
-│     Google Maps deep link        │
-│   • кнопка "Call" (tel:) — если  │
-│     телефон есть на              │
-│     premiercasino.tz             │
-├──────────────────────────────────┤
-│ TERMS (мелким шрифтом)           │
-│  • Chip must be presented        │
-│    physically at the cage        │
-│  • Valid ID (18+) required       │
-│  • One chip per person per visit │
-│  • Non-transferable, no cash     │
-│    value without redemption      │
-│  • Subject to house rules        │
-├──────────────────────────────────┤
-│ FINAL CTA                        │
-│  "See you at the tables."        │
-│  → большая кнопка                │
-│    "Find Nearest Premier"        │
-│    (скроллит к секции городов)   │
-├──────────────────────────────────┤
-│ ClubFooter                       │
-└──────────────────────────────────┘
-```
+### 5. Без изменений
+Фон, `ClubBackdrop`, секции Manifesto / What Is This / How to Redeem / Locations / Terms / Final CTA, маршруты, SEO-мета.
 
-Единственный CTA согласно ответу — "Open in Maps" в блоке городов. Верхний Final CTA просто скроллит к нему.
-
-## Google Maps метки
-
-Каждая карточка города содержит кнопку, открывающую нативные карты через универсальный deep link:
-
-```
-https://www.google.com/maps/search/?api=1&query=<lat>,<lng>&query_place_id=<place_id>
-```
-
-На iOS/Android это открывает приложение Google Maps (или Apple Maps как fallback), на десктопе — веб-версию. `target="_blank" rel="noopener"`.
-
-Я парсну адреса и координаты 4 казино с `https://premiercasino.tz` через `fetch_website` перед реализацией. Если сайт не отдаёт координаты — использую поисковый запрос по названию + городу:
-
-```
-https://www.google.com/maps/search/?api=1&query=Premier+Casino+Arusha
-```
-
-Fallback точно работает на всех устройствах.
-
-## Мобильная оптимизация
-
-- `viewport` уже задан в `index.html`.
-- Всё в одну колонку, tap-targets ≥ 44px, `active:scale-[0.98]` для тактильного отклика.
-- Тяжёлых изображений нет — только SVG (фон, логотип, чип).
-- Ленивая загрузка не нужна, страница компактная.
-- QR-сканеры открывают в in-app browser (Chrome Custom Tabs / SFSafariViewController) — работает нативно.
-
-## SEO / head
-
-Через `react-helmet-async` (провайдер уже стоит):
-- `<title>The Lucky One — Premier Casino</title>`
-- `<meta name="description" content="You've received a Premier Lucky Chip. Redeem it at any of our four casinos in Arusha, Mwanza, Dodoma or Mbeya." />`
-- `<meta name="robots" content="noindex" />` — страница только для держателей чипа, не должна индексироваться.
-- `og:title`, `og:description`, `og:type=website`.
-
-## Файлы
-
-Новые:
-- `src/pages/lucky/LuckyPage.tsx` — вся страница одним файлом (небольшая, отдельные компоненты не нужны).
-- `src/pages/lucky/casino-locations.ts` — константа с адресами + координатами (после парсинга premiercasino.tz).
-
-Изменяемые:
-- `src/App.tsx` — добавить публичный маршрут `<Route path="/lucky" element={<LuckyPage />} />`.
-
-Не трогаю: существующие Club-компоненты (`ClubBackdrop`, `ClubFooter`) — используются как есть.
-
-## Технические детали
-
-- Только фронтенд. Никакой БД, никакой авторизации, никакого трекинга.
-- Аналитика/UTM — не сейчас (можно добавить позже, если понадобится замерять конверсию QR).
-- Никакой валидации серийника чипа (это тоже отдельная фича, если понадобится в будущем).
+### Технические детали
+- Правки только в `src/pages/lucky/LuckyPage.tsx`.
+- Шапка — inline-компонент внутри файла.
+- Ссылки Home/Locations — `<a href target="_blank" rel="noopener noreferrer">` (внешний домен).
+- Слоник внутри SVG: `<image href="/premier-club-logo.svg" x="46" y="46" width="48" height="48" />` в центре, поверх — без отдельного div-overlay.

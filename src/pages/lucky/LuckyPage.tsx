@@ -21,14 +21,14 @@ const WHAT_ITEMS = [
   {
     icon: HandCoins,
     title: "Redeem With Us",
-    text: "Bring it to any Premier Casino. Play it, or use it as slots promo credits at the cage.",
+    text: "Bring it to any Premier Casino. Play it on the tables — or exchange it for slot credits.",
   },
 ];
 
 const STEPS = [
   { n: "01", t: "Visit Us", d: "Come to any Premier Casino in Tanzania." },
   { n: "02", t: "Present the Chip", d: "Show your Lucky Chip at the cage counter." },
-  { n: "03", t: "Play or Use as Promo Credits", d: "Take it to the tables — or convert it into slots promo credits." },
+  { n: "03", t: "Play on Tables or Slots", d: "Play this chip on the tables — or exchange it for slot credits." },
 ];
 
 const scrollToLocations = () => {
@@ -66,34 +66,53 @@ export default function LuckyPage() {
 
   return (
     <div className="relative min-h-screen text-white" style={{ backgroundColor: "#A0000D" }}>
-
-
       <ClubBackdrop />
+
+      {/* ============ TOP NAV ============ */}
+      <nav
+        className="sticky top-0 z-40 backdrop-blur-md"
+        style={{
+          backgroundColor: "rgba(20,0,3,0.72)",
+          borderBottom: `1px solid ${GOLD}33`,
+        }}
+      >
+        <div className="max-w-xl mx-auto px-4 h-14 grid grid-cols-3 items-center">
+          <a
+            href="https://premiercasino.tz"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="justify-self-start font-faberge text-[11px] tracking-[0.3em] uppercase px-3 py-2 -ml-3 min-h-11 flex items-center hover:opacity-80"
+            style={{ color: GOLD }}
+          >
+            Home
+          </a>
+          <span
+            className="justify-self-center font-faberge text-[13px] sm:text-[15px] tracking-[0.28em] uppercase whitespace-nowrap"
+            style={{ color: GOLD }}
+          >
+            PREMIER CASINO
+          </span>
+          <a
+            href="https://premiercasino.tz/#locations"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="justify-self-end font-faberge text-[11px] tracking-[0.3em] uppercase px-3 py-2 -mr-3 min-h-11 flex items-center hover:opacity-80"
+            style={{ color: GOLD }}
+          >
+            Locations
+          </a>
+        </div>
+      </nav>
 
       <div className="relative max-w-xl mx-auto px-5 pb-24">
         {/* ============ HERO ============ */}
-        <section className="min-h-[100svh] flex flex-col items-center justify-between py-10">
-          <header className="w-full flex items-center justify-center">
-            <span
-              className="font-faberge text-sm sm:text-base tracking-[0.45em] uppercase text-center"
-              style={{ color: GOLD }}
-            >
-              PREMIER · CASINO
-            </span>
-          </header>
-
+        <section className="min-h-[calc(100svh-3.5rem)] flex flex-col items-center justify-between py-10">
           <div className="flex flex-col items-center text-center mt-6">
-            <img
-              src="/premier-club-logo.svg"
-              alt="Premier Casino"
-              className="h-24 w-24 mb-6 drop-shadow-[0_8px_24px_rgba(0,0,0,0.5)]"
-            />
-
-            {/* Chip visual — pure SVG, matches gold ring language */}
-            <div className="relative mb-6">
+            {/* Chip visual with elephant embedded in the spinning face */}
+            <div className="relative mb-8">
               <svg
-                width="140"
-                height="140"
+                width="180"
+                height="180"
                 viewBox="0 0 140 140"
                 className="drop-shadow-[0_10px_30px_rgba(0,0,0,0.6)] animate-[spin_18s_linear_infinite]"
               >
@@ -102,6 +121,9 @@ export default function LuckyPage() {
                     <stop offset="0%" stopColor="#2a0004" />
                     <stop offset="100%" stopColor="#0a0002" />
                   </radialGradient>
+                  <clipPath id="chipInner">
+                    <circle cx="70" cy="70" r="34" />
+                  </clipPath>
                 </defs>
                 <circle cx="70" cy="70" r="66" fill="url(#chipFace)" stroke={GOLD} strokeWidth="1.5" />
                 <circle cx="70" cy="70" r="52" fill="none" stroke={GOLD} strokeWidth="0.75" strokeDasharray="2 6" />
@@ -114,14 +136,18 @@ export default function LuckyPage() {
                   const y2 = 70 + Math.sin(a) * 66;
                   return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={GOLD} strokeWidth="3" />;
                 })}
+                <image
+                  href="/premier-club-logo.svg"
+                  x="38"
+                  y="38"
+                  width="64"
+                  height="64"
+                  clipPath="url(#chipInner)"
+                  preserveAspectRatio="xMidYMid meet"
+                />
               </svg>
-              <div
-                className="absolute inset-0 flex items-center justify-center font-faberge text-[10px] tracking-[0.35em]"
-                style={{ color: GOLD }}
-              >
-                LUCKY
-              </div>
             </div>
+
 
             <p
               className="font-faberge text-xs tracking-[0.5em] uppercase mb-3"
@@ -336,7 +362,7 @@ export default function LuckyPage() {
           </div>
         </section>
 
-        <ClubFooter minimal />
+        <ClubFooter />
       </div>
     </div>
   );
