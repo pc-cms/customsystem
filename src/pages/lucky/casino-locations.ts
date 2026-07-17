@@ -3,6 +3,7 @@ export type LuckyLocation = {
   venue: string;
   address: string;
   mapsQuery: string;
+  mapsDirectUrl?: string;
   comingSoon?: boolean;
 };
 
