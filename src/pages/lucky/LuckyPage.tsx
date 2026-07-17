@@ -32,10 +32,10 @@ const STEPS = [
 ];
 
 const NAV_LOCATIONS = [
-  { name: "Arusha", href: "https://premiercasino.tz/arusha" },
-  { name: "Dodoma", href: "https://premiercasino.tz/dodoma" },
-  { name: "Mbeya", href: "https://premiercasino.tz/mbeya", comingSoon: true },
-  { name: "Mwanza", href: "https://premiercasino.tz/mwanza" },
+  { name: "Arusha", href: "https://www.premiercasino.tz/arusha" },
+  { name: "Dodoma", href: "https://www.premiercasino.tz/dodoma" },
+  { name: "Mbeya", href: "https://www.premiercasino.tz/mbeya" },
+  { name: "Mwanza", href: "https://www.premiercasino.tz/mwanza" },
 ];
 
 function PremierNav() {
@@ -100,18 +100,10 @@ function PremierNav() {
                   href={loc.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between gap-4 px-5 py-3 font-faberge text-[12px] tracking-[0.3em] uppercase hover:bg-white/5 transition-colors"
+                  className="flex items-center gap-4 px-5 py-3 font-faberge text-[12px] tracking-[0.3em] uppercase hover:bg-white/5 transition-colors"
                   style={{ color: GOLD }}
                 >
                   <span>{loc.name}</span>
-                  {loc.comingSoon && (
-                    <span
-                      className="text-[9px] tracking-[0.25em] px-2 py-1 rounded border"
-                      style={{ color: GOLD_DEEP, borderColor: `${GOLD_DEEP}55` }}
-                    >
-                      Coming Soon
-                    </span>
-                  )}
                 </a>
               ))}
             </div>
@@ -345,21 +337,13 @@ export default function LuckyPage() {
                 className="rounded-xl p-5 border bg-black/50 backdrop-blur-sm"
                 style={{ borderColor: `${GOLD}44` }}
               >
-                <div className="flex items-baseline justify-between mb-1">
+                <div className="mb-1">
                   <h3
                     className="font-faberge text-xl tracking-[0.2em] uppercase"
                     style={{ color: GOLD }}
                   >
                     {loc.city}
                   </h3>
-                  {loc.comingSoon && (
-                    <span
-                      className="text-[10px] tracking-[0.25em] uppercase"
-                      style={{ color: GOLD_DEEP }}
-                    >
-                      Coming Soon
-                    </span>
-                  )}
                 </div>
                 <p
                   className="text-sm mb-4"

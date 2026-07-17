@@ -4,7 +4,7 @@ export type LuckyLocation = {
   address: string;
   mapsQuery: string;
   mapsDirectUrl?: string;
-  comingSoon?: boolean;
+  websiteUrl?: string;
 };
 
 // Google Maps universal deep link: opens native Maps app on iOS/Android,
@@ -15,18 +15,21 @@ export const LUCKY_LOCATIONS: LuckyLocation[] = [
     venue: "Ngorongoro Tourism Centre",
     address: "Ngorongoro Tourism Centre, Arusha, Tanzania",
     mapsQuery: "Premier Casino Arusha, Ngorongoro Tourism Centre",
+    websiteUrl: "https://www.premiercasino.tz/arusha",
   },
   {
     city: "Mwanza",
     venue: "Rock City Mall",
     address: "Rock City Mall, Mwanza, Tanzania",
     mapsQuery: "Premier Casino Mwanza, Rock City Mall",
+    websiteUrl: "https://www.premiercasino.tz/mwanza",
   },
   {
     city: "Dodoma",
     venue: "New Dodoma Hotel",
     address: "New Dodoma Hotel, Dodoma, Tanzania",
     mapsQuery: "Premier Casino Dodoma, New Dodoma Hotel",
+    websiteUrl: "https://www.premiercasino.tz/dodoma",
   },
   {
     city: "Mbeya",
@@ -34,6 +37,7 @@ export const LUCKY_LOCATIONS: LuckyLocation[] = [
     address: "City Park Garden, Mbeya, Tanzania",
     mapsQuery: "Premier Casino Mbeya, City Park Garden",
     mapsDirectUrl: "https://maps.app.goo.gl/djNSxDCA8pHjWSFE8",
+    websiteUrl: "https://www.premiercasino.tz/mbeya",
   },
 ];
 
