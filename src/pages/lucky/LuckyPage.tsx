@@ -281,7 +281,7 @@ export default function LuckyPage() {
                   {loc.venue}
                 </p>
                 <a
-                  href={mapsUrl(loc.mapsQuery)}
+                  href={loc.mapsDirectUrl || mapsUrl(loc.mapsQuery)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center gap-2 h-12 rounded-md font-faberge text-xs tracking-[0.3em] uppercase border transition-colors hover:bg-white/5 active:scale-[0.98]"
