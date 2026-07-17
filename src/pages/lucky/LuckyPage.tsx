@@ -309,7 +309,7 @@ export default function LuckyPage() {
             <li>· Chip must be presented physically at the cage.</li>
             <li>· Valid photo ID required (18+).</li>
             <li>· One chip per person per visit.</li>
-            <li>· Non-transferable. No value outside Premier Casino.</li>
+            <li>· Non-transferable. No cash value — valid for play or slots promo credits only.</li>
             <li>· Subject to house rules and management discretion.</li>
           </ul>
         </section>
