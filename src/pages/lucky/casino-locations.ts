@@ -34,6 +34,7 @@ export const LUCKY_LOCATIONS: LuckyLocation[] = [
     address: "City Park Garden, Mbeya, Tanzania",
     mapsQuery: "Premier Casino Mbeya, City Park Garden",
     mapsDirectUrl: "https://maps.app.goo.gl/djNSxDCA8pHjWSFE8",
+    websiteUrl: "https://www.premiercasino.tz/mbeya",
   },
 ];
 

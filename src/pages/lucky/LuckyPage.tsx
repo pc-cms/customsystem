@@ -32,10 +32,10 @@ const STEPS = [
 ];
 
 const NAV_LOCATIONS = [
-  { name: "Arusha", href: "https://premiercasino.tz/arusha" },
-  { name: "Dodoma", href: "https://premiercasino.tz/dodoma" },
-  { name: "Mbeya", href: "https://premiercasino.tz/mbeya", comingSoon: true },
-  { name: "Mwanza", href: "https://premiercasino.tz/mwanza" },
+  { name: "Arusha", href: "https://www.premiercasino.tz/arusha" },
+  { name: "Dodoma", href: "https://www.premiercasino.tz/dodoma" },
+  { name: "Mbeya", href: "https://www.premiercasino.tz/mbeya" },
+  { name: "Mwanza", href: "https://www.premiercasino.tz/mwanza" },
 ];
 
 function PremierNav() {
