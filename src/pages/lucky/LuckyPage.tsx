@@ -75,7 +75,7 @@ export default function LuckyPage() {
         <section className="min-h-[100svh] flex flex-col items-center justify-between py-10">
           <header className="w-full flex items-center justify-center">
             <span
-              className="font-faberge text-xs tracking-[0.3em]"
+              className="font-faberge text-sm sm:text-base tracking-[0.45em] uppercase text-center"
               style={{ color: GOLD }}
             >
               PREMIER · CASINO
