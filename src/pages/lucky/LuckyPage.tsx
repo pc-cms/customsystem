@@ -11,7 +11,7 @@ const WHAT_ITEMS = [
   {
     icon: Coins,
     title: "A Real Chip",
-    text: "You are holding a genuine Premier Casino Lucky Chip with cash value.",
+    text: "You are holding a genuine Premier Casino Lucky Chip with game value.",
   },
   {
     icon: Sparkles,
@@ -21,14 +21,14 @@ const WHAT_ITEMS = [
   {
     icon: HandCoins,
     title: "Redeem With Us",
-    text: "Bring it to any Premier Casino. Play it, or cash it out at the cage.",
+    text: "Bring it to any Premier Casino. Play it, or use it as slots promo credits at the cage.",
   },
 ];
 
 const STEPS = [
   { n: "01", t: "Visit Us", d: "Come to any Premier Casino in Tanzania." },
   { n: "02", t: "Present the Chip", d: "Show your Lucky Chip at the cage counter." },
-  { n: "03", t: "Play or Cash Out", d: "Take it to the tables — or convert it into cash." },
+  { n: "03", t: "Play or Use as Promo Credits", d: "Take it to the tables — or convert it into slots promo credits." },
 ];
 
 const scrollToLocations = () => {
@@ -309,7 +309,7 @@ export default function LuckyPage() {
             <li>· Chip must be presented physically at the cage.</li>
             <li>· Valid photo ID required (18+).</li>
             <li>· One chip per person per visit.</li>
-            <li>· Non-transferable. No value outside Premier Casino.</li>
+            <li>· Non-transferable. No cash value — valid for play or slots promo credits only.</li>
             <li>· Subject to house rules and management discretion.</li>
           </ul>
         </section>
