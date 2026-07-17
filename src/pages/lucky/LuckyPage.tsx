@@ -362,7 +362,7 @@ export default function LuckyPage() {
           </div>
         </section>
 
-        <ClubFooter minimal />
+        <ClubFooter />
       </div>
     </div>
   );
