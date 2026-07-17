@@ -4,7 +4,7 @@ export type LuckyLocation = {
   address: string;
   mapsQuery: string;
   mapsDirectUrl?: string;
-  comingSoon?: boolean;
+  websiteUrl?: string;
 };
 
 // Google Maps universal deep link: opens native Maps app on iOS/Android,
