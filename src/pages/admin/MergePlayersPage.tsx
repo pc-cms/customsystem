@@ -17,7 +17,7 @@ const MergePlayersPage = () => {
 
   if (loading) return null;
 
-  const allowed = roles.includes("super_admin") || roles.includes("manager") || roles.includes("shift_manager");
+  const allowed = roles.includes("super_admin") || roles.includes("manager") || roles.includes("shift_manager") || roles.includes("finance_manager");
   if (!allowed) return <Navigate to="/" replace />;
 
   return (
