@@ -1,37 +1,36 @@
-## Изменения на `/lucky`
+## Задача
+Открыть функционал объединения дублей (Merge Players) для менеджеров, флор-менеджеров и фин-менеджеров + добавить видимую кнопку доступа + поднять версию.
 
-### 1. Верхняя навигационная шапка (sticky)
-Новая шапка вместо текущей строки `PREMIER · CASINO`:
+## Роли с доступом
+Разрешить страницу `/admin/merge-players` для:
+- `super_admin` (уже есть)
+- `manager` (уже есть) — Оксана, Тарас
+- `shift_manager` (уже есть, флор-менеджер) — Вадим
+- **`finance_manager`** (добавить) — Данияр, Питер
 
-- **Слева:** кнопка-ссылка `Home` → `https://premiercasino.tz` (новая вкладка)
-- **По центру:** крупная надпись **PREMIER CASINO** (шрифт Faberge, крупно, tracking 0.35em, золото) — как лого-заголовок, **без слоника** `/premier-club-logo.svg`
-- **Справа:** кнопка-ссылка `Locations` → `https://premiercasino.tz/#locations` (новая вкладка)
-- Sticky сверху, полупрозрачный тёмный фон с blur, тонкая золотая линия снизу
-- Тап-цели ≥ 44px, адаптивно на мобильном (лого центр, ссылки по краям в один ряд)
+## Изменения
 
-### 2. Hero — слоник встраивается внутрь фишки
-- Убрать отдельный `<img src="/premier-club-logo.svg">` над чипом
-- Внутрь SVG-фишки (в центральный круг r=34) добавить `<image href="/premier-club-logo.svg">` — слоник становится «лицом» фишки и **крутится вместе с ней** (анимация `spin 18s` уже на SVG)
-- Убрать нижний текст `LUCKY` в центре (место занимает слоник) — либо оставить как маленькую подпись под слоном; решаю **убрать**, чтобы центр читался чисто
-- Заголовок `THE LUCKY ONE` и подпись `Congratulations` остаются
+### 1. `src/pages/admin/MergePlayersPage.tsx`
+Расширить проверку доступа:
+```ts
+const allowed = roles.includes("super_admin") 
+  || roles.includes("manager") 
+  || roles.includes("shift_manager") 
+  || roles.includes("finance_manager");
+```
 
-### 3. Тексты про «tables / slot credits»
-Уточнить формулировку в двух местах:
+### 2. Кнопка/пункт меню
+Добавить пункт "Merge Duplicates" в основное меню (там же, где остальные админ-инструменты — sidebar/bottom nav) с иконкой `Users`, видимый только ролям из списка выше. Проверю где определяется навигация (`src/components/layout/*` / route-module-map) и добавлю запись, зависящую от роли.
 
-- Карточка `Redeem With Us`:  
-  «Bring it to any Premier Casino. **Play it on the tables — or exchange it for slot credits.**»
-- Шаг `03`:  
-  Заголовок: `Play on Tables or Slots`  
-  Описание: `Play this chip on the tables — or exchange it for slot credits.`
+### 3. Route guard
+Убедиться, что маршрут `/admin/merge-players` зарегистрирован и доступен этим ролям (App router). Модуль `merge-players` — если он проходит через `role_module_defaults` / `user_module_permissions`, добавлю миграцию, дающую по умолчанию доступ ролям `manager`, `shift_manager`, `finance_manager`.
 
-### 4. Футер с политиками (как в Club)
-Заменить `<ClubFooter minimal />` на `<ClubFooter />` — выводит ссылки Privacy Policy / Personal Data Protection / Responsible Gaming (`/club/privacy`, `/club/data-protection`, `/club/responsible-gaming`) + copyright.
+### 4. Версия
+`package.json`: `1.3.439` → `1.3.440`.
 
-### 5. Без изменений
-Фон, `ClubBackdrop`, секции Manifesto / What Is This / How to Redeem / Locations / Terms / Final CTA, маршруты, SEO-мета.
+## Проверка
+- Открыть страницу под каждой ролью — должно быть доступно.
+- Проверить, что basket, поиск, wizard объединения работают полностью (компоненты уже готовы — `DuplicateSuggestions`, `ManualSearch`, `MergeBasket`, `MergeWizard`).
+- Кассирам/питу/ресепшн — не видно.
 
-### Технические детали
-- Правки только в `src/pages/lucky/LuckyPage.tsx`.
-- Шапка — inline-компонент внутри файла.
-- Ссылки Home/Locations — `<a href target="_blank" rel="noopener noreferrer">` (внешний домен).
-- Слоник внутри SVG: `<image href="/premier-club-logo.svg" x="46" y="46" width="48" height="48" />` в центре, поверх — без отдельного div-overlay.
+Подтвердите, и я применю.
