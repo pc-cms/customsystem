@@ -256,7 +256,7 @@ export default function FinancesWalletsPage() {
       </PageSection>
 
       {/* BREAKDOWN + GRAND TOTAL */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div id="wallets-breakdown" className="grid grid-cols-1 lg:grid-cols-2 gap-4 scroll-mt-20">
         <PageSection title="Breakdown (Expected)" card={false}>
           <div className="rounded-md border border-border bg-card">
             <BreakdownRow label="Starting Float" v={snap?.starting_float?.grand_tzs || 0} muted />
