@@ -25,7 +25,7 @@ export type BalanceSnapshot = {
     grand_tzs: number;
     per_wallet: Array<{ wallet_id: string; name: string; currency: string; amount: number }>;
   };
-  incomes: { live_game: number; slots: number; other: number; missed_chips: number };
+  incomes: { live_game: number; slots: number; other: number; missed_chips: number; missed_cards: number };
   expenses_total: number;
   collections_total: number;
   wallets: WalletBalanceRow[];
