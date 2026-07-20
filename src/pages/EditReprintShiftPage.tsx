@@ -211,6 +211,7 @@ const EditReprintShiftPage = () => {
       missTotal: Number((shift as any).miss_total ?? -(closing.chip_miss_total ?? 0)),
       exchangeRates: ((shift as any).exchange_rates || {}) as Record<string, number>,
       tableRes: { ...(data?.tableResults || {}) } as Record<string, number>,
+      tableChips: JSON.parse(JSON.stringify(data?.tableChips || {})) as Record<string, Record<number, { expected: number; actual: number }>>,
     };
   }, [shift, data]);
 
