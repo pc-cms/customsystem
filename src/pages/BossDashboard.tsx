@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { formatMoneyFull } from "@/lib/format-money";
 import { getBusinessDate } from "@/lib/business-day";
-import { Monitor, LayoutGrid, Users, UserPlus, Tv, Maximize2, Minimize2, Type, Rows3, Columns3 } from "lucide-react";
+import { Monitor, LayoutGrid, Users, UserPlus, Tv, Maximize2, Minimize2, Type, Rows3, Columns3, FileBarChart2 } from "lucide-react";
 import premierClubLogo from "/premier-club-logo.svg";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
