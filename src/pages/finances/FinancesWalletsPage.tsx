@@ -1,7 +1,23 @@
+/**
+ * Office → Wallets (merged with former Balance tab, 2026-07-20).
+ * Single source of truth for cash-desk reconciliation:
+ *  - Wallet balances per currency (native) + TZS-equivalent
+ *  - Grand Total in TZS and USD (Budget-style)
+ *  - Breakdown (Expected): Live/Slots/Other ± Miss − Expenses − Collections
+ *  - Physical count inline, transactions log, wallet CRUD
+ */
 import { Fragment, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useSessionState } from "@/hooks/use-session-state";
-import { Wallet, Plus, Pencil, ArrowUpRight, ArrowDownLeft, ChevronRight, ChevronDown, Scale } from "lucide-react";
+import {
+  Wallet,
+  Plus,
+  Pencil,
+  ArrowUpRight,
+  ArrowDownLeft,
+  ChevronRight,
+  ChevronDown,
+  RotateCw,
+} from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
@@ -17,8 +33,10 @@ import {
   presetRange,
 } from "@/components/ui/date-range-presets";
 import { useFinWallets, useUpsertFinWallet, useFinWalletTx } from "@/hooks/use-fin";
+import { useFinBalanceSnapshot, computeBalanceTotals } from "@/hooks/use-fin-balance";
+import { CloseMonthWizard } from "@/pages/office/CloseMonthWizard";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
 import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
@@ -30,103 +48,58 @@ import { cn } from "@/lib/utils";
 const CURRENCIES = ["TZS", "USD", "EUR", "GBP", "KES"];
 const KINDS = ["cash", "bank", "safe", "cage", "external"];
 const CASH_LIKE_KINDS = new Set(["cash", "safe"]);
-
-/* ============ Period dashboard data ============ */
-
-/** Wallet balances as of `to` (inclusive): Σ amount_tzs where business_date <= to. */
-const useWalletBalancesAsOf = (toDate: string) => {
-  const { activeCasinoId, isSummaryMode } = useCasino();
-  return useQuery({
-    queryKey: ["fin-wallet-bal-asof", isSummaryMode ? "all" : activeCasinoId, toDate],
-    enabled: !!toDate && (isSummaryMode || !!activeCasinoId),
-    queryFn: async () => {
-      let q = supabase
-        .from("fin_wallet_tx")
-        .select("wallet_id, amount_tzs, casino_id")
-        .lte("business_date", toDate)
-        .limit(50000);
-      if (!isSummaryMode && activeCasinoId) q = q.eq("casino_id", activeCasinoId);
-      const { data, error } = await q;
-      if (error) throw error;
-      const map = new Map<string, number>();
-      let total = 0;
-      (data || []).forEach((r: any) => {
-        const v = Number(r.amount_tzs || 0);
-        map.set(r.wallet_id, (map.get(r.wallet_id) || 0) + v);
-        total += v;
-      });
-      return { perWallet: map, total };
-    },
-  });
-};
-
-/** Period income — same source of truth as Office Balance: fin_day_closing (tables_result + slots_result). */
-const usePeriodIncome = (from: string, to: string) => {
-  const { activeCasinoId } = useCasino();
-  return useQuery({
-    queryKey: ["fin-period-income", activeCasinoId, from, to],
-    enabled: !!activeCasinoId && !!from && !!to,
-    queryFn: async () => {
-      if (!activeCasinoId) return { live: 0, slots: 0, other: 0, total: 0 };
-      const { data } = await supabase
-        .from("fin_day_closing")
-        .select("tables_result, slots_result")
-        .eq("casino_id", activeCasinoId)
-        .gte("business_date", from)
-        .lte("business_date", to);
-
-      const live = (data || []).reduce((s: number, r: any) => s + Number(r.tables_result || 0), 0);
-      const slotsTotal = (data || []).reduce((s: number, r: any) => s + Number(r.slots_result || 0), 0);
-      const other = 0;
-      const total = live + slotsTotal + other;
-      return { live, slots: slotsTotal, other, total };
-    },
-  });
-};
-
-
-/** Period expenses Σ amount_tzs from expenses (voided excluded). */
-const usePeriodExpenses = (from: string, to: string) => {
-  const { activeCasinoId, isSummaryMode } = useCasino();
-  return useQuery({
-    queryKey: ["fin-period-expenses", isSummaryMode ? "all" : activeCasinoId, from, to],
-    enabled: !!from && !!to && (isSummaryMode || !!activeCasinoId),
-    queryFn: async () => {
-      let q = supabase
-        .from("expenses")
-        .select("amount_tzs")
-        .gte("business_date", from)
-        .lte("business_date", to)
-        .is("voided_at", null)
-        .limit(20000);
-      if (!isSummaryMode && activeCasinoId) q = q.eq("casino_id", activeCasinoId);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data || []).reduce((s: number, r: any) => s + Number(r.amount_tzs || 0), 0);
-    },
-  });
-};
+const CURRENCY_ORDER = ["TZS", "USD", "EUR", "GBP", "KES"];
 
 /* ============ Page ============ */
 
 export default function FinancesWalletsPage() {
   const { activeCasinoId } = useCasino();
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const isSuperAdmin = roles.includes("super_admin");
   const { data: wallets = [] } = useFinWallets();
   const upsert = useUpsertFinWallet();
 
   const [preset, setPreset] = useSessionState<DatePreset>("preset", "month");
-  const [range, setRange] = useSessionState<{from:string;to:string}>("range", presetRange("month"));
+  const [range, setRange] = useSessionState<{ from: string; to: string }>("range", presetRange("month"));
   const [walletFilter, setWalletFilter] = useSessionState<string>("wallet", "all");
   const [kindFilter, setKindFilter] = useSessionState<string>("kind", "all");
-  const [sort, setSort] = useSessionState<"date_desc" | "date_asc" | "amount_desc" | "amount_asc">("sort", "date_desc");
+  const [sort, setSort] = useSessionState<"date_desc" | "date_asc" | "amount_desc" | "amount_asc">(
+    "sort",
+    "date_desc",
+  );
+  const [closeOpen, setCloseOpen] = useState(false);
 
-  const { data: balAsOf } = useWalletBalancesAsOf(range.to);
-  const { data: income } = usePeriodIncome(range.from, range.to);
-  const { data: expenses = 0 } = usePeriodExpenses(range.from, range.to);
+  // Unified snapshot — same source of truth as former Balance tab.
+  const { data: snap, isFetching } = useFinBalanceSnapshot(range.from, range.to);
+  const totals = useMemo(() => computeBalanceTotals(snap), [snap]);
+  const usdRate = snap?.rates?.usd_tzs || 2600;
+
   const { data: tx = [] } = useFinWalletTx({ from: range.from, to: range.to });
+
+  // per-wallet map for physical-count inline UI
+  const ledgerByWallet = useMemo(() => {
+    const m = new Map<string, { native: number; tzs: number }>();
+    (snap?.wallets || []).forEach((w) =>
+      m.set(w.wallet_id, {
+        native: Number(w.ledger_native ?? w.ledger ?? 0),
+        tzs: Number(w.ledger_tzs ?? w.ledger ?? 0),
+      }),
+    );
+    return m;
+  }, [snap]);
+
+  // Grand totals in TZS and USD (Budget-style)
+  const grandTotals = useMemo(() => {
+    const tzs = (snap?.wallets || []).reduce((s, w) => s + Number(w.ledger_tzs ?? w.ledger ?? 0), 0);
+    const usd = usdRate > 0 ? tzs / usdRate : 0;
+    // per-currency native totals
+    const perCcy: Record<string, number> = {};
+    (snap?.wallets || []).forEach((w) => {
+      perCcy[w.currency] = (perCcy[w.currency] || 0) + Number(w.ledger_native ?? w.ledger ?? 0);
+    });
+    return { tzs, usd, perCcy };
+  }, [snap, usdRate]);
 
   const txRows = useMemo(() => {
     let list = tx as any[];
@@ -143,15 +116,17 @@ export default function FinancesWalletsPage() {
     return sorted;
   }, [tx, walletFilter, kindFilter, sort]);
 
-  const distinctKinds = useMemo(
-    () => Array.from(new Set((tx as any[]).map((r) => r.kind))).sort(),
-    [tx],
-  );
+  const incomeTotal =
+    (snap?.incomes?.live_game || 0) + (snap?.incomes?.slots || 0) + (snap?.incomes?.other || 0);
+  const expensesTotal = snap?.expenses_total || 0;
+  const varianceTone =
+    Math.abs(totals.variance) < 1 ? "neutral" : totals.variance > 0 ? "positive" : "negative";
 
-  const totalWallets = balAsOf?.total ?? 0;
-  const incomeTotal = income?.total ?? 0;
-  // Reconciliation: Total Income − Total Expenses − Total Wallets
-  const reconciliation = incomeTotal - expenses - totalWallets;
+  const reconcileNow = () => {
+    qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
+    qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
+    qc.invalidateQueries({ queryKey: ["fin-wallets"] });
+  };
 
   /* ===== wallet CRUD dialog ===== */
   const [walletOpen, setWalletOpen] = useState(false);
@@ -183,7 +158,7 @@ export default function FinancesWalletsPage() {
       return;
     }
     const useDenoms = CASH_LIKE_KINDS.has(w.kind);
-    const cents = w.currency === "TZS" && useDenoms ? (centsInput[w.id] || 0) : 0;
+    const cents = w.currency === "TZS" && useDenoms ? centsInput[w.id] || 0 : 0;
     const counted = useDenoms
       ? cashSum(denomCounts[w.id] || {}) + cents / 100
       : Number(amountInput[w.id] || 0);
@@ -193,15 +168,16 @@ export default function FinancesWalletsPage() {
     }
     setSavingId(w.id);
     try {
-      const ledger = Number(balAsOf?.perWallet.get(w.id) || 0);
+      const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0 };
       const line = {
         wallet_id: w.id,
         wallet_name: w.name,
         currency: w.currency,
-        ledger,
+        ledger: led.native, // ledger in wallet's native currency
+        ledger_tzs: led.tzs,
         counted,
-        variance: counted - ledger,
-        denominations: useDenoms ? (denomCounts[w.id] || {}) : null,
+        variance: counted - led.native,
+        denominations: useDenoms ? denomCounts[w.id] || {} : null,
         cents: useDenoms ? cents : null,
       };
       const { error } = await supabase.from("fin_audit_log").insert({
@@ -223,7 +199,6 @@ export default function FinancesWalletsPage() {
       setAmountInput((s) => ({ ...s, [w.id]: "" }));
       setCountNote((s) => ({ ...s, [w.id]: "" }));
       setExpanded((s) => ({ ...s, [w.id]: false }));
-      qc.invalidateQueries({ queryKey: ["fin-wallet-bal-asof"] });
       qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
       qc.invalidateQueries({ queryKey: ["fin-audit-log"] });
     } catch (e: any) {
@@ -233,11 +208,9 @@ export default function FinancesWalletsPage() {
     }
   };
 
-
-
   return (
     <PageShell>
-      <PageHeader icon={Wallet} title="Wallets" subtitle="Cash, bank, safe & cage ledger">
+      <PageHeader icon={Wallet} title="Wallets" subtitle="Cash, bank, safe & cage ledger · reconciliation">
         <FinanceCasinoSwitcher allowNetwork={false} />
         <DateRangePresets
           preset={preset}
@@ -248,34 +221,104 @@ export default function FinancesWalletsPage() {
             setRange({ from, to });
           }}
         />
-        <Button variant="outline" onClick={() => navigate("/office?tab=balance")}>
-          <Scale className="w-4 h-4" /> Reconciliation
+        <Button variant="outline" size="sm" onClick={reconcileNow}>
+          <RotateCw className={cn("w-4 h-4", isFetching && "animate-spin")} /> Reconcile Now
         </Button>
+        {isSuperAdmin && (
+          <Button variant="secondary" size="sm" onClick={() => setCloseOpen(true)}>
+            Close Month
+          </Button>
+        )}
         <Button onClick={openNewWallet}>
           <Plus className="w-4 h-4" /> Add Wallet
         </Button>
       </PageHeader>
 
-      {/* DASHBOARD KPIs */}
+      {/* KPI STRIP */}
       <PageSection card={false}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Kpi label="Total Wallets" tone="neutral" v={totalWallets} sub="balance as of period end" />
+          <Kpi label="Total Wallets" tone="neutral" v={grandTotals.tzs} sub="grand TZS · period end" />
           <Kpi
             label="Total Income"
             tone="positive"
             v={incomeTotal}
-            sub={`Live ${formatNumberSpaces(income?.live ?? 0)} · Slots ${formatNumberSpaces(income?.slots ?? 0)} · Other ${formatNumberSpaces(income?.other ?? 0)}`}
+            sub={`Live ${formatNumberSpaces(snap?.incomes?.live_game || 0)} · Slots ${formatNumberSpaces(snap?.incomes?.slots || 0)} · Other ${formatNumberSpaces(snap?.incomes?.other || 0)}`}
           />
-          <Kpi label="Total Expenses" tone="negative" v={expenses} sub="period · voided excluded" />
+          <Kpi label="Total Expenses" tone="negative" v={expensesTotal} sub="period · voided excluded" />
           <Kpi
-            label="Reconciliation"
-            tone={Math.abs(reconciliation) < 1 ? "neutral" : "warning"}
-            v={reconciliation}
-            sub="Income − Expenses − Wallets"
+            label="Variance"
+            tone={varianceTone as any}
+            v={totals.variance}
+            sub="Actual − Expected"
             signed
           />
         </div>
       </PageSection>
+
+      {/* BREAKDOWN + GRAND TOTAL */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <PageSection title="Breakdown (Expected)" card={false}>
+          <div className="rounded-md border border-border bg-card">
+            <BreakdownRow label="Starting Float" v={snap?.starting_float?.grand_tzs || 0} muted />
+            <BreakdownRow label="Live Game" v={snap?.incomes?.live_game || 0} positive />
+            <BreakdownRow label="Slots" v={snap?.incomes?.slots || 0} positive />
+            <BreakdownRow label="Other Income" v={snap?.incomes?.other || 0} positive />
+            <BreakdownRow label="Missed Chips (±)" v={snap?.incomes?.missed_chips || 0} signed />
+            <BreakdownRow label="Missed Cards (±)" v={snap?.incomes?.missed_cards || 0} signed />
+            <BreakdownRow label="− Expenses" v={snap?.expenses_total || 0} negative />
+            <BreakdownRow label="− Collections" v={snap?.collections_total || 0} negative />
+            <div className="border-t-2 border-border">
+              <BreakdownRow label="= Expected" v={totals.expected} bold />
+            </div>
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-1">
+            USD→TZS rate {formatNumberSpaces(usdRate)} · Period {range.from} → {range.to}
+          </div>
+        </PageSection>
+
+        <PageSection title="Grand Total (Wallets)" card={false}>
+          <div className="rounded-md border border-border bg-card p-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-md border border-border bg-background p-3">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Grand TZS</div>
+                <div className="font-mono tabular-nums text-2xl font-semibold mt-1">
+                  {formatNumberSpaces(grandTotals.tzs)}
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  Σ balance × FX (period end)
+                </div>
+              </div>
+              <div className="rounded-md border border-border bg-background p-3">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Grand USD</div>
+                <div className="font-mono tabular-nums text-2xl font-semibold mt-1">
+                  {formatNumberSpaces(Math.round(grandTotals.usd))}
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  Grand TZS ÷ {formatNumberSpaces(usdRate)} (Office Rates)
+                </div>
+              </div>
+            </div>
+            <div className="border-t border-border pt-2">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+                Per currency (native units)
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
+                {CURRENCY_ORDER.filter((c) => grandTotals.perCcy[c]).map((c) => (
+                  <div
+                    key={c}
+                    className="flex items-baseline justify-between rounded border border-border/50 bg-background/50 px-2 py-1"
+                  >
+                    <span className="text-[11px] font-mono text-muted-foreground">{c}</span>
+                    <span className="font-mono tabular-nums text-sm">
+                      {formatNumberSpaces(grandTotals.perCcy[c])}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </PageSection>
+      </div>
 
       {/* WALLETS TABLE */}
       <PageSection title="Wallets" card={false}>
@@ -288,6 +331,7 @@ export default function FinancesWalletsPage() {
                 <th className="px-3 py-2 text-left">Kind</th>
                 <th className="px-3 py-2 text-left">Currency</th>
                 <th className="px-3 py-2 text-right">Starting Float</th>
+                <th className="px-3 py-2 text-right">Balance (native)</th>
                 <th className="px-3 py-2 text-right">Balance (TZS)</th>
                 <th className="w-12"></th>
               </tr>
@@ -298,16 +342,15 @@ export default function FinancesWalletsPage() {
                 const useDenoms = CASH_LIKE_KINDS.has(w.kind);
                 const denoms = CASH_DENOMS[w.currency] || CASH_DENOMS.TZS;
                 const denomVals = denomCounts[w.id] || {};
-                const centsVal = w.currency === "TZS" && useDenoms ? (centsInput[w.id] || 0) : 0;
+                const centsVal = w.currency === "TZS" && useDenoms ? centsInput[w.id] || 0 : 0;
                 const counted = useDenoms
                   ? cashSum(denomVals) + centsVal / 100
                   : Number(amountInput[w.id] || 0);
-                const ledger = Number(balAsOf?.perWallet.get(w.id) || 0);
-                const variance = counted - ledger;
+                const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0 };
+                const variance = counted - led.native;
                 return (
                   <Fragment key={w.id}>
                     <tr
-                      key={w.id}
                       className="border-t border-border hover:bg-muted/40 cursor-pointer"
                       onClick={() => toggleRow(w.id)}
                     >
@@ -332,7 +375,11 @@ export default function FinancesWalletsPage() {
                         )}
                       </td>
                       <td className="text-right font-mono tabular-nums">
-                        {formatNumberSpaces(ledger)}
+                        {formatNumberSpaces(led.native)}{" "}
+                        <span className="text-[10px] text-muted-foreground">{w.currency}</span>
+                      </td>
+                      <td className="text-right font-mono tabular-nums">
+                        {formatNumberSpaces(led.tzs)}
                       </td>
                       <td className="text-right pr-3">
                         <Button
@@ -352,7 +399,7 @@ export default function FinancesWalletsPage() {
                     </tr>
                     {isOpen && (
                       <tr className="bg-muted/30 border-t border-border">
-                        <td colSpan={7} className="p-4">
+                        <td colSpan={8} className="p-4">
                           <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                             <div>
                               <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
@@ -361,9 +408,7 @@ export default function FinancesWalletsPage() {
                               {useDenoms ? (
                                 <CashDenomInput
                                   values={denomVals}
-                                  onChange={(v) =>
-                                    setDenomCounts((s) => ({ ...s, [w.id]: v }))
-                                  }
+                                  onChange={(v) => setDenomCounts((s) => ({ ...s, [w.id]: v }))}
                                   denoms={denoms}
                                   currency={w.currency}
                                   size="sm"
@@ -382,10 +427,7 @@ export default function FinancesWalletsPage() {
                                   placeholder={`Amount (${w.currency})`}
                                   value={amountInput[w.id] || ""}
                                   onChange={(e) =>
-                                    setAmountInput((s) => ({
-                                      ...s,
-                                      [w.id]: e.target.value,
-                                    }))
+                                    setAmountInput((s) => ({ ...s, [w.id]: e.target.value }))
                                   }
                                   className="font-mono"
                                 />
@@ -394,9 +436,17 @@ export default function FinancesWalletsPage() {
                             <div className="space-y-3">
                               <div className="rounded-md border border-border bg-card p-3 space-y-1">
                                 <div className="flex items-center justify-between text-xs">
-                                  <span className="text-muted-foreground">Ledger (TZS)</span>
+                                  <span className="text-muted-foreground">
+                                    Ledger ({w.currency})
+                                  </span>
                                   <span className="font-mono tabular-nums">
-                                    {formatNumberSpaces(ledger)}
+                                    {formatNumberSpaces(led.native)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                  <span>Ledger (TZS)</span>
+                                  <span className="font-mono tabular-nums">
+                                    {formatNumberSpaces(led.tzs)}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs">
@@ -457,16 +507,45 @@ export default function FinancesWalletsPage() {
               })}
               {!wallets.length && (
                 <tr>
-                  <td colSpan={7} className="text-center text-muted-foreground py-6">
+                  <td colSpan={8} className="text-center text-muted-foreground py-6">
                     No wallets yet
                   </td>
                 </tr>
               )}
             </tbody>
+            {(wallets as any[]).length > 0 && (
+              <tfoot className="bg-muted/50 border-t-2 border-border">
+                <tr>
+                  <td colSpan={5} className="px-3 py-2 text-right text-[11px] uppercase tracking-wider font-semibold">
+                    Grand Total
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums text-xs text-muted-foreground">
+                    {CURRENCY_ORDER.filter((c) => grandTotals.perCcy[c])
+                      .map((c) => `${formatNumberSpaces(grandTotals.perCcy[c])} ${c}`)
+                      .join(" · ")}
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums font-semibold">
+                    {formatNumberSpaces(grandTotals.tzs)}
+                  </td>
+                  <td />
+                </tr>
+                <tr className="border-t border-border/50">
+                  <td colSpan={5} className="px-3 py-1.5 text-right text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Grand Total USD
+                  </td>
+                  <td colSpan={2} className="px-3 py-1.5 text-right font-mono tabular-nums text-sm">
+                    {formatNumberSpaces(Math.round(grandTotals.usd))} USD
+                    <span className="text-[10px] text-muted-foreground ml-2">
+                      @ {formatNumberSpaces(usdRate)}
+                    </span>
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </PageSection>
-
 
       {/* TRANSACTIONS */}
       <PageSection title={`Transactions · ${txRows.length}`} card={false}>
@@ -485,16 +564,18 @@ export default function FinancesWalletsPage() {
             </SelectContent>
           </Select>
           <Select value={kindFilter} onValueChange={setKindFilter}>
-            <SelectTrigger className="h-9 w-[160px]">
+            <SelectTrigger className="h-9 w-[140px]">
               <SelectValue placeholder="All kinds" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All kinds</SelectItem>
-              {distinctKinds.map((k) => (
-                <SelectItem key={k} value={k}>
-                  {k}
-                </SelectItem>
-              ))}
+              {Array.from(new Set((tx as any[]).map((r) => r.kind)))
+                .sort()
+                .map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {k}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
           <Select value={sort} onValueChange={(v) => setSort(v as any)}>
@@ -528,13 +609,9 @@ export default function FinancesWalletsPage() {
                 const isIn = Number(r.amount_tzs) >= 0;
                 return (
                   <tr key={r.id} className="border-t border-border hover:bg-muted/40">
-                    <td className="px-3 py-1.5 font-mono text-xs">
-                      {fmtDateOnly(r.business_date)}
-                    </td>
+                    <td className="px-3 py-1.5 font-mono text-xs">{fmtDateOnly(r.business_date)}</td>
                     <td className="px-3 py-1.5">{r.fin_wallets?.name || "—"}</td>
-                    <td className="px-3 py-1.5 text-xs uppercase text-muted-foreground">
-                      {r.kind}
-                    </td>
+                    <td className="px-3 py-1.5 text-xs uppercase text-muted-foreground">{r.kind}</td>
                     <td className="px-3 py-1.5 text-center">
                       {isIn ? (
                         <ArrowDownLeft className="w-3.5 h-3.5 inline cms-amount-positive" />
@@ -682,6 +759,15 @@ export default function FinancesWalletsPage() {
           </Button>
         </div>
       </ResponsiveDialog>
+
+      {isSuperAdmin && (
+        <CloseMonthWizard
+          open={closeOpen}
+          onOpenChange={setCloseOpen}
+          wallets={(snap?.wallets || []) as any}
+          usdTzs={usdRate}
+        />
+      )}
     </PageShell>
   );
 }
@@ -715,11 +801,13 @@ const Kpi = ({
         ? "cms-amount-negative"
         : ""
     : "";
+  const sign = signed && v > 0 ? "+" : signed && v < 0 ? "−" : "";
   return (
     <div className={cn("rounded-md border border-border bg-card p-3", TONE[tone])}>
       <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className={cn("font-mono tabular-nums text-lg font-semibold mt-1", color)}>
-        {formatNumberSpaces(v)}
+        {sign}
+        {formatNumberSpaces(Math.abs(v))}
       </div>
       {sub && (
         <div className="text-[10px] text-muted-foreground mt-0.5 truncate" title={sub}>
@@ -729,3 +817,54 @@ const Kpi = ({
     </div>
   );
 };
+
+/* ============ Breakdown row ============ */
+
+function BreakdownRow({
+  label,
+  v,
+  positive,
+  negative,
+  bold,
+  signed,
+  muted,
+}: {
+  label: string;
+  v: number;
+  positive?: boolean;
+  negative?: boolean;
+  bold?: boolean;
+  signed?: boolean;
+  muted?: boolean;
+}) {
+  const cls = positive
+    ? "cms-amount-positive"
+    : negative
+      ? "cms-amount-negative"
+      : signed
+        ? v > 0
+          ? "cms-amount-positive"
+          : v < 0
+            ? "cms-amount-negative"
+            : "text-muted-foreground"
+        : muted
+          ? "text-muted-foreground"
+          : "";
+  const sign = positive ? "+" : negative ? "−" : signed && v > 0 ? "+" : signed && v < 0 ? "−" : "";
+  return (
+    <div className="flex items-center justify-between px-3 py-1.5 border-b border-border last:border-b-0 text-xs">
+      <span
+        className={cn(
+          "uppercase tracking-wider text-muted-foreground",
+          bold && "text-foreground font-semibold",
+        )}
+      >
+        {label}
+      </span>
+      <span className={cn("font-mono tabular-nums", cls, bold && "font-semibold text-sm")}>
+        {sign}
+        {formatNumberSpaces(Math.abs(v))}
+      </span>
+    </div>
+  );
+}
