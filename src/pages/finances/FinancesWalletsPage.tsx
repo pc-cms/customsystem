@@ -367,6 +367,13 @@ export default function FinancesWalletsPage() {
                                   denoms={denoms}
                                   currency={w.currency}
                                   size="sm"
+                                  {...(w.currency === "TZS"
+                                    ? {
+                                        cents: centsVal,
+                                        onCentsChange: (c: number) =>
+                                          setCentsInput((s) => ({ ...s, [w.id]: c })),
+                                      }
+                                    : {})}
                                 />
                               ) : (
                                 <Input
