@@ -1,0 +1,260 @@
+/**
+ * useBossMonthlyReport — MTD financial rollup across selected casinos.
+ * Mirrors the manager Excel report: per-casino totals + daily rows.
+ *
+ * Sources:
+ *   - Result (Live+Slots):   fin_day_closing.tables_result + slots_result
+ *   - Other incomes:         fin_other_incomes.amount * fx_rate (→ TZS)
+ *   - Collection:            expenses.amount_tzs joined w/ fin_categories.group_code='collections'
+ *   - Extra Expenses buckets by fin_categories.group_code (fixed/tax/salary/…)
+ *   - Estimated Expenses:    fin_budget.planned_amount (TZS rows only)
+ *   - SAFE snapshot:         Σ fin_wallet_tx.amount_tzs (kind-signed) per casino
+ */
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { getBusinessDate } from "@/lib/business-day";
+
+export type CasinoRef = { id: string; name: string; slug: string | null };
+
+export type DailyRow = {
+  date: string; // YYYY-MM-DD
+  perCasino: Record<string, number>; // casino_id -> Live+Slots result
+  jcResult: number;                  // sum across all
+  collection: number;                // sum across all
+  balance: number;                   // running (JC - Collection - proRata extras)
+};
+
+export type ExtraBucket = {
+  key: string;   // group_code
+  label: string;
+  perCasino: Record<string, number>;
+  total: number;
+};
+
+export type Summary = {
+  estimated:  Record<string, number>; // per casino
+  result:     Record<string, number>;
+  other:      Record<string, number>;
+  collection: Record<string, number>;
+  extras:     ExtraBucket[];          // detailed by group_code (excl. collections + income)
+  extrasTotal: Record<string, number>;
+  bonus5:     Record<string, number>; // 5% of Result
+  safe:       Record<string, number>;
+  totals: {
+    estimated: number; result: number; other: number; collection: number;
+    extras: number; bonus5: number; safe: number;
+    expectedProfit: number; balance: number; total: number;
+  };
+};
+
+export type BossMonthlyReport = {
+  summary: Summary;
+  daily: DailyRow[];
+  monthStart: string;
+  today: string;
+};
+
+const monthStartDate = (todayStr: string): string => {
+  const d = new Date(todayStr);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+};
+
+const enumerateDays = (fromISO: string, toISO: string): string[] => {
+  const out: string[] = [];
+  const start = new Date(fromISO);
+  const end = new Date(toISO);
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    out.push(d.toISOString().slice(0, 10));
+  }
+  return out;
+};
+
+// Human labels for the group_code buckets shown as "Extra Expenses"
+const GROUP_LABELS: Record<string, string> = {
+  fixed:      "Fixed Costs & Licences",
+  tax:        "Government Taxes",
+  salary:     "Salary Expenses",
+  variable:   "Variable Expenses",
+  petrol:     "Petrol Expenses",
+  additional: "Additional Expenses",
+};
+const GROUP_ORDER = ["fixed", "tax", "salary", "variable", "petrol", "additional"];
+
+// kinds that reduce wallet balance
+const NEG_KINDS = new Set(["expense", "change_out", "transfer_out"]);
+
+export function useBossMonthlyReport(casinos: CasinoRef[]) {
+  const today = getBusinessDate();
+  const from = monthStartDate(today);
+  const ids = casinos.map(c => c.id).sort().join(",");
+
+  return useQuery({
+    queryKey: ["boss-monthly-report", ids, from, today],
+    enabled: casinos.length > 0,
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+    queryFn: async (): Promise<BossMonthlyReport> => {
+      const casinoIds = casinos.map(c => c.id);
+      const zeroPer = (): Record<string, number> =>
+        Object.fromEntries(casinoIds.map(id => [id, 0]));
+
+      // fin_categories map (for grouping expenses)
+      const { data: cats } = await supabase
+        .from("fin_categories")
+        .select("id, group_code, name, is_income");
+      const catMap = new Map<string, { group: string; income: boolean }>();
+      (cats || []).forEach((c: any) =>
+        catMap.set(c.id, { group: c.group_code, income: c.is_income }));
+
+      // Parallel fetches
+      const [closingsRes, otherRes, expensesRes, budgetRes, walletTxRes] = await Promise.all([
+        supabase.from("fin_day_closing")
+          .select("casino_id, business_date, tables_result, slots_result")
+          .in("casino_id", casinoIds)
+          .gte("business_date", from)
+          .lte("business_date", today),
+        supabase.from("fin_other_incomes")
+          .select("casino_id, business_date, amount, fx_rate, reverses_id")
+          .in("casino_id", casinoIds)
+          .gte("business_date", from)
+          .lte("business_date", today),
+        supabase.from("expenses")
+          .select("casino_id, business_date, amount_tzs, amount, currency, fin_category_id, approved")
+          .in("casino_id", casinoIds)
+          .gte("business_date", from)
+          .lte("business_date", today),
+        supabase.from("fin_budget")
+          .select("casino_id, year, month, planned_amount, currency, category_id")
+          .in("casino_id", casinoIds)
+          .eq("year", Number(from.slice(0, 4)))
+          .eq("month", Number(from.slice(5, 7))),
+        supabase.from("fin_wallet_tx")
+          .select("casino_id, amount_tzs, kind")
+          .in("casino_id", casinoIds)
+          .lte("business_date", today),
+      ]);
+
+      // Result per casino + daily
+      const result = zeroPer();
+      const dailyMap = new Map<string, DailyRow>();
+      for (const d of enumerateDays(from, today)) {
+        dailyMap.set(d, {
+          date: d,
+          perCasino: Object.fromEntries(casinoIds.map(id => [id, 0])),
+          jcResult: 0, collection: 0, balance: 0,
+        });
+      }
+      for (const r of (closingsRes.data || []) as any[]) {
+        const v = Number(r.tables_result || 0) + Number(r.slots_result || 0);
+        result[r.casino_id] = (result[r.casino_id] || 0) + v;
+        const row = dailyMap.get(r.business_date);
+        if (row) {
+          row.perCasino[r.casino_id] = (row.perCasino[r.casino_id] || 0) + v;
+          row.jcResult += v;
+        }
+      }
+
+      // Other incomes
+      const other = zeroPer();
+      for (const r of (otherRes.data || []) as any[]) {
+        if (r.reverses_id) continue;
+        const v = Number(r.amount || 0) * Number(r.fx_rate || 1);
+        other[r.casino_id] = (other[r.casino_id] || 0) + v;
+      }
+
+      // Expenses → collection + extras by group_code
+      const collection = zeroPer();
+      const extrasMap = new Map<string, Record<string, number>>();
+      for (const r of (expensesRes.data || []) as any[]) {
+        const amt = Number(r.amount_tzs ?? r.amount ?? 0);
+        if (!amt) continue;
+        const cat = r.fin_category_id ? catMap.get(r.fin_category_id) : undefined;
+        const group = cat?.group || "additional";
+        if (cat?.income) continue;
+        if (group === "collections") {
+          collection[r.casino_id] = (collection[r.casino_id] || 0) + amt;
+          const row = dailyMap.get(r.business_date);
+          if (row) row.collection += amt;
+        } else if (group !== "income") {
+          const key = GROUP_ORDER.includes(group) ? group : "additional";
+          if (!extrasMap.has(key)) extrasMap.set(key, zeroPer());
+          const bucket = extrasMap.get(key)!;
+          bucket[r.casino_id] = (bucket[r.casino_id] || 0) + amt;
+        }
+      }
+
+      // Estimated Expenses (TZS budget rows for the current month)
+      const estimated = zeroPer();
+      for (const b of (budgetRes.data || []) as any[]) {
+        if (b.currency !== "TZS") continue;
+        estimated[b.casino_id] = (estimated[b.casino_id] || 0) + Number(b.planned_amount || 0);
+      }
+
+      // SAFE snapshot per casino
+      const safe = zeroPer();
+      for (const t of (walletTxRes.data || []) as any[]) {
+        const raw = Number(t.amount_tzs || 0);
+        const signed = NEG_KINDS.has(t.kind) ? -Math.abs(raw) : Math.abs(raw);
+        safe[t.casino_id] = (safe[t.casino_id] || 0) + signed;
+      }
+
+      // Bonus 5% of Result
+      const bonus5 = zeroPer();
+      for (const id of casinoIds) bonus5[id] = Math.max(0, (result[id] || 0)) * 0.05;
+
+      // Extras aggregate per casino
+      const extrasTotal = zeroPer();
+      const extras: ExtraBucket[] = GROUP_ORDER
+        .filter(k => extrasMap.has(k))
+        .map(k => {
+          const per = extrasMap.get(k)!;
+          const total = Object.values(per).reduce((a, b) => a + b, 0);
+          for (const id of casinoIds) extrasTotal[id] = (extrasTotal[id] || 0) + (per[id] || 0);
+          return { key: k, label: GROUP_LABELS[k] || k, perCasino: per, total };
+        });
+      // add bonus 5% as synthetic bucket
+      const bonusTotal = Object.values(bonus5).reduce((a, b) => a + b, 0);
+      if (bonusTotal > 0) {
+        extras.push({ key: "bonus5", label: "Approx Bonus for Managers (5%)", perCasino: bonus5, total: bonusTotal });
+        for (const id of casinoIds) extrasTotal[id] = (extrasTotal[id] || 0) + (bonus5[id] || 0);
+      }
+
+      // Totals
+      const sumRec = (r: Record<string, number>) => Object.values(r).reduce((a, b) => a + b, 0);
+      const tEstimated = sumRec(estimated);
+      const tResult = sumRec(result);
+      const tOther = sumRec(other);
+      const tCollection = sumRec(collection);
+      const tExtras = sumRec(extrasTotal);
+      const tBonus = sumRec(bonus5);
+      const tSafe = sumRec(safe);
+      const balance = tResult + tOther - tEstimated - tExtras - tCollection;
+      const expectedProfit = tResult - tEstimated - tExtras - tCollection + tOther;
+      const total = tSafe + balance;
+
+      // Daily balance running: JC - collection - estimated pro-rata - extras pro-rata
+      const days = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+      const nDays = days.length || 1;
+      const perDayEstimated = tEstimated / nDays;
+      const perDayExtras = tExtras / nDays;
+      let running = 0;
+      for (const d of days) {
+        running += d.jcResult - d.collection - perDayEstimated - perDayExtras;
+        d.balance = running;
+      }
+
+      return {
+        monthStart: from, today,
+        summary: {
+          estimated, result, other, collection, extras, extrasTotal, bonus5, safe,
+          totals: {
+            estimated: tEstimated, result: tResult, other: tOther, collection: tCollection,
+            extras: tExtras, bonus5: tBonus, safe: tSafe,
+            expectedProfit, balance, total,
+          },
+        },
+        daily: days,
+      };
+    },
+  });
+}
