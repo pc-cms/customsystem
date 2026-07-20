@@ -586,4 +586,110 @@ const FragmentChipDoubleRow = ({ leftD, rightD, state, onChange }: {
   </>
 );
 
+type TableChipsMap = Record<string, Record<number, { expected: number; actual: number }>>;
+
+const TableChipsFullGrid = ({
+  tables,
+  tableChips,
+  tableRes,
+  onCellChange,
+  onResultChange,
+}: {
+  tables: Tables<"gaming_tables">[];
+  tableChips: TableChipsMap;
+  tableRes: Record<string, number>;
+  onCellChange: (tableId: string, denom: number, actual: number) => void;
+  onResultChange: (tableId: string, n: number) => void;
+}) => {
+  const visibleDenoms = useVisibleChipDenoms();
+  // Union of visible denoms + any denom present in snapshots (so nothing is hidden).
+  const denomSet = new Set<number>(visibleDenoms);
+  Object.values(tableChips || {}).forEach((byDenom) => {
+    Object.keys(byDenom).forEach((d) => denomSet.add(Number(d)));
+  });
+  const denoms = [...denomSet].sort((a, b) => b - a);
+  const totalResult = tables.reduce((s, t) => s + (Number(tableRes?.[t.id]) || 0), 0);
+
+  if (tables.length === 0) return null;
+
+  return (
+    <div className="cms-panel p-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Table results — full chip grid (per table)
+        </div>
+        <div className="text-[11px] text-muted-foreground">
+          Edit any actual chip count to auto-recalc the row Result. Σ ={" "}
+          <span className="font-mono tabular-nums font-semibold">{formatNumberSpaces(totalResult)}</span>
+        </div>
+      </div>
+      <div className="overflow-auto">
+        <table className="w-full border-collapse text-[11px]">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left px-2 py-1 sticky left-0 bg-background z-10 min-w-[110px]">Table</th>
+              {denoms.map((d) => (
+                <th key={d} className="text-center px-1 py-1 font-mono tabular-nums text-muted-foreground min-w-[72px]">
+                  {formatChipLabel(d)}
+                </th>
+              ))}
+              <th className="text-right px-2 py-1 min-w-[110px]">Result (TZS)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tables.map((t) => {
+              const row = tableChips?.[t.id] || {};
+              return (
+                <tr key={t.id} className="border-b border-border/50 hover:bg-accent/30">
+                  <td className="px-2 py-1 font-medium sticky left-0 bg-background z-10 truncate max-w-[160px]" title={t.name}>
+                    {t.name}
+                  </td>
+                  {denoms.map((d) => {
+                    const cell = row[d] || { expected: 0, actual: 0 };
+                    const diff = Number(cell.actual || 0) - Number(cell.expected || 0);
+                    return (
+                      <td key={d} className="px-1 py-1 align-top">
+                        <NumInput
+                          value={Number(cell.actual || 0)}
+                          onChange={(n) => onCellChange(t.id, d, n)}
+                        />
+                        <div className="text-[9px] text-muted-foreground text-center font-mono tabular-nums mt-0.5">
+                          exp {formatNumberSpaces(Number(cell.expected || 0))}
+                          {diff !== 0 && (
+                            <span className={diff > 0 ? " text-emerald-500" : " text-rose-500"}>
+                              {" "}
+                              ({diff > 0 ? "+" : ""}
+                              {formatNumberSpaces(diff)})
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                  <td className="px-2 py-1">
+                    <NumInput
+                      value={Number(tableRes?.[t.id]) || 0}
+                      onChange={(n) => onResultChange(t.id, n)}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-border font-semibold">
+              <td className="px-2 py-1 sticky left-0 bg-background">Σ</td>
+              <td colSpan={denoms.length} />
+              <td className="px-2 py-1 text-right font-mono tabular-nums">{formatNumberSpaces(totalResult)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div className="text-[10px] text-muted-foreground mt-2">
+        Editing chips OR the Result column auto-recomputes Tables Result and redistributes CLOSE chips of the shift for print. Nothing is saved.
+      </div>
+    </div>
+  );
+};
+
 export default EditReprintShiftPage;
