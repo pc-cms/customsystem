@@ -426,35 +426,7 @@ const EditReprintShiftPage = () => {
                 </div>
               </Section>
 
-              {/* Per-table results */}
-              <Section title="Table results (per table)">
-                <div className="grid grid-cols-[1fr,110px,1fr,110px] gap-1 items-center">
-                  {reportTables.length === 0 && (
-                    <div className="col-span-4 text-muted-foreground text-[11px]">No tables.</div>
-                  )}
-                  {reportTables.map(t => (
-                    <FragmentRowSingle
-                      key={t.id}
-                      label={t.name}
-                      value={Number(state.tableRes?.[t.id]) || 0}
-                      onChange={(n) => {
-                        const nextMap = { ...(state.tableRes || {}), [t.id]: n };
-                        const sum = reportTables.reduce(
-                          (s, tt) => s + (tt.id === t.id ? n : (Number(nextMap[tt.id]) || 0)),
-                          0,
-                        );
-                        setResultAuto(false);
-                        setChipsAuto(true);
-                        setState({ ...state, tableRes: nextMap, resultTable: sum, closeChips: redistributeCloseChips(sum) });
-                      }}
-                    />
-                  ))}
-                </div>
-                <div className="text-[10px] text-muted-foreground pt-1 border-t border-border mt-1 flex justify-between gap-2">
-                  <span>Editing a row auto-recalculates CLOSE chips (print only).</span>
-                  <span className="font-mono whitespace-nowrap">Σ {formatNumberSpaces(tablesResSum)}</span>
-                </div>
-              </Section>
+              {/* Per-table results moved to full-width grid at top */}
 
               {/* Totals & balance */}
               <Section title="Totals & balance">
