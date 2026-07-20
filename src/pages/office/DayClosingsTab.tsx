@@ -59,12 +59,67 @@ const formatAmountInput = (value: string): string => {
 const amountToneClass = (value: number) =>
   value > 0 ? "cms-amount-positive" : value < 0 ? "cms-amount-negative" : "text-muted-foreground";
 
+type DayAgg = { tables: number; slots: number; missChips: number; missCards: number };
+
+function useMonthAggregates(year: number, month: number) {
+  const { activeCasinoId } = useCasino();
+  return useQuery({
+    queryKey: ["day-closings-month-agg", activeCasinoId, year, month],
+    enabled: !!activeCasinoId,
+    queryFn: async () => {
+      const start = new Date(year, month - 1, 1);
+      const endEx = new Date(year, month, 1);
+      const startIso = `${start.toISOString().slice(0, 10)}T04:00:00.000Z`;
+      const endIso = `${endEx.toISOString().slice(0, 10)}T04:00:00.000Z`;
+      const startDate = start.toISOString().slice(0, 10);
+      const endDateIncl = new Date(endEx.getTime() - 86400000).toISOString().slice(0, 10);
+
+      const [shifts, slots] = await Promise.all([
+        supabase
+          .from("shifts")
+          .select("opened_at, tables_result, miss_total")
+          .eq("casino_id", activeCasinoId)
+          .gte("opened_at", startIso)
+          .lt("opened_at", endIso),
+        supabase
+          .from("cage_slots_shifts")
+          .select("business_date, system_shift_result, cards_miss")
+          .eq("casino_id", activeCasinoId)
+          .gte("business_date", startDate)
+          .lte("business_date", endDateIncl),
+      ]);
+
+      const map = new Map<string, DayAgg>();
+      const get = (d: string) => {
+        let v = map.get(d);
+        if (!v) { v = { tables: 0, slots: 0, missChips: 0, missCards: 0 }; map.set(d, v); }
+        return v;
+      };
+      (shifts.data || []).forEach((r: any) => {
+        // business day = opened_at (EAT) shifted back 7h; simpler: subtract 4h from UTC.
+        const t = new Date(r.opened_at).getTime() - 4 * 3600 * 1000;
+        const bd = new Date(t).toISOString().slice(0, 10);
+        const g = get(bd);
+        g.tables += Number(r.tables_result || 0);
+        g.missChips += Number(r.miss_total || 0);
+      });
+      (slots.data || []).forEach((r: any) => {
+        const g = get(r.business_date);
+        g.slots += Number(r.system_shift_result || 0);
+        g.missCards += Number(r.cards_miss || 0);
+      });
+      return map;
+    },
+  });
+}
+
 export default function DayClosingsTab() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const dates = useMemo(() => buildMonthDates(year, month), [year, month]);
   const { data: list = [] } = useDayClosingList();
+  const { data: aggMap } = useMonthAggregates(year, month);
   const { isManager } = useAuth() as any;
 
   const byDate = useMemo(() => {
@@ -72,6 +127,19 @@ export default function DayClosingsTab() {
     (list as any[]).forEach((r) => m.set(r.business_date, r));
     return m;
   }, [list]);
+
+  const totals = useMemo(() => {
+    const t = { tables: 0, slots: 0, missChips: 0, missCards: 0 };
+    dates.forEach((d) => {
+      const existing = byDate.get(d);
+      const agg = aggMap?.get(d);
+      t.tables += Number(existing?.tables_result ?? agg?.tables ?? 0);
+      t.slots += Number(existing?.slots_result ?? agg?.slots ?? 0);
+      t.missChips += Number(agg?.missChips ?? 0);
+      t.missCards += Number(agg?.missCards ?? 0);
+    });
+    return t;
+  }, [dates, byDate, aggMap]);
 
   const shiftMonth = (delta: number) => {
     const d = new Date(year, month - 1 + delta, 1);
@@ -111,21 +179,37 @@ export default function DayClosingsTab() {
           <thead className="bg-muted text-xs uppercase tracking-wider text-muted-foreground">
             <tr>
               <th className="text-left px-3 py-2 w-32">Date</th>
-              <th className="text-right px-3 py-2 w-48">Tables</th>
-              <th className="text-right px-3 py-2 w-48">Slots</th>
+              <th className="text-right px-3 py-2 w-44">Tables</th>
+              <th className="text-right px-3 py-2 w-44">Slots</th>
+              <th className="text-right px-3 py-2 w-32">Miss Chips</th>
+              <th className="text-right px-3 py-2 w-32">Miss Cards</th>
               <th className="text-left px-3 py-2">Comment</th>
-              <th className="text-right px-3 py-2 w-32"></th>
+              <th className="text-right px-3 py-2 w-28"></th>
             </tr>
           </thead>
           <tbody>
-            {dates.map((date) => (
-              <DayRow
-                key={date}
-                date={date}
-                existing={byDate.get(date)}
-                managerOverride={!!isManager}
-              />
-            ))}
+            <tr className="border-t border-border bg-primary/5 font-semibold">
+              <td className="px-3 py-2 text-xs uppercase tracking-wider">Totals · {MONTH_NAMES[month-1]}</td>
+              <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.tables))}>{formatNumberSpaces(totals.tables)}</td>
+              <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.slots))}>{formatNumberSpaces(totals.slots)}</td>
+              <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.missChips))}>{formatNumberSpaces(totals.missChips)}</td>
+              <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.missCards))}>{formatNumberSpaces(totals.missCards)}</td>
+              <td colSpan={2} className="px-3 py-2 text-right text-xs text-muted-foreground">
+                Result: <span className={cn("font-mono", amountToneClass(totals.tables + totals.slots))}>{formatNumberSpaces(totals.tables + totals.slots)}</span>
+              </td>
+            </tr>
+            {dates.map((date) => {
+              const agg = aggMap?.get(date) || { tables: 0, slots: 0, missChips: 0, missCards: 0 };
+              return (
+                <DayRow
+                  key={date}
+                  date={date}
+                  existing={byDate.get(date)}
+                  managerOverride={!!isManager}
+                  agg={agg}
+                />
+              );
+            })}
           </tbody>
         </table>
       </PageSection>
@@ -137,13 +221,15 @@ function DayRow({
   date,
   existing,
   managerOverride,
+  agg,
 }: {
   date: string;
   existing: any;
   managerOverride: boolean;
+  agg: DayAgg;
 }) {
-  const { data: tablesAuto = 0 } = useShiftsTablesResultForDate(date);
-  const { data: slotsAuto = 0 } = useSlotsAutoForDate(date);
+  const tablesAuto = agg.tables;
+  const slotsAuto = agg.slots;
   const upsert = useUpsertDayClosing();
   const lock = useLockDayClosing();
 
@@ -157,7 +243,6 @@ function DayRow({
     comment: existing?.notes ?? "",
   }));
 
-  // Re-sync when `existing` arrives/changes from the query (initial undefined → loaded).
   useEffect(() => {
     setState({
       tables: existing?.tables_result != null ? formatNumberSpaces(existing.tables_result) : "",
@@ -246,6 +331,13 @@ function DayRow({
         </div>
       </td>
 
+      <td className={cn("px-3 py-2 text-right font-mono text-xs", amountToneClass(agg.missChips))}>
+        {formatNumberSpaces(agg.missChips)}
+      </td>
+      <td className={cn("px-3 py-2 text-right font-mono text-xs", amountToneClass(agg.missCards))}>
+        {formatNumberSpaces(agg.missCards)}
+      </td>
+
       <td className="px-3 py-2">
         <Input
           disabled={!editable}
@@ -326,3 +418,4 @@ function DayRow({
     </>
   );
 }
+
