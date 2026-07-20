@@ -318,9 +318,49 @@ const EditReprintShiftPage = () => {
       {isLoading || !shift || !state ? (
         <div className="text-center text-muted-foreground py-16 text-sm">Loading…</div>
       ) : (
-        <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 p-2 print:block print:overflow-visible">
+        <div className="flex-1 min-h-0 flex flex-col overflow-auto gap-2 p-2 print:block print:overflow-visible">
+          {/* ============ FULL-WIDTH TABLE RESULTS GRID ============ */}
+          <TableChipsFullGrid
+            tables={reportTables}
+            tableChips={state.tableChips}
+            tableRes={state.tableRes}
+            onCellChange={(tableId, denom, actual) => {
+              const prev = state.tableChips?.[tableId]?.[denom] || { expected: 0, actual: 0 };
+              const nextTableChips = {
+                ...state.tableChips,
+                [tableId]: { ...(state.tableChips[tableId] || {}), [denom]: { ...prev, actual } },
+              };
+              // Recompute result for this table from all denoms
+              const perDenom = nextTableChips[tableId] || {};
+              const newRes = Object.entries(perDenom).reduce(
+                (s, [d, v]) => s + (Number(v.actual || 0) - Number(v.expected || 0)) * Number(d),
+                0,
+              );
+              const nextTableRes = { ...(state.tableRes || {}), [tableId]: newRes };
+              const sum = reportTables.reduce((s, tt) => s + (Number(nextTableRes[tt.id]) || 0), 0);
+              setResultAuto(false);
+              setChipsAuto(true);
+              setState({
+                ...state,
+                tableChips: nextTableChips,
+                tableRes: nextTableRes,
+                resultTable: sum,
+                closeChips: redistributeCloseChips(sum),
+              });
+            }}
+            onResultChange={(tableId, n) => {
+              const nextMap = { ...(state.tableRes || {}), [tableId]: n };
+              const sum = reportTables.reduce((s, tt) => s + (Number(nextMap[tt.id]) || 0), 0);
+              setResultAuto(false);
+              setChipsAuto(true);
+              setState({ ...state, tableRes: nextMap, resultTable: sum, closeChips: redistributeCloseChips(sum) });
+            }}
+          />
+
+          {/* ============ 2-COL: FORM | PRINT PREVIEW ============ */}
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 print:block">
           {/* ============ LEFT — EDIT FORM ============ */}
-          <div className="min-h-0 overflow-auto pr-1">
+          <div className="min-h-0 pr-1">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 auto-rows-min">
               {/* Cash */}
               <Section title="Cash open / close (per currency)">
