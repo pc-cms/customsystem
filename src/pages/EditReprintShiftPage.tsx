@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Printer, ArrowLeft, RotateCcw } from "lucide-react";
 import { CHIP_DENOMS, CURRENCIES, formatNumberSpaces, formatChipLabel } from "@/lib/currency";
+import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { computeMissByDenom } from "@/components/cage/CageHelpers";
 import ShiftClosingReport from "@/components/cage/ShiftClosingReport";
 import ChipMovementReport from "@/components/cage/ChipMovementReport";
@@ -112,6 +113,7 @@ const EditReprintShiftPage = () => {
         { data: transfers },
         { data: cashless },
         { data: tableResRpc },
+        { data: snapshots },
       ] = await Promise.all([
         supabase.from("gaming_tables").select("*").eq("casino_id", casinoId!),
         supabase.from("expenses").select("amount").eq("shift_id", shiftId),
@@ -123,13 +125,32 @@ const EditReprintShiftPage = () => {
           .gte("created_at", fromIso)
           .lte("created_at", toIso),
         (supabase as any).rpc("compute_shift_table_results", { p_shift_id: shiftId }),
+        supabase.from("chip_snapshots")
+          .select("location_id, denomination, expected_quantity, actual_quantity, created_at")
+          .eq("casino_id", casinoId!)
+          .eq("location_type", "table")
+          .gte("created_at", fromIso)
+          .lte("created_at", toIso)
+          .order("created_at", { ascending: true }),
       ]);
       const totalExpenses = (exp || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
       const tableResults: Record<string, number> = {};
       (tableResRpc || []).forEach((r: any) => {
         if (r?.table_id) tableResults[r.table_id] = Number(r.result ?? 0);
       });
-      return { shift, tables: tables || [], totalExpenses, transfers: transfers || [], cashless: cashless || [], tableResults };
+      // Latest snapshot per (table_id, denomination): iterating ascending, later overwrites.
+      const tableChips: Record<string, Record<number, { expected: number; actual: number }>> = {};
+      (snapshots || []).forEach((r: any) => {
+        if (!r?.location_id) return;
+        const tid = String(r.location_id);
+        const denom = Number(r.denomination || 0);
+        if (!denom) return;
+        (tableChips[tid] ||= {})[denom] = {
+          expected: Number(r.expected_quantity || 0),
+          actual: Number(r.actual_quantity || 0),
+        };
+      });
+      return { shift, tables: tables || [], totalExpenses, transfers: transfers || [], cashless: cashless || [], tableResults, tableChips };
     },
   });
 
@@ -190,6 +211,7 @@ const EditReprintShiftPage = () => {
       missTotal: Number((shift as any).miss_total ?? -(closing.chip_miss_total ?? 0)),
       exchangeRates: ((shift as any).exchange_rates || {}) as Record<string, number>,
       tableRes: { ...(data?.tableResults || {}) } as Record<string, number>,
+      tableChips: JSON.parse(JSON.stringify(data?.tableChips || {})) as Record<string, Record<number, { expected: number; actual: number }>>,
     };
   }, [shift, data]);
 
@@ -296,9 +318,49 @@ const EditReprintShiftPage = () => {
       {isLoading || !shift || !state ? (
         <div className="text-center text-muted-foreground py-16 text-sm">Loading…</div>
       ) : (
-        <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 p-2 print:block print:overflow-visible">
+        <div className="flex-1 min-h-0 flex flex-col overflow-auto gap-2 p-2 print:block print:overflow-visible">
+          {/* ============ FULL-WIDTH TABLE RESULTS GRID ============ */}
+          <TableChipsFullGrid
+            tables={reportTables}
+            tableChips={state.tableChips}
+            tableRes={state.tableRes}
+            onCellChange={(tableId, denom, actual) => {
+              const prev = state.tableChips?.[tableId]?.[denom] || { expected: 0, actual: 0 };
+              const nextTableChips = {
+                ...state.tableChips,
+                [tableId]: { ...(state.tableChips[tableId] || {}), [denom]: { ...prev, actual } },
+              };
+              // Recompute result for this table from all denoms
+              const perDenom = nextTableChips[tableId] || {};
+              const newRes = Object.entries(perDenom).reduce(
+                (s, [d, v]) => s + (Number((v as any).actual || 0) - Number((v as any).expected || 0)) * Number(d),
+                0,
+              );
+              const nextTableRes = { ...(state.tableRes || {}), [tableId]: newRes };
+              const sum = reportTables.reduce((s, tt) => s + (Number(nextTableRes[tt.id]) || 0), 0);
+              setResultAuto(false);
+              setChipsAuto(true);
+              setState({
+                ...state,
+                tableChips: nextTableChips,
+                tableRes: nextTableRes,
+                resultTable: sum,
+                closeChips: redistributeCloseChips(sum),
+              });
+            }}
+            onResultChange={(tableId, n) => {
+              const nextMap = { ...(state.tableRes || {}), [tableId]: n };
+              const sum = reportTables.reduce((s, tt) => s + (Number(nextMap[tt.id]) || 0), 0);
+              setResultAuto(false);
+              setChipsAuto(true);
+              setState({ ...state, tableRes: nextMap, resultTable: sum, closeChips: redistributeCloseChips(sum) });
+            }}
+          />
+
+          {/* ============ 2-COL: FORM | PRINT PREVIEW ============ */}
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 print:block">
           {/* ============ LEFT — EDIT FORM ============ */}
-          <div className="min-h-0 overflow-auto pr-1">
+          <div className="min-h-0 pr-1">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 auto-rows-min">
               {/* Cash */}
               <Section title="Cash open / close (per currency)">
@@ -364,35 +426,7 @@ const EditReprintShiftPage = () => {
                 </div>
               </Section>
 
-              {/* Per-table results */}
-              <Section title="Table results (per table)">
-                <div className="grid grid-cols-[1fr,110px,1fr,110px] gap-1 items-center">
-                  {reportTables.length === 0 && (
-                    <div className="col-span-4 text-muted-foreground text-[11px]">No tables.</div>
-                  )}
-                  {reportTables.map(t => (
-                    <FragmentRowSingle
-                      key={t.id}
-                      label={t.name}
-                      value={Number(state.tableRes?.[t.id]) || 0}
-                      onChange={(n) => {
-                        const nextMap = { ...(state.tableRes || {}), [t.id]: n };
-                        const sum = reportTables.reduce(
-                          (s, tt) => s + (tt.id === t.id ? n : (Number(nextMap[tt.id]) || 0)),
-                          0,
-                        );
-                        setResultAuto(false);
-                        setChipsAuto(true);
-                        setState({ ...state, tableRes: nextMap, resultTable: sum, closeChips: redistributeCloseChips(sum) });
-                      }}
-                    />
-                  ))}
-                </div>
-                <div className="text-[10px] text-muted-foreground pt-1 border-t border-border mt-1 flex justify-between gap-2">
-                  <span>Editing a row auto-recalculates CLOSE chips (print only).</span>
-                  <span className="font-mono whitespace-nowrap">Σ {formatNumberSpaces(tablesResSum)}</span>
-                </div>
-              </Section>
+              {/* Per-table results moved to full-width grid at top */}
 
               {/* Totals & balance */}
               <Section title="Totals & balance">
@@ -464,6 +498,7 @@ const EditReprintShiftPage = () => {
                 </>
               )}
             </div>
+          </div>
           </div>
         </div>
       )}
@@ -550,5 +585,111 @@ const FragmentChipDoubleRow = ({ leftD, rightD, state, onChange }: {
     ) : (<><div /><div /><div /></>)}
   </>
 );
+
+type TableChipsMap = Record<string, Record<number, { expected: number; actual: number }>>;
+
+const TableChipsFullGrid = ({
+  tables,
+  tableChips,
+  tableRes,
+  onCellChange,
+  onResultChange,
+}: {
+  tables: Tables<"gaming_tables">[];
+  tableChips: TableChipsMap;
+  tableRes: Record<string, number>;
+  onCellChange: (tableId: string, denom: number, actual: number) => void;
+  onResultChange: (tableId: string, n: number) => void;
+}) => {
+  const visibleDenoms = useVisibleChipDenoms();
+  // Union of visible denoms + any denom present in snapshots (so nothing is hidden).
+  const denomSet = new Set<number>(visibleDenoms);
+  Object.values(tableChips || {}).forEach((byDenom) => {
+    Object.keys(byDenom).forEach((d) => denomSet.add(Number(d)));
+  });
+  const denoms = [...denomSet].sort((a, b) => b - a);
+  const totalResult = tables.reduce((s, t) => s + (Number(tableRes?.[t.id]) || 0), 0);
+
+  if (tables.length === 0) return null;
+
+  return (
+    <div className="cms-panel p-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Table results — full chip grid (per table)
+        </div>
+        <div className="text-[11px] text-muted-foreground">
+          Edit any actual chip count to auto-recalc the row Result. Σ ={" "}
+          <span className="font-mono tabular-nums font-semibold">{formatNumberSpaces(totalResult)}</span>
+        </div>
+      </div>
+      <div className="overflow-auto">
+        <table className="w-full border-collapse text-[11px]">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left px-2 py-1 sticky left-0 bg-background z-10 min-w-[110px]">Table</th>
+              {denoms.map((d) => (
+                <th key={d} className="text-center px-1 py-1 font-mono tabular-nums text-muted-foreground min-w-[72px]">
+                  {formatChipLabel(d)}
+                </th>
+              ))}
+              <th className="text-right px-2 py-1 min-w-[110px]">Result (TZS)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tables.map((t) => {
+              const row = tableChips?.[t.id] || {};
+              return (
+                <tr key={t.id} className="border-b border-border/50 hover:bg-accent/30">
+                  <td className="px-2 py-1 font-medium sticky left-0 bg-background z-10 truncate max-w-[160px]" title={t.name}>
+                    {t.name}
+                  </td>
+                  {denoms.map((d) => {
+                    const cell = row[d] || { expected: 0, actual: 0 };
+                    const diff = Number(cell.actual || 0) - Number(cell.expected || 0);
+                    return (
+                      <td key={d} className="px-1 py-1 align-top">
+                        <NumInput
+                          value={Number(cell.actual || 0)}
+                          onChange={(n) => onCellChange(t.id, d, n)}
+                        />
+                        <div className="text-[9px] text-muted-foreground text-center font-mono tabular-nums mt-0.5">
+                          exp {formatNumberSpaces(Number(cell.expected || 0))}
+                          {diff !== 0 && (
+                            <span className={diff > 0 ? " text-emerald-500" : " text-rose-500"}>
+                              {" "}
+                              ({diff > 0 ? "+" : ""}
+                              {formatNumberSpaces(diff)})
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                  <td className="px-2 py-1">
+                    <NumInput
+                      value={Number(tableRes?.[t.id]) || 0}
+                      onChange={(n) => onResultChange(t.id, n)}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-border font-semibold">
+              <td className="px-2 py-1 sticky left-0 bg-background">Σ</td>
+              <td colSpan={denoms.length} />
+              <td className="px-2 py-1 text-right font-mono tabular-nums">{formatNumberSpaces(totalResult)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div className="text-[10px] text-muted-foreground mt-2">
+        Editing chips OR the Result column auto-recomputes Tables Result and redistributes CLOSE chips of the shift for print. Nothing is saved.
+      </div>
+    </div>
+  );
+};
 
 export default EditReprintShiftPage;
