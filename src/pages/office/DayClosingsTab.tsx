@@ -11,11 +11,10 @@ import {
   useDayClosingList,
   useUpsertDayClosing,
   useLockDayClosing,
-  useShiftsTablesResultForDate,
-  useSlotsAutoForDate,
-  useMissChipsForDate,
-  useMissCardsForDate,
 } from "@/hooks/use-fin";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCasino } from "@/lib/casino-context";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
 import { useAuth } from "@/lib/auth-context";
