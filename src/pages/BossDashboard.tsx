@@ -326,6 +326,7 @@ export default function BossDashboard() {
           </>
         )}
 
+        {blockOrient !== "report" && <>
         {/* Top players per casino */}
         <section className="mt-8">
           <h3 className="text-[0.82em] uppercase tracking-[0.24em] font-bold text-muted-foreground mb-3 inline-flex items-center gap-2">
@@ -398,6 +399,7 @@ export default function BossDashboard() {
             )}
           </div>
         </section>
+        </>}
       </main>
     </div>
   );
