@@ -298,8 +298,9 @@ export default function FinancesWalletsPage() {
                 const useDenoms = CASH_LIKE_KINDS.has(w.kind);
                 const denoms = CASH_DENOMS[w.currency] || CASH_DENOMS.TZS;
                 const denomVals = denomCounts[w.id] || {};
+                const centsVal = w.currency === "TZS" && useDenoms ? (centsInput[w.id] || 0) : 0;
                 const counted = useDenoms
-                  ? cashSum(denomVals)
+                  ? cashSum(denomVals) + centsVal / 100
                   : Number(amountInput[w.id] || 0);
                 const ledger = Number(balAsOf?.perWallet.get(w.id) || 0);
                 const variance = counted - ledger;
