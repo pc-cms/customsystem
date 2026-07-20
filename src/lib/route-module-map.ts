@@ -83,7 +83,10 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/cage/closings") return "closings";
   if (base === "/closings") return "closings";
   if (base === "/cage/close-shift") return "cage";
-  if (base.startsWith("/cage/shift/")) return "cage";
+  // /cage/shift/:id/edit-reprint — reprint + edit-print of a past shift.
+  // Managers with read-only cage_view must be able to reprint reports,
+  // so gate this by cage_view (not the transactional `cage` module).
+  if (base.startsWith("/cage/shift/")) return "cage_view";
   // Slots Expenses lives inside the Cage Slots surface and must follow the
   // same gating — independent of the generic `expenses` module override.
   if (base === "/cage-slots/expenses") return "cage_slots";
