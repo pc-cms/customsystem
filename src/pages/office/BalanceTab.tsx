@@ -126,6 +126,11 @@ export default function BalanceTab() {
               v={snap?.incomes?.missed_chips || 0}
               signed
             />
+            <BreakdownRow
+              label="Missed Cards (±)"
+              v={snap?.incomes?.missed_cards || 0}
+              signed
+            />
             <BreakdownRow label="− Expenses" v={snap?.expenses_total || 0} negative />
             <BreakdownRow
               label="− Collections"
