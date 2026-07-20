@@ -13,6 +13,8 @@ import {
   useLockDayClosing,
   useShiftsTablesResultForDate,
   useSlotsAutoForDate,
+  useMissChipsForDate,
+  useMissCardsForDate,
 } from "@/hooks/use-fin";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
