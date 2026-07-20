@@ -28,10 +28,11 @@ import {
 } from "@/hooks/use-boss-dashboard";
 import { CasinoDoubleBlock } from "@/components/boss/casino-double-block";
 import { CompanyTotalPanel } from "@/components/boss/company-total-panel";
+import { MonthlyReportPanel } from "@/components/boss/monthly-report-panel";
 
 type Resolution = "fhd" | "uhd";
 type FontPreset = "s" | "m" | "l" | "xl";
-type BlockOrient = "auto" | "cols" | "rows";
+type BlockOrient = "auto" | "cols" | "rows" | "report";
 
 const LS_CASINOS = "boss-tv:casinos";
 const LS_RES = "boss-tv:resolution";
@@ -252,8 +253,8 @@ export default function BossDashboard() {
               </button>
             ))}
           </div>
-          {/* Block orientation: MTD vs TODAY layout */}
-          <div className="inline-flex rounded-md border border-white/10 bg-white/5 p-0.5" title="Layout: auto / columns / rows">
+          {/* Block orientation: MTD vs TODAY layout + Report mode */}
+          <div className="inline-flex rounded-md border border-white/10 bg-white/5 p-0.5" title="Layout: auto / columns / rows / report">
             <button
               className={`px-2 py-1 text-xs rounded-sm ${blockOrient === "auto" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
               onClick={() => setBlockOrient("auto")}
@@ -268,6 +269,11 @@ export default function BossDashboard() {
               onClick={() => setBlockOrient("rows")}
               title="Rows (MTD / Today)"
             ><Rows3 className="w-3.5 h-3.5" /></button>
+            <button
+              className={`px-2 py-1 rounded-sm inline-flex items-center gap-1 text-xs ${blockOrient === "report" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+              onClick={() => setBlockOrient("report" as BlockOrient)}
+              title="Monthly Report"
+            ><FileBarChart2 className="w-3.5 h-3.5" /> Report</button>
           </div>
 
           <Button
@@ -292,26 +298,32 @@ export default function BossDashboard() {
         </div>
       </header>
 
-      {/* Casino double-blocks */}
+      {/* Casino double-blocks (or Monthly Report) */}
       <main className={mainPad}>
-        <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
-          {casinos.map((c, i) => (
-            <CasinoDoubleBlock
-              key={c.id}
-              name={c.name}
-              slug={c.slug}
-              accent={accentFor(c.slug, i)}
-              day={dayMap[c.id]}
-              orientation={blockOrient}
-            />
-          ))}
-        </div>
+        {blockOrient === "report" ? (
+          <MonthlyReportPanel casinos={casinos} accentFor={accentFor} />
+        ) : (
+          <>
+            <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
+              {casinos.map((c, i) => (
+                <CasinoDoubleBlock
+                  key={c.id}
+                  name={c.name}
+                  slug={c.slug}
+                  accent={accentFor(c.slug, i)}
+                  day={dayMap[c.id]}
+                  orientation={blockOrient as "auto" | "cols" | "rows"}
+                />
+              ))}
+            </div>
 
-        {/* Company Total */}
-        {casinos.length > 0 && (
-          <div className="mt-6">
-            <CompanyTotalPanel casinos={casinos} days={days} accentFor={accentFor} />
-          </div>
+            {/* Company Total */}
+            {casinos.length > 0 && (
+              <div className="mt-6">
+                <CompanyTotalPanel casinos={casinos} days={days} accentFor={accentFor} />
+              </div>
+            )}
+          </>
         )}
 
         {/* Top players per casino */}
