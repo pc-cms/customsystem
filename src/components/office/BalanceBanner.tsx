@@ -11,11 +11,20 @@ import { formatNumberSpaces } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
 export function BalanceBanner() {
-  const [, setParams] = useSearchParams();
+  const [params, setParams] = useSearchParams();
 
-  // Lifetime scope: from 1970 to today. Cheap because RPC aggregates server-side.
-  const to = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const from = "2000-01-01";
+  // Month scope — same as Wallets tab default. Lifetime would double-count
+  // incomes against a "now" wallet snapshot and produce huge phantom deficits.
+  const { from, to } = useMemo(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const last = new Date(y, now.getMonth() + 1, 0).getDate();
+    return {
+      from: `${y}-${m}-01`,
+      to: `${y}-${m}-${String(last).padStart(2, "0")}`,
+    };
+  }, []);
 
   const { data } = useFinBalanceSnapshot(from, to);
   const totals = computeBalanceTotals(data);
@@ -24,15 +33,21 @@ export function BalanceBanner() {
 
   const isDeficit = totals.variance < 0;
   const abs = Math.abs(totals.variance);
+  const currentTab = params.get("tab") || "wallets";
+  const alreadyOnWallets = currentTab === "wallets" || currentTab === "balance";
 
   return (
     <button
       type="button"
-      onClick={() => setParams((p) => {
-        const n = new URLSearchParams(p);
-        n.set("tab", "balance");
-        return n;
-      }, { replace: true })}
+      onClick={() => {
+        if (alreadyOnWallets) {
+          document.getElementById("wallets-breakdown")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+        const n = new URLSearchParams(params);
+        n.set("tab", "wallets");
+        setParams(n, { replace: true });
+      }}
       className={cn(
         "w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs border transition",
         isDeficit
@@ -40,6 +55,7 @@ export function BalanceBanner() {
           : "bg-emerald-500/10 border-emerald-500/40 hover:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
       )}
     >
+
       {isDeficit ? (
         <AlertTriangle className="w-4 h-4 shrink-0" />
       ) : (
