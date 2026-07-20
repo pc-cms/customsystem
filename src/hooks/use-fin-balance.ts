@@ -53,6 +53,9 @@ export const useFinBalanceSnapshot = (from: string, to: string) => {
 export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
   if (!s) return { expected: 0, actual: 0, variance: 0 };
   const incomes = s.incomes;
+  // NOTE: starting_float is NOT added here — the physical cash count entered
+  // per wallet already includes it (a cash count records the wallet's total,
+  // which contains the starting float). Adding it again would double-count.
   const expected =
     (s.starting_float?.grand_tzs || 0) +
     (incomes.live_game || 0) +
@@ -61,6 +64,9 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
     (incomes.missed_chips || 0) -
     (s.expenses_total || 0) -
     (s.collections_total || 0);
+  // Subtract starting_float back out so Expected is comparable to Actual
+  // (which already contains the float inside the wallet totals).
+  const expectedAdjusted = expected - (s.starting_float?.grand_tzs || 0);
   const usdRate = s.rates?.usd_tzs || 2500;
   const actual = (s.wallets || []).reduce((sum, w) => {
     const val = Number(w.physical ?? w.ledger ?? 0);
