@@ -499,6 +499,7 @@ const EditReprintShiftPage = () => {
               )}
             </div>
           </div>
+          </div>
         </div>
       )}
 
