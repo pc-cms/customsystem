@@ -60,7 +60,7 @@ const useWalletBalancesAsOf = (toDate: string) => {
   });
 };
 
-/** Period income: shifts.tables_result + cage_slots_shifts.system_shift_result + fin_incomes (USD→TZS at 2500 fallback). */
+/** Period income — same source of truth as Office Balance: fin_day_closing (tables_result + slots_result). */
 const usePeriodIncome = (from: string, to: string) => {
   const { activeCasinoId } = useCasino();
   return useQuery({
@@ -68,73 +68,22 @@ const usePeriodIncome = (from: string, to: string) => {
     enabled: !!activeCasinoId && !!from && !!to,
     queryFn: async () => {
       if (!activeCasinoId) return { live: 0, slots: 0, other: 0, total: 0 };
-      const startUtc = `${from}T04:00:00.000Z`;
-      const d = new Date(to);
-      d.setUTCDate(d.getUTCDate() + 1);
-      const endUtc = `${d.toISOString().slice(0, 10)}T04:00:00.000Z`;
+      const { data } = await supabase
+        .from("fin_day_closing")
+        .select("tables_result, slots_result")
+        .eq("casino_id", activeCasinoId)
+        .gte("business_date", from)
+        .lte("business_date", to);
 
-      const [shifts, slots, incomes, rates] = await Promise.all([
-        supabase
-          .from("shifts")
-          .select("tables_result")
-          .eq("casino_id", activeCasinoId)
-          .gte("opened_at", startUtc)
-          .lt("opened_at", endUtc),
-        supabase
-          .from("cage_slots_shifts")
-          .select("system_shift_result")
-          .eq("casino_id", activeCasinoId)
-          .gte("opened_at", startUtc)
-          .lt("opened_at", endUtc),
-        (supabase as any)
-          .from("fin_incomes")
-          .select("amount, currency, year, month")
-          .eq("casino_id", activeCasinoId),
-        supabase
-          .from("fin_daily_rates")
-          .select("rate_to_tzs")
-          .eq("casino_id", activeCasinoId)
-          .eq("currency", "USD")
-          .gte("business_date", from)
-          .lte("business_date", to),
-      ]);
-
-
-      const live = (shifts.data || []).reduce(
-        (s: number, r: any) => s + Number(r.tables_result || 0),
-        0,
-      );
-      const slotsTotal = (slots.data || []).reduce(
-        (s: number, r: any) => s + Number(r.system_shift_result || 0),
-        0,
-      );
-      const rateList = (rates.data || [])
-        .map((r: any) => Number(r.rate_to_tzs || 0))
-        .filter((n: number) => n > 0);
-      const avg = rateList.length
-        ? rateList.reduce((a: number, b: number) => a + b, 0) / rateList.length
-        : 2500;
-
-      // fin_incomes is keyed by year/month — pick months overlapping [from..to].
-      const fy = Number(from.slice(0, 4));
-      const fm = Number(from.slice(5, 7));
-      const ty = Number(to.slice(0, 4));
-      const tm = Number(to.slice(5, 7));
-      const inRange = (y: number, m: number) => {
-        const k = y * 12 + m;
-        return k >= fy * 12 + fm && k <= ty * 12 + tm;
-      };
-      const other = ((incomes as any)?.data || []).reduce((s: number, r: any) => {
-        if (!inRange(Number(r.year), Number(r.month))) return s;
-        const amt = Number(r.amount || 0);
-        return s + (r.currency === "USD" ? amt * avg : amt);
-      }, 0);
-
+      const live = (data || []).reduce((s: number, r: any) => s + Number(r.tables_result || 0), 0);
+      const slotsTotal = (data || []).reduce((s: number, r: any) => s + Number(r.slots_result || 0), 0);
+      const other = 0;
       const total = live + slotsTotal + other;
       return { live, slots: slotsTotal, other, total };
     },
   });
 };
+
 
 /** Period expenses Σ amount_tzs from expenses (voided excluded). */
 const usePeriodExpenses = (from: string, to: string) => {
