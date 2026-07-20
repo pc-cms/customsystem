@@ -1,85 +1,72 @@
-## Что добавляем
 
-Новая вкладка **Monthly Report** на странице `/boss-dashboard` — переключатель рядом с текущими Auto/Columns/Rows. Отчёт повторяет структуру Excel-файла из скриншота, период = текущий месяц (MTD), автообновление 30 сек. Все данные — из БД автоматически. Casino set: **Arusha, Mwanza, Dodoma, Mbeya**.
+## Цель
+- Никаких вложенных подвкладок в Office.
+- Все подвкладки Budget выносим на верхний уровень Office.
+- Все верхние вкладки Office упорядочены **по алфавиту**.
+- Раздел **Finances** удаляем полностью (роуты + меню + все внутренние ссылки).
+- **Company Report** — только в Boss TV.
 
-## Дизайн (ключевое)
+## Office (`src/pages/office/OfficePage.tsx`)
 
-Крупный TV-friendly отчёт под 75" с чёткой иерархией:
+Плоский список вкладок, строго по алфавиту:
 
-**Палитра (использует существующие boss-casino токены)**
-- Фон панелей: `bg-card/40` со стеклянной подложкой, тонкая рамка `border-white/10`
-- Заголовки казино: цвета `hsl(var(--boss-casino-1..4))` — Arusha, Mwanza, Dodoma, Mbeya получают закреплённые цвета (легенда как в StackedShareBar)
-- Числа: `font-mono tabular-nums`, отрицательные — `cms-amount-negative` (красный), положительные — обычным цветом; Balance/Total — жирным
-- Разделители тысяч — пробелом (`fmtMoney`)
+`Actual · Balance · Budget · Day Closings · Difference · Money Change · Monthly Report · Other Incomes · Rates · Wallets`
 
-**Выделение сегодняшнего дня (главное)**
-- Строка сегодняшнего дня в дневной таблице:
-  - фон `bg-primary/15` с левым бордером `border-l-4 border-primary`
-  - жирный текст, увеличенный шрифт (на 1 пресет выше)
-  - слева от даты — маленький пульсирующий индикатор `● TODAY` (badge, `animate-pulse`)
-  - строка «прилипает» к области видимости (sticky) при прокрутке — так на TV босс всегда видит текущий день
-- Незакрытые дни (нет `fin_day_closing`) — приглушённо (`text-muted-foreground`) с точкой-плейсхолдером `·`
-- Будущие дни месяца — не рендерим
+Никакого `OfficeBudgetHub`, никаких `sub`-параметров. Один `?tab=…`.
 
-**Читабельность**
-- Zebra-striping (`odd:bg-white/[0.02]`)
-- Sticky header у дневной таблицы
-- Sticky нижняя строка `TOTAL` (сумма по месяцу)
-- Разделители недель — тонкая линия каждые 7 строк
-- Правое выравнивание всех чисел, левое — только у даты и метки
-- Крупные разделы разделены заголовками с uppercase tracking (как в существующих Boss-панелях)
+Маппинг вкладка → содержимое (переиспользуем существующие страницы `src/pages/finances/*`, ничего не копируем):
 
-**TV-режим**
-- Работает с текущими пресетами шрифта S/M/L/XL и полноэкранным F
-- Внутренние отступы адаптированы под overscan (уже есть в BossDashboard)
-- Дневная таблица занимает правую половину, сводка — левую; на узких экранах — вертикально
-
-## Раскладка
-
-### Блок 1 — Верхняя сводка (слева)
-
-Стеклянная панель, таблица `metric × (Arusha | Mwanza | Dodoma | Mbeya | Total)`:
-
-| Строка | Источник |
+| tab | компонент |
 |---|---|
-| Estimated Expenses | `fin_budget` за текущий месяц |
-| Result (Live + Slots) | Σ (`tables_result` + `slots_result`) из `fin_day_closing` MTD |
-| Other incomes | Σ `fin_other_incomes.amount_tzs` MTD |
-| Collection | Σ `expenses.amount` где категория='collection' MTD |
-| **Extra Expenses** (James GB / Debts / TRA / Unplanned / ACE CMS / Bonus 5%) | `expenses` по подкатегориям; Bonus = Result × 5% |
-| Expected Profit | Result − Estimated − Extra − Collection + Other |
-| **SAFE** | Σ балансов `fin_wallets` (Safe TZS/USD/EUR/GBP/KES → TZS по курсу дня) |
-| **Balance (current month)** | Result + Other − (Estimated + Extra + Collection) |
-| Overruns | max(0, факт. Expenses − Estimated) |
-| Total | SAFE + Balance |
-| in USD | Total / rate USD |
+| `actual` | `FinancesBudgetVsActualPage` |
+| `balance` | `BalanceTab` |
+| `budget` | `FinancesBudgetPage` |
+| `day-closings` | `DayClosingsTab` |
+| `difference` | `FinancesBudgetDifferencePage` |
+| `money-change` | `FinancesMoneyChangePage` |
+| `monthly-report` | `FinancesMonthlyReportPage` |
+| `other-incomes` | `OtherIncomesTab` |
+| `rates` | `RatesTab` |
+| `wallets` | `FinancesWalletsPage` |
 
-Секция Extra Expenses — сворачиваемая (по умолчанию раскрыта на TV), строки чуть меньшего размера.
+`DEFAULT_TAB = "balance"`. Всё lazy через `Suspense`, как сейчас. `TabsList` — `flex-wrap`.
 
-### Блок 2 — Дневная таблица (справа)
+Файл `FinancesBudgetHubPage.tsx` больше не используется (удалять не обязательно, но и не монтируем).
 
-Колонки: `Date | JC Result | Arusha | Mwanza | Dodoma | Mbeya | Collection | Balance`
+## Boss TV
+- В `src/pages/BossDashboard.tsx` режим/бейдж переименовать: `Monthly Report` → **Company Report**.
+- В `src/components/boss/monthly-report-panel.tsx` — заголовки/лейблы: **Company Report**. Файл и экспорт можно не переименовывать, только тексты.
+- Панель нигде вне Boss TV не монтируется.
 
-- Строка на каждый день от 1-го до сегодня включительно
-- **Сегодня** — с подсветкой (см. выше)
-- Balance — нарастающий итог, знак и цвет через `cms-amount-negative`/`cms-amount-positive`
-- Внизу sticky-строка `TOTAL` — жирным
+## Жёсткое удаление Finances
+- `src/App.tsx` — удалить все `<Route path="/finances/*">` и связанные lazy-импорты.
+- Сайдбар — удалить группу Finances целиком.
+- `src/lib/route-module-map.ts` — удалить ветки `/finances/*`.
+- Файлы `src/pages/finances/*` остаются на диске — их монтирует Office.
 
-## Технические детали
+## Все внутренние ссылки на `/finances/*` — удалить
+Прогон `rg "/finances/"` по `src/`. В каждом найденном месте (кнопки, `Link`, пункты меню, быстрые действия, `navigate("/finances/...")` в обработчиках, включая дашборды/баннеры/мобильные Drawer) — **удалить сам элемент навигации целиком**, не заменять на `/office?...`. Причина: у менеджеров не должно оставаться ссылок, ведущих в удалённый раздел, чтобы избежать 404 и путаницы.
 
-**Новые файлы:**
-- `src/hooks/use-boss-monthly-report.ts` — один хук, возвращает `{ summary, daily }`, `refetchInterval: 30_000`
-- `src/components/boss/MonthlyReportPanel.tsx` — панель со сводкой + дневной таблицей
-- `src/components/boss/MonthlyDayRow.tsx` — строка дня с выделением today
+Единственная точка входа во всё бюджетно-финансовое — вкладки Office.
 
-**Изменения:**
-- `src/pages/BossDashboard.tsx` — добавить таб "Report" в переключатель макета
-- Расширить дефолтный casino set Boss TV до Mbeya
+## Доступ
+Как договаривались: Boss / Super Admin / Admin / Manager / Accountant видят Office и все его вкладки. Меняем только фильтр модулей в сайдбаре; миграций нет.
 
-**SQL:** запросы клиентские через supabase-js, без миграций и без новых таблиц. Все нужные таблицы уже есть: `fin_day_closing`, `fin_other_incomes`, `expenses`, `fin_budget`, `fin_wallets`, `fin_daily_rates`.
+## Файлы
+- `src/pages/office/OfficePage.tsx` — новый плоский `TABS` (алфавит) + маппинг.
+- `src/pages/BossDashboard.tsx` — переименование UI (Company Report).
+- `src/components/boss/monthly-report-panel.tsx` — заголовки Company Report.
+- `src/App.tsx` — снять роуты `/finances/*`.
+- `src/lib/route-module-map.ts` — снять маппинги `/finances/*`.
+- Сайдбар — снять группу Finances.
+- Точечные правки по результатам `rg "/finances/"` — удаляем элементы навигации.
 
-## Что НЕ делаем
+БД не трогаем.
 
-- Не создаём новых таблиц/миграций
-- Не трогаем логику Office Balance / Day Closings
-- Экспорт в Excel/print — на следующей итерации
+## Приёмка
+- В Office ровно эти вкладки, в этом порядке: **Actual, Balance, Budget, Day Closings, Difference, Money Change, Monthly Report, Other Incomes, Rates, Wallets**. Ни одной вложенной вкладки внутри.
+- Boss TV: режим/подпись — **Company Report**. Панель больше нигде не появляется.
+- В сайдбаре нет группы Finances.
+- Ни у одной роли (включая менеджеров) нет кнопок/линков, ведущих на `/finances/*`.
+- Любой URL `/finances/*` → 404.
+- `rg "/finances/"` по `src/` — только строки/комментарии, никаких активных `to=`/`href=`/`navigate(...)`.

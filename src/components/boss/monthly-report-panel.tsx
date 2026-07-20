@@ -76,7 +76,7 @@ export function MonthlyReportPanel({ casinos, accentFor }: Props) {
       >
         <header className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
           <div>
-            <div className="text-[0.7em] uppercase tracking-[0.28em] text-muted-foreground">Monthly Report</div>
+            <div className="text-[0.7em] uppercase tracking-[0.28em] text-muted-foreground">Company Report</div>
             <div className="text-[1.1em] font-extrabold tracking-wide">{monthLabel}</div>
           </div>
           <div className="flex items-center gap-3 text-[0.65em] uppercase tracking-widest text-muted-foreground">
