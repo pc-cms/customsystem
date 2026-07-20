@@ -183,8 +183,9 @@ export default function FinancesWalletsPage() {
       return;
     }
     const useDenoms = CASH_LIKE_KINDS.has(w.kind);
+    const cents = w.currency === "TZS" && useDenoms ? (centsInput[w.id] || 0) : 0;
     const counted = useDenoms
-      ? cashSum(denomCounts[w.id] || {})
+      ? cashSum(denomCounts[w.id] || {}) + cents / 100
       : Number(amountInput[w.id] || 0);
     if (!counted) {
       toast.error("Enter physical count");
@@ -201,6 +202,7 @@ export default function FinancesWalletsPage() {
         counted,
         variance: counted - ledger,
         denominations: useDenoms ? (denomCounts[w.id] || {}) : null,
+        cents: useDenoms ? cents : null,
       };
       const { error } = await supabase.from("fin_audit_log").insert({
         casino_id: activeCasinoId,
@@ -217,6 +219,7 @@ export default function FinancesWalletsPage() {
       if (error) throw error;
       toast.success(`Physical count saved · ${w.name}`);
       setDenomCounts((s) => ({ ...s, [w.id]: {} }));
+      setCentsInput((s) => ({ ...s, [w.id]: 0 }));
       setAmountInput((s) => ({ ...s, [w.id]: "" }));
       setCountNote((s) => ({ ...s, [w.id]: "" }));
       setExpanded((s) => ({ ...s, [w.id]: false }));
