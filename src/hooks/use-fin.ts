@@ -560,6 +560,49 @@ export const useSlotsAutoForDate = (businessDate?: string) => {
   });
 };
 
+/* Auto-pull missed chips (money) from shifts.miss_total for a business date. */
+export const useMissChipsForDate = (businessDate?: string) => {
+  const { activeCasinoId } = useCasino();
+  return useQuery({
+    queryKey: ["miss-chips-for-date", activeCasinoId, businessDate],
+    queryFn: async () => {
+      if (!activeCasinoId || !businessDate) return 0;
+      const start = `${businessDate}T04:00:00.000Z`;
+      const d = new Date(businessDate);
+      d.setUTCDate(d.getUTCDate() + 1);
+      const end = `${d.toISOString().slice(0, 10)}T04:00:00.000Z`;
+      const { data } = await supabase
+        .from("shifts")
+        .select("miss_total")
+        .eq("casino_id", activeCasinoId)
+        .gte("opened_at", start)
+        .lt("opened_at", end);
+      return (data || []).reduce((s: number, r: any) => s + Number(r.miss_total || 0), 0);
+    },
+    enabled: !!activeCasinoId && !!businessDate,
+    ...liveQueryOptionsWithFallback(30000),
+  });
+};
+
+/* Auto-pull missed cards (money) from cage_slots_shifts.cards_miss for a business date. */
+export const useMissCardsForDate = (businessDate?: string) => {
+  const { activeCasinoId } = useCasino();
+  return useQuery({
+    queryKey: ["miss-cards-for-date", activeCasinoId, businessDate],
+    queryFn: async () => {
+      if (!activeCasinoId || !businessDate) return 0;
+      const { data } = await supabase
+        .from("cage_slots_shifts")
+        .select("cards_miss")
+        .eq("casino_id", activeCasinoId)
+        .eq("business_date", businessDate);
+      return (data || []).reduce((s: number, r: any) => s + Number(r.cards_miss || 0), 0);
+    },
+    enabled: !!activeCasinoId && !!businessDate,
+    ...liveQueryOptionsWithFallback(30000),
+  });
+};
+
 
 /* =====================  MONEY CHANGE  ===================== */
 export const useFinMoneyChange = (opts?: { from?: string; to?: string }) => {
