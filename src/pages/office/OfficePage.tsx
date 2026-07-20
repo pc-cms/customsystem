@@ -1,10 +1,9 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DayClosingsTab from "./DayClosingsTab";
 import OtherIncomesTab from "./OtherIncomesTab";
 import RatesTab from "./RatesTab";
-import BalanceTab from "./BalanceTab";
 import { BalanceBanner } from "@/components/office/BalanceBanner";
 
 const FinancesMoneyChangePage = lazy(() => import("@/pages/finances/FinancesMoneyChangePage"));
@@ -15,9 +14,9 @@ const FinancesBudgetDifferencePage = lazy(() => import("@/pages/finances/Finance
 const FinancesMonthlyReportPage = lazy(() => import("@/pages/finances/FinancesMonthlyReportPage"));
 
 // Flat, alphabetically sorted top-level tabs — no nested sub-tabs.
+// Balance was merged into Wallets (2026-07-20) — legacy `?tab=balance` redirects.
 const TABS = [
   { value: "actual", label: "Actual" },
-  { value: "balance", label: "Balance" },
   { value: "budget", label: "Budget" },
   { value: "day-closings", label: "Day Closings" },
   { value: "difference", label: "Difference" },
@@ -30,12 +29,22 @@ const TABS = [
 
 type TabValue = (typeof TABS)[number]["value"];
 
-const DEFAULT_TAB: TabValue = "balance";
+const DEFAULT_TAB: TabValue = "wallets";
 
 export default function OfficePage() {
   const [params, setParams] = useSearchParams();
-  const raw = (params.get("tab") || DEFAULT_TAB) as TabValue;
-  const tab: TabValue = TABS.some((t) => t.value === raw) ? raw : DEFAULT_TAB;
+  const raw = params.get("tab") || DEFAULT_TAB;
+  // Legacy redirect: balance → wallets (merged 2026-07-20)
+  const normalised: TabValue = raw === "balance" ? "wallets" : (raw as TabValue);
+  const tab: TabValue = TABS.some((t) => t.value === normalised) ? normalised : DEFAULT_TAB;
+
+  useEffect(() => {
+    if (raw === "balance") {
+      const next = new URLSearchParams(params);
+      next.set("tab", "wallets");
+      setParams(next, { replace: true });
+    }
+  }, [raw, params, setParams]);
 
   const onChange = (v: string) => {
     const next = new URLSearchParams(params);
@@ -58,7 +67,6 @@ export default function OfficePage() {
 
       <Suspense fallback={<div className="text-sm text-muted-foreground p-4">Loading…</div>}>
         {tab === "actual" && <FinancesBudgetVsActualPage />}
-        {tab === "balance" && <BalanceTab />}
         {tab === "budget" && <FinancesBudgetPage />}
         {tab === "day-closings" && <DayClosingsTab />}
         {tab === "difference" && <FinancesBudgetDifferencePage />}
