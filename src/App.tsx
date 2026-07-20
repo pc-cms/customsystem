@@ -71,18 +71,8 @@ const Reports = lazy(() => import("@/pages/Reports"));
 const Admin = lazy(() => import("@/pages/Admin"));
 const SuperadminLicensePage = lazy(() => import("@/pages/admin/SuperadminLicensePage"));
 const Staff = lazy(() => import("@/pages/Staff"));
-const FinancesDashboardPage = lazy(() => import("@/pages/finances/FinancesDashboardPage"));
-const FinancesWalletsPage = lazy(() => import("@/pages/finances/FinancesWalletsPage"));
-const FinancesExpensesPage = lazy(() => import("@/pages/finances/FinancesExpensesPage"));
-const FinancesDayClosingPage = lazy(() => import("@/pages/finances/FinancesDayClosingPage"));
-const FinancesMoneyChangePage = lazy(() => import("@/pages/finances/FinancesMoneyChangePage"));
-const FinancesOfficeSafePage = lazy(() => import("@/pages/finances/FinancesOfficeSafePage"));
-const FinancesBudgetHubPage = lazy(() => import("@/pages/finances/FinancesBudgetHubPage"));
-const FinancesMonthlyReportPage = lazy(() => import("@/pages/finances/FinancesMonthlyReportPage"));
-const FinancesExcelImportPage = lazy(() => import("@/pages/finances/FinancesExcelImportPage"));
-const FinancesAuditLogPage = lazy(() => import("@/pages/finances/FinancesAuditLogPage"));
-const FinancesAliasesPage = lazy(() => import("@/pages/finances/FinancesAliasesPage"));
-const FinancesInterCasinoPage = lazy(() => import("@/pages/finances/FinancesInterCasinoPage"));
+// Finances/* routes have been removed. Everything financial lives under /office as flat tabs.
+// The `@/pages/finances/*` files remain on disk because Office lazy-loads them internally.
 const OfficePage = lazy(() => import("@/pages/office/OfficePage"));
 const Reception = lazy(() => import("@/pages/Reception"));
 const Guests = lazy(() => import("@/pages/Guests"));
@@ -463,22 +453,8 @@ const ProtectedRoutes = () => {
           <Route path="/staff" element={<LegacyStaffRedirect />} />
           <Route path="/floor" element={<LegacyStaffRedirect />} />
           <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
-          <Route path="/finances" element={<Navigate to="/finances/dashboard" replace />} />
-          <Route path="/finance" element={<Navigate to="/finances/dashboard" replace />} />
-          <Route path="/finances/dashboard" element={<RoleGuard path="/finances/dashboard"><ErrorBoundary><FinancesDashboardPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/office" element={<RoleGuard path="/finances/day-closing"><ErrorBoundary><OfficePage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/finances/expenses" element={<RoleGuard path="/finances/expenses"><ErrorBoundary><FinancesExpensesPage /></ErrorBoundary></RoleGuard>} />
-          
-          <Route path="/finances/inter-casino" element={<RoleGuard path="/finances/inter-casino"><ErrorBoundary><FinancesInterCasinoPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/finance/transfers" element={<Navigate to="/finances/inter-casino" replace />} />
-          <Route path="/finances/budget" element={<RoleGuard path="/finances/budget"><ErrorBoundary><FinancesBudgetHubPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/finances/budget-vs-actual" element={<Navigate to="/finances/budget?tab=actual" replace />} />
-          <Route path="/finances/variance" element={<Navigate to="/finances/budget?tab=actual" replace />} />
-          <Route path="/finances/monthly-report" element={<RoleGuard path="/finances/monthly-report"><ErrorBoundary><FinancesMonthlyReportPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/finances/annual-analytics" element={<Navigate to="/finances/monthly-report" replace />} />
-          <Route path="/finances/excel-import" element={<RoleGuard path="/finances/excel-import"><ErrorBoundary><FinancesExcelImportPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/finances/audit-log" element={<RoleGuard path="/finances/audit-log"><ErrorBoundary><FinancesAuditLogPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/finances/aliases" element={<RoleGuard path="/finances/aliases"><ErrorBoundary><FinancesAliasesPage /></ErrorBoundary></RoleGuard>} />
+          {/* All finance surfaces live under /office as flat tabs. /finances/* routes are removed. */}
+          <Route path="/office" element={<RoleGuard path="/office"><ErrorBoundary><OfficePage /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
           <Route path="/stats" element={<Navigate to="/player-statistics" replace />} />
           <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />

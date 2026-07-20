@@ -272,8 +272,8 @@ export default function BossDashboard() {
             <button
               className={`px-2 py-1 rounded-sm inline-flex items-center gap-1 text-xs ${blockOrient === "report" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
               onClick={() => setBlockOrient("report" as BlockOrient)}
-              title="Monthly Report"
-            ><FileBarChart2 className="w-3.5 h-3.5" /> Report</button>
+              title="Company Report"
+            ><FileBarChart2 className="w-3.5 h-3.5" /> Company Report</button>
           </div>
 
           <Button

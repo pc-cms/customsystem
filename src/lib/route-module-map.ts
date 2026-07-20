@@ -107,19 +107,10 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/finance/expenses" || base === "/finance/payments") return "finance_payments";
   if (base === "/finance/summary") return "finance_summary";
   if (base === "/finance/transfers") return "finance_payments";
-  if (base === "/finances/inter-casino") return "finance_payments";
   if (base === "/finance/wallets") return "finance_wallets";
 
-  // New Finances module (/finances/*) — reuses existing finance_* module keys
-  if (base === "/finances/dashboard") return "finance_dashboard";
+  // /finances/* is removed — /office is now the sole finance entry point.
   if (base === "/office") return "finance_review";
-  if (base === "/finances/expenses") return "finance_payments";
-  if (base === "/finances/budget") return "finance_budget";
-  if (base === "/finances/budget-vs-actual") return "finance_budget";
-  if (base === "/finances/monthly-report") return "finance_summary";
-  if (base === "/finances/excel-import") return "finance_budget";
-  if (base === "/finances/audit-log") return "finance_summary";
-  if (base === "/finances/aliases") return "finance_budget";
 
   // ============= REPORTS =============
   if (base === "/miss-chips") return "miss_chips";
