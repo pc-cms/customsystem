@@ -333,7 +333,7 @@ const EditReprintShiftPage = () => {
               // Recompute result for this table from all denoms
               const perDenom = nextTableChips[tableId] || {};
               const newRes = Object.entries(perDenom).reduce(
-                (s, [d, v]) => s + (Number(v.actual || 0) - Number(v.expected || 0)) * Number(d),
+                (s, [d, v]) => s + (Number((v as any).actual || 0) - Number((v as any).expected || 0)) * Number(d),
                 0,
               );
               const nextTableRes = { ...(state.tableRes || {}), [tableId]: newRes };
