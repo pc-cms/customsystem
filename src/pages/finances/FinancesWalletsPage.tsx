@@ -170,6 +170,7 @@ export default function FinancesWalletsPage() {
   /* ===== physical count (inline expandable) ===== */
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [denomCounts, setDenomCounts] = useState<Record<string, Record<number, number>>>({});
+  const [centsInput, setCentsInput] = useState<Record<string, number>>({});
   const [amountInput, setAmountInput] = useState<Record<string, string>>({});
   const [countNote, setCountNote] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -182,8 +183,9 @@ export default function FinancesWalletsPage() {
       return;
     }
     const useDenoms = CASH_LIKE_KINDS.has(w.kind);
+    const cents = w.currency === "TZS" && useDenoms ? (centsInput[w.id] || 0) : 0;
     const counted = useDenoms
-      ? cashSum(denomCounts[w.id] || {})
+      ? cashSum(denomCounts[w.id] || {}) + cents / 100
       : Number(amountInput[w.id] || 0);
     if (!counted) {
       toast.error("Enter physical count");
@@ -200,6 +202,7 @@ export default function FinancesWalletsPage() {
         counted,
         variance: counted - ledger,
         denominations: useDenoms ? (denomCounts[w.id] || {}) : null,
+        cents: useDenoms ? cents : null,
       };
       const { error } = await supabase.from("fin_audit_log").insert({
         casino_id: activeCasinoId,
@@ -216,6 +219,7 @@ export default function FinancesWalletsPage() {
       if (error) throw error;
       toast.success(`Physical count saved · ${w.name}`);
       setDenomCounts((s) => ({ ...s, [w.id]: {} }));
+      setCentsInput((s) => ({ ...s, [w.id]: 0 }));
       setAmountInput((s) => ({ ...s, [w.id]: "" }));
       setCountNote((s) => ({ ...s, [w.id]: "" }));
       setExpanded((s) => ({ ...s, [w.id]: false }));
@@ -294,8 +298,9 @@ export default function FinancesWalletsPage() {
                 const useDenoms = CASH_LIKE_KINDS.has(w.kind);
                 const denoms = CASH_DENOMS[w.currency] || CASH_DENOMS.TZS;
                 const denomVals = denomCounts[w.id] || {};
+                const centsVal = w.currency === "TZS" && useDenoms ? (centsInput[w.id] || 0) : 0;
                 const counted = useDenoms
-                  ? cashSum(denomVals)
+                  ? cashSum(denomVals) + centsVal / 100
                   : Number(amountInput[w.id] || 0);
                 const ledger = Number(balAsOf?.perWallet.get(w.id) || 0);
                 const variance = counted - ledger;
@@ -362,6 +367,13 @@ export default function FinancesWalletsPage() {
                                   denoms={denoms}
                                   currency={w.currency}
                                   size="sm"
+                                  {...(w.currency === "TZS"
+                                    ? {
+                                        cents: centsVal,
+                                        onCentsChange: (c: number) =>
+                                          setCentsInput((s) => ({ ...s, [w.id]: c })),
+                                      }
+                                    : {})}
                                 />
                               ) : (
                                 <Input

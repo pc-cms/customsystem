@@ -12,17 +12,28 @@ const SIZES: Record<Size, { row: string; chip: string; input: string; total: str
   lg: { row: "gap-3",   chip: "text-xs h-10 w-20",    input: "text-base h-10 w-32", total: "text-lg",  gap: "space-y-1" },
 };
 
-const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "md" }: {
+const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "md", cents, onCentsChange }: {
   values: Record<number, number>;
   onChange: (v: Record<number, number>) => void;
   denoms: number[];
   currency: string;
   onSubmit?: () => void;
   size?: Size;
+  /** Optional fractional part (kopeks/cents) — enables an extra small input. */
+  cents?: number;
+  onCentsChange?: (c: number) => void;
 }) => {
   const refs = useRef<Record<number, HTMLInputElement | null>>({});
-  const total = cashSum(values);
+  const showCents = typeof cents === "number" && !!onCentsChange;
+  const total = cashSum(values) + (showCents ? (cents || 0) / 100 : 0);
   const t = SIZES[size];
+
+  const fmtTotal = (n: number) => {
+    if (!showCents) return formatNumberSpaces(n);
+    const int = Math.trunc(n);
+    const frac = Math.round((n - int) * 100);
+    return `${formatNumberSpaces(int)}.${String(frac).padStart(2, "0")}`;
+  };
 
   return (
     <div className="flex flex-col">
@@ -51,11 +62,32 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
           />
         </div>
       ))}
+      {showCents && (
+        <div className={`flex items-center ${t.row}`}>
+          <span className={`cms-chip bg-muted text-foreground shrink-0 justify-center ${t.chip}`}>
+            ¢ / kop
+          </span>
+          <input
+            type="number"
+            min={0}
+            max={99}
+            step={1}
+            className={`no-spin font-mono rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary flex-1 min-w-0 ${t.input}`}
+            value={cents || ""}
+            onChange={e => {
+              const raw = Math.max(0, Math.min(99, Math.floor(Number(e.target.value) || 0)));
+              onCentsChange!(raw);
+            }}
+            placeholder="0-99"
+            inputMode="numeric"
+          />
+        </div>
+      )}
       </div>
       <div className="flex items-center justify-between gap-2 pt-2 mt-2 border-t border-border">
         <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
         <span className={`font-mono font-bold text-card-foreground whitespace-nowrap ${t.total}`}>
-          {currency === "TZS" ? `TZS ${formatNumberSpaces(total)}` : `${CURRENCY_SYMBOLS[currency] || currency}${formatNumberSpaces(total)}`}
+          {currency === "TZS" ? `TZS ${fmtTotal(total)}` : `${CURRENCY_SYMBOLS[currency] || currency}${fmtTotal(total)}`}
         </span>
       </div>
     </div>
