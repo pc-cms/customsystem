@@ -113,6 +113,7 @@ const EditReprintShiftPage = () => {
         { data: transfers },
         { data: cashless },
         { data: tableResRpc },
+        { data: snapshots },
       ] = await Promise.all([
         supabase.from("gaming_tables").select("*").eq("casino_id", casinoId!),
         supabase.from("expenses").select("amount").eq("shift_id", shiftId),
@@ -124,13 +125,32 @@ const EditReprintShiftPage = () => {
           .gte("created_at", fromIso)
           .lte("created_at", toIso),
         (supabase as any).rpc("compute_shift_table_results", { p_shift_id: shiftId }),
+        supabase.from("chip_snapshots")
+          .select("location_id, denomination, expected_quantity, actual_quantity, created_at")
+          .eq("casino_id", casinoId!)
+          .eq("location_type", "table")
+          .gte("created_at", fromIso)
+          .lte("created_at", toIso)
+          .order("created_at", { ascending: true }),
       ]);
       const totalExpenses = (exp || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
       const tableResults: Record<string, number> = {};
       (tableResRpc || []).forEach((r: any) => {
         if (r?.table_id) tableResults[r.table_id] = Number(r.result ?? 0);
       });
-      return { shift, tables: tables || [], totalExpenses, transfers: transfers || [], cashless: cashless || [], tableResults };
+      // Latest snapshot per (table_id, denomination): iterating ascending, later overwrites.
+      const tableChips: Record<string, Record<number, { expected: number; actual: number }>> = {};
+      (snapshots || []).forEach((r: any) => {
+        if (!r?.location_id) return;
+        const tid = String(r.location_id);
+        const denom = Number(r.denomination || 0);
+        if (!denom) return;
+        (tableChips[tid] ||= {})[denom] = {
+          expected: Number(r.expected_quantity || 0),
+          actual: Number(r.actual_quantity || 0),
+        };
+      });
+      return { shift, tables: tables || [], totalExpenses, transfers: transfers || [], cashless: cashless || [], tableResults, tableChips };
     },
   });
 
