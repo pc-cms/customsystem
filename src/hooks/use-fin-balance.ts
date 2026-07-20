@@ -72,5 +72,5 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
   // Actual includes the float baseline; subtract it so Variance = business P/L variance.
   const actualNet = actual - (s.starting_float?.grand_tzs || 0);
   return { expected, actual: actualNet, variance: actualNet - expected };
-  return { expected, actual, variance: actual - expected };
+  
 };
