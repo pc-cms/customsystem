@@ -12,7 +12,10 @@ export type WalletBalanceRow = {
   name: string;
   kind: string;
   currency: string;
+  /** @deprecated use ledger_native / ledger_tzs */
   ledger: number;
+  ledger_native: number;
+  ledger_tzs: number;
   physical: number | null;
 };
 
