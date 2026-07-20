@@ -53,19 +53,24 @@ export const useFinBalanceSnapshot = (from: string, to: string) => {
 export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
   if (!s) return { expected: 0, actual: 0, variance: 0 };
   const incomes = s.incomes;
+  // Physical cash count per wallet already contains the starting float
+  // (a count records the wallet's current total, float included).
+  // So Expected must NOT add starting_float — otherwise it double-counts.
   const expected =
-    (s.starting_float?.grand_tzs || 0) +
     (incomes.live_game || 0) +
     (incomes.slots || 0) +
     (incomes.other || 0) +
     (incomes.missed_chips || 0) -
     (s.expenses_total || 0) -
     (s.collections_total || 0);
-  const usdRate = s.rates?.usd_tzs || 2500;
+  const usdRate = s.rates?.usd_tzs || 2600;
   const actual = (s.wallets || []).reduce((sum, w) => {
     const val = Number(w.physical ?? w.ledger ?? 0);
     if (w.currency === "USD") return sum + val * usdRate;
     return sum + val;
   }, 0);
-  return { expected, actual, variance: actual - expected };
+  // Actual includes the float baseline; subtract it so Variance = business P/L variance.
+  const actualNet = actual - (s.starting_float?.grand_tzs || 0);
+  return { expected, actual: actualNet, variance: actualNet - expected };
+  
 };
