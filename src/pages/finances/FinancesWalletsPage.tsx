@@ -170,6 +170,7 @@ export default function FinancesWalletsPage() {
   /* ===== physical count (inline expandable) ===== */
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [denomCounts, setDenomCounts] = useState<Record<string, Record<number, number>>>({});
+  const [centsInput, setCentsInput] = useState<Record<string, number>>({});
   const [amountInput, setAmountInput] = useState<Record<string, string>>({});
   const [countNote, setCountNote] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
