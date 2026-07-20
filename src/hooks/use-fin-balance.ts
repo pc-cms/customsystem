@@ -60,7 +60,8 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
     (incomes.live_game || 0) +
     (incomes.slots || 0) +
     (incomes.other || 0) +
-    (incomes.missed_chips || 0) -
+    (incomes.missed_chips || 0) +
+    (incomes.missed_cards || 0) -
     (s.expenses_total || 0) -
     (s.collections_total || 0);
   const usdRate = s.rates?.usd_tzs || 2600;
