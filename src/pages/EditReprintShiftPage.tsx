@@ -193,6 +193,8 @@ const EditReprintShiftPage = () => {
     let addFloat = 0, slotsOut = 0;
     const fillByDenom: ChipMap = {};
     const creditByDenom: ChipMap = {};
+    const tableFill: Record<string, number> = {};
+    const tableCredit: Record<string, number> = {};
     (data?.transfers || []).forEach((r: any) => {
       if (r.transfer_type === "add_float") addFloat += Number(r.amount || 0);
       else if (r.transfer_type === "slots_out") slotsOut += Number(r.amount || 0);
@@ -200,10 +202,12 @@ const EditReprintShiftPage = () => {
         Object.entries((r.chips || {}) as Record<string, number>).forEach(([d, q]) => {
           fillByDenom[Number(d)] = (fillByDenom[Number(d)] || 0) + Number(q || 0);
         });
+        if (r.table_id) tableFill[r.table_id] = (tableFill[r.table_id] || 0) + Number(r.amount || 0);
       } else if (r.transfer_type === "credit") {
         Object.entries((r.chips || {}) as Record<string, number>).forEach(([d, q]) => {
           creditByDenom[Number(d)] = (creditByDenom[Number(d)] || 0) + Number(q || 0);
         });
+        if (r.table_id) tableCredit[r.table_id] = (tableCredit[r.table_id] || 0) + Number(r.amount || 0);
       }
     });
     return {
@@ -216,6 +220,7 @@ const EditReprintShiftPage = () => {
       missByDenom,
       exchangeRates: ((shift as any).exchange_rates || {}) as Record<string, number>,
       tableRes: { ...(data?.tableResults || {}) } as Record<string, number>,
+      tableFill, tableCredit,
       tableChips: JSON.parse(JSON.stringify(data?.tableChips || {})) as Record<string, Record<number, { expected: number; actual: number }>>,
     };
   }, [shift, data]);
