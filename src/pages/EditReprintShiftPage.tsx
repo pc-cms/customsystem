@@ -176,9 +176,12 @@ const EditReprintShiftPage = () => {
     );
     const openChips: ChipMap = {};
     const closeChips: ChipMap = {};
+    const missByDenom: ChipMap = {};
+    const storedMiss = (closing.chip_miss_by_denom || closing.chip_miss || {}) as Record<string, number>;
     CHIP_DENOMS.forEach(d => {
       openChips[d] = Number((opening.chips || {})[d] ?? (opening.chips || {})[String(d)] ?? 0);
       closeChips[d] = Number((closing.chips || {})[d] ?? (closing.chips || {})[String(d)] ?? 0);
+      missByDenom[d] = Number((storedMiss as any)[d] ?? (storedMiss as any)[String(d)] ?? 0);
     });
     const cashlessIO: CashlessIO = { inByProv: {}, outByProv: {} };
     (data?.cashless || []).forEach((r: any) => {
