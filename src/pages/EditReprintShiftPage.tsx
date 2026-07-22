@@ -193,6 +193,8 @@ const EditReprintShiftPage = () => {
     let addFloat = 0, slotsOut = 0;
     const fillByDenom: ChipMap = {};
     const creditByDenom: ChipMap = {};
+    const tableFill: Record<string, number> = {};
+    const tableCredit: Record<string, number> = {};
     (data?.transfers || []).forEach((r: any) => {
       if (r.transfer_type === "add_float") addFloat += Number(r.amount || 0);
       else if (r.transfer_type === "slots_out") slotsOut += Number(r.amount || 0);
@@ -200,10 +202,12 @@ const EditReprintShiftPage = () => {
         Object.entries((r.chips || {}) as Record<string, number>).forEach(([d, q]) => {
           fillByDenom[Number(d)] = (fillByDenom[Number(d)] || 0) + Number(q || 0);
         });
+        if (r.table_id) tableFill[r.table_id] = (tableFill[r.table_id] || 0) + Number(r.amount || 0);
       } else if (r.transfer_type === "credit") {
         Object.entries((r.chips || {}) as Record<string, number>).forEach(([d, q]) => {
           creditByDenom[Number(d)] = (creditByDenom[Number(d)] || 0) + Number(q || 0);
         });
+        if (r.table_id) tableCredit[r.table_id] = (tableCredit[r.table_id] || 0) + Number(r.amount || 0);
       }
     });
     return {
@@ -216,6 +220,7 @@ const EditReprintShiftPage = () => {
       missByDenom,
       exchangeRates: ((shift as any).exchange_rates || {}) as Record<string, number>,
       tableRes: { ...(data?.tableResults || {}) } as Record<string, number>,
+      tableFill, tableCredit,
       tableChips: JSON.parse(JSON.stringify(data?.tableChips || {})) as Record<string, Record<number, { expected: number; actual: number }>>,
     };
   }, [shift, data]);
@@ -313,7 +318,7 @@ const EditReprintShiftPage = () => {
 
   const tableRowOverrides = useMemo(() => {
     if (!state) return undefined;
-    const out: Record<string, { res: number; cl?: number }> = {};
+    const out: Record<string, { res: number; cl?: number; fl?: number; cr?: number }> = {};
     Object.entries(state.tableRes || {}).forEach(([id, v]) => { out[id] = { res: Number(v) || 0 }; });
     // Close (chips on table) — Σ(actual × denom) from edited per-denom grid.
     Object.entries(state.tableChips || {}).forEach(([id, byDenom]) => {
@@ -323,8 +328,15 @@ const EditReprintShiftPage = () => {
       );
       out[id] = { ...(out[id] || { res: 0 }), cl };
     });
+    // Per-table Fill / Credit — print-only overrides
+    Object.entries(state.tableFill || {}).forEach(([id, v]) => {
+      out[id] = { ...(out[id] || { res: 0 }), fl: Number(v) || 0 };
+    });
+    Object.entries(state.tableCredit || {}).forEach(([id, v]) => {
+      out[id] = { ...(out[id] || { res: 0 }), cr: Number(v) || 0 };
+    });
     return out;
-  }, [state?.tableRes, state?.tableChips]);
+  }, [state?.tableRes, state?.tableChips, state?.tableFill, state?.tableCredit]);
 
   const reportTables = useMemo(
     () => (tables || []).filter(t => !t.is_archived).sort((a, b) => a.name.localeCompare(b.name)),
@@ -371,6 +383,14 @@ const EditReprintShiftPage = () => {
             tables={reportTables}
             tableChips={state.tableChips}
             tableRes={state.tableRes}
+            tableFill={state.tableFill}
+            tableCredit={state.tableCredit}
+            onFillChange={(tableId, n) =>
+              setState({ ...state, tableFill: { ...(state.tableFill || {}), [tableId]: n } })
+            }
+            onCreditChange={(tableId, n) =>
+              setState({ ...state, tableCredit: { ...(state.tableCredit || {}), [tableId]: n } })
+            }
             onCellChange={(tableId, denom, actual) => {
               const prev = state.tableChips?.[tableId]?.[denom] || { expected: 0, actual: 0 };
               const nextTableChips = {
@@ -646,14 +666,22 @@ const TableChipsFullGrid = ({
   tables,
   tableChips,
   tableRes,
+  tableFill,
+  tableCredit,
   onCellChange,
   onResultChange,
+  onFillChange,
+  onCreditChange,
 }: {
   tables: Tables<"gaming_tables">[];
   tableChips: TableChipsMap;
   tableRes: Record<string, number>;
+  tableFill?: Record<string, number>;
+  tableCredit?: Record<string, number>;
   onCellChange: (tableId: string, denom: number, actual: number) => void;
   onResultChange: (tableId: string, n: number) => void;
+  onFillChange?: (tableId: string, n: number) => void;
+  onCreditChange?: (tableId: string, n: number) => void;
 }) => {
   const visibleDenoms = useVisibleChipDenoms();
   // Union of visible denoms + any denom present in snapshots (so nothing is hidden).
@@ -663,6 +691,8 @@ const TableChipsFullGrid = ({
   });
   const denoms = [...denomSet].sort((a, b) => b - a);
   const totalResult = tables.reduce((s, t) => s + (Number(tableRes?.[t.id]) || 0), 0);
+  const totalFill = tables.reduce((s, t) => s + (Number(tableFill?.[t.id]) || 0), 0);
+  const totalCredit = tables.reduce((s, t) => s + (Number(tableCredit?.[t.id]) || 0), 0);
 
   if (tables.length === 0) return null;
 
@@ -687,6 +717,8 @@ const TableChipsFullGrid = ({
                   {formatChipLabel(d)}
                 </th>
               ))}
+              <th className="text-center px-1 py-1 min-w-[100px]" title="Fill — chips issued from cage to the table (print-only)">Fill</th>
+              <th className="text-center px-1 py-1 min-w-[100px]" title="Credit — chips returned from table to cage (print-only)">Credit</th>
               <th className="text-right px-2 py-1 min-w-[110px]">Result (TZS)</th>
             </tr>
           </thead>
@@ -720,6 +752,18 @@ const TableChipsFullGrid = ({
                       </td>
                     );
                   })}
+                  <td className="px-1 py-1">
+                    <NumInput
+                      value={Number(tableFill?.[t.id]) || 0}
+                      onChange={(n) => onFillChange?.(t.id, n)}
+                    />
+                  </td>
+                  <td className="px-1 py-1">
+                    <NumInput
+                      value={Number(tableCredit?.[t.id]) || 0}
+                      onChange={(n) => onCreditChange?.(t.id, n)}
+                    />
+                  </td>
                   <td className="px-2 py-1">
                     <NumInput
                       value={Number(tableRes?.[t.id]) || 0}
@@ -734,6 +778,8 @@ const TableChipsFullGrid = ({
             <tr className="border-t-2 border-border font-semibold">
               <td className="px-2 py-1 sticky left-0 bg-background">Σ</td>
               <td colSpan={denoms.length} />
+              <td className="px-1 py-1 text-right font-mono tabular-nums">{formatNumberSpaces(totalFill)}</td>
+              <td className="px-1 py-1 text-right font-mono tabular-nums">{formatNumberSpaces(totalCredit)}</td>
               <td className="px-2 py-1 text-right font-mono tabular-nums">{formatNumberSpaces(totalResult)}</td>
             </tr>
           </tfoot>
