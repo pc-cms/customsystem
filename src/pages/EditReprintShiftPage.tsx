@@ -253,7 +253,7 @@ const EditReprintShiftPage = () => {
     if (next !== state.resultTable) setState({ ...state, resultTable: next });
   }, [state?.openChips, state?.closeChips, resultAuto, initial, baselineChipDelta]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const reset = () => { if (initial) { setState({ ...initial }); setResultAuto(true); setChipsAuto(false); } };
+  const reset = () => { if (initial) { setState({ ...initial }); setResultAuto(true); setChipsAuto(false); setBalanceAuto(true); } };
 
   const recomputedMiss = useMemo(() => {
     if (!state) return { perDenom: {} as ChipMap, total: 0 };
