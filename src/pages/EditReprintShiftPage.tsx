@@ -261,10 +261,14 @@ const EditReprintShiftPage = () => {
 
   const recomputedMiss = useMemo(() => {
     if (!state) return { perDenom: {} as ChipMap, total: 0 };
-    const perDenom = computeMissByDenom(state.openChips, state.closeChips, CHIP_DENOMS as any);
+    // Miss is the physical count recorded at shift close — independent of the
+    // cash-desk closing chip count edited here. Freeze it to the stored value
+    // so edits to open/close chips don't leak into Miss on the printed report.
+    const perDenom: ChipMap = {};
+    (CHIP_DENOMS as any).forEach((d: number) => { perDenom[d] = Number((state as any).missByDenom?.[d] || 0); });
     const total = (CHIP_DENOMS as any).reduce((s: number, d: number) => s + d * (perDenom[d] || 0), 0);
     return { perDenom, total };
-  }, [state?.openChips, state?.closeChips]);
+  }, [state?.missByDenom]);
 
   // Convert per-currency cash totals into TZS using state.exchangeRates.
   const cashTzs = (byCcy: CashByCurrency, rates: Record<string, number>) =>
