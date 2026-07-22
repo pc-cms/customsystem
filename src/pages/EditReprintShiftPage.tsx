@@ -274,10 +274,18 @@ const EditReprintShiftPage = () => {
 
   const tableRowOverrides = useMemo(() => {
     if (!state) return undefined;
-    const out: Record<string, { res: number }> = {};
+    const out: Record<string, { res: number; cl?: number }> = {};
     Object.entries(state.tableRes || {}).forEach(([id, v]) => { out[id] = { res: Number(v) || 0 }; });
+    // Close (chips on table) — Σ(actual × denom) from edited per-denom grid.
+    Object.entries(state.tableChips || {}).forEach(([id, byDenom]) => {
+      const cl = Object.entries(byDenom || {}).reduce(
+        (s, [d, v]) => s + Number(d) * Number((v as any)?.actual || 0),
+        0,
+      );
+      out[id] = { ...(out[id] || { res: 0 }), cl };
+    });
     return out;
-  }, [state?.tableRes]);
+  }, [state?.tableRes, state?.tableChips]);
 
   const reportTables = useMemo(
     () => (tables || []).filter(t => !t.is_archived).sort((a, b) => a.name.localeCompare(b.name)),
