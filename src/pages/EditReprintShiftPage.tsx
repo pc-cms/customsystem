@@ -176,9 +176,12 @@ const EditReprintShiftPage = () => {
     );
     const openChips: ChipMap = {};
     const closeChips: ChipMap = {};
+    const missByDenom: ChipMap = {};
+    const storedMiss = (closing.chip_miss_by_denom || closing.chip_miss || {}) as Record<string, number>;
     CHIP_DENOMS.forEach(d => {
       openChips[d] = Number((opening.chips || {})[d] ?? (opening.chips || {})[String(d)] ?? 0);
       closeChips[d] = Number((closing.chips || {})[d] ?? (closing.chips || {})[String(d)] ?? 0);
+      missByDenom[d] = Number((storedMiss as any)[d] ?? (storedMiss as any)[String(d)] ?? 0);
     });
     const cashlessIO: CashlessIO = { inByProv: {}, outByProv: {} };
     (data?.cashless || []).forEach((r: any) => {
@@ -210,6 +213,7 @@ const EditReprintShiftPage = () => {
       resultTable: Number((shift as any).tables_result ?? closing.result_table ?? 0),
       balance: Number((shift as any).balance ?? closing.cash_desk_balance ?? 0),
       missTotal: Number((shift as any).miss_total ?? -(closing.chip_miss_total ?? 0)),
+      missByDenom,
       exchangeRates: ((shift as any).exchange_rates || {}) as Record<string, number>,
       tableRes: { ...(data?.tableResults || {}) } as Record<string, number>,
       tableChips: JSON.parse(JSON.stringify(data?.tableChips || {})) as Record<string, Record<number, { expected: number; actual: number }>>,
@@ -257,10 +261,14 @@ const EditReprintShiftPage = () => {
 
   const recomputedMiss = useMemo(() => {
     if (!state) return { perDenom: {} as ChipMap, total: 0 };
-    const perDenom = computeMissByDenom(state.openChips, state.closeChips, CHIP_DENOMS as any);
+    // Miss is the physical count recorded at shift close — independent of the
+    // cash-desk closing chip count edited here. Freeze it to the stored value
+    // so edits to open/close chips don't leak into Miss on the printed report.
+    const perDenom: ChipMap = {};
+    (CHIP_DENOMS as any).forEach((d: number) => { perDenom[d] = Number((state as any).missByDenom?.[d] || 0); });
     const total = (CHIP_DENOMS as any).reduce((s: number, d: number) => s + d * (perDenom[d] || 0), 0);
     return { perDenom, total };
-  }, [state?.openChips, state?.closeChips]);
+  }, [state?.missByDenom]);
 
   // Convert per-currency cash totals into TZS using state.exchangeRates.
   const cashTzs = (byCcy: CashByCurrency, rates: Record<string, number>) =>
