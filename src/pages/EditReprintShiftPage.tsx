@@ -666,14 +666,22 @@ const TableChipsFullGrid = ({
   tables,
   tableChips,
   tableRes,
+  tableFill,
+  tableCredit,
   onCellChange,
   onResultChange,
+  onFillChange,
+  onCreditChange,
 }: {
   tables: Tables<"gaming_tables">[];
   tableChips: TableChipsMap;
   tableRes: Record<string, number>;
+  tableFill?: Record<string, number>;
+  tableCredit?: Record<string, number>;
   onCellChange: (tableId: string, denom: number, actual: number) => void;
   onResultChange: (tableId: string, n: number) => void;
+  onFillChange?: (tableId: string, n: number) => void;
+  onCreditChange?: (tableId: string, n: number) => void;
 }) => {
   const visibleDenoms = useVisibleChipDenoms();
   // Union of visible denoms + any denom present in snapshots (so nothing is hidden).
@@ -683,6 +691,8 @@ const TableChipsFullGrid = ({
   });
   const denoms = [...denomSet].sort((a, b) => b - a);
   const totalResult = tables.reduce((s, t) => s + (Number(tableRes?.[t.id]) || 0), 0);
+  const totalFill = tables.reduce((s, t) => s + (Number(tableFill?.[t.id]) || 0), 0);
+  const totalCredit = tables.reduce((s, t) => s + (Number(tableCredit?.[t.id]) || 0), 0);
 
   if (tables.length === 0) return null;
 
