@@ -717,6 +717,8 @@ const TableChipsFullGrid = ({
                   {formatChipLabel(d)}
                 </th>
               ))}
+              <th className="text-center px-1 py-1 min-w-[100px]" title="Fill — chips issued from cage to the table (print-only)">Fill</th>
+              <th className="text-center px-1 py-1 min-w-[100px]" title="Credit — chips returned from table to cage (print-only)">Credit</th>
               <th className="text-right px-2 py-1 min-w-[110px]">Result (TZS)</th>
             </tr>
           </thead>
@@ -750,6 +752,18 @@ const TableChipsFullGrid = ({
                       </td>
                     );
                   })}
+                  <td className="px-1 py-1">
+                    <NumInput
+                      value={Number(tableFill?.[t.id]) || 0}
+                      onChange={(n) => onFillChange?.(t.id, n)}
+                    />
+                  </td>
+                  <td className="px-1 py-1">
+                    <NumInput
+                      value={Number(tableCredit?.[t.id]) || 0}
+                      onChange={(n) => onCreditChange?.(t.id, n)}
+                    />
+                  </td>
                   <td className="px-2 py-1">
                     <NumInput
                       value={Number(tableRes?.[t.id]) || 0}
@@ -764,6 +778,8 @@ const TableChipsFullGrid = ({
             <tr className="border-t-2 border-border font-semibold">
               <td className="px-2 py-1 sticky left-0 bg-background">Σ</td>
               <td colSpan={denoms.length} />
+              <td className="px-1 py-1 text-right font-mono tabular-nums">{formatNumberSpaces(totalFill)}</td>
+              <td className="px-1 py-1 text-right font-mono tabular-nums">{formatNumberSpaces(totalCredit)}</td>
               <td className="px-2 py-1 text-right font-mono tabular-nums">{formatNumberSpaces(totalResult)}</td>
             </tr>
           </tfoot>
