@@ -18,6 +18,7 @@ import { Printer, ArrowLeft, RotateCcw } from "lucide-react";
 import { CHIP_DENOMS, CURRENCIES, formatNumberSpaces, formatChipLabel } from "@/lib/currency";
 import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { computeMissByDenom } from "@/components/cage/CageHelpers";
+import { computeShiftBalance } from "@/lib/cage-balance";
 import ShiftClosingReport from "@/components/cage/ShiftClosingReport";
 import ChipMovementReport from "@/components/cage/ChipMovementReport";
 import PrintPortal from "@/components/cage/PrintPortal";
