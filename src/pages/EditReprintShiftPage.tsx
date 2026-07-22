@@ -213,6 +213,7 @@ const EditReprintShiftPage = () => {
       resultTable: Number((shift as any).tables_result ?? closing.result_table ?? 0),
       balance: Number((shift as any).balance ?? closing.cash_desk_balance ?? 0),
       missTotal: Number((shift as any).miss_total ?? -(closing.chip_miss_total ?? 0)),
+      missByDenom,
       exchangeRates: ((shift as any).exchange_rates || {}) as Record<string, number>,
       tableRes: { ...(data?.tableResults || {}) } as Record<string, number>,
       tableChips: JSON.parse(JSON.stringify(data?.tableChips || {})) as Record<string, Record<number, { expected: number; actual: number }>>,
