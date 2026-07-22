@@ -219,6 +219,7 @@ const EditReprintShiftPage = () => {
   const [state, setState] = useState<typeof initial>(null);
   const [resultAuto, setResultAuto] = useState(true);
   const [chipsAuto, setChipsAuto] = useState(false);
+  const [balanceAuto, setBalanceAuto] = useState(true);
   useEffect(() => { if (initial) setState(initial); }, [initial]);
 
   const baselineChipDelta = useMemo(() => {
