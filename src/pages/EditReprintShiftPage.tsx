@@ -262,6 +262,35 @@ const EditReprintShiftPage = () => {
     return { perDenom, total };
   }, [state?.openChips, state?.closeChips]);
 
+  // Convert per-currency cash totals into TZS using state.exchangeRates.
+  const cashTzs = (byCcy: CashByCurrency, rates: Record<string, number>) =>
+    CURRENCIES.reduce((s, c) => s + (Number(byCcy[c] || 0) * (c === "TZS" ? 1 : Number(rates[c] || 0))), 0);
+
+  // Canonical shift balance from formula (mirrors DB compute_shift_balance).
+  const computedBalance = useMemo(() => {
+    if (!state) return 0;
+    const cashlessIn = Object.values(state.cashlessIO.inByProv || {}).reduce((s, v) => s + Number(v || 0), 0);
+    const cashlessOut = Object.values(state.cashlessIO.outByProv || {}).reduce((s, v) => s + Number(v || 0), 0);
+    return computeShiftBalance({
+      openingCash: cashTzs(state.openCashByCcy, state.exchangeRates),
+      closingCash: cashTzs(state.closeCashByCcy, state.exchangeRates),
+      expenses: Number(state.totalExpenses || 0),
+      collection: 0,
+      addFloat: Number(state.addFloat || 0),
+      slotsIn: 0,
+      slotsOut: Number(state.slotsOut || 0),
+      cashlessIn,
+      cashlessOut,
+      miss: recomputedMiss.total,
+      tablesResult: Number(state.resultTable || 0),
+    }).shiftBalance;
+  }, [state, recomputedMiss.total]);
+
+  useEffect(() => {
+    if (!balanceAuto || !state) return;
+    if (computedBalance !== state.balance) setState({ ...state, balance: computedBalance });
+  }, [balanceAuto, computedBalance]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const built = useMemo(() => {
     if (!state || !shift) return null;
     const buildCashObj = (byCcy: CashByCurrency) => {
