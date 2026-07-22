@@ -497,8 +497,15 @@ const EditReprintShiftPage = () => {
                   <NumInput value={state.addFloat} onChange={(n) => setState({ ...state, addFloat: n })} />
                   <span>Cash Flow CREDIT (slots_out)</span>
                   <NumInput value={state.slotsOut} onChange={(n) => setState({ ...state, slotsOut: n })} />
-                  <span>Shift Balance</span>
-                  <NumInput value={state.balance} onChange={(n) => setState({ ...state, balance: n })} />
+                  <span className="flex items-center gap-2 flex-wrap">
+                    Shift Balance
+                    <label className="inline-flex items-center gap-1 text-[9px] text-muted-foreground cursor-pointer">
+                      <input type="checkbox" className="h-3 w-3" checked={balanceAuto}
+                        onChange={(e) => setBalanceAuto(e.target.checked)} />
+                      auto
+                    </label>
+                  </span>
+                  <NumInput value={state.balance} onChange={(n) => { setBalanceAuto(false); setState({ ...state, balance: n }); }} />
                 </div>
               </Section>
             </div>
