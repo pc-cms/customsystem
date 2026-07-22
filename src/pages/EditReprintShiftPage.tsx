@@ -383,6 +383,14 @@ const EditReprintShiftPage = () => {
             tables={reportTables}
             tableChips={state.tableChips}
             tableRes={state.tableRes}
+            tableFill={state.tableFill}
+            tableCredit={state.tableCredit}
+            onFillChange={(tableId, n) =>
+              setState({ ...state, tableFill: { ...(state.tableFill || {}), [tableId]: n } })
+            }
+            onCreditChange={(tableId, n) =>
+              setState({ ...state, tableCredit: { ...(state.tableCredit || {}), [tableId]: n } })
+            }
             onCellChange={(tableId, denom, actual) => {
               const prev = state.tableChips?.[tableId]?.[denom] || { expected: 0, actual: 0 };
               const nextTableChips = {
