@@ -385,12 +385,40 @@ const EditReprintShiftPage = () => {
             tableRes={state.tableRes}
             tableFill={state.tableFill}
             tableCredit={state.tableCredit}
-            onFillChange={(tableId, n) =>
-              setState({ ...state, tableFill: { ...(state.tableFill || {}), [tableId]: n } })
-            }
-            onCreditChange={(tableId, n) =>
-              setState({ ...state, tableCredit: { ...(state.tableCredit || {}), [tableId]: n } })
-            }
+            onFillChange={(tableId, n) => {
+              // Casino formula: Result = Drop + Credit − Fill + Δchips.
+              // Increasing Fill decreases Result 1:1.
+              const baseFill = Number(initial?.tableFill?.[tableId] || 0);
+              const baseRes = Number(initial?.tableRes?.[tableId] || 0);
+              const curCredit = Number(state.tableCredit?.[tableId] || 0);
+              const baseCredit = Number(initial?.tableCredit?.[tableId] || 0);
+              const newRes = baseRes - (n - baseFill) + (curCredit - baseCredit);
+              const nextRes = { ...(state.tableRes || {}), [tableId]: newRes };
+              const sum = reportTables.reduce((s, tt) => s + (Number(nextRes[tt.id]) || 0), 0);
+              setResultAuto(false);
+              setState({
+                ...state,
+                tableFill: { ...(state.tableFill || {}), [tableId]: n },
+                tableRes: nextRes,
+                resultTable: sum,
+              });
+            }}
+            onCreditChange={(tableId, n) => {
+              const baseCredit = Number(initial?.tableCredit?.[tableId] || 0);
+              const baseRes = Number(initial?.tableRes?.[tableId] || 0);
+              const curFill = Number(state.tableFill?.[tableId] || 0);
+              const baseFill = Number(initial?.tableFill?.[tableId] || 0);
+              const newRes = baseRes + (n - baseCredit) - (curFill - baseFill);
+              const nextRes = { ...(state.tableRes || {}), [tableId]: newRes };
+              const sum = reportTables.reduce((s, tt) => s + (Number(nextRes[tt.id]) || 0), 0);
+              setResultAuto(false);
+              setState({
+                ...state,
+                tableCredit: { ...(state.tableCredit || {}), [tableId]: n },
+                tableRes: nextRes,
+                resultTable: sum,
+              });
+            }}
             onCellChange={(tableId, denom, actual) => {
               const prev = state.tableChips?.[tableId]?.[denom] || { expected: 0, actual: 0 };
               const nextTableChips = {
