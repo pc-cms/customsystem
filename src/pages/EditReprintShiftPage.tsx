@@ -318,7 +318,7 @@ const EditReprintShiftPage = () => {
 
   const tableRowOverrides = useMemo(() => {
     if (!state) return undefined;
-    const out: Record<string, { res: number; cl?: number }> = {};
+    const out: Record<string, { res: number; cl?: number; fl?: number; cr?: number }> = {};
     Object.entries(state.tableRes || {}).forEach(([id, v]) => { out[id] = { res: Number(v) || 0 }; });
     // Close (chips on table) — Σ(actual × denom) from edited per-denom grid.
     Object.entries(state.tableChips || {}).forEach(([id, byDenom]) => {
@@ -328,8 +328,15 @@ const EditReprintShiftPage = () => {
       );
       out[id] = { ...(out[id] || { res: 0 }), cl };
     });
+    // Per-table Fill / Credit — print-only overrides
+    Object.entries(state.tableFill || {}).forEach(([id, v]) => {
+      out[id] = { ...(out[id] || { res: 0 }), fl: Number(v) || 0 };
+    });
+    Object.entries(state.tableCredit || {}).forEach(([id, v]) => {
+      out[id] = { ...(out[id] || { res: 0 }), cr: Number(v) || 0 };
+    });
     return out;
-  }, [state?.tableRes, state?.tableChips]);
+  }, [state?.tableRes, state?.tableChips, state?.tableFill, state?.tableCredit]);
 
   const reportTables = useMemo(
     () => (tables || []).filter(t => !t.is_archived).sort((a, b) => a.name.localeCompare(b.name)),
