@@ -18,6 +18,7 @@ import { Printer, ArrowLeft, RotateCcw } from "lucide-react";
 import { CHIP_DENOMS, CURRENCIES, formatNumberSpaces, formatChipLabel } from "@/lib/currency";
 import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { computeMissByDenom } from "@/components/cage/CageHelpers";
+import { computeShiftBalance } from "@/lib/cage-balance";
 import ShiftClosingReport from "@/components/cage/ShiftClosingReport";
 import ChipMovementReport from "@/components/cage/ChipMovementReport";
 import PrintPortal from "@/components/cage/PrintPortal";
@@ -218,6 +219,7 @@ const EditReprintShiftPage = () => {
   const [state, setState] = useState<typeof initial>(null);
   const [resultAuto, setResultAuto] = useState(true);
   const [chipsAuto, setChipsAuto] = useState(false);
+  const [balanceAuto, setBalanceAuto] = useState(true);
   useEffect(() => { if (initial) setState(initial); }, [initial]);
 
   const baselineChipDelta = useMemo(() => {
@@ -251,7 +253,7 @@ const EditReprintShiftPage = () => {
     if (next !== state.resultTable) setState({ ...state, resultTable: next });
   }, [state?.openChips, state?.closeChips, resultAuto, initial, baselineChipDelta]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const reset = () => { if (initial) { setState({ ...initial }); setResultAuto(true); setChipsAuto(false); } };
+  const reset = () => { if (initial) { setState({ ...initial }); setResultAuto(true); setChipsAuto(false); setBalanceAuto(true); } };
 
   const recomputedMiss = useMemo(() => {
     if (!state) return { perDenom: {} as ChipMap, total: 0 };
@@ -259,6 +261,35 @@ const EditReprintShiftPage = () => {
     const total = (CHIP_DENOMS as any).reduce((s: number, d: number) => s + d * (perDenom[d] || 0), 0);
     return { perDenom, total };
   }, [state?.openChips, state?.closeChips]);
+
+  // Convert per-currency cash totals into TZS using state.exchangeRates.
+  const cashTzs = (byCcy: CashByCurrency, rates: Record<string, number>) =>
+    CURRENCIES.reduce((s, c) => s + (Number(byCcy[c] || 0) * (c === "TZS" ? 1 : Number(rates[c] || 0))), 0);
+
+  // Canonical shift balance from formula (mirrors DB compute_shift_balance).
+  const computedBalance = useMemo(() => {
+    if (!state) return 0;
+    const cashlessIn = Object.values(state.cashlessIO.inByProv || {}).reduce((s, v) => s + Number(v || 0), 0);
+    const cashlessOut = Object.values(state.cashlessIO.outByProv || {}).reduce((s, v) => s + Number(v || 0), 0);
+    return computeShiftBalance({
+      openingCash: cashTzs(state.openCashByCcy, state.exchangeRates),
+      closingCash: cashTzs(state.closeCashByCcy, state.exchangeRates),
+      expenses: Number(state.totalExpenses || 0),
+      collection: 0,
+      addFloat: Number(state.addFloat || 0),
+      slotsIn: 0,
+      slotsOut: Number(state.slotsOut || 0),
+      cashlessIn,
+      cashlessOut,
+      miss: recomputedMiss.total,
+      tablesResult: Number(state.resultTable || 0),
+    }).shiftBalance;
+  }, [state, recomputedMiss.total]);
+
+  useEffect(() => {
+    if (!balanceAuto || !state) return;
+    if (computedBalance !== state.balance) setState({ ...state, balance: computedBalance });
+  }, [balanceAuto, computedBalance]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const built = useMemo(() => {
     if (!state || !shift) return null;
@@ -466,8 +497,15 @@ const EditReprintShiftPage = () => {
                   <NumInput value={state.addFloat} onChange={(n) => setState({ ...state, addFloat: n })} />
                   <span>Cash Flow CREDIT (slots_out)</span>
                   <NumInput value={state.slotsOut} onChange={(n) => setState({ ...state, slotsOut: n })} />
-                  <span>Shift Balance</span>
-                  <NumInput value={state.balance} onChange={(n) => setState({ ...state, balance: n })} />
+                  <span className="flex items-center gap-2 flex-wrap">
+                    Shift Balance
+                    <label className="inline-flex items-center gap-1 text-[9px] text-muted-foreground cursor-pointer">
+                      <input type="checkbox" className="h-3 w-3" checked={balanceAuto}
+                        onChange={(e) => setBalanceAuto(e.target.checked)} />
+                      auto
+                    </label>
+                  </span>
+                  <NumInput value={state.balance} onChange={(n) => { setBalanceAuto(false); setState({ ...state, balance: n }); }} />
                 </div>
               </Section>
             </div>
