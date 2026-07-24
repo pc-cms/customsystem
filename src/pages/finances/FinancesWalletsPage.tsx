@@ -170,14 +170,26 @@ export default function FinancesWalletsPage() {
     try {
       const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0 };
       const variance = counted - led.native;
-      const fxRate =
-        w.currency === "TZS"
-          ? 1
-          : w.currency === "USD"
-            ? usdRate
-            : led.native
-              ? led.tzs / led.native
-              : 1;
+      let fxRate = 1;
+      if (w.currency === "USD") {
+        fxRate = usdRate;
+      } else if (w.currency !== "TZS") {
+        if (led.native) {
+          fxRate = led.tzs / led.native;
+        } else {
+          const { data: rateRow, error: rateError } = await supabase
+            .from("fin_daily_rates")
+            .select("rate_to_tzs")
+            .eq("casino_id", activeCasinoId)
+            .eq("currency", w.currency)
+            .lte("business_date", range.to)
+            .order("business_date", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (rateError) throw rateError;
+          fxRate = Number(rateRow?.rate_to_tzs || 1);
+        }
+      }
       const varianceTzs = variance * fxRate;
       const line = {
         wallet_id: w.id,
