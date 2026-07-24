@@ -162,13 +162,35 @@ export default function FinancesWalletsPage() {
     const counted = useDenoms
       ? cashSum(denomCounts[w.id] || {}) + cents / 100
       : Number(amountInput[w.id] || 0);
-    if (!counted) {
+    if (Number.isNaN(counted) || counted < 0) {
       toast.error("Enter physical count");
       return;
     }
     setSavingId(w.id);
     try {
       const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0 };
+      const variance = counted - led.native;
+      let fxRate = 1;
+      if (w.currency === "USD") {
+        fxRate = usdRate;
+      } else if (w.currency !== "TZS") {
+        if (led.native) {
+          fxRate = led.tzs / led.native;
+        } else {
+          const { data: rateRow, error: rateError } = await supabase
+            .from("fin_daily_rates")
+            .select("rate_to_tzs")
+            .eq("casino_id", activeCasinoId)
+            .eq("currency", w.currency)
+            .lte("business_date", range.to)
+            .order("business_date", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (rateError) throw rateError;
+          fxRate = Number(rateRow?.rate_to_tzs || 1);
+        }
+      }
+      const varianceTzs = variance * fxRate;
       const line = {
         wallet_id: w.id,
         wallet_name: w.name,
@@ -176,30 +198,64 @@ export default function FinancesWalletsPage() {
         ledger: led.native, // ledger in wallet's native currency
         ledger_tzs: led.tzs,
         counted,
-        variance: counted - led.native,
+        variance,
+        variance_tzs: varianceTzs,
+        fx_rate: fxRate,
         denominations: useDenoms ? denomCounts[w.id] || {} : null,
         cents: useDenoms ? cents : null,
       };
+      let adjustmentId: string | null = null;
+      if (Math.abs(variance) >= 0.01) {
+        const { data: adjustment, error: txError } = await supabase
+          .from("fin_wallet_tx")
+          .insert({
+            casino_id: activeCasinoId,
+            wallet_id: w.id,
+            kind: "adjustment",
+            amount: variance,
+            currency: w.currency,
+            fx_rate: fxRate,
+            amount_tzs: varianceTzs,
+            business_date: range.to,
+            note: `Physical count · ${w.name} = ${formatNumberSpaces(counted)} ${w.currency}${countNote[w.id] ? ` · ${countNote[w.id]}` : ""}`,
+            created_by: user.id,
+          } as any)
+          .select("id")
+          .single();
+        if (txError) throw txError;
+        adjustmentId = adjustment?.id ?? null;
+      }
       const { error } = await supabase.from("fin_audit_log").insert({
         casino_id: activeCasinoId,
         actor: user.id,
         action: "office_safe_reconciliation",
         entity_table: "fin_wallets",
         entity_id: w.id,
-        meta: {
+        before: {
+          ledger: led.native,
+          ledger_tzs: led.tzs,
+        },
+        after: {
           lines: [line],
           note: countNote[w.id] || "",
-          business_date: new Date().toISOString().slice(0, 10),
+          business_date: range.to,
+          adjustment_id: adjustmentId,
         },
       } as any);
       if (error) throw error;
-      toast.success(`Physical count saved · ${w.name}`);
+      toast.success(
+        Math.abs(variance) >= 0.01
+          ? `Physical count saved · ${w.name}`
+          : `Physical count checked · ${w.name}`,
+      );
       setDenomCounts((s) => ({ ...s, [w.id]: {} }));
       setCentsInput((s) => ({ ...s, [w.id]: 0 }));
       setAmountInput((s) => ({ ...s, [w.id]: "" }));
       setCountNote((s) => ({ ...s, [w.id]: "" }));
       setExpanded((s) => ({ ...s, [w.id]: false }));
       qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
+      qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
+      qc.invalidateQueries({ queryKey: ["fin-wallet-balances"] });
       qc.invalidateQueries({ queryKey: ["fin-audit-log"] });
     } catch (e: any) {
       toast.error(e.message);
