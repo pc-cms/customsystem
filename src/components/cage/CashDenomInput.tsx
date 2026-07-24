@@ -65,20 +65,19 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
       {showCents && (
         <div className={`flex items-center ${t.row}`}>
           <span className={`cms-chip bg-muted text-foreground shrink-0 justify-center ${t.chip}`}>
-            ¢ / kop
+            Coins
           </span>
           <input
             type="number"
             min={0}
-            max={99}
             step={1}
             className={`no-spin font-mono rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary flex-1 min-w-0 ${t.input}`}
             value={cents || ""}
             onChange={e => {
-              const raw = Math.max(0, Math.min(99, Math.floor(Number(e.target.value) || 0)));
+              const raw = Math.max(0, Math.floor(Number(e.target.value) || 0));
               onCentsChange!(raw);
             }}
-            placeholder="0-99"
+            placeholder="0"
             inputMode="numeric"
           />
         </div>
