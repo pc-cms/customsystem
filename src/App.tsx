@@ -332,6 +332,12 @@ const ProtectedRoutes = () => {
   const { user, loading } = useAuth();
 
 
+  // Expose queryClient to auth-context (which lives outside QueryClientProvider
+  // in the tree) so signOut / user-change can wipe cache without prop drilling.
+  useEffect(() => {
+    (window as any).__reactQueryClient = queryClient;
+  }, []);
+
   // Prefetch critical data in background
   usePrefetchCriticalData();
 
@@ -348,6 +354,7 @@ const ProtectedRoutes = () => {
 
   // Initialize offline sync engine on mount
   useEffect(() => { initSyncEngine(); }, []);
+
 
   // M8: Staggered refetch after reconnect. The critical operational queries
   // are invalidated one at a time (250ms apart) so a flaky link doesn't get

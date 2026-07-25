@@ -121,8 +121,34 @@ export function useModuleLiveSync() {
       channels.push(ch);
     }
 
+    // Watchdog: если вкладка была скрыта > 60s, при возврате переподписываем
+    // все каналы и делаем реконсиляционный invalidate. Страхует "молчаливую
+    // смерть" WebSocket после sleep ноутбука или сетевого blip'а.
+    let hiddenAt: number | null = null;
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+        return;
+      }
+      if (document.visibilityState !== "visible" || hiddenAt === null) return;
+      const gap = Date.now() - hiddenAt;
+      hiddenAt = null;
+      if (gap < 60_000) return;
+      // Полная переподписка через unsub/sub, чтобы гарантировать свежий JWT
+      // и очистить возможный "залипший" канал.
+      channels.forEach((ch) => {
+        try {
+          ch.unsubscribe();
+          ch.subscribe();
+        } catch { /* noop */ }
+      });
+      // Один реконсиляционный invalidate по всем префиксам.
+      tableSpecs.forEach((prefixes) => prefixes.forEach(invalidatePrefix));
+    };
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
       pendingRef.current.forEach((t) => clearTimeout(t));
       pendingRef.current.clear();
       channels.forEach((ch) => {
@@ -131,3 +157,4 @@ export function useModuleLiveSync() {
     };
   }, [user, casinoId, moduleKey, allowedModules, roles, qc]);
 }
+
