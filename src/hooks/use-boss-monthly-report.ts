@@ -202,11 +202,11 @@ export function useBossMonthlyReport(casinos: CasinoRef[]) {
         }
       }
 
-      // Estimated Expenses (TZS budget rows for the current month)
+      // Estimated Expenses — convert non-TZS via latest Cage rates
       const estimated = zeroPer();
       for (const b of (budgetRes.data || []) as any[]) {
-        if (b.currency !== "TZS") continue;
-        estimated[b.casino_id] = (estimated[b.casino_id] || 0) + Number(b.planned_amount || 0);
+        const rate = fxRate(b.casino_id, b.currency || "TZS");
+        estimated[b.casino_id] = (estimated[b.casino_id] || 0) + Number(b.planned_amount || 0) * rate;
       }
 
       // SAFE snapshot per casino
@@ -217,9 +217,12 @@ export function useBossMonthlyReport(casinos: CasinoRef[]) {
         safe[t.casino_id] = (safe[t.casino_id] || 0) + signed;
       }
 
-      // Bonus 5% of Result
+      // Bonus 5% of (Result − Estimated Expenses); floor at 0
       const bonus5 = zeroPer();
-      for (const id of casinoIds) bonus5[id] = Math.max(0, (result[id] || 0)) * 0.05;
+      for (const id of casinoIds) {
+        const base = (result[id] || 0) - (estimated[id] || 0);
+        bonus5[id] = Math.max(0, base) * 0.05;
+      }
 
       // Extras aggregate per casino
       const extrasTotal = zeroPer();
