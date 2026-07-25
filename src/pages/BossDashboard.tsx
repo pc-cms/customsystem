@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { formatMoneyFull } from "@/lib/format-money";
 import { getBusinessDate } from "@/lib/business-day";
-import { Monitor, LayoutGrid, Users, UserPlus, Tv, Maximize2, Minimize2, Type, Rows3, Columns3, FileBarChart2 } from "lucide-react";
+import { Monitor, LayoutGrid, Users, UserPlus, Tv, Maximize2, Minimize2, Type, Rows3, Columns3, FileBarChart2, LayoutDashboard, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import premierClubLogo from "/premier-club-logo.svg";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -30,6 +30,7 @@ import { CasinoDoubleBlock } from "@/components/boss/casino-double-block";
 import { CompanyTotalPanel } from "@/components/boss/company-total-panel";
 import { MonthlyReportPanel } from "@/components/boss/monthly-report-panel";
 
+
 type Resolution = "fhd" | "uhd";
 type FontPreset = "s" | "m" | "l" | "xl";
 type BlockOrient = "auto" | "cols" | "rows" | "report";
@@ -39,6 +40,10 @@ const LS_RES = "boss-tv:resolution";
 const LS_TV = "boss-tv:tv-mode";
 const LS_FONT = "boss-tv:font-preset";
 const LS_ORIENT = "boss-tv:block-orient";
+const LS_MONTH = "boss-tv:report-month";
+
+const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
 
 const FONT_PRESETS: Record<FontPreset, { mult: number; label: string }> = {
   s:  { mult: 0.85, label: "S" },
@@ -99,6 +104,23 @@ export default function BossDashboard() {
     () => (localStorage.getItem(LS_ORIENT) as BlockOrient) || "auto",
   );
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() => !!document.fullscreenElement);
+  const [reportYM, setReportYM] = useState<{ y: number; m: number }>(() => {
+    try {
+      const raw = localStorage.getItem(LS_MONTH);
+      if (raw) { const p = JSON.parse(raw); if (p?.y && p?.m) return p; }
+    } catch { /* ignore */ }
+    const n = new Date();
+    return { y: n.getFullYear(), m: n.getMonth() + 1 };
+  });
+  const shiftMonth = (delta: number) => {
+    const d = new Date(reportYM.y, reportYM.m - 1 + delta, 1);
+    setReportYM({ y: d.getFullYear(), m: d.getMonth() + 1 });
+  };
+  const thisMonth = () => {
+    const n = new Date();
+    setReportYM({ y: n.getFullYear(), m: n.getMonth() + 1 });
+  };
+
 
   useEffect(() => {
     if (accessibleCasinos.length === 0) return;
@@ -113,6 +135,8 @@ export default function BossDashboard() {
   useEffect(() => { localStorage.setItem(LS_TV, tvMode ? "1" : "0"); }, [tvMode]);
   useEffect(() => { localStorage.setItem(LS_FONT, fontPreset); }, [fontPreset]);
   useEffect(() => { localStorage.setItem(LS_ORIENT, blockOrient); }, [blockOrient]);
+  useEffect(() => { localStorage.setItem(LS_MONTH, JSON.stringify(reportYM)); }, [reportYM]);
+
 
   useEffect(() => {
     const onFs = () => setIsFullscreen(!!document.fullscreenElement);
@@ -176,8 +200,8 @@ export default function BossDashboard() {
           "radial-gradient(1200px 800px at 20% -10%, hsl(240 40% 12% / 0.9), transparent 60%), radial-gradient(1000px 600px at 90% 110%, hsl(280 40% 10% / 0.8), transparent 60%), hsl(240 20% 5%)",
       }}
     >
-      {/* Header */}
-      <header className={`flex items-center justify-between gap-6 ${outerPad}`}>
+      {/* Header — brand + title only */}
+      <header className={`flex items-center justify-between gap-6 ${outerPad} pb-2`}>
         <div className="flex items-center gap-4 min-w-0">
           <div
             className="relative flex items-center justify-center w-14 h-14 rounded-full border border-white/10 overflow-hidden bg-white/5"
@@ -190,19 +214,59 @@ export default function BossDashboard() {
               Premier Casino
             </h1>
             <span className="text-[0.7em] tracking-[0.32em] uppercase text-muted-foreground mt-1">
-              Boss · Live Overview · {dateLabel}
+              Dashboard TV · {blockOrient === "report"
+                ? `Company Report · ${MONTH_LABELS[reportYM.m - 1]} ${reportYM.y}`
+                : `Live Overview · ${dateLabel}`}
             </span>
           </div>
         </div>
+      </header>
 
-        <div className="flex items-center gap-2 flex-wrap justify-end">
+      {/* Unified control bar — view, month, casinos, layout, size, TV, fullscreen */}
+      <div className={`${tvMode ? "px-[5vw]" : "px-8"} pb-4`}>
+        <div className="rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm px-3 py-2 flex items-center gap-2 flex-wrap">
+          {/* View switcher — Live vs Report */}
+          <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Switch view">
+            <button
+              className={`px-3 py-1.5 text-xs rounded-sm inline-flex items-center gap-1.5 font-semibold ${blockOrient !== "report" ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+              onClick={() => setBlockOrient((prev) => (prev === "report" ? "auto" : prev))}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" /> Live
+            </button>
+            <button
+              className={`px-3 py-1.5 text-xs rounded-sm inline-flex items-center gap-1.5 font-semibold ${blockOrient === "report" ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+              onClick={() => setBlockOrient("report" as BlockOrient)}
+            >
+              <FileBarChart2 className="w-3.5 h-3.5" /> Report
+            </button>
+          </div>
+
+          {/* Month picker (report only) */}
+          {blockOrient === "report" && (
+            <div className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-black/30 px-1 py-0.5">
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => shiftMonth(-1)} aria-label="Previous month">
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <div className="px-2 py-0.5 font-semibold tabular-nums min-w-[110px] text-center text-xs">
+                {MONTH_LABELS[reportYM.m - 1]} {reportYM.y}
+              </div>
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => shiftMonth(1)} aria-label="Next month">
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={thisMonth}>
+                <Calendar className="w-3.5 h-3.5 mr-1" /> This month
+              </Button>
+            </div>
+          )}
+
+          {/* Casinos */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2 border-white/10 bg-white/5">
+              <Button variant="outline" size="sm" className="gap-2 border-white/10 bg-black/30 h-8">
                 <LayoutGrid className="w-4 h-4" /> {selectedIds.length}/{accessibleCasinos.length} casinos
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-64">
+            <PopoverContent align="start" className="w-64">
               <div className="flex flex-col gap-2">
                 {accessibleCasinos.map((c) => {
                   const checked = selectedIds.includes(c.id);
@@ -224,8 +288,42 @@ export default function BossDashboard() {
             </PopoverContent>
           </Popover>
 
-          {/* Resolution toggle */}
-          <div className="inline-flex rounded-md border border-white/10 bg-white/5 p-0.5">
+          {/* Layout (only meaningful in Live view) */}
+          {blockOrient !== "report" && (
+            <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Layout: auto / columns / rows">
+              <button
+                className={`px-2 py-1 text-xs rounded-sm ${blockOrient === "auto" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                onClick={() => setBlockOrient("auto")}
+              >Auto</button>
+              <button
+                className={`px-2 py-1 rounded-sm inline-flex items-center ${blockOrient === "cols" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                onClick={() => setBlockOrient("cols")}
+                title="Columns (MTD | Today)"
+              ><Columns3 className="w-3.5 h-3.5" /></button>
+              <button
+                className={`px-2 py-1 rounded-sm inline-flex items-center ${blockOrient === "rows" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                onClick={() => setBlockOrient("rows")}
+                title="Rows (MTD / Today)"
+              ><Rows3 className="w-3.5 h-3.5" /></button>
+            </div>
+          )}
+
+          {/* Font size */}
+          <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Font size preset">
+            <span className="px-2 py-1 text-muted-foreground inline-flex items-center"><Type className="w-3.5 h-3.5" /></span>
+            {(Object.keys(FONT_PRESETS) as FontPreset[]).map((p) => (
+              <button
+                key={p}
+                className={`px-2 py-1 text-xs rounded-sm font-bold ${fontPreset === p ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                onClick={() => setFontPreset(p)}
+              >
+                {FONT_PRESETS[p].label}
+              </button>
+            ))}
+          </div>
+
+          {/* Resolution */}
+          <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5">
             <button
               className={`px-3 py-1 text-xs rounded-sm inline-flex items-center gap-1.5 ${resolution === "fhd" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
               onClick={() => setResolution("fhd")}
@@ -240,69 +338,35 @@ export default function BossDashboard() {
             </button>
           </div>
 
-          {/* Font preset */}
-          <div className="inline-flex rounded-md border border-white/10 bg-white/5 p-0.5" title="Font size preset">
-            <span className="px-2 py-1 text-muted-foreground inline-flex items-center"><Type className="w-3.5 h-3.5" /></span>
-            {(Object.keys(FONT_PRESETS) as FontPreset[]).map((p) => (
-              <button
-                key={p}
-                className={`px-2 py-1 text-xs rounded-sm font-bold ${fontPreset === p ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-                onClick={() => setFontPreset(p)}
-              >
-                {FONT_PRESETS[p].label}
-              </button>
-            ))}
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              variant={tvMode ? "default" : "outline"}
+              size="sm"
+              className={`gap-2 h-8 ${tvMode ? "" : "border-white/10 bg-black/30"}`}
+              onClick={() => setTvMode((v) => !v)}
+              title="Toggle TV mode (T) — overscan-safe padding & big text"
+            >
+              <Tv className="w-4 h-4" /> TV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 border-white/10 bg-black/30 h-8"
+              onClick={toggleFullscreen}
+              title="Fullscreen (F)"
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </Button>
           </div>
-          {/* Block orientation: MTD vs TODAY layout + Report mode */}
-          <div className="inline-flex rounded-md border border-white/10 bg-white/5 p-0.5" title="Layout: auto / columns / rows / report">
-            <button
-              className={`px-2 py-1 text-xs rounded-sm ${blockOrient === "auto" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-              onClick={() => setBlockOrient("auto")}
-            >Auto</button>
-            <button
-              className={`px-2 py-1 rounded-sm inline-flex items-center ${blockOrient === "cols" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-              onClick={() => setBlockOrient("cols")}
-              title="Columns (MTD | Today)"
-            ><Columns3 className="w-3.5 h-3.5" /></button>
-            <button
-              className={`px-2 py-1 rounded-sm inline-flex items-center ${blockOrient === "rows" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-              onClick={() => setBlockOrient("rows")}
-              title="Rows (MTD / Today)"
-            ><Rows3 className="w-3.5 h-3.5" /></button>
-            <button
-              className={`px-2 py-1 rounded-sm inline-flex items-center gap-1 text-xs ${blockOrient === "report" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-              onClick={() => setBlockOrient("report" as BlockOrient)}
-              title="Company Report"
-            ><FileBarChart2 className="w-3.5 h-3.5" /> Company Report</button>
-          </div>
-
-          <Button
-            variant={tvMode ? "default" : "outline"}
-            size="sm"
-            className={`gap-2 ${tvMode ? "" : "border-white/10 bg-white/5"}`}
-            onClick={() => setTvMode((v) => !v)}
-            title="Toggle TV mode (T) — overscan-safe padding & big text"
-          >
-            <Tv className="w-4 h-4" /> TV
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2 border-white/10 bg-white/5"
-            onClick={toggleFullscreen}
-            title="Fullscreen (F)"
-          >
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          </Button>
         </div>
-      </header>
+      </div>
 
       {/* Casino double-blocks (or Monthly Report) */}
       <main className={mainPad}>
         {blockOrient === "report" ? (
-          <MonthlyReportPanel casinos={casinos} accentFor={accentFor} />
+          <MonthlyReportPanel casinos={casinos} accentFor={accentFor} year={reportYM.y} month={reportYM.m} />
         ) : (
+
           <>
             <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
               {casinos.map((c, i) => (

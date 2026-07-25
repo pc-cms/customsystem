@@ -91,7 +91,7 @@ export interface ModuleDef {
 export const MODULES: ModuleDef[] = [
   // Overview
   { key: "dashboard", label: "Dashboard", group: "Operations" },
-  { key: "boss_dashboard", label: "Boss TV Dashboard", group: "Operations" },
+  { key: "boss_dashboard", label: "Dashboard TV", group: "Operations" },
 
   // PIT
   { key: "pit_rota", label: "Live Rota", group: "Operations" },
