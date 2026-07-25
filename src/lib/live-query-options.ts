@@ -1,56 +1,23 @@
 /**
- * liveQueryOptions — стандартный набор React Query опций для "живых"
- * запросов, чьи данные удерживаются в актуальном состоянии подписками
- * Realtime (см. `MODULE_LIVE_SPEC` и `useModuleLiveSync`).
+ * liveQueryOptions — историческое имя.
  *
- * Идея (Фаза A "Realtime-first"):
- *   - `staleTime: Infinity`  — React Query никогда не считает данные
- *     устаревшими сам по себе. Единственный источник инвалидации —
- *     событие Realtime на соответствующей таблице.
- *   - `refetchOnMount/Focus/Reconnect: false` — переключение вкладок,
- *     возврат в окно, реконнект не вызывают лавины запросов ("тройной F5").
- *   - `gcTime: 24h` — данные остаются в памяти сессии для мгновенного
- *     отображения.
+ * Ранее переопределял staleTime/refetchOn* на "Realtime-first" (staleTime
+ * Infinity, никаких focus-refetch). После перехода на SWR-Focus модель
+ * (см. QueryClient defaults в src/App.tsx) единый источник поведения —
+ * глобальные дефолты + Realtime-инвалидация. Этот файл оставлен как
+ * no-op-алиас для обратной совместимости, чтобы не переписывать десятки
+ * `...liveQueryOptions()` в хуках.
  *
- * Использование:
- *   useQuery({
- *     queryKey: ["dealers", casinoId],
- *     queryFn: fetchDealers,
- *     ...liveQueryOptions(),
- *   })
- *
- * Миграция:
- *   Заменяем `staleTime: 30_000` (или любое короткое) на
- *   `...liveQueryOptions()`. Гарантия свежести — Realtime, а не таймер.
- *
- * Когда НЕ использовать:
- *   - Аналитические/агрегированные RPC, которые нельзя пересчитать по
- *     точечному событию Realtime — оставляем короткий staleTime.
- *   - Данные, где допустимо небольшое отставание, но нет Realtime-канала.
+ * Индивидуальные хуки могут по-прежнему явно ставить свои опции
+ * (staleTime: 0, refetchInterval: ...) — они возьмут верх над no-op.
  */
 
-export const liveQueryOptions = () => ({
-  staleTime: Infinity,
-  gcTime: 1000 * 60 * 60 * 24,
-  refetchOnMount: false as const,
-  refetchOnWindowFocus: false as const,
-  // Страховка на случай, когда Realtime-канал пропустил события во время
-  // разрыва соединения (Wi-Fi blip / sleep). Реконнект браузера → React Query
-  // сделает один refetch, восстанавливая согласованность.
-  refetchOnReconnect: true as const,
-});
+export const liveQueryOptions = () => ({} as const);
 
 /**
- * liveQueryOptionsWithFallback — то же, но с fallback-staleTime.
- * Используется, когда таблица подписана на Realtime, но мы хотим
- * страховочный refetch раз в N мс на случай пропущенных событий
- * (например, при длительном разрыве соединения).
+ * liveQueryOptionsWithFallback — теперь просто задаёт staleTime.
+ * refetchOn* берутся из глобальных дефолтов.
  */
 export const liveQueryOptionsWithFallback = (fallbackMs: number) => ({
   staleTime: fallbackMs,
-  gcTime: 1000 * 60 * 60 * 24,
-  refetchOnMount: false as const,
-  refetchOnWindowFocus: false as const,
-  refetchOnReconnect: true as const,
-});
-
+} as const);

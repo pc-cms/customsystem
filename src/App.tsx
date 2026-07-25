@@ -164,34 +164,34 @@ const CloudSnapshotsPage = lazy(() => import("@/pages/admin/CloudSnapshotsPage")
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Step 1 (UX plan): tabs must feel instant. Realtime keeps the cache
-      // fresh in the background (module channels mounted at the App level),
-      // so re-entering a previously opened tab should NOT trigger a refetch.
-      // Hooks that need shorter staleness override this explicitly
-      // (current-shift, business-day-closure, shift_tables_result_total = 0).
-      staleTime: 1000 * 60 * 5, // 5 min default — Realtime patches dominate
-      gcTime: 1000 * 60 * 60 * 24, // 24h — keep in cache for offline
-      // Returning to a tab / focusing the window must NOT cascade refetches:
-      // cache is already current (Realtime). Manual "Resync all data" in
-      // Settings covers the cold-start-on-new-PC scenario.
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
-      // M8: Do NOT auto-refetch every query on reconnect — that causes a
-      // request storm on flaky links and brings the UI down again. The
-      // offline sync engine + Realtime catch-up handle reconnects.
-      refetchOnReconnect: false,
+      // SWR-Focus revalidation model (единая модель свежести для всей системы,
+      // включая offline / local_primary):
+      //   - staleTime 30s: короткое окно свежести, за пределами — refetch.
+      //   - gcTime 24h: держим в кэше для мгновенного первого рендера + offline.
+      //   - refetchOnMount 'always': переход на страницу всегда даёт свежие данные,
+      //     но паинт мгновенный из кэша (stale-while-revalidate).
+      //   - refetchOnWindowFocus true: возврат во вкладку/после сна = обновление.
+      //   - refetchOnReconnect 'always': восстановление сети = одна волна refetch.
+      //   - networkMode 'offlineFirst': критично для offline — при отсутствии сети
+      //     запрос НЕ помечается как ошибочный, отдаётся кэш, повтор при reconnect.
+      // Индивидуальные хуки могут переопределять (current-shift и т.п.).
+      staleTime: 30_000,
+      gcTime: 1000 * 60 * 60 * 24,
+      refetchOnMount: "always",
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: "always",
       retry: 2,
       retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 15000),
-      // Network mode "offlineFirst" lets queries serve cached data without
-      // marking them as errored when the browser is offline — prevents
-      // every list/page from flashing red mid-outage.
       networkMode: "offlineFirst",
     },
     mutations: {
+      // Мутации через offline-queue / sync-engine — оставляем offlineFirst,
+      // чтобы кассир мог продолжать вводить транзакции без интернета.
       networkMode: "offlineFirst",
     },
   },
 });
+
 
 
 const persister = createIDBPersister();
@@ -631,7 +631,7 @@ const App = () => (
       persistOptions={{
         persister,
         maxAge: 1000 * 60 * 60 * 24, // 24h
-        buster: "v9-drop-source-player-day-peak",
+        buster: "v10-swr-focus-revalidation",
         dehydrateOptions: {
           // Skip queries whose data is a Map/Set — JSON dehydration loses them.
           // Also skip high-churn live tables: persisting these to IndexedDB on
