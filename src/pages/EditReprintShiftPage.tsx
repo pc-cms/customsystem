@@ -301,10 +301,11 @@ const EditReprintShiftPage = () => {
     }).shiftBalance;
   }, [state, recomputedMiss.total]);
 
-  useEffect(() => {
-    if (!balanceAuto || !state) return;
-    if (computedBalance !== state.balance) setState({ ...state, balance: computedBalance });
-  }, [balanceAuto, computedBalance]); // eslint-disable-line react-hooks/exhaustive-deps
+  // NOTE: `computedBalance` is available for reference only. We intentionally
+  // do NOT push it into `state.balance` — the reprint must default to the
+  // certified value stored at close time.
+
+
 
   const built = useMemo(() => {
     if (!state || !shift) return null;
