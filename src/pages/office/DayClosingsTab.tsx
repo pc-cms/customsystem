@@ -67,12 +67,16 @@ function useMonthAggregates(year: number, month: number) {
     queryKey: ["day-closings-month-agg", activeCasinoId, year, month],
     enabled: !!activeCasinoId,
     queryFn: async () => {
-      const start = new Date(year, month - 1, 1);
-      const endEx = new Date(year, month, 1);
-      const startIso = `${start.toISOString().slice(0, 10)}T04:00:00.000Z`;
-      const endIso = `${endEx.toISOString().slice(0, 10)}T04:00:00.000Z`;
-      const startDate = start.toISOString().slice(0, 10);
-      const endDateIncl = new Date(endEx.getTime() - 86400000).toISOString().slice(0, 10);
+      // Build bounds from local YYYY-MM-DD strings to avoid the toISOString()
+      // TZ shift that dropped the last business day of the month for UTC+ clients.
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const lastDay = new Date(year, month, 0).getDate();
+      const startDate = `${year}-${pad(month)}-01`;
+      const endDateIncl = `${year}-${pad(month)}-${pad(lastDay)}`;
+      const nextYear = month === 12 ? year + 1 : year;
+      const nextMonth = month === 12 ? 1 : month + 1;
+      const startIso = `${startDate}T04:00:00.000Z`;
+      const endIso = `${nextYear}-${pad(nextMonth)}-01T04:00:00.000Z`;
 
       const [shifts, slots] = await Promise.all([
         supabase

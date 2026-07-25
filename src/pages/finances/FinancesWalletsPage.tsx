@@ -162,6 +162,17 @@ export default function FinancesWalletsPage() {
     const counted = useDenoms
       ? cashSum(denomCounts[w.id] || {}) + cents / 100
       : Number(amountInput[w.id] || 0);
+    // Guard against an untouched panel — never write a zeroing adjustment
+    // just because someone clicked Save without entering anything.
+    const denomEntered = useDenoms
+      && (Object.values(denomCounts[w.id] || {}).some((v) => Number(v) > 0) || cents > 0);
+    const amountEntered = !useDenoms
+      && amountInput[w.id] !== undefined
+      && String(amountInput[w.id]).trim() !== "";
+    if (!denomEntered && !amountEntered) {
+      toast.error("Enter physical count");
+      return;
+    }
     if (Number.isNaN(counted) || counted < 0) {
       toast.error("Enter physical count");
       return;

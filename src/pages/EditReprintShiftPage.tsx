@@ -228,7 +228,9 @@ const EditReprintShiftPage = () => {
   const [state, setState] = useState<typeof initial>(null);
   const [resultAuto, setResultAuto] = useState(true);
   const [chipsAuto, setChipsAuto] = useState(false);
-  const [balanceAuto, setBalanceAuto] = useState(true);
+  // Shift Balance is the certified value from close time. Reprint is a
+  // print-only sandbox — we NEVER auto-recompute or overwrite it, only allow
+  // manual edits that stay in local state.
   useEffect(() => { if (initial) setState(initial); }, [initial]);
 
   const baselineChipDelta = useMemo(() => {
@@ -262,7 +264,7 @@ const EditReprintShiftPage = () => {
     if (next !== state.resultTable) setState({ ...state, resultTable: next });
   }, [state?.openChips, state?.closeChips, resultAuto, initial, baselineChipDelta]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const reset = () => { if (initial) { setState({ ...initial }); setResultAuto(true); setChipsAuto(false); setBalanceAuto(true); } };
+  const reset = () => { if (initial) { setState({ ...initial }); setResultAuto(true); setChipsAuto(false); } };
 
   const recomputedMiss = useMemo(() => {
     if (!state) return { perDenom: {} as ChipMap, total: 0 };
@@ -299,10 +301,11 @@ const EditReprintShiftPage = () => {
     }).shiftBalance;
   }, [state, recomputedMiss.total]);
 
-  useEffect(() => {
-    if (!balanceAuto || !state) return;
-    if (computedBalance !== state.balance) setState({ ...state, balance: computedBalance });
-  }, [balanceAuto, computedBalance]); // eslint-disable-line react-hooks/exhaustive-deps
+  // NOTE: `computedBalance` is available for reference only. We intentionally
+  // do NOT push it into `state.balance` — the reprint must default to the
+  // certified value stored at close time.
+
+
 
   const built = useMemo(() => {
     if (!state || !shift) return null;
@@ -553,15 +556,8 @@ const EditReprintShiftPage = () => {
                   <NumInput value={state.addFloat} onChange={(n) => setState({ ...state, addFloat: n })} />
                   <span>Cash Flow CREDIT (slots_out)</span>
                   <NumInput value={state.slotsOut} onChange={(n) => setState({ ...state, slotsOut: n })} />
-                  <span className="flex items-center gap-2 flex-wrap">
-                    Shift Balance
-                    <label className="inline-flex items-center gap-1 text-[9px] text-muted-foreground cursor-pointer">
-                      <input type="checkbox" className="h-3 w-3" checked={balanceAuto}
-                        onChange={(e) => setBalanceAuto(e.target.checked)} />
-                      auto
-                    </label>
-                  </span>
-                  <NumInput value={state.balance} onChange={(n) => { setBalanceAuto(false); setState({ ...state, balance: n }); }} />
+                  <span>Shift Balance</span>
+                  <NumInput value={state.balance} onChange={(n) => setState({ ...state, balance: n })} />
                 </div>
               </Section>
             </div>
