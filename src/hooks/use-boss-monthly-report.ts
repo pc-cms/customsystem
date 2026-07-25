@@ -107,7 +107,7 @@ export function useBossMonthlyReport(casinos: CasinoRef[]) {
         catMap.set(c.id, { group: c.group_code, income: c.is_income }));
 
       // Parallel fetches
-      const [closingsRes, otherRes, expensesRes, budgetRes, walletTxRes] = await Promise.all([
+      const [closingsRes, otherRes, expensesRes, budgetRes, walletTxRes, ratesRes] = await Promise.all([
         supabase.from("fin_day_closing")
           .select("casino_id, business_date, tables_result, slots_result")
           .in("casino_id", casinoIds)
@@ -132,7 +132,26 @@ export function useBossMonthlyReport(casinos: CasinoRef[]) {
           .select("casino_id, amount_tzs, kind")
           .in("casino_id", casinoIds)
           .lte("business_date", today),
+        supabase.from("cage_slots_exchange_rates")
+          .select("casino_id, currency_code, rate_to_tzs, created_at")
+          .in("casino_id", casinoIds)
+          .order("created_at", { ascending: false }),
       ]);
+
+      // Build per-casino latest FX map from Cage rates, with sensible fallbacks
+      const FX_FALLBACK: Record<string, number> = { TZS: 1, USD: 2600, EUR: 2800, GBP: 3000, KES: 17 };
+      const fxByCasino = new Map<string, Record<string, number>>();
+      for (const r of (ratesRes.data || []) as any[]) {
+        const m = fxByCasino.get(r.casino_id) || {};
+        if (!m[r.currency_code]) m[r.currency_code] = Number(r.rate_to_tzs) || 0;
+        fxByCasino.set(r.casino_id, m);
+      }
+      const fxRate = (casinoId: string, cur: string): number => {
+        const c = (cur || "TZS").toUpperCase();
+        if (c === "TZS") return 1;
+        const m = fxByCasino.get(casinoId) || {};
+        return m[c] || FX_FALLBACK[c] || 1;
+      };
 
       // Result per casino + daily
       const result = zeroPer();
@@ -183,11 +202,11 @@ export function useBossMonthlyReport(casinos: CasinoRef[]) {
         }
       }
 
-      // Estimated Expenses (TZS budget rows for the current month)
+      // Estimated Expenses — convert non-TZS via latest Cage rates
       const estimated = zeroPer();
       for (const b of (budgetRes.data || []) as any[]) {
-        if (b.currency !== "TZS") continue;
-        estimated[b.casino_id] = (estimated[b.casino_id] || 0) + Number(b.planned_amount || 0);
+        const rate = fxRate(b.casino_id, b.currency || "TZS");
+        estimated[b.casino_id] = (estimated[b.casino_id] || 0) + Number(b.planned_amount || 0) * rate;
       }
 
       // SAFE snapshot per casino
@@ -198,9 +217,12 @@ export function useBossMonthlyReport(casinos: CasinoRef[]) {
         safe[t.casino_id] = (safe[t.casino_id] || 0) + signed;
       }
 
-      // Bonus 5% of Result
+      // Bonus 5% of (Result − Estimated Expenses); floor at 0
       const bonus5 = zeroPer();
-      for (const id of casinoIds) bonus5[id] = Math.max(0, (result[id] || 0)) * 0.05;
+      for (const id of casinoIds) {
+        const base = (result[id] || 0) - (estimated[id] || 0);
+        bonus5[id] = Math.max(0, base) * 0.05;
+      }
 
       // Extras aggregate per casino
       const extrasTotal = zeroPer();
