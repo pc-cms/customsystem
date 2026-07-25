@@ -27,7 +27,10 @@ Deno.serve(async (req) => {
       .from("players")
       .select("id, first_name, last_name, casino_id")
       .eq("status", "active")
-      .eq("category", "casino");
+      .eq("category", "casino")
+      // Exclude Club Poker virtual player — Club Poker settles separately (tips_poker),
+      // so it must NOT auto check-in with Live Game / Floor virtual players.
+      .not("last_name", "ilike", "%CLUB POKER%");
     if (pErr) throw pErr;
 
     const perCasino: Record<string, { opened: number; reopened: number; skipped: number; errors: number }> = {};
