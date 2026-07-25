@@ -135,6 +135,8 @@ export default function BossDashboard() {
   useEffect(() => { localStorage.setItem(LS_TV, tvMode ? "1" : "0"); }, [tvMode]);
   useEffect(() => { localStorage.setItem(LS_FONT, fontPreset); }, [fontPreset]);
   useEffect(() => { localStorage.setItem(LS_ORIENT, blockOrient); }, [blockOrient]);
+  useEffect(() => { localStorage.setItem(LS_MONTH, JSON.stringify(reportYM)); }, [reportYM]);
+
 
   useEffect(() => {
     const onFs = () => setIsFullscreen(!!document.fullscreenElement);
