@@ -828,16 +828,28 @@ export const useRealtimeSubscriptions = () => {
   // gaps where Table Tracker looks frozen until F5.
   useEffect(() => {
     if (!casinoId) return;
+    let hiddenAt: number | null = null;
     const onVisible = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+        return;
+      }
       if (document.visibilityState !== "visible") return;
+      const gap = hiddenAt === null ? 0 : Date.now() - hiddenAt;
+      hiddenAt = null;
       // Always refetch the on-screen queries; other keys are marked stale.
       qc.invalidateQueries({ refetchType: "active" });
       qc.invalidateQueries({ refetchType: "none" });
-      // Nudge realtime: if the socket dropped, re-subscribing the channel
-      // is handled by supabase-js; touching it forces a status callback.
+      // Watchdog: если вкладка была скрыта > 60s — принудительно
+      // переподписываем канал даже если он "joined". WebSocket мог молча
+      // умереть после sleep, продолжая рапортовать joined без событий.
       const ch = channelRef.current;
-      if (ch && ch.state !== "joined") {
-        try { ch.subscribe(); } catch { /* ignore */ }
+      if (ch) {
+        if (gap >= 60_000) {
+          try { ch.unsubscribe(); ch.subscribe(); } catch { /* ignore */ }
+        } else if (ch.state !== "joined") {
+          try { ch.subscribe(); } catch { /* ignore */ }
+        }
       }
     };
     document.addEventListener("visibilitychange", onVisible);
@@ -850,3 +862,4 @@ export const useRealtimeSubscriptions = () => {
     };
   }, [casinoId, qc]);
 };
+

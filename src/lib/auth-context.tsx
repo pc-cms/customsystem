@@ -3,6 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { setSessionUserId } from "@/hooks/use-session-state";
 import { AUTH_INVALID_REFRESH_EVENT, clearStoredAuthSession, isInvalidRefreshTokenError } from "@/lib/auth-storage";
+import { clearIDBPersistedQueryCache } from "@/lib/query-persister";
+import { clearBlacklistCache } from "@/lib/blacklist-cache";
+
 
 type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager" | "boss";
 
@@ -165,12 +168,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (nextUserId !== prevUserId) {
-      // New user or first session restore — load profile
+      // Смена пользователя без явного signOut (напр., быстрый re-login).
+      // Обязательно чистим кэш, чтобы данные предыдущего юзера не текли к новому.
+      if (prevUserId && prevUserId !== nextUserId) {
+        try {
+          const qc = (window as any).__reactQueryClient;
+          if (qc && typeof qc.clear === "function") {
+            void qc.cancelQueries?.();
+            qc.clear();
+          }
+          void clearIDBPersistedQueryCache().catch(() => undefined);
+          void clearBlacklistCache().catch(() => undefined);
+        } catch (e) {
+          console.warn("[Auth] cache clear on user change failed", e);
+        }
+      }
       currentUserIdRef.current = nextUserId;
       loadProfileForUser(nextUserId);
     }
     // Same user (TOKEN_REFRESHED, etc.) — do nothing, keep existing roles/profile
   }, [handleSignedOut, loadProfileForUser]);
+
 
   // Single initialization effect — NO dependency on user state
   useEffect(() => {
@@ -316,11 +334,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     handleSignedOut();
     setSessionUserId(null);
-    // Note: sessionStorage entries are intentionally kept — they're namespaced
-    // by userId, so the next user (or re-login) gets their own bucket. Closing
-    // the tab wipes everything regardless.
+    // Изоляция кэша между пользователями на одном ПК: полностью выкидываем
+    // in-memory React Query кэш, IndexedDB-персистер и blacklist-кэш до
+    // выхода из сессии — иначе следующий пользователь увидит остатки
+    // предыдущего до первого рефетча.
+    try {
+      const qc = (window as any).__reactQueryClient;
+      if (qc && typeof qc.clear === "function") {
+        await qc.cancelQueries?.();
+        qc.clear();
+      }
+      await clearIDBPersistedQueryCache();
+      await clearBlacklistCache();
+    } catch (e) {
+      console.warn("[Auth] cache clear on signOut failed", e);
+    }
     await supabase.auth.signOut();
   };
+
 
   // casinoId: use override if set, otherwise profile's casino
   const casinoId = casinoIdOverride !== undefined ? casinoIdOverride : profileCasinoId;

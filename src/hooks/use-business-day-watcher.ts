@@ -28,21 +28,15 @@ export function useBusinessDayWatcher() {
     };
 
     // Poll every 30s — cheap, and guarantees rollover detection within 30s
-    // even if the tab has no focus event (fullscreen kiosk PWA).
+    // даже в fullscreen kiosk PWA. Дублирующий visibilitychange listener
+    // убран — глобальный refetchOnWindowFocus в QueryClient уже освежает
+    // все активные запросы при возврате во вкладку, а этот check вызовется
+    // на следующем интервале polling.
     const timer = window.setInterval(check, 30_000);
-
-    // Immediate check on tab focus so operators who unlock a laptop after
-    // the shift ended see fresh data without an F5.
-    const onVisible = () => {
-      if (document.visibilityState === "visible") check();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", onVisible);
 
     return () => {
       window.clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", onVisible);
     };
   }, [qc]);
 }
+
