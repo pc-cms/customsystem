@@ -11341,6 +11341,13 @@ export type Database = {
         Args: { _server_id: string }
         Returns: string
       }
+      run_rls_multicasino_tests: {
+        Args: never
+        Returns: {
+          status: string
+          test: string
+        }[]
+      }
       seed_export_auth_users: {
         Args: { p_casino_id: string }
         Returns: {
