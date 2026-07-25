@@ -10,6 +10,8 @@ import { formatMoneyFull } from "@/lib/format-money";
 type Props = {
   casinos: CasinoRef[];
   accentFor: (slug: string | null, idx: number) => string;
+  year?: number;
+  month?: number;
 };
 
 const fmt = (n: number) => formatMoneyFull(n);
@@ -34,8 +36,9 @@ const AmountCell = ({ value, bold, dim }: { value: number; bold?: boolean; dim?:
   );
 };
 
-export function MonthlyReportPanel({ casinos, accentFor }: Props) {
-  const { data, isLoading } = useBossMonthlyReport(casinos);
+export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
+  const { data, isLoading } = useBossMonthlyReport(casinos, { year, month });
+
   const today = data?.today;
 
   const accentMap = useMemo(
