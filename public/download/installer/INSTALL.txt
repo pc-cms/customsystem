@@ -1,0 +1,32 @@
+Casino System — On-Premises Installer
+======================================
+
+WHAT YOU NEED:
+  • Ubuntu Server 22.04 / 24.04 LTS, 4 GB RAM, 50 GB disk, internet access
+  • Root (sudo) access on the server
+  • A super_admin who is logged into the Cloud admin panel and ready to approve
+
+HOW TO INSTALL (3 commands):
+
+  1. Plug in this USB stick. Then unpack the installer:
+       sudo mkdir -p /opt/casino-system
+       sudo tar -xzf /media/*/casino-system-installer-*.tar.gz -C /opt/casino-system
+
+  2. Go into the project folder:
+       cd /opt/casino-system
+
+  3. Run the installer:
+       sudo ./deploy/install.sh
+
+The installer will ask 4 short questions (server name, slug, IP, domain),
+then show an 8-character PAIRING CODE on screen.
+
+WHAT TO DO NEXT:
+  • Open the Cloud admin panel in any browser (premier.casinosystem.app)
+  • Sign in as super_admin → Admin → Network → Pending Server Registrations
+  • Find the row with your pairing code, pick the casino, click Approve
+  • The installer will detect the approval automatically, download the casino
+    data and build the local frontend (~5–8 minutes total).
+
+After "✓ Установка завершена" — open https://<your-domain> in any browser
+on the casino LAN.
