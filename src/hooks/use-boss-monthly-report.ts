@@ -122,17 +122,17 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
           .select("casino_id, business_date, tables_result, slots_result")
           .in("casino_id", casinoIds)
           .gte("business_date", from)
-          .lte("business_date", today),
+          .lte("business_date", to),
         supabase.from("fin_other_incomes")
           .select("casino_id, business_date, amount, fx_rate, reverses_id")
           .in("casino_id", casinoIds)
           .gte("business_date", from)
-          .lte("business_date", today),
+          .lte("business_date", to),
         supabase.from("expenses")
           .select("casino_id, business_date, amount_tzs, amount, currency, fin_category_id, approved")
           .in("casino_id", casinoIds)
           .gte("business_date", from)
-          .lte("business_date", today),
+          .lte("business_date", to),
         supabase.from("fin_budget")
           .select("casino_id, year, month, planned_amount, currency, category_id")
           .in("casino_id", casinoIds)
@@ -141,7 +141,7 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
         supabase.from("fin_wallet_tx")
           .select("casino_id, amount_tzs, kind")
           .in("casino_id", casinoIds)
-          .lte("business_date", today),
+          .lte("business_date", to),
         supabase.from("cage_slots_exchange_rates")
           .select("casino_id, currency_code, rate_to_tzs, created_at")
           .in("casino_id", casinoIds)
