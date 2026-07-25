@@ -166,7 +166,7 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
       // Result per casino + daily
       const result = zeroPer();
       const dailyMap = new Map<string, DailyRow>();
-      for (const d of enumerateDays(from, today)) {
+      for (const d of enumerateDays(from, to)) {
         dailyMap.set(d, {
           date: d,
           perCasino: Object.fromEntries(casinoIds.map(id => [id, 0])),
