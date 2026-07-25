@@ -40,6 +40,10 @@ const LS_RES = "boss-tv:resolution";
 const LS_TV = "boss-tv:tv-mode";
 const LS_FONT = "boss-tv:font-preset";
 const LS_ORIENT = "boss-tv:block-orient";
+const LS_MONTH = "boss-tv:report-month";
+
+const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
 
 const FONT_PRESETS: Record<FontPreset, { mult: number; label: string }> = {
   s:  { mult: 0.85, label: "S" },
