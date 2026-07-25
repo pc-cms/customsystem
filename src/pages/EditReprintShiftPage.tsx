@@ -228,7 +228,9 @@ const EditReprintShiftPage = () => {
   const [state, setState] = useState<typeof initial>(null);
   const [resultAuto, setResultAuto] = useState(true);
   const [chipsAuto, setChipsAuto] = useState(false);
-  const [balanceAuto, setBalanceAuto] = useState(true);
+  // Shift Balance is the certified value from close time. Reprint is a
+  // print-only sandbox — we NEVER auto-recompute or overwrite it, only allow
+  // manual edits that stay in local state.
   useEffect(() => { if (initial) setState(initial); }, [initial]);
 
   const baselineChipDelta = useMemo(() => {
