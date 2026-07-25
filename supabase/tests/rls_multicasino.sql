@@ -47,7 +47,10 @@ BEGIN
 END
 $fx$;
 
--- Seed roles + casino access
+-- Seed auth.users (FK target for user_roles / user_casino_access), then roles + access
+INSERT INTO auth.users(id, is_sso_user, is_anonymous)
+SELECT (v)::uuid, false, false FROM _ctx WHERE k IN ('pit_user','cash_user','admin_user');
+
 INSERT INTO public.user_roles(user_id, role)
 SELECT (v)::uuid, 'pit'::app_role FROM _ctx WHERE k='pit_user'
 UNION ALL SELECT (v)::uuid, 'cashier'::app_role FROM _ctx WHERE k='cash_user'
