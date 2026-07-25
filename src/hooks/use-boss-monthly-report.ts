@@ -83,17 +83,27 @@ const GROUP_ORDER = ["fixed", "tax", "salary", "variable", "petrol", "additional
 // kinds that reduce wallet balance
 const NEG_KINDS = new Set(["expense", "change_out", "transfer_out"]);
 
-export function useBossMonthlyReport(casinos: CasinoRef[]) {
+export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: number; month?: number }) {
   const today = getBusinessDate();
-  const from = monthStartDate(today);
+  const now = new Date(today);
+  const year = opts?.year ?? now.getFullYear();
+  const month = opts?.month ?? (now.getMonth() + 1);
+  const from = `${year}-${String(month).padStart(2, "0")}-01`;
+  // Last day of the selected month
+  const lastDay = new Date(year, month, 0).getDate();
+  const monthEnd = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  // If viewing current month → cap at today; otherwise use month end
+  const isCurrentMonth = from.slice(0, 7) === today.slice(0, 7);
+  const to = isCurrentMonth ? today : monthEnd;
   const ids = casinos.map(c => c.id).sort().join(",");
 
   return useQuery({
-    queryKey: ["boss-monthly-report", ids, from, today],
+    queryKey: ["boss-monthly-report", ids, from, to],
     enabled: casinos.length > 0,
     refetchInterval: 30_000,
     staleTime: 15_000,
     queryFn: async (): Promise<BossMonthlyReport> => {
+
       const casinoIds = casinos.map(c => c.id);
       const zeroPer = (): Record<string, number> =>
         Object.fromEntries(casinoIds.map(id => [id, 0]));
