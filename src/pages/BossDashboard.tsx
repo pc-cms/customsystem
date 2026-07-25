@@ -104,6 +104,23 @@ export default function BossDashboard() {
     () => (localStorage.getItem(LS_ORIENT) as BlockOrient) || "auto",
   );
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() => !!document.fullscreenElement);
+  const [reportYM, setReportYM] = useState<{ y: number; m: number }>(() => {
+    try {
+      const raw = localStorage.getItem(LS_MONTH);
+      if (raw) { const p = JSON.parse(raw); if (p?.y && p?.m) return p; }
+    } catch { /* ignore */ }
+    const n = new Date();
+    return { y: n.getFullYear(), m: n.getMonth() + 1 };
+  });
+  const shiftMonth = (delta: number) => {
+    const d = new Date(reportYM.y, reportYM.m - 1 + delta, 1);
+    setReportYM({ y: d.getFullYear(), m: d.getMonth() + 1 });
+  };
+  const thisMonth = () => {
+    const n = new Date();
+    setReportYM({ y: n.getFullYear(), m: n.getMonth() + 1 });
+  };
+
 
   useEffect(() => {
     if (accessibleCasinos.length === 0) return;
