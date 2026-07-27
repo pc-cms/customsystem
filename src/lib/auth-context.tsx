@@ -7,7 +7,7 @@ import { clearIDBPersistedQueryCache } from "@/lib/query-persister";
 import { clearBlacklistCache } from "@/lib/blacklist-cache";
 
 
-type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager" | "boss";
+type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager" | "boss" | "general_manager";
 
 const PROFILE_LOAD_TIMEOUT_MS = 8000;
 
