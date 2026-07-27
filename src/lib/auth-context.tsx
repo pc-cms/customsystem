@@ -96,10 +96,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (rolesError) console.error("fetchProfile roles error", rolesError);
 
     const rawRoles = (userRoles ?? []).map(r => r.role as AppRole);
-    // Boss inherits all manager UI permissions: synthesize a "manager" role
-    // so every hardcoded `.includes("manager")` check across the app grants
-    // access without having to touch dozens of call sites.
-    if (rawRoles.includes("boss") && !rawRoles.includes("manager")) {
+    // Boss / General Manager inherit all manager UI permissions: synthesize a
+    // "manager" role so every hardcoded `.includes("manager")` check across the
+    // app grants access without having to touch dozens of call sites.
+    if ((rawRoles.includes("boss") || rawRoles.includes("general_manager")) && !rawRoles.includes("manager")) {
       rawRoles.push("manager");
     }
     return {
