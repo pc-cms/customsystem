@@ -7,7 +7,7 @@ import { clearIDBPersistedQueryCache } from "@/lib/query-persister";
 import { clearBlacklistCache } from "@/lib/blacklist-cache";
 
 
-type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager" | "boss";
+type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager" | "boss" | "general_manager";
 
 const PROFILE_LOAD_TIMEOUT_MS = 8000;
 
@@ -96,10 +96,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (rolesError) console.error("fetchProfile roles error", rolesError);
 
     const rawRoles = (userRoles ?? []).map(r => r.role as AppRole);
-    // Boss inherits all manager UI permissions: synthesize a "manager" role
-    // so every hardcoded `.includes("manager")` check across the app grants
-    // access without having to touch dozens of call sites.
-    if (rawRoles.includes("boss") && !rawRoles.includes("manager")) {
+    // Boss / General Manager inherit all manager UI permissions: synthesize a
+    // "manager" role so every hardcoded `.includes("manager")` check across the
+    // app grants access without having to touch dozens of call sites.
+    if ((rawRoles.includes("boss") || rawRoles.includes("general_manager")) && !rawRoles.includes("manager")) {
       rawRoles.push("manager");
     }
     return {

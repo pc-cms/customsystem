@@ -16,6 +16,7 @@ import { toast } from "sonner";
 
 export const ALL_ROLES = [
   "super_admin",
+  "general_manager",
   "manager",
   "shift_manager",
   "cashier",
@@ -35,6 +36,7 @@ export const NON_SUPER_ROLES = ALL_ROLES.filter(r => r !== "super_admin") as rea
 
 export const ROLE_LABELS: Record<string, string> = {
   super_admin: "Super Admin",
+  general_manager: "General Manager",
   manager: "Manager",
   shift_manager: "Shift Manager",
   cashier: "Cashier Live",
