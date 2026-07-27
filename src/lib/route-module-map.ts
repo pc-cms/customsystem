@@ -145,6 +145,8 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/admin/am-performance") return "am_performance";
   if (base === "/admin/kyc") return "kyc_reviews";
   if (base === "/admin/fm-topups") return "fm_topups";
+  // Merge duplicates is a player-data tool, not a system-admin surface.
+  if (base === "/admin/merge-players") return "players";
 
   // Premier Club / AM reports
   if (base === "/reports/promo-issuance") return "report_promo_issuance";
