@@ -1,29 +1,64 @@
+## Да, всё понятно. Ломать ничего не будем
 
-# Заливка шаблона Mbeya в Cloud (один SQL-скрипт)
+Ключевое: **Players Card Balance по умолчанию 0** — за все прошлые закрытые дни колонка = 0, значит все существующие цифры (Result, Balance, Variance, Monthly Report, закрытия смен) остаются **бит-в-бит теми же**. Новая логика включается только когда менеджер впервые введёт ненулевое значение.
 
-Копируем справочники из Arusha в Mbeya, чтобы после `install.sh` локальный сервер сразу подтянул готовую структуру. Никакой операционной истории не копируем.
+### Что точно НЕ трогаем
+- Закрытие смен кассы (Cage / Cage Slots) — кассиры поле не видят, их Variance не меняется.
+- Закрытые (locked) дни — поле недоступно для правки, значение 0.
+- Закрытые месяцы и уже сформированные Monthly Report — без изменений.
+- Существующие кошельки и их транзакции — новых записей в `fin_wallet_tx` не создаём.
 
-## Что заливаем в Mbeya (`7ab2eee1-…`)
+## Суть механики
 
-| Таблица | Действие | Кол-во |
-|---|---|---|
-| `chip_color_settings` | +10 недостающих номиналов из Arusha; включаем видимость топ-2 существующих | 12 итого |
-| `chip_initial_baseline` | структура из Arusha, `initial_quantity = 0` | +11 |
-| `chip_baseline` (cashier) | структура из Arusha, `expected_quantity = 0` | +11 |
-| `chip_baseline` (table) | маппинг Arusha→Mbeya по имени стола, `expected_quantity = 0` | ~48 |
-| `fin_wallets` | все 12 кошельков (Safe TZS/USD/EUR/GBP/KES, CRDB TZS/USD, AirTell/Tigo/Halo/M-Pesa, Main Phone) с балансом 0 | +12 |
-| `gaming_tables` | добавляем недостающий стол `Club` (Club Poker) | +1 (итого 10) |
-| `fin_daily_rates` | сегодняшние курсы: USD 2600 · EUR 2800 · GBP 3000 · KES 17 | +4 |
+Касса физически сдаёт **больше** денег, чем заработок: депозиты игроков на картах — реальные деньги в кассе, но не доход. Поэтому:
 
-Всё через `INSERT … WHERE NOT EXISTS` — повторный запуск безопасен.
+- **Result (заработок)** = Tables + (Slots − Players Card Balance)
+- **Cash Desk / Balance** = ожидает полную сумму, т.е. карты возвращаются обратно строкой в Incomes → лишних денег в кассе не появляется, Variance = 0.
 
-## Что уже готово в Mbeya и НЕ трогаем
-- 9 столов (AR1-3, BJ1, P1-5), 65 сотрудников, 15 категорий расходов, 5 PAYE брекетов, payroll_settings, pos_locations.
+## Что вводит менеджер
 
-## Что НЕ копируем (чистая история)
-transactions, shifts, cage_slots_shifts, client_sessions, players, fin_wallet_tx, fin_day_closing, expenses, pos_orders, activity_logs, incidents, chip_snapshots, chip_transfers, table_daily_results, chip_emissions.
+**Office → Day Closings**, новая колонка **Players Card Balance**:
+- вручную, одно число за бизнес-день, всегда ≥ 0 (это остаток на конец дня, не движение);
+- пусто/не введено → 0;
+- блокируется вместе с днём (`locked_at`).
 
-## После заливки
-IP и WireGuard настраиваем на месте после разворота образа (как договорились).
+## Формулы
 
-**Подтверди — жму Insert.**
+День:
+```
+Day Result = Tables + (Slots − Players Card Balance)
+```
+Месячные Totals: вычитается **один раз** — последнее введённое значение месяца (не сумма по дням).
+
+Balance snapshot (`fin_balance_snapshot`):
+```
+Incomes:
+  Live Game        + tables
+  Slots            + slots        (сырой, как приходит)
+  Card Balance     + cards        ← новая информативная строка
+  Other            + ...
+  Miss chips/cards ...
+Expected = Σ Incomes − Expenses − Collections
+Variance = Actual − Starting Float − Expected
+```
+Slots в снапшоте остаётся сырым — касса сходится; вычет виден только в Result-отчётах.
+
+## Отображение
+
+- **Dashboard TV / Company Report**: строка называется просто **Slots**, значение уже за вычетом карт; объяснение («Slots − Players Card Balance» + сама сумма карт) — в тултипе.
+- **Office → Wallets**: строка **Card Balance** в блоке Incomes рядом с Miss Chips / Miss Cards, с тултипом «Депозиты игроков на картах — деньги в кассе, но не заработок».
+
+## Технические детали
+
+1. Миграция: `ALTER TABLE public.fin_day_closing ADD COLUMN IF NOT EXISTS players_card_balance numeric NOT NULL DEFAULT 0` — старые строки автоматически 0.
+2. `fin_balance_snapshot`: `v_card_balance` = последнее значение за период; добавить ключ `card_balance` в `v_incomes` со знаком плюс. `slots` не меняем.
+3. `src/hooks/use-fin-balance.ts`: поле `incomes.card_balance` в типе + в `computeBalanceTotals`.
+4. `src/pages/office/DayClosingsTab.tsx`: колонка ввода, эффективный Slots в строке дня, totals по last-value.
+5. `src/hooks/use-fin.ts`: поле в типах и в upsert дня.
+6. `src/hooks/use-boss-monthly-report.ts`: last-value вычет из Slots, вернуть `playersCards` для тултипа.
+7. `src/components/boss/monthly-report-panel.tsx`: строка «Slots» с тултипом.
+8. Поднять версию в `package.json`.
+
+## Проверка после внедрения
+
+Сверим Balance/Variance по Arusha и Mwanza за текущий месяц до и после — цифры должны совпасть, пока карты = 0.
