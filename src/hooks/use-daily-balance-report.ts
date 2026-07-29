@@ -9,14 +9,18 @@
  * Rows for months that predate the system are filled from `fin_legacy_balance`
  * (imported Excel) — system data always wins where it exists.
  */
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { fetchPaged } from "@/lib/fetch-paged";
 
 export const FALLBACK_USD_RATE = 2600;
-/** Bank terminal acquiring fee applied to card turnover. */
-export const BANK_FEE_PCT = 2.5;
+/**
+ * Bank checks are entered in the cage GROSS — the amount that arrived is 3%
+ * higher than the real money. Net = gross / 1.03, fee = gross − net.
+ */
+export const BANK_COMMISSION_RATE = 0.03;
 
 export interface DailyBalanceRow {
   date: string;
@@ -43,11 +47,16 @@ export interface DailyBalanceRow {
   credit_deposit: number;
   expenses: number;
   chips_float: number;
+  /** Σ incomes of the day: Tables + Slots + Bar + Credit/Deposit */
+  day_total: number;
+  /** Cash Desk − Day Total (cash vs declared result) */
+  day_balance: number;
   /** true when the row came from the imported legacy sheet */
   legacy: boolean;
   /** true when at least one live source produced data for that date */
   hasSystemData: boolean;
 }
+
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -101,6 +110,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         slotTips,
         posOrders,
         legacy,
+        slotsClosing,
       ] = await Promise.all([
         fetchPaged<any>((a, b) =>
           sb.from("fin_day_closing")
@@ -108,8 +118,9 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("shifts")
-            .select("opened_at, closed_at, cash_desk_result, tables_result, shift_result")
+            .select("opened_at, closed_at, cash_desk_result, tables_result, shift_result, closing_cash")
             .eq("casino_id", casino).gte("opened_at", fromIso).lte("opened_at", toIso).range(a, b)),
+
         fetchPaged<any>((a, b) =>
           sb.from("cage_slots_shifts")
             .select("business_date, cash_desk_result, slots_result, cards_miss")
@@ -156,7 +167,15 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           sb.from("fin_legacy_balance")
             .select("*")
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
+        // Slots cage closing cash inventory (per shift) → Cage Cash (SLOTS part)
+        fetchPaged<any>((a, b) =>
+          sb.from("cage_slots_cash_inventory")
+            .select("total_tzs, inventory_type, cage_slots_shifts!inner(business_date, casino_id)")
+            .eq("casino_id", casino).eq("inventory_type", "closing")
+            .gte("cage_slots_shifts.business_date", from)
+            .lte("cage_slots_shifts.business_date", to).range(a, b)),
       ]);
+
 
       // ---- daily USD rate (carry forward last known) --------------------
       const rateByDate: Bucket = {};
@@ -178,16 +197,23 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         cardBal[c.business_date] = num(c.players_card_balance);
       });
 
+      // Cage Cash = closing cash of LIVE cage shifts + closing cash of SLOTS cage shifts
+      const cageClosing: Bucket = {};
       const cashDesk: Bucket = {}, shiftTables: Bucket = {};
       shifts.forEach((s) => {
         const d = dateOnly(s.closed_at || s.opened_at);
         add(cashDesk, d, num(s.cash_desk_result));
         add(shiftTables, d, num(s.tables_result));
+        add(cageClosing, d, num(s.closing_cash?.actual));
       });
       slotShifts.forEach((s) => {
         add(cashDesk, s.business_date, num(s.cash_desk_result));
         if (slotsRes[s.business_date] == null) add(slotsRes, s.business_date, num(s.slots_result));
       });
+      slotsClosing.forEach((i) => {
+        add(cageClosing, i.cage_slots_shifts?.business_date, num(i.total_tzs));
+      });
+
 
       const expByDate: Bucket = {}, bankExpByDate: Bucket = {};
       expenses.filter((e) => !e.voided_at).forEach((e) => {
@@ -276,7 +302,13 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           tablesRes[date] != null || slotsRes[date] != null || cashDesk[date] != null ||
           expByDate[date] != null || bar[date] != null || txByDate[date] != null;
 
+        /** Credit / Deposit is a MANUAL field — stored in fin_legacy_balance. */
+        const manualCredit = l?.credit_deposit != null ? num(l.credit_deposit) : 0;
+
         if (!hasSystemData && l) {
+          const gross = num(l.bank_terminal);
+          const net = gross / (1 + BANK_COMMISSION_RATE);
+          const lTotal = num(l.tables_result) + num(l.slots_result) + num(l.bar_result) + manualCredit;
           return {
             date,
             weekday: WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()],
@@ -295,29 +327,36 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             office_transfer: num(l.office_transfer),
             office_in: num(l.office_in),
             office_out: num(l.office_out),
-            bank_terminal: num(l.bank_terminal),
-            bank_fee: (num(l.bank_terminal) * num(l.bank_fee_pct || BANK_FEE_PCT)) / 100,
+            bank_terminal: net,
+            bank_fee: gross - net,
             bank_account: num(l.bank_account),
             bank_expenses: num(l.bank_expenses),
-            credit_deposit: num(l.credit_deposit),
+            credit_deposit: manualCredit,
             expenses: num(l.expenses),
             chips_float: num(l.chips_float),
+            day_total: lTotal,
+            day_balance: num(l.cash_desk_result) - lTotal,
             legacy: true,
             hasSystemData: false,
           } satisfies DailyBalanceRow;
         }
 
-        const term = terminal[date] ?? 0;
+        // Bank checks are entered GROSS (3% on top) — strip the commission.
+        const gross = terminal[date] ?? 0;
+        const net = gross / (1 + BANK_COMMISSION_RATE);
+        const dayTotal = tables + slotsNet + barV + manualCredit;
+        const cdr = cashDesk[date] ?? 0;
         return {
           date,
           weekday: WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()],
           rate_usd: rate,
           casino_result: tables + slotsNet + barV,
-          cash_desk_result: cashDesk[date] ?? 0,
+          cash_desk_result: cdr,
           tables_result: tables,
           slots_result: slotsNet,
           bar_result: barV,
-          cage_cash: lastCage,
+          // Cage Cash = closing cash of LIVE + SLOTS cage shifts (falls back to wallet balance)
+          cage_cash: cageClosing[date] ?? lastCage,
           collection_bank: collections[date] ?? 0,
           chip_difference: chipMiss[date] ?? 0,
           tips_tables: tipsTables[date] ?? 0,
@@ -326,17 +365,43 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           office_transfer: (officeIn[date] ?? 0) - (officeOut[date] ?? 0),
           office_in: officeIn[date] ?? 0,
           office_out: officeOut[date] ?? 0,
-          bank_terminal: term,
-          bank_fee: (term * BANK_FEE_PCT) / 100,
+          bank_terminal: net,
+          bank_fee: gross - net,
           bank_account: lastBank,
           bank_expenses: bankExpByDate[date] ?? 0,
-          credit_deposit: cardBal[date] ?? 0,
+          credit_deposit: manualCredit,
           expenses: expByDate[date] ?? 0,
           chips_float: lastChips,
+          day_total: dayTotal,
+          day_balance: cdr - dayTotal,
           legacy: false,
           hasSystemData,
         } satisfies DailyBalanceRow;
       });
+
     },
+  });
+};
+
+/**
+ * Credit / Deposit is a manual figure — persisted per casino+date in
+ * `fin_legacy_balance` (upsert), so it survives alongside live data.
+ */
+export const useSetCreditDeposit = () => {
+  const qc = useQueryClient();
+  const { activeCasinoId } = useCasino();
+  return useMutation({
+    mutationFn: async ({ date, value }: { date: string; value: number }) => {
+      if (!activeCasinoId) throw new Error("No casino");
+      const { error } = await (supabase as any)
+        .from("fin_legacy_balance")
+        .upsert(
+          { casino_id: activeCasinoId, business_date: date, credit_deposit: value, source: "manual" },
+          { onConflict: "casino_id,business_date" },
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["daily-balance-report"] }),
+    onError: (e: any) => toast.error(e.message),
   });
 };

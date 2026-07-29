@@ -25,7 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useDailyBalanceReport, type DailyBalanceRow } from "@/hooks/use-daily-balance-report";
+import { useDailyBalanceReport, useSetCreditDeposit, type DailyBalanceRow } from "@/hooks/use-daily-balance-report";
 
 type GroupKey = "results" | "cage" | "office" | "bank" | "chips" | "tips";
 
@@ -54,16 +54,18 @@ const MONEY_COLS: { key: keyof DailyBalanceRow; label: string; group: GroupKey |
   { key: "cash_desk_result", label: "Cash Desk", group: "results" },
   { key: "tables_result", label: "Tables", group: "results" },
   { key: "slots_result", label: "Slots (net)", group: "results" },
-  { key: "bar_result", label: "Bar / POS", group: "results" },
+  { key: "bar_result", label: "Bar", group: "results" },
+  { key: "credit_deposit", label: "Credit / Deposit", group: "results" },
+  { key: "day_total", label: "Day Total", group: "results" },
+  { key: "day_balance", label: "Day Balance", group: "results" },
   { key: "cage_cash", label: "Cage Cash", group: "cage", first: true },
   { key: "collection_bank", label: "Collection → Bank", group: "cage" },
-  { key: "credit_deposit", label: "Credit / Deposit", group: "cage" },
   { key: "office_cash", label: "Office Safe", group: "office", first: true },
   { key: "office_in", label: "Office In", group: "office" },
   { key: "office_out", label: "Office Out", group: "office" },
   { key: "office_transfer", label: "Int. Transfer", group: "office" },
-  { key: "bank_terminal", label: "Terminal", group: "bank", first: true },
-  { key: "bank_fee", label: "Fee 2.5%", group: "bank" },
+  { key: "bank_terminal", label: "Terminal (net)", group: "bank", first: true },
+  { key: "bank_fee", label: "Fee 3%", group: "bank" },
   { key: "bank_account", label: "Bank Account", group: "bank" },
   { key: "bank_expenses", label: "Bank Expenses", group: "bank" },
   { key: "chip_difference", label: "Chip Diff", group: "chips", first: true },
@@ -73,7 +75,32 @@ const MONEY_COLS: { key: keyof DailyBalanceRow; label: string; group: GroupKey |
   { key: "expenses", label: "Expenses", group: null, first: true },
 ];
 
+
+/** Manual Credit / Deposit entry — saved per day on blur. */
+const CreditCell = ({ date, value }: { date: string; value: number }) => {
+  const save = useSetCreditDeposit();
+  const [draft, setDraft] = useState<string>("");
+  const [editing, setEditing] = useState(false);
+  const shown = editing ? draft : value ? String(Math.round(value)) : "";
+  return (
+    <Input
+      value={shown}
+      placeholder="·"
+      inputMode="numeric"
+      onFocus={() => { setEditing(true); setDraft(value ? String(Math.round(value)) : ""); }}
+      onChange={(e) => setDraft(e.target.value.replace(/[^\d.-]/g, ""))}
+      onBlur={() => {
+        setEditing(false);
+        const v = Number(draft || 0);
+        if (Number.isFinite(v) && v !== Math.round(value)) save.mutate({ date, value: v });
+      }}
+      className="h-6 w-24 px-1 text-right font-mono text-xs tabular-nums"
+    />
+  );
+};
+
 const DailyBalanceReport = () => {
+
   const { activeCasino } = useCasino();
   const qc = useQueryClient();
   const [month, setMonth] = useSessionState("dbr-month", currentMonth());
@@ -100,10 +127,14 @@ const DailyBalanceReport = () => {
     return acc;
   }, [rows]);
 
+  /** Always-visible columns (manual entry / day formulas). */
+  const ALWAYS = new Set(["credit_deposit", "day_total", "day_balance"]);
+
   /** Columns whose every value is 0 across the month (candidates for hiding). */
   const emptyCols = useMemo(() => {
     const s = new Set<string>();
     for (const c of MONEY_COLS) {
+      if (ALWAYS.has(c.key as string)) continue;
       if (rows.every((r) => !Number(r[c.key]))) s.add(c.key as string);
     }
     return s;
@@ -145,12 +176,25 @@ const DailyBalanceReport = () => {
       key: c.key as string,
       header: c.label,
       type: "money" as const,
-      accessor: (r) => money(Math.round(Number(r[c.key] || 0))),
+      accessor: (r) =>
+        c.key === "credit_deposit" ? (
+          <CreditCell date={r.date} value={Number(r.credit_deposit || 0)} />
+        ) : (
+          money(Math.round(Number(r[c.key] || 0)))
+        ),
       sortValue: (r) => Number(r[c.key] || 0),
-      headerClassName: cn("whitespace-nowrap", c.first && "border-l border-border"),
-      cellClassName: c.first ? "border-l border-border" : undefined,
+      headerClassName: cn(
+        "whitespace-nowrap",
+        c.first && "border-l border-border",
+        (c.key === "day_total" || c.key === "day_balance") && "font-semibold",
+      ),
+      cellClassName: cn(
+        c.first && "border-l border-border",
+        (c.key === "day_total" || c.key === "day_balance") && "font-semibold bg-muted/20",
+      ),
     })),
   ];
+
 
   const doExport = async () => {
     const header = ["Date", "Day", "USD Rate", ...visibleMoneyCols.map((c) => c.label)];
@@ -189,11 +233,15 @@ const DailyBalanceReport = () => {
     { label: "Cash Desk", value: totals.cash_desk_result },
     { label: "Tables", value: totals.tables_result },
     { label: "Slots (net)", value: totals.slots_result },
-    { label: "Bar / POS", value: totals.bar_result },
+    { label: "Bar", value: totals.bar_result },
+    { label: "Credit / Deposit", value: totals.credit_deposit },
+    { label: "Day Total", value: totals.day_total },
+    { label: "Day Balance", value: totals.day_balance },
     { label: "Expenses", value: totals.expenses },
     { label: "Collections", value: totals.collection_bank },
-    { label: "Terminal", value: totals.bank_terminal },
-    { label: "Bank Fee", value: totals.bank_fee },
+    { label: "Terminal (net)", value: totals.bank_terminal },
+    { label: "Bank Fee 3%", value: totals.bank_fee },
+
     { label: "Chip Diff", value: totals.chip_difference },
     { label: "Tips Tables", value: totals.tips_tables },
     { label: "Tips Slots", value: totals.tips_slots },
