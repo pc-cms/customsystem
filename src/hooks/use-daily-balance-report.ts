@@ -196,16 +196,23 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         cardBal[c.business_date] = num(c.players_card_balance);
       });
 
+      // Cage Cash = closing cash of LIVE cage shifts + closing cash of SLOTS cage shifts
+      const cageClosing: Bucket = {};
       const cashDesk: Bucket = {}, shiftTables: Bucket = {};
       shifts.forEach((s) => {
         const d = dateOnly(s.closed_at || s.opened_at);
         add(cashDesk, d, num(s.cash_desk_result));
         add(shiftTables, d, num(s.tables_result));
+        add(cageClosing, d, num(s.closing_cash?.actual));
       });
       slotShifts.forEach((s) => {
         add(cashDesk, s.business_date, num(s.cash_desk_result));
         if (slotsRes[s.business_date] == null) add(slotsRes, s.business_date, num(s.slots_result));
       });
+      slotsClosing.forEach((i) => {
+        add(cageClosing, i.cage_slots_shifts?.business_date, num(i.total_tzs));
+      });
+
 
       const expByDate: Bucket = {}, bankExpByDate: Bucket = {};
       expenses.filter((e) => !e.voided_at).forEach((e) => {
