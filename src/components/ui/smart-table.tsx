@@ -85,6 +85,33 @@ export interface SmartTableProps<T> {
   /** Sticky first column. */
   stickyFirstColumn?: boolean;
   /**
+   * Freeze the first N columns. Pass the cumulative left offset (px) of each
+   * frozen column, e.g. `[0, 104]` freezes col#1 at left:0 and col#2 at 104px.
+   * Takes precedence over `stickyFirstColumn`.
+   */
+  stickyColumns?: number[];
+  /**
+   * Optional grouped header row rendered above the column headers.
+   * `span` must add up to the number of VISIBLE columns.
+   */
+  groupHeader?: {
+    key: string;
+    label?: React.ReactNode;
+    span: number;
+    expandable?: boolean;
+    expanded?: boolean;
+    hiddenCount?: number;
+    onToggle?: () => void;
+    className?: string;
+  }[];
+  /** Optional sticky footer rows (totals / averages). */
+  footerRows?: {
+    key: string;
+    className?: string;
+    cell: (col: ColumnDef<T>, index: number) => React.ReactNode;
+  }[];
+
+  /**
    * Auto-enable row virtualization when data.length exceeds this threshold.
    * Pass `false` to disable, or a number to override (default 200).
    * Virtualization requires a fixed scrollable container — caller must wrap
@@ -230,6 +257,9 @@ export function SmartTable<T>({
   rowClassName,
   onRowClick,
   stickyFirstColumn,
+  stickyColumns,
+  groupHeader,
+  footerRows,
   virtualize = true,
   rowHeight = 40,
   className,
@@ -240,10 +270,26 @@ export function SmartTable<T>({
   const isControlled = sort !== undefined;
   const activeSort = isControlled ? sort ?? null : internalSort;
 
-  const visibleCols = React.useMemo(
+  const rawCols = React.useMemo(
     () => columns.filter((c) => !(c.hidden && c.hidden(ctx ?? {}))),
     [columns, ctx],
   );
+
+  /** Freeze the first N columns by injecting sticky styles into their defs. */
+  const visibleCols = React.useMemo(() => {
+    if (!stickyColumns?.length) return rawCols;
+    return rawCols.map((c, i) => {
+      if (i >= stickyColumns.length) return c;
+      const base = c.cellClassName;
+      return {
+        ...c,
+        style: { ...c.style, position: "sticky" as const, left: stickyColumns[i], zIndex: 5 },
+        headerClassName: cn(c.headerClassName, "!bg-muted z-30"),
+        cellClassName: (row: T) =>
+          cn(typeof base === "function" ? base(row) : base, "bg-card"),
+      };
+    });
+  }, [rawCols, stickyColumns]);
 
   const sortedData = React.useMemo(() => {
     if (!activeSort) return data;
@@ -252,6 +298,7 @@ export function SmartTable<T>({
     const dir = activeSort.dir === "asc" ? 1 : -1;
     return [...data].sort((a, b) => compare(col.sortValue!(a), col.sortValue!(b)) * dir);
   }, [data, activeSort, visibleCols]);
+
 
   const handleSort = React.useCallback(
     (key: string) => {
@@ -275,8 +322,46 @@ export function SmartTable<T>({
   const useVirtual = sortedData.length > threshold && !loading;
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
+  const groupRow = groupHeader?.length ? (
+    <DTRow className="border-b border-border">
+      {groupHeader.map((g, gi) => (
+        <th
+          key={g.key}
+          colSpan={g.span}
+          className={cn(
+            "px-2 py-1 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground",
+            gi > 0 && "border-l border-border",
+            g.expandable && "cursor-pointer hover:text-foreground",
+            g.className,
+          )}
+          onClick={g.expandable ? g.onToggle : undefined}
+        >
+          {g.label && (
+            <span className="inline-flex items-center gap-1">
+              {g.label}
+              {g.expandable && (
+                <span className="inline-flex items-center gap-0.5 rounded border border-border bg-background px-1 text-[10px] font-medium text-foreground">
+                  {g.expanded ? (
+                    <>
+                      <ChevronUp className="h-3 w-3" /> less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3 w-3" /> +{g.hiddenCount ?? 0}
+                    </>
+                  )}
+                </span>
+              )}
+            </span>
+          )}
+        </th>
+      ))}
+    </DTRow>
+  ) : null;
+
   const headerRow = (
     <DTHead>
+      {groupRow}
       <DTRow>
         {visibleCols.map((c) => {
           const sortable = !!c.sortValue;
@@ -303,6 +388,21 @@ export function SmartTable<T>({
       </DTRow>
     </DTHead>
   );
+
+  const footer = footerRows?.length ? (
+    <tfoot className="sticky bottom-0 z-20 bg-card">
+      {footerRows.map((fr) => (
+        <tr key={fr.key} className={cn("border-t border-border bg-card", fr.className)}>
+          {visibleCols.map((c, i) => (
+            <DTCell key={c.key} type={c.type} className="bg-card" style={c.style}>
+              {fr.cell(c, i)}
+            </DTCell>
+          ))}
+        </tr>
+      ))}
+    </tfoot>
+  ) : null;
+
 
   // Empty / loading.
   if (!loading && sortedData.length === 0) {
@@ -371,6 +471,7 @@ export function SmartTable<T>({
             rowHeight={rowHeight}
             scrollRef={scrollRef}
           />
+          {footer}
         </DataTable>
       </div>
     );
@@ -386,6 +487,8 @@ export function SmartTable<T>({
         rowClassName={rowClassName}
         onRowClick={onRowClick}
       />
+      {footer}
     </DataTable>
+
   );
 }
