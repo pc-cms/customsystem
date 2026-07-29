@@ -9,7 +9,8 @@
  * Rows for months that predate the system are filled from `fin_legacy_balance`
  * (imported Excel) — system data always wins where it exists.
  */
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { fetchPaged } from "@/lib/fetch-paged";
@@ -379,5 +380,28 @@ export const useDailyBalanceReport = (from: string, to: string) => {
       });
 
     },
+  });
+};
+
+/**
+ * Credit / Deposit is a manual figure — persisted per casino+date in
+ * `fin_legacy_balance` (upsert), so it survives alongside live data.
+ */
+export const useSetCreditDeposit = () => {
+  const qc = useQueryClient();
+  const { activeCasinoId } = useCasino();
+  return useMutation({
+    mutationFn: async ({ date, value }: { date: string; value: number }) => {
+      if (!activeCasinoId) throw new Error("No casino");
+      const { error } = await (supabase as any)
+        .from("fin_legacy_balance")
+        .upsert(
+          { casino_id: activeCasinoId, business_date: date, credit_deposit: value, source: "manual" },
+          { onConflict: "casino_id,business_date" },
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["daily-balance-report"] }),
+    onError: (e: any) => toast.error(e.message),
   });
 };
