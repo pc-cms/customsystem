@@ -339,17 +339,30 @@ const DailyBalanceReport = () => {
           />
         }
         filters={[
-          ...GROUPS.map((g) => (
-            <Toggle
-              key={g.key}
-              size="sm"
-              pressed={on(g.key)}
-              onPressedChange={() => toggle(g.key)}
-              className="h-8 px-2 text-xs"
-            >
-              {g.label}
-            </Toggle>
+          ...SECTIONS.map((g) => (
+            <div key={g.key} className="flex items-center gap-0.5 rounded-md border border-border px-0.5">
+              <Toggle
+                size="sm"
+                pressed={on(g.key)}
+                onPressedChange={() => toggle(g.key)}
+                className="h-7 px-2 text-xs"
+              >
+                {g.label}
+              </Toggle>
+              {g.cols.some((c) => c.detail) && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-6"
+                  title={expanded.has(g.key) ? "Collapse details" : "Expand details"}
+                  onClick={() => toggleExpand(g.key)}
+                >
+                  {expanded.has(g.key) ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                </Button>
+              )}
+            </div>
           )),
+
           <Toggle
             key="hide-empty"
             size="sm"
