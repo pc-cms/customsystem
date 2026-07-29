@@ -2,7 +2,7 @@
  * Reports → Daily Balance Sheet.
  *
  * Recreates the legacy "БАЛАНС" monthly spreadsheet: one row per business date,
- * grouped column blocks, opening/closing month rows and a Total row.
+ * grouped column blocks, month KPI tiles on top and a sticky Total footer row.
  * All figures in TZS. Data comes from the live system; months that predate the
  * system can be filled with the legacy Excel importer.
  */
@@ -18,12 +18,13 @@ import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
 import { useCasino } from "@/lib/casino-context";
 import { useSessionState } from "@/hooks/use-session-state";
-import { formatMoneyFull } from "@/lib/format-money";
+import { formatMoney, type MoneyDisplayMode } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
 import { downloadXlsx } from "@/lib/excel-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { useDailyBalanceReport, type DailyBalanceRow } from "@/hooks/use-daily-balance-report";
 
 type GroupKey = "results" | "cage" | "office" | "bank" | "chips" | "tips";
@@ -37,11 +38,6 @@ const GROUPS: { key: GroupKey; label: string }[] = [
   { key: "tips", label: "Tips" },
 ];
 
-const money = (n: number) =>
-  n === 0 ? <span className="text-muted-foreground">·</span> : (
-    <span className={n < 0 ? "cms-amount-negative" : undefined}>{formatMoneyFull(n)}</span>
-  );
-
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 const monthBounds = (m: string) => {
   const [y, mo] = m.split("-").map(Number);
@@ -50,11 +46,40 @@ const monthBounds = (m: string) => {
   return { from, to: `${m}-${String(last).padStart(2, "0")}` };
 };
 
+const today = () => new Date().toISOString().slice(0, 10);
+
+/** All money columns in display order, with their group + label. */
+const MONEY_COLS: { key: keyof DailyBalanceRow; label: string; group: GroupKey | null; first?: boolean }[] = [
+  { key: "casino_result", label: "Casino Result", group: "results", first: true },
+  { key: "cash_desk_result", label: "Cash Desk", group: "results" },
+  { key: "tables_result", label: "Tables", group: "results" },
+  { key: "slots_result", label: "Slots (net)", group: "results" },
+  { key: "bar_result", label: "Bar / POS", group: "results" },
+  { key: "cage_cash", label: "Cage Cash", group: "cage", first: true },
+  { key: "collection_bank", label: "Collection → Bank", group: "cage" },
+  { key: "credit_deposit", label: "Credit / Deposit", group: "cage" },
+  { key: "office_cash", label: "Office Safe", group: "office", first: true },
+  { key: "office_in", label: "Office In", group: "office" },
+  { key: "office_out", label: "Office Out", group: "office" },
+  { key: "office_transfer", label: "Int. Transfer", group: "office" },
+  { key: "bank_terminal", label: "Terminal", group: "bank", first: true },
+  { key: "bank_fee", label: "Fee 2.5%", group: "bank" },
+  { key: "bank_account", label: "Bank Account", group: "bank" },
+  { key: "bank_expenses", label: "Bank Expenses", group: "bank" },
+  { key: "chip_difference", label: "Chip Diff", group: "chips", first: true },
+  { key: "chips_float", label: "Chips Float", group: "chips" },
+  { key: "tips_tables", label: "Tips Tables", group: "tips", first: true },
+  { key: "tips_slots", label: "Tips Slots", group: "tips" },
+  { key: "expenses", label: "Expenses", group: null, first: true },
+];
+
 const DailyBalanceReport = () => {
   const { activeCasino } = useCasino();
   const qc = useQueryClient();
   const [month, setMonth] = useSessionState("dbr-month", currentMonth());
   const [groups, setGroups] = useState<Set<GroupKey>>(new Set(GROUPS.map((g) => g.key)));
+  const [hideEmpty, setHideEmpty] = useSessionState("dbr-hide-empty", true);
+  const [moneyMode, setMoneyMode] = useSessionState<MoneyDisplayMode>("dbr-money", "compact");
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -71,65 +96,73 @@ const DailyBalanceReport = () => {
 
   const totals = useMemo(() => {
     const acc: Record<string, number> = {};
-    const sumKeys: (keyof DailyBalanceRow)[] = [
-      "casino_result", "cash_desk_result", "tables_result", "slots_result", "bar_result",
-      "collection_bank", "chip_difference", "tips_tables", "tips_slots",
-      "office_in", "office_out", "office_transfer",
-      "bank_terminal", "bank_fee", "bank_expenses", "credit_deposit", "expenses",
-    ];
-    for (const k of sumKeys) acc[k] = rows.reduce((s, r) => s + Number(r[k] || 0), 0);
+    for (const c of MONEY_COLS) acc[c.key as string] = rows.reduce((s, r) => s + Number(r[c.key] || 0), 0);
     return acc;
   }, [rows]);
 
-  const opening = rows[0];
-  const closing = rows[rows.length - 1];
+  /** Columns whose every value is 0 across the month (candidates for hiding). */
+  const emptyCols = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of MONEY_COLS) {
+      if (rows.every((r) => !Number(r[c.key]))) s.add(c.key as string);
+    }
+    return s;
+  }, [rows]);
+
+  const money = (n: number) =>
+    !n ? <span className="text-muted-foreground">·</span> : (
+      <span className={n < 0 ? "cms-amount-negative" : undefined}>{formatMoney(n, moneyMode)}</span>
+    );
+
+  const visibleMoneyCols = MONEY_COLS.filter(
+    (c) => (!c.group || on(c.group)) && !(hideEmpty && emptyCols.has(c.key as string)),
+  );
 
   const columns: ColumnDef<DailyBalanceRow>[] = [
     {
-      key: "date", header: "Date", type: "date",
+      key: "date",
+      header: "Date",
+      type: "date",
       accessor: (r) => (
-        <span className="whitespace-nowrap">
-          {fmtDate(r.date)} <span className="text-muted-foreground">{r.weekday}</span>
+        <span className="whitespace-nowrap font-mono">
+          <span className={r.date === today() ? "font-semibold text-primary" : undefined}>
+            {fmtDate(r.date)}
+          </span>{" "}
+          <span className="text-muted-foreground text-[11px]">{r.weekday}</span>
           {r.legacy && <Badge variant="outline" className="ml-1 h-4 px-1 text-[10px]">imp</Badge>}
         </span>
       ),
       sortValue: (r) => r.date,
     },
-    { key: "rate_usd", header: "USD Rate", type: "int", accessor: (r) => formatMoneyFull(r.rate_usd), sortValue: (r) => r.rate_usd },
-    { key: "casino_result", header: "Casino Result", type: "money", accessor: (r) => money(r.casino_result), sortValue: (r) => r.casino_result, hidden: () => !on("results") },
-    { key: "cash_desk_result", header: "Cash Desk Result", type: "money", accessor: (r) => money(r.cash_desk_result), sortValue: (r) => r.cash_desk_result, hidden: () => !on("results") },
-    { key: "tables_result", header: "Tables", type: "money", accessor: (r) => money(r.tables_result), sortValue: (r) => r.tables_result, hidden: () => !on("results") },
-    { key: "slots_result", header: "Slots (net)", type: "money", accessor: (r) => money(r.slots_result), sortValue: (r) => r.slots_result, hidden: () => !on("results") },
-    { key: "bar_result", header: "Bar / POS", type: "money", accessor: (r) => money(r.bar_result), sortValue: (r) => r.bar_result, hidden: () => !on("results") },
-    { key: "cage_cash", header: "Cage Cash", type: "money", accessor: (r) => money(r.cage_cash), sortValue: (r) => r.cage_cash, hidden: () => !on("cage") },
-    { key: "collection_bank", header: "Collection → Bank", type: "money", accessor: (r) => money(r.collection_bank), sortValue: (r) => r.collection_bank, hidden: () => !on("cage") },
-    { key: "credit_deposit", header: "Credit / Deposit", type: "money", accessor: (r) => money(r.credit_deposit), sortValue: (r) => r.credit_deposit, hidden: () => !on("cage") },
-    { key: "office_cash", header: "Office Safe", type: "money", accessor: (r) => money(r.office_cash), sortValue: (r) => r.office_cash, hidden: () => !on("office") },
-    { key: "office_in", header: "Office In", type: "money", accessor: (r) => money(r.office_in), sortValue: (r) => r.office_in, hidden: () => !on("office") },
-    { key: "office_out", header: "Office Out", type: "money", accessor: (r) => money(r.office_out), sortValue: (r) => r.office_out, hidden: () => !on("office") },
-    { key: "office_transfer", header: "Internal Transfer", type: "money", accessor: (r) => money(r.office_transfer), sortValue: (r) => r.office_transfer, hidden: () => !on("office") },
-    { key: "bank_terminal", header: "Terminal", type: "money", accessor: (r) => money(r.bank_terminal), sortValue: (r) => r.bank_terminal, hidden: () => !on("bank") },
-    { key: "bank_fee", header: "Fee 2.5%", type: "money", accessor: (r) => money(Math.round(r.bank_fee)), sortValue: (r) => r.bank_fee, hidden: () => !on("bank") },
-    { key: "bank_account", header: "Bank Account", type: "money", accessor: (r) => money(r.bank_account), sortValue: (r) => r.bank_account, hidden: () => !on("bank") },
-    { key: "bank_expenses", header: "Bank Expenses", type: "money", accessor: (r) => money(r.bank_expenses), sortValue: (r) => r.bank_expenses, hidden: () => !on("bank") },
-    { key: "chip_difference", header: "Chip Difference", type: "money", accessor: (r) => money(r.chip_difference), sortValue: (r) => r.chip_difference, hidden: () => !on("chips") },
-    { key: "chips_float", header: "Chips Float", type: "money", accessor: (r) => money(r.chips_float), sortValue: (r) => r.chips_float, hidden: () => !on("chips") },
-    { key: "tips_tables", header: "Tips Tables", type: "money", accessor: (r) => money(r.tips_tables), sortValue: (r) => r.tips_tables, hidden: () => !on("tips") },
-    { key: "tips_slots", header: "Tips Slots", type: "money", accessor: (r) => money(r.tips_slots), sortValue: (r) => r.tips_slots, hidden: () => !on("tips") },
-    { key: "expenses", header: "Expenses", type: "money", accessor: (r) => money(r.expenses), sortValue: (r) => r.expenses },
+    {
+      key: "rate_usd",
+      header: "USD",
+      type: "int",
+      accessor: (r) => <span className="text-muted-foreground">{formatMoney(r.rate_usd, "full")}</span>,
+      sortValue: (r) => r.rate_usd,
+    },
+    ...visibleMoneyCols.map<ColumnDef<DailyBalanceRow>>((c) => ({
+      key: c.key as string,
+      header: c.label,
+      type: "money" as const,
+      accessor: (r) => money(Math.round(Number(r[c.key] || 0))),
+      sortValue: (r) => Number(r[c.key] || 0),
+      headerClassName: cn("whitespace-nowrap", c.first && "border-l border-border"),
+      cellClassName: c.first ? "border-l border-border" : undefined,
+    })),
   ];
 
   const doExport = async () => {
-    const visible = columns.filter((c) => !c.hidden?.({}));
-    const header = visible.map((c) => String(c.header));
-    const body = rows.map((r) =>
-      visible.map((c) => {
-        const v = (r as any)[c.key];
-        return typeof v === "number" ? v : c.key === "date" ? r.date : String(v ?? "");
-      }),
-    );
+    const header = ["Date", "Day", "USD Rate", ...visibleMoneyCols.map((c) => c.label)];
+    const body = rows.map((r) => [
+      r.date,
+      r.weekday,
+      r.rate_usd,
+      ...visibleMoneyCols.map((c) => Math.round(Number(r[c.key] || 0))),
+    ]);
+    const totalRow = ["TOTAL", "", "", ...visibleMoneyCols.map((c) => Math.round(totals[c.key as string] || 0))];
     await downloadXlsx(`balance-${activeCasino?.slug ?? "casino"}-${month}.xlsx`, [
-      { name: `Balance ${month}`, rows: [header, ...body] },
+      { name: `Balance ${month}`, rows: [header, ...body, totalRow] },
     ]);
   };
 
@@ -150,6 +183,21 @@ const DailyBalanceReport = () => {
       if (fileRef.current) fileRef.current.value = "";
     }
   };
+
+  const tiles: { label: string; value: number }[] = [
+    { label: "Casino Result", value: totals.casino_result },
+    { label: "Cash Desk", value: totals.cash_desk_result },
+    { label: "Tables", value: totals.tables_result },
+    { label: "Slots (net)", value: totals.slots_result },
+    { label: "Bar / POS", value: totals.bar_result },
+    { label: "Expenses", value: totals.expenses },
+    { label: "Collections", value: totals.collection_bank },
+    { label: "Terminal", value: totals.bank_terminal },
+    { label: "Bank Fee", value: totals.bank_fee },
+    { label: "Chip Diff", value: totals.chip_difference },
+    { label: "Tips Tables", value: totals.tips_tables },
+    { label: "Tips Slots", value: totals.tips_slots },
+  ];
 
   return (
     <PageShell>
@@ -175,6 +223,25 @@ const DailyBalanceReport = () => {
         </Button>
       </PageHeader>
 
+      {/* KPI tiles first — month at a glance */}
+      <PageSection card={false}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-2">
+          {tiles.map((t) => (
+            <div key={t.label} className="rounded-md border border-border bg-card px-2.5 py-1.5">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">{t.label}</div>
+              <div
+                className={cn(
+                  "font-mono text-sm tabular-nums",
+                  Number(t.value) < 0 ? "cms-amount-negative" : Number(t.value) > 0 ? "cms-amount-positive" : "text-muted-foreground",
+                )}
+              >
+                {formatMoney(Math.round(Number(t.value || 0)), "full")}
+              </div>
+            </div>
+          ))}
+        </div>
+      </PageSection>
+
       <FilterBar
         search={
           <Input
@@ -184,29 +251,46 @@ const DailyBalanceReport = () => {
             className="h-8 w-[150px] text-xs"
           />
         }
-        filters={GROUPS.map((g) => (
+        filters={[
+          ...GROUPS.map((g) => (
+            <Toggle
+              key={g.key}
+              size="sm"
+              pressed={on(g.key)}
+              onPressedChange={() => toggle(g.key)}
+              className="h-8 px-2 text-xs"
+            >
+              {g.label}
+            </Toggle>
+          )),
           <Toggle
-            key={g.key}
+            key="hide-empty"
             size="sm"
-            pressed={on(g.key)}
-            onPressedChange={() => toggle(g.key)}
+            pressed={hideEmpty}
+            onPressedChange={() => setHideEmpty(!hideEmpty)}
             className="h-8 px-2 text-xs"
           >
-            {g.label}
-          </Toggle>
-        ))}
+            Hide empty
+          </Toggle>,
+          <Toggle
+            key="compact"
+            size="sm"
+            pressed={moneyMode === "compact"}
+            onPressedChange={() => setMoneyMode(moneyMode === "compact" ? "full" : "compact")}
+            className="h-8 px-2 text-xs"
+          >
+            Short numbers
+          </Toggle>,
+        ]}
         right={
-          <div className="flex items-center gap-3 text-xs font-mono">
-            <span className="text-muted-foreground">Opening</span>
-            <span>{formatMoneyFull((opening?.cage_cash ?? 0) + (opening?.office_cash ?? 0) + (opening?.bank_account ?? 0))}</span>
-            <span className="text-muted-foreground">Closing</span>
-            <span>{formatMoneyFull((closing?.cage_cash ?? 0) + (closing?.office_cash ?? 0) + (closing?.bank_account ?? 0))}</span>
+          <div className="text-xs text-muted-foreground">
+            {rows.filter((r) => r.hasSystemData).length} days with data · {visibleMoneyCols.length} columns
           </div>
         }
       />
 
       <PageSection card={false}>
-        <div className="max-h-[70vh] overflow-auto">
+        <div className="max-h-[70vh] overflow-auto rounded-md border border-border">
           <SmartTable
             data={rows}
             columns={columns}
@@ -214,33 +298,32 @@ const DailyBalanceReport = () => {
             defaultSort={{ key: "date", dir: "asc" }}
             loading={isLoading}
             stickyFirstColumn
-            rowClassName={(r) => (r.legacy ? "bg-muted/20" : undefined)}
+            bare
+            virtualize={false}
+            rowClassName={(r) =>
+              cn(
+                "font-mono tabular-nums",
+                (r.weekday === "Sat" || r.weekday === "Sun") && "bg-muted/30",
+                r.date === today() && "ring-1 ring-inset ring-primary/40",
+                r.legacy && "bg-muted/20",
+              )
+            }
             empty={<div className="py-10 text-center text-muted-foreground text-sm">No data for this month</div>}
           />
-        </div>
-      </PageSection>
-
-      <PageSection title="Month totals">
-        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3 text-sm font-mono">
-          {[
-            ["Casino Result", totals.casino_result],
-            ["Cash Desk", totals.cash_desk_result],
-            ["Tables", totals.tables_result],
-            ["Slots (net)", totals.slots_result],
-            ["Bar / POS", totals.bar_result],
-            ["Expenses", totals.expenses],
-            ["Collections", totals.collection_bank],
-            ["Terminal", totals.bank_terminal],
-            ["Bank Fee", Math.round(totals.bank_fee)],
-            ["Chip Difference", totals.chip_difference],
-            ["Tips Tables", totals.tips_tables],
-            ["Tips Slots", totals.tips_slots],
-          ].map(([label, v]) => (
-            <div key={String(label)} className="rounded-md border border-border p-2">
-              <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-sans">{label}</div>
-              <div className={Number(v) < 0 ? "cms-amount-negative" : "cms-amount-positive"}>{formatMoneyFull(Number(v))}</div>
+          {/* Sticky total row */}
+          {rows.length > 0 && (
+            <div className="sticky bottom-0 z-10 flex items-center gap-4 overflow-x-auto border-t border-border bg-card px-3 py-2 text-xs font-mono">
+              <span className="font-sans font-semibold uppercase tracking-wide text-muted-foreground">Total</span>
+              {visibleMoneyCols.map((c) => (
+                <span key={c.key as string} className="whitespace-nowrap">
+                  <span className="text-muted-foreground">{c.label}: </span>
+                  <span className={Number(totals[c.key as string]) < 0 ? "cms-amount-negative" : undefined}>
+                    {formatMoney(Math.round(Number(totals[c.key as string] || 0)), moneyMode)}
+                  </span>
+                </span>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       </PageSection>
     </PageShell>
