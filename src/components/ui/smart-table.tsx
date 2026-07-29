@@ -257,6 +257,9 @@ export function SmartTable<T>({
   rowClassName,
   onRowClick,
   stickyFirstColumn,
+  stickyColumns,
+  groupHeader,
+  footerRows,
   virtualize = true,
   rowHeight = 40,
   className,
@@ -267,10 +270,26 @@ export function SmartTable<T>({
   const isControlled = sort !== undefined;
   const activeSort = isControlled ? sort ?? null : internalSort;
 
-  const visibleCols = React.useMemo(
+  const rawCols = React.useMemo(
     () => columns.filter((c) => !(c.hidden && c.hidden(ctx ?? {}))),
     [columns, ctx],
   );
+
+  /** Freeze the first N columns by injecting sticky styles into their defs. */
+  const visibleCols = React.useMemo(() => {
+    if (!stickyColumns?.length) return rawCols;
+    return rawCols.map((c, i) => {
+      if (i >= stickyColumns.length) return c;
+      const base = c.cellClassName;
+      return {
+        ...c,
+        style: { ...c.style, position: "sticky" as const, left: stickyColumns[i], zIndex: 5 },
+        headerClassName: cn(c.headerClassName, "!bg-muted z-30"),
+        cellClassName: (row: T) =>
+          cn(typeof base === "function" ? base(row) : base, "bg-card"),
+      };
+    });
+  }, [rawCols, stickyColumns]);
 
   const sortedData = React.useMemo(() => {
     if (!activeSort) return data;
@@ -279,6 +298,7 @@ export function SmartTable<T>({
     const dir = activeSort.dir === "asc" ? 1 : -1;
     return [...data].sort((a, b) => compare(col.sortValue!(a), col.sortValue!(b)) * dir);
   }, [data, activeSort, visibleCols]);
+
 
   const handleSort = React.useCallback(
     (key: string) => {
