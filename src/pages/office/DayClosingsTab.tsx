@@ -37,7 +37,7 @@ function buildMonthDates(year: number, month: number): string[] {
   return out;
 }
 
-type RowState = { tables: string; slots: string; comment: string };
+type RowState = { tables: string; slots: string; cards: string; comment: string };
 
 const parseAmountInput = (value: string): number => {
   const raw = value.replace(/\s+/g, "").replace(",", ".");
@@ -133,7 +133,9 @@ export default function DayClosingsTab() {
   }, [list]);
 
   const totals = useMemo(() => {
-    const t = { tables: 0, slots: 0, missChips: 0, missCards: 0 };
+    const t = { tables: 0, slots: 0, missChips: 0, missCards: 0, cards: 0 };
+    // dates are descending → the first non-zero card balance is the latest one.
+    let cardsFound = false;
     dates.forEach((d) => {
       const existing = byDate.get(d);
       const agg = aggMap?.get(d);
@@ -141,9 +143,12 @@ export default function DayClosingsTab() {
       t.slots += Number(existing?.slots_result ?? agg?.slots ?? 0);
       t.missChips += Number(agg?.missChips ?? 0);
       t.missCards += Number(agg?.missCards ?? 0);
+      const cb = Math.abs(Number(existing?.players_card_balance ?? 0));
+      if (!cardsFound && cb > 0) { t.cards = cb; cardsFound = true; }
     });
     return t;
   }, [dates, byDate, aggMap]);
+
 
   const shiftMonth = (delta: number) => {
     const d = new Date(year, month - 1 + delta, 1);
@@ -185,6 +190,7 @@ export default function DayClosingsTab() {
               <th className="text-left px-3 py-2 w-32">Date</th>
               <th className="text-right px-3 py-2 w-44">Tables</th>
               <th className="text-right px-3 py-2 w-44">Slots</th>
+              <th className="text-right px-3 py-2 w-40" title="Deposits held on player cards. Subtracted from the Slots result; the cash itself stays in the desk.">Card Balance</th>
               <th className="text-right px-3 py-2 w-32">Miss Chips</th>
               <th className="text-right px-3 py-2 w-32">Miss Cards</th>
               <th className="text-left px-3 py-2">Comment</th>
@@ -195,14 +201,16 @@ export default function DayClosingsTab() {
             <tr className="border-t border-border bg-primary/5 font-semibold">
               <td className="px-3 py-2 text-xs uppercase tracking-wider">Totals · {MONTH_NAMES[month-1]}</td>
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.tables))}>{formatNumberSpaces(totals.tables)}</td>
-              <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.slots))}>{formatNumberSpaces(totals.slots)}</td>
+              <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.slots - totals.cards))}>{formatNumberSpaces(totals.slots - totals.cards)}</td>
+              <td className={cn("px-3 py-2 text-right font-mono", totals.cards ? "cms-amount-negative" : "text-muted-foreground")}>{totals.cards ? `− ${formatNumberSpaces(totals.cards)}` : "·"}</td>
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.missChips))}>{formatNumberSpaces(totals.missChips)}</td>
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.missCards))}>{formatNumberSpaces(totals.missCards)}</td>
               <td colSpan={2} className="px-3 py-2 text-right text-xs text-muted-foreground">
-                Result: <span className={cn("font-mono", amountToneClass(totals.tables + totals.slots))}>{formatNumberSpaces(totals.tables + totals.slots)}</span>
+                Result: <span className={cn("font-mono", amountToneClass(totals.tables + totals.slots - totals.cards))}>{formatNumberSpaces(totals.tables + totals.slots - totals.cards)}</span>
               </td>
             </tr>
             {dates.map((date) => {
+
               const agg = aggMap?.get(date) || { tables: 0, slots: 0, missChips: 0, missCards: 0 };
               return (
                 <DayRow
@@ -244,6 +252,7 @@ function DayRow({
   const [state, setState] = useState<RowState>(() => ({
     tables: existing?.tables_result != null ? formatNumberSpaces(existing.tables_result) : "",
     slots: existing?.slots_result != null ? formatNumberSpaces(existing.slots_result) : "",
+    cards: existing?.players_card_balance ? formatNumberSpaces(existing.players_card_balance) : "",
     comment: existing?.notes ?? "",
   }));
 
@@ -251,16 +260,20 @@ function DayRow({
     setState({
       tables: existing?.tables_result != null ? formatNumberSpaces(existing.tables_result) : "",
       slots: existing?.slots_result != null ? formatNumberSpaces(existing.slots_result) : "",
+      cards: existing?.players_card_balance ? formatNumberSpaces(existing.players_card_balance) : "",
       comment: existing?.notes ?? "",
     });
-  }, [existing?.id, existing?.tables_result, existing?.slots_result, existing?.notes]);
+  }, [existing?.id, existing?.tables_result, existing?.slots_result, existing?.players_card_balance, existing?.notes]);
 
   const tablesNum = state.tables === "" ? tablesAuto : parseAmountInput(state.tables);
   const slotsNum = state.slots === "" ? slotsAuto : parseAmountInput(state.slots);
+  // Players Card Balance: deposits held on player cards — always >= 0.
+  const cardsNum = Math.abs(state.cards === "" ? 0 : parseAmountInput(state.cards));
 
   const dT = Math.abs(tablesNum - tablesAuto);
   const dS = Math.abs(slotsNum - slotsAuto);
   const needsNote = dT > 1 || dS > 1;
+
 
   const [varianceOpen, setVarianceOpen] = useState(false);
   const [varianceNote, setVarianceNote] = useState("");
@@ -274,6 +287,7 @@ function DayRow({
         business_date: date,
         tables_result: tablesNum,
         slots_result: slotsNum,
+        players_card_balance: cardsNum,
         notes: finalComment || null,
       });
       const rowId = existing?.id ?? (saved as any)?.id;
@@ -332,8 +346,24 @@ function DayRow({
         />
         <div className={cn("text-[10px] mt-0.5 text-right pr-1", amountToneClass(slotsAuto))}>
           auto {formatNumberSpaces(slotsAuto)}
+          {cardsNum > 0 && <span className="cms-amount-negative"> · net {formatNumberSpaces(slotsNum - cardsNum)}</span>}
         </div>
       </td>
+
+      <td className="px-3 py-2 text-right">
+        <Input
+          type="text"
+          inputMode="decimal"
+          disabled={!editable}
+          placeholder="0"
+          title="Deposits held on player cards (end-of-day balance). Subtracted from the Slots result."
+          value={state.cards}
+          onChange={(e) => setState((s) => ({ ...s, cards: formatAmountInput(e.target.value).replace("-", "") }))}
+          className={cn("text-right font-mono h-8", cardsNum > 0 && "cms-amount-negative")}
+        />
+      </td>
+
+
 
       <td className={cn("px-3 py-2 text-right font-mono text-xs", amountToneClass(agg.missChips))}>
         {formatNumberSpaces(agg.missChips)}
