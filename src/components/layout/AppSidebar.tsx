@@ -88,6 +88,8 @@ const NAV_ITEMS: NavItem[] = [
 
   // OFFICE — sole entry point for finance/budget/reports (all as flat tabs).
   { to: "/office", icon: Briefcase, label: "Office", roles: ["super_admin", "manager", "finance_manager", "shift_manager"], section: "FINANCE" },
+  { to: "/reports/daily-balance", icon: FileBarChart, label: "Report · Daily Balance", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "FINANCE" },
+
 
   // HR — Personnel admin (legacy /dealers and /staff/employees superseded by Staff Master)
   { to: "/hr/warnings", icon: AlertTriangle, label: "Warnings", roles: ["super_admin", "hr", "manager", "finance_manager"], section: "HR" },

@@ -155,6 +155,8 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/reports/promo-codes") return "report_promo_codes";
   if (base === "/reports/cashback") return "report_cashback";
   if (base === "/reports/lottery-sales") return "report_lottery_sales";
+  if (base === "/reports/daily-balance") return "report_daily_balance";
+
   if (base === "/reports/am-budget") return "report_am_budget";
 
   if (base === "/admin" || base.startsWith("/admin/")) return "admin";
