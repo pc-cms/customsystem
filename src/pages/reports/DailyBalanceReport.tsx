@@ -54,16 +54,18 @@ const MONEY_COLS: { key: keyof DailyBalanceRow; label: string; group: GroupKey |
   { key: "cash_desk_result", label: "Cash Desk", group: "results" },
   { key: "tables_result", label: "Tables", group: "results" },
   { key: "slots_result", label: "Slots (net)", group: "results" },
-  { key: "bar_result", label: "Bar / POS", group: "results" },
+  { key: "bar_result", label: "Bar", group: "results" },
+  { key: "credit_deposit", label: "Credit / Deposit", group: "results" },
+  { key: "day_total", label: "Day Total", group: "results" },
+  { key: "day_balance", label: "Day Balance", group: "results" },
   { key: "cage_cash", label: "Cage Cash", group: "cage", first: true },
   { key: "collection_bank", label: "Collection → Bank", group: "cage" },
-  { key: "credit_deposit", label: "Credit / Deposit", group: "cage" },
   { key: "office_cash", label: "Office Safe", group: "office", first: true },
   { key: "office_in", label: "Office In", group: "office" },
   { key: "office_out", label: "Office Out", group: "office" },
   { key: "office_transfer", label: "Int. Transfer", group: "office" },
-  { key: "bank_terminal", label: "Terminal", group: "bank", first: true },
-  { key: "bank_fee", label: "Fee 2.5%", group: "bank" },
+  { key: "bank_terminal", label: "Terminal (net)", group: "bank", first: true },
+  { key: "bank_fee", label: "Fee 3%", group: "bank" },
   { key: "bank_account", label: "Bank Account", group: "bank" },
   { key: "bank_expenses", label: "Bank Expenses", group: "bank" },
   { key: "chip_difference", label: "Chip Diff", group: "chips", first: true },
@@ -72,6 +74,7 @@ const MONEY_COLS: { key: keyof DailyBalanceRow; label: string; group: GroupKey |
   { key: "tips_slots", label: "Tips Slots", group: "tips" },
   { key: "expenses", label: "Expenses", group: null, first: true },
 ];
+
 
 const DailyBalanceReport = () => {
   const { activeCasino } = useCasino();
