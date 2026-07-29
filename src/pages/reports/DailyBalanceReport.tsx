@@ -130,7 +130,6 @@ const DailyBalanceReport = () => {
 
   const { activeCasino } = useCasino();
   const [month, setMonth] = useSessionState("dbr-month", currentMonth());
-  const [sections, setSections] = useState<Set<SectionKey>>(new Set(SECTIONS.map((s) => s.key)));
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
   const [hideEmpty, setHideEmpty] = useSessionState("dbr-hide-empty", true);
   const [moneyMode, setMoneyMode] = useSessionState<MoneyDisplayMode>("dbr-money", "compact");
@@ -138,13 +137,9 @@ const DailyBalanceReport = () => {
   const { from, to } = monthBounds(month);
   const { data: rows = [], isLoading } = useDailyBalanceReport(from, to);
 
-  const on = (g: SectionKey) => sections.has(g);
-  const toggle = (g: SectionKey) =>
-    setSections((prev) => {
-      const next = new Set(prev);
-      next.has(g) ? next.delete(g) : next.add(g);
-      return next;
-    });
+  const detailSections = SECTIONS.filter((s) => s.cols.some((c) => c.detail));
+  const allExpanded = detailSections.every((s) => expanded.has(s.key));
+
   const toggleExpand = (g: SectionKey) =>
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -152,10 +147,19 @@ const DailyBalanceReport = () => {
       return next;
     });
 
+  const toggleAll = () =>
+    setExpanded(allExpanded ? new Set() : new Set(detailSections.map((s) => s.key)));
+
   const totals = useMemo(() => {
     const acc: Record<string, number> = {};
     for (const c of ALL_COLS) acc[c.key as string] = rows.reduce((s, r) => s + Number(r[c.key] || 0), 0);
     return acc;
+  }, [rows]);
+
+  /** Last business date that has live system data — highlighted with a yellow stripe. */
+  const lastClosedDate = useMemo(() => {
+    const withData = rows.filter((r) => r.hasSystemData).map((r) => r.date).sort();
+    return withData.length ? withData[withData.length - 1] : null;
   }, [rows]);
 
   /** Always-visible columns (manual entry / day formulas). */
@@ -177,13 +181,11 @@ const DailyBalanceReport = () => {
     );
 
   const visibleMoneyCols = ALL_COLS.filter(
-    (c) =>
-      on(c.section) &&
-      (!c.detail || expanded.has(c.section)) &&
-      !(hideEmpty && emptyCols.has(c.key as string)),
+    (c) => (!c.detail || expanded.has(c.section)) && !(hideEmpty && emptyCols.has(c.key as string)),
   );
 
   const sectionLabel = (k: SectionKey) => SECTIONS.find((s) => s.key === k)!.label;
+  const hasDetail = (k: SectionKey) => SECTIONS.find((s) => s.key === k)!.cols.some((c) => c.detail);
 
   const columns: ColumnDef<DailyBalanceRow>[] = [
     {
@@ -191,7 +193,7 @@ const DailyBalanceReport = () => {
       header: "Date",
       type: "date",
       accessor: (r) => (
-        <span className="whitespace-nowrap font-mono">
+        <span className="whitespace-nowrap">
           <span className={r.date === today() ? "font-semibold text-primary" : undefined}>
             {fmtDate(r.date)}
           </span>{" "}
@@ -203,9 +205,24 @@ const DailyBalanceReport = () => {
     },
     ...visibleMoneyCols.map<ColumnDef<DailyBalanceRow>>((c, i) => {
       const first = i === 0 || visibleMoneyCols[i - 1].section !== c.section;
+      const canExpand = first && hasDetail(c.section);
       return {
         key: c.key as string,
-        header: first ? `${sectionLabel(c.section).toUpperCase()} · ${c.label}` : c.label,
+        header: first ? (
+          <span
+            className={cn("inline-flex items-center gap-1", canExpand && "cursor-pointer")}
+            title={canExpand ? "Click to show/hide details" : undefined}
+            onClick={canExpand ? (e) => { e.stopPropagation(); toggleExpand(c.section); } : undefined}
+          >
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+              {sectionLabel(c.section)}
+            </span>
+            {canExpand && (expanded.has(c.section)
+              ? <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              : <ChevronRight className="h-3 w-3 text-muted-foreground" />)}
+            <span>· {c.label}</span>
+          </span>
+        ) : c.label,
         type: "money" as const,
         accessor: (r) =>
           c.key === "credit_deposit" ? (
@@ -220,6 +237,7 @@ const DailyBalanceReport = () => {
           (c.key === "day_total" || c.key === "day_balance") && "font-semibold",
         ),
         cellClassName: cn(
+          "tabular-nums",
           first && "border-l border-border",
           (c.key === "day_total" || c.key === "day_balance") && "font-semibold bg-muted/20",
         ),
@@ -246,30 +264,10 @@ const DailyBalanceReport = () => {
           />
         }
         filters={[
-          ...SECTIONS.map((g) => (
-            <div key={g.key} className="flex items-center gap-0.5 rounded-md border border-border px-0.5">
-              <Toggle
-                size="sm"
-                pressed={on(g.key)}
-                onPressedChange={() => toggle(g.key)}
-                className="h-7 px-2 text-xs"
-              >
-                {g.label}
-              </Toggle>
-              {g.cols.some((c) => c.detail) && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-6"
-                  title={expanded.has(g.key) ? "Collapse details" : "Expand details"}
-                  onClick={() => toggleExpand(g.key)}
-                >
-                  {expanded.has(g.key) ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                </Button>
-              )}
-            </div>
-          )),
-
+          <Button key="expand-all" variant="outline" size="sm" className="h-8 text-xs" onClick={toggleAll}>
+            {allExpanded ? <ChevronDown className="mr-1 h-3.5 w-3.5" /> : <ChevronRight className="mr-1 h-3.5 w-3.5" />}
+            {allExpanded ? "Collapse all" : "Expand all"}
+          </Button>,
           <Toggle
             key="hide-empty"
             size="sm"
@@ -309,20 +307,21 @@ const DailyBalanceReport = () => {
             virtualize={false}
             rowClassName={(r) =>
               cn(
-                "font-mono tabular-nums",
                 (r.weekday === "Sat" || r.weekday === "Sun") && "bg-muted/30",
-                r.date === today() && "ring-1 ring-inset ring-primary/40",
                 r.legacy && "bg-muted/20",
+                r.date === lastClosedDate &&
+                  "bg-[hsl(var(--warning)/0.12)] border-l-2 border-l-[hsl(var(--warning))]",
+                r.date === today() && "ring-1 ring-inset ring-primary/40",
               )
             }
             empty={<div className="py-10 text-center text-muted-foreground text-sm">No data for this month</div>}
           />
           {/* Sticky total row */}
           {rows.length > 0 && (
-            <div className="sticky bottom-0 z-10 flex items-center gap-4 overflow-x-auto border-t border-border bg-card px-3 py-2 text-xs font-mono">
-              <span className="font-sans font-semibold uppercase tracking-wide text-muted-foreground">Total</span>
+            <div className="sticky bottom-0 z-10 flex items-center gap-4 overflow-x-auto border-t border-border bg-card px-3 py-2 text-xs">
+              <span className="font-semibold uppercase tracking-wide text-muted-foreground">Total</span>
               {visibleMoneyCols.map((c) => (
-                <span key={c.key as string} className="whitespace-nowrap">
+                <span key={c.key as string} className="whitespace-nowrap tabular-nums">
                   <span className="text-muted-foreground">{c.label}: </span>
                   <span className={Number(totals[c.key as string]) < 0 ? "cms-amount-negative" : undefined}>
                     {formatMoney(Math.round(Number(totals[c.key as string] || 0)), moneyMode)}
@@ -336,5 +335,6 @@ const DailyBalanceReport = () => {
     </PageShell>
   );
 };
+
 
 export default DailyBalanceReport;
