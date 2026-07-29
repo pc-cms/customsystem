@@ -85,6 +85,33 @@ export interface SmartTableProps<T> {
   /** Sticky first column. */
   stickyFirstColumn?: boolean;
   /**
+   * Freeze the first N columns. Pass the cumulative left offset (px) of each
+   * frozen column, e.g. `[0, 104]` freezes col#1 at left:0 and col#2 at 104px.
+   * Takes precedence over `stickyFirstColumn`.
+   */
+  stickyColumns?: number[];
+  /**
+   * Optional grouped header row rendered above the column headers.
+   * `span` must add up to the number of VISIBLE columns.
+   */
+  groupHeader?: {
+    key: string;
+    label?: React.ReactNode;
+    span: number;
+    expandable?: boolean;
+    expanded?: boolean;
+    hiddenCount?: number;
+    onToggle?: () => void;
+    className?: string;
+  }[];
+  /** Optional sticky footer rows (totals / averages). */
+  footerRows?: {
+    key: string;
+    className?: string;
+    cell: (col: ColumnDef<T>, index: number) => React.ReactNode;
+  }[];
+
+  /**
    * Auto-enable row virtualization when data.length exceeds this threshold.
    * Pass `false` to disable, or a number to override (default 200).
    * Virtualization requires a fixed scrollable container — caller must wrap
