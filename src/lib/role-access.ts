@@ -76,3 +76,34 @@ export const getPrimaryRoleLabel = (roles: string[]): string => {
   const r = getPrimaryRole(roles);
   return r ? ROLE_LABELS[r] : "";
 };
+
+/* ------------------------------------------------------------------ */
+/* Capabilities                                                        */
+/* Mirror of the `public.role_capabilities` table. Every role is its   */
+/* own entity — roles are NOT aliases of each other. Two roles may     */
+/* share capabilities today and diverge tomorrow by editing this map   */
+/* (and the DB table) instead of touching call sites.                  */
+/* ------------------------------------------------------------------ */
+
+export type Capability =
+  | "manage.ops"
+  | "manage.core"
+  | "manage.finance"
+  | "view.all_casinos"
+  | "manage.roles";
+
+export const ROLE_CAPABILITIES: Partial<Record<AppRole, Capability[]>> = {
+  manager: ["manage.ops", "manage.core"],
+  general_manager: ["manage.ops", "manage.core", "manage.finance", "view.all_casinos"],
+  shift_manager: ["manage.ops"],
+  finance_manager: ["manage.finance", "view.all_casinos"],
+  boss: ["view.all_casinos"],
+  super_admin: ["manage.ops", "manage.core", "manage.finance", "view.all_casinos", "manage.roles"],
+};
+
+export const hasCapability = (roles: string[], cap: Capability): boolean =>
+  roles.some(r => ROLE_CAPABILITIES[r as AppRole]?.includes(cap));
+
+/** Roles that unlock the manager-level UI surface (core management). */
+export const canManage = (roles: string[]): boolean => hasCapability(roles, "manage.core");
+
