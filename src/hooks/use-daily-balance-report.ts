@@ -109,6 +109,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         slotTips,
         posOrders,
         legacy,
+        slotsClosing,
       ] = await Promise.all([
         fetchPaged<any>((a, b) =>
           sb.from("fin_day_closing")
@@ -116,8 +117,9 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("shifts")
-            .select("opened_at, closed_at, cash_desk_result, tables_result, shift_result")
+            .select("opened_at, closed_at, cash_desk_result, tables_result, shift_result, closing_cash")
             .eq("casino_id", casino).gte("opened_at", fromIso).lte("opened_at", toIso).range(a, b)),
+
         fetchPaged<any>((a, b) =>
           sb.from("cage_slots_shifts")
             .select("business_date, cash_desk_result, slots_result, cards_miss")
