@@ -322,8 +322,46 @@ export function SmartTable<T>({
   const useVirtual = sortedData.length > threshold && !loading;
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
+  const groupRow = groupHeader?.length ? (
+    <DTRow className="border-b border-border">
+      {groupHeader.map((g, gi) => (
+        <th
+          key={g.key}
+          colSpan={g.span}
+          className={cn(
+            "px-2 py-1 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground",
+            gi > 0 && "border-l border-border",
+            g.expandable && "cursor-pointer hover:text-foreground",
+            g.className,
+          )}
+          onClick={g.expandable ? g.onToggle : undefined}
+        >
+          {g.label && (
+            <span className="inline-flex items-center gap-1">
+              {g.label}
+              {g.expandable && (
+                <span className="inline-flex items-center gap-0.5 rounded border border-border bg-background px-1 text-[10px] font-medium text-foreground">
+                  {g.expanded ? (
+                    <>
+                      <ChevronUp className="h-3 w-3" /> less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3 w-3" /> +{g.hiddenCount ?? 0}
+                    </>
+                  )}
+                </span>
+              )}
+            </span>
+          )}
+        </th>
+      ))}
+    </DTRow>
+  ) : null;
+
   const headerRow = (
     <DTHead>
+      {groupRow}
       <DTRow>
         {visibleCols.map((c) => {
           const sortable = !!c.sortValue;
@@ -350,6 +388,21 @@ export function SmartTable<T>({
       </DTRow>
     </DTHead>
   );
+
+  const footer = footerRows?.length ? (
+    <tfoot className="sticky bottom-0 z-20 bg-card">
+      {footerRows.map((fr) => (
+        <tr key={fr.key} className={cn("border-t border-border bg-card", fr.className)}>
+          {visibleCols.map((c, i) => (
+            <DTCell key={c.key} type={c.type} className="bg-card" style={c.style}>
+              {fr.cell(c, i)}
+            </DTCell>
+          ))}
+        </tr>
+      ))}
+    </tfoot>
+  ) : null;
+
 
   // Empty / loading.
   if (!loading && sortedData.length === 0) {
