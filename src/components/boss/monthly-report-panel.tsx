@@ -58,13 +58,20 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
   const t = summary.totals;
 
   // Summary row builder: label, per-casino record, total, opts
-  type Row = { label: string; per: Record<string, number>; total: number; strong?: boolean; muted?: boolean; };
+  type Row = { label: string; per: Record<string, number>; total: number; strong?: boolean; muted?: boolean; hint?: string; };
+  const cardsHint =
+    t.playersCards > 0
+      ? `Slots − Players Card Balance (deposits on player cards): −${fmt(t.playersCards)}`
+      : "Slots result net of Players Card Balance (deposits on player cards)";
   const rows: Row[] = [
     { label: "Estimated Expenses",     per: summary.estimated, total: t.estimated },
     { label: "Result (Live + Slots)",  per: summary.result,    total: t.result, strong: true },
+    { label: "Live Game",              per: summary.tables,    total: t.tables, muted: true },
+    { label: "Slots",                  per: summary.slots,     total: t.slots, muted: true, hint: cardsHint },
     { label: "Other incomes",          per: summary.other,     total: t.other },
     { label: "Collection",             per: summary.collection, total: t.collection },
   ];
+
 
   const monthLabel = new Date(data.monthStart).toLocaleDateString("en-GB", {
     month: "long", year: "numeric",
