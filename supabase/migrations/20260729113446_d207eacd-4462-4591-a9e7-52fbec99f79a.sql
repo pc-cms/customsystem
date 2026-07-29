@@ -1,0 +1,1 @@
+ALTER TABLE public.fin_day_closing ADD COLUMN IF NOT EXISTS players_card_balance numeric NOT NULL DEFAULT 0;

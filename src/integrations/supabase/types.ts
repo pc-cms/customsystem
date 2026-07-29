@@ -3658,6 +3658,7 @@ export type Database = {
           income_lines: Json
           locked_at: string | null
           notes: string | null
+          players_card_balance: number
           slots_result: number
           tables_result: number
           updated_at: string
@@ -3672,6 +3673,7 @@ export type Database = {
           income_lines?: Json
           locked_at?: string | null
           notes?: string | null
+          players_card_balance?: number
           slots_result?: number
           tables_result?: number
           updated_at?: string
@@ -3686,6 +3688,7 @@ export type Database = {
           income_lines?: Json
           locked_at?: string | null
           notes?: string | null
+          players_card_balance?: number
           slots_result?: number
           tables_result?: number
           updated_at?: string
