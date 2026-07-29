@@ -12,6 +12,7 @@ import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterBar } from "@/components/layout/FilterBar";
 import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
@@ -128,14 +129,11 @@ const CreditCell = ({ date, value }: { date: string; value: number }) => {
 const DailyBalanceReport = () => {
 
   const { activeCasino } = useCasino();
-  const qc = useQueryClient();
   const [month, setMonth] = useSessionState("dbr-month", currentMonth());
   const [sections, setSections] = useState<Set<SectionKey>>(new Set(SECTIONS.map((s) => s.key)));
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
   const [hideEmpty, setHideEmpty] = useSessionState("dbr-hide-empty", true);
   const [moneyMode, setMoneyMode] = useSessionState<MoneyDisplayMode>("dbr-money", "compact");
-  const [importing, setImporting] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const { from, to } = monthBounds(month);
   const { data: rows = [], isLoading } = useDailyBalanceReport(from, to);
