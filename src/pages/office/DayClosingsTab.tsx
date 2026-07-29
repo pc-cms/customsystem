@@ -133,7 +133,9 @@ export default function DayClosingsTab() {
   }, [list]);
 
   const totals = useMemo(() => {
-    const t = { tables: 0, slots: 0, missChips: 0, missCards: 0 };
+    const t = { tables: 0, slots: 0, missChips: 0, missCards: 0, cards: 0 };
+    // dates are descending → the first non-zero card balance is the latest one.
+    let cardsFound = false;
     dates.forEach((d) => {
       const existing = byDate.get(d);
       const agg = aggMap?.get(d);
@@ -141,9 +143,12 @@ export default function DayClosingsTab() {
       t.slots += Number(existing?.slots_result ?? agg?.slots ?? 0);
       t.missChips += Number(agg?.missChips ?? 0);
       t.missCards += Number(agg?.missCards ?? 0);
+      const cb = Math.abs(Number(existing?.players_card_balance ?? 0));
+      if (!cardsFound && cb > 0) { t.cards = cb; cardsFound = true; }
     });
     return t;
   }, [dates, byDate, aggMap]);
+
 
   const shiftMonth = (delta: number) => {
     const d = new Date(year, month - 1 + delta, 1);
