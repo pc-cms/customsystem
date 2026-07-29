@@ -150,6 +150,8 @@ export const MODULES: ModuleDef[] = [
   { key: "cancelled_transactions", label: "Cancelled Transactions", group: "Reports" },
   { key: "import_reports", label: "Import Reports", group: "Reports" },
   { key: "logs", label: "Activity Logs", group: "Reports" },
+  { key: "report_daily_balance", label: "Report · Daily Balance", group: "Reports" },
+
 
   // Staff / HR / System
   { key: "staff_employees", label: "Floor Staff Employees", group: "System" },
