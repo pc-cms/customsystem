@@ -34,6 +34,11 @@ export type ExtraBucket = {
 export type Summary = {
   estimated:  Record<string, number>; // per casino
   result:     Record<string, number>;
+  tables:     Record<string, number>;
+  /** Slots net of Players Card Balance (deposits on player cards). */
+  slots:      Record<string, number>;
+  /** Players Card Balance (latest entry of the month), always >= 0. */
+  playersCards: Record<string, number>;
   other:      Record<string, number>;
   collection: Record<string, number>;
   extras:     ExtraBucket[];          // detailed by group_code (excl. collections + income)
@@ -42,10 +47,12 @@ export type Summary = {
   safe:       Record<string, number>;
   totals: {
     estimated: number; result: number; other: number; collection: number;
+    tables: number; slots: number; playersCards: number;
     extras: number; bonus5: number; safe: number;
     expectedProfit: number; balance: number; total: number;
   };
 };
+
 
 export type BossMonthlyReport = {
   summary: Summary;
