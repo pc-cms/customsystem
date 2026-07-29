@@ -102,9 +102,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Legacy UI checks still test `.includes("manager")`; until those call sites are
     // migrated to capabilities, any role holding the `manage.core` capability gets a
     // compatibility marker. This is driven by the capability map, NOT by role aliasing.
-    if (!rawRoles.includes("manager") && canManage(rawRoles)) {
+    // `boss` keeps read-level UI parity (its DB rights stay read-only by policy).
+    if (!rawRoles.includes("manager") && (canManage(rawRoles) || rawRoles.includes("boss"))) {
       rawRoles.push("manager");
     }
+
 
     return {
       profileCasinoId: profile?.casino_id ?? null,
