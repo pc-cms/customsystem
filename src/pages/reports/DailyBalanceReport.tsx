@@ -7,7 +7,7 @@
  * system can be filled with the legacy Excel importer.
  */
 import { useMemo, useRef, useState } from "react";
-import { Wallet2, Download, Upload, Loader2 } from "lucide-react";
+import { Wallet2, Download, Upload, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterBar } from "@/components/layout/FilterBar";
