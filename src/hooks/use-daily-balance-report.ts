@@ -301,7 +301,13 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           tablesRes[date] != null || slotsRes[date] != null || cashDesk[date] != null ||
           expByDate[date] != null || bar[date] != null || txByDate[date] != null;
 
+        /** Credit / Deposit is a MANUAL field — stored in fin_legacy_balance. */
+        const manualCredit = l?.credit_deposit != null ? num(l.credit_deposit) : 0;
+
         if (!hasSystemData && l) {
+          const gross = num(l.bank_terminal);
+          const net = gross / (1 + BANK_COMMISSION_RATE);
+          const lTotal = num(l.tables_result) + num(l.slots_result) + num(l.bar_result) + manualCredit;
           return {
             date,
             weekday: WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()],
@@ -320,29 +326,36 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             office_transfer: num(l.office_transfer),
             office_in: num(l.office_in),
             office_out: num(l.office_out),
-            bank_terminal: num(l.bank_terminal),
-            bank_fee: (num(l.bank_terminal) * num(l.bank_fee_pct || BANK_FEE_PCT)) / 100,
+            bank_terminal: net,
+            bank_fee: gross - net,
             bank_account: num(l.bank_account),
             bank_expenses: num(l.bank_expenses),
-            credit_deposit: num(l.credit_deposit),
+            credit_deposit: manualCredit,
             expenses: num(l.expenses),
             chips_float: num(l.chips_float),
+            day_total: lTotal,
+            day_balance: num(l.cash_desk_result) - lTotal,
             legacy: true,
             hasSystemData: false,
           } satisfies DailyBalanceRow;
         }
 
-        const term = terminal[date] ?? 0;
+        // Bank checks are entered GROSS (3% on top) — strip the commission.
+        const gross = terminal[date] ?? 0;
+        const net = gross / (1 + BANK_COMMISSION_RATE);
+        const dayTotal = tables + slotsNet + barV + manualCredit;
+        const cdr = cashDesk[date] ?? 0;
         return {
           date,
           weekday: WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()],
           rate_usd: rate,
           casino_result: tables + slotsNet + barV,
-          cash_desk_result: cashDesk[date] ?? 0,
+          cash_desk_result: cdr,
           tables_result: tables,
           slots_result: slotsNet,
           bar_result: barV,
-          cage_cash: lastCage,
+          // Cage Cash = closing cash of LIVE + SLOTS cage shifts (falls back to wallet balance)
+          cage_cash: cageClosing[date] ?? lastCage,
           collection_bank: collections[date] ?? 0,
           chip_difference: chipMiss[date] ?? 0,
           tips_tables: tipsTables[date] ?? 0,
@@ -351,17 +364,20 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           office_transfer: (officeIn[date] ?? 0) - (officeOut[date] ?? 0),
           office_in: officeIn[date] ?? 0,
           office_out: officeOut[date] ?? 0,
-          bank_terminal: term,
-          bank_fee: (term * BANK_FEE_PCT) / 100,
+          bank_terminal: net,
+          bank_fee: gross - net,
           bank_account: lastBank,
           bank_expenses: bankExpByDate[date] ?? 0,
-          credit_deposit: cardBal[date] ?? 0,
+          credit_deposit: manualCredit,
           expenses: expByDate[date] ?? 0,
           chips_float: lastChips,
+          day_total: dayTotal,
+          day_balance: cdr - dayTotal,
           legacy: false,
           hasSystemData,
         } satisfies DailyBalanceRow;
       });
+
     },
   });
 };
