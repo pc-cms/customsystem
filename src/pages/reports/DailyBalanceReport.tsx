@@ -27,16 +27,73 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDailyBalanceReport, useSetCreditDeposit, type DailyBalanceRow } from "@/hooks/use-daily-balance-report";
 
-type GroupKey = "results" | "cage" | "office" | "bank" | "chips" | "tips";
+type SectionKey = "incomes" | "expenses" | "transfers" | "money" | "balances";
 
-const GROUPS: { key: GroupKey; label: string }[] = [
-  { key: "results", label: "Results" },
-  { key: "cage", label: "Cage" },
-  { key: "office", label: "Office Safe" },
-  { key: "bank", label: "Bank" },
-  { key: "chips", label: "Chips" },
-  { key: "tips", label: "Tips" },
+type Col = { key: keyof DailyBalanceRow; label: string; detail?: boolean };
+
+/**
+ * Column layout by business meaning. Each section shows its headline columns;
+ * `detail` columns appear only when the section is expanded (chevron).
+ */
+const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
+  {
+    key: "incomes",
+    label: "Incomes",
+    cols: [
+      { key: "casino_result", label: "Result" },
+      { key: "tables_result", label: "Live", detail: true },
+      { key: "slots_result", label: "Slots (net)", detail: true },
+      { key: "bar_result", label: "Bar", detail: true },
+      { key: "credit_deposit", label: "Credit / Deposit" },
+    ],
+  },
+  {
+    key: "expenses",
+    label: "Expenses",
+    cols: [
+      { key: "expenses", label: "Expenses" },
+      { key: "bank_expenses", label: "Bank Expenses", detail: true },
+    ],
+  },
+  {
+    key: "transfers",
+    label: "Transfers",
+    cols: [
+      { key: "collection_bank", label: "Collection → Bank" },
+      { key: "office_transfer", label: "Int. Transfer" },
+      { key: "office_in", label: "Office In", detail: true },
+      { key: "office_out", label: "Office Out", detail: true },
+    ],
+  },
+  {
+    key: "money",
+    label: "Money",
+    cols: [
+      { key: "cage_cash", label: "Cage Cash" },
+      { key: "office_cash", label: "Office Safe" },
+      { key: "bank_account", label: "Bank Account" },
+      { key: "bank_terminal", label: "Terminal (net)", detail: true },
+      { key: "bank_fee", label: "Fee 3%", detail: true },
+      { key: "chips_float", label: "Chips Float", detail: true },
+    ],
+  },
+  {
+    key: "balances",
+    label: "Balances",
+    cols: [
+      { key: "day_total", label: "Day Total" },
+      { key: "cash_desk_result", label: "Cash Desk" },
+      { key: "day_balance", label: "Day Balance" },
+      { key: "chip_difference", label: "Chip Diff", detail: true },
+      { key: "tips_tables", label: "Tips Tables", detail: true },
+      { key: "tips_slots", label: "Tips Slots", detail: true },
+    ],
+  },
 ];
+
+const ALL_COLS: (Col & { section: SectionKey })[] = SECTIONS.flatMap((s) =>
+  s.cols.map((c) => ({ ...c, section: s.key })),
+);
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 const monthBounds = (m: string) => {
@@ -48,32 +105,6 @@ const monthBounds = (m: string) => {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-/** All money columns in display order, with their group + label. */
-const MONEY_COLS: { key: keyof DailyBalanceRow; label: string; group: GroupKey | null; first?: boolean }[] = [
-  { key: "casino_result", label: "Casino Result", group: "results", first: true },
-  { key: "cash_desk_result", label: "Cash Desk", group: "results" },
-  { key: "tables_result", label: "Tables", group: "results" },
-  { key: "slots_result", label: "Slots (net)", group: "results" },
-  { key: "bar_result", label: "Bar", group: "results" },
-  { key: "credit_deposit", label: "Credit / Deposit", group: "results" },
-  { key: "day_total", label: "Day Total", group: "results" },
-  { key: "day_balance", label: "Day Balance", group: "results" },
-  { key: "cage_cash", label: "Cage Cash", group: "cage", first: true },
-  { key: "collection_bank", label: "Collection → Bank", group: "cage" },
-  { key: "office_cash", label: "Office Safe", group: "office", first: true },
-  { key: "office_in", label: "Office In", group: "office" },
-  { key: "office_out", label: "Office Out", group: "office" },
-  { key: "office_transfer", label: "Int. Transfer", group: "office" },
-  { key: "bank_terminal", label: "Terminal (net)", group: "bank", first: true },
-  { key: "bank_fee", label: "Fee 3%", group: "bank" },
-  { key: "bank_account", label: "Bank Account", group: "bank" },
-  { key: "bank_expenses", label: "Bank Expenses", group: "bank" },
-  { key: "chip_difference", label: "Chip Diff", group: "chips", first: true },
-  { key: "chips_float", label: "Chips Float", group: "chips" },
-  { key: "tips_tables", label: "Tips Tables", group: "tips", first: true },
-  { key: "tips_slots", label: "Tips Slots", group: "tips" },
-  { key: "expenses", label: "Expenses", group: null, first: true },
-];
 
 
 /** Manual Credit / Deposit entry — saved per day on blur. */
