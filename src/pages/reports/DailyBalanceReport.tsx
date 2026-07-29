@@ -7,7 +7,7 @@
  * system can be filled with the legacy Excel importer.
  */
 import { useMemo, useRef, useState } from "react";
-import { Wallet2, Download, Upload, Loader2 } from "lucide-react";
+import { Wallet2, Download, Upload, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterBar } from "@/components/layout/FilterBar";
@@ -27,16 +27,73 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDailyBalanceReport, useSetCreditDeposit, type DailyBalanceRow } from "@/hooks/use-daily-balance-report";
 
-type GroupKey = "results" | "cage" | "office" | "bank" | "chips" | "tips";
+type SectionKey = "incomes" | "expenses" | "transfers" | "money" | "balances";
 
-const GROUPS: { key: GroupKey; label: string }[] = [
-  { key: "results", label: "Results" },
-  { key: "cage", label: "Cage" },
-  { key: "office", label: "Office Safe" },
-  { key: "bank", label: "Bank" },
-  { key: "chips", label: "Chips" },
-  { key: "tips", label: "Tips" },
+type Col = { key: keyof DailyBalanceRow; label: string; detail?: boolean };
+
+/**
+ * Column layout by business meaning. Each section shows its headline columns;
+ * `detail` columns appear only when the section is expanded (chevron).
+ */
+const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
+  {
+    key: "incomes",
+    label: "Incomes",
+    cols: [
+      { key: "casino_result", label: "Result" },
+      { key: "tables_result", label: "Live", detail: true },
+      { key: "slots_result", label: "Slots (net)", detail: true },
+      { key: "bar_result", label: "Bar", detail: true },
+      { key: "credit_deposit", label: "Credit / Deposit" },
+    ],
+  },
+  {
+    key: "expenses",
+    label: "Expenses",
+    cols: [
+      { key: "expenses", label: "Expenses" },
+      { key: "bank_expenses", label: "Bank Expenses", detail: true },
+    ],
+  },
+  {
+    key: "transfers",
+    label: "Transfers",
+    cols: [
+      { key: "collection_bank", label: "Collection → Bank" },
+      { key: "office_transfer", label: "Int. Transfer" },
+      { key: "office_in", label: "Office In", detail: true },
+      { key: "office_out", label: "Office Out", detail: true },
+    ],
+  },
+  {
+    key: "money",
+    label: "Money",
+    cols: [
+      { key: "cage_cash", label: "Cage Cash" },
+      { key: "office_cash", label: "Office Safe" },
+      { key: "bank_account", label: "Bank Account" },
+      { key: "bank_terminal", label: "Terminal (net)", detail: true },
+      { key: "bank_fee", label: "Fee 3%", detail: true },
+      { key: "chips_float", label: "Chips Float", detail: true },
+    ],
+  },
+  {
+    key: "balances",
+    label: "Balances",
+    cols: [
+      { key: "day_total", label: "Day Total" },
+      { key: "cash_desk_result", label: "Cash Desk" },
+      { key: "day_balance", label: "Day Balance" },
+      { key: "chip_difference", label: "Chip Diff", detail: true },
+      { key: "tips_tables", label: "Tips Tables", detail: true },
+      { key: "tips_slots", label: "Tips Slots", detail: true },
+    ],
+  },
 ];
+
+const ALL_COLS: (Col & { section: SectionKey })[] = SECTIONS.flatMap((s) =>
+  s.cols.map((c) => ({ ...c, section: s.key })),
+);
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 const monthBounds = (m: string) => {
@@ -48,32 +105,6 @@ const monthBounds = (m: string) => {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-/** All money columns in display order, with their group + label. */
-const MONEY_COLS: { key: keyof DailyBalanceRow; label: string; group: GroupKey | null; first?: boolean }[] = [
-  { key: "casino_result", label: "Casino Result", group: "results", first: true },
-  { key: "cash_desk_result", label: "Cash Desk", group: "results" },
-  { key: "tables_result", label: "Tables", group: "results" },
-  { key: "slots_result", label: "Slots (net)", group: "results" },
-  { key: "bar_result", label: "Bar", group: "results" },
-  { key: "credit_deposit", label: "Credit / Deposit", group: "results" },
-  { key: "day_total", label: "Day Total", group: "results" },
-  { key: "day_balance", label: "Day Balance", group: "results" },
-  { key: "cage_cash", label: "Cage Cash", group: "cage", first: true },
-  { key: "collection_bank", label: "Collection → Bank", group: "cage" },
-  { key: "office_cash", label: "Office Safe", group: "office", first: true },
-  { key: "office_in", label: "Office In", group: "office" },
-  { key: "office_out", label: "Office Out", group: "office" },
-  { key: "office_transfer", label: "Int. Transfer", group: "office" },
-  { key: "bank_terminal", label: "Terminal (net)", group: "bank", first: true },
-  { key: "bank_fee", label: "Fee 3%", group: "bank" },
-  { key: "bank_account", label: "Bank Account", group: "bank" },
-  { key: "bank_expenses", label: "Bank Expenses", group: "bank" },
-  { key: "chip_difference", label: "Chip Diff", group: "chips", first: true },
-  { key: "chips_float", label: "Chips Float", group: "chips" },
-  { key: "tips_tables", label: "Tips Tables", group: "tips", first: true },
-  { key: "tips_slots", label: "Tips Slots", group: "tips" },
-  { key: "expenses", label: "Expenses", group: null, first: true },
-];
 
 
 /** Manual Credit / Deposit entry — saved per day on blur. */
@@ -104,7 +135,8 @@ const DailyBalanceReport = () => {
   const { activeCasino } = useCasino();
   const qc = useQueryClient();
   const [month, setMonth] = useSessionState("dbr-month", currentMonth());
-  const [groups, setGroups] = useState<Set<GroupKey>>(new Set(GROUPS.map((g) => g.key)));
+  const [sections, setSections] = useState<Set<SectionKey>>(new Set(SECTIONS.map((s) => s.key)));
+  const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
   const [hideEmpty, setHideEmpty] = useSessionState("dbr-hide-empty", true);
   const [moneyMode, setMoneyMode] = useSessionState<MoneyDisplayMode>("dbr-money", "compact");
   const [importing, setImporting] = useState(false);
@@ -113,9 +145,15 @@ const DailyBalanceReport = () => {
   const { from, to } = monthBounds(month);
   const { data: rows = [], isLoading } = useDailyBalanceReport(from, to);
 
-  const on = (g: GroupKey) => groups.has(g);
-  const toggle = (g: GroupKey) =>
-    setGroups((prev) => {
+  const on = (g: SectionKey) => sections.has(g);
+  const toggle = (g: SectionKey) =>
+    setSections((prev) => {
+      const next = new Set(prev);
+      next.has(g) ? next.delete(g) : next.add(g);
+      return next;
+    });
+  const toggleExpand = (g: SectionKey) =>
+    setExpanded((prev) => {
       const next = new Set(prev);
       next.has(g) ? next.delete(g) : next.add(g);
       return next;
@@ -123,7 +161,7 @@ const DailyBalanceReport = () => {
 
   const totals = useMemo(() => {
     const acc: Record<string, number> = {};
-    for (const c of MONEY_COLS) acc[c.key as string] = rows.reduce((s, r) => s + Number(r[c.key] || 0), 0);
+    for (const c of ALL_COLS) acc[c.key as string] = rows.reduce((s, r) => s + Number(r[c.key] || 0), 0);
     return acc;
   }, [rows]);
 
@@ -133,7 +171,7 @@ const DailyBalanceReport = () => {
   /** Columns whose every value is 0 across the month (candidates for hiding). */
   const emptyCols = useMemo(() => {
     const s = new Set<string>();
-    for (const c of MONEY_COLS) {
+    for (const c of ALL_COLS) {
       if (ALWAYS.has(c.key as string)) continue;
       if (rows.every((r) => !Number(r[c.key]))) s.add(c.key as string);
     }
@@ -145,9 +183,14 @@ const DailyBalanceReport = () => {
       <span className={n < 0 ? "cms-amount-negative" : undefined}>{formatMoney(n, moneyMode)}</span>
     );
 
-  const visibleMoneyCols = MONEY_COLS.filter(
-    (c) => (!c.group || on(c.group)) && !(hideEmpty && emptyCols.has(c.key as string)),
+  const visibleMoneyCols = ALL_COLS.filter(
+    (c) =>
+      on(c.section) &&
+      (!c.detail || expanded.has(c.section)) &&
+      !(hideEmpty && emptyCols.has(c.key as string)),
   );
+
+  const sectionLabel = (k: SectionKey) => SECTIONS.find((s) => s.key === k)!.label;
 
   const columns: ColumnDef<DailyBalanceRow>[] = [
     {
@@ -165,46 +208,42 @@ const DailyBalanceReport = () => {
       ),
       sortValue: (r) => r.date,
     },
-    {
-      key: "rate_usd",
-      header: "USD",
-      type: "int",
-      accessor: (r) => <span className="text-muted-foreground">{formatMoney(r.rate_usd, "full")}</span>,
-      sortValue: (r) => r.rate_usd,
-    },
-    ...visibleMoneyCols.map<ColumnDef<DailyBalanceRow>>((c) => ({
-      key: c.key as string,
-      header: c.label,
-      type: "money" as const,
-      accessor: (r) =>
-        c.key === "credit_deposit" ? (
-          <CreditCell date={r.date} value={Number(r.credit_deposit || 0)} />
-        ) : (
-          money(Math.round(Number(r[c.key] || 0)))
+    ...visibleMoneyCols.map<ColumnDef<DailyBalanceRow>>((c, i) => {
+      const first = i === 0 || visibleMoneyCols[i - 1].section !== c.section;
+      return {
+        key: c.key as string,
+        header: first ? `${sectionLabel(c.section).toUpperCase()} · ${c.label}` : c.label,
+        type: "money" as const,
+        accessor: (r) =>
+          c.key === "credit_deposit" ? (
+            <CreditCell date={r.date} value={Number(r.credit_deposit || 0)} />
+          ) : (
+            money(Math.round(Number(r[c.key] || 0)))
+          ),
+        sortValue: (r) => Number(r[c.key] || 0),
+        headerClassName: cn(
+          "whitespace-nowrap",
+          first && "border-l border-border",
+          (c.key === "day_total" || c.key === "day_balance") && "font-semibold",
         ),
-      sortValue: (r) => Number(r[c.key] || 0),
-      headerClassName: cn(
-        "whitespace-nowrap",
-        c.first && "border-l border-border",
-        (c.key === "day_total" || c.key === "day_balance") && "font-semibold",
-      ),
-      cellClassName: cn(
-        c.first && "border-l border-border",
-        (c.key === "day_total" || c.key === "day_balance") && "font-semibold bg-muted/20",
-      ),
-    })),
+        cellClassName: cn(
+          first && "border-l border-border",
+          (c.key === "day_total" || c.key === "day_balance") && "font-semibold bg-muted/20",
+        ),
+      };
+    }),
   ];
 
 
   const doExport = async () => {
-    const header = ["Date", "Day", "USD Rate", ...visibleMoneyCols.map((c) => c.label)];
+    const header = ["Date", "Day", ...visibleMoneyCols.map((c) => `${sectionLabel(c.section)} — ${c.label}`)];
     const body = rows.map((r) => [
       r.date,
       r.weekday,
-      r.rate_usd,
       ...visibleMoneyCols.map((c) => Math.round(Number(r[c.key] || 0))),
     ]);
-    const totalRow = ["TOTAL", "", "", ...visibleMoneyCols.map((c) => Math.round(totals[c.key as string] || 0))];
+    const totalRow = ["TOTAL", "", ...visibleMoneyCols.map((c) => Math.round(totals[c.key as string] || 0))];
+
     await downloadXlsx(`balance-${activeCasino?.slug ?? "casino"}-${month}.xlsx`, [
       { name: `Balance ${month}`, rows: [header, ...body, totalRow] },
     ]);
@@ -300,17 +339,30 @@ const DailyBalanceReport = () => {
           />
         }
         filters={[
-          ...GROUPS.map((g) => (
-            <Toggle
-              key={g.key}
-              size="sm"
-              pressed={on(g.key)}
-              onPressedChange={() => toggle(g.key)}
-              className="h-8 px-2 text-xs"
-            >
-              {g.label}
-            </Toggle>
+          ...SECTIONS.map((g) => (
+            <div key={g.key} className="flex items-center gap-0.5 rounded-md border border-border px-0.5">
+              <Toggle
+                size="sm"
+                pressed={on(g.key)}
+                onPressedChange={() => toggle(g.key)}
+                className="h-7 px-2 text-xs"
+              >
+                {g.label}
+              </Toggle>
+              {g.cols.some((c) => c.detail) && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-6"
+                  title={expanded.has(g.key) ? "Collapse details" : "Expand details"}
+                  onClick={() => toggleExpand(g.key)}
+                >
+                  {expanded.has(g.key) ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                </Button>
+              )}
+            </div>
           )),
+
           <Toggle
             key="hide-empty"
             size="sm"
