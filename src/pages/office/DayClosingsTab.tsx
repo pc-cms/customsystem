@@ -244,6 +244,7 @@ function DayRow({
   const [state, setState] = useState<RowState>(() => ({
     tables: existing?.tables_result != null ? formatNumberSpaces(existing.tables_result) : "",
     slots: existing?.slots_result != null ? formatNumberSpaces(existing.slots_result) : "",
+    cards: existing?.players_card_balance ? formatNumberSpaces(existing.players_card_balance) : "",
     comment: existing?.notes ?? "",
   }));
 
@@ -251,16 +252,20 @@ function DayRow({
     setState({
       tables: existing?.tables_result != null ? formatNumberSpaces(existing.tables_result) : "",
       slots: existing?.slots_result != null ? formatNumberSpaces(existing.slots_result) : "",
+      cards: existing?.players_card_balance ? formatNumberSpaces(existing.players_card_balance) : "",
       comment: existing?.notes ?? "",
     });
-  }, [existing?.id, existing?.tables_result, existing?.slots_result, existing?.notes]);
+  }, [existing?.id, existing?.tables_result, existing?.slots_result, existing?.players_card_balance, existing?.notes]);
 
   const tablesNum = state.tables === "" ? tablesAuto : parseAmountInput(state.tables);
   const slotsNum = state.slots === "" ? slotsAuto : parseAmountInput(state.slots);
+  // Players Card Balance: deposits held on player cards — always >= 0.
+  const cardsNum = Math.abs(state.cards === "" ? 0 : parseAmountInput(state.cards));
 
   const dT = Math.abs(tablesNum - tablesAuto);
   const dS = Math.abs(slotsNum - slotsAuto);
   const needsNote = dT > 1 || dS > 1;
+
 
   const [varianceOpen, setVarianceOpen] = useState(false);
   const [varianceNote, setVarianceNote] = useState("");
