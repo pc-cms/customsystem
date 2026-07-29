@@ -70,9 +70,9 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
       { key: "bank_account", label: "Bank Account" },
       { key: "bank_terminal", label: "Terminal (net)", detail: true },
       { key: "bank_fee", label: "Fee 3%", detail: true },
-      { key: "chips_float", label: "Chips Float", detail: true },
     ],
   },
+
   {
     key: "balances",
     label: "Balances",
