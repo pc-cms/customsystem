@@ -126,7 +126,7 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
       // Parallel fetches
       const [closingsRes, otherRes, expensesRes, budgetRes, walletTxRes, ratesRes] = await Promise.all([
         supabase.from("fin_day_closing")
-          .select("casino_id, business_date, tables_result, slots_result")
+          .select("casino_id, business_date, tables_result, slots_result, players_card_balance")
           .in("casino_id", casinoIds)
           .gte("business_date", from)
           .lte("business_date", to),
