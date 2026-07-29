@@ -76,7 +76,31 @@ const MONEY_COLS: { key: keyof DailyBalanceRow; label: string; group: GroupKey |
 ];
 
 
+/** Manual Credit / Deposit entry — saved per day on blur. */
+const CreditCell = ({ date, value }: { date: string; value: number }) => {
+  const save = useSetCreditDeposit();
+  const [draft, setDraft] = useState<string>("");
+  const [editing, setEditing] = useState(false);
+  const shown = editing ? draft : value ? String(Math.round(value)) : "";
+  return (
+    <Input
+      value={shown}
+      placeholder="·"
+      inputMode="numeric"
+      onFocus={() => { setEditing(true); setDraft(value ? String(Math.round(value)) : ""); }}
+      onChange={(e) => setDraft(e.target.value.replace(/[^\d.-]/g, ""))}
+      onBlur={() => {
+        setEditing(false);
+        const v = Number(draft || 0);
+        if (Number.isFinite(v) && v !== Math.round(value)) save.mutate({ date, value: v });
+      }}
+      className="h-6 w-24 px-1 text-right font-mono text-xs tabular-nums"
+    />
+  );
+};
+
 const DailyBalanceReport = () => {
+
   const { activeCasino } = useCasino();
   const qc = useQueryClient();
   const [month, setMonth] = useSessionState("dbr-month", currentMonth());
