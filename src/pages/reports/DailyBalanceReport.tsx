@@ -205,7 +205,7 @@ const DailyBalanceReport = () => {
         }
       />
 
-      <PageSection card={false} flush>
+      <PageSection card={false}>
         <div className="max-h-[70vh] overflow-auto">
           <SmartTable
             data={rows}
