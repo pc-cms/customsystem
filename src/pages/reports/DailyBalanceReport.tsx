@@ -2,7 +2,7 @@
  * Reports → Daily Balance Sheet.
  *
  * Recreates the legacy "БАЛАНС" monthly spreadsheet: one row per business date,
- * grouped column blocks, month KPI tiles on top and a sticky Total footer row.
+ * grouped column blocks and a sticky Total footer row.
  * All figures in TZS. Data comes from the live system; months that predate the
  * system can be filled with the legacy Excel importer.
  */
@@ -227,58 +227,6 @@ const DailyBalanceReport = () => {
     }),
   ];
 
-
-  const doExport = async () => {
-    const header = ["Date", "Day", ...visibleMoneyCols.map((c) => `${sectionLabel(c.section)} — ${c.label}`)];
-    const body = rows.map((r) => [
-      r.date,
-      r.weekday,
-      ...visibleMoneyCols.map((c) => Math.round(Number(r[c.key] || 0))),
-    ]);
-    const totalRow = ["TOTAL", "", ...visibleMoneyCols.map((c) => Math.round(totals[c.key as string] || 0))];
-
-    await downloadXlsx(`balance-${activeCasino?.slug ?? "casino"}-${month}.xlsx`, [
-      { name: `Balance ${month}`, rows: [header, ...body, totalRow] },
-    ]);
-  };
-
-  const doImport = async (file: File) => {
-    setImporting(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("casino_id", activeCasino?.id ?? "");
-      const { data, error } = await supabase.functions.invoke("fin-balance-import", { body: fd });
-      if (error) throw error;
-      toast.success(`Imported ${(data as any)?.saved ?? 0} days`);
-      qc.invalidateQueries({ queryKey: ["daily-balance-report"] });
-    } catch (e) {
-      toast.error(`Import failed: ${(e as Error).message}`);
-    } finally {
-      setImporting(false);
-      if (fileRef.current) fileRef.current.value = "";
-    }
-  };
-
-  const tiles: { label: string; value: number }[] = [
-    { label: "Casino Result", value: totals.casino_result },
-    { label: "Cash Desk", value: totals.cash_desk_result },
-    { label: "Tables", value: totals.tables_result },
-    { label: "Slots (net)", value: totals.slots_result },
-    { label: "Bar", value: totals.bar_result },
-    { label: "Credit / Deposit", value: totals.credit_deposit },
-    { label: "Day Total", value: totals.day_total },
-    { label: "Day Balance", value: totals.day_balance },
-    { label: "Expenses", value: totals.expenses },
-    { label: "Collections", value: totals.collection_bank },
-    { label: "Terminal (net)", value: totals.bank_terminal },
-    { label: "Bank Fee 3%", value: totals.bank_fee },
-
-    { label: "Chip Diff", value: totals.chip_difference },
-    { label: "Tips Tables", value: totals.tips_tables },
-    { label: "Tips Slots", value: totals.tips_slots },
-  ];
-
   return (
     <PageShell>
       <PageHeader
@@ -286,41 +234,7 @@ const DailyBalanceReport = () => {
         title="Daily Balance Sheet"
         subtitle="Legacy balance layout rebuilt from live data — all figures in TZS"
         context={activeCasino?.name}
-      >
-        <Button variant="outline" size="sm" onClick={doExport}>
-          <Download className="w-4 h-4 mr-2" /> Export
-        </Button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".xls,.xlsx"
-          className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) doImport(f); }}
-        />
-        <Button size="sm" disabled={importing} onClick={() => fileRef.current?.click()}>
-          {importing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-          Import
-        </Button>
-      </PageHeader>
-
-      {/* KPI tiles first — month at a glance */}
-      <PageSection card={false}>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-2">
-          {tiles.map((t) => (
-            <div key={t.label} className="rounded-md border border-border bg-card px-2.5 py-1.5">
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">{t.label}</div>
-              <div
-                className={cn(
-                  "font-mono text-sm tabular-nums",
-                  Number(t.value) < 0 ? "cms-amount-negative" : Number(t.value) > 0 ? "cms-amount-positive" : "text-muted-foreground",
-                )}
-              >
-                {formatMoney(Math.round(Number(t.value || 0)), "full")}
-              </div>
-            </div>
-          ))}
-        </div>
-      </PageSection>
+      />
 
       <FilterBar
         search={
