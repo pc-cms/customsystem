@@ -25,7 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useDailyBalanceReport, type DailyBalanceRow } from "@/hooks/use-daily-balance-report";
+import { useDailyBalanceReport, useSetCreditDeposit, type DailyBalanceRow } from "@/hooks/use-daily-balance-report";
 
 type GroupKey = "results" | "cage" | "office" | "bank" | "chips" | "tips";
 
