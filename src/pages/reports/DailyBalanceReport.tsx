@@ -6,13 +6,12 @@
  * All figures in TZS. Data comes from the live system; months that predate the
  * system can be filled with the legacy Excel importer.
  */
-import { useMemo, useRef, useState } from "react";
-import { Wallet2, Download, Upload, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Wallet2, ChevronDown, ChevronRight } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterBar } from "@/components/layout/FilterBar";
 import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
@@ -20,10 +19,6 @@ import { useCasino } from "@/lib/casino-context";
 import { useSessionState } from "@/hooks/use-session-state";
 import { formatMoney, type MoneyDisplayMode } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
-import { downloadXlsx } from "@/lib/excel-export";
-import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDailyBalanceReport, useSetCreditDeposit, type DailyBalanceRow } from "@/hooks/use-daily-balance-report";
 
