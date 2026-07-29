@@ -96,12 +96,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (rolesError) console.error("fetchProfile roles error", rolesError);
 
     const rawRoles = (userRoles ?? []).map(r => r.role as AppRole);
-    // Boss / General Manager inherit all manager UI permissions: synthesize a
-    // "manager" role so every hardcoded `.includes("manager")` check across the
-    // app grants access without having to touch dozens of call sites.
-    if ((rawRoles.includes("boss") || rawRoles.includes("general_manager")) && !rawRoles.includes("manager")) {
+    // Roles are independent entities (see ROLE_CAPABILITIES / public.role_capabilities).
+    // Legacy UI checks still test `.includes("manager")`; until those call sites are
+    // migrated to capabilities, any role holding the `manage.core` capability gets a
+    // compatibility marker. This is driven by the capability map, NOT by role aliasing.
+    if (!rawRoles.includes("manager") && canManage(rawRoles)) {
       rawRoles.push("manager");
     }
+
     return {
       profileCasinoId: profile?.casino_id ?? null,
       displayName: profile?.display_name ?? null,
