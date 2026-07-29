@@ -190,6 +190,7 @@ export default function DayClosingsTab() {
               <th className="text-left px-3 py-2 w-32">Date</th>
               <th className="text-right px-3 py-2 w-44">Tables</th>
               <th className="text-right px-3 py-2 w-44">Slots</th>
+              <th className="text-right px-3 py-2 w-40" title="Deposits held on player cards. Subtracted from the Slots result; the cash itself stays in the desk.">Card Balance</th>
               <th className="text-right px-3 py-2 w-32">Miss Chips</th>
               <th className="text-right px-3 py-2 w-32">Miss Cards</th>
               <th className="text-left px-3 py-2">Comment</th>
@@ -200,14 +201,16 @@ export default function DayClosingsTab() {
             <tr className="border-t border-border bg-primary/5 font-semibold">
               <td className="px-3 py-2 text-xs uppercase tracking-wider">Totals · {MONTH_NAMES[month-1]}</td>
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.tables))}>{formatNumberSpaces(totals.tables)}</td>
-              <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.slots))}>{formatNumberSpaces(totals.slots)}</td>
+              <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.slots - totals.cards))}>{formatNumberSpaces(totals.slots - totals.cards)}</td>
+              <td className={cn("px-3 py-2 text-right font-mono", totals.cards ? "cms-amount-negative" : "text-muted-foreground")}>{totals.cards ? `− ${formatNumberSpaces(totals.cards)}` : "·"}</td>
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.missChips))}>{formatNumberSpaces(totals.missChips)}</td>
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.missCards))}>{formatNumberSpaces(totals.missCards)}</td>
               <td colSpan={2} className="px-3 py-2 text-right text-xs text-muted-foreground">
-                Result: <span className={cn("font-mono", amountToneClass(totals.tables + totals.slots))}>{formatNumberSpaces(totals.tables + totals.slots)}</span>
+                Result: <span className={cn("font-mono", amountToneClass(totals.tables + totals.slots - totals.cards))}>{formatNumberSpaces(totals.tables + totals.slots - totals.cards)}</span>
               </td>
             </tr>
             {dates.map((date) => {
+
               const agg = aggMap?.get(date) || { tables: 0, slots: 0, missChips: 0, missCards: 0 };
               return (
                 <DayRow
