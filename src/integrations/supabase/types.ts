@@ -3859,6 +3859,119 @@ export type Database = {
           },
         ]
       }
+      fin_legacy_balance: {
+        Row: {
+          bank_account: number
+          bank_expenses: number
+          bank_fee_pct: number
+          bank_terminal: number
+          bar_result: number
+          business_date: string
+          cage_cash: number
+          cage2_cash: number
+          cash_desk_result: number
+          casino_id: string
+          casino_result: number
+          chip_difference: number
+          chips_float: number
+          collection_bank: number
+          created_at: string
+          created_by: string | null
+          credit_deposit: number
+          expenses: number
+          id: string
+          office_cash: number
+          office_in: number
+          office_out: number
+          office_transfer: number
+          rate_usd: number
+          slots_result: number
+          source: string
+          source_file: string | null
+          stadt_result: number
+          tables_result: number
+          tips_slots: number
+          tips_tables: number
+          updated_at: string
+        }
+        Insert: {
+          bank_account?: number
+          bank_expenses?: number
+          bank_fee_pct?: number
+          bank_terminal?: number
+          bar_result?: number
+          business_date: string
+          cage_cash?: number
+          cage2_cash?: number
+          cash_desk_result?: number
+          casino_id: string
+          casino_result?: number
+          chip_difference?: number
+          chips_float?: number
+          collection_bank?: number
+          created_at?: string
+          created_by?: string | null
+          credit_deposit?: number
+          expenses?: number
+          id?: string
+          office_cash?: number
+          office_in?: number
+          office_out?: number
+          office_transfer?: number
+          rate_usd?: number
+          slots_result?: number
+          source?: string
+          source_file?: string | null
+          stadt_result?: number
+          tables_result?: number
+          tips_slots?: number
+          tips_tables?: number
+          updated_at?: string
+        }
+        Update: {
+          bank_account?: number
+          bank_expenses?: number
+          bank_fee_pct?: number
+          bank_terminal?: number
+          bar_result?: number
+          business_date?: string
+          cage_cash?: number
+          cage2_cash?: number
+          cash_desk_result?: number
+          casino_id?: string
+          casino_result?: number
+          chip_difference?: number
+          chips_float?: number
+          collection_bank?: number
+          created_at?: string
+          created_by?: string | null
+          credit_deposit?: number
+          expenses?: number
+          id?: string
+          office_cash?: number
+          office_in?: number
+          office_out?: number
+          office_transfer?: number
+          rate_usd?: number
+          slots_result?: number
+          source?: string
+          source_file?: string | null
+          stadt_result?: number
+          tables_result?: number
+          tips_slots?: number
+          tips_tables?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_legacy_balance_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_money_change: {
         Row: {
           business_date: string
