@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      _policy_backup: {
+        Row: {
+          batch_id: string
+          cmd: string | null
+          id: string
+          permissive: string | null
+          policyname: string
+          qual: string | null
+          restore_sql: string
+          roles: string[] | null
+          schemaname: string
+          tablename: string
+          taken_at: string
+          with_check: string | null
+        }
+        Insert: {
+          batch_id: string
+          cmd?: string | null
+          id?: string
+          permissive?: string | null
+          policyname: string
+          qual?: string | null
+          restore_sql: string
+          roles?: string[] | null
+          schemaname: string
+          tablename: string
+          taken_at?: string
+          with_check?: string | null
+        }
+        Update: {
+          batch_id?: string
+          cmd?: string | null
+          id?: string
+          permissive?: string | null
+          policyname?: string
+          qual?: string | null
+          restore_sql?: string
+          roles?: string[] | null
+          schemaname?: string
+          tablename?: string
+          taken_at?: string
+          with_check?: string | null
+        }
+        Relationships: []
+      }
       activity_logs: {
         Row: {
           action: string
@@ -8620,6 +8665,24 @@ export type Database = {
           },
         ]
       }
+      role_capabilities: {
+        Row: {
+          capability: string
+          created_at: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          capability: string
+          created_at?: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          capability?: string
+          created_at?: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
       role_module_defaults: {
         Row: {
           can_view: boolean
@@ -10548,6 +10611,9 @@ export type Database = {
           open_tables: Json
         }[]
       }
+      can_finance: { Args: { _uid: string }; Returns: boolean }
+      can_manage: { Args: { _uid: string }; Returns: boolean }
+      can_view_all_casinos: { Args: { _uid: string }; Returns: boolean }
       cancel_transaction: {
         Args: { p_reason: string; p_transaction_id: string }
         Returns: undefined
@@ -10996,6 +11062,7 @@ export type Database = {
       }
       get_user_casino_id: { Args: { _user_id: string }; Returns: string }
       has_any_pos_role: { Args: { _user: string }; Returns: boolean }
+      has_cap: { Args: { _cap: string; _uid: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -11340,6 +11407,7 @@ export type Database = {
         Args: { _casino_id: string }
         Returns: Json
       }
+      rollback_policy_batch: { Args: { _batch_id: string }; Returns: number }
       rotate_local_server_secret: {
         Args: { _server_id: string }
         Returns: string
@@ -11372,6 +11440,10 @@ export type Database = {
       }
       shift_miss_total_from_closing_count: {
         Args: { _closing_count: Json }
+        Returns: number
+      }
+      snapshot_policies: {
+        Args: { _batch_id: string; _tables?: string[] }
         Returns: number
       }
       staff_rota_scope: { Args: { _employee_id: string }; Returns: string }
