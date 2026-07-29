@@ -5,6 +5,8 @@ import { setSessionUserId } from "@/hooks/use-session-state";
 import { AUTH_INVALID_REFRESH_EVENT, clearStoredAuthSession, isInvalidRefreshTokenError } from "@/lib/auth-storage";
 import { clearIDBPersistedQueryCache } from "@/lib/query-persister";
 import { clearBlacklistCache } from "@/lib/blacklist-cache";
+import { canManage } from "@/lib/role-access";
+
 
 
 type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager" | "boss" | "general_manager";
