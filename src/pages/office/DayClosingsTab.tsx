@@ -279,6 +279,7 @@ function DayRow({
         business_date: date,
         tables_result: tablesNum,
         slots_result: slotsNum,
+        players_card_balance: cardsNum,
         notes: finalComment || null,
       });
       const rowId = existing?.id ?? (saved as any)?.id;
