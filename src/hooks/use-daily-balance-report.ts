@@ -15,8 +15,11 @@ import { useCasino } from "@/lib/casino-context";
 import { fetchPaged } from "@/lib/fetch-paged";
 
 export const FALLBACK_USD_RATE = 2600;
-/** Bank terminal acquiring fee applied to card turnover. */
-export const BANK_FEE_PCT = 2.5;
+/**
+ * Bank checks are entered in the cage GROSS — the amount that arrived is 3%
+ * higher than the real money. Net = gross / 1.03, fee = gross − net.
+ */
+export const BANK_COMMISSION_RATE = 0.03;
 
 export interface DailyBalanceRow {
   date: string;
@@ -43,11 +46,16 @@ export interface DailyBalanceRow {
   credit_deposit: number;
   expenses: number;
   chips_float: number;
+  /** Σ incomes of the day: Tables + Slots + Bar + Credit/Deposit */
+  day_total: number;
+  /** Cash Desk − Day Total (cash vs declared result) */
+  day_balance: number;
   /** true when the row came from the imported legacy sheet */
   legacy: boolean;
   /** true when at least one live source produced data for that date */
   hasSystemData: boolean;
 }
+
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
