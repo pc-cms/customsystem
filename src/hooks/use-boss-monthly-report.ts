@@ -172,6 +172,11 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
 
       // Result per casino + daily
       const result = zeroPer();
+      const tables = zeroPer();
+      const slotsRaw = zeroPer();
+      // Players Card Balance is a balance (latest entry of the month), not a flow.
+      const cardsLatestDate = new Map<string, string>();
+      const playersCards = zeroPer();
       const dailyMap = new Map<string, DailyRow>();
       for (const d of enumerateDays(from, to)) {
         dailyMap.set(d, {
@@ -182,6 +187,16 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
       }
       for (const r of (closingsRes.data || []) as any[]) {
         const v = Number(r.tables_result || 0) + Number(r.slots_result || 0);
+        tables[r.casino_id] = (tables[r.casino_id] || 0) + Number(r.tables_result || 0);
+        slotsRaw[r.casino_id] = (slotsRaw[r.casino_id] || 0) + Number(r.slots_result || 0);
+        const cb = Math.abs(Number(r.players_card_balance || 0));
+        if (cb > 0) {
+          const prev = cardsLatestDate.get(r.casino_id);
+          if (!prev || r.business_date > prev) {
+            cardsLatestDate.set(r.casino_id, r.business_date);
+            playersCards[r.casino_id] = cb;
+          }
+        }
         result[r.casino_id] = (result[r.casino_id] || 0) + v;
         const row = dailyMap.get(r.business_date);
         if (row) {
@@ -189,6 +204,13 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
           row.jcResult += v;
         }
       }
+      // Net out player card deposits once per month: Result = Tables + (Slots − Cards)
+      const slots = zeroPer();
+      for (const id of casinoIds) {
+        slots[id] = (slotsRaw[id] || 0) - (playersCards[id] || 0);
+        result[id] = (result[id] || 0) - (playersCards[id] || 0);
+      }
+
 
       // Other incomes
       const other = zeroPer();
