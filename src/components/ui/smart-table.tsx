@@ -471,6 +471,7 @@ export function SmartTable<T>({
             rowHeight={rowHeight}
             scrollRef={scrollRef}
           />
+          {footer}
         </DataTable>
       </div>
     );
@@ -486,6 +487,8 @@ export function SmartTable<T>({
         rowClassName={rowClassName}
         onRowClick={onRowClick}
       />
+      {footer}
     </DataTable>
+
   );
 }
