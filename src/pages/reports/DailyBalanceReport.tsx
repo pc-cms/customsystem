@@ -103,10 +103,14 @@ const DailyBalanceReport = () => {
     return acc;
   }, [rows]);
 
+  /** Always-visible columns (manual entry / day formulas). */
+  const ALWAYS = new Set(["credit_deposit", "day_total", "day_balance"]);
+
   /** Columns whose every value is 0 across the month (candidates for hiding). */
   const emptyCols = useMemo(() => {
     const s = new Set<string>();
     for (const c of MONEY_COLS) {
+      if (ALWAYS.has(c.key as string)) continue;
       if (rows.every((r) => !Number(r[c.key]))) s.add(c.key as string);
     }
     return s;
@@ -148,12 +152,25 @@ const DailyBalanceReport = () => {
       key: c.key as string,
       header: c.label,
       type: "money" as const,
-      accessor: (r) => money(Math.round(Number(r[c.key] || 0))),
+      accessor: (r) =>
+        c.key === "credit_deposit" ? (
+          <CreditCell date={r.date} value={Number(r.credit_deposit || 0)} />
+        ) : (
+          money(Math.round(Number(r[c.key] || 0)))
+        ),
       sortValue: (r) => Number(r[c.key] || 0),
-      headerClassName: cn("whitespace-nowrap", c.first && "border-l border-border"),
-      cellClassName: c.first ? "border-l border-border" : undefined,
+      headerClassName: cn(
+        "whitespace-nowrap",
+        c.first && "border-l border-border",
+        (c.key === "day_total" || c.key === "day_balance") && "font-semibold",
+      ),
+      cellClassName: cn(
+        c.first && "border-l border-border",
+        (c.key === "day_total" || c.key === "day_balance") && "font-semibold bg-muted/20",
+      ),
     })),
   ];
+
 
   const doExport = async () => {
     const header = ["Date", "Day", "USD Rate", ...visibleMoneyCols.map((c) => c.label)];
