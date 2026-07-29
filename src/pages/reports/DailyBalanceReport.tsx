@@ -135,7 +135,8 @@ const DailyBalanceReport = () => {
   const { activeCasino } = useCasino();
   const qc = useQueryClient();
   const [month, setMonth] = useSessionState("dbr-month", currentMonth());
-  const [groups, setGroups] = useState<Set<GroupKey>>(new Set(GROUPS.map((g) => g.key)));
+  const [sections, setSections] = useState<Set<SectionKey>>(new Set(SECTIONS.map((s) => s.key)));
+  const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
   const [hideEmpty, setHideEmpty] = useSessionState("dbr-hide-empty", true);
   const [moneyMode, setMoneyMode] = useSessionState<MoneyDisplayMode>("dbr-money", "compact");
   const [importing, setImporting] = useState(false);
@@ -144,9 +145,15 @@ const DailyBalanceReport = () => {
   const { from, to } = monthBounds(month);
   const { data: rows = [], isLoading } = useDailyBalanceReport(from, to);
 
-  const on = (g: GroupKey) => groups.has(g);
-  const toggle = (g: GroupKey) =>
-    setGroups((prev) => {
+  const on = (g: SectionKey) => sections.has(g);
+  const toggle = (g: SectionKey) =>
+    setSections((prev) => {
+      const next = new Set(prev);
+      next.has(g) ? next.delete(g) : next.add(g);
+      return next;
+    });
+  const toggleExpand = (g: SectionKey) =>
+    setExpanded((prev) => {
       const next = new Set(prev);
       next.has(g) ? next.delete(g) : next.add(g);
       return next;
@@ -154,7 +161,7 @@ const DailyBalanceReport = () => {
 
   const totals = useMemo(() => {
     const acc: Record<string, number> = {};
-    for (const c of MONEY_COLS) acc[c.key as string] = rows.reduce((s, r) => s + Number(r[c.key] || 0), 0);
+    for (const c of ALL_COLS) acc[c.key as string] = rows.reduce((s, r) => s + Number(r[c.key] || 0), 0);
     return acc;
   }, [rows]);
 
@@ -164,7 +171,7 @@ const DailyBalanceReport = () => {
   /** Columns whose every value is 0 across the month (candidates for hiding). */
   const emptyCols = useMemo(() => {
     const s = new Set<string>();
-    for (const c of MONEY_COLS) {
+    for (const c of ALL_COLS) {
       if (ALWAYS.has(c.key as string)) continue;
       if (rows.every((r) => !Number(r[c.key]))) s.add(c.key as string);
     }
@@ -176,9 +183,14 @@ const DailyBalanceReport = () => {
       <span className={n < 0 ? "cms-amount-negative" : undefined}>{formatMoney(n, moneyMode)}</span>
     );
 
-  const visibleMoneyCols = MONEY_COLS.filter(
-    (c) => (!c.group || on(c.group)) && !(hideEmpty && emptyCols.has(c.key as string)),
+  const visibleMoneyCols = ALL_COLS.filter(
+    (c) =>
+      on(c.section) &&
+      (!c.detail || expanded.has(c.section)) &&
+      !(hideEmpty && emptyCols.has(c.key as string)),
   );
+
+  const sectionLabel = (k: SectionKey) => SECTIONS.find((s) => s.key === k)!.label;
 
   const columns: ColumnDef<DailyBalanceRow>[] = [
     {
@@ -196,46 +208,42 @@ const DailyBalanceReport = () => {
       ),
       sortValue: (r) => r.date,
     },
-    {
-      key: "rate_usd",
-      header: "USD",
-      type: "int",
-      accessor: (r) => <span className="text-muted-foreground">{formatMoney(r.rate_usd, "full")}</span>,
-      sortValue: (r) => r.rate_usd,
-    },
-    ...visibleMoneyCols.map<ColumnDef<DailyBalanceRow>>((c) => ({
-      key: c.key as string,
-      header: c.label,
-      type: "money" as const,
-      accessor: (r) =>
-        c.key === "credit_deposit" ? (
-          <CreditCell date={r.date} value={Number(r.credit_deposit || 0)} />
-        ) : (
-          money(Math.round(Number(r[c.key] || 0)))
+    ...visibleMoneyCols.map<ColumnDef<DailyBalanceRow>>((c, i) => {
+      const first = i === 0 || visibleMoneyCols[i - 1].section !== c.section;
+      return {
+        key: c.key as string,
+        header: first ? `${sectionLabel(c.section).toUpperCase()} · ${c.label}` : c.label,
+        type: "money" as const,
+        accessor: (r) =>
+          c.key === "credit_deposit" ? (
+            <CreditCell date={r.date} value={Number(r.credit_deposit || 0)} />
+          ) : (
+            money(Math.round(Number(r[c.key] || 0)))
+          ),
+        sortValue: (r) => Number(r[c.key] || 0),
+        headerClassName: cn(
+          "whitespace-nowrap",
+          first && "border-l border-border",
+          (c.key === "day_total" || c.key === "day_balance") && "font-semibold",
         ),
-      sortValue: (r) => Number(r[c.key] || 0),
-      headerClassName: cn(
-        "whitespace-nowrap",
-        c.first && "border-l border-border",
-        (c.key === "day_total" || c.key === "day_balance") && "font-semibold",
-      ),
-      cellClassName: cn(
-        c.first && "border-l border-border",
-        (c.key === "day_total" || c.key === "day_balance") && "font-semibold bg-muted/20",
-      ),
-    })),
+        cellClassName: cn(
+          first && "border-l border-border",
+          (c.key === "day_total" || c.key === "day_balance") && "font-semibold bg-muted/20",
+        ),
+      };
+    }),
   ];
 
 
   const doExport = async () => {
-    const header = ["Date", "Day", "USD Rate", ...visibleMoneyCols.map((c) => c.label)];
+    const header = ["Date", "Day", ...visibleMoneyCols.map((c) => `${sectionLabel(c.section)} — ${c.label}`)];
     const body = rows.map((r) => [
       r.date,
       r.weekday,
-      r.rate_usd,
       ...visibleMoneyCols.map((c) => Math.round(Number(r[c.key] || 0))),
     ]);
-    const totalRow = ["TOTAL", "", "", ...visibleMoneyCols.map((c) => Math.round(totals[c.key as string] || 0))];
+    const totalRow = ["TOTAL", "", ...visibleMoneyCols.map((c) => Math.round(totals[c.key as string] || 0))];
+
     await downloadXlsx(`balance-${activeCasino?.slug ?? "casino"}-${month}.xlsx`, [
       { name: `Balance ${month}`, rows: [header, ...body, totalRow] },
     ]);
