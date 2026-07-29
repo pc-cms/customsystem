@@ -346,8 +346,24 @@ function DayRow({
         />
         <div className={cn("text-[10px] mt-0.5 text-right pr-1", amountToneClass(slotsAuto))}>
           auto {formatNumberSpaces(slotsAuto)}
+          {cardsNum > 0 && <span className="cms-amount-negative"> · net {formatNumberSpaces(slotsNum - cardsNum)}</span>}
         </div>
       </td>
+
+      <td className="px-3 py-2 text-right">
+        <Input
+          type="text"
+          inputMode="decimal"
+          disabled={!editable}
+          placeholder="0"
+          title="Deposits held on player cards (end-of-day balance). Subtracted from the Slots result."
+          value={state.cards}
+          onChange={(e) => setState((s) => ({ ...s, cards: formatAmountInput(e.target.value).replace("-", "") }))}
+          className={cn("text-right font-mono h-8", cardsNum > 0 && "cms-amount-negative")}
+        />
+      </td>
+
+
 
       <td className={cn("px-3 py-2 text-right font-mono text-xs", amountToneClass(agg.missChips))}>
         {formatNumberSpaces(agg.missChips)}
