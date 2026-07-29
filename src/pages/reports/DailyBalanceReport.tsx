@@ -121,7 +121,7 @@ const CreditCell = ({ date, value }: { date: string; value: number }) => {
         const v = Number(draft || 0);
         if (Number.isFinite(v) && v !== Math.round(value)) save.mutate({ date, value: v });
       }}
-      className="h-6 w-24 px-1 text-right font-mono text-xs tabular-nums"
+      className="h-6 w-24 px-1 text-right text-xs tabular-nums"
     />
   );
 };
