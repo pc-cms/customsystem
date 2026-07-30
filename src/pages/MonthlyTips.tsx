@@ -190,7 +190,9 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
 
   const commitAtt = (dealerId: string, date: string, raw: string, original: string) => {
     const norm = normalizeAttInput(raw);
+    if (norm === null) return;
     if (norm === (original || "")) return;
+
     setAtt.mutate({ dealer_id: dealerId, date, value: norm });
     setCalculated(false);
   };
