@@ -981,15 +981,11 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
 
   const handleSave = (staffId: string, day: number, val: string) => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-    const trimmed = val.trim().toUpperCase();
-    if (trimmed === "") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: "" }); return; }
-    if (trimmed === "A" || trimmed === "S" || trimmed === "SP") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: trimmed }); return; }
-    // Shift code shortcuts: EM=11h, EN/ED/G=8h
-    if (trimmed === "EM") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: "11" }); return; }
-    if (trimmed === "EN" || trimmed === "ED" || trimmed === "G") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: "8" }); return; }
-    const num = Number(trimmed);
-    if (!isNaN(num) && num >= 0 && num <= 24) { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: String(num) }); }
+    const next = normalizeAttInput(val);
+    if (next === null) return;
+    setAttendance.mutate({ staff_id: staffId, date: dateStr, value: next });
   };
+
 
   // Auto-fill: a day is auto-filled with 9 hours ONLY if its business day has
   // been CLOSED (record exists in `business_day_closures`). The current open
