@@ -4,6 +4,9 @@
  * Recreates the legacy "БАЛАНС" monthly spreadsheet: one row per business date,
  * grouped column blocks (two-level header), weekly subtotal rows and sticky
  * Total / Average footer rows. All figures in TZS.
+ *
+ * Column model: every section shows ONE headline "total" column when collapsed;
+ * clicking the group header reveals its component columns.
  */
 import { useMemo, useState } from "react";
 import { Wallet2, ChevronDown, ChevronRight } from "lucide-react";
@@ -25,63 +28,89 @@ import { useDailyBalanceReport, useSetCreditDeposit, type DailyBalanceRow } from
 
 type SectionKey = "incomes" | "expenses" | "transfers" | "money" | "balances";
 
-type Col = { key: keyof DailyBalanceRow; label: string; detail?: boolean };
+const num = (r: DailyBalanceRow, k: keyof DailyBalanceRow) => Number(r[k] || 0);
 
-/**
- * Column layout by business meaning. Each section shows its headline columns;
- * `detail` columns appear only when the section is expanded.
- */
+type Col = {
+  id: string;
+  label: string;
+  /** Section headline (always visible). */
+  total?: boolean;
+  /** Component column — visible only when the section is expanded. */
+  detail?: boolean;
+  value: (r: DailyBalanceRow) => number;
+};
+
+/** Numeric source fields — used to aggregate week / total rows. */
+const BASE_KEYS: (keyof DailyBalanceRow)[] = [
+  "casino_result", "tables_result", "slots_result", "bar_result", "credit_deposit",
+  "expenses", "bank_expenses", "collection_bank", "office_transfer", "office_in", "office_out",
+  "cage_cash", "office_cash", "bank_account", "bank_terminal", "bank_fee",
+  "day_total", "cash_desk_result", "day_balance", "chip_difference", "tips_tables", "tips_slots",
+];
+
 const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
   {
     key: "incomes",
     label: "Incomes",
     cols: [
-      { key: "casino_result", label: "Result" },
-      { key: "tables_result", label: "Live", detail: true },
-      { key: "slots_result", label: "Slots (net)", detail: true },
-      { key: "bar_result", label: "Bar", detail: true },
-      { key: "credit_deposit", label: "Credit / Deposit" },
+      { id: "inc_total", label: "Result", total: true, value: (r) => num(r, "casino_result") },
+      { id: "credit_deposit", label: "Credit / Deposit", value: (r) => num(r, "credit_deposit") },
+      { id: "tables_result", label: "Live", detail: true, value: (r) => num(r, "tables_result") },
+      { id: "slots_result", label: "Slots (net)", detail: true, value: (r) => num(r, "slots_result") },
+      { id: "bar_result", label: "Bar", detail: true, value: (r) => num(r, "bar_result") },
     ],
   },
   {
     key: "expenses",
     label: "Expenses",
     cols: [
-      { key: "expenses", label: "Expenses" },
-      { key: "bank_expenses", label: "Bank Expenses", detail: true },
+      {
+        id: "exp_total", label: "Expenses", total: true,
+        value: (r) => num(r, "expenses") + num(r, "bank_expenses"),
+      },
+      { id: "expenses", label: "Operating", detail: true, value: (r) => num(r, "expenses") },
+      { id: "bank_expenses", label: "Bank", detail: true, value: (r) => num(r, "bank_expenses") },
     ],
   },
   {
     key: "transfers",
     label: "Transfers",
     cols: [
-      { key: "collection_bank", label: "Collection → Bank" },
-      { key: "office_transfer", label: "Int. Transfer" },
-      { key: "office_in", label: "Office In", detail: true },
-      { key: "office_out", label: "Office Out", detail: true },
+      {
+        id: "trf_total", label: "Transfers", total: true,
+        value: (r) => num(r, "collection_bank") + num(r, "office_transfer"),
+      },
+      { id: "collection_bank", label: "Collection → Bank", detail: true, value: (r) => num(r, "collection_bank") },
+      { id: "office_transfer", label: "Int. Transfer", detail: true, value: (r) => num(r, "office_transfer") },
+      { id: "office_in", label: "Office In", detail: true, value: (r) => num(r, "office_in") },
+      { id: "office_out", label: "Office Out", detail: true, value: (r) => num(r, "office_out") },
     ],
   },
   {
     key: "money",
     label: "Money",
     cols: [
-      { key: "cage_cash", label: "Cage Cash" },
-      { key: "office_cash", label: "Office Safe" },
-      { key: "bank_account", label: "Bank Account" },
-      { key: "bank_terminal", label: "Terminal (net)", detail: true },
-      { key: "bank_fee", label: "Fee 3%", detail: true },
+      {
+        id: "money_total", label: "Money Total", total: true,
+        value: (r) => num(r, "cage_cash") + num(r, "office_cash") + num(r, "bank_account"),
+      },
+      { id: "cage_cash", label: "Cage Cash", detail: true, value: (r) => num(r, "cage_cash") },
+      { id: "office_cash", label: "Office Safe", detail: true, value: (r) => num(r, "office_cash") },
+      { id: "bank_account", label: "Bank Account", detail: true, value: (r) => num(r, "bank_account") },
+      { id: "bank_terminal", label: "Terminal (net)", detail: true, value: (r) => num(r, "bank_terminal") },
+      { id: "bank_fee", label: "Fee 3%", detail: true, value: (r) => num(r, "bank_fee") },
     ],
   },
   {
     key: "balances",
     label: "Balances",
     cols: [
-      { key: "day_total", label: "Day Total" },
-      { key: "cash_desk_result", label: "Cash Desk" },
-      { key: "day_balance", label: "Day Balance" },
-      { key: "chip_difference", label: "Chip Diff", detail: true },
-      { key: "tips_tables", label: "Tips Tables", detail: true },
-      { key: "tips_slots", label: "Tips Slots", detail: true },
+      { id: "bal_total", label: "Day Balance", total: true, value: (r) => num(r, "day_balance") },
+      { id: "day_total", label: "Day Total", detail: true, value: (r) => num(r, "day_total") },
+      { id: "cash_desk_result", label: "Cash Desk", detail: true, value: (r) => num(r, "cash_desk_result") },
+      { id: "chip_difference", label: "Chip Diff", detail: true, value: (r) => num(r, "chip_difference") },
+      { id: "tips_tables", label: "Tips Tables", detail: true, value: (r) => num(r, "tips_tables") },
+      { id: "tips_slots", label: "Tips Slots", detail: true, value: (r) => num(r, "tips_slots") },
     ],
   },
 ];
@@ -90,8 +119,8 @@ const ALL_COLS: (Col & { section: SectionKey })[] = SECTIONS.flatMap((s) =>
   s.cols.map((c) => ({ ...c, section: s.key })),
 );
 
-/** Columns that get the heat fill. */
-const HEAT_KEYS = new Set(["casino_result", "day_total", "day_balance", "cash_desk_result"]);
+/** Section headlines get the heat fill. */
+const HEAT_IDS = new Set(ALL_COLS.filter((c) => c.total).map((c) => c.id));
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 const monthBounds = (m: string) => {
@@ -125,7 +154,7 @@ const CreditCell = ({ date, value }: { date: string; value: number }) => {
         const v = Number(draft || 0);
         if (Number.isFinite(v) && v !== Math.round(value)) save.mutate({ date, value: v });
       }}
-      className="h-6 w-24 px-1 text-right text-xs tabular-nums"
+      className="h-6 w-24 px-1 text-right font-mono text-xs tabular-nums"
     />
   );
 };
@@ -160,8 +189,7 @@ const DailyBalanceReport = () => {
   const { from, to } = monthBounds(month);
   const { data: rows = [], isLoading } = useDailyBalanceReport(from, to);
 
-  const detailSections = SECTIONS.filter((s) => s.cols.some((c) => c.detail));
-  const allExpanded = detailSections.every((s) => expanded.has(s.key));
+  const allExpanded = SECTIONS.every((s) => expanded.has(s.key));
 
   const toggleExpand = (g: SectionKey) =>
     setExpanded((prev) => {
@@ -170,23 +198,18 @@ const DailyBalanceReport = () => {
       return next;
     });
 
-  const toggleAll = () =>
-    setExpanded(allExpanded ? new Set() : new Set(detailSections.map((s) => s.key)));
+  const toggleAll = () => setExpanded(allExpanded ? new Set() : new Set(SECTIONS.map((s) => s.key)));
 
-  const totals = useMemo(() => {
-    const acc: Record<string, number> = {};
-    for (const c of ALL_COLS) acc[c.key as string] = rows.reduce((s, r) => s + Number(r[c.key] || 0), 0);
+  /** Sum of every source field across the month — feeds Total / Average rows. */
+  const grandRow = useMemo(() => {
+    const acc = {} as DailyBalanceRow;
+    for (const k of BASE_KEYS) {
+      (acc as unknown as Record<string, number>)[k as string] = rows.reduce((s, r) => s + num(r, k), 0);
+    }
     return acc;
   }, [rows]);
 
   const daysWithData = useMemo(() => rows.filter((r) => r.hasSystemData || r.legacy).length, [rows]);
-
-  const averages = useMemo(() => {
-    const acc: Record<string, number> = {};
-    const d = daysWithData || 1;
-    for (const c of ALL_COLS) acc[c.key as string] = Number(totals[c.key as string] || 0) / d;
-    return acc;
-  }, [totals, daysWithData]);
 
   /** Last business date that has live system data — highlighted with a yellow stripe. */
   const lastClosedRow = useMemo(() => {
@@ -195,33 +218,43 @@ const DailyBalanceReport = () => {
   }, [rows]);
   const lastClosedDate = lastClosedRow?.date ?? null;
 
-  /** Always-visible columns (manual entry / day formulas). */
-  const ALWAYS = new Set(["credit_deposit", "day_total", "day_balance", "casino_result"]);
-
   /** Columns whose every value is 0 across the month (candidates for hiding). */
   const emptyCols = useMemo(() => {
     const s = new Set<string>();
     for (const c of ALL_COLS) {
-      if (ALWAYS.has(c.key as string)) continue;
-      if (rows.every((r) => !Number(r[c.key]))) s.add(c.key as string);
+      if (c.total || c.id === "credit_deposit") continue;
+      if (rows.every((r) => !Math.round(c.value(r)))) s.add(c.id);
     }
     return s;
   }, [rows]);
 
-  const visibleMoneyCols = ALL_COLS.filter(
-    (c) => (!c.detail || expanded.has(c.section)) && !(hideEmpty && emptyCols.has(c.key as string)),
+  /**
+   * Visible columns: section headlines always; component columns only for
+   * expanded sections. "Hide empty" never applies inside an expanded section —
+   * expanding must always reveal the full breakdown.
+   */
+  const visibleMoneyCols = useMemo(
+    () =>
+      ALL_COLS.filter((c) => {
+        if (!c.detail) return !(hideEmpty && emptyCols.has(c.id));
+        return expanded.has(c.section);
+      }),
+    [hideEmpty, emptyCols, expanded],
   );
 
   /** Max abs value per heat column — drives the fill intensity. */
   const heatMax = useMemo(() => {
     const m: Record<string, number> = {};
-    for (const k of HEAT_KEYS) m[k] = Math.max(1, ...rows.map((r) => Math.abs(Number(r[k as keyof DailyBalanceRow] || 0))));
+    for (const c of ALL_COLS) {
+      if (!HEAT_IDS.has(c.id)) continue;
+      m[c.id] = Math.max(1, ...rows.map((r) => Math.abs(c.value(r))));
+    }
     return m;
   }, [rows]);
 
-  const heatClass = (key: string, v: number) => {
-    if (!heatmap || !HEAT_KEYS.has(key) || !v) return undefined;
-    const ratio = Math.abs(v) / (heatMax[key] || 1);
+  const heatClass = (col: Col, v: number) => {
+    if (!heatmap || !HEAT_IDS.has(col.id) || !v) return undefined;
+    const ratio = Math.abs(v) / (heatMax[col.id] || 1);
     const step = ratio > 0.66 ? 3 : ratio > 0.33 ? 2 : 1;
     if (v > 0)
       return step === 3
@@ -236,6 +269,18 @@ const DailyBalanceReport = () => {
         : "bg-[hsl(var(--destructive)/0.06)]";
   };
 
+  /**
+   * Single background layer per row — prevents stacked translucent fills.
+   * Priority: week > last closed day > today > weekend > (cell heat).
+   */
+  const rowBg = (r: Row): string | undefined => {
+    if (r.kind === "week") return "bg-muted";
+    if (r.date === lastClosedDate) return "bg-[hsl(var(--warning)/0.14)]";
+    if (r.date === today()) return "bg-primary/10";
+    if (r.weekday === "Sat" || r.weekday === "Sun") return "bg-muted/40";
+    return undefined;
+  };
+
   /** ISO-ish week bucket for grouping (weeks end on Sunday). */
   const displayRows = useMemo<Row[]>(() => {
     const base: Row[] = rows.map((r) => ({ ...r, kind: "day" as const }));
@@ -248,9 +293,9 @@ const DailyBalanceReport = () => {
     const flush = () => {
       if (!bucket.length) return;
       const agg = { ...bucket[bucket.length - 1] } as Row;
-      for (const c of ALL_COLS) {
-        (agg as unknown as Record<string, number>)[c.key as string] = bucket.reduce(
-          (s, r) => s + Number(r[c.key] || 0),
+      for (const k of BASE_KEYS) {
+        (agg as unknown as Record<string, number>)[k as string] = bucket.reduce(
+          (s, r) => s + num(r, k),
           0,
         );
       }
@@ -275,28 +320,22 @@ const DailyBalanceReport = () => {
       <span className={n < 0 ? "cms-amount-negative" : undefined}>{formatMoney(n, moneyMode)}</span>
     );
 
-  const sectionOf = (k: SectionKey) => SECTIONS.find((s) => s.key === k)!;
-
   /** Two-level header groups: leading Date column + one entry per visible section. */
   const groupHeader = useMemo(() => {
     const groups: {
       key: string; label?: string; span: number; expandable?: boolean;
-      expanded?: boolean; hiddenCount?: number; onToggle?: () => void;
-    }[] = [{ key: "date", label: "Day", span: 1 }];
+      expanded?: boolean; hiddenCount?: number; onToggle?: () => void; sticky?: number;
+    }[] = [{ key: "date", label: "Day", span: 1, sticky: 0 }];
     for (const s of SECTIONS) {
       const span = visibleMoneyCols.filter((c) => c.section === s.key).length;
       if (!span) continue;
-      const hiddenCount = s.cols.filter(
-        (c) => c.detail && !visibleMoneyCols.some((v) => v.key === c.key),
-      ).length;
-      const hasDetail = s.cols.some((c) => c.detail);
       groups.push({
         key: s.key,
         label: s.label,
         span,
-        expandable: hasDetail,
+        expandable: true,
         expanded: expanded.has(s.key),
-        hiddenCount,
+        hiddenCount: s.cols.filter((c) => c.detail).length,
         onToggle: () => toggleExpand(s.key),
       });
     }
@@ -308,49 +347,50 @@ const DailyBalanceReport = () => {
       key: "date",
       header: "Date",
       type: "date",
-      style: { width: 128, minWidth: 128 },
+      style: { width: 132, minWidth: 132 },
       accessor: (r) =>
         r.kind === "week" ? (
-          <span className="whitespace-nowrap font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
+          <span className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             {r.label}
           </span>
         ) : (
           <span className="whitespace-nowrap">
-            <span className={r.date === today() ? "font-semibold text-primary" : undefined}>
+            <span className={cn("font-mono tabular-nums", r.date === today() && "font-semibold text-primary")}>
               {fmtDate(r.date)}
             </span>{" "}
-            <span className="text-muted-foreground text-[11px]">{r.weekday}</span>
+            <span className="text-[11px] text-muted-foreground">{r.weekday}</span>
             {r.legacy && <Badge variant="outline" className="ml-1 h-4 px-1 text-[10px]">imp</Badge>}
           </span>
         ),
       sortValue: (r) => r.date,
+      cellClassName: (r: Row) => cn("py-1", rowBg(r), r.kind === "week" && "font-semibold"),
     },
     ...visibleMoneyCols.map<ColumnDef<Row>>((c, i) => {
       const first = i === 0 || visibleMoneyCols[i - 1].section !== c.section;
-      const isKey = c.key === "day_total" || c.key === "day_balance";
       return {
-        key: c.key as string,
+        key: c.id,
         header: c.label,
         type: "money" as const,
-        style: i === 0 ? { width: 116, minWidth: 116 } : undefined,
+        style: i === 0 ? { width: 120, minWidth: 120 } : undefined,
         accessor: (r) =>
-          c.key === "credit_deposit" && r.kind === "day" ? (
-            <CreditCell date={r.date} value={Number(r.credit_deposit || 0)} />
+          c.id === "credit_deposit" && r.kind === "day" ? (
+            <CreditCell date={r.date} value={num(r, "credit_deposit")} />
           ) : (
-            money(Math.round(Number(r[c.key] || 0)))
+            money(Math.round(c.value(r)))
           ),
-        sortValue: (r) => Number(r[c.key] || 0),
+        sortValue: (r) => c.value(r),
         headerClassName: cn(
           "whitespace-nowrap",
           first && "border-l border-border",
-          isKey && "font-semibold text-foreground",
+          c.total ? "font-semibold text-foreground" : "font-normal text-muted-foreground",
         ),
         cellClassName: (r: Row) =>
           cn(
-            "tabular-nums",
+            "py-1 font-mono tabular-nums",
             first && "border-l border-border",
-            isKey && "font-semibold",
-            r.kind === "day" && heatClass(c.key as string, Math.round(Number(r[c.key] || 0))),
+            c.total ? "font-semibold" : "text-muted-foreground",
+            r.kind === "week" && "font-semibold",
+            rowBg(r) ?? (r.kind === "day" ? heatClass(c, Math.round(c.value(r))) : undefined),
           ),
       };
     }),
@@ -361,24 +401,28 @@ const DailyBalanceReport = () => {
         {
           key: "total",
           className: "font-semibold",
-          cell: (col: ColumnDef<Row>) =>
-            col.key === "date" ? (
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Total</span>
-            ) : (
-              <span className={Number(totals[col.key]) < 0 ? "cms-amount-negative" : undefined}>
-                {formatMoney(Math.round(Number(totals[col.key] || 0)), moneyMode)}
+          cell: (col: ColumnDef<Row>) => {
+            if (col.key === "date")
+              return <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Total</span>;
+            const c = ALL_COLS.find((x) => x.id === col.key);
+            const v = c ? Math.round(c.value(grandRow)) : 0;
+            return (
+              <span className={cn("font-mono tabular-nums", v < 0 && "cms-amount-negative")}>
+                {formatMoney(v, moneyMode)}
               </span>
-            ),
+            );
+          },
         },
         {
           key: "avg",
           className: "text-muted-foreground",
-          cell: (col: ColumnDef<Row>) =>
-            col.key === "date" ? (
-              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Average / day</span>
-            ) : (
-              <span>{formatMoney(Math.round(Number(averages[col.key] || 0)), moneyMode)}</span>
-            ),
+          cell: (col: ColumnDef<Row>) => {
+            if (col.key === "date")
+              return <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Average / day</span>;
+            const c = ALL_COLS.find((x) => x.id === col.key);
+            const v = c ? Math.round(c.value(grandRow) / (daysWithData || 1)) : 0;
+            return <span className="font-mono tabular-nums">{formatMoney(v, moneyMode)}</span>;
+          },
         },
       ]
     : undefined;
@@ -394,12 +438,12 @@ const DailyBalanceReport = () => {
 
       {/* KPI tiles */}
       <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
-        <Tile label="Result (month)" value={Number(totals.casino_result || 0)} />
+        <Tile label="Result (month)" value={num(grandRow, "casino_result")} />
         <Tile
           label="Expenses (month)"
-          value={-(Number(totals.expenses || 0) + Number(totals.bank_expenses || 0))}
+          value={-(num(grandRow, "expenses") + num(grandRow, "bank_expenses"))}
         />
-        <Tile label="Day Balance (month)" value={Number(totals.day_balance || 0)} />
+        <Tile label="Day Balance (month)" value={num(grandRow, "day_balance")} />
         <Tile
           label="Cage Cash"
           value={Number(lastClosedRow?.cage_cash || 0)}
@@ -460,23 +504,15 @@ const DailyBalanceReport = () => {
             sort={sort}
             onSortChange={setSort}
             loading={isLoading}
-            stickyColumns={[0, 128]}
+            stickyColumns={[0, 132]}
             groupHeader={groupHeader}
             footerRows={footerRows}
             onRowClick={(r) => r.kind === "day" && setDetail(r)}
             bare
             virtualize={false}
-            rowClassName={(r) =>
-              cn(
-                r.kind === "week" && "bg-muted/60 font-semibold [&_td]:bg-muted/60",
-                r.kind === "day" && (r.weekday === "Sat" || r.weekday === "Sun") && "bg-muted/30",
-                r.kind === "day" && r.legacy && "bg-muted/20",
-                r.kind === "day" && r.date === lastClosedDate &&
-                  "bg-[hsl(var(--warning)/0.12)] border-l-2 border-l-[hsl(var(--warning))]",
-                r.kind === "day" && r.date === today() && "ring-1 ring-inset ring-primary/40",
-              )
-            }
-            empty={<div className="py-10 text-center text-muted-foreground text-sm">No data for this month</div>}
+            // No zebra: with 20+ columns the stripes fight the row highlights.
+            className="[&_tbody_tr:nth-child(odd)]:bg-transparent"
+            empty={<div className="py-10 text-center text-sm text-muted-foreground">No data for this month</div>}
           />
         </div>
       </PageSection>
@@ -501,13 +537,16 @@ const DailyBalanceReport = () => {
                   </div>
                   <div className="rounded-md border border-border">
                     {s.cols.map((c) => {
-                      const v = Math.round(Number(detail[c.key] || 0));
+                      const v = Math.round(c.value(detail));
                       return (
                         <div
-                          key={c.key as string}
-                          className="flex items-center justify-between border-b border-border/60 px-2 py-1 text-xs last:border-0"
+                          key={c.id}
+                          className={cn(
+                            "flex items-center justify-between border-b border-border/60 px-2 py-1 text-xs last:border-0",
+                            c.total && "bg-muted/40 font-semibold",
+                          )}
                         >
-                          <span className="text-muted-foreground">{c.label}</span>
+                          <span className={c.total ? "text-foreground" : "text-muted-foreground"}>{c.label}</span>
                           <span className={cn("font-mono tabular-nums", v < 0 && "cms-amount-negative")}>
                             {v ? formatMoneyFull(v) : "·"}
                           </span>
