@@ -100,7 +100,8 @@ const AttendanceMonthly = () => {
         const code = (r.raw_value || "").toUpperCase();
         hours += h;
         if (h > 0) dWorked += 1;
-        if (code === "L" || code === "S") leave += 1;
+        if (code === "L" || code === "S" || code === "SP" || /^[0-9.]+[SL]$/.test(code)) leave += 1;
+
         if (r.is_holiday) holH += h;
         if (h > 9) otH += h - 9;
       }
