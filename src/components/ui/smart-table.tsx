@@ -336,8 +336,13 @@ export function SmartTable<T>({
         <th
           key={g.key}
           colSpan={g.span}
+          style={
+            g.sticky !== undefined
+              ? { position: "sticky", left: g.sticky, zIndex: 30 }
+              : undefined
+          }
           className={cn(
-            "px-2 py-1 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground",
+            "px-2 py-1 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted",
             gi > 0 && "border-l border-border",
             g.expandable && "cursor-pointer hover:text-foreground",
             g.className,
