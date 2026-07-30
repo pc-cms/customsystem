@@ -348,10 +348,10 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
                     </td>
                     {r.cells.map((c, i) => {
                       const p = c.parsed;
-                      const isStatus = p.kind === "absent" || p.kind === "sick";
+                      const isStatus = p.kind === "absent" || p.kind === "sick" || p.kind === "late";
                       const isSuspend = p.kind === "suspend";
                       const isHours = p.kind === "hours";
-                      const isHoursSick = p.kind === "hours-sick";
+                      const isHoursSick = p.kind === "hours-sick" || p.kind === "hours-late";
                       const isScheduled = !!c.shift;
                       const isEmpty = p.kind === "empty";
                       const cellCls = isSuspend
