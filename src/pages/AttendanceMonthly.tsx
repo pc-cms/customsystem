@@ -203,7 +203,9 @@ const AttendanceMonthly = () => {
                           const h = cell?.effective_hours || 0;
                           const display =
                             cell?.manual_hours != null ? fmtNum(Number(cell.manual_hours)) :
+                            /^[0-9]+(\.[0-9]+)?[SL]$/.test(code) ? code :
                             h > 0 ? fmtNum(h) :
+
                             code === "A" ? "A" :
                             code === "SP" ? "SP" :
                             code === "L" ? "L" :
