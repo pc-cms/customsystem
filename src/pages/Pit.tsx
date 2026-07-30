@@ -1076,20 +1076,23 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
               const dateObj = new Date(y, m - 1, day);
               const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
               const parsed = parseValue(val);
-              const isStatus = parsed.kind === "absent" || parsed.kind === "sick";
+              const isStatus = isStatusCode(parsed.kind);
               const isHoursSick = parsed.kind === "hours-sick";
+              const isHoursLate = parsed.kind === "hours-late";
               const isHours = parsed.kind === "hours";
               const rotaShift = getRotaShift(dealer.id, day);
               const isScheduled = !!rotaShift;
               const isEmpty = val === "";
-              const displayVal = isHoursSick ? String(parsed.hours) : val;
-              const cellTitle = isHoursSick ? `Sick — worked ${parsed.hours}h then went home` : undefined;
+              const cellTitle = isHoursSick
+                ? `Sick — worked ${parsed.hours}h then went home`
+                : isHoursLate ? `Late — worked ${parsed.hours}h` : undefined;
               return (
                 <td key={day} className={`px-0.5 py-0.5 text-center border-l border-border/25 ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
                   <CellPicker
                     value={val || null}
-                    display={isHoursSick ? `${parsed.hours}S` : (val || (isScheduled && isEmpty ? rotaShift! : "·"))}
+                    display={val || (isScheduled && isEmpty ? rotaShift! : "·")}
                     title={cellTitle}
+
                     rows={[
                       { options: [
                         { value: "A", label: "A", className: ATT_COLORS["A"] },
