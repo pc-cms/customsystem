@@ -103,6 +103,8 @@ export interface SmartTableProps<T> {
     hiddenCount?: number;
     onToggle?: () => void;
     className?: string;
+    /** Freeze this group cell at the given left offset (px). */
+    sticky?: number;
   }[];
   /** Optional sticky footer rows (totals / averages). */
   footerRows?: {
