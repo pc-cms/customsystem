@@ -1025,24 +1025,28 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     let hours = 0;
     let absent = 0;
     let sick = 0;
+    let late = 0;
     days.forEach(day => {
       const val = getValue(dealerId, day);
       const p = parseValue(val);
       if (p.kind === "absent") { absent += 1; return; }
       if (p.kind === "sick") { sick += 1; return; }
+      if (p.kind === "suspend") { absent += 1; return; }
+      if (p.kind === "late") { late += 1; return; }
       if (p.kind === "hours" && p.hours > 0) {
         shifts += 1;
         hours += p.hours;
         return;
       }
-      if (p.kind === "hours-sick") {
-        // Counts both: worked hours AND a sick day.
-        sick += 1;
+      if (p.kind === "hours-sick" || p.kind === "hours-late") {
+        // Counts both: worked hours AND the incident (sick / late).
+        if (p.kind === "hours-sick") sick += 1; else late += 1;
         if (p.hours > 0) { shifts += 1; hours += p.hours; }
       }
     });
-    return { shifts, hours, absent, sick };
+    return { shifts, hours, absent, sick, late };
   };
+
 
   const renderAttendanceRows = (dealerList: any[], label: string, accentColor: string) => (
     <>
