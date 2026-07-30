@@ -1207,37 +1207,59 @@ const AttendanceDepartmentBlock = ({
             const isToday = isCurrentMonth && day === todayDay;
             const dateObj = new Date(y, m - 1, day);
             const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-            const isStatus = val === "A" || val === "S";
-            const isHours = val !== "" && !isStatus;
+            const parsed = parseAttValue(val);
+            const isStatus = isStatusCode(parsed.kind);
+            const isHoursSick = parsed.kind === "hours-sick";
+            const isHoursLate = parsed.kind === "hours-late";
+            const isHours = parsed.kind === "hours";
             const rotaShift = getRotaShift(staff.id, day);
             const isScheduled = !!rotaShift;
             const isEmpty = val === "";
+            const cellTitle = isHoursSick
+              ? `Sick — worked ${parsed.hours}h then went home`
+              : isHoursLate ? `Late — worked ${parsed.hours}h` : undefined;
             return (
               <td key={day} className={`px-0.5 py-0.5 text-center border-l border-border/25 ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
                 <CellPicker
                   value={val || null}
                   display={val || (isScheduled && isEmpty ? rotaShift! : "·")}
+                  title={cellTitle}
                   rows={[
                     { options: [
                       { value: "A", label: "A", className: ATT_COLORS["A"] },
                       { value: "S", label: "S", className: ATT_COLORS["S"] },
+                      { value: "L", label: "L", className: ATT_COLORS["L"] },
+                      { value: "SP", label: "SP", className: ATT_COLORS["SP"] },
                     ]},
                     { label: "Hours", options: Array.from({ length: 12 }, (_, i) => i + 1).map(n => ({
                       value: String(n), label: String(n),
                       className: "bg-card-foreground/5 text-card-foreground",
                     }))},
+                    { label: "Sick after Nh", options: [4,6,8,9,10,11,12].map(n => ({
+                      value: `${n}S`, label: `${n}S`,
+                      className: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+                    }))},
+                    { label: "Late — worked Nh", options: [4,6,8,9,10,11,12].map(n => ({
+                      value: `${n}L`, label: `${n}L`,
+                      className: "bg-amber-400/20 text-amber-800 dark:text-amber-200",
+                    }))},
                   ]}
                   onSelect={(v) => handleSave(staff.id, day, v ?? "")}
                   onKeyDown={e => {
                     const k = e.key.toUpperCase();
-                    if (k === "A" || k === "S") { e.preventDefault(); handleSave(staff.id, day, k); return; }
+                    if (k === "A" || k === "S" || k === "L") { e.preventDefault(); handleSave(staff.id, day, k); return; }
                     if (/^[0-9]$/.test(k)) { e.preventDefault(); handleSave(staff.id, day, k); return; }
                     if (k === "BACKSPACE" || k === "DELETE") { e.preventDefault(); handleSave(staff.id, day, ""); return; }
                   }}
                   cellClassName={`w-full h-8 rounded text-xs font-mono font-semibold text-center focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
                     isStatus
-                      ? ATT_COLORS[val]
+                      ? (ATT_COLORS[val] || ATT_COLORS["A"])
+                      : isHoursLate
+                        ? "bg-transparent text-card-foreground font-bold ring-2 ring-amber-500/80 dark:ring-amber-400/80 ring-inset cursor-help"
+                      : isHoursSick
+                        ? "bg-transparent text-card-foreground font-bold ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset cursor-help"
                       : isHours
+
                         ? "bg-transparent text-card-foreground font-bold"
                         : isScheduled && isEmpty
                           ? `${UNIFIED_SHIFT_TINTS[rotaShift!] || "bg-muted/30 text-muted-foreground"}`
