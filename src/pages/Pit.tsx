@@ -1094,6 +1094,8 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                       { options: [
                         { value: "A", label: "A", className: ATT_COLORS["A"] },
                         { value: "S", label: "S", className: ATT_COLORS["S"] },
+                        { value: "L", label: "L", className: ATT_COLORS["L"] },
+                        { value: "SP", label: "SP", className: ATT_COLORS["SP"] },
                       ]},
                       { label: "Shifts", options: [
                         { value: "EM", label: "EM", className: UNIFIED_SHIFT_COLORS["EM"] },
@@ -1107,11 +1109,16 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                         value: `${n}S`, label: `${n}S`,
                         className: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
                       }))},
+                      { label: "Late — worked Nh", options: [4,6,8,9,10,11,12].map(n => ({
+                        value: `${n}L`, label: `${n}L`,
+                        className: "bg-amber-400/20 text-amber-800 dark:text-amber-200",
+                      }))},
                     ]}
                     onSelect={(v) => handleSave(dealer.id, day, v ?? "")}
                     onKeyDown={e => {
                       const k = e.key.toUpperCase();
-                      if (k === "A" || k === "S") { e.preventDefault(); handleSave(dealer.id, day, k); return; }
+                      if (k === "A" || k === "S" || k === "L") { e.preventDefault(); handleSave(dealer.id, day, k); return; }
+
                       if (k === "E") {
                         e.preventDefault();
                         const current = getValue(dealer.id, day);
