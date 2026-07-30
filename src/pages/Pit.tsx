@@ -18,6 +18,8 @@ import TableTracker from "@/pages/TableTracker";
 import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, isExtraShift } from "@/lib/shift-colors";
+import { parseAttValue, normalizeAttInput, isStatusCode } from "@/lib/attendance-code";
+
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PitShell } from "@/components/pit/PitShell";
