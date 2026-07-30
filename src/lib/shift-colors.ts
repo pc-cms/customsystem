@@ -25,7 +25,10 @@ export const UNIFIED_SHIFT_COLORS: Record<string, string> = {
 export const UNIFIED_ATT_COLORS: Record<string, string> = {
   A: "bg-red-200 text-red-900 dark:bg-red-500 dark:text-white font-bold",
   S: "bg-orange-200 text-orange-900 dark:bg-orange-500 dark:text-white font-bold",
+  SP: "bg-red-600 text-white dark:bg-red-700 dark:text-white font-bold",
+  L: "bg-amber-300 text-amber-950 dark:bg-amber-500 dark:text-amber-950 font-bold",
 };
+
 
 // Lighter tint for scheduled-but-empty rota cells (still clear day vs night separation)
 export const UNIFIED_SHIFT_TINTS: Record<string, string> = {

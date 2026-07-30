@@ -37,27 +37,10 @@ const CATEGORY_ORDER: Record<string, number> = {
 
 const DENOMS = [10000, 5000, 2000, 1000];
 
-const parseValue = (val: string | null | undefined) => {
-  if (!val) return { kind: "empty" as const, hours: 0 };
-  if (val === "A") return { kind: "absent" as const, hours: 0 };
-  if (val === "SP") return { kind: "suspend" as const, hours: 0 };
-  if (val === "S") return { kind: "sick" as const, hours: 0 };
-  const m = /^(\d+)(S?)$/.exec(val);
-  if (m) {
-    const n = parseInt(m[1], 10);
-    if (!isNaN(n)) return { kind: m[2] ? "hours-sick" as const : "hours" as const, hours: n };
-  }
-  return { kind: "empty" as const, hours: 0 };
-};
+import { parseAttValue as parseValue, normalizeAttInput as normalizeAttRaw } from "@/lib/attendance-code";
 
-const normalizeAttInput = (raw: string): string => {
-  const v = raw.trim().toUpperCase();
-  if (!v) return "";
-  if (v === "A" || v === "S") return v;
-  const m = /^(\d{1,2})(S?)$/.exec(v);
-  if (m) return `${parseInt(m[1], 10)}${m[2]}`;
-  return v;
-};
+const normalizeAttInput = (raw: string): string | null => normalizeAttRaw(raw);
+
 
 const fmtMoney = (n: number) =>
   new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(Math.round(n)).replace(/,/g, " ");
@@ -136,7 +119,7 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
         const att = (attDraft[key] ?? attMap.get(key)) ?? "";
         const shift = rotaMap.get(key) ?? "";
         const p = parseValue(att);
-        if (p.kind === "hours" || p.kind === "hours-sick") hours += p.hours;
+        hours += p.hours;
         if (isExtraShift(shift)) extraComputed += 1;
         return { att, shift, parsed: p, key, day };
       });
@@ -210,7 +193,9 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
 
   const commitAtt = (dealerId: string, date: string, raw: string, original: string) => {
     const norm = normalizeAttInput(raw);
+    if (norm === null) return;
     if (norm === (original || "")) return;
+
     setAtt.mutate({ dealer_id: dealerId, date, value: norm });
     setCalculated(false);
   };
@@ -363,10 +348,10 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
                     </td>
                     {r.cells.map((c, i) => {
                       const p = c.parsed;
-                      const isStatus = p.kind === "absent" || p.kind === "sick";
+                      const isStatus = p.kind === "absent" || p.kind === "sick" || p.kind === "late";
                       const isSuspend = p.kind === "suspend";
                       const isHours = p.kind === "hours";
-                      const isHoursSick = p.kind === "hours-sick";
+                      const isHoursSick = p.kind === "hours-sick" || p.kind === "hours-late";
                       const isScheduled = !!c.shift;
                       const isEmpty = p.kind === "empty";
                       const cellCls = isSuspend

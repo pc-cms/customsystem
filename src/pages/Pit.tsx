@@ -18,6 +18,8 @@ import TableTracker from "@/pages/TableTracker";
 import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, isExtraShift } from "@/lib/shift-colors";
+import { parseAttValue, normalizeAttInput, isStatusCode } from "@/lib/attendance-code";
+
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PitShell } from "@/components/pit/PitShell";
@@ -955,38 +957,16 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   };
 
   // Parse attendance value into kind + numeric hours.
-  // Supported: "" | "A" | "S" | "<n>" | "<n>S" (worked n hours then went sick mid-shift)
-  const parseValue = (val: string): { kind: "empty" | "absent" | "sick" | "hours" | "hours-sick"; hours: number } => {
-    if (val === "") return { kind: "empty", hours: 0 };
-    if (val === "A") return { kind: "absent", hours: 0 };
-    if (val === "S") return { kind: "sick", hours: 0 };
-    const m = val.match(/^(\d+(?:\.\d+)?)(S?)$/i);
-    if (m) {
-      const n = Number(m[1]);
-      if (!isNaN(n)) return { kind: m[2] ? "hours-sick" : "hours", hours: n };
-    }
-    return { kind: "empty", hours: 0 };
-  };
+  // Supported: "" | A | S | SP | L | <n> | <n>S | <n>L
+  const parseValue = parseAttValue;
 
   const handleSave = (dealerId: string, day: number, val: string) => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-    const trimmed = val.trim().toUpperCase();
-    if (trimmed === "") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "" }); return; }
-    if (trimmed === "A" || trimmed === "S" || trimmed === "SP") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: trimmed }); return; }
-    // Shift code shortcuts: M/EM=11h, N/EN/ED/G=8h
-    if (trimmed === "M" || trimmed === "EM") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "11" }); return; }
-    if (trimmed === "N" || trimmed === "EN" || trimmed === "ED" || trimmed === "G") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "8" }); return; }
-    const ms = trimmed.match(/^(\d+(?:\.\d+)?)S$/);
-    if (ms) {
-      const n = Number(ms[1]);
-      if (!isNaN(n) && n >= 0 && n <= 24) {
-        setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: `${n}S` });
-      }
-      return;
-    }
-    const num = Number(trimmed);
-    if (!isNaN(num) && num >= 0 && num <= 24) { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: String(num) }); }
+    const next = normalizeAttInput(val);
+    if (next === null) return;
+    setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: next });
   };
+
 
   // Auto-fill: a day is auto-filled with 9 hours ONLY if its business day has
   // been CLOSED (record exists in `business_day_closures`). The current open
@@ -1045,24 +1025,28 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     let hours = 0;
     let absent = 0;
     let sick = 0;
+    let late = 0;
     days.forEach(day => {
       const val = getValue(dealerId, day);
       const p = parseValue(val);
       if (p.kind === "absent") { absent += 1; return; }
       if (p.kind === "sick") { sick += 1; return; }
+      if (p.kind === "suspend") { absent += 1; return; }
+      if (p.kind === "late") { late += 1; return; }
       if (p.kind === "hours" && p.hours > 0) {
         shifts += 1;
         hours += p.hours;
         return;
       }
-      if (p.kind === "hours-sick") {
-        // Counts both: worked hours AND a sick day.
-        sick += 1;
+      if (p.kind === "hours-sick" || p.kind === "hours-late") {
+        // Counts both: worked hours AND the incident (sick / late).
+        if (p.kind === "hours-sick") sick += 1; else late += 1;
         if (p.hours > 0) { shifts += 1; hours += p.hours; }
       }
     });
-    return { shifts, hours, absent, sick };
+    return { shifts, hours, absent, sick, late };
   };
+
 
   const renderAttendanceRows = (dealerList: any[], label: string, accentColor: string) => (
     <>
@@ -1092,24 +1076,29 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
               const dateObj = new Date(y, m - 1, day);
               const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
               const parsed = parseValue(val);
-              const isStatus = parsed.kind === "absent" || parsed.kind === "sick";
+              const isStatus = isStatusCode(parsed.kind);
               const isHoursSick = parsed.kind === "hours-sick";
+              const isHoursLate = parsed.kind === "hours-late";
               const isHours = parsed.kind === "hours";
               const rotaShift = getRotaShift(dealer.id, day);
               const isScheduled = !!rotaShift;
               const isEmpty = val === "";
-              const displayVal = isHoursSick ? String(parsed.hours) : val;
-              const cellTitle = isHoursSick ? `Sick — worked ${parsed.hours}h then went home` : undefined;
+              const cellTitle = isHoursSick
+                ? `Sick — worked ${parsed.hours}h then went home`
+                : isHoursLate ? `Late — worked ${parsed.hours}h` : undefined;
               return (
                 <td key={day} className={`px-0.5 py-0.5 text-center border-l border-border/25 ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
                   <CellPicker
                     value={val || null}
-                    display={isHoursSick ? `${parsed.hours}S` : (val || (isScheduled && isEmpty ? rotaShift! : "·"))}
+                    display={val || (isScheduled && isEmpty ? rotaShift! : "·")}
                     title={cellTitle}
+
                     rows={[
                       { options: [
                         { value: "A", label: "A", className: ATT_COLORS["A"] },
                         { value: "S", label: "S", className: ATT_COLORS["S"] },
+                        { value: "L", label: "L", className: ATT_COLORS["L"] },
+                        { value: "SP", label: "SP", className: ATT_COLORS["SP"] },
                       ]},
                       { label: "Shifts", options: [
                         { value: "EM", label: "EM", className: UNIFIED_SHIFT_COLORS["EM"] },
@@ -1123,11 +1112,16 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                         value: `${n}S`, label: `${n}S`,
                         className: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
                       }))},
+                      { label: "Late — worked Nh", options: [4,6,8,9,10,11,12].map(n => ({
+                        value: `${n}L`, label: `${n}L`,
+                        className: "bg-amber-400/20 text-amber-800 dark:text-amber-200",
+                      }))},
                     ]}
                     onSelect={(v) => handleSave(dealer.id, day, v ?? "")}
                     onKeyDown={e => {
                       const k = e.key.toUpperCase();
-                      if (k === "A" || k === "S") { e.preventDefault(); handleSave(dealer.id, day, k); return; }
+                      if (k === "A" || k === "S" || k === "L") { e.preventDefault(); handleSave(dealer.id, day, k); return; }
+
                       if (k === "E") {
                         e.preventDefault();
                         const current = getValue(dealer.id, day);
@@ -1142,8 +1136,10 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                     }}
                     cellClassName={`w-full h-8 rounded text-xs font-mono font-semibold text-center focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
                       isStatus
-                        ? `${ATT_COLORS[val]} ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset`
+                        ? `${ATT_COLORS[val] || ATT_COLORS["A"]} ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset`
+                        : isHoursLate ? "bg-transparent text-card-foreground font-bold ring-2 ring-amber-500/80 dark:ring-amber-400/80 ring-inset cursor-help"
                         : isHoursSick ? "bg-transparent text-card-foreground font-bold ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset cursor-help"
+
                         : isHours
                           ? isExtraShift(rotaShift)
                             ? "bg-transparent text-card-foreground font-bold ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset"

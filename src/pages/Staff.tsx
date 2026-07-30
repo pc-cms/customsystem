@@ -24,6 +24,8 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
+import { parseAttValue, normalizeAttInput, isStatusCode } from "@/lib/attendance-code";
+
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { CellPicker } from "@/components/grids/CellPicker";
 import { useRotaLock, type RotaScope } from "@/hooks/use-rota-lock";
@@ -979,15 +981,11 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
 
   const handleSave = (staffId: string, day: number, val: string) => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-    const trimmed = val.trim().toUpperCase();
-    if (trimmed === "") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: "" }); return; }
-    if (trimmed === "A" || trimmed === "S" || trimmed === "SP") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: trimmed }); return; }
-    // Shift code shortcuts: EM=11h, EN/ED/G=8h
-    if (trimmed === "EM") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: "11" }); return; }
-    if (trimmed === "EN" || trimmed === "ED" || trimmed === "G") { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: "8" }); return; }
-    const num = Number(trimmed);
-    if (!isNaN(num) && num >= 0 && num <= 24) { setAttendance.mutate({ staff_id: staffId, date: dateStr, value: String(num) }); }
+    const next = normalizeAttInput(val);
+    if (next === null) return;
+    setAttendance.mutate({ staff_id: staffId, date: dateStr, value: next });
   };
+
 
   // Auto-fill: a day is auto-filled with 9 hours ONLY if its business day has
   // been CLOSED (record exists in `business_day_closures`). The current open
@@ -1036,18 +1034,19 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
     let hours = 0;
     let absent = 0;
     let sick = 0;
+    let late = 0;
     days.forEach(day => {
-      const val = getValue(staffId, day);
-      if (val === "A") { absent += 1; return; }
-      if (val === "S") { sick += 1; return; }
-      const num = Number(val);
-      if (!isNaN(num) && num > 0) {
-        shifts += 1;
-        hours += num;
-      }
+      const p = parseAttValue(getValue(staffId, day));
+      if (p.kind === "absent" || p.kind === "suspend") { absent += 1; return; }
+      if (p.kind === "sick") { sick += 1; return; }
+      if (p.kind === "late") { late += 1; return; }
+      if (p.kind === "hours-sick") sick += 1;
+      if (p.kind === "hours-late") late += 1;
+      if (p.hours > 0) { shifts += 1; hours += p.hours; }
     });
-    return { shifts, hours, absent, sick };
+    return { shifts, hours, absent, sick, late };
   };
+
 
   const visibleDepts = filterDept === "all" ? groupDepts : groupDepts.filter(d => d === filterDept);
 
@@ -1208,37 +1207,59 @@ const AttendanceDepartmentBlock = ({
             const isToday = isCurrentMonth && day === todayDay;
             const dateObj = new Date(y, m - 1, day);
             const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-            const isStatus = val === "A" || val === "S";
-            const isHours = val !== "" && !isStatus;
+            const parsed = parseAttValue(val);
+            const isStatus = isStatusCode(parsed.kind);
+            const isHoursSick = parsed.kind === "hours-sick";
+            const isHoursLate = parsed.kind === "hours-late";
+            const isHours = parsed.kind === "hours";
             const rotaShift = getRotaShift(staff.id, day);
             const isScheduled = !!rotaShift;
             const isEmpty = val === "";
+            const cellTitle = isHoursSick
+              ? `Sick — worked ${parsed.hours}h then went home`
+              : isHoursLate ? `Late — worked ${parsed.hours}h` : undefined;
             return (
               <td key={day} className={`px-0.5 py-0.5 text-center border-l border-border/25 ${isToday ? "bg-primary/25" : isWeekend ? "bg-muted/15" : ""}`}>
                 <CellPicker
                   value={val || null}
                   display={val || (isScheduled && isEmpty ? rotaShift! : "·")}
+                  title={cellTitle}
                   rows={[
                     { options: [
                       { value: "A", label: "A", className: ATT_COLORS["A"] },
                       { value: "S", label: "S", className: ATT_COLORS["S"] },
+                      { value: "L", label: "L", className: ATT_COLORS["L"] },
+                      { value: "SP", label: "SP", className: ATT_COLORS["SP"] },
                     ]},
                     { label: "Hours", options: Array.from({ length: 12 }, (_, i) => i + 1).map(n => ({
                       value: String(n), label: String(n),
                       className: "bg-card-foreground/5 text-card-foreground",
                     }))},
+                    { label: "Sick after Nh", options: [4,6,8,9,10,11,12].map(n => ({
+                      value: `${n}S`, label: `${n}S`,
+                      className: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+                    }))},
+                    { label: "Late — worked Nh", options: [4,6,8,9,10,11,12].map(n => ({
+                      value: `${n}L`, label: `${n}L`,
+                      className: "bg-amber-400/20 text-amber-800 dark:text-amber-200",
+                    }))},
                   ]}
                   onSelect={(v) => handleSave(staff.id, day, v ?? "")}
                   onKeyDown={e => {
                     const k = e.key.toUpperCase();
-                    if (k === "A" || k === "S") { e.preventDefault(); handleSave(staff.id, day, k); return; }
+                    if (k === "A" || k === "S" || k === "L") { e.preventDefault(); handleSave(staff.id, day, k); return; }
                     if (/^[0-9]$/.test(k)) { e.preventDefault(); handleSave(staff.id, day, k); return; }
                     if (k === "BACKSPACE" || k === "DELETE") { e.preventDefault(); handleSave(staff.id, day, ""); return; }
                   }}
                   cellClassName={`w-full h-8 rounded text-xs font-mono font-semibold text-center focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
                     isStatus
-                      ? ATT_COLORS[val]
+                      ? (ATT_COLORS[val] || ATT_COLORS["A"])
+                      : isHoursLate
+                        ? "bg-transparent text-card-foreground font-bold ring-2 ring-amber-500/80 dark:ring-amber-400/80 ring-inset cursor-help"
+                      : isHoursSick
+                        ? "bg-transparent text-card-foreground font-bold ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset cursor-help"
                       : isHours
+
                         ? "bg-transparent text-card-foreground font-bold"
                         : isScheduled && isEmpty
                           ? `${UNIFIED_SHIFT_TINTS[rotaShift!] || "bg-muted/30 text-muted-foreground"}`

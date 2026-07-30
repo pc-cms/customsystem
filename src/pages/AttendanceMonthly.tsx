@@ -100,7 +100,8 @@ const AttendanceMonthly = () => {
         const code = (r.raw_value || "").toUpperCase();
         hours += h;
         if (h > 0) dWorked += 1;
-        if (code === "L" || code === "S") leave += 1;
+        if (code === "L" || code === "S" || code === "SP" || /^[0-9.]+[SL]$/.test(code)) leave += 1;
+
         if (r.is_holiday) holH += h;
         if (h > 9) otH += h - 9;
       }
@@ -202,7 +203,9 @@ const AttendanceMonthly = () => {
                           const h = cell?.effective_hours || 0;
                           const display =
                             cell?.manual_hours != null ? fmtNum(Number(cell.manual_hours)) :
+                            /^[0-9]+(\.[0-9]+)?[SL]$/.test(code) ? code :
                             h > 0 ? fmtNum(h) :
+
                             code === "A" ? "A" :
                             code === "SP" ? "SP" :
                             code === "L" ? "L" :
@@ -227,20 +230,28 @@ const AttendanceMonthly = () => {
                             cls = "";
                             pillCls = "inline-flex items-center justify-center min-w-[22px] px-1 rounded text-[11px] font-extrabold bg-amber-400 text-amber-950 dark:bg-amber-500 dark:text-amber-950 shadow-sm";
                           }
+                          const suffixed = /^([0-9]+(?:\.[0-9]+)?)([SL])$/.exec(code);
+                          if (suffixed) {
+                            cls = "";
+                            pillCls = suffixed[2] === "S"
+                              ? "inline-flex items-center justify-center min-w-[22px] px-1 rounded text-[11px] font-bold bg-transparent text-foreground ring-2 ring-red-500/80 ring-inset"
+                              : "inline-flex items-center justify-center min-w-[22px] px-1 rounded text-[11px] font-bold bg-transparent text-foreground ring-2 ring-amber-500/80 ring-inset";
+                          }
                           const cellBg = hol ? "bg-amber-100/50 dark:bg-amber-900/20" : "";
                           return (
                             <td
                               key={d}
                               className={`text-center border-l border-border px-0.5 py-0.5 ${cellBg}`}
                               onClick={canEdit ? () => {
-                                const v = prompt(`Hours OR code (A/S/SP/L) for ${displayName(e)} on ${d} ${MONTHS[cursor.getMonth()]} (current ${display}):`, h ? String(h) : code || "");
+                                const v = prompt(`Hours OR code (A/S/SP/L, or 8S / 4L) for ${displayName(e)} on ${d} ${MONTHS[cursor.getMonth()]} (current ${display}):`, h ? String(h) : code || "");
                                 if (v === null) return;
                                 const trimmed = v.trim().toUpperCase();
                                 const dateStr = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-                                if (trimmed === "" || trimmed === "A" || trimmed === "S" || trimmed === "SP" || trimmed === "L") {
+                                if (trimmed === "" || trimmed === "A" || trimmed === "S" || trimmed === "SP" || trimmed === "L" || /^[0-9]+(\.[0-9]+)?[SL]$/.test(trimmed)) {
                                   setCode.mutate({ employee_id: e.meta.employee_id, date: dateStr, department: e.meta.department, value: trimmed });
                                   return;
                                 }
+
                                 const n = Number(trimmed);
                                 if (Number.isFinite(n) && n >= 0 && n <= 24) {
                                   setHours.mutate({ employee_id: e.meta.employee_id, date: dateStr, hours: n });
