@@ -119,7 +119,7 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
         const att = (attDraft[key] ?? attMap.get(key)) ?? "";
         const shift = rotaMap.get(key) ?? "";
         const p = parseValue(att);
-        if (p.kind === "hours" || p.kind === "hours-sick") hours += p.hours;
+        hours += p.hours;
         if (isExtraShift(shift)) extraComputed += 1;
         return { att, shift, parsed: p, key, day };
       });
