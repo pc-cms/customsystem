@@ -1136,8 +1136,10 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                     }}
                     cellClassName={`w-full h-8 rounded text-xs font-mono font-semibold text-center focus:outline-none focus:ring-1 focus:ring-primary transition-colors ${
                       isStatus
-                        ? `${ATT_COLORS[val]} ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset`
+                        ? `${ATT_COLORS[val] || ATT_COLORS["A"]} ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset`
+                        : isHoursLate ? "bg-transparent text-card-foreground font-bold ring-2 ring-amber-500/80 dark:ring-amber-400/80 ring-inset cursor-help"
                         : isHoursSick ? "bg-transparent text-card-foreground font-bold ring-2 ring-red-500/80 dark:ring-red-400/80 ring-inset cursor-help"
+
                         : isHours
                           ? isExtraShift(rotaShift)
                             ? "bg-transparent text-card-foreground font-bold ring-2 ring-purple-500/70 dark:ring-purple-400/70 ring-inset"
