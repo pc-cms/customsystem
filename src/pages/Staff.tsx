@@ -1034,18 +1034,19 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
     let hours = 0;
     let absent = 0;
     let sick = 0;
+    let late = 0;
     days.forEach(day => {
-      const val = getValue(staffId, day);
-      if (val === "A") { absent += 1; return; }
-      if (val === "S") { sick += 1; return; }
-      const num = Number(val);
-      if (!isNaN(num) && num > 0) {
-        shifts += 1;
-        hours += num;
-      }
+      const p = parseAttValue(getValue(staffId, day));
+      if (p.kind === "absent" || p.kind === "suspend") { absent += 1; return; }
+      if (p.kind === "sick") { sick += 1; return; }
+      if (p.kind === "late") { late += 1; return; }
+      if (p.kind === "hours-sick") sick += 1;
+      if (p.kind === "hours-late") late += 1;
+      if (p.hours > 0) { shifts += 1; hours += p.hours; }
     });
-    return { shifts, hours, absent, sick };
+    return { shifts, hours, absent, sick, late };
   };
+
 
   const visibleDepts = filterDept === "all" ? groupDepts : groupDepts.filter(d => d === filterDept);
 
