@@ -285,11 +285,17 @@ export function SmartTable<T>({
         ...c,
         style: { ...c.style, position: "sticky" as const, left: stickyColumns[i], zIndex: 5 },
         headerClassName: cn(c.headerClassName, "!bg-muted z-30"),
-        cellClassName: (row: T) =>
-          cn(typeof base === "function" ? base(row) : base, "bg-card"),
+        // Keep the row's own (opaque) highlight when the caller provides one —
+        // otherwise fall back to an opaque card background so scrolled rows
+        // never bleed through the frozen columns.
+        cellClassName: (row: T) => {
+          const b = cn(typeof base === "function" ? base(row) : base);
+          return cn(b, !/(^|\s)!?bg-/.test(b) && "bg-card");
+        },
       };
     });
   }, [rawCols, stickyColumns]);
+
 
   const sortedData = React.useMemo(() => {
     if (!activeSort) return data;
