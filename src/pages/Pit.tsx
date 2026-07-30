@@ -955,38 +955,16 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   };
 
   // Parse attendance value into kind + numeric hours.
-  // Supported: "" | "A" | "S" | "<n>" | "<n>S" (worked n hours then went sick mid-shift)
-  const parseValue = (val: string): { kind: "empty" | "absent" | "sick" | "hours" | "hours-sick"; hours: number } => {
-    if (val === "") return { kind: "empty", hours: 0 };
-    if (val === "A") return { kind: "absent", hours: 0 };
-    if (val === "S") return { kind: "sick", hours: 0 };
-    const m = val.match(/^(\d+(?:\.\d+)?)(S?)$/i);
-    if (m) {
-      const n = Number(m[1]);
-      if (!isNaN(n)) return { kind: m[2] ? "hours-sick" : "hours", hours: n };
-    }
-    return { kind: "empty", hours: 0 };
-  };
+  // Supported: "" | A | S | SP | L | <n> | <n>S | <n>L
+  const parseValue = parseAttValue;
 
   const handleSave = (dealerId: string, day: number, val: string) => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-    const trimmed = val.trim().toUpperCase();
-    if (trimmed === "") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "" }); return; }
-    if (trimmed === "A" || trimmed === "S" || trimmed === "SP") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: trimmed }); return; }
-    // Shift code shortcuts: M/EM=11h, N/EN/ED/G=8h
-    if (trimmed === "M" || trimmed === "EM") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "11" }); return; }
-    if (trimmed === "N" || trimmed === "EN" || trimmed === "ED" || trimmed === "G") { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: "8" }); return; }
-    const ms = trimmed.match(/^(\d+(?:\.\d+)?)S$/);
-    if (ms) {
-      const n = Number(ms[1]);
-      if (!isNaN(n) && n >= 0 && n <= 24) {
-        setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: `${n}S` });
-      }
-      return;
-    }
-    const num = Number(trimmed);
-    if (!isNaN(num) && num >= 0 && num <= 24) { setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: String(num) }); }
+    const next = normalizeAttInput(val);
+    if (next === null) return;
+    setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: next });
   };
+
 
   // Auto-fill: a day is auto-filled with 9 hours ONLY if its business day has
   // been CLOSED (record exists in `business_day_closures`). The current open
