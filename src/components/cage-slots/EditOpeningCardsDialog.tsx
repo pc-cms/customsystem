@@ -16,6 +16,8 @@ interface Props {
   shift: Tables<"cage_slots_shifts">;
   currentValue: number;
   cardDepositValue?: number;
+  /** Prefilled new value (e.g. from quick +1 / −1 buttons). Defaults to currentValue. */
+  initialValue?: number;
   open: boolean;
   onClose: () => void;
 }
@@ -25,14 +27,16 @@ interface Props {
  * already-open slots cage shift. Records before/after to activity_logs.
  * Analog of EditOpeningChipsDialog for Live Game cage chips.
  */
-const EditOpeningCardsDialog = ({ shift, currentValue, cardDepositValue, open, onClose }: Props) => {
+const EditOpeningCardsDialog = ({ shift, currentValue, cardDepositValue, initialValue, open, onClose }: Props) => {
   const { casinoId } = useAuth();
   const qc = useQueryClient();
+
+  const seed = initialValue ?? currentValue;
 
   const [showOverride, setShowOverride] = useState(true);
   const [unlocked, setUnlocked] = useState(false);
   const [managerId, setManagerId] = useState<string | null>(null);
-  const [newCount, setNewCount] = useState<number>(currentValue);
+  const [newCount, setNewCount] = useState<number>(seed);
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -41,7 +45,7 @@ const EditOpeningCardsDialog = ({ shift, currentValue, cardDepositValue, open, o
       setShowOverride(true);
       setUnlocked(false);
       setManagerId(null);
-      setNewCount(currentValue);
+      setNewCount(seed);
       setReason("");
       onClose();
     }
@@ -51,7 +55,7 @@ const EditOpeningCardsDialog = ({ shift, currentValue, cardDepositValue, open, o
     setManagerId(mgrId);
     setUnlocked(true);
     setShowOverride(false);
-    setNewCount(currentValue);
+    setNewCount(seed);
   };
 
   const delta = newCount - currentValue;
