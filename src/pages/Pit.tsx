@@ -911,6 +911,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                 <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">M</th>
                 <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">N</th>
                 <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">E</th>
+                <th className="text-center text-[10px] font-medium text-primary uppercase px-1 py-2 w-10" title="Planned hours (forecast)">Σh</th>
               </tr>
               {renderDealerRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400", "no-print", true)}
             </>
