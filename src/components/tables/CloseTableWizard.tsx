@@ -46,7 +46,17 @@ type Props = {
   asPage?: boolean;
 };
 
-export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false, asPage = false }: Props) => {
+export const CloseTableWizard = ({ open, onClose, tables, date: dateProp, readOnly = false, asPage = false }: Props) => {
+  // Closing belongs to the business day of the OPEN shift, not to the calendar
+  // business day at the moment of saving. Closing tables after the 07:00 EAT
+  // rollover must still land on the shift's day.
+  const { data: activeShift } = useActiveShift();
+  const date = useMemo(() => {
+    const openedAt = (activeShift as any)?.opened_at;
+    if (!openedAt) return dateProp;
+    return businessDateOf(openedAt);
+  }, [activeShift, dateProp]);
+
   // Only OPEN tables enter the wizard (closed tables are already done)
   const wizardTables = useMemo(
     () => tables.filter(t => t.status === "open").sort((a, b) => a.name.localeCompare(b.name)),
@@ -59,6 +69,7 @@ export const CloseTableWizard = ({ open, onClose, tables, date, readOnly = false
 
   const { data: baseline = [] } = useChipBaseline();
   const { data: snapshots = [] } = useChipSnapshots(date);
+
   const { data: chipColorOverrides } = useChipColors();
   const baselineMap = useMemo(() => baselineToMap(baseline), [baseline]);
   const setSingleResult = useSetSingleTableResult();
