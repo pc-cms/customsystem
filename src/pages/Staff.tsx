@@ -946,7 +946,11 @@ const DepartmentBlock = ({
 );
 
 // =================== STAFF ATTENDANCE GRID ===================
+const NEW_SHIFT_GRID_FROM = "2026-08-01";
+
 const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly = false }: { month: string; monthLabel: string; groupKey?: RotaGroupKey; readOnly?: boolean }) => {
+  const { activeCasino } = useCasino();
+  const newShiftGrid = usesArushaShiftGrid(activeCasino);
   const group = ROTA_GROUPS[groupKey];
   const groupDepts = group.departments as readonly StaffDepartment[];
   const [y, m] = month.split("-").map(Number);
