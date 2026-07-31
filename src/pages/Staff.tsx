@@ -16,7 +16,7 @@ import {
   useStaffRotaRange, useSetStaffRota,
   useDeleteStaffRota, useStaffAttendanceRange, useSetStaffAttendance,
   DEPARTMENT_LABELS, DEPARTMENT_ORDER, STAFF_SHIFT_LABELS, STAFF_SHIFT_COLORS,
-  ROTA_GROUPS, getRotaGroup, type StaffDepartment, type RotaGroupKey,
+  ROTA_GROUPS, getRotaGroup, usesArushaShiftGrid, type StaffDepartment, type RotaGroupKey,
 } from "@/hooks/use-staff";
 import { useCasino } from "@/lib/casino-context";
 import { Trash2 } from "lucide-react";
