@@ -755,11 +755,15 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
 
   const getDealerStats = (dealerId: string) => {
     const counts: Record<string, number> = {};
+    let hours = 0;
     days.forEach(day => {
       const display = getDisplayShift(dealerId, day);
-      if (display) counts[display.shift] = (counts[display.shift] || 0) + 1;
+      if (display) {
+        counts[display.shift] = (counts[display.shift] || 0) + 1;
+        hours += predictedShiftHours(display.shift, "pit");
+      }
     });
-    return counts;
+    return { counts, hours };
   };
 
   const renderDealerRows = (dealerList: any[], label: string, accentColor: string, extraRowClass = "", forcePitBoss = false) => (
