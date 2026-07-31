@@ -34,6 +34,7 @@ const PIT_ARUSHA_HOURS: Record<string, number> = {
   N: 10,
   E: 11,
   EM: 11,
+  ESW: 11,
   EN: 10,
   T: 6,
 };
@@ -45,7 +46,7 @@ export function predictedShiftHours(shift: string | null | undefined, scope: Shi
   if (scope === "staff") return STAFF_HOURS[s] ?? 8;
   if (scope === "pit_arusha") return PIT_ARUSHA_HOURS[s] ?? 11;
   if (s === "M" || s === "EM") return 11;
-  if (s === "SW") return 11;
+  if (s === "SW" || s === "ESW") return 11;
   if (s === "N" || s === "EN" || s === "G") return 8;
   return 9;
 }

@@ -32,7 +32,7 @@ import RotaLockButton from "@/components/rota/RotaLockButton";
 import RotaExcelButtons from "@/components/rota/RotaExcelButtons";
 
 
-const ROTA_SHIFTS = ["M", "SW", "N", "L", "EM", "EN", "O"] as const;
+const ROTA_SHIFTS = ["M", "SW", "N", "L", "EM", "ESW", "EN", "O"] as const;
 
 const SHIFT_COLORS = UNIFIED_SHIFT_COLORS;
 
@@ -42,9 +42,10 @@ const SHIFT_LABELS: Record<string, string> = {
   SW: "19:00 · 11h",
   N: "20:45 · 8h",
   L: "Leave · 0h",
-  E: "17:45 · 11h",
-  EM: "17:45 · 11h",
-  EN: "20:45 · 8h",
+  E: "Extra · 11h",
+  EM: "Extra M · 17:45 · 11h",
+  ESW: "Extra SW · 19:00 · 11h",
+  EN: "Extra N · 20:45 · 8h",
   O: "Off · 0h",
 };
 
@@ -54,9 +55,10 @@ const ARUSHA_PIT_SHIFT_LABELS: Record<string, string> = {
   SW: "19:00–06:00 · 11h",
   N: "20:00–06:00 · 10h",
   L: "Leave · 0h",
-  E: "18:00 · 11h",
-  EM: "18:00 · 11h",
-  EN: "20:00 · 10h",
+  E: "Extra · 11h",
+  EM: "Extra M · 18:00 · 11h",
+  ESW: "Extra SW · 19:00 · 11h",
+  EN: "Extra N · 20:00 · 10h",
   O: "Off · 0h",
 };
 
@@ -716,11 +718,11 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   const handleKeyDown = (e: React.KeyboardEvent, dealerId: string, day: number) => {
     const key = e.key.toUpperCase();
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-    // Pressing "E" toggles between Extra Middle (EM) and Extra Night (EN).
+    // Pressing "E" cycles Extra shifts: EM → ESW → EN → EM.
     if (key === "E") {
       e.preventDefault();
       const current = getRotaEntry(dealerId, day)?.shift;
-      const next = current === "EM" ? "EN" : "EM";
+      const next = current === "EM" ? "ESW" : current === "ESW" ? "EN" : "EM";
       setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: next as any });
       focusNextCell(e.target as HTMLElement);
       return;
@@ -854,7 +856,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
             })}
             <td className="px-2 py-1 text-center border-l border-border/25"><span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">{stats.counts["M"] || ""}</span></td>
             <td className="px-2 py-1 text-center"><span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">{stats.counts["N"] || ""}</span></td>
-            <td className="px-2 py-1 text-center"><span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">{((stats.counts["E"] || 0) + (stats.counts["EM"] || 0) + (stats.counts["EN"] || 0)) || ""}</span></td>
+            <td className="px-2 py-1 text-center"><span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">{((stats.counts["E"] || 0) + (stats.counts["EM"] || 0) + (stats.counts["ESW"] || 0) + (stats.counts["EN"] || 0)) || ""}</span></td>
             <td className="px-2 py-1 text-center border-l border-border/25"><span className="text-xs font-mono font-bold text-primary">{stats.hours || ""}</span></td>
           </tr>
         );
@@ -960,6 +962,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   const startDate = `${month}-01`;
   const endDate = `${month}-${String(daysInMonth).padStart(2, "0")}`;
 
+  const { activeCasino: activeCasinoForAtt } = useCasino();
   const { data: dealers = [] } = useDealers();
   const { data: monthAttendance = [], isSuccess: attendanceLoaded, isFetching: attendanceFetching } = useDealerAttendanceRange(startDate, endDate);
   const { data: rota = [], isSuccess: rotaLoaded } = usePitRotaRange(startDate, endDate);
@@ -974,12 +977,14 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   const activeDealers = dealers.filter((d: any) => d.is_active && !d.is_pit_boss);
   const pitBosses = dealers.filter((d: any) => d.is_active && d.is_pit_boss);
 
+  const attHoursScope = usesArushaShiftGrid(activeCasinoForAtt) ? "pit_arusha" : "pit";
+
   const getRotaShift = (dealerId: string, day: number): string | null => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const entry = rota.find((r: any) => r.dealer_id === dealerId && r.date === dateStr);
     if (!entry) return null;
     const s = entry.shift as string;
-    return (s === "M" || s === "N" || s === "G" || isExtraShift(s)) ? s : null;
+    return (s === "M" || s === "SW" || s === "N" || s === "G" || isExtraShift(s)) ? s : null;
   };
 
   const today = new Date();
@@ -1036,18 +1041,14 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
         if (autoFilledRef.current.has(key)) continue;
 
         const rotaShift = getRotaShift(d.id, day);
-        if (rotaShift !== "M" && rotaShift !== "N" && rotaShift !== "G" && !isExtraShift(rotaShift)) continue;
+        if (rotaShift !== "M" && rotaShift !== "SW" && rotaShift !== "N" && rotaShift !== "G" && !isExtraShift(rotaShift)) continue;
 
         const current = getValue(d.id, day);
         if (current !== "") continue;
 
-        // Shift-aware auto-fill hours:
-        //   M  / EM → 11   (Middle, Extra Middle)
-        //   N  / EN / G → 8    (Night, Extra Night, Graveyard)
-        // Applies to all dealers and Pit Bosses uniformly.
-        let fillValue = "9"; // fallback for unrecognized shift codes
-        if (rotaShift === "M" || rotaShift === "EM") fillValue = "11";
-        else if (rotaShift === "N" || rotaShift === "EN" || rotaShift === "G") fillValue = "8";
+        // Shift-aware auto-fill hours — Extra shifts mirror their base shift
+        // (EM=M, ESW=SW, EN=N) and the Arusha grid uses its own hours.
+        const fillValue = String(predictedShiftHours(rotaShift, attHoursScope) || 9);
 
         autoFilledRef.current.add(key);
         setAttendanceRaw.mutate({ dealer_id: d.id, date: dateStr, value: fillValue });
@@ -1138,6 +1139,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                       ]},
                       { label: "Shifts", options: [
                         { value: "EM", label: "EM", className: UNIFIED_SHIFT_COLORS["EM"] },
+                        { value: "ESW", label: "ESW", className: UNIFIED_SHIFT_COLORS["ESW"] },
                         { value: "EN", label: "EN", className: UNIFIED_SHIFT_COLORS["EN"] },
                       ]},
                       { label: "Hours", options: Array.from({ length: 12 }, (_, i) => i + 1).map(n => ({
@@ -1161,9 +1163,8 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                       if (k === "E") {
                         e.preventDefault();
                         const current = getValue(dealer.id, day);
-                        // Toggle between EM (11h) and EN (8h) based on current saved value or rota
-                        const rotaShift = getRotaShift(dealer.id, day);
-                        const next = current === "11" || (current === "" && rotaShift === "EM") ? "EN" : "EM";
+                        // Cycle Extra shifts: EM → ESW → EN → EM
+                        const next = current === "EM" ? "ESW" : current === "ESW" ? "EN" : "EM";
                         handleSave(dealer.id, day, next);
                         return;
                       }
