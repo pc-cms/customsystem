@@ -378,6 +378,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   // Closing preview dialog (Live Game-style: review before submit-for-review).
   const [showClosingPreview, setShowClosingPreview] = useState(false);
   const [showEditOpeningCards, setShowEditOpeningCards] = useState(false);
+  const [openingCardsSeed, setOpeningCardsSeed] = useState<number | undefined>(undefined);
   
 
   const openClosingPreview = () => {
