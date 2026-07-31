@@ -289,7 +289,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
       {ROTA_SHIFTS.map(s => (
         <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${SHIFT_COLORS[s]}`}>
           <span className="font-bold">{s}</span>
-          <span className="opacity-80">{SHIFT_LABELS[s]}</span>
+          <span className="opacity-80">{pitLabels[s]}</span>
         </span>
       ))}
       {activeTab === "attendance" && (
