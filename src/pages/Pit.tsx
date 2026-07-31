@@ -94,6 +94,27 @@ const CATEGORY_COLORS: Record<string, string> = {
   pit_boss: "text-purple-700 bg-purple-100 dark:text-purple-400 dark:bg-purple-500/20",
 };
 
+/** Semi-transparent name-cell fill per dealer category (rota & attendance grids). */
+const CATEGORY_ROW_TINT: Record<string, string> = {
+  trainee: "bg-cyan-500/15",
+  dealer: "bg-blue-500/12",
+  inspector: "bg-amber-500/15",
+  expert: "bg-emerald-500/15",
+  pit_boss: "bg-purple-500/15",
+};
+
+/** Sort order for grids grouped by seniority. */
+const CATEGORY_SORT_ORDER = ["pit_boss", "expert", "inspector", "dealer", "trainee"];
+
+/** Sort a dealer list by category (seniority) or by name. */
+const sortByCategory = (list: any[], mode: "category" | "name") =>
+  [...list].sort((a, b) => {
+    if (mode === "name") return String(a.name).localeCompare(String(b.name));
+    const iA = CATEGORY_SORT_ORDER.indexOf(a.is_pit_boss ? "pit_boss" : a.category);
+    const iB = CATEGORY_SORT_ORDER.indexOf(b.is_pit_boss ? "pit_boss" : b.category);
+    return iA !== iB ? iA - iB : String(a.name).localeCompare(String(b.name));
+  });
+
 interface PitProps {
   forcedTab?: "breaklist" | "rota" | "attendance" | "employee" | "activeplayers" | "tabletracker";
 }
@@ -646,8 +667,9 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
     });
   }, [dealers, rolesAtMonth]);
 
-  const activeDealers = dealersForMonth.filter((d: any) => d.is_active && !d.is_pit_boss);
-  const pitBosses = dealersForMonth.filter((d: any) => d.is_active && d.is_pit_boss);
+  const [rotaSort, setRotaSort] = useSessionState<"category" | "name">("pitRotaSort", "category");
+  const activeDealers = sortByCategory(dealersForMonth.filter((d: any) => d.is_active && !d.is_pit_boss), rotaSort);
+  const pitBosses = sortByCategory(dealersForMonth.filter((d: any) => d.is_active && d.is_pit_boss), rotaSort);
 
   const today = new Date();
   const todayDay = today.getDate();
@@ -817,8 +839,10 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                 {CATEGORY_LETTER[catKey] || "?"}
               </span>
             </td>
-            <td className={`px-3 py-1 text-[13px] font-medium text-card-foreground sticky left-[28px] z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
-              <span className="text-muted-foreground font-mono mr-1.5">{idx + 1}.</span>{dealer.name}
+            <td className={`px-1 py-1 text-[13px] font-medium text-card-foreground sticky left-[28px] z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
+              <span className={`inline-flex items-center w-full rounded px-2 py-0.5 ${CATEGORY_ROW_TINT[catKey] || ""}`}>
+                <span className="text-muted-foreground font-mono mr-1.5">{idx + 1}.</span>{dealer.name}
+              </span>
             </td>
             {days.map(day => {
               const display = getDisplayShift(dealer.id, day);
@@ -867,6 +891,16 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   return (
     <>
       <div className="print-title hidden">{`Live Game Rota — ${month}`}</div>
+      <div className="flex items-center justify-end gap-2 mb-2 no-print">
+        <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Sort</span>
+        <Select value={rotaSort} onValueChange={v => setRotaSort(v as "category" | "name")}>
+          <SelectTrigger className="h-7 w-36 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="category">Category</SelectItem>
+            <SelectItem value="name">Name (A–Z)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <div className="cms-panel overflow-hidden print-target">
       <table className="w-full border-collapse table-fixed">
         <thead>
@@ -974,8 +1008,9 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     setAttendanceRaw.mutate(v);
   } };
 
-  const activeDealers = dealers.filter((d: any) => d.is_active && !d.is_pit_boss);
-  const pitBosses = dealers.filter((d: any) => d.is_active && d.is_pit_boss);
+  const [attSort, setAttSort] = useSessionState<"category" | "name">("pitAttSort", "category");
+  const activeDealers = sortByCategory(dealers.filter((d: any) => d.is_active && !d.is_pit_boss), attSort);
+  const pitBosses = sortByCategory(dealers.filter((d: any) => d.is_active && d.is_pit_boss), attSort);
 
   const attHoursScope = usesArushaShiftGrid(activeCasinoForAtt) ? "pit_arusha" : "pit";
 
@@ -1104,8 +1139,10 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                 {CATEGORY_LETTER[dealer.category] || "?"}
               </span>
             </td>
-            <td className={`px-3 py-1 text-[13px] font-medium text-card-foreground sticky left-[28px] z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
-              <span className="text-muted-foreground font-mono mr-1.5">{idx + 1}.</span>{dealer.name}
+            <td className={`px-1 py-1 text-[13px] font-medium text-card-foreground sticky left-[28px] z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
+              <span className={`inline-flex items-center w-full rounded px-2 py-0.5 ${CATEGORY_ROW_TINT[dealer.is_pit_boss ? "pit_boss" : dealer.category] || ""}`}>
+                <span className="text-muted-foreground font-mono mr-1.5">{idx + 1}.</span>{dealer.name}
+              </span>
             </td>
             {days.map(day => {
               const val = getValue(dealer.id, day);
@@ -1202,6 +1239,16 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   return (
     <>
       <div className="print-title hidden">{`Live Game Attendance — ${month}`}</div>
+      <div className="flex items-center justify-end gap-2 mb-2 no-print">
+        <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Sort</span>
+        <Select value={attSort} onValueChange={v => setAttSort(v as "category" | "name")}>
+          <SelectTrigger className="h-7 w-36 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="category">Category</SelectItem>
+            <SelectItem value="name">Name (A–Z)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <div className="cms-panel overflow-hidden print-target">
       <table className="w-full border-collapse table-fixed">
         <thead>
