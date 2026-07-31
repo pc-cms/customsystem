@@ -32,7 +32,7 @@ import RotaLockButton from "@/components/rota/RotaLockButton";
 import RotaExcelButtons from "@/components/rota/RotaExcelButtons";
 
 
-const ROTA_SHIFTS = ["M", "SW", "N", "L", "EM", "EN", "O"] as const;
+const ROTA_SHIFTS = ["M", "SW", "N", "L", "EM", "ESW", "EN", "O"] as const;
 
 const SHIFT_COLORS = UNIFIED_SHIFT_COLORS;
 
@@ -42,9 +42,10 @@ const SHIFT_LABELS: Record<string, string> = {
   SW: "19:00 · 11h",
   N: "20:45 · 8h",
   L: "Leave · 0h",
-  E: "17:45 · 11h",
-  EM: "17:45 · 11h",
-  EN: "20:45 · 8h",
+  E: "Extra · 11h",
+  EM: "Extra M · 17:45 · 11h",
+  ESW: "Extra SW · 19:00 · 11h",
+  EN: "Extra N · 20:45 · 8h",
   O: "Off · 0h",
 };
 
@@ -54,9 +55,10 @@ const ARUSHA_PIT_SHIFT_LABELS: Record<string, string> = {
   SW: "19:00–06:00 · 11h",
   N: "20:00–06:00 · 10h",
   L: "Leave · 0h",
-  E: "18:00 · 11h",
-  EM: "18:00 · 11h",
-  EN: "20:00 · 10h",
+  E: "Extra · 11h",
+  EM: "Extra M · 18:00 · 11h",
+  ESW: "Extra SW · 19:00 · 11h",
+  EN: "Extra N · 20:00 · 10h",
   O: "Off · 0h",
 };
 
