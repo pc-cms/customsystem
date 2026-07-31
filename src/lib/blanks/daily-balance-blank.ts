@@ -30,7 +30,7 @@ export const downloadDailyBalanceBlank = (dayColumns = 10) => {
     startY,
     head,
     body,
-    styles: { fontSize: 7.5, minCellHeight: 7 },
+    styles: { fontSize: 7, minCellHeight: 5.6, cellPadding: { top: 1.6, bottom: 1.6, left: 2, right: 2 } },
     columnStyles: { 0: { cellWidth: 45, halign: "left" } },
     margin: { left: 8, right: 8, bottom: 22 },
     didParseCell: (data) => {
