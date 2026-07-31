@@ -839,8 +839,10 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                 {CATEGORY_LETTER[catKey] || "?"}
               </span>
             </td>
-            <td className={`px-3 py-1 text-[13px] font-medium text-card-foreground sticky left-[28px] z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
-              <span className="text-muted-foreground font-mono mr-1.5">{idx + 1}.</span>{dealer.name}
+            <td className={`px-1 py-1 text-[13px] font-medium text-card-foreground sticky left-[28px] z-10 ${idx % 2 === 0 ? "bg-card" : "bg-card/95"}`}>
+              <span className={`inline-flex items-center w-full rounded px-2 py-0.5 ${CATEGORY_ROW_TINT[catKey] || ""}`}>
+                <span className="text-muted-foreground font-mono mr-1.5">{idx + 1}.</span>{dealer.name}
+              </span>
             </td>
             {days.map(day => {
               const display = getDisplayShift(dealer.id, day);
