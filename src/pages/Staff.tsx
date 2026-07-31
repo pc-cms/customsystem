@@ -988,7 +988,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
     const entry = rota.find((r: any) => r.staff_id === staffId && r.date === dateStr);
     if (!entry) return null;
     const s = entry.shift as string;
-    return (s === "D" || s === "N" || s === "G") ? s : null;
+    return (s === "MO" || s === "D" || s === "M" || s === "N" || s === "G") ? s : null;
   };
 
   const handleSave = (staffId: string, day: number, val: string) => {
@@ -1027,13 +1027,15 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
         if (autoFilledRef.current.has(key)) continue;
 
         const rotaShift = getRotaShift(s.id, day);
-        if (rotaShift !== "D" && rotaShift !== "N" && rotaShift !== "G") continue;
+        if (!rotaShift) continue;
 
         const current = getValue(s.id, day);
         if (current !== "") continue;
 
-        // Shift-aware: D = 8h, N = 8h.
-        const fillValue = "8";
+        // From 01.08.2026 on the new grid hours follow the shift (MO 6 / D 9 / M 12 / N 9).
+        // Everything before that keeps the historical flat 8h.
+        const useNewGrid = newShiftGrid && dateStr >= NEW_SHIFT_GRID_FROM;
+        const fillValue = useNewGrid ? String(predictedShiftHours(rotaShift, "staff")) : "8";
         autoFilledRef.current.add(key);
         setAttendanceRaw.mutate({ staff_id: s.id, date: dateStr, value: fillValue });
       }
