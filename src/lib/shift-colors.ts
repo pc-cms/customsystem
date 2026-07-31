@@ -2,6 +2,8 @@
 // D = Day (amber), M = Mid/Afternoon (teal), N = Night (sky), G = Graveyard (indigo)
 
 export const UNIFIED_SHIFT_COLORS: Record<string, string> = {
+  // Morning (staff, 06:00–12:00) — lime
+  MO: "bg-lime-300 text-lime-950 dark:bg-lime-500 dark:text-lime-950 font-bold",
   // Day — bright amber (high contrast vs Night)
   D: "bg-amber-300 text-amber-950 dark:bg-amber-400 dark:text-amber-950 font-bold",
   // Mid/Afternoon — bright teal (clearly distinct from Day amber and Night blue)
