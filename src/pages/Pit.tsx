@@ -962,6 +962,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   const startDate = `${month}-01`;
   const endDate = `${month}-${String(daysInMonth).padStart(2, "0")}`;
 
+  const { activeCasino: activeCasinoForAtt } = useCasino();
   const { data: dealers = [] } = useDealers();
   const { data: monthAttendance = [], isSuccess: attendanceLoaded, isFetching: attendanceFetching } = useDealerAttendanceRange(startDate, endDate);
   const { data: rota = [], isSuccess: rotaLoaded } = usePitRotaRange(startDate, endDate);
