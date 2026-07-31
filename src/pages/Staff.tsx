@@ -667,11 +667,15 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
 
   const getStats = (staffId: string) => {
     const counts: Record<string, number> = {};
+    let hours = 0;
     days.forEach(day => {
       const display = getDisplayShift(staffId, day);
-      if (display) counts[display.shift] = (counts[display.shift] || 0) + 1;
+      if (display) {
+        counts[display.shift] = (counts[display.shift] || 0) + 1;
+        hours += predictedShiftHours(display.shift, "staff");
+      }
     });
-    return counts;
+    return { counts, hours };
   };
 
   // Determine summary shift keys (first two non-leave/off shifts)
