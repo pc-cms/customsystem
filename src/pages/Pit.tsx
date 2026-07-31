@@ -614,6 +614,8 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   const startDate = `${month}-01`;
   const endDate = `${month}-${String(daysInMonth).padStart(2, "0")}`;
 
+  const { activeCasino } = useCasino();
+  const hoursScope = usesArushaShiftGrid(activeCasino) ? "pit_arusha" : "pit";
   const { data: dealers = [] } = useDealers();
   const { data: rota = [] } = usePitRotaRange(startDate, endDate);
   const { data: monthAttendance = [] } = useDealerAttendanceRange(startDate, endDate);
@@ -720,6 +722,13 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
       const current = getRotaEntry(dealerId, day)?.shift;
       const next = current === "EM" ? "EN" : "EM";
       setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: next as any });
+      focusNextCell(e.target as HTMLElement);
+      return;
+    }
+    // "W" (or "S") sets the Swing shift (SW).
+    if (key === "W" || key === "S") {
+      e.preventDefault();
+      setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: "SW" as any });
       focusNextCell(e.target as HTMLElement);
       return;
     }
