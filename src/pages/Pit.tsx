@@ -1254,22 +1254,13 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   return (
     <>
       <div className="print-title hidden">{`Live Game Attendance — ${month}`}</div>
-      <div className="flex items-center justify-end gap-2 mb-2 no-print">
-        <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Sort</span>
-        <Select value={attSort} onValueChange={v => setAttSort(v as "category" | "name")}>
-          <SelectTrigger className="h-7 w-36 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="category">Category</SelectItem>
-            <SelectItem value="name">Name (A–Z)</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
       <div className="cms-panel overflow-hidden print-target">
       <table className="w-full border-collapse table-fixed">
         <thead>
           <tr className="border-b border-border">
             <th className="text-center text-xs font-medium text-muted-foreground uppercase px-0.5 py-2 sticky left-0 bg-card z-10 w-7">C</th>
-            <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-[28px] bg-card z-10 w-[180px]">Name</th>
+            <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-[28px] bg-card z-10 w-[180px]"><NameSortHeader value={attSort as "category" | "name"} onChange={setAttSort} /></th>
+
             {days.map(day => {
               const dateObj = new Date(y, m - 1, day);
               const weekday = WEEKDAYS[dateObj.getDay()];
