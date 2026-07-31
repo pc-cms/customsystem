@@ -94,6 +94,27 @@ const CATEGORY_COLORS: Record<string, string> = {
   pit_boss: "text-purple-700 bg-purple-100 dark:text-purple-400 dark:bg-purple-500/20",
 };
 
+/** Semi-transparent name-cell fill per dealer category (rota & attendance grids). */
+const CATEGORY_ROW_TINT: Record<string, string> = {
+  trainee: "bg-cyan-500/15",
+  dealer: "bg-blue-500/12",
+  inspector: "bg-amber-500/15",
+  expert: "bg-emerald-500/15",
+  pit_boss: "bg-purple-500/15",
+};
+
+/** Sort order for grids grouped by seniority. */
+const CATEGORY_SORT_ORDER = ["pit_boss", "expert", "inspector", "dealer", "trainee"];
+
+/** Sort a dealer list by category (seniority) or by name. */
+const sortByCategory = (list: any[], mode: "category" | "name") =>
+  [...list].sort((a, b) => {
+    if (mode === "name") return String(a.name).localeCompare(String(b.name));
+    const iA = CATEGORY_SORT_ORDER.indexOf(a.is_pit_boss ? "pit_boss" : a.category);
+    const iB = CATEGORY_SORT_ORDER.indexOf(b.is_pit_boss ? "pit_boss" : b.category);
+    return iA !== iB ? iA - iB : String(a.name).localeCompare(String(b.name));
+  });
+
 interface PitProps {
   forcedTab?: "breaklist" | "rota" | "attendance" | "employee" | "activeplayers" | "tabletracker";
 }
