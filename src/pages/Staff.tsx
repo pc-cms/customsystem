@@ -131,7 +131,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
   const canGoNext = isRotaTab ? true : month < currentMonth;
 
   const rotaGroupKey = isRotaTab ? activeTab.replace("rota_", "") as RotaGroupKey : null;
-  const rotaGroup = rotaGroupKey ? ROTA_GROUPS[rotaGroupKey] : null;
+  const rotaGroup = rotaGroupKey ? getRotaGroup(rotaGroupKey, activeCasino) : null;
 
   // Map staff rota group → rota_locks scope
   const lockScope: RotaScope | null = rotaGroupKey === "floor" ? "floor" : rotaGroupKey === "security" ? "security" : rotaGroupKey === "office" ? "office" : null;
@@ -518,7 +518,8 @@ const EmployeeList = () => {
 
 // =================== STAFF ROTA GRID ===================
 const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { month: string; groupKey: RotaGroupKey; monthLabel: string; readOnly?: boolean }) => {
-  const group = ROTA_GROUPS[groupKey];
+  const { activeCasino } = useCasino();
+  const group = useMemo(() => getRotaGroup(groupKey, activeCasino), [groupKey, activeCasino]);
   const groupShifts = group.shifts as readonly string[];
   const [filterDept, setFilterDept] = useSessionState<string>("dept", "all");
   const [y, m] = month.split("-").map(Number);
