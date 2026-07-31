@@ -30,6 +30,30 @@ import { CellPicker, type CellPickerRow } from "@/components/grids/CellPicker";
 import { useRotaLock, useRolesAtDate } from "@/hooks/use-rota-lock";
 import RotaLockButton from "@/components/rota/RotaLockButton";
 import RotaExcelButtons from "@/components/rota/RotaExcelButtons";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
+/** Compact sort switcher rendered inside the "Name" table header. */
+const NameSortHeader = ({ value, onChange }: { value: "category" | "name"; onChange: (v: "category" | "name") => void }) => (
+  <div className="flex items-center justify-between gap-1">
+    <span>Name</span>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          title={`Sort: ${value === "category" ? "Category" : "Name (A–Z)"}`}
+          className={`no-print inline-flex h-5 w-5 items-center justify-center rounded hover:bg-muted ${value === "category" ? "text-primary" : "text-muted-foreground"}`}
+        >
+          <ArrowUpDown className="h-3 w-3" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-[140px]">
+        <DropdownMenuItem onClick={() => onChange("category")}>Category</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onChange("name")}>Name (A–Z)</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  </div>
+);
+
 
 
 const ROTA_SHIFTS = ["M", "SW", "N", "L", "EM", "ESW", "EN", "O"] as const;
