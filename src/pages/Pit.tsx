@@ -789,7 +789,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
       const display = getDisplayShift(dealerId, day);
       if (display) {
         counts[display.shift] = (counts[display.shift] || 0) + 1;
-        hours += predictedShiftHours(display.shift, "pit");
+        hours += predictedShiftHours(display.shift, hoursScope);
       }
     });
     return { counts, hours };
