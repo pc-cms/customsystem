@@ -24,6 +24,7 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
+import { predictedShiftHours } from "@/lib/shift-hours";
 import { parseAttValue, normalizeAttInput, isStatusCode } from "@/lib/attendance-code";
 
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
@@ -667,11 +668,15 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
 
   const getStats = (staffId: string) => {
     const counts: Record<string, number> = {};
+    let hours = 0;
     days.forEach(day => {
       const display = getDisplayShift(staffId, day);
-      if (display) counts[display.shift] = (counts[display.shift] || 0) + 1;
+      if (display) {
+        counts[display.shift] = (counts[display.shift] || 0) + 1;
+        hours += predictedShiftHours(display.shift, "staff");
+      }
     });
-    return counts;
+    return { counts, hours };
   };
 
   // Determine summary shift keys (first two non-leave/off shifts)
@@ -698,6 +703,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
         {summaryShifts.slice(0, 2).map(s => (
           <th key={s} className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">{s}</th>
         ))}
+        <th className="text-center text-[10px] font-medium text-primary uppercase px-1 py-2 w-10" title="Planned hours (forecast)">Σh</th>
       </tr>
     </thead>
   );
@@ -834,7 +840,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
                   const count = filteredStaff.filter(s => getDisplayShift(s.id, day)?.shift === shiftKey).length;
                   return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
                 })}
-                <td colSpan={2} />
+                <td colSpan={3} />
               </tr>
             ))}
             <tr>
@@ -847,7 +853,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
                 }).length;
                 return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
               })}
-              <td colSpan={2} />
+              <td colSpan={3} />
             </tr>
           </tbody>
         </table>
@@ -874,12 +880,12 @@ const DepartmentBlock = ({
   handlePaste: (e: React.ClipboardEvent, id: string, day: number) => void;
   onSet: (id: string, day: number, shift: string) => void;
   onClear: (id: string, day: number) => void;
-  getStats: (id: string) => Record<string, number>;
+  getStats: (id: string) => { counts: Record<string, number>; hours: number };
   summaryShifts: string[];
 }) => (
   <>
     <tr>
-      <td colSpan={days.length + 1 + summaryShifts.slice(0, 2).length} className="px-0 py-0 sticky left-0">
+      <td colSpan={days.length + 2 + summaryShifts.slice(0, 2).length} className="px-0 py-0 sticky left-0">
         <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${DEPT_BORDER_COLORS[dept] || "border-muted"}`}>
           <span className={`w-2 h-2 rounded-full ${DEPT_DOT_COLORS[dept] || "bg-muted-foreground"}`} />
           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-card-foreground">{DEPARTMENT_LABELS[dept as StaffDepartment]}</span>
@@ -924,9 +930,12 @@ const DepartmentBlock = ({
           })}
           {summaryShifts.slice(0, 2).map(s => (
             <td key={s} className="px-2 py-1 text-center border-l border-border/25">
-              <span className="text-xs font-mono font-bold text-card-foreground">{stats[s] || ""}</span>
+              <span className="text-xs font-mono font-bold text-card-foreground">{stats.counts[s] || ""}</span>
             </td>
           ))}
+          <td className="px-2 py-1 text-center border-l border-border/25">
+            <span className="text-xs font-mono font-bold text-primary">{stats.hours || ""}</span>
+          </td>
         </tr>
       );
     })}

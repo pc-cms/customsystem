@@ -18,6 +18,7 @@ import TableTracker from "@/pages/TableTracker";
 import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, isExtraShift } from "@/lib/shift-colors";
+import { predictedShiftHours } from "@/lib/shift-hours";
 import { parseAttValue, normalizeAttInput, isStatusCode } from "@/lib/attendance-code";
 
 import { PageShell } from "@/components/layout/PageShell";
@@ -755,17 +756,21 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
 
   const getDealerStats = (dealerId: string) => {
     const counts: Record<string, number> = {};
+    let hours = 0;
     days.forEach(day => {
       const display = getDisplayShift(dealerId, day);
-      if (display) counts[display.shift] = (counts[display.shift] || 0) + 1;
+      if (display) {
+        counts[display.shift] = (counts[display.shift] || 0) + 1;
+        hours += predictedShiftHours(display.shift, "pit");
+      }
     });
-    return counts;
+    return { counts, hours };
   };
 
   const renderDealerRows = (dealerList: any[], label: string, accentColor: string, extraRowClass = "", forcePitBoss = false) => (
     <>
       <tr className={extraRowClass}>
-        <td colSpan={days.length + 5} className="px-0 py-0 sticky left-0">
+        <td colSpan={days.length + 6} className="px-0 py-0 sticky left-0">
           <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${accentColor}`}>
             <span className="text-[10px] font-mono font-semibold uppercase tracking-wider">{label}</span>
             <span className="text-[10px] font-mono text-muted-foreground">({dealerList.length})</span>
@@ -819,9 +824,10 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                 </td>
               );
             })}
-            <td className="px-2 py-1 text-center border-l border-border/25"><span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">{stats["M"] || ""}</span></td>
-            <td className="px-2 py-1 text-center"><span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">{stats["N"] || ""}</span></td>
-            <td className="px-2 py-1 text-center"><span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">{((stats["E"] || 0) + (stats["EM"] || 0) + (stats["EN"] || 0)) || ""}</span></td>
+            <td className="px-2 py-1 text-center border-l border-border/25"><span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">{stats.counts["M"] || ""}</span></td>
+            <td className="px-2 py-1 text-center"><span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">{stats.counts["N"] || ""}</span></td>
+            <td className="px-2 py-1 text-center"><span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">{((stats.counts["E"] || 0) + (stats.counts["EM"] || 0) + (stats.counts["EN"] || 0)) || ""}</span></td>
+            <td className="px-2 py-1 text-center border-l border-border/25"><span className="text-xs font-mono font-bold text-primary">{stats.hours || ""}</span></td>
           </tr>
         );
       })}
@@ -852,6 +858,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
             <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">M</th>
             <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">N</th>
             <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">E</th>
+            <th className="text-center text-[10px] font-medium text-primary uppercase px-1 py-2 w-10" title="Planned hours (forecast)">Σh</th>
           </tr>
         </thead>
         <tbody>
@@ -863,7 +870,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               const count = activeDealers.filter(d => getDisplayShift(d.id, day)?.shift === "M").length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400">{count || ""}</td>;
             })}
-            <td colSpan={3} />
+            <td colSpan={4} />
           </tr>
           <tr>
             <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400 sticky left-0 bg-card z-10">Σ N</td>
@@ -871,7 +878,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               const count = activeDealers.filter(d => getDisplayShift(d.id, day)?.shift === "N").length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{count || ""}</td>;
             })}
-            <td colSpan={3} />
+            <td colSpan={4} />
           </tr>
           <tr>
             <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ All</td>
@@ -882,7 +889,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               }).length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
             })}
-            <td colSpan={3} />
+            <td colSpan={4} />
           </tr>
           {pitBosses.length > 0 && (
             <>
@@ -904,6 +911,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                 <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">M</th>
                 <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">N</th>
                 <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">E</th>
+                <th className="text-center text-[10px] font-medium text-primary uppercase px-1 py-2 w-10" title="Planned hours (forecast)">Σh</th>
               </tr>
               {renderDealerRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400", "no-print", true)}
             </>
