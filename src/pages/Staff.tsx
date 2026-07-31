@@ -124,6 +124,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
   }, [month]);
 
   const [searchParams] = useSearchParams();
+  const { activeCasino } = useCasino();
   const activeTab = forcedTab || searchParams.get("tab") || "employee";
 
   const isRotaTab = activeTab.startsWith("rota_");
