@@ -15,7 +15,7 @@ export const POSITIONS_BY_DEPT: Record<string, string[]> = {
   "Pit":      ["Dealer", "Inspector", "Trainee", "Pit Boss"],
   "Floor":    ["Cashier", "Head Cashier", "Bartender", "Waiter", "Hostess", "Receptionist", "Cleaner", "Housekeeper"],
   "Security": ["Security", "Supervisor Security"],
-  "Office":   ["IT", "HR", "Manager"],
+  "Office":   ["IT", "HR", "Manager", "Trainer"],
 };
 
 export const ALL_POSITIONS = Array.from(
