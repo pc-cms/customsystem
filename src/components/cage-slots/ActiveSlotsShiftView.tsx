@@ -1092,8 +1092,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           shift={shift}
           currentValue={Number(cards?.opening_card_count ?? 0)}
           cardDepositValue={Number(cards?.card_deposit_value_tzs ?? 5000)}
+          initialValue={openingCardsSeed}
           open={showEditOpeningCards}
-          onClose={() => setShowEditOpeningCards(false)}
+          onClose={() => { setShowEditOpeningCards(false); setOpeningCardsSeed(undefined); }}
         />
       )}
 
