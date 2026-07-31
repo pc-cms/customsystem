@@ -1163,9 +1163,8 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                       if (k === "E") {
                         e.preventDefault();
                         const current = getValue(dealer.id, day);
-                        // Toggle between EM (11h) and EN (8h) based on current saved value or rota
-                        const rotaShift = getRotaShift(dealer.id, day);
-                        const next = current === "11" || (current === "" && rotaShift === "EM") ? "EN" : "EM";
+                        // Cycle Extra shifts: EM → ESW → EN → EM
+                        const next = current === "EM" ? "ESW" : current === "ESW" ? "EN" : "EM";
                         handleSave(dealer.id, day, next);
                         return;
                       }
