@@ -976,12 +976,14 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   const activeDealers = dealers.filter((d: any) => d.is_active && !d.is_pit_boss);
   const pitBosses = dealers.filter((d: any) => d.is_active && d.is_pit_boss);
 
+  const attHoursScope = usesArushaShiftGrid(activeCasinoForAtt) ? "pit_arusha" : "pit";
+
   const getRotaShift = (dealerId: string, day: number): string | null => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const entry = rota.find((r: any) => r.dealer_id === dealerId && r.date === dateStr);
     if (!entry) return null;
     const s = entry.shift as string;
-    return (s === "M" || s === "N" || s === "G" || isExtraShift(s)) ? s : null;
+    return (s === "M" || s === "SW" || s === "N" || s === "G" || isExtraShift(s)) ? s : null;
   };
 
   const today = new Date();
