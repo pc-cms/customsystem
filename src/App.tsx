@@ -493,6 +493,7 @@ const ProtectedRoutes = () => {
           <Route path="/reports/promo-codes" element={<ErrorBoundary><PromoCodesReport /></ErrorBoundary>} />
           <Route path="/reports/lottery-sales" element={<ErrorBoundary><LotterySalesReport /></ErrorBoundary>} />
           <Route path="/reports/daily-balance" element={<RoleGuard path="/reports/daily-balance"><ErrorBoundary><DailyBalanceReport /></ErrorBoundary></RoleGuard>} />
+          <Route path="/reports/blanks" element={<RoleGuard path="/reports"><ErrorBoundary><BlanksPage /></ErrorBoundary></RoleGuard>} />
 
           <Route path="/import-reports" element={<RoleGuard path="/import-reports"><ImportReports /></RoleGuard>} />
           <Route path="/table-results" element={<Navigate to="/reports?tab=table-results" replace />} />
