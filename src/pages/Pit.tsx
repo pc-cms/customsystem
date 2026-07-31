@@ -19,6 +19,8 @@ import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, isExtraShift } from "@/lib/shift-colors";
 import { predictedShiftHours } from "@/lib/shift-hours";
+import { useCasino } from "@/lib/casino-context";
+import { usesArushaShiftGrid } from "@/hooks/use-staff";
 import { parseAttValue, normalizeAttInput, isStatusCode } from "@/lib/attendance-code";
 
 import { PageShell } from "@/components/layout/PageShell";
@@ -30,19 +32,34 @@ import RotaLockButton from "@/components/rota/RotaLockButton";
 import RotaExcelButtons from "@/components/rota/RotaExcelButtons";
 
 
-const ROTA_SHIFTS = ["M", "N", "L", "EM", "EN", "O"] as const;
+const ROTA_SHIFTS = ["M", "SW", "N", "L", "EM", "EN", "O"] as const;
 
 const SHIFT_COLORS = UNIFIED_SHIFT_COLORS;
 
+/** Legacy Live Game grid (non-Arusha casinos). */
 const SHIFT_LABELS: Record<string, string> = {
-  M: "17:45",
-  N: "20:45",
-  L: "Leave",
-  E: "17:45",
-  EM: "17:45",
-  EN: "20:45",
-  O: "Off",
+  M: "17:45 · 11h",
+  SW: "19:00 · 11h",
+  N: "20:45 · 8h",
+  L: "Leave · 0h",
+  E: "17:45 · 11h",
+  EM: "17:45 · 11h",
+  EN: "20:45 · 8h",
+  O: "Off · 0h",
 };
+
+/** Live Game Arusha grid (2026-08 onwards). */
+const ARUSHA_PIT_SHIFT_LABELS: Record<string, string> = {
+  M: "18:00–05:00 · 11h",
+  SW: "19:00–06:00 · 11h",
+  N: "20:00–06:00 · 10h",
+  L: "Leave · 0h",
+  E: "18:00 · 11h",
+  EM: "18:00 · 11h",
+  EN: "20:00 · 10h",
+  O: "Off · 0h",
+};
+
 
 const ATT_COLORS = UNIFIED_ATT_COLORS;
 
@@ -102,6 +119,8 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
   }, [month]);
 
   const { roles, isManager } = useAuth();
+  const { activeCasino } = useCasino();
+  const pitLabels = usesArushaShiftGrid(activeCasino) ? ARUSHA_PIT_SHIFT_LABELS : SHIFT_LABELS;
   const isHR = roles.includes("hr") && !roles.includes("pit") && !roles.includes("manager");
   // HR gets full rota control (lock/unlock, template, past-month edits) just like manager.
   const canEditRota = isManager || roles.includes("hr");
@@ -244,7 +263,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
               employees={pitExcelEmployees}
               existing={pitRotaMap}
               allowedShifts={ROTA_SHIFTS}
-              shiftLabels={SHIFT_LABELS}
+              shiftLabels={pitLabels}
               onSetCell={(id, date, shift) => setPitRotaForExcel.mutateAsync({ dealer_id: id, date, shift })}
               disabled={!!pitLock}
             />
@@ -270,7 +289,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
       {ROTA_SHIFTS.map(s => (
         <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${SHIFT_COLORS[s]}`}>
           <span className="font-bold">{s}</span>
-          <span className="opacity-80">{SHIFT_LABELS[s]}</span>
+          <span className="opacity-80">{pitLabels[s]}</span>
         </span>
       ))}
       {activeTab === "attendance" && (
@@ -595,6 +614,8 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   const startDate = `${month}-01`;
   const endDate = `${month}-${String(daysInMonth).padStart(2, "0")}`;
 
+  const { activeCasino } = useCasino();
+  const hoursScope = usesArushaShiftGrid(activeCasino) ? "pit_arusha" : "pit";
   const { data: dealers = [] } = useDealers();
   const { data: rota = [] } = usePitRotaRange(startDate, endDate);
   const { data: monthAttendance = [] } = useDealerAttendanceRange(startDate, endDate);
@@ -704,6 +725,13 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
       focusNextCell(e.target as HTMLElement);
       return;
     }
+    // "W" (or "S") sets the Swing shift (SW).
+    if (key === "W" || key === "S") {
+      e.preventDefault();
+      setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: "SW" as any });
+      focusNextCell(e.target as HTMLElement);
+      return;
+    }
     if (ROTA_SHIFTS.includes(key as typeof ROTA_SHIFTS[number])) {
       e.preventDefault();
       setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: key as typeof ROTA_SHIFTS[number] });
@@ -761,7 +789,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
       const display = getDisplayShift(dealerId, day);
       if (display) {
         counts[display.shift] = (counts[display.shift] || 0) + 1;
-        hours += predictedShiftHours(display.shift, "pit");
+        hours += predictedShiftHours(display.shift, hoursScope);
       }
     });
     return { counts, hours };
