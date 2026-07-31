@@ -263,7 +263,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
               employees={pitExcelEmployees}
               existing={pitRotaMap}
               allowedShifts={ROTA_SHIFTS}
-              shiftLabels={SHIFT_LABELS}
+              shiftLabels={pitLabels}
               onSetCell={(id, date, shift) => setPitRotaForExcel.mutateAsync({ dealer_id: id, date, shift })}
               disabled={!!pitLock}
             />
