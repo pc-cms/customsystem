@@ -748,15 +748,35 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               {cards?.opening_card_count ?? 0}
             </div>
             {canManage && shift.status === "open" && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowEditOpeningCards(true)}
-                className="absolute top-0 right-0 h-5 w-5 text-muted-foreground hover:text-primary"
-                title="Edit opening cards (manager)"
-              >
-                <Pencil className="w-3 h-3" />
-              </Button>
+              <div className="absolute top-0 right-0 flex items-center gap-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => { setOpeningCardsSeed(Math.max(0, Number(cards?.opening_card_count ?? 0) - 1)); setShowEditOpeningCards(true); }}
+                  className="h-5 w-5 text-muted-foreground hover:text-primary"
+                  title="Opening cards −1 (manager)"
+                >
+                  <Minus className="w-3 h-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => { setOpeningCardsSeed(Number(cards?.opening_card_count ?? 0) + 1); setShowEditOpeningCards(true); }}
+                  className="h-5 w-5 text-muted-foreground hover:text-primary"
+                  title="Opening cards +1 (manager)"
+                >
+                  <Plus className="w-3 h-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => { setOpeningCardsSeed(undefined); setShowEditOpeningCards(true); }}
+                  className="h-5 w-5 text-muted-foreground hover:text-primary"
+                  title="Edit opening cards (manager)"
+                >
+                  <Pencil className="w-3 h-3" />
+                </Button>
+              </div>
             )}
           </div>
           <div>
