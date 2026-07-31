@@ -870,7 +870,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               const count = activeDealers.filter(d => getDisplayShift(d.id, day)?.shift === "M").length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400">{count || ""}</td>;
             })}
-            <td colSpan={3} />
+            <td colSpan={4} />
           </tr>
           <tr>
             <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400 sticky left-0 bg-card z-10">Σ N</td>
@@ -878,7 +878,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               const count = activeDealers.filter(d => getDisplayShift(d.id, day)?.shift === "N").length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{count || ""}</td>;
             })}
-            <td colSpan={3} />
+            <td colSpan={4} />
           </tr>
           <tr>
             <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ All</td>
@@ -889,7 +889,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               }).length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
             })}
-            <td colSpan={3} />
+            <td colSpan={4} />
           </tr>
           {pitBosses.length > 0 && (
             <>
