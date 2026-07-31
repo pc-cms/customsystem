@@ -14,12 +14,13 @@ export type ShiftHoursScope = "pit" | "staff";
 
 const NON_WORKING = new Set(["L", "O", "SP", "A", "S"]);
 
-/** Staff (Floor/Security/Office) shift → hours. MO 6, D 9, M 12, N 9. */
+/** Staff (Floor/Security/Office) shift → hours. MO 6, D 9, M 12, N 9, T (Training 09:00–15:00) 6. */
 const STAFF_HOURS: Record<string, number> = {
   MO: 6,
   D: 9,
   M: 12,
   N: 9,
+  T: 6,
   G: 8,
   E: 8,
   EM: 11,
