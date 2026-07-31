@@ -1041,18 +1041,14 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
         if (autoFilledRef.current.has(key)) continue;
 
         const rotaShift = getRotaShift(d.id, day);
-        if (rotaShift !== "M" && rotaShift !== "N" && rotaShift !== "G" && !isExtraShift(rotaShift)) continue;
+        if (rotaShift !== "M" && rotaShift !== "SW" && rotaShift !== "N" && rotaShift !== "G" && !isExtraShift(rotaShift)) continue;
 
         const current = getValue(d.id, day);
         if (current !== "") continue;
 
-        // Shift-aware auto-fill hours:
-        //   M  / EM → 11   (Middle, Extra Middle)
-        //   N  / EN / G → 8    (Night, Extra Night, Graveyard)
-        // Applies to all dealers and Pit Bosses uniformly.
-        let fillValue = "9"; // fallback for unrecognized shift codes
-        if (rotaShift === "M" || rotaShift === "EM") fillValue = "11";
-        else if (rotaShift === "N" || rotaShift === "EN" || rotaShift === "G") fillValue = "8";
+        // Shift-aware auto-fill hours — Extra shifts mirror their base shift
+        // (EM=M, ESW=SW, EN=N) and the Arusha grid uses its own hours.
+        const fillValue = String(predictedShiftHours(rotaShift, attHoursScope) || 9);
 
         autoFilledRef.current.add(key);
         setAttendanceRaw.mutate({ dealer_id: d.id, date: dateStr, value: fillValue });
