@@ -1008,8 +1008,9 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     setAttendanceRaw.mutate(v);
   } };
 
-  const activeDealers = dealers.filter((d: any) => d.is_active && !d.is_pit_boss);
-  const pitBosses = dealers.filter((d: any) => d.is_active && d.is_pit_boss);
+  const [attSort, setAttSort] = useSessionState<"category" | "name">("pitAttSort", "category");
+  const activeDealers = sortByCategory(dealers.filter((d: any) => d.is_active && !d.is_pit_boss), attSort);
+  const pitBosses = sortByCategory(dealers.filter((d: any) => d.is_active && d.is_pit_boss), attSort);
 
   const attHoursScope = usesArushaShiftGrid(activeCasinoForAtt) ? "pit_arusha" : "pit";
 
