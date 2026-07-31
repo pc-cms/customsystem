@@ -89,3 +89,13 @@ export function businessDayHourUTC(businessDate: string, hourEAT: number): strin
   return new Date(utcTime).toISOString();
 }
 
+
+/**
+ * Business date (YYYY-MM-DD) of an arbitrary timestamp.
+ * Africa/Dar_es_Salaam (UTC+3), rollover at 07:00 EAT. Mirrors DB `business_date_of`.
+ */
+export function businessDateOf(iso: string, shiftEndHour = 7): string {
+  const t = new Date(iso).getTime();
+  const shifted = new Date(t - shiftEndHour * 3600_000 + 3 * 3600_000);
+  return shifted.toISOString().slice(0, 10);
+}
