@@ -1139,6 +1139,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                       ]},
                       { label: "Shifts", options: [
                         { value: "EM", label: "EM", className: UNIFIED_SHIFT_COLORS["EM"] },
+                        { value: "ESW", label: "ESW", className: UNIFIED_SHIFT_COLORS["ESW"] },
                         { value: "EN", label: "EN", className: UNIFIED_SHIFT_COLORS["EN"] },
                       ]},
                       { label: "Hours", options: Array.from({ length: 12 }, (_, i) => i + 1).map(n => ({
