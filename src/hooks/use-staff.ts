@@ -62,9 +62,59 @@ export const ROTA_GROUPS = {
 
 export type RotaGroupKey = keyof typeof ROTA_GROUPS;
 
+export interface RotaGroupDef {
+  label: string;
+  departments: StaffDepartment[];
+  shifts: readonly string[];
+  shiftLabels: Record<string, string>;
+}
+
+/**
+ * Arusha shift grid (2026-08 onwards):
+ *   MO Morning 06:00–12:00 (6h)
+ *   D  Day     12:00–21:00 (9h)
+ *   M  Middle  18:00–06:00 (12h)
+ *   N  Night   21:00–06:00 (9h)
+ * Applies to Floor (cashiers, bar, hostess, waiters, housekeeping, reception),
+ * Security and Office. Other casinos keep the legacy grid.
+ */
+export const ARUSHA_SHIFTS = ["MO", "D", "M", "N", "L", "O"] as const;
+export const ARUSHA_SHIFT_LABELS: Record<string, string> = {
+  MO: "06:00",
+  D: "12:00",
+  M: "18:00",
+  N: "21:00",
+  L: "Leave",
+  O: "Off",
+};
+
+/** True when the casino uses the new unified Arusha shift grid. */
+export const usesArushaShiftGrid = (casino?: { slug?: string | null; code?: string | null; name?: string | null } | null): boolean => {
+  const s = `${casino?.slug ?? ""} ${casino?.code ?? ""} ${casino?.name ?? ""}`.toLowerCase();
+  return s.includes("arusha") || /\bar\b/.test(s);
+};
+
+/** Resolve the rota group definition for a group + casino. */
+export const getRotaGroup = (
+  groupKey: RotaGroupKey,
+  casino?: { slug?: string | null; code?: string | null; name?: string | null } | null,
+): RotaGroupDef => {
+  const base = ROTA_GROUPS[groupKey];
+  if (!usesArushaShiftGrid(casino)) {
+    return { label: base.label, departments: [...base.departments], shifts: base.shifts as readonly string[], shiftLabels: base.shiftLabels };
+  }
+  return {
+    label: base.label,
+    departments: [...base.departments],
+    shifts: ARUSHA_SHIFTS as readonly string[],
+    shiftLabels: ARUSHA_SHIFT_LABELS,
+  };
+};
+
 const STAFF_SHIFTS = ["D", "N", "L", "E", "O"] as const;
 
 export const STAFF_SHIFT_LABELS: Record<string, string> = {
+  MO: "06:00",
   D: "12:30",
   N: "20:45",
   L: "Leave",
@@ -73,6 +123,7 @@ export const STAFF_SHIFT_LABELS: Record<string, string> = {
 };
 
 export const STAFF_SHIFT_COLORS = UNIFIED_SHIFT_COLORS;
+
 
 // Phase 3: read employees (non-Live-Game), alias employee_id → staff_id, write employee_id (DB triggers fill legacy staff_id).
 

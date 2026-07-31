@@ -2,6 +2,8 @@
 // D = Day (amber), M = Mid/Afternoon (teal), N = Night (sky), G = Graveyard (indigo)
 
 export const UNIFIED_SHIFT_COLORS: Record<string, string> = {
+  // Morning (staff, 06:00–12:00) — lime
+  MO: "bg-lime-300 text-lime-950 dark:bg-lime-500 dark:text-lime-950 font-bold",
   // Day — bright amber (high contrast vs Night)
   D: "bg-amber-300 text-amber-950 dark:bg-amber-400 dark:text-amber-950 font-bold",
   // Mid/Afternoon — bright teal (clearly distinct from Day amber and Night blue)
@@ -32,6 +34,7 @@ export const UNIFIED_ATT_COLORS: Record<string, string> = {
 
 // Lighter tint for scheduled-but-empty rota cells (still clear day vs night separation)
 export const UNIFIED_SHIFT_TINTS: Record<string, string> = {
+  MO: "bg-lime-100 text-lime-800 dark:bg-lime-500/40 dark:text-lime-100",
   D: "bg-amber-100 text-amber-800 dark:bg-amber-500/40 dark:text-amber-200",
   M: "bg-teal-300 text-teal-950 dark:bg-teal-600/70 dark:text-white",
   N: "bg-blue-300 text-blue-900 dark:bg-blue-600/60 dark:text-white",

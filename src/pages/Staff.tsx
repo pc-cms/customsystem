@@ -16,8 +16,9 @@ import {
   useStaffRotaRange, useSetStaffRota,
   useDeleteStaffRota, useStaffAttendanceRange, useSetStaffAttendance,
   DEPARTMENT_LABELS, DEPARTMENT_ORDER, STAFF_SHIFT_LABELS, STAFF_SHIFT_COLORS,
-  ROTA_GROUPS, type StaffDepartment, type RotaGroupKey,
+  ROTA_GROUPS, getRotaGroup, usesArushaShiftGrid, type StaffDepartment, type RotaGroupKey,
 } from "@/hooks/use-staff";
+import { useCasino } from "@/lib/casino-context";
 import { Trash2 } from "lucide-react";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -123,6 +124,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
   }, [month]);
 
   const [searchParams] = useSearchParams();
+  const { activeCasino } = useCasino();
   const activeTab = forcedTab || searchParams.get("tab") || "employee";
 
   const isRotaTab = activeTab.startsWith("rota_");
@@ -131,7 +133,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
   const canGoNext = isRotaTab ? true : month < currentMonth;
 
   const rotaGroupKey = isRotaTab ? activeTab.replace("rota_", "") as RotaGroupKey : null;
-  const rotaGroup = rotaGroupKey ? ROTA_GROUPS[rotaGroupKey] : null;
+  const rotaGroup = rotaGroupKey ? getRotaGroup(rotaGroupKey, activeCasino) : null;
 
   // Map staff rota group → rota_locks scope
   const lockScope: RotaScope | null = rotaGroupKey === "floor" ? "floor" : rotaGroupKey === "security" ? "security" : rotaGroupKey === "office" ? "office" : null;
@@ -518,7 +520,8 @@ const EmployeeList = () => {
 
 // =================== STAFF ROTA GRID ===================
 const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { month: string; groupKey: RotaGroupKey; monthLabel: string; readOnly?: boolean }) => {
-  const group = ROTA_GROUPS[groupKey];
+  const { activeCasino } = useCasino();
+  const group = useMemo(() => getRotaGroup(groupKey, activeCasino), [groupKey, activeCasino]);
   const groupShifts = group.shifts as readonly string[];
   const [filterDept, setFilterDept] = useSessionState<string>("dept", "all");
   const [y, m] = month.split("-").map(Number);
@@ -783,8 +786,8 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
                 <div className="print-header-legend">
                   {printLegend.map(l => (
                     <span key={l.code} style={{
-                      background: l.code === "D" || l.code === "M" ? "#fef3c7" : l.code === "N" ? "#e0f2fe" : l.code === "G" ? "#e0e7ff" : l.code === "L" ? "#d1fae5" : l.code === "E" ? "#f3e8ff" : "#f3f4f6",
-                      color: l.code === "D" || l.code === "M" ? "#b45309" : l.code === "N" ? "#0369a1" : l.code === "G" ? "#4338ca" : l.code === "L" ? "#047857" : l.code === "E" ? "#6b21a8" : "#374151",
+                      background: l.code === "MO" ? "#ecfccb" : l.code === "D" ? "#fef3c7" : l.code === "M" ? "#ccfbf1" : l.code === "N" ? "#e0f2fe" : l.code === "G" ? "#e0e7ff" : l.code === "L" ? "#d1fae5" : l.code === "E" ? "#f3e8ff" : "#f3f4f6",
+                      color: l.code === "MO" ? "#3f6212" : l.code === "D" ? "#b45309" : l.code === "M" ? "#0f766e" : l.code === "N" ? "#0369a1" : l.code === "G" ? "#4338ca" : l.code === "L" ? "#047857" : l.code === "E" ? "#6b21a8" : "#374151",
                     }}>
                       {l.code} = {l.label}
                     </span>
@@ -943,7 +946,11 @@ const DepartmentBlock = ({
 );
 
 // =================== STAFF ATTENDANCE GRID ===================
+const NEW_SHIFT_GRID_FROM = "2026-08-01";
+
 const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly = false }: { month: string; monthLabel: string; groupKey?: RotaGroupKey; readOnly?: boolean }) => {
+  const { activeCasino } = useCasino();
+  const newShiftGrid = usesArushaShiftGrid(activeCasino);
   const group = ROTA_GROUPS[groupKey];
   const groupDepts = group.departments as readonly StaffDepartment[];
   const [y, m] = month.split("-").map(Number);
@@ -985,7 +992,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
     const entry = rota.find((r: any) => r.staff_id === staffId && r.date === dateStr);
     if (!entry) return null;
     const s = entry.shift as string;
-    return (s === "D" || s === "N" || s === "G") ? s : null;
+    return (s === "MO" || s === "D" || s === "M" || s === "N" || s === "G") ? s : null;
   };
 
   const handleSave = (staffId: string, day: number, val: string) => {
@@ -1024,13 +1031,15 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
         if (autoFilledRef.current.has(key)) continue;
 
         const rotaShift = getRotaShift(s.id, day);
-        if (rotaShift !== "D" && rotaShift !== "N" && rotaShift !== "G") continue;
+        if (!rotaShift) continue;
 
         const current = getValue(s.id, day);
         if (current !== "") continue;
 
-        // Shift-aware: D = 8h, N = 8h.
-        const fillValue = "8";
+        // From 01.08.2026 on the new grid hours follow the shift (MO 6 / D 9 / M 12 / N 9).
+        // Everything before that keeps the historical flat 8h.
+        const useNewGrid = newShiftGrid && dateStr >= NEW_SHIFT_GRID_FROM;
+        const fillValue = useNewGrid ? String(predictedShiftHours(rotaShift, "staff")) : "8";
         autoFilledRef.current.add(key);
         setAttendanceRaw.mutate({ staff_id: s.id, date: dateStr, value: fillValue });
       }
