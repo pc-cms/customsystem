@@ -8,20 +8,19 @@ export const UNIFIED_SHIFT_COLORS: Record<string, string> = {
   D: "bg-amber-300 text-amber-950 dark:bg-amber-400 dark:text-amber-950 font-bold",
   // Mid/Afternoon — bright teal (clearly distinct from Day amber and Night blue)
   M: "bg-teal-500 text-white dark:bg-teal-500 dark:text-white font-bold",
-  // Swing (Live Game Arusha, 19:00–06:00) — cyan
-  SW: "bg-cyan-500 text-white dark:bg-cyan-500 dark:text-white font-bold",
+  // Swing (Live Game Arusha, 19:00–06:00) — muted violet
+  SW: "bg-violet-400 text-violet-950 dark:bg-violet-700 dark:text-white font-bold",
   // Night — deep blue, white text (maximum contrast vs Day in both themes)
   N: "bg-blue-700 text-white dark:bg-blue-600 dark:text-white font-bold",
   // Guard — indigo (security overnight)
   G: "bg-indigo-200 text-indigo-900 dark:bg-indigo-500 dark:text-white font-bold",
   // Leave — emerald
   L: "bg-emerald-200 text-emerald-900 dark:bg-emerald-500 dark:text-emerald-950 font-bold",
-  // Extra (legacy single code, kept for backward compatibility) — purple
-  E: "bg-purple-200 text-purple-900 dark:bg-purple-500 dark:text-white font-bold",
-  // Extra Middle (11h) — fuchsia
-  EM: "bg-fuchsia-200 text-fuchsia-900 dark:bg-fuchsia-500 dark:text-white font-bold",
-  // Extra Night (8h) — violet
-  EN: "bg-violet-300 text-violet-950 dark:bg-violet-600 dark:text-white font-bold",
+  // Extra shifts (E, EM, EN, ESW) — one shared fuchsia colour
+  E: "bg-fuchsia-300 text-fuchsia-950 dark:bg-fuchsia-600 dark:text-white font-bold",
+  EM: "bg-fuchsia-300 text-fuchsia-950 dark:bg-fuchsia-600 dark:text-white font-bold",
+  EN: "bg-fuchsia-300 text-fuchsia-950 dark:bg-fuchsia-600 dark:text-white font-bold",
+  ESW: "bg-fuchsia-300 text-fuchsia-950 dark:bg-fuchsia-600 dark:text-white font-bold",
   // Training (09:00–15:00) — rose
   T: "bg-rose-200 text-rose-900 dark:bg-rose-500 dark:text-white font-bold",
   // Off — muted
