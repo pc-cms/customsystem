@@ -20,6 +20,8 @@ export const UNIFIED_SHIFT_COLORS: Record<string, string> = {
   EM: "bg-fuchsia-200 text-fuchsia-900 dark:bg-fuchsia-500 dark:text-white font-bold",
   // Extra Night (8h) — violet
   EN: "bg-violet-300 text-violet-950 dark:bg-violet-600 dark:text-white font-bold",
+  // Training (09:00–15:00) — rose
+  T: "bg-rose-200 text-rose-900 dark:bg-rose-500 dark:text-white font-bold",
   // Off — muted
   O: "bg-muted/30 text-muted-foreground",
 };
@@ -43,6 +45,7 @@ export const UNIFIED_SHIFT_TINTS: Record<string, string> = {
   E: "bg-purple-100 text-purple-700 dark:bg-purple-500/30 dark:text-purple-200",
   EM: "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/30 dark:text-fuchsia-200",
   EN: "bg-violet-100 text-violet-700 dark:bg-violet-500/30 dark:text-violet-200",
+  T: "bg-rose-100 text-rose-700 dark:bg-rose-500/30 dark:text-rose-200",
 };
 
 /** True if shift code is any Extra variant (legacy E, EM, EN). */
