@@ -667,8 +667,9 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
     });
   }, [dealers, rolesAtMonth]);
 
-  const activeDealers = dealersForMonth.filter((d: any) => d.is_active && !d.is_pit_boss);
-  const pitBosses = dealersForMonth.filter((d: any) => d.is_active && d.is_pit_boss);
+  const [rotaSort, setRotaSort] = useSessionState<"category" | "name">("pitRotaSort", "category");
+  const activeDealers = sortByCategory(dealersForMonth.filter((d: any) => d.is_active && !d.is_pit_boss), rotaSort);
+  const pitBosses = sortByCategory(dealersForMonth.filter((d: any) => d.is_active && d.is_pit_boss), rotaSort);
 
   const today = new Date();
   const todayDay = today.getDate();
