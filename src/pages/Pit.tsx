@@ -119,6 +119,8 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
   }, [month]);
 
   const { roles, isManager } = useAuth();
+  const { activeCasino } = useCasino();
+  const pitLabels = usesArushaShiftGrid(activeCasino) ? ARUSHA_PIT_SHIFT_LABELS : SHIFT_LABELS;
   const isHR = roles.includes("hr") && !roles.includes("pit") && !roles.includes("manager");
   // HR gets full rota control (lock/unlock, template, past-month edits) just like manager.
   const canEditRota = isManager || roles.includes("hr");
