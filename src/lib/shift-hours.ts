@@ -10,7 +10,7 @@
  * Staff:            every working shift → 8h
  * Leave (L) and Off (O) are always 0h.
  */
-export type ShiftHoursScope = "pit" | "staff";
+export type ShiftHoursScope = "pit" | "staff" | "pit_arusha";
 
 const NON_WORKING = new Set(["L", "O", "SP", "A", "S"]);
 
@@ -27,12 +27,25 @@ const STAFF_HOURS: Record<string, number> = {
   EN: 8,
 };
 
+/** Live Game Arusha grid (2026-08+): M 18:00–05:00 11h, SW 19:00–06:00 11h, N 20:00–06:00 10h. */
+const PIT_ARUSHA_HOURS: Record<string, number> = {
+  M: 11,
+  SW: 11,
+  N: 10,
+  E: 11,
+  EM: 11,
+  EN: 10,
+  T: 6,
+};
+
 export function predictedShiftHours(shift: string | null | undefined, scope: ShiftHoursScope = "pit"): number {
   if (!shift) return 0;
   const s = shift.toUpperCase();
   if (NON_WORKING.has(s)) return 0;
   if (scope === "staff") return STAFF_HOURS[s] ?? 8;
+  if (scope === "pit_arusha") return PIT_ARUSHA_HOURS[s] ?? 11;
   if (s === "M" || s === "EM") return 11;
+  if (s === "SW") return 11;
   if (s === "N" || s === "EN" || s === "G") return 8;
   return 9;
 }

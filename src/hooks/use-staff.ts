@@ -44,19 +44,20 @@ export const ROTA_GROUPS = {
     label: "Floor",
     departments: ["cashier", "bartender", "hostess", "waiter", "cleaner", "reception"] as StaffDepartment[],
     shifts: ["D", "N", "L", "E", "O"] as const,
-    shiftLabels: { D: "12:30", N: "20:45", L: "Leave", E: "17:45", O: "Off" } as Record<string, string>,
+    shiftLabels: { D: "12:30 · 8h", N: "20:45 · 8h", L: "Leave · 0h", E: "17:45 · 8h", O: "Off · 0h" } as Record<string, string>,
   },
   security: {
     label: "Security",
     departments: ["security"] as StaffDepartment[],
     shifts: ["D", "M", "N", "G", "L", "E", "O"] as const,
-    shiftLabels: { D: "06:00", M: "13:45", N: "17:45", G: "21:45", L: "Leave", E: "17:45", O: "Off" } as Record<string, string>,
+    shiftLabels: { D: "06:00 · 8h", M: "13:45 · 8h", N: "17:45 · 8h", G: "21:45 · 8h", L: "Leave · 0h", E: "17:45 · 8h", O: "Off · 0h" } as Record<string, string>,
   },
   office: {
     label: "Office",
     departments: ["it", "hr", "driver"] as StaffDepartment[],
     shifts: ["D", "N", "T", "L", "E", "O"] as const,
-    shiftLabels: { D: "12:30", N: "20:45", T: "09:00", L: "Leave", E: "17:45", O: "Off" } as Record<string, string>,
+    shiftLabels: { D: "12:30 · 8h", N: "20:45 · 8h", T: "09:00–15:00 · 6h", L: "Leave · 0h", E: "17:45 · 8h", O: "Off · 0h" } as Record<string, string>,
+
   },
 } as const;
 
@@ -80,13 +81,13 @@ export interface RotaGroupDef {
  */
 export const ARUSHA_SHIFTS = ["MO", "D", "M", "N", "T", "L", "O"] as const;
 export const ARUSHA_SHIFT_LABELS: Record<string, string> = {
-  MO: "06:00",
-  D: "12:00",
-  M: "18:00",
-  N: "21:00",
-  T: "09:00",
-  L: "Leave",
-  O: "Off",
+  MO: "06:00–12:00 · 6h",
+  D: "12:00–21:00 · 9h",
+  M: "18:00–06:00 · 12h",
+  N: "21:00–06:00 · 9h",
+  T: "09:00–15:00 · 6h",
+  L: "Leave · 0h",
+  O: "Off · 0h",
 };
 
 /** True when the casino uses the new unified Arusha shift grid. */
@@ -115,12 +116,12 @@ export const getRotaGroup = (
 const STAFF_SHIFTS = ["D", "N", "L", "E", "O"] as const;
 
 export const STAFF_SHIFT_LABELS: Record<string, string> = {
-  MO: "06:00",
-  D: "12:30",
-  N: "20:45",
-  L: "Leave",
-  E: "17:45",
-  O: "Off",
+  MO: "06:00 · 6h",
+  D: "12:30 · 8h",
+  N: "20:45 · 8h",
+  L: "Leave · 0h",
+  E: "17:45 · 8h",
+  O: "Off · 0h",
 };
 
 export const STAFF_SHIFT_COLORS = UNIFIED_SHIFT_COLORS;
