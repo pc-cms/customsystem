@@ -30,6 +30,30 @@ import { CellPicker, type CellPickerRow } from "@/components/grids/CellPicker";
 import { useRotaLock, useRolesAtDate } from "@/hooks/use-rota-lock";
 import RotaLockButton from "@/components/rota/RotaLockButton";
 import RotaExcelButtons from "@/components/rota/RotaExcelButtons";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
+/** Compact sort switcher rendered inside the "Name" table header. */
+const NameSortHeader = ({ value, onChange }: { value: "category" | "name"; onChange: (v: "category" | "name") => void }) => (
+  <div className="flex items-center justify-between gap-1">
+    <span>Name</span>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          title={`Sort: ${value === "category" ? "Category" : "Name (A–Z)"}`}
+          className={`no-print inline-flex h-5 w-5 items-center justify-center rounded hover:bg-muted ${value === "category" ? "text-primary" : "text-muted-foreground"}`}
+        >
+          <ArrowUpDown className="h-3 w-3" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-[140px]">
+        <DropdownMenuItem onClick={() => onChange("category")}>Category</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onChange("name")}>Name (A–Z)</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  </div>
+);
+
 
 
 const ROTA_SHIFTS = ["M", "SW", "N", "L", "EM", "ESW", "EN", "O"] as const;
@@ -891,22 +915,13 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   return (
     <>
       <div className="print-title hidden">{`Live Game Rota — ${month}`}</div>
-      <div className="flex items-center justify-end gap-2 mb-2 no-print">
-        <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Sort</span>
-        <Select value={rotaSort} onValueChange={v => setRotaSort(v as "category" | "name")}>
-          <SelectTrigger className="h-7 w-36 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="category">Category</SelectItem>
-            <SelectItem value="name">Name (A–Z)</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
       <div className="cms-panel overflow-hidden print-target">
       <table className="w-full border-collapse table-fixed">
         <thead>
           <tr className="border-b border-border">
             <th className="text-center text-xs font-medium text-muted-foreground uppercase px-0.5 py-2 sticky left-0 bg-card z-10 w-7">C</th>
-            <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-[28px] bg-card z-10 w-[180px]">Name</th>
+            <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-[28px] bg-card z-10 w-[180px]"><NameSortHeader value={rotaSort as "category" | "name"} onChange={setRotaSort} /></th>
+
             {days.map(day => {
               const dateObj = new Date(y, m - 1, day);
               const weekday = WEEKDAYS[dateObj.getDay()];
@@ -1239,22 +1254,13 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   return (
     <>
       <div className="print-title hidden">{`Live Game Attendance — ${month}`}</div>
-      <div className="flex items-center justify-end gap-2 mb-2 no-print">
-        <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Sort</span>
-        <Select value={attSort} onValueChange={v => setAttSort(v as "category" | "name")}>
-          <SelectTrigger className="h-7 w-36 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="category">Category</SelectItem>
-            <SelectItem value="name">Name (A–Z)</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
       <div className="cms-panel overflow-hidden print-target">
       <table className="w-full border-collapse table-fixed">
         <thead>
           <tr className="border-b border-border">
             <th className="text-center text-xs font-medium text-muted-foreground uppercase px-0.5 py-2 sticky left-0 bg-card z-10 w-7">C</th>
-            <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-[28px] bg-card z-10 w-[180px]">Name</th>
+            <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-[28px] bg-card z-10 w-[180px]"><NameSortHeader value={attSort as "category" | "name"} onChange={setAttSort} /></th>
+
             {days.map(day => {
               const dateObj = new Date(y, m - 1, day);
               const weekday = WEEKDAYS[dateObj.getDay()];
