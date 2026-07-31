@@ -747,7 +747,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             <div className="h-8 flex items-center font-mono text-base font-bold tabular-nums">
               {cards?.opening_card_count ?? 0}
             </div>
-            {canManage && shift.status === "open" && (
+            {shift.status === "open" && (
               <div className="absolute top-0 right-0 flex items-center gap-0.5">
                 <Button
                   variant="ghost"
