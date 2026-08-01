@@ -217,7 +217,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                             : "text-muted-foreground"
                         }`}
                       >
-                        {slot === "05:00" ? "Final" : slot}
+                        {slot === "06:00" ? "Final" : slot}
                       </th>
                     );
                   })}
@@ -297,7 +297,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
         )}
       </PageSection>
 
-      <PageSection card title="Per-table result · 30-min slots (18:00 → 05:00)">
+      <PageSection card title="Per-table result · 30-min slots (18:00 → 06:00)">
         <TableAnalyticsChart date={date} />
       </PageSection>
       </>
