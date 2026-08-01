@@ -11050,9 +11050,9 @@ export type Database = {
       fin_close_month: {
         Args: {
           p_casino_id: string
-          p_collection: Json
+          p_collection?: Json
           p_month: number
-          p_new_float: Json
+          p_new_float?: Json
           p_note?: string
           p_year: number
         }
