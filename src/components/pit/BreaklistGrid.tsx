@@ -132,10 +132,10 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
     return map;
   }, [assignableTables]);
 
-  // Dealers scheduled in rota for this date (M or N only)
+  // Dealers scheduled in rota for this date (M / SW / N + Extra variants)
   const rotaDealers = useMemo(() => {
     return rota
-      .filter((r: any) => r.shift === "M" || r.shift === "N" || isExtraShift(r.shift))
+      .filter((r: any) => r.shift === "M" || r.shift === "SW" || r.shift === "N" || isExtraShift(r.shift))
       .map((r: any) => ({ dealerId: r.dealer_id, shift: r.shift as string }));
   }, [rota]);
 
@@ -165,7 +165,7 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
     );
     const rows = filtered;
 
-    const shiftOrder: Record<string, number> = { M: 0, N: 1, E: 2 };
+    const shiftOrder: Record<string, number> = { M: 0, SW: 1, N: 2, E: 3, EM: 3, ESW: 3, EN: 3 };
     const categoryOrder: Record<string, number> = { trainee: 0, dealer: 1, inspector: 2, expert: 3, pit_boss: 4 };
     if (sortBy === "name") {
       return [...rows].sort((a, b) => a.name.localeCompare(b.name));
@@ -532,6 +532,9 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
       if (dealerShift === "N") {
         const nIdx = TIME_SLOTS.indexOf("21:00");
         shiftStartIdx = nIdx >= 0 ? nIdx : 0;
+      } else if (dealerShift === "SW") {
+        const swIdx = TIME_SLOTS.indexOf("19:00");
+        shiftStartIdx = swIdx >= 0 ? swIdx : 0;
       } else if (isExtraShift(dealerShift)) {
         const occupiedIdx = breaklist
           .filter((b: any) => b.dealer_id === activeCell.dealerId && b.role !== "S")
@@ -713,8 +716,9 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
                     <td className={`text-center py-1 sticky left-[180px] z-10 shadow-[inset_-1px_0_0_hsl(var(--border))] ${stickyBg}`}>
                       {shift && (
                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold ${
-                          shift === "M" ? "bg-teal-100 text-teal-800 dark:bg-teal-500/25 dark:text-teal-300" : shift === "N" ? "bg-sky-100 text-sky-700 dark:bg-sky-500/25 dark:text-sky-300" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/25 dark:text-emerald-300"
+                          shift === "M" ? "bg-teal-100 text-teal-800 dark:bg-teal-500/25 dark:text-teal-300" : shift === "SW" ? "bg-violet-100 text-violet-700 dark:bg-violet-500/25 dark:text-violet-200" : shift === "N" ? "bg-sky-100 text-sky-700 dark:bg-sky-500/25 dark:text-sky-300" : "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/25 dark:text-fuchsia-200"
                         }`}>{shift}</span>
+
                       )}
                     </td>
                     </>); })()}
