@@ -27,11 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
-import {
-  DateRangePresets,
-  type DatePreset,
-  presetRange,
-} from "@/components/ui/date-range-presets";
+import { MonthCarousel, MONTHS } from "@/components/payroll/MonthCarousel";
 import { useFinWallets, useUpsertFinWallet, useFinWalletTx } from "@/hooks/use-fin";
 import { useFinBalanceSnapshot, computeBalanceTotals } from "@/hooks/use-fin-balance";
 import { CloseMonthWizard } from "@/pages/office/CloseMonthWizard";
@@ -60,8 +56,11 @@ export default function FinancesWalletsPage() {
   const { data: wallets = [] } = useFinWallets();
   const upsert = useUpsertFinWallet();
 
-  const [preset, setPreset] = useSessionState<DatePreset>("preset", "month");
-  const [range, setRange] = useSessionState<{ from: string; to: string }>("range", presetRange("month"));
+  const now = new Date();
+  const [ym, setYm] = useSessionState<{ year: number; month: number }>("ym", {
+    year: now.getFullYear(),
+    month: now.getMonth() + 1,
+  });
   const [walletFilter, setWalletFilter] = useSessionState<string>("wallet", "all");
   const [kindFilter, setKindFilter] = useSessionState<string>("kind", "all");
   const [sort, setSort] = useSessionState<"date_desc" | "date_asc" | "amount_desc" | "amount_asc">(
@@ -70,28 +69,22 @@ export default function FinancesWalletsPage() {
   );
   const [closeOpen, setCloseOpen] = useState(false);
 
+  // Whole page is scoped to a single calendar month.
+  const range = useMemo(() => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const last = new Date(ym.year, ym.month, 0).getDate();
+    return {
+      from: `${ym.year}-${pad(ym.month)}-01`,
+      to: `${ym.year}-${pad(ym.month)}-${pad(last)}`,
+    };
+  }, [ym]);
+  const monthRange = range;
+  const monthLabel = `${MONTHS[ym.month - 1]} ${ym.year}`;
+
   // Unified snapshot — same source of truth as former Balance tab.
   const { data: snap, isFetching } = useFinBalanceSnapshot(range.from, range.to);
   const totals = useMemo(() => computeBalanceTotals(snap), [snap]);
   const usdRate = snap?.rates?.usd_tzs || 2600;
-
-  // Transactions are always shown for the full calendar month of the selected period.
-  const monthRange = useMemo(() => {
-    const d = new Date(`${range.from}T00:00:00`);
-    const y = d.getFullYear();
-    const m = d.getMonth();
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const last = new Date(y, m + 1, 0).getDate();
-    return { from: `${y}-${pad(m + 1)}-01`, to: `${y}-${pad(m + 1)}-${pad(last)}` };
-  }, [range.from]);
-  const monthLabel = useMemo(
-    () =>
-      new Date(`${monthRange.from}T00:00:00`).toLocaleDateString("en-GB", {
-        month: "long",
-        year: "numeric",
-      }),
-    [monthRange.from],
-  );
 
   const { data: tx = [] } = useFinWalletTx({ from: monthRange.from, to: monthRange.to });
 
@@ -297,14 +290,10 @@ export default function FinancesWalletsPage() {
     <PageShell>
       <PageHeader icon={Wallet} title="Wallets" subtitle="Cash, bank, safe & cage ledger · reconciliation">
         <FinanceCasinoSwitcher allowNetwork={false} />
-        <DateRangePresets
-          preset={preset}
-          from={range.from}
-          to={range.to}
-          onChange={({ preset, from, to }) => {
-            setPreset(preset);
-            setRange({ from, to });
-          }}
+        <MonthCarousel
+          year={ym.year}
+          month={ym.month}
+          onChange={(year, month) => setYm({ year, month })}
         />
         <Button variant="outline" size="sm" onClick={reconcileNow}>
           <RotateCw className={cn("w-4 h-4", isFetching && "animate-spin")} /> Reconcile Now
