@@ -716,8 +716,9 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
                     <td className={`text-center py-1 sticky left-[180px] z-10 shadow-[inset_-1px_0_0_hsl(var(--border))] ${stickyBg}`}>
                       {shift && (
                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold ${
-                          shift === "M" ? "bg-teal-100 text-teal-800 dark:bg-teal-500/25 dark:text-teal-300" : shift === "N" ? "bg-sky-100 text-sky-700 dark:bg-sky-500/25 dark:text-sky-300" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/25 dark:text-emerald-300"
+                          shift === "M" ? "bg-teal-100 text-teal-800 dark:bg-teal-500/25 dark:text-teal-300" : shift === "SW" ? "bg-violet-100 text-violet-700 dark:bg-violet-500/25 dark:text-violet-200" : shift === "N" ? "bg-sky-100 text-sky-700 dark:bg-sky-500/25 dark:text-sky-300" : "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/25 dark:text-fuchsia-200"
                         }`}>{shift}</span>
+
                       )}
                     </td>
                     </>); })()}
