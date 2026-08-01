@@ -252,21 +252,17 @@ const DailyBalanceReport = () => {
     return m;
   }, [rows]);
 
+  // NOTE: all cell tints must be OPAQUE — sticky (frozen) columns would
+  // otherwise let scrolling cells bleed through. We blend against --card
+  // with color-mix instead of using alpha.
+  const mix = (color: string, pct: number) =>
+    `bg-[color-mix(in_srgb,hsl(var(--${color}))_${pct}%,hsl(var(--card)))]`;
+
   const heatClass = (col: Col, v: number) => {
     if (!heatmap || !HEAT_IDS.has(col.id) || !v) return undefined;
     const ratio = Math.abs(v) / (heatMax[col.id] || 1);
-    const step = ratio > 0.66 ? 3 : ratio > 0.33 ? 2 : 1;
-    if (v > 0)
-      return step === 3
-        ? "bg-[hsl(var(--success)/0.18)]"
-        : step === 2
-          ? "bg-[hsl(var(--success)/0.11)]"
-          : "bg-[hsl(var(--success)/0.06)]";
-    return step === 3
-      ? "bg-[hsl(var(--destructive)/0.18)]"
-      : step === 2
-        ? "bg-[hsl(var(--destructive)/0.11)]"
-        : "bg-[hsl(var(--destructive)/0.06)]";
+    const step = ratio > 0.66 ? 18 : ratio > 0.33 ? 11 : 6;
+    return mix(v > 0 ? "success" : "destructive", step);
   };
 
   /**
@@ -275,9 +271,9 @@ const DailyBalanceReport = () => {
    */
   const rowBg = (r: Row): string | undefined => {
     if (r.kind === "week") return "bg-muted";
-    if (r.date === lastClosedDate) return "bg-[hsl(var(--warning)/0.14)]";
-    if (r.date === today()) return "bg-primary/10";
-    if (r.weekday === "Sat" || r.weekday === "Sun") return "bg-muted/40";
+    if (r.date === lastClosedDate) return mix("warning", 14);
+    if (r.date === today()) return mix("primary", 10);
+    if (r.weekday === "Sat" || r.weekday === "Sun") return mix("muted", 40);
     return undefined;
   };
 
