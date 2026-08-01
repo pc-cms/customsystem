@@ -62,18 +62,25 @@ export const useRunCloseMonth = () => {
         else if (d.currency === "USD") totals.usd += Number(d.amount || 0);
       });
 
-      // 1) Insert closure record
-      const { error: e1 } = await (supabase as any).from("fin_month_closures").insert({
-        casino_id: activeCasinoId,
-        year: input.year,
-        month: input.month,
-        closed_by: uid,
-        collection_total_tzs: totals.tzs,
-        collection_total_usd: totals.usd,
-        collection_details: input.collection_details,
-        new_float_details: input.new_float_details,
-        note: input.note || null,
-      });
+      // 1) Upsert closure record — retries after a partial failure must not
+      //    blow up on the (casino_id, year, month) unique constraint.
+      const { error: e1 } = await (supabase as any)
+        .from("fin_month_closures")
+        .upsert(
+          {
+            casino_id: activeCasinoId,
+            year: input.year,
+            month: input.month,
+            closed_by: uid,
+            closed_at: new Date().toISOString(),
+            collection_total_tzs: totals.tzs,
+            collection_total_usd: totals.usd,
+            collection_details: input.collection_details,
+            new_float_details: input.new_float_details,
+            note: input.note || null,
+          },
+          { onConflict: "casino_id,year,month" },
+        );
       if (e1) throw e1;
 
       // 2) Apply new Starting Float per wallet
