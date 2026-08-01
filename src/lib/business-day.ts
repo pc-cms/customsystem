@@ -58,10 +58,10 @@ export function timeToMinutes(time: string): number {
 
 /**
  * Check if the current time is past the breaklist lock time for the business day.
- * The lock time is always relative to the "next morning" (e.g., 05:30 means
- * the breaklist locks at 05:30 the morning after the shift started).
+ * The lock time is always relative to the "next morning" (e.g., 06:30 means
+ * the breaklist locks at 06:30 the morning after the shift started).
  */
-export function isAfterBreaklistLock(lockTime = "05:30"): boolean {
+export function isAfterBreaklistLock(lockTime = "06:30"): boolean {
   const now = nowEAT();
   const h = now.getHours();
   const m = now.getMinutes();
