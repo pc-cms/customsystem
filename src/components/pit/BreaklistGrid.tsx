@@ -132,10 +132,10 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
     return map;
   }, [assignableTables]);
 
-  // Dealers scheduled in rota for this date (M or N only)
+  // Dealers scheduled in rota for this date (M / SW / N + Extra variants)
   const rotaDealers = useMemo(() => {
     return rota
-      .filter((r: any) => r.shift === "M" || r.shift === "N" || isExtraShift(r.shift))
+      .filter((r: any) => r.shift === "M" || r.shift === "SW" || r.shift === "N" || isExtraShift(r.shift))
       .map((r: any) => ({ dealerId: r.dealer_id, shift: r.shift as string }));
   }, [rota]);
 
