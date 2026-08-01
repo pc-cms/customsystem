@@ -28,10 +28,10 @@ import { ChipCountPanel } from "@/components/tables/ChipCountPanel";
 import { TableAnalyticsChart } from "@/components/tables/TableAnalyticsChart";
 import { Button } from "@/components/ui/button";
 
-// 19:00 → 05:00, 1-hour intervals
+// 19:00 → 06:00, 1-hour intervals
 const generateSlots = () => {
   const slots: string[] = [];
-  for (let h = 19; h <= 29; h++) { // 29 = 05:00 next day
+  for (let h = 19; h <= 30; h++) { // 30 = 06:00 next day (Final)
     const hour = h % 24;
     slots.push(`${String(hour).padStart(2, "0")}:00`);
   }
