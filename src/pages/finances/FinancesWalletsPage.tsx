@@ -344,7 +344,11 @@ export default function FinancesWalletsPage() {
       <div id="wallets-breakdown" className="grid grid-cols-1 lg:grid-cols-2 gap-4 scroll-mt-20">
         <PageSection title="Breakdown (Expected)" card={false}>
           <div className="rounded-md border border-border bg-card">
-            <BreakdownRow label="Starting Float" v={snap?.starting_float?.grand_tzs || 0} muted />
+            <BreakdownRow
+              label="Starting Float (baseline, not in sum)"
+              v={snap?.starting_float?.grand_tzs || 0}
+              muted
+            />
             <BreakdownRow label="Live Game" v={snap?.incomes?.live_game || 0} positive />
             <BreakdownRow label="Slots" v={snap?.incomes?.slots || 0} positive />
             <BreakdownRow label="Other Income" v={snap?.incomes?.other || 0} positive />
@@ -355,7 +359,7 @@ export default function FinancesWalletsPage() {
             <BreakdownRow label="− Expenses" v={snap?.expenses_total || 0} negative />
             <BreakdownRow label="− Collections" v={snap?.collections_total || 0} negative />
             <div className="border-t-2 border-border">
-              <BreakdownRow label="= Expected" v={totals.expected} bold />
+              <BreakdownRow label="= Expected (net of float)" v={totals.expected} bold signed />
             </div>
           </div>
           <div className="text-[10px] text-muted-foreground mt-1">
