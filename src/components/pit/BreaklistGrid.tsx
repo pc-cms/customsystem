@@ -45,12 +45,12 @@ export interface BreaklistGridRef {
   scrollBy: (direction: -1 | 1) => void;
 }
 
-// 18:00 → 05:00, 20-minute intervals
+// 18:00 → 05:40, 20-minute intervals
 const generateTimeSlots = () => {
   const slots: string[] = [];
-  for (let h = 18; h <= 28; h++) { // 28 = 04:xx next day
+  for (let h = 18; h <= 29; h++) { // 29 = 05:xx next day
     for (let m = 0; m < 60; m += 20) {
-      if (h === 29) break; // stop before 05:00
+      if (h === 30) break; // stop before 06:00
       const hour = h % 24;
       slots.push(`${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
     }
@@ -194,7 +194,7 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
   const shiftEndHour = casino?.shift_end ? parseInt(casino.shift_end.split(":")[0]) : 5;
   const { data: effectiveBusinessDate } = useEffectiveBusinessDate();
   const isToday = !!effectiveBusinessDate && date === effectiveBusinessDate;
-  const pastLock = isToday && isAfterBreaklistLock(casino?.breaklist_lock || "05:30");
+  const pastLock = isToday && isAfterBreaklistLock(casino?.breaklist_lock || "06:30");
   // Editable if it's today AND not past lock time (or if manager / pit operator).
   // Pit role is the on-duty operator and must be able to prepare the breaklist
   // ahead of the 18:00 shift start, so they bypass the morning-lock window.
