@@ -165,7 +165,7 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
     );
     const rows = filtered;
 
-    const shiftOrder: Record<string, number> = { M: 0, N: 1, E: 2 };
+    const shiftOrder: Record<string, number> = { M: 0, SW: 1, N: 2, E: 3, EM: 3, ESW: 3, EN: 3 };
     const categoryOrder: Record<string, number> = { trainee: 0, dealer: 1, inspector: 2, expert: 3, pit_boss: 4 };
     if (sortBy === "name") {
       return [...rows].sort((a, b) => a.name.localeCompare(b.name));
