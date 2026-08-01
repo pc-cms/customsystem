@@ -254,15 +254,24 @@ const DailyBalanceReport = () => {
 
   // NOTE: all cell tints must be OPAQUE — sticky (frozen) columns would
   // otherwise let scrolling cells bleed through. We blend against --card
-  // with color-mix instead of using alpha.
-  const mix = (color: string, pct: number) =>
-    `bg-[color-mix(in_srgb,hsl(var(--${color}))_${pct}%,hsl(var(--card)))]`;
+  // with color-mix instead of using alpha. Classes are static literals so
+  // Tailwind's JIT scanner picks them up.
+  const HEAT_POS = [
+    "bg-[color-mix(in_srgb,hsl(var(--success))_6%,hsl(var(--card)))]",
+    "bg-[color-mix(in_srgb,hsl(var(--success))_11%,hsl(var(--card)))]",
+    "bg-[color-mix(in_srgb,hsl(var(--success))_18%,hsl(var(--card)))]",
+  ];
+  const HEAT_NEG = [
+    "bg-[color-mix(in_srgb,hsl(var(--destructive))_6%,hsl(var(--card)))]",
+    "bg-[color-mix(in_srgb,hsl(var(--destructive))_11%,hsl(var(--card)))]",
+    "bg-[color-mix(in_srgb,hsl(var(--destructive))_18%,hsl(var(--card)))]",
+  ];
 
   const heatClass = (col: Col, v: number) => {
     if (!heatmap || !HEAT_IDS.has(col.id) || !v) return undefined;
     const ratio = Math.abs(v) / (heatMax[col.id] || 1);
-    const step = ratio > 0.66 ? 18 : ratio > 0.33 ? 11 : 6;
-    return mix(v > 0 ? "success" : "destructive", step);
+    const step = ratio > 0.66 ? 2 : ratio > 0.33 ? 1 : 0;
+    return (v > 0 ? HEAT_POS : HEAT_NEG)[step];
   };
 
   /**
@@ -271,9 +280,12 @@ const DailyBalanceReport = () => {
    */
   const rowBg = (r: Row): string | undefined => {
     if (r.kind === "week") return "bg-muted";
-    if (r.date === lastClosedDate) return mix("warning", 14);
-    if (r.date === today()) return mix("primary", 10);
-    if (r.weekday === "Sat" || r.weekday === "Sun") return mix("muted", 40);
+    if (r.date === lastClosedDate)
+      return "bg-[color-mix(in_srgb,hsl(var(--warning))_14%,hsl(var(--card)))]";
+    if (r.date === today())
+      return "bg-[color-mix(in_srgb,hsl(var(--primary))_10%,hsl(var(--card)))]";
+    if (r.weekday === "Sat" || r.weekday === "Sun")
+      return "bg-[color-mix(in_srgb,hsl(var(--muted))_40%,hsl(var(--card)))]";
     return undefined;
   };
 
