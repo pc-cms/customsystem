@@ -11047,6 +11047,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      fin_close_month: {
+        Args: {
+          p_casino_id: string
+          p_collection: Json
+          p_month: number
+          p_new_float: Json
+          p_note?: string
+          p_year: number
+        }
+        Returns: string
+      }
       fin_lock_day_closing: {
         Args: { p_id: string; p_variance_note?: string }
         Returns: undefined
