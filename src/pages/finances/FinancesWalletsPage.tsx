@@ -290,14 +290,10 @@ export default function FinancesWalletsPage() {
     <PageShell>
       <PageHeader icon={Wallet} title="Wallets" subtitle="Cash, bank, safe & cage ledger · reconciliation">
         <FinanceCasinoSwitcher allowNetwork={false} />
-        <DateRangePresets
-          preset={preset}
-          from={range.from}
-          to={range.to}
-          onChange={({ preset, from, to }) => {
-            setPreset(preset);
-            setRange({ from, to });
-          }}
+        <MonthCarousel
+          year={ym.year}
+          month={ym.month}
+          onChange={(year, month) => setYm({ year, month })}
         />
         <Button variant="outline" size="sm" onClick={reconcileNow}>
           <RotateCw className={cn("w-4 h-4", isFetching && "animate-spin")} /> Reconcile Now
