@@ -75,7 +75,25 @@ export default function FinancesWalletsPage() {
   const totals = useMemo(() => computeBalanceTotals(snap), [snap]);
   const usdRate = snap?.rates?.usd_tzs || 2600;
 
-  const { data: tx = [] } = useFinWalletTx({ from: range.from, to: range.to });
+  // Transactions are always shown for the full calendar month of the selected period.
+  const monthRange = useMemo(() => {
+    const d = new Date(`${range.from}T00:00:00`);
+    const y = d.getFullYear();
+    const m = d.getMonth();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const last = new Date(y, m + 1, 0).getDate();
+    return { from: `${y}-${pad(m + 1)}-01`, to: `${y}-${pad(m + 1)}-${pad(last)}` };
+  }, [range.from]);
+  const monthLabel = useMemo(
+    () =>
+      new Date(`${monthRange.from}T00:00:00`).toLocaleDateString("en-GB", {
+        month: "long",
+        year: "numeric",
+      }),
+    [monthRange.from],
+  );
+
+  const { data: tx = [] } = useFinWalletTx({ from: monthRange.from, to: monthRange.to });
 
   // per-wallet map for physical-count inline UI
   const ledgerByWallet = useMemo(() => {
