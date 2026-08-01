@@ -27,11 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
-import {
-  DateRangePresets,
-  type DatePreset,
-  presetRange,
-} from "@/components/ui/date-range-presets";
+import { MonthCarousel, MONTHS } from "@/components/payroll/MonthCarousel";
 import { useFinWallets, useUpsertFinWallet, useFinWalletTx } from "@/hooks/use-fin";
 import { useFinBalanceSnapshot, computeBalanceTotals } from "@/hooks/use-fin-balance";
 import { CloseMonthWizard } from "@/pages/office/CloseMonthWizard";
