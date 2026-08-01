@@ -1215,8 +1215,8 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
                       if (k === "E") {
                         e.preventDefault();
                         const current = getValue(dealer.id, day);
-                        // Cycle Extra shifts: EM → ESW → EN → EM
-                        const next = current === "EM" ? "ESW" : current === "ESW" ? "EN" : "EM";
+                        // Attendance stores hours: Extra Middle/Swing = 11h, Extra Night = 8h
+                        const next = current === "11" ? "8" : "11";
                         handleSave(dealer.id, day, next);
                         return;
                       }

@@ -57,6 +57,8 @@ export const normalizeAttInput = (raw: string): string | null => {
   if (v === "A" || v === "S" || v === "SP" || v === "L") return v;
   // Shift shortcuts
   if (v === "M" || v === "EM") return "11";
+  if (v === "SW" || v === "ESW") return "11";
+  if (v === "T") return "6";
   if (v === "N" || v === "EN" || v === "ED" || v === "G") return "8";
   const m = /^(\d+(?:\.\d+)?)(S|L)?$/.exec(v);
   if (m) {
