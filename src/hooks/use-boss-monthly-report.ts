@@ -313,6 +313,7 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
             tables: sumRec(tables), slots: sumRec(slots), playersCards: sumRec(playersCards),
             extras: tExtras, bonus5: tBonus, safe: tSafe,
             expectedProfit, balance, total,
+            dailyBalance: days.length ? days[days.length - 1].balance : 0,
           },
         },
         daily: days,
