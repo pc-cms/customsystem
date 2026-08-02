@@ -49,6 +49,10 @@ const KINDS = ["cash", "bank", "mobile_money", "safe", "cage", "external"];
 const CASH_LIKE_KINDS = new Set(["cash", "safe"]);
 const CURRENCY_ORDER = ["TZS", "USD", "EUR", "GBP", "KES"];
 
+type WalletSortKey = "name" | "kind" | "currency" | "starting_float" | "balance_native" | "balance_tzs";
+
+const WALLET_SORT_DEFAULT: { key: WalletSortKey; dir: "asc" | "desc" } = { key: "name", dir: "asc" };
+
 /* ============ Page ============ */
 
 export default function FinancesWalletsPage() {
