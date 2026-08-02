@@ -74,6 +74,10 @@ export default function FinancesWalletsPage() {
     "sort",
     "date_desc",
   );
+  const [walletSort, setWalletSort] = useSessionState<{ key: WalletSortKey; dir: "asc" | "desc" }>(
+    "walletSort",
+    WALLET_SORT_DEFAULT,
+  );
   const [closeOpen, setCloseOpen] = useState(false);
 
   // Whole page is scoped to a single calendar month.
