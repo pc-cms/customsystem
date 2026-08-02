@@ -51,10 +51,11 @@ fin_day_closing.slots_result   ->  Money In в "Safe Slots"
 ## Технические детали
 
 - Новая колонка `fin_wallets.auto_income_source text` (`'live' | 'slots' | NULL`) + частичный уникальный индекс на (casino_id, auto_income_source).
-- Функция `fin_sync_gaming_income(p_casino_id uuid, p_date date)`: считает сумму `table_daily_results.result` и `fin_day_closing.slots_result` за дату и делает upsert/delete строк в `fin_wallet_tx` с `ref_table = 'gaming_income'`, `ref_id = NULL`, `kind = 'income'`, `note = 'Live result' / 'Slots result'`, `business_date = дата`.
-- Триггеры AFTER INSERT/UPDATE/DELETE на `table_daily_results` и `fin_day_closing`, вызывающие эту функцию.
-- Защитный триггер на `fin_wallet_tx`: строки с `ref_table = 'gaming_income'` нельзя менять вручную (только через функцию).
-- Коллекции: триггер на `expenses` для категорий Collection создаёт пару `transfer_out` / `transfer_in` вместо `expense`; в `fin_balance_snapshot` `collections_total` перестаёт вычитаться из Expected (движение уже внутри кошельков).
-- Backfill: разовый вызов `fin_sync_gaming_income` по всем датам августа для трёх казино.
-- `src/pages/finances/FinancesWalletsPage.tsx` — человекочитаемая подпись типа для автопроводок.
+- Функция `fin_sync_gaming_income(p_casino_id uuid, p_date date)`: читает `fin_day_closing.tables_result` / `slots_result` за дату и делает upsert/delete строк в `fin_wallet_tx` с `ref_table = 'fin_day_closing'`, `ref_id = <id закрытия>`, `kind = 'income'`, `note = 'Live result' / 'Slots result'`, `business_date = дата`.
+- Триггер AFTER INSERT/UPDATE/DELETE на `fin_day_closing`, вызывающий эту функцию.
+- Защитный триггер на `fin_wallet_tx`: строки с `ref_table = 'fin_day_closing'` нельзя менять вручную.
+- `fin_balance_snapshot`: `incomes.live_game` берётся из `fin_day_closing.tables_result` вместо `table_daily_results`; `collections_total` перестаёт вычитаться из Expected.
+- Коллекции: триггер на `expenses` для категорий Collection создаёт пару `transfer_out` / `transfer_in` вместо `expense`.
+- Backfill: вызов `fin_sync_gaming_income` по всем существующим закрытиям августа.
+- `src/pages/finances/FinancesWalletsPage.tsx` — читаемая подпись типа для автопроводок.
 - Версия → 1.3.493.
