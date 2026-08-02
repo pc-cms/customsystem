@@ -301,11 +301,36 @@ const Incidents = () => {
   // Sticky helpers for Date/Time columns. Solid muted band + inset divider
   // so columns stay visually fixed and opaque during horizontal scroll.
   const stickyDivider = "shadow-[inset_-2px_0_0_hsl(var(--border))]";
-  const stickyDateHead = "sticky left-0 z-[60] bg-muted overflow-hidden";
-  const stickyTimeHead = "sticky z-[60] bg-muted overflow-hidden";
+  const stickyHead = "sticky top-0 z-50 bg-muted";
+  const stickyDateHead = "sticky left-0 top-0 z-[60] bg-muted overflow-hidden";
+  const stickyTimeHead = "sticky top-0 z-[60] bg-muted overflow-hidden";
   const stickyDate = "sticky left-0 z-40 bg-muted overflow-hidden";
   const stickyTime = "sticky z-40 bg-muted overflow-hidden";
   const stickyTimeLeft = { left: COLS.date };
+
+  // Horizontal scroll: a slim proxy scrollbar above the table so the user can
+  // scroll right without reaching the bottom of a long list.
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const topBarRef = useRef<HTMLDivElement | null>(null);
+  const syncing = useRef(false);
+  const syncFrom = (src: "top" | "body") => {
+    if (syncing.current) return;
+    const body = scrollRef.current;
+    const top = topBarRef.current;
+    if (!body || !top) return;
+    syncing.current = true;
+    if (src === "top") body.scrollLeft = top.scrollLeft;
+    else top.scrollLeft = body.scrollLeft;
+    requestAnimationFrame(() => { syncing.current = false; });
+  };
+  const onWheelHoriz = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (!e.shiftKey) return;
+    const body = scrollRef.current;
+    if (!body) return;
+    body.scrollLeft += e.deltaY * (e.deltaMode === 1 ? 16 : 1);
+    syncFrom("body");
+  };
+
 
   return (
     <PageShell>
@@ -349,7 +374,20 @@ const Incidents = () => {
 
 
       <PageSection title="Journal" card={false}>
-        <div className="rounded-md border border-border overflow-auto bg-card max-h-[calc(100dvh-230px)] overscroll-contain">
+        {/* Proxy horizontal scrollbar — always reachable at the top of the table */}
+        <div
+          ref={topBarRef}
+          onScroll={() => syncFrom("top")}
+          className="overflow-x-auto overflow-y-hidden rounded-t-md border border-b-0 border-border bg-card"
+        >
+          <div style={{ minWidth: "2250px", height: 1 }} />
+        </div>
+        <div
+          ref={scrollRef}
+          onScroll={() => syncFrom("body")}
+          onWheel={onWheelHoriz}
+          className="rounded-b-md border border-border overflow-auto bg-card h-[calc(100dvh-240px)] overscroll-contain"
+        >
           <table className="text-sm font-mono border-collapse" style={{ minWidth: "2250px" }}>
             <colgroup>
               <col style={{ width: COLS.date }} />
@@ -369,25 +407,26 @@ const Incidents = () => {
               <col style={{ width: COLS.photo }} />
               {canPost && <col style={{ width: COLS.save }} />}
             </colgroup>
-            <thead className="sticky top-0 z-50 bg-muted text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <SortableTh label="Date" sortKey="datetime" current={sortKey} dir={sortDir} onClick={toggleSort} className={`${stickyDateHead} ${stickyDivider}`} />
                 <SortableTh label="Time" sortKey="datetime" current={sortKey} dir={sortDir} onClick={toggleSort} className={`${stickyTimeHead} ${stickyDivider}`} style={stickyTimeLeft} />
-                <SortableTh label="CCTV" sortKey="cctv_observer" current={sortKey} dir={sortDir} onClick={toggleSort} />
-                <SortableTh label="Manager" sortKey="manager" current={sortKey} dir={sortDir} onClick={toggleSort} />
-                <SortableTh label="Dept" sortKey="department" current={sortKey} dir={sortDir} onClick={toggleSort} />
-                <SortableTh label="Table" sortKey="table_name" current={sortKey} dir={sortDir} onClick={toggleSort} />
-                <SortableTh label="Dealer" sortKey="dealer_name" current={sortKey} dir={sortDir} onClick={toggleSort} />
-                <SortableTh label="Inspector" sortKey="inspector_name" current={sortKey} dir={sortDir} onClick={toggleSort} />
-                <SortableTh label="Employee" sortKey="employees" current={sortKey} dir={sortDir} onClick={toggleSort} />
-                <SortableTh label="Type" sortKey="violation_type" current={sortKey} dir={sortDir} onClick={toggleSort} />
-                <th className="px-3 py-2.5 text-left">Incident *</th>
-                <th className="px-3 py-2.5 text-left">Outcome</th>
-                <SortableTh label="Pts" sortKey="points" current={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
-                <th className="px-3 py-2.5 text-left">Comments</th>
-                <th className="px-3 py-2.5 text-center">Photo</th>
-                {canPost && <th className="px-3 py-2.5 text-center">Save</th>}
+                <SortableTh label="CCTV" sortKey="cctv_observer" current={sortKey} dir={sortDir} onClick={toggleSort} className={stickyHead} />
+                <SortableTh label="Manager" sortKey="manager" current={sortKey} dir={sortDir} onClick={toggleSort} className={stickyHead} />
+                <SortableTh label="Dept" sortKey="department" current={sortKey} dir={sortDir} onClick={toggleSort} className={stickyHead} />
+                <SortableTh label="Table" sortKey="table_name" current={sortKey} dir={sortDir} onClick={toggleSort} className={stickyHead} />
+                <SortableTh label="Dealer" sortKey="dealer_name" current={sortKey} dir={sortDir} onClick={toggleSort} className={stickyHead} />
+                <SortableTh label="Inspector" sortKey="inspector_name" current={sortKey} dir={sortDir} onClick={toggleSort} className={stickyHead} />
+                <SortableTh label="Employee" sortKey="employees" current={sortKey} dir={sortDir} onClick={toggleSort} className={stickyHead} />
+                <SortableTh label="Type" sortKey="violation_type" current={sortKey} dir={sortDir} onClick={toggleSort} className={stickyHead} />
+                <th className={`px-3 py-2.5 text-left ${stickyHead}`}>Incident *</th>
+                <th className={`px-3 py-2.5 text-left ${stickyHead}`}>Outcome</th>
+                <SortableTh label="Pts" sortKey="points" current={sortKey} dir={sortDir} onClick={toggleSort} align="right" className={stickyHead} />
+                <th className={`px-3 py-2.5 text-left ${stickyHead}`}>Comments</th>
+                <th className={`px-3 py-2.5 text-center ${stickyHead}`}>Photo</th>
+                {canPost && <th className={`px-3 py-2.5 text-center ${stickyHead}`}>Save</th>}
               </tr>
+
             </thead>
             <tbody>
               {isLoading ? (
