@@ -1,61 +1,35 @@
-# Автоматический учёт доходов казино в кошельках
+# Wallets: сверка вручную — убрать перекосы в Expected
 
-## Проблема
+Автоматических проводок в кошельки не делаем. Деньги заходят только вручную (Money In / Out / Transfer), а Actual подтверждается физическим пересчётом. Задача — чтобы Expected считался из правильных источников и Variance не врал.
 
-Источник цифр — **Day Closings**: в `fin_day_closing` за каждый день лежат `tables_result` (Live) и `slots_result`. Именно они и должны попадать в кошельки как приход IN. Сейчас этого не происходит:
+## Что не так сейчас
 
-- **Expected** берёт Live из `table_daily_results`, Slots — из `fin_day_closing`.
-- **Actual** — только остатки кошельков (`fin_wallets` + `fin_wallet_tx`), проводок по результату дня нет.
-
-Кошельки `Safe Live` и `Safe Slots` есть во всех трёх казино (Arusha, Mwanza, Mbeya), но их остаток = 0. Отсюда постоянный минус в Variance (Мванза, закрытие 01/08: Live 16 065 000 + Slots 28 897 403 — ни одна из этих сумм в кошельки не пришла).
+- **Live-результат в Expected берётся из `table_daily_results`, а не из Day Closing.** В `fin_day_closing` за день лежит `tables_result` (Мванза 01/08 — 16 065 000) — это цифра, которую вы утверждаете при закрытии дня. Slots уже берётся из Day Closing (`slots_result`), а Live — из другой таблицы, поэтому две страницы могут показывать разные суммы.
+- **Коллекции вычитаются из Expected.** Инкассация — это перемещение денег внутри своих же кошельков, а не расход. Сейчас `collections_total` уменьшает Expected, из-за чего сверка занижена на сумму инкассаций.
+- **Физический пересчёт подтягивается по типу кошелька, а не по самому кошельку.** В снапшоте `physical` сопоставляется по паре «вид кошелька + валюта», поэтому `Safe Live`, `Safe Slots` и `Safe TZS` конкурируют за один и тот же пересчёт. Пока таблица пересчётов пустая, это не проявляется, но при первом же сохранении даст неверный Actual.
 
 ## Что сделаем
 
-### 1. Единый источник — Day Closing
+### 1. Live в Expected — из Day Closing
 
-Live-результат в балансе тоже берётся из `fin_day_closing.tables_result` (как и Slots), а не из `table_daily_results`. Так экран Day Closings и Wallets всегда показывают одну и ту же цифру.
+`incomes.live_game` считается из `fin_day_closing.tables_result` за период. Day Closings становится единственным источником цифр по Live и Slots.
 
-### 2. Привязка кошелька-приёмника
+### 2. Коллекции не уменьшают Expected
 
-Добавим кошельку признак источника автопоступления: `Safe Live` принимает результат столов, `Safe Slots` — результат слотов. Проставим для всех казино, где эти кошельки уже есть.
+Инкассация перестаёт вычитаться из Expected как расход. Сумма коллекций остаётся видна отдельной строкой в разбивке — как справочная информация о перемещении.
 
-### 3. Приход IN при закрытии дня
+### 3. Физический пересчёт — строго по кошельку
 
-При сохранении/закрытии Day Closing в нужном кошельке создаётся приход:
+Пересчёт привязывается к конкретному кошельку, а не к типу. Уже работающий сценарий «Save Physical Count» (создаёт корректирующую проводку на разницу) остаётся без изменений — он и есть основной способ подтвердить Actual.
 
-```text
-fin_day_closing.tables_result  ->  Money In в "Safe Live"
-fin_day_closing.slots_result   ->  Money In в "Safe Slots"
-```
+### 4. Проверка на Мванзе за август
 
-Правила:
-- Одна проводка на казино + дата + источник (без дублей).
-- При правке Day Closing проводка **пересчитывается**, при удалении строки закрытия — убирается.
-- Нулевой результат проводку не создаёт; отрицательный проводится с минусом — это нормально.
-- Проводка помечается служебным признаком: вручную её редактировать нельзя, только через Day Closing.
-
-
-### 4. Коллекции = перевод, а не расход
-
-Инкассация (Collection) — это перемещение денег из кассы в офисный сейф, а не расход. Такая операция создаёт пару проводок **Transfer**: `Safe Live` / `Safe Slots` → `Safe TZS` (или выбранный кошелёк) и не уменьшает Expected дважды.
-
-### 5. Backfill за август
-
-Пересчитаем проводки по всем существующим Day Closings августа для Arusha, Mwanza, Mbeya, чтобы Variance сошёлся уже сейчас.
-
-### 6. Отображение
-
-- В Day Closings рядом с Live/Slots видно, что приход проведён в кошелёк.
-- В таблице транзакций кошельков автопроводки получают понятный тип: `Live result` / `Slots result`.
+После правок пересчитаем сверку по августу Мванзы и покажем итоговый Variance — он должен объясняться только реально непроведёнными деньгами.
 
 ## Технические детали
 
-- Новая колонка `fin_wallets.auto_income_source text` (`'live' | 'slots' | NULL`) + частичный уникальный индекс на (casino_id, auto_income_source).
-- Функция `fin_sync_gaming_income(p_casino_id uuid, p_date date)`: читает `fin_day_closing.tables_result` / `slots_result` за дату и делает upsert/delete строк в `fin_wallet_tx` с `ref_table = 'fin_day_closing'`, `ref_id = <id закрытия>`, `kind = 'income'`, `note = 'Live result' / 'Slots result'`, `business_date = дата`.
-- Триггер AFTER INSERT/UPDATE/DELETE на `fin_day_closing`, вызывающий эту функцию.
-- Защитный триггер на `fin_wallet_tx`: строки с `ref_table = 'fin_day_closing'` нельзя менять вручную.
-- `fin_balance_snapshot`: `incomes.live_game` берётся из `fin_day_closing.tables_result` вместо `table_daily_results`; `collections_total` перестаёт вычитаться из Expected.
-- Коллекции: триггер на `expenses` для категорий Collection создаёт пару `transfer_out` / `transfer_in` вместо `expense`.
-- Backfill: вызов `fin_sync_gaming_income` по всем существующим закрытиям августа.
-- `src/pages/finances/FinancesWalletsPage.tsx` — читаемая подпись типа для автопроводок.
+- `fin_balance_snapshot`: `incomes.live_game` из `fin_day_closing.tables_result` (вместо `table_daily_results`); `collections_total` остаётся в ответе, но становится справочным.
+- `src/hooks/use-fin-balance.ts` — `computeBalanceTotals` перестаёт вычитать `collections_total` из Expected.
+- `fin_balance_snapshot`: CTE `phys` заменяется на выборку последнего пересчёта по `wallet_id` (добавим `wallet_id` в `cash_count_snapshots` и будем писать его при сохранении пересчёта).
+- `src/pages/finances/FinancesWalletsPage.tsx` — при сохранении пересчёта пишем строку в `cash_count_snapshots` с `wallet_id`; в разбивке Expected подпись «Collections (перемещение)».
 - Версия → 1.3.493.
