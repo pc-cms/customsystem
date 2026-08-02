@@ -471,8 +471,10 @@ export default function FinancesWalletsPage() {
             <BreakdownRow label="Missed Chips (±)" v={snap?.incomes?.missed_chips || 0} signed />
             <BreakdownRow label="Missed Cards (±)" v={snap?.incomes?.missed_cards || 0} signed />
             <BreakdownRow label="− Expenses" v={snap?.expenses_total || 0} negative />
-            {/* Internal move between our own wallets — informational only, not part of Expected */}
-            <BreakdownRow label="Collections (internal move)" v={snap?.collections_total || 0} muted />
+            {/* Owner withdrawal — cash physically leaves the casino, subtracted from Expected */}
+            <BreakdownRow label="− Collections (owner withdrawal)" v={snap?.collections_total || 0} negative />
+            {/* Internal move between our own wallets/casinos — informational only */}
+            <BreakdownRow label="Transfers (internal move)" v={snap?.transfers_total || 0} muted />
             <div className="border-t-2 border-border">
               <BreakdownRow label="= Expected (net of float)" v={totals.expected} bold signed />
             </div>
