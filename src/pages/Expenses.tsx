@@ -563,6 +563,8 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                   isManagerView={isManagerView}
                   liveShift={liveShift}
                   slotsShift={slotsShift}
+                  wallets={wallets}
+
                   onChange={(patch) => updateDraft(d.uid, patch)}
                   onRemove={() => removeDraft(d.uid)}
                   onSubmit={() => submitDraft(d.uid)}
