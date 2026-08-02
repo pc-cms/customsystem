@@ -845,7 +845,14 @@ export default function FinancesWalletsPage() {
             </thead>
             <tbody>
               {txRows.map((r: any) => {
-                const isIn = Number(r.amount_tzs) >= 0;
+                // Direction comes from the kind — expenses are stored as positive amounts.
+                const kind = String(r.kind || "");
+                const isIn =
+                  kind === "expense" || kind === "transfer_out" || kind === "change_out"
+                    ? false
+                    : kind === "income" || kind === "transfer_in" || kind === "change_in"
+                      ? true
+                      : Number(r.amount_tzs) >= 0;
                 return (
                   <tr key={r.id} className="border-t border-border hover:bg-muted/40">
                     <td className="px-3 py-1.5 font-mono text-xs">{fmtDateOnly(r.business_date)}</td>
@@ -864,7 +871,7 @@ export default function FinancesWalletsPage() {
                         isIn ? "cms-amount-positive" : "cms-amount-negative",
                       )}
                     >
-                      {formatNumberSpaces(Math.abs(Number(r.amount)))}{" "}
+                      {isIn ? "" : "−"}{formatNumberSpaces(Math.abs(Number(r.amount)))}{" "}
                       <span className="text-[10px] text-muted-foreground">{r.currency}</span>
                     </td>
                     <td
@@ -873,7 +880,7 @@ export default function FinancesWalletsPage() {
                         isIn ? "cms-amount-positive" : "cms-amount-negative",
                       )}
                     >
-                      {formatNumberSpaces(Math.abs(Number(r.amount_tzs)))}
+                      {isIn ? "" : "−"}{formatNumberSpaces(Math.abs(Number(r.amount_tzs)))}
                     </td>
                     <td className="px-3 py-1.5 text-xs text-muted-foreground truncate max-w-[420px]">
                       {r.note}

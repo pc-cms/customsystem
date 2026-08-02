@@ -158,6 +158,7 @@ export const useUpdateOtherIncome = () => {
       source: OtherIncomeSource;
       currency: string;
       amount: number;
+      fx_rate?: number;
       note?: string;
     }) => {
       const { id, ...patch } = input;
@@ -170,6 +171,8 @@ export const useUpdateOtherIncome = () => {
           source: patch.source,
           currency: patch.currency,
           amount: patch.amount,
+          // keep the mirrored wallet transaction in sync when the currency changes
+          fx_rate: patch.fx_rate ?? (patch.currency === "TZS" ? 1 : undefined),
           note: patch.note || null,
         })
         .eq("id", id);
