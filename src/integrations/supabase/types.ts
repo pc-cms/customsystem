@@ -1376,6 +1376,7 @@ export type Database = {
           note: string
           physical_total: number
           physical_total_tzs: number
+          wallet_id: string | null
           wallet_type: Database["public"]["Enums"]["wallet_type"]
         }
         Insert: {
@@ -1391,6 +1392,7 @@ export type Database = {
           note?: string
           physical_total?: number
           physical_total_tzs?: number
+          wallet_id?: string | null
           wallet_type: Database["public"]["Enums"]["wallet_type"]
         }
         Update: {
@@ -1406,6 +1408,7 @@ export type Database = {
           note?: string
           physical_total?: number
           physical_total_tzs?: number
+          wallet_id?: string | null
           wallet_type?: Database["public"]["Enums"]["wallet_type"]
         }
         Relationships: [
@@ -1414,6 +1417,13 @@ export type Database = {
             columns: ["casino_id"]
             isOneToOne: false
             referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_count_snapshots_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallets"
             referencedColumns: ["id"]
           },
         ]
