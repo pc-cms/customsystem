@@ -31,6 +31,7 @@ export type BalanceSnapshot = {
   incomes: { live_game: number; slots: number; other: number; card_balance: number; missed_chips: number; missed_cards: number };
   expenses_total: number;
   collections_total: number;
+  transfers_total: number;
   wallets: WalletBalanceRow[];
 };
 
