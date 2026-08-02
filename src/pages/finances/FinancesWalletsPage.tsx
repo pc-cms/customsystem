@@ -499,12 +499,42 @@ export default function FinancesWalletsPage() {
             <thead className="bg-muted text-xs uppercase">
               <tr>
                 <th className="w-6"></th>
-                <th className="px-3 py-2 text-left">Name</th>
-                <th className="px-3 py-2 text-left">Kind</th>
-                <th className="px-3 py-2 text-left">Currency</th>
-                <th className="px-3 py-2 text-right">Starting Float</th>
-                <th className="px-3 py-2 text-right">Balance (native)</th>
-                <th className="px-3 py-2 text-right">Balance (TZS)</th>
+                <th
+                  className="px-3 py-2 text-left cursor-pointer select-none"
+                  onClick={() => toggleWalletSort("name")}
+                >
+                  Name <WalletSortIcon k="name" />
+                </th>
+                <th
+                  className="px-3 py-2 text-left cursor-pointer select-none"
+                  onClick={() => toggleWalletSort("kind")}
+                >
+                  Kind <WalletSortIcon k="kind" />
+                </th>
+                <th
+                  className="px-3 py-2 text-left cursor-pointer select-none"
+                  onClick={() => toggleWalletSort("currency")}
+                >
+                  Currency <WalletSortIcon k="currency" />
+                </th>
+                <th
+                  className="px-3 py-2 text-right cursor-pointer select-none"
+                  onClick={() => toggleWalletSort("starting_float")}
+                >
+                  Starting Float <WalletSortIcon k="starting_float" />
+                </th>
+                <th
+                  className="px-3 py-2 text-right cursor-pointer select-none"
+                  onClick={() => toggleWalletSort("balance_native")}
+                >
+                  Balance (native) <WalletSortIcon k="balance_native" />
+                </th>
+                <th
+                  className="px-3 py-2 text-right cursor-pointer select-none"
+                  onClick={() => toggleWalletSort("balance_tzs")}
+                >
+                  Balance (TZS) <WalletSortIcon k="balance_tzs" />
+                </th>
                 <th className="w-12"></th>
               </tr>
             </thead>
