@@ -265,7 +265,7 @@ export default function OtherIncomesTab() {
       <PageHeader
         icon={Coins}
         title="Other Incomes"
-        subtitle="Immutable transactions · investments, transfers, refunds"
+        subtitle="Investments, transfers, refunds · editable, negative amounts allowed"
       >
         <FinanceCasinoSwitcher allowNetwork={false} />
         <DateRangePresets
@@ -377,7 +377,7 @@ export default function OtherIncomesTab() {
               step="0.01"
               value={form.amount}
               onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              placeholder="0 (можно со знаком −)"
+              placeholder="0 (use minus for deduction)"
             />
           </FormField>
           <FormField span={6} label="Note (optional)">
@@ -392,8 +392,8 @@ export default function OtherIncomesTab() {
           <Button variant="outline" onClick={() => setDialogOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={submit} disabled={addIncome.isPending}>
-            {addIncome.isPending ? "Saving…" : "Save"}
+          <Button onClick={submit} disabled={addIncome.isPending || updateIncome.isPending}>
+            {addIncome.isPending || updateIncome.isPending ? "Saving…" : "Save"}
           </Button>
         </div>
       </ResponsiveDialog>
