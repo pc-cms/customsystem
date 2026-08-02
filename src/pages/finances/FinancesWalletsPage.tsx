@@ -845,7 +845,14 @@ export default function FinancesWalletsPage() {
             </thead>
             <tbody>
               {txRows.map((r: any) => {
-                const isIn = Number(r.amount_tzs) >= 0;
+                // Direction comes from the kind — expenses are stored as positive amounts.
+                const kind = String(r.kind || "");
+                const isIn =
+                  kind === "expense" || kind === "transfer_out" || kind === "change_out"
+                    ? false
+                    : kind === "income" || kind === "transfer_in" || kind === "change_in"
+                      ? true
+                      : Number(r.amount_tzs) >= 0;
                 return (
                   <tr key={r.id} className="border-t border-border hover:bg-muted/40">
                     <td className="px-3 py-1.5 font-mono text-xs">{fmtDateOnly(r.business_date)}</td>
