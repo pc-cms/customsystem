@@ -298,8 +298,12 @@ export default function OtherIncomesTab() {
         />
       </PageSection>
 
-      {/* ADD DIALOG */}
-      <ResponsiveDialog open={dialogOpen} onOpenChange={setDialogOpen} title="Add Other Income">
+      {/* ADD / EDIT DIALOG */}
+      <ResponsiveDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        title={editId ? "Edit Other Income" : "Add Other Income"}
+      >
         <FormGrid>
           <FormField span={6} label="Business Date">
             <Input
