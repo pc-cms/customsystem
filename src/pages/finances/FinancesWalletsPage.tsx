@@ -485,8 +485,6 @@ export default function FinancesWalletsPage() {
           </DropdownMenuContent>
         </DropdownMenu>
       </PageHeader>
-
-
       {/* KPI STRIP */}
       <PageSection card={false}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
