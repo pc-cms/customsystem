@@ -49,7 +49,7 @@ export type Summary = {
     estimated: number; result: number; other: number; collection: number;
     tables: number; slots: number; playersCards: number;
     extras: number; bonus5: number; safe: number;
-    expectedProfit: number; balance: number; total: number;
+    expectedProfit: number; balance: number; total: number; dailyBalance: number;
   };
 };
 
