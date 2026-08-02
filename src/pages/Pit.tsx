@@ -846,7 +846,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   const renderDealerRows = (dealerList: any[], label: string, accentColor: string, extraRowClass = "", forcePitBoss = false) => (
     <>
       <tr className={extraRowClass}>
-        <td colSpan={days.length + 6} className="px-0 py-0 sticky left-0">
+        <td colSpan={days.length + 7} className="px-0 py-0 sticky left-0">
           <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${accentColor}`}>
             <span className="text-[10px] font-mono font-semibold uppercase tracking-wider">{label}</span>
             <span className="text-[10px] font-mono text-muted-foreground">({dealerList.length})</span>
