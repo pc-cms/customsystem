@@ -193,16 +193,7 @@ export default function WalletMovementDialog({
       onOpenChange={onOpenChange}
       title="Wallet Movement"
       description="Book money in, money out or a transfer — with denominations"
-      footer={
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={save} disabled={saving || !(amount > 0)}>
-            {saving ? "Saving…" : "Save Movement"}
-          </Button>
-        </div>
-      }
+      size="table"
     >
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-2">
