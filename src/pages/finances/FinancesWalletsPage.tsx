@@ -880,7 +880,7 @@ export default function FinancesWalletsPage() {
                         isIn ? "cms-amount-positive" : "cms-amount-negative",
                       )}
                     >
-                      {formatNumberSpaces(Math.abs(Number(r.amount_tzs)))}
+                      {isIn ? "" : "−"}{formatNumberSpaces(Math.abs(Number(r.amount_tzs)))}
                     </td>
                     <td className="px-3 py-1.5 text-xs text-muted-foreground truncate max-w-[420px]">
                       {r.note}
