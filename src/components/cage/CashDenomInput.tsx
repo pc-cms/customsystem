@@ -60,7 +60,7 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
                 else onSubmit?.();
               }
             }}
-            placeholder="0"
+            placeholder={placeholders?.[d] ? String(placeholders[d]) : "0"}
             inputMode="numeric"
           />
         </div>
@@ -80,7 +80,7 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
               const raw = Math.max(0, Math.floor(Number(e.target.value) || 0));
               onCentsChange!(raw);
             }}
-            placeholder="0"
+            placeholder={centsPlaceholder ? String(centsPlaceholder) : "0"}
             inputMode="numeric"
           />
         </div>
