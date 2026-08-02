@@ -7,10 +7,10 @@ import { Shield } from "lucide-react";
 const LOGIN_DOMAIN = "@cms.local";
 
 const BRANCH_NAMES: Record<string, string> = {
-  arusha: "Arusha Cloud",
-  mwanza: "Mwanza Cloud",
-  dodoma: "Dodoma Cloud",
-  mbeya: "Mbeya Cloud",
+  arusha: "Arusha",
+  mwanza: "Mwanza",
+  dodoma: "Dodoma",
+  mbeya: "Mbeya",
   premier: "Premier",
 };
 

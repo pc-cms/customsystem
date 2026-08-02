@@ -260,7 +260,7 @@ export default function FinancesMonthlyReportPage() {
             <Tabs value={scope || activeCasinoId || ""} onValueChange={setScope} className="ml-auto">
               <TabsList>
                 {accessibleCasinos.map((c) => (
-                  <TabsTrigger key={c.id} value={c.id}>{c.name.replace(/\s*Cloud$/, "")}</TabsTrigger>
+                  <TabsTrigger key={c.id} value={c.id}>{c.name}</TabsTrigger>
                 ))}
                 {isPremier && <TabsTrigger value="network">Network</TabsTrigger>}
               </TabsList>
