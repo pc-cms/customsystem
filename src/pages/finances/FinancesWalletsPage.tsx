@@ -317,6 +317,30 @@ export default function FinancesWalletsPage() {
         if (txError) throw txError;
         adjustmentId = adjustment?.id ?? null;
       }
+      // Snapshot of the count itself, bound to THIS wallet (not just its kind).
+      const WALLET_TYPE_BY_KIND: Record<string, string> = {
+        cash: "main_cash",
+        safe: "office_safe",
+        bank: "bank_account",
+        mobile_money: "mobile_money",
+        cage: "cage_table",
+        external: "other_reserve",
+      };
+      const { error: snapError } = await supabase.from("cash_count_snapshots").insert({
+        casino_id: activeCasinoId,
+        wallet_id: w.id,
+        wallet_type: (WALLET_TYPE_BY_KIND[w.kind] || "office_safe") as any,
+        currency: w.currency,
+        denominations: (useDenoms ? denomCounts[w.id] || {} : {}) as any,
+        physical_total: counted,
+        expected_balance: led.native,
+        discrepancy: variance,
+        exchange_rate: fxRate,
+        physical_total_tzs: counted * fxRate,
+        counted_by: user.id,
+        note: countNote[w.id] || "",
+      } as any);
+      if (snapError) throw snapError;
       const { error } = await supabase.from("fin_audit_log").insert({
         casino_id: activeCasinoId,
         actor: user.id,
