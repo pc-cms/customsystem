@@ -11,7 +11,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight } from "lucide-react";
-import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
