@@ -26,6 +26,8 @@ import {
   useOtherIncomes,
   useAddOtherIncome,
   useReverseOtherIncome,
+  useUpdateOtherIncome,
+  useDeleteOtherIncome,
   OTHER_INCOME_SOURCES,
   type OtherIncomeRow,
   type OtherIncomeSource,
