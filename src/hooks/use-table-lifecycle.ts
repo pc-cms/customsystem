@@ -164,7 +164,7 @@ export const useUpdateCasinoSchedule = () => {
       // Compute "next business day start" date (today's business date + 1).
       // Using the *current* shift_end so pending activates from tomorrow's shift.
       const { getBusinessDate } = await import("@/lib/business-day");
-      const curEnd = parseInt((input.current_shift_end || input.shift_end).split(":")[0], 10) || 5;
+      const curEnd = parseInt((input.current_shift_end || input.shift_end).split(":")[0], 10) || 6;
       const today = getBusinessDate(curEnd);
       const next = new Date(today + "T00:00:00Z");
       next.setUTCDate(next.getUTCDate() + 1);
