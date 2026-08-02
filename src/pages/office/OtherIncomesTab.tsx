@@ -185,17 +185,20 @@ export default function OtherIncomesTab() {
       accessor: (r) => {
         const isReversal = !!r.reverses_id;
         const isReversed = !!r.reversed_by_id;
+        const neg = Number(r.amount) < 0 || isReversal;
         return (
           <span
             className={cn(
               "font-mono tabular-nums",
               isReversal || isReversed
                 ? "line-through text-muted-foreground"
-                : "cms-amount-positive",
+                : neg
+                  ? "cms-amount-negative"
+                  : "cms-amount-positive",
             )}
           >
-            {isReversal ? "−" : ""}
-            {formatNumberSpaces(Number(r.amount))}
+            {neg ? "−" : ""}
+            {formatNumberSpaces(Math.abs(Number(r.amount)))}
           </span>
         );
       },
