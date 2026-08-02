@@ -348,6 +348,15 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${ATT_COLORS["S"]}`}>
             <span className="font-bold">S</span><span className="opacity-80">Sick</span>
           </span>
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${ATT_COLORS["SP"]}`}>
+            <span className="font-bold">SP</span><span className="opacity-80">Suspend</span>
+          </span>
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${ATT_COLORS["L"]}`}>
+            <span className="font-bold">L</span><span className="opacity-80">Late</span>
+          </span>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-muted/40 text-muted-foreground">
+            <span className="font-bold">8L / 8S</span><span className="opacity-80">hours + incident</span>
+          </span>
         </>
       )}
     </div>
@@ -846,7 +855,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   const renderDealerRows = (dealerList: any[], label: string, accentColor: string, extraRowClass = "", forcePitBoss = false) => (
     <>
       <tr className={extraRowClass}>
-        <td colSpan={days.length + 6} className="px-0 py-0 sticky left-0">
+        <td colSpan={days.length + 7} className="px-0 py-0 sticky left-0">
           <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${accentColor}`}>
             <span className="text-[10px] font-mono font-semibold uppercase tracking-wider">{label}</span>
             <span className="text-[10px] font-mono text-muted-foreground">({dealerList.length})</span>
@@ -903,6 +912,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               );
             })}
             <td className="px-2 py-1 text-center border-l border-border/25"><span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">{stats.counts["M"] || ""}</span></td>
+            <td className="px-2 py-1 text-center"><span className="text-xs font-mono font-bold text-violet-600 dark:text-violet-400">{stats.counts["SW"] || ""}</span></td>
             <td className="px-2 py-1 text-center"><span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">{stats.counts["N"] || ""}</span></td>
             <td className="px-2 py-1 text-center"><span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">{((stats.counts["E"] || 0) + (stats.counts["EM"] || 0) + (stats.counts["ESW"] || 0) + (stats.counts["EN"] || 0)) || ""}</span></td>
             <td className="px-2 py-1 text-center border-l border-border/25"><span className="text-xs font-mono font-bold text-primary">{stats.hours || ""}</span></td>
@@ -935,6 +945,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               );
             })}
             <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">M</th>
+            <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">SW</th>
             <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">N</th>
             <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">E</th>
             <th className="text-center text-[10px] font-medium text-primary uppercase px-1 py-2 w-10" title="Planned hours (forecast)">Σh</th>
@@ -949,7 +960,15 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               const count = activeDealers.filter(d => getDisplayShift(d.id, day)?.shift === "M").length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400">{count || ""}</td>;
             })}
-            <td colSpan={4} />
+            <td colSpan={5} />
+          </tr>
+          <tr>
+            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-violet-600 dark:text-violet-400 sticky left-0 bg-card z-10">Σ SW</td>
+            {days.map(day => {
+              const count = activeDealers.filter(d => getDisplayShift(d.id, day)?.shift === "SW").length;
+              return <td key={day} className="text-center text-[9px] font-mono font-bold text-violet-600 dark:text-violet-400">{count || ""}</td>;
+            })}
+            <td colSpan={5} />
           </tr>
           <tr>
             <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400 sticky left-0 bg-card z-10">Σ N</td>
@@ -957,18 +976,18 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               const count = activeDealers.filter(d => getDisplayShift(d.id, day)?.shift === "N").length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{count || ""}</td>;
             })}
-            <td colSpan={4} />
+            <td colSpan={5} />
           </tr>
           <tr>
             <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ All</td>
             {days.map(day => {
               const count = activeDealers.filter(d => {
                 const s = getDisplayShift(d.id, day)?.shift;
-                return s === "M" || s === "N" || isExtraShift(s);
+                return s === "M" || s === "SW" || s === "N" || isExtraShift(s);
               }).length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
             })}
-            <td colSpan={4} />
+            <td colSpan={5} />
           </tr>
           {pitBosses.length > 0 && (
             <>
@@ -988,6 +1007,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                   );
                 })}
                 <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">M</th>
+                <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">SW</th>
                 <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">N</th>
                 <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">E</th>
                 <th className="text-center text-[10px] font-medium text-primary uppercase px-1 py-2 w-10" title="Planned hours (forecast)">Σh</th>
