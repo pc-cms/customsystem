@@ -146,3 +146,60 @@ export const useReverseOtherIncome = () => {
     onError: (e: any) => toast.error(e.message),
   });
 };
+
+export const useUpdateOtherIncome = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      id: string;
+      business_date: string;
+      wallet_id: string;
+      fin_category_id?: string | null;
+      source: OtherIncomeSource;
+      currency: string;
+      amount: number;
+      note?: string;
+    }) => {
+      const { id, ...patch } = input;
+      const { error } = await (supabase as any)
+        .from("fin_other_incomes")
+        .update({
+          business_date: patch.business_date,
+          wallet_id: patch.wallet_id,
+          fin_category_id: patch.fin_category_id || null,
+          source: patch.source,
+          currency: patch.currency,
+          amount: patch.amount,
+          note: patch.note || null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fin-other-incomes"] });
+      qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
+      qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
+      qc.invalidateQueries({ queryKey: ["fin-wallet-bal-asof"] });
+      toast.success("Income updated");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+};
+
+export const useDeleteOtherIncome = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("fin_other_incomes").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fin-other-incomes"] });
+      qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
+      qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
+      qc.invalidateQueries({ queryKey: ["fin-wallet-bal-asof"] });
+      toast.success("Income deleted");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+};
