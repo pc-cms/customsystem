@@ -123,6 +123,56 @@ export default function FinancesWalletsPage() {
     return { tzs, usd, perCcy };
   }, [snap, usdRate]);
 
+  const toggleWalletSort = (k: WalletSortKey) => {
+    setWalletSort((s) => ({
+      key: k,
+      dir: s.key === k && s.dir === "asc" ? "desc" : "asc",
+    }));
+  };
+
+  const visibleWallets = useMemo(() => {
+    const list = [...wallets] as any[];
+    const { key, dir } = walletSort;
+    const mult = dir === "asc" ? 1 : -1;
+    list.sort((a, b) => {
+      let av: any;
+      let bv: any;
+      const ledA = ledgerByWallet.get(a.id) || { native: 0, tzs: 0 };
+      const ledB = ledgerByWallet.get(b.id) || { native: 0, tzs: 0 };
+      switch (key) {
+        case "name":
+          av = a.name || "";
+          bv = b.name || "";
+          break;
+        case "kind":
+          av = a.kind || "";
+          bv = b.kind || "";
+          break;
+        case "currency":
+          av = a.currency || "";
+          bv = b.currency || "";
+          break;
+        case "starting_float":
+          av = Number(a.starting_float_amount || 0);
+          bv = Number(b.starting_float_amount || 0);
+          break;
+        case "balance_native":
+          av = ledA.native;
+          bv = ledB.native;
+          break;
+        case "balance_tzs":
+          av = ledA.tzs;
+          bv = ledB.tzs;
+          break;
+      }
+      if (typeof av === "string") {
+        return av.localeCompare(bv) * mult;
+      }
+      return (av > bv ? 1 : av < bv ? -1 : 0) * mult;
+    });
+    return list;
+  }, [wallets, walletSort, ledgerByWallet]);
+
   const txRows = useMemo(() => {
     let list = tx as any[];
     if (walletFilter !== "all") list = list.filter((r) => r.wallet_id === walletFilter);
