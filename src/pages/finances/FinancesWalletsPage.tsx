@@ -111,6 +111,32 @@ export default function FinancesWalletsPage() {
     return m;
   }, [snap]);
 
+  /* Last physical count per wallet — shown as grey placeholder hints. */
+  const { data: lastCounts } = useQuery({
+    queryKey: ["wallet-last-counts", activeCasinoId],
+    enabled: !!activeCasinoId,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cash_count_snapshots")
+        .select("wallet_id, denominations, physical_total, created_at")
+        .eq("casino_id", activeCasinoId!)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      const m = new Map<string, { denoms: Record<number, number>; total: number; at: string }>();
+      (data || []).forEach((r: any) => {
+        if (!r.wallet_id || m.has(r.wallet_id)) return;
+        m.set(r.wallet_id, {
+          denoms: (r.denominations || {}) as Record<number, number>,
+          total: Number(r.physical_total || 0),
+          at: r.created_at,
+        });
+      });
+      return m;
+    },
+  });
+
   // Grand totals in TZS and USD (Budget-style)
   const grandTotals = useMemo(() => {
     const tzs = (snap?.wallets || []).reduce((s, w) => s + Number(w.ledger_tzs ?? w.ledger ?? 0), 0);
