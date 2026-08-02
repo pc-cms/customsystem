@@ -307,6 +307,28 @@ export default function FinancesWalletsPage() {
             Close Month
           </Button>
         )}
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            setMoveWalletId(undefined);
+            setMoveMode("in");
+            setMoveOpen(true);
+          }}
+        >
+          <ArrowDownLeft className="w-4 h-4" /> Money In
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            setMoveWalletId(undefined);
+            setMoveMode("out");
+            setMoveOpen(true);
+          }}
+        >
+          <ArrowUpRight className="w-4 h-4" /> Money Out
+        </Button>
         <Button onClick={openNewWallet}>
           <Plus className="w-4 h-4" /> Add Wallet
         </Button>
