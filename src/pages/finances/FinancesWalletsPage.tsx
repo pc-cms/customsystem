@@ -42,7 +42,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const CURRENCIES = ["TZS", "USD", "EUR", "GBP", "KES"];
-const KINDS = ["cash", "bank", "safe", "cage", "external"];
+const KINDS = ["cash", "bank", "mobile_money", "safe", "cage", "external"];
 const CASH_LIKE_KINDS = new Set(["cash", "safe"]);
 const CURRENCY_ORDER = ["TZS", "USD", "EUR", "GBP", "KES"];
 
@@ -442,7 +442,7 @@ export default function FinancesWalletsPage() {
                         )}
                       </td>
                       <td className="px-3 py-1.5">{w.name}</td>
-                      <td className="capitalize">{w.kind}</td>
+                      <td className="capitalize">{String(w.kind).replace(/_/g, " ")}</td>
                       <td className="font-mono">{w.currency}</td>
                       <td className="text-right font-mono tabular-nums text-xs">
                         {w.starting_float_amount
