@@ -12,7 +12,7 @@ const SIZES: Record<Size, { row: string; chip: string; input: string; total: str
   lg: { row: "gap-3",   chip: "text-xs h-10 w-20",    input: "text-base h-10 w-32", total: "text-lg",  gap: "space-y-1" },
 };
 
-const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "md", cents, onCentsChange }: {
+const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "md", cents, onCentsChange, placeholders, centsPlaceholder }: {
   values: Record<number, number>;
   onChange: (v: Record<number, number>) => void;
   denoms: number[];
@@ -22,6 +22,9 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
   /** Optional fractional part (kopeks/cents) — enables an extra small input. */
   cents?: number;
   onCentsChange?: (c: number) => void;
+  /** Greyed hint values from the previous count (per denomination). */
+  placeholders?: Record<number, number>;
+  centsPlaceholder?: number;
 }) => {
   const refs = useRef<Record<number, HTMLInputElement | null>>({});
   const showCents = typeof cents === "number" && !!onCentsChange;
