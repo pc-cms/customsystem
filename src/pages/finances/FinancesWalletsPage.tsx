@@ -493,7 +493,35 @@ export default function FinancesWalletsPage() {
                       <td className="text-right font-mono tabular-nums">
                         {formatNumberSpaces(led.tzs)}
                       </td>
-                      <td className="text-right pr-3">
+                      <td className="text-right pr-3 whitespace-nowrap">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMoveWalletId(w.id);
+                            setMoveMode("in");
+                            setMoveOpen(true);
+                          }}
+                          aria-label="Money in"
+                        >
+                          <ArrowDownLeft className="w-3.5 h-3.5 cms-amount-positive" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMoveWalletId(w.id);
+                            setMoveMode("out");
+                            setMoveOpen(true);
+                          }}
+                          aria-label="Money out"
+                        >
+                          <ArrowUpRight className="w-3.5 h-3.5 cms-amount-negative" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
