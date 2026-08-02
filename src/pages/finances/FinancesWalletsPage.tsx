@@ -34,7 +34,7 @@ import { useFinWallets, useUpsertFinWallet, useFinWalletTx } from "@/hooks/use-f
 import { useFinBalanceSnapshot, computeBalanceTotals } from "@/hooks/use-fin-balance";
 import { CloseMonthWizard } from "@/pages/office/CloseMonthWizard";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
 import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
@@ -110,6 +110,32 @@ export default function FinancesWalletsPage() {
     );
     return m;
   }, [snap]);
+
+  /* Last physical count per wallet — shown as grey placeholder hints. */
+  const { data: lastCounts } = useQuery({
+    queryKey: ["wallet-last-counts", activeCasinoId],
+    enabled: !!activeCasinoId,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cash_count_snapshots")
+        .select("wallet_id, denominations, physical_total, created_at")
+        .eq("casino_id", activeCasinoId!)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      const m = new Map<string, { denoms: Record<number, number>; total: number; at: string }>();
+      (data || []).forEach((r: any) => {
+        if (!r.wallet_id || m.has(r.wallet_id)) return;
+        m.set(r.wallet_id, {
+          denoms: (r.denominations || {}) as Record<number, number>,
+          total: Number(r.physical_total || 0),
+          at: r.created_at,
+        });
+      });
+      return m;
+    },
+  });
 
   // Grand totals in TZS and USD (Budget-style)
   const grandTotals = useMemo(() => {
@@ -668,8 +694,16 @@ export default function FinancesWalletsPage() {
                         <td colSpan={8} className="p-4">
                           <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                             <div>
-                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
-                                Physical count · {w.currency}
+                              <div className="flex items-baseline justify-between mb-2">
+                                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                  Physical count · {w.currency}
+                                </div>
+                                {lastCounts?.get(w.id) && (
+                                  <div className="text-[10px] text-muted-foreground/70">
+                                    Last: {formatNumberSpaces(lastCounts.get(w.id)!.total)} ·{" "}
+                                    {fmtDateOnly(lastCounts.get(w.id)!.at)}
+                                  </div>
+                                )}
                               </div>
                               {useDenoms ? (
                                 <CashDenomInput
@@ -678,11 +712,16 @@ export default function FinancesWalletsPage() {
                                   denoms={denoms}
                                   currency={w.currency}
                                   size="sm"
+                                  placeholders={lastCounts?.get(w.id)?.denoms}
                                   {...(w.currency === "TZS"
                                     ? {
                                         cents: centsVal,
                                         onCentsChange: (c: number) =>
                                           setCentsInput((s) => ({ ...s, [w.id]: c })),
+                                        centsPlaceholder: (() => {
+                                          const t = lastCounts?.get(w.id)?.total ?? 0;
+                                          return Math.round((t - Math.trunc(t)) * 100);
+                                        })(),
                                       }
                                     : {})}
                                 />
@@ -690,7 +729,11 @@ export default function FinancesWalletsPage() {
                                 <Input
                                   type="number"
                                   step="0.01"
-                                  placeholder={`Amount (${w.currency})`}
+                                  placeholder={
+                                    lastCounts?.get(w.id)
+                                      ? String(lastCounts.get(w.id)!.total)
+                                      : `Amount (${w.currency})`
+                                  }
                                   value={amountInput[w.id] || ""}
                                   onChange={(e) =>
                                     setAmountInput((s) => ({ ...s, [w.id]: e.target.value }))
@@ -699,6 +742,7 @@ export default function FinancesWalletsPage() {
                                 />
                               )}
                             </div>
+
                             <div className="space-y-3">
                               <div className="rounded-md border border-border bg-card p-3 space-y-1">
                                 <div className="flex items-center justify-between text-xs">
