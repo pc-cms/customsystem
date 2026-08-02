@@ -548,7 +548,7 @@ export default function FinancesWalletsPage() {
               </tr>
             </thead>
             <tbody>
-              {(wallets as any[]).map((w) => {
+              {visibleWallets.map((w) => {
                 const isOpen = !!expanded[w.id];
                 const useDenoms = CASH_LIKE_KINDS.has(w.kind);
                 const denoms = CASH_DENOMS[w.currency] || CASH_DENOMS.TZS;
