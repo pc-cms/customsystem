@@ -3,7 +3,7 @@
  * Single source of truth for cash-desk reconciliation:
  *  - Wallet balances per currency (native) + TZS-equivalent
  *  - Grand Total in TZS and USD (Budget-style)
- *  - Breakdown (Expected): Live/Slots/Other ± Miss − Expenses − Collections
+ *  - Breakdown (Expected): Live/Slots (from Day Closing) /Other ± Miss − Expenses
  *  - Physical count inline, transactions log, wallet CRUD
  */
 import { Fragment, useMemo, useState } from "react";
@@ -317,6 +317,30 @@ export default function FinancesWalletsPage() {
         if (txError) throw txError;
         adjustmentId = adjustment?.id ?? null;
       }
+      // Snapshot of the count itself, bound to THIS wallet (not just its kind).
+      const WALLET_TYPE_BY_KIND: Record<string, string> = {
+        cash: "main_cash",
+        safe: "office_safe",
+        bank: "bank_account",
+        mobile_money: "mobile_money",
+        cage: "cage_table",
+        external: "other_reserve",
+      };
+      const { error: snapError } = await supabase.from("cash_count_snapshots").insert({
+        casino_id: activeCasinoId,
+        wallet_id: w.id,
+        wallet_type: (WALLET_TYPE_BY_KIND[w.kind] || "office_safe") as any,
+        currency: w.currency,
+        denominations: (useDenoms ? denomCounts[w.id] || {} : {}) as any,
+        physical_total: counted,
+        expected_balance: led.native,
+        discrepancy: variance,
+        exchange_rate: fxRate,
+        physical_total_tzs: counted * fxRate,
+        counted_by: user.id,
+        note: countNote[w.id] || "",
+      } as any);
+      if (snapError) throw snapError;
       const { error } = await supabase.from("fin_audit_log").insert({
         casino_id: activeCasinoId,
         actor: user.id,
@@ -447,7 +471,8 @@ export default function FinancesWalletsPage() {
             <BreakdownRow label="Missed Chips (±)" v={snap?.incomes?.missed_chips || 0} signed />
             <BreakdownRow label="Missed Cards (±)" v={snap?.incomes?.missed_cards || 0} signed />
             <BreakdownRow label="− Expenses" v={snap?.expenses_total || 0} negative />
-            <BreakdownRow label="− Collections" v={snap?.collections_total || 0} negative />
+            {/* Internal move between our own wallets — informational only, not part of Expected */}
+            <BreakdownRow label="Collections (internal move)" v={snap?.collections_total || 0} muted />
             <div className="border-t-2 border-border">
               <BreakdownRow label="= Expected (net of float)" v={totals.expected} bold signed />
             </div>
