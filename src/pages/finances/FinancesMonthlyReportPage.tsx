@@ -80,7 +80,8 @@ export default function FinancesMonthlyReportPage() {
 
 
   const { roles } = useAuth();
-  const canEdit = roles.includes("super_admin") || roles.includes("finance_manager");
+  const canWriteBudget = useModuleWrite("finance_budget");
+  const canEdit = roles.includes("super_admin") || roles.includes("finance_manager") || canWriteBudget;
   const isNetwork = scope === "network";
   const editMode = canEdit && !isNetwork;
 
