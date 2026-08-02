@@ -188,6 +188,10 @@ export default function FinancesWalletsPage() {
       toast.error("Enter physical count");
       return;
     }
+    // Physical counts must land on the day they are entered — not on the
+    // last day of the selected month. Clamp today into the selected period.
+    const todayEat = new Date(Date.now() + 3 * 3600_000).toISOString().slice(0, 10);
+    const countDate = todayEat < range.from ? range.from : todayEat > range.to ? range.to : todayEat;
     setSavingId(w.id);
     try {
       const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0 };
@@ -238,7 +242,7 @@ export default function FinancesWalletsPage() {
             currency: w.currency,
             fx_rate: fxRate,
             amount_tzs: varianceTzs,
-            business_date: range.to,
+            business_date: countDate,
             note: `Physical count · ${w.name} = ${formatNumberSpaces(counted)} ${w.currency}${countNote[w.id] ? ` · ${countNote[w.id]}` : ""}`,
             created_by: user.id,
           } as any)
@@ -260,7 +264,7 @@ export default function FinancesWalletsPage() {
         after: {
           lines: [line],
           note: countNote[w.id] || "",
-          business_date: range.to,
+          business_date: countDate,
           adjustment_id: adjustmentId,
         },
       } as any);
