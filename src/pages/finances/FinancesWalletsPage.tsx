@@ -3,7 +3,7 @@
  * Single source of truth for cash-desk reconciliation:
  *  - Wallet balances per currency (native) + TZS-equivalent
  *  - Grand Total in TZS and USD (Budget-style)
- *  - Breakdown (Expected): Live/Slots/Other ± Miss − Expenses − Collections
+ *  - Breakdown (Expected): Live/Slots (from Day Closing) /Other ± Miss − Expenses
  *  - Physical count inline, transactions log, wallet CRUD
  */
 import { Fragment, useMemo, useState } from "react";
