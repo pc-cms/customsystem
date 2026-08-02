@@ -789,12 +789,13 @@ export default Expenses;
 // Draft row (per-source dynamic categories)
 // ──────────────────────────────────────────────────────────
 const DraftRowView = ({
-  draft, isManagerView, liveShift, slotsShift, onChange, onRemove, onSubmit, canRemove, isPending,
+  draft, isManagerView, liveShift, slotsShift, wallets, onChange, onRemove, onSubmit, canRemove, isPending,
 }: {
   draft: DraftRow;
   isManagerView: boolean;
   liveShift: any;
   slotsShift: any;
+  wallets: any[];
   onChange: (patch: Partial<DraftRow>) => void;
   onRemove: () => void;
   onSubmit: () => void;
@@ -818,14 +819,26 @@ const DraftRowView = ({
             <SelectContent>
               <SelectItem value="live_game">Live Game{liveShift ? "" : " (no shift)"}</SelectItem>
               <SelectItem value="slots">Slots{slotsShift ? "" : " (no shift)"}</SelectItem>
-              <SelectItem value="office">Office (MAIN_CASH)</SelectItem>
+              <SelectItem value="office">Office (wallet)</SelectItem>
             </SelectContent>
           </Select>
         </td>
       )}
       <td className="px-2 py-1.5">
         {isOffice ? (
-          <span className="text-[11px] text-muted-foreground italic px-2">Casino</span>
+          <Select
+            value={draft.wallet_id}
+            onValueChange={(v) => onChange({ wallet_id: v })}
+          >
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Wallet" /></SelectTrigger>
+            <SelectContent>
+              {wallets.map((w) => (
+                <SelectItem key={w.id} value={w.id}>
+                  {w.name} · {w.currency}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         ) : (
           <Select
             value={draft.target}
@@ -838,6 +851,7 @@ const DraftRowView = ({
             </SelectContent>
           </Select>
         )}
+
       </td>
       <td className="px-2 py-1.5">
         <PlayerNameAutocomplete
