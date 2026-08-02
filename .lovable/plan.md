@@ -1,17 +1,26 @@
-# Доступ Igor: раздел Office (только просмотр)
+# Collections учитываются как реальный вывод денег
 
-## Что сейчас
-- Igor (роль `boss`) уже имеет доступ ко всем 4 казино: Arusha, Mwanza, Mbeya, Dodoma — оставляем как есть.
-- В правах роли `boss` модуль `finance_review` (это и есть `/office`) уже разрешён, но с правом записи.
-- В боковом меню пункт **Office** показывается только ролям super_admin, manager, finance_manager, shift_manager — поэтому Igor его не видит.
+## Суть
+Collections (инкассация выручки боссом) — это физический вывод денег из казино, а не внутреннее перемещение. Сейчас они исключены из формулы и показаны справочной строкой «Collections (internal move)». Их нужно вычитать из Expected.
 
-## Что сделать
-1. Показать пункт **Office** в меню для роли `boss`.
-2. Перевести Office для роли `boss` в режим «только просмотр»: модули `finance_review` и `finance_wallets` — просмотр без права записи.
-3. Убедиться, что внутри Office кнопки создания/редактирования (расходы, движения по кошелькам, закрытие месяца) для Igor скрыты/заблокированы, так как право записи отсутствует.
+## Новая формула
+```
+Expected = Live + Slots + Other + Card Balance + Miss Chips + Miss Cards − Expenses − Collections
+```
+Actual и Variance считаются как раньше:
+```
+Actual (net) = Σ кошельков (физ. пересчёт или ledger) − Starting Float
+Variance     = Actual (net) − Expected
+```
+
+## Что изменится в интерфейсе
+- В разбивке Expected строка Collections становится обычной вычитаемой строкой со знаком «−» (красная), рядом с Expenses, а не серой справочной.
+- Подпись меняется с «Collections (internal move)» на «Collections (owner withdrawal)».
+- Итог Expected по каждому казино уменьшится на сумму инкассаций за период — Variance соответственно сдвинется.
 
 ## Технические детали
-- `src/components/layout/AppSidebar.tsx`: добавить `"boss"` в список ролей пункта `/office`.
-- Обновление `role_module_defaults` для роли `boss`: `finance_review.can_write = false`, `finance_wallets.can_write = false` (просмотр остаётся `true`).
-- Проверить страницу Office и её вкладки на использование права записи (`can_write`) для скрытия действий; при необходимости добавить эту проверку там, где кнопки сейчас показываются безусловно.
+- `src/hooks/use-fin-balance.ts` → `computeBalanceTotals`: вычесть `s.collections_total`, обновить комментарий о том, что коллекции — реальный отток.
+- `src/pages/finances/FinancesWalletsPage.tsx` (строка ~475): перенести строку Collections в блок вычитаний, убрать `muted`, отображать со знаком минус.
+- RPC `fin_balance_snapshot` менять не нужно — `collections_total` уже считается отдельно (категории группы `collections`: CAPEX, Collection (Owner Withdrawal), Inter-Casino Transfer Out, Money Change).
+- Уточнение: в группу `collections` сейчас входят также Money Change и Inter-Casino Transfer Out, которые деньги из казино не выводят. Если вычитать всю группу, они попадут в отток ошибочно — предлагаю вычитать только реальные выводы (Collection (Owner Withdrawal), CAPEX), а Money Change / Inter-Casino Transfer оставить нейтральными. Подтвердите или скажу вычитать всю группу целиком.
 - Поднять версию в `package.json`.
