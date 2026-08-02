@@ -242,7 +242,7 @@ export default function FinancesWalletsPage() {
             currency: w.currency,
             fx_rate: fxRate,
             amount_tzs: varianceTzs,
-            business_date: range.to,
+            business_date: countDate,
             note: `Physical count · ${w.name} = ${formatNumberSpaces(counted)} ${w.currency}${countNote[w.id] ? ` · ${countNote[w.id]}` : ""}`,
             created_by: user.id,
           } as any)
@@ -264,7 +264,7 @@ export default function FinancesWalletsPage() {
         after: {
           lines: [line],
           note: countNote[w.id] || "",
-          business_date: range.to,
+          business_date: countDate,
           adjustment_id: adjustmentId,
         },
       } as any);
