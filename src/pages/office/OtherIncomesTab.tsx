@@ -377,7 +377,7 @@ export default function OtherIncomesTab() {
               step="0.01"
               value={form.amount}
               onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              placeholder="0"
+              placeholder="0 (можно со знаком −)"
             />
           </FormField>
           <FormField span={6} label="Note (optional)">
