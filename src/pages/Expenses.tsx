@@ -76,6 +76,8 @@ interface DraftRow {
   fin_category_id: string;
   amount: string;
   description: string;
+  /** Office source only: wallet the money is taken from (direct debit). */
+  wallet_id: string;
 }
 
 const newDraft = (defaultSource: SourceVal): DraftRow => ({
@@ -86,7 +88,9 @@ const newDraft = (defaultSource: SourceVal): DraftRow => ({
   fin_category_id: "",
   amount: "",
   description: "",
+  wallet_id: "",
 });
+
 
 type SortKey = "date" | "source" | "category" | "target" | "amount" | "status";
 type SortDir = "asc" | "desc";
