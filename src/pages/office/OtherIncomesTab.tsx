@@ -4,7 +4,7 @@
  * Reversal вместо редактирования.
  */
 import { useMemo, useState } from "react";
-import { Coins, Plus, Undo2 } from "lucide-react";
+import { Coins, Plus, Undo2, Pencil, Trash2 } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
