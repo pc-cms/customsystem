@@ -417,24 +417,25 @@ export default function FinancesWalletsPage() {
 
   return (
     <PageShell>
-      <PageHeader icon={Wallet} title="Wallets" subtitle="Cash, bank, safe & cage ledger · reconciliation">
-        <FinanceCasinoSwitcher allowNetwork={false} />
-        <MonthCarousel
-          year={ym.year}
-          month={ym.month}
-          onChange={(year, month) => setYm({ year, month })}
-        />
-        <Button variant="outline" size="sm" onClick={reconcileNow}>
-          <RotateCw className={cn("w-4 h-4", isFetching && "animate-spin")} /> Reconcile Now
-        </Button>
-        {isSuperAdmin && (
-          <Button variant="secondary" size="sm" onClick={() => setCloseOpen(true)}>
-            Close Month
-          </Button>
-        )}
+      <PageHeader
+        icon={Wallet}
+        title="Wallets"
+        subtitle="Cash, bank, safe & cage ledger · reconciliation"
+        belowHeader={
+          <div className="flex items-center gap-2 flex-wrap">
+            <FinanceCasinoSwitcher allowNetwork={false} />
+            <MonthCarousel
+              year={ym.year}
+              month={ym.month}
+              onChange={(year, month) => setYm({ year, month })}
+            />
+          </div>
+        }
+      >
         <Button
           variant="secondary"
           size="sm"
+          className="h-9"
           onClick={() => {
             setMoveWalletId(undefined);
             setMoveMode("in");
@@ -446,6 +447,7 @@ export default function FinancesWalletsPage() {
         <Button
           variant="secondary"
           size="sm"
+          className="h-9"
           onClick={() => {
             setMoveWalletId(undefined);
             setMoveMode("out");
@@ -454,10 +456,28 @@ export default function FinancesWalletsPage() {
         >
           <ArrowUpRight className="w-4 h-4" /> Money Out
         </Button>
-        <Button onClick={openNewWallet}>
+        <Button size="sm" className="h-9" onClick={openNewWallet}>
           <Plus className="w-4 h-4" /> Add Wallet
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" className="h-9 w-9" aria-label="More actions">
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={reconcileNow}>
+              <RotateCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} /> Reconcile Now
+            </DropdownMenuItem>
+            {isSuperAdmin && (
+              <DropdownMenuItem onClick={() => setCloseOpen(true)}>
+                <CalendarCheck className="w-4 h-4 mr-2" /> Close Month
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </PageHeader>
+
 
       {/* KPI STRIP */}
       <PageSection card={false}>
