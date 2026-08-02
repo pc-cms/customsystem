@@ -1,26 +1,24 @@
-# Collections учитываются как реальный вывод денег
+# Collections учитываются как реальный вывод денег (отдельно от трансферов)
 
 ## Суть
-Collections (инкассация выручки боссом) — это физический вывод денег из казино, а не внутреннее перемещение. Сейчас они исключены из формулы и показаны справочной строкой «Collections (internal move)». Их нужно вычитать из Expected.
+Инкассация выручки боссом — это физический вывод денег из казино. Сейчас вся группа `collections` исключена из формулы и показана одной серой строкой «Collections (internal move)». Разделяем её на две части:
+
+- **Collections (вывод денег)** — категории `Collection`, `CAPEX`. Вычитаются из Expected.
+- **Transfers (внутреннее движение)** — категории `Inter-Casino Transfer Out`, `Money Change`. Нейтральны, в Expected не входят, показываются справочной строкой.
 
 ## Новая формула
 ```
 Expected = Live + Slots + Other + Card Balance + Miss Chips + Miss Cards − Expenses − Collections
-```
-Actual и Variance считаются как раньше:
-```
 Actual (net) = Σ кошельков (физ. пересчёт или ledger) − Starting Float
 Variance     = Actual (net) − Expected
 ```
 
-## Что изменится в интерфейсе
-- В разбивке Expected строка Collections становится обычной вычитаемой строкой со знаком «−» (красная), рядом с Expenses, а не серой справочной.
-- Подпись меняется с «Collections (internal move)» на «Collections (owner withdrawal)».
-- Итог Expected по каждому казино уменьшится на сумму инкассаций за период — Variance соответственно сдвинется.
+## Интерфейс
+- Строка «Collections (owner withdrawal)» — красная, со знаком «−», рядом с Expenses.
+- Строка «Transfers (internal move)» — серая справочная, в сумму не входит.
 
 ## Технические детали
-- `src/hooks/use-fin-balance.ts` → `computeBalanceTotals`: вычесть `s.collections_total`, обновить комментарий о том, что коллекции — реальный отток.
-- `src/pages/finances/FinancesWalletsPage.tsx` (строка ~475): перенести строку Collections в блок вычитаний, убрать `muted`, отображать со знаком минус.
-- RPC `fin_balance_snapshot` менять не нужно — `collections_total` уже считается отдельно (категории группы `collections`: CAPEX, Collection (Owner Withdrawal), Inter-Casino Transfer Out, Money Change).
-- Уточнение: в группу `collections` сейчас входят также Money Change и Inter-Casino Transfer Out, которые деньги из казино не выводят. Если вычитать всю группу, они попадут в отток ошибочно — предлагаю вычитать только реальные выводы (Collection (Owner Withdrawal), CAPEX), а Money Change / Inter-Casino Transfer оставить нейтральными. Подтвердите или скажу вычитать всю группу целиком.
+- RPC `fin_balance_snapshot`: разделить текущий `v_collections` на два поля — `collections_total` (только `Collection` и `CAPEX`) и новое `transfers_total` (`Inter-Casino Transfer Out`, `Money Change`). Расчёт `v_expenses` (все прочие категории) не меняется.
+- `src/hooks/use-fin-balance.ts`: добавить `transfers_total` в тип `BalanceSnapshot`, в `computeBalanceTotals` вычесть `collections_total` из Expected.
+- `src/pages/finances/FinancesWalletsPage.tsx` (~строка 475): две строки вместо одной, как описано выше.
 - Поднять версию в `package.json`.
