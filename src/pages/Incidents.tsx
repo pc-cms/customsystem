@@ -301,11 +301,36 @@ const Incidents = () => {
   // Sticky helpers for Date/Time columns. Solid muted band + inset divider
   // so columns stay visually fixed and opaque during horizontal scroll.
   const stickyDivider = "shadow-[inset_-2px_0_0_hsl(var(--border))]";
-  const stickyDateHead = "sticky left-0 z-[60] bg-muted overflow-hidden";
-  const stickyTimeHead = "sticky z-[60] bg-muted overflow-hidden";
+  const stickyHead = "sticky top-0 z-50 bg-muted";
+  const stickyDateHead = "sticky left-0 top-0 z-[60] bg-muted overflow-hidden";
+  const stickyTimeHead = "sticky top-0 z-[60] bg-muted overflow-hidden";
   const stickyDate = "sticky left-0 z-40 bg-muted overflow-hidden";
   const stickyTime = "sticky z-40 bg-muted overflow-hidden";
   const stickyTimeLeft = { left: COLS.date };
+
+  // Horizontal scroll: a slim proxy scrollbar above the table so the user can
+  // scroll right without reaching the bottom of a long list.
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const topBarRef = useRef<HTMLDivElement | null>(null);
+  const syncing = useRef(false);
+  const syncFrom = (src: "top" | "body") => {
+    if (syncing.current) return;
+    const body = scrollRef.current;
+    const top = topBarRef.current;
+    if (!body || !top) return;
+    syncing.current = true;
+    if (src === "top") body.scrollLeft = top.scrollLeft;
+    else top.scrollLeft = body.scrollLeft;
+    requestAnimationFrame(() => { syncing.current = false; });
+  };
+  const onWheelHoriz = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (!e.shiftKey) return;
+    const body = scrollRef.current;
+    if (!body) return;
+    body.scrollLeft += e.deltaY * (e.deltaMode === 1 ? 16 : 1);
+    syncFrom("body");
+  };
+
 
   return (
     <PageShell>
