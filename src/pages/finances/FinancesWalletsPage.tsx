@@ -42,7 +42,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const CURRENCIES = ["TZS", "USD", "EUR", "GBP", "KES"];
-const KINDS = ["cash", "bank", "safe", "cage", "external"];
+const KINDS = ["cash", "bank", "mobile_money", "safe", "cage", "external"];
 const CASH_LIKE_KINDS = new Set(["cash", "safe"]);
 const CURRENCY_ORDER = ["TZS", "USD", "EUR", "GBP", "KES"];
 
