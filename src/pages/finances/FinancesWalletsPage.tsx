@@ -14,6 +14,8 @@ import {
   Pencil,
   ArrowUpRight,
   ArrowDownLeft,
+  ArrowUp,
+  ArrowDown,
   ChevronRight,
   ChevronDown,
   RotateCw,
