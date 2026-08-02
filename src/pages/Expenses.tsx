@@ -223,6 +223,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     if (row.source !== "office" && !row.target) return toast.error("Choose target");
     if (row.source !== "office" && row.target === "player" && !row.player_name.trim())
       return toast.error("Enter player name");
+    if (row.source === "office" && !row.wallet_id) return toast.error("Choose wallet");
     if (!row.fin_category_id) return toast.error("Choose category");
     const amt = Number(row.amount);
     if (!amt || amt <= 0) return toast.error("Amount must be > 0");
@@ -234,13 +235,23 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
 
     try {
       if (row.source === "office") {
+        const wallet = wallets.find((w: any) => w.id === row.wallet_id);
+        const cur = wallet?.currency || "TZS";
+        const rate = cur === "TZS" ? 1 : Number(dailyRates?.[cur]) || 0;
+        if (cur !== "TZS" && !rate)
+          return toast.error(`No ${cur} rate set in Office → Rates`);
         await createOffice.mutateAsync({
           category_code: opCategory,
           amount: amt,
           description: row.description,
           fin_category_id: row.fin_category_id,
+          wallet_id: row.wallet_id,
+          currency: cur,
+          exchange_rate: rate,
+          business_date: effectiveDate ?? null,
         });
       } else if (row.source === "slots") {
+
         if (!slotsShift?.id) return toast.error("No open Slots shift");
         await createSlots.mutateAsync({
           slots_shift_id: slotsShift.id,
