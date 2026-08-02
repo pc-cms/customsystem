@@ -34,7 +34,7 @@ import { useFinWallets, useUpsertFinWallet, useFinWalletTx } from "@/hooks/use-f
 import { useFinBalanceSnapshot, computeBalanceTotals } from "@/hooks/use-fin-balance";
 import { CloseMonthWizard } from "@/pages/office/CloseMonthWizard";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
 import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
