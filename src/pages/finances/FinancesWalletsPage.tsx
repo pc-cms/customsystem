@@ -38,6 +38,7 @@ import { useAuth } from "@/lib/auth-context";
 import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
+import WalletMovementDialog, { type MovementMode } from "@/components/finances/WalletMovementDialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -138,6 +139,11 @@ export default function FinancesWalletsPage() {
     qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
     qc.invalidateQueries({ queryKey: ["fin-wallets"] });
   };
+
+  /* ===== wallet movement (transactional cash in/out/transfer) ===== */
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [moveMode, setMoveMode] = useState<MovementMode>("in");
+  const [moveWalletId, setMoveWalletId] = useState<string | undefined>(undefined);
 
   /* ===== wallet CRUD dialog ===== */
   const [walletOpen, setWalletOpen] = useState(false);
@@ -307,6 +313,28 @@ export default function FinancesWalletsPage() {
             Close Month
           </Button>
         )}
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            setMoveWalletId(undefined);
+            setMoveMode("in");
+            setMoveOpen(true);
+          }}
+        >
+          <ArrowDownLeft className="w-4 h-4" /> Money In
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            setMoveWalletId(undefined);
+            setMoveMode("out");
+            setMoveOpen(true);
+          }}
+        >
+          <ArrowUpRight className="w-4 h-4" /> Money Out
+        </Button>
         <Button onClick={openNewWallet}>
           <Plus className="w-4 h-4" /> Add Wallet
         </Button>
@@ -465,7 +493,35 @@ export default function FinancesWalletsPage() {
                       <td className="text-right font-mono tabular-nums">
                         {formatNumberSpaces(led.tzs)}
                       </td>
-                      <td className="text-right pr-3">
+                      <td className="text-right pr-3 whitespace-nowrap">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMoveWalletId(w.id);
+                            setMoveMode("in");
+                            setMoveOpen(true);
+                          }}
+                          aria-label="Money in"
+                        >
+                          <ArrowDownLeft className="w-3.5 h-3.5 cms-amount-positive" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMoveWalletId(w.id);
+                            setMoveMode("out");
+                            setMoveOpen(true);
+                          }}
+                          aria-label="Money out"
+                        >
+                          <ArrowUpRight className="w-3.5 h-3.5 cms-amount-negative" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -843,6 +899,17 @@ export default function FinancesWalletsPage() {
           </Button>
         </div>
       </ResponsiveDialog>
+
+      <WalletMovementDialog
+        open={moveOpen}
+        onOpenChange={setMoveOpen}
+        wallets={wallets as any[]}
+        defaultWalletId={moveWalletId}
+        defaultMode={moveMode}
+        usdRate={usdRate}
+        minDate={range.from}
+        maxDate={range.to}
+      />
 
       {isSuperAdmin && (
         <CloseMonthWizard
