@@ -694,8 +694,16 @@ export default function FinancesWalletsPage() {
                         <td colSpan={8} className="p-4">
                           <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                             <div>
-                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
-                                Physical count · {w.currency}
+                              <div className="flex items-baseline justify-between mb-2">
+                                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                  Physical count · {w.currency}
+                                </div>
+                                {lastCounts?.get(w.id) && (
+                                  <div className="text-[10px] text-muted-foreground/70">
+                                    Last: {formatNumberSpaces(lastCounts.get(w.id)!.total)} ·{" "}
+                                    {fmtDateOnly(lastCounts.get(w.id)!.at)}
+                                  </div>
+                                )}
                               </div>
                               {useDenoms ? (
                                 <CashDenomInput
@@ -704,11 +712,16 @@ export default function FinancesWalletsPage() {
                                   denoms={denoms}
                                   currency={w.currency}
                                   size="sm"
+                                  placeholders={lastCounts?.get(w.id)?.denoms}
                                   {...(w.currency === "TZS"
                                     ? {
                                         cents: centsVal,
                                         onCentsChange: (c: number) =>
                                           setCentsInput((s) => ({ ...s, [w.id]: c })),
+                                        centsPlaceholder: (() => {
+                                          const t = lastCounts?.get(w.id)?.total ?? 0;
+                                          return Math.round((t - Math.trunc(t)) * 100);
+                                        })(),
                                       }
                                     : {})}
                                 />
@@ -716,7 +729,11 @@ export default function FinancesWalletsPage() {
                                 <Input
                                   type="number"
                                   step="0.01"
-                                  placeholder={`Amount (${w.currency})`}
+                                  placeholder={
+                                    lastCounts?.get(w.id)
+                                      ? String(lastCounts.get(w.id)!.total)
+                                      : `Amount (${w.currency})`
+                                  }
                                   value={amountInput[w.id] || ""}
                                   onChange={(e) =>
                                     setAmountInput((s) => ({ ...s, [w.id]: e.target.value }))
@@ -725,6 +742,7 @@ export default function FinancesWalletsPage() {
                                 />
                               )}
                             </div>
+
                             <div className="space-y-3">
                               <div className="rounded-md border border-border bg-card p-3 space-y-1">
                                 <div className="flex items-center justify-between text-xs">
