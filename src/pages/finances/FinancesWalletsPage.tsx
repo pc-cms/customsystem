@@ -872,6 +872,17 @@ export default function FinancesWalletsPage() {
         </div>
       </ResponsiveDialog>
 
+      <WalletMovementDialog
+        open={moveOpen}
+        onOpenChange={setMoveOpen}
+        wallets={wallets as any[]}
+        defaultWalletId={moveWalletId}
+        defaultMode={moveMode}
+        usdRate={usdRate}
+        minDate={range.from}
+        maxDate={range.to}
+      />
+
       {isSuperAdmin && (
         <CloseMonthWizard
           open={closeOpen}
