@@ -4,7 +4,7 @@
  * Reversal вместо редактирования.
  */
 import { useMemo, useState } from "react";
-import { Coins, Plus, Undo2 } from "lucide-react";
+import { Coins, Plus, Undo2, Pencil, Trash2 } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
@@ -26,6 +26,8 @@ import {
   useOtherIncomes,
   useAddOtherIncome,
   useReverseOtherIncome,
+  useUpdateOtherIncome,
+  useDeleteOtherIncome,
   OTHER_INCOME_SOURCES,
   type OtherIncomeRow,
   type OtherIncomeSource,
@@ -62,6 +64,8 @@ export default function OtherIncomesTab() {
   const { data: categories = [] } = useFinCategories();
   const addIncome = useAddOtherIncome();
   const reverse = useReverseOtherIncome();
+  const updateIncome = useUpdateOtherIncome();
+  const deleteIncome = useDeleteOtherIncome();
 
   const incomeCats = useMemo(
     () => (categories || []).filter((c: any) => c.is_income),
@@ -69,6 +73,7 @@ export default function OtherIncomesTab() {
   );
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<{
     business_date: string;
     wallet_id: string;
@@ -90,6 +95,7 @@ export default function OtherIncomesTab() {
   const activeWallet = wallets.find((w: any) => w.id === form.wallet_id);
 
   const openAdd = () => {
+    setEditId(null);
     setForm({
       business_date: new Date().toISOString().slice(0, 10),
       wallet_id: "",
@@ -102,11 +108,25 @@ export default function OtherIncomesTab() {
     setDialogOpen(true);
   };
 
+  const openEdit = (r: OtherIncomeRow) => {
+    setEditId(r.id);
+    setForm({
+      business_date: r.business_date,
+      wallet_id: r.wallet_id,
+      fin_category_id: r.fin_category_id || "",
+      source: r.source,
+      currency: r.currency,
+      amount: String(r.amount),
+      note: r.note || "",
+    });
+    setDialogOpen(true);
+  };
+
   const submit = async () => {
     if (!form.wallet_id) return toast.error("Select wallet");
     const amt = Number(form.amount);
-    if (!amt || amt <= 0) return toast.error("Amount must be > 0");
-    await addIncome.mutateAsync({
+    if (!amt) return toast.error("Amount must not be 0");
+    const payload = {
       business_date: form.business_date,
       wallet_id: form.wallet_id,
       fin_category_id: form.fin_category_id || null,
@@ -114,7 +134,12 @@ export default function OtherIncomesTab() {
       currency: activeWallet?.currency || form.currency,
       amount: amt,
       note: form.note,
-    });
+    };
+    if (editId) {
+      await updateIncome.mutateAsync({ id: editId, ...payload });
+    } else {
+      await addIncome.mutateAsync(payload);
+    }
     setDialogOpen(false);
   };
 
@@ -160,17 +185,20 @@ export default function OtherIncomesTab() {
       accessor: (r) => {
         const isReversal = !!r.reverses_id;
         const isReversed = !!r.reversed_by_id;
+        const neg = Number(r.amount) < 0 || isReversal;
         return (
           <span
             className={cn(
               "font-mono tabular-nums",
               isReversal || isReversed
                 ? "line-through text-muted-foreground"
-                : "cms-amount-positive",
+                : neg
+                  ? "cms-amount-negative"
+                  : "cms-amount-positive",
             )}
           >
-            {isReversal ? "−" : ""}
-            {formatNumberSpaces(Number(r.amount))}
+            {neg ? "−" : ""}
+            {formatNumberSpaces(Math.abs(Number(r.amount)))}
           </span>
         );
       },
@@ -193,20 +221,42 @@ export default function OtherIncomesTab() {
         if (r.reverses_id || r.reversed_by_id) return null;
         if (!canWrite) return null;
         return (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => {
-              if (confirm("Create a reversal for this income?")) reverse.mutate(r);
-            }}
-            aria-label="Reverse"
-          >
-            <Undo2 className="w-3.5 h-3.5" />
-          </Button>
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => openEdit(r)}
+              aria-label="Edit"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => {
+                if (confirm("Create a reversal for this income?")) reverse.mutate(r);
+              }}
+              aria-label="Reverse"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive"
+              onClick={() => {
+                if (confirm("Delete this income permanently?")) deleteIncome.mutate(r.id);
+              }}
+              aria-label="Delete"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         );
       },
-      style: { width: 60 },
+      style: { width: 120 },
     },
   ];
 
@@ -215,7 +265,7 @@ export default function OtherIncomesTab() {
       <PageHeader
         icon={Coins}
         title="Other Incomes"
-        subtitle="Immutable transactions · investments, transfers, refunds"
+        subtitle="Investments, transfers, refunds · editable, negative amounts allowed"
       >
         <FinanceCasinoSwitcher allowNetwork={false} />
         <DateRangePresets
@@ -248,8 +298,12 @@ export default function OtherIncomesTab() {
         />
       </PageSection>
 
-      {/* ADD DIALOG */}
-      <ResponsiveDialog open={dialogOpen} onOpenChange={setDialogOpen} title="Add Other Income">
+      {/* ADD / EDIT DIALOG */}
+      <ResponsiveDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        title={editId ? "Edit Other Income" : "Add Other Income"}
+      >
         <FormGrid>
           <FormField span={6} label="Business Date">
             <Input
@@ -323,7 +377,7 @@ export default function OtherIncomesTab() {
               step="0.01"
               value={form.amount}
               onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              placeholder="0"
+              placeholder="0 (use minus for deduction)"
             />
           </FormField>
           <FormField span={6} label="Note (optional)">
@@ -338,8 +392,8 @@ export default function OtherIncomesTab() {
           <Button variant="outline" onClick={() => setDialogOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={submit} disabled={addIncome.isPending}>
-            {addIncome.isPending ? "Saving…" : "Save"}
+          <Button onClick={submit} disabled={addIncome.isPending || updateIncome.isPending}>
+            {addIncome.isPending || updateIncome.isPending ? "Saving…" : "Save"}
           </Button>
         </div>
       </ResponsiveDialog>
