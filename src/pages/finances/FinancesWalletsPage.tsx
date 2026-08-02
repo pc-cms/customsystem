@@ -871,7 +871,7 @@ export default function FinancesWalletsPage() {
                         isIn ? "cms-amount-positive" : "cms-amount-negative",
                       )}
                     >
-                      {formatNumberSpaces(Math.abs(Number(r.amount)))}{" "}
+                      {isIn ? "" : "−"}{formatNumberSpaces(Math.abs(Number(r.amount)))}{" "}
                       <span className="text-[10px] text-muted-foreground">{r.currency}</span>
                     </td>
                     <td
