@@ -429,8 +429,8 @@ export default function FinancesWalletsPage() {
         icon={Wallet}
         title="Wallets"
         subtitle="Cash, bank, safe & cage ledger · reconciliation"
-        belowHeader={
-          <div className="flex items-center gap-2 flex-wrap">
+        centerSlot={
+          <div className="flex items-center gap-2 flex-nowrap overflow-x-auto">
             <FinanceCasinoSwitcher allowNetwork={false} />
             <MonthCarousel
               year={ym.year}
