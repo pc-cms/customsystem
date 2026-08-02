@@ -356,6 +356,15 @@ export default function FinancesWalletsPage() {
     }
   };
 
+  const WalletSortIcon = ({ k }: { k: WalletSortKey }) =>
+    walletSort.key === k ? (
+      walletSort.dir === "asc" ? (
+        <ArrowUp className="w-3 h-3 inline ml-1 align-text-bottom" />
+      ) : (
+        <ArrowDown className="w-3 h-3 inline ml-1 align-text-bottom" />
+      )
+    ) : null;
+
   return (
     <PageShell>
       <PageHeader icon={Wallet} title="Wallets" subtitle="Cash, bank, safe & cage ledger · reconciliation">
