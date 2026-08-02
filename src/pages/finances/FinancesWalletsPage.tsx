@@ -14,6 +14,8 @@ import {
   Pencil,
   ArrowUpRight,
   ArrowDownLeft,
+  ArrowUp,
+  ArrowDown,
   ChevronRight,
   ChevronDown,
   RotateCw,
@@ -47,6 +49,10 @@ const KINDS = ["cash", "bank", "mobile_money", "safe", "cage", "external"];
 const CASH_LIKE_KINDS = new Set(["cash", "safe"]);
 const CURRENCY_ORDER = ["TZS", "USD", "EUR", "GBP", "KES"];
 
+type WalletSortKey = "name" | "kind" | "currency" | "starting_float" | "balance_native" | "balance_tzs";
+
+const WALLET_SORT_DEFAULT: { key: WalletSortKey; dir: "asc" | "desc" } = { key: "name", dir: "asc" };
+
 /* ============ Page ============ */
 
 export default function FinancesWalletsPage() {
@@ -67,6 +73,10 @@ export default function FinancesWalletsPage() {
   const [sort, setSort] = useSessionState<"date_desc" | "date_asc" | "amount_desc" | "amount_asc">(
     "sort",
     "date_desc",
+  );
+  const [walletSort, setWalletSort] = useSessionState<{ key: WalletSortKey; dir: "asc" | "desc" }>(
+    "walletSort",
+    WALLET_SORT_DEFAULT,
   );
   const [closeOpen, setCloseOpen] = useState(false);
 
@@ -112,6 +122,56 @@ export default function FinancesWalletsPage() {
     });
     return { tzs, usd, perCcy };
   }, [snap, usdRate]);
+
+  const toggleWalletSort = (k: WalletSortKey) => {
+    setWalletSort((s) => ({
+      key: k,
+      dir: s.key === k && s.dir === "asc" ? "desc" : "asc",
+    }));
+  };
+
+  const visibleWallets = useMemo(() => {
+    const list = [...wallets] as any[];
+    const { key, dir } = walletSort;
+    const mult = dir === "asc" ? 1 : -1;
+    list.sort((a, b) => {
+      let av: any;
+      let bv: any;
+      const ledA = ledgerByWallet.get(a.id) || { native: 0, tzs: 0 };
+      const ledB = ledgerByWallet.get(b.id) || { native: 0, tzs: 0 };
+      switch (key) {
+        case "name":
+          av = a.name || "";
+          bv = b.name || "";
+          break;
+        case "kind":
+          av = a.kind || "";
+          bv = b.kind || "";
+          break;
+        case "currency":
+          av = a.currency || "";
+          bv = b.currency || "";
+          break;
+        case "starting_float":
+          av = Number(a.starting_float_amount || 0);
+          bv = Number(b.starting_float_amount || 0);
+          break;
+        case "balance_native":
+          av = ledA.native;
+          bv = ledB.native;
+          break;
+        case "balance_tzs":
+          av = ledA.tzs;
+          bv = ledB.tzs;
+          break;
+      }
+      if (typeof av === "string") {
+        return av.localeCompare(bv) * mult;
+      }
+      return (av > bv ? 1 : av < bv ? -1 : 0) * mult;
+    });
+    return list;
+  }, [wallets, walletSort, ledgerByWallet]);
 
   const txRows = useMemo(() => {
     let list = tx as any[];
@@ -296,6 +356,15 @@ export default function FinancesWalletsPage() {
     }
   };
 
+  const WalletSortIcon = ({ k }: { k: WalletSortKey }) =>
+    walletSort.key === k ? (
+      walletSort.dir === "asc" ? (
+        <ArrowUp className="w-3 h-3 inline ml-1 align-text-bottom" />
+      ) : (
+        <ArrowDown className="w-3 h-3 inline ml-1 align-text-bottom" />
+      )
+    ) : null;
+
   return (
     <PageShell>
       <PageHeader icon={Wallet} title="Wallets" subtitle="Cash, bank, safe & cage ledger · reconciliation">
@@ -439,17 +508,47 @@ export default function FinancesWalletsPage() {
             <thead className="bg-muted text-xs uppercase">
               <tr>
                 <th className="w-6"></th>
-                <th className="px-3 py-2 text-left">Name</th>
-                <th className="px-3 py-2 text-left">Kind</th>
-                <th className="px-3 py-2 text-left">Currency</th>
-                <th className="px-3 py-2 text-right">Starting Float</th>
-                <th className="px-3 py-2 text-right">Balance (native)</th>
-                <th className="px-3 py-2 text-right">Balance (TZS)</th>
+                <th
+                  className="px-3 py-2 text-left cursor-pointer select-none"
+                  onClick={() => toggleWalletSort("name")}
+                >
+                  Name <WalletSortIcon k="name" />
+                </th>
+                <th
+                  className="px-3 py-2 text-left cursor-pointer select-none"
+                  onClick={() => toggleWalletSort("kind")}
+                >
+                  Kind <WalletSortIcon k="kind" />
+                </th>
+                <th
+                  className="px-3 py-2 text-left cursor-pointer select-none"
+                  onClick={() => toggleWalletSort("currency")}
+                >
+                  Currency <WalletSortIcon k="currency" />
+                </th>
+                <th
+                  className="px-3 py-2 text-right cursor-pointer select-none"
+                  onClick={() => toggleWalletSort("starting_float")}
+                >
+                  Starting Float <WalletSortIcon k="starting_float" />
+                </th>
+                <th
+                  className="px-3 py-2 text-right cursor-pointer select-none"
+                  onClick={() => toggleWalletSort("balance_native")}
+                >
+                  Balance (native) <WalletSortIcon k="balance_native" />
+                </th>
+                <th
+                  className="px-3 py-2 text-right cursor-pointer select-none"
+                  onClick={() => toggleWalletSort("balance_tzs")}
+                >
+                  Balance (TZS) <WalletSortIcon k="balance_tzs" />
+                </th>
                 <th className="w-12"></th>
               </tr>
             </thead>
             <tbody>
-              {(wallets as any[]).map((w) => {
+              {visibleWallets.map((w) => {
                 const isOpen = !!expanded[w.id];
                 const useDenoms = CASH_LIKE_KINDS.has(w.kind);
                 const denoms = CASH_DENOMS[w.currency] || CASH_DENOMS.TZS;
