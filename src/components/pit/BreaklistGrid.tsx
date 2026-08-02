@@ -191,7 +191,7 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
   };
 
   const [currentSlot, setCurrentSlot] = useState(getCurrentSlot);
-  const shiftEndHour = casino?.shift_end ? parseInt(casino.shift_end.split(":")[0]) : 5;
+  const shiftEndHour = casino?.shift_end ? parseInt(casino.shift_end.split(":")[0]) : 6;
   const { data: effectiveBusinessDate } = useEffectiveBusinessDate();
   const isToday = !!effectiveBusinessDate && date === effectiveBusinessDate;
   const pastLock = isToday && isAfterBreaklistLock(casino?.breaklist_lock || "06:30");
