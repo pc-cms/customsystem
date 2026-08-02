@@ -316,6 +316,15 @@ export default function WalletMovementDialog({
             {formatNumberSpaces(amount)} {currency}
           </span>
         </div>
+
+        <ResponsiveDialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={save} disabled={saving || !(amount > 0)}>
+            {saving ? "Saving…" : "Save Movement"}
+          </Button>
+        </ResponsiveDialogFooter>
       </div>
     </ResponsiveDialog>
   );
