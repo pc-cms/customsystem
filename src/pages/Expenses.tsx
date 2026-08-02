@@ -116,6 +116,16 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
 
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
+  const effectiveDate = businessDate;
+
+  // Office expenses are debited directly from a wallet (no cage involvement).
+  const { data: allWallets = [] } = useFinWallets();
+  const wallets = useMemo(
+    () => (allWallets as any[]).filter((w) => w.is_active !== false),
+    [allWallets],
+  );
+  const { data: dailyRates } = useFinDailyRatesForDate(businessDate);
+
 
   // ── Filters ──────────────────────────────────────────────
   const [from, setFrom] = useSessionState<string>("from", businessDate);
