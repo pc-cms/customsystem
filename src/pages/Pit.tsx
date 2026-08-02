@@ -951,7 +951,15 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               const count = activeDealers.filter(d => getDisplayShift(d.id, day)?.shift === "M").length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400">{count || ""}</td>;
             })}
-            <td colSpan={4} />
+            <td colSpan={5} />
+          </tr>
+          <tr>
+            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-violet-600 dark:text-violet-400 sticky left-0 bg-card z-10">Σ SW</td>
+            {days.map(day => {
+              const count = activeDealers.filter(d => getDisplayShift(d.id, day)?.shift === "SW").length;
+              return <td key={day} className="text-center text-[9px] font-mono font-bold text-violet-600 dark:text-violet-400">{count || ""}</td>;
+            })}
+            <td colSpan={5} />
           </tr>
           <tr>
             <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400 sticky left-0 bg-card z-10">Σ N</td>
@@ -959,18 +967,18 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               const count = activeDealers.filter(d => getDisplayShift(d.id, day)?.shift === "N").length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{count || ""}</td>;
             })}
-            <td colSpan={4} />
+            <td colSpan={5} />
           </tr>
           <tr>
             <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ All</td>
             {days.map(day => {
               const count = activeDealers.filter(d => {
                 const s = getDisplayShift(d.id, day)?.shift;
-                return s === "M" || s === "N" || isExtraShift(s);
+                return s === "M" || s === "SW" || s === "N" || isExtraShift(s);
               }).length;
               return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
             })}
-            <td colSpan={4} />
+            <td colSpan={5} />
           </tr>
           {pitBosses.length > 0 && (
             <>
