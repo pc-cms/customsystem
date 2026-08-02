@@ -293,14 +293,13 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
       const expectedProfit = tResult - tEstimated - tExtras - tCollection + tOther;
       const total = tSafe + balance;
 
-      // Daily balance running: JC - collection - estimated pro-rata - extras pro-rata
+      // Daily balance: monthly fixed costs (Estimated + Extras) are charged ONCE
+      // on the first row of the period; each following day only adds the day's
+      // result and subtracts the day's collection.
       const days = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
-      const nDays = days.length || 1;
-      const perDayEstimated = tEstimated / nDays;
-      const perDayExtras = tExtras / nDays;
-      let running = 0;
+      let running = -(tEstimated + tExtras);
       for (const d of days) {
-        running += d.jcResult - d.collection - perDayEstimated - perDayExtras;
+        running += d.jcResult - d.collection;
         d.balance = running;
       }
 
