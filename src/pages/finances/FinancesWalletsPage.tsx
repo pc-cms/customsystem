@@ -139,6 +139,11 @@ export default function FinancesWalletsPage() {
     qc.invalidateQueries({ queryKey: ["fin-wallets"] });
   };
 
+  /* ===== wallet movement (transactional cash in/out/transfer) ===== */
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [moveMode, setMoveMode] = useState<MovementMode>("in");
+  const [moveWalletId, setMoveWalletId] = useState<string | undefined>(undefined);
+
   /* ===== wallet CRUD dialog ===== */
   const [walletOpen, setWalletOpen] = useState(false);
   const [walletForm, setWalletForm] = useState<any>({
