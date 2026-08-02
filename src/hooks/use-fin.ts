@@ -247,12 +247,16 @@ export const useFinWalletBalances = () => {
   return useQuery({
     queryKey: ["fin-wallet-balances", isSummaryMode ? "all" : activeCasinoId],
     queryFn: async () => {
-      let q = supabase.from("fin_wallet_tx").select("wallet_id, amount, casino_id");
+      let q = supabase.from("fin_wallet_tx").select("wallet_id, amount, kind, casino_id");
       if (!isSummaryMode && activeCasinoId) q = q.eq("casino_id", activeCasinoId);
       const { data, error } = await q;
       if (error) throw error;
       const map = new Map<string, number>();
-      (data || []).forEach((r: any) => map.set(r.wallet_id, (map.get(r.wallet_id) || 0) + Number(r.amount)));
+      // Expenses are stored as POSITIVE amounts — the sign comes from the kind.
+      (data || []).forEach((r: any) => {
+        const signed = r.kind === "expense" ? -Number(r.amount) : Number(r.amount);
+        map.set(r.wallet_id, (map.get(r.wallet_id) || 0) + signed);
+      });
       return map;
     },
     enabled: isSummaryMode || !!activeCasinoId,
