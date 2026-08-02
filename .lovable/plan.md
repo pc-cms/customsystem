@@ -2,54 +2,60 @@
 
 ## Проблема
 
-Сейчас в расчёте баланса:
+Источник цифр — **Day Closings**: в `fin_day_closing` за каждый день лежат `tables_result` (Live) и `slots_result`. Именно они и должны попадать в кошельки как приход IN. Сейчас этого не происходит:
 
-- **Expected** уже содержит результаты Live Game (`table_daily_results`) и Slots (`fin_day_closing.slots_result`).
-- **Actual** — это только остатки кошельков (`fin_wallets` + `fin_wallet_tx`).
+- **Expected** берёт Live из `table_daily_results`, Slots — из `fin_day_closing`.
+- **Actual** — только остатки кошельков (`fin_wallets` + `fin_wallet_tx`), проводок по результату дня нет.
 
-Деньги, заработанные в кассе (Live/Slots), физически существуют, но проводки в кошельки по ним никто не создаёт. Кошельки `Safe Live` и `Safe Slots` есть во всех трёх казино (Arusha, Mwanza, Mbeya), но их остаток = 0. Отсюда и постоянный минус в Variance (Мванза, август: −22,5 млн = Live 16,1 + Slots 28,9 минус уже проведённые движения).
+Кошельки `Safe Live` и `Safe Slots` есть во всех трёх казино (Arusha, Mwanza, Mbeya), но их остаток = 0. Отсюда постоянный минус в Variance (Мванза, закрытие 01/08: Live 16 065 000 + Slots 28 897 403 — ни одна из этих сумм в кошельки не пришла).
 
 ## Что сделаем
 
-### 1. Привязка кошелька-приёмника
+### 1. Единый источник — Day Closing
 
-Добавим кошельку признак источника автопоступления: `Safe Live` принимает результат столов, `Safe Slots` — результат слотов. Проставим его для всех казино, где эти кошельки уже созданы.
+Live-результат в балансе тоже берётся из `fin_day_closing.tables_result` (как и Slots), а не из `table_daily_results`. Так экран Day Closings и Wallets всегда показывают одну и ту же цифру.
 
-### 2. Автопроводка результата дня
+### 2. Привязка кошелька-приёмника
 
-Каждый закрытый день будет автоматически создавать в нужном кошельке приход:
+Добавим кошельку признак источника автопоступления: `Safe Live` принимает результат столов, `Safe Slots` — результат слотов. Проставим для всех казино, где эти кошельки уже есть.
+
+### 3. Приход IN при закрытии дня
+
+При сохранении/закрытии Day Closing в нужном кошельке создаётся приход:
 
 ```text
-Live Game результат за дату  ->  Money In в "Safe Live"
-Slots результат за дату      ->  Money In в "Safe Slots"
+fin_day_closing.tables_result  ->  Money In в "Safe Live"
+fin_day_closing.slots_result   ->  Money In в "Safe Slots"
 ```
 
 Правила:
 - Одна проводка на казино + дата + источник (без дублей).
-- При изменении результата стола или Day Closing проводка **пересчитывается** автоматически, при удалении — убирается.
-- Отрицательный результат дня проводится как отрицательный приход (минус в кошельке) — это нормально.
-- Проводка помечается служебным признаком, чтобы её нельзя было случайно отредактировать вручную.
+- При правке Day Closing проводка **пересчитывается**, при удалении строки закрытия — убирается.
+- Нулевой результат проводку не создаёт; отрицательный проводится с минусом — это нормально.
+- Проводка помечается служебным признаком: вручную её редактировать нельзя, только через Day Closing.
 
-### 3. Коллекции = перевод, а не расход
 
-Инкассация (Collection) — это перемещение денег из кассы в офисный сейф, а не расход. Сделаем так, чтобы такая операция создавала пару проводок **Transfer**: `Safe Live` / `Safe Slots` → `Safe TZS` (или выбранный кошелёк), и не уменьшала Expected дважды.
+### 4. Коллекции = перевод, а не расход
 
-### 4. Backfill за август
+Инкассация (Collection) — это перемещение денег из кассы в офисный сейф, а не расход. Такая операция создаёт пару проводок **Transfer**: `Safe Live` / `Safe Slots` → `Safe TZS` (или выбранный кошелёк) и не уменьшает Expected дважды.
 
-Пересчитаем и создадим проводки задним числом по всем дням августа для Arusha, Mwanza, Mbeya, чтобы Variance сошёлся уже сейчас.
+### 5. Backfill за август
 
-### 5. Отображение
+Пересчитаем проводки по всем существующим Day Closings августа для Arusha, Mwanza, Mbeya, чтобы Variance сошёлся уже сейчас.
 
+### 6. Отображение
+
+- В Day Closings рядом с Live/Slots видно, что приход проведён в кошелёк.
 - В таблице транзакций кошельков автопроводки получают понятный тип: `Live result` / `Slots result`.
-- На вкладке Wallets в блоке сверки видно, сколько из Expected уже подтверждено проводками.
 
 ## Технические детали
 
 - Новая колонка `fin_wallets.auto_income_source text` (`'live' | 'slots' | NULL`) + частичный уникальный индекс на (casino_id, auto_income_source).
-- Функция `fin_sync_gaming_income(p_casino_id uuid, p_date date)`: считает сумму `table_daily_results.result` и `fin_day_closing.slots_result` за дату и делает upsert/delete строк в `fin_wallet_tx` с `ref_table = 'gaming_income'`, `ref_id = NULL`, `kind = 'income'`, `note = 'Live result' / 'Slots result'`, `business_date = дата`.
-- Триггеры AFTER INSERT/UPDATE/DELETE на `table_daily_results` и `fin_day_closing`, вызывающие эту функцию.
-- Защитный триггер на `fin_wallet_tx`: строки с `ref_table = 'gaming_income'` нельзя менять вручную (только через функцию).
-- Коллекции: триггер на `expenses` для категорий Collection создаёт пару `transfer_out` / `transfer_in` вместо `expense`; в `fin_balance_snapshot` `collections_total` перестаёт вычитаться из Expected (движение уже внутри кошельков).
-- Backfill: разовый вызов `fin_sync_gaming_income` по всем датам августа для трёх казино.
-- `src/pages/finances/FinancesWalletsPage.tsx` — человекочитаемая подпись типа для автопроводок.
+- Функция `fin_sync_gaming_income(p_casino_id uuid, p_date date)`: читает `fin_day_closing.tables_result` / `slots_result` за дату и делает upsert/delete строк в `fin_wallet_tx` с `ref_table = 'fin_day_closing'`, `ref_id = <id закрытия>`, `kind = 'income'`, `note = 'Live result' / 'Slots result'`, `business_date = дата`.
+- Триггер AFTER INSERT/UPDATE/DELETE на `fin_day_closing`, вызывающий эту функцию.
+- Защитный триггер на `fin_wallet_tx`: строки с `ref_table = 'fin_day_closing'` нельзя менять вручную.
+- `fin_balance_snapshot`: `incomes.live_game` берётся из `fin_day_closing.tables_result` вместо `table_daily_results`; `collections_total` перестаёт вычитаться из Expected.
+- Коллекции: триггер на `expenses` для категорий Collection создаёт пару `transfer_out` / `transfer_in` вместо `expense`.
+- Backfill: вызов `fin_sync_gaming_income` по всем существующим закрытиям августа.
+- `src/pages/finances/FinancesWalletsPage.tsx` — читаемая подпись типа для автопроводок.
 - Версия → 1.3.493.
