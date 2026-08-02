@@ -10940,9 +10940,14 @@ export type Database = {
       create_office_expense: {
         Args: {
           p_amount: number
+          p_business_date?: string
           p_casino_id: string
           p_category_code: string
+          p_currency?: string
           p_description: string
+          p_exchange_rate?: number
+          p_fin_category_id?: string
+          p_wallet_id?: string
         }
         Returns: string
       }
