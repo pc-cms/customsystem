@@ -64,6 +64,8 @@ export default function OtherIncomesTab() {
   const { data: categories = [] } = useFinCategories();
   const addIncome = useAddOtherIncome();
   const reverse = useReverseOtherIncome();
+  const updateIncome = useUpdateOtherIncome();
+  const deleteIncome = useDeleteOtherIncome();
 
   const incomeCats = useMemo(
     () => (categories || []).filter((c: any) => c.is_income),
@@ -71,6 +73,7 @@ export default function OtherIncomesTab() {
   );
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<{
     business_date: string;
     wallet_id: string;
@@ -92,6 +95,7 @@ export default function OtherIncomesTab() {
   const activeWallet = wallets.find((w: any) => w.id === form.wallet_id);
 
   const openAdd = () => {
+    setEditId(null);
     setForm({
       business_date: new Date().toISOString().slice(0, 10),
       wallet_id: "",
@@ -104,11 +108,25 @@ export default function OtherIncomesTab() {
     setDialogOpen(true);
   };
 
+  const openEdit = (r: OtherIncomeRow) => {
+    setEditId(r.id);
+    setForm({
+      business_date: r.business_date,
+      wallet_id: r.wallet_id,
+      fin_category_id: r.fin_category_id || "",
+      source: r.source,
+      currency: r.currency,
+      amount: String(r.amount),
+      note: r.note || "",
+    });
+    setDialogOpen(true);
+  };
+
   const submit = async () => {
     if (!form.wallet_id) return toast.error("Select wallet");
     const amt = Number(form.amount);
-    if (!amt || amt <= 0) return toast.error("Amount must be > 0");
-    await addIncome.mutateAsync({
+    if (!amt) return toast.error("Amount must not be 0");
+    const payload = {
       business_date: form.business_date,
       wallet_id: form.wallet_id,
       fin_category_id: form.fin_category_id || null,
@@ -116,7 +134,12 @@ export default function OtherIncomesTab() {
       currency: activeWallet?.currency || form.currency,
       amount: amt,
       note: form.note,
-    });
+    };
+    if (editId) {
+      await updateIncome.mutateAsync({ id: editId, ...payload });
+    } else {
+      await addIncome.mutateAsync(payload);
+    }
     setDialogOpen(false);
   };
 
