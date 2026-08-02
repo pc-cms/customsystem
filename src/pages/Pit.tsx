@@ -348,6 +348,15 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${ATT_COLORS["S"]}`}>
             <span className="font-bold">S</span><span className="opacity-80">Sick</span>
           </span>
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${ATT_COLORS["SP"]}`}>
+            <span className="font-bold">SP</span><span className="opacity-80">Suspend</span>
+          </span>
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${ATT_COLORS["L"]}`}>
+            <span className="font-bold">L</span><span className="opacity-80">Late</span>
+          </span>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-muted/40 text-muted-foreground">
+            <span className="font-bold">8L / 8S</span><span className="opacity-80">hours + incident</span>
+          </span>
         </>
       )}
     </div>
