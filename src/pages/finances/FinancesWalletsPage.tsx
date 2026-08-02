@@ -38,6 +38,7 @@ import { useAuth } from "@/lib/auth-context";
 import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
+import WalletMovementDialog, { type MovementMode } from "@/components/finances/WalletMovementDialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
