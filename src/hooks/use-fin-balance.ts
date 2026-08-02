@@ -59,6 +59,8 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
   // Physical cash count per wallet already contains the starting float
   // (a count records the wallet's current total, float included).
   // So Expected must NOT add starting_float — otherwise it double-counts.
+  // Collections are an internal move between our own wallets (cage -> office),
+  // never a cost — they must NOT reduce Expected.
   const expected =
     (incomes.live_game || 0) +
     (incomes.slots || 0) +
@@ -68,8 +70,7 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
     (incomes.card_balance || 0) +
     (incomes.missed_chips || 0) +
     (incomes.missed_cards || 0) -
-    (s.expenses_total || 0) -
-    (s.collections_total || 0);
+    (s.expenses_total || 0);
   const usdRate = s.rates?.usd_tzs || 2600;
   const actual = (s.wallets || []).reduce((sum, w) => {
     // Prefer physical count (native currency) → convert to TZS; else use TZS ledger.
