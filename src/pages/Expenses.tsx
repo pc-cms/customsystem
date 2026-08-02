@@ -7,7 +7,9 @@ import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { useExpenses, useCreateExpense, useApproveExpense, useDeleteExpense } from "@/hooks/use-casino-data";
 import { useCreateSlotsExpense, useCancelExpenseAsManager } from "@/hooks/use-expenses";
 import { useCreateOfficeExpense } from "@/hooks/use-expense-categories";
-import { useFinCategories } from "@/hooks/use-fin";
+import { useFinCategories, useFinWallets } from "@/hooks/use-fin";
+import { useFinDailyRatesForDate } from "@/hooks/use-fin-daily-rates";
+
 import { useActiveShift } from "@/hooks/use-shift";
 import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
 import { useExpenseAnalytics, type ExpenseStatus, type ExpenseTarget, type ExpenseSourceFilter } from "@/hooks/use-expenses-analytics";
