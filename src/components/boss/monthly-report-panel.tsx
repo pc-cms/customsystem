@@ -255,7 +255,8 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
                   <AmountCell key={c.id} value={summary.result[c.id] || 0} bold />
                 ))}
                 <AmountCell value={t.collection} bold />
-                <AmountCell value={t.balance} bold />
+                <AmountCell value={t.dailyBalance} bold />
+
               </tr>
             </tfoot>
           </table>
