@@ -221,20 +221,42 @@ export default function OtherIncomesTab() {
         if (r.reverses_id || r.reversed_by_id) return null;
         if (!canWrite) return null;
         return (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => {
-              if (confirm("Create a reversal for this income?")) reverse.mutate(r);
-            }}
-            aria-label="Reverse"
-          >
-            <Undo2 className="w-3.5 h-3.5" />
-          </Button>
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => openEdit(r)}
+              aria-label="Edit"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => {
+                if (confirm("Create a reversal for this income?")) reverse.mutate(r);
+              }}
+              aria-label="Reverse"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive"
+              onClick={() => {
+                if (confirm("Delete this income permanently?")) deleteIncome.mutate(r.id);
+              }}
+              aria-label="Delete"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         );
       },
-      style: { width: 60 },
+      style: { width: 120 },
     },
   ];
 
