@@ -62,7 +62,7 @@ export const TimeSettingsPanel = () => {
     if (!casino || loaded) return;
     setTablesOpen(casino.tables_open || "17:30");
     setShiftStart(casino.shift_start || "18:00");
-    setShiftEnd(casino.shift_end || "05:00");
+    setShiftEnd(casino.shift_end || "06:00");
     setBreaklistLock(casino.breaklist_lock || "06:30");
     setCageFloat(String(casino.cage_float || 0));
     setCageDeadline(String(casino.cage_close_deadline_min ?? 30));

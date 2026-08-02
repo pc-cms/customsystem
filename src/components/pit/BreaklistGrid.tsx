@@ -45,12 +45,11 @@ export interface BreaklistGridRef {
   scrollBy: (direction: -1 | 1) => void;
 }
 
-// 18:00 → 05:40, 20-minute intervals
+// 18:00 → 05:40, 20-minute intervals (shift ends 06:00)
 const generateTimeSlots = () => {
   const slots: string[] = [];
   for (let h = 18; h <= 29; h++) { // 29 = 05:xx next day
     for (let m = 0; m < 60; m += 20) {
-      if (h === 30) break; // stop before 06:00
       const hour = h % 24;
       slots.push(`${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
     }
@@ -191,7 +190,7 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
   };
 
   const [currentSlot, setCurrentSlot] = useState(getCurrentSlot);
-  const shiftEndHour = casino?.shift_end ? parseInt(casino.shift_end.split(":")[0]) : 5;
+  const shiftEndHour = casino?.shift_end ? parseInt(casino.shift_end.split(":")[0]) : 6;
   const { data: effectiveBusinessDate } = useEffectiveBusinessDate();
   const isToday = !!effectiveBusinessDate && date === effectiveBusinessDate;
   const pastLock = isToday && isAfterBreaklistLock(casino?.breaklist_lock || "06:30");
