@@ -107,19 +107,30 @@ export const useCreateOfficeExpense = () => {
   const qc = useQueryClient();
   const { casinoId } = useAuth();
   return useMutation({
-    mutationFn: async (input: { category_code: string; amount: number; description: string; fin_category_id?: string | null }) => {
+    mutationFn: async (input: {
+      category_code: string;
+      amount: number;
+      description: string;
+      fin_category_id?: string | null;
+      wallet_id: string;
+      currency?: string;
+      exchange_rate?: number;
+      business_date?: string | null;
+    }) => {
       if (!casinoId) throw new Error("No casino");
+      if (!input.wallet_id) throw new Error("Choose a wallet");
       const { data, error } = await (supabase as any).rpc("create_office_expense", {
         p_casino_id: casinoId,
         p_category_code: input.category_code,
         p_amount: input.amount,
         p_description: input.description,
+        p_wallet_id: input.wallet_id,
+        p_fin_category_id: input.fin_category_id ?? null,
+        p_currency: input.currency ?? "TZS",
+        p_exchange_rate: input.exchange_rate ?? 1,
+        p_business_date: input.business_date ?? null,
       });
       if (error) throw error;
-      // Apply optional manager override of fin_category_id
-      if (input.fin_category_id && data) {
-        await (supabase as any).from("expenses").update({ fin_category_id: input.fin_category_id }).eq("id", data);
-      }
       return data;
     },
     onSuccess: () => {
@@ -128,8 +139,13 @@ export const useCreateOfficeExpense = () => {
       qc.invalidateQueries({ queryKey: ["expenses-slots"] });
       qc.invalidateQueries({ queryKey: ["daily-expenses"] });
       qc.invalidateQueries({ queryKey: ["finance-wallets"] });
-      toast.success("Office expense recorded — MAIN_CASH debited");
+      qc.invalidateQueries({ queryKey: ["fin-expenses"] });
+      qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
+      qc.invalidateQueries({ queryKey: ["fin-wallet-balances"] });
+      qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
+      toast.success("Office expense recorded — wallet debited");
     },
     onError: (e: any) => toast.error(e.message),
   });
 };
+

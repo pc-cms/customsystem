@@ -7,7 +7,9 @@ import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { useExpenses, useCreateExpense, useApproveExpense, useDeleteExpense } from "@/hooks/use-casino-data";
 import { useCreateSlotsExpense, useCancelExpenseAsManager } from "@/hooks/use-expenses";
 import { useCreateOfficeExpense } from "@/hooks/use-expense-categories";
-import { useFinCategories } from "@/hooks/use-fin";
+import { useFinCategories, useFinWallets } from "@/hooks/use-fin";
+import { useFinDailyRatesForDate } from "@/hooks/use-fin-daily-rates";
+
 import { useActiveShift } from "@/hooks/use-shift";
 import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
 import { useExpenseAnalytics, type ExpenseStatus, type ExpenseTarget, type ExpenseSourceFilter } from "@/hooks/use-expenses-analytics";
@@ -76,6 +78,8 @@ interface DraftRow {
   fin_category_id: string;
   amount: string;
   description: string;
+  /** Office source only: wallet the money is taken from (direct debit). */
+  wallet_id: string;
 }
 
 const newDraft = (defaultSource: SourceVal): DraftRow => ({
@@ -86,7 +90,9 @@ const newDraft = (defaultSource: SourceVal): DraftRow => ({
   fin_category_id: "",
   amount: "",
   description: "",
+  wallet_id: "",
 });
+
 
 type SortKey = "date" | "source" | "category" | "target" | "amount" | "status";
 type SortDir = "asc" | "desc";
@@ -112,6 +118,16 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
 
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
+  const effectiveDate = businessDate;
+
+  // Office expenses are debited directly from a wallet (no cage involvement).
+  const { data: allWallets = [] } = useFinWallets();
+  const wallets = useMemo(
+    () => (allWallets as any[]).filter((w) => w.is_active !== false),
+    [allWallets],
+  );
+  const { data: dailyRates } = useFinDailyRatesForDate(businessDate);
+
 
   // ── Filters ──────────────────────────────────────────────
   const [from, setFrom] = useSessionState<string>("from", businessDate);
@@ -219,6 +235,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     if (row.source !== "office" && !row.target) return toast.error("Choose target");
     if (row.source !== "office" && row.target === "player" && !row.player_name.trim())
       return toast.error("Enter player name");
+    if (row.source === "office" && !row.wallet_id) return toast.error("Choose wallet");
     if (!row.fin_category_id) return toast.error("Choose category");
     const amt = Number(row.amount);
     if (!amt || amt <= 0) return toast.error("Amount must be > 0");
@@ -230,13 +247,23 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
 
     try {
       if (row.source === "office") {
+        const wallet = wallets.find((w: any) => w.id === row.wallet_id);
+        const cur = wallet?.currency || "TZS";
+        const rate = cur === "TZS" ? 1 : Number(dailyRates?.[cur]) || 0;
+        if (cur !== "TZS" && !rate)
+          return toast.error(`No ${cur} rate set in Office → Rates`);
         await createOffice.mutateAsync({
           category_code: opCategory,
           amount: amt,
           description: row.description,
           fin_category_id: row.fin_category_id,
+          wallet_id: row.wallet_id,
+          currency: cur,
+          exchange_rate: rate,
+          business_date: effectiveDate ?? null,
         });
       } else if (row.source === "slots") {
+
         if (!slotsShift?.id) return toast.error("No open Slots shift");
         await createSlots.mutateAsync({
           slots_shift_id: slotsShift.id,
@@ -536,6 +563,8 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                   isManagerView={isManagerView}
                   liveShift={liveShift}
                   slotsShift={slotsShift}
+                  wallets={wallets}
+
                   onChange={(patch) => updateDraft(d.uid, patch)}
                   onRemove={() => removeDraft(d.uid)}
                   onSubmit={() => submitDraft(d.uid)}
@@ -762,12 +791,13 @@ export default Expenses;
 // Draft row (per-source dynamic categories)
 // ──────────────────────────────────────────────────────────
 const DraftRowView = ({
-  draft, isManagerView, liveShift, slotsShift, onChange, onRemove, onSubmit, canRemove, isPending,
+  draft, isManagerView, liveShift, slotsShift, wallets, onChange, onRemove, onSubmit, canRemove, isPending,
 }: {
   draft: DraftRow;
   isManagerView: boolean;
   liveShift: any;
   slotsShift: any;
+  wallets: any[];
   onChange: (patch: Partial<DraftRow>) => void;
   onRemove: () => void;
   onSubmit: () => void;
@@ -791,14 +821,26 @@ const DraftRowView = ({
             <SelectContent>
               <SelectItem value="live_game">Live Game{liveShift ? "" : " (no shift)"}</SelectItem>
               <SelectItem value="slots">Slots{slotsShift ? "" : " (no shift)"}</SelectItem>
-              <SelectItem value="office">Office (MAIN_CASH)</SelectItem>
+              <SelectItem value="office">Office (wallet)</SelectItem>
             </SelectContent>
           </Select>
         </td>
       )}
       <td className="px-2 py-1.5">
         {isOffice ? (
-          <span className="text-[11px] text-muted-foreground italic px-2">Casino</span>
+          <Select
+            value={draft.wallet_id}
+            onValueChange={(v) => onChange({ wallet_id: v })}
+          >
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Wallet" /></SelectTrigger>
+            <SelectContent>
+              {wallets.map((w) => (
+                <SelectItem key={w.id} value={w.id}>
+                  {w.name} · {w.currency}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         ) : (
           <Select
             value={draft.target}
@@ -811,6 +853,7 @@ const DraftRowView = ({
             </SelectContent>
           </Select>
         )}
+
       </td>
       <td className="px-2 py-1.5">
         <PlayerNameAutocomplete
