@@ -145,6 +145,69 @@ export default function FinancesWalletsPage() {
     },
   });
 
+  /* Movements booked AFTER the last physical count — used to build the
+     EXPECTED per-denomination hint (last count ± denominations of movements).
+     Movements saved without a breakdown are reported as "unallocated". */
+  const { data: sinceCount } = useQuery({
+    queryKey: ["wallet-tx-since-count", activeCasinoId, lastCounts ? [...lastCounts.keys()].length : 0],
+    enabled: !!activeCasinoId,
+    staleTime: 15_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fin_wallet_tx")
+        .select("wallet_id, kind, amount, denominations, created_at")
+        .eq("casino_id", activeCasinoId!)
+        .order("created_at", { ascending: false })
+        .limit(1500);
+      if (error) throw error;
+      const m = new Map<string, { denoms: Record<number, number>; unallocated: number }>();
+      (data || []).forEach((r: any) => {
+        if (!r.wallet_id) return;
+        if (r.kind === "adjustment") return; // count-reconciliation, not real cash movement
+        const cut = lastCounts?.get(r.wallet_id)?.at;
+        if (cut && new Date(r.created_at) <= new Date(cut)) return;
+        const sign = Number(r.amount) < 0 || r.kind === "expense" || r.kind === "transfer_out" || r.kind === "change_out" ? -1 : 1;
+        const entry = m.get(r.wallet_id) || { denoms: {}, unallocated: 0 };
+        const d = r.denominations as Record<string, number> | null;
+        if (d && Object.keys(d).length) {
+          Object.entries(d).forEach(([k, v]) => {
+            if (k === "cents") return;
+            const den = Number(k);
+            if (!den) return;
+            entry.denoms[den] = (entry.denoms[den] || 0) + sign * Number(v || 0);
+          });
+        } else {
+          entry.unallocated += sign * Math.abs(Number(r.amount || 0));
+        }
+        m.set(r.wallet_id, entry);
+      });
+      return m;
+    },
+  });
+
+  /* Expected denominations per wallet = last count + signed movements. */
+  const expectedDenoms = useMemo(() => {
+    const m = new Map<string, { denoms: Record<number, number>; unallocated: number }>();
+    const ids = new Set<string>([
+      ...(lastCounts ? [...lastCounts.keys()] : []),
+      ...(sinceCount ? [...sinceCount.keys()] : []),
+    ]);
+    ids.forEach((id) => {
+      const base = lastCounts?.get(id)?.denoms || {};
+      const delta = sinceCount?.get(id);
+      const denoms: Record<number, number> = {};
+      Object.entries(base).forEach(([k, v]) => {
+        if (String(k) === "cents") return;
+        denoms[Number(k)] = Number(v || 0);
+      });
+      Object.entries(delta?.denoms || {}).forEach(([k, v]) => {
+        denoms[Number(k)] = (denoms[Number(k)] || 0) + Number(v || 0);
+      });
+      m.set(id, { denoms, unallocated: delta?.unallocated || 0 });
+    });
+    return m;
+  }, [lastCounts, sinceCount]);
+
   // Grand totals in TZS and USD (Budget-style)
   const grandTotals = useMemo(() => {
     const tzs = (snap?.wallets || []).reduce((s, w) => s + Number(w.ledger_tzs ?? w.ledger ?? 0), 0);
