@@ -244,6 +244,36 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
         const k = `${s.casino_id}|${s.business_date}`;
         liveSlots.set(k, (liveSlots.get(k) || 0) + Number(s.system_shift_result || 0));
       }
+      // Open (unclosed) shifts have tables_result = NULL. For those days fall back
+      // to the LATEST chip-count snapshot per table — exactly what each casino
+      // dashboard shows: Σ (actual − expected) × denomination.
+      const openDays = new Set<string>();
+      for (const s of (shiftsRes.data || []) as any[]) {
+        if (s.tables_result !== null && s.tables_result !== undefined) continue;
+        const d = businessDateOf(s.opened_at);
+        if (d < from || d > to) continue;
+        if (!closedKeys.has(`${s.casino_id}|${d}`)) openDays.add(`${s.casino_id}|${d}`);
+      }
+      if (openDays.size) {
+        const snaps = await Promise.all(
+          Array.from(openDays).map(async (k) => {
+            const [casinoId, date] = k.split("|");
+            const { data } = await (supabase as any).rpc("chip_snapshots_latest", {
+              _casino_id: casinoId, _date: date,
+            });
+            const sum = ((data || []) as any[]).reduce((acc, r) => {
+              if (r.location_type !== "table" || !r.location_id) return acc;
+              return acc + (Number(r.actual_quantity || 0) - Number(r.expected_quantity || 0)) * Number(r.denomination || 0);
+            }, 0);
+            return [k, sum] as const;
+          }),
+        );
+        for (const [k, sum] of snaps) {
+          if (!sum) continue;
+          liveTables.set(k, (liveTables.get(k) || 0) + sum);
+        }
+      }
+
       for (const k of new Set([...liveTables.keys(), ...liveSlots.keys()])) {
         if (closedKeys.has(k)) continue; // day closing is authoritative
         const [casinoId, date] = k.split("|");
