@@ -47,8 +47,10 @@ const VIOLATION_TYPES = ["procedural", "financial", "disciplinary", "technical",
 // Standing managers — always selectable, independent of rota.
 const STANDING_MANAGERS = [
   "Bakha",
+  "Carol",
   "Daniyar",
   "Hussein",
+  "Konstantin",
   "Oxana",
   "Peter",
   "Raushan",
@@ -56,6 +58,7 @@ const STANDING_MANAGERS = [
   "Sveta",
   "Taras",
   "Vadim",
+  "Valeriy",
   "Yurii",
 ];
 

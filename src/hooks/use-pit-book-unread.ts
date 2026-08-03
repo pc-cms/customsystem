@@ -25,15 +25,15 @@ const QK = (casinoId: string | null, userId: string | null) =>
 function channelsForRoles(roles: string[]): PitBookChannel[] {
   const out: PitBookChannel[] = [];
   if (roles.length === 0) return out;
-  // pit_bosses: pit + managers + cctv + super_admin + finance_manager
+  // pit_bosses: pit + managers + super_admin + finance_manager (CCTV excluded)
   if (roles.some((r) =>
-    ["pit", "manager", "shift_manager", "finance_manager", "surveillance", "super_admin"].includes(r)
+    ["pit", "manager", "shift_manager", "finance_manager", "super_admin"].includes(r)
   )) {
     out.push("pit_bosses");
   }
   // managers tab: NOT pit
   if (roles.some((r) =>
-    ["manager", "shift_manager", "finance_manager", "surveillance", "super_admin"].includes(r)
+    ["manager", "shift_manager", "finance_manager", "super_admin"].includes(r)
   )) {
     out.push("managers");
   }
@@ -47,11 +47,11 @@ export function visiblePitBookChannels(roles: string[]): PitBookChannel[] {
 export function canWritePitBook(roles: string[], channel: PitBookChannel): boolean {
   if (channel === "pit_bosses") {
     return roles.some((r) =>
-      ["pit", "manager", "shift_manager", "finance_manager", "surveillance", "super_admin"].includes(r)
+      ["pit", "manager", "shift_manager", "finance_manager", "super_admin"].includes(r)
     );
   }
   return roles.some((r) =>
-    ["manager", "shift_manager", "finance_manager", "surveillance", "super_admin"].includes(r)
+    ["manager", "shift_manager", "finance_manager", "super_admin"].includes(r)
   );
 }
 
