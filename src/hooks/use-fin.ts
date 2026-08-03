@@ -318,6 +318,8 @@ export const useCreateFinExpense = () => {
       attachment_url?: string | null;
       is_overrun?: boolean;
       overrun_reason?: string;
+      /** Per-note breakdown of the cash actually paid out (cash-like wallets). */
+      denominations?: Record<string, number> | null;
     }) => {
       if (!user || !activeCasinoId) throw new Error("Not authenticated");
       const amount_tzs = input.amount * (input.exchange_rate || 1);
@@ -338,6 +340,7 @@ export const useCreateFinExpense = () => {
           is_overrun: !!input.is_overrun,
           overrun_reason: input.overrun_reason ?? null,
           created_by: user.id,
+          denominations: input.denominations ?? null,
           source: "office",
           cage_type: "live_game",
           // legacy category enum — DB still requires it; pick safe default

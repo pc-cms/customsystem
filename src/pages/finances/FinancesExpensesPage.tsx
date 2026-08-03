@@ -18,6 +18,8 @@ import {
   useFinCategories, useFinWallets, useFinBudget
 } from "@/hooks/use-fin";
 import { useAuth } from "@/lib/auth-context";
+import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
+import { CASH_DENOMS } from "@/lib/currency";
 import { formatNumberSpaces } from "@/lib/currency";
 import {
   FinTable, FinTHead, FinTBody, FinTR, FinTH, FinTD,
@@ -78,8 +80,14 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
   const [form, setForm] = useState<any>({
     business_date: todayBD(), fin_category_id: "", wallet_id: "",
     amount: 0, currency: "TZS", exchange_rate: 1, description: "",
-    is_overrun: false, overrun_reason: "",
+    is_overrun: false, overrun_reason: "", denoms: {} as Record<number, number>,
   });
+
+  // Cash-like wallets are paid out in physical notes — capture the breakdown so
+  // the next wallet count can show expected notes per denomination.
+  const formWallet = (wallets as any[]).find((w) => w.id === form.wallet_id);
+  const formUseDenoms = !!formWallet && CASH_LIKE_KINDS.has(formWallet.kind);
+  const formDenomList = CASH_DENOMS[formWallet?.currency || "TZS"] || CASH_DENOMS.TZS;
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -326,15 +334,27 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
           <FormField span={5} label="Wallet">
             <Select value={form.wallet_id} onValueChange={(v) => {
               const w = wallets.find((x: any) => x.id === v);
-              setForm({ ...form, wallet_id: v, currency: w?.currency || form.currency });
+              setForm({ ...form, wallet_id: v, currency: w?.currency || form.currency, denoms: {}, amount: 0 });
             }}>
               <SelectTrigger><SelectValue placeholder="Select wallet" /></SelectTrigger>
               <SelectContent>{wallets.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name} ({w.currency})</SelectItem>)}</SelectContent>
             </Select>
           </FormField>
-          <FormField span={4} label="Amount">
-            <Input type="number" step="0.01" value={form.amount || ""} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} />
-          </FormField>
+          {formUseDenoms ? (
+            <FormField span={7} label={`Notes paid out · ${formWallet.currency}`}>
+              <CashDenomInput
+                values={form.denoms}
+                onChange={(v) => setForm({ ...form, denoms: v, amount: cashSum(v) })}
+                denoms={formDenomList}
+                currency={formWallet.currency}
+                size="sm"
+              />
+            </FormField>
+          ) : (
+            <FormField span={4} label="Amount">
+              <Input type="number" step="0.01" value={form.amount || ""} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} />
+            </FormField>
+          )}
           <FormField span={3} label="FX → TZS">
             <Input type="number" step="0.000001" value={form.exchange_rate || 1} onChange={(e) => setForm({ ...form, exchange_rate: Number(e.target.value) })} />
           </FormField>
@@ -354,7 +374,13 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button
             disabled={!form.fin_category_id || !form.wallet_id || !form.amount || (overrunCheck?.overshoot && !form.overrun_reason)}
-            onClick={async () => { await create.mutateAsync(form); setOpen(false); }}>
+            onClick={async () => {
+              const denominations = formUseDenoms
+                ? Object.fromEntries(Object.entries(form.denoms || {}).filter(([, v]) => Number(v) > 0))
+                : null;
+              await create.mutateAsync({ ...form, denominations });
+              setOpen(false);
+            }}>
             Record
           </Button>
         </div>
