@@ -16,6 +16,7 @@ import { DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell } from "@/components
 import { MoneyCell } from "@/components/ui/money-cell";
 import { useMoneyMode, useMoneyDisplayMode } from "@/components/ui/data-table-toolbar";
 import { fmtDateOnly } from "@/lib/format-date";
+import { businessDateOf } from "@/lib/business-day";
 import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 
 interface ShiftMissRow {
@@ -26,10 +27,8 @@ interface ShiftMissRow {
   total_tzs: number;
 }
 
-const eatBusinessDate = (iso: string): string => {
-  const t = new Date(iso).getTime() - 3 * 3600 * 1000 - 5 * 3600 * 1000;
-  return new Date(t).toISOString().slice(0, 10);
-};
+// Business day rollover is 07:00 EAT everywhere (same as `business_date_of`).
+const eatBusinessDate = (iso: string): string => businessDateOf(iso);
 
 interface MissChipsProps {
   embedded?: boolean;
