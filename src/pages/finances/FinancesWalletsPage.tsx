@@ -761,25 +761,33 @@ export default function FinancesWalletsPage() {
                                 )}
                               </div>
                               {useDenoms ? (
-                                <CashDenomInput
-                                  values={denomVals}
-                                  onChange={(v) => setDenomCounts((s) => ({ ...s, [w.id]: v }))}
-                                  denoms={denoms}
-                                  currency={w.currency}
-                                  size="sm"
-                                  placeholders={lastCounts?.get(w.id)?.denoms}
-                                  {...(w.currency === "TZS"
-                                    ? {
-                                        cents: centsVal,
-                                        onCentsChange: (c: number) =>
-                                          setCentsInput((s) => ({ ...s, [w.id]: c })),
-                                        centsPlaceholder: (() => {
-                                          const t = lastCounts?.get(w.id)?.total ?? 0;
-                                          return Math.round((t - Math.trunc(t)) * 100);
-                                        })(),
-                                      }
-                                    : {})}
-                                />
+                                <>
+                                  <CashDenomInput
+                                    values={denomVals}
+                                    onChange={(v) => setDenomCounts((s) => ({ ...s, [w.id]: v }))}
+                                    denoms={denoms}
+                                    currency={w.currency}
+                                    size="sm"
+                                    placeholders={expectedDenoms.get(w.id)?.denoms}
+                                    {...(w.currency === "TZS"
+                                      ? {
+                                          cents: centsVal,
+                                          onCentsChange: (c: number) =>
+                                            setCentsInput((s) => ({ ...s, [w.id]: c })),
+                                          centsPlaceholder: (() => {
+                                            const t = lastCounts?.get(w.id)?.total ?? 0;
+                                            return Math.round((t - Math.trunc(t)) * 100);
+                                          })(),
+                                        }
+                                      : {})}
+                                  />
+                                  <div className="mt-1 text-[10px] text-muted-foreground/70">
+                                    Grey hints = expected notes (last count ± movements)
+                                    {expectedDenoms.get(w.id)?.unallocated
+                                      ? ` · ${formatNumberSpaces(expectedDenoms.get(w.id)!.unallocated)} ${w.currency} без разбивки`
+                                      : ""}
+                                  </div>
+                                </>
                               ) : (
                                 <Input
                                   type="number"
