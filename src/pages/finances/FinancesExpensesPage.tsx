@@ -20,6 +20,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import { CASH_DENOMS } from "@/lib/currency";
+const CASH_LIKE_KINDS = new Set(["cash", "safe", "cage"]);
 import { formatNumberSpaces } from "@/lib/currency";
 import {
   FinTable, FinTHead, FinTBody, FinTR, FinTH, FinTD,
