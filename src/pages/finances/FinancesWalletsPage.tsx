@@ -436,6 +436,8 @@ export default function FinancesWalletsPage() {
       qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
       qc.invalidateQueries({ queryKey: ["fin-wallet-balances"] });
       qc.invalidateQueries({ queryKey: ["fin-audit-log"] });
+      qc.invalidateQueries({ queryKey: ["wallet-last-counts"] });
+      qc.invalidateQueries({ queryKey: ["wallet-tx-since-count"] });
     } catch (e: any) {
       toast.error(e.message);
     } finally {

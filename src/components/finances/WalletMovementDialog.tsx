@@ -179,6 +179,7 @@ export default function WalletMovementDialog({
       qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
       qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
       qc.invalidateQueries({ queryKey: ["fin-wallet-balances"] });
+      qc.invalidateQueries({ queryKey: ["wallet-tx-since-count"] });
       onOpenChange(false);
     } catch (e: any) {
       toast.error(e.message);
