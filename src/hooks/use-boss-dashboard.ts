@@ -42,12 +42,11 @@ const SLOTS_SHIFT_ADJUSTMENT = 1_000_000;
 async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<CasinoDay> {
   const mStart = monthStart();
 
-  // Source of truth:
-  //   Tables (Live) → RPC `compute_daily_diff` (same as Reports → Daily Balance):
-  //     drop = Σ player_day_drop_cache.peak (same source as Player Statistics);
-  //     result = Σ shifts.tables_result WHERE status='closed'.
-  //   Slots → temporarily disabled on Boss TV (all zeros) by request.
-  const [dailyTodayRes, dailyMtdRes, hcRes] = await Promise.all([
+  // Source of truth (aligned with Dashboard TV → Monthly Report):
+  //   Drop            → RPC `compute_daily_diff` (Σ player_day_drop_cache.peak)
+  //   Closed days     → `fin_day_closing` (tables_result + slots_result)
+  //   Current day     → live: latest chip-count snapshots (tables) + cage slots shifts
+  const [dailyTodayRes, dailyMtdRes, hcRes, closingsRes, snapRes, slotsRes] = await Promise.all([
     (supabase as any).rpc("compute_daily_diff", {
       _casino_id: casinoId, _from: businessDate, _to: businessDate,
     }),
@@ -60,36 +59,65 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
       .eq("casino_id", casinoId)
       .eq("date", businessDate)
       .is("checked_out_at", null),
+    supabase
+      .from("fin_day_closing")
+      .select("business_date, tables_result, slots_result")
+      .eq("casino_id", casinoId)
+      .gte("business_date", mStart)
+      .lte("business_date", businessDate),
+    (supabase as any).rpc("chip_snapshots_latest", { _casino_id: casinoId, _date: businessDate }),
+    supabase
+      .from("cage_slots_shifts")
+      .select("system_shift_result")
+      .eq("casino_id", casinoId)
+      .eq("business_date", businessDate),
   ]);
 
   const headCount = hcRes.count ?? 0;
 
   const todayRow = (dailyTodayRes.data || [])[0] || {};
   const liveDrop = Number(todayRow.drop_r || 0);
-  const liveResult = Number(todayRow.result || 0);
 
-  // Slots: intentionally zeroed on Boss TV for now.
+  const closings = (closingsRes.data || []) as any[];
+  const todayClosing = closings.find((r) => r.business_date === businessDate);
+
+  // Live tables result from the latest chip count per table (same as casino dashboards)
+  const snapResult = ((snapRes.data || []) as any[]).reduce((acc, r) => {
+    if (r.location_type !== "table" || !r.location_id) return acc;
+    return acc + (Number(r.actual_quantity || 0) - Number(r.expected_quantity || 0)) * Number(r.denomination || 0);
+  }, 0);
+  const liveSlotsResult = ((slotsRes.data || []) as any[])
+    .reduce((s, r) => s + Number(r.system_shift_result || 0), 0);
+
+  const liveResult = todayClosing
+    ? Number(todayClosing.tables_result || 0)
+    : snapResult;
   const slotsDrop = 0;
-  const slotsResult = 0;
+  const slotsResult = todayClosing
+    ? Number(todayClosing.slots_result || 0)
+    : liveSlotsResult;
 
   const totalDrop = liveDrop + slotsDrop;
   const totalResult = liveResult + slotsResult;
   const hold = (d: number, r: number) => (d > 0 ? (r / d) * 100 : 0);
 
   const mtdRows = (dailyMtdRes.data || []) as any[];
-  const mtdLiveDrop = mtdRows.reduce((s, r) => s + Number(r.drop_r || 0), 0);
-  const mtdLiveResult = mtdRows.reduce((s, r) => s + Number(r.result || 0), 0);
-  const mtdDrop = mtdLiveDrop;
-  const mtdResult = mtdLiveResult;
+  const mtdDrop = mtdRows.reduce((s, r) => s + Number(r.drop_r || 0), 0);
+  // MTD result: closed days from Day Closing + today's live figure when not closed yet
+  const mtdClosed = closings
+    .filter((r) => r.business_date !== businessDate)
+    .reduce((s, r) => s + Number(r.tables_result || 0) + Number(r.slots_result || 0), 0);
+  const mtdResult = mtdClosed + totalResult;
 
   return {
     casinoId,
     total: { drop: totalDrop, result: totalResult, headCount, hold: hold(totalDrop, totalResult) },
     live: { drop: liveDrop, result: liveResult, headCount, hold: hold(liveDrop, liveResult) },
-    slots: { drop: 0, result: 0, headCount: 0, hold: 0 },
+    slots: { drop: 0, result: slotsResult, headCount: 0, hold: 0 },
     mtd: { drop: mtdDrop, result: mtdResult, hold: hold(mtdDrop, mtdResult) },
   };
 }
+
 
 export function useBossCasinoDays(casinoIds: string[]) {
   const today = getBusinessDate();
