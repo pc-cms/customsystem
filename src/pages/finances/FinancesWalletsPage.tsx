@@ -784,7 +784,7 @@ export default function FinancesWalletsPage() {
                                   <div className="mt-1 text-[10px] text-muted-foreground/70">
                                     Grey hints = expected notes (last count ± movements)
                                     {expectedDenoms.get(w.id)?.unallocated
-                                      ? ` · ${formatNumberSpaces(expectedDenoms.get(w.id)!.unallocated)} ${w.currency} без разбивки`
+                                      ? ` · ${formatNumberSpaces(expectedDenoms.get(w.id)!.unallocated)} ${w.currency} unallocated`
                                       : ""}
                                   </div>
                                 </>
