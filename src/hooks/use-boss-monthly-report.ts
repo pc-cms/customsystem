@@ -12,7 +12,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getBusinessDate } from "@/lib/business-day";
+import { getBusinessDate, businessDayHourUTC, businessDateOf } from "@/lib/business-day";
 
 export type CasinoRef = { id: string; name: string; slug: string | null };
 
@@ -64,6 +64,12 @@ export type BossMonthlyReport = {
 const monthStartDate = (todayStr: string): string => {
   const d = new Date(todayStr);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+};
+
+const nextDay = (iso: string): string => {
+  const d = new Date(iso);
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
 };
 
 const enumerateDays = (fromISO: string, toISO: string): string[] => {
@@ -124,7 +130,7 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
         catMap.set(c.id, { group: c.group_code, income: c.is_income }));
 
       // Parallel fetches
-      const [closingsRes, otherRes, expensesRes, budgetRes, walletTxRes, ratesRes] = await Promise.all([
+      const [closingsRes, otherRes, expensesRes, budgetRes, walletTxRes, ratesRes, shiftsRes, slotShiftsRes] = await Promise.all([
         supabase.from("fin_day_closing")
           .select("casino_id, business_date, tables_result, slots_result, players_card_balance")
           .in("casino_id", casinoIds)
