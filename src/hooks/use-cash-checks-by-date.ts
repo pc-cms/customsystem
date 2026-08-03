@@ -1,10 +1,10 @@
 /**
  * useCashChecksByBusinessDate — fetches all cash_counts of count_type='check'
- * for the user's casino on a given business date (Africa/Dar_es_Salaam, 05:00 rollover).
+ * for the user's casino on a given business date (Africa/Dar_es_Salaam, 07:00 rollover).
  *
  * A check belongs to the BUSINESS DAY of its shift, not to the calendar day of
  * its `created_at`. This matters for the closing seed (inserted right after
- * 05:00 EAT — technically next calendar day, but operationally it closes the
+ * midnight EAT — technically next calendar day, but operationally it closes the
  * previous business day). We resolve membership via the shift's `opened_at`:
  *  - find shifts whose `opened_at` falls in the business-day window
  *  - return all cash_counts attached to those shifts

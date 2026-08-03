@@ -51,11 +51,11 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
   const DENOMS_DESC = useMemo(() => [...visibleDenoms].sort((a, b) => b - a), [visibleDenoms]);
 
   // Query window — convert from/to (or embedded override) into UTC bucket
-  // boundaries (EAT business day starts at 05:00 EAT = 02:00 UTC).
+  // boundaries (EAT business day starts at 07:00 EAT = 04:00 UTC).
   const effFrom = embedded && embeddedFrom ? embeddedFrom : from;
   const effTo = embedded && embeddedTo ? embeddedTo : to;
-  const fromIso = `${effFrom}T02:00:00Z`;
-  const toIso = `${format(addDays(new Date(effTo + "T00:00:00"), 1), "yyyy-MM-dd")}T02:00:00Z`;
+  const fromIso = `${effFrom}T04:00:00Z`;
+  const toIso = `${format(addDays(new Date(effTo + "T00:00:00"), 1), "yyyy-MM-dd")}T04:00:00Z`;
   const periodLabel = `${fmtDateOnly(effFrom)} – ${fmtDateOnly(effTo)}`;
 
   const { data: rows = [], isLoading } = useQuery({

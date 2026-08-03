@@ -12,7 +12,8 @@ import { liveQueryOptions } from "@/lib/live-query-options";
  *    today's visit, so anyone in Active Players is always present here.
  *  - "Checked out" = visits with date = today AND checked_out_at IS NOT NULL.
  *
- * The 05:00 EAT auto-close cron closes any open visits at the rollover.
+ * The 07:00 EAT auto-close cron closes any open visits at the rollover
+ * (shift runs until 06:00, so nothing is closed before 07:00).
  *
  * Realtime-first: `casino_visits` is subscribed at App level via
  * useModuleLiveSync (ALWAYS_LIVE). No refetchOnMount/Focus needed.
