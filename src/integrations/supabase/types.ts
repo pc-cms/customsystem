@@ -4236,6 +4236,7 @@ export type Database = {
           id: string
           kind: string
           note: string | null
+          posted_at: string | null
           ref_id: string | null
           ref_table: string | null
           reversal_of: string | null
@@ -4255,6 +4256,7 @@ export type Database = {
           id?: string
           kind: string
           note?: string | null
+          posted_at?: string | null
           ref_id?: string | null
           ref_table?: string | null
           reversal_of?: string | null
@@ -4274,6 +4276,7 @@ export type Database = {
           id?: string
           kind?: string
           note?: string | null
+          posted_at?: string | null
           ref_id?: string | null
           ref_table?: string | null
           reversal_of?: string | null
@@ -11098,6 +11101,10 @@ export type Database = {
           p_to_wallet: string
         }
         Returns: string
+      }
+      fin_post_pending_wallet_tx: {
+        Args: { _business_date: string; _casino_id: string }
+        Returns: number
       }
       fin_resync_wallet_counts: {
         Args: { p_wallet_id: string }
