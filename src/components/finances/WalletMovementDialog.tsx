@@ -115,6 +115,11 @@ export default function WalletMovementDialog({
     if (!(amount > 0)) return toast.error("Enter amount");
 
     const breakdown = useDenoms ? denomNote(denoms, centsVal) : "";
+    // Structured per-note breakdown so the next physical count can show
+    // expected notes per denomination (all currencies, not just TZS).
+    const denomJson = useDenoms
+      ? { ...Object.fromEntries(Object.entries(denoms).filter(([, v]) => Number(v) > 0)), ...(centsVal ? { cents: centsVal } : {}) }
+      : null;
     const baseNote = [note.trim(), breakdown].filter(Boolean).join(" · ");
     setSaving(true);
     try {
@@ -124,6 +129,7 @@ export default function WalletMovementDialog({
         fx_rate: fxRate,
         business_date: date,
         created_by: user.id,
+        denominations: denomJson,
       };
       let rows: any[] = [];
       if (mode === "in") {
@@ -179,6 +185,7 @@ export default function WalletMovementDialog({
       qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
       qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
       qc.invalidateQueries({ queryKey: ["fin-wallet-balances"] });
+      qc.invalidateQueries({ queryKey: ["wallet-tx-since-count"] });
       onOpenChange(false);
     } catch (e: any) {
       toast.error(e.message);

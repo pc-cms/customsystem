@@ -3318,6 +3318,7 @@ export type Database = {
           created_at: string
           created_by: string
           currency: string
+          denominations: Json | null
           description: string
           exchange_rate: number
           fin_category_id: string | null
@@ -3351,6 +3352,7 @@ export type Database = {
           created_at?: string
           created_by: string
           currency?: string
+          denominations?: Json | null
           description?: string
           exchange_rate?: number
           fin_category_id?: string | null
@@ -3384,6 +3386,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           currency?: string
+          denominations?: Json | null
           description?: string
           exchange_rate?: number
           fin_category_id?: string | null
@@ -4228,6 +4231,7 @@ export type Database = {
           created_at: string
           created_by: string
           currency: string
+          denominations: Json | null
           fx_rate: number
           id: string
           kind: string
@@ -4246,6 +4250,7 @@ export type Database = {
           created_at?: string
           created_by: string
           currency: string
+          denominations?: Json | null
           fx_rate?: number
           id?: string
           kind: string
@@ -4264,6 +4269,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           currency?: string
+          denominations?: Json | null
           fx_rate?: number
           id?: string
           kind?: string
