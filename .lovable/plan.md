@@ -5,8 +5,8 @@
 Сейчас в `src/pages/Incidents.tsx` есть один общий список `STANDING_MANAGERS` (Bakha, Daniyar, Hussein, Oxana, Peter, Raushan, Sergey T, Sveta, Taras, Vadim, Yurii) — он одинаковый для всех казино.
 
 Что сделать:
-- Добавить недостающих: **Valeriy**, **Carol** (Mwanza), **Konstantin** (Arusha). Vadim уже в списке.
-- Сделать список зависимым от казино: общие менеджеры остаются для всех, а новые привязываются к своему казино (Mwanza: Valeriy, Carol; Arusha: Vadim, Konstantin) — в выпадающем списке показываются только релевантные текущему казино.
+- Список остаётся общим для всех казино (без привязки к казино).
+- Добавить недостающих: **Valeriy**, **Carol**, **Konstantin**. Vadim, Sergey T, Bakha, Hussein уже в списке — они сохраняются.
 
 ## 2. Убрать Pit Book у CCTV (роль surveillance)
 
