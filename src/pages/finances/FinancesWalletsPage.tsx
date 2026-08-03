@@ -293,9 +293,9 @@ export default function FinancesWalletsPage() {
     const todayEat = new Date(Date.now() + 3 * 3600_000).toISOString().slice(0, 10);
     const countDate = todayEat < range.from ? range.from : todayEat > range.to ? range.to : todayEat;
     setSavingId(w.id);
+    let variance = 0;
     try {
       const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0 };
-      const variance = counted - led.native;
       let fxRate = 1;
       if (w.currency === "USD") {
         fxRate = usdRate;
@@ -316,65 +316,18 @@ export default function FinancesWalletsPage() {
           fxRate = Number(rateRow?.rate_to_tzs || 1);
         }
       }
-      const varianceTzs = variance * fxRate;
-      const line = {
-        wallet_id: w.id,
-        wallet_name: w.name,
-        currency: w.currency,
-        ledger: led.native, // ledger in wallet's native currency
-        ledger_tzs: led.tzs,
-        counted,
-        variance,
-        variance_tzs: varianceTzs,
-        fx_rate: fxRate,
-        denominations: useDenoms ? denomCounts[w.id] || {} : null,
-        cents: useDenoms ? cents : null,
-      };
-      let adjustmentId: string | null = null;
-      if (Math.abs(variance) >= 0.01) {
-        const { data: adjustment, error: txError } = await supabase
-          .from("fin_wallet_tx")
-          .insert({
-            casino_id: activeCasinoId,
-            wallet_id: w.id,
-            kind: "adjustment",
-            amount: variance,
-            currency: w.currency,
-            fx_rate: fxRate,
-            amount_tzs: varianceTzs,
-            business_date: countDate,
-            note: `Physical count · ${w.name} = ${formatNumberSpaces(counted)} ${w.currency}${countNote[w.id] ? ` · ${countNote[w.id]}` : ""}`,
-            created_by: user.id,
-          } as any)
-          .select("id")
-          .single();
-        if (txError) throw txError;
-        adjustmentId = adjustment?.id ?? null;
-      }
-      // Snapshot of the count itself, bound to THIS wallet (not just its kind).
-      const WALLET_TYPE_BY_KIND: Record<string, string> = {
-        cash: "main_cash",
-        safe: "office_safe",
-        bank: "bank_account",
-        mobile_money: "mobile_money",
-        cage: "cage_table",
-        external: "other_reserve",
-      };
-      const { error: snapError } = await supabase.from("cash_count_snapshots").insert({
-        casino_id: activeCasinoId,
-        wallet_id: w.id,
-        wallet_type: (WALLET_TYPE_BY_KIND[w.kind] || "office_safe") as any,
-        currency: w.currency,
-        denominations: (useDenoms ? denomCounts[w.id] || {} : {}) as any,
-        physical_total: counted,
-        expected_balance: led.native,
-        discrepancy: variance,
-        exchange_rate: fxRate,
-        physical_total_tzs: counted * fxRate,
-        counted_by: user.id,
-        note: countNote[w.id] || "",
-      } as any);
-      if (snapError) throw snapError;
+      // Snapshot + linked adjustment are written by one server-side call so a
+      // failure can never leave an orphan adjustment behind.
+      const { data: res, error: rpcError } = await (supabase as any).rpc("fin_save_wallet_count", {
+        p_wallet_id: w.id,
+        p_counted: counted,
+        p_denominations: useDenoms ? { ...(denomCounts[w.id] || {}), ...(cents ? { cents } : {}) } : {},
+        p_note: countNote[w.id] || "",
+        p_business_date: countDate,
+        p_fx_rate: fxRate,
+      });
+      if (rpcError) throw rpcError;
+      variance = Number(res?.variance || 0);
       const { error } = await supabase.from("fin_audit_log").insert({
         casino_id: activeCasinoId,
         actor: user.id,
@@ -382,17 +335,30 @@ export default function FinancesWalletsPage() {
         entity_table: "fin_wallets",
         entity_id: w.id,
         before: {
-          ledger: led.native,
+          ledger: Number(res?.expected || led.native),
           ledger_tzs: led.tzs,
         },
         after: {
-          lines: [line],
+          lines: [{
+            wallet_id: w.id,
+            wallet_name: w.name,
+            currency: w.currency,
+            ledger: Number(res?.expected || led.native),
+            counted,
+            variance,
+            variance_tzs: variance * fxRate,
+            fx_rate: fxRate,
+            denominations: useDenoms ? denomCounts[w.id] || {} : null,
+            cents: useDenoms ? cents : null,
+          }],
           note: countNote[w.id] || "",
           business_date: countDate,
-          adjustment_id: adjustmentId,
+          snapshot_id: res?.snapshot_id ?? null,
+          adjustment_id: res?.tx_id ?? null,
         },
       } as any);
       if (error) throw error;
+
       toast.success(
         Math.abs(variance) >= 0.01
           ? `Physical count saved · ${w.name}`
