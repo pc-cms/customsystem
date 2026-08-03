@@ -17,7 +17,13 @@ export type WalletBalanceRow = {
   ledger_native: number;
   ledger_tzs: number;
   physical: number | null;
+  /** timestamp of the last physical count backing `physical` */
+  physical_asof?: string | null;
+  /** Actual = last physical count + every movement booked after it. */
+  actual_native?: number;
+  actual_tzs?: number;
 };
+
 
 export type BalanceSnapshot = {
   period: { start: string; end: string };
