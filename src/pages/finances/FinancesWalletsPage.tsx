@@ -157,6 +157,8 @@ export default function FinancesWalletsPage() {
         .from("fin_wallet_tx")
         .select("wallet_id, kind, amount, denominations, created_at")
         .eq("casino_id", activeCasinoId!)
+        // Pending movements (business day not closed yet) are not part of the balance.
+        .not("posted_at", "is", null)
         .order("created_at", { ascending: false })
         .limit(1500);
       if (error) throw error;
@@ -993,7 +995,17 @@ export default function FinancesWalletsPage() {
                   <tr key={r.id} className="border-t border-border hover:bg-muted/40">
                     <td className="px-3 py-1.5 font-mono text-xs">{fmtDateOnly(r.business_date)}</td>
                     <td className="px-3 py-1.5">{r.fin_wallets?.name || "—"}</td>
-                    <td className="px-3 py-1.5 text-xs uppercase text-muted-foreground">{r.kind}</td>
+                    <td className="px-3 py-1.5 text-xs uppercase text-muted-foreground">
+                      {r.kind}
+                      {!r.posted_at && (
+                        <span
+                          className="ml-1.5 rounded border border-warning/40 px-1 py-0.5 text-[9px] tracking-wider text-warning"
+                          title="Posts to the wallet balance when the business day is closed"
+                        >
+                          PENDING
+                        </span>
+                      )}
+                    </td>
                     <td className="px-3 py-1.5 text-center">
                       {isIn ? (
                         <ArrowDownLeft className="w-3.5 h-3.5 inline cms-amount-positive" />

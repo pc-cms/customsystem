@@ -247,7 +247,8 @@ export const useFinWalletBalances = () => {
   return useQuery({
     queryKey: ["fin-wallet-balances", isSummaryMode ? "all" : activeCasinoId],
     queryFn: async () => {
-      let q = supabase.from("fin_wallet_tx").select("wallet_id, amount, kind, casino_id");
+      // Only posted movements count — office expenses post when the business day closes.
+      let q = supabase.from("fin_wallet_tx").select("wallet_id, amount, kind, casino_id").not("posted_at", "is", null);
       if (!isSummaryMode && activeCasinoId) q = q.eq("casino_id", activeCasinoId);
       const { data, error } = await q;
       if (error) throw error;
