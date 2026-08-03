@@ -157,6 +157,8 @@ export default function FinancesWalletsPage() {
         .from("fin_wallet_tx")
         .select("wallet_id, kind, amount, denominations, created_at")
         .eq("casino_id", activeCasinoId!)
+        // Pending movements (business day not closed yet) are not part of the balance.
+        .not("posted_at", "is", null)
         .order("created_at", { ascending: false })
         .limit(1500);
       if (error) throw error;
