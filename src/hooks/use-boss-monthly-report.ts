@@ -153,7 +153,21 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
           .select("casino_id, currency_code, rate_to_tzs, created_at")
           .in("casino_id", casinoIds)
           .order("created_at", { ascending: false }),
+        // Live fallback for days that are NOT yet closed in fin_day_closing:
+        //   tables → shifts.tables_result (business-day window 07:00 EAT)
+        //   slots  → cage_slots_shifts.system_shift_result
+        supabase.from("shifts")
+          .select("casino_id, opened_at, tables_result")
+          .in("casino_id", casinoIds)
+          .gte("opened_at", businessDayHourUTC(from, 7))
+          .lt("opened_at", businessDayHourUTC(nextDay(to), 7)),
+        supabase.from("cage_slots_shifts")
+          .select("casino_id, business_date, system_shift_result")
+          .in("casino_id", casinoIds)
+          .gte("business_date", from)
+          .lte("business_date", to),
       ]);
+
 
       // Build per-casino latest FX map from Cage rates, with sensible fallbacks
       const FX_FALLBACK: Record<string, number> = { TZS: 1, USD: 2600, EUR: 2800, GBP: 3000, KES: 17 };
