@@ -224,6 +224,41 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
           row.jcResult += v;
         }
       }
+
+      // ---- Live fallback for days without a fin_day_closing row (e.g. today) ----
+      const closedKeys = new Set(
+        ((closingsRes.data || []) as any[]).map(r => `${r.casino_id}|${r.business_date}`),
+      );
+      const liveTables = new Map<string, number>(); // `${casino}|${date}` -> TZS
+      const liveSlots = new Map<string, number>();
+      for (const s of (shiftsRes.data || []) as any[]) {
+        const d = businessDateOf(s.opened_at);
+        if (d < from || d > to) continue;
+        const k = `${s.casino_id}|${d}`;
+        liveTables.set(k, (liveTables.get(k) || 0) + Number(s.tables_result || 0));
+      }
+      for (const s of (slotShiftsRes.data || []) as any[]) {
+        const k = `${s.casino_id}|${s.business_date}`;
+        liveSlots.set(k, (liveSlots.get(k) || 0) + Number(s.system_shift_result || 0));
+      }
+      for (const k of new Set([...liveTables.keys(), ...liveSlots.keys()])) {
+        if (closedKeys.has(k)) continue; // day closing is authoritative
+        const [casinoId, date] = k.split("|");
+        if (!casinoIds.includes(casinoId)) continue;
+        const tv = liveTables.get(k) || 0;
+        const sv = liveSlots.get(k) || 0;
+        const v = tv + sv;
+        if (!v) continue;
+        tables[casinoId] = (tables[casinoId] || 0) + tv;
+        slotsRaw[casinoId] = (slotsRaw[casinoId] || 0) + sv;
+        result[casinoId] = (result[casinoId] || 0) + v;
+        const row = dailyMap.get(date);
+        if (row) {
+          row.perCasino[casinoId] = (row.perCasino[casinoId] || 0) + v;
+          row.jcResult += v;
+        }
+      }
+
       // Net out player card deposits once per month: Result = Tables + (Slots − Cards)
       const slots = zeroPer();
       for (const id of casinoIds) {
