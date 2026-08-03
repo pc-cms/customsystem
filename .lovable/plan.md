@@ -1,32 +1,26 @@
-# Dashboard TV: live-результат столов как на дашборде казино
+# Менеджеры в Incidents + отключение Pit Book у CCTV
 
-## Проблема
+## 1. Менеджеры в Incidents
 
-Live-результат столов за сегодня на Dashboard TV считается упрощённо: берутся только последние пересчёты фишек (`chip_snapshots_latest`), суммируется `(actual − expected) × номинал`.
+Сейчас в `src/pages/Incidents.tsx` есть один общий список `STANDING_MANAGERS` (Bakha, Daniyar, Hussein, Oxana, Peter, Raushan, Sergey T, Sveta, Taras, Vadim, Yurii) — он одинаковый для всех казино.
 
-Дашборд казино считает по-другому (`src/lib/table-live-result.ts`):
+Что сделать:
+- Добавить недостающих: **Valeriy**, **Carol** (Mwanza), **Konstantin** (Arusha). Vadim уже в списке.
+- Сделать список зависимым от казино: общие менеджеры остаются для всех, а новые привязываются к своему казино (Mwanza: Valeriy, Carol; Arusha: Vadim, Konstantin) — в выпадающем списке показываются только релевантные текущему казино.
 
-1. Если стол закрыт и у него есть `closing_result` — берётся именно он (авторитетный источник), а не снимок фишек.
-2. Иначе — последний пересчёт фишек по столу.
-3. Плюс по каждому столу применяется корректировка смены Fill/Credit (`Σcredit − Σfill`), как в RPC `compute_shift_table_results`.
+## 2. Убрать Pit Book у CCTV (роль surveillance)
 
-Пунктов 1 и 3 на Dashboard TV сейчас нет — поэтому цифра за сегодня расходится с дашбордом казино и с закрытием смены.
+Доступ у surveillance сейчас есть в трёх местах — убрать во всех:
 
-## Что сделать
+- **Кнопка в меню**: в `src/components/layout/AppSidebar.tsx` пункт «Pit Book» перечисляет роль `surveillance` — убрать её оттуда, кнопка исчезнет.
+- **Права модуля**: в базе у роли `surveillance` для модуля `pit_book` стоит просмотр и запись — снять оба флага, чтобы прямой переход по адресу `/pitbook` блокировался защитой маршрута.
+- **Права в базе на уровне данных**: политики чтения/записи `pit_book_entries` явно разрешают роль `surveillance` — убрать это условие из политик.
+- Дополнительно в `src/hooks/use-pit-book-unread.ts` убрать `surveillance` из списков видимых каналов и прав на запись, чтобы не считались непрочитанные сообщения.
 
-Привести live-результат столов на Dashboard TV к той же формуле:
-
-- Для каждого казино дополнительно тянуть закрытия столов текущего бизнес-дня (`closing_result`) и корректировки Fill/Credit активной смены.
-- Считать результат по столу через общую логику `liveTableResult`: `closing_result` → иначе снимок фишек → плюс Fill/Credit.
-- Суммировать по столам казино; закрытый день (`fin_day_closing`) по-прежнему имеет приоритет над live.
-
-Ту же формулу применить в двух местах, чтобы вкладки не расходились:
-- `src/hooks/use-boss-dashboard.ts` (live-плитки Total / Live / Slots / MTD)
-- `src/hooks/use-boss-monthly-report.ts` (строка сегодняшнего дня в Monthly Report)
+Если у отдельного пользователя-CCTV окажется персональное разрешение на `pit_book` — оно тоже снимается (сейчас таких записей нет).
 
 ## Технические детали
 
-- Переиспользовать `buildLatestTableSnapshot` + `liveTableResult` из `src/lib/table-live-result.ts` вместо ручного `reduce` по снимкам.
-- Fill/Credit брать тем же источником, что и `useShiftTableAdjustments`, но по конкретному `casino_id` (хук завязан на активное казино, для мульти-казино нужна функция-загрузчик по id).
-- Слоты за сегодня остаются из `cage_slots_shifts.system_shift_result`; Drop не трогаем.
+- Файлы: `src/pages/Incidents.tsx`, `src/components/layout/AppSidebar.tsx`, `src/hooks/use-pit-book-unread.ts`.
+- Миграция: обновление `role_module_defaults` для роли `surveillance` (`can_view=false, can_write=false`) и пересоздание политик `pit_book read` / `pit_book write` без `surveillance`.
 - Поднять версию в `package.json`.
