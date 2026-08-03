@@ -79,7 +79,6 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
     (incomes.missed_cards || 0) -
     (s.expenses_total || 0) -
     (s.collections_total || 0);
-  const usdRate = s.rates?.usd_tzs || 2600;
   const actual = (s.wallets || []).reduce((sum, w) => {
     // The RPC already anchors Actual on the last physical count and adds every
     // movement booked after it — so Money In / Out keeps moving the number.
