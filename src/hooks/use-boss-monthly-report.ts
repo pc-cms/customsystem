@@ -12,7 +12,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getBusinessDate } from "@/lib/business-day";
+import { getBusinessDate, businessDayHourUTC, businessDateOf } from "@/lib/business-day";
 
 export type CasinoRef = { id: string; name: string; slug: string | null };
 
@@ -64,6 +64,12 @@ export type BossMonthlyReport = {
 const monthStartDate = (todayStr: string): string => {
   const d = new Date(todayStr);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+};
+
+const nextDay = (iso: string): string => {
+  const d = new Date(iso);
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
 };
 
 const enumerateDays = (fromISO: string, toISO: string): string[] => {
@@ -124,7 +130,7 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
         catMap.set(c.id, { group: c.group_code, income: c.is_income }));
 
       // Parallel fetches
-      const [closingsRes, otherRes, expensesRes, budgetRes, walletTxRes, ratesRes] = await Promise.all([
+      const [closingsRes, otherRes, expensesRes, budgetRes, walletTxRes, ratesRes, shiftsRes, slotShiftsRes] = await Promise.all([
         supabase.from("fin_day_closing")
           .select("casino_id, business_date, tables_result, slots_result, players_card_balance")
           .in("casino_id", casinoIds)
@@ -139,7 +145,10 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
           .select("casino_id, business_date, amount_tzs, amount, currency, fin_category_id, approved")
           .in("casino_id", casinoIds)
           .gte("business_date", from)
-          .lte("business_date", to),
+          .lte("business_date", to)
+          .is("voided_at", null)
+          .not("fin_category_id", "is", null)
+          .limit(5000),
         supabase.from("fin_budget")
           .select("casino_id, year, month, planned_amount, currency, category_id")
           .in("casino_id", casinoIds)
@@ -153,7 +162,21 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
           .select("casino_id, currency_code, rate_to_tzs, created_at")
           .in("casino_id", casinoIds)
           .order("created_at", { ascending: false }),
+        // Live fallback for days that are NOT yet closed in fin_day_closing:
+        //   tables → shifts.tables_result (business-day window 07:00 EAT)
+        //   slots  → cage_slots_shifts.system_shift_result
+        supabase.from("shifts")
+          .select("casino_id, opened_at, tables_result")
+          .in("casino_id", casinoIds)
+          .gte("opened_at", businessDayHourUTC(from, 7))
+          .lt("opened_at", businessDayHourUTC(nextDay(to), 7)),
+        supabase.from("cage_slots_shifts")
+          .select("casino_id, business_date, system_shift_result")
+          .in("casino_id", casinoIds)
+          .gte("business_date", from)
+          .lte("business_date", to),
       ]);
+
 
       // Build per-casino latest FX map from Cage rates, with sensible fallbacks
       const FX_FALLBACK: Record<string, number> = { TZS: 1, USD: 2600, EUR: 2800, GBP: 3000, KES: 17 };
@@ -204,6 +227,71 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
           row.jcResult += v;
         }
       }
+
+      // ---- Live fallback for days without a fin_day_closing row (e.g. today) ----
+      const closedKeys = new Set(
+        ((closingsRes.data || []) as any[]).map(r => `${r.casino_id}|${r.business_date}`),
+      );
+      const liveTables = new Map<string, number>(); // `${casino}|${date}` -> TZS
+      const liveSlots = new Map<string, number>();
+      for (const s of (shiftsRes.data || []) as any[]) {
+        const d = businessDateOf(s.opened_at);
+        if (d < from || d > to) continue;
+        const k = `${s.casino_id}|${d}`;
+        liveTables.set(k, (liveTables.get(k) || 0) + Number(s.tables_result || 0));
+      }
+      for (const s of (slotShiftsRes.data || []) as any[]) {
+        const k = `${s.casino_id}|${s.business_date}`;
+        liveSlots.set(k, (liveSlots.get(k) || 0) + Number(s.system_shift_result || 0));
+      }
+      // Open (unclosed) shifts have tables_result = NULL. For those days fall back
+      // to the LATEST chip-count snapshot per table — exactly what each casino
+      // dashboard shows: Σ (actual − expected) × denomination.
+      const openDays = new Set<string>();
+      for (const s of (shiftsRes.data || []) as any[]) {
+        if (s.tables_result !== null && s.tables_result !== undefined) continue;
+        const d = businessDateOf(s.opened_at);
+        if (d < from || d > to) continue;
+        if (!closedKeys.has(`${s.casino_id}|${d}`)) openDays.add(`${s.casino_id}|${d}`);
+      }
+      if (openDays.size) {
+        const snaps = await Promise.all(
+          Array.from(openDays).map(async (k) => {
+            const [casinoId, date] = k.split("|");
+            const { data } = await (supabase as any).rpc("chip_snapshots_latest", {
+              _casino_id: casinoId, _date: date,
+            });
+            const sum = ((data || []) as any[]).reduce((acc, r) => {
+              if (r.location_type !== "table" || !r.location_id) return acc;
+              return acc + (Number(r.actual_quantity || 0) - Number(r.expected_quantity || 0)) * Number(r.denomination || 0);
+            }, 0);
+            return [k, sum] as const;
+          }),
+        );
+        for (const [k, sum] of snaps) {
+          if (!sum) continue;
+          liveTables.set(k, (liveTables.get(k) || 0) + sum);
+        }
+      }
+
+      for (const k of new Set([...liveTables.keys(), ...liveSlots.keys()])) {
+        if (closedKeys.has(k)) continue; // day closing is authoritative
+        const [casinoId, date] = k.split("|");
+        if (!casinoIds.includes(casinoId)) continue;
+        const tv = liveTables.get(k) || 0;
+        const sv = liveSlots.get(k) || 0;
+        const v = tv + sv;
+        if (!v) continue;
+        tables[casinoId] = (tables[casinoId] || 0) + tv;
+        slotsRaw[casinoId] = (slotsRaw[casinoId] || 0) + sv;
+        result[casinoId] = (result[casinoId] || 0) + v;
+        const row = dailyMap.get(date);
+        if (row) {
+          row.perCasino[casinoId] = (row.perCasino[casinoId] || 0) + v;
+          row.jcResult += v;
+        }
+      }
+
       // Net out player card deposits once per month: Result = Tables + (Slots − Cards)
       const slots = zeroPer();
       for (const id of casinoIds) {
