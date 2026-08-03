@@ -11093,9 +11093,24 @@ export type Database = {
         }
         Returns: string
       }
+      fin_resync_wallet_counts: {
+        Args: { p_wallet_id: string }
+        Returns: undefined
+      }
       fin_reverse_tx: {
         Args: { p_reason: string; p_tx_id: string }
         Returns: string
+      }
+      fin_save_wallet_count: {
+        Args: {
+          p_business_date?: string
+          p_counted: number
+          p_denominations?: Json
+          p_fx_rate?: number
+          p_note?: string
+          p_wallet_id: string
+        }
+        Returns: Json
       }
       finalize_open_cycles_for_close: {
         Args: { _casino_id: string; _user: string }
