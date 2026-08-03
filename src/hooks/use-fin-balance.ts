@@ -81,19 +81,12 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
     (s.collections_total || 0);
   const usdRate = s.rates?.usd_tzs || 2600;
   const actual = (s.wallets || []).reduce((sum, w) => {
-    // Prefer physical count (native currency) → convert to TZS; else use TZS ledger.
-    if (w.physical != null) {
-      const p = Number(w.physical);
-      if (w.currency === "USD") return sum + p * usdRate;
-      if (w.currency === "TZS") return sum + p;
-      // EUR/GBP/KES physicals without FX — approximate via ledger_tzs / native ratio
-      const native = Number(w.ledger_native ?? w.ledger ?? 0);
-      const tzs = Number(w.ledger_tzs ?? 0);
-      const rate = native ? tzs / native : 0;
-      return sum + p * rate;
-    }
+    // The RPC already anchors Actual on the last physical count and adds every
+    // movement booked after it — so Money In / Out keeps moving the number.
+    if (w.actual_tzs != null) return sum + Number(w.actual_tzs);
     return sum + Number(w.ledger_tzs ?? w.ledger ?? 0);
   }, 0);
+
   // Actual includes the float baseline; subtract it so Variance = business P/L variance.
   const actualNet = actual - (s.starting_float?.grand_tzs || 0);
   return { expected, actual: actualNet, variance: actualNet - expected };
