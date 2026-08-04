@@ -130,6 +130,8 @@ export default function WalletMovementDialog({
         business_date: date,
         created_by: user.id,
         denominations: denomJson,
+        // Manual wallet movements post immediately (no Pending until day close)
+        posted_at: new Date().toISOString(),
       };
       let rows: any[] = [];
       if (mode === "in") {
