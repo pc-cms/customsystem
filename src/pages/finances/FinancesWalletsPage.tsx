@@ -40,6 +40,7 @@ import { FormGrid, FormField } from "@/components/ui/form-grid";
 import { MonthCarousel, MONTHS } from "@/components/payroll/MonthCarousel";
 import { useFinWallets, useUpsertFinWallet, useFinWalletTx } from "@/hooks/use-fin";
 import { useFinBalanceSnapshot, computeBalanceTotals } from "@/hooks/use-fin-balance";
+import { fmtDate } from "@/lib/format-date";
 import { CloseMonthWizard } from "@/pages/office/CloseMonthWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
