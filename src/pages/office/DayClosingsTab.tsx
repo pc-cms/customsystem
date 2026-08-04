@@ -121,6 +121,7 @@ export default function DayClosingsTab() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
+  const [jpOpen, setJpOpen] = useState(false);
   const dates = useMemo(() => buildMonthDates(year, month), [year, month]);
   const { data: list = [] } = useDayClosingList();
   const { data: aggMap } = useMonthAggregates(year, month);
