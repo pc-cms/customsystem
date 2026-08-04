@@ -278,9 +278,17 @@ export default function OtherIncomesTab() {
           }}
         />
         {canWrite && (
-          <Button onClick={openAdd} size="sm">
-            <Plus className="w-4 h-4" /> Add Income
-          </Button>
+          <>
+            <Button onClick={() => openAdd("jp")} size="sm" variant="outline">
+              <Plus className="w-4 h-4" /> JP
+            </Button>
+            <Button onClick={() => openAdd("fee")} size="sm" variant="outline">
+              <Plus className="w-4 h-4" /> Fee
+            </Button>
+            <Button onClick={() => openAdd()} size="sm">
+              <Plus className="w-4 h-4" /> Add Income
+            </Button>
+          </>
         )}
       </PageHeader>
 
