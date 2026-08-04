@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { ClipboardPen, Lock, Unlock, Check, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { ClipboardPen, Lock, Unlock, Check, AlertTriangle, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import QuickIncomeDialog from "@/components/finances/QuickIncomeDialog";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
