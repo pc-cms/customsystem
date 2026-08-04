@@ -182,7 +182,14 @@ export default function DayClosingsTab() {
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
+        {isManager && (
+          <Button size="sm" variant="outline" className="h-8" onClick={() => setJpOpen(true)}>
+            <Plus className="w-4 h-4" /> JP
+          </Button>
+        )}
       </PageHeader>
+
+      <QuickIncomeDialog open={jpOpen} onOpenChange={setJpOpen} source="jp" title="Add JP" />
 
       <PageSection bodyClassName="p-0 overflow-hidden">
         <table className="w-full text-sm">
