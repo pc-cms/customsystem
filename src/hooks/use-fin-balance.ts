@@ -38,6 +38,17 @@ export type BalanceSnapshot = {
   expenses_total: number;
   collections_total: number;
   transfers_total: number;
+  /** Day-by-day audit rows (only days with movement). */
+  daily?: Array<{
+    business_date: string;
+    day_closed: boolean;
+    live_game: number;
+    slots: number;
+    other: number;
+    expenses: number;
+    collections: number;
+    net: number;
+  }>;
   wallets: WalletBalanceRow[];
 };
 

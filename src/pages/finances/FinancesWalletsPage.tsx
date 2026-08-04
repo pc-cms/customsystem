@@ -40,6 +40,7 @@ import { FormGrid, FormField } from "@/components/ui/form-grid";
 import { MonthCarousel, MONTHS } from "@/components/payroll/MonthCarousel";
 import { useFinWallets, useUpsertFinWallet, useFinWalletTx } from "@/hooks/use-fin";
 import { useFinBalanceSnapshot, computeBalanceTotals } from "@/hooks/use-fin-balance";
+import { fmtDate } from "@/lib/format-date";
 import { CloseMonthWizard } from "@/pages/office/CloseMonthWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -612,6 +613,48 @@ export default function FinancesWalletsPage() {
           </div>
         </PageSection>
       </div>
+
+      {/* DAILY AUDIT */}
+      {!!snap?.daily?.length && (
+        <PageSection title="Daily audit" card={false}>
+          <div className="rounded-md border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted text-[11px] uppercase tracking-wider">
+                <tr>
+                  <th className="px-3 py-2 text-left">Date</th>
+                  <th className="px-3 py-2 text-right">Live</th>
+                  <th className="px-3 py-2 text-right">Slots</th>
+                  <th className="px-3 py-2 text-right">Other</th>
+                  <th className="px-3 py-2 text-right">Expenses</th>
+                  <th className="px-3 py-2 text-right">Collections</th>
+                  <th className="px-3 py-2 text-right">Net</th>
+                </tr>
+              </thead>
+              <tbody className="font-mono tabular-nums">
+                {snap.daily.map((d) => (
+                  <tr key={d.business_date} className="border-t border-border hover:bg-muted/40">
+                    <td className="px-3 py-1.5 text-left">
+                      {fmtDate(d.business_date)}
+                      {!d.day_closed && <span className="ml-1 text-[10px] text-muted-foreground">(open)</span>}
+                    </td>
+                    <td className="px-3 py-1.5 text-right">{formatNumberSpaces(d.live_game)}</td>
+                    <td className="px-3 py-1.5 text-right">{formatNumberSpaces(d.slots)}</td>
+                    <td className="px-3 py-1.5 text-right">{formatNumberSpaces(d.other)}</td>
+                    <td className="px-3 py-1.5 text-right cms-amount-negative">{formatNumberSpaces(d.expenses)}</td>
+                    <td className="px-3 py-1.5 text-right cms-amount-negative">{formatNumberSpaces(d.collections)}</td>
+                    <td className={cn("px-3 py-1.5 text-right font-semibold", d.net >= 0 ? "cms-amount-positive" : "cms-amount-negative")}>
+                      {formatNumberSpaces(d.net)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-1">
+            Expenses count once the business day is closed (office expenses immediately).
+          </div>
+        </PageSection>
+      )}
 
       {/* WALLETS TABLE */}
       <PageSection title="Wallets" card={false}>
