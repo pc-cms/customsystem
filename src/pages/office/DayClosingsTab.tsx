@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { ClipboardPen, Lock, Unlock, Check, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { ClipboardPen, Lock, Unlock, Check, AlertTriangle, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import QuickIncomeDialog from "@/components/finances/QuickIncomeDialog";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
@@ -121,6 +122,7 @@ export default function DayClosingsTab() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
+  const [jpOpen, setJpOpen] = useState(false);
   const dates = useMemo(() => buildMonthDates(year, month), [year, month]);
   const { data: list = [] } = useDayClosingList();
   const { data: aggMap } = useMonthAggregates(year, month);
@@ -181,7 +183,14 @@ export default function DayClosingsTab() {
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
+        {isManager && (
+          <Button size="sm" variant="outline" className="h-8" onClick={() => setJpOpen(true)}>
+            <Plus className="w-4 h-4" /> JP
+          </Button>
+        )}
       </PageHeader>
+
+      <QuickIncomeDialog open={jpOpen} onOpenChange={setJpOpen} source="jp" title="Add JP" />
 
       <PageSection bodyClassName="p-0 overflow-hidden">
         <table className="w-full text-sm">
