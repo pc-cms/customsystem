@@ -16,6 +16,8 @@ export type OtherIncomeSource =
   | "owner_topup"
   | "refund"
   | "bonus"
+  | "jp"
+  | "fee"
   | "other";
 
 export const OTHER_INCOME_SOURCES: { value: OtherIncomeSource; label: string }[] = [
@@ -24,6 +26,8 @@ export const OTHER_INCOME_SOURCES: { value: OtherIncomeSource; label: string }[]
   { value: "owner_topup", label: "Owner Top-up" },
   { value: "refund", label: "Refund" },
   { value: "bonus", label: "Bonus" },
+  { value: "jp", label: "JP" },
+  { value: "fee", label: "Fee" },
   { value: "other", label: "Other" },
 ];
 

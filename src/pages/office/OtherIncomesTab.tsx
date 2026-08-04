@@ -94,13 +94,13 @@ export default function OtherIncomesTab() {
 
   const activeWallet = wallets.find((w: any) => w.id === form.wallet_id);
 
-  const openAdd = () => {
+  const openAdd = (source: OtherIncomeSource = "investment") => {
     setEditId(null);
     setForm({
       business_date: new Date().toISOString().slice(0, 10),
       wallet_id: "",
       fin_category_id: "",
-      source: "investment",
+      source,
       currency: "TZS",
       amount: "",
       note: "",
@@ -278,9 +278,17 @@ export default function OtherIncomesTab() {
           }}
         />
         {canWrite && (
-          <Button onClick={openAdd} size="sm">
-            <Plus className="w-4 h-4" /> Add Income
-          </Button>
+          <>
+            <Button onClick={() => openAdd("jp")} size="sm" variant="outline">
+              <Plus className="w-4 h-4" /> JP
+            </Button>
+            <Button onClick={() => openAdd("fee")} size="sm" variant="outline">
+              <Plus className="w-4 h-4" /> Fee
+            </Button>
+            <Button onClick={() => openAdd()} size="sm">
+              <Plus className="w-4 h-4" /> Add Income
+            </Button>
+          </>
         )}
       </PageHeader>
 
