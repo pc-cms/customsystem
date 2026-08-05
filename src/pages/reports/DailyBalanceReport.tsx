@@ -616,10 +616,11 @@ const DailyBalanceReport = () => {
     ? [
         {
           key: "total",
-          className: "font-semibold",
+          className: "border-t-2 border-border bg-muted font-bold",
           cell: (col: ColumnDef<Row>) => {
             if (col.key === "date")
-              return <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Total</span>;
+              return <span className="text-[11px] font-bold uppercase tracking-wider text-foreground">Total</span>;
+
             const c = ALL_COLS.find((x) => x.id === col.key);
             const v = c ? Math.round(c.value(grandRow)) : 0;
             const tip = formulaText(col.key);
