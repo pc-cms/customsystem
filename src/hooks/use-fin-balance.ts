@@ -34,7 +34,7 @@ export type BalanceSnapshot = {
     grand_tzs: number;
     per_wallet: Array<{ wallet_id: string; name: string; currency: string; amount: number }>;
   };
-  incomes: { live_game: number; slots: number; other: number; card_balance: number; missed_chips: number; missed_cards: number };
+  incomes: { live_game: number; slots: number; other: number; jp?: number; card_balance: number; missed_chips: number; missed_cards: number };
   expenses_total: number;
   collections_total: number;
   transfers_total: number;
@@ -45,6 +45,7 @@ export type BalanceSnapshot = {
     live_game: number;
     slots: number;
     other: number;
+    jp?: number;
     expenses: number;
     collections: number;
     net: number;
@@ -83,6 +84,7 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
     (incomes.live_game || 0) +
     (incomes.slots || 0) +
     (incomes.other || 0) +
+    (incomes.jp || 0) +
     // Players card deposits are physically in the cash desk but are not earnings —
     // add them back so the drawer reconciles without inflating the result.
     (incomes.card_balance || 0) +

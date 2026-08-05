@@ -552,6 +552,7 @@ export default function FinancesWalletsPage() {
             <BreakdownRow label="Live Game" v={snap?.incomes?.live_game || 0} positive />
             <BreakdownRow label="Slots" v={snap?.incomes?.slots || 0} positive />
             <BreakdownRow label="Other Income" v={snap?.incomes?.other || 0} positive />
+            <BreakdownRow label="JP (IN)" v={snap?.incomes?.jp || 0} positive />
             <BreakdownRow label="Card Balance" v={snap?.incomes?.card_balance || 0} positive />
 
             <BreakdownRow label="Missed Chips (±)" v={snap?.incomes?.missed_chips || 0} signed />
@@ -625,6 +626,7 @@ export default function FinancesWalletsPage() {
                   <th className="px-3 py-2 text-right">Live</th>
                   <th className="px-3 py-2 text-right">Slots</th>
                   <th className="px-3 py-2 text-right">Other</th>
+                  <th className="px-3 py-2 text-right">JP</th>
                   <th className="px-3 py-2 text-right">Expenses</th>
                   <th className="px-3 py-2 text-right">Collections</th>
                   <th className="px-3 py-2 text-right">Net</th>
@@ -640,6 +642,7 @@ export default function FinancesWalletsPage() {
                     <td className="px-3 py-1.5 text-right">{formatNumberSpaces(d.live_game)}</td>
                     <td className="px-3 py-1.5 text-right">{formatNumberSpaces(d.slots)}</td>
                     <td className="px-3 py-1.5 text-right">{formatNumberSpaces(d.other)}</td>
+                    <td className="px-3 py-1.5 text-right">{formatNumberSpaces(d.jp || 0)}</td>
                     <td className="px-3 py-1.5 text-right cms-amount-negative">{formatNumberSpaces(d.expenses)}</td>
                     <td className="px-3 py-1.5 text-right cms-amount-negative">{formatNumberSpaces(d.collections)}</td>
                     <td className={cn("px-3 py-1.5 text-right font-semibold", d.net >= 0 ? "cms-amount-positive" : "cms-amount-negative")}>
