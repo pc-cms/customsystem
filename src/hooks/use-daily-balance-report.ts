@@ -581,3 +581,28 @@ export const useSetCreditDeposit = () => {
     onError: (e: any) => toast.error(e.message),
   });
 };
+
+/**
+ * Bank balances (TZS / USD) are manual end-of-day figures, edited inline in the
+ * Casino Monthly Balance grid and stored in `fin_legacy_balance`.
+ */
+export const useSetBankBalance = () => {
+  const qc = useQueryClient();
+  const { activeCasinoId } = useCasino();
+  return useMutation({
+    mutationFn: async (
+      { date, field, value }: { date: string; field: "bank_account" | "bank_account_usd"; value: number },
+    ) => {
+      if (!activeCasinoId) throw new Error("No casino");
+      const { error } = await (supabase as any)
+        .from("fin_legacy_balance")
+        .upsert(
+          { casino_id: activeCasinoId, business_date: date, [field]: value, source: "manual" },
+          { onConflict: "casino_id,business_date" },
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["daily-balance-report"] }),
+    onError: (e: any) => toast.error(e.message),
+  });
+};
