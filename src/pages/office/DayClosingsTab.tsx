@@ -420,6 +420,25 @@ function DayRow({
         />
       </td>
 
+      <td className="px-3 py-2 text-right">
+        <Input
+          type="text"
+          inputMode="decimal"
+          disabled={!editable}
+          placeholder="0"
+          title="JP — booked as income (IN) on this business day. Use minus to deduct."
+          value={jp}
+          onChange={(e) => setJp(formatAmountInput(e.target.value))}
+          className={cn("text-right font-mono h-8", jpNum !== 0 && amountToneClass(jpNum))}
+        />
+        {jpPosted !== 0 && (
+          <div className="text-[10px] mt-0.5 text-right pr-1 text-muted-foreground">
+            posted {formatNumberSpaces(jpPosted)}
+          </div>
+        )}
+      </td>
+
+
 
 
       <td className={cn("px-3 py-2 text-right font-mono text-xs", amountToneClass(agg.missChips))}>
