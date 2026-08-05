@@ -629,6 +629,7 @@ export default function FinancesWalletsPage() {
                   <th className="px-3 py-2 text-right">JP</th>
                   <th className="px-3 py-2 text-right">Expenses</th>
                   <th className="px-3 py-2 text-right">Collections</th>
+                  <th className="px-3 py-2 text-right">Cage exp.</th>
                   <th className="px-3 py-2 text-right">Net</th>
                 </tr>
               </thead>
