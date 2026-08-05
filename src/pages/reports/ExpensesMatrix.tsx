@@ -201,6 +201,7 @@ const ExpensesMatrixPage = () => {
             stickyHeader
             footerRows={footerRows}
             bare
+            scroll={false}
             virtualize={false}
             empty={<div className="py-10 text-center text-sm text-muted-foreground">No expenses this month</div>}
           />
