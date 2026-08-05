@@ -91,6 +91,11 @@ export interface SmartTableProps<T> {
    */
   stickyColumns?: number[];
   /**
+   * Pin the header (group row + column headers) to the top of the scroll
+   * container. Requires the caller to wrap the table in a scrollable element.
+   */
+  stickyHeader?: boolean;
+  /**
    * Optional grouped header row rendered above the column headers.
    * `span` must add up to the number of VISIBLE columns.
    */
