@@ -48,7 +48,7 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
   },
   chip_difference: {
 
-    formula: "Miss chips of the CLOSING chip check (last check of the day) × denomination",
+    formula: "Closing miss of the day − closing miss of the previous day (miss is cumulative vs baseline) × denomination",
     source: "chip_snapshots (latest check per table, 07:00 rollover)",
     total: "sum",
   },
