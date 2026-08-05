@@ -264,6 +264,12 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           sb.from("business_day_closures")
             .select("business_date")
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
+        // Fees booked in Other incomes (source = 'fee').
+        fetchPaged<any>((a, b) =>
+          sb.from("fin_other_incomes")
+            .select("business_date, amount, currency, fx_rate, source, reversed_by_id")
+            .eq("casino_id", casino).eq("source", "fee")
+            .gte("business_date", from).lte("business_date", to).range(a, b)),
       ]);
 
       const closedDays = new Set<string>(
