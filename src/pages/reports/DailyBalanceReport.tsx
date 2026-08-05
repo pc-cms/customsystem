@@ -121,6 +121,12 @@ const ALL_COLS: (Col & { section: SectionKey })[] = SECTIONS.flatMap((s) =>
 /** Every money column gets a per-column heat fill (scaled inside its own column). */
 const HEAT_IDS = new Set(ALL_COLS.map((c) => c.id));
 
+/** Columns that open a right-hand breakdown panel when a cell is clicked. */
+const DRILL_IDS = new Set([
+  "chip_difference", "cage_casino", "cage_manager", "transfer_cage_manager", "transfer_bank",
+]);
+
+
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 const monthBounds = (m: string) => {
