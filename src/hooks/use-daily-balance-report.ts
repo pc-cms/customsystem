@@ -253,23 +253,38 @@ export const useDailyBalanceReport = (from: string, to: string) => {
       });
 
       const collections: Bucket = {}, officeIn: Bucket = {}, officeOut: Bucket = {};
+      const trfToManager: Bucket = {}, trfToBank: Bucket = {}, ownerIn: Bucket = {};
       const cageRunning: Bucket = {}, officeRunning: Bucket = {}, bankRunning: Bucket = {};
+      const bankTzsRunning: Bucket = {}, bankUsdRunning: Bucket = {};
+      const walletCurrency: Record<string, string> = {};
+      wallets.forEach((w) => { walletCurrency[w.id] = w.currency || "TZS"; });
       // running balances start from wallet starting floats
-      let cageBal = 0, officeBal = 0, bankBal = 0;
+      let cageBal = 0, officeBal = 0, bankBal = 0, bankTzsBal = 0, bankUsdBal = 0;
       wallets.forEach((w) => {
         const f = num(w.starting_float_amount);
         if (!f) return;
         if (CAGE_KINDS.has(w.kind)) cageBal += f;
         else if (w.kind === "office_safe") officeBal += f;
-        else if (w.kind === "bank_account") bankBal += f;
+        else if (w.kind === "bank_account") {
+          bankBal += f;
+          if ((w.currency || "TZS") === "TZS") bankTzsBal += f; else bankUsdBal += f;
+        }
       });
 
       const txByDate: Record<string, any[]> = {};
       walletTx.forEach((t) => {
         (txByDate[t.business_date] ??= []).push(t);
-        if (t.kind === "collection") add(collections, t.business_date, Math.abs(tzs(t)));
-        if (walletKind[t.wallet_id] === "office_safe") {
-          const v = tzs(t);
+        const kind = walletKind[t.wallet_id];
+        const v = tzs(t);
+        if (t.kind === "collection") add(collections, t.business_date, Math.abs(v));
+        // Owner deposits into the business
+        if (t.kind === "external_income" && v > 0) add(ownerIn, t.business_date, v);
+        // Transfers — count the positive (incoming) leg only
+        if (t.kind === "transfer" && v > 0) {
+          if (kind === "office_safe") add(trfToManager, t.business_date, v);
+          if (kind === "bank_account") add(trfToBank, t.business_date, v);
+        }
+        if (kind === "office_safe") {
           if (v >= 0) add(officeIn, t.business_date, v);
           else add(officeOut, t.business_date, Math.abs(v));
         }
@@ -282,12 +297,18 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           const v = tzs(t);
           if (CAGE_KINDS.has(k)) cageBal += v;
           else if (k === "office_safe") officeBal += v;
-          else if (k === "bank_account") bankBal += v;
+          else if (k === "bank_account") {
+            bankBal += v;
+            if (walletCurrency[t.wallet_id] === "TZS") bankTzsBal += v; else bankUsdBal += v;
+          }
         }
         cageRunning[d] = cageBal;
         officeRunning[d] = officeBal;
         bankRunning[d] = bankBal;
+        bankTzsRunning[d] = bankTzsBal;
+        bankUsdRunning[d] = bankUsdBal;
       }
+
 
       const terminal: Bucket = {};
       bankChecks.forEach((b) => {
