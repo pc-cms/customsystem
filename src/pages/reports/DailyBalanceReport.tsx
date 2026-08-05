@@ -150,6 +150,37 @@ const CreditCell = ({ date, value }: { date: string; value: number }) => {
   );
 };
 
+/** Manual bank balance (TZS or USD) — inline editor, saved per day on blur. */
+const BankCell = ({
+  date, value, field, manual,
+}: { date: string; value: number; field: "bank_account" | "bank_account_usd"; manual: boolean }) => {
+  const save = useSetBankBalance();
+  const [draft, setDraft] = useState<string>("");
+  const [editing, setEditing] = useState(false);
+  const rounded = Math.round(value);
+  const shown = editing ? draft : rounded ? String(rounded) : "";
+  return (
+    <Input
+      value={shown}
+      placeholder={rounded ? undefined : "·"}
+      inputMode="numeric"
+      title={manual ? "Manual entry" : "Computed from wallets — type to override"}
+      onClick={(e) => e.stopPropagation()}
+      onFocus={() => { setEditing(true); setDraft(rounded ? String(rounded) : ""); }}
+      onChange={(e) => setDraft(e.target.value.replace(/[^\d.-]/g, ""))}
+      onBlur={() => {
+        setEditing(false);
+        const v = Number(draft || 0);
+        if (Number.isFinite(v) && v !== rounded) save.mutate({ date, field, value: v });
+      }}
+      className={cn(
+        "h-6 w-28 px-1 text-right font-mono text-xs tabular-nums",
+        !manual && "border-dashed text-muted-foreground",
+      )}
+    />
+  );
+};
+
 /** Compact KPI tile. */
 const Tile = ({ label, value, hint }: { label: string; value: number; hint?: string }) => (
   <div className="rounded-md border border-border bg-card px-3 py-2">
