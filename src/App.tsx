@@ -132,6 +132,8 @@ const MergePlayersPage = lazy(() => import("@/pages/admin/MergePlayersPage"));
 const PromoCodesReport = lazy(() => import("@/pages/reports/PromoCodesReport"));
 const LotterySalesReport = lazy(() => import("@/pages/reports/LotterySalesReport"));
 const DailyBalanceReport = lazy(() => import("@/pages/reports/DailyBalanceReport"));
+const ExpensesMatrixPage = lazy(() => import("@/pages/reports/ExpensesMatrix"));
+
 const BlanksPage = lazy(() => import("@/pages/reports/BlanksPage"));
 
 const TipsAndBonuses = lazy(() => import("@/pages/TipsAndBonuses"));
@@ -493,6 +495,8 @@ const ProtectedRoutes = () => {
           <Route path="/reports/promo-codes" element={<ErrorBoundary><PromoCodesReport /></ErrorBoundary>} />
           <Route path="/reports/lottery-sales" element={<ErrorBoundary><LotterySalesReport /></ErrorBoundary>} />
           <Route path="/reports/daily-balance" element={<RoleGuard path="/reports/daily-balance"><ErrorBoundary><DailyBalanceReport /></ErrorBoundary></RoleGuard>} />
+          <Route path="/reports/expenses-matrix" element={<RoleGuard path="/reports/expenses-matrix"><ErrorBoundary><ExpensesMatrixPage /></ErrorBoundary></RoleGuard>} />
+
           <Route path="/reports/blanks" element={<RoleGuard path="/reports"><ErrorBoundary><BlanksPage /></ErrorBoundary></RoleGuard>} />
 
           <Route path="/import-reports" element={<RoleGuard path="/import-reports"><ImportReports /></RoleGuard>} />

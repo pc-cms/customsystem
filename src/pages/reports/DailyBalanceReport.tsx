@@ -9,7 +9,9 @@
  * clicking the group header reveals its component columns.
  */
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Wallet2, ChevronLeft, ChevronRight, Info } from "lucide-react";
+
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SmartTable, type ColumnDef, type SortState } from "@/components/ui/smart-table";
@@ -28,7 +30,7 @@ import {
   useDailyBalanceReport, useSetCreditDeposit, useSetBankBalance, type DailyBalanceRow,
 } from "@/hooks/use-daily-balance-report";
 
-type SectionKey = "incomes" | "expenses" | "transfers" | "money" | "balances";
+type SectionKey = "incomes" | "diff" | "expenses" | "transfers" | "money" | "balances";
 
 const num = (r: DailyBalanceRow, k: keyof DailyBalanceRow) => Number(r[k] || 0);
 
@@ -45,10 +47,11 @@ type Col = {
 /** Numeric FLOW fields — summed across the month. */
 const BASE_KEYS: (keyof DailyBalanceRow)[] = [
   "casino_result", "tables_result", "slots_result", "live_cash_result", "slots_diff",
-  "chip_difference", "transfer_cage_manager", "transfer_bank",
+  "chip_difference", "diff_total", "transfer_cage_manager", "transfer_bank",
   "expenses", "bank_expenses", "money_in", "money_out",
   "day_total", "cash_desk_result", "day_balance", "collection_bank",
 ];
+
 
 /** SNAPSHOT fields — end-of-day stock values, never summed (last value wins). */
 const SNAPSHOT_KEYS: (keyof DailyBalanceRow)[] = [
@@ -63,6 +66,13 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
       { id: "result", label: "Result", total: true, value: (r) => num(r, "casino_result") },
       { id: "live_cash_result", label: "Live", value: (r) => num(r, "live_cash_result") },
       { id: "tables_result", label: "Table", value: (r) => num(r, "tables_result") },
+    ],
+  },
+  {
+    key: "diff",
+    label: "Diff",
+    cols: [
+      { id: "diff_total", label: "Diff", total: true, value: (r) => num(r, "diff_total") },
       { id: "chip_difference", label: "Chip Diff", value: (r) => num(r, "chip_difference") },
       { id: "slots_diff", label: "Slots Diff", value: (r) => num(r, "slots_diff") },
     ],
@@ -87,11 +97,11 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
   },
   {
     key: "expenses",
-    label: "Flows",
+    label: "Office",
     cols: [
       { id: "expenses", label: "Expenses", total: true, value: (r) => num(r, "expenses") },
-      { id: "money_in", label: "IN", value: (r) => num(r, "money_in") },
-      { id: "money_out", label: "OUT", value: (r) => num(r, "money_out") },
+      { id: "money_in", label: "+", value: (r) => num(r, "money_in") },
+      { id: "money_out", label: "−", value: (r) => num(r, "money_out") },
     ],
   },
   {
@@ -104,6 +114,7 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
   },
 ];
 
+
 const ALL_COLS: (Col & { section: SectionKey })[] = SECTIONS.flatMap((s) =>
   s.cols.map((c) => ({ ...c, section: s.key })),
 );
@@ -111,6 +122,12 @@ const ALL_COLS: (Col & { section: SectionKey })[] = SECTIONS.flatMap((s) =>
 
 /** Every money column gets a per-column heat fill (scaled inside its own column). */
 const HEAT_IDS = new Set(ALL_COLS.map((c) => c.id));
+
+/** Columns that open a right-hand breakdown panel when a cell is clicked. */
+const DRILL_IDS = new Set([
+  "chip_difference", "cage_casino", "cage_manager", "transfer_cage_manager", "transfer_bank",
+]);
+
 
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
@@ -197,14 +214,58 @@ const Tile = ({ label, value, hint }: { label: string; value: number; hint?: str
   </div>
 );
 
+/** Simple label / amount list used by the cell breakdown panel. */
+const DrillList = ({
+  title, rows, totalLabel, total,
+}: {
+  title?: string;
+  rows: { label: string; value: number }[];
+  totalLabel?: string;
+  total?: number;
+}) => (
+  <div>
+    {title && (
+      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {title}
+      </div>
+    )}
+    <div className="rounded-md border border-border">
+      {rows.map((r, i) => (
+        <div
+          key={`${r.label}-${i}`}
+          className="flex items-center justify-between border-b border-border/60 px-2 py-1 last:border-0"
+        >
+          <span className="text-muted-foreground">{r.label}</span>
+          <span className={cn("font-mono tabular-nums", r.value < 0 && "cms-amount-negative")}>
+            {r.value ? formatMoneyFull(Math.round(r.value)) : "·"}
+          </span>
+        </div>
+      ))}
+      {!rows.length && <div className="px-2 py-3 text-center text-muted-foreground">No data</div>}
+      {totalLabel != null && (
+        <div className="flex items-center justify-between border-t border-border bg-muted/40 px-2 py-1 font-semibold">
+          <span>{totalLabel}</span>
+          <span className={cn("font-mono tabular-nums", (total ?? 0) < 0 && "cms-amount-negative")}>
+            {formatMoneyFull(Math.round(total ?? 0))}
+          </span>
+        </div>
+      )}
+    </div>
+  </div>
+);
+
 const DailyBalanceReport = () => {
   const { activeCasino } = useCasino();
+  const navigate = useNavigate();
   const [month, setMonth] = useSessionState("dbr-month", currentMonth());
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
   /** Fixed display options — every column is always shown, in full figures. */
   const heatmap = true;
   const [sort, setSort] = useState<SortState | null>({ key: "date", dir: "asc" });
   const [detail, setDetail] = useState<DailyBalanceRow | null>(null);
+  /** Cell drill-down: which column of which row is being inspected. */
+  const [drill, setDrill] = useState<{ row: DailyBalanceRow; col: string } | null>(null);
+
 
   /** Shift the selected month by ±1. */
   const stepMonth = (delta: number) => {
@@ -385,8 +446,28 @@ const DailyBalanceReport = () => {
             return <BankCell date={r.date} field="bank_account" value={num(r, "bank_tzs")} manual={!!r.bank_tzs_manual} />;
           if (r.kind === "day" && c.id === "bank_usd")
             return <BankCell date={r.date} field="bank_account_usd" value={num(r, "bank_usd_raw")} manual={!!r.bank_usd_manual} />;
-          return money(Math.round(c.value(r)));
+          const rendered = money(Math.round(c.value(r)));
+          if (c.id === "expenses")
+            return (
+              <span
+                className="cursor-pointer underline-offset-2 hover:underline"
+                onClick={(e) => { e.stopPropagation(); navigate("/reports/expenses-matrix"); }}
+              >
+                {rendered}
+              </span>
+            );
+          if (DRILL_IDS.has(c.id))
+            return (
+              <span
+                className="cursor-pointer underline-offset-2 hover:underline"
+                onClick={(e) => { e.stopPropagation(); setDrill({ row: r, col: c.id }); }}
+              >
+                {rendered}
+              </span>
+            );
+          return rendered;
         },
+
         sortValue: (r) => c.value(r),
         headerClassName: cn(
           "whitespace-nowrap",
@@ -573,7 +654,79 @@ const DailyBalanceReport = () => {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Cell breakdown panel */}
+      <Sheet open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>
+              {drill
+                ? `${ALL_COLS.find((c) => c.id === drill.col)?.label ?? ""} · ${fmtDate(drill.row.date)}`
+                : ""}
+            </SheetTitle>
+          </SheetHeader>
+          {drill && (
+            <div className="mt-4 space-y-3 text-xs">
+              {drill.col === "chip_difference" && (
+                <DrillList
+                  rows={(drill.row.chips_detail ?? []).map((c) => ({
+                    label: `${formatMoneyFull(c.denomination)} × ${c.quantity}`,
+                    value: c.miss,
+                  }))}
+                  totalLabel="Chip diff"
+                  total={num(drill.row, "chip_difference")}
+                />
+              )}
+              {drill.col === "cage_casino" && (
+                <>
+                  <DrillList
+                    title="Cash by denomination"
+                    rows={(drill.row.cage_detail?.cash ?? []).map((c) => ({
+                      label: `${c.currency} ${formatMoneyFull(c.denomination)} × ${c.quantity}`,
+                      value: c.tzs,
+                    }))}
+                  />
+                  <DrillList
+                    title="Cashless"
+                    rows={(drill.row.cage_detail?.cashless ?? []).map((c) => ({
+                      label: c.name, value: c.amount,
+                    }))}
+                  />
+                  <DrillList
+                    title="Slots cage"
+                    rows={[{ label: "Closing total", value: drill.row.cage_detail?.slots_total ?? 0 }]}
+                    totalLabel="Cage Casino"
+                    total={num(drill.row, "cage_casino")}
+                  />
+                </>
+              )}
+              {drill.col === "cage_manager" && (
+                <DrillList
+                  title="Office wallets"
+                  rows={(drill.row.office_wallets ?? []).map((w) => ({
+                    label: `${w.name} (${w.currency})`, value: w.balance,
+                  }))}
+                  totalLabel="Cage Manager"
+                  total={num(drill.row, "cage_manager")}
+                />
+              )}
+              {(drill.col === "transfer_cage_manager" || drill.col === "transfer_bank") && (
+                <DrillList
+                  rows={(
+                    drill.col === "transfer_bank"
+                      ? drill.row.transfers_bank ?? []
+                      : drill.row.transfers_manager ?? []
+                  ).map((t) => ({ label: `${t.from} → ${t.to}`, value: t.amount }))}
+                  totalLabel="Total"
+                  total={num(drill.row, drill.col as keyof DailyBalanceRow)}
+                />
+              )}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </PageShell>
+
     </TooltipProvider>
   );
 };

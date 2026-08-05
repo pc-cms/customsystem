@@ -1,0 +1,207 @@
+/**
+ * Reports → Expenses by category.
+ *
+ * Categories (rows, alphabetical) × days of the selected month (columns).
+ * Opened from the Expenses column of Casino Monthly Balance. All figures TZS.
+ */
+import { useMemo, useState } from "react";
+import { Receipt, ChevronLeft, ChevronRight } from "lucide-react";
+import { PageShell, PageSection } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useCasino } from "@/lib/casino-context";
+import { useSessionState } from "@/hooks/use-session-state";
+import { formatMoneyFull } from "@/lib/format-money";
+import { fmtDate } from "@/lib/format-date";
+import { cn } from "@/lib/utils";
+import { useExpensesMatrix, type ExpenseCategoryRow } from "@/hooks/use-expenses-matrix";
+
+const currentMonth = () => new Date().toISOString().slice(0, 7);
+
+const ExpensesMatrixPage = () => {
+  const { activeCasino } = useCasino();
+  const [month, setMonth] = useSessionState("exp-matrix-month", currentMonth());
+  const [cell, setCell] = useState<{ code: string; label: string; day: string } | null>(null);
+  const { data, isLoading } = useExpensesMatrix(month);
+
+  const rows = data?.rows ?? [];
+  const days = data?.days ?? [];
+
+  const stepMonth = (delta: number) => {
+    const [y, m] = month.split("-").map(Number);
+    setMonth(new Date(Date.UTC(y, m - 1 + delta, 1)).toISOString().slice(0, 7));
+  };
+
+  /** Max spend in a single cell — drives the heat fill intensity. */
+  const heatMax = useMemo(
+    () => Math.max(1, ...rows.flatMap((r) => Object.values(r.byDay).map((v) => Math.abs(v)))),
+    [rows],
+  );
+
+  const HEAT = [
+    "bg-[color-mix(in_srgb,hsl(var(--destructive))_6%,hsl(var(--card)))]",
+    "bg-[color-mix(in_srgb,hsl(var(--destructive))_12%,hsl(var(--card)))]",
+    "bg-[color-mix(in_srgb,hsl(var(--destructive))_20%,hsl(var(--card)))]",
+  ];
+  const heatClass = (v: number) => {
+    if (!v) return undefined;
+    const ratio = Math.abs(v) / heatMax;
+    return HEAT[ratio > 0.66 ? 2 : ratio > 0.33 ? 1 : 0];
+  };
+
+  const money = (n: number) =>
+    !n ? <span className="text-muted-foreground">·</span> : <span>{formatMoneyFull(Math.round(n))}</span>;
+
+  const columns: ColumnDef<ExpenseCategoryRow>[] = [
+    {
+      key: "label",
+      header: "Category",
+      style: { width: 200, minWidth: 200 },
+      accessor: (r) => <span className="whitespace-nowrap font-medium">{r.label}</span>,
+      sortValue: (r) => r.label,
+      cellClassName: () => "py-1",
+    },
+    ...days.map<ColumnDef<ExpenseCategoryRow>>((d) => ({
+      key: d,
+      header: d.slice(8),
+      type: "money" as const,
+      accessor: (r) => {
+        const v = r.byDay[d] || 0;
+        return (
+          <span
+            className={cn(v && "cursor-pointer underline-offset-2 hover:underline")}
+            onClick={(e) => {
+              if (!v) return;
+              e.stopPropagation();
+              setCell({ code: r.code, label: r.label, day: d });
+            }}
+          >
+            {money(v)}
+          </span>
+        );
+      },
+      sortValue: (r) => r.byDay[d] || 0,
+      headerClassName: "whitespace-nowrap font-normal text-muted-foreground",
+      cellClassName: (r: ExpenseCategoryRow) =>
+        cn("py-1 font-mono tabular-nums", heatClass(r.byDay[d] || 0)),
+    })),
+    {
+      key: "total",
+      header: "Total",
+      type: "money",
+      accessor: (r) => money(r.total),
+      sortValue: (r) => r.total,
+      headerClassName: "whitespace-nowrap border-l border-border font-semibold",
+      cellClassName: () => "py-1 border-l border-border font-mono font-semibold tabular-nums",
+    },
+  ];
+
+  const grandTotal = rows.reduce((s, r) => s + r.total, 0);
+
+  const footerRows = rows.length
+    ? [
+        {
+          key: "total",
+          className: "font-semibold",
+          cell: (col: ColumnDef<ExpenseCategoryRow>) => {
+            if (col.key === "label")
+              return (
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Total
+                </span>
+              );
+            const v =
+              col.key === "total"
+                ? grandTotal
+                : rows.reduce((s, r) => s + (r.byDay[col.key as string] || 0), 0);
+            return (
+              <span className="font-mono tabular-nums">{v ? formatMoneyFull(Math.round(v)) : "·"}</span>
+            );
+          },
+        },
+      ]
+    : undefined;
+
+  const monthLabel = new Date(`${month}-01T00:00:00Z`).toLocaleDateString("en-GB", {
+    month: "long", year: "numeric", timeZone: "UTC",
+  });
+
+  const cellItems = cell ? data?.items[`${cell.code}|${cell.day}`] ?? [] : [];
+
+  return (
+    <PageShell>
+      <PageHeader
+        icon={Receipt}
+        title="Expenses by Category"
+        subtitle="Category × day matrix for the selected month — all figures in TZS"
+        context={activeCasino?.name}
+      >
+        <span className="whitespace-nowrap text-xs text-muted-foreground">
+          {rows.length} categories · {formatMoneyFull(Math.round(grandTotal))}
+        </span>
+      </PageHeader>
+
+      <div className="mb-3 flex items-center justify-center gap-2">
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(-1)} aria-label="Previous month">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1">
+          <span className="min-w-[130px] text-center text-sm font-semibold tracking-wide">{monthLabel}</span>
+          <Input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value || currentMonth())}
+            className="h-7 w-[136px] text-xs"
+          />
+        </div>
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(1)} aria-label="Next month">
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <PageSection card={false}>
+        <div className="max-h-[74vh] overflow-auto rounded-md border border-border">
+          <SmartTable
+            data={rows}
+            columns={columns}
+            rowKey={(r) => r.code}
+            loading={isLoading}
+            stickyColumns={[0, 200]}
+            stickyHeader
+            footerRows={footerRows}
+            bare
+            virtualize={false}
+            empty={<div className="py-10 text-center text-sm text-muted-foreground">No expenses this month</div>}
+          />
+        </div>
+      </PageSection>
+
+      <Sheet open={!!cell} onOpenChange={(o) => !o && setCell(null)}>
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>{cell ? `${cell.label} · ${fmtDate(cell.day)}` : ""}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 rounded-md border border-border">
+            {cellItems.map((it) => (
+              <div key={it.id} className="border-b border-border/60 px-2 py-1.5 text-xs last:border-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate">{it.description || "—"}</span>
+                  <span className="font-mono tabular-nums">{formatMoneyFull(Math.round(it.amount))}</span>
+                </div>
+                {it.wallet && <div className="text-[10px] text-muted-foreground">{it.wallet}</div>}
+              </div>
+            ))}
+            {!cellItems.length && (
+              <div className="px-2 py-4 text-center text-xs text-muted-foreground">No entries</div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </PageShell>
+  );
+};
+
+export default ExpensesMatrixPage;
