@@ -602,6 +602,7 @@ const DailyBalanceReport = () => {
         </SheetContent>
       </Sheet>
     </PageShell>
+    </TooltipProvider>
   );
 };
 
