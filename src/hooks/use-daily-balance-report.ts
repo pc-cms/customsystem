@@ -300,7 +300,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         fetchPaged<any>((a, b) =>
           sb.from("fin_month_start")
             .select("*")
-            .eq("casino_id", casino).eq("month_start", from).range(a, b)),
+            .eq("casino_id", casino).eq("month", from).range(a, b)),
       ]);
 
 
@@ -849,10 +849,11 @@ export const useDailyBalanceReport = (from: string, to: string) => {
               manager: num(l.office_cash),
               bankTzs: num(l.bank_account), bankUsd: 0,
               expenses: num(l.expenses) + num(l.bank_expenses),
-              inV: num(l.office_in), outV: num(l.collection_bank),
+              inV: num(l.office_in), outV: num(l.office_out) + num(l.collection_bank),
               result: num(l.casino_result),
               live: num(l.cash_desk_result), slotsDiff: 0,
               chipDiff: num(l.chip_difference),
+              tips: num(l.tips_tables) + num(l.tips_slots),
 
             }),
             fees: feesByDate[date] ?? 0,
@@ -909,12 +910,13 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             manager: lastOffice,
             bankTzs: lastBankTzs, bankUsd: lastBankUsd,
             expenses: expensesV,
-            inV: ownerIn[date] ?? 0,
-            outV: collections[date] ?? 0,
+            inV: officeIn[date] ?? 0,
+            outV: officeOut[date] ?? 0,
             result: tables + slotsNet + barV,
             live: liveCashDesk[date] ?? 0,
             slotsDiff: cardBal[date] ?? 0,
             chipDiff: chipMiss[date] ?? 0,
+            tips: (tipsTables[date] ?? 0) + (tipsSlots[date] ?? 0),
 
           }),
           fees: feesByDate[date] ?? 0,
