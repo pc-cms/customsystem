@@ -8,7 +8,7 @@
  * Column model: every section shows ONE headline "total" column when collapsed;
  * clicking the group header reveals its component columns.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Wallet2, ChevronLeft, ChevronRight, Info } from "lucide-react";
 
