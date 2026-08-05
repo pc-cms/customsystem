@@ -70,6 +70,7 @@ const ExpensesMatrixPage = () => {
       ),
       sortValue: (r) => r.label,
       cellClassName: () => "py-1",
+      headerClassName: "whitespace-nowrap border-b-2 border-border font-bold text-foreground bg-muted",
     },
     ...days.map<ColumnDef<ExpenseCategoryRow>>((d) => ({
       key: d,
@@ -91,7 +92,7 @@ const ExpensesMatrixPage = () => {
         );
       },
       sortValue: (r) => r.byDay[d] || 0,
-      headerClassName: "whitespace-nowrap border-l border-border font-normal text-muted-foreground",
+      headerClassName: "whitespace-nowrap border-l border-border border-b-2 border-border font-bold text-foreground bg-muted",
       cellClassName: (r: ExpenseCategoryRow) =>
         cn("py-1 border-l border-border font-mono tabular-nums", heatClass(r.byDay[d] || 0)),
     })),
@@ -112,7 +113,7 @@ const ExpensesMatrixPage = () => {
         </span>
       ),
       sortValue: (r) => r.total,
-      headerClassName: "whitespace-nowrap border-l-2 border-border font-semibold",
+      headerClassName: "whitespace-nowrap border-l-2 border-border border-b-2 border-border font-bold text-foreground bg-muted",
       cellClassName: () => "py-1 border-l-2 border-border font-mono font-semibold tabular-nums",
     },
   ];
@@ -123,11 +124,11 @@ const ExpensesMatrixPage = () => {
     ? [
         {
           key: "total",
-          className: "font-semibold",
+          className: "font-bold border-t-2 border-border bg-muted",
           cell: (col: ColumnDef<ExpenseCategoryRow>) => {
             if (col.key === "label")
               return (
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-foreground">
                   Total
                 </span>
               );
@@ -136,7 +137,7 @@ const ExpensesMatrixPage = () => {
                 ? grandTotal
                 : rows.reduce((s, r) => s + (r.byDay[col.key as string] || 0), 0);
             return (
-              <span className="font-mono tabular-nums">{v ? formatMoneyFull(Math.round(v)) : "·"}</span>
+              <span className="font-mono font-bold tabular-nums">{v ? formatMoneyFull(Math.round(v)) : "·"}</span>
             );
           },
         },
