@@ -646,14 +646,15 @@ const DailyBalanceReport = () => {
         },
         {
           key: "avg",
-          className: "text-muted-foreground",
+          className: "bg-muted/70 text-muted-foreground",
           cell: (col: ColumnDef<Row>) => {
             if (col.key === "date")
-              return <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Average / day</span>;
+              return <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg / day</span>;
             const c = ALL_COLS.find((x) => x.id === col.key);
             const v = c ? Math.round(c.value(grandRow) / (daysWithData || 1)) : 0;
-            return <span className="font-mono tabular-nums">{formatMoneyFull(v)}</span>;
+            return <span className="whitespace-nowrap font-mono text-[11px] tabular-nums">{formatMoneyFull(v)}</span>;
           },
+
         },
       ]
     : undefined;
