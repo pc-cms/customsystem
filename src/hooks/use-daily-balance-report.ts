@@ -291,7 +291,18 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             .select("business_date, amount, currency, fx_rate, source, reversed_by_id")
             .eq("casino_id", casino).eq("source", "fee")
             .gte("business_date", from).lte("business_date", to).range(a, b)),
+        // Recorded closing snapshots (money frozen at day close).
+        fetchPaged<any>((a, b) =>
+          sb.from("fin_day_balance_snapshot")
+            .select("business_date, data")
+            .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
+        // "Start" row — carried over from the previous month.
+        fetchPaged<any>((a, b) =>
+          sb.from("fin_month_start")
+            .select("*")
+            .eq("casino_id", casino).eq("month_start", from).range(a, b)),
       ]);
+
 
       const closedDays = new Set<string>(
         (dayClosures as any[]).map((c) => String(c.business_date).slice(0, 10)),
