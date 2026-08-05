@@ -92,6 +92,11 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
     source: "expenses (approved), posted on day closing",
     total: "sum",
   },
+  office_total: {
+    formula: "Office net = (+) money in − (−) money out",
+    source: "fin_wallet_tx (external_income, collection)",
+    total: "sum",
+  },
   money_in: {
     formula: "Owner deposits into the business",
     source: "fin_wallet_tx (kind = external_income, positive)",

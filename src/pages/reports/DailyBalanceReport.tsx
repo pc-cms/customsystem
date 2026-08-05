@@ -30,7 +30,7 @@ import {
   useDailyBalanceReport, useSetCreditDeposit, useSetBankBalance, type DailyBalanceRow,
 } from "@/hooks/use-daily-balance-report";
 
-type SectionKey = "incomes" | "diff" | "expenses" | "transfers" | "money" | "balances";
+type SectionKey = "incomes" | "diff" | "expenses" | "office" | "transfers" | "money" | "balances";
 
 const num = (r: DailyBalanceRow, k: keyof DailyBalanceRow) => Number(r[k] || 0);
 
@@ -92,15 +92,22 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     key: "money",
     label: "Bank",
     cols: [
-      { id: "bank_tzs", label: "Bank TZS", value: (r) => num(r, "bank_tzs") },
-      { id: "bank_usd", label: "Bank USD", value: (r) => num(r, "bank_usd") },
+      { id: "bank_tzs", label: "Bank TZS", total: true, value: (r) => num(r, "bank_tzs") },
+      { id: "bank_usd", label: "Bank USD", total: true, value: (r) => num(r, "bank_usd") },
     ],
   },
   {
     key: "expenses",
-    label: "Office",
+    label: "Expenses",
     cols: [
       { id: "expenses", label: "Expenses", total: true, value: (r) => num(r, "expenses") },
+    ],
+  },
+  {
+    key: "office",
+    label: "Office",
+    cols: [
+      { id: "office_total", label: "Office", total: true, value: (r) => num(r, "money_in") - num(r, "money_out") },
       { id: "money_in", label: "+", value: (r) => num(r, "money_in") },
       { id: "money_out", label: "−", value: (r) => num(r, "money_out") },
     ],
@@ -114,6 +121,14 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     ],
   },
 ];
+
+/** Section → the headline column that carries the expand arrow (first total col). */
+const SECTION_ANCHOR: Record<string, string> = Object.fromEntries(
+  SECTIONS.filter((s) => s.cols.some((c) => !c.total)).map((s) => [
+    s.key,
+    (s.cols.find((c) => c.total) ?? s.cols[0]).id,
+  ]),
+);
 
 
 /** Non-headline columns are "details" — hidden until their section is expanded. */
@@ -377,27 +392,9 @@ const DailyBalanceReport = () => {
       <span className={n < 0 ? "cms-amount-negative" : undefined}>{formatMoneyFull(n)}</span>
     );
 
-  /** Two-level header groups: leading Date column + one entry per visible section. */
-  const groupHeader = useMemo(() => {
-    const groups: {
-      key: string; label?: string; span: number; expandable?: boolean;
-      expanded?: boolean; hiddenCount?: number; onToggle?: () => void; sticky?: number;
-    }[] = [{ key: "date", label: "Day", span: 1, sticky: 0 }];
-    for (const s of SECTIONS) {
-      const span = visibleMoneyCols.filter((c) => c.section === s.key).length;
-      if (!span) continue;
-      groups.push({
-        key: s.key,
-        label: s.label,
-        span,
-        expandable: true,
-        expanded: expanded.has(s.key),
-        hiddenCount: s.cols.filter((c) => !c.total).length,
-        onToggle: () => toggleExpand(s.key),
-      });
-    }
-    return groups;
-  }, [visibleMoneyCols, expanded]);
+  /** Column hover highlight — the whole column plus its header light up. */
+  const [hoverCol, setHoverCol] = useState<string | null>(null);
+
 
   const columns: ColumnDef<Row>[] = [
     {
@@ -423,10 +420,29 @@ const DailyBalanceReport = () => {
     ...visibleMoneyCols.map<ColumnDef<Row>>((c, i) => {
       const first = i === 0 || visibleMoneyCols[i - 1].section !== c.section;
       const tip = formulaText(c.id);
+      const isAnchor = SECTION_ANCHOR[c.section] === c.id;
+      const isOpen = expanded.has(c.section);
+      const hot = hoverCol === c.id;
       return {
         key: c.id,
         header: (
-          <span className="inline-flex items-center gap-1">
+          <span
+            className="inline-flex items-center gap-1"
+            onMouseEnter={() => setHoverCol(c.id)}
+            onMouseLeave={() => setHoverCol(null)}
+          >
+            {isAnchor && (
+              <button
+                type="button"
+                aria-label={isOpen ? `Collapse ${c.label}` : `Expand ${c.label}`}
+                className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                onClick={(e) => { e.stopPropagation(); toggleExpand(c.section); }}
+              >
+                {isOpen
+                  ? <ChevronLeft className="h-3.5 w-3.5" />
+                  : <ChevronRight className="h-3.5 w-3.5" />}
+              </button>
+            )}
             {c.label}
             {tip && (
               <Tooltip>
@@ -443,34 +459,43 @@ const DailyBalanceReport = () => {
         type: "money" as const,
         style: i === 0 ? { width: 132, minWidth: 132 } : undefined,
         accessor: (r) => {
+          const wrap = (node: React.ReactNode) => (
+            <span
+              className="block w-full"
+              onMouseEnter={() => setHoverCol(c.id)}
+              onMouseLeave={() => setHoverCol(null)}
+            >
+              {node}
+            </span>
+          );
           // Business day still open → no figures in any column.
-          if (!r.day_closed) return <span className="text-muted-foreground">·</span>;
+          if (!r.day_closed) return wrap(<span className="text-muted-foreground">·</span>);
           if (r.kind === "day" && c.id === "credit_deposit")
-            return <CreditCell date={r.date} value={num(r, "credit_deposit")} />;
+            return wrap(<CreditCell date={r.date} value={num(r, "credit_deposit")} />);
           if (r.kind === "day" && c.id === "bank_tzs")
-            return <BankCell date={r.date} field="bank_account" value={num(r, "bank_tzs")} manual={!!r.bank_tzs_manual} />;
+            return wrap(<BankCell date={r.date} field="bank_account" value={num(r, "bank_tzs")} manual={!!r.bank_tzs_manual} />);
           if (r.kind === "day" && c.id === "bank_usd")
-            return <BankCell date={r.date} field="bank_account_usd" value={num(r, "bank_usd_raw")} manual={!!r.bank_usd_manual} />;
+            return wrap(<BankCell date={r.date} field="bank_account_usd" value={num(r, "bank_usd_raw")} manual={!!r.bank_usd_manual} />);
           const rendered = money(Math.round(c.value(r)));
           if (c.id === "expenses")
-            return (
+            return wrap(
               <span
                 className="cursor-pointer underline-offset-2 hover:underline"
                 onClick={(e) => { e.stopPropagation(); navigate("/reports/expenses-matrix"); }}
               >
                 {rendered}
-              </span>
+              </span>,
             );
           if (DRILL_IDS.has(c.id))
-            return (
+            return wrap(
               <span
                 className="cursor-pointer underline-offset-2 hover:underline"
                 onClick={(e) => { e.stopPropagation(); setDrill({ row: r, col: c.id }); }}
               >
                 {rendered}
-              </span>
+              </span>,
             );
-          return rendered;
+          return wrap(rendered);
         },
 
         sortValue: (r) => c.value(r),
@@ -478,6 +503,7 @@ const DailyBalanceReport = () => {
           "whitespace-nowrap",
           first && "border-l border-border",
           c.total ? "font-semibold text-foreground" : "font-normal text-muted-foreground",
+          hot && "text-primary",
         ),
         cellClassName: (r: Row) =>
           cn(
@@ -485,6 +511,7 @@ const DailyBalanceReport = () => {
             first && "border-l border-border",
             c.total ? "font-semibold" : "text-muted-foreground",
             rowBg(r) ?? (r.day_closed ? heatClass(c, Math.round(c.value(r))) : undefined),
+            hot && "ring-1 ring-inset ring-primary/40",
           ),
       };
     }),
@@ -604,7 +631,7 @@ const DailyBalanceReport = () => {
             loading={isLoading}
             stickyColumns={[0, 132]}
             stickyHeader
-            groupHeader={groupHeader}
+            
             footerRows={footerRows}
             onRowClick={(r) => r.kind === "day" && setDetail(r)}
             bare
