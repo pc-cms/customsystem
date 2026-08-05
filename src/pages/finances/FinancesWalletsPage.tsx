@@ -594,7 +594,10 @@ export default function FinancesWalletsPage() {
             <div className="border-t-2 border-border">
               <BreakdownRow label="= Expected" v={totals.expected} bold signed />
             </div>
-
+            <div className="border-t border-border">
+              <BreakdownRow label="Actual (Σ wallets · last recorded state)" v={totals.actual} bold signed />
+              <BreakdownRow label="= Variance (Actual − Expected)" v={totals.variance} bold signed />
+            </div>
           </div>
           <div className="text-[10px] text-muted-foreground mt-1">
             USD→TZS rate {formatNumberSpaces(usdRate)} · Period {range.from} → {range.to}
@@ -788,6 +791,12 @@ export default function FinancesWalletsPage() {
                       <td className="text-right font-mono tabular-nums">
                         {formatNumberSpaces(led.native)}{" "}
                         <span className="text-[10px] text-muted-foreground">{w.currency}</span>
+                        {led.asof && (
+                          <div className="text-[10px] text-muted-foreground font-sans">
+                            {led.source === "manual" ? "counted" : "after movement"}{" "}
+                            {fmtDateOnly(led.asof)}
+                          </div>
+                        )}
                       </td>
                       <td className="text-right font-mono tabular-nums">
                         {formatNumberSpaces(led.tzs)}
