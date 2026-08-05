@@ -4,6 +4,7 @@
  * FM/super_admin reviews → Apply writes fin_budget rows for selected year
  * (annual planned spread evenly across 12 months).
  */
+import { invalidateFinance } from "@/lib/fin-invalidate";
 import { useState, useMemo } from "react";
 import { Upload, Loader2, CheckCircle2, AlertCircle, FileSpreadsheet } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -166,7 +167,7 @@ export default function FinancesExcelImportPage() {
     },
     onSuccess: (n) => {
       toast.success(`Wrote ${n} budget rows · aliases saved`);
-      qc.invalidateQueries({ queryKey: ["fin-budget"] });
+      invalidateFinance(qc);
       setSheets([]);
       setFile(null);
     },

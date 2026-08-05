@@ -2,6 +2,7 @@
  * Finance module hooks — all CRUD against fin_* tables.
  * Strictly per-casino isolated; categories are global.
  */
+import { invalidateFinance } from "@/lib/fin-invalidate";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,7 +34,7 @@ export const useUpsertFinCategory = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-categories"] });
+      invalidateFinance(qc);
       toast.success("Category saved");
     },
     onError: (e: any) => toast.error(e.message),
@@ -52,8 +53,7 @@ export const useRenameFinCategory = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-categories"] });
-      qc.invalidateQueries({ queryKey: ["fin-monthly-report"] });
+      invalidateFinance(qc);
       toast.success("Category renamed");
     },
     onError: (e: any) => toast.error(e.message),
@@ -72,8 +72,7 @@ export const useArchiveFinCategory = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-categories"] });
-      qc.invalidateQueries({ queryKey: ["fin-monthly-report"] });
+      invalidateFinance(qc);
       toast.success("Category archived");
     },
     onError: (e: any) => toast.error(e.message),
@@ -103,8 +102,7 @@ export const useCreateFinCategory = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-categories"] });
-      qc.invalidateQueries({ queryKey: ["fin-monthly-report"] });
+      invalidateFinance(qc);
       toast.success("Category added");
     },
     onError: (e: any) => toast.error(e.message),
@@ -123,8 +121,7 @@ export const useRenameFinGroup = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-categories"] });
-      qc.invalidateQueries({ queryKey: ["fin-monthly-report"] });
+      invalidateFinance(qc);
       toast.success("Section renamed");
     },
     onError: (e: any) => toast.error(e.message),
@@ -159,8 +156,7 @@ export const useUpsertFinBudgetCell = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-monthly-report"] });
-      qc.invalidateQueries({ queryKey: ["fin-budget"] });
+      invalidateFinance(qc);
       toast.success("Plan updated");
     },
     onError: (e: any) => toast.error(e.message),
@@ -209,9 +205,7 @@ export const useUpsertFinWallet = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-wallets"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-balances"] });
-      qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
+      invalidateFinance(qc);
       toast.success("Wallet saved");
     },
     onError: (e: any) => toast.error(e.message),
@@ -272,8 +266,7 @@ export const useReverseWalletTx = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-balances"] });
+      invalidateFinance(qc);
       toast.success("Reversed");
     },
     onError: (e: any) => toast.error(e.message),
@@ -370,9 +363,7 @@ export const useCreateFinExpense = () => {
       if (e2) throw e2;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-expenses"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-balances"] });
+      invalidateFinance(qc);
       toast.success("Expense recorded");
     },
     onError: (e: any) => toast.error(e.message),
@@ -401,9 +392,7 @@ export const useVoidFinExpense = () => {
         .eq("id", id);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-expenses"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-balances"] });
+      invalidateFinance(qc);
       toast.success("Voided");
     },
     onError: (e: any) => toast.error(e.message),
@@ -465,8 +454,7 @@ export const useUpsertDayClosing = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-day-closing"] });
-      qc.invalidateQueries({ queryKey: ["fin-day-closing-list"] });
+      invalidateFinance(qc);
       toast.success("Saved");
     },
     onError: (e: any) => toast.error(e.message),
@@ -484,10 +472,7 @@ export const useLockDayClosing = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-day-closing"] });
-      qc.invalidateQueries({ queryKey: ["fin-day-closing-list"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-balances"] });
+      invalidateFinance(qc);
       toast.success("Locked");
     },
     onError: (e: any) => toast.error(e.message),
@@ -669,9 +654,7 @@ export const useCreateMoneyChange = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-money-change"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-balances"] });
+      invalidateFinance(qc);
       toast.success("Money change recorded");
     },
     onError: (e: any) => toast.error(e.message),
@@ -713,7 +696,7 @@ export const useUpsertFinBudget = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-budget"] });
+      invalidateFinance(qc);
       toast.success("Budget saved");
     },
     onError: (e: any) => toast.error(e.message),
@@ -736,7 +719,7 @@ export const useSetAnnualBudget = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-budget"] });
+      invalidateFinance(qc);
       toast.success("Annual override applied");
     },
     onError: (e: any) => toast.error(e.message),

@@ -8,6 +8,7 @@
  * Column model: every section shows ONE headline "total" column when collapsed;
  * clicking the group header reveals its component columns.
  */
+import { invalidateFinance } from "@/lib/fin-invalidate";
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -751,7 +752,7 @@ const DailyBalanceReport = () => {
           hint={`Opening ${monthLabel} · manual`}
           onChange={(v) => {
             setStartBalance(v);
-            qc.invalidateQueries({ queryKey: ["daily-balance-report"] });
+            invalidateFinance(qc);
           }}
         />
         <Tile label="Casino Result" value={num(grandRow, "casino_result")} hint="Live Game + Slots + Bar" />

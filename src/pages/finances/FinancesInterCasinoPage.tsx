@@ -1,3 +1,4 @@
+import { invalidateFinance } from "@/lib/fin-invalidate";
 import { useMemo, useState } from "react";
 import { Building2, Plus, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -69,8 +70,7 @@ export default function FinancesInterCasinoPage() {
     toast.success("Inter-casino entry recorded");
     setOpen(false);
     setForm({ ...form, amount: 0, note: "" });
-    qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
-    qc.invalidateQueries({ queryKey: ["fin-wallet-balances"] });
+    invalidateFinance(qc);
   };
 
   return (

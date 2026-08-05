@@ -7,6 +7,7 @@
  * 04/08, which rolled over at 07:00 EAT. The snapshot may be re-recorded any
  * time during the current business day (upsert on casino + date).
  */
+import { invalidateFinance } from "@/lib/fin-invalidate";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -115,8 +116,7 @@ export const useRecordDayBalance = () => {
     },
     onSuccess: (date) => {
       toast.success(`Balance recorded for ${date}`);
-      qc.invalidateQueries({ queryKey: ["fin-day-balance-snapshot"] });
-      qc.invalidateQueries({ queryKey: ["daily-balance-report"] });
+      invalidateFinance(qc);
     },
     onError: (e: any) => toast.error(e.message),
   });
