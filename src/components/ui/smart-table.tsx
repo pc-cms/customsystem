@@ -269,6 +269,7 @@ export function SmartTable<T>({
   rowClassName,
   onRowClick,
   stickyFirstColumn,
+  scroll,
   stickyColumns,
   stickyHeader,
   groupHeader,
@@ -447,6 +448,7 @@ export function SmartTable<T>({
       <DataTable
         className={className}
         bare={bare}
+        scroll={scroll}
         stickyFirstColumn={stickyFirstColumn}
       >
         {headerRow}
@@ -466,7 +468,7 @@ export function SmartTable<T>({
 
   if (loading) {
     return (
-      <DataTable className={className} bare={bare} stickyFirstColumn={stickyFirstColumn}>
+      <DataTable className={className} bare={bare} scroll={scroll} stickyFirstColumn={stickyFirstColumn}>
         {headerRow}
         <DTBody>
           {Array.from({ length: loadingRows }).map((_, i) => (
@@ -515,7 +517,7 @@ export function SmartTable<T>({
   }
 
   return (
-    <DataTable className={className} bare={bare} stickyFirstColumn={stickyFirstColumn}>
+    <DataTable className={className} bare={bare} scroll={scroll} stickyFirstColumn={stickyFirstColumn}>
       {headerRow}
       <PlainBody
         rows={sortedData}
