@@ -48,7 +48,7 @@ type Col = {
 const BASE_KEYS: (keyof DailyBalanceRow)[] = [
   "casino_result", "tables_result", "slots_result", "live_cash_result", "slots_diff",
   "bar_result", "chip_difference", "diff_total", "transfer_cage_manager", "transfer_bank",
-  "expenses", "bank_expenses", "money_in", "money_out",
+  "expenses", "bank_expenses", "money_in", "money_out", "fin_result",
   "day_total", "cash_desk_result", "day_balance", "collection_bank",
 ];
 
