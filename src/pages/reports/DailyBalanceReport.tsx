@@ -583,33 +583,42 @@ const DailyBalanceReport = () => {
         </span>
       </PageHeader>
 
-      {/* KPI tiles: Finance Result · Casino Result · Money · Diff · Expenses · Balance */}
-      <div className="mb-2 flex items-center justify-end gap-2">
-        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(-1)} aria-label="Previous month">
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <span className="min-w-[130px] text-center text-sm font-semibold tracking-wide">{monthLabel}</span>
-        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(1)} aria-label="Next month">
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-
-      <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
+      {/* KPI tiles: two-row layout */}
+      {/* Row 1: Finance Result · Month picker · Office */}
+      <div className="mb-2 grid grid-cols-3 gap-2">
         <Tile
-          label="Total Finance Result"
+          label="Finance Result"
           value={num(grandRow, "fin_result")}
           hint="Casino result − expenses + office net"
         />
-        <Tile label="Total Casino Result" value={num(grandRow, "casino_result")} hint="Live Game + Slots + Bar" />
+        <div className="flex items-center justify-center gap-2 rounded-md border border-border bg-card px-3 py-2">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(-1)} aria-label="Previous month">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="min-w-[130px] text-center text-sm font-semibold tracking-wide">{monthLabel}</span>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(1)} aria-label="Next month">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
         <Tile
-          label="Total Money"
+          label="Office"
+          value={num(grandRow, "money_in") - num(grandRow, "money_out")}
+          hint="IN − OUT"
+        />
+      </div>
+
+      {/* Row 2: Casino Result · Money · Diff · Expenses · Balance */}
+      <div className="mb-3 grid grid-cols-5 gap-2">
+        <Tile label="Casino Result" value={num(grandRow, "casino_result")} hint="Live Game + Slots + Bar" />
+        <Tile
+          label="Money"
           value={Number(lastClosedRow?.money_total || 0)}
           hint={lastClosedDate ? fmtDate(lastClosedDate) : undefined}
         />
-        <Tile label="Total Diff" value={num(grandRow, "diff_total")} hint="Chip Diff + Slots Diff" />
-        <Tile label="Total Expenses" value={-num(grandRow, "expenses")} />
+        <Tile label="Diff" value={num(grandRow, "diff_total")} hint="Chip Diff + Slots Diff" />
+        <Tile label="Expenses" value={-num(grandRow, "expenses")} />
         <Tile
-          label="Monthly Balance"
+          label="Balance"
           value={Number(lastClosedRow?.balance || 0)}
           hint={lastClosedDate ? fmtDate(lastClosedDate) : undefined}
         />
