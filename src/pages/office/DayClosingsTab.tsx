@@ -124,11 +124,30 @@ export default function DayClosingsTab() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [jpOpen, setJpOpen] = useState(false);
   const dates = useMemo(() => buildMonthDates(year, month), [year, month]);
   const { data: list = [] } = useDayClosingList();
   const { data: aggMap } = useMonthAggregates(year, month);
   const { isManager } = useAuth() as any;
+
+  // JP is booked as an "other income" (source = jp) on the business date.
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const monthFrom = `${year}-${pad(month)}-01`;
+  const monthTo = `${year}-${pad(month)}-${pad(new Date(year, month, 0).getDate())}`;
+  const { data: incomes = [] } = useOtherIncomes(monthFrom, monthTo);
+  const { data: wallets = [] } = useFinWallets();
+  // Default JP wallet: main TZS cash wallet.
+  const jpWalletId = useMemo(() => {
+    const w = (wallets as any[]).filter((x) => (x.currency || "TZS") === "TZS");
+    return (w.find((x) => x.kind === "cash") || w[0])?.id || "";
+  }, [wallets]);
+
+  const jpByDate = useMemo(() => {
+    const m = new Map<string, number>();
+    (incomes as any[])
+      .filter((r) => r.source === "jp")
+      .forEach((r) => m.set(r.business_date, (m.get(r.business_date) || 0) + Number(r.amount || 0)));
+    return m;
+  }, [incomes]);
 
   const byDate = useMemo(() => {
     const m = new Map<string, any>();
@@ -137,7 +156,7 @@ export default function DayClosingsTab() {
   }, [list]);
 
   const totals = useMemo(() => {
-    const t = { tables: 0, slots: 0, missChips: 0, missCards: 0, cards: 0 };
+    const t = { tables: 0, slots: 0, missChips: 0, missCards: 0, cards: 0, jp: 0 };
     // dates are descending → the first non-zero card balance is the latest one.
     let cardsFound = false;
     dates.forEach((d) => {
@@ -147,11 +166,13 @@ export default function DayClosingsTab() {
       t.slots += Number(existing?.slots_result ?? agg?.slots ?? 0);
       t.missChips += Number(agg?.missChips ?? 0);
       t.missCards += Number(agg?.missCards ?? 0);
+      t.jp += Number(jpByDate.get(d) || 0);
       const cb = Math.abs(Number(existing?.players_card_balance ?? 0));
       if (!cardsFound && cb > 0) { t.cards = cb; cardsFound = true; }
     });
     return t;
-  }, [dates, byDate, aggMap]);
+  }, [dates, byDate, aggMap, jpByDate]);
+
 
 
   const shiftMonth = (delta: number) => {
