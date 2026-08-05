@@ -62,8 +62,13 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
     source: "shifts closing cash & cashless providers, cage_slots_shifts",
     total: "stock",
   },
+  bank_total: {
+    formula: "Bank TZS + Bank USD (converted at the daily rate)",
+    source: "fin_legacy_balance / bank wallets",
+    total: "stock",
+  },
   transfer_cage_manager: {
-    formula: "Transfers cage → manager safe (incoming leg matched to a cage outgoing leg)",
+    formula: "Internal transfer cage → manager safe (incoming leg matched to a cage outgoing leg)",
     source: "fin_wallet_tx (kind = transfer)",
     total: "sum",
   },
