@@ -266,6 +266,7 @@ export function SmartTable<T>({
   stickyFirstColumn,
   stickyColumns,
   stickyHeader,
+  groupHeader,
   footerRows,
   virtualize = true,
   rowHeight = 40,
