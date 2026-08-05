@@ -536,6 +536,8 @@ export const useDailyBalanceReport = (from: string, to: string) => {
       // ---- build rows ---------------------------------------------------
       let lastRate = 0, lastCage = 0, lastOffice = 0, lastBank = 0, lastChips = 0;
       let lastBankTzs = 0, lastBankUsd = 0, prevMoney = 0;
+      let lastOfficeWallets: WalletBalance[] = [];
+
       return enumerateDates(from, to).map((date) => {
         const rate = rateByDate[date] || lastRate || FALLBACK_USD_RATE;
         lastRate = rate;
