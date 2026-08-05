@@ -190,8 +190,14 @@ const DailyBalanceReport = () => {
     for (const k of BASE_KEYS) {
       (acc as unknown as Record<string, number>)[k as string] = rows.reduce((s, r) => s + num(r, k), 0);
     }
+    // Snapshot (stock) columns take the last day of the period, never a sum.
+    const last = rows.length ? rows[rows.length - 1] : null;
+    for (const k of SNAPSHOT_KEYS) {
+      (acc as unknown as Record<string, number>)[k as string] = last ? num(last, k) : 0;
+    }
     return acc;
   }, [rows]);
+
 
   const daysWithData = useMemo(() => rows.filter((r) => r.hasSystemData || r.legacy).length, [rows]);
 
