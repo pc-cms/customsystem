@@ -47,8 +47,9 @@ type Col = {
 /** Numeric FLOW fields — summed across the month. */
 const BASE_KEYS: (keyof DailyBalanceRow)[] = [
   "casino_result", "tables_result", "slots_result", "live_cash_result", "slots_diff",
-  "bar_result", "chip_difference", "diff_total", "transfer_cage_manager", "transfer_bank",
-  "expenses", "bank_expenses", "money_in", "money_out", "fin_result",
+  "bar_result", "tips_tables", "tips_slots", "chip_difference", "diff_total",
+  "transfer_cage_manager", "transfer_bank",
+  "expenses", "fees", "bank_expenses", "money_in", "money_out", "fin_result",
   "day_total", "cash_desk_result", "day_balance", "collection_bank",
 ];
 
