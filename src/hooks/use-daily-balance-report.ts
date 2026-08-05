@@ -628,14 +628,20 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         const slotsNet = (slotsRes[date] ?? 0) - (cardBal[date] ?? 0);
         const barV = bar[date] ?? 0;
 
-        // No carry-forward: every row shows ONLY its own day's figures.
-        lastCage = cageRunning[date] ?? 0;
-        lastOffice = officeRunning[date] ?? 0;
-        lastOfficeWallets = officeWalletsByDate[date] ?? [];
-        lastBank = bankRunning[date] ?? 0;
-        lastBankTzs = bankTzsRunning[date] ?? 0;
-        lastBankUsd = bankUsdRunning[date] ?? 0;
-        lastChips = chipFloat[date] ?? 0;
+        /**
+         * STOCKS (safe / bank balances) are the state AT THAT MOMENT: the wallet
+         * balance as of the end of that day. On a day with no movement the
+         * balance simply stays the same — that is a snapshot, not an accumulation.
+         * FLOWS (in / out / expenses / results) are strictly per-day and never
+         * carried over.
+         */
+        lastCage = cageRunning[date] ?? lastCage;
+        lastOffice = officeRunning[date] ?? lastOffice;
+        lastOfficeWallets = officeWalletsByDate[date] ?? lastOfficeWallets;
+        lastBank = bankRunning[date] ?? lastBank;
+        lastBankTzs = bankTzsRunning[date] ?? lastBankTzs;
+        lastBankUsd = bankUsdRunning[date] ?? lastBankUsd;
+        lastChips = chipFloat[date] ?? lastChips;
 
         const hasSystemData =
           tablesRes[date] != null || slotsRes[date] != null || cashDesk[date] != null ||
