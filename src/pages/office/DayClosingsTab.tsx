@@ -266,20 +266,29 @@ function DayRow({
   existing,
   managerOverride,
   agg,
+  jpPosted,
+  jpWalletId,
 }: {
   date: string;
   existing: any;
   managerOverride: boolean;
   agg: DayAgg;
+  jpPosted: number;
+  jpWalletId: string;
 }) {
   const tablesAuto = agg.tables;
   const slotsAuto = agg.slots;
   const upsert = useUpsertDayClosing();
   const lock = useLockDayClosing();
+  const addIncome = useAddOtherIncome();
 
   const locked = !!existing?.locked_at;
   const [unlocked, setUnlocked] = useState(false);
   const editable = !locked || (managerOverride && unlocked);
+
+  const [jp, setJp] = useState(jpPosted ? formatNumberSpaces(jpPosted) : "");
+  useEffect(() => { setJp(jpPosted ? formatNumberSpaces(jpPosted) : ""); }, [jpPosted]);
+  const jpNum = jp === "" ? 0 : parseAmountInput(jp);
 
   const [state, setState] = useState<RowState>(() => ({
     tables: existing?.tables_result != null ? formatNumberSpaces(existing.tables_result) : "",
@@ -296,6 +305,7 @@ function DayRow({
       comment: existing?.notes ?? "",
     });
   }, [existing?.id, existing?.tables_result, existing?.slots_result, existing?.players_card_balance, existing?.notes]);
+
 
   const tablesNum = state.tables === "" ? tablesAuto : parseAmountInput(state.tables);
   const slotsNum = state.slots === "" ? slotsAuto : parseAmountInput(state.slots);
