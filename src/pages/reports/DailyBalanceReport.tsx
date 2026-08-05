@@ -47,7 +47,7 @@ type Col = {
 /** Numeric FLOW fields — summed across the month. */
 const BASE_KEYS: (keyof DailyBalanceRow)[] = [
   "casino_result", "tables_result", "slots_result", "live_cash_result", "slots_diff",
-  "chip_difference", "diff_total", "transfer_cage_manager", "transfer_bank",
+  "bar_result", "chip_difference", "diff_total", "transfer_cage_manager", "transfer_bank",
   "expenses", "bank_expenses", "money_in", "money_out",
   "day_total", "cash_desk_result", "day_balance", "collection_bank",
 ];
@@ -64,8 +64,9 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     label: "Casino result",
     cols: [
       { id: "result", label: "Result", total: true, value: (r) => num(r, "casino_result") },
-      { id: "live_cash_result", label: "Live", value: (r) => num(r, "live_cash_result") },
       { id: "tables_result", label: "Table", value: (r) => num(r, "tables_result") },
+      { id: "slots_result", label: "Slots", value: (r) => num(r, "slots_result") },
+      { id: "bar_result", label: "Bar", value: (r) => num(r, "bar_result") },
     ],
   },
   {
@@ -115,8 +116,9 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
 ];
 
 
+/** Non-headline columns are "details" — hidden until their section is expanded. */
 const ALL_COLS: (Col & { section: SectionKey })[] = SECTIONS.flatMap((s) =>
-  s.cols.map((c) => ({ ...c, section: s.key })),
+  s.cols.map((c) => ({ ...c, detail: !c.total, section: s.key })),
 );
 
 
@@ -310,8 +312,11 @@ const DailyBalanceReport = () => {
   }, [rows]);
   const lastClosedDate = lastClosedRow?.date ?? null;
 
-  /** All columns are always visible — the grid is a fixed audit layout. */
-  const visibleMoneyCols = ALL_COLS;
+  /** Collapsed sections show only their headline column(s). */
+  const visibleMoneyCols = useMemo(
+    () => ALL_COLS.filter((c) => !c.detail || expanded.has(c.section)),
+    [expanded],
+  );
 
   /** Max abs value per heat column — drives the fill intensity. */
   const heatMax = useMemo(() => {
@@ -387,7 +392,7 @@ const DailyBalanceReport = () => {
         span,
         expandable: true,
         expanded: expanded.has(s.key),
-        hiddenCount: s.cols.filter((c) => c.detail).length,
+        hiddenCount: s.cols.filter((c) => !c.total).length,
         onToggle: () => toggleExpand(s.key),
       });
     }

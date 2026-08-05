@@ -30,6 +30,17 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
     source: "table_daily_results / shift table results",
     total: "sum",
   },
+  slots_result: {
+    formula: "Slots result of the day, net of players card balance",
+    source: "fin_day_closing.slots_result − players_card_balance",
+    total: "sum",
+  },
+  bar_result: {
+    formula: "Bar / POS turnover of the day (void orders excluded)",
+    source: "pos_orders.total_tzs",
+    total: "sum",
+  },
+
   diff_total: {
     formula: "Chip Diff + Slots Diff",
     source: "Chip checks + fin_day_closing.players_card_balance",
