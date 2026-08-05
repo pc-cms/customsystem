@@ -564,7 +564,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           cage: number; cashPart: number; cashlessPart: number; carried: boolean;
           manager: number; bankTzs: number; bankUsd: number;
           expenses: number; inV: number; outV: number; result: number;
-          live: number; slotsDiff: number;
+          live: number; slotsDiff: number; chipDiff: number;
         }) => {
           // Manual bank overrides (inline editor) win over computed balances.
           const manualTzs = l?.bank_account != null ? num(l.bank_account) : null;
@@ -577,6 +577,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           return {
             live_cash_result: o.live,
             slots_diff: o.slotsDiff,
+            diff_total: o.chipDiff + o.slotsDiff,
             cage_casino: o.cage,
             cage_cash_part: o.cashPart,
             cage_cashless_part: o.cashlessPart,
@@ -595,7 +596,14 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             // Balance is a VARIANCE (actual money − expected money): → 0.
             balance: moneyTotal - check,
             balance_check: check,
+            chips_detail: chipsDetail[date] ?? [],
+            cage_detail: cageDetail[date] ?? { cash: [], cashless: [], slots_total: 0 },
+            transfers_manager: managerTransfers[date] ?? [],
+            transfers_bank: bankTransfers[date] ?? [],
+            office_wallets: officeWalletsByDate[date] ?? lastOfficeWallets,
           };
+        };
+
         };
 
         if (!hasSystemData && l) {
