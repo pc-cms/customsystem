@@ -234,21 +234,27 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         cardBal[c.business_date] = num(c.players_card_balance);
       });
 
-      // Cage Cash = closing cash of LIVE cage shifts + closing cash of SLOTS cage shifts
-      const cageClosing: Bucket = {};
+      // Cage Casino = ALL money held by the LIVE cage + SLOTS cage (cash + cashless)
+      const cageClosing: Bucket = {}, cageCashless: Bucket = {};
       const cashDesk: Bucket = {}, shiftTables: Bucket = {};
       const liveCashDesk: Bucket = {}, slotsCashDesk: Bucket = {}, slotsDeclared: Bucket = {};
+      const sumProviders = (j: any) =>
+        j && typeof j === "object"
+          ? Object.values(j).reduce<number>((s, v) => s + num(v), 0)
+          : 0;
       shifts.forEach((s) => {
         const d = dateOnly(s.closed_at || s.opened_at);
         add(cashDesk, d, num(s.cash_desk_result));
         add(liveCashDesk, d, num(s.cash_desk_result));
         add(shiftTables, d, num(s.tables_result));
         add(cageClosing, d, num(s.closing_cash?.actual));
+        add(cageCashless, d, sumProviders(s.cashless_in_providers) - sumProviders(s.cashless_out_providers));
       });
       slotShifts.forEach((s) => {
         add(cashDesk, s.business_date, num(s.cash_desk_result));
         add(slotsCashDesk, s.business_date, num(s.cash_desk_result));
         add(slotsDeclared, s.business_date, num(s.slots_result));
+        add(cageCashless, s.business_date, num(s.cashless_final));
         if (slotsRes[s.business_date] == null) add(slotsRes, s.business_date, num(s.slots_result));
       });
       slotsClosing.forEach((i) => {
