@@ -591,19 +591,23 @@ const DailyBalanceReport = () => {
         },
 
         headerClassName: cn(
-          "whitespace-nowrap",
-          first && "border-l border-border",
-          c.total ? "font-semibold text-foreground" : "font-normal text-muted-foreground",
+          "whitespace-nowrap border-b-2 border-border uppercase tracking-wide",
+          ZONE_HEAD[c.section],
+          first ? "border-l-2 border-l-border" : "border-l border-l-border/60",
+          c.total ? "font-bold text-foreground" : "font-semibold text-muted-foreground",
           hot && "text-primary",
         ),
         cellClassName: (r: Row) =>
           cn(
-            "py-1 font-mono tabular-nums",
-            first && "border-l border-border",
-            c.total ? "font-semibold" : "text-muted-foreground",
-            rowBg(r) ?? (r.day_closed ? heatClass(c, Math.round(c.value(r))) : undefined),
+            "py-0.5 whitespace-nowrap font-mono text-[11px] leading-tight tabular-nums",
+            first ? "border-l-2 border-l-border" : "border-l border-l-border/40",
+            c.total ? "font-semibold text-foreground" : "text-foreground/70",
+            rowBg(r)
+              ?? (r.day_closed ? heatClass(c, Math.round(c.value(r))) : undefined)
+              ?? ZONE_BG[c.section],
             hot && "ring-1 ring-inset ring-primary/40",
           ),
+
       };
     }),
   ];
