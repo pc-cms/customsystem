@@ -642,6 +642,7 @@ export default function FinancesWalletsPage() {
                     <td className="px-3 py-1.5 text-right">{formatNumberSpaces(d.live_game)}</td>
                     <td className="px-3 py-1.5 text-right">{formatNumberSpaces(d.slots)}</td>
                     <td className="px-3 py-1.5 text-right">{formatNumberSpaces(d.other)}</td>
+                    <td className="px-3 py-1.5 text-right">{formatNumberSpaces(d.jp || 0)}</td>
                     <td className="px-3 py-1.5 text-right cms-amount-negative">{formatNumberSpaces(d.expenses)}</td>
                     <td className="px-3 py-1.5 text-right cms-amount-negative">{formatNumberSpaces(d.collections)}</td>
                     <td className={cn("px-3 py-1.5 text-right font-semibold", d.net >= 0 ? "cms-amount-positive" : "cms-amount-negative")}>
