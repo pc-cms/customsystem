@@ -476,7 +476,12 @@ const DailyBalanceReport = () => {
       ]
     : undefined;
 
+  const monthLabel = new Date(`${month}-01T00:00:00Z`).toLocaleDateString("en-GB", {
+    month: "long", year: "numeric", timeZone: "UTC",
+  });
+
   return (
+    <TooltipProvider delayDuration={100}>
     <PageShell>
       <PageHeader
         icon={Wallet2}
@@ -484,18 +489,29 @@ const DailyBalanceReport = () => {
         subtitle="Result · Cage · Bank · Money — rebuilt from live data, all figures in TZS"
         context={activeCasino?.name}
       >
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
-            {daysWithData} days · {visibleMoneyCols.length} columns
-          </span>
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          {daysWithData} days · {visibleMoneyCols.length} columns
+        </span>
+      </PageHeader>
+
+      {/* Centered month switcher */}
+      <div className="mb-3 flex items-center justify-center gap-2">
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(-1)} aria-label="Previous month">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1">
+          <span className="min-w-[130px] text-center text-sm font-semibold tracking-wide">{monthLabel}</span>
           <Input
             type="month"
             value={month}
             onChange={(e) => setMonth(e.target.value || currentMonth())}
-            className="h-8 w-[150px] text-xs"
+            className="h-7 w-[136px] text-xs"
           />
         </div>
-      </PageHeader>
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(1)} aria-label="Next month">
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
 
       {/* KPI tiles */}
       <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
@@ -515,34 +531,12 @@ const DailyBalanceReport = () => {
         <Tile
           label="Balance"
           value={Number(lastClosedRow?.balance || 0)}
-
           hint={lastClosedDate ? fmtDate(lastClosedDate) : undefined}
         />
       </div>
 
       <PageSection card={false}>
-        <div className="relative pt-10">
-          <Toggle
-            size="sm"
-            pressed={hideEmpty}
-            onPressedChange={() => setHideEmpty(!hideEmpty)}
-            title={hideEmpty ? "Show all columns" : "Hide empty columns"}
-            className="absolute top-0 left-0 z-20 h-8 gap-1 px-2 text-xs"
-          >
-            <Columns3 className="h-3.5 w-3.5" />
-            {hideEmpty ? "Show columns" : "Hide empty"}
-          </Toggle>
-          <Toggle
-            size="sm"
-            pressed={heatmap}
-            onPressedChange={() => setHeatmap(!heatmap)}
-            title="Toggle heatmap"
-            className="absolute top-0 right-0 z-20 h-8 gap-1 px-2 text-xs"
-          >
-            <Flame className="h-3.5 w-3.5" />
-            Heatmap
-          </Toggle>
-          <div className="max-h-[70vh] overflow-auto rounded-md border border-border">
+        <div className="max-h-[72vh] overflow-auto rounded-md border border-border">
           <SmartTable
             data={displayRows}
             columns={columns}
@@ -551,6 +545,7 @@ const DailyBalanceReport = () => {
             onSortChange={setSort}
             loading={isLoading}
             stickyColumns={[0, 132]}
+            stickyHeader
             groupHeader={groupHeader}
             footerRows={footerRows}
             onRowClick={(r) => r.kind === "day" && setDetail(r)}
@@ -560,7 +555,6 @@ const DailyBalanceReport = () => {
             className="[&_tbody_tr:nth-child(odd)]:bg-transparent"
             empty={<div className="py-10 text-center text-sm text-muted-foreground">No data for this month</div>}
           />
-          </div>
         </div>
       </PageSection>
 
