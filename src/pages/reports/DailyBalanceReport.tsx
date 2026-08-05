@@ -385,17 +385,35 @@ const DailyBalanceReport = () => {
     },
     ...visibleMoneyCols.map<ColumnDef<Row>>((c, i) => {
       const first = i === 0 || visibleMoneyCols[i - 1].section !== c.section;
+      const tip = formulaText(c.id);
       return {
         key: c.id,
-        header: c.label,
+        header: (
+          <span className="inline-flex items-center gap-1">
+            {c.label}
+            {tip && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 shrink-0 opacity-50 hover:opacity-100" />
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs whitespace-pre-line text-xs">
+                  {tip}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </span>
+        ),
         type: "money" as const,
-        style: i === 0 ? { width: 120, minWidth: 120 } : undefined,
-        accessor: (r) =>
-          c.id === "credit_deposit" && r.kind === "day" ? (
-            <CreditCell date={r.date} value={num(r, "credit_deposit")} />
-          ) : (
-            money(Math.round(c.value(r)))
-          ),
+        style: i === 0 ? { width: 132, minWidth: 132 } : undefined,
+        accessor: (r) => {
+          if (r.kind === "day" && c.id === "credit_deposit")
+            return <CreditCell date={r.date} value={num(r, "credit_deposit")} />;
+          if (r.kind === "day" && c.id === "bank_tzs")
+            return <BankCell date={r.date} field="bank_account" value={num(r, "bank_tzs")} manual={!!r.bank_tzs_manual} />;
+          if (r.kind === "day" && c.id === "bank_usd")
+            return <BankCell date={r.date} field="bank_account_usd" value={num(r, "bank_usd_raw")} manual={!!r.bank_usd_manual} />;
+          return money(Math.round(c.value(r)));
+        },
         sortValue: (r) => c.value(r),
         headerClassName: cn(
           "whitespace-nowrap",
@@ -424,9 +442,22 @@ const DailyBalanceReport = () => {
               return <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Total</span>;
             const c = ALL_COLS.find((x) => x.id === col.key);
             const v = c ? Math.round(c.value(grandRow)) : 0;
+            const tip = formulaText(col.key);
             return (
-              <span className={cn("font-mono tabular-nums", v < 0 && "cms-amount-negative")}>
-                {formatMoney(v, moneyMode)}
+              <span className="inline-flex items-center gap-1">
+                <span className={cn("font-mono tabular-nums", v < 0 && "cms-amount-negative")}>
+                  {formatMoneyFull(v)}
+                </span>
+                {tip && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 shrink-0 opacity-40 hover:opacity-100" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs whitespace-pre-line text-xs">
+                      {tip}
+                    </TooltipContent>
+                  </Tooltip>
+                )}
               </span>
             );
           },
@@ -439,7 +470,7 @@ const DailyBalanceReport = () => {
               return <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Average / day</span>;
             const c = ALL_COLS.find((x) => x.id === col.key);
             const v = c ? Math.round(c.value(grandRow) / (daysWithData || 1)) : 0;
-            return <span className="font-mono tabular-nums">{formatMoney(v, moneyMode)}</span>;
+            return <span className="font-mono tabular-nums">{formatMoneyFull(v)}</span>;
           },
         },
       ]
