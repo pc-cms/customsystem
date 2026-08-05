@@ -73,6 +73,14 @@ export default function FinancesWalletsPage() {
   const isSuperAdmin = roles.includes("super_admin");
   const { data: wallets = [] } = useFinWallets();
   const upsert = useUpsertFinWallet();
+  /**
+   * We always close YESTERDAY: on 05/08 the recorded day is 04/08 (it rolled
+   * over at 07:00 EAT). Re-recording during the day overwrites the snapshot.
+   */
+  const recordTargetDate = dayToRecord();
+  const recordDay = useRecordDayBalance();
+  const { data: recordedSnap } = useDayBalanceSnapshot(recordTargetDate);
+
 
   const now = new Date();
   const [ym, setYm] = useSessionState<{ year: number; month: number }>("ym", {
