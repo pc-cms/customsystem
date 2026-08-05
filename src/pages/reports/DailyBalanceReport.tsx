@@ -523,7 +523,12 @@ const DailyBalanceReport = () => {
       header: "Date",
       type: "date",
       style: { width: 74, minWidth: 74 },
-      accessor: (r) => (
+      accessor: (r) =>
+        r.kind === "start" ? (
+          <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-wider text-foreground">
+            Start
+          </span>
+        ) : (
           <span className="whitespace-nowrap">
             <span className={cn("font-mono text-[12px] font-semibold tabular-nums", r.date === today() && "text-primary")}>
               {r.date.slice(8, 10)}/{r.date.slice(5, 7)}
@@ -532,7 +537,8 @@ const DailyBalanceReport = () => {
           </span>
         ),
       headerClassName: "whitespace-nowrap border-b-2 border-border bg-muted font-bold uppercase tracking-wide text-foreground",
-      cellClassName: (r: Row) => cn("py-0.5 leading-tight", rowBg(r) ?? "bg-card"),
+      cellClassName: (r: Row) =>
+        cn("py-0.5 leading-tight", r.kind === "start" ? "border-b-2 border-border bg-muted" : rowBg(r) ?? "bg-card"),
     },
 
     ...visibleMoneyCols.map<ColumnDef<Row>>((c, i) => {
