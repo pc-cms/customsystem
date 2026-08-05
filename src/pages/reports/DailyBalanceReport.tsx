@@ -63,6 +63,13 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
       { id: "result", label: "Result", total: true, value: (r) => num(r, "casino_result") },
       { id: "live_cash_result", label: "Live", value: (r) => num(r, "live_cash_result") },
       { id: "tables_result", label: "Table", value: (r) => num(r, "tables_result") },
+    ],
+  },
+  {
+    key: "diff",
+    label: "Diff",
+    cols: [
+      { id: "diff_total", label: "Diff", total: true, value: (r) => num(r, "diff_total") },
       { id: "chip_difference", label: "Chip Diff", value: (r) => num(r, "chip_difference") },
       { id: "slots_diff", label: "Slots Diff", value: (r) => num(r, "slots_diff") },
     ],
@@ -87,11 +94,11 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
   },
   {
     key: "expenses",
-    label: "Flows",
+    label: "Office",
     cols: [
       { id: "expenses", label: "Expenses", total: true, value: (r) => num(r, "expenses") },
-      { id: "money_in", label: "IN", value: (r) => num(r, "money_in") },
-      { id: "money_out", label: "OUT", value: (r) => num(r, "money_out") },
+      { id: "money_in", label: "+", value: (r) => num(r, "money_in") },
+      { id: "money_out", label: "−", value: (r) => num(r, "money_out") },
     ],
   },
   {
@@ -103,6 +110,7 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     ],
   },
 ];
+
 
 const ALL_COLS: (Col & { section: SectionKey })[] = SECTIONS.flatMap((s) =>
   s.cols.map((c) => ({ ...c, section: s.key })),
