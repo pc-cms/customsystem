@@ -571,7 +571,16 @@ export const useDailyBalanceReport = (from: string, to: string) => {
 
       // ---- build rows ---------------------------------------------------
       let lastRate = 0, lastCage = 0, lastOffice = 0, lastBank = 0, lastChips = 0;
-      let lastBankTzs = 0, lastBankUsd = 0, prevMoney = 0;
+      /**
+       * Daily Balance = opening money + result + diff − office − expenses − cage − bank.
+       * The opening money of the first day is the manually entered month start
+       * (same storage key as the "Starting Balance" tile), afterwards it is the
+       * previous day's Money total.
+       */
+      const startKey = `dbr-start-balance:${casino}:${from.slice(0, 7)}`;
+      const startingBalance =
+        typeof window !== "undefined" ? Number(window.localStorage.getItem(startKey)) || 0 : 0;
+      let lastBankTzs = 0, lastBankUsd = 0, prevMoney = startingBalance, firstRow = true;
       let lastOfficeWallets: WalletBalance[] = [];
 
       return enumerateDates(from, to).map((date) => {
