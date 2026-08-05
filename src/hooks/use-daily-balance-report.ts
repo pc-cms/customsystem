@@ -500,7 +500,12 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         const net = gross / (1 + BANK_COMMISSION_RATE);
         const dayTotal = tables + slotsNet + barV + manualCredit;
         const cdr = cashDesk[date] ?? 0;
-        const cage = cageClosing[date] ?? lastCage;
+        // Cage Casino = ALL money in the live cage + slots cage (cash + cashless)
+        const cashPart = cageClosing[date] ?? null;
+        const cashlessPart = cageCashless[date] ?? 0;
+        const carried = cashPart == null;
+        const cage = carried ? lastCage : (cashPart as number) + cashlessPart;
+        if (!carried) lastCage = cage;
         const expensesV = expByDate[date] ?? 0;
         return {
           date,
