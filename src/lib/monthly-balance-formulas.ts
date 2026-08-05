@@ -48,8 +48,8 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
   },
   chip_difference: {
 
-    formula: "Closing miss of the day − closing miss of the previous day (miss is cumulative vs baseline) × denomination",
-    source: "chip_snapshots (latest check per table, 07:00 rollover)",
+    formula: "Miss Chips of the day — same figure as the Miss Chips report (per day, not cumulative)",
+    source: "shifts.closing_count.chip_miss_total (closed shifts, 07:00 rollover)",
     total: "sum",
   },
   slots_diff: {
