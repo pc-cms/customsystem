@@ -621,7 +621,13 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           const bankTzs = manualTzs != null ? manualTzs : o.bankTzs;
           const bankUsd = manualUsdRaw != null ? manualUsdRaw * rate : o.bankUsd;
           const moneyTotal = o.cage + o.manager + bankTzs + bankUsd;
-          const check = prevMoney + o.result + o.inV - o.outV - o.expenses;
+          const opening = firstRow ? startingBalance : prevMoney;
+          firstRow = false;
+          const diffTotal = o.chipDiff + o.slotsDiff;
+          const officeNet = o.inV - o.outV;
+          // Balance = opening money + result + diff − office − expenses − cage − bank
+          const balance =
+            opening + o.result + diffTotal - officeNet - o.expenses - moneyTotal;
           prevMoney = moneyTotal;
           return {
             live_cash_result: o.live,
