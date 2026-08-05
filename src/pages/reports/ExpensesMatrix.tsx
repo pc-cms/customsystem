@@ -84,9 +84,9 @@ const ExpensesMatrixPage = () => {
         );
       },
       sortValue: (r) => r.byDay[d] || 0,
-      headerClassName: "whitespace-nowrap font-normal text-muted-foreground",
+      headerClassName: "whitespace-nowrap border-l border-border font-normal text-muted-foreground",
       cellClassName: (r: ExpenseCategoryRow) =>
-        cn("py-1 font-mono tabular-nums", heatClass(r.byDay[d] || 0)),
+        cn("py-1 border-l border-border font-mono tabular-nums", heatClass(r.byDay[d] || 0)),
     })),
     {
       key: "total",
@@ -94,8 +94,8 @@ const ExpensesMatrixPage = () => {
       type: "money",
       accessor: (r) => money(r.total),
       sortValue: (r) => r.total,
-      headerClassName: "whitespace-nowrap border-l border-border font-semibold",
-      cellClassName: () => "py-1 border-l border-border font-mono font-semibold tabular-nums",
+      headerClassName: "whitespace-nowrap border-l-2 border-border font-semibold",
+      cellClassName: () => "py-1 border-l-2 border-border font-mono font-semibold tabular-nums",
     },
   ];
 
@@ -169,7 +169,7 @@ const ExpensesMatrixPage = () => {
             columns={columns}
             rowKey={(r) => r.code}
             loading={isLoading}
-            stickyColumns={[0, 200]}
+            stickyColumns={[0]}
             stickyHeader
             footerRows={footerRows}
             bare
