@@ -377,7 +377,7 @@ const DailyBalanceReport = () => {
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
   /** Fixed display options — every column is always shown, in full figures. */
   const heatmap = true;
-  const [detail, setDetail] = useState<DailyBalanceRow | null>(null);
+  
   /** Cell drill-down: which column of which row is being inspected. */
   const [drill, setDrill] = useState<{ row: DailyBalanceRow; col: string } | null>(null);
 
