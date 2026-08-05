@@ -132,18 +132,18 @@ const SECTION_ANCHOR: Record<string, string> = Object.fromEntries(
 );
 
 
+/** Pinned lead column, rendered right after Date. */
+const LEAD_COL: Col & { section: SectionKey } = {
+  id: "fin_result", label: "Fin Result", total: true, section: "balances",
+  value: (r) => num(r, "fin_result"),
+};
+
 /** Non-headline columns are "details" — hidden until their section is expanded. */
 const ALL_COLS: (Col & { section: SectionKey })[] = [
   LEAD_COL,
   ...SECTIONS.flatMap((s) => s.cols.map((c) => ({ ...c, detail: !c.total, section: s.key }))),
 ];
 
-
-/** Pinned lead column, rendered right after Date. */
-const LEAD_COL: Col & { section: SectionKey } = {
-  id: "fin_result", label: "Fin Result", total: true, section: "balances",
-  value: (r) => num(r, "fin_result"),
-};
 
 /** Every money column gets a per-column heat fill (scaled inside its own column). */
 const HEAT_IDS = new Set(ALL_COLS.map((c) => c.id));
