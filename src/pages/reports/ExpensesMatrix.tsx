@@ -70,6 +70,7 @@ const ExpensesMatrixPage = () => {
       ),
       sortValue: (r) => r.label,
       cellClassName: () => "py-1",
+      headerClassName: "whitespace-nowrap border-b-2 border-border font-bold text-foreground bg-muted",
     },
     ...days.map<ColumnDef<ExpenseCategoryRow>>((d) => ({
       key: d,
@@ -91,7 +92,7 @@ const ExpensesMatrixPage = () => {
         );
       },
       sortValue: (r) => r.byDay[d] || 0,
-      headerClassName: "whitespace-nowrap border-l border-border font-normal text-muted-foreground",
+      headerClassName: "whitespace-nowrap border-l border-border border-b-2 border-border font-bold text-foreground bg-muted",
       cellClassName: (r: ExpenseCategoryRow) =>
         cn("py-1 border-l border-border font-mono tabular-nums", heatClass(r.byDay[d] || 0)),
     })),
@@ -112,7 +113,7 @@ const ExpensesMatrixPage = () => {
         </span>
       ),
       sortValue: (r) => r.total,
-      headerClassName: "whitespace-nowrap border-l-2 border-border font-semibold",
+      headerClassName: "whitespace-nowrap border-l-2 border-border border-b-2 border-border font-bold text-foreground bg-muted",
       cellClassName: () => "py-1 border-l-2 border-border font-mono font-semibold tabular-nums",
     },
   ];
