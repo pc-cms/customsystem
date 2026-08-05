@@ -2,7 +2,7 @@
  * Reports → Daily Balance Sheet.
  *
  * Recreates the legacy "БАЛАНС" monthly spreadsheet: one row per business date,
- * grouped column blocks (two-level header), weekly subtotal rows and sticky
+ * grouped column blocks (two-level header) and sticky
  * Total / Average footer rows. All figures in TZS.
  *
  * Column model: every section shows ONE headline "total" column when collapsed;
@@ -42,7 +42,7 @@ type Col = {
   value: (r: DailyBalanceRow) => number;
 };
 
-/** Numeric FLOW fields — summed across week / month rows. */
+/** Numeric FLOW fields — summed across the month. */
 const BASE_KEYS: (keyof DailyBalanceRow)[] = [
   "casino_result", "tables_result", "slots_result", "live_cash_result", "slots_diff",
   "chip_difference", "transfer_cage_manager", "transfer_bank",
@@ -244,7 +244,7 @@ const DailyBalanceReport = () => {
 
   /** Last business date that has live system data — highlighted with a yellow stripe. */
   const lastClosedRow = useMemo(() => {
-    const withData = rows.filter((r) => r.hasSystemData).sort((a, b) => a.date.localeCompare(b.date));
+    const withData = rows.filter((r) => r.day_closed && r.hasSystemData).sort((a, b) => a.date.localeCompare(b.date));
     return withData.length ? withData[withData.length - 1] : null;
   }, [rows]);
   const lastClosedDate = lastClosedRow?.date ?? null;
@@ -286,7 +286,7 @@ const DailyBalanceReport = () => {
 
   /**
    * Single background layer per row — prevents stacked translucent fills.
-   * Priority: week > last closed day > today > weekend > (cell heat).
+   * Priority: open day > last closed day > today > weekend > (cell heat).
    */
   const rowBg = (r: Row): string | undefined => {
     if (!r.day_closed) return "bg-muted/40";
