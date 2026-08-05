@@ -118,6 +118,7 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     label: "Balance",
     cols: [
       { id: "money_total", label: "Money", total: true, value: (r) => num(r, "money_total") },
+      { id: "fin_result", label: "Fin Result", total: true, value: (r) => num(r, "fin_result") },
       { id: "balance", label: "Balance", total: true, value: (r) => num(r, "balance") },
     ],
   },
