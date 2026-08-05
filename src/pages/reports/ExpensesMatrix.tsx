@@ -146,8 +146,16 @@ const ExpensesMatrixPage = () => {
                 ? grandTotal
                 : rows.reduce((s, r) => s + (r.byDay[col.key as string] || 0), 0);
             return (
-              <span className="font-mono font-bold tabular-nums">{v ? formatMoneyFull(Math.round(v)) : "·"}</span>
+              <span
+                className={cn(
+                  "whitespace-nowrap font-mono text-[11px] font-bold tabular-nums",
+                  col.key === "total" && "text-primary",
+                )}
+              >
+                {v ? formatMoneyFull(Math.round(v)) : "·"}
+              </span>
             );
+
           },
         },
       ]
