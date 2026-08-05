@@ -792,49 +792,9 @@ const DailyBalanceReport = () => {
         </div>
       </PageSection>
 
-      {/* Day detail panel */}
-      <Sheet open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>
-              {detail ? `${fmtDate(detail.date)} · ${detail.weekday}` : ""}
-            </SheetTitle>
-          </SheetHeader>
-          {detail && (
-            <div className="mt-4 space-y-4">
-              <div className="text-xs text-muted-foreground">
-                {detail.legacy ? "Imported (legacy sheet)" : detail.hasSystemData ? "Live system data" : "No data"}
-              </div>
-              {SECTIONS.map((s) => (
-                <div key={s.key}>
-                  <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {s.label}
-                  </div>
-                  <div className="rounded-md border border-border">
-                    {s.cols.map((c) => {
-                      const v = Math.round(c.value(detail));
-                      return (
-                        <div
-                          key={c.id}
-                          className={cn(
-                            "flex items-center justify-between border-b border-border/60 px-2 py-1 text-xs last:border-0",
-                            c.total && "bg-muted/40 font-semibold",
-                          )}
-                        >
-                          <span className={c.total ? "text-foreground" : "text-muted-foreground"}>{c.label}</span>
-                          <span className={cn("font-mono tabular-nums", v < 0 && "cms-amount-negative")}>
-                            {v ? formatMoneyFull(v) : "·"}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
+      {/* The generic per-day panel was removed — only per-cell drill-downs open now. */}
+
+
 
       {/* Cell breakdown panel */}
       <Sheet open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>
