@@ -229,12 +229,13 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("expenses")
-            .select("business_date, amount, amount_tzs, currency, wallet_id, voided_at")
+            .select("business_date, amount, amount_tzs, currency, wallet_id, voided_at, description, fin_category_id, fin_categories(name, group_code)")
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("fin_wallet_tx")
-            .select("business_date, wallet_id, kind, amount_tzs, amount")
+            .select("business_date, wallet_id, kind, amount_tzs, amount, note, ref_table, posted_at, category_id, fin_categories(name, group_code)")
             .eq("casino_id", casino).lte("business_date", to).range(a, b)),
+
         fetchPaged<any>((a, b) =>
           sb.from("fin_wallets")
             .select("id, name, kind, currency, starting_float_amount, starting_float_date")
