@@ -496,18 +496,19 @@ const DailyBalanceReport = () => {
       key: "date",
       header: "Date",
       type: "date",
-      style: { width: 132, minWidth: 132 },
+      style: { width: 74, minWidth: 74 },
       accessor: (r) => (
           <span className="whitespace-nowrap">
-            <span className={cn("font-mono tabular-nums", r.date === today() && "font-semibold text-primary")}>
-              {fmtDate(r.date)}
-            </span>{" "}
-            <span className="text-[11px] text-muted-foreground">{r.weekday}</span>
+            <span className={cn("font-mono text-[12px] font-semibold tabular-nums", r.date === today() && "text-primary")}>
+              {r.date.slice(8, 10)}/{r.date.slice(5, 7)}
+            </span>
             {r.legacy && <Badge variant="outline" className="ml-1 h-4 px-1 text-[10px]">imp</Badge>}
           </span>
         ),
-      cellClassName: (r: Row) => cn("py-1", rowBg(r)),
+      headerClassName: "whitespace-nowrap border-b-2 border-border bg-muted font-bold uppercase tracking-wide text-foreground",
+      cellClassName: (r: Row) => cn("py-0.5 leading-tight", rowBg(r) ?? "bg-card"),
     },
+
     ...visibleMoneyCols.map<ColumnDef<Row>>((c, i) => {
       const first = i === 0 || visibleMoneyCols[i - 1].section !== c.section;
       const tip = formulaText(c.id);
