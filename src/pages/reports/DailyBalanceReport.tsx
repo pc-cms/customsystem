@@ -392,27 +392,9 @@ const DailyBalanceReport = () => {
       <span className={n < 0 ? "cms-amount-negative" : undefined}>{formatMoneyFull(n)}</span>
     );
 
-  /** Two-level header groups: leading Date column + one entry per visible section. */
-  const groupHeader = useMemo(() => {
-    const groups: {
-      key: string; label?: string; span: number; expandable?: boolean;
-      expanded?: boolean; hiddenCount?: number; onToggle?: () => void; sticky?: number;
-    }[] = [{ key: "date", label: "Day", span: 1, sticky: 0 }];
-    for (const s of SECTIONS) {
-      const span = visibleMoneyCols.filter((c) => c.section === s.key).length;
-      if (!span) continue;
-      groups.push({
-        key: s.key,
-        label: s.label,
-        span,
-        expandable: true,
-        expanded: expanded.has(s.key),
-        hiddenCount: s.cols.filter((c) => !c.total).length,
-        onToggle: () => toggleExpand(s.key),
-      });
-    }
-    return groups;
-  }, [visibleMoneyCols, expanded]);
+  /** Column hover highlight — the whole column plus its header light up. */
+  const [hoverCol, setHoverCol] = useState<string | null>(null);
+
 
   const columns: ColumnDef<Row>[] = [
     {
