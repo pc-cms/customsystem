@@ -239,6 +239,63 @@ const Tile = ({ label, value, hint }: { label: string; value: number; hint?: str
   </div>
 );
 
+/** Manually entered opening balance for the month (carried over from the previous month). */
+const StartingBalanceTile = ({ storageKey, hint }: { storageKey: string; hint?: string }) => {
+  const [value, setValue] = useState<number>(() => {
+    const raw = typeof window !== "undefined" ? window.localStorage.getItem(storageKey) : null;
+    return raw ? Number(raw) || 0 : 0;
+  });
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  useEffect(() => {
+    const raw = typeof window !== "undefined" ? window.localStorage.getItem(storageKey) : null;
+    setValue(raw ? Number(raw) || 0 : 0);
+    setEditing(false);
+  }, [storageKey]);
+
+  const commit = () => {
+    const next = Number(String(draft).replace(/[^\d.-]/g, "")) || 0;
+    setValue(next);
+    window.localStorage.setItem(storageKey, String(next));
+    setEditing(false);
+  };
+
+  return (
+    <div className="rounded-md border border-border bg-card px-3 py-2">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Starting Balance</div>
+      {editing ? (
+        <input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit();
+            if (e.key === "Escape") setEditing(false);
+          }}
+          className="w-full bg-transparent font-mono text-lg tabular-nums outline-none"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            setDraft(value ? String(value) : "");
+            setEditing(true);
+          }}
+          className={cn(
+            "block w-full text-left font-mono text-lg tabular-nums",
+            value < 0 ? "cms-amount-negative" : "cms-amount-positive",
+          )}
+        >
+          {formatMoneyFull(Math.round(value))}
+        </button>
+      )}
+      <div className="text-[10px] text-muted-foreground">{hint ?? "Manual · click to edit"}</div>
+    </div>
+  );
+};
+
 /** Simple label / amount list used by the cell breakdown panel. */
 const DrillList = ({
   title, rows, totalLabel, total,
