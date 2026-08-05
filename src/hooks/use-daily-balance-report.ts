@@ -549,6 +549,8 @@ export const useDailyBalanceReport = (from: string, to: string) => {
 
         if (cageRunning[date] != null) lastCage = cageRunning[date];
         if (officeRunning[date] != null) lastOffice = officeRunning[date];
+        if (officeWalletsByDate[date]) lastOfficeWallets = officeWalletsByDate[date];
+
         if (bankRunning[date] != null) lastBank = bankRunning[date];
         if (bankTzsRunning[date] != null) lastBankTzs = bankTzsRunning[date];
         if (bankUsdRunning[date] != null) lastBankUsd = bankUsdRunning[date];
