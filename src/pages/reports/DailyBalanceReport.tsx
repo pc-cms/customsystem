@@ -730,7 +730,7 @@ const DailyBalanceReport = () => {
             columns={columns}
             rowKey={(r) => `${r.kind}:${r.date}`}
             loading={isLoading}
-            stickyColumns={[0, 132]}
+            stickyColumns={[0, 74]}
             stickyHeader
             
             footerRows={footerRows}
