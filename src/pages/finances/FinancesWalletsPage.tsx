@@ -565,15 +565,15 @@ export default function FinancesWalletsPage() {
         <PageSection title="Breakdown (Expected)" card={false}>
           <div className="rounded-md border border-border bg-card">
             <BreakdownRow
-              label="Starting Float (baseline, not in sum)"
+              label="Starting Float (income · start of period)"
               v={snap?.starting_float?.grand_tzs || 0}
-              muted
+              positive
             />
             <BreakdownRow label="Live Game" v={snap?.incomes?.live_game || 0} positive />
             <BreakdownRow label="Slots" v={snap?.incomes?.slots || 0} positive />
             <BreakdownRow label="Other Income" v={snap?.incomes?.other || 0} positive />
             <BreakdownRow label="JP (IN)" v={snap?.incomes?.jp || 0} positive />
-            <BreakdownRow label="Card Balance" v={snap?.incomes?.card_balance || 0} positive />
+            <BreakdownRow label="Card Balance (Σ daily diff)" v={snap?.incomes?.card_balance || 0} signed />
 
             <BreakdownRow label="Missed Chips (±)" v={snap?.incomes?.missed_chips || 0} signed />
             <BreakdownRow label="Missed Cards (±)" v={snap?.incomes?.missed_cards || 0} signed />
@@ -583,8 +583,9 @@ export default function FinancesWalletsPage() {
             {/* Internal move between our own wallets/casinos — informational only */}
             <BreakdownRow label="Transfers (internal move)" v={snap?.transfers_total || 0} muted />
             <div className="border-t-2 border-border">
-              <BreakdownRow label="= Expected (net of float)" v={totals.expected} bold signed />
+              <BreakdownRow label="= Expected" v={totals.expected} bold signed />
             </div>
+
           </div>
           <div className="text-[10px] text-muted-foreground mt-1">
             USD→TZS rate {formatNumberSpaces(usdRate)} · Period {range.from} → {range.to}
