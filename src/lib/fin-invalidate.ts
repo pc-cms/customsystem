@@ -22,7 +22,10 @@ const FIN_QUERY_ROOTS = [
   "slots-auto-for-date",
   "miss-chips-for-date",
   "miss-cards-for-date",
+  "wallet-last-counts",
+  "wallet-tx-since-count",
   "bdc-snapshot",
+
 ];
 
 /** True for every query whose data can change when money data is written. */
