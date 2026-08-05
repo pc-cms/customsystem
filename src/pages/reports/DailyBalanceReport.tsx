@@ -429,8 +429,8 @@ const DailyBalanceReport = () => {
     <PageShell>
       <PageHeader
         icon={Wallet2}
-        title="Daily Balance Sheet"
-        subtitle="Legacy balance layout rebuilt from live data — all figures in TZS"
+        title="Casino Monthly Balance"
+        subtitle="Result · Cage · Bank · Money — rebuilt from live data, all figures in TZS"
         context={activeCasino?.name}
       >
         <div className="flex items-center gap-3">
@@ -449,24 +449,22 @@ const DailyBalanceReport = () => {
       {/* KPI tiles */}
       <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
         <Tile label="Result (month)" value={num(grandRow, "casino_result")} />
+        <Tile label="Expenses (month)" value={-num(grandRow, "expenses")} />
+        <Tile label="IN − OUT (month)" value={num(grandRow, "money_in") - num(grandRow, "money_out")} />
         <Tile
-          label="Expenses (month)"
-          value={-(num(grandRow, "expenses") + num(grandRow, "bank_expenses"))}
-        />
-        <Tile label="Day Balance (month)" value={num(grandRow, "day_balance")} />
-        <Tile
-          label="Cage Cash"
-          value={Number(lastClosedRow?.cage_cash || 0)}
+          label="Cage Casino"
+          value={Number(lastClosedRow?.cage_casino || 0)}
           hint={lastClosedDate ? fmtDate(lastClosedDate) : undefined}
         />
         <Tile
-          label="Office Safe"
-          value={Number(lastClosedRow?.office_cash || 0)}
+          label="Cage Manager"
+          value={Number(lastClosedRow?.cage_manager || 0)}
           hint={lastClosedDate ? fmtDate(lastClosedDate) : undefined}
         />
         <Tile
-          label="Bank Account"
-          value={Number(lastClosedRow?.bank_account || 0)}
+          label="Balance"
+          value={Number(lastClosedRow?.balance || 0)}
+
           hint={lastClosedDate ? fmtDate(lastClosedDate) : undefined}
         />
       </div>
