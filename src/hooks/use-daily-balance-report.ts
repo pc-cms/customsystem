@@ -783,6 +783,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             chipDiff: chipMiss[date] ?? 0,
 
           }),
+          fees: feesByDate[date] ?? 0,
           legacy: false,
           hasSystemData,
           day_closed: closedDays.has(date),
