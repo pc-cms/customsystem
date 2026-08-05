@@ -604,7 +604,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           };
         };
 
-        };
+
 
         if (!hasSystemData && l) {
           const gross = num(l.bank_terminal);
