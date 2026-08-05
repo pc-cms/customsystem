@@ -583,14 +583,14 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         const slotsNet = (slotsRes[date] ?? 0) - (cardBal[date] ?? 0);
         const barV = bar[date] ?? 0;
 
-        if (cageRunning[date] != null) lastCage = cageRunning[date];
-        if (officeRunning[date] != null) lastOffice = officeRunning[date];
-        if (officeWalletsByDate[date]) lastOfficeWallets = officeWalletsByDate[date];
-
-        if (bankRunning[date] != null) lastBank = bankRunning[date];
-        if (bankTzsRunning[date] != null) lastBankTzs = bankTzsRunning[date];
-        if (bankUsdRunning[date] != null) lastBankUsd = bankUsdRunning[date];
-        if (chipFloat[date] != null) lastChips = chipFloat[date];
+        // No carry-forward: every row shows ONLY its own day's figures.
+        lastCage = cageRunning[date] ?? 0;
+        lastOffice = officeRunning[date] ?? 0;
+        lastOfficeWallets = officeWalletsByDate[date] ?? [];
+        lastBank = bankRunning[date] ?? 0;
+        lastBankTzs = bankTzsRunning[date] ?? 0;
+        lastBankUsd = bankUsdRunning[date] ?? 0;
+        lastChips = chipFloat[date] ?? 0;
 
         const hasSystemData =
           tablesRes[date] != null || slotsRes[date] != null || cashDesk[date] != null ||
@@ -641,7 +641,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             cage_detail: cageDetail[date] ?? { cash: [], cashless: [], slots_total: 0 },
             transfers_manager: managerTransfers[date] ?? [],
             transfers_bank: bankTransfers[date] ?? [],
-            office_wallets: officeWalletsByDate[date] ?? lastOfficeWallets,
+            office_wallets: officeWalletsByDate[date] ?? [],
           };
         };
 
@@ -703,9 +703,8 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         // Cage Casino = ALL money in the live cage + slots cage (cash + cashless)
         const cashPart = cageClosing[date] ?? null;
         const cashlessPart = cageCashless[date] ?? 0;
-        const carried = cashPart == null;
-        const cage = carried ? lastCage : (cashPart as number) + cashlessPart;
-        if (!carried) lastCage = cage;
+        const carried = false;
+        const cage = (cashPart ?? 0) + cashlessPart;
         const expensesV = expByDate[date] ?? 0;
         return {
           date,
@@ -737,8 +736,8 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           day_balance: cdr - dayTotal,
           ...cmb({
             cage,
-            cashPart: carried ? lastCage : (cashPart as number),
-            cashlessPart: carried ? 0 : cashlessPart,
+            cashPart: cashPart ?? 0,
+            cashlessPart,
             carried,
             manager: lastOffice,
             bankTzs: lastBankTzs, bankUsd: lastBankUsd,
