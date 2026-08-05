@@ -647,6 +647,8 @@ export const useDailyBalanceReport = (from: string, to: string) => {
               inV: num(l.office_in), outV: num(l.collection_bank),
               result: num(l.casino_result),
               live: num(l.cash_desk_result), slotsDiff: 0,
+              chipDiff: num(l.chip_difference),
+
             }),
             legacy: true,
             hasSystemData: false,
