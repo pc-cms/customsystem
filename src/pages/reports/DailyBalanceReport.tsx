@@ -478,13 +478,13 @@ const DailyBalanceReport = () => {
       </div>
 
       <PageSection card={false}>
-        <div className="relative">
+        <div className="relative pt-10">
           <Toggle
             size="sm"
             pressed={hideEmpty}
             onPressedChange={() => setHideEmpty(!hideEmpty)}
             title={hideEmpty ? "Show all columns" : "Hide empty columns"}
-            className="absolute -top-9 left-0 z-20 h-8 gap-1 px-2 text-xs"
+            className="absolute top-0 left-0 z-20 h-8 gap-1 px-2 text-xs"
           >
             <Columns3 className="h-3.5 w-3.5" />
             {hideEmpty ? "Show columns" : "Hide empty"}
@@ -494,7 +494,7 @@ const DailyBalanceReport = () => {
             pressed={heatmap}
             onPressedChange={() => setHeatmap(!heatmap)}
             title="Toggle heatmap"
-            className="absolute -top-9 right-0 z-20 h-8 gap-1 px-2 text-xs"
+            className="absolute top-0 right-0 z-20 h-8 gap-1 px-2 text-xs"
           >
             <Flame className="h-3.5 w-3.5" />
             Heatmap
