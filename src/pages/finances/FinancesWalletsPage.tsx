@@ -119,13 +119,20 @@ export default function FinancesWalletsPage() {
 
   const { data: tx = [] } = useFinWalletTx({ from: monthRange.from, to: monthRange.to });
 
-  // per-wallet map for physical-count inline UI
+  // per-wallet map for physical-count inline UI.
+  // Balance = Actual = last recorded wallet state (manual count, or the state
+  // written automatically after a movement). Never a cumulative ledger replay.
   const ledgerByWallet = useMemo(() => {
-    const m = new Map<string, { native: number; tzs: number }>();
+    const m = new Map<
+      string,
+      { native: number; tzs: number; asof?: string | null; source?: string | null }
+    >();
     (snap?.wallets || []).forEach((w) =>
       m.set(w.wallet_id, {
-        native: Number(w.ledger_native ?? w.ledger ?? 0),
-        tzs: Number(w.ledger_tzs ?? w.ledger ?? 0),
+        native: Number(w.actual_native ?? w.ledger_native ?? w.ledger ?? 0),
+        tzs: Number(w.actual_tzs ?? w.ledger_tzs ?? w.ledger ?? 0),
+        asof: (w as any).physical_asof ?? null,
+        source: (w as any).physical_source ?? null,
       }),
     );
     return m;
@@ -587,7 +594,10 @@ export default function FinancesWalletsPage() {
             <div className="border-t-2 border-border">
               <BreakdownRow label="= Expected" v={totals.expected} bold signed />
             </div>
-
+            <div className="border-t border-border">
+              <BreakdownRow label="Actual (Σ wallets · last recorded state)" v={totals.actual} bold signed />
+              <BreakdownRow label="= Variance (Actual − Expected)" v={totals.variance} bold signed />
+            </div>
           </div>
           <div className="text-[10px] text-muted-foreground mt-1">
             USD→TZS rate {formatNumberSpaces(usdRate)} · Period {range.from} → {range.to}
@@ -781,6 +791,12 @@ export default function FinancesWalletsPage() {
                       <td className="text-right font-mono tabular-nums">
                         {formatNumberSpaces(led.native)}{" "}
                         <span className="text-[10px] text-muted-foreground">{w.currency}</span>
+                        {led.asof && (
+                          <div className="text-[10px] text-muted-foreground font-sans">
+                            {led.source === "manual" ? "counted" : "after movement"}{" "}
+                            {fmtDateOnly(led.asof)}
+                          </div>
+                        )}
                       </td>
                       <td className="text-right font-mono tabular-nums">
                         {formatNumberSpaces(led.tzs)}
