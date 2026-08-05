@@ -678,16 +678,31 @@ export const useDailyBalanceReport = (from: string, to: string) => {
       // ---- build rows ---------------------------------------------------
       let lastRate = 0, lastCage = 0, lastOffice = 0, lastBank = 0, lastChips = 0;
       /**
-       * Daily Balance = opening money + result + diff − office − expenses − cage − bank.
-       * The opening money of the first day is the manually entered month start
-       * (same storage key as the "Starting Balance" tile), afterwards it is the
-       * previous day's Money total.
+       * Daily Balance = opening money + result + diff + fees + office net
+       *                 − expenses − closing money  → 0.
+       * The opening money of the first day comes from the "Start" row
+       * (fin_month_start), afterwards it is the previous day's Money total.
        */
-      const startKey = `dbr-start-balance:${casino}:${from.slice(0, 7)}`;
-      const startingBalance =
-        typeof window !== "undefined" ? Number(window.localStorage.getItem(startKey)) || 0 : 0;
+      const ms = (monthStart as any[])[0] || null;
+      const startRow = {
+        cage: num(ms?.cage_casino),
+        manager: num(ms?.cage_manager),
+        bankTzs: num(ms?.bank_tzs),
+        bankUsd: num(ms?.bank_usd),
+        diff: num(ms?.diff_total),
+        tips: num(ms?.tips_total),
+      };
+      const startingBalance = ms
+        ? startRow.cage + startRow.manager + startRow.bankTzs + startRow.bankUsd
+        : 0;
+      const snapByDate: Record<string, any> = {};
+      (daySnaps as any[]).forEach((s) => {
+        snapByDate[String(s.business_date).slice(0, 10)] = s.data || {};
+      });
       let lastBankTzs = 0, lastBankUsd = 0, prevMoney = startingBalance, firstRow = true;
       let lastOfficeWallets: WalletBalance[] = [];
+      const bankWalletDefs = wallets.filter((w) => isBankKind(w.kind));
+
 
       return enumerateDates(from, to).map((date) => {
         const rate = rateByDate[date] || lastRate || FALLBACK_USD_RATE;
