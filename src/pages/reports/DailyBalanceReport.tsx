@@ -420,10 +420,29 @@ const DailyBalanceReport = () => {
     ...visibleMoneyCols.map<ColumnDef<Row>>((c, i) => {
       const first = i === 0 || visibleMoneyCols[i - 1].section !== c.section;
       const tip = formulaText(c.id);
+      const isAnchor = SECTION_ANCHOR[c.section] === c.id;
+      const isOpen = expanded.has(c.section);
+      const hot = hoverCol === c.id;
       return {
         key: c.id,
         header: (
-          <span className="inline-flex items-center gap-1">
+          <span
+            className="inline-flex items-center gap-1"
+            onMouseEnter={() => setHoverCol(c.id)}
+            onMouseLeave={() => setHoverCol(null)}
+          >
+            {isAnchor && (
+              <button
+                type="button"
+                aria-label={isOpen ? `Collapse ${c.label}` : `Expand ${c.label}`}
+                className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                onClick={(e) => { e.stopPropagation(); toggleExpand(c.section); }}
+              >
+                {isOpen
+                  ? <ChevronLeft className="h-3.5 w-3.5" />
+                  : <ChevronRight className="h-3.5 w-3.5" />}
+              </button>
+            )}
             {c.label}
             {tip && (
               <Tooltip>
@@ -440,34 +459,43 @@ const DailyBalanceReport = () => {
         type: "money" as const,
         style: i === 0 ? { width: 132, minWidth: 132 } : undefined,
         accessor: (r) => {
+          const wrap = (node: React.ReactNode) => (
+            <span
+              className="block w-full"
+              onMouseEnter={() => setHoverCol(c.id)}
+              onMouseLeave={() => setHoverCol(null)}
+            >
+              {node}
+            </span>
+          );
           // Business day still open → no figures in any column.
-          if (!r.day_closed) return <span className="text-muted-foreground">·</span>;
+          if (!r.day_closed) return wrap(<span className="text-muted-foreground">·</span>);
           if (r.kind === "day" && c.id === "credit_deposit")
-            return <CreditCell date={r.date} value={num(r, "credit_deposit")} />;
+            return wrap(<CreditCell date={r.date} value={num(r, "credit_deposit")} />);
           if (r.kind === "day" && c.id === "bank_tzs")
-            return <BankCell date={r.date} field="bank_account" value={num(r, "bank_tzs")} manual={!!r.bank_tzs_manual} />;
+            return wrap(<BankCell date={r.date} field="bank_account" value={num(r, "bank_tzs")} manual={!!r.bank_tzs_manual} />);
           if (r.kind === "day" && c.id === "bank_usd")
-            return <BankCell date={r.date} field="bank_account_usd" value={num(r, "bank_usd_raw")} manual={!!r.bank_usd_manual} />;
+            return wrap(<BankCell date={r.date} field="bank_account_usd" value={num(r, "bank_usd_raw")} manual={!!r.bank_usd_manual} />);
           const rendered = money(Math.round(c.value(r)));
           if (c.id === "expenses")
-            return (
+            return wrap(
               <span
                 className="cursor-pointer underline-offset-2 hover:underline"
                 onClick={(e) => { e.stopPropagation(); navigate("/reports/expenses-matrix"); }}
               >
                 {rendered}
-              </span>
+              </span>,
             );
           if (DRILL_IDS.has(c.id))
-            return (
+            return wrap(
               <span
                 className="cursor-pointer underline-offset-2 hover:underline"
                 onClick={(e) => { e.stopPropagation(); setDrill({ row: r, col: c.id }); }}
               >
                 {rendered}
-              </span>
+              </span>,
             );
-          return rendered;
+          return wrap(rendered);
         },
 
         sortValue: (r) => c.value(r),
@@ -475,6 +503,7 @@ const DailyBalanceReport = () => {
           "whitespace-nowrap",
           first && "border-l border-border",
           c.total ? "font-semibold text-foreground" : "font-normal text-muted-foreground",
+          hot && "text-primary",
         ),
         cellClassName: (r: Row) =>
           cn(
@@ -482,6 +511,7 @@ const DailyBalanceReport = () => {
             first && "border-l border-border",
             c.total ? "font-semibold" : "text-muted-foreground",
             rowBg(r) ?? (r.day_closed ? heatClass(c, Math.round(c.value(r))) : undefined),
+            hot && "ring-1 ring-inset ring-primary/40",
           ),
       };
     }),
