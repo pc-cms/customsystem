@@ -585,12 +585,7 @@ const DailyBalanceReport = () => {
       <div className="mb-2 grid grid-cols-1 gap-2 md:grid-cols-3">
         <Tile
           label="Finance Result"
-          value={
-            num(grandRow, "casino_result") -
-            num(grandRow, "expenses") +
-            num(grandRow, "money_in") -
-            num(grandRow, "money_out")
-          }
+          value={num(grandRow, "fin_result")}
           hint="Casino result − expenses + office net"
         />
         <div className="flex items-center justify-center gap-2 rounded-md border border-border bg-card px-2 py-2">
