@@ -414,24 +414,39 @@ export const useDailyBalanceReport = (from: string, to: string) => {
 
         /** Casino Monthly Balance derived block (shared by legacy + live rows). */
         const cmb = (o: {
-          cage: number; manager: number; bankTzs: number; bankUsd: number;
-          expenses: number; inV: number; outV: number;
+          cage: number; cashPart: number; cashlessPart: number; carried: boolean;
+          manager: number; bankTzs: number; bankUsd: number;
+          expenses: number; inV: number; outV: number; result: number;
           live: number; slotsDiff: number;
         }) => {
-          const moneyTotal = o.cage + o.manager + o.bankTzs + o.bankUsd;
+          // Manual bank overrides (inline editor) win over computed balances.
+          const manualTzs = l?.bank_account != null ? num(l.bank_account) : null;
+          const manualUsdRaw = l?.bank_account_usd != null ? num(l.bank_account_usd) : null;
+          const bankTzs = manualTzs != null ? manualTzs : o.bankTzs;
+          const bankUsd = manualUsdRaw != null ? manualUsdRaw * rate : o.bankUsd;
+          const moneyTotal = o.cage + o.manager + bankTzs + bankUsd;
+          const check = prevMoney + o.result + o.inV - o.outV - o.expenses;
+          prevMoney = moneyTotal;
           return {
             live_cash_result: o.live,
             slots_diff: o.slotsDiff,
             cage_casino: o.cage,
+            cage_cash_part: o.cashPart,
+            cage_cashless_part: o.cashlessPart,
+            cage_carried: o.carried,
             transfer_cage_manager: trfToManager[date] ?? 0,
             cage_manager: o.manager,
             transfer_bank: trfToBank[date] ?? 0,
-            bank_tzs: o.bankTzs,
-            bank_usd: o.bankUsd,
+            bank_tzs: bankTzs,
+            bank_usd: bankUsd,
+            bank_usd_raw: manualUsdRaw ?? (rate ? o.bankUsd / rate : 0),
+            bank_tzs_manual: manualTzs != null,
+            bank_usd_manual: manualUsdRaw != null,
             money_in: o.inV,
             money_out: o.outV,
             money_total: moneyTotal,
-            balance: moneyTotal + o.inV - o.outV - o.expenses,
+            balance: moneyTotal,
+            balance_check: check,
           };
         };
 
