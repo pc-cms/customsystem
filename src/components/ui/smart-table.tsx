@@ -85,6 +85,11 @@ export interface SmartTableProps<T> {
   /** Sticky first column. */
   stickyFirstColumn?: boolean;
   /**
+   * Let the caller own scrolling. Pass `false` when SmartTable sits inside an
+   * `overflow-auto` container so sticky header/footer anchor to that container.
+   */
+  scroll?: boolean;
+  /**
    * Freeze the first N columns. Pass the cumulative left offset (px) of each
    * frozen column, e.g. `[0, 104]` freezes col#1 at left:0 and col#2 at 104px.
    * Takes precedence over `stickyFirstColumn`.
@@ -264,6 +269,7 @@ export function SmartTable<T>({
   rowClassName,
   onRowClick,
   stickyFirstColumn,
+  scroll,
   stickyColumns,
   stickyHeader,
   groupHeader,
@@ -442,6 +448,7 @@ export function SmartTable<T>({
       <DataTable
         className={className}
         bare={bare}
+        scroll={scroll}
         stickyFirstColumn={stickyFirstColumn}
       >
         {headerRow}
@@ -461,7 +468,7 @@ export function SmartTable<T>({
 
   if (loading) {
     return (
-      <DataTable className={className} bare={bare} stickyFirstColumn={stickyFirstColumn}>
+      <DataTable className={className} bare={bare} scroll={scroll} stickyFirstColumn={stickyFirstColumn}>
         {headerRow}
         <DTBody>
           {Array.from({ length: loadingRows }).map((_, i) => (
@@ -510,7 +517,7 @@ export function SmartTable<T>({
   }
 
   return (
-    <DataTable className={className} bare={bare} stickyFirstColumn={stickyFirstColumn}>
+    <DataTable className={className} bare={bare} scroll={scroll} stickyFirstColumn={stickyFirstColumn}>
       {headerRow}
       <PlainBody
         rows={sortedData}
