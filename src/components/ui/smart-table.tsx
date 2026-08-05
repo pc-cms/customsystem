@@ -85,6 +85,11 @@ export interface SmartTableProps<T> {
   /** Sticky first column. */
   stickyFirstColumn?: boolean;
   /**
+   * Let the caller own scrolling. Pass `false` when SmartTable sits inside an
+   * `overflow-auto` container so sticky header/footer anchor to that container.
+   */
+  scroll?: boolean;
+  /**
    * Freeze the first N columns. Pass the cumulative left offset (px) of each
    * frozen column, e.g. `[0, 104]` freezes col#1 at left:0 and col#2 at 104px.
    * Takes precedence over `stickyFirstColumn`.
