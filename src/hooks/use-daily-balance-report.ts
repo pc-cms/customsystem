@@ -649,9 +649,9 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             money_out: o.outV,
             money_total: moneyTotal,
             fin_result: o.result - o.expenses + o.inV - o.outV,
-            // Balance is a VARIANCE (actual money − expected money): → 0.
-            balance: moneyTotal - check,
-            balance_check: check,
+            // Balance = opening + result + diff − office − expenses − cage − bank → 0.
+            balance,
+            balance_check: opening + o.result + diffTotal - officeNet - o.expenses,
             chips_detail: chipsDetail[date] ?? [],
             cage_detail: cageDetail[date] ?? { cash: [], cashless: [], slots_total: 0 },
             transfers_manager: managerTransfers[date] ?? [],
