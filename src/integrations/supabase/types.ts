@@ -1376,6 +1376,7 @@ export type Database = {
           note: string
           physical_total: number
           physical_total_tzs: number
+          source: string
           wallet_id: string | null
           wallet_type: Database["public"]["Enums"]["wallet_type"]
         }
@@ -1392,6 +1393,7 @@ export type Database = {
           note?: string
           physical_total?: number
           physical_total_tzs?: number
+          source?: string
           wallet_id?: string | null
           wallet_type: Database["public"]["Enums"]["wallet_type"]
         }
@@ -1408,6 +1410,7 @@ export type Database = {
           note?: string
           physical_total?: number
           physical_total_tzs?: number
+          source?: string
           wallet_id?: string | null
           wallet_type?: Database["public"]["Enums"]["wallet_type"]
         }
@@ -11173,6 +11176,10 @@ export type Database = {
         }
         Returns: string
       }
+      fin_denoms_scale: {
+        Args: { p_denoms: Json; p_factor: number }
+        Returns: Json
+      }
       fin_lock_day_closing: {
         Args: { p_id: string; p_variance_note?: string }
         Returns: undefined
@@ -11220,6 +11227,16 @@ export type Database = {
           p_wallet_id: string
         }
         Returns: Json
+      }
+      fin_wallet_autocount: {
+        Args: {
+          p_actor: string
+          p_amount: number
+          p_denoms: Json
+          p_note: string
+          p_wallet_id: string
+        }
+        Returns: undefined
       }
       finalize_open_cycles_for_close: {
         Args: { _casino_id: string; _user: string }
