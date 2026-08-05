@@ -664,8 +664,12 @@ const DailyBalanceReport = () => {
         />
       </div>
 
-      {/* Row 2: Casino Result · Money · Expenses · Balance */}
-      <div className="mb-3 grid grid-cols-4 gap-2">
+      {/* Row 2: Starting Balance · Casino Result · Money · Expenses · Balance */}
+      <div className="mb-3 grid grid-cols-5 gap-2">
+        <StartingBalanceTile
+          storageKey={`dbr-start-balance:${activeCasino?.id ?? "none"}:${month}`}
+          hint={`Opening ${monthLabel} · manual`}
+        />
         <Tile label="Casino Result" value={num(grandRow, "casino_result")} hint="Live Game + Slots + Bar" />
         <Tile
           label="Money"
