@@ -434,15 +434,37 @@ export const useDailyBalanceReport = (from: string, to: string) => {
       const allTxDates = Array.from(
         new Set([...Object.keys(txByDate), ...Object.keys(floatByDate)]),
       ).sort();
+      /** Per-wallet running balance — feeds the "Cage Manager" detail panel. */
+      const perWallet: Record<string, number> = {};
+      wallets.forEach((w) => {
+        const f = num(w.starting_float_amount);
+        const d: string = w.starting_float_date ? String(w.starting_float_date).slice(0, 10) : "";
+        if (!f || (d && d >= from)) return;
+        perWallet[w.id] = (w.currency || "TZS") === "TZS" ? f : f * FALLBACK_USD_RATE;
+      });
+      const officeWalletsByDate: Record<string, WalletBalance[]> = {};
+      const officeWallets = wallets.filter(
+        (w) => w.kind === "office_safe" || String(w.kind).endsWith("_reserve"),
+      );
+
       for (const d of allTxDates) {
         const f = floatByDate[d];
         if (f) {
           cageBal += f.cage; officeBal += f.office;
           bankTzsBal += f.bankTzs; bankUsdBal += f.bankUsd;
+          wallets.forEach((w) => {
+            const wf = num(w.starting_float_amount);
+            const wd: string = w.starting_float_date ? String(w.starting_float_date).slice(0, 10) : "";
+            if (!wf || !wd || wd !== d) return;
+            const rate = rateByDate[d] || FALLBACK_USD_RATE;
+            perWallet[w.id] = (perWallet[w.id] || 0) +
+              ((w.currency || "TZS") === "TZS" ? wf : wf * rate);
+          });
         }
         for (const t of txByDate[d] ?? []) {
           const k = walletKind[t.wallet_id];
           const v = tzs(t);
+          perWallet[t.wallet_id] = (perWallet[t.wallet_id] || 0) + v;
           if (CAGE_KINDS.has(k)) cageBal += v;
           else if (k === "office_safe") officeBal += v;
           else if (k === "bank_account") {
@@ -454,7 +476,13 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         bankRunning[d] = bankTzsBal + bankUsdBal;
         bankTzsRunning[d] = bankTzsBal;
         bankUsdRunning[d] = bankUsdBal;
+        officeWalletsByDate[d] = officeWallets.map((w) => ({
+          name: w.name,
+          currency: w.currency || "TZS",
+          balance: perWallet[w.id] || 0,
+        }));
       }
+
 
 
       const terminal: Bucket = {};
