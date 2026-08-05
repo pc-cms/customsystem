@@ -38,77 +38,64 @@ type Col = {
   value: (r: DailyBalanceRow) => number;
 };
 
-/** Numeric source fields — used to aggregate week / total rows. */
+/** Numeric FLOW fields — summed across week / month rows. */
 const BASE_KEYS: (keyof DailyBalanceRow)[] = [
-  "casino_result", "tables_result", "slots_result", "bar_result", "credit_deposit",
-  "expenses", "bank_expenses", "collection_bank", "office_transfer", "office_in", "office_out",
-  "cage_cash", "office_cash", "bank_account", "bank_terminal", "bank_fee",
-  "day_total", "cash_desk_result", "day_balance", "chip_difference", "tips_tables", "tips_slots",
+  "casino_result", "tables_result", "slots_result", "live_cash_result", "slots_diff",
+  "chip_difference", "transfer_cage_manager", "transfer_bank",
+  "expenses", "bank_expenses", "money_in", "money_out",
+  "day_total", "cash_desk_result", "day_balance", "collection_bank",
+];
+
+/** SNAPSHOT fields — end-of-day stock values, never summed (last value wins). */
+const SNAPSHOT_KEYS: (keyof DailyBalanceRow)[] = [
+  "cage_casino", "cage_manager", "bank_tzs", "bank_usd", "money_total", "balance",
 ];
 
 const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
   {
     key: "incomes",
-    label: "Incomes",
+    label: "Casino result",
     cols: [
-      { id: "inc_total", label: "Result", total: true, value: (r) => num(r, "casino_result") },
-      { id: "credit_deposit", label: "Credit / Deposit", value: (r) => num(r, "credit_deposit") },
-      { id: "tables_result", label: "Live", detail: true, value: (r) => num(r, "tables_result") },
-      { id: "slots_result", label: "Slots (net)", detail: true, value: (r) => num(r, "slots_result") },
-      { id: "bar_result", label: "Bar", detail: true, value: (r) => num(r, "bar_result") },
-    ],
-  },
-  {
-    key: "expenses",
-    label: "Expenses",
-    cols: [
-      {
-        id: "exp_total", label: "Expenses", total: true,
-        value: (r) => num(r, "expenses") + num(r, "bank_expenses"),
-      },
-      { id: "expenses", label: "Operating", detail: true, value: (r) => num(r, "expenses") },
-      { id: "bank_expenses", label: "Bank", detail: true, value: (r) => num(r, "bank_expenses") },
+      { id: "result", label: "Result", total: true, value: (r) => num(r, "casino_result") },
+      { id: "live_cash_result", label: "Live", value: (r) => num(r, "live_cash_result") },
+      { id: "tables_result", label: "Table", value: (r) => num(r, "tables_result") },
+      { id: "chip_difference", label: "Chip Diff", value: (r) => num(r, "chip_difference") },
+      { id: "slots_diff", label: "Slots Diff", value: (r) => num(r, "slots_diff") },
     ],
   },
   {
     key: "transfers",
-    label: "Transfers",
+    label: "Cage & transfers",
     cols: [
-      {
-        id: "trf_total", label: "Transfers", total: true,
-        value: (r) => num(r, "collection_bank") + num(r, "office_transfer"),
-      },
-      { id: "collection_bank", label: "Collection → Bank", detail: true, value: (r) => num(r, "collection_bank") },
-      { id: "office_transfer", label: "Int. Transfer", detail: true, value: (r) => num(r, "office_transfer") },
-      { id: "office_in", label: "Office In", detail: true, value: (r) => num(r, "office_in") },
-      { id: "office_out", label: "Office Out", detail: true, value: (r) => num(r, "office_out") },
+      { id: "cage_casino", label: "Cage Casino", total: true, value: (r) => num(r, "cage_casino") },
+      { id: "transfer_cage_manager", label: "Transfer → Manager", value: (r) => num(r, "transfer_cage_manager") },
+      { id: "cage_manager", label: "Cage Manager", total: true, value: (r) => num(r, "cage_manager") },
+      { id: "transfer_bank", label: "Transfer → Bank", value: (r) => num(r, "transfer_bank") },
     ],
   },
   {
     key: "money",
-    label: "Money",
+    label: "Bank",
     cols: [
-      {
-        id: "money_total", label: "Money Total", total: true,
-        value: (r) => num(r, "cage_cash") + num(r, "office_cash") + num(r, "bank_account"),
-      },
-      { id: "cage_cash", label: "Cage Cash", detail: true, value: (r) => num(r, "cage_cash") },
-      { id: "office_cash", label: "Office Safe", detail: true, value: (r) => num(r, "office_cash") },
-      { id: "bank_account", label: "Bank Account", detail: true, value: (r) => num(r, "bank_account") },
-      { id: "bank_terminal", label: "Terminal (net)", detail: true, value: (r) => num(r, "bank_terminal") },
-      { id: "bank_fee", label: "Fee 3%", detail: true, value: (r) => num(r, "bank_fee") },
+      { id: "bank_tzs", label: "Bank TZS", value: (r) => num(r, "bank_tzs") },
+      { id: "bank_usd", label: "Bank USD", value: (r) => num(r, "bank_usd") },
+    ],
+  },
+  {
+    key: "expenses",
+    label: "Flows",
+    cols: [
+      { id: "expenses", label: "Expenses", total: true, value: (r) => num(r, "expenses") },
+      { id: "money_in", label: "IN", value: (r) => num(r, "money_in") },
+      { id: "money_out", label: "OUT", value: (r) => num(r, "money_out") },
     ],
   },
   {
     key: "balances",
-    label: "Balances",
+    label: "Balance",
     cols: [
-      { id: "bal_total", label: "Day Balance", total: true, value: (r) => num(r, "day_balance") },
-      { id: "day_total", label: "Day Total", detail: true, value: (r) => num(r, "day_total") },
-      { id: "cash_desk_result", label: "Cash Desk", detail: true, value: (r) => num(r, "cash_desk_result") },
-      { id: "chip_difference", label: "Chip Diff", detail: true, value: (r) => num(r, "chip_difference") },
-      { id: "tips_tables", label: "Tips Tables", detail: true, value: (r) => num(r, "tips_tables") },
-      { id: "tips_slots", label: "Tips Slots", detail: true, value: (r) => num(r, "tips_slots") },
+      { id: "money_total", label: "Money", total: true, value: (r) => num(r, "money_total") },
+      { id: "balance", label: "Balance", total: true, value: (r) => num(r, "balance") },
     ],
   },
 ];
@@ -116,6 +103,7 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
 const ALL_COLS: (Col & { section: SectionKey })[] = SECTIONS.flatMap((s) =>
   s.cols.map((c) => ({ ...c, section: s.key })),
 );
+
 
 /** Section headlines get the heat fill. */
 const HEAT_IDS = new Set(ALL_COLS.filter((c) => c.total).map((c) => c.id));
