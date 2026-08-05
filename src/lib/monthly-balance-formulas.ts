@@ -30,7 +30,13 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
     source: "table_daily_results / shift table results",
     total: "sum",
   },
+  diff_total: {
+    formula: "Chip Diff + Slots Diff",
+    source: "Chip checks + fin_day_closing.players_card_balance",
+    total: "sum",
+  },
   chip_difference: {
+
     formula: "Chip miss = cage chip delta vs. declared chips",
     source: "Chip checks / cage closing (07:00 rollover)",
     total: "sum",
