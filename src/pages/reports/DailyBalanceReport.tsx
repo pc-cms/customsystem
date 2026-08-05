@@ -9,19 +9,17 @@
  * clicking the group header reveals its component columns.
  */
 import { useMemo, useState } from "react";
-import { Wallet2, ChevronDown, ChevronRight } from "lucide-react";
+import { Wallet2, Flame, Columns3 } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { FilterBar } from "@/components/layout/FilterBar";
 import { SmartTable, type ColumnDef, type SortState } from "@/components/ui/smart-table";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useCasino } from "@/lib/casino-context";
 import { useSessionState } from "@/hooks/use-session-state";
-import { formatMoney, formatMoneyFull, type MoneyDisplayMode } from "@/lib/format-money";
+import { formatMoney, formatMoneyFull } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
 import { cn } from "@/lib/utils";
 import { useDailyBalanceReport, useSetCreditDeposit, type DailyBalanceRow } from "@/hooks/use-daily-balance-report";
@@ -180,16 +178,15 @@ const DailyBalanceReport = () => {
   const [month, setMonth] = useSessionState("dbr-month", currentMonth());
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
   const [hideEmpty, setHideEmpty] = useSessionState("dbr-hide-empty", true);
-  const [moneyMode, setMoneyMode] = useSessionState<MoneyDisplayMode>("dbr-money", "compact");
   const [heatmap, setHeatmap] = useSessionState("dbr-heatmap", true);
-  const [weeks, setWeeks] = useSessionState("dbr-weeks", true);
+  /** Fixed display options — toolbar reduced to Heatmap + Columns only. */
+  const moneyMode = "compact" as const;
+  const weeks = true;
   const [sort, setSort] = useState<SortState | null>({ key: "date", dir: "asc" });
   const [detail, setDetail] = useState<DailyBalanceRow | null>(null);
 
   const { from, to } = monthBounds(month);
   const { data: rows = [], isLoading } = useDailyBalanceReport(from, to);
-
-  const allExpanded = SECTIONS.every((s) => expanded.has(s.key));
 
   const toggleExpand = (g: SectionKey) =>
     setExpanded((prev) => {
@@ -197,8 +194,6 @@ const DailyBalanceReport = () => {
       next.has(g) ? next.delete(g) : next.add(g);
       return next;
     });
-
-  const toggleAll = () => setExpanded(allExpanded ? new Set() : new Set(SECTIONS.map((s) => s.key)));
 
   /** Sum of every source field across the month — feeds Total / Average rows. */
   const grandRow = useMemo(() => {
@@ -442,7 +437,19 @@ const DailyBalanceReport = () => {
         title="Daily Balance Sheet"
         subtitle="Legacy balance layout rebuilt from live data — all figures in TZS"
         context={activeCasino?.name}
-      />
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            {daysWithData} days · {visibleMoneyCols.length} columns
+          </span>
+          <Input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value || currentMonth())}
+            className="h-8 w-[150px] text-xs"
+          />
+        </div>
+      </PageHeader>
 
       {/* KPI tiles */}
       <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
@@ -469,42 +476,29 @@ const DailyBalanceReport = () => {
         />
       </div>
 
-      <FilterBar
-        search={
-          <Input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value || currentMonth())}
-            className="h-8 w-[150px] text-xs"
-          />
-        }
-        filters={[
-          <Button key="expand-all" variant="outline" size="sm" className="h-8 text-xs" onClick={toggleAll}>
-            {allExpanded ? <ChevronDown className="mr-1 h-3.5 w-3.5" /> : <ChevronRight className="mr-1 h-3.5 w-3.5" />}
-            {allExpanded ? "Collapse all" : "Expand all"}
-          </Button>,
-          <Toggle key="hide-empty" size="sm" pressed={hideEmpty} onPressedChange={() => setHideEmpty(!hideEmpty)} className="h-8 px-2 text-xs">
-            Hide empty
-          </Toggle>,
-          <Toggle key="compact" size="sm" pressed={moneyMode === "compact"} onPressedChange={() => setMoneyMode(moneyMode === "compact" ? "full" : "compact")} className="h-8 px-2 text-xs">
-            Short numbers
-          </Toggle>,
-          <Toggle key="heat" size="sm" pressed={heatmap} onPressedChange={() => setHeatmap(!heatmap)} className="h-8 px-2 text-xs">
-            Heatmap
-          </Toggle>,
-          <Toggle key="weeks" size="sm" pressed={weeks} onPressedChange={() => setWeeks(!weeks)} className="h-8 px-2 text-xs">
-            Weekly totals
-          </Toggle>,
-        ]}
-        right={
-          <div className="text-xs text-muted-foreground">
-            {daysWithData} days with data · {visibleMoneyCols.length} columns
-          </div>
-        }
-      />
-
       <PageSection card={false}>
-        <div className="max-h-[70vh] overflow-auto rounded-md border border-border">
+        <div className="relative pt-10">
+          <Toggle
+            size="sm"
+            pressed={hideEmpty}
+            onPressedChange={() => setHideEmpty(!hideEmpty)}
+            title={hideEmpty ? "Show all columns" : "Hide empty columns"}
+            className="absolute top-0 left-0 z-20 h-8 gap-1 px-2 text-xs"
+          >
+            <Columns3 className="h-3.5 w-3.5" />
+            {hideEmpty ? "Show columns" : "Hide empty"}
+          </Toggle>
+          <Toggle
+            size="sm"
+            pressed={heatmap}
+            onPressedChange={() => setHeatmap(!heatmap)}
+            title="Toggle heatmap"
+            className="absolute top-0 right-0 z-20 h-8 gap-1 px-2 text-xs"
+          >
+            <Flame className="h-3.5 w-3.5" />
+            Heatmap
+          </Toggle>
+          <div className="max-h-[70vh] overflow-auto rounded-md border border-border">
           <SmartTable
             data={displayRows}
             columns={columns}
@@ -522,6 +516,7 @@ const DailyBalanceReport = () => {
             className="[&_tbody_tr:nth-child(odd)]:bg-transparent"
             empty={<div className="py-10 text-center text-sm text-muted-foreground">No data for this month</div>}
           />
+          </div>
         </div>
       </PageSection>
 
