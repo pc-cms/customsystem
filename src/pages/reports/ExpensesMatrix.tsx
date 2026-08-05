@@ -24,7 +24,7 @@ const currentMonth = () => new Date().toISOString().slice(0, 7);
 const ExpensesMatrixPage = () => {
   const { activeCasino } = useCasino();
   const [month, setMonth] = useSessionState("exp-matrix-month", currentMonth());
-  const [cell, setCell] = useState<{ code: string; label: string; day: string } | null>(null);
+  const [cell, setCell] = useState<{ code: string; label: string; day: string | null } | null>(null);
   const { data, isLoading } = useExpensesMatrix(month);
 
   const rows = data?.rows ?? [];
@@ -99,7 +99,18 @@ const ExpensesMatrixPage = () => {
       key: "total",
       header: "Total",
       type: "money",
-      accessor: (r) => money(r.total),
+      accessor: (r) => (
+        <span
+          className={cn(r.total && "cursor-pointer underline-offset-2 hover:underline")}
+          onClick={(e) => {
+            if (!r.total) return;
+            e.stopPropagation();
+            setCell({ code: r.code, label: r.label, day: null });
+          }}
+        >
+          {money(r.total)}
+        </span>
+      ),
       sortValue: (r) => r.total,
       headerClassName: "whitespace-nowrap border-l-2 border-border font-semibold",
       cellClassName: () => "py-1 border-l-2 border-border font-mono font-semibold tabular-nums",
@@ -136,7 +147,16 @@ const ExpensesMatrixPage = () => {
     month: "long", year: "numeric", timeZone: "UTC",
   });
 
-  const cellItems = cell ? data?.items[`${cell.code}|${cell.day}`] ?? [] : [];
+  /** Sheet contents: one day, or the whole month when the Total cell was clicked. */
+  const cellItems = useMemo(() => {
+    if (!cell || !data) return [];
+    if (cell.day) return data.items[`${cell.code}|${cell.day}`] ?? [];
+    return days
+      .flatMap((d) => data.items[`${cell.code}|${d}`] ?? [])
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [cell, data, days]);
+
+  const cellTotal = cellItems.reduce((s, it) => s + it.amount, 0);
 
   return (
     <PageShell>
@@ -189,13 +209,25 @@ const ExpensesMatrixPage = () => {
       <Sheet open={!!cell} onOpenChange={(o) => !o && setCell(null)}>
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
           <SheetHeader>
-            <SheetTitle>{cell ? `${cell.label} · ${fmtDate(cell.day)}` : ""}</SheetTitle>
+            <SheetTitle className="flex items-baseline justify-between gap-3">
+              <span>{cell ? `${cell.label} · ${cell.day ? fmtDate(cell.day) : monthLabel}` : ""}</span>
+              <span className="font-mono text-sm tabular-nums">{formatMoneyFull(Math.round(cellTotal))}</span>
+            </SheetTitle>
+            <p className="text-xs text-muted-foreground">
+              {cellItems.length} {cellItems.length === 1 ? "entry" : "entries"} ·{" "}
+              {cell?.day ? "day total" : "month total"}
+            </p>
           </SheetHeader>
           <div className="mt-4 rounded-md border border-border">
             {cellItems.map((it) => (
               <div key={it.id} className="border-b border-border/60 px-2 py-1.5 text-xs last:border-0">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate">{it.description || "—"}</span>
+                  <span className="truncate">
+                    {!cell?.day && (
+                      <span className="mr-2 font-mono text-[10px] text-muted-foreground">{fmtDate(it.date)}</span>
+                    )}
+                    {it.description || "—"}
+                  </span>
                   <span className="font-mono tabular-nums">{formatMoneyFull(Math.round(it.amount))}</span>
                 </div>
                 {it.wallet && <div className="text-[10px] text-muted-foreground">{it.wallet}</div>}
