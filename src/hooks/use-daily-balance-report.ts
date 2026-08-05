@@ -256,7 +256,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         // Slots cage closing cash inventory (per shift) → Cage Cash (SLOTS part)
         fetchPaged<any>((a, b) =>
           sb.from("cage_slots_cash_inventory")
-            .select("total_tzs, inventory_type, cage_slots_shifts!inner(business_date, casino_id)")
+            .select("total_tzs, inventory_type, created_at, cage_slots_shifts!inner(business_date, casino_id)")
             .eq("casino_id", casino).eq("inventory_type", "closing")
             .gte("cage_slots_shifts.business_date", from)
             .lte("cage_slots_shifts.business_date", to).range(a, b)),
@@ -315,8 +315,15 @@ export const useDailyBalanceReport = (from: string, to: string) => {
       const cageDetail: Record<string, CageDetail> = {};
       const cageBucket = (d: string) =>
         (cageDetail[d] ??= { cash: [], cashless: [], slots_total: 0 });
-      shifts.forEach((s) => {
+      /**
+       * Cage figures are a SNAPSHOT at the end of the business day, never a sum
+       * of the day's shifts: only the LAST closing of each day is kept.
+       */
+      const sortedShifts = [...shifts].sort((a, b) =>
+        String(a.closed_at || a.opened_at).localeCompare(String(b.closed_at || b.opened_at)));
+      sortedShifts.forEach((s) => {
         const d = dateOnly(s.closed_at || s.opened_at);
+        // Cash-desk / tables results ARE per-shift flows → summed over the day.
         add(cashDesk, d, num(s.cash_desk_result));
         add(liveCashDesk, d, num(s.cash_desk_result));
         add(shiftTables, d, num(s.tables_result));
@@ -326,10 +333,13 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         const closingTotal = num(ct.total_tzs)
           ? num(ct.total_tzs) - num(ct.chips_tzs)
           : num(s.closing_cash?.actual) - num(ct.chips_tzs);
-        add(cageClosing, d, closingTotal);
-        add(cageCashless, d, sumProviders(s.cashless_in_providers) - sumProviders(s.cashless_out_providers));
+        cageClosing[d] = closingTotal;
+        cageCashless[d] = sumProviders(s.cashless_in_providers) - sumProviders(s.cashless_out_providers);
 
         const b = cageBucket(d);
+        // Snapshot semantics — the last shift of the day replaces the breakdown.
+        b.cash = [];
+        b.cashless = [];
         const cash = (s.closing_count as any)?.cash || {};
         for (const [currency, denoms] of Object.entries(cash)) {
           for (const [denom, qty] of Object.entries((denoms || {}) as Record<string, unknown>)) {
@@ -354,22 +364,31 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         }
         for (const [name, amount] of Object.entries(providers)) {
           if (!amount) continue;
-          const ex = b.cashless.find((c) => c.name === name);
-          if (ex) ex.amount += amount; else b.cashless.push({ name, amount });
+          b.cashless.push({ name, amount });
         }
       });
 
       slotShifts.forEach((s) => {
+        // Flows of the day.
         add(cashDesk, s.business_date, num(s.cash_desk_result));
         add(slotsCashDesk, s.business_date, num(s.cash_desk_result));
         add(slotsDeclared, s.business_date, num(s.slots_result));
-        add(cageCashless, s.business_date, num(s.cashless_final));
+        // Cashless balance of the slots cage — snapshot, last shift wins.
+        cageCashless[s.business_date] = (cageCashless[s.business_date] ?? 0) + num(s.cashless_final);
         if (slotsRes[s.business_date] == null) add(slotsRes, s.business_date, num(s.slots_result));
       });
+      // Slots cage closing inventory — snapshot: keep the LAST closing per day.
+      const lastSlotsInv: Record<string, { at: string; total: number }> = {};
       slotsClosing.forEach((i) => {
         const d = i.cage_slots_shifts?.business_date;
-        add(cageClosing, d, num(i.total_tzs));
-        if (d) cageBucket(d).slots_total += num(i.total_tzs);
+        if (!d) return;
+        const at = String(i.created_at || "");
+        const prev = lastSlotsInv[d];
+        if (!prev || at >= prev.at) lastSlotsInv[d] = { at, total: num(i.total_tzs) };
+      });
+      Object.entries(lastSlotsInv).forEach(([d, v]) => {
+        add(cageClosing, d, v.total);
+        cageBucket(d).slots_total = v.total;
       });
 
 
@@ -609,14 +628,20 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         const slotsNet = (slotsRes[date] ?? 0) - (cardBal[date] ?? 0);
         const barV = bar[date] ?? 0;
 
-        // No carry-forward: every row shows ONLY its own day's figures.
-        lastCage = cageRunning[date] ?? 0;
-        lastOffice = officeRunning[date] ?? 0;
-        lastOfficeWallets = officeWalletsByDate[date] ?? [];
-        lastBank = bankRunning[date] ?? 0;
-        lastBankTzs = bankTzsRunning[date] ?? 0;
-        lastBankUsd = bankUsdRunning[date] ?? 0;
-        lastChips = chipFloat[date] ?? 0;
+        /**
+         * STOCKS (safe / bank balances) are the state AT THAT MOMENT: the wallet
+         * balance as of the end of that day. On a day with no movement the
+         * balance simply stays the same — that is a snapshot, not an accumulation.
+         * FLOWS (in / out / expenses / results) are strictly per-day and never
+         * carried over.
+         */
+        lastCage = cageRunning[date] ?? lastCage;
+        lastOffice = officeRunning[date] ?? lastOffice;
+        lastOfficeWallets = officeWalletsByDate[date] ?? lastOfficeWallets;
+        lastBank = bankRunning[date] ?? lastBank;
+        lastBankTzs = bankTzsRunning[date] ?? lastBankTzs;
+        lastBankUsd = bankUsdRunning[date] ?? lastBankUsd;
+        lastChips = chipFloat[date] ?? lastChips;
 
         const hasSystemData =
           tablesRes[date] != null || slotsRes[date] != null || cashDesk[date] != null ||
@@ -673,7 +698,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             cage_detail: cageDetail[date] ?? { cash: [], cashless: [], slots_total: 0 },
             transfers_manager: managerTransfers[date] ?? [],
             transfers_bank: bankTransfers[date] ?? [],
-            office_wallets: officeWalletsByDate[date] ?? [],
+            office_wallets: lastOfficeWallets,
           };
         };
 
