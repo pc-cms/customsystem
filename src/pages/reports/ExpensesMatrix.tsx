@@ -124,11 +124,11 @@ const ExpensesMatrixPage = () => {
     ? [
         {
           key: "total",
-          className: "font-semibold",
+          className: "font-bold border-t-2 border-border bg-muted",
           cell: (col: ColumnDef<ExpenseCategoryRow>) => {
             if (col.key === "label")
               return (
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-foreground">
                   Total
                 </span>
               );
@@ -137,7 +137,7 @@ const ExpensesMatrixPage = () => {
                 ? grandTotal
                 : rows.reduce((s, r) => s + (r.byDay[col.key as string] || 0), 0);
             return (
-              <span className="font-mono tabular-nums">{v ? formatMoneyFull(Math.round(v)) : "·"}</span>
+              <span className="font-mono font-bold tabular-nums">{v ? formatMoneyFull(Math.round(v)) : "·"}</span>
             );
           },
         },
