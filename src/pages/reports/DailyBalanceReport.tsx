@@ -201,13 +201,18 @@ const DailyBalanceReport = () => {
   const { activeCasino } = useCasino();
   const [month, setMonth] = useSessionState("dbr-month", currentMonth());
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
-  const [hideEmpty, setHideEmpty] = useSessionState("dbr-hide-empty", true);
-  const [heatmap, setHeatmap] = useSessionState("dbr-heatmap", true);
-  /** Fixed display options — toolbar reduced to Heatmap + Columns only. */
-  const moneyMode = "compact" as const;
+  /** Fixed display options — every column is always shown, in full figures. */
+  const heatmap = true;
   const weeks = true;
   const [sort, setSort] = useState<SortState | null>({ key: "date", dir: "asc" });
   const [detail, setDetail] = useState<DailyBalanceRow | null>(null);
+
+  /** Shift the selected month by ±1. */
+  const stepMonth = (delta: number) => {
+    const [y, m] = month.split("-").map(Number);
+    const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+    setMonth(d.toISOString().slice(0, 7));
+  };
 
   const { from, to } = monthBounds(month);
   const { data: rows = [], isLoading } = useDailyBalanceReport(from, to);
