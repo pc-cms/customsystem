@@ -625,10 +625,11 @@ const DailyBalanceReport = () => {
             const v = c ? Math.round(c.value(grandRow)) : 0;
             const tip = formulaText(col.key);
             return (
-              <span className="inline-flex items-center gap-1">
-                <span className={cn("font-mono tabular-nums", v < 0 && "cms-amount-negative")}>
+              <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                <span className={cn("font-mono text-[11px] font-bold tabular-nums", v < 0 && "cms-amount-negative")}>
                   {formatMoneyFull(v)}
                 </span>
+
                 {tip && (
                   <Tooltip>
                     <TooltipTrigger asChild>
