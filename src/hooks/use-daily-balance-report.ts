@@ -132,6 +132,16 @@ export interface DailyBalanceRow {
   transfers_bank: TransferDetail[];
   /** Manager / office safe wallets with their balance at end of day. */
   office_wallets: WalletBalance[];
+  /** Bank wallets with their balance at end of day. */
+  bank_wallets: WalletBalance[];
+  /** Office money movements of the day (IN positive / OUT negative). */
+  office_movements: TransferDetail[];
+  /** Expenses of the day grouped by category. */
+  expenses_detail: { label: string; value: number }[];
+  /** Tips of the day (tables + slots). */
+  tips_total: number;
+  /** Virtual "Start" row (carried over from the previous month). */
+  is_start?: boolean;
 
   /** true when the row came from the imported legacy sheet */
   legacy: boolean;
@@ -139,7 +149,10 @@ export interface DailyBalanceRow {
   hasSystemData: boolean;
   /** true when the business day is closed — open days show no figures. */
   day_closed: boolean;
+  /** true when the money figures come from a recorded closing snapshot. */
+  snapshot: boolean;
 }
+
 
 
 
