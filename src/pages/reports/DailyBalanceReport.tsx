@@ -30,7 +30,7 @@ import {
   useDailyBalanceReport, useSetCreditDeposit, useSetBankBalance, type DailyBalanceRow,
 } from "@/hooks/use-daily-balance-report";
 
-type SectionKey = "incomes" | "diff" | "expenses" | "transfers" | "money" | "balances";
+type SectionKey = "incomes" | "diff" | "expenses" | "office" | "transfers" | "money" | "balances";
 
 const num = (r: DailyBalanceRow, k: keyof DailyBalanceRow) => Number(r[k] || 0);
 
