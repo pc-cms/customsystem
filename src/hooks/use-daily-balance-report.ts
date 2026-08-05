@@ -574,8 +574,9 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         }
         for (const t of txByDate[d] ?? []) {
           const k = walletKind[t.wallet_id];
-          const v = tzs(t);
+          const v = signedWalletTxTzs(t);
           perWallet[t.wallet_id] = (perWallet[t.wallet_id] || 0) + v;
+
           if (CAGE_KINDS.has(k)) cageBal += v;
           else if (isOfficeKind(k)) officeBal += v;
           else if (isBankKind(k)) {
