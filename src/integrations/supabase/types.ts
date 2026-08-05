@@ -3706,6 +3706,44 @@ export type Database = {
           },
         ]
       }
+      fin_day_balance_snapshot: {
+        Row: {
+          business_date: string
+          casino_id: string
+          created_at: string
+          data: Json
+          id: string
+          recorded_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_date: string
+          casino_id: string
+          created_at?: string
+          data?: Json
+          id?: string
+          recorded_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string
+          created_at?: string
+          data?: Json
+          id?: string
+          recorded_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_day_balance_snapshot_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_day_closing: {
         Row: {
           business_date: string
@@ -4120,6 +4158,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fin_month_closures_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_month_start: {
+        Row: {
+          bank_tzs: number
+          bank_usd: number
+          cage_casino: number
+          cage_manager: number
+          casino_id: string
+          created_at: string
+          diff_total: number
+          id: string
+          month: string
+          tips_total: number
+          updated_at: string
+        }
+        Insert: {
+          bank_tzs?: number
+          bank_usd?: number
+          cage_casino?: number
+          cage_manager?: number
+          casino_id: string
+          created_at?: string
+          diff_total?: number
+          id?: string
+          month: string
+          tips_total?: number
+          updated_at?: string
+        }
+        Update: {
+          bank_tzs?: number
+          bank_usd?: number
+          cage_casino?: number
+          cage_manager?: number
+          casino_id?: string
+          created_at?: string
+          diff_total?: number
+          id?: string
+          month?: string
+          tips_total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_month_start_casino_id_fkey"
             columns: ["casino_id"]
             isOneToOne: false
             referencedRelation: "casinos"

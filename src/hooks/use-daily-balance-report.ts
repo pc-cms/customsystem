@@ -15,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { fetchPaged } from "@/lib/fetch-paged";
 import { businessDateOf } from "@/lib/business-day";
+import { signedWalletTxTzs } from "@/lib/wallet-tx-sign";
+
 
 export const FALLBACK_USD_RATE = 2600;
 /**
@@ -132,6 +134,16 @@ export interface DailyBalanceRow {
   transfers_bank: TransferDetail[];
   /** Manager / office safe wallets with their balance at end of day. */
   office_wallets: WalletBalance[];
+  /** Bank wallets with their balance at end of day. */
+  bank_wallets: WalletBalance[];
+  /** Office money movements of the day (IN positive / OUT negative). */
+  office_movements: TransferDetail[];
+  /** Expenses of the day grouped by category. */
+  expenses_detail: { label: string; value: number }[];
+  /** Tips of the day (tables + slots). */
+  tips_total: number;
+  /** Virtual "Start" row (carried over from the previous month). */
+  is_start?: boolean;
 
   /** true when the row came from the imported legacy sheet */
   legacy: boolean;
@@ -139,7 +151,10 @@ export interface DailyBalanceRow {
   hasSystemData: boolean;
   /** true when the business day is closed — open days show no figures. */
   day_closed: boolean;
+  /** true when the money figures come from a recorded closing snapshot. */
+  snapshot: boolean;
 }
+
 
 
 
@@ -198,7 +213,10 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         slotsClosing,
         dayClosures,
         feeRows,
+        daySnaps,
+        monthStart,
       ] = await Promise.all([
+
         fetchPaged<any>((a, b) =>
           sb.from("fin_day_closing")
             .select("business_date, tables_result, slots_result, players_card_balance")
@@ -214,12 +232,13 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("expenses")
-            .select("business_date, amount, amount_tzs, currency, wallet_id, voided_at")
+            .select("business_date, amount, amount_tzs, currency, wallet_id, voided_at, description, fin_category_id, fin_categories(name, group_code)")
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("fin_wallet_tx")
-            .select("business_date, wallet_id, kind, amount_tzs, amount")
+            .select("business_date, wallet_id, kind, amount_tzs, amount, note, ref_table, posted_at, category_id, fin_categories(name, group_code)")
             .eq("casino_id", casino).lte("business_date", to).range(a, b)),
+
         fetchPaged<any>((a, b) =>
           sb.from("fin_wallets")
             .select("id, name, kind, currency, starting_float_amount, starting_float_date")
@@ -272,7 +291,18 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             .select("business_date, amount, currency, fx_rate, source, reversed_by_id")
             .eq("casino_id", casino).eq("source", "fee")
             .gte("business_date", from).lte("business_date", to).range(a, b)),
+        // Recorded closing snapshots (money frozen at day close).
+        fetchPaged<any>((a, b) =>
+          sb.from("fin_day_balance_snapshot")
+            .select("business_date, data")
+            .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
+        // "Start" row — carried over from the previous month.
+        fetchPaged<any>((a, b) =>
+          sb.from("fin_month_start")
+            .select("*")
+            .eq("casino_id", casino).eq("month", from).range(a, b)),
       ]);
+
 
       const closedDays = new Set<string>(
         (dayClosures as any[]).map((c) => String(c.business_date).slice(0, 10)),
@@ -395,16 +425,29 @@ export const useDailyBalanceReport = (from: string, to: string) => {
 
 
 
+      /**
+       * Expenses column = operating expenses only. "Collection" / "CAPEX" are
+       * payouts to the owner, not costs — they belong to Office OUT.
+       */
+      const isCollectionCat = (row: any) =>
+        String(row?.fin_categories?.group_code || row?.category?.group_code || "") === "collections";
       const expByDate: Bucket = {}, bankExpByDate: Bucket = {};
+      const expDetail: Record<string, Record<string, number>> = {};
       expenses.filter((e) => !e.voided_at).forEach((e) => {
         const v = tzs(e);
+        if (isCollectionCat(e)) return;
         add(expByDate, e.business_date, v);
+        const label = e.fin_categories?.name || e.description || "Other";
+        ((expDetail[e.business_date] ??= {}))[label] =
+          (expDetail[e.business_date]?.[label] || 0) + v;
         if (isBankKind(walletKind[e.wallet_id])) add(bankExpByDate, e.business_date, v);
       });
 
       const collections: Bucket = {}, officeIn: Bucket = {}, officeOut: Bucket = {};
       const trfToManager: Bucket = {}, trfToBank: Bucket = {}, ownerIn: Bucket = {};
+      const officeMoves: Record<string, TransferDetail[]> = {};
       const cageRunning: Bucket = {}, officeRunning: Bucket = {}, bankRunning: Bucket = {};
+
       const bankTzsRunning: Bucket = {}, bankUsdRunning: Bucket = {};
       const walletCurrency: Record<string, string> = {};
       wallets.forEach((w) => { walletCurrency[w.id] = w.currency || "TZS"; });
@@ -438,26 +481,40 @@ export const useDailyBalanceReport = (from: string, to: string) => {
       const managerTransfers: Record<string, TransferDetail[]> = {};
 
       const txByDate: Record<string, any[]> = {};
-      walletTx.forEach((t) => {
-        (txByDate[t.business_date] ??= []).push(t);
-        const kind = walletKind[t.wallet_id];
-        const v = tzs(t);
-        if (t.kind === "collection") add(collections, t.business_date, Math.abs(v));
-        // Owner deposits into the business
-        if (t.kind === "external_income" && v > 0) add(ownerIn, t.business_date, v);
-        if (t.kind === "transfer" && isBankKind(kind)) {
-          if (v > 0) add(trfToBank, t.business_date, v);
-          (bankTransfers[t.business_date] ??= []).push({
-            amount: v,
-            from: v > 0 ? "Casino" : walletName[t.wallet_id] || "Bank",
-            to: v > 0 ? walletName[t.wallet_id] || "Bank" : "Casino",
-          });
-        }
-        if (isOfficeKind(kind)) {
-          if (v >= 0) add(officeIn, t.business_date, v);
-          else add(officeOut, t.business_date, Math.abs(v));
-        }
-      });
+      const isTransferLeg = (t: any) =>
+        t.kind === "transfer" || t.kind === "transfer_in" || t.kind === "transfer_out";
+      walletTx
+        // Only confirmed (posted) movements move money. Pending ones are ignored.
+        .filter((t) => t.posted_at)
+        .forEach((t) => {
+          (txByDate[t.business_date] ??= []).push(t);
+          const kind = walletKind[t.wallet_id];
+          const v = signedWalletTxTzs(t);
+          const collection = t.kind === "collection" || isCollectionCat(t);
+          if (collection) add(collections, t.business_date, Math.abs(v));
+          // Owner deposits into the business
+          if ((t.kind === "external_income" || t.kind === "income") && v > 0) {
+            add(ownerIn, t.business_date, v);
+          }
+          if (isTransferLeg(t) && isBankKind(kind)) {
+            if (v > 0) add(trfToBank, t.business_date, v);
+            (bankTransfers[t.business_date] ??= []).push({
+              amount: v,
+              from: v > 0 ? "Casino" : walletName[t.wallet_id] || "Bank",
+              to: v > 0 ? walletName[t.wallet_id] || "Bank" : "Casino",
+            });
+          }
+          if (isOfficeKind(kind) && !isTransferLeg(t)) {
+            // Office receives money with "+" and sends it out with "−".
+            if (v >= 0) add(officeIn, t.business_date, v);
+            else add(officeOut, t.business_date, Math.abs(v));
+            (officeMoves[t.business_date] ??= []).push({
+              amount: v,
+              from: v >= 0 ? t.note || "Income" : walletName[t.wallet_id] || "Office",
+              to: v >= 0 ? walletName[t.wallet_id] || "Office" : t.note || "Payment",
+            });
+          }
+        });
 
       /**
        * Transfer (Cage → Manager): an incoming transfer leg into office_safe is
@@ -465,12 +522,12 @@ export const useDailyBalanceReport = (from: string, to: string) => {
        */
       Object.entries(txByDate).forEach(([d, list]) => {
         const cageOut = list
-          .filter((t) => t.kind === "transfer" && CAGE_KINDS.has(walletKind[t.wallet_id]) && tzs(t) < 0)
-          .map((t) => ({ amount: Math.abs(tzs(t)), name: walletName[t.wallet_id] || "Cage" }));
+          .filter((t) => isTransferLeg(t) && CAGE_KINDS.has(walletKind[t.wallet_id]) && signedWalletTxTzs(t) < 0)
+          .map((t) => ({ amount: Math.abs(signedWalletTxTzs(t)), name: walletName[t.wallet_id] || "Cage" }));
         list
-          .filter((t) => t.kind === "transfer" && isOfficeKind(walletKind[t.wallet_id]) && tzs(t) > 0)
+          .filter((t) => isTransferLeg(t) && isOfficeKind(walletKind[t.wallet_id]) && signedWalletTxTzs(t) > 0)
           .forEach((t) => {
-            const v = tzs(t);
+            const v = signedWalletTxTzs(t);
             const i = cageOut.findIndex((x) => Math.abs(x.amount - v) < 1);
             if (i >= 0) {
               const src = cageOut[i].name;
@@ -484,6 +541,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             }
           });
       });
+
 
 
       const allTxDates = Array.from(
@@ -516,8 +574,9 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         }
         for (const t of txByDate[d] ?? []) {
           const k = walletKind[t.wallet_id];
-          const v = tzs(t);
+          const v = signedWalletTxTzs(t);
           perWallet[t.wallet_id] = (perWallet[t.wallet_id] || 0) + v;
+
           if (CAGE_KINDS.has(k)) cageBal += v;
           else if (isOfficeKind(k)) officeBal += v;
           else if (isBankKind(k)) {
@@ -619,16 +678,31 @@ export const useDailyBalanceReport = (from: string, to: string) => {
       // ---- build rows ---------------------------------------------------
       let lastRate = 0, lastCage = 0, lastOffice = 0, lastBank = 0, lastChips = 0;
       /**
-       * Daily Balance = opening money + result + diff − office − expenses − cage − bank.
-       * The opening money of the first day is the manually entered month start
-       * (same storage key as the "Starting Balance" tile), afterwards it is the
-       * previous day's Money total.
+       * Daily Balance = opening money + result + diff + fees + office net
+       *                 − expenses − closing money  → 0.
+       * The opening money of the first day comes from the "Start" row
+       * (fin_month_start), afterwards it is the previous day's Money total.
        */
-      const startKey = `dbr-start-balance:${casino}:${from.slice(0, 7)}`;
-      const startingBalance =
-        typeof window !== "undefined" ? Number(window.localStorage.getItem(startKey)) || 0 : 0;
+      const ms = (monthStart as any[])[0] || null;
+      const startRow = {
+        cage: num(ms?.cage_casino),
+        manager: num(ms?.cage_manager),
+        bankTzs: num(ms?.bank_tzs),
+        bankUsd: num(ms?.bank_usd),
+        diff: num(ms?.diff_total),
+        tips: num(ms?.tips_total),
+      };
+      const startingBalance = ms
+        ? startRow.cage + startRow.manager + startRow.bankTzs + startRow.bankUsd
+        : 0;
+      const snapByDate: Record<string, any> = {};
+      (daySnaps as any[]).forEach((s) => {
+        snapByDate[String(s.business_date).slice(0, 10)] = s.data || {};
+      });
       let lastBankTzs = 0, lastBankUsd = 0, prevMoney = startingBalance, firstRow = true;
       let lastOfficeWallets: WalletBalance[] = [];
+      const bankWalletDefs = wallets.filter((w) => isBankKind(w.kind));
+
 
       return enumerateDates(from, to).map((date) => {
         const rate = rateByDate[date] || lastRate || FALLBACK_USD_RATE;
@@ -667,51 +741,75 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           manager: number; bankTzs: number; bankUsd: number;
           expenses: number; inV: number; outV: number; result: number;
           live: number; slotsDiff: number; chipDiff: number;
+          tips?: number;
         }) => {
+          // Money frozen at closing time wins over the live wallet balance.
+          const snap = snapByDate[date];
           // Manual bank overrides (inline editor) win over computed balances.
           const manualTzs = l?.bank_account != null ? num(l.bank_account) : null;
           const manualUsdRaw = l?.bank_account_usd != null ? num(l.bank_account_usd) : null;
-          const bankTzs = manualTzs != null ? manualTzs : o.bankTzs;
-          const bankUsd = manualUsdRaw != null ? manualUsdRaw * rate : o.bankUsd;
-          const moneyTotal = o.cage + o.manager + bankTzs + bankUsd;
+          const cage = snap?.cage_casino != null ? num(snap.cage_casino) : o.cage;
+          const manager = snap?.cage_manager != null ? num(snap.cage_manager) : o.manager;
+          const bankTzs = snap?.bank_tzs != null
+            ? num(snap.bank_tzs)
+            : (manualTzs != null ? manualTzs : o.bankTzs);
+          const bankUsd = snap?.bank_usd != null
+            ? num(snap.bank_usd)
+            : (manualUsdRaw != null ? manualUsdRaw * rate : o.bankUsd);
+          const moneyTotal = cage + manager + bankTzs + bankUsd;
           const opening = firstRow ? startingBalance : prevMoney;
           firstRow = false;
           const diffTotal = o.chipDiff + o.slotsDiff;
           const officeNet = o.inV - o.outV;
-          // Balance = opening money + result + diff − office − expenses − cage − bank
+          const feesV = feesByDate[date] ?? 0;
+          const tipsV = o.tips ?? 0;
+          // Cash balance — tips are held outside the cage cash, so they are not
+          // part of the money reconciliation (they stay in the Fin Result only).
           const balance =
-            opening + o.result + diffTotal - officeNet - o.expenses - moneyTotal;
+            opening + o.result + diffTotal + feesV + officeNet - o.expenses - moneyTotal;
           prevMoney = moneyTotal;
           return {
             live_cash_result: o.live,
             slots_diff: o.slotsDiff,
-            diff_total: o.chipDiff + o.slotsDiff,
-            cage_casino: o.cage,
+            diff_total: diffTotal,
+            cage_casino: cage,
             cage_cash_part: o.cashPart,
             cage_cashless_part: o.cashlessPart,
             cage_carried: o.carried,
             transfer_cage_manager: trfToManager[date] ?? 0,
-            cage_manager: o.manager,
+            cage_manager: manager,
             transfer_bank: trfToBank[date] ?? 0,
             bank_tzs: bankTzs,
             bank_usd: bankUsd,
-            bank_usd_raw: manualUsdRaw ?? (rate ? o.bankUsd / rate : 0),
+            bank_usd_raw: manualUsdRaw ?? (rate ? bankUsd / rate : 0),
             bank_tzs_manual: manualTzs != null,
             bank_usd_manual: manualUsdRaw != null,
             money_in: o.inV,
             money_out: o.outV,
             money_total: moneyTotal,
-            fin_result: o.result - o.expenses + o.inV - o.outV,
-            // Balance = opening + result + diff − office − expenses − cage − bank → 0.
+            // P&L of the day — includes diff, tips and fees.
+            fin_result: o.result + diffTotal + tipsV + feesV - o.expenses + officeNet,
             balance,
-            balance_check: opening + o.result + diffTotal - officeNet - o.expenses,
+            balance_check: opening + o.result + diffTotal + feesV + officeNet - o.expenses,
             chips_detail: chipsDetail[date] ?? [],
             cage_detail: cageDetail[date] ?? { cash: [], cashless: [], slots_total: 0 },
             transfers_manager: managerTransfers[date] ?? [],
             transfers_bank: bankTransfers[date] ?? [],
             office_wallets: lastOfficeWallets,
+            bank_wallets: bankWalletDefs.map((w) => ({
+              name: w.name,
+              currency: w.currency || "TZS",
+              balance: perWallet[w.id] || 0,
+            })),
+            office_movements: officeMoves[date] ?? [],
+            expenses_detail: Object.entries(expDetail[date] ?? {})
+              .map(([label, value]) => ({ label, value }))
+              .sort((a, b) => b.value - a.value),
+            tips_total: tipsV,
+            snapshot: !!snap,
           };
         };
+
 
 
 
@@ -751,10 +849,11 @@ export const useDailyBalanceReport = (from: string, to: string) => {
               manager: num(l.office_cash),
               bankTzs: num(l.bank_account), bankUsd: 0,
               expenses: num(l.expenses) + num(l.bank_expenses),
-              inV: num(l.office_in), outV: num(l.collection_bank),
+              inV: num(l.office_in), outV: num(l.office_out) + num(l.collection_bank),
               result: num(l.casino_result),
               live: num(l.cash_desk_result), slotsDiff: 0,
               chipDiff: num(l.chip_difference),
+              tips: num(l.tips_tables) + num(l.tips_slots),
 
             }),
             fees: feesByDate[date] ?? 0,
@@ -811,12 +910,13 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             manager: lastOffice,
             bankTzs: lastBankTzs, bankUsd: lastBankUsd,
             expenses: expensesV,
-            inV: ownerIn[date] ?? 0,
-            outV: collections[date] ?? 0,
+            inV: officeIn[date] ?? 0,
+            outV: officeOut[date] ?? 0,
             result: tables + slotsNet + barV,
             live: liveCashDesk[date] ?? 0,
             slotsDiff: cardBal[date] ?? 0,
             chipDiff: chipMiss[date] ?? 0,
+            tips: (tipsTables[date] ?? 0) + (tipsSlots[date] ?? 0),
 
           }),
           fees: feesByDate[date] ?? 0,
