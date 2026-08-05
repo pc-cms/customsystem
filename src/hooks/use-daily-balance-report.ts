@@ -22,7 +22,35 @@ export const FALLBACK_USD_RATE = 2600;
  */
 export const BANK_COMMISSION_RATE = 0.03;
 
+/** Cage chips of the day, one entry per denomination. */
+export interface ChipDetail {
+  denomination: number;
+  quantity: number;
+  miss: number;
+}
+
+/** Money held by the cage at closing — cash by currency and cashless channels. */
+export interface CageDetail {
+  cash: { currency: string; denomination: number; quantity: number; tzs: number }[];
+  cashless: { name: string; amount: number }[];
+  /** Slots cage closing total (no per-denomination breakdown available). */
+  slots_total: number;
+}
+
+export interface TransferDetail {
+  amount: number;
+  from: string;
+  to: string;
+}
+
+export interface WalletBalance {
+  name: string;
+  currency: string;
+  balance: number;
+}
+
 export interface DailyBalanceRow {
+
   date: string;
   weekday: string;
   rate_usd: number;
