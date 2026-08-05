@@ -105,8 +105,9 @@ const ALL_COLS: (Col & { section: SectionKey })[] = SECTIONS.flatMap((s) =>
 );
 
 
-/** Section headlines get the heat fill. */
-const HEAT_IDS = new Set(ALL_COLS.filter((c) => c.total).map((c) => c.id));
+/** Every money column gets a per-column heat fill (scaled inside its own column). */
+const HEAT_IDS = new Set(ALL_COLS.map((c) => c.id));
+
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 const monthBounds = (m: string) => {
