@@ -461,7 +461,8 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             money_in: o.inV,
             money_out: o.outV,
             money_total: moneyTotal,
-            balance: moneyTotal,
+            // Balance is a VARIANCE (actual money − expected money): → 0.
+            balance: moneyTotal - check,
             balance_check: check,
           };
         };
@@ -508,6 +509,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             }),
             legacy: true,
             hasSystemData: false,
+            day_closed: true,
           } satisfies DailyBalanceRow;
         }
 
@@ -567,6 +569,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           }),
           legacy: false,
           hasSystemData,
+          day_closed: closedDays.has(date),
         } satisfies DailyBalanceRow;
       });
 
