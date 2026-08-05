@@ -67,6 +67,7 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
       { id: "tables_result", label: "Live Game", value: (r) => num(r, "tables_result") },
       { id: "slots_result", label: "Slots", value: (r) => num(r, "slots_result") },
       { id: "bar_result", label: "Bar", value: (r) => num(r, "bar_result") },
+      { id: "tips_total", label: "Tips", value: (r) => num(r, "tips_tables") + num(r, "tips_slots") },
     ],
   },
   {
