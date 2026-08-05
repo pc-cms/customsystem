@@ -247,7 +247,11 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         add(cashDesk, d, num(s.cash_desk_result));
         add(liveCashDesk, d, num(s.cash_desk_result));
         add(shiftTables, d, num(s.tables_result));
-        add(cageClosing, d, num(s.closing_cash?.actual));
+        // Cage Casino counts MONEY ONLY — chips on the cage counting sheet are
+        // excluded (closing_count.totals.total_tzs includes them).
+        const ct = (s.closing_count as any)?.totals || {};
+        const closingTotal = num(ct.total_tzs) || num(s.closing_cash?.actual);
+        add(cageClosing, d, closingTotal - num(ct.chips_tzs));
         add(cageCashless, d, sumProviders(s.cashless_in_providers) - sumProviders(s.cashless_out_providers));
       });
       slotShifts.forEach((s) => {
