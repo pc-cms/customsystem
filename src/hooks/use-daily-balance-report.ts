@@ -155,7 +155,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("shifts")
-            .select("opened_at, closed_at, cash_desk_result, tables_result, shift_result, closing_cash, cashless_in_providers, cashless_out_providers")
+            .select("opened_at, closed_at, cash_desk_result, tables_result, shift_result, closing_cash, closing_count, cashless_in_providers, cashless_out_providers")
             .eq("casino_id", casino).gte("opened_at", fromIso).lte("opened_at", toIso).range(a, b)),
 
         fetchPaged<any>((a, b) =>
@@ -247,7 +247,11 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         add(cashDesk, d, num(s.cash_desk_result));
         add(liveCashDesk, d, num(s.cash_desk_result));
         add(shiftTables, d, num(s.tables_result));
-        add(cageClosing, d, num(s.closing_cash?.actual));
+        // Cage Casino counts MONEY ONLY — chips on the cage counting sheet are
+        // excluded (closing_count.totals.total_tzs includes them).
+        const ct = (s.closing_count as any)?.totals || {};
+        const closingTotal = num(ct.total_tzs) || num(s.closing_cash?.actual);
+        add(cageClosing, d, closingTotal - num(ct.chips_tzs));
         add(cageCashless, d, sumProviders(s.cashless_in_providers) - sumProviders(s.cashless_out_providers));
       });
       slotShifts.forEach((s) => {
