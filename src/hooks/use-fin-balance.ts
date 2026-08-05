@@ -84,6 +84,7 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
     (incomes.live_game || 0) +
     (incomes.slots || 0) +
     (incomes.other || 0) +
+    (incomes.jp || 0) +
     // Players card deposits are physically in the cash desk but are not earnings —
     // add them back so the drawer reconciles without inflating the result.
     (incomes.card_balance || 0) +
