@@ -16,7 +16,7 @@ export type ColumnFormula = {
 
 export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
   result: {
-    formula: "Tables result + Slots result (net of card balance) + Bar result",
+    formula: "Live Game result + Slots result (net of card balance) + Bar result",
     source: "Shift closings (live), slots day closing, POS/bar result",
     total: "sum",
   },
@@ -26,7 +26,7 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
     total: "sum",
   },
   tables_result: {
-    formula: "Sum of table results (Drop + Credit − Fill ± chips)",
+    formula: "Sum of Live Game table results (Drop + Credit − Fill ± chips)",
     source: "table_daily_results / shift table results",
     total: "sum",
   },
@@ -48,8 +48,8 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
   },
   chip_difference: {
 
-    formula: "Chip miss = cage chip delta vs. declared chips",
-    source: "Chip checks / cage closing (07:00 rollover)",
+    formula: "Miss chips of the CLOSING chip check (last check of the day) × denomination",
+    source: "chip_snapshots (latest check per table, 07:00 rollover)",
     total: "sum",
   },
   slots_diff: {
@@ -58,7 +58,7 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
     total: "sum",
   },
   cage_casino: {
-    formula: "Live cage (cash + cashless) + Slots cage (cash + cashless) at closing",
+    formula: "Live cage (cash + cashless) + Slots cage at closing — MONEY ONLY, chips excluded",
     source: "shifts closing cash & cashless providers, cage_slots_shifts",
     total: "stock",
   },

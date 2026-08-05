@@ -231,7 +231,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             .eq("casino_id", casino).gte("check_date", from).lte("check_date", to).range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("chip_snapshots")
-            .select("date, denomination, actual_quantity, miss")
+            .select("date, denomination, actual_quantity, miss, location_id, created_at")
             .eq("casino_id", casino).gte("date", from).lte("date", to).range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("transactions")
@@ -311,11 +311,13 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         add(cashDesk, d, num(s.cash_desk_result));
         add(liveCashDesk, d, num(s.cash_desk_result));
         add(shiftTables, d, num(s.tables_result));
-        // Cage Casino counts MONEY ONLY — chips on the cage counting sheet are
-        // excluded (closing_count.totals.total_tzs includes them).
+        // Cage Casino counts MONEY ONLY — chips are never part of the cage
+        // figure (closing_count.totals.total_tzs includes them, so strip them).
         const ct = (s.closing_count as any)?.totals || {};
-        const closingTotal = num(ct.total_tzs) || num(s.closing_cash?.actual);
-        add(cageClosing, d, closingTotal - num(ct.chips_tzs));
+        const closingTotal = num(ct.total_tzs)
+          ? num(ct.total_tzs) - num(ct.chips_tzs)
+          : num(s.closing_cash?.actual) - num(ct.chips_tzs);
+        add(cageClosing, d, closingTotal);
         add(cageCashless, d, sumProviders(s.cashless_in_providers) - sumProviders(s.cashless_out_providers));
 
         const b = cageBucket(d);
@@ -516,14 +518,28 @@ export const useDailyBalanceReport = (from: string, to: string) => {
 
       const chipMiss: Bucket = {}, chipFloat: Bucket = {};
       const chipsDetail: Record<string, ChipDetail[]> = {};
+      // Chip Diff = miss of the CLOSING chip check only. Several checks per day
+      // exist for each table, so keep the latest snapshot per table+denomination.
+      const lastSnap: Record<string, any> = {};
       chipSnaps.forEach((c) => {
+        const k = `${c.date}|${c.location_id ?? ""}|${c.denomination}`;
+        const prev = lastSnap[k];
+        if (!prev || String(c.created_at) > String(prev.created_at)) lastSnap[k] = c;
+      });
+      const closingByDenom: Record<string, Record<number, { qty: number; miss: number }>> = {};
+      Object.values(lastSnap).forEach((c: any) => {
         add(chipMiss, c.date, num(c.miss) * num(c.denomination));
         add(chipFloat, c.date, num(c.actual_quantity) * num(c.denomination));
-        (chipsDetail[c.date] ??= []).push({
-          denomination: num(c.denomination),
-          quantity: num(c.actual_quantity),
-          miss: num(c.miss),
-        });
+        const bucket = (closingByDenom[c.date] ??= {});
+        const dn = num(c.denomination);
+        const e = (bucket[dn] ??= { qty: 0, miss: 0 });
+        e.qty += num(c.actual_quantity);
+        e.miss += num(c.miss);
+      });
+      Object.entries(closingByDenom).forEach(([date, byDenom]) => {
+        chipsDetail[date] = Object.entries(byDenom).map(([dn, v]) => ({
+          denomination: Number(dn), quantity: v.qty, miss: v.miss,
+        }));
       });
       Object.values(chipsDetail).forEach((l) => l.sort((a, b) => b.denomination - a.denomination));
 
