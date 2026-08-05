@@ -83,17 +83,18 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     label: "Cage & transfers",
     cols: [
       { id: "cage_casino", label: "Cage Casino", total: true, value: (r) => num(r, "cage_casino") },
-      { id: "transfer_cage_manager", label: "Transfer → Manager", value: (r) => num(r, "transfer_cage_manager") },
+      { id: "transfer_cage_manager", label: "Internal Transfer", value: (r) => num(r, "transfer_cage_manager") },
       { id: "cage_manager", label: "Cage Manager", total: true, value: (r) => num(r, "cage_manager") },
-      { id: "transfer_bank", label: "Transfer → Bank", value: (r) => num(r, "transfer_bank") },
+      { id: "transfer_bank", label: "Bank Transfer", value: (r) => num(r, "transfer_bank") },
     ],
   },
   {
     key: "money",
     label: "Bank",
     cols: [
-      { id: "bank_tzs", label: "Bank TZS", total: true, value: (r) => num(r, "bank_tzs") },
-      { id: "bank_usd", label: "Bank USD", total: true, value: (r) => num(r, "bank_usd") },
+      { id: "bank_total", label: "Bank", total: true, value: (r) => num(r, "bank_tzs") + num(r, "bank_usd") },
+      { id: "bank_tzs", label: "Bank TZS", value: (r) => num(r, "bank_tzs") },
+      { id: "bank_usd", label: "Bank USD", value: (r) => num(r, "bank_usd") },
     ],
   },
   {
