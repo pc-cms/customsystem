@@ -631,7 +631,7 @@ const DailyBalanceReport = () => {
             loading={isLoading}
             stickyColumns={[0, 132]}
             stickyHeader
-            groupHeader={groupHeader}
+            
             footerRows={footerRows}
             onRowClick={(r) => r.kind === "day" && setDetail(r)}
             bare
