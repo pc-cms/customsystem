@@ -377,7 +377,9 @@ const DailyBalanceReport = () => {
    * Priority: open day > last closed day > today > weekend > (cell heat).
    */
   const rowBg = (r: Row): string | undefined => {
-    if (!r.day_closed) return "bg-muted/40";
+    // Open (not yet closed) business days are tinted with an OPAQUE mix so
+    // sticky frozen columns do not let scrolling content bleed through.
+    if (!r.day_closed) return "bg-[color-mix(in_srgb,hsl(var(--muted))_30%,hsl(var(--card)))]";
     if (r.date === lastClosedDate)
       return "bg-[color-mix(in_srgb,hsl(var(--warning))_14%,hsl(var(--card)))]";
     if (r.date === today())
