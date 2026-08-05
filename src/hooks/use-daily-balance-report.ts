@@ -54,10 +54,16 @@ export interface DailyBalanceRow {
   // ---- Casino Monthly Balance model --------------------------------
   /** Live cage cash-desk result (cash side of live games). */
   live_cash_result: number;
-  /** Slots cage difference: cage cash desk − declared slots result. */
+  /** Slots Diff = players card balance of the day (fin_day_closing). */
   slots_diff: number;
-  /** Cage Casino = closing cash of LIVE cage + SLOTS cage. */
+  /** Cage Casino = ALL money in Live cage + Slots cage (cash + cashless). */
   cage_casino: number;
+  /** Cash part of Cage Casino. */
+  cage_cash_part: number;
+  /** Cashless part of Cage Casino. */
+  cage_cashless_part: number;
+  /** true when Cage Casino was carried forward (no closing data that day). */
+  cage_carried: boolean;
   /** Transfers cage → manager safe (positive leg into office_safe). */
   transfer_cage_manager: number;
   /** Manager (office) safe balance at end of day. */
@@ -67,14 +73,20 @@ export interface DailyBalanceRow {
   /** Bank account balances at end of day, split by currency (TZS-valued). */
   bank_tzs: number;
   bank_usd: number;
+  /** Manual USD figure as entered (USD units). */
+  bank_usd_raw: number;
+  bank_tzs_manual: boolean;
+  bank_usd_manual: boolean;
   /** Owner deposits into the business (external income). */
   money_in: number;
   /** Collections / owner withdrawals. */
   money_out: number;
   /** Cage Casino + Cage Manager + Bank (TZS + USD) at end of day. */
   money_total: number;
-  /** Money + IN − OUT − Expenses of the day. */
+  /** End-of-day stock: equals money_total. */
   balance: number;
+  /** Control figure: yesterday Money + Result + IN − OUT − Expenses. */
+  balance_check: number;
   /** true when the row came from the imported legacy sheet */
   legacy: boolean;
   /** true when at least one live source produced data for that date */
