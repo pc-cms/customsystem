@@ -194,8 +194,8 @@ const monthBounds = (m: string) => {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-/** Table row = a real business day (no weekly subtotals in this grid). */
-type Row = DailyBalanceRow & { kind: "day" };
+/** Table row = a real business day, plus one synthetic "Start" opening row. */
+type Row = DailyBalanceRow & { kind: "day" | "start" };
 
 /** Manual Credit / Deposit entry — saved per day on blur. */
 const CreditCell = ({ date, value }: { date: string; value: number }) => {
