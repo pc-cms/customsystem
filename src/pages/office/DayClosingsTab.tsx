@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ClipboardPen, Lock, Unlock, Check, AlertTriangle, ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import QuickIncomeDialog from "@/components/finances/QuickIncomeDialog";
+import { ClipboardPen, Lock, Unlock, Check, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
@@ -12,7 +11,9 @@ import {
   useDayClosingList,
   useUpsertDayClosing,
   useLockDayClosing,
+  useFinWallets,
 } from "@/hooks/use-fin";
+import { useOtherIncomes, useAddOtherIncome } from "@/hooks/use-other-incomes";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
@@ -21,6 +22,7 @@ import { fmtDate } from "@/lib/format-date";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
