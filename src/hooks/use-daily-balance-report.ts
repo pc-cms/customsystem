@@ -87,6 +87,19 @@ export interface DailyBalanceRow {
   balance: number;
   /** Control figure: yesterday Money + Result + IN − OUT − Expenses. */
   balance_check: number;
+  /** Chip Diff + Slots Diff (collapsed "Diff" column). */
+  diff_total: number;
+  /** Chip snapshot rows of the day (cage chips by denomination). */
+  chips_detail: ChipDetail[];
+  /** Cage money breakdown at closing (cash by currency/denomination + cashless). */
+  cage_detail: CageDetail;
+  /** Transfers cage → manager safe of the day. */
+  transfers_manager: TransferDetail[];
+  /** Bank transfer legs of the day (signed). */
+  transfers_bank: TransferDetail[];
+  /** Manager / office safe wallets with their balance at end of day. */
+  office_wallets: WalletBalance[];
+
   /** true when the row came from the imported legacy sheet */
   legacy: boolean;
   /** true when at least one live source produced data for that date */
