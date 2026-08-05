@@ -418,9 +418,6 @@ const DailyBalanceReport = () => {
             </span>{" "}
             <span className="text-[11px] text-muted-foreground">{r.weekday}</span>
             {r.legacy && <Badge variant="outline" className="ml-1 h-4 px-1 text-[10px]">imp</Badge>}
-            {!r.day_closed && (
-              <Badge variant="outline" className="ml-1 h-4 px-1 text-[10px]">open</Badge>
-            )}
           </span>
         ),
       cellClassName: (r: Row) => cn("py-1", rowBg(r)),
