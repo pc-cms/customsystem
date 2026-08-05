@@ -83,7 +83,7 @@ export interface DailyBalanceRow {
   money_out: number;
   /** Cage Casino + Cage Manager + Bank (TZS + USD) at end of day. */
   money_total: number;
-  /** End-of-day stock: equals money_total. */
+  /** Variance: Money (actual) − control figure (expected). Should tend to 0. */
   balance: number;
   /** Control figure: yesterday Money + Result + IN − OUT − Expenses. */
   balance_check: number;
@@ -91,6 +91,8 @@ export interface DailyBalanceRow {
   legacy: boolean;
   /** true when at least one live source produced data for that date */
   hasSystemData: boolean;
+  /** true when the business day is closed — open days show no figures. */
+  day_closed: boolean;
 }
 
 
