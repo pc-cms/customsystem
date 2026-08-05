@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ClipboardPen, Lock, Unlock, Check, AlertTriangle, ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import QuickIncomeDialog from "@/components/finances/QuickIncomeDialog";
+import { ClipboardPen, Lock, Unlock, Check, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
@@ -12,7 +11,9 @@ import {
   useDayClosingList,
   useUpsertDayClosing,
   useLockDayClosing,
+  useFinWallets,
 } from "@/hooks/use-fin";
+import { useOtherIncomes, useAddOtherIncome } from "@/hooks/use-other-incomes";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
@@ -21,6 +22,7 @@ import { fmtDate } from "@/lib/format-date";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
@@ -122,11 +124,30 @@ export default function DayClosingsTab() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [jpOpen, setJpOpen] = useState(false);
   const dates = useMemo(() => buildMonthDates(year, month), [year, month]);
   const { data: list = [] } = useDayClosingList();
   const { data: aggMap } = useMonthAggregates(year, month);
   const { isManager } = useAuth() as any;
+
+  // JP is booked as an "other income" (source = jp) on the business date.
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const monthFrom = `${year}-${pad(month)}-01`;
+  const monthTo = `${year}-${pad(month)}-${pad(new Date(year, month, 0).getDate())}`;
+  const { data: incomes = [] } = useOtherIncomes(monthFrom, monthTo);
+  const { data: wallets = [] } = useFinWallets();
+  // Default JP wallet: main TZS cash wallet.
+  const jpWalletId = useMemo(() => {
+    const w = (wallets as any[]).filter((x) => (x.currency || "TZS") === "TZS");
+    return (w.find((x) => x.kind === "cash") || w[0])?.id || "";
+  }, [wallets]);
+
+  const jpByDate = useMemo(() => {
+    const m = new Map<string, number>();
+    (incomes as any[])
+      .filter((r) => r.source === "jp")
+      .forEach((r) => m.set(r.business_date, (m.get(r.business_date) || 0) + Number(r.amount || 0)));
+    return m;
+  }, [incomes]);
 
   const byDate = useMemo(() => {
     const m = new Map<string, any>();
@@ -135,7 +156,7 @@ export default function DayClosingsTab() {
   }, [list]);
 
   const totals = useMemo(() => {
-    const t = { tables: 0, slots: 0, missChips: 0, missCards: 0, cards: 0 };
+    const t = { tables: 0, slots: 0, missChips: 0, missCards: 0, cards: 0, jp: 0 };
     // dates are descending → the first non-zero card balance is the latest one.
     let cardsFound = false;
     dates.forEach((d) => {
@@ -145,11 +166,13 @@ export default function DayClosingsTab() {
       t.slots += Number(existing?.slots_result ?? agg?.slots ?? 0);
       t.missChips += Number(agg?.missChips ?? 0);
       t.missCards += Number(agg?.missCards ?? 0);
+      t.jp += Number(jpByDate.get(d) || 0);
       const cb = Math.abs(Number(existing?.players_card_balance ?? 0));
       if (!cardsFound && cb > 0) { t.cards = cb; cardsFound = true; }
     });
     return t;
-  }, [dates, byDate, aggMap]);
+  }, [dates, byDate, aggMap, jpByDate]);
+
 
 
   const shiftMonth = (delta: number) => {
@@ -183,14 +206,9 @@ export default function DayClosingsTab() {
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
-        {isManager && (
-          <Button size="sm" variant="outline" className="h-8" onClick={() => setJpOpen(true)}>
-            <Plus className="w-4 h-4" /> JP
-          </Button>
-        )}
       </PageHeader>
 
-      <QuickIncomeDialog open={jpOpen} onOpenChange={setJpOpen} source="jp" title="Add JP" />
+
 
       <PageSection bodyClassName="p-0 overflow-hidden">
         <table className="w-full text-sm">
@@ -200,6 +218,7 @@ export default function DayClosingsTab() {
               <th className="text-right px-3 py-2 w-44">Tables</th>
               <th className="text-right px-3 py-2 w-44">Slots</th>
               <th className="text-right px-3 py-2 w-40" title="Deposits held on player cards. Subtracted from the Slots result; the cash itself stays in the desk.">Card Balance</th>
+              <th className="text-right px-3 py-2 w-36" title="Jackpot contribution booked as income (IN) on this business day.">JP (IN)</th>
               <th className="text-right px-3 py-2 w-32">Miss Chips</th>
               <th className="text-right px-3 py-2 w-32">Miss Cards</th>
               <th className="text-left px-3 py-2">Comment</th>
@@ -212,6 +231,7 @@ export default function DayClosingsTab() {
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.tables))}>{formatNumberSpaces(totals.tables)}</td>
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.slots - totals.cards))}>{formatNumberSpaces(totals.slots - totals.cards)}</td>
               <td className={cn("px-3 py-2 text-right font-mono", totals.cards ? "cms-amount-negative" : "text-muted-foreground")}>{totals.cards ? `− ${formatNumberSpaces(totals.cards)}` : "·"}</td>
+              <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.jp))}>{totals.jp ? formatNumberSpaces(totals.jp) : "·"}</td>
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.missChips))}>{formatNumberSpaces(totals.missChips)}</td>
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.missCards))}>{formatNumberSpaces(totals.missCards)}</td>
               <td colSpan={2} className="px-3 py-2 text-right text-xs text-muted-foreground">
@@ -228,9 +248,12 @@ export default function DayClosingsTab() {
                   existing={byDate.get(date)}
                   managerOverride={!!isManager}
                   agg={agg}
+                  jpPosted={Number(jpByDate.get(date) || 0)}
+                  jpWalletId={jpWalletId}
                 />
               );
             })}
+
           </tbody>
         </table>
       </PageSection>
@@ -243,20 +266,29 @@ function DayRow({
   existing,
   managerOverride,
   agg,
+  jpPosted,
+  jpWalletId,
 }: {
   date: string;
   existing: any;
   managerOverride: boolean;
   agg: DayAgg;
+  jpPosted: number;
+  jpWalletId: string;
 }) {
   const tablesAuto = agg.tables;
   const slotsAuto = agg.slots;
   const upsert = useUpsertDayClosing();
   const lock = useLockDayClosing();
+  const addIncome = useAddOtherIncome();
 
   const locked = !!existing?.locked_at;
   const [unlocked, setUnlocked] = useState(false);
   const editable = !locked || (managerOverride && unlocked);
+
+  const [jp, setJp] = useState(jpPosted ? formatNumberSpaces(jpPosted) : "");
+  useEffect(() => { setJp(jpPosted ? formatNumberSpaces(jpPosted) : ""); }, [jpPosted]);
+  const jpNum = jp === "" ? 0 : parseAmountInput(jp);
 
   const [state, setState] = useState<RowState>(() => ({
     tables: existing?.tables_result != null ? formatNumberSpaces(existing.tables_result) : "",
@@ -273,6 +305,7 @@ function DayRow({
       comment: existing?.notes ?? "",
     });
   }, [existing?.id, existing?.tables_result, existing?.slots_result, existing?.players_card_balance, existing?.notes]);
+
 
   const tablesNum = state.tables === "" ? tablesAuto : parseAmountInput(state.tables);
   const slotsNum = state.slots === "" ? slotsAuto : parseAmountInput(state.slots);
@@ -291,6 +324,20 @@ function DayRow({
     const finalComment = noteOverride ?? state.comment;
     const tid = `day-${date}`;
     try {
+      // JP is an income (IN) ledger entry — post only the delta vs what is
+      // already booked for this business day, so the ledger stays immutable.
+      const jpDelta = jpNum - jpPosted;
+      if (jpDelta !== 0) {
+        if (!jpWalletId) throw new Error("No TZS wallet configured for JP");
+        await addIncome.mutateAsync({
+          business_date: date,
+          wallet_id: jpWalletId,
+          source: "jp",
+          currency: "TZS",
+          amount: jpDelta,
+          note: "JP · Day Closings",
+        });
+      }
       const saved = await upsert.mutateAsync({
         id: existing?.id,
         business_date: date,
@@ -299,6 +346,7 @@ function DayRow({
         players_card_balance: cardsNum,
         notes: finalComment || null,
       });
+
       const rowId = existing?.id ?? (saved as any)?.id;
       if (rowId) {
         await lock.mutateAsync({
@@ -371,6 +419,25 @@ function DayRow({
           className={cn("text-right font-mono h-8", cardsNum > 0 && "cms-amount-negative")}
         />
       </td>
+
+      <td className="px-3 py-2 text-right">
+        <Input
+          type="text"
+          inputMode="decimal"
+          disabled={!editable}
+          placeholder="0"
+          title="JP — booked as income (IN) on this business day. Use minus to deduct."
+          value={jp}
+          onChange={(e) => setJp(formatAmountInput(e.target.value))}
+          className={cn("text-right font-mono h-8", jpNum !== 0 && amountToneClass(jpNum))}
+        />
+        {jpPosted !== 0 && (
+          <div className="text-[10px] mt-0.5 text-right pr-1 text-muted-foreground">
+            posted {formatNumberSpaces(jpPosted)}
+          </div>
+        )}
+      </td>
+
 
 
 
