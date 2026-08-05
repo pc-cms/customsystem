@@ -64,7 +64,7 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     label: "Casino result",
     cols: [
       { id: "result", label: "Result", total: true, value: (r) => num(r, "casino_result") },
-      { id: "tables_result", label: "Table", value: (r) => num(r, "tables_result") },
+      { id: "tables_result", label: "Live Game", value: (r) => num(r, "tables_result") },
       { id: "slots_result", label: "Slots", value: (r) => num(r, "slots_result") },
       { id: "bar_result", label: "Bar", value: (r) => num(r, "bar_result") },
     ],
@@ -710,8 +710,8 @@ const DailyBalanceReport = () => {
               {drill.col === "chip_difference" && (
                 <DrillList
                   rows={(drill.row.chips_detail ?? []).map((c) => ({
-                    label: `${formatMoneyFull(c.denomination)} × ${c.quantity}`,
-                    value: c.miss,
+                    label: `${formatMoneyFull(c.denomination)} × ${c.miss}`,
+                    value: c.miss * c.denomination,
                   }))}
                   totalLabel="Chip diff"
                   total={num(drill.row, "chip_difference")}
