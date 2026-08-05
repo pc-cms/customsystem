@@ -482,10 +482,12 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             day_total: lTotal,
             day_balance: num(l.cash_desk_result) - lTotal,
             ...cmb({
-              cage: num(l.cage_cash), manager: num(l.office_cash),
+              cage: num(l.cage_cash), cashPart: num(l.cage_cash), cashlessPart: 0, carried: false,
+              manager: num(l.office_cash),
               bankTzs: num(l.bank_account), bankUsd: 0,
               expenses: num(l.expenses) + num(l.bank_expenses),
               inV: num(l.office_in), outV: num(l.collection_bank),
+              result: num(l.casino_result),
               live: num(l.cash_desk_result), slotsDiff: 0,
             }),
             legacy: true,
