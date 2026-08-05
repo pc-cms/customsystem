@@ -214,6 +214,46 @@ const Tile = ({ label, value, hint }: { label: string; value: number; hint?: str
   </div>
 );
 
+/** Simple label / amount list used by the cell breakdown panel. */
+const DrillList = ({
+  title, rows, totalLabel, total,
+}: {
+  title?: string;
+  rows: { label: string; value: number }[];
+  totalLabel?: string;
+  total?: number;
+}) => (
+  <div>
+    {title && (
+      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {title}
+      </div>
+    )}
+    <div className="rounded-md border border-border">
+      {rows.map((r, i) => (
+        <div
+          key={`${r.label}-${i}`}
+          className="flex items-center justify-between border-b border-border/60 px-2 py-1 last:border-0"
+        >
+          <span className="text-muted-foreground">{r.label}</span>
+          <span className={cn("font-mono tabular-nums", r.value < 0 && "cms-amount-negative")}>
+            {r.value ? formatMoneyFull(Math.round(r.value)) : "·"}
+          </span>
+        </div>
+      ))}
+      {!rows.length && <div className="px-2 py-3 text-center text-muted-foreground">No data</div>}
+      {totalLabel != null && (
+        <div className="flex items-center justify-between border-t border-border bg-muted/40 px-2 py-1 font-semibold">
+          <span>{totalLabel}</span>
+          <span className={cn("font-mono tabular-nums", (total ?? 0) < 0 && "cms-amount-negative")}>
+            {formatMoneyFull(Math.round(total ?? 0))}
+          </span>
+        </div>
+      )}
+    </div>
+  </div>
+);
+
 const DailyBalanceReport = () => {
   const { activeCasino } = useCasino();
   const navigate = useNavigate();
