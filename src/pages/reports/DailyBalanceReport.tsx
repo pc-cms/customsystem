@@ -269,7 +269,9 @@ const Tile = ({ label, value, hint }: { label: string; value: number; hint?: str
 );
 
 /** Manually entered opening balance for the month (carried over from the previous month). */
-const StartingBalanceTile = ({ storageKey, hint }: { storageKey: string; hint?: string }) => {
+const StartingBalanceTile = ({
+  storageKey, hint, onChange,
+}: { storageKey: string; hint?: string; onChange?: (v: number) => void }) => {
   const [value, setValue] = useState<number>(() => {
     const raw = typeof window !== "undefined" ? window.localStorage.getItem(storageKey) : null;
     return raw ? Number(raw) || 0 : 0;
@@ -288,6 +290,7 @@ const StartingBalanceTile = ({ storageKey, hint }: { storageKey: string; hint?: 
     setValue(next);
     window.localStorage.setItem(storageKey, String(next));
     setEditing(false);
+    onChange?.(next);
   };
 
   return (
