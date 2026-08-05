@@ -214,12 +214,16 @@ const Tile = ({ label, value, hint }: { label: string; value: number; hint?: str
 
 const DailyBalanceReport = () => {
   const { activeCasino } = useCasino();
+  const navigate = useNavigate();
   const [month, setMonth] = useSessionState("dbr-month", currentMonth());
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
   /** Fixed display options — every column is always shown, in full figures. */
   const heatmap = true;
   const [sort, setSort] = useState<SortState | null>({ key: "date", dir: "asc" });
   const [detail, setDetail] = useState<DailyBalanceRow | null>(null);
+  /** Cell drill-down: which column of which row is being inspected. */
+  const [drill, setDrill] = useState<{ row: DailyBalanceRow; col: string } | null>(null);
+
 
   /** Shift the selected month by ±1. */
   const stepMonth = (delta: number) => {
