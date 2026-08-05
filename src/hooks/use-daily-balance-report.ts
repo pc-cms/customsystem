@@ -721,6 +721,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
               chipDiff: num(l.chip_difference),
 
             }),
+            fees: feesByDate[date] ?? 0,
             legacy: true,
             hasSystemData: false,
             day_closed: true,
