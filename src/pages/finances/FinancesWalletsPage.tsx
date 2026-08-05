@@ -21,6 +21,7 @@ import {
   RotateCw,
   MoreHorizontal,
   CalendarCheck,
+  Save,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -50,6 +51,7 @@ import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import WalletMovementDialog, { type MovementMode } from "@/components/finances/WalletMovementDialog";
+import { useRecordDayBalance, useDayBalanceSnapshot, dayToRecord } from "@/hooks/use-day-balance-snapshot";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +73,14 @@ export default function FinancesWalletsPage() {
   const isSuperAdmin = roles.includes("super_admin");
   const { data: wallets = [] } = useFinWallets();
   const upsert = useUpsertFinWallet();
+  /**
+   * We always close YESTERDAY: on 05/08 the recorded day is 04/08 (it rolled
+   * over at 07:00 EAT). Re-recording during the day overwrites the snapshot.
+   */
+  const recordTargetDate = dayToRecord();
+  const recordDay = useRecordDayBalance();
+  const { data: recordedSnap } = useDayBalanceSnapshot(recordTargetDate);
+
 
   const now = new Date();
   const [ym, setYm] = useSessionState<{ year: number; month: number }>("ym", {
@@ -498,9 +508,25 @@ export default function FinancesWalletsPage() {
         >
           <ArrowUpRight className="w-4 h-4" /> Money Out
         </Button>
+        <Button
+          variant={recordedSnap ? "outline" : "default"}
+          size="sm"
+          className="h-9"
+          disabled={recordDay.isPending}
+          title={
+            recordedSnap
+              ? `Recorded ${fmtDate(recordTargetDate)} · re-record to overwrite`
+              : `Record safes & bank as of ${fmtDate(recordTargetDate)}`
+          }
+          onClick={() => recordDay.mutate(recordTargetDate)}
+        >
+          <Save className={cn("w-4 h-4", recordDay.isPending && "animate-pulse")} />
+          Record {fmtDate(recordTargetDate)}
+        </Button>
         <Button size="sm" className="h-9" onClick={openNewWallet}>
           <Plus className="w-4 h-4" /> Add Wallet
         </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon" className="h-9 w-9" aria-label="More actions">
