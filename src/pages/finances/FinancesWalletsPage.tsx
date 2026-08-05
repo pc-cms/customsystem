@@ -139,20 +139,22 @@ export default function FinancesWalletsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("cash_count_snapshots")
-        .select("wallet_id, denominations, physical_total, created_at")
+        .select("wallet_id, denominations, physical_total, created_at, source")
         .eq("casino_id", activeCasinoId!)
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
-      const m = new Map<string, { denoms: Record<number, number>; total: number; at: string }>();
+      const m = new Map<string, { denoms: Record<number, number>; total: number; at: string; source: string }>();
       (data || []).forEach((r: any) => {
         if (!r.wallet_id || m.has(r.wallet_id)) return;
         m.set(r.wallet_id, {
           denoms: (r.denominations || {}) as Record<number, number>,
           total: Number(r.physical_total || 0),
           at: r.created_at,
+          source: String(r.source || "manual"),
         });
       });
+
       return m;
     },
   });
