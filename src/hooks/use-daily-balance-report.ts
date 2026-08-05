@@ -741,51 +741,75 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           manager: number; bankTzs: number; bankUsd: number;
           expenses: number; inV: number; outV: number; result: number;
           live: number; slotsDiff: number; chipDiff: number;
+          tips?: number;
         }) => {
+          // Money frozen at closing time wins over the live wallet balance.
+          const snap = snapByDate[date];
           // Manual bank overrides (inline editor) win over computed balances.
           const manualTzs = l?.bank_account != null ? num(l.bank_account) : null;
           const manualUsdRaw = l?.bank_account_usd != null ? num(l.bank_account_usd) : null;
-          const bankTzs = manualTzs != null ? manualTzs : o.bankTzs;
-          const bankUsd = manualUsdRaw != null ? manualUsdRaw * rate : o.bankUsd;
-          const moneyTotal = o.cage + o.manager + bankTzs + bankUsd;
+          const cage = snap?.cage_casino != null ? num(snap.cage_casino) : o.cage;
+          const manager = snap?.cage_manager != null ? num(snap.cage_manager) : o.manager;
+          const bankTzs = snap?.bank_tzs != null
+            ? num(snap.bank_tzs)
+            : (manualTzs != null ? manualTzs : o.bankTzs);
+          const bankUsd = snap?.bank_usd != null
+            ? num(snap.bank_usd)
+            : (manualUsdRaw != null ? manualUsdRaw * rate : o.bankUsd);
+          const moneyTotal = cage + manager + bankTzs + bankUsd;
           const opening = firstRow ? startingBalance : prevMoney;
           firstRow = false;
           const diffTotal = o.chipDiff + o.slotsDiff;
           const officeNet = o.inV - o.outV;
-          // Balance = opening money + result + diff − office − expenses − cage − bank
+          const feesV = feesByDate[date] ?? 0;
+          const tipsV = o.tips ?? 0;
+          // Cash balance — tips are held outside the cage cash, so they are not
+          // part of the money reconciliation (they stay in the Fin Result only).
           const balance =
-            opening + o.result + diffTotal - officeNet - o.expenses - moneyTotal;
+            opening + o.result + diffTotal + feesV + officeNet - o.expenses - moneyTotal;
           prevMoney = moneyTotal;
           return {
             live_cash_result: o.live,
             slots_diff: o.slotsDiff,
-            diff_total: o.chipDiff + o.slotsDiff,
-            cage_casino: o.cage,
+            diff_total: diffTotal,
+            cage_casino: cage,
             cage_cash_part: o.cashPart,
             cage_cashless_part: o.cashlessPart,
             cage_carried: o.carried,
             transfer_cage_manager: trfToManager[date] ?? 0,
-            cage_manager: o.manager,
+            cage_manager: manager,
             transfer_bank: trfToBank[date] ?? 0,
             bank_tzs: bankTzs,
             bank_usd: bankUsd,
-            bank_usd_raw: manualUsdRaw ?? (rate ? o.bankUsd / rate : 0),
+            bank_usd_raw: manualUsdRaw ?? (rate ? bankUsd / rate : 0),
             bank_tzs_manual: manualTzs != null,
             bank_usd_manual: manualUsdRaw != null,
             money_in: o.inV,
             money_out: o.outV,
             money_total: moneyTotal,
-            fin_result: o.result - o.expenses + o.inV - o.outV,
-            // Balance = opening + result + diff − office − expenses − cage − bank → 0.
+            // P&L of the day — includes diff, tips and fees.
+            fin_result: o.result + diffTotal + tipsV + feesV - o.expenses + officeNet,
             balance,
-            balance_check: opening + o.result + diffTotal - officeNet - o.expenses,
+            balance_check: opening + o.result + diffTotal + feesV + officeNet - o.expenses,
             chips_detail: chipsDetail[date] ?? [],
             cage_detail: cageDetail[date] ?? { cash: [], cashless: [], slots_total: 0 },
             transfers_manager: managerTransfers[date] ?? [],
             transfers_bank: bankTransfers[date] ?? [],
             office_wallets: lastOfficeWallets,
+            bank_wallets: bankWalletDefs.map((w) => ({
+              name: w.name,
+              currency: w.currency || "TZS",
+              balance: perWallet[w.id] || 0,
+            })),
+            office_movements: officeMoves[date] ?? [],
+            expenses_detail: Object.entries(expDetail[date] ?? {})
+              .map(([label, value]) => ({ label, value }))
+              .sort((a, b) => b.value - a.value),
+            tips_total: tipsV,
+            snapshot: !!snap,
           };
         };
+
 
 
 
