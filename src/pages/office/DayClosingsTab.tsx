@@ -324,6 +324,20 @@ function DayRow({
     const finalComment = noteOverride ?? state.comment;
     const tid = `day-${date}`;
     try {
+      // JP is an income (IN) ledger entry — post only the delta vs what is
+      // already booked for this business day, so the ledger stays immutable.
+      const jpDelta = jpNum - jpPosted;
+      if (jpDelta !== 0) {
+        if (!jpWalletId) throw new Error("No TZS wallet configured for JP");
+        await addIncome.mutateAsync({
+          business_date: date,
+          wallet_id: jpWalletId,
+          source: "jp",
+          currency: "TZS",
+          amount: jpDelta,
+          note: "JP · Day Closings",
+        });
+      }
       const saved = await upsert.mutateAsync({
         id: existing?.id,
         business_date: date,
@@ -332,6 +346,7 @@ function DayRow({
         players_card_balance: cardsNum,
         notes: finalComment || null,
       });
+
       const rowId = existing?.id ?? (saved as any)?.id;
       if (rowId) {
         await lock.mutateAsync({
