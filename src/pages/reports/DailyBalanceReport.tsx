@@ -394,8 +394,28 @@ const DailyBalanceReport = () => {
             return <BankCell date={r.date} field="bank_account" value={num(r, "bank_tzs")} manual={!!r.bank_tzs_manual} />;
           if (r.kind === "day" && c.id === "bank_usd")
             return <BankCell date={r.date} field="bank_account_usd" value={num(r, "bank_usd_raw")} manual={!!r.bank_usd_manual} />;
-          return money(Math.round(c.value(r)));
+          const rendered = money(Math.round(c.value(r)));
+          if (c.id === "expenses")
+            return (
+              <span
+                className="cursor-pointer underline-offset-2 hover:underline"
+                onClick={(e) => { e.stopPropagation(); navigate("/reports/expenses-matrix"); }}
+              >
+                {rendered}
+              </span>
+            );
+          if (DRILL_IDS.has(c.id))
+            return (
+              <span
+                className="cursor-pointer underline-offset-2 hover:underline"
+                onClick={(e) => { e.stopPropagation(); setDrill({ row: r, col: c.id }); }}
+              >
+                {rendered}
+              </span>
+            );
+          return rendered;
         },
+
         sortValue: (r) => c.value(r),
         headerClassName: cn(
           "whitespace-nowrap",
