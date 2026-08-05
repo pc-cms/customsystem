@@ -47,8 +47,9 @@ type Col = {
 /** Numeric FLOW fields — summed across the month. */
 const BASE_KEYS: (keyof DailyBalanceRow)[] = [
   "casino_result", "tables_result", "slots_result", "live_cash_result", "slots_diff",
-  "bar_result", "chip_difference", "diff_total", "transfer_cage_manager", "transfer_bank",
-  "expenses", "bank_expenses", "money_in", "money_out", "fin_result",
+  "bar_result", "tips_tables", "tips_slots", "chip_difference", "diff_total",
+  "transfer_cage_manager", "transfer_bank",
+  "expenses", "fees", "bank_expenses", "money_in", "money_out", "fin_result",
   "day_total", "cash_desk_result", "day_balance", "collection_bank",
 ];
 
@@ -67,6 +68,7 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
       { id: "tables_result", label: "Live Game", value: (r) => num(r, "tables_result") },
       { id: "slots_result", label: "Slots", value: (r) => num(r, "slots_result") },
       { id: "bar_result", label: "Bar", value: (r) => num(r, "bar_result") },
+      { id: "tips_total", label: "Tips", value: (r) => num(r, "tips_tables") + num(r, "tips_slots") },
     ],
   },
   {
@@ -102,6 +104,7 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     label: "Expenses",
     cols: [
       { id: "expenses", label: "Expenses", total: true, value: (r) => num(r, "expenses") },
+      { id: "fees", label: "Fees", total: true, value: (r) => num(r, "fees") },
     ],
   },
   {

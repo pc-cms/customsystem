@@ -74,6 +74,8 @@ export interface DailyBalanceRow {
   bank_expenses: number;
   credit_deposit: number;
   expenses: number;
+  /** Fees booked as "Other incomes" of type `fee` (TZS). */
+  fees: number;
   chips_float: number;
   /** Σ incomes of the day: Tables + Slots + Bar + Credit/Deposit */
   day_total: number;
@@ -194,6 +196,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         legacy,
         slotsClosing,
         dayClosures,
+        feeRows,
       ] = await Promise.all([
         fetchPaged<any>((a, b) =>
           sb.from("fin_day_closing")
@@ -262,6 +265,12 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           sb.from("business_day_closures")
             .select("business_date")
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
+        // Fees booked in Other incomes (source = 'fee').
+        fetchPaged<any>((a, b) =>
+          sb.from("fin_other_incomes")
+            .select("business_date, amount, currency, fx_rate, source, reversed_by_id")
+            .eq("casino_id", casino).eq("source", "fee")
+            .gte("business_date", from).lte("business_date", to).range(a, b)),
       ]);
 
       const closedDays = new Set<string>(
@@ -566,6 +575,14 @@ export const useDailyBalanceReport = (from: string, to: string) => {
       const bar: Bucket = {};
       posOrders.filter((o) => o.status !== "void").forEach((o) => add(bar, o.business_date, num(o.total_tzs)));
 
+      /** Fees (Other incomes, source = 'fee') converted to TZS. */
+      const feesByDate: Bucket = {};
+      (feeRows as any[]).filter((f) => !f.reversed_by_id).forEach((f) => {
+        const fx = num(f.fx_rate) || 1;
+        const amt = String(f.currency || "TZS") === "TZS" ? num(f.amount) : num(f.amount) * fx;
+        add(feesByDate, String(f.business_date).slice(0, 10), amt);
+      });
+
       const legacyByDate: Record<string, any> = {};
       legacy.forEach((l) => { legacyByDate[l.business_date] = l; });
 
@@ -704,6 +721,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
               chipDiff: num(l.chip_difference),
 
             }),
+            fees: feesByDate[date] ?? 0,
             legacy: true,
             hasSystemData: false,
             day_closed: true,
@@ -765,6 +783,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             chipDiff: chipMiss[date] ?? 0,
 
           }),
+          fees: feesByDate[date] ?? 0,
           legacy: false,
           hasSystemData,
           day_closed: closedDays.has(date),
