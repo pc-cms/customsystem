@@ -83,17 +83,18 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     label: "Cage & transfers",
     cols: [
       { id: "cage_casino", label: "Cage Casino", total: true, value: (r) => num(r, "cage_casino") },
-      { id: "transfer_cage_manager", label: "Transfer → Manager", value: (r) => num(r, "transfer_cage_manager") },
+      { id: "transfer_cage_manager", label: "Internal Transfer", value: (r) => num(r, "transfer_cage_manager") },
       { id: "cage_manager", label: "Cage Manager", total: true, value: (r) => num(r, "cage_manager") },
-      { id: "transfer_bank", label: "Transfer → Bank", value: (r) => num(r, "transfer_bank") },
+      { id: "transfer_bank", label: "Bank Transfer", value: (r) => num(r, "transfer_bank") },
     ],
   },
   {
     key: "money",
     label: "Bank",
     cols: [
-      { id: "bank_tzs", label: "Bank TZS", total: true, value: (r) => num(r, "bank_tzs") },
-      { id: "bank_usd", label: "Bank USD", total: true, value: (r) => num(r, "bank_usd") },
+      { id: "bank_total", label: "Bank", total: true, value: (r) => num(r, "bank_tzs") + num(r, "bank_usd") },
+      { id: "bank_tzs", label: "Bank TZS", value: (r) => num(r, "bank_tzs") },
+      { id: "bank_usd", label: "Bank USD", value: (r) => num(r, "bank_usd") },
     ],
   },
   {
@@ -579,12 +580,22 @@ const DailyBalanceReport = () => {
         </span>
       </PageHeader>
 
-      {/* Centered month switcher */}
-      <div className="mb-3 flex items-center justify-center gap-2">
-        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(-1)} aria-label="Previous month">
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1">
+      {/* Top row: Finance Result · month switcher · Office */}
+      <div className="mb-2 grid grid-cols-1 gap-2 md:grid-cols-3">
+        <Tile
+          label="Finance Result"
+          value={
+            num(grandRow, "casino_result") -
+            num(grandRow, "expenses") +
+            num(grandRow, "money_in") -
+            num(grandRow, "money_out")
+          }
+          hint="Casino result − expenses + office net"
+        />
+        <div className="flex items-center justify-center gap-2 rounded-md border border-border bg-card px-2 py-2">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(-1)} aria-label="Previous month">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
           <span className="min-w-[130px] text-center text-sm font-semibold tracking-wide">{monthLabel}</span>
           <Input
             type="month"
@@ -592,33 +603,34 @@ const DailyBalanceReport = () => {
             onChange={(e) => setMonth(e.target.value || currentMonth())}
             className="h-7 w-[136px] text-xs"
           />
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(1)} aria-label="Next month">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
-        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(1)} aria-label="Next month">
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+        <Tile
+          label="Office (IN − OUT)"
+          value={num(grandRow, "money_in") - num(grandRow, "money_out")}
+          hint={`+ ${formatMoneyFull(Math.round(num(grandRow, "money_in")))} · − ${formatMoneyFull(Math.round(num(grandRow, "money_out")))}`}
+        />
       </div>
 
-      {/* KPI tiles */}
-      <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
-        <Tile label="Result (month)" value={num(grandRow, "casino_result")} />
-        <Tile label="Expenses (month)" value={-num(grandRow, "expenses")} />
-        <Tile label="IN − OUT (month)" value={num(grandRow, "money_in") - num(grandRow, "money_out")} />
+      {/* Second row: casino result · money · diff · expenses · balance */}
+      <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-5">
+        <Tile label="Casino Result" value={num(grandRow, "casino_result")} hint="Live + Slots + Bar" />
         <Tile
-          label="Cage Casino"
-          value={Number(lastClosedRow?.cage_casino || 0)}
+          label="Money"
+          value={Number(lastClosedRow?.money_total || 0)}
           hint={lastClosedDate ? fmtDate(lastClosedDate) : undefined}
         />
-        <Tile
-          label="Cage Manager"
-          value={Number(lastClosedRow?.cage_manager || 0)}
-          hint={lastClosedDate ? fmtDate(lastClosedDate) : undefined}
-        />
+        <Tile label="Diff" value={num(grandRow, "diff_total")} hint="Chip Diff + Slots Diff" />
+        <Tile label="Expenses" value={-num(grandRow, "expenses")} />
         <Tile
           label="Balance"
           value={Number(lastClosedRow?.balance || 0)}
           hint={lastClosedDate ? fmtDate(lastClosedDate) : undefined}
         />
       </div>
+
 
       <PageSection card={false}>
         <div className="max-h-[72vh] overflow-auto rounded-md border border-border">
