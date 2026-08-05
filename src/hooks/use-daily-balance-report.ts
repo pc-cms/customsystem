@@ -349,8 +349,11 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         if (slotsRes[s.business_date] == null) add(slotsRes, s.business_date, num(s.slots_result));
       });
       slotsClosing.forEach((i) => {
-        add(cageClosing, i.cage_slots_shifts?.business_date, num(i.total_tzs));
+        const d = i.cage_slots_shifts?.business_date;
+        add(cageClosing, d, num(i.total_tzs));
+        if (d) cageBucket(d).slots_total += num(i.total_tzs);
       });
+
 
 
 
