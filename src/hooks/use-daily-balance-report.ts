@@ -256,7 +256,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         // Slots cage closing cash inventory (per shift) → Cage Cash (SLOTS part)
         fetchPaged<any>((a, b) =>
           sb.from("cage_slots_cash_inventory")
-            .select("total_tzs, inventory_type, cage_slots_shifts!inner(business_date, casino_id)")
+            .select("total_tzs, inventory_type, created_at, cage_slots_shifts!inner(business_date, casino_id)")
             .eq("casino_id", casino).eq("inventory_type", "closing")
             .gte("cage_slots_shifts.business_date", from)
             .lte("cage_slots_shifts.business_date", to).range(a, b)),
