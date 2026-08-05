@@ -11102,6 +11102,11 @@ export type Database = {
         }
         Returns: string
       }
+      fin_post_cage_expense: { Args: { _expense_id: string }; Returns: boolean }
+      fin_post_cage_expenses_for_day: {
+        Args: { _business_date: string; _casino_id: string }
+        Returns: number
+      }
       fin_post_pending_wallet_tx: {
         Args: { _business_date: string; _casino_id: string }
         Returns: number
