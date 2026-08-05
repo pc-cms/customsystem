@@ -79,32 +79,29 @@ export const useFinBalanceSnapshot = (from: string, to: string) => {
 export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
   if (!s) return { expected: 0, actual: 0, variance: 0 };
   const incomes = s.incomes;
-  // Physical cash count per wallet already contains the starting float
-  // (a count records the wallet's current total, float included).
-  // So Expected must NOT add starting_float — otherwise it double-counts.
+  // Starting float is an income at the beginning of the period: the physical
+  // count of a wallet contains it, so Expected must contain it too.
   // Collections = owner withdrawal / CAPEX: the cash physically leaves the casino,
   // so it must reduce Expected. Pure internal moves (transfers, money change) stay neutral.
   const expected =
+    (s.starting_float?.grand_tzs || 0) +
     (incomes.live_game || 0) +
     (incomes.slots || 0) +
     (incomes.other || 0) +
     (incomes.jp || 0) +
-    // Players card deposits are physically in the cash desk but are not earnings —
-    // add them back so the drawer reconciles without inflating the result.
+    // Card balance is the per-day difference, summed over the period.
     (incomes.card_balance || 0) +
     (incomes.missed_chips || 0) +
     (incomes.missed_cards || 0) -
     (s.expenses_total || 0) -
     (s.collections_total || 0);
+  // Actual = physical counts only. Every movement writes an automatic count,
+  // so the ledger is never added on top.
   const actual = (s.wallets || []).reduce((sum, w) => {
-    // The RPC already anchors Actual on the last physical count and adds every
-    // movement booked after it — so Money In / Out keeps moving the number.
     if (w.actual_tzs != null) return sum + Number(w.actual_tzs);
     return sum + Number(w.ledger_tzs ?? w.ledger ?? 0);
   }, 0);
 
-  // Actual includes the float baseline; subtract it so Variance = business P/L variance.
-  const actualNet = actual - (s.starting_float?.grand_tzs || 0);
-  return { expected, actual: actualNet, variance: actualNet - expected };
-  
+  return { expected, actual, variance: actual - expected };
 };
+
