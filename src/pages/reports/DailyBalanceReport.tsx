@@ -2,7 +2,7 @@
  * Reports → Daily Balance Sheet.
  *
  * Recreates the legacy "БАЛАНС" monthly spreadsheet: one row per business date,
- * grouped column blocks (two-level header), weekly subtotal rows and sticky
+ * grouped column blocks (two-level header) and sticky
  * Total / Average footer rows. All figures in TZS.
  *
  * Column model: every section shows ONE headline "total" column when collapsed;
@@ -42,7 +42,7 @@ type Col = {
   value: (r: DailyBalanceRow) => number;
 };
 
-/** Numeric FLOW fields — summed across week / month rows. */
+/** Numeric FLOW fields — summed across the month. */
 const BASE_KEYS: (keyof DailyBalanceRow)[] = [
   "casino_result", "tables_result", "slots_result", "live_cash_result", "slots_diff",
   "chip_difference", "transfer_cage_manager", "transfer_bank",
@@ -123,8 +123,8 @@ const monthBounds = (m: string) => {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-/** Table row = a real business day or an injected weekly subtotal. */
-type Row = DailyBalanceRow & { kind: "day" | "week"; label?: string };
+/** Table row = a real business day (no weekly subtotals in this grid). */
+type Row = DailyBalanceRow & { kind: "day" };
 
 /** Manual Credit / Deposit entry — saved per day on blur. */
 const CreditCell = ({ date, value }: { date: string; value: number }) => {
@@ -203,7 +203,6 @@ const DailyBalanceReport = () => {
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
   /** Fixed display options — every column is always shown, in full figures. */
   const heatmap = true;
-  const weeks = true;
   const [sort, setSort] = useState<SortState | null>({ key: "date", dir: "asc" });
   const [detail, setDetail] = useState<DailyBalanceRow | null>(null);
 
@@ -227,11 +226,13 @@ const DailyBalanceReport = () => {
   /** Sum of every source field across the month — feeds Total / Average rows. */
   const grandRow = useMemo(() => {
     const acc = {} as DailyBalanceRow;
+    // Open (not yet closed) business days carry no figures at all.
+    const closed = rows.filter((r) => r.day_closed);
     for (const k of BASE_KEYS) {
-      (acc as unknown as Record<string, number>)[k as string] = rows.reduce((s, r) => s + num(r, k), 0);
+      (acc as unknown as Record<string, number>)[k as string] = closed.reduce((s, r) => s + num(r, k), 0);
     }
-    // Snapshot (stock) columns take the last day of the period, never a sum.
-    const last = rows.length ? rows[rows.length - 1] : null;
+    // Snapshot (stock) columns take the last closed day, never a sum.
+    const last = closed.length ? closed[closed.length - 1] : null;
     for (const k of SNAPSHOT_KEYS) {
       (acc as unknown as Record<string, number>)[k as string] = last ? num(last, k) : 0;
     }
@@ -243,7 +244,7 @@ const DailyBalanceReport = () => {
 
   /** Last business date that has live system data — highlighted with a yellow stripe. */
   const lastClosedRow = useMemo(() => {
-    const withData = rows.filter((r) => r.hasSystemData).sort((a, b) => a.date.localeCompare(b.date));
+    const withData = rows.filter((r) => r.day_closed && r.hasSystemData).sort((a, b) => a.date.localeCompare(b.date));
     return withData.length ? withData[withData.length - 1] : null;
   }, [rows]);
   const lastClosedDate = lastClosedRow?.date ?? null;
@@ -256,7 +257,7 @@ const DailyBalanceReport = () => {
     const m: Record<string, number> = {};
     for (const c of ALL_COLS) {
       if (!HEAT_IDS.has(c.id)) continue;
-      m[c.id] = Math.max(1, ...rows.map((r) => Math.abs(c.value(r))));
+      m[c.id] = Math.max(1, ...rows.filter((r) => r.day_closed).map((r) => Math.abs(c.value(r))));
     }
     return m;
   }, [rows]);
@@ -285,10 +286,10 @@ const DailyBalanceReport = () => {
 
   /**
    * Single background layer per row — prevents stacked translucent fills.
-   * Priority: week > last closed day > today > weekend > (cell heat).
+   * Priority: open day > last closed day > today > weekend > (cell heat).
    */
   const rowBg = (r: Row): string | undefined => {
-    if (r.kind === "week") return "bg-muted";
+    if (!r.day_closed) return "bg-muted/40";
     if (r.date === lastClosedDate)
       return "bg-[color-mix(in_srgb,hsl(var(--warning))_14%,hsl(var(--card)))]";
     if (r.date === today())
@@ -298,39 +299,11 @@ const DailyBalanceReport = () => {
     return undefined;
   };
 
-  /** ISO-ish week bucket for grouping (weeks end on Sunday). */
-  const displayRows = useMemo<Row[]>(() => {
-    const base: Row[] = rows.map((r) => ({ ...r, kind: "day" as const }));
-    const byDate = sort?.key === "date" || !sort;
-    if (!weeks || !byDate || base.length === 0) return base;
-    const asc = [...base].sort((a, b) => a.date.localeCompare(b.date));
-    const out: Row[] = [];
-    let bucket: Row[] = [];
-    let n = 1;
-    const flush = () => {
-      if (!bucket.length) return;
-      const agg = { ...bucket[bucket.length - 1] } as Row;
-      for (const k of BASE_KEYS) {
-        (agg as unknown as Record<string, number>)[k as string] = bucket.reduce(
-          (s, r) => s + num(r, k),
-          0,
-        );
-      }
-      agg.kind = "week";
-      agg.label = `Week ${n}`;
-      agg.date = `${bucket[bucket.length - 1].date}~w`;
-      out.push(agg);
-      n += 1;
-      bucket = [];
-    };
-    for (const r of asc) {
-      out.push(r);
-      bucket.push(r);
-      if (r.weekday === "Sun") flush();
-    }
-    flush();
-    return sort?.dir === "desc" ? [...out].reverse() : out;
-  }, [rows, weeks, sort]);
+  /** Plain day rows — weekly subtotals were removed from this report. */
+  const displayRows = useMemo<Row[]>(
+    () => rows.map((r) => ({ ...r, kind: "day" as const })),
+    [rows],
+  );
 
   /** Full figures only — no compact M / K suffixes anywhere in this grid. */
   const money = (n: number) =>
@@ -366,22 +339,20 @@ const DailyBalanceReport = () => {
       header: "Date",
       type: "date",
       style: { width: 132, minWidth: 132 },
-      accessor: (r) =>
-        r.kind === "week" ? (
-          <span className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            {r.label}
-          </span>
-        ) : (
+      accessor: (r) => (
           <span className="whitespace-nowrap">
             <span className={cn("font-mono tabular-nums", r.date === today() && "font-semibold text-primary")}>
               {fmtDate(r.date)}
             </span>{" "}
             <span className="text-[11px] text-muted-foreground">{r.weekday}</span>
             {r.legacy && <Badge variant="outline" className="ml-1 h-4 px-1 text-[10px]">imp</Badge>}
+            {!r.day_closed && (
+              <Badge variant="outline" className="ml-1 h-4 px-1 text-[10px]">open</Badge>
+            )}
           </span>
         ),
       sortValue: (r) => r.date,
-      cellClassName: (r: Row) => cn("py-1", rowBg(r), r.kind === "week" && "font-semibold"),
+      cellClassName: (r: Row) => cn("py-1", rowBg(r)),
     },
     ...visibleMoneyCols.map<ColumnDef<Row>>((c, i) => {
       const first = i === 0 || visibleMoneyCols[i - 1].section !== c.section;
@@ -406,6 +377,8 @@ const DailyBalanceReport = () => {
         type: "money" as const,
         style: i === 0 ? { width: 132, minWidth: 132 } : undefined,
         accessor: (r) => {
+          // Business day still open → no figures in any column.
+          if (!r.day_closed) return <span className="text-muted-foreground">·</span>;
           if (r.kind === "day" && c.id === "credit_deposit")
             return <CreditCell date={r.date} value={num(r, "credit_deposit")} />;
           if (r.kind === "day" && c.id === "bank_tzs")
@@ -425,8 +398,7 @@ const DailyBalanceReport = () => {
             "py-1 font-mono tabular-nums",
             first && "border-l border-border",
             c.total ? "font-semibold" : "text-muted-foreground",
-            r.kind === "week" && "font-semibold",
-            rowBg(r) ?? (r.kind === "day" ? heatClass(c, Math.round(c.value(r))) : undefined),
+            rowBg(r) ?? (r.day_closed ? heatClass(c, Math.round(c.value(r))) : undefined),
           ),
       };
     }),

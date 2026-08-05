@@ -83,7 +83,7 @@ export interface DailyBalanceRow {
   money_out: number;
   /** Cage Casino + Cage Manager + Bank (TZS + USD) at end of day. */
   money_total: number;
-  /** End-of-day stock: equals money_total. */
+  /** Variance: Money (actual) − control figure (expected). Should tend to 0. */
   balance: number;
   /** Control figure: yesterday Money + Result + IN − OUT − Expenses. */
   balance_check: number;
@@ -91,6 +91,8 @@ export interface DailyBalanceRow {
   legacy: boolean;
   /** true when at least one live source produced data for that date */
   hasSystemData: boolean;
+  /** true when the business day is closed — open days show no figures. */
+  day_closed: boolean;
 }
 
 
@@ -148,6 +150,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         posOrders,
         legacy,
         slotsClosing,
+        dayClosures,
       ] = await Promise.all([
         fetchPaged<any>((a, b) =>
           sb.from("fin_day_closing")
@@ -211,7 +214,16 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             .eq("casino_id", casino).eq("inventory_type", "closing")
             .gte("cage_slots_shifts.business_date", from)
             .lte("cage_slots_shifts.business_date", to).range(a, b)),
+        // Closed business days — open days must not display any figures.
+        fetchPaged<any>((a, b) =>
+          sb.from("business_day_closures")
+            .select("business_date")
+            .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
       ]);
+
+      const closedDays = new Set<string>(
+        (dayClosures as any[]).map((c) => String(c.business_date).slice(0, 10)),
+      );
 
 
       // ---- daily USD rate (carry forward last known) --------------------
@@ -449,7 +461,8 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             money_in: o.inV,
             money_out: o.outV,
             money_total: moneyTotal,
-            balance: moneyTotal,
+            // Balance is a VARIANCE (actual money − expected money): → 0.
+            balance: moneyTotal - check,
             balance_check: check,
           };
         };
@@ -496,6 +509,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             }),
             legacy: true,
             hasSystemData: false,
+            day_closed: true,
           } satisfies DailyBalanceRow;
         }
 
@@ -555,6 +569,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           }),
           legacy: false,
           hasSystemData,
+          day_closed: closedDays.has(date),
         } satisfies DailyBalanceRow;
       });
 
