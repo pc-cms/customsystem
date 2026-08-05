@@ -155,7 +155,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("shifts")
-            .select("opened_at, closed_at, cash_desk_result, tables_result, shift_result, closing_cash, cashless_in_providers, cashless_out_providers")
+            .select("opened_at, closed_at, cash_desk_result, tables_result, shift_result, closing_cash, closing_count, cashless_in_providers, cashless_out_providers")
             .eq("casino_id", casino).gte("opened_at", fromIso).lte("opened_at", toIso).range(a, b)),
 
         fetchPaged<any>((a, b) =>
