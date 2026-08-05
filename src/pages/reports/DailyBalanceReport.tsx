@@ -92,15 +92,22 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     key: "money",
     label: "Bank",
     cols: [
-      { id: "bank_tzs", label: "Bank TZS", value: (r) => num(r, "bank_tzs") },
-      { id: "bank_usd", label: "Bank USD", value: (r) => num(r, "bank_usd") },
+      { id: "bank_tzs", label: "Bank TZS", total: true, value: (r) => num(r, "bank_tzs") },
+      { id: "bank_usd", label: "Bank USD", total: true, value: (r) => num(r, "bank_usd") },
     ],
   },
   {
     key: "expenses",
-    label: "Office",
+    label: "Expenses",
     cols: [
       { id: "expenses", label: "Expenses", total: true, value: (r) => num(r, "expenses") },
+    ],
+  },
+  {
+    key: "office",
+    label: "Office",
+    cols: [
+      { id: "office_total", label: "Office", total: true, value: (r) => num(r, "money_in") - num(r, "money_out") },
       { id: "money_in", label: "+", value: (r) => num(r, "money_in") },
       { id: "money_out", label: "−", value: (r) => num(r, "money_out") },
     ],
@@ -114,6 +121,14 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     ],
   },
 ];
+
+/** Section → the headline column that carries the expand arrow (first total col). */
+const SECTION_ANCHOR: Record<string, string> = Object.fromEntries(
+  SECTIONS.filter((s) => s.cols.some((c) => !c.total)).map((s) => [
+    s.key,
+    (s.cols.find((c) => c.total) ?? s.cols[0]).id,
+  ]),
+);
 
 
 /** Non-headline columns are "details" — hidden until their section is expanded. */
