@@ -51,11 +51,36 @@ export interface DailyBalanceRow {
   day_total: number;
   /** Cash Desk − Day Total (cash vs declared result) */
   day_balance: number;
+  // ---- Casino Monthly Balance model --------------------------------
+  /** Live cage cash-desk result (cash side of live games). */
+  live_cash_result: number;
+  /** Slots cage difference: cage cash desk − declared slots result. */
+  slots_diff: number;
+  /** Cage Casino = closing cash of LIVE cage + SLOTS cage. */
+  cage_casino: number;
+  /** Transfers cage → manager safe (positive leg into office_safe). */
+  transfer_cage_manager: number;
+  /** Manager (office) safe balance at end of day. */
+  cage_manager: number;
+  /** Transfers into bank accounts (positive leg). */
+  transfer_bank: number;
+  /** Bank account balances at end of day, split by currency (TZS-valued). */
+  bank_tzs: number;
+  bank_usd: number;
+  /** Owner deposits into the business (external income). */
+  money_in: number;
+  /** Collections / owner withdrawals. */
+  money_out: number;
+  /** Cage Casino + Cage Manager + Bank (TZS + USD) at end of day. */
+  money_total: number;
+  /** Money + IN − OUT − Expenses of the day. */
+  balance: number;
   /** true when the row came from the imported legacy sheet */
   legacy: boolean;
   /** true when at least one live source produced data for that date */
   hasSystemData: boolean;
 }
+
 
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
