@@ -14,7 +14,7 @@ import { Wallet2, ChevronLeft, ChevronRight, Info } from "lucide-react";
 
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { SmartTable, type ColumnDef, type SortState } from "@/components/ui/smart-table";
+import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,7 +63,7 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     key: "incomes",
     label: "Casino result",
     cols: [
-      { id: "result", label: "Result", total: true, value: (r) => num(r, "casino_result") },
+      { id: "result", label: "Casino Result", total: true, value: (r) => num(r, "casino_result") },
       { id: "tables_result", label: "Live Game", value: (r) => num(r, "tables_result") },
       { id: "slots_result", label: "Slots", value: (r) => num(r, "slots_result") },
       { id: "bar_result", label: "Bar", value: (r) => num(r, "bar_result") },
@@ -118,7 +118,6 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     label: "Balance",
     cols: [
       { id: "money_total", label: "Money", total: true, value: (r) => num(r, "money_total") },
-      { id: "fin_result", label: "Fin Result", total: true, value: (r) => num(r, "fin_result") },
       { id: "balance", label: "Balance", total: true, value: (r) => num(r, "balance") },
     ],
   },
@@ -134,10 +133,17 @@ const SECTION_ANCHOR: Record<string, string> = Object.fromEntries(
 
 
 /** Non-headline columns are "details" — hidden until their section is expanded. */
-const ALL_COLS: (Col & { section: SectionKey })[] = SECTIONS.flatMap((s) =>
-  s.cols.map((c) => ({ ...c, detail: !c.total, section: s.key })),
-);
+const ALL_COLS: (Col & { section: SectionKey })[] = [
+  LEAD_COL,
+  ...SECTIONS.flatMap((s) => s.cols.map((c) => ({ ...c, detail: !c.total, section: s.key }))),
+];
 
+
+/** Pinned lead column, rendered right after Date. */
+const LEAD_COL: Col & { section: SectionKey } = {
+  id: "fin_result", label: "Fin Result", total: true, section: "balances",
+  value: (r) => num(r, "fin_result"),
+};
 
 /** Every money column gets a per-column heat fill (scaled inside its own column). */
 const HEAT_IDS = new Set(ALL_COLS.map((c) => c.id));
@@ -280,7 +286,6 @@ const DailyBalanceReport = () => {
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
   /** Fixed display options — every column is always shown, in full figures. */
   const heatmap = true;
-  const [sort, setSort] = useState<SortState | null>({ key: "date", dir: "asc" });
   const [detail, setDetail] = useState<DailyBalanceRow | null>(null);
   /** Cell drill-down: which column of which row is being inspected. */
   const [drill, setDrill] = useState<{ row: DailyBalanceRow; col: string } | null>(null);
@@ -331,7 +336,7 @@ const DailyBalanceReport = () => {
 
   /** Collapsed sections show only their headline column(s). */
   const visibleMoneyCols = useMemo(
-    () => ALL_COLS.filter((c) => !c.detail || expanded.has(c.section)),
+    () => [LEAD_COL, ...ALL_COLS.filter((c) => c.id !== LEAD_COL.id && (!c.detail || expanded.has(c.section)))],
     [expanded],
   );
 
@@ -416,7 +421,6 @@ const DailyBalanceReport = () => {
             )}
           </span>
         ),
-      sortValue: (r) => r.date,
       cellClassName: (r: Row) => cn("py-1", rowBg(r)),
     },
     ...visibleMoneyCols.map<ColumnDef<Row>>((c, i) => {
@@ -500,7 +504,6 @@ const DailyBalanceReport = () => {
           return wrap(rendered);
         },
 
-        sortValue: (r) => c.value(r),
         headerClassName: cn(
           "whitespace-nowrap",
           first && "border-l border-border",
@@ -581,47 +584,33 @@ const DailyBalanceReport = () => {
         </span>
       </PageHeader>
 
-      {/* Top row: Finance Result · month switcher · Office */}
-      <div className="mb-2 grid grid-cols-1 gap-2 md:grid-cols-3">
+      {/* KPI tiles: Finance Result · Casino Result · Money · Diff · Expenses · Balance */}
+      <div className="mb-2 flex items-center justify-end gap-2">
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(-1)} aria-label="Previous month">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="min-w-[130px] text-center text-sm font-semibold tracking-wide">{monthLabel}</span>
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(1)} aria-label="Next month">
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
         <Tile
-          label="Finance Result"
+          label="Total Finance Result"
           value={num(grandRow, "fin_result")}
           hint="Casino result − expenses + office net"
         />
-        <div className="flex items-center justify-center gap-2 rounded-md border border-border bg-card px-2 py-2">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(-1)} aria-label="Previous month">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="min-w-[130px] text-center text-sm font-semibold tracking-wide">{monthLabel}</span>
-          <Input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value || currentMonth())}
-            className="h-7 w-[136px] text-xs"
-          />
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(1)} aria-label="Next month">
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        <Tile label="Total Casino Result" value={num(grandRow, "casino_result")} hint="Live Game + Slots + Bar" />
         <Tile
-          label="Office (IN − OUT)"
-          value={num(grandRow, "money_in") - num(grandRow, "money_out")}
-          hint={`+ ${formatMoneyFull(Math.round(num(grandRow, "money_in")))} · − ${formatMoneyFull(Math.round(num(grandRow, "money_out")))}`}
-        />
-      </div>
-
-      {/* Second row: casino result · money · diff · expenses · balance */}
-      <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-5">
-        <Tile label="Casino Result" value={num(grandRow, "casino_result")} hint="Live + Slots + Bar" />
-        <Tile
-          label="Money"
+          label="Total Money"
           value={Number(lastClosedRow?.money_total || 0)}
           hint={lastClosedDate ? fmtDate(lastClosedDate) : undefined}
         />
-        <Tile label="Diff" value={num(grandRow, "diff_total")} hint="Chip Diff + Slots Diff" />
-        <Tile label="Expenses" value={-num(grandRow, "expenses")} />
+        <Tile label="Total Diff" value={num(grandRow, "diff_total")} hint="Chip Diff + Slots Diff" />
+        <Tile label="Total Expenses" value={-num(grandRow, "expenses")} />
         <Tile
-          label="Balance"
+          label="Monthly Balance"
           value={Number(lastClosedRow?.balance || 0)}
           hint={lastClosedDate ? fmtDate(lastClosedDate) : undefined}
         />
@@ -634,8 +623,6 @@ const DailyBalanceReport = () => {
             data={displayRows}
             columns={columns}
             rowKey={(r) => `${r.kind}:${r.date}`}
-            sort={sort}
-            onSortChange={setSort}
             loading={isLoading}
             stickyColumns={[0, 132]}
             stickyHeader
