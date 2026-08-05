@@ -126,6 +126,31 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
   },
 ];
 
+/**
+ * Per-section column zone tint — OPAQUE (mixed against --card) so that sticky
+ * frozen columns never let scrolling content bleed through. Static literals so
+ * Tailwind's JIT scanner picks them up.
+ */
+const ZONE_BG: Record<SectionKey, string> = {
+  incomes: "bg-[color-mix(in_srgb,hsl(var(--success))_5%,hsl(var(--card)))]",
+  diff: "bg-[color-mix(in_srgb,hsl(var(--warning))_6%,hsl(var(--card)))]",
+  transfers: "bg-[color-mix(in_srgb,hsl(var(--info))_6%,hsl(var(--card)))]",
+  money: "bg-[color-mix(in_srgb,hsl(var(--primary))_5%,hsl(var(--card)))]",
+  expenses: "bg-[color-mix(in_srgb,hsl(var(--destructive))_5%,hsl(var(--card)))]",
+  office: "bg-[color-mix(in_srgb,hsl(var(--accent))_18%,hsl(var(--card)))]",
+  balances: "bg-[color-mix(in_srgb,hsl(var(--muted))_45%,hsl(var(--card)))]",
+};
+
+const ZONE_HEAD: Record<SectionKey, string> = {
+  incomes: "bg-[color-mix(in_srgb,hsl(var(--success))_14%,hsl(var(--muted)))]",
+  diff: "bg-[color-mix(in_srgb,hsl(var(--warning))_16%,hsl(var(--muted)))]",
+  transfers: "bg-[color-mix(in_srgb,hsl(var(--info))_16%,hsl(var(--muted)))]",
+  money: "bg-[color-mix(in_srgb,hsl(var(--primary))_13%,hsl(var(--muted)))]",
+  expenses: "bg-[color-mix(in_srgb,hsl(var(--destructive))_14%,hsl(var(--muted)))]",
+  office: "bg-[color-mix(in_srgb,hsl(var(--accent))_40%,hsl(var(--muted)))]",
+  balances: "bg-muted",
+};
+
 /** Section → the headline column that carries the expand arrow (first total col). */
 const SECTION_ANCHOR: Record<string, string> = Object.fromEntries(
   SECTIONS.filter((s) => s.cols.some((c) => !c.total)).map((s) => [
@@ -133,6 +158,7 @@ const SECTION_ANCHOR: Record<string, string> = Object.fromEntries(
     (s.cols.find((c) => c.total) ?? s.cols[0]).id,
   ]),
 );
+
 
 
 /** Pinned lead column, rendered right after Date. */
