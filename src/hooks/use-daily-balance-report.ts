@@ -481,26 +481,40 @@ export const useDailyBalanceReport = (from: string, to: string) => {
       const managerTransfers: Record<string, TransferDetail[]> = {};
 
       const txByDate: Record<string, any[]> = {};
-      walletTx.forEach((t) => {
-        (txByDate[t.business_date] ??= []).push(t);
-        const kind = walletKind[t.wallet_id];
-        const v = tzs(t);
-        if (t.kind === "collection") add(collections, t.business_date, Math.abs(v));
-        // Owner deposits into the business
-        if (t.kind === "external_income" && v > 0) add(ownerIn, t.business_date, v);
-        if (t.kind === "transfer" && isBankKind(kind)) {
-          if (v > 0) add(trfToBank, t.business_date, v);
-          (bankTransfers[t.business_date] ??= []).push({
-            amount: v,
-            from: v > 0 ? "Casino" : walletName[t.wallet_id] || "Bank",
-            to: v > 0 ? walletName[t.wallet_id] || "Bank" : "Casino",
-          });
-        }
-        if (isOfficeKind(kind)) {
-          if (v >= 0) add(officeIn, t.business_date, v);
-          else add(officeOut, t.business_date, Math.abs(v));
-        }
-      });
+      const isTransferLeg = (t: any) =>
+        t.kind === "transfer" || t.kind === "transfer_in" || t.kind === "transfer_out";
+      walletTx
+        // Only confirmed (posted) movements move money. Pending ones are ignored.
+        .filter((t) => t.posted_at)
+        .forEach((t) => {
+          (txByDate[t.business_date] ??= []).push(t);
+          const kind = walletKind[t.wallet_id];
+          const v = signedWalletTxTzs(t);
+          const collection = t.kind === "collection" || isCollectionCat(t);
+          if (collection) add(collections, t.business_date, Math.abs(v));
+          // Owner deposits into the business
+          if ((t.kind === "external_income" || t.kind === "income") && v > 0) {
+            add(ownerIn, t.business_date, v);
+          }
+          if (isTransferLeg(t) && isBankKind(kind)) {
+            if (v > 0) add(trfToBank, t.business_date, v);
+            (bankTransfers[t.business_date] ??= []).push({
+              amount: v,
+              from: v > 0 ? "Casino" : walletName[t.wallet_id] || "Bank",
+              to: v > 0 ? walletName[t.wallet_id] || "Bank" : "Casino",
+            });
+          }
+          if (isOfficeKind(kind) && !isTransferLeg(t)) {
+            // Office receives money with "+" and sends it out with "−".
+            if (v >= 0) add(officeIn, t.business_date, v);
+            else add(officeOut, t.business_date, Math.abs(v));
+            (officeMoves[t.business_date] ??= []).push({
+              amount: v,
+              from: v >= 0 ? t.note || "Income" : walletName[t.wallet_id] || "Office",
+              to: v >= 0 ? walletName[t.wallet_id] || "Office" : t.note || "Payment",
+            });
+          }
+        });
 
       /**
        * Transfer (Cage → Manager): an incoming transfer leg into office_safe is
@@ -508,12 +522,12 @@ export const useDailyBalanceReport = (from: string, to: string) => {
        */
       Object.entries(txByDate).forEach(([d, list]) => {
         const cageOut = list
-          .filter((t) => t.kind === "transfer" && CAGE_KINDS.has(walletKind[t.wallet_id]) && tzs(t) < 0)
-          .map((t) => ({ amount: Math.abs(tzs(t)), name: walletName[t.wallet_id] || "Cage" }));
+          .filter((t) => isTransferLeg(t) && CAGE_KINDS.has(walletKind[t.wallet_id]) && signedWalletTxTzs(t) < 0)
+          .map((t) => ({ amount: Math.abs(signedWalletTxTzs(t)), name: walletName[t.wallet_id] || "Cage" }));
         list
-          .filter((t) => t.kind === "transfer" && isOfficeKind(walletKind[t.wallet_id]) && tzs(t) > 0)
+          .filter((t) => isTransferLeg(t) && isOfficeKind(walletKind[t.wallet_id]) && signedWalletTxTzs(t) > 0)
           .forEach((t) => {
-            const v = tzs(t);
+            const v = signedWalletTxTzs(t);
             const i = cageOut.findIndex((x) => Math.abs(x.amount - v) < 1);
             if (i >= 0) {
               const src = cageOut[i].name;
@@ -527,6 +541,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             }
           });
       });
+
 
 
       const allTxDates = Array.from(
