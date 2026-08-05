@@ -629,6 +629,7 @@ export default function FinancesWalletsPage() {
                   <th className="px-3 py-2 text-right">JP</th>
                   <th className="px-3 py-2 text-right">Expenses</th>
                   <th className="px-3 py-2 text-right">Collections</th>
+                  <th className="px-3 py-2 text-right">Cage exp.</th>
                   <th className="px-3 py-2 text-right">Net</th>
                 </tr>
               </thead>
@@ -645,6 +646,17 @@ export default function FinancesWalletsPage() {
                     <td className="px-3 py-1.5 text-right">{formatNumberSpaces(d.jp || 0)}</td>
                     <td className="px-3 py-1.5 text-right cms-amount-negative">{formatNumberSpaces(d.expenses)}</td>
                     <td className="px-3 py-1.5 text-right cms-amount-negative">{formatNumberSpaces(d.collections)}</td>
+                    <td className="px-3 py-1.5 text-right">
+                      {formatNumberSpaces(d.cage_expenses || 0)}
+                      {!!(d.cage_expenses || 0) && (
+                        <span
+                          className={cn("ml-1 text-[10px]", d.cage_posted ? "cms-amount-positive" : "text-muted-foreground")}
+                          title={d.cage_posted ? "Booked on wallet" : "Not booked on a wallet yet"}
+                        >
+                          {d.cage_posted ? "✓" : "·"}
+                        </span>
+                      )}
+                    </td>
                     <td className={cn("px-3 py-1.5 text-right font-semibold", d.net >= 0 ? "cms-amount-positive" : "cms-amount-negative")}>
                       {formatNumberSpaces(d.net)}
                     </td>
