@@ -592,6 +592,13 @@ const DailyBalanceReport = () => {
               {node}
             </span>
           );
+          // Opening row: only the carried-over money / balance figures.
+          if (r.kind === "start")
+            return wrap(
+              c.id === "balance" || c.id === "money_total"
+                ? <span className="font-semibold">{money(Math.round(startBalance))}</span>
+                : <span className="text-muted-foreground">·</span>,
+            );
           // Business day still open → no figures in any column.
           if (!r.day_closed) return wrap(<span className="text-muted-foreground">·</span>);
           if (r.kind === "day" && c.id === "credit_deposit")
