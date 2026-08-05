@@ -394,6 +394,11 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         }
       });
 
+      const walletName: Record<string, string> = {};
+      wallets.forEach((w) => { walletName[w.id] = w.name; });
+      const bankTransfers: Record<string, TransferDetail[]> = {};
+      const managerTransfers: Record<string, TransferDetail[]> = {};
+
       const txByDate: Record<string, any[]> = {};
       walletTx.forEach((t) => {
         (txByDate[t.business_date] ??= []).push(t);
@@ -402,8 +407,13 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         if (t.kind === "collection") add(collections, t.business_date, Math.abs(v));
         // Owner deposits into the business
         if (t.kind === "external_income" && v > 0) add(ownerIn, t.business_date, v);
-        if (t.kind === "transfer" && v > 0 && kind === "bank_account") {
-          add(trfToBank, t.business_date, v);
+        if (t.kind === "transfer" && kind === "bank_account") {
+          if (v > 0) add(trfToBank, t.business_date, v);
+          (bankTransfers[t.business_date] ??= []).push({
+            amount: v,
+            from: v > 0 ? "Casino" : walletName[t.wallet_id] || "Bank",
+            to: v > 0 ? walletName[t.wallet_id] || "Bank" : "Casino",
+          });
         }
         if (kind === "office_safe") {
           if (v >= 0) add(officeIn, t.business_date, v);
@@ -418,18 +428,25 @@ export const useDailyBalanceReport = (from: string, to: string) => {
       Object.entries(txByDate).forEach(([d, list]) => {
         const cageOut = list
           .filter((t) => t.kind === "transfer" && CAGE_KINDS.has(walletKind[t.wallet_id]) && tzs(t) < 0)
-          .map((t) => Math.abs(tzs(t)));
+          .map((t) => ({ amount: Math.abs(tzs(t)), name: walletName[t.wallet_id] || "Cage" }));
         list
           .filter((t) => t.kind === "transfer" && walletKind[t.wallet_id] === "office_safe" && tzs(t) > 0)
           .forEach((t) => {
             const v = tzs(t);
-            const i = cageOut.findIndex((x) => Math.abs(x - v) < 1);
+            const i = cageOut.findIndex((x) => Math.abs(x.amount - v) < 1);
             if (i >= 0) {
+              const src = cageOut[i].name;
               cageOut.splice(i, 1);
               add(trfToManager, d, v);
+              (managerTransfers[d] ??= []).push({
+                amount: v,
+                from: src,
+                to: walletName[t.wallet_id] || "Manager safe",
+              });
             }
           });
       });
+
 
       const allTxDates = Array.from(
         new Set([...Object.keys(txByDate), ...Object.keys(floatByDate)]),
