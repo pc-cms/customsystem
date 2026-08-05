@@ -498,9 +498,25 @@ export default function FinancesWalletsPage() {
         >
           <ArrowUpRight className="w-4 h-4" /> Money Out
         </Button>
+        <Button
+          variant={recordedSnap ? "outline" : "default"}
+          size="sm"
+          className="h-9"
+          disabled={recordDay.isPending}
+          title={
+            recordedSnap
+              ? `Recorded ${fmtDate(recordTargetDate)} · re-record to overwrite`
+              : `Record safes & bank as of ${fmtDate(recordTargetDate)}`
+          }
+          onClick={() => recordDay.mutate(recordTargetDate)}
+        >
+          <Save className={cn("w-4 h-4", recordDay.isPending && "animate-pulse")} />
+          Record {fmtDate(recordTargetDate)}
+        </Button>
         <Button size="sm" className="h-9" onClick={openNewWallet}>
           <Plus className="w-4 h-4" /> Add Wallet
         </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon" className="h-9 w-9" aria-label="More actions">
