@@ -311,11 +311,13 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         add(cashDesk, d, num(s.cash_desk_result));
         add(liveCashDesk, d, num(s.cash_desk_result));
         add(shiftTables, d, num(s.tables_result));
-        // Cage Casino counts MONEY ONLY — chips on the cage counting sheet are
-        // excluded (closing_count.totals.total_tzs includes them).
+        // Cage Casino counts MONEY ONLY — chips are never part of the cage
+        // figure (closing_count.totals.total_tzs includes them, so strip them).
         const ct = (s.closing_count as any)?.totals || {};
-        const closingTotal = num(ct.total_tzs) || num(s.closing_cash?.actual);
-        add(cageClosing, d, closingTotal - num(ct.chips_tzs));
+        const closingTotal = num(ct.total_tzs)
+          ? num(ct.total_tzs) - num(ct.chips_tzs)
+          : num(s.closing_cash?.actual) - num(ct.chips_tzs);
+        add(cageClosing, d, closingTotal);
         add(cageCashless, d, sumProviders(s.cashless_in_providers) - sumProviders(s.cashless_out_providers));
 
         const b = cageBucket(d);
