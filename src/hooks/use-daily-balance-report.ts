@@ -571,7 +571,16 @@ export const useDailyBalanceReport = (from: string, to: string) => {
 
       // ---- build rows ---------------------------------------------------
       let lastRate = 0, lastCage = 0, lastOffice = 0, lastBank = 0, lastChips = 0;
-      let lastBankTzs = 0, lastBankUsd = 0, prevMoney = 0;
+      /**
+       * Daily Balance = opening money + result + diff − office − expenses − cage − bank.
+       * The opening money of the first day is the manually entered month start
+       * (same storage key as the "Starting Balance" tile), afterwards it is the
+       * previous day's Money total.
+       */
+      const startKey = `dbr-start-balance:${casino}:${from.slice(0, 7)}`;
+      const startingBalance =
+        typeof window !== "undefined" ? Number(window.localStorage.getItem(startKey)) || 0 : 0;
+      let lastBankTzs = 0, lastBankUsd = 0, prevMoney = startingBalance, firstRow = true;
       let lastOfficeWallets: WalletBalance[] = [];
 
       return enumerateDates(from, to).map((date) => {
@@ -612,7 +621,13 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           const bankTzs = manualTzs != null ? manualTzs : o.bankTzs;
           const bankUsd = manualUsdRaw != null ? manualUsdRaw * rate : o.bankUsd;
           const moneyTotal = o.cage + o.manager + bankTzs + bankUsd;
-          const check = prevMoney + o.result + o.inV - o.outV - o.expenses;
+          const opening = firstRow ? startingBalance : prevMoney;
+          firstRow = false;
+          const diffTotal = o.chipDiff + o.slotsDiff;
+          const officeNet = o.inV - o.outV;
+          // Balance = opening money + result + diff − office − expenses − cage − bank
+          const balance =
+            opening + o.result + diffTotal - officeNet - o.expenses - moneyTotal;
           prevMoney = moneyTotal;
           return {
             live_cash_result: o.live,
@@ -634,9 +649,9 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             money_out: o.outV,
             money_total: moneyTotal,
             fin_result: o.result - o.expenses + o.inV - o.outV,
-            // Balance is a VARIANCE (actual money − expected money): → 0.
-            balance: moneyTotal - check,
-            balance_check: check,
+            // Balance = opening + result + diff − office − expenses − cage − bank → 0.
+            balance,
+            balance_check: opening + o.result + diffTotal - officeNet - o.expenses,
             chips_detail: chipsDetail[date] ?? [],
             cage_detail: cageDetail[date] ?? { cash: [], cashless: [], slots_total: 0 },
             transfers_manager: managerTransfers[date] ?? [],
