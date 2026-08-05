@@ -709,6 +709,8 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             result: tables + slotsNet + barV,
             live: liveCashDesk[date] ?? 0,
             slotsDiff: cardBal[date] ?? 0,
+            chipDiff: chipMiss[date] ?? 0,
+
           }),
           legacy: false,
           hasSystemData,
