@@ -698,7 +698,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             cage_detail: cageDetail[date] ?? { cash: [], cashless: [], slots_total: 0 },
             transfers_manager: managerTransfers[date] ?? [],
             transfers_bank: bankTransfers[date] ?? [],
-            office_wallets: officeWalletsByDate[date] ?? [],
+            office_wallets: lastOfficeWallets,
           };
         };
 
