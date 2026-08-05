@@ -48,6 +48,10 @@ export type BalanceSnapshot = {
     jp?: number;
     expenses: number;
     collections: number;
+    /** Approved cage (Live/Slots) expenses of that day. */
+    cage_expenses?: number;
+    /** True when every cage expense of that day is already booked on a wallet. */
+    cage_posted?: boolean;
     net: number;
   }>;
   wallets: WalletBalanceRow[];
