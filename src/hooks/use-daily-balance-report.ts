@@ -575,6 +575,14 @@ export const useDailyBalanceReport = (from: string, to: string) => {
       const bar: Bucket = {};
       posOrders.filter((o) => o.status !== "void").forEach((o) => add(bar, o.business_date, num(o.total_tzs)));
 
+      /** Fees (Other incomes, source = 'fee') converted to TZS. */
+      const feesByDate: Bucket = {};
+      (feeRows as any[]).filter((f) => !f.reversed_by_id).forEach((f) => {
+        const fx = num(f.fx_rate) || 1;
+        const amt = String(f.currency || "TZS") === "TZS" ? num(f.amount) : num(f.amount) * fx;
+        add(feesByDate, String(f.business_date).slice(0, 10), amt);
+      });
+
       const legacyByDate: Record<string, any> = {};
       legacy.forEach((l) => { legacyByDate[l.business_date] = l; });
 
