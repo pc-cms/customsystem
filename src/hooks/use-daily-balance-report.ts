@@ -335,6 +335,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
 
       // ---- build rows ---------------------------------------------------
       let lastRate = 0, lastCage = 0, lastOffice = 0, lastBank = 0, lastChips = 0;
+      let lastBankTzs = 0, lastBankUsd = 0;
       return enumerateDates(from, to).map((date) => {
         const rate = rateByDate[date] || lastRate || FALLBACK_USD_RATE;
         lastRate = rate;
@@ -347,6 +348,8 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         if (cageRunning[date] != null) lastCage = cageRunning[date];
         if (officeRunning[date] != null) lastOffice = officeRunning[date];
         if (bankRunning[date] != null) lastBank = bankRunning[date];
+        if (bankTzsRunning[date] != null) lastBankTzs = bankTzsRunning[date];
+        if (bankUsdRunning[date] != null) lastBankUsd = bankUsdRunning[date];
         if (chipFloat[date] != null) lastChips = chipFloat[date];
 
         const hasSystemData =
@@ -355,6 +358,29 @@ export const useDailyBalanceReport = (from: string, to: string) => {
 
         /** Credit / Deposit is a MANUAL field — stored in fin_legacy_balance. */
         const manualCredit = l?.credit_deposit != null ? num(l.credit_deposit) : 0;
+
+        /** Casino Monthly Balance derived block (shared by legacy + live rows). */
+        const cmb = (o: {
+          cage: number; manager: number; bankTzs: number; bankUsd: number;
+          expenses: number; inV: number; outV: number;
+          live: number; slotsDiff: number;
+        }) => {
+          const moneyTotal = o.cage + o.manager + o.bankTzs + o.bankUsd;
+          return {
+            live_cash_result: o.live,
+            slots_diff: o.slotsDiff,
+            cage_casino: o.cage,
+            transfer_cage_manager: trfToManager[date] ?? 0,
+            cage_manager: o.manager,
+            transfer_bank: trfToBank[date] ?? 0,
+            bank_tzs: o.bankTzs,
+            bank_usd: o.bankUsd,
+            money_in: o.inV,
+            money_out: o.outV,
+            money_total: moneyTotal,
+            balance: moneyTotal + o.inV - o.outV - o.expenses,
+          };
+        };
 
         if (!hasSystemData && l) {
           const gross = num(l.bank_terminal);
@@ -387,6 +413,13 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             chips_float: num(l.chips_float),
             day_total: lTotal,
             day_balance: num(l.cash_desk_result) - lTotal,
+            ...cmb({
+              cage: num(l.cage_cash), manager: num(l.office_cash),
+              bankTzs: num(l.bank_account), bankUsd: 0,
+              expenses: num(l.expenses) + num(l.bank_expenses),
+              inV: num(l.office_in), outV: num(l.collection_bank),
+              live: num(l.cash_desk_result), slotsDiff: 0,
+            }),
             legacy: true,
             hasSystemData: false,
           } satisfies DailyBalanceRow;
@@ -397,6 +430,8 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         const net = gross / (1 + BANK_COMMISSION_RATE);
         const dayTotal = tables + slotsNet + barV + manualCredit;
         const cdr = cashDesk[date] ?? 0;
+        const cage = cageClosing[date] ?? lastCage;
+        const expensesV = expByDate[date] ?? 0;
         return {
           date,
           weekday: WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()],
@@ -407,7 +442,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           slots_result: slotsNet,
           bar_result: barV,
           // Cage Cash = closing cash of LIVE + SLOTS cage shifts (falls back to wallet balance)
-          cage_cash: cageClosing[date] ?? lastCage,
+          cage_cash: cage,
           collection_bank: collections[date] ?? 0,
           chip_difference: chipMiss[date] ?? 0,
           tips_tables: tipsTables[date] ?? 0,
@@ -421,14 +456,24 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           bank_account: lastBank,
           bank_expenses: bankExpByDate[date] ?? 0,
           credit_deposit: manualCredit,
-          expenses: expByDate[date] ?? 0,
+          expenses: expensesV,
           chips_float: lastChips,
           day_total: dayTotal,
           day_balance: cdr - dayTotal,
+          ...cmb({
+            cage, manager: lastOffice,
+            bankTzs: lastBankTzs, bankUsd: lastBankUsd,
+            expenses: expensesV,
+            inV: ownerIn[date] ?? 0,
+            outV: collections[date] ?? 0,
+            live: liveCashDesk[date] ?? 0,
+            slotsDiff: (slotsCashDesk[date] ?? 0) - (slotsDeclared[date] ?? 0),
+          }),
           legacy: false,
           hasSystemData,
         } satisfies DailyBalanceRow;
       });
+
 
     },
   });
