@@ -213,7 +213,10 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         slotsClosing,
         dayClosures,
         feeRows,
+        daySnaps,
+        monthStart,
       ] = await Promise.all([
+
         fetchPaged<any>((a, b) =>
           sb.from("fin_day_closing")
             .select("business_date, tables_result, slots_result, players_card_balance")
