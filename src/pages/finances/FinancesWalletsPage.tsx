@@ -838,10 +838,12 @@ export default function FinancesWalletsPage() {
                                 </div>
                                 {lastCounts?.get(w.id) && (
                                   <div className="text-[10px] text-muted-foreground/70">
-                                    Last: {formatNumberSpaces(lastCounts.get(w.id)!.total)} ·{" "}
+                                    {lastCounts.get(w.id)!.source === "auto" ? "Auto" : "Manual"}:{" "}
+                                    {formatNumberSpaces(lastCounts.get(w.id)!.total)} ·{" "}
                                     {fmtDateOnly(lastCounts.get(w.id)!.at)}
                                   </div>
                                 )}
+
                               </div>
                               {useDenoms ? (
                                 <>
