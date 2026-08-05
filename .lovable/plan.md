@@ -37,11 +37,18 @@
 ## Что будет сделано
 
 ### 1. Исправление формул (hook)
-- `balance` = `money_total` (остаток на конец дня), плюс новое поле `balance_check = money_prev + result + in − out − expenses` для сверки в подсказке.
-- Bank USD: стартовый float конвертируется по курсу дня; отдельно сохраняется сумма в USD для тултипа.
+- **Slots Diff = `fin_day_closing.players_card_balance`** (баланс карт игроков за день), а не разница cash desk − declared.
+- **Cage Casino = вся касса Live Game + Slots**: закрывающий cash live-смен + закрывающий инвентарь слот-кассы + cashless (`cage_slots_shifts` cashless / `cashless_transactions`) — то есть cash + cashless по обеим кассам. Флаг `cage_carried`, когда данных за день нет и берётся перенос.
+- `balance` = `money_total` (остаток на конец дня), плюс поле `balance_check = money_prev + result + in − out − expenses` для сверки в подсказке.
+- Bank USD: стартовый float конвертируется по курсу дня; сумма в USD сохраняется для тултипа.
 - Учёт `starting_float_date` при накоплении running-балансов.
 - Transfer → Manager: только переводы, у которых парная нога — cage-кошелёк.
-- Флаг `cage_carried` — когда Cage Casino взят из кошелька, а не из закрытия смен.
+
+### 1b. Bank TZS / Bank USD — инлайн-редактор
+- Обе колонки становятся редактируемыми прямо в ячейке (как Credit/Deposit): ввод фактического остатка банка на дату.
+- Значение сохраняется в `fin_legacy_balance` (поля `bank_account` для TZS и новое поле для USD) по `casino_id + business_date`; ручное значение имеет приоритет над расчётным, расчётное показывается серым плейсхолдером.
+- Введённое USD-значение пересчитывается в TZS по курсу дня для Money / Balance.
+
 
 ### 2. Объяснения в UI
 - Единый словарь `COLUMN_FORMULAS` (label, формула, источники таблиц, примечания).
