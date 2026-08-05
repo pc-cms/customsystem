@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { fetchPaged } from "@/lib/fetch-paged";
+import { businessDateOf } from "@/lib/business-day";
 
 export const FALLBACK_USD_RATE = 2600;
 /**
