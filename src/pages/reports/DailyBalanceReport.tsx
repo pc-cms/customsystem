@@ -332,9 +332,10 @@ const DailyBalanceReport = () => {
     return sort?.dir === "desc" ? [...out].reverse() : out;
   }, [rows, weeks, sort]);
 
+  /** Full figures only — no compact M / K suffixes anywhere in this grid. */
   const money = (n: number) =>
     !n ? <span className="text-muted-foreground">·</span> : (
-      <span className={n < 0 ? "cms-amount-negative" : undefined}>{formatMoney(n, moneyMode)}</span>
+      <span className={n < 0 ? "cms-amount-negative" : undefined}>{formatMoneyFull(n)}</span>
     );
 
   /** Two-level header groups: leading Date column + one entry per visible section. */
