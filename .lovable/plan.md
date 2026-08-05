@@ -1,10 +1,10 @@
-# Office · Wallets: приведение Breakdown к описанной логике
+# Office · Wallets: Actual = физический пересчёт, Card Balance по дням
 
 ## Итоговая формула
 
 ```text
 Expected = Starting Float
-         + Live Tables + Slots + JP + Card Balance   (из Day Closings)
+         + Live + Slots + JP + Card Balance (сумма по дням)
          + Other Incomes (±)
          − Missed Chips (±)  − Missed Cards (±)
          − Расходы (касса: только за закрытые бизнес-дни; офис: сразу)
@@ -14,46 +14,44 @@ Actual   = сумма физических пересчётов всех кош�
 Variance = Actual − Expected   → должен быть 0
 ```
 
-## Что меняем
+## 1. Card Balance — суммой по дням
 
-### 1. Actual = только физический пересчёт
+Сейчас в RPC `fin_balance_snapshot` берётся `players_card_balance` последнего дня с ненулевым значением (`ORDER BY business_date DESC LIMIT 1`). Это неверно: card balance — это дневная разница, значит за период нужна сумма всех дней. Меняем на `SUM(players_card_balance)` за период и добавляем `card_balance` в дневной массив `daily`, чтобы он был виден в Daily audit.
 
-Сейчас Actual = последний physical count + все проведённые движения после него. По вашей логике движения (Money In / Money Out / Transfer / расход) — это только запись для аудита, а деньги в кошельке определяются исключительно пересчётом. Убираем прибавление движений: Actual кошелька = последний physical count на конец периода. Если пересчёта никогда не было — берём стартовый флот кошелька как отправную точку.
+## 2. Actual = только физический пересчёт
 
-Следствие: после расхода Variance «поедет», пока не сделан новый пересчёт — это и есть контроль, как вы и описали.
+Убираем из `fin_balance_snapshot` прибавление движений после пересчёта: Actual кошелька = последний `cash_count_snapshots.physical_total`. Если пересчёта не было — стартовый флот. Транзакции остаются только записью для аудита.
 
-### 2. Starting Float — как income, а не вычет из Actual
+## 3. Автопересчёт после каждой транзакции
 
-Сейчас фронт вычитает стартовый флот из Actual. Переносим его в Expected отдельной строкой «Starting Float (начало месяца)». Математически Variance тот же, но в Breakdown видно правильно: Actual = Total Wallets, Expected включает флот.
+Любая операция (Money In / Money Out / Transfer / офисный расход, списанный с кошелька) автоматически создаёт новый физический пересчёт кошелька: берём последний count по купюрам и применяем к нему купюры операции (плюс — для прихода, минус — для расхода/transfer_out). Получается новый snapshot, Actual и Variance пересчитываются сразу, без ручных действий.
 
-### 3. Missed Chips / Missed Cards — перепроверка знака
+- Если у операции нет разбивки по купюрам (нал без деноминаций или безнал), пишем snapshot по сумме: `предыдущий total ± сумма`.
+- Если пересчёта раньше не было, отправной точкой служит стартовый флот кошелька.
+- Ручной пересчёт остаётся полностью равноправным: менеджер может в любой момент вбить купюры руками — это перекрывает автоснимок. Важен только последний по времени count.
+- Автоснимок помечается в базе (`source = 'auto'`) и виден в UI как «авто после операции», чтобы отличать его от ручного пересчёта.
 
-Сейчас RPC берёт `chip_miss_total` и `cards_miss` с обратным знаком, а фронт их прибавляет — итого они вычитаются из Expected. Правило, которое зафиксируем и проверим на реальных данных Арушы и Мванзы за август:
+## 4. Missed Chips / Missed Cards — проверка знака
 
-- фишек не хватает (miss > 0, деньги «лишние» в кассе) → Expected уменьшается на эту сумму;
-- фишек больше нормы (miss < 0) → Expected увеличивается.
+Правило: не хватает фишек (miss > 0 — в кассе денег больше) → Expected уменьшается; фишек больше нормы (miss < 0) → Expected увеличивается. Сверяем знак с отчётом Miss Chips по тем же дням Арушы и Мванзы и при расхождении правим только знак в RPC.
 
-Сверим знак с тем, что показывает закрытие дня / отчёт Miss Chips по тем же дням, чтобы цифра совпадала один в один, и при расхождении поправим только знак в RPC (без изменения источника).
+## 5. Расходы и Starting Float
 
-### 4. Расходы
+Правило фиксируем в подписи Breakdown: касса (Live/Slots) — только за закрытые бизнес-дни; офис — сразу. Collections — отдельная строка, уменьшает Expected. Starting Float переносим в Expected отдельной строкой «Starting Float» и убираем его вычитание из Actual.
 
-Правило остаётся и фиксируется в подписи к строке Breakdown: касса (Live/Slots) — только за бизнес-дни, у которых есть закрытие; офис — мгновенно. Collections — отдельная строка, уменьшает Expected.
+## 6. UI Breakdown
 
-### 5. Card Balance
-
-Сейчас берётся значение последнего дня с ненулевым балансом, а не сумма за период. Это отдельная строка Breakdown; при проверке по Мванзе сверим, какое поведение даёт ноль, и приведём к нему.
-
-### 6. UI Breakdown
-
-Строки в порядке формулы: Starting Float · Live · Slots · JP · Card Balance · Other Incomes (±) · Missed Chips (−) · Missed Cards (−) · Expenses (−) · Collections (−) · **Expected** · **Actual (Total Wallets)** · **Variance**. У каждой строки — короткая подпись-источник.
+Порядок строк: Starting Float · Live · Slots · JP · Card Balance · Other Incomes (±) · Missed Chips (−) · Missed Cards (−) · Expenses (−) · Collections (−) · **Expected** · **Actual (Total Wallets)** · **Variance**. У каждой строки короткая подпись-источник. В карточке кошелька — время и тип последнего пересчёта (ручной / авто).
 
 ## Технические детали
 
-- `fin_balance_snapshot`: убрать CTE `post` (движения после пересчёта) из `actual_native` / `actual_tzs`; оставить фолбэк на стартовый флот; при необходимости поправить знак `v_missed_chips` / `v_missed_cards`.
-- `src/hooks/use-fin-balance.ts` → `computeBalanceTotals`: добавить `starting_float.grand_tzs` в Expected и убрать вычитание флота из Actual.
-- `src/pages/finances/FinancesWalletsPage.tsx`: строки Breakdown в порядке формулы, подпись про кассовые/офисные расходы.
+- `fin_balance_snapshot`: `v_card_balance` → `SUM(players_card_balance)` за период + поле `card_balance` в `daily`; убрать CTE `post` (движения после пересчёта) из `actual_native` / `actual_tzs`; при необходимости поправить знак `v_missed_chips` / `v_missed_cards`.
+- Новая функция `public.fin_autocount_after_tx()` + триггер `AFTER INSERT/UPDATE/DELETE ON fin_wallet_tx` (игнорирует строки `kind='adjustment'` и `ref_table='cash_count'`): формирует новый `cash_count_snapshots` от последнего count по купюрам.
+- Колонка `source text default 'manual'` в `cash_count_snapshots`.
+- `src/hooks/use-fin-balance.ts` → `computeBalanceTotals`: Starting Float в Expected, Actual без вычета флота.
+- `src/pages/finances/FinancesWalletsPage.tsx`: порядок строк Breakdown, подписи, метка источника последнего пересчёта.
 - Поднять версию в `package.json`.
 
 ## Проверка
 
-Пересчитать Мванзу и Арушу за август: показать построчно Expected, Actual и Variance до и после, и сверить Missed Chips с отчётом Miss Chips за те же дни.
+Пересчитать Мванзу и Арушу за август: показать построчно Expected / Actual / Variance до и после, сверить Card Balance по дням и Missed Chips с отчётом Miss Chips.
