@@ -248,29 +248,8 @@ const DailyBalanceReport = () => {
   }, [rows]);
   const lastClosedDate = lastClosedRow?.date ?? null;
 
-  /** Columns whose every value is 0 across the month (candidates for hiding). */
-  const emptyCols = useMemo(() => {
-    const s = new Set<string>();
-    for (const c of ALL_COLS) {
-      if (c.total || c.id === "credit_deposit") continue;
-      if (rows.every((r) => !Math.round(c.value(r)))) s.add(c.id);
-    }
-    return s;
-  }, [rows]);
-
-  /**
-   * Visible columns: section headlines always; component columns only for
-   * expanded sections. "Hide empty" never applies inside an expanded section —
-   * expanding must always reveal the full breakdown.
-   */
-  const visibleMoneyCols = useMemo(
-    () =>
-      ALL_COLS.filter((c) => {
-        if (!c.detail) return !(hideEmpty && emptyCols.has(c.id));
-        return expanded.has(c.section);
-      }),
-    [hideEmpty, emptyCols, expanded],
-  );
+  /** All columns are always visible — the grid is a fixed audit layout. */
+  const visibleMoneyCols = ALL_COLS;
 
   /** Max abs value per heat column — drives the fill intensity. */
   const heatMax = useMemo(() => {
