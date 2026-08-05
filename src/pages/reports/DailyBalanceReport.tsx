@@ -9,20 +9,24 @@
  * clicking the group header reveals its component columns.
  */
 import { useMemo, useState } from "react";
-import { Wallet2, Flame, Columns3 } from "lucide-react";
+import { Wallet2, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SmartTable, type ColumnDef, type SortState } from "@/components/ui/smart-table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Toggle } from "@/components/ui/toggle";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useCasino } from "@/lib/casino-context";
 import { useSessionState } from "@/hooks/use-session-state";
-import { formatMoney, formatMoneyFull } from "@/lib/format-money";
+import { formatMoneyFull } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
 import { cn } from "@/lib/utils";
-import { useDailyBalanceReport, useSetCreditDeposit, type DailyBalanceRow } from "@/hooks/use-daily-balance-report";
+import { formulaText } from "@/lib/monthly-balance-formulas";
+import {
+  useDailyBalanceReport, useSetCreditDeposit, useSetBankBalance, type DailyBalanceRow,
+} from "@/hooks/use-daily-balance-report";
 
 type SectionKey = "incomes" | "expenses" | "transfers" | "money" | "balances";
 
