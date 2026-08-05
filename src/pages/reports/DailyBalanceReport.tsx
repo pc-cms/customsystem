@@ -747,8 +747,12 @@ const DailyBalanceReport = () => {
       {/* Row 2: Starting Balance · Casino Result · Money · Expenses · Balance */}
       <div className="mb-3 grid grid-cols-5 gap-2">
         <StartingBalanceTile
-          storageKey={`dbr-start-balance:${activeCasino?.id ?? "none"}:${month}`}
+          storageKey={startKey}
           hint={`Opening ${monthLabel} · manual`}
+          onChange={(v) => {
+            setStartBalance(v);
+            qc.invalidateQueries({ queryKey: ["daily-balance-report"] });
+          }}
         />
         <Tile label="Casino Result" value={num(grandRow, "casino_result")} hint="Live Game + Slots + Bar" />
         <Tile
@@ -775,9 +779,10 @@ const DailyBalanceReport = () => {
             loading={isLoading}
             stickyColumns={[0, 74]}
             stickyHeader
-            
+            // The outer wrapper owns the scrolling — otherwise the inner
+            // overflow container swallows `position: sticky` on the header.
+            scroll={false}
             footerRows={footerRows}
-            onRowClick={(r) => r.kind === "day" && setDetail(r)}
             bare
             virtualize={false}
             // No zebra: with 20+ columns the stripes fight the row highlights.
