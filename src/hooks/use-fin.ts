@@ -356,10 +356,11 @@ export const useCreateFinExpense = () => {
         wallet_id: input.wallet_id,
         kind: "expense",
         category_id: input.fin_category_id,
-        amount: -input.amount,
+        // Expenses are stored as POSITIVE amounts — the sign comes from `kind`.
+        amount: Math.abs(input.amount),
         currency: input.currency,
         fx_rate: input.exchange_rate,
-        amount_tzs: -amount_tzs,
+        amount_tzs: Math.abs(amount_tzs),
         ref_table: "expenses",
         ref_id: exp.id,
         business_date: input.business_date,

@@ -9,6 +9,7 @@
  * clicking the group header reveals its component columns.
  */
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Wallet2, ChevronLeft, ChevronRight, Info } from "lucide-react";
 
@@ -194,8 +195,8 @@ const monthBounds = (m: string) => {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-/** Table row = a real business day (no weekly subtotals in this grid). */
-type Row = DailyBalanceRow & { kind: "day" };
+/** Table row = a real business day, plus one synthetic "Start" opening row. */
+type Row = DailyBalanceRow & { kind: "day" | "start" };
 
 /** Manual Credit / Deposit entry — saved per day on blur. */
 const CreditCell = ({ date, value }: { date: string; value: number }) => {
@@ -269,7 +270,9 @@ const Tile = ({ label, value, hint }: { label: string; value: number; hint?: str
 );
 
 /** Manually entered opening balance for the month (carried over from the previous month). */
-const StartingBalanceTile = ({ storageKey, hint }: { storageKey: string; hint?: string }) => {
+const StartingBalanceTile = ({
+  storageKey, hint, onChange,
+}: { storageKey: string; hint?: string; onChange?: (v: number) => void }) => {
   const [value, setValue] = useState<number>(() => {
     const raw = typeof window !== "undefined" ? window.localStorage.getItem(storageKey) : null;
     return raw ? Number(raw) || 0 : 0;
@@ -288,6 +291,7 @@ const StartingBalanceTile = ({ storageKey, hint }: { storageKey: string; hint?: 
     setValue(next);
     window.localStorage.setItem(storageKey, String(next));
     setEditing(false);
+    onChange?.(next);
   };
 
   return (
@@ -368,13 +372,23 @@ const DrillList = ({
 const DailyBalanceReport = () => {
   const { activeCasino } = useCasino();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [month, setMonth] = useSessionState("dbr-month", currentMonth());
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
   /** Fixed display options — every column is always shown, in full figures. */
   const heatmap = true;
-  const [detail, setDetail] = useState<DailyBalanceRow | null>(null);
+  
   /** Cell drill-down: which column of which row is being inspected. */
   const [drill, setDrill] = useState<{ row: DailyBalanceRow; col: string } | null>(null);
+
+  const startKey = `dbr-start-balance:${activeCasino?.id ?? "none"}:${month}`;
+  const [startBalance, setStartBalance] = useState(0);
+  useEffect(() => {
+    const raw = typeof window !== "undefined" ? window.localStorage.getItem(startKey) : null;
+    setStartBalance(raw ? Number(raw) || 0 : 0);
+  }, [startKey]);
+
+
 
 
   /** Shift the selected month by ±1. */
@@ -475,11 +489,23 @@ const DailyBalanceReport = () => {
     return undefined;
   };
 
-  /** Plain day rows — weekly subtotals were removed from this report. */
+  /** "Start" opening row + plain day rows (no weekly subtotals in this grid). */
   const displayRows = useMemo<Row[]>(
-    () => rows.map((r) => ({ ...r, kind: "day" as const })),
-    [rows],
+    () => [
+      {
+        ...({} as DailyBalanceRow),
+        date: `${month}-00`,
+        weekday: "",
+        day_closed: true,
+        balance: startBalance,
+        money_total: startBalance,
+        kind: "start" as const,
+      } as Row,
+      ...rows.map((r) => ({ ...r, kind: "day" as const })),
+    ],
+    [rows, startBalance, month],
   );
+
 
   /** Full figures only — no compact M / K suffixes anywhere in this grid. */
   const money = (n: number) =>
@@ -497,7 +523,12 @@ const DailyBalanceReport = () => {
       header: "Date",
       type: "date",
       style: { width: 74, minWidth: 74 },
-      accessor: (r) => (
+      accessor: (r) =>
+        r.kind === "start" ? (
+          <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-wider text-foreground">
+            Start
+          </span>
+        ) : (
           <span className="whitespace-nowrap">
             <span className={cn("font-mono text-[12px] font-semibold tabular-nums", r.date === today() && "text-primary")}>
               {r.date.slice(8, 10)}/{r.date.slice(5, 7)}
@@ -506,7 +537,8 @@ const DailyBalanceReport = () => {
           </span>
         ),
       headerClassName: "whitespace-nowrap border-b-2 border-border bg-muted font-bold uppercase tracking-wide text-foreground",
-      cellClassName: (r: Row) => cn("py-0.5 leading-tight", rowBg(r) ?? "bg-card"),
+      cellClassName: (r: Row) =>
+        cn("py-0.5 leading-tight", r.kind === "start" ? "border-b-2 border-border bg-muted" : rowBg(r) ?? "bg-card"),
     },
 
     ...visibleMoneyCols.map<ColumnDef<Row>>((c, i) => {
@@ -560,6 +592,13 @@ const DailyBalanceReport = () => {
               {node}
             </span>
           );
+          // Opening row: only the carried-over money / balance figures.
+          if (r.kind === "start")
+            return wrap(
+              c.id === "balance" || c.id === "money_total"
+                ? <span className="font-semibold">{money(Math.round(startBalance))}</span>
+                : <span className="text-muted-foreground">·</span>,
+            );
           // Business day still open → no figures in any column.
           if (!r.day_closed) return wrap(<span className="text-muted-foreground">·</span>);
           if (r.kind === "day" && c.id === "credit_deposit")
@@ -591,22 +630,26 @@ const DailyBalanceReport = () => {
         },
 
         headerClassName: cn(
-          "whitespace-nowrap border-b-2 border-border uppercase tracking-wide",
+          "whitespace-nowrap border-b-2 uppercase tracking-wide",
           ZONE_HEAD[c.section],
           first ? "border-l-2 border-l-border" : "border-l border-l-border/60",
           c.total ? "font-bold text-foreground" : "font-semibold text-muted-foreground",
-          hot && "text-primary",
+          hot ? "border-b-primary text-primary" : "border-border",
         ),
         cellClassName: (r: Row) =>
           cn(
             "py-0.5 whitespace-nowrap font-mono text-[11px] leading-tight tabular-nums",
             first ? "border-l-2 border-l-border" : "border-l border-l-border/40",
             c.total ? "font-semibold text-foreground" : "text-foreground/70",
-            rowBg(r)
-              ?? (r.day_closed ? heatClass(c, Math.round(c.value(r))) : undefined)
-              ?? ZONE_BG[c.section],
-            hot && "ring-1 ring-inset ring-primary/40",
+            r.kind === "start"
+              ? "border-b-2 border-b-border bg-muted font-semibold"
+              : rowBg(r)
+                ?? (r.day_closed ? heatClass(c, Math.round(c.value(r))) : undefined)
+                ?? ZONE_BG[c.section],
+            // Focused column: a soft tint, no hard ring.
+            hot && "!bg-[color-mix(in_srgb,hsl(var(--primary))_7%,hsl(var(--card)))] text-foreground",
           ),
+
 
       };
     }),
@@ -704,8 +747,12 @@ const DailyBalanceReport = () => {
       {/* Row 2: Starting Balance · Casino Result · Money · Expenses · Balance */}
       <div className="mb-3 grid grid-cols-5 gap-2">
         <StartingBalanceTile
-          storageKey={`dbr-start-balance:${activeCasino?.id ?? "none"}:${month}`}
+          storageKey={startKey}
           hint={`Opening ${monthLabel} · manual`}
+          onChange={(v) => {
+            setStartBalance(v);
+            qc.invalidateQueries({ queryKey: ["daily-balance-report"] });
+          }}
         />
         <Tile label="Casino Result" value={num(grandRow, "casino_result")} hint="Live Game + Slots + Bar" />
         <Tile
@@ -732,9 +779,10 @@ const DailyBalanceReport = () => {
             loading={isLoading}
             stickyColumns={[0, 74]}
             stickyHeader
-            
+            // The outer wrapper owns the scrolling — otherwise the inner
+            // overflow container swallows `position: sticky` on the header.
+            scroll={false}
             footerRows={footerRows}
-            onRowClick={(r) => r.kind === "day" && setDetail(r)}
             bare
             virtualize={false}
             // No zebra: with 20+ columns the stripes fight the row highlights.
@@ -744,49 +792,9 @@ const DailyBalanceReport = () => {
         </div>
       </PageSection>
 
-      {/* Day detail panel */}
-      <Sheet open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>
-              {detail ? `${fmtDate(detail.date)} · ${detail.weekday}` : ""}
-            </SheetTitle>
-          </SheetHeader>
-          {detail && (
-            <div className="mt-4 space-y-4">
-              <div className="text-xs text-muted-foreground">
-                {detail.legacy ? "Imported (legacy sheet)" : detail.hasSystemData ? "Live system data" : "No data"}
-              </div>
-              {SECTIONS.map((s) => (
-                <div key={s.key}>
-                  <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {s.label}
-                  </div>
-                  <div className="rounded-md border border-border">
-                    {s.cols.map((c) => {
-                      const v = Math.round(c.value(detail));
-                      return (
-                        <div
-                          key={c.id}
-                          className={cn(
-                            "flex items-center justify-between border-b border-border/60 px-2 py-1 text-xs last:border-0",
-                            c.total && "bg-muted/40 font-semibold",
-                          )}
-                        >
-                          <span className={c.total ? "text-foreground" : "text-muted-foreground"}>{c.label}</span>
-                          <span className={cn("font-mono tabular-nums", v < 0 && "cms-amount-negative")}>
-                            {v ? formatMoneyFull(v) : "·"}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
+      {/* The generic per-day panel was removed — only per-cell drill-downs open now. */}
+
+
 
       {/* Cell breakdown panel */}
       <Sheet open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>
