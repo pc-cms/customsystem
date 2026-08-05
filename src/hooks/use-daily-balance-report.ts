@@ -214,7 +214,16 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             .eq("casino_id", casino).eq("inventory_type", "closing")
             .gte("cage_slots_shifts.business_date", from)
             .lte("cage_slots_shifts.business_date", to).range(a, b)),
+        // Closed business days — open days must not display any figures.
+        fetchPaged<any>((a, b) =>
+          sb.from("business_day_closures")
+            .select("business_date")
+            .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
       ]);
+
+      const closedDays = new Set<string>(
+        (dayClosures as any[]).map((c) => String(c.business_date).slice(0, 10)),
+      );
 
 
       // ---- daily USD rate (carry forward last known) --------------------
