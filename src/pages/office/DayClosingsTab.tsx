@@ -218,6 +218,7 @@ export default function DayClosingsTab() {
               <th className="text-right px-3 py-2 w-44">Tables</th>
               <th className="text-right px-3 py-2 w-44">Slots</th>
               <th className="text-right px-3 py-2 w-40" title="Deposits held on player cards. Subtracted from the Slots result; the cash itself stays in the desk.">Card Balance</th>
+              <th className="text-right px-3 py-2 w-36" title="Jackpot contribution booked as income (IN) on this business day.">JP (IN)</th>
               <th className="text-right px-3 py-2 w-32">Miss Chips</th>
               <th className="text-right px-3 py-2 w-32">Miss Cards</th>
               <th className="text-left px-3 py-2">Comment</th>
@@ -230,6 +231,7 @@ export default function DayClosingsTab() {
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.tables))}>{formatNumberSpaces(totals.tables)}</td>
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.slots - totals.cards))}>{formatNumberSpaces(totals.slots - totals.cards)}</td>
               <td className={cn("px-3 py-2 text-right font-mono", totals.cards ? "cms-amount-negative" : "text-muted-foreground")}>{totals.cards ? `− ${formatNumberSpaces(totals.cards)}` : "·"}</td>
+              <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.jp))}>{totals.jp ? formatNumberSpaces(totals.jp) : "·"}</td>
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.missChips))}>{formatNumberSpaces(totals.missChips)}</td>
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.missCards))}>{formatNumberSpaces(totals.missCards)}</td>
               <td colSpan={2} className="px-3 py-2 text-right text-xs text-muted-foreground">
@@ -246,9 +248,12 @@ export default function DayClosingsTab() {
                   existing={byDate.get(date)}
                   managerOverride={!!isManager}
                   agg={agg}
+                  jpPosted={Number(jpByDate.get(date) || 0)}
+                  jpWalletId={jpWalletId}
                 />
               );
             })}
+
           </tbody>
         </table>
       </PageSection>
