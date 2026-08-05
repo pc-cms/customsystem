@@ -392,7 +392,7 @@ const DailyBalanceReport = () => {
         span,
         expandable: true,
         expanded: expanded.has(s.key),
-        hiddenCount: s.cols.filter((c) => c.detail).length,
+        hiddenCount: s.cols.filter((c) => !c.total).length,
         onToggle: () => toggleExpand(s.key),
       });
     }
