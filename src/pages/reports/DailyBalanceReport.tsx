@@ -489,11 +489,23 @@ const DailyBalanceReport = () => {
     return undefined;
   };
 
-  /** Plain day rows — weekly subtotals were removed from this report. */
+  /** "Start" opening row + plain day rows (no weekly subtotals in this grid). */
   const displayRows = useMemo<Row[]>(
-    () => rows.map((r) => ({ ...r, kind: "day" as const })),
-    [rows],
+    () => [
+      {
+        ...({} as DailyBalanceRow),
+        date: `${month}-00`,
+        weekday: "",
+        day_closed: true,
+        balance: startBalance,
+        money_total: startBalance,
+        kind: "start" as const,
+      } as Row,
+      ...rows.map((r) => ({ ...r, kind: "day" as const })),
+    ],
+    [rows, startBalance, month],
   );
+
 
   /** Full figures only — no compact M / K suffixes anywhere in this grid. */
   const money = (n: number) =>
