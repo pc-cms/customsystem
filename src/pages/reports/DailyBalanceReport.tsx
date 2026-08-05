@@ -103,6 +103,7 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     label: "Expenses",
     cols: [
       { id: "expenses", label: "Expenses", total: true, value: (r) => num(r, "expenses") },
+      { id: "fees", label: "Fees", total: true, value: (r) => num(r, "fees") },
     ],
   },
   {
