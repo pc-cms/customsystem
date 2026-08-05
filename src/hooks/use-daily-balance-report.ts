@@ -465,10 +465,18 @@ export const useDailyBalanceReport = (from: string, to: string) => {
       });
 
       const chipMiss: Bucket = {}, chipFloat: Bucket = {};
+      const chipsDetail: Record<string, ChipDetail[]> = {};
       chipSnaps.forEach((c) => {
         add(chipMiss, c.date, num(c.miss) * num(c.denomination));
         add(chipFloat, c.date, num(c.actual_quantity) * num(c.denomination));
+        (chipsDetail[c.date] ??= []).push({
+          denomination: num(c.denomination),
+          quantity: num(c.actual_quantity),
+          miss: num(c.miss),
+        });
       });
+      Object.values(chipsDetail).forEach((l) => l.sort((a, b) => b.denomination - a.denomination));
+
 
       const tipsTables: Bucket = {}, tipsSlots: Bucket = {};
       tips.filter((t) => !t.cancelled_at).forEach((t) => add(tipsTables, t.business_date, num(t.amount)));
