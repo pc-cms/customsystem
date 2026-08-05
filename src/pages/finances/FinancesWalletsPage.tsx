@@ -21,6 +21,7 @@ import {
   RotateCw,
   MoreHorizontal,
   CalendarCheck,
+  Save,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -50,6 +51,7 @@ import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import WalletMovementDialog, { type MovementMode } from "@/components/finances/WalletMovementDialog";
+import { useRecordDayBalance, useDayBalanceSnapshot, dayToRecord } from "@/hooks/use-day-balance-snapshot";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
