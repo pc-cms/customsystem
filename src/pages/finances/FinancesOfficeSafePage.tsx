@@ -1,3 +1,4 @@
+import { invalidateFinance } from "@/lib/fin-invalidate";
 import { useMemo, useState } from "react";
 import { Landmark, Save, ChevronDown, ChevronRight, History } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -87,7 +88,7 @@ export default function FinancesOfficeSafePage() {
         meta: { lines, note, business_date: new Date().toISOString().slice(0, 10) },
       } as any);
       if (error) throw error;
-      qc.invalidateQueries({ queryKey: ["fin-audit-log"] });
+      invalidateFinance(qc);
       toast.success(`Reconciliation saved · ${lines.length} wallet${lines.length === 1 ? "" : "s"}`);
       setCounts({});
       setOpen({});

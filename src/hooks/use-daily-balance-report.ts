@@ -9,6 +9,7 @@
  * Rows for months that predate the system are filled from `fin_legacy_balance`
  * (imported Excel) — system data always wins where it exists.
  */
+import { invalidateFinance } from "@/lib/fin-invalidate";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -949,7 +950,7 @@ export const useSetCreditDeposit = () => {
         );
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["daily-balance-report"] }),
+    onSuccess: () => invalidateFinance(qc),
     onError: (e: any) => toast.error(e.message),
   });
 };
@@ -974,7 +975,7 @@ export const useSetBankBalance = () => {
         );
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["daily-balance-report"] }),
+    onSuccess: () => invalidateFinance(qc),
     onError: (e: any) => toast.error(e.message),
   });
 };

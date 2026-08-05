@@ -6,6 +6,7 @@
  *  - Breakdown (Expected): Live/Slots (from Day Closing) /Other ± Miss − Expenses
  *  - Physical count inline, transactions log, wallet CRUD
  */
+import { invalidateFinance } from "@/lib/fin-invalidate";
 import { Fragment, useMemo, useState } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import {
@@ -305,9 +306,7 @@ export default function FinancesWalletsPage() {
     Math.abs(totals.variance) < 1 ? "neutral" : totals.variance > 0 ? "positive" : "negative";
 
   const reconcileNow = () => {
-    qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
-    qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
-    qc.invalidateQueries({ queryKey: ["fin-wallets"] });
+    invalidateFinance(qc);
   };
 
   /* ===== wallet movement (transactional cash in/out/transfer) ===== */
@@ -445,12 +444,7 @@ export default function FinancesWalletsPage() {
       setAmountInput((s) => ({ ...s, [w.id]: "" }));
       setCountNote((s) => ({ ...s, [w.id]: "" }));
       setExpanded((s) => ({ ...s, [w.id]: false }));
-      qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-balances"] });
-      qc.invalidateQueries({ queryKey: ["fin-audit-log"] });
-      qc.invalidateQueries({ queryKey: ["wallet-last-counts"] });
-      qc.invalidateQueries({ queryKey: ["wallet-tx-since-count"] });
+      invalidateFinance(qc);
     } catch (e: any) {
       toast.error(e.message);
     } finally {

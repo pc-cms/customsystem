@@ -9,6 +9,7 @@
  *   transfer_in   → +amount (stored positive)
  *   transfer_out  → −amount (stored NEGATIVE)
  */
+import { invalidateFinance } from "@/lib/fin-invalidate";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight } from "lucide-react";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
@@ -184,10 +185,7 @@ export default function WalletMovementDialog({
           ? `Transferred ${formatNumberSpaces(amount)} ${currency}`
           : `${mode === "in" ? "Received" : "Paid out"} ${formatNumberSpaces(amount)} ${currency}`,
       );
-      qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-balances"] });
-      qc.invalidateQueries({ queryKey: ["wallet-tx-since-count"] });
+      invalidateFinance(qc);
       onOpenChange(false);
     } catch (e: any) {
       toast.error(e.message);
