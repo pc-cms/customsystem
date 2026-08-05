@@ -42,9 +42,9 @@ const ExpensesMatrixPage = () => {
   );
 
   const HEAT = [
-    "bg-[color-mix(in_srgb,hsl(var(--destructive))_6%,hsl(var(--card)))]",
-    "bg-[color-mix(in_srgb,hsl(var(--destructive))_12%,hsl(var(--card)))]",
+    "bg-[color-mix(in_srgb,hsl(var(--destructive))_10%,hsl(var(--card)))]",
     "bg-[color-mix(in_srgb,hsl(var(--destructive))_20%,hsl(var(--card)))]",
+    "bg-[color-mix(in_srgb,hsl(var(--destructive))_32%,hsl(var(--card)))]",
   ];
   const heatClass = (v: number) => {
     if (!v) return undefined;
@@ -53,29 +53,30 @@ const ExpensesMatrixPage = () => {
   };
 
   const money = (n: number) =>
-    !n ? <span className="text-muted-foreground">·</span> : <span>{formatMoneyFull(Math.round(n))}</span>;
+    !n
+      ? <span className="text-muted-foreground/50">·</span>
+      : <span className="font-semibold text-foreground">{formatMoneyFull(Math.round(n))}</span>;
 
   const columns: ColumnDef<ExpenseCategoryRow>[] = [
     {
       key: "label",
       header: "Category",
-      style: { width: 220, minWidth: 220 },
+      style: { width: 200, minWidth: 200 },
       accessor: (r) => (
-        <div className="whitespace-nowrap">
-          <span className="font-medium">{r.label}</span>
-          {r.group && (
-            <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">{r.group}</span>
-          )}
+        <div className="truncate whitespace-nowrap text-[11px] font-semibold text-foreground" title={r.label}>
+          {r.label}
         </div>
       ),
       sortValue: (r) => r.label,
-      cellClassName: () => "py-1",
-      headerClassName: "whitespace-nowrap border-b-2 border-border font-bold text-foreground bg-muted",
+      cellClassName: () => "py-0.5 leading-tight bg-card",
+      headerClassName:
+        "whitespace-nowrap border-b-2 border-border bg-muted font-bold uppercase tracking-wide text-foreground",
     },
     ...days.map<ColumnDef<ExpenseCategoryRow>>((d) => ({
       key: d,
       header: d.slice(8),
       type: "money" as const,
+      style: { minWidth: 92 },
       accessor: (r) => {
         const v = r.byDay[d] || 0;
         return (
@@ -92,14 +93,19 @@ const ExpensesMatrixPage = () => {
         );
       },
       sortValue: (r) => r.byDay[d] || 0,
-      headerClassName: "whitespace-nowrap border-l border-border border-b-2 border-border font-bold text-foreground bg-muted",
+      headerClassName:
+        "whitespace-nowrap border-l border-border border-b-2 font-bold text-foreground bg-muted",
       cellClassName: (r: ExpenseCategoryRow) =>
-        cn("py-1 border-l border-border font-mono tabular-nums", heatClass(r.byDay[d] || 0)),
+        cn(
+          "py-0.5 whitespace-nowrap border-l border-border/60 font-mono text-[11px] leading-tight tabular-nums",
+          heatClass(r.byDay[d] || 0) ?? "bg-card",
+        ),
     })),
     {
       key: "total",
       header: "Total",
       type: "money",
+      style: { minWidth: 104 },
       accessor: (r) => (
         <span
           className={cn(r.total && "cursor-pointer underline-offset-2 hover:underline")}
@@ -113,10 +119,13 @@ const ExpensesMatrixPage = () => {
         </span>
       ),
       sortValue: (r) => r.total,
-      headerClassName: "whitespace-nowrap border-l-2 border-border border-b-2 border-border font-bold text-foreground bg-muted",
-      cellClassName: () => "py-1 border-l-2 border-border font-mono font-semibold tabular-nums",
+      headerClassName:
+        "whitespace-nowrap border-l-2 border-border border-b-2 font-bold uppercase tracking-wide text-foreground bg-muted",
+      cellClassName: () =>
+        "py-0.5 whitespace-nowrap border-l-2 border-border bg-[color-mix(in_srgb,hsl(var(--muted))_55%,hsl(var(--card)))] font-mono text-[11px] font-bold leading-tight tabular-nums",
     },
   ];
+
 
   const grandTotal = rows.reduce((s, r) => s + r.total, 0);
 
@@ -137,8 +146,16 @@ const ExpensesMatrixPage = () => {
                 ? grandTotal
                 : rows.reduce((s, r) => s + (r.byDay[col.key as string] || 0), 0);
             return (
-              <span className="font-mono font-bold tabular-nums">{v ? formatMoneyFull(Math.round(v)) : "·"}</span>
+              <span
+                className={cn(
+                  "whitespace-nowrap font-mono text-[11px] font-bold tabular-nums",
+                  col.key === "total" && "text-primary",
+                )}
+              >
+                {v ? formatMoneyFull(Math.round(v)) : "·"}
+              </span>
             );
+
           },
         },
       ]

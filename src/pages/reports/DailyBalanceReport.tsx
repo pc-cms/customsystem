@@ -126,6 +126,31 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
   },
 ];
 
+/**
+ * Per-section column zone tint — OPAQUE (mixed against --card) so that sticky
+ * frozen columns never let scrolling content bleed through. Static literals so
+ * Tailwind's JIT scanner picks them up.
+ */
+const ZONE_BG: Record<SectionKey, string> = {
+  incomes: "bg-[color-mix(in_srgb,hsl(var(--success))_5%,hsl(var(--card)))]",
+  diff: "bg-[color-mix(in_srgb,hsl(var(--warning))_6%,hsl(var(--card)))]",
+  transfers: "bg-[color-mix(in_srgb,hsl(var(--info))_6%,hsl(var(--card)))]",
+  money: "bg-[color-mix(in_srgb,hsl(var(--primary))_5%,hsl(var(--card)))]",
+  expenses: "bg-[color-mix(in_srgb,hsl(var(--destructive))_5%,hsl(var(--card)))]",
+  office: "bg-[color-mix(in_srgb,hsl(var(--accent))_18%,hsl(var(--card)))]",
+  balances: "bg-[color-mix(in_srgb,hsl(var(--muted))_45%,hsl(var(--card)))]",
+};
+
+const ZONE_HEAD: Record<SectionKey, string> = {
+  incomes: "bg-[color-mix(in_srgb,hsl(var(--success))_14%,hsl(var(--muted)))]",
+  diff: "bg-[color-mix(in_srgb,hsl(var(--warning))_16%,hsl(var(--muted)))]",
+  transfers: "bg-[color-mix(in_srgb,hsl(var(--info))_16%,hsl(var(--muted)))]",
+  money: "bg-[color-mix(in_srgb,hsl(var(--primary))_13%,hsl(var(--muted)))]",
+  expenses: "bg-[color-mix(in_srgb,hsl(var(--destructive))_14%,hsl(var(--muted)))]",
+  office: "bg-[color-mix(in_srgb,hsl(var(--accent))_40%,hsl(var(--muted)))]",
+  balances: "bg-muted",
+};
+
 /** Section → the headline column that carries the expand arrow (first total col). */
 const SECTION_ANCHOR: Record<string, string> = Object.fromEntries(
   SECTIONS.filter((s) => s.cols.some((c) => !c.total)).map((s) => [
@@ -133,6 +158,7 @@ const SECTION_ANCHOR: Record<string, string> = Object.fromEntries(
     (s.cols.find((c) => c.total) ?? s.cols[0]).id,
   ]),
 );
+
 
 
 /** Pinned lead column, rendered right after Date. */
@@ -470,18 +496,19 @@ const DailyBalanceReport = () => {
       key: "date",
       header: "Date",
       type: "date",
-      style: { width: 132, minWidth: 132 },
+      style: { width: 74, minWidth: 74 },
       accessor: (r) => (
           <span className="whitespace-nowrap">
-            <span className={cn("font-mono tabular-nums", r.date === today() && "font-semibold text-primary")}>
-              {fmtDate(r.date)}
-            </span>{" "}
-            <span className="text-[11px] text-muted-foreground">{r.weekday}</span>
+            <span className={cn("font-mono text-[12px] font-semibold tabular-nums", r.date === today() && "text-primary")}>
+              {r.date.slice(8, 10)}/{r.date.slice(5, 7)}
+            </span>
             {r.legacy && <Badge variant="outline" className="ml-1 h-4 px-1 text-[10px]">imp</Badge>}
           </span>
         ),
-      cellClassName: (r: Row) => cn("py-1", rowBg(r)),
+      headerClassName: "whitespace-nowrap border-b-2 border-border bg-muted font-bold uppercase tracking-wide text-foreground",
+      cellClassName: (r: Row) => cn("py-0.5 leading-tight", rowBg(r) ?? "bg-card"),
     },
+
     ...visibleMoneyCols.map<ColumnDef<Row>>((c, i) => {
       const first = i === 0 || visibleMoneyCols[i - 1].section !== c.section;
       const tip = formulaText(c.id);
@@ -564,19 +591,23 @@ const DailyBalanceReport = () => {
         },
 
         headerClassName: cn(
-          "whitespace-nowrap",
-          first && "border-l border-border",
-          c.total ? "font-semibold text-foreground" : "font-normal text-muted-foreground",
+          "whitespace-nowrap border-b-2 border-border uppercase tracking-wide",
+          ZONE_HEAD[c.section],
+          first ? "border-l-2 border-l-border" : "border-l border-l-border/60",
+          c.total ? "font-bold text-foreground" : "font-semibold text-muted-foreground",
           hot && "text-primary",
         ),
         cellClassName: (r: Row) =>
           cn(
-            "py-1 font-mono tabular-nums",
-            first && "border-l border-border",
-            c.total ? "font-semibold" : "text-muted-foreground",
-            rowBg(r) ?? (r.day_closed ? heatClass(c, Math.round(c.value(r))) : undefined),
+            "py-0.5 whitespace-nowrap font-mono text-[11px] leading-tight tabular-nums",
+            first ? "border-l-2 border-l-border" : "border-l border-l-border/40",
+            c.total ? "font-semibold text-foreground" : "text-foreground/70",
+            rowBg(r)
+              ?? (r.day_closed ? heatClass(c, Math.round(c.value(r))) : undefined)
+              ?? ZONE_BG[c.section],
             hot && "ring-1 ring-inset ring-primary/40",
           ),
+
       };
     }),
   ];
@@ -585,18 +616,20 @@ const DailyBalanceReport = () => {
     ? [
         {
           key: "total",
-          className: "font-semibold",
+          className: "border-t-2 border-border bg-muted font-bold",
           cell: (col: ColumnDef<Row>) => {
             if (col.key === "date")
-              return <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Total</span>;
+              return <span className="text-[11px] font-bold uppercase tracking-wider text-foreground">Total</span>;
+
             const c = ALL_COLS.find((x) => x.id === col.key);
             const v = c ? Math.round(c.value(grandRow)) : 0;
             const tip = formulaText(col.key);
             return (
-              <span className="inline-flex items-center gap-1">
-                <span className={cn("font-mono tabular-nums", v < 0 && "cms-amount-negative")}>
+              <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                <span className={cn("font-mono text-[11px] font-bold tabular-nums", v < 0 && "cms-amount-negative")}>
                   {formatMoneyFull(v)}
                 </span>
+
                 {tip && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -613,14 +646,15 @@ const DailyBalanceReport = () => {
         },
         {
           key: "avg",
-          className: "text-muted-foreground",
+          className: "bg-muted/70 text-muted-foreground",
           cell: (col: ColumnDef<Row>) => {
             if (col.key === "date")
-              return <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Average / day</span>;
+              return <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg / day</span>;
             const c = ALL_COLS.find((x) => x.id === col.key);
             const v = c ? Math.round(c.value(grandRow) / (daysWithData || 1)) : 0;
-            return <span className="font-mono tabular-nums">{formatMoneyFull(v)}</span>;
+            return <span className="whitespace-nowrap font-mono text-[11px] tabular-nums">{formatMoneyFull(v)}</span>;
           },
+
         },
       ]
     : undefined;
@@ -696,7 +730,7 @@ const DailyBalanceReport = () => {
             columns={columns}
             rowKey={(r) => `${r.kind}:${r.date}`}
             loading={isLoading}
-            stickyColumns={[0, 132]}
+            stickyColumns={[0, 74]}
             stickyHeader
             
             footerRows={footerRows}
