@@ -51,11 +51,36 @@ export interface DailyBalanceRow {
   day_total: number;
   /** Cash Desk − Day Total (cash vs declared result) */
   day_balance: number;
+  // ---- Casino Monthly Balance model --------------------------------
+  /** Live cage cash-desk result (cash side of live games). */
+  live_cash_result: number;
+  /** Slots cage difference: cage cash desk − declared slots result. */
+  slots_diff: number;
+  /** Cage Casino = closing cash of LIVE cage + SLOTS cage. */
+  cage_casino: number;
+  /** Transfers cage → manager safe (positive leg into office_safe). */
+  transfer_cage_manager: number;
+  /** Manager (office) safe balance at end of day. */
+  cage_manager: number;
+  /** Transfers into bank accounts (positive leg). */
+  transfer_bank: number;
+  /** Bank account balances at end of day, split by currency (TZS-valued). */
+  bank_tzs: number;
+  bank_usd: number;
+  /** Owner deposits into the business (external income). */
+  money_in: number;
+  /** Collections / owner withdrawals. */
+  money_out: number;
+  /** Cage Casino + Cage Manager + Bank (TZS + USD) at end of day. */
+  money_total: number;
+  /** Money + IN − OUT − Expenses of the day. */
+  balance: number;
   /** true when the row came from the imported legacy sheet */
   legacy: boolean;
   /** true when at least one live source produced data for that date */
   hasSystemData: boolean;
 }
+
 
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -200,19 +225,24 @@ export const useDailyBalanceReport = (from: string, to: string) => {
       // Cage Cash = closing cash of LIVE cage shifts + closing cash of SLOTS cage shifts
       const cageClosing: Bucket = {};
       const cashDesk: Bucket = {}, shiftTables: Bucket = {};
+      const liveCashDesk: Bucket = {}, slotsCashDesk: Bucket = {}, slotsDeclared: Bucket = {};
       shifts.forEach((s) => {
         const d = dateOnly(s.closed_at || s.opened_at);
         add(cashDesk, d, num(s.cash_desk_result));
+        add(liveCashDesk, d, num(s.cash_desk_result));
         add(shiftTables, d, num(s.tables_result));
         add(cageClosing, d, num(s.closing_cash?.actual));
       });
       slotShifts.forEach((s) => {
         add(cashDesk, s.business_date, num(s.cash_desk_result));
+        add(slotsCashDesk, s.business_date, num(s.cash_desk_result));
+        add(slotsDeclared, s.business_date, num(s.slots_result));
         if (slotsRes[s.business_date] == null) add(slotsRes, s.business_date, num(s.slots_result));
       });
       slotsClosing.forEach((i) => {
         add(cageClosing, i.cage_slots_shifts?.business_date, num(i.total_tzs));
       });
+
 
 
       const expByDate: Bucket = {}, bankExpByDate: Bucket = {};
@@ -223,23 +253,38 @@ export const useDailyBalanceReport = (from: string, to: string) => {
       });
 
       const collections: Bucket = {}, officeIn: Bucket = {}, officeOut: Bucket = {};
+      const trfToManager: Bucket = {}, trfToBank: Bucket = {}, ownerIn: Bucket = {};
       const cageRunning: Bucket = {}, officeRunning: Bucket = {}, bankRunning: Bucket = {};
+      const bankTzsRunning: Bucket = {}, bankUsdRunning: Bucket = {};
+      const walletCurrency: Record<string, string> = {};
+      wallets.forEach((w) => { walletCurrency[w.id] = w.currency || "TZS"; });
       // running balances start from wallet starting floats
-      let cageBal = 0, officeBal = 0, bankBal = 0;
+      let cageBal = 0, officeBal = 0, bankBal = 0, bankTzsBal = 0, bankUsdBal = 0;
       wallets.forEach((w) => {
         const f = num(w.starting_float_amount);
         if (!f) return;
         if (CAGE_KINDS.has(w.kind)) cageBal += f;
         else if (w.kind === "office_safe") officeBal += f;
-        else if (w.kind === "bank_account") bankBal += f;
+        else if (w.kind === "bank_account") {
+          bankBal += f;
+          if ((w.currency || "TZS") === "TZS") bankTzsBal += f; else bankUsdBal += f;
+        }
       });
 
       const txByDate: Record<string, any[]> = {};
       walletTx.forEach((t) => {
         (txByDate[t.business_date] ??= []).push(t);
-        if (t.kind === "collection") add(collections, t.business_date, Math.abs(tzs(t)));
-        if (walletKind[t.wallet_id] === "office_safe") {
-          const v = tzs(t);
+        const kind = walletKind[t.wallet_id];
+        const v = tzs(t);
+        if (t.kind === "collection") add(collections, t.business_date, Math.abs(v));
+        // Owner deposits into the business
+        if (t.kind === "external_income" && v > 0) add(ownerIn, t.business_date, v);
+        // Transfers — count the positive (incoming) leg only
+        if (t.kind === "transfer" && v > 0) {
+          if (kind === "office_safe") add(trfToManager, t.business_date, v);
+          if (kind === "bank_account") add(trfToBank, t.business_date, v);
+        }
+        if (kind === "office_safe") {
           if (v >= 0) add(officeIn, t.business_date, v);
           else add(officeOut, t.business_date, Math.abs(v));
         }
@@ -252,12 +297,18 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           const v = tzs(t);
           if (CAGE_KINDS.has(k)) cageBal += v;
           else if (k === "office_safe") officeBal += v;
-          else if (k === "bank_account") bankBal += v;
+          else if (k === "bank_account") {
+            bankBal += v;
+            if (walletCurrency[t.wallet_id] === "TZS") bankTzsBal += v; else bankUsdBal += v;
+          }
         }
         cageRunning[d] = cageBal;
         officeRunning[d] = officeBal;
         bankRunning[d] = bankBal;
+        bankTzsRunning[d] = bankTzsBal;
+        bankUsdRunning[d] = bankUsdBal;
       }
+
 
       const terminal: Bucket = {};
       bankChecks.forEach((b) => {
@@ -284,6 +335,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
 
       // ---- build rows ---------------------------------------------------
       let lastRate = 0, lastCage = 0, lastOffice = 0, lastBank = 0, lastChips = 0;
+      let lastBankTzs = 0, lastBankUsd = 0;
       return enumerateDates(from, to).map((date) => {
         const rate = rateByDate[date] || lastRate || FALLBACK_USD_RATE;
         lastRate = rate;
@@ -296,6 +348,8 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         if (cageRunning[date] != null) lastCage = cageRunning[date];
         if (officeRunning[date] != null) lastOffice = officeRunning[date];
         if (bankRunning[date] != null) lastBank = bankRunning[date];
+        if (bankTzsRunning[date] != null) lastBankTzs = bankTzsRunning[date];
+        if (bankUsdRunning[date] != null) lastBankUsd = bankUsdRunning[date];
         if (chipFloat[date] != null) lastChips = chipFloat[date];
 
         const hasSystemData =
@@ -304,6 +358,29 @@ export const useDailyBalanceReport = (from: string, to: string) => {
 
         /** Credit / Deposit is a MANUAL field — stored in fin_legacy_balance. */
         const manualCredit = l?.credit_deposit != null ? num(l.credit_deposit) : 0;
+
+        /** Casino Monthly Balance derived block (shared by legacy + live rows). */
+        const cmb = (o: {
+          cage: number; manager: number; bankTzs: number; bankUsd: number;
+          expenses: number; inV: number; outV: number;
+          live: number; slotsDiff: number;
+        }) => {
+          const moneyTotal = o.cage + o.manager + o.bankTzs + o.bankUsd;
+          return {
+            live_cash_result: o.live,
+            slots_diff: o.slotsDiff,
+            cage_casino: o.cage,
+            transfer_cage_manager: trfToManager[date] ?? 0,
+            cage_manager: o.manager,
+            transfer_bank: trfToBank[date] ?? 0,
+            bank_tzs: o.bankTzs,
+            bank_usd: o.bankUsd,
+            money_in: o.inV,
+            money_out: o.outV,
+            money_total: moneyTotal,
+            balance: moneyTotal + o.inV - o.outV - o.expenses,
+          };
+        };
 
         if (!hasSystemData && l) {
           const gross = num(l.bank_terminal);
@@ -336,6 +413,13 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             chips_float: num(l.chips_float),
             day_total: lTotal,
             day_balance: num(l.cash_desk_result) - lTotal,
+            ...cmb({
+              cage: num(l.cage_cash), manager: num(l.office_cash),
+              bankTzs: num(l.bank_account), bankUsd: 0,
+              expenses: num(l.expenses) + num(l.bank_expenses),
+              inV: num(l.office_in), outV: num(l.collection_bank),
+              live: num(l.cash_desk_result), slotsDiff: 0,
+            }),
             legacy: true,
             hasSystemData: false,
           } satisfies DailyBalanceRow;
@@ -346,6 +430,8 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         const net = gross / (1 + BANK_COMMISSION_RATE);
         const dayTotal = tables + slotsNet + barV + manualCredit;
         const cdr = cashDesk[date] ?? 0;
+        const cage = cageClosing[date] ?? lastCage;
+        const expensesV = expByDate[date] ?? 0;
         return {
           date,
           weekday: WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()],
@@ -356,7 +442,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           slots_result: slotsNet,
           bar_result: barV,
           // Cage Cash = closing cash of LIVE + SLOTS cage shifts (falls back to wallet balance)
-          cage_cash: cageClosing[date] ?? lastCage,
+          cage_cash: cage,
           collection_bank: collections[date] ?? 0,
           chip_difference: chipMiss[date] ?? 0,
           tips_tables: tipsTables[date] ?? 0,
@@ -370,14 +456,24 @@ export const useDailyBalanceReport = (from: string, to: string) => {
           bank_account: lastBank,
           bank_expenses: bankExpByDate[date] ?? 0,
           credit_deposit: manualCredit,
-          expenses: expByDate[date] ?? 0,
+          expenses: expensesV,
           chips_float: lastChips,
           day_total: dayTotal,
           day_balance: cdr - dayTotal,
+          ...cmb({
+            cage, manager: lastOffice,
+            bankTzs: lastBankTzs, bankUsd: lastBankUsd,
+            expenses: expensesV,
+            inV: ownerIn[date] ?? 0,
+            outV: collections[date] ?? 0,
+            live: liveCashDesk[date] ?? 0,
+            slotsDiff: (slotsCashDesk[date] ?? 0) - (slotsDeclared[date] ?? 0),
+          }),
           legacy: false,
           hasSystemData,
         } satisfies DailyBalanceRow;
       });
+
 
     },
   });
