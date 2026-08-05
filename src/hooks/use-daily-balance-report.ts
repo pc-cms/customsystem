@@ -295,6 +295,10 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         j && typeof j === "object"
           ? Object.values(j).reduce<number>((s, v) => s + num(v), 0)
           : 0;
+      /** Purely presentational breakdown used by the cell detail panels. */
+      const cageDetail: Record<string, CageDetail> = {};
+      const cageBucket = (d: string) =>
+        (cageDetail[d] ??= { cash: [], cashless: [], slots_total: 0 });
       shifts.forEach((s) => {
         const d = dateOnly(s.closed_at || s.opened_at);
         add(cashDesk, d, num(s.cash_desk_result));
@@ -306,7 +310,37 @@ export const useDailyBalanceReport = (from: string, to: string) => {
         const closingTotal = num(ct.total_tzs) || num(s.closing_cash?.actual);
         add(cageClosing, d, closingTotal - num(ct.chips_tzs));
         add(cageCashless, d, sumProviders(s.cashless_in_providers) - sumProviders(s.cashless_out_providers));
+
+        const b = cageBucket(d);
+        const cash = (s.closing_count as any)?.cash || {};
+        for (const [currency, denoms] of Object.entries(cash)) {
+          for (const [denom, qty] of Object.entries((denoms || {}) as Record<string, unknown>)) {
+            const q = num(qty);
+            if (!q) continue;
+            const dn = num(denom);
+            const rate = currency === "TZS" ? 1 : (rateByDate[d] || FALLBACK_USD_RATE);
+            b.cash.push({
+              currency,
+              denomination: dn,
+              quantity: q,
+              tzs: currency === "TZS" ? dn * q : dn * q * rate,
+            });
+          }
+        }
+        const providers: Record<string, number> = {};
+        for (const [k, v] of Object.entries((s.cashless_in_providers || {}) as Record<string, unknown>)) {
+          providers[k] = (providers[k] || 0) + num(v);
+        }
+        for (const [k, v] of Object.entries((s.cashless_out_providers || {}) as Record<string, unknown>)) {
+          providers[k] = (providers[k] || 0) - num(v);
+        }
+        for (const [name, amount] of Object.entries(providers)) {
+          if (!amount) continue;
+          const ex = b.cashless.find((c) => c.name === name);
+          if (ex) ex.amount += amount; else b.cashless.push({ name, amount });
+        }
       });
+
       slotShifts.forEach((s) => {
         add(cashDesk, s.business_date, num(s.cash_desk_result));
         add(slotsCashDesk, s.business_date, num(s.cash_desk_result));
