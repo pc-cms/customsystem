@@ -111,6 +111,8 @@ export interface DailyBalanceRow {
   money_out: number;
   /** Cage Casino + Cage Manager + Bank (TZS + USD) at end of day. */
   money_total: number;
+  /** Financial result = Casino result − expenses + office net (IN − OUT). */
+  fin_result: number;
   /** Variance: Money (actual) − control figure (expected). Should tend to 0. */
   balance: number;
   /** Control figure: yesterday Money + Result + IN − OUT − Expenses. */
@@ -600,6 +602,7 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             money_in: o.inV,
             money_out: o.outV,
             money_total: moneyTotal,
+            fin_result: o.result - o.expenses + o.inV - o.outV,
             // Balance is a VARIANCE (actual money − expected money): → 0.
             balance: moneyTotal - check,
             balance_check: check,

@@ -48,7 +48,7 @@ type Col = {
 const BASE_KEYS: (keyof DailyBalanceRow)[] = [
   "casino_result", "tables_result", "slots_result", "live_cash_result", "slots_diff",
   "bar_result", "chip_difference", "diff_total", "transfer_cage_manager", "transfer_bank",
-  "expenses", "bank_expenses", "money_in", "money_out",
+  "expenses", "bank_expenses", "money_in", "money_out", "fin_result",
   "day_total", "cash_desk_result", "day_balance", "collection_bank",
 ];
 
@@ -118,6 +118,7 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     label: "Balance",
     cols: [
       { id: "money_total", label: "Money", total: true, value: (r) => num(r, "money_total") },
+      { id: "fin_result", label: "Fin Result", total: true, value: (r) => num(r, "fin_result") },
       { id: "balance", label: "Balance", total: true, value: (r) => num(r, "balance") },
     ],
   },
@@ -584,12 +585,7 @@ const DailyBalanceReport = () => {
       <div className="mb-2 grid grid-cols-1 gap-2 md:grid-cols-3">
         <Tile
           label="Finance Result"
-          value={
-            num(grandRow, "casino_result") -
-            num(grandRow, "expenses") +
-            num(grandRow, "money_in") -
-            num(grandRow, "money_out")
-          }
+          value={num(grandRow, "fin_result")}
           hint="Casino result − expenses + office net"
         />
         <div className="flex items-center justify-center gap-2 rounded-md border border-border bg-card px-2 py-2">

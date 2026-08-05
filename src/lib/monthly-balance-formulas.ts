@@ -117,6 +117,11 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
     source: "Stock of all money at end of day",
     total: "stock",
   },
+  fin_result: {
+    formula: "Casino result − expenses + office net (IN − OUT)",
+    source: "Derived from Result, Expenses and Office movements",
+    total: "sum",
+  },
   balance: {
     formula: "Variance = Money (actual) − (yesterday Money + Result + IN − OUT − Expenses). Should be 0",
     source: "Derived control check",
