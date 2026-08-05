@@ -607,16 +607,16 @@ const DailyBalanceReport = () => {
         />
       </div>
 
-      {/* Row 2: Casino Result · Money · Diff · Expenses · Balance */}
-      <div className="mb-3 grid grid-cols-5 gap-2">
+      {/* Row 2: Casino Result · Money · Expenses · Balance */}
+      <div className="mb-3 grid grid-cols-4 gap-2">
         <Tile label="Casino Result" value={num(grandRow, "casino_result")} hint="Live Game + Slots + Bar" />
         <Tile
           label="Money"
           value={Number(lastClosedRow?.money_total || 0)}
           hint={lastClosedDate ? fmtDate(lastClosedDate) : undefined}
         />
-        <Tile label="Diff" value={num(grandRow, "diff_total")} hint="Chip Diff + Slots Diff" />
         <Tile label="Expenses" value={-num(grandRow, "expenses")} />
+
         <Tile
           label="Balance"
           value={Number(lastClosedRow?.balance || 0)}
