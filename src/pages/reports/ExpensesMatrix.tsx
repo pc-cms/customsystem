@@ -59,8 +59,15 @@ const ExpensesMatrixPage = () => {
     {
       key: "label",
       header: "Category",
-      style: { width: 200, minWidth: 200 },
-      accessor: (r) => <span className="whitespace-nowrap font-medium">{r.label}</span>,
+      style: { width: 220, minWidth: 220 },
+      accessor: (r) => (
+        <div className="whitespace-nowrap">
+          <span className="font-medium">{r.label}</span>
+          {r.group && (
+            <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">{r.group}</span>
+          )}
+        </div>
+      ),
       sortValue: (r) => r.label,
       cellClassName: () => "py-1",
     },

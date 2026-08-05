@@ -20,6 +20,8 @@ export interface ExpenseItem {
 export interface ExpenseCategoryRow {
   code: string;
   label: string;
+  /** Budget group (fin_categories.group_code), e.g. fixed / variable / salary. */
+  group?: string;
   /** day (YYYY-MM-DD) → amount TZS */
   byDay: Record<string, number>;
   total: number;
@@ -60,13 +62,17 @@ export const useExpensesMatrix = (month: string) => {
       const sb = supabase as any;
       const casino = activeCasinoId!;
 
-      const [cats, rows, wallets] = await Promise.all([
+      const [finCats, cats, rows, wallets] = await Promise.all([
+        fetchPaged<any>((a, b) =>
+          sb.from("fin_categories")
+            .select("id, name, group_code, group_name, sort_order, is_income, is_active")
+            .range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("expense_categories").select("code, label, active")
             .eq("casino_id", casino).range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("expenses")
-            .select("id, business_date, amount, amount_tzs, category, category_code, description, wallet_id, voided_at")
+            .select("id, business_date, amount, amount_tzs, category, category_code, fin_category_id, description, wallet_id, voided_at")
             .eq("casino_id", casino)
             .gte("business_date", from).lte("business_date", to).range(a, b)),
         fetchPaged<any>((a, b) =>
@@ -79,20 +85,37 @@ export const useExpensesMatrix = (month: string) => {
       const label: Record<string, string> = {};
       cats.forEach((c: any) => { label[c.code] = c.label || titleCase(c.code); });
 
+      /** Budget categories (fin_categories, expense side) drive the row list. */
+      const budget: Record<string, any> = {};
+      finCats.forEach((c: any) => { budget[c.id] = c; });
+
       const byCode: Record<string, ExpenseCategoryRow> = {};
       const items: Record<string, ExpenseItem[]> = {};
+      const order: Record<string, number> = {};
 
-      const ensure = (code: string) =>
-        (byCode[code] ??= { code, label: label[code] || titleCase(code), byDay: {}, total: 0 });
+      const ensure = (code: string, name?: string, group?: string, sort?: number) => {
+        const r = (byCode[code] ??= { code, label: name || label[code] || titleCase(code), group, byDay: {}, total: 0 });
+        if (name) r.label = name;
+        if (group) r.group = group;
+        if (sort != null) order[code] = sort;
+        return r;
+      };
 
-      // Every configured category is listed, even with no spend this month.
-      cats.filter((c: any) => c.active !== false).forEach((c: any) => ensure(c.code));
+      const GROUPS = ["salary", "fixed", "variable", "petrol", "tax", "additional", "collections"];
+      // Every budget category is listed, even with no spend this month.
+      finCats
+        .filter((c: any) => c.is_income === false && c.is_active !== false)
+        .forEach((c: any) => {
+          const gi = GROUPS.indexOf(c.group_code);
+          ensure(c.id, c.name, c.group_code, (gi < 0 ? GROUPS.length : gi) * 1000 + (c.sort_order ?? 0));
+        });
 
       rows.filter((e: any) => !e.voided_at).forEach((e: any) => {
-        const code = e.category_code || e.category || "other";
+        const fin = e.fin_category_id ? budget[e.fin_category_id] : null;
+        const code = fin ? String(fin.id) : (e.category_code || e.category || "other");
         const day = String(e.business_date).slice(0, 10);
         const v = e.amount_tzs != null ? num(e.amount_tzs) : num(e.amount);
-        const r = ensure(code);
+        const r = fin ? ensure(fin.id, fin.name, fin.group_code) : ensure(code);
         r.byDay[day] = (r.byDay[day] || 0) + v;
         r.total += v;
         (items[`${code}|${day}`] ??= []).push({
@@ -105,7 +128,11 @@ export const useExpensesMatrix = (month: string) => {
       });
 
       return {
-        rows: Object.values(byCode).sort((a, b) => a.label.localeCompare(b.label)),
+        rows: Object.values(byCode).sort((a, b) => {
+          const oa = order[a.code] ?? 999_999;
+          const ob = order[b.code] ?? 999_999;
+          return oa !== ob ? oa - ob : a.label.localeCompare(b.label);
+        }),
         items,
         days,
       };
