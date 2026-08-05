@@ -546,42 +546,52 @@ export const useDailyBalanceReport = (from: string, to: string) => {
 
       const chipMiss: Bucket = {}, chipFloat: Bucket = {};
       const chipsDetail: Record<string, ChipDetail[]> = {};
-      // `miss` in chip_snapshots is CUMULATIVE vs the fixed chip baseline.
-      // Real Chip Diff of a day = closing miss of that day − closing miss of the
-      // previous day with data. Keep the latest snapshot per table+denomination.
+      // Chip float (chips physically in the cage) — latest snapshot of the day.
       const lastSnap: Record<string, any> = {};
       chipSnaps.forEach((c) => {
         const k = `${c.date}|${c.location_id ?? ""}|${c.denomination}`;
         const prev = lastSnap[k];
         if (!prev || String(c.created_at) > String(prev.created_at)) lastSnap[k] = c;
       });
-      const closingByDenom: Record<string, Record<number, { qty: number; miss: number }>> = {};
-      const cumMiss: Bucket = {};
+      const floatByDenom: Record<string, Record<number, number>> = {};
       Object.values(lastSnap).forEach((c: any) => {
-        add(cumMiss, c.date, num(c.miss) * num(c.denomination));
         add(chipFloat, c.date, num(c.actual_quantity) * num(c.denomination));
-        const bucket = (closingByDenom[c.date] ??= {});
+        const bucket = (floatByDenom[c.date] ??= {});
         const dn = num(c.denomination);
-        const e = (bucket[dn] ??= { qty: 0, miss: 0 });
-        e.qty += num(c.actual_quantity);
-        e.miss += num(c.miss);
+        bucket[dn] = (bucket[dn] || 0) + num(c.actual_quantity);
       });
-      // De-cumulate: per day and per denomination.
-      const missDates = Object.keys(closingByDenom).sort();
-      let prevCum = 0;
-      let prevByDenom: Record<number, number> = {};
-      missDates.forEach((date) => {
-        chipMiss[date] = (cumMiss[date] ?? 0) - prevCum;
-        prevCum = cumMiss[date] ?? 0;
-        const byDenom = closingByDenom[date];
-        chipsDetail[date] = Object.entries(byDenom).map(([dn, v]) => ({
-          denomination: Number(dn),
-          quantity: v.qty,
-          miss: v.miss - (prevByDenom[Number(dn)] ?? 0),
+
+      /**
+       * Chip Diff of a day = Miss Chips of that day, exactly as in the
+       * /reports/miss-chips page: the sum of `closing_count.chip_miss_total`
+       * of the shifts closed on that business day (EAT 07:00 rollover).
+       * Per-day figure — never cumulative.
+       */
+      const missByDenomDate: Record<string, Record<number, number>> = {};
+      shifts
+        .filter((s) => s.closed_at)
+        .forEach((s) => {
+          const d = businessDateOf(s.opened_at);
+          const cc = (s.closing_count as any) || {};
+          add(chipMiss, d, num(cc.chip_miss_total));
+          const by = (cc.chip_miss_by_denom || {}) as Record<string, unknown>;
+          const bucket = (missByDenomDate[d] ??= {});
+          Object.entries(by).forEach(([dn, q]) => {
+            const den = num(dn);
+            if (!den) return;
+            bucket[den] = (bucket[den] || 0) + num(q);
+          });
+        });
+      const chipDates = new Set([...Object.keys(missByDenomDate), ...Object.keys(floatByDenom)]);
+      chipDates.forEach((date) => {
+        const miss = missByDenomDate[date] || {};
+        const fl = floatByDenom[date] || {};
+        const denoms = new Set([...Object.keys(miss), ...Object.keys(fl)].map(Number));
+        chipsDetail[date] = Array.from(denoms).map((dn) => ({
+          denomination: dn,
+          quantity: fl[dn] ?? 0,
+          miss: miss[dn] ?? 0,
         }));
-        const nextByDenom: Record<number, number> = { ...prevByDenom };
-        Object.entries(byDenom).forEach(([dn, v]) => { nextByDenom[Number(dn)] = v.miss; });
-        prevByDenom = nextByDenom;
       });
       Object.values(chipsDetail).forEach((l) => l.sort((a, b) => b.denomination - a.denomination));
 
