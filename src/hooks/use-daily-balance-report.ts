@@ -425,16 +425,29 @@ export const useDailyBalanceReport = (from: string, to: string) => {
 
 
 
+      /**
+       * Expenses column = operating expenses only. "Collection" / "CAPEX" are
+       * payouts to the owner, not costs — they belong to Office OUT.
+       */
+      const isCollectionCat = (row: any) =>
+        String(row?.fin_categories?.group_code || row?.category?.group_code || "") === "collections";
       const expByDate: Bucket = {}, bankExpByDate: Bucket = {};
+      const expDetail: Record<string, Record<string, number>> = {};
       expenses.filter((e) => !e.voided_at).forEach((e) => {
         const v = tzs(e);
+        if (isCollectionCat(e)) return;
         add(expByDate, e.business_date, v);
+        const label = e.fin_categories?.name || e.description || "Other";
+        ((expDetail[e.business_date] ??= {}))[label] =
+          (expDetail[e.business_date]?.[label] || 0) + v;
         if (isBankKind(walletKind[e.wallet_id])) add(bankExpByDate, e.business_date, v);
       });
 
       const collections: Bucket = {}, officeIn: Bucket = {}, officeOut: Bucket = {};
       const trfToManager: Bucket = {}, trfToBank: Bucket = {}, ownerIn: Bucket = {};
+      const officeMoves: Record<string, TransferDetail[]> = {};
       const cageRunning: Bucket = {}, officeRunning: Bucket = {}, bankRunning: Bucket = {};
+
       const bankTzsRunning: Bucket = {}, bankUsdRunning: Bucket = {};
       const walletCurrency: Record<string, string> = {};
       wallets.forEach((w) => { walletCurrency[w.id] = w.currency || "TZS"; });
