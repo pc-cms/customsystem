@@ -9,20 +9,24 @@
  * clicking the group header reveals its component columns.
  */
 import { useMemo, useState } from "react";
-import { Wallet2, Flame, Columns3 } from "lucide-react";
+import { Wallet2, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SmartTable, type ColumnDef, type SortState } from "@/components/ui/smart-table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Toggle } from "@/components/ui/toggle";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useCasino } from "@/lib/casino-context";
 import { useSessionState } from "@/hooks/use-session-state";
-import { formatMoney, formatMoneyFull } from "@/lib/format-money";
+import { formatMoneyFull } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
 import { cn } from "@/lib/utils";
-import { useDailyBalanceReport, useSetCreditDeposit, type DailyBalanceRow } from "@/hooks/use-daily-balance-report";
+import { formulaText } from "@/lib/monthly-balance-formulas";
+import {
+  useDailyBalanceReport, useSetCreditDeposit, useSetBankBalance, type DailyBalanceRow,
+} from "@/hooks/use-daily-balance-report";
 
 type SectionKey = "incomes" | "expenses" | "transfers" | "money" | "balances";
 
@@ -146,6 +150,37 @@ const CreditCell = ({ date, value }: { date: string; value: number }) => {
   );
 };
 
+/** Manual bank balance (TZS or USD) — inline editor, saved per day on blur. */
+const BankCell = ({
+  date, value, field, manual,
+}: { date: string; value: number; field: "bank_account" | "bank_account_usd"; manual: boolean }) => {
+  const save = useSetBankBalance();
+  const [draft, setDraft] = useState<string>("");
+  const [editing, setEditing] = useState(false);
+  const rounded = Math.round(value);
+  const shown = editing ? draft : rounded ? String(rounded) : "";
+  return (
+    <Input
+      value={shown}
+      placeholder={rounded ? undefined : "·"}
+      inputMode="numeric"
+      title={manual ? "Manual entry" : "Computed from wallets — type to override"}
+      onClick={(e) => e.stopPropagation()}
+      onFocus={() => { setEditing(true); setDraft(rounded ? String(rounded) : ""); }}
+      onChange={(e) => setDraft(e.target.value.replace(/[^\d.-]/g, ""))}
+      onBlur={() => {
+        setEditing(false);
+        const v = Number(draft || 0);
+        if (Number.isFinite(v) && v !== rounded) save.mutate({ date, field, value: v });
+      }}
+      className={cn(
+        "h-6 w-28 px-1 text-right font-mono text-xs tabular-nums",
+        !manual && "border-dashed text-muted-foreground",
+      )}
+    />
+  );
+};
+
 /** Compact KPI tile. */
 const Tile = ({ label, value, hint }: { label: string; value: number; hint?: string }) => (
   <div className="rounded-md border border-border bg-card px-3 py-2">
@@ -166,13 +201,18 @@ const DailyBalanceReport = () => {
   const { activeCasino } = useCasino();
   const [month, setMonth] = useSessionState("dbr-month", currentMonth());
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
-  const [hideEmpty, setHideEmpty] = useSessionState("dbr-hide-empty", true);
-  const [heatmap, setHeatmap] = useSessionState("dbr-heatmap", true);
-  /** Fixed display options — toolbar reduced to Heatmap + Columns only. */
-  const moneyMode = "compact" as const;
+  /** Fixed display options — every column is always shown, in full figures. */
+  const heatmap = true;
   const weeks = true;
   const [sort, setSort] = useState<SortState | null>({ key: "date", dir: "asc" });
   const [detail, setDetail] = useState<DailyBalanceRow | null>(null);
+
+  /** Shift the selected month by ±1. */
+  const stepMonth = (delta: number) => {
+    const [y, m] = month.split("-").map(Number);
+    const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+    setMonth(d.toISOString().slice(0, 7));
+  };
 
   const { from, to } = monthBounds(month);
   const { data: rows = [], isLoading } = useDailyBalanceReport(from, to);
@@ -208,29 +248,8 @@ const DailyBalanceReport = () => {
   }, [rows]);
   const lastClosedDate = lastClosedRow?.date ?? null;
 
-  /** Columns whose every value is 0 across the month (candidates for hiding). */
-  const emptyCols = useMemo(() => {
-    const s = new Set<string>();
-    for (const c of ALL_COLS) {
-      if (c.total || c.id === "credit_deposit") continue;
-      if (rows.every((r) => !Math.round(c.value(r)))) s.add(c.id);
-    }
-    return s;
-  }, [rows]);
-
-  /**
-   * Visible columns: section headlines always; component columns only for
-   * expanded sections. "Hide empty" never applies inside an expanded section —
-   * expanding must always reveal the full breakdown.
-   */
-  const visibleMoneyCols = useMemo(
-    () =>
-      ALL_COLS.filter((c) => {
-        if (!c.detail) return !(hideEmpty && emptyCols.has(c.id));
-        return expanded.has(c.section);
-      }),
-    [hideEmpty, emptyCols, expanded],
-  );
+  /** All columns are always visible — the grid is a fixed audit layout. */
+  const visibleMoneyCols = ALL_COLS;
 
   /** Max abs value per heat column — drives the fill intensity. */
   const heatMax = useMemo(() => {
@@ -313,9 +332,10 @@ const DailyBalanceReport = () => {
     return sort?.dir === "desc" ? [...out].reverse() : out;
   }, [rows, weeks, sort]);
 
+  /** Full figures only — no compact M / K suffixes anywhere in this grid. */
   const money = (n: number) =>
     !n ? <span className="text-muted-foreground">·</span> : (
-      <span className={n < 0 ? "cms-amount-negative" : undefined}>{formatMoney(n, moneyMode)}</span>
+      <span className={n < 0 ? "cms-amount-negative" : undefined}>{formatMoneyFull(n)}</span>
     );
 
   /** Two-level header groups: leading Date column + one entry per visible section. */
@@ -365,17 +385,35 @@ const DailyBalanceReport = () => {
     },
     ...visibleMoneyCols.map<ColumnDef<Row>>((c, i) => {
       const first = i === 0 || visibleMoneyCols[i - 1].section !== c.section;
+      const tip = formulaText(c.id);
       return {
         key: c.id,
-        header: c.label,
+        header: (
+          <span className="inline-flex items-center gap-1">
+            {c.label}
+            {tip && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 shrink-0 opacity-50 hover:opacity-100" />
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs whitespace-pre-line text-xs">
+                  {tip}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </span>
+        ),
         type: "money" as const,
-        style: i === 0 ? { width: 120, minWidth: 120 } : undefined,
-        accessor: (r) =>
-          c.id === "credit_deposit" && r.kind === "day" ? (
-            <CreditCell date={r.date} value={num(r, "credit_deposit")} />
-          ) : (
-            money(Math.round(c.value(r)))
-          ),
+        style: i === 0 ? { width: 132, minWidth: 132 } : undefined,
+        accessor: (r) => {
+          if (r.kind === "day" && c.id === "credit_deposit")
+            return <CreditCell date={r.date} value={num(r, "credit_deposit")} />;
+          if (r.kind === "day" && c.id === "bank_tzs")
+            return <BankCell date={r.date} field="bank_account" value={num(r, "bank_tzs")} manual={!!r.bank_tzs_manual} />;
+          if (r.kind === "day" && c.id === "bank_usd")
+            return <BankCell date={r.date} field="bank_account_usd" value={num(r, "bank_usd_raw")} manual={!!r.bank_usd_manual} />;
+          return money(Math.round(c.value(r)));
+        },
         sortValue: (r) => c.value(r),
         headerClassName: cn(
           "whitespace-nowrap",
@@ -404,9 +442,22 @@ const DailyBalanceReport = () => {
               return <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Total</span>;
             const c = ALL_COLS.find((x) => x.id === col.key);
             const v = c ? Math.round(c.value(grandRow)) : 0;
+            const tip = formulaText(col.key);
             return (
-              <span className={cn("font-mono tabular-nums", v < 0 && "cms-amount-negative")}>
-                {formatMoney(v, moneyMode)}
+              <span className="inline-flex items-center gap-1">
+                <span className={cn("font-mono tabular-nums", v < 0 && "cms-amount-negative")}>
+                  {formatMoneyFull(v)}
+                </span>
+                {tip && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 shrink-0 opacity-40 hover:opacity-100" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs whitespace-pre-line text-xs">
+                      {tip}
+                    </TooltipContent>
+                  </Tooltip>
+                )}
               </span>
             );
           },
@@ -419,13 +470,18 @@ const DailyBalanceReport = () => {
               return <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Average / day</span>;
             const c = ALL_COLS.find((x) => x.id === col.key);
             const v = c ? Math.round(c.value(grandRow) / (daysWithData || 1)) : 0;
-            return <span className="font-mono tabular-nums">{formatMoney(v, moneyMode)}</span>;
+            return <span className="font-mono tabular-nums">{formatMoneyFull(v)}</span>;
           },
         },
       ]
     : undefined;
 
+  const monthLabel = new Date(`${month}-01T00:00:00Z`).toLocaleDateString("en-GB", {
+    month: "long", year: "numeric", timeZone: "UTC",
+  });
+
   return (
+    <TooltipProvider delayDuration={100}>
     <PageShell>
       <PageHeader
         icon={Wallet2}
@@ -433,18 +489,29 @@ const DailyBalanceReport = () => {
         subtitle="Result · Cage · Bank · Money — rebuilt from live data, all figures in TZS"
         context={activeCasino?.name}
       >
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
-            {daysWithData} days · {visibleMoneyCols.length} columns
-          </span>
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          {daysWithData} days · {visibleMoneyCols.length} columns
+        </span>
+      </PageHeader>
+
+      {/* Centered month switcher */}
+      <div className="mb-3 flex items-center justify-center gap-2">
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(-1)} aria-label="Previous month">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1">
+          <span className="min-w-[130px] text-center text-sm font-semibold tracking-wide">{monthLabel}</span>
           <Input
             type="month"
             value={month}
             onChange={(e) => setMonth(e.target.value || currentMonth())}
-            className="h-8 w-[150px] text-xs"
+            className="h-7 w-[136px] text-xs"
           />
         </div>
-      </PageHeader>
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(1)} aria-label="Next month">
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
 
       {/* KPI tiles */}
       <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
@@ -464,34 +531,12 @@ const DailyBalanceReport = () => {
         <Tile
           label="Balance"
           value={Number(lastClosedRow?.balance || 0)}
-
           hint={lastClosedDate ? fmtDate(lastClosedDate) : undefined}
         />
       </div>
 
       <PageSection card={false}>
-        <div className="relative pt-10">
-          <Toggle
-            size="sm"
-            pressed={hideEmpty}
-            onPressedChange={() => setHideEmpty(!hideEmpty)}
-            title={hideEmpty ? "Show all columns" : "Hide empty columns"}
-            className="absolute top-0 left-0 z-20 h-8 gap-1 px-2 text-xs"
-          >
-            <Columns3 className="h-3.5 w-3.5" />
-            {hideEmpty ? "Show columns" : "Hide empty"}
-          </Toggle>
-          <Toggle
-            size="sm"
-            pressed={heatmap}
-            onPressedChange={() => setHeatmap(!heatmap)}
-            title="Toggle heatmap"
-            className="absolute top-0 right-0 z-20 h-8 gap-1 px-2 text-xs"
-          >
-            <Flame className="h-3.5 w-3.5" />
-            Heatmap
-          </Toggle>
-          <div className="max-h-[70vh] overflow-auto rounded-md border border-border">
+        <div className="max-h-[72vh] overflow-auto rounded-md border border-border">
           <SmartTable
             data={displayRows}
             columns={columns}
@@ -500,6 +545,7 @@ const DailyBalanceReport = () => {
             onSortChange={setSort}
             loading={isLoading}
             stickyColumns={[0, 132]}
+            stickyHeader
             groupHeader={groupHeader}
             footerRows={footerRows}
             onRowClick={(r) => r.kind === "day" && setDetail(r)}
@@ -509,7 +555,6 @@ const DailyBalanceReport = () => {
             className="[&_tbody_tr:nth-child(odd)]:bg-transparent"
             empty={<div className="py-10 text-center text-sm text-muted-foreground">No data for this month</div>}
           />
-          </div>
         </div>
       </PageSection>
 
@@ -557,6 +602,7 @@ const DailyBalanceReport = () => {
         </SheetContent>
       </Sheet>
     </PageShell>
+    </TooltipProvider>
   );
 };
 

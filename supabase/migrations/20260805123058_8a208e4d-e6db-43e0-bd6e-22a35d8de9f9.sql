@@ -1,0 +1,1 @@
+ALTER TABLE public.fin_legacy_balance ADD COLUMN IF NOT EXISTS bank_account_usd numeric;

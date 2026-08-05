@@ -91,6 +91,11 @@ export interface SmartTableProps<T> {
    */
   stickyColumns?: number[];
   /**
+   * Pin the header (group row + column headers) to the top of the scroll
+   * container. Requires the caller to wrap the table in a scrollable element.
+   */
+  stickyHeader?: boolean;
+  /**
    * Optional grouped header row rendered above the column headers.
    * `span` must add up to the number of VISIBLE columns.
    */
@@ -260,6 +265,7 @@ export function SmartTable<T>({
   onRowClick,
   stickyFirstColumn,
   stickyColumns,
+  stickyHeader,
   groupHeader,
   footerRows,
   virtualize = true,
@@ -330,17 +336,22 @@ export function SmartTable<T>({
   const useVirtual = sortedData.length > threshold && !loading;
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
+  /** Height of the group header row — column headers stick right below it. */
+  const GROUP_ROW_H = 25;
+
   const groupRow = groupHeader?.length ? (
     <DTRow className="border-b border-border">
       {groupHeader.map((g, gi) => (
         <th
           key={g.key}
           colSpan={g.span}
-          style={
-            g.sticky !== undefined
-              ? { position: "sticky", left: g.sticky, zIndex: 30 }
-              : undefined
-          }
+          style={{
+            ...(g.sticky !== undefined ? { left: g.sticky } : null),
+            ...(stickyHeader ? { top: 0 } : null),
+            ...(g.sticky !== undefined || stickyHeader
+              ? { position: "sticky" as const, zIndex: g.sticky !== undefined ? 40 : 32 }
+              : null),
+          }}
           className={cn(
             "px-2 py-1 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted",
             gi > 0 && "border-l border-border",
@@ -379,12 +390,20 @@ export function SmartTable<T>({
         {visibleCols.map((c) => {
           const sortable = !!c.sortValue;
           const isSorted = activeSort?.key === c.key;
+          const style = stickyHeader
+            ? {
+                ...c.style,
+                position: "sticky" as const,
+                top: groupRow ? GROUP_ROW_H : 0,
+                zIndex: (c.style as any)?.position === "sticky" ? 40 : 31,
+              }
+            : c.style;
           return (
             <DTHeader
               key={c.key}
               type={c.type}
-              className={cn(sortable && "cursor-pointer select-none", c.headerClassName)}
-              style={c.style}
+              className={cn(sortable && "cursor-pointer select-none", stickyHeader && "!bg-muted", c.headerClassName)}
+              style={style}
               onClick={sortable ? () => handleSort(c.key) : undefined}
             >
               <span className="inline-flex items-center gap-1">

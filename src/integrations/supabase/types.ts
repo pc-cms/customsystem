@@ -3875,6 +3875,7 @@ export type Database = {
       fin_legacy_balance: {
         Row: {
           bank_account: number
+          bank_account_usd: number | null
           bank_expenses: number
           bank_fee_pct: number
           bank_terminal: number
@@ -3909,6 +3910,7 @@ export type Database = {
         }
         Insert: {
           bank_account?: number
+          bank_account_usd?: number | null
           bank_expenses?: number
           bank_fee_pct?: number
           bank_terminal?: number
@@ -3943,6 +3945,7 @@ export type Database = {
         }
         Update: {
           bank_account?: number
+          bank_account_usd?: number | null
           bank_expenses?: number
           bank_fee_pct?: number
           bank_terminal?: number
