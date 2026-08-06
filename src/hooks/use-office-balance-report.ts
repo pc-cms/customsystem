@@ -80,7 +80,7 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
     queryFn: async (): Promise<OfficeBalanceData> => {
       const sb = supabase as any;
 
-      const [casinos, wallets, expenses, tx] = await Promise.all([
+      const [casinos, wallets, expenses, tx, dayClosings] = await Promise.all([
         fetchPaged<any>((a, b) =>
           sb.from("casinos").select("id, name, is_active").order("name").range(a, b)),
         fetchPaged<any>((a, b) =>
@@ -92,6 +92,10 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
         fetchPaged<any>((a, b) =>
           sb.from("fin_wallet_tx")
             .select("id, casino_id, wallet_id, kind, amount, amount_tzs, currency, fx_rate, business_date, note, posted_at")
+            .gte("business_date", from).lte("business_date", to).range(a, b)),
+        fetchPaged<any>((a, b) =>
+          sb.from("fin_day_closing")
+            .select("casino_id, business_date, tables_result, slots_result")
             .gte("business_date", from).lte("business_date", to).range(a, b)),
       ]);
 
