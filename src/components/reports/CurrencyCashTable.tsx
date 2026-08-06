@@ -102,7 +102,9 @@ const CurrencyCashTable = ({
 
 
   return (
+    <div className="space-y-3">
     <div>
+
       <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {title}
       </div>
