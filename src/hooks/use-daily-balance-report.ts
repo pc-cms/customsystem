@@ -37,9 +37,12 @@ export interface ChipDetail {
 export interface CageDetail {
   cash: { currency: string; denomination: number; quantity: number; tzs: number }[];
   cashless: { name: string; amount: number }[];
+  /** Mobile money held by the cage at closing, per provider (TZS). */
+  mobile: Record<string, number>;
   /** Slots cage closing total (no per-denomination breakdown available). */
   slots_total: number;
 }
+
 
 export interface TransferDetail {
   amount: number;
@@ -350,7 +353,7 @@ export const useDailyBalanceReport = (
       /** Purely presentational breakdown used by the cell detail panels. */
       const cageDetail: Record<string, CageDetail> = {};
       const cageBucket = (d: string) =>
-        (cageDetail[d] ??= { cash: [], cashless: [], slots_total: 0 });
+        (cageDetail[d] ??= { cash: [], cashless: [], mobile: {}, slots_total: 0 });
       /**
        * Cage figures are a SNAPSHOT at the end of the business day, never a sum
        * of the day's shifts: only the LAST closing of each day is kept.
@@ -376,7 +379,13 @@ export const useDailyBalanceReport = (
         // Snapshot semantics — the last shift of the day replaces the breakdown.
         b.cash = [];
         b.cashless = [];
+        // Mobile money held by the cage at closing (per provider).
+        b.mobile = Object.fromEntries(
+          Object.entries(((s.closing_count as any)?.mobile || {}) as Record<string, unknown>)
+            .map(([k, v]) => [k, num(v)]),
+        );
         const cash = (s.closing_count as any)?.cash || {};
+
         for (const [currency, denoms] of Object.entries(cash)) {
           for (const [denom, qty] of Object.entries((denoms || {}) as Record<string, unknown>)) {
             const q = num(qty);
@@ -797,7 +806,7 @@ export const useDailyBalanceReport = (
             balance,
             balance_check: opening + o.result + diffTotal + feesV + officeNet - o.expenses,
             chips_detail: chipsDetail[date] ?? [],
-            cage_detail: cageDetail[date] ?? { cash: [], cashless: [], slots_total: 0 },
+            cage_detail: cageDetail[date] ?? { cash: [], cashless: [], mobile: {}, slots_total: 0 },
             transfers_manager: managerTransfers[date] ?? [],
             transfers_bank: bankTransfers[date] ?? [],
             office_wallets: lastOfficeWallets,

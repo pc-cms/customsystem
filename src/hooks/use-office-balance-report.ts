@@ -44,6 +44,12 @@ export interface OfficeBalanceRow {
   out_detail: { label: string; value: number }[];
   /** Cash denominations behind the office cage (demo / snapshot based). */
   cage_detail?: { currency: string; denomination: number; quantity: number; tzs: number }[];
+  /** Mobile money per provider (TZS) at the end of the day. */
+  mobile_detail?: Record<string, number>;
+  /** Bank balances split by currency. */
+  bank_detail?: { currency: string; amount: number; rate: number; tzs: number }[];
+
+
 
 }
 
@@ -109,10 +115,13 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
 
       const walletKind: Record<string, string> = {};
       const walletName: Record<string, string> = {};
+      const walletCurrency: Record<string, string> = {};
       wallets.forEach((w: any) => {
         walletKind[w.id] = w.kind;
         walletName[w.id] = w.name;
+        walletCurrency[w.id] = w.currency || "TZS";
       });
+
 
       type Bucket = Record<string, number>;
       const add = (b: Bucket, d: string, v: number) => { b[d] = (b[d] || 0) + v; };
@@ -166,7 +175,13 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
       const trfByDate: Bucket = {};
       /** Bank running balance across all casinos. */
       const bankRunning: Bucket = {};
+      /** Bank running balance per currency (TZS-valued). */
+      const bankByCurRunning: Record<string, Record<string, number>> = {};
+      /** Mobile money running balance per provider (wallet name). */
+      const mobileRunning: Record<string, Record<string, number>> = {};
       let bankBal = 0;
+      const bankCur: Record<string, number> = {};
+      const mobileBal: Record<string, number> = {};
       const txByDate: Record<string, any[]> = {};
       tx.filter((t: any) => t.posted_at).forEach((t: any) => {
         (txByDate[String(t.business_date).slice(0, 10)] ??= []).push(t);
@@ -175,12 +190,23 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
         for (const t of txByDate[d]) {
           const kind = walletKind[t.wallet_id];
           const v = signedWalletTxTzs(t);
-          if (kind === "bank") bankBal += v;
+          if (kind === "bank" || kind === "bank_account") {
+            bankBal += v;
+            const cur = walletCurrency[t.wallet_id] || "TZS";
+            bankCur[cur] = (bankCur[cur] || 0) + v;
+          }
+          if (kind === "mobile_money") {
+            const p = walletName[t.wallet_id] || "Mobile";
+            mobileBal[p] = (mobileBal[p] || 0) + v;
+          }
           if ((t.kind === "income" || t.kind === "external_income") && v > 0 && kind !== "bank") {
             add(trfByDate, d, v);
           }
         }
         bankRunning[d] = bankBal;
+        bankByCurRunning[d] = { ...bankCur };
+        mobileRunning[d] = { ...mobileBal };
+
       });
 
       // Month gaming result per casino (tables + slots from day closing).
@@ -198,6 +224,8 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
       });
 
       let lastBank = 0;
+      let lastBankCur: Record<string, number> = {};
+      let lastMobile: Record<string, number> = {};
       let office = 0;
       let prevMoney: number | null = null;
       return {
@@ -211,10 +239,19 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
           const out = outByDate[date] ?? 0;
           office += inTotal - exp - trf - out;
           lastBank = bankRunning[date] ?? lastBank;
+          lastBankCur = bankByCurRunning[date] ?? lastBankCur;
+          lastMobile = mobileRunning[date] ?? lastMobile;
           const moneyTotal = office + lastBank;
           const balance =
             prevMoney == null ? 0 : prevMoney + inTotal - exp - trf - out - moneyTotal;
           prevMoney = moneyTotal;
+          const rate = FALLBACK_USD_RATE;
+          const bankDetail = ["TZS", "USD", ...Object.keys(lastBankCur).filter((c) => c !== "TZS" && c !== "USD")]
+            .map((currency) => {
+              const tzsV = lastBankCur[currency] || 0;
+              const r = currency === "TZS" ? 1 : rate;
+              return { currency, amount: r ? tzsV / r : 0, rate: r, tzs: tzsV };
+            });
           return {
             date,
             weekday: WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()],
@@ -228,6 +265,8 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
             fin_result: inTotal - exp - out,
             money_total: moneyTotal,
             balance,
+            mobile_detail: { ...lastMobile },
+            bank_detail: bankDetail,
             expenses_detail: Object.entries(expDetail[date] ?? {})
               .map(([label, value]) => ({ label, value }))
               .sort((a, b) => b.value - a.value),
@@ -235,6 +274,7 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
             out_detail: outDetail[date] ?? [],
           };
         }),
+
       };
     },
   });
