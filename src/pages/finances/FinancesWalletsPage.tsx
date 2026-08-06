@@ -400,8 +400,8 @@ export default function FinancesWalletsPage() {
           fxRate = Number(rateRow?.rate_to_tzs || 1);
         }
       }
-      // Snapshot + linked adjustment are written by one server-side call so a
-      // failure can never leave an orphan adjustment behind.
+      // A physical count is a new Actual snapshot, never a financial movement.
+      // Variance is informational and must not be written back into the wallet.
       const { data: res, error: rpcError } = await (supabase as any).rpc("fin_save_wallet_count", {
         p_wallet_id: w.id,
         p_counted: counted,
@@ -412,36 +412,6 @@ export default function FinancesWalletsPage() {
       });
       if (rpcError) throw rpcError;
       variance = Number(res?.variance || 0);
-      const { error } = await supabase.from("fin_audit_log").insert({
-        casino_id: activeCasinoId,
-        actor: user.id,
-        action: "office_safe_reconciliation",
-        entity_table: "fin_wallets",
-        entity_id: w.id,
-        before: {
-          ledger: Number(res?.expected || led.native),
-          ledger_tzs: led.tzs,
-        },
-        after: {
-          lines: [{
-            wallet_id: w.id,
-            wallet_name: w.name,
-            currency: w.currency,
-            ledger: Number(res?.expected || led.native),
-            counted,
-            variance,
-            variance_tzs: variance * fxRate,
-            fx_rate: fxRate,
-            denominations: useDenoms ? denomCounts[w.id] || {} : null,
-            cents: useDenoms ? cents : null,
-          }],
-          note: countNote[w.id] || "",
-          business_date: countDate,
-          snapshot_id: res?.snapshot_id ?? null,
-          adjustment_id: res?.tx_id ?? null,
-        },
-      } as any);
-      if (error) throw error;
 
       toast.success(
         Math.abs(variance) >= 0.01
