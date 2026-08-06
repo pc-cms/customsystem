@@ -40,13 +40,13 @@ const ZONE_BG: Record<Zone, string> = {
 };
 
 const FORMULAS: Record<string, string> = {
-  fin_result: "Fin Result = IN (all casinos) − Office expenses − OUT",
   in_total: "Σ collections received from every casino",
   cage_office: "Running office cash: previous + IN − Expenses − Transfer → Casino − OUT",
   bank: "Bank wallet balances at the end of the day (all casinos, TZS-valued)",
   expenses: "Office-source expenses of the day (collections excluded)",
   transfer_casino: "Money sent from the office back into the casinos",
   out_ak: "Payouts out of the company (owner / IK)",
+  balance: "Balance = Money yesterday + IN − Expenses − Transfer → Casino − OUT − Money today\nMoney = Cage + Bank. Should stay near zero.",
 };
 
 const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
