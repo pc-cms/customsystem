@@ -714,11 +714,11 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
         },
 
         headerClassName: cn(
-          "whitespace-nowrap border-b-2 text-[12px] uppercase tracking-wide",
+          "whitespace-nowrap border-b-4 text-[12px] uppercase tracking-wide",
           ZONE_HEAD[c.section],
           first ? "border-l-2 border-l-border" : "border-l border-l-border/60",
           c.total ? "font-extrabold text-foreground" : "font-bold text-foreground/80",
-          hot ? "border-b-primary text-primary" : "border-border",
+          hot ? "border-b-primary text-primary" : "border-b-primary/70",
         ),
         cellClassName: (r: Row) =>
           cn(
@@ -726,13 +726,14 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             first ? "border-l-2 border-l-border" : "border-l border-l-border/40",
             c.total ? "font-semibold text-foreground" : "text-foreground/70",
             r.kind === "start"
-              ? "border-b-2 border-b-border bg-muted font-semibold"
+              ? "border-b-4 border-b-primary/70 bg-[color-mix(in_srgb,hsl(var(--primary))_12%,hsl(var(--card)))] font-semibold"
               : rowBg(r)
                 ?? (r.day_closed ? heatClass(c, Math.round(c.value(r))) : undefined)
                 ?? ZONE_BG[c.section],
             // Focused column: a soft tint, no hard ring.
             hot && "!bg-[color-mix(in_srgb,hsl(var(--primary))_7%,hsl(var(--card)))] text-foreground",
           ),
+
 
 
       };
