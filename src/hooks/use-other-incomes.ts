@@ -59,18 +59,27 @@ export type OtherIncomeRow = {
   fin_categories?: { name: string } | null;
 };
 
-export const useOtherIncomes = (from: string, to: string) => {
+export const useOtherIncomes = (
+  from: string,
+  to: string,
+  opts?: { only?: OtherIncomeSource[]; exclude?: OtherIncomeSource[] },
+) => {
   const { activeCasinoId } = useCasino();
+  const only = opts?.only;
+  const exclude = opts?.exclude;
   return useQuery({
-    queryKey: ["fin-other-incomes", activeCasinoId, from, to],
+    queryKey: ["fin-other-incomes", activeCasinoId, from, to, only?.join(",") || "", exclude?.join(",") || ""],
     enabled: !!activeCasinoId && !!from && !!to,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      let q = (supabase as any)
         .from("fin_other_incomes")
         .select("*, fin_wallets(name, currency, kind), fin_categories(name)")
         .eq("casino_id", activeCasinoId)
         .gte("business_date", from)
-        .lte("business_date", to)
+        .lte("business_date", to);
+      if (only?.length) q = q.in("source", only);
+      if (exclude?.length) q = q.not("source", "in", `(${exclude.join(",")})`);
+      const { data, error } = await q
         .order("business_date", { ascending: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -79,6 +88,7 @@ export const useOtherIncomes = (from: string, to: string) => {
     ...liveQueryOptions(),
   });
 };
+
 
 export const useAddOtherIncome = () => {
   const qc = useQueryClient();
