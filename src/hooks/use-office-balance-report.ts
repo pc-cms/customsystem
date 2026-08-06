@@ -34,6 +34,10 @@ export interface OfficeBalanceRow {
   transfer_casino: number;
   out_ak: number;
   fin_result: number;
+  /** Cage + Bank at the end of the day. */
+  money_total: number;
+  /** Money yesterday + IN − Expenses − Transfer − OUT − Money today (≈ 0). */
+  balance: number;
   /** Detail rows behind the drill-downs. */
   expenses_detail: { label: string; value: number }[];
   in_detail: { label: string; value: number }[];
