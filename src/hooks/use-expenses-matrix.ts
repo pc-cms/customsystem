@@ -117,7 +117,12 @@ export const useExpensesMatrix = (
           ensure(c.id, c.name, c.group_code, (gi < 0 ? GROUPS.length : gi) * 1000 + (c.sort_order ?? 0));
         });
 
-      rows.filter((e: any) => !e.voided_at).forEach((e: any) => {
+      const inScope = (e: any) =>
+        scope === "all" ? true
+          : scope === "office" ? e.source === "office"
+            : e.source !== "office";
+
+      rows.filter((e: any) => !e.voided_at && inScope(e)).forEach((e: any) => {
         const fin = e.fin_category_id ? budget[e.fin_category_id] : null;
         const code = fin ? String(fin.id) : (e.category_code || e.category || "other");
         const day = String(e.business_date).slice(0, 10);
