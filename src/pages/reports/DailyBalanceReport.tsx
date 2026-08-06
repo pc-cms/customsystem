@@ -504,8 +504,12 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
 
   /** Last business date that has live system data — highlighted with a yellow stripe. */
   const lastClosedRow = useMemo(() => {
-    const withData = rows.filter((r) => r.day_closed && r.hasSystemData).sort((a, b) => a.date.localeCompare(b.date));
-    return withData.length ? withData[withData.length - 1] : null;
+    const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
+    const withData = sorted.filter((r) => r.day_closed && r.hasSystemData);
+    if (withData.length) return withData[withData.length - 1];
+    // Demo / legacy rows carry no `hasSystemData` flag — fall back to the last closed day.
+    const closed = sorted.filter((r) => r.day_closed);
+    return closed.length ? closed[closed.length - 1] : null;
   }, [rows]);
   const lastClosedDate = lastClosedRow?.date ?? null;
 
