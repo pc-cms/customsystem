@@ -4,6 +4,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DayClosingsTab from "./DayClosingsTab";
 import OtherIncomesTab from "./OtherIncomesTab";
 import RatesTab from "./RatesTab";
+import JpTab from "./JpTab";
 import { BalanceBanner } from "@/components/office/BalanceBanner";
 
 const FinancesMoneyChangePage = lazy(() => import("@/pages/finances/FinancesMoneyChangePage"));
@@ -20,6 +21,7 @@ const TABS = [
   { value: "budget", label: "Budget" },
   { value: "day-closings", label: "Day Closings" },
   { value: "difference", label: "Difference" },
+  { value: "jp", label: "JP" },
   { value: "money-change", label: "Money Change" },
   { value: "monthly-report", label: "Monthly Report" },
   { value: "other-incomes", label: "Other Incomes" },
@@ -70,6 +72,7 @@ export default function OfficePage() {
         {tab === "budget" && <FinancesBudgetPage />}
         {tab === "day-closings" && <DayClosingsTab />}
         {tab === "difference" && <FinancesBudgetDifferencePage />}
+        {tab === "jp" && <JpTab />}
         {tab === "money-change" && <FinancesMoneyChangePage />}
         {tab === "monthly-report" && <FinancesMonthlyReportPage />}
         {tab === "other-incomes" && <OtherIncomesTab />}
