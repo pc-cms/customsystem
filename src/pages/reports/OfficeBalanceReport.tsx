@@ -6,6 +6,7 @@
  * All figures TZS.
  */
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Building2, ChevronDown, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -15,7 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import CurrencyCashTable from "@/components/reports/CurrencyCashTable";
+import CurrencyCashTable, { MobileMoneyTable } from "@/components/reports/CurrencyCashTable";
+import DrillHeader from "@/components/reports/DrillHeader";
 import { useSessionState } from "@/hooks/use-session-state";
 import { formatMoneyFull } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
@@ -55,7 +57,8 @@ const FORMULAS: Record<string, string> = {
 const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   const [month, setMonth] = useSessionState(demo ? "obr-demo-month" : "obr-month", currentMonth());
   const [inOpen, setInOpen] = useSessionState(demo ? "obr-demo-in-open" : "obr-in-open", false);
-  const [drill, setDrill] = useState<{ row: OfficeBalanceRow; col: string } | null>(null);
+  const [drill, setDrill] = useState<{ row: OfficeBalanceRow; col: string; label: string; amount: number } | null>(null);
+  const navigate = useNavigate();
   const query = useOfficeBalanceReport(month, !demo);
   const data = demo ? demoOfficeBalance(month) : query.data;
   const rows = data?.rows ?? [];
@@ -120,10 +123,14 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
     </span>
   );
 
-  const drillCell = (col: string) => (r: OfficeBalanceRow, v: number) => (
+  const drillCell = (col: string, label?: string) => (r: OfficeBalanceRow, v: number) => (
     <span
       className={cn(v && "cursor-pointer underline-offset-2 hover:underline")}
-      onClick={(e) => { if (!v) return; e.stopPropagation(); setDrill({ row: r, col }); }}
+      onClick={(e) => {
+        if (!v) return;
+        e.stopPropagation();
+        setDrill({ row: r, col, label: label ?? col.toUpperCase(), amount: v });
+      }}
     >
       {money(v)}
     </span>
@@ -152,7 +159,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       header: head(`IN · ${c.name}`, "in_total"),
       type: "money" as const,
       style: { minWidth: 118 },
-      accessor: (r) => drillCell("in")(r, r.in_by_casino[c.id] || 0),
+      accessor: (r) => drillCell("in", `IN · ${c.name}`)(r, r.in_by_casino[c.id] || 0),
       sortValue: (r) => r.in_by_casino[c.id] || 0,
       headerClassName: headCls("in", i === 0),
       cellClassName: cellCls("in", i === 0),
@@ -182,7 +189,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       ),
       type: "money",
       style: { minWidth: 124 },
-      accessor: (r) => drillCell("in")(r, r.in_total),
+      accessor: (r) => drillCell("in", "IN Total")(r, r.in_total),
       sortValue: (r) => r.in_total,
       headerClassName: headCls("in", !inOpen),
       cellClassName: cellCls("in", !inOpen),
@@ -192,7 +199,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       header: head("Cage", "cage_office"),
       type: "money",
       style: { minWidth: 128 },
-      accessor: (r) => (r.cage_detail?.length ? drillCell("cage")(r, r.cage_office) : money(r.cage_office)),
+      accessor: (r) => drillCell("cage", "Cage · Office")(r, r.cage_office),
       sortValue: (r) => r.cage_office,
       headerClassName: headCls("money", true),
       cellClassName: cellCls("money", true),
@@ -203,7 +210,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       header: head("Bank", "bank"),
       type: "money",
       style: { minWidth: 128 },
-      accessor: (r) => money(r.bank),
+      accessor: (r) => drillCell("bank", "Bank")(r, r.bank),
       sortValue: (r) => r.bank,
       headerClassName: headCls("money", false),
       cellClassName: cellCls("money", false),
@@ -213,7 +220,18 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       header: head("Expenses", "expenses"),
       type: "money",
       style: { minWidth: 124 },
-      accessor: (r) => drillCell("expenses")(r, r.expenses),
+      accessor: (r) => (
+        <span
+          className={cn(r.expenses && "cursor-pointer underline-offset-2 hover:underline")}
+          onClick={(e) => {
+            if (!r.expenses) return;
+            e.stopPropagation();
+            navigate(`${demo ? "/demo" : "/reports"}/expenses-office?month=${month}&date=${r.date}`);
+          }}
+        >
+          {money(r.expenses)}
+        </span>
+      ),
       sortValue: (r) => r.expenses,
       headerClassName: headCls("spend", true),
       cellClassName: cellCls("spend", true),
@@ -243,7 +261,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
               v > 0 && "cms-amount-positive",
               v && "cursor-pointer underline-offset-2 hover:underline",
             )}
-            onClick={(e) => { if (!v) return; e.stopPropagation(); setDrill({ row: r, col: "out" }); }}
+            onClick={(e) => { if (!v) return; e.stopPropagation(); setDrill({ row: r, col: "out", label: "IK (+/−)", amount: v }); }}
           >
             {v ? formatMoneyFull(Math.round(v)) : <span className="text-muted-foreground">{demo ? "0" : "·"}</span>}
           </span>
@@ -392,7 +410,18 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
         <Sheet open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>
           <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
             <SheetHeader>
-              <SheetTitle>{drill ? `${drill.col.toUpperCase()} · ${fmtDate(drill.row.date)}` : ""}</SheetTitle>
+              <SheetTitle asChild>
+                <div>
+                  {drill && (
+                    <DrillHeader
+                      source={drill.label}
+                      date={drill.row.date}
+                      amount={drill.amount}
+                      signed={drill.col === "out"}
+                    />
+                  )}
+                </div>
+              </SheetTitle>
             </SheetHeader>
             {drill?.col === "cage" ? (
               <div className="mt-4">
@@ -400,10 +429,26 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
                   rows={drill.row.cage_detail ?? []}
                   totalLabel="Total cage"
                   total={drill.row.cage_office}
+                  mobile={drill.row.mobile_detail ?? {}}
+                />
+              </div>
+            ) : drill?.col === "bank" ? (
+              <div className="mt-4">
+                <CurrencyCashTable
+                  title="Bank by currency"
+                  rows={(drill.row.bank_detail ?? []).map((b) => ({
+                    currency: b.currency,
+                    denomination: 1,
+                    quantity: b.amount,
+                    tzs: b.tzs,
+                  }))}
+                  totalLabel="Total bank"
+                  total={drill.row.bank}
                 />
               </div>
             ) : (
-            <div className="mt-4 rounded-md border border-border text-xs">
+            <div className="mt-4 space-y-3">
+              <div className="rounded-md border border-border text-xs">
               {drillRows.map((d, i) => (
                 <div key={`${d.label}-${i}`} className="flex items-center justify-between border-b border-border/60 px-2 py-1.5 last:border-0">
                   <span className="truncate text-muted-foreground">{d.label}</span>
@@ -411,6 +456,8 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
                 </div>
               ))}
               {!drillRows.length && <div className="px-2 py-4 text-center text-muted-foreground">No entries</div>}
+              </div>
+              {drill?.col === "cage" && <MobileMoneyTable amounts={drill.row.mobile_detail ?? {}} />}
             </div>
             )}
 
