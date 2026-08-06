@@ -583,10 +583,12 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
 
 
   /** Full figures only — no compact M / K suffixes anywhere in this grid. */
+  const blank = <span className="text-muted-foreground">{demo ? "0" : "·"}</span>;
   const money = (n: number) =>
-    !n ? <span className="text-muted-foreground">·</span> : (
+    !n ? blank : (
       <span className={n < 0 ? "cms-amount-negative" : undefined}>{formatMoneyFull(n)}</span>
     );
+
 
   /** Column hover highlight — the whole column plus its header light up. */
   const [hoverCol, setHoverCol] = useState<string | null>(null);
