@@ -254,7 +254,7 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
       in_detail: DEMO_CASINOS.filter((c) => ins[c.id]).map((c) => ({
         label: `${c.name} · Collection`, value: ins[c.id],
       })),
-      out_detail: out ? [{ label: "Payout IK", value: out }] : [],
+      out_detail: out ? [{ label: out < 0 ? "Received from IK" : "Payout IK", value: out }] : [],
     };
 
   });
