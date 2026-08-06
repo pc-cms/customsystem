@@ -84,7 +84,7 @@ const ExpensesMatrixPage = ({
       sortValue: (r) => r.label,
       cellClassName: () => "py-0.5 leading-tight bg-card",
       headerClassName:
-        "whitespace-nowrap border-b-2 border-border bg-muted font-bold uppercase tracking-wide text-foreground",
+        "whitespace-nowrap border-b-2 border-border bg-muted text-[12px] font-extrabold uppercase tracking-wide text-foreground",
     },
     ...days.map<ColumnDef<ExpenseCategoryRow>>((d) => ({
       key: d,
@@ -108,7 +108,7 @@ const ExpensesMatrixPage = ({
       },
       sortValue: (r) => r.byDay[d] || 0,
       headerClassName:
-        "whitespace-nowrap border-l border-border border-b-2 font-bold text-foreground bg-muted",
+        "whitespace-nowrap border-l border-border border-b-2 text-[12px] font-extrabold text-foreground bg-muted",
       cellClassName: (r: ExpenseCategoryRow) =>
         cn(
           "py-0.5 whitespace-nowrap border-l border-border/60 font-mono text-[11px] leading-tight tabular-nums",
@@ -134,7 +134,7 @@ const ExpensesMatrixPage = ({
       ),
       sortValue: (r) => r.total,
       headerClassName:
-        "whitespace-nowrap border-l-2 border-border border-b-2 font-bold uppercase tracking-wide text-foreground bg-muted",
+        "whitespace-nowrap border-l-2 border-border border-b-2 text-[12px] font-extrabold uppercase tracking-wide text-foreground bg-muted",
       cellClassName: () =>
         "py-0.5 whitespace-nowrap border-l-2 border-border bg-[color-mix(in_srgb,hsl(var(--muted))_55%,hsl(var(--card)))] font-mono text-[11px] font-bold leading-tight tabular-nums",
     },
