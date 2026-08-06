@@ -245,7 +245,16 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
 
   });
 
-  return { casinos: DEMO_CASINOS, rows };
+  // Month P&L per casino — IN roughly tracks the profit each casino generates.
+  const casino_stats = Object.fromEntries(
+    DEMO_CASINOS.map((c, k) => {
+      const result = rows.reduce((s, r) => s + (r.in_by_casino[c.id] || 0), 0) * (1.05 + k * 0.04);
+      const expenses = result * (0.34 + k * 0.05);
+      return [c.id, { result: round(result, 1000), expenses: round(expenses, 1000), profit: round(result - expenses, 1000) }];
+    }),
+  );
+
+  return { casinos: DEMO_CASINOS, rows, casino_stats };
 };
 
 const CASINO_CATS = [

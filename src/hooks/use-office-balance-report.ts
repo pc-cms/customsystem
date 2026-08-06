@@ -43,9 +43,18 @@ export interface OfficeBalanceRow {
 
 }
 
+/** Month aggregate per casino: gaming result, casino expenses, profit. */
+export interface OfficeCasinoStat {
+  result: number;
+  expenses: number;
+  profit: number;
+}
+
 export interface OfficeBalanceData {
   casinos: OfficeCasinoRef[];
   rows: OfficeBalanceRow[];
+  /** casino id → month totals (Result / Expenses / Profit) */
+  casino_stats: Record<string, OfficeCasinoStat>;
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -71,7 +80,7 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
     queryFn: async (): Promise<OfficeBalanceData> => {
       const sb = supabase as any;
 
-      const [casinos, wallets, expenses, tx] = await Promise.all([
+      const [casinos, wallets, expenses, tx, dayClosings] = await Promise.all([
         fetchPaged<any>((a, b) =>
           sb.from("casinos").select("id, name, is_active").order("name").range(a, b)),
         fetchPaged<any>((a, b) =>
@@ -83,6 +92,10 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
         fetchPaged<any>((a, b) =>
           sb.from("fin_wallet_tx")
             .select("id, casino_id, wallet_id, kind, amount, amount_tzs, currency, fx_rate, business_date, note, posted_at")
+            .gte("business_date", from).lte("business_date", to).range(a, b)),
+        fetchPaged<any>((a, b) =>
+          sb.from("fin_day_closing")
+            .select("casino_id, business_date, tables_result, slots_result")
             .gte("business_date", from).lte("business_date", to).range(a, b)),
       ]);
 
@@ -107,6 +120,8 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
       const outByDate: Bucket = {};
       const outDetail: Record<string, { label: string; value: number }[]> = {};
       const casinoName: Record<string, string> = {};
+      /** Month expenses booked at the casino (non-office source, collections excluded). */
+      const casinoExp: Record<string, number> = {};
       casinoList.forEach((c) => { casinoName[c.id] = c.name; });
 
       const tzsOf = (e: any) => (e.amount_tzs != null ? num(e.amount_tzs) : num(e.amount));
@@ -135,8 +150,13 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
           add(expByDate, d, v);
           const label = e.fin_categories?.name || e.description || "Other";
           ((expDetail[d] ??= {}))[label] = (expDetail[d]?.[label] || 0) + v;
+          return;
         }
+        // Casino-source expense → belongs to that casino's month P&L.
+        if (e.casino_id) casinoExp[e.casino_id] = (casinoExp[e.casino_id] || 0) + v;
       });
+
+
 
       /** Money sent from the office back into a casino (booked as casino income). */
       const trfByDate: Bucket = {};
@@ -159,10 +179,25 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
         bankRunning[d] = bankBal;
       });
 
+      // Month gaming result per casino (tables + slots from day closing).
+      const casinoRes: Record<string, number> = {};
+      dayClosings.forEach((c: any) => {
+        if (!c.casino_id) return;
+        casinoRes[c.casino_id] =
+          (casinoRes[c.casino_id] || 0) + num(c.tables_result) + num(c.slots_result);
+      });
+      const casinoStats: Record<string, OfficeCasinoStat> = {};
+      casinoList.forEach((c) => {
+        const result = casinoRes[c.id] || 0;
+        const expensesV = casinoExp[c.id] || 0;
+        casinoStats[c.id] = { result, expenses: expensesV, profit: result - expensesV };
+      });
+
       let lastBank = 0;
       let office = 0;
       return {
         casinos: casinoList,
+        casino_stats: casinoStats,
         rows: enumerateDates(from, to).map((date) => {
           const ins = inByDate[date] ?? {};
           const inTotal = Object.values(ins).reduce((s, v) => s + v, 0);
