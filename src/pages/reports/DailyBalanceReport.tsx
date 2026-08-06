@@ -331,7 +331,75 @@ const StartingBalanceTile = ({
   );
 };
 
+/**
+ * Cash by denomination — original currency amount, the rate used and the
+ * resulting TZS value, one line per denomination.
+ */
+const DenomTable = ({
+  rows,
+}: { rows: { currency: string; denomination: number; quantity: number; tzs: number }[] }) => {
+  const total = rows.reduce((s, r) => s + r.tzs, 0);
+  return (
+    <div>
+      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        Cash by denomination
+      </div>
+      <div className="overflow-hidden rounded-md border border-border">
+        <table className="w-full text-[11px]">
+          <thead>
+            <tr className="border-b border-border bg-muted text-[10px] uppercase tracking-wider text-muted-foreground">
+              <th className="px-2 py-1 text-left font-bold">Denom × Qty</th>
+              <th className="px-2 py-1 text-right font-bold">Original</th>
+              <th className="px-2 py-1 text-right font-bold">Rate</th>
+              <th className="px-2 py-1 text-right font-bold">TZS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => {
+              const original = r.denomination * r.quantity;
+              const rate = original ? r.tzs / original : 1;
+              return (
+                <tr key={`${r.currency}-${r.denomination}-${i}`} className="border-b border-border/60 last:border-0">
+                  <td className="px-2 py-1 whitespace-nowrap">
+                    <span className="font-semibold">{r.currency}</span>{" "}
+                    {formatMoneyFull(r.denomination)} × {r.quantity}
+                  </td>
+                  <td className="px-2 py-1 text-right font-mono tabular-nums">
+                    {formatMoneyFull(Math.round(original))} {r.currency}
+                  </td>
+                  <td className="px-2 py-1 text-right font-mono tabular-nums text-muted-foreground">
+                    {r.currency === "TZS" ? "—" : formatMoneyFull(Math.round(rate))}
+                  </td>
+                  <td className="px-2 py-1 text-right font-mono font-semibold tabular-nums">
+                    {formatMoneyFull(Math.round(r.tzs))}
+                  </td>
+                </tr>
+              );
+            })}
+            {!rows.length && (
+              <tr><td colSpan={4} className="px-2 py-3 text-center text-muted-foreground">No data</td></tr>
+            )}
+          </tbody>
+          {!!rows.length && (
+            <tfoot>
+              <tr className="border-t-2 border-border bg-muted/50 font-bold">
+                <td className="px-2 py-1 uppercase tracking-wider">Total</td>
+                <td />
+                <td />
+                <td className="px-2 py-1 text-right font-mono tabular-nums">
+                  {formatMoneyFull(Math.round(total))}
+                </td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    </div>
+  );
+};
+
 /** Simple label / amount list used by the cell breakdown panel. */
+
 const DrillList = ({
   title, rows, totalLabel, total,
 }: {
