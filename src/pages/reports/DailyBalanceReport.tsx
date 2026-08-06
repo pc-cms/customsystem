@@ -613,10 +613,16 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             {r.legacy && <Badge variant="outline" className="ml-1 h-4 px-1 text-[10px]">imp</Badge>}
           </span>
         ),
-      headerClassName: "whitespace-nowrap border-b-2 border-border bg-muted font-bold uppercase tracking-wide text-foreground",
+      headerClassName: "whitespace-nowrap border-b-4 border-b-primary bg-muted font-bold uppercase tracking-wide text-foreground",
       cellClassName: (r: Row) =>
-        cn("py-0.5 leading-tight", r.kind === "start" ? "border-b-2 border-border bg-muted" : rowBg(r) ?? "bg-card"),
+        cn(
+          "py-0.5 leading-tight",
+          r.kind === "start"
+            ? "border-b-4 border-b-primary/70 bg-[color-mix(in_srgb,hsl(var(--primary))_12%,hsl(var(--card)))]"
+            : rowBg(r) ?? "bg-card",
+        ),
     },
+
 
     ...visibleMoneyCols.map<ColumnDef<Row>>((c, i) => {
       const first = i === 0 || visibleMoneyCols[i - 1].section !== c.section;
