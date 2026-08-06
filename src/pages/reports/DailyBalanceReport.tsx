@@ -570,8 +570,8 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
                 onClick={(e) => { e.stopPropagation(); toggleExpand(c.section); }}
               >
                 {isOpen
-                  ? <ChevronLeft className="h-3.5 w-3.5" />
-                  : <ChevronRight className="h-3.5 w-3.5" />}
+                  ? <ChevronLeft className="h-4 w-4" />
+                  : <ChevronRight className="h-4 w-4" />}
               </button>
             )}
             {c.label}
@@ -637,10 +637,10 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
         },
 
         headerClassName: cn(
-          "whitespace-nowrap border-b-2 uppercase tracking-wide",
+          "whitespace-nowrap border-b-2 text-[12px] uppercase tracking-wide",
           ZONE_HEAD[c.section],
           first ? "border-l-2 border-l-border" : "border-l border-l-border/60",
-          c.total ? "font-bold text-foreground" : "font-semibold text-muted-foreground",
+          c.total ? "font-extrabold text-foreground" : "font-bold text-foreground/80",
           hot ? "border-b-primary text-primary" : "border-border",
         ),
         cellClassName: (r: Row) =>
