@@ -153,7 +153,10 @@ const CurrencyCashTable = ({
         </table>
       </div>
     </div>
+    {mobile && <MobileMoneyTable amounts={mobile} />}
+    </div>
   );
 };
+
 
 export default CurrencyCashTable;
