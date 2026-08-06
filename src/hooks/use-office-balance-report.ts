@@ -224,6 +224,8 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
       });
 
       let lastBank = 0;
+      let lastBankCur: Record<string, number> = {};
+      let lastMobile: Record<string, number> = {};
       let office = 0;
       let prevMoney: number | null = null;
       return {
@@ -237,10 +239,19 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
           const out = outByDate[date] ?? 0;
           office += inTotal - exp - trf - out;
           lastBank = bankRunning[date] ?? lastBank;
+          lastBankCur = bankByCurRunning[date] ?? lastBankCur;
+          lastMobile = mobileRunning[date] ?? lastMobile;
           const moneyTotal = office + lastBank;
           const balance =
             prevMoney == null ? 0 : prevMoney + inTotal - exp - trf - out - moneyTotal;
           prevMoney = moneyTotal;
+          const rate = FALLBACK_USD_RATE;
+          const bankDetail = ["TZS", "USD", ...Object.keys(lastBankCur).filter((c) => c !== "TZS" && c !== "USD")]
+            .map((currency) => {
+              const tzsV = lastBankCur[currency] || 0;
+              const r = currency === "TZS" ? 1 : rate;
+              return { currency, amount: r ? tzsV / r : 0, rate: r, tzs: tzsV };
+            });
           return {
             date,
             weekday: WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()],
@@ -254,6 +265,8 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
             fin_result: inTotal - exp - out,
             money_total: moneyTotal,
             balance,
+            mobile_detail: { ...lastMobile },
+            bank_detail: bankDetail,
             expenses_detail: Object.entries(expDetail[date] ?? {})
               .map(([label, value]) => ({ label, value }))
               .sort((a, b) => b.value - a.value),
@@ -261,6 +274,7 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
             out_detail: outDetail[date] ?? [],
           };
         }),
+
       };
     },
   });
