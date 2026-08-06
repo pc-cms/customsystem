@@ -25,9 +25,14 @@ export function WalletsCompactTable({
 
   let grandTzs = 0;
   sorted.forEach((w) => {
+    if (w.actual_tzs != null) {
+      grandTzs += Number(w.actual_tzs);
+      return;
+    }
     const v = Number(w.physical ?? w.ledger ?? 0);
     grandTzs += w.currency === "USD" ? v * usdTzs : v;
   });
+
 
   return (
     <div className="rounded-md border border-border overflow-hidden bg-card">

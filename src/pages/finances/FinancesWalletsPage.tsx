@@ -231,17 +231,22 @@ export default function FinancesWalletsPage() {
     return m;
   }, [lastCounts, sinceCount]);
 
-  // Grand totals in TZS and USD (Budget-style)
+  // Grand totals in TZS and USD — Actual (last recorded count), same source as Variance.
   const grandTotals = useMemo(() => {
-    const tzs = (snap?.wallets || []).reduce((s, w) => s + Number(w.ledger_tzs ?? w.ledger ?? 0), 0);
+    const tzs = (snap?.wallets || []).reduce(
+      (s, w) => s + Number(w.actual_tzs ?? w.ledger_tzs ?? w.ledger ?? 0),
+      0,
+    );
     const usd = usdRate > 0 ? tzs / usdRate : 0;
     // per-currency native totals
     const perCcy: Record<string, number> = {};
     (snap?.wallets || []).forEach((w) => {
-      perCcy[w.currency] = (perCcy[w.currency] || 0) + Number(w.ledger_native ?? w.ledger ?? 0);
+      perCcy[w.currency] =
+        (perCcy[w.currency] || 0) + Number(w.actual_native ?? w.ledger_native ?? w.ledger ?? 0);
     });
     return { tzs, usd, perCcy };
   }, [snap, usdRate]);
+
 
   const toggleWalletSort = (k: WalletSortKey) => {
     setWalletSort((s) => ({
