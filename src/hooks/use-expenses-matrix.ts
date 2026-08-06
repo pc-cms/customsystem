@@ -79,7 +79,7 @@ export const useExpensesMatrix = (
             .eq("casino_id", casino).range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("expenses")
-            .select("id, business_date, amount, amount_tzs, category, category_code, fin_category_id, description, wallet_id, voided_at")
+            .select("id, business_date, amount, amount_tzs, category, category_code, fin_category_id, description, wallet_id, voided_at, source")
             .eq("casino_id", casino)
             .gte("business_date", from).lte("business_date", to).range(a, b)),
         fetchPaged<any>((a, b) =>
