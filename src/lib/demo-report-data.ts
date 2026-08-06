@@ -211,11 +211,11 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
     // Office cage split into TZS notes + a USD stack, summing exactly to `office`.
     const denoms = [10000, 5000, 2000, 1000];
     const usdQty = Math.max(0, Math.round((office * 0.08) / (100 * RATE)));
-    let rest = office - usdQty * 100 * RATE;
+    let cageRest = office - usdQty * 100 * RATE;
     const cageDetail = denoms.map((den, k) => {
-      const share = k === denoms.length - 1 ? rest : Math.floor((rest * [0.55, 0.25, 0.13, 0.07][k]) / den) * den;
+      const share = k === denoms.length - 1 ? cageRest : Math.floor((cageRest * [0.55, 0.25, 0.13, 0.07][k]) / den) * den;
       const qty = Math.max(0, Math.floor(share / den));
-      if (k < denoms.length - 1) rest -= qty * den;
+      if (k < denoms.length - 1) cageRest -= qty * den;
       return { currency: "TZS", denomination: den, quantity: qty, tzs: qty * den };
     });
     if (usdQty) cageDetail.push({ currency: "USD", denomination: 100, quantity: usdQty, tzs: usdQty * 100 * RATE });
