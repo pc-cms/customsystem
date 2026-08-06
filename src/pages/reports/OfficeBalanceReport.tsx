@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import CurrencyCashTable from "@/components/reports/CurrencyCashTable";
 import { useSessionState } from "@/hooks/use-session-state";
 import { formatMoneyFull } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
