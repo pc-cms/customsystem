@@ -203,7 +203,12 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
     const transfer = i % 6 === 2 ? round(Math.min(avail * 0.3, 4_000_000 + r(6) * 9_000_000), 100_000) : 0;
     const rest = avail - transfer;
     const excess = Math.max(0, rest - 30_000_000);
-    const out = i % 4 === 1 || excess > 0 ? round(Math.min(rest, Math.max(excess, r(7) * 12_000_000)), 100_000) : 0;
+    // Negative `out` = money received back from IK (inflow into the office).
+    const out = i % 7 === 3
+      ? -round(3_000_000 + r(8) * 8_000_000, 100_000)
+      : i % 4 === 1 || excess > 0
+        ? round(Math.min(rest, Math.max(excess, r(7) * 12_000_000)), 100_000)
+        : 0;
 
     const prevMoney = i === 0 ? null : office + bank;
     office = rest - out;
