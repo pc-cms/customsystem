@@ -370,11 +370,11 @@ const DrillList = ({
   </div>
 );
 
-const DailyBalanceReport = () => {
+const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   const { activeCasino } = useCasino();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [month, setMonth] = useSessionState("dbr-month", currentMonth());
+  const [month, setMonth] = useSessionState(demo ? "dbr-demo-month" : "dbr-month", currentMonth());
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
   /** Fixed display options — every column is always shown, in full figures. */
   const heatmap = true;
