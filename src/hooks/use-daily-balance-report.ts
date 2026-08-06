@@ -800,7 +800,7 @@ export const useDailyBalanceReport = (
             balance,
             balance_check: opening + o.result + diffTotal + feesV + officeNet - o.expenses,
             chips_detail: chipsDetail[date] ?? [],
-            cage_detail: cageDetail[date] ?? { cash: [], cashless: [], slots_total: 0 },
+            cage_detail: cageDetail[date] ?? { cash: [], cashless: [], mobile: {}, slots_total: 0 },
             transfers_manager: managerTransfers[date] ?? [],
             transfers_bank: bankTransfers[date] ?? [],
             office_wallets: lastOfficeWallets,
