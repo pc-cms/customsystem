@@ -50,22 +50,29 @@ export const demoDailyBalanceRows = (month: string): DailyBalanceRow[] => {
     const fees = round(r(8) * 260_000, 1000);
     const moneyIn = i % 9 === 3 ? round(5_000_000 + r(9) * 6_000_000, 100_000) : 0;
     const moneyOut = i % 7 === 5 ? round(8_000_000 + r(10) * 9_000_000, 100_000) : 0;
-    const trfManager = i % 3 === 0 ? round(4_000_000 + r(11) * 8_000_000, 100_000) : 0;
-    const trfBank = i % 5 === 2 ? round(10_000_000 + r(12) * 15_000_000, 100_000) : 0;
+    const free = Math.max(0, cage - 15_000_000);
+    const trfManager = i % 3 === 0 ? round(Math.min(free * 0.35, 4_000_000 + r(11) * 8_000_000), 100_000) : 0;
+    const trfBank = i % 5 === 2 ? round(Math.min(free * 0.5, 10_000_000 + r(12) * 15_000_000), 100_000) : 0;
+
 
     const result = tables + slots + bar;
-    cage = Math.max(12_000_000, cage + Math.round(result * 0.55) - trfManager - trfBank / 3);
-    manager = Math.max(3_000_000, manager + trfManager - expenses - moneyOut / 2);
-    bankTzs = Math.max(20_000_000, bankTzs + trfBank - moneyOut / 2 + moneyIn);
-    bankUsdRaw = Math.max(2_000, bankUsdRaw + (i % 6 === 4 ? 2_500 : 0) - (i % 11 === 7 ? 1_800 : 0));
+    const diffTotal = chipDiff + slotsDiff;
+    const officeNet = moneyIn - moneyOut;
+    // Money must move exactly by the day's economics; transfers only reshuffle
+    // between buckets, so the day balance stays at (or very near) zero.
+    const delta = result + diffTotal + fees + officeNet - expenses;
+    const noise = i % 6 === 4 ? round((r(18) - 0.5) * 60_000, 1000) : 0;
+
+    cage = cage + delta - trfManager - trfBank + noise;
+    manager = manager + trfManager;
+    bankTzs = bankTzs + trfBank;
     const bankUsd = bankUsdRaw * RATE;
     const moneyTotal = cage + manager + bankTzs + bankUsd;
 
-    const diffTotal = chipDiff + slotsDiff;
-    const officeNet = moneyIn - moneyOut;
-    const balanceCheck = prevMoney + result + diffTotal + fees + officeNet - expenses;
+    const balanceCheck = prevMoney + delta;
     const balance = balanceCheck - moneyTotal;
     prevMoney = moneyTotal;
+
 
     const cashDenoms = [10000, 5000, 2000, 1000].map((den, k) => {
       const qty = Math.round(200 + rnd(i * 31 + k) * 2200);
@@ -189,11 +196,17 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
     });
     const inTotal = Object.values(ins).reduce((s, v) => s + v, 0);
     const expenses = round(800_000 + r(5) * 5_500_000, 1000);
-    const transfer = i % 6 === 2 ? round(4_000_000 + r(6) * 9_000_000, 100_000) : 0;
-    const out = i % 8 === 5 ? round(15_000_000 + r(7) * 30_000_000, 100_000) : 0;
+    // Office cash never goes negative and is swept out so it stays in a
+    // realistic band — every movement is backed by the day's inflow.
+    const avail = Math.max(0, office + inTotal - expenses);
+    const transfer = i % 6 === 2 ? round(Math.min(avail * 0.3, 4_000_000 + r(6) * 9_000_000), 100_000) : 0;
+    const rest = avail - transfer;
+    const excess = Math.max(0, rest - 30_000_000);
+    const out = i % 4 === 1 || excess > 0 ? round(Math.min(rest, Math.max(excess, r(7) * 12_000_000)), 100_000) : 0;
 
-    office = office + inTotal - expenses - transfer - out;
-    bank = bank + round((r(8) - 0.45) * 12_000_000, 100_000);
+    office = rest - out;
+    bank = bank + Math.round(out * 0.4);
+
 
     return {
       date,
