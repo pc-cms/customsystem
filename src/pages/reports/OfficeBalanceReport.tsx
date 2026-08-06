@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import CurrencyCashTable, { MobileMoneyTable } from "@/components/reports/CurrencyCashTable";
+import CurrencyCashTable from "@/components/reports/CurrencyCashTable";
 import DrillHeader from "@/components/reports/DrillHeader";
 import { useSessionState } from "@/hooks/use-session-state";
 import { formatMoneyFull } from "@/lib/format-money";
@@ -457,7 +457,6 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
               ))}
               {!drillRows.length && <div className="px-2 py-4 text-center text-muted-foreground">No entries</div>}
               </div>
-              {drill?.col === "cage" && <MobileMoneyTable amounts={drill.row.mobile_detail ?? {}} />}
             </div>
             )}
 

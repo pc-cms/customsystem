@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import CurrencyCashTable from "@/components/reports/CurrencyCashTable";
+import DrillHeader from "@/components/reports/DrillHeader";
 import { useCasino } from "@/lib/casino-context";
 import { useSessionState } from "@/hooks/use-session-state";
 import { formatMoneyFull } from "@/lib/format-money";
@@ -338,9 +339,11 @@ const StartingBalanceTile = ({
  */
 const DenomTable = ({
   rows,
-}: { rows: { currency: string; denomination: number; quantity: number; tzs: number }[] }) => (
-  <CurrencyCashTable rows={rows} />
-);
+  mobile,
+}: {
+  rows: { currency: string; denomination: number; quantity: number; tzs: number }[];
+  mobile?: Record<string, number>;
+}) => <CurrencyCashTable rows={rows} mobile={mobile} />;
 
 
 /** Simple label / amount list used by the cell breakdown panel. */
@@ -836,10 +839,16 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       <Sheet open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
           <SheetHeader>
-            <SheetTitle>
-              {drill
-                ? `${ALL_COLS.find((c) => c.id === drill.col)?.label ?? ""} · ${fmtDate(drill.row.date)}`
-                : ""}
+            <SheetTitle asChild>
+              <div>
+                {drill && (
+                  <DrillHeader
+                    source={ALL_COLS.find((c) => c.id === drill.col)?.label ?? ""}
+                    date={drill.row.date}
+                    amount={num(drill.row, drill.col as keyof DailyBalanceRow)}
+                  />
+                )}
+              </div>
             </SheetTitle>
           </SheetHeader>
           {drill && (
@@ -856,7 +865,10 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
               )}
               {drill.col === "cage_casino" && (
                 <>
-                  <DenomTable rows={drill.row.cage_detail?.cash ?? []} />
+                  <DenomTable
+                    rows={drill.row.cage_detail?.cash ?? []}
+                    mobile={drill.row.cage_detail?.mobile ?? {}}
+                  />
 
                   <DrillList
                     title="Cashless"
