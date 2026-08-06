@@ -38,7 +38,7 @@ import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-const SOURCE_LABEL: Record<OtherIncomeSource, string> = OTHER_INCOME_SOURCES.reduce(
+const SOURCE_LABEL: Record<OtherIncomeSource, string> = ALL_INCOME_SOURCES.reduce(
   (acc, s) => {
     acc[s.value] = s.label;
     return acc;
