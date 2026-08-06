@@ -24,19 +24,21 @@ import { demoOfficeBalance } from "@/lib/demo-report-data";
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
-type Zone = "result" | "in" | "money" | "spend";
+type Zone = "result" | "in" | "money" | "spend" | "balance";
 
 const ZONE_HEAD: Record<Zone, string> = {
   result: "bg-[color-mix(in_srgb,hsl(var(--primary))_16%,hsl(var(--card)))]",
   in: "bg-[color-mix(in_srgb,hsl(var(--success))_16%,hsl(var(--card)))]",
   money: "bg-[color-mix(in_srgb,hsl(var(--warning))_16%,hsl(var(--card)))]",
   spend: "bg-[color-mix(in_srgb,hsl(var(--destructive))_14%,hsl(var(--card)))]",
+  balance: "bg-muted",
 };
 const ZONE_BG: Record<Zone, string> = {
   result: "bg-[color-mix(in_srgb,hsl(var(--primary))_4%,hsl(var(--card)))]",
   in: "bg-[color-mix(in_srgb,hsl(var(--success))_4%,hsl(var(--card)))]",
   money: "bg-[color-mix(in_srgb,hsl(var(--warning))_4%,hsl(var(--card)))]",
   spend: "bg-[color-mix(in_srgb,hsl(var(--destructive))_4%,hsl(var(--card)))]",
+  balance: "bg-[color-mix(in_srgb,hsl(var(--muted))_45%,hsl(var(--card)))]",
 };
 
 const FORMULAS: Record<string, string> = {
