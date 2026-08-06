@@ -80,16 +80,17 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   }, [rows, casinos]);
 
   const money = (n: number) =>
-    !n ? <span className="text-muted-foreground">·</span> : (
+    !n ? <span className="text-muted-foreground">{demo ? "0" : "·"}</span> : (
       <span className={n < 0 ? "cms-amount-negative" : undefined}>{formatMoneyFull(Math.round(n))}</span>
     );
 
   const headCls = (zone: Zone, first: boolean) =>
     cn(
-      "whitespace-nowrap border-b-2 border-border text-[12px] font-extrabold uppercase tracking-wide text-foreground",
+      "whitespace-nowrap border-b-4 border-b-primary/70 text-[12px] font-extrabold uppercase tracking-wide text-foreground",
       ZONE_HEAD[zone],
       first ? "border-l-2 border-l-border" : "border-l border-l-border/60",
     );
+
   const cellCls = (zone: Zone, first: boolean) => () =>
     cn(
       "py-0.5 whitespace-nowrap font-mono text-[11px] leading-tight tabular-nums",
