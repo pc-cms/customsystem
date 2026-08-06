@@ -6,7 +6,7 @@
  * All figures TZS.
  */
 import { useMemo, useState } from "react";
-import { Building2, ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { Building2, ChevronDown, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
