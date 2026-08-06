@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import CurrencyCashTable from "@/components/reports/CurrencyCashTable";
 import { useSessionState } from "@/hooks/use-session-state";
 import { formatMoneyFull } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
@@ -394,25 +395,12 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
               <SheetTitle>{drill ? `${drill.col.toUpperCase()} · ${fmtDate(drill.row.date)}` : ""}</SheetTitle>
             </SheetHeader>
             {drill?.col === "cage" ? (
-              <div className="mt-4 overflow-hidden rounded-md border border-border text-xs">
-                <div className="grid grid-cols-4 gap-1 border-b border-border bg-muted px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  <span>Cur</span>
-                  <span className="text-right">Denom</span>
-                  <span className="text-right">Qty</span>
-                  <span className="text-right">TZS</span>
-                </div>
-                {(drill.row.cage_detail ?? []).map((d, i) => (
-                  <div key={`${d.currency}-${d.denomination}-${i}`} className="grid grid-cols-4 gap-1 border-b border-border/60 px-2 py-1 font-mono tabular-nums last:border-0">
-                    <span className="text-muted-foreground">{d.currency}</span>
-                    <span className="text-right">{formatMoneyFull(d.denomination)}</span>
-                    <span className="text-right">{d.quantity || 0}</span>
-                    <span className="text-right">{formatMoneyFull(Math.round(d.tzs))}</span>
-                  </div>
-                ))}
-                <div className="flex items-center justify-between border-t border-border bg-muted/40 px-2 py-1 font-semibold">
-                  <span>Total cage</span>
-                  <span className="font-mono tabular-nums">{formatMoneyFull(Math.round(drill.row.cage_office))}</span>
-                </div>
+              <div className="mt-4">
+                <CurrencyCashTable
+                  rows={drill.row.cage_detail ?? []}
+                  totalLabel="Total cage"
+                  total={drill.row.cage_office}
+                />
               </div>
             ) : (
             <div className="mt-4 rounded-md border border-border text-xs">
