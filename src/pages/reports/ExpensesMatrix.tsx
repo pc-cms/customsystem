@@ -4,7 +4,7 @@
  * Categories (rows, alphabetical) × days of the selected month (columns).
  * Opened from the Expenses column of Casino Monthly Balance. All figures TZS.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Receipt, ChevronLeft, ChevronRight } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -14,7 +14,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useCasino } from "@/lib/casino-context";
+import { useSearchParams } from "react-router-dom";
 import { useSessionState } from "@/hooks/use-session-state";
+import DrillHeader from "@/components/reports/DrillHeader";
 import { formatMoneyFull } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
 import { cn } from "@/lib/utils";
@@ -36,6 +38,14 @@ const ExpensesMatrixPage = ({
   const { activeCasino } = useCasino();
   const [month, setMonth] = useSessionState(`exp-matrix-month${demo ? "-demo" : ""}`, currentMonth());
   const [cell, setCell] = useState<{ code: string; label: string; day: string | null } | null>(null);
+  const [params] = useSearchParams();
+  /** Day highlighted when arriving from another report (?month=&date=). */
+  const focusDay = params.get("date");
+  const paramMonth = params.get("month");
+  useEffect(() => {
+    if (paramMonth && paramMonth !== month) setMonth(paramMonth);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramMonth]);
   const query = useExpensesMatrix(month, scope, !demo);
   const data = demo ? demoExpensesMatrix(month, scope === "office" ? "office" : "casino") : query.data;
   const isLoading = !demo && query.isLoading;
@@ -107,12 +117,15 @@ const ExpensesMatrixPage = ({
         );
       },
       sortValue: (r) => r.byDay[d] || 0,
-      headerClassName:
+      headerClassName: cn(
         "whitespace-nowrap border-l border-border border-b-2 text-[12px] font-extrabold text-foreground bg-muted",
+        focusDay === d && "ring-2 ring-inset ring-primary",
+      ),
       cellClassName: (r: ExpenseCategoryRow) =>
         cn(
           "py-0.5 whitespace-nowrap border-l border-border/60 font-mono text-[11px] leading-tight tabular-nums",
           heatClass(r.byDay[d] || 0) ?? "bg-card",
+          focusDay === d && "ring-1 ring-inset ring-primary/50",
         ),
     })),
     {
@@ -250,14 +263,20 @@ const ExpensesMatrixPage = ({
       <Sheet open={!!cell} onOpenChange={(o) => !o && setCell(null)}>
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
           <SheetHeader>
-            <SheetTitle className="flex items-baseline justify-between gap-3">
-              <span>{cell ? `${cell.label} · ${cell.day ? fmtDate(cell.day) : monthLabel}` : ""}</span>
-              <span className="font-mono text-sm tabular-nums">{formatMoneyFull(Math.round(cellTotal))}</span>
+            <SheetTitle asChild>
+              <div>
+                {cell && (
+                  <DrillHeader
+                    source={cell.label}
+                    date={cell.day ?? `${month}-01`}
+                    amount={cellTotal}
+                  />
+                )}
+              </div>
             </SheetTitle>
-            <p className="text-xs text-muted-foreground">
-              {cellItems.length} {cellItems.length === 1 ? "entry" : "entries"} ·{" "}
-              {cell?.day ? "day total" : "month total"}
-            </p>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              {cell?.day ? "day total" : `month total · ${monthLabel}`}
+            </div>
           </SheetHeader>
           <div className="mt-4 rounded-md border border-border">
             {cellItems.map((it) => (
