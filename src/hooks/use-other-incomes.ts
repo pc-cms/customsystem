@@ -5,6 +5,7 @@
  * Corrections happen through reversal only.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateFinance } from "@/lib/fin-invalidate";
 import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
@@ -105,10 +106,7 @@ export const useAddOtherIncome = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-other-incomes"] });
-      qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-bal-asof"] });
+      invalidateFinance(qc);
       toast.success("Income added");
     },
     onError: (e: any) => toast.error(e.message),
@@ -141,10 +139,7 @@ export const useReverseOtherIncome = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-other-incomes"] });
-      qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-bal-asof"] });
+      invalidateFinance(qc);
       toast.success("Income reversed");
     },
     onError: (e: any) => toast.error(e.message),
@@ -183,10 +178,7 @@ export const useUpdateOtherIncome = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-other-incomes"] });
-      qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-bal-asof"] });
+      invalidateFinance(qc);
       toast.success("Income updated");
     },
     onError: (e: any) => toast.error(e.message),
@@ -201,10 +193,7 @@ export const useDeleteOtherIncome = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fin-other-incomes"] });
-      qc.invalidateQueries({ queryKey: ["fin-balance-snapshot"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-tx"] });
-      qc.invalidateQueries({ queryKey: ["fin-wallet-bal-asof"] });
+      invalidateFinance(qc);
       toast.success("Income deleted");
     },
     onError: (e: any) => toast.error(e.message),
