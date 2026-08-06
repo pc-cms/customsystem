@@ -78,6 +78,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       fin_result: flow((r) => r.fin_result),
       cage_office: last?.cage_office ?? 0,
       bank: last?.bank ?? 0,
+      balance: last?.balance ?? 0,
       byCasino: Object.fromEntries(
         casinos.map((c) => [c.id, flow((r) => r.in_by_casino[c.id] || 0)]),
       ) as Record<string, number>,
