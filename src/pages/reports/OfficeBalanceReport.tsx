@@ -137,7 +137,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       ),
       sortValue: (r) => r.date,
       headerClassName:
-        "whitespace-nowrap border-b-2 border-border bg-muted text-[12px] font-extrabold uppercase tracking-wide text-foreground",
+        "whitespace-nowrap border-b-4 border-b-primary/70 bg-muted text-[12px] font-extrabold uppercase tracking-wide text-foreground",
       cellClassName: () => "py-0.5 leading-tight bg-card",
     },
     {
