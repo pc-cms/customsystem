@@ -238,7 +238,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
               : (totals as unknown as Record<string, number>)[k] ?? 0;
             return (
               <span className={cn("whitespace-nowrap font-mono text-[11px] font-bold tabular-nums", v < 0 && "cms-amount-negative")}>
-                {v ? formatMoneyFull(Math.round(v)) : "·"}
+                {v ? formatMoneyFull(Math.round(v)) : demo ? "0" : "·"}
               </span>
             );
           },
