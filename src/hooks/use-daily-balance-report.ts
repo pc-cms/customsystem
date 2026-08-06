@@ -353,7 +353,7 @@ export const useDailyBalanceReport = (
       /** Purely presentational breakdown used by the cell detail panels. */
       const cageDetail: Record<string, CageDetail> = {};
       const cageBucket = (d: string) =>
-        (cageDetail[d] ??= { cash: [], cashless: [], slots_total: 0 });
+        (cageDetail[d] ??= { cash: [], cashless: [], mobile: {}, slots_total: 0 });
       /**
        * Cage figures are a SNAPSHOT at the end of the business day, never a sum
        * of the day's shifts: only the LAST closing of each day is kept.
