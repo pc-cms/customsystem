@@ -133,7 +133,7 @@ export default function DayClosingsTab() {
   const pad = (n: number) => String(n).padStart(2, "0");
   const monthFrom = `${year}-${pad(month)}-01`;
   const monthTo = `${year}-${pad(month)}-${pad(new Date(year, month, 0).getDate())}`;
-  const { data: incomes = [] } = useOtherIncomes(monthFrom, monthTo);
+  const { data: incomes = [] } = useOtherIncomes(monthFrom, monthTo, { only: ["jp"] });
   const { data: wallets = [] } = useFinWallets();
   // Default JP wallet: main TZS cash wallet.
   const jpWalletId = useMemo(() => {
