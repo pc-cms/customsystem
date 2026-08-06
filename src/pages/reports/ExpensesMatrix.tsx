@@ -194,14 +194,22 @@ const ExpensesMatrixPage = ({
     <PageShell>
       <PageHeader
         icon={Receipt}
-        title="Expenses by Category"
-        subtitle="Category × day matrix for the selected month — all figures in TZS"
-        context={activeCasino?.name}
+        title={SCOPE_TITLE[scope]}
+        subtitle={
+          scope === "office"
+            ? "Head-office expenses — category × day matrix, all figures in TZS"
+            : scope === "casino"
+              ? "Casino floor expenses (Live + Slots) — category × day matrix, TZS"
+              : "Category × day matrix for the selected month — all figures in TZS"
+        }
+        context={demo ? "Demo" : activeCasino?.name}
       >
+        {demo && <Badge variant="outline" className="mr-2">DEMO DATA</Badge>}
         <span className="whitespace-nowrap text-xs text-muted-foreground">
           {rows.length} categories · {formatMoneyFull(Math.round(grandTotal))}
         </span>
       </PageHeader>
+
 
       <div className="mb-3 flex items-center justify-center gap-2">
         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(-1)} aria-label="Previous month">
