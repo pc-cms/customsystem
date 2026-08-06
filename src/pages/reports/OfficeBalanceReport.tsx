@@ -142,7 +142,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
         "whitespace-nowrap border-b-4 border-b-primary/70 bg-muted text-[12px] font-extrabold uppercase tracking-wide text-foreground",
       cellClassName: () => "py-0.5 leading-tight bg-card",
     },
-    ...[],
+    
     ...casinos.map<ColumnDef<OfficeBalanceRow>>((c, i) => ({
       key: `in_${c.id}`,
       header: head(`IN · ${c.name}`, "in_total"),
