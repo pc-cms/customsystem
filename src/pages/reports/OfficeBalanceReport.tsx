@@ -293,12 +293,13 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
           </div>
         </div>
 
-        <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-5">
+        <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-6">
           {([
             ["Office Expenses", -Math.abs(totals.expenses)],
             ["IN Total", totals.in_total],
             ["Cage Office", totals.cage_office],
             ["Bank", totals.bank],
+            ["Money Total", totals.cage_office + totals.bank],
             ["OUT · IK", -Math.abs(totals.out_ak)],
           ] as const).map(([label, value]) => (
             <div key={label} className="rounded-md border border-border bg-card px-3 py-2">
