@@ -51,6 +51,7 @@ const FORMULAS: Record<string, string> = {
 
 const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   const [month, setMonth] = useSessionState(demo ? "obr-demo-month" : "obr-month", currentMonth());
+  const [inOpen, setInOpen] = useSessionState(demo ? "obr-demo-in-open" : "obr-in-open", false);
   const [drill, setDrill] = useState<{ row: OfficeBalanceRow; col: string } | null>(null);
   const query = useOfficeBalanceReport(month, !demo);
   const data = demo ? demoOfficeBalance(month) : query.data;
