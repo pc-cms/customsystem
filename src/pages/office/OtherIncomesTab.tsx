@@ -29,6 +29,7 @@ import {
   useUpdateOtherIncome,
   useDeleteOtherIncome,
   OTHER_INCOME_SOURCES,
+  ALL_INCOME_SOURCES,
   type OtherIncomeRow,
   type OtherIncomeSource,
 } from "@/hooks/use-other-incomes";
