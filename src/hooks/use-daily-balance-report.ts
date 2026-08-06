@@ -184,12 +184,16 @@ const add = (b: Bucket, key: string, v: number) => {
   b[key] = (b[key] || 0) + v;
 };
 
-export const useDailyBalanceReport = (from: string, to: string) => {
+export const useDailyBalanceReport = (
+  from: string,
+  to: string,
+  opts?: { enabled?: boolean },
+) => {
   const { activeCasinoId } = useCasino();
 
   return useQuery({
     queryKey: ["daily-balance-report", activeCasinoId, from, to],
-    enabled: !!activeCasinoId && !!from && !!to,
+    enabled: (opts?.enabled ?? true) && !!activeCasinoId && !!from && !!to,
     staleTime: 30_000,
     queryFn: async (): Promise<DailyBalanceRow[]> => {
       const casino = activeCasinoId!;
@@ -788,8 +792,8 @@ export const useDailyBalanceReport = (from: string, to: string) => {
             money_in: o.inV,
             money_out: o.outV,
             money_total: moneyTotal,
-            // P&L of the day — includes diff, tips and fees.
-            fin_result: o.result + diffTotal + tipsV + feesV - o.expenses + officeNet,
+            // P&L of the day — Casino Result − Expenses ± Diff.
+            fin_result: o.result + diffTotal - o.expenses,
             balance,
             balance_check: opening + o.result + diffTotal + feesV + officeNet - o.expenses,
             chips_detail: chipsDetail[date] ?? [],

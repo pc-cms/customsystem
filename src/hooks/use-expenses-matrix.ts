@@ -48,15 +48,22 @@ export const monthDays = (month: string): string[] => {
   return Array.from({ length: last }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`);
 };
 
-export const useExpensesMatrix = (month: string) => {
+/** Expense scope: casino floor (live + slots) vs head office. */
+export type ExpenseScope = "all" | "casino" | "office";
+
+export const useExpensesMatrix = (
+  month: string,
+  scope: ExpenseScope = "all",
+  enabled = true,
+) => {
   const { activeCasinoId } = useCasino();
   const days = monthDays(month);
   const from = days[0];
   const to = days[days.length - 1];
 
   return useQuery({
-    queryKey: ["expenses-matrix", activeCasinoId, month],
-    enabled: !!activeCasinoId && !!month,
+    queryKey: ["expenses-matrix", activeCasinoId, month, scope],
+    enabled: enabled && !!activeCasinoId && !!month,
     staleTime: 30_000,
     queryFn: async (): Promise<ExpensesMatrix> => {
       const sb = supabase as any;
@@ -72,7 +79,7 @@ export const useExpensesMatrix = (month: string) => {
             .eq("casino_id", casino).range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("expenses")
-            .select("id, business_date, amount, amount_tzs, category, category_code, fin_category_id, description, wallet_id, voided_at")
+            .select("id, business_date, amount, amount_tzs, category, category_code, fin_category_id, description, wallet_id, voided_at, source")
             .eq("casino_id", casino)
             .gte("business_date", from).lte("business_date", to).range(a, b)),
         fetchPaged<any>((a, b) =>
@@ -110,7 +117,12 @@ export const useExpensesMatrix = (month: string) => {
           ensure(c.id, c.name, c.group_code, (gi < 0 ? GROUPS.length : gi) * 1000 + (c.sort_order ?? 0));
         });
 
-      rows.filter((e: any) => !e.voided_at).forEach((e: any) => {
+      const inScope = (e: any) =>
+        scope === "all" ? true
+          : scope === "office" ? e.source === "office"
+            : e.source !== "office";
+
+      rows.filter((e: any) => !e.voided_at && inScope(e)).forEach((e: any) => {
         const fin = e.fin_category_id ? budget[e.fin_category_id] : null;
         const code = fin ? String(fin.id) : (e.category_code || e.category || "other");
         const day = String(e.business_date).slice(0, 10);

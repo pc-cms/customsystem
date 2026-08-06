@@ -118,8 +118,8 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
     total: "stock",
   },
   fin_result: {
-    formula: "Casino result − expenses + office net (IN − OUT)",
-    source: "Derived from Result, Expenses and Office movements",
+    formula: "Casino Result − Expenses ± Diff (chips + slots)",
+    source: "Derived from Result, Expenses and Diff",
     total: "sum",
   },
   balance: {

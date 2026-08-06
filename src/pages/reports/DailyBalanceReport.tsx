@@ -31,6 +31,7 @@ import { formulaText } from "@/lib/monthly-balance-formulas";
 import {
   useDailyBalanceReport, useSetCreditDeposit, useSetBankBalance, type DailyBalanceRow,
 } from "@/hooks/use-daily-balance-report";
+import { demoDailyBalanceRows } from "@/lib/demo-report-data";
 
 type SectionKey = "incomes" | "diff" | "expenses" | "office" | "transfers" | "money" | "balances";
 
@@ -330,7 +331,75 @@ const StartingBalanceTile = ({
   );
 };
 
+/**
+ * Cash by denomination — original currency amount, the rate used and the
+ * resulting TZS value, one line per denomination.
+ */
+const DenomTable = ({
+  rows,
+}: { rows: { currency: string; denomination: number; quantity: number; tzs: number }[] }) => {
+  const total = rows.reduce((s, r) => s + r.tzs, 0);
+  return (
+    <div>
+      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        Cash by denomination
+      </div>
+      <div className="overflow-hidden rounded-md border border-border">
+        <table className="w-full text-[11px]">
+          <thead>
+            <tr className="border-b border-border bg-muted text-[10px] uppercase tracking-wider text-muted-foreground">
+              <th className="px-2 py-1 text-left font-bold">Denom × Qty</th>
+              <th className="px-2 py-1 text-right font-bold">Original</th>
+              <th className="px-2 py-1 text-right font-bold">Rate</th>
+              <th className="px-2 py-1 text-right font-bold">TZS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => {
+              const original = r.denomination * r.quantity;
+              const rate = original ? r.tzs / original : 1;
+              return (
+                <tr key={`${r.currency}-${r.denomination}-${i}`} className="border-b border-border/60 last:border-0">
+                  <td className="px-2 py-1 whitespace-nowrap">
+                    <span className="font-semibold">{r.currency}</span>{" "}
+                    {formatMoneyFull(r.denomination)} × {r.quantity}
+                  </td>
+                  <td className="px-2 py-1 text-right font-mono tabular-nums">
+                    {formatMoneyFull(Math.round(original))} {r.currency}
+                  </td>
+                  <td className="px-2 py-1 text-right font-mono tabular-nums text-muted-foreground">
+                    {r.currency === "TZS" ? "—" : formatMoneyFull(Math.round(rate))}
+                  </td>
+                  <td className="px-2 py-1 text-right font-mono font-semibold tabular-nums">
+                    {formatMoneyFull(Math.round(r.tzs))}
+                  </td>
+                </tr>
+              );
+            })}
+            {!rows.length && (
+              <tr><td colSpan={4} className="px-2 py-3 text-center text-muted-foreground">No data</td></tr>
+            )}
+          </tbody>
+          {!!rows.length && (
+            <tfoot>
+              <tr className="border-t-2 border-border bg-muted/50 font-bold">
+                <td className="px-2 py-1 uppercase tracking-wider">Total</td>
+                <td />
+                <td />
+                <td className="px-2 py-1 text-right font-mono tabular-nums">
+                  {formatMoneyFull(Math.round(total))}
+                </td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    </div>
+  );
+};
+
 /** Simple label / amount list used by the cell breakdown panel. */
+
 const DrillList = ({
   title, rows, totalLabel, total,
 }: {
@@ -370,11 +439,11 @@ const DrillList = ({
   </div>
 );
 
-const DailyBalanceReport = () => {
+const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   const { activeCasino } = useCasino();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [month, setMonth] = useSessionState("dbr-month", currentMonth());
+  const [month, setMonth] = useSessionState(demo ? "dbr-demo-month" : "dbr-month", currentMonth());
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
   /** Fixed display options — every column is always shown, in full figures. */
   const heatmap = true;
@@ -400,7 +469,12 @@ const DailyBalanceReport = () => {
   };
 
   const { from, to } = monthBounds(month);
-  const { data: rows = [], isLoading } = useDailyBalanceReport(from, to);
+  const live = useDailyBalanceReport(from, to, { enabled: !demo });
+  const rows = useMemo<DailyBalanceRow[]>(
+    () => (demo ? demoDailyBalanceRows(month) : live.data ?? []),
+    [demo, month, live.data],
+  );
+  const isLoading = !demo && live.isLoading;
 
   const toggleExpand = (g: SectionKey) =>
     setExpanded((prev) => {
@@ -564,8 +638,8 @@ const DailyBalanceReport = () => {
                 onClick={(e) => { e.stopPropagation(); toggleExpand(c.section); }}
               >
                 {isOpen
-                  ? <ChevronLeft className="h-3.5 w-3.5" />
-                  : <ChevronRight className="h-3.5 w-3.5" />}
+                  ? <ChevronLeft className="h-4 w-4" />
+                  : <ChevronRight className="h-4 w-4" />}
               </button>
             )}
             {c.label}
@@ -613,7 +687,7 @@ const DailyBalanceReport = () => {
             return wrap(
               <span
                 className="cursor-pointer underline-offset-2 hover:underline"
-                onClick={(e) => { e.stopPropagation(); navigate("/reports/expenses-matrix"); }}
+                onClick={(e) => { e.stopPropagation(); navigate(demo ? "/demo/expenses-casino" : "/reports/expenses-casino"); }}
               >
                 {rendered}
               </span>,
@@ -631,10 +705,10 @@ const DailyBalanceReport = () => {
         },
 
         headerClassName: cn(
-          "whitespace-nowrap border-b-2 uppercase tracking-wide",
+          "whitespace-nowrap border-b-2 text-[12px] uppercase tracking-wide",
           ZONE_HEAD[c.section],
           first ? "border-l-2 border-l-border" : "border-l border-l-border/60",
-          c.total ? "font-bold text-foreground" : "font-semibold text-muted-foreground",
+          c.total ? "font-extrabold text-foreground" : "font-bold text-foreground/80",
           hot ? "border-b-primary text-primary" : "border-border",
         ),
         cellClassName: (r: Row) =>
@@ -714,12 +788,14 @@ const DailyBalanceReport = () => {
         icon={Wallet2}
         title="Casino Monthly Balance"
         subtitle="Result · Cage · Bank · Money — rebuilt from live data, all figures in TZS"
-        context={activeCasino?.name}
+        context={demo ? "Demo" : activeCasino?.name}
       >
+        {demo && <Badge variant="outline" className="mr-2">DEMO DATA</Badge>}
         <span className="text-xs text-muted-foreground whitespace-nowrap">
           {daysWithData} days · {visibleMoneyCols.length} columns
         </span>
       </PageHeader>
+
 
       {/* KPI tiles: two-row layout */}
       {/* Row 1: Finance Result · Month picker · Office */}
@@ -821,13 +897,8 @@ const DailyBalanceReport = () => {
               )}
               {drill.col === "cage_casino" && (
                 <>
-                  <DrillList
-                    title="Cash by denomination"
-                    rows={(drill.row.cage_detail?.cash ?? []).map((c) => ({
-                      label: `${c.currency} ${formatMoneyFull(c.denomination)} × ${c.quantity}`,
-                      value: c.tzs,
-                    }))}
-                  />
+                  <DenomTable rows={drill.row.cage_detail?.cash ?? []} />
+
                   <DrillList
                     title="Cashless"
                     rows={(drill.row.cage_detail?.cashless ?? []).map((c) => ({

@@ -11,21 +11,35 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useCasino } from "@/lib/casino-context";
 import { useSessionState } from "@/hooks/use-session-state";
 import { formatMoneyFull } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
 import { cn } from "@/lib/utils";
-import { useExpensesMatrix, type ExpenseCategoryRow } from "@/hooks/use-expenses-matrix";
+import { useExpensesMatrix, type ExpenseCategoryRow, type ExpenseScope } from "@/hooks/use-expenses-matrix";
+import { demoExpensesMatrix } from "@/lib/demo-report-data";
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
-const ExpensesMatrixPage = () => {
+const SCOPE_TITLE: Record<ExpenseScope, string> = {
+  all: "Expenses by Category",
+  casino: "Expenses · Casino",
+  office: "Expenses · Office",
+};
+
+const ExpensesMatrixPage = ({
+  scope = "all",
+  demo = false,
+}: { scope?: ExpenseScope; demo?: boolean }) => {
   const { activeCasino } = useCasino();
-  const [month, setMonth] = useSessionState("exp-matrix-month", currentMonth());
+  const [month, setMonth] = useSessionState(`exp-matrix-month${demo ? "-demo" : ""}`, currentMonth());
   const [cell, setCell] = useState<{ code: string; label: string; day: string | null } | null>(null);
-  const { data, isLoading } = useExpensesMatrix(month);
+  const query = useExpensesMatrix(month, scope, !demo);
+  const data = demo ? demoExpensesMatrix(month, scope === "office" ? "office" : "casino") : query.data;
+  const isLoading = !demo && query.isLoading;
+
 
   const rows = data?.rows ?? [];
   const days = data?.days ?? [];
@@ -70,7 +84,7 @@ const ExpensesMatrixPage = () => {
       sortValue: (r) => r.label,
       cellClassName: () => "py-0.5 leading-tight bg-card",
       headerClassName:
-        "whitespace-nowrap border-b-2 border-border bg-muted font-bold uppercase tracking-wide text-foreground",
+        "whitespace-nowrap border-b-2 border-border bg-muted text-[12px] font-extrabold uppercase tracking-wide text-foreground",
     },
     ...days.map<ColumnDef<ExpenseCategoryRow>>((d) => ({
       key: d,
@@ -94,7 +108,7 @@ const ExpensesMatrixPage = () => {
       },
       sortValue: (r) => r.byDay[d] || 0,
       headerClassName:
-        "whitespace-nowrap border-l border-border border-b-2 font-bold text-foreground bg-muted",
+        "whitespace-nowrap border-l border-border border-b-2 text-[12px] font-extrabold text-foreground bg-muted",
       cellClassName: (r: ExpenseCategoryRow) =>
         cn(
           "py-0.5 whitespace-nowrap border-l border-border/60 font-mono text-[11px] leading-tight tabular-nums",
@@ -120,7 +134,7 @@ const ExpensesMatrixPage = () => {
       ),
       sortValue: (r) => r.total,
       headerClassName:
-        "whitespace-nowrap border-l-2 border-border border-b-2 font-bold uppercase tracking-wide text-foreground bg-muted",
+        "whitespace-nowrap border-l-2 border-border border-b-2 text-[12px] font-extrabold uppercase tracking-wide text-foreground bg-muted",
       cellClassName: () =>
         "py-0.5 whitespace-nowrap border-l-2 border-border bg-[color-mix(in_srgb,hsl(var(--muted))_55%,hsl(var(--card)))] font-mono text-[11px] font-bold leading-tight tabular-nums",
     },
@@ -180,14 +194,22 @@ const ExpensesMatrixPage = () => {
     <PageShell>
       <PageHeader
         icon={Receipt}
-        title="Expenses by Category"
-        subtitle="Category × day matrix for the selected month — all figures in TZS"
-        context={activeCasino?.name}
+        title={SCOPE_TITLE[scope]}
+        subtitle={
+          scope === "office"
+            ? "Head-office expenses — category × day matrix, all figures in TZS"
+            : scope === "casino"
+              ? "Casino floor expenses (Live + Slots) — category × day matrix, TZS"
+              : "Category × day matrix for the selected month — all figures in TZS"
+        }
+        context={demo ? "Demo" : activeCasino?.name}
       >
+        {demo && <Badge variant="outline" className="mr-2">DEMO DATA</Badge>}
         <span className="whitespace-nowrap text-xs text-muted-foreground">
           {rows.length} categories · {formatMoneyFull(Math.round(grandTotal))}
         </span>
       </PageHeader>
+
 
       <div className="mb-3 flex items-center justify-center gap-2">
         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(-1)} aria-label="Previous month">
