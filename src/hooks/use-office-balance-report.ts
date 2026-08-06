@@ -44,6 +44,12 @@ export interface OfficeBalanceRow {
   out_detail: { label: string; value: number }[];
   /** Cash denominations behind the office cage (demo / snapshot based). */
   cage_detail?: { currency: string; denomination: number; quantity: number; tzs: number }[];
+  /** Mobile money per provider (TZS) at the end of the day. */
+  mobile_detail?: Record<string, number>;
+  /** Bank balances split by currency. */
+  bank_detail?: { currency: string; amount: number; rate: number; tzs: number }[];
+
+
 
 }
 
