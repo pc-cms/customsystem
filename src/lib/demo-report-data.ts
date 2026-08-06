@@ -54,18 +54,23 @@ export const demoDailyBalanceRows = (month: string): DailyBalanceRow[] => {
     const trfBank = i % 5 === 2 ? round(10_000_000 + r(12) * 15_000_000, 100_000) : 0;
 
     const result = tables + slots + bar;
-    cage = Math.max(12_000_000, cage + Math.round(result * 0.55) - trfManager - trfBank / 3);
-    manager = Math.max(3_000_000, manager + trfManager - expenses - moneyOut / 2);
-    bankTzs = Math.max(20_000_000, bankTzs + trfBank - moneyOut / 2 + moneyIn);
-    bankUsdRaw = Math.max(2_000, bankUsdRaw + (i % 6 === 4 ? 2_500 : 0) - (i % 11 === 7 ? 1_800 : 0));
+    const diffTotal = chipDiff + slotsDiff;
+    const officeNet = moneyIn - moneyOut;
+    // Money must move exactly by the day's economics; transfers only reshuffle
+    // between buckets, so the day balance stays at (or very near) zero.
+    const delta = result + diffTotal + fees + officeNet - expenses;
+    const noise = i % 6 === 4 ? round((r(18) - 0.5) * 60_000, 1000) : 0;
+
+    cage = cage + delta - trfManager - trfBank + noise;
+    manager = manager + trfManager;
+    bankTzs = bankTzs + trfBank;
     const bankUsd = bankUsdRaw * RATE;
     const moneyTotal = cage + manager + bankTzs + bankUsd;
 
-    const diffTotal = chipDiff + slotsDiff;
-    const officeNet = moneyIn - moneyOut;
-    const balanceCheck = prevMoney + result + diffTotal + fees + officeNet - expenses;
+    const balanceCheck = prevMoney + delta;
     const balance = balanceCheck - moneyTotal;
     prevMoney = moneyTotal;
+
 
     const cashDenoms = [10000, 5000, 2000, 1000].map((den, k) => {
       const qty = Math.round(200 + rnd(i * 31 + k) * 2200);
