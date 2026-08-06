@@ -213,7 +213,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
     },
     {
       key: "out_ak",
-      header: head("OUT · AK", "out_ak"),
+      header: head("OUT · IK", "out_ak"),
       type: "money",
       style: { minWidth: 124 },
       accessor: (r) => drillCell("out")(r, r.out_ak),
@@ -221,6 +221,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       headerClassName: headCls("spend", false),
       cellClassName: cellCls("spend", false),
     },
+
   ];
 
   const footerRows = rows.length
