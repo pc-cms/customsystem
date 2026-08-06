@@ -37,9 +37,12 @@ export interface ChipDetail {
 export interface CageDetail {
   cash: { currency: string; denomination: number; quantity: number; tzs: number }[];
   cashless: { name: string; amount: number }[];
+  /** Mobile money held by the cage at closing, per provider (TZS). */
+  mobile: Record<string, number>;
   /** Slots cage closing total (no per-denomination breakdown available). */
   slots_total: number;
 }
+
 
 export interface TransferDetail {
   amount: number;
