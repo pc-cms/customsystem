@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS trg_fin_autocount_after_tx ON public.fin_wallet_tx;
