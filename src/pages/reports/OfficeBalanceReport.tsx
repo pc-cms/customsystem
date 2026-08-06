@@ -58,6 +58,8 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   const casinos = data?.casinos ?? [];
   const stats = data?.casino_stats ?? {};
   const casinoProfit = casinos.reduce((s, c) => s + (stats[c.id]?.profit ?? 0), 0);
+  const officeExpenses = rows.reduce((s, r) => s + r.expenses, 0);
+  const profitCompany = casinoProfit - officeExpenses;
 
   const stepMonth = (delta: number) => {
     const [y, m] = month.split("-").map(Number);
