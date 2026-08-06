@@ -175,7 +175,13 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
       const trfByDate: Bucket = {};
       /** Bank running balance across all casinos. */
       const bankRunning: Bucket = {};
+      /** Bank running balance per currency (TZS-valued). */
+      const bankByCurRunning: Record<string, Record<string, number>> = {};
+      /** Mobile money running balance per provider (wallet name). */
+      const mobileRunning: Record<string, Record<string, number>> = {};
       let bankBal = 0;
+      const bankCur: Record<string, number> = {};
+      const mobileBal: Record<string, number> = {};
       const txByDate: Record<string, any[]> = {};
       tx.filter((t: any) => t.posted_at).forEach((t: any) => {
         (txByDate[String(t.business_date).slice(0, 10)] ??= []).push(t);
@@ -184,12 +190,23 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
         for (const t of txByDate[d]) {
           const kind = walletKind[t.wallet_id];
           const v = signedWalletTxTzs(t);
-          if (kind === "bank") bankBal += v;
+          if (kind === "bank" || kind === "bank_account") {
+            bankBal += v;
+            const cur = walletCurrency[t.wallet_id] || "TZS";
+            bankCur[cur] = (bankCur[cur] || 0) + v;
+          }
+          if (kind === "mobile_money") {
+            const p = walletName[t.wallet_id] || "Mobile";
+            mobileBal[p] = (mobileBal[p] || 0) + v;
+          }
           if ((t.kind === "income" || t.kind === "external_income") && v > 0 && kind !== "bank") {
             add(trfByDate, d, v);
           }
         }
         bankRunning[d] = bankBal;
+        bankByCurRunning[d] = { ...bankCur };
+        mobileRunning[d] = { ...mobileBal };
+
       });
 
       // Month gaming result per casino (tables + slots from day closing).
