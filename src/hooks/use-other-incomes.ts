@@ -21,7 +21,8 @@ export type OtherIncomeSource =
   | "fee"
   | "other";
 
-export const OTHER_INCOME_SOURCES: { value: OtherIncomeSource; label: string }[] = [
+/** All known sources, including JP (used for labels of existing rows). */
+export const ALL_INCOME_SOURCES: { value: OtherIncomeSource; label: string }[] = [
   { value: "investment", label: "Investment" },
   { value: "inter_casino_transfer", label: "Inter-Casino Transfer" },
   { value: "owner_topup", label: "Owner Top-up" },
@@ -31,6 +32,12 @@ export const OTHER_INCOME_SOURCES: { value: OtherIncomeSource; label: string }[]
   { value: "fee", label: "Fee" },
   { value: "other", label: "Other" },
 ];
+
+/**
+ * Sources selectable on the Other Incomes tab.
+ * JP is excluded — it lives on its own JP tab / Day Closings column.
+ */
+export const OTHER_INCOME_SOURCES = ALL_INCOME_SOURCES.filter((s) => s.value !== "jp");
 
 export type OtherIncomeRow = {
   id: string;
