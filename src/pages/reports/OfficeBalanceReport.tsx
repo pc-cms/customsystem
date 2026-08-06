@@ -264,7 +264,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
         </PageHeader>
 
         <div className="mb-3 flex flex-wrap items-stretch justify-center gap-2">
-          {/* Profit Company — Σ profit of every casino, standalone tile left of the calendar */}
+          {/* Profit Company — Σ casino profit − office expenses */}
           <div className="flex min-w-[200px] flex-col justify-center rounded-md border-2 border-primary/50 bg-[color-mix(in_srgb,hsl(var(--primary))_8%,hsl(var(--card)))] px-3 py-1.5">
             <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Profit Company
@@ -272,7 +272,9 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             <div className={cn("font-mono text-xl font-bold tabular-nums", profitCompany < 0 ? "cms-amount-negative" : "cms-amount-positive")}>
               {formatMoneyFull(Math.round(profitCompany))}
             </div>
-            <div className="text-[10px] text-muted-foreground">Σ profit of {casinos.length} casinos</div>
+            <div className="text-[10px] text-muted-foreground">
+              Σ profit of {casinos.length} casinos − office expenses
+            </div>
           </div>
 
           <div className="flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1">
