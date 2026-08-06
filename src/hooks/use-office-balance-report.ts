@@ -43,9 +43,18 @@ export interface OfficeBalanceRow {
 
 }
 
+/** Month aggregate per casino: gaming result, casino expenses, profit. */
+export interface OfficeCasinoStat {
+  result: number;
+  expenses: number;
+  profit: number;
+}
+
 export interface OfficeBalanceData {
   casinos: OfficeCasinoRef[];
   rows: OfficeBalanceRow[];
+  /** casino id → month totals (Result / Expenses / Profit) */
+  casino_stats: Record<string, OfficeCasinoStat>;
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
