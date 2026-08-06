@@ -31,6 +31,7 @@ import { formulaText } from "@/lib/monthly-balance-formulas";
 import {
   useDailyBalanceReport, useSetCreditDeposit, useSetBankBalance, type DailyBalanceRow,
 } from "@/hooks/use-daily-balance-report";
+import { demoDailyBalanceRows } from "@/lib/demo-report-data";
 
 type SectionKey = "incomes" | "diff" | "expenses" | "office" | "transfers" | "money" | "balances";
 
