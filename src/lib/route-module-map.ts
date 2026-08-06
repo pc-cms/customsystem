@@ -158,6 +158,10 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/reports/lottery-sales") return "report_lottery_sales";
   if (base === "/reports/daily-balance") return "report_daily_balance";
   if (base === "/reports/expenses-matrix") return "report_daily_balance";
+  if (base === "/reports/expenses-casino") return "report_daily_balance";
+  if (base === "/reports/expenses-office") return "report_daily_balance";
+  if (base === "/reports/office-balance") return "report_daily_balance";
+  if (base.startsWith("/demo/")) return "report_daily_balance";
 
 
   if (base === "/reports/am-budget") return "report_am_budget";
