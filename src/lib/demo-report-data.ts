@@ -208,6 +208,18 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
     bank = bank + Math.round(out * 0.4);
 
 
+    // Office cage split into TZS notes + a USD stack, summing exactly to `office`.
+    const denoms = [10000, 5000, 2000, 1000];
+    const usdQty = Math.max(0, Math.round((office * 0.08) / (100 * RATE)));
+    let rest = office - usdQty * 100 * RATE;
+    const cageDetail = denoms.map((den, k) => {
+      const share = k === denoms.length - 1 ? rest : Math.floor((rest * [0.55, 0.25, 0.13, 0.07][k]) / den) * den;
+      const qty = Math.max(0, Math.floor(share / den));
+      if (k < denoms.length - 1) rest -= qty * den;
+      return { currency: "TZS", denomination: den, quantity: qty, tzs: qty * den };
+    });
+    if (usdQty) cageDetail.push({ currency: "USD", denomination: 100, quantity: usdQty, tzs: usdQty * 100 * RATE });
+
     return {
       date,
       weekday: WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()],
@@ -219,6 +231,7 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
       transfer_casino: transfer,
       out_ak: out,
       fin_result: inTotal - expenses - out,
+      cage_detail: cageDetail,
       expenses_detail: [
         { label: "Head office salary", value: round(expenses * 0.5, 1000) },
         { label: "IT & services", value: round(expenses * 0.2, 1000) },
@@ -227,8 +240,9 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
       in_detail: DEMO_CASINOS.filter((c) => ins[c.id]).map((c) => ({
         label: `${c.name} · Collection`, value: ins[c.id],
       })),
-      out_detail: out ? [{ label: "Payout AK", value: out }] : [],
+      out_detail: out ? [{ label: "Payout IK", value: out }] : [],
     };
+
   });
 
   return { casinos: DEMO_CASINOS, rows };
