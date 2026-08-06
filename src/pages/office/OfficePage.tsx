@@ -72,6 +72,7 @@ export default function OfficePage() {
         {tab === "budget" && <FinancesBudgetPage />}
         {tab === "day-closings" && <DayClosingsTab />}
         {tab === "difference" && <FinancesBudgetDifferencePage />}
+        {tab === "jp" && <JpTab />}
         {tab === "money-change" && <FinancesMoneyChangePage />}
         {tab === "monthly-report" && <FinancesMonthlyReportPage />}
         {tab === "other-incomes" && <OtherIncomesTab />}
