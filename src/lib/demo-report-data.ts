@@ -50,8 +50,10 @@ export const demoDailyBalanceRows = (month: string): DailyBalanceRow[] => {
     const fees = round(r(8) * 260_000, 1000);
     const moneyIn = i % 9 === 3 ? round(5_000_000 + r(9) * 6_000_000, 100_000) : 0;
     const moneyOut = i % 7 === 5 ? round(8_000_000 + r(10) * 9_000_000, 100_000) : 0;
-    const trfManager = i % 3 === 0 ? round(4_000_000 + r(11) * 8_000_000, 100_000) : 0;
-    const trfBank = i % 5 === 2 ? round(10_000_000 + r(12) * 15_000_000, 100_000) : 0;
+    const free = Math.max(0, cage - 15_000_000);
+    const trfManager = i % 3 === 0 ? round(Math.min(free * 0.35, 4_000_000 + r(11) * 8_000_000), 100_000) : 0;
+    const trfBank = i % 5 === 2 ? round(Math.min(free * 0.5, 10_000_000 + r(12) * 15_000_000), 100_000) : 0;
+
 
     const result = tables + slots + bar;
     const diffTotal = chipDiff + slotsDiff;
