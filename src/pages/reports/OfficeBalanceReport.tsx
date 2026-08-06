@@ -300,8 +300,8 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
           </span>
         </PageHeader>
 
-        {/* Row 1 — IN Total / Month / OUT · IK */}
-        <div className="mb-2 grid gap-2 sm:grid-cols-3">
+        {/* Row 1 — IN Total / Month */}
+        <div className="mb-2 grid gap-2 sm:grid-cols-2">
           <div className="flex flex-col justify-center rounded-md border-2 border-success/50 bg-[color-mix(in_srgb,hsl(var(--success))_8%,hsl(var(--card)))] px-3 py-1.5">
             <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               IN Total
@@ -326,28 +326,10 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-
-          <div className="rounded-md border border-border bg-card px-3 py-2">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">OUT · IK</div>
-            <div className="font-mono text-lg tabular-nums cms-amount-negative">
-              {formatMoneyFull(-Math.abs(Math.round(totals.out_ak)))}
-            </div>
-          </div>
         </div>
 
-        {/* Row 2 — Profit Company / Office Expenses / Money Total */}
-        <div className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <div className="flex flex-col justify-center rounded-md border-2 border-primary/50 bg-[color-mix(in_srgb,hsl(var(--primary))_8%,hsl(var(--card)))] px-3 py-1.5">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Profit Company
-            </div>
-            <div className={cn("font-mono text-xl font-bold tabular-nums", profitCompany < 0 ? "cms-amount-negative" : "cms-amount-positive")}>
-              {formatMoneyFull(Math.round(profitCompany))}
-            </div>
-            <div className="text-[10px] text-muted-foreground">
-              Σ profit of {casinos.length} casinos − office expenses
-            </div>
-          </div>
+        {/* Row 2 — Office Expenses / Money Total */}
+        <div className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
           {([
             ["Office Expenses", -Math.abs(totals.expenses)],
             ["Money Total", totals.cage_office + totals.bank],
@@ -360,6 +342,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             </div>
           ))}
         </div>
+
 
         {/* Row 3 — per-casino Fin Result */}
         {casinos.length > 0 && (
