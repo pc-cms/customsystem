@@ -56,6 +56,8 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   const data = demo ? demoOfficeBalance(month) : query.data;
   const rows = data?.rows ?? [];
   const casinos = data?.casinos ?? [];
+  const stats = data?.casino_stats ?? {};
+  const profitCompany = casinos.reduce((s, c) => s + (stats[c.id]?.profit ?? 0), 0);
 
   const stepMonth = (delta: number) => {
     const [y, m] = month.split("-").map(Number);
