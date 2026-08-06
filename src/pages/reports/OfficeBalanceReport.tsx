@@ -265,9 +265,9 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
           </span>
         </PageHeader>
 
-        <div className="mb-3 flex flex-wrap items-stretch justify-center gap-2">
-          {/* Profit Company — Σ casino profit − office expenses */}
-          <div className="flex min-w-[200px] flex-col justify-center rounded-md border-2 border-primary/50 bg-[color-mix(in_srgb,hsl(var(--primary))_8%,hsl(var(--card)))] px-3 py-1.5">
+        {/* Row 1 — Profit Company / Month / OUT · IK */}
+        <div className="mb-2 grid gap-2 sm:grid-cols-3">
+          <div className="flex flex-col justify-center rounded-md border-2 border-primary/50 bg-[color-mix(in_srgb,hsl(var(--primary))_8%,hsl(var(--card)))] px-3 py-1.5">
             <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Profit Company
             </div>
@@ -279,7 +279,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1">
+          <div className="flex items-center justify-center gap-1 rounded-md border border-border bg-card px-2 py-1">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => stepMonth(-1)} aria-label="Previous month">
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -291,16 +291,21 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+
+          <div className="rounded-md border border-border bg-card px-3 py-2">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">OUT · IK</div>
+            <div className="font-mono text-lg tabular-nums cms-amount-negative">
+              {formatMoneyFull(-Math.abs(Math.round(totals.out_ak)))}
+            </div>
+          </div>
         </div>
 
-        <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-6">
+        {/* Row 2 — IN Total / Office Expenses / Money Total */}
+        <div className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
           {([
-            ["Office Expenses", -Math.abs(totals.expenses)],
             ["IN Total", totals.in_total],
-            ["Cage Office", totals.cage_office],
-            ["Bank", totals.bank],
+            ["Office Expenses", -Math.abs(totals.expenses)],
             ["Money Total", totals.cage_office + totals.bank],
-            ["OUT · IK", -Math.abs(totals.out_ak)],
           ] as const).map(([label, value]) => (
             <div key={label} className="rounded-md border border-border bg-card px-3 py-2">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
@@ -311,10 +316,10 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
           ))}
         </div>
 
-        {/* Per-casino month P&L */}
+        {/* Row 3 — per-casino month P&L */}
         {casinos.length > 0 && (
-          <div className="mb-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {casinos.map((c) => {
+          <div className="mb-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {[...casinos].sort((a, b) => a.name.localeCompare(b.name)).map((c) => {
               const s = stats[c.id] ?? { result: 0, expenses: 0, profit: 0 };
               return (
                 <div key={c.id} className="rounded-md border border-border bg-card px-3 py-2">
@@ -338,6 +343,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             })}
           </div>
         )}
+
 
 
         <PageSection card={false}>
