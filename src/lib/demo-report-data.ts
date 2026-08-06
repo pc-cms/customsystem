@@ -196,11 +196,17 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
     });
     const inTotal = Object.values(ins).reduce((s, v) => s + v, 0);
     const expenses = round(800_000 + r(5) * 5_500_000, 1000);
-    const transfer = i % 6 === 2 ? round(4_000_000 + r(6) * 9_000_000, 100_000) : 0;
-    const out = i % 8 === 5 ? round(15_000_000 + r(7) * 30_000_000, 100_000) : 0;
+    // Office cash never goes negative and is swept out so it stays in a
+    // realistic band — every movement is backed by the day's inflow.
+    const avail = Math.max(0, office + inTotal - expenses);
+    const transfer = i % 6 === 2 ? round(Math.min(avail * 0.3, 4_000_000 + r(6) * 9_000_000), 100_000) : 0;
+    const rest = avail - transfer;
+    const excess = Math.max(0, rest - 30_000_000);
+    const out = i % 4 === 1 || excess > 0 ? round(Math.min(rest, Math.max(excess, r(7) * 12_000_000)), 100_000) : 0;
 
-    office = office + inTotal - expenses - transfer - out;
-    bank = bank + round((r(8) - 0.45) * 12_000_000, 100_000);
+    office = rest - out;
+    bank = bank + Math.round(out * 0.4);
+
 
     return {
       date,
