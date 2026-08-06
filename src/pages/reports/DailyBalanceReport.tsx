@@ -788,12 +788,14 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
         icon={Wallet2}
         title="Casino Monthly Balance"
         subtitle="Result · Cage · Bank · Money — rebuilt from live data, all figures in TZS"
-        context={activeCasino?.name}
+        context={demo ? "Demo" : activeCasino?.name}
       >
+        {demo && <Badge variant="outline" className="mr-2">DEMO DATA</Badge>}
         <span className="text-xs text-muted-foreground whitespace-nowrap">
           {daysWithData} days · {visibleMoneyCols.length} columns
         </span>
       </PageHeader>
+
 
       {/* KPI tiles: two-row layout */}
       {/* Row 1: Finance Result · Month picker · Office */}
