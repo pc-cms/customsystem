@@ -57,7 +57,9 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   const rows = data?.rows ?? [];
   const casinos = data?.casinos ?? [];
   const stats = data?.casino_stats ?? {};
-  const profitCompany = casinos.reduce((s, c) => s + (stats[c.id]?.profit ?? 0), 0);
+  const casinoProfit = casinos.reduce((s, c) => s + (stats[c.id]?.profit ?? 0), 0);
+  const officeExpenses = rows.reduce((s, r) => s + r.expenses, 0);
+  const profitCompany = casinoProfit - officeExpenses;
 
   const stepMonth = (delta: number) => {
     const [y, m] = month.split("-").map(Number);
@@ -142,16 +144,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
         "whitespace-nowrap border-b-4 border-b-primary/70 bg-muted text-[12px] font-extrabold uppercase tracking-wide text-foreground",
       cellClassName: () => "py-0.5 leading-tight bg-card",
     },
-    {
-      key: "fin_result",
-      header: head("Fin Result", "fin_result"),
-      type: "money",
-      style: { minWidth: 128 },
-      accessor: (r) => money(r.fin_result),
-      sortValue: (r) => r.fin_result,
-      headerClassName: headCls("result", true),
-      cellClassName: cellCls("result", true),
-    },
+    
     ...casinos.map<ColumnDef<OfficeBalanceRow>>((c, i) => ({
       key: `in_${c.id}`,
       header: head(`IN · ${c.name}`, "in_total"),
@@ -273,7 +266,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
         </PageHeader>
 
         <div className="mb-3 flex flex-wrap items-stretch justify-center gap-2">
-          {/* Profit Company — Σ profit of every casino, standalone tile left of the calendar */}
+          {/* Profit Company — Σ casino profit − office expenses */}
           <div className="flex min-w-[200px] flex-col justify-center rounded-md border-2 border-primary/50 bg-[color-mix(in_srgb,hsl(var(--primary))_8%,hsl(var(--card)))] px-3 py-1.5">
             <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Profit Company
@@ -281,7 +274,9 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             <div className={cn("font-mono text-xl font-bold tabular-nums", profitCompany < 0 ? "cms-amount-negative" : "cms-amount-positive")}>
               {formatMoneyFull(Math.round(profitCompany))}
             </div>
-            <div className="text-[10px] text-muted-foreground">Σ profit of {casinos.length} casinos</div>
+            <div className="text-[10px] text-muted-foreground">
+              Σ profit of {casinos.length} casinos − office expenses
+            </div>
           </div>
 
           <div className="flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1">
@@ -306,7 +301,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
 
         <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-5">
           {([
-            ["Fin Result", totals.fin_result],
+            ["Office Expenses", -Math.abs(totals.expenses)],
             ["IN Total", totals.in_total],
             ["Cage Office", totals.cage_office],
             ["Bank", totals.bank],

@@ -179,6 +179,7 @@ const DEMO_CASINOS = [
   { id: "demo-arusha", name: "Arusha" },
   { id: "demo-mwanza", name: "Mwanza" },
   { id: "demo-mbeya", name: "Mbeya" },
+  { id: "demo-dodoma", name: "Dodoma" },
 ];
 
 /** Office Monthly Balance — synthetic company-wide month. */
