@@ -48,15 +48,22 @@ export const monthDays = (month: string): string[] => {
   return Array.from({ length: last }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`);
 };
 
-export const useExpensesMatrix = (month: string) => {
+/** Expense scope: casino floor (live + slots) vs head office. */
+export type ExpenseScope = "all" | "casino" | "office";
+
+export const useExpensesMatrix = (
+  month: string,
+  scope: ExpenseScope = "all",
+  enabled = true,
+) => {
   const { activeCasinoId } = useCasino();
   const days = monthDays(month);
   const from = days[0];
   const to = days[days.length - 1];
 
   return useQuery({
-    queryKey: ["expenses-matrix", activeCasinoId, month],
-    enabled: !!activeCasinoId && !!month,
+    queryKey: ["expenses-matrix", activeCasinoId, month, scope],
+    enabled: enabled && !!activeCasinoId && !!month,
     staleTime: 30_000,
     queryFn: async (): Promise<ExpensesMatrix> => {
       const sb = supabase as any;
