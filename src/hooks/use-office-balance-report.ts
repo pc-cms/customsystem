@@ -115,10 +115,13 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
 
       const walletKind: Record<string, string> = {};
       const walletName: Record<string, string> = {};
+      const walletCurrency: Record<string, string> = {};
       wallets.forEach((w: any) => {
         walletKind[w.id] = w.kind;
         walletName[w.id] = w.name;
+        walletCurrency[w.id] = w.currency || "TZS";
       });
+
 
       type Bucket = Record<string, number>;
       const add = (b: Bucket, d: string, v: number) => { b[d] = (b[d] || 0) + v; };
