@@ -47,7 +47,7 @@ const FORMULAS: Record<string, string> = {
   bank: "Bank wallet balances at the end of the day (all casinos, TZS-valued)",
   expenses: "Office-source expenses of the day (collections excluded)",
   transfer_casino: "Money sent from the office back into the casinos",
-  out_ak: "Payouts out of the company (owner / IK)",
+  out_ak: "IK settlement: minus = payout out of the company, plus = money received from IK",
   balance: "Balance = Money yesterday + IN − Expenses − Transfer → Casino − OUT − Money today\nMoney = Cage + Bank. Should stay near zero.",
 };
 
@@ -229,11 +229,26 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
     },
     {
       key: "out_ak",
-      header: head("OUT · IK", "out_ak"),
+      header: head("IK (+/−)", "out_ak"),
       type: "money",
       style: { minWidth: 124 },
-      accessor: (r) => drillCell("out")(r, r.out_ak),
-      sortValue: (r) => r.out_ak,
+      accessor: (r) => {
+        const v = -r.out_ak; // out = money leaving the company (−), inflow from IK (+)
+        return (
+          <span
+            className={cn(
+              "font-semibold",
+              v < 0 && "cms-amount-negative",
+              v > 0 && "cms-amount-positive",
+              v && "cursor-pointer underline-offset-2 hover:underline",
+            )}
+            onClick={(e) => { if (!v) return; e.stopPropagation(); setDrill({ row: r, col: "out" }); }}
+          >
+            {v ? formatMoneyFull(Math.round(v)) : <span className="text-muted-foreground">{demo ? "0" : "·"}</span>}
+          </span>
+        );
+      },
+      sortValue: (r) => -r.out_ak,
       headerClassName: headCls("spend", false),
       cellClassName: cellCls("spend", false),
     },
@@ -260,11 +275,16 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             if (col.key === "date")
               return <span className="text-[11px] font-bold uppercase tracking-wider text-foreground">Total</span>;
             const k = String(col.key);
-            const v = k.startsWith("in_") && k !== "in_total"
+            const raw = k.startsWith("in_") && k !== "in_total"
               ? totals.byCasino[k.slice(3)] ?? 0
               : (totals as unknown as Record<string, number>)[k] ?? 0;
+            const v = k === "out_ak" ? -raw : raw;
             return (
-              <span className={cn("whitespace-nowrap font-mono text-[11px] font-bold tabular-nums", v < 0 && "cms-amount-negative")}>
+              <span className={cn(
+                "whitespace-nowrap font-mono text-[11px] font-bold tabular-nums",
+                v < 0 && "cms-amount-negative",
+                k === "out_ak" && v > 0 && "cms-amount-positive",
+              )}>
                 {v ? formatMoneyFull(Math.round(v)) : demo ? "0" : "·"}
               </span>
             );
@@ -297,53 +317,23 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
           </span>
         </PageHeader>
 
-        {/* Row 1 — IN Total / Month */}
-        <div className="mb-2 grid gap-2 sm:grid-cols-2">
-          <div className="flex flex-col justify-center rounded-md border-2 border-success/50 bg-[color-mix(in_srgb,hsl(var(--success))_8%,hsl(var(--card)))] px-3 py-1.5">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              IN Total
-            </div>
-            <div className="font-mono text-xl font-bold tabular-nums cms-amount-positive">
-              {formatMoneyFull(Math.round(totals.in_total))}
-            </div>
-            <div className="text-[10px] text-muted-foreground">
-              Σ collections received from every casino
-            </div>
+        {/* Row 1 — Month */}
+        <div className="mb-2 flex items-center justify-center gap-1 rounded-md border border-border bg-card px-2 py-1">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => stepMonth(-1)} aria-label="Previous month">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex flex-col items-center">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Month</span>
+            <span className="min-w-[130px] text-center text-sm font-semibold tracking-wide">{monthLabel}</span>
           </div>
-
-          <div className="flex items-center justify-center gap-1 rounded-md border border-border bg-card px-2 py-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => stepMonth(-1)} aria-label="Previous month">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex flex-col items-center">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Month</span>
-              <span className="min-w-[130px] text-center text-sm font-semibold tracking-wide">{monthLabel}</span>
-            </div>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => stepMonth(1)} aria-label="Next month">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => stepMonth(1)} aria-label="Next month">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
 
-        {/* Row 2 — Office Expenses / Money Total */}
-        <div className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {([
-            ["Office Expenses", -Math.abs(totals.expenses)],
-            ["Money Total", totals.cage_office + totals.bank],
-          ] as const).map(([label, value]) => (
-            <div key={label} className="rounded-md border border-border bg-card px-3 py-2">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-              <div className={cn("font-mono text-lg tabular-nums", value < 0 ? "cms-amount-negative" : "cms-amount-positive")}>
-                {formatMoneyFull(Math.round(value))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-
-        {/* Row 3 — per-casino Fin Result */}
+        {/* Row 2 — per-casino Fin Result */}
         {casinos.length > 0 && (
-          <div className="mb-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mb-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {[...casinos].sort((a, b) => a.name.localeCompare(b.name)).map((c) => {
               const s = stats[c.id] ?? { result: 0, expenses: 0, profit: 0 };
               return (
@@ -358,6 +348,25 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             })}
           </div>
         )}
+
+        {/* Row 3 — IN Total / Office Expenses / Money Total / IK */}
+        <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {([
+            ["IN Total", totals.in_total, "Σ collections received from every casino"],
+            ["Office Expenses", -Math.abs(totals.expenses), "Office-source expenses of the month"],
+            ["Money Total", totals.cage_office + totals.bank, "Cage + Bank at the end of the month"],
+            ["IK (+/−)", -totals.out_ak, "Minus = payout out, plus = received from IK"],
+          ] as const).map(([label, value, hint]) => (
+            <div key={label} className="rounded-md border border-border bg-card px-3 py-2">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+              <div className={cn("font-mono text-xl font-bold tabular-nums", value < 0 ? "cms-amount-negative" : "cms-amount-positive")}>
+                {formatMoneyFull(Math.round(value))}
+              </div>
+              <div className="text-[10px] text-muted-foreground">{hint}</div>
+            </div>
+          ))}
+        </div>
+
 
 
 
