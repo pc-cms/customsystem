@@ -229,11 +229,26 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
     },
     {
       key: "out_ak",
-      header: head("OUT · IK", "out_ak"),
+      header: head("IK (+/−)", "out_ak"),
       type: "money",
       style: { minWidth: 124 },
-      accessor: (r) => drillCell("out")(r, r.out_ak),
-      sortValue: (r) => r.out_ak,
+      accessor: (r) => {
+        const v = -r.out_ak; // out = money leaving the company (−), inflow from IK (+)
+        return (
+          <span
+            className={cn(
+              "font-semibold",
+              v < 0 && "cms-amount-negative",
+              v > 0 && "cms-amount-positive",
+              v && "cursor-pointer underline-offset-2 hover:underline",
+            )}
+            onClick={(e) => { if (!v) return; e.stopPropagation(); setDrill({ row: r, col: "out" }); }}
+          >
+            {v ? formatMoneyFull(Math.round(v)) : <span className="text-muted-foreground">{demo ? "0" : "·"}</span>}
+          </span>
+        );
+      },
+      sortValue: (r) => -r.out_ak,
       headerClassName: headCls("spend", false),
       cellClassName: cellCls("spend", false),
     },
