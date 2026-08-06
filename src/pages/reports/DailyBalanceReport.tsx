@@ -827,13 +827,8 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
               )}
               {drill.col === "cage_casino" && (
                 <>
-                  <DrillList
-                    title="Cash by denomination"
-                    rows={(drill.row.cage_detail?.cash ?? []).map((c) => ({
-                      label: `${c.currency} ${formatMoneyFull(c.denomination)} × ${c.quantity}`,
-                      value: c.tzs,
-                    }))}
-                  />
+                  <DenomTable rows={drill.row.cage_detail?.cash ?? []} />
+
                   <DrillList
                     title="Cashless"
                     rows={(drill.row.cage_detail?.cashless ?? []).map((c) => ({
