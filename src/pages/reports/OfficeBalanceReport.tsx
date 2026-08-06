@@ -265,17 +265,17 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
           </span>
         </PageHeader>
 
-        {/* Row 1 — Profit Company / Month / OUT · IK */}
+        {/* Row 1 — IN Total / Month / OUT · IK */}
         <div className="mb-2 grid gap-2 sm:grid-cols-3">
-          <div className="flex flex-col justify-center rounded-md border-2 border-primary/50 bg-[color-mix(in_srgb,hsl(var(--primary))_8%,hsl(var(--card)))] px-3 py-1.5">
+          <div className="flex flex-col justify-center rounded-md border-2 border-success/50 bg-[color-mix(in_srgb,hsl(var(--success))_8%,hsl(var(--card)))] px-3 py-1.5">
             <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Profit Company
+              IN Total
             </div>
-            <div className={cn("font-mono text-xl font-bold tabular-nums", profitCompany < 0 ? "cms-amount-negative" : "cms-amount-positive")}>
-              {formatMoneyFull(Math.round(profitCompany))}
+            <div className="font-mono text-xl font-bold tabular-nums cms-amount-positive">
+              {formatMoneyFull(Math.round(totals.in_total))}
             </div>
             <div className="text-[10px] text-muted-foreground">
-              Σ profit of {casinos.length} casinos − office expenses
+              Σ collections received from every casino
             </div>
           </div>
 
@@ -300,10 +300,20 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
           </div>
         </div>
 
-        {/* Row 2 — IN Total / Office Expenses / Money Total */}
+        {/* Row 2 — Profit Company / Office Expenses / Money Total */}
         <div className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className="flex flex-col justify-center rounded-md border-2 border-primary/50 bg-[color-mix(in_srgb,hsl(var(--primary))_8%,hsl(var(--card)))] px-3 py-1.5">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Profit Company
+            </div>
+            <div className={cn("font-mono text-xl font-bold tabular-nums", profitCompany < 0 ? "cms-amount-negative" : "cms-amount-positive")}>
+              {formatMoneyFull(Math.round(profitCompany))}
+            </div>
+            <div className="text-[10px] text-muted-foreground">
+              Σ profit of {casinos.length} casinos − office expenses
+            </div>
+          </div>
           {([
-            ["IN Total", totals.in_total],
             ["Office Expenses", -Math.abs(totals.expenses)],
             ["Money Total", totals.cage_office + totals.bank],
           ] as const).map(([label, value]) => (
