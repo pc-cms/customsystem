@@ -400,7 +400,12 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   };
 
   const { from, to } = monthBounds(month);
-  const { data: rows = [], isLoading } = useDailyBalanceReport(from, to);
+  const live = useDailyBalanceReport(from, to, { enabled: !demo });
+  const rows = useMemo<DailyBalanceRow[]>(
+    () => (demo ? demoDailyBalanceRows(month) : live.data ?? []),
+    [demo, month, live.data],
+  );
+  const isLoading = !demo && live.isLoading;
 
   const toggleExpand = (g: SectionKey) =>
     setExpanded((prev) => {
