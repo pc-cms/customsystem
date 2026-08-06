@@ -6,7 +6,7 @@
  * All figures TZS.
  */
 import { useMemo, useState } from "react";
-import { Building2, ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { Building2, ChevronDown, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
@@ -24,42 +24,42 @@ import { demoOfficeBalance } from "@/lib/demo-report-data";
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
-type Zone = "result" | "in" | "money" | "spend";
+type Zone = "result" | "in" | "money" | "spend" | "balance";
 
 const ZONE_HEAD: Record<Zone, string> = {
   result: "bg-[color-mix(in_srgb,hsl(var(--primary))_16%,hsl(var(--card)))]",
   in: "bg-[color-mix(in_srgb,hsl(var(--success))_16%,hsl(var(--card)))]",
   money: "bg-[color-mix(in_srgb,hsl(var(--warning))_16%,hsl(var(--card)))]",
   spend: "bg-[color-mix(in_srgb,hsl(var(--destructive))_14%,hsl(var(--card)))]",
+  balance: "bg-muted",
 };
 const ZONE_BG: Record<Zone, string> = {
   result: "bg-[color-mix(in_srgb,hsl(var(--primary))_4%,hsl(var(--card)))]",
   in: "bg-[color-mix(in_srgb,hsl(var(--success))_4%,hsl(var(--card)))]",
   money: "bg-[color-mix(in_srgb,hsl(var(--warning))_4%,hsl(var(--card)))]",
   spend: "bg-[color-mix(in_srgb,hsl(var(--destructive))_4%,hsl(var(--card)))]",
+  balance: "bg-[color-mix(in_srgb,hsl(var(--muted))_45%,hsl(var(--card)))]",
 };
 
 const FORMULAS: Record<string, string> = {
-  fin_result: "Fin Result = IN (all casinos) − Office expenses − OUT",
   in_total: "Σ collections received from every casino",
   cage_office: "Running office cash: previous + IN − Expenses − Transfer → Casino − OUT",
   bank: "Bank wallet balances at the end of the day (all casinos, TZS-valued)",
   expenses: "Office-source expenses of the day (collections excluded)",
   transfer_casino: "Money sent from the office back into the casinos",
   out_ak: "Payouts out of the company (owner / IK)",
+  balance: "Balance = Money yesterday + IN − Expenses − Transfer → Casino − OUT − Money today\nMoney = Cage + Bank. Should stay near zero.",
 };
 
 const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   const [month, setMonth] = useSessionState(demo ? "obr-demo-month" : "obr-month", currentMonth());
+  const [inOpen, setInOpen] = useSessionState(demo ? "obr-demo-in-open" : "obr-in-open", false);
   const [drill, setDrill] = useState<{ row: OfficeBalanceRow; col: string } | null>(null);
   const query = useOfficeBalanceReport(month, !demo);
   const data = demo ? demoOfficeBalance(month) : query.data;
   const rows = data?.rows ?? [];
   const casinos = data?.casinos ?? [];
   const stats = data?.casino_stats ?? {};
-  const casinoProfit = casinos.reduce((s, c) => s + (stats[c.id]?.profit ?? 0), 0);
-  const officeExpenses = rows.reduce((s, r) => s + r.expenses, 0);
-  const profitCompany = casinoProfit - officeExpenses;
 
   const stepMonth = (delta: number) => {
     const [y, m] = month.split("-").map(Number);
@@ -77,6 +77,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       fin_result: flow((r) => r.fin_result),
       cage_office: last?.cage_office ?? 0,
       bank: last?.bank ?? 0,
+      balance: last?.balance ?? 0,
       byCasino: Object.fromEntries(
         casinos.map((c) => [c.id, flow((r) => r.in_by_casino[c.id] || 0)]),
       ) as Record<string, number>,
@@ -145,7 +146,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       cellClassName: () => "py-0.5 leading-tight bg-card",
     },
     
-    ...casinos.map<ColumnDef<OfficeBalanceRow>>((c, i) => ({
+    ...(inOpen ? casinos : []).map<ColumnDef<OfficeBalanceRow>>((c, i) => ({
       key: `in_${c.id}`,
       header: head(`IN · ${c.name}`, "in_total"),
       type: "money" as const,
@@ -157,17 +158,37 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
     })),
     {
       key: "in_total",
-      header: head("IN Total", "in_total"),
+      header: (
+        <span className="inline-flex items-center gap-1">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setInOpen(!inOpen); }}
+            className="inline-flex items-center gap-1 rounded px-0.5 hover:bg-foreground/10"
+            aria-label={inOpen ? "Collapse IN by casino" : "Expand IN by casino"}
+          >
+            {inOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+            IN Total
+          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-3 w-3 shrink-0 opacity-50 hover:opacity-100" />
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs whitespace-pre-line text-xs">
+              {FORMULAS.in_total}
+            </TooltipContent>
+          </Tooltip>
+        </span>
+      ),
       type: "money",
       style: { minWidth: 124 },
       accessor: (r) => drillCell("in")(r, r.in_total),
       sortValue: (r) => r.in_total,
-      headerClassName: headCls("in", false),
-      cellClassName: cellCls("in", false),
+      headerClassName: headCls("in", !inOpen),
+      cellClassName: cellCls("in", !inOpen),
     },
     {
       key: "cage_office",
-      header: head("Cage Office", "cage_office"),
+      header: head("Cage", "cage_office"),
       type: "money",
       style: { minWidth: 128 },
       accessor: (r) => (r.cage_detail?.length ? drillCell("cage")(r, r.cage_office) : money(r.cage_office)),
@@ -216,7 +237,18 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       headerClassName: headCls("spend", false),
       cellClassName: cellCls("spend", false),
     },
-
+    {
+      key: "balance",
+      header: head("Balance", "balance"),
+      type: "money",
+      style: { minWidth: 130 },
+      accessor: (r) => (
+        <span className="font-bold">{money(r.balance)}</span>
+      ),
+      sortValue: (r) => r.balance,
+      headerClassName: headCls("balance", true),
+      cellClassName: cellCls("balance", true),
+    },
   ];
 
   const footerRows = rows.length
@@ -265,8 +297,8 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
           </span>
         </PageHeader>
 
-        {/* Row 1 — IN Total / Month / OUT · IK */}
-        <div className="mb-2 grid gap-2 sm:grid-cols-3">
+        {/* Row 1 — IN Total / Month */}
+        <div className="mb-2 grid gap-2 sm:grid-cols-2">
           <div className="flex flex-col justify-center rounded-md border-2 border-success/50 bg-[color-mix(in_srgb,hsl(var(--success))_8%,hsl(var(--card)))] px-3 py-1.5">
             <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               IN Total
@@ -291,28 +323,10 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-
-          <div className="rounded-md border border-border bg-card px-3 py-2">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">OUT · IK</div>
-            <div className="font-mono text-lg tabular-nums cms-amount-negative">
-              {formatMoneyFull(-Math.abs(Math.round(totals.out_ak)))}
-            </div>
-          </div>
         </div>
 
-        {/* Row 2 — Profit Company / Office Expenses / Money Total */}
-        <div className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <div className="flex flex-col justify-center rounded-md border-2 border-primary/50 bg-[color-mix(in_srgb,hsl(var(--primary))_8%,hsl(var(--card)))] px-3 py-1.5">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Profit Company
-            </div>
-            <div className={cn("font-mono text-xl font-bold tabular-nums", profitCompany < 0 ? "cms-amount-negative" : "cms-amount-positive")}>
-              {formatMoneyFull(Math.round(profitCompany))}
-            </div>
-            <div className="text-[10px] text-muted-foreground">
-              Σ profit of {casinos.length} casinos − office expenses
-            </div>
-          </div>
+        {/* Row 2 — Office Expenses / Money Total */}
+        <div className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
           {([
             ["Office Expenses", -Math.abs(totals.expenses)],
             ["Money Total", totals.cage_office + totals.bank],
@@ -325,6 +339,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             </div>
           ))}
         </div>
+
 
         {/* Row 3 — per-casino Fin Result */}
         {casinos.length > 0 && (

@@ -205,9 +205,15 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
     const excess = Math.max(0, rest - 30_000_000);
     const out = i % 4 === 1 || excess > 0 ? round(Math.min(rest, Math.max(excess, r(7) * 12_000_000)), 100_000) : 0;
 
+    const prevMoney = i === 0 ? null : office + bank;
     office = rest - out;
-    bank = bank + Math.round(out * 0.4);
+    // Bank drifts only with small casino movements so the day reconciles to ~0.
+    const bankDrift = round((r(9) - 0.5) * 400_000, 1000);
+    bank = bank + bankDrift;
 
+    const moneyTotal = office + bank;
+    const balance =
+      prevMoney == null ? 0 : prevMoney + inTotal - expenses - transfer - out - moneyTotal;
 
     // Office cage split into TZS notes + a USD stack, summing exactly to `office`.
     const denoms = [10000, 5000, 2000, 1000];
@@ -232,6 +238,8 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
       transfer_casino: transfer,
       out_ak: out,
       fin_result: inTotal - expenses - out,
+      money_total: moneyTotal,
+      balance,
       cage_detail: cageDetail,
       expenses_detail: [
         { label: "Head office salary", value: round(expenses * 0.5, 1000) },

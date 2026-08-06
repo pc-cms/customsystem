@@ -34,6 +34,10 @@ export interface OfficeBalanceRow {
   transfer_casino: number;
   out_ak: number;
   fin_result: number;
+  /** Cage + Bank at the end of the day. */
+  money_total: number;
+  /** Money yesterday + IN − Expenses − Transfer − OUT − Money today (≈ 0). */
+  balance: number;
   /** Detail rows behind the drill-downs. */
   expenses_detail: { label: string; value: number }[];
   in_detail: { label: string; value: number }[];
@@ -195,6 +199,7 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
 
       let lastBank = 0;
       let office = 0;
+      let prevMoney: number | null = null;
       return {
         casinos: casinoList,
         casino_stats: casinoStats,
@@ -206,6 +211,10 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
           const out = outByDate[date] ?? 0;
           office += inTotal - exp - trf - out;
           lastBank = bankRunning[date] ?? lastBank;
+          const moneyTotal = office + lastBank;
+          const balance =
+            prevMoney == null ? 0 : prevMoney + inTotal - exp - trf - out - moneyTotal;
+          prevMoney = moneyTotal;
           return {
             date,
             weekday: WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()],
@@ -217,6 +226,8 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
             transfer_casino: trf,
             out_ak: out,
             fin_result: inTotal - exp - out,
+            money_total: moneyTotal,
+            balance,
             expenses_detail: Object.entries(expDetail[date] ?? {})
               .map(([label, value]) => ({ label, value }))
               .sort((a, b) => b.value - a.value),
