@@ -120,6 +120,8 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
       const outByDate: Bucket = {};
       const outDetail: Record<string, { label: string; value: number }[]> = {};
       const casinoName: Record<string, string> = {};
+      /** Month expenses booked at the casino (non-office source, collections excluded). */
+      const casinoExp: Record<string, number> = {};
       casinoList.forEach((c) => { casinoName[c.id] = c.name; });
 
       const tzsOf = (e: any) => (e.amount_tzs != null ? num(e.amount_tzs) : num(e.amount));
