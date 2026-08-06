@@ -275,11 +275,16 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             if (col.key === "date")
               return <span className="text-[11px] font-bold uppercase tracking-wider text-foreground">Total</span>;
             const k = String(col.key);
-            const v = k.startsWith("in_") && k !== "in_total"
+            const raw = k.startsWith("in_") && k !== "in_total"
               ? totals.byCasino[k.slice(3)] ?? 0
               : (totals as unknown as Record<string, number>)[k] ?? 0;
+            const v = k === "out_ak" ? -raw : raw;
             return (
-              <span className={cn("whitespace-nowrap font-mono text-[11px] font-bold tabular-nums", v < 0 && "cms-amount-negative")}>
+              <span className={cn(
+                "whitespace-nowrap font-mono text-[11px] font-bold tabular-nums",
+                v < 0 && "cms-amount-negative",
+                k === "out_ak" && v > 0 && "cms-amount-positive",
+              )}>
                 {v ? formatMoneyFull(Math.round(v)) : demo ? "0" : "·"}
               </span>
             );
