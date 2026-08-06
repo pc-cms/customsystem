@@ -166,7 +166,7 @@ const ExpensesMatrixPage = ({
                   col.key === "total" && "text-primary",
                 )}
               >
-                {v ? formatMoneyFull(Math.round(v)) : "·"}
+                {v ? formatMoneyFull(Math.round(v)) : demo ? "0" : "·"}
               </span>
             );
 
