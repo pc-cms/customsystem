@@ -184,12 +184,16 @@ const add = (b: Bucket, key: string, v: number) => {
   b[key] = (b[key] || 0) + v;
 };
 
-export const useDailyBalanceReport = (from: string, to: string) => {
+export const useDailyBalanceReport = (
+  from: string,
+  to: string,
+  opts?: { enabled?: boolean },
+) => {
   const { activeCasinoId } = useCasino();
 
   return useQuery({
     queryKey: ["daily-balance-report", activeCasinoId, from, to],
-    enabled: !!activeCasinoId && !!from && !!to,
+    enabled: (opts?.enabled ?? true) && !!activeCasinoId && !!from && !!to,
     staleTime: 30_000,
     queryFn: async (): Promise<DailyBalanceRow[]> => {
       const casino = activeCasinoId!;
