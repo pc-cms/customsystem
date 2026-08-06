@@ -687,7 +687,7 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             return wrap(
               <span
                 className="cursor-pointer underline-offset-2 hover:underline"
-                onClick={(e) => { e.stopPropagation(); navigate("/reports/expenses-matrix"); }}
+                onClick={(e) => { e.stopPropagation(); navigate(demo ? "/demo/expenses-casino" : "/reports/expenses-casino"); }}
               >
                 {rendered}
               </span>,
