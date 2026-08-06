@@ -224,23 +224,19 @@ const ExpensesMatrixPage = ({
       </PageHeader>
 
 
-      <div className="mb-3 flex items-center justify-center gap-2">
-        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(-1)} aria-label="Previous month">
+      <div className="mb-2 flex items-center justify-center gap-1 rounded-md border border-border bg-card px-2 py-1">
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => stepMonth(-1)} aria-label="Previous month">
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <div className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1">
+        <div className="flex flex-col items-center">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Month</span>
           <span className="min-w-[130px] text-center text-sm font-semibold tracking-wide">{monthLabel}</span>
-          <Input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value || currentMonth())}
-            className="h-7 w-[136px] text-xs"
-          />
         </div>
-        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepMonth(1)} aria-label="Next month">
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => stepMonth(1)} aria-label="Next month">
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
+
 
       <PageSection card={false}>
         <div className="max-h-[74vh] overflow-auto rounded-md border border-border">
