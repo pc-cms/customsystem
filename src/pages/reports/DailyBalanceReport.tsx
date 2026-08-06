@@ -583,10 +583,12 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
 
 
   /** Full figures only — no compact M / K suffixes anywhere in this grid. */
+  const blank = <span className="text-muted-foreground">{demo ? "0" : "·"}</span>;
   const money = (n: number) =>
-    !n ? <span className="text-muted-foreground">·</span> : (
+    !n ? blank : (
       <span className={n < 0 ? "cms-amount-negative" : undefined}>{formatMoneyFull(n)}</span>
     );
+
 
   /** Column hover highlight — the whole column plus its header light up. */
   const [hoverCol, setHoverCol] = useState<string | null>(null);
@@ -611,10 +613,16 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             {r.legacy && <Badge variant="outline" className="ml-1 h-4 px-1 text-[10px]">imp</Badge>}
           </span>
         ),
-      headerClassName: "whitespace-nowrap border-b-2 border-border bg-muted font-bold uppercase tracking-wide text-foreground",
+      headerClassName: "whitespace-nowrap border-b-4 border-b-primary bg-muted font-bold uppercase tracking-wide text-foreground",
       cellClassName: (r: Row) =>
-        cn("py-0.5 leading-tight", r.kind === "start" ? "border-b-2 border-border bg-muted" : rowBg(r) ?? "bg-card"),
+        cn(
+          "py-0.5 leading-tight",
+          r.kind === "start"
+            ? "border-b-4 border-b-primary/70 bg-[color-mix(in_srgb,hsl(var(--primary))_12%,hsl(var(--card)))]"
+            : rowBg(r) ?? "bg-card",
+        ),
     },
+
 
     ...visibleMoneyCols.map<ColumnDef<Row>>((c, i) => {
       const first = i === 0 || visibleMoneyCols[i - 1].section !== c.section;
@@ -672,10 +680,11 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             return wrap(
               c.id === "balance" || c.id === "money_total"
                 ? <span className="font-semibold">{money(Math.round(startBalance))}</span>
-                : <span className="text-muted-foreground">·</span>,
+                : blank,
             );
           // Business day still open → no figures in any column.
-          if (!r.day_closed) return wrap(<span className="text-muted-foreground">·</span>);
+          if (!r.day_closed) return wrap(blank);
+
           if (r.kind === "day" && c.id === "credit_deposit")
             return wrap(<CreditCell date={r.date} value={num(r, "credit_deposit")} />);
           if (r.kind === "day" && c.id === "bank_tzs")
@@ -705,11 +714,11 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
         },
 
         headerClassName: cn(
-          "whitespace-nowrap border-b-2 text-[12px] uppercase tracking-wide",
+          "whitespace-nowrap border-b-4 text-[12px] uppercase tracking-wide",
           ZONE_HEAD[c.section],
           first ? "border-l-2 border-l-border" : "border-l border-l-border/60",
           c.total ? "font-extrabold text-foreground" : "font-bold text-foreground/80",
-          hot ? "border-b-primary text-primary" : "border-border",
+          hot ? "border-b-primary text-primary" : "border-b-primary/70",
         ),
         cellClassName: (r: Row) =>
           cn(
@@ -717,13 +726,14 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             first ? "border-l-2 border-l-border" : "border-l border-l-border/40",
             c.total ? "font-semibold text-foreground" : "text-foreground/70",
             r.kind === "start"
-              ? "border-b-2 border-b-border bg-muted font-semibold"
+              ? "border-b-4 border-b-primary/70 bg-[color-mix(in_srgb,hsl(var(--primary))_12%,hsl(var(--card)))] font-semibold"
               : rowBg(r)
                 ?? (r.day_closed ? heatClass(c, Math.round(c.value(r))) : undefined)
                 ?? ZONE_BG[c.section],
             // Focused column: a soft tint, no hard ring.
             hot && "!bg-[color-mix(in_srgb,hsl(var(--primary))_7%,hsl(var(--card)))] text-foreground",
           ),
+
 
 
       };
