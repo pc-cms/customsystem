@@ -299,7 +299,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
 
         <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-5">
           {([
-            ["Fin Result", totals.fin_result],
+            ["Office Expenses", -Math.abs(totals.expenses)],
             ["IN Total", totals.in_total],
             ["Cage Office", totals.cage_office],
             ["Bank", totals.bank],
