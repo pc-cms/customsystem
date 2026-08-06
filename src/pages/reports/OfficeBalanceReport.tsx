@@ -11,7 +11,7 @@ import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -287,24 +287,19 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Month</span>
               <span className="min-w-[130px] text-center text-sm font-semibold tracking-wide">{monthLabel}</span>
             </div>
-            <Input
-              type="month"
-              value={month}
-              onChange={(e) => setMonth(e.target.value || currentMonth())}
-              className="h-7 w-[136px] text-xs"
-            />
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => stepMonth(1)} aria-label="Next month">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-5">
+        <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-6">
           {([
             ["Office Expenses", -Math.abs(totals.expenses)],
             ["IN Total", totals.in_total],
             ["Cage Office", totals.cage_office],
             ["Bank", totals.bank],
+            ["Money Total", totals.cage_office + totals.bank],
             ["OUT · IK", -Math.abs(totals.out_ak)],
           ] as const).map(([label, value]) => (
             <div key={label} className="rounded-md border border-border bg-card px-3 py-2">
