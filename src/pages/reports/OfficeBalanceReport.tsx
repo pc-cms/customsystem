@@ -240,7 +240,18 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       headerClassName: headCls("spend", false),
       cellClassName: cellCls("spend", false),
     },
-
+    {
+      key: "balance",
+      header: head("Balance", "balance"),
+      type: "money",
+      style: { minWidth: 130 },
+      accessor: (r) => (
+        <span className="font-bold">{money(r.balance)}</span>
+      ),
+      sortValue: (r) => r.balance,
+      headerClassName: headCls("balance", true),
+      cellClassName: cellCls("balance", true),
+    },
   ];
 
   const footerRows = rows.length
