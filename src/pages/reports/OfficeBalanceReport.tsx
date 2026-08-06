@@ -287,12 +287,6 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Month</span>
               <span className="min-w-[130px] text-center text-sm font-semibold tracking-wide">{monthLabel}</span>
             </div>
-            <Input
-              type="month"
-              value={month}
-              onChange={(e) => setMonth(e.target.value || currentMonth())}
-              className="h-7 w-[136px] text-xs"
-            />
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => stepMonth(1)} aria-label="Next month">
               <ChevronRight className="h-4 w-4" />
             </Button>
