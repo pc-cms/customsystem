@@ -47,7 +47,7 @@ const FORMULAS: Record<string, string> = {
   bank: "Bank wallet balances at the end of the day (all casinos, TZS-valued)",
   expenses: "Office-source expenses of the day (collections excluded)",
   transfer_casino: "Money sent from the office back into the casinos",
-  out_ak: "Payouts out of the company (owner / IK)",
+  out_ak: "IK settlement: minus = payout out of the company, plus = money received from IK",
   balance: "Balance = Money yesterday + IN − Expenses − Transfer → Casino − OUT − Money today\nMoney = Cage + Bank. Should stay near zero.",
 };
 
