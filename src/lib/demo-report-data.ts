@@ -253,6 +253,22 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
       money_total: moneyTotal,
       balance,
       cage_detail: cageDetail,
+      mobile_detail: {
+        AirTell: round(r(11) * 4_500_000, 1000),
+        Tigo: round(r(12) * 3_100_000, 1000),
+        Halo: round(r(13) * 1_400_000, 1000),
+        Mpesa: round(r(14) * 6_200_000, 1000),
+      },
+      bank_detail: [
+        { currency: "TZS", amount: round(bank * 0.82, 1000), rate: 1, tzs: round(bank * 0.82, 1000) },
+        {
+          currency: "USD",
+          amount: round((bank * 0.18) / RATE, 10),
+          rate: RATE,
+          tzs: round(bank * 0.18, 1000),
+        },
+      ],
+
       expenses_detail: [
         { label: "Head office salary", value: round(expenses * 0.5, 1000) },
         { label: "IT & services", value: round(expenses * 0.2, 1000) },
