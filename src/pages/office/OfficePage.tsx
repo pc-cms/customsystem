@@ -20,6 +20,7 @@ const TABS = [
   { value: "budget", label: "Budget" },
   { value: "day-closings", label: "Day Closings" },
   { value: "difference", label: "Difference" },
+  { value: "jp", label: "JP" },
   { value: "money-change", label: "Money Change" },
   { value: "monthly-report", label: "Monthly Report" },
   { value: "other-incomes", label: "Other Incomes" },
