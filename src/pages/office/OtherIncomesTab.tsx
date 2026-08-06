@@ -59,7 +59,8 @@ export default function OtherIncomesTab() {
     presetRange("month"),
   );
 
-  const { data: incomes = [], isLoading } = useOtherIncomes(range.from, range.to);
+  // JP lives on its own tab (Office → JP) — keep it out of this list.
+  const { data: incomes = [], isLoading } = useOtherIncomes(range.from, range.to, { exclude: ["jp"] });
   const { data: wallets = [] } = useFinWallets();
   const { data: categories = [] } = useFinCategories();
   const addIncome = useAddOtherIncome();
