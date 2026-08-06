@@ -46,7 +46,7 @@ const FORMULAS: Record<string, string> = {
   bank: "Bank wallet balances at the end of the day (all casinos, TZS-valued)",
   expenses: "Office-source expenses of the day (collections excluded)",
   transfer_casino: "Money sent from the office back into the casinos",
-  out_ak: "Payouts out of the company (owner / AK)",
+  out_ak: "Payouts out of the company (owner / IK)",
 };
 
 const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
