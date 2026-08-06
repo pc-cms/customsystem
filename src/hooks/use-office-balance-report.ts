@@ -179,10 +179,25 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
         bankRunning[d] = bankBal;
       });
 
+      // Month gaming result per casino (tables + slots from day closing).
+      const casinoRes: Record<string, number> = {};
+      dayClosings.forEach((c: any) => {
+        if (!c.casino_id) return;
+        casinoRes[c.casino_id] =
+          (casinoRes[c.casino_id] || 0) + num(c.tables_result) + num(c.slots_result);
+      });
+      const casinoStats: Record<string, OfficeCasinoStat> = {};
+      casinoList.forEach((c) => {
+        const result = casinoRes[c.id] || 0;
+        const expensesV = casinoExp[c.id] || 0;
+        casinoStats[c.id] = { result, expenses: expensesV, profit: result - expensesV };
+      });
+
       let lastBank = 0;
       let office = 0;
       return {
         casinos: casinoList,
+        casino_stats: casinoStats,
         rows: enumerateDates(from, to).map((date) => {
           const ins = inByDate[date] ?? {};
           const inTotal = Object.values(ins).reduce((s, v) => s + v, 0);
