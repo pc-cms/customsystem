@@ -379,7 +379,13 @@ export const useDailyBalanceReport = (
         // Snapshot semantics — the last shift of the day replaces the breakdown.
         b.cash = [];
         b.cashless = [];
+        // Mobile money held by the cage at closing (per provider).
+        b.mobile = Object.fromEntries(
+          Object.entries(((s.closing_count as any)?.mobile || {}) as Record<string, unknown>)
+            .map(([k, v]) => [k, num(v)]),
+        );
         const cash = (s.closing_count as any)?.cash || {};
+
         for (const [currency, denoms] of Object.entries(cash)) {
           for (const [denom, qty] of Object.entries((denoms || {}) as Record<string, unknown>)) {
             const q = num(qty);
