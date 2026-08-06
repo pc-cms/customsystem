@@ -148,8 +148,10 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
           add(expByDate, d, v);
           const label = e.fin_categories?.name || e.description || "Other";
           ((expDetail[d] ??= {}))[label] = (expDetail[d]?.[label] || 0) + v;
+          return;
         }
-      });
+        // Casino-source expense → belongs to that casino's month P&L.
+        if (e.casino_id) casinoExp[e.casino_id] = (casinoExp[e.casino_id] || 0) + v;
 
       /** Money sent from the office back into a casino (booked as casino income). */
       const trfByDate: Bucket = {};
