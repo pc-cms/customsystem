@@ -680,10 +680,11 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             return wrap(
               c.id === "balance" || c.id === "money_total"
                 ? <span className="font-semibold">{money(Math.round(startBalance))}</span>
-                : <span className="text-muted-foreground">·</span>,
+                : blank,
             );
           // Business day still open → no figures in any column.
-          if (!r.day_closed) return wrap(<span className="text-muted-foreground">·</span>);
+          if (!r.day_closed) return wrap(blank);
+
           if (r.kind === "day" && c.id === "credit_deposit")
             return wrap(<CreditCell date={r.date} value={num(r, "credit_deposit")} />);
           if (r.kind === "day" && c.id === "bank_tzs")
