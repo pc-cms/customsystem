@@ -11,21 +11,35 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useCasino } from "@/lib/casino-context";
 import { useSessionState } from "@/hooks/use-session-state";
 import { formatMoneyFull } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
 import { cn } from "@/lib/utils";
-import { useExpensesMatrix, type ExpenseCategoryRow } from "@/hooks/use-expenses-matrix";
+import { useExpensesMatrix, type ExpenseCategoryRow, type ExpenseScope } from "@/hooks/use-expenses-matrix";
+import { demoExpensesMatrix } from "@/lib/demo-report-data";
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
-const ExpensesMatrixPage = () => {
+const SCOPE_TITLE: Record<ExpenseScope, string> = {
+  all: "Expenses by Category",
+  casino: "Expenses · Casino",
+  office: "Expenses · Office",
+};
+
+const ExpensesMatrixPage = ({
+  scope = "all",
+  demo = false,
+}: { scope?: ExpenseScope; demo?: boolean }) => {
   const { activeCasino } = useCasino();
-  const [month, setMonth] = useSessionState("exp-matrix-month", currentMonth());
+  const [month, setMonth] = useSessionState(`exp-matrix-month${demo ? "-demo" : ""}`, currentMonth());
   const [cell, setCell] = useState<{ code: string; label: string; day: string | null } | null>(null);
-  const { data, isLoading } = useExpensesMatrix(month);
+  const query = useExpensesMatrix(month, scope, !demo);
+  const data = demo ? demoExpensesMatrix(month, scope === "office" ? "office" : "casino") : query.data;
+  const isLoading = !demo && query.isLoading;
+
 
   const rows = data?.rows ?? [];
   const days = data?.days ?? [];
