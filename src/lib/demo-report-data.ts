@@ -250,10 +250,13 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
   const casino_stats = Object.fromEntries(
     DEMO_CASINOS.map((c, k) => {
       const result = rows.reduce((s, r) => s + (r.in_by_casino[c.id] || 0), 0) * (1.05 + k * 0.04);
-      const expenses = result * (0.34 + k * 0.05);
+      // Mbeya finishes the month in the red — expenses exceed the result.
+      const ratio = c.id === "demo-mbeya" ? 1.28 : 0.34 + k * 0.05;
+      const expenses = result * ratio;
       return [c.id, { result: round(result, 1000), expenses: round(expenses, 1000), profit: round(result - expenses, 1000) }];
     }),
   );
+
 
   return { casinos: DEMO_CASINOS, rows, casino_stats };
 };
