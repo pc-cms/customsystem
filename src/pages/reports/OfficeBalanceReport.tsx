@@ -149,7 +149,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       cellClassName: () => "py-0.5 leading-tight bg-card",
     },
     
-    ...casinos.map<ColumnDef<OfficeBalanceRow>>((c, i) => ({
+    ...(inOpen ? casinos : []).map<ColumnDef<OfficeBalanceRow>>((c, i) => ({
       key: `in_${c.id}`,
       header: head(`IN · ${c.name}`, "in_total"),
       type: "money" as const,
@@ -161,17 +161,37 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
     })),
     {
       key: "in_total",
-      header: head("IN Total", "in_total"),
+      header: (
+        <span className="inline-flex items-center gap-1">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setInOpen(!inOpen); }}
+            className="inline-flex items-center gap-1 rounded px-0.5 hover:bg-foreground/10"
+            aria-label={inOpen ? "Collapse IN by casino" : "Expand IN by casino"}
+          >
+            {inOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+            IN Total
+          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-3 w-3 shrink-0 opacity-50 hover:opacity-100" />
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs whitespace-pre-line text-xs">
+              {FORMULAS.in_total}
+            </TooltipContent>
+          </Tooltip>
+        </span>
+      ),
       type: "money",
       style: { minWidth: 124 },
       accessor: (r) => drillCell("in")(r, r.in_total),
       sortValue: (r) => r.in_total,
-      headerClassName: headCls("in", false),
-      cellClassName: cellCls("in", false),
+      headerClassName: headCls("in", !inOpen),
+      cellClassName: cellCls("in", !inOpen),
     },
     {
       key: "cage_office",
-      header: head("Cage Office", "cage_office"),
+      header: head("Cage", "cage_office"),
       type: "money",
       style: { minWidth: 128 },
       accessor: (r) => (r.cage_detail?.length ? drillCell("cage")(r, r.cage_office) : money(r.cage_office)),
