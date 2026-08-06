@@ -175,11 +175,12 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       header: head("Cage Office", "cage_office"),
       type: "money",
       style: { minWidth: 128 },
-      accessor: (r) => money(r.cage_office),
+      accessor: (r) => (r.cage_detail?.length ? drillCell("cage")(r, r.cage_office) : money(r.cage_office)),
       sortValue: (r) => r.cage_office,
       headerClassName: headCls("money", true),
       cellClassName: cellCls("money", true),
     },
+
     {
       key: "bank",
       header: head("Bank", "bank"),
