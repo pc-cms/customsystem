@@ -46,7 +46,7 @@ const FORMULAS: Record<string, string> = {
   bank: "Bank wallet balances at the end of the day (all casinos, TZS-valued)",
   expenses: "Office-source expenses of the day (collections excluded)",
   transfer_casino: "Money sent from the office back into the casinos",
-  out_ak: "Payouts out of the company (owner / AK)",
+  out_ak: "Payouts out of the company (owner / IK)",
 };
 
 const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
@@ -175,11 +175,12 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       header: head("Cage Office", "cage_office"),
       type: "money",
       style: { minWidth: 128 },
-      accessor: (r) => money(r.cage_office),
+      accessor: (r) => (r.cage_detail?.length ? drillCell("cage")(r, r.cage_office) : money(r.cage_office)),
       sortValue: (r) => r.cage_office,
       headerClassName: headCls("money", true),
       cellClassName: cellCls("money", true),
     },
+
     {
       key: "bank",
       header: head("Bank", "bank"),
@@ -212,7 +213,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
     },
     {
       key: "out_ak",
-      header: head("OUT · AK", "out_ak"),
+      header: head("OUT · IK", "out_ak"),
       type: "money",
       style: { minWidth: 124 },
       accessor: (r) => drillCell("out")(r, r.out_ak),
@@ -220,6 +221,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       headerClassName: headCls("spend", false),
       cellClassName: cellCls("spend", false),
     },
+
   ];
 
   const footerRows = rows.length
@@ -236,7 +238,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
               : (totals as unknown as Record<string, number>)[k] ?? 0;
             return (
               <span className={cn("whitespace-nowrap font-mono text-[11px] font-bold tabular-nums", v < 0 && "cms-amount-negative")}>
-                {v ? formatMoneyFull(Math.round(v)) : "·"}
+                {v ? formatMoneyFull(Math.round(v)) : demo ? "0" : "·"}
               </span>
             );
           },
@@ -325,6 +327,28 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             <SheetHeader>
               <SheetTitle>{drill ? `${drill.col.toUpperCase()} · ${fmtDate(drill.row.date)}` : ""}</SheetTitle>
             </SheetHeader>
+            {drill?.col === "cage" ? (
+              <div className="mt-4 overflow-hidden rounded-md border border-border text-xs">
+                <div className="grid grid-cols-4 gap-1 border-b border-border bg-muted px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <span>Cur</span>
+                  <span className="text-right">Denom</span>
+                  <span className="text-right">Qty</span>
+                  <span className="text-right">TZS</span>
+                </div>
+                {(drill.row.cage_detail ?? []).map((d, i) => (
+                  <div key={`${d.currency}-${d.denomination}-${i}`} className="grid grid-cols-4 gap-1 border-b border-border/60 px-2 py-1 font-mono tabular-nums last:border-0">
+                    <span className="text-muted-foreground">{d.currency}</span>
+                    <span className="text-right">{formatMoneyFull(d.denomination)}</span>
+                    <span className="text-right">{d.quantity || 0}</span>
+                    <span className="text-right">{formatMoneyFull(Math.round(d.tzs))}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between border-t border-border bg-muted/40 px-2 py-1 font-semibold">
+                  <span>Total cage</span>
+                  <span className="font-mono tabular-nums">{formatMoneyFull(Math.round(drill.row.cage_office))}</span>
+                </div>
+              </div>
+            ) : (
             <div className="mt-4 rounded-md border border-border text-xs">
               {drillRows.map((d, i) => (
                 <div key={`${d.label}-${i}`} className="flex items-center justify-between border-b border-border/60 px-2 py-1.5 last:border-0">
@@ -334,6 +358,8 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
               ))}
               {!drillRows.length && <div className="px-2 py-4 text-center text-muted-foreground">No entries</div>}
             </div>
+            )}
+
           </SheetContent>
         </Sheet>
       </PageShell>

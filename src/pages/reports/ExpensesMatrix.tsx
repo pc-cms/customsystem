@@ -68,7 +68,7 @@ const ExpensesMatrixPage = ({
 
   const money = (n: number) =>
     !n
-      ? <span className="text-muted-foreground/50">·</span>
+      ? <span className="text-muted-foreground/50">{demo ? "0" : "·"}</span>
       : <span className="font-semibold text-foreground">{formatMoneyFull(Math.round(n))}</span>;
 
   const columns: ColumnDef<ExpenseCategoryRow>[] = [
@@ -166,7 +166,7 @@ const ExpensesMatrixPage = ({
                   col.key === "total" && "text-primary",
                 )}
               >
-                {v ? formatMoneyFull(Math.round(v)) : "·"}
+                {v ? formatMoneyFull(Math.round(v)) : demo ? "0" : "·"}
               </span>
             );
 

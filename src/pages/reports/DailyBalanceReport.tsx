@@ -422,7 +422,7 @@ const DrillList = ({
         >
           <span className="text-muted-foreground">{r.label}</span>
           <span className={cn("font-mono tabular-nums", r.value < 0 && "cms-amount-negative")}>
-            {r.value ? formatMoneyFull(Math.round(r.value)) : "·"}
+            {r.value ? formatMoneyFull(Math.round(r.value)) : "0"}
           </span>
         </div>
       ))}

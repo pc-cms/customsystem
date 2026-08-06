@@ -38,6 +38,9 @@ export interface OfficeBalanceRow {
   expenses_detail: { label: string; value: number }[];
   in_detail: { label: string; value: number }[];
   out_detail: { label: string; value: number }[];
+  /** Cash denominations behind the office cage (demo / snapshot based). */
+  cage_detail?: { currency: string; denomination: number; quantity: number; tzs: number }[];
+
 }
 
 export interface OfficeBalanceData {
