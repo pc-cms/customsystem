@@ -79,6 +79,7 @@ export type ModuleKey =
   | "report_cashback"
   | "report_lottery_sales"
   | "report_daily_balance"
+  | "report_demo"
 
   | "report_am_budget"
   | "admin";
