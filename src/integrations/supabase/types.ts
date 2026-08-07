@@ -11350,6 +11350,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      hr_delete_employee: { Args: { _employee_id: string }; Returns: undefined }
       is_manager_op: { Args: { _uid: string }; Returns: boolean }
       is_promo_chip: { Args: { p_chip_color_id: string }; Returns: boolean }
       is_super_admin: { Args: { _uid: string }; Returns: boolean }
