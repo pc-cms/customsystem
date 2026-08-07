@@ -80,7 +80,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   };
 
   const totals = useMemo(() => {
-    const flow = (fn: (r: Row) => number) => rows.reduce((s, r) => s + fn(r), 0);
+    const flow = (fn: (r: OfficeBalanceRow) => number) => rows.reduce((s, r) => s + fn(r), 0);
     const last = rows.length ? rows[rows.length - 1] : null;
     return {
       in_total: flow((r) => r.in_total),
