@@ -199,6 +199,8 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
   let office = 10_000_000;
   // Clean opening bank stock — nothing carried over from earlier months.
   let bank = 15_000_000;
+  /** "Start" row — money carried over from the previous month (Cage + Bank). */
+  const startMoney = office + bank;
 
   const rows: OfficeBalanceRow[] = days.map((date, i) => {
     const r = (k: number) => rnd(i * 11 + k);
