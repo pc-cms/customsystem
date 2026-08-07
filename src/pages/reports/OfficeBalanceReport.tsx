@@ -24,10 +24,14 @@ import { fmtDate } from "@/lib/format-date";
 import { cn } from "@/lib/utils";
 import { useOfficeBalanceReport, type OfficeBalanceRow } from "@/hooks/use-office-balance-report";
 import { demoOfficeBalance } from "@/lib/demo-report-data";
+import StartingBalanceTile, { readStartingBalance } from "@/components/reports/StartingBalanceTile";
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
 type Zone = "result" | "in" | "money" | "spend" | "balance";
+
+/** Table row = a real business day, plus one synthetic "Start" opening row. */
+type Row = OfficeBalanceRow & { kind: "day" | "start" };
 
 const ZONE_HEAD: Record<Zone, string> = {
   result: "bg-[color-mix(in_srgb,hsl(var(--primary))_16%,hsl(var(--card)))]",
@@ -57,10 +61,15 @@ const FORMULAS: Record<string, string> = {
 const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   const [month, setMonth] = useSessionState(demo ? "obr-demo-month" : "obr-month", currentMonth());
   const [inOpen, setInOpen] = useSessionState(demo ? "obr-demo-in-open" : "obr-in-open", false);
-  const [drill, setDrill] = useState<{ row: OfficeBalanceRow; col: string; label: string; amount: number } | null>(null);
+  const [drill, setDrill] = useState<{ row: Row; col: string; label: string; amount: number } | null>(null);
   const navigate = useNavigate();
-  const query = useOfficeBalanceReport(month, !demo);
+  /** Opening money of the month (Cage + Bank) — manual, per month. */
+  const startKey = `${demo ? "obr-demo" : "obr"}-start-${month}`;
+  const [startBalance, setStartBalance] = useState(0);
+  useEffect(() => { setStartBalance(readStartingBalance(startKey)); }, [startKey]);
+  const query = useOfficeBalanceReport(month, !demo, startBalance);
   const data = demo ? demoOfficeBalance(month) : query.data;
+  const startMoney = demo ? data?.start_money ?? 0 : startBalance;
   const rows = data?.rows ?? [];
   const casinos = data?.casinos ?? [];
   const stats = data?.casino_stats ?? {};
@@ -71,7 +80,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   };
 
   const totals = useMemo(() => {
-    const flow = (fn: (r: OfficeBalanceRow) => number) => rows.reduce((s, r) => s + fn(r), 0);
+    const flow = (fn: (r: Row) => number) => rows.reduce((s, r) => s + fn(r), 0);
     const last = rows.length ? rows[rows.length - 1] : null;
     return {
       in_total: flow((r) => r.in_total),
@@ -88,6 +97,33 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
     };
   }, [rows, casinos]);
 
+  /** "Start" opening row + the plain day rows. */
+  const displayRows = useMemo<Row[]>(
+    () => [
+      {
+        ...({} as OfficeBalanceRow),
+        date: `${month}-00`,
+        weekday: "",
+        in_by_casino: {},
+        in_total: 0,
+        cage_office: startMoney,
+        bank: 0,
+        expenses: 0,
+        transfer_casino: 0,
+        out_ak: 0,
+        fin_result: 0,
+        money_total: startMoney,
+        balance: startMoney,
+        expenses_detail: [],
+        in_detail: [],
+        out_detail: [],
+        kind: "start" as const,
+      } as Row,
+      ...rows.map((r) => ({ ...r, kind: "day" as const })),
+    ],
+    [rows, startMoney, month],
+  );
+
   const money = (n: number) =>
     !n ? <span className="text-muted-foreground">{demo ? "0" : "·"}</span> : (
       <span className={n < 0 ? "cms-amount-negative" : undefined}>{formatMoneyFull(Math.round(n))}</span>
@@ -100,10 +136,12 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       first ? "border-l-2 border-l-border" : "border-l border-l-border/60",
     );
 
-  const cellCls = (zone: Zone, first: boolean) => () =>
+  const cellCls = (zone: Zone, first: boolean) => (r: Row) =>
     cn(
       "py-0.5 whitespace-nowrap font-mono text-[11px] leading-tight tabular-nums",
-      ZONE_BG[zone],
+      r.kind === "start"
+        ? "border-b-4 border-b-primary/70 bg-[color-mix(in_srgb,hsl(var(--primary))_12%,hsl(var(--card)))]"
+        : ZONE_BG[zone],
       first ? "border-l-2 border-l-border" : "border-l border-l-border/40",
     );
 
@@ -123,7 +161,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
     </span>
   );
 
-  const drillCell = (col: string, label?: string) => (r: OfficeBalanceRow, v: number) => (
+  const drillCell = (col: string, label?: string) => (r: Row, v: number) => (
     <span
       className={cn(v && "cursor-pointer underline-offset-2 hover:underline")}
       onClick={(e) => {
@@ -136,25 +174,36 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
     </span>
   );
 
-  const columns: ColumnDef<OfficeBalanceRow>[] = [
+  const columns: ColumnDef<Row>[] = [
     {
       key: "date",
       header: "Date",
       type: "date",
       style: { width: 78, minWidth: 78 },
-      accessor: (r) => (
-        <span className="whitespace-nowrap font-mono text-[12px] font-semibold tabular-nums">
-          {r.date.slice(8, 10)}/{r.date.slice(5, 7)}
-          <span className="ml-1 text-[10px] font-normal text-muted-foreground">{r.weekday}</span>
-        </span>
-      ),
+      accessor: (r) =>
+        r.kind === "start" ? (
+          <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-wider text-foreground">
+            Start
+          </span>
+        ) : (
+          <span className="whitespace-nowrap font-mono text-[12px] font-semibold tabular-nums">
+            {r.date.slice(8, 10)}/{r.date.slice(5, 7)}
+            <span className="ml-1 text-[10px] font-normal text-muted-foreground">{r.weekday}</span>
+          </span>
+        ),
       sortValue: (r) => r.date,
       headerClassName:
         "whitespace-nowrap border-b-4 border-b-primary/70 bg-muted text-[12px] font-extrabold uppercase tracking-wide text-foreground",
-      cellClassName: () => "py-0.5 leading-tight bg-card",
+      cellClassName: (r: Row) =>
+        cn(
+          "py-0.5 leading-tight",
+          r.kind === "start"
+            ? "border-b-4 border-b-primary/70 bg-[color-mix(in_srgb,hsl(var(--primary))_12%,hsl(var(--card)))]"
+            : "bg-card",
+        ),
     },
     
-    ...(inOpen ? casinos : []).map<ColumnDef<OfficeBalanceRow>>((c, i) => ({
+    ...(inOpen ? casinos : []).map<ColumnDef<Row>>((c, i) => ({
       key: `in_${c.id}`,
       header: head(`IN · ${c.name}`, "in_total"),
       type: "money" as const,
@@ -290,7 +339,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
         {
           key: "total",
           className: "border-t-2 border-border bg-muted font-bold",
-          cell: (col: ColumnDef<OfficeBalanceRow>) => {
+          cell: (col: ColumnDef<Row>) => {
             if (col.key === "date")
               return <span className="text-[11px] font-bold uppercase tracking-wider text-foreground">Total</span>;
             const k = String(col.key);
@@ -392,7 +441,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
         <PageSection card={false}>
           <div className="max-h-[72vh] overflow-auto rounded-md border border-border">
             <SmartTable
-              data={rows}
+              data={displayRows}
               columns={columns}
               rowKey={(r) => r.date}
               loading={!demo && query.isLoading}
