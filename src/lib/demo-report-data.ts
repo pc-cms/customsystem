@@ -33,10 +33,11 @@ const round = (n: number, step = 1000) => Math.round(n / step) * step;
 /** Casino Monthly Balance — one synthetic row per day. */
 export const demoDailyBalanceRows = (month: string): DailyBalanceRow[] => {
   const days = demoMonthDays(month);
-  let cage = 42_000_000;
-  let manager = 18_000_000;
-  let bankTzs = 96_000_000;
-  let bankUsdRaw = 21_000;
+  // Clean, round opening stock — no legacy pile sitting in the bank.
+  let cage = 20_000_000;
+  let manager = 5_000_000;
+  let bankTzs = 10_000_000;
+  let bankUsdRaw = 2_000;
   let prevMoney = cage + manager + bankTzs + bankUsdRaw * RATE;
 
   return days.map((date, i) => {
