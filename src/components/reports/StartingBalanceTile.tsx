@@ -7,7 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { formatMoneyFull } from "@/lib/format";
+import { formatMoneyFull } from "@/lib/format-money";
 
 interface Props {
   /** localStorage key — include the month so each month keeps its own value. */
