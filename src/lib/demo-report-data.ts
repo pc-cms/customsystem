@@ -222,7 +222,9 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
         ? round(Math.min(rest, Math.max(excess, r(7) * 12_000_000)), 100_000)
         : 0;
 
-    const prevMoney = i === 0 ? null : office + bank;
+    // Opening money of the day — on day 1 it is the "Start" row (carried over
+    // from the previous month), afterwards the previous day's Money total.
+    const prevMoney = office + bank;
     office = rest - out;
     // Bank is a pure stock in the demo — no unexplained drift, so every day
     // reconciles to exactly zero.
