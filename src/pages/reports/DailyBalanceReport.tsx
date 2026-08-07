@@ -417,7 +417,7 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   };
 
   const { from, to } = monthBounds(month);
-  const live = useDailyBalanceReport(from, to, { enabled: !demo });
+  const live = useDailyBalanceReport(from, to, { enabled: !demo, startBalance });
   const rows = useMemo<DailyBalanceRow[]>(
     () => (demo ? demoDailyBalanceRows(month) : live.data ?? []),
     [demo, month, live.data],
