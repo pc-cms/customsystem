@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Wallet } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { signedWalletTxTzs } from "@/lib/wallet-tx-sign";
 import { useCasino } from "@/lib/casino-context";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -76,7 +77,7 @@ export default function FinancesDashboardPage() {
       if (!b) return;
       const v = Number(r.amount_tzs || 0);
       if (r.kind === "income") b.income += v;
-      if (r.kind === "expense" || r.kind === "reversal") b.expense += -v;
+      if (r.kind === "expense" || r.kind === "reversal") b.expense += Math.abs(v);
     });
     return Object.values(buckets);
   }, [tx, daysInMonth]);
@@ -87,7 +88,7 @@ export default function FinancesDashboardPage() {
     tx.forEach((r: any) => {
       if (r.kind !== "expense" && r.kind !== "reversal") return;
       const grp = r.fin_categories?.group_name || "Other";
-      map.set(grp, (map.get(grp) || 0) + -Number(r.amount_tzs || 0));
+      map.set(grp, (map.get(grp) || 0) + Math.abs(Number(r.amount_tzs || 0)));
     });
     return Array.from(map.entries())
       .filter(([, v]) => v > 0)
@@ -106,7 +107,7 @@ export default function FinancesDashboardPage() {
     tx.forEach((r: any) => {
       if (r.kind !== "expense" && r.kind !== "reversal") return;
       const grp = r.fin_categories?.group_name || "Other";
-      actual.set(grp, (actual.get(grp) || 0) + -Number(r.amount_tzs || 0));
+      actual.set(grp, (actual.get(grp) || 0) + Math.abs(Number(r.amount_tzs || 0)));
     });
     const groups = new Set([...plan.keys(), ...actual.keys()]);
     return Array.from(groups).map((g) => ({
@@ -150,7 +151,7 @@ export default function FinancesDashboardPage() {
       if (!b) return;
       const v = Number(r.amount_tzs || 0);
       if (r.kind === "income") b.income += v;
-      if (r.kind === "expense" || r.kind === "reversal") b.expense += -v;
+      if (r.kind === "expense" || r.kind === "reversal") b.expense += Math.abs(v);
     });
     Object.values(months).forEach((m) => { m.net = m.income - m.expense; });
     return Object.values(months);
@@ -159,14 +160,14 @@ export default function FinancesDashboardPage() {
   // Wallet balance trend (cumulative by day, this month)
   const walletTrend = useMemo(() => {
     const sorted = [...tx].sort((a: any, b: any) => (a.business_date || "").localeCompare(b.business_date || ""));
-    let cum = totalBalance - sorted.reduce((s: number, r: any) => s + Number(r.amount_tzs || 0), 0);
+    let cum = totalBalance - sorted.reduce((s: number, r: any) => s + signedWalletTxTzs(r), 0);
     const buckets: Record<string, { day: string; balance: number }> = {};
     for (let d = 1; d <= daysInMonth; d++) {
       const k = String(d).padStart(2, "0");
       buckets[k] = { day: k, balance: cum };
     }
     sorted.forEach((r: any) => {
-      cum += Number(r.amount_tzs || 0);
+      cum += signedWalletTxTzs(r);
       const d = String(r.business_date || "").slice(8, 10);
       if (buckets[d]) buckets[d].balance = cum;
     });
