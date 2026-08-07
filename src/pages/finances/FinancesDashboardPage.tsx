@@ -48,10 +48,13 @@ export default function FinancesDashboardPage() {
     tx.forEach((r: any) => {
       const v = Number(r.amount_tzs || 0);
       if (r.kind === "income") income += v;
-      if (r.kind === "expense" || r.kind === "reversal") expense += v;
+      // Expenses may be stored positive (new rows) or negative (legacy) —
+      // the direction lives in `kind`, so always take the magnitude.
+      if (r.kind === "expense" || r.kind === "reversal") expense += Math.abs(v);
     });
-    return { income, expense: -expense, net: income + expense };
+    return { income, expense, net: income - expense };
   }, [tx]);
+
 
   const totalBalance = useMemo(() => {
     if (!balances) return 0;
