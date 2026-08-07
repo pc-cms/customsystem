@@ -196,8 +196,9 @@ const DEMO_CASINOS = [
 /** Office Monthly Balance — synthetic company-wide month. */
 export const demoOfficeBalance = (month: string): OfficeBalanceData => {
   const days = demoMonthDays(month);
-  let office = 34_000_000;
-  let bank = 210_000_000;
+  let office = 10_000_000;
+  // Clean opening bank stock — nothing carried over from earlier months.
+  let bank = 15_000_000;
 
   const rows: OfficeBalanceRow[] = days.map((date, i) => {
     const r = (k: number) => rnd(i * 11 + k);
@@ -213,7 +214,7 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
     const avail = Math.max(0, office + inTotal - expenses);
     const transfer = i % 6 === 2 ? round(Math.min(avail * 0.3, 4_000_000 + r(6) * 9_000_000), 100_000) : 0;
     const rest = avail - transfer;
-    const excess = Math.max(0, rest - 30_000_000);
+    const excess = Math.max(0, rest - 15_000_000);
     // Negative `out` = money received back from IK (inflow into the office).
     const out = i % 7 === 3
       ? -round(3_000_000 + r(8) * 8_000_000, 100_000)
@@ -223,9 +224,8 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
 
     const prevMoney = i === 0 ? null : office + bank;
     office = rest - out;
-    // Bank drifts only with small casino movements so the day reconciles to ~0.
-    const bankDrift = round((r(9) - 0.5) * 400_000, 1000);
-    bank = bank + bankDrift;
+    // Bank is a pure stock in the demo — no unexplained drift, so every day
+    // reconciles to exactly zero.
 
     const moneyTotal = office + bank;
     const balance =
