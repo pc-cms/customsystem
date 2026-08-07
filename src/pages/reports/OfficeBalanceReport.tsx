@@ -5,7 +5,7 @@
  * office expenses, transfers back to casinos and payouts (OUT / AK).
  * All figures TZS.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2, ChevronDown, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -417,8 +417,15 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
           </div>
         )}
 
-        {/* Row 3 — IN Total / Office Expenses / Money Total / IK */}
-        <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Row 3 — Start / IN Total / Office Expenses / Money Total / IK */}
+        <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          <StartingBalanceTile
+            storageKey={startKey}
+            readOnly={demo}
+            value={startMoney}
+            hint={demo ? "Carried over from the previous month" : "Cage + Bank carried over · click to edit"}
+            onChange={setStartBalance}
+          />
           {([
             ["IN Total", totals.in_total, "Σ collections received from every casino"],
             ["Office Expenses", -Math.abs(totals.expenses), "Office-source expenses of the month"],
