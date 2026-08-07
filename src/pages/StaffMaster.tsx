@@ -607,11 +607,12 @@ const EmployeeRow = ({ e, idx, canEdit, onPatch, onPatchName, onPatchPosition, o
       <td className={td}><EditableCell type="yesno" value={e.uniform_issued} readOnly={ro} onSave={(v) => onPatch(e.id, "uniform_issued", v)} /></td>
       <td className={td}>
         {canEdit && (
-          <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => { if (confirm(`Delete ${e.full_name}?`)) onDelete(); }}>
+          <Button size="icon" variant="ghost" disabled={deleting} className="h-7 w-7 opacity-0 group-hover:opacity-100 disabled:opacity-40" onClick={() => { if (confirm(`Delete ${e.full_name}?`)) onDelete(); }}>
             <Trash2 className="w-3.5 h-3.5 text-destructive" />
           </Button>
         )}
       </td>
+
     </tr>
   );
 };
