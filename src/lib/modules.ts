@@ -152,6 +152,7 @@ export const MODULES: ModuleDef[] = [
   { key: "import_reports", label: "Import Reports", group: "Reports" },
   { key: "logs", label: "Activity Logs", group: "Reports" },
   { key: "report_daily_balance", label: "Report · Daily Balance", group: "Reports" },
+  { key: "report_demo", label: "Demo Reports", group: "Reports" },
 
 
   // Staff / HR / System
