@@ -66,9 +66,8 @@ export const demoDailyBalanceRows = (month: string): DailyBalanceRow[] => {
     // Money must move exactly by the day's economics; transfers only reshuffle
     // between buckets, so the day balance stays at (or very near) zero.
     const delta = result + diffTotal + fees + officeNet - expenses;
-    const noise = i % 6 === 4 ? round((r(18) - 0.5) * 60_000, 1000) : 0;
 
-    cage = cage + delta - trfManager - trfBank + noise;
+    cage = cage + delta - trfManager - trfBank;
     manager = manager + trfManager;
     bankTzs = bankTzs + trfBank;
     const bankUsd = bankUsdRaw * RATE;
