@@ -18,10 +18,14 @@ const rnd = (seed: number) => {
   return x - Math.floor(x);
 };
 
+/** Demo months are cut to the first 15 days — enough to read, easy to check. */
+export const DEMO_DAY_COUNT = 15;
+
 export const demoMonthDays = (month: string): string[] => {
   const [y, m] = month.split("-").map(Number);
   const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
-  return Array.from({ length: last }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`);
+  const count = Math.min(last, DEMO_DAY_COUNT);
+  return Array.from({ length: count }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`);
 };
 
 const round = (n: number, step = 1000) => Math.round(n / step) * step;
@@ -29,10 +33,11 @@ const round = (n: number, step = 1000) => Math.round(n / step) * step;
 /** Casino Monthly Balance — one synthetic row per day. */
 export const demoDailyBalanceRows = (month: string): DailyBalanceRow[] => {
   const days = demoMonthDays(month);
-  let cage = 42_000_000;
-  let manager = 18_000_000;
-  let bankTzs = 96_000_000;
-  let bankUsdRaw = 21_000;
+  // Clean, round opening stock — no legacy pile sitting in the bank.
+  let cage = 20_000_000;
+  let manager = 5_000_000;
+  let bankTzs = 10_000_000;
+  let bankUsdRaw = 2_000;
   let prevMoney = cage + manager + bankTzs + bankUsdRaw * RATE;
 
   return days.map((date, i) => {
@@ -61,9 +66,8 @@ export const demoDailyBalanceRows = (month: string): DailyBalanceRow[] => {
     // Money must move exactly by the day's economics; transfers only reshuffle
     // between buckets, so the day balance stays at (or very near) zero.
     const delta = result + diffTotal + fees + officeNet - expenses;
-    const noise = i % 6 === 4 ? round((r(18) - 0.5) * 60_000, 1000) : 0;
 
-    cage = cage + delta - trfManager - trfBank + noise;
+    cage = cage + delta - trfManager - trfBank;
     manager = manager + trfManager;
     bankTzs = bankTzs + trfBank;
     const bankUsd = bankUsdRaw * RATE;
@@ -192,8 +196,9 @@ const DEMO_CASINOS = [
 /** Office Monthly Balance — synthetic company-wide month. */
 export const demoOfficeBalance = (month: string): OfficeBalanceData => {
   const days = demoMonthDays(month);
-  let office = 34_000_000;
-  let bank = 210_000_000;
+  let office = 10_000_000;
+  // Clean opening bank stock — nothing carried over from earlier months.
+  let bank = 15_000_000;
 
   const rows: OfficeBalanceRow[] = days.map((date, i) => {
     const r = (k: number) => rnd(i * 11 + k);
@@ -209,7 +214,7 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
     const avail = Math.max(0, office + inTotal - expenses);
     const transfer = i % 6 === 2 ? round(Math.min(avail * 0.3, 4_000_000 + r(6) * 9_000_000), 100_000) : 0;
     const rest = avail - transfer;
-    const excess = Math.max(0, rest - 30_000_000);
+    const excess = Math.max(0, rest - 15_000_000);
     // Negative `out` = money received back from IK (inflow into the office).
     const out = i % 7 === 3
       ? -round(3_000_000 + r(8) * 8_000_000, 100_000)
@@ -219,9 +224,8 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
 
     const prevMoney = i === 0 ? null : office + bank;
     office = rest - out;
-    // Bank drifts only with small casino movements so the day reconciles to ~0.
-    const bankDrift = round((r(9) - 0.5) * 400_000, 1000);
-    bank = bank + bankDrift;
+    // Bank is a pure stock in the demo — no unexplained drift, so every day
+    // reconciles to exactly zero.
 
     const moneyTotal = office + bank;
     const balance =
