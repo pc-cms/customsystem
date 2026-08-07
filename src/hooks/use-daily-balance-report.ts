@@ -190,12 +190,14 @@ const add = (b: Bucket, key: string, v: number) => {
 export const useDailyBalanceReport = (
   from: string,
   to: string,
-  opts?: { enabled?: boolean },
+  opts?: { enabled?: boolean; startBalance?: number },
 ) => {
   const { activeCasinoId } = useCasino();
+  /** Manual opening money (Starting Balance tile) — used when no fin_month_start row exists. */
+  const manualStart = opts?.startBalance ?? 0;
 
   return useQuery({
-    queryKey: ["daily-balance-report", activeCasinoId, from, to],
+    queryKey: ["daily-balance-report", activeCasinoId, from, to, manualStart],
     enabled: (opts?.enabled ?? true) && !!activeCasinoId && !!from && !!to,
     staleTime: 30_000,
     queryFn: async (): Promise<DailyBalanceRow[]> => {
@@ -708,7 +710,7 @@ export const useDailyBalanceReport = (
       };
       const startingBalance = ms
         ? startRow.cage + startRow.manager + startRow.bankTzs + startRow.bankUsd
-        : 0;
+        : manualStart;
       const snapByDate: Record<string, any> = {};
       (daySnaps as any[]).forEach((s) => {
         snapByDate[String(s.business_date).slice(0, 10)] = s.data || {};
