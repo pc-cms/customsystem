@@ -302,7 +302,7 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
   );
 
 
-  return { casinos: DEMO_CASINOS, rows, casino_stats };
+  return { casinos: DEMO_CASINOS, rows, casino_stats, start_money: startMoney };
 };
 
 const CASINO_CATS = [
