@@ -211,7 +211,7 @@ export const useDeleteEmployee = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("employees").delete().eq("id", id);
+      const { error } = await supabase.rpc("hr_delete_employee", { _employee_id: id });
       if (error) throw error;
     },
     onSuccess: () => { invalidateEmployeeCaches(qc); toast.success("Employee removed"); },
