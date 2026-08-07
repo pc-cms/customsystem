@@ -271,9 +271,11 @@ export const useDeleteStaffMember = () => {
       const { error } = await supabase.rpc("hr_delete_employee", { _employee_id: id });
       if (error) throw error;
     },
-    onSuccess: () => invalidateEmployeeCaches(qc),
+    onSuccess: () => { invalidateEmployeeCaches(qc); toast.success("Employee removed"); },
+    onError: (e: Error) => toast.error(e.message),
   });
 };
+
 
 const aliasStaffRow = (r: any) => ({ ...r, staff_id: r.employee_id });
 
