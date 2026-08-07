@@ -5,6 +5,8 @@ import { useAuth } from "@/lib/auth-context";
 import { UNIFIED_SHIFT_COLORS } from "@/lib/shift-colors";
 import { buildDisplayNames, splitFullName } from "@/lib/display-name";
 import { invalidateEmployeeCaches } from "@/lib/invalidate-employees";
+import { toast } from "sonner";
+
 
 export type StaffDepartment = "security" | "cashier" | "bartender" | "hostess" | "waiter" | "cleaner" | "it" | "hr" | "driver" | "reception";
 
@@ -271,9 +273,11 @@ export const useDeleteStaffMember = () => {
       const { error } = await supabase.rpc("hr_delete_employee", { _employee_id: id });
       if (error) throw error;
     },
-    onSuccess: () => invalidateEmployeeCaches(qc),
+    onSuccess: () => { invalidateEmployeeCaches(qc); toast.success("Employee removed"); },
+    onError: (e: Error) => toast.error(e.message),
   });
 };
+
 
 const aliasStaffRow = (r: any) => ({ ...r, staff_id: r.employee_id });
 

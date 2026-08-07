@@ -485,7 +485,7 @@ const StaffMaster = () => {
                     </tr>
                   );
                   list.forEach((e, idx) => {
-                    rows.push(<EmployeeRow key={e.id} e={e} idx={idx + 1} canEdit={canEdit} onPatch={onPatch} onPatchName={onPatchName} onPatchPosition={onPatchPosition} onPatchDepartment={onPatchDepartment} onDelete={() => del.mutate(e.id)} />);
+                    rows.push(<EmployeeRow key={e.id} e={e} idx={idx + 1} canEdit={canEdit} onPatch={onPatch} onPatchName={onPatchName} onPatchPosition={onPatchPosition} onPatchDepartment={onPatchDepartment} onDelete={() => del.mutate(e.id)} deleting={del.isPending} />);
                   });
                   return rows;
                 })}
@@ -530,16 +530,18 @@ const StaffMaster = () => {
 };
 
 // ===================== ROW =====================
-const EmployeeRow = ({ e, idx, canEdit, onPatch, onPatchName, onPatchPosition, onPatchDepartment, onDelete }: {
+const EmployeeRow = ({ e, idx, canEdit, deleting, onPatch, onPatchName, onPatchPosition, onPatchDepartment, onDelete }: {
   e: Employee;
   idx: number;
   canEdit: boolean;
+  deleting?: boolean;
   onPatch: (id: string, key: keyof Employee, value: any) => void;
   onPatchName: (e: Employee, first: string | null, last: string | null) => void;
   onPatchPosition: (e: Employee, position: string | null) => void;
   onPatchDepartment: (e: Employee, department: string | null) => void;
   onDelete: () => void;
 }) => {
+
   const exp = yearsBetween(e.onboarding_date);
   const age = ageFromBirthday(e.birthday);
   const remain = (Number(e.annual_leave_earned) || 0) - (Number(e.annual_leave_used) || 0) - (Number(e.annual_leave_sold) || 0);
@@ -607,11 +609,12 @@ const EmployeeRow = ({ e, idx, canEdit, onPatch, onPatchName, onPatchPosition, o
       <td className={td}><EditableCell type="yesno" value={e.uniform_issued} readOnly={ro} onSave={(v) => onPatch(e.id, "uniform_issued", v)} /></td>
       <td className={td}>
         {canEdit && (
-          <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => { if (confirm(`Delete ${e.full_name}?`)) onDelete(); }}>
+          <Button size="icon" variant="ghost" disabled={deleting} className="h-7 w-7 opacity-0 group-hover:opacity-100 disabled:opacity-40" onClick={() => { if (confirm(`Delete ${e.full_name}?`)) onDelete(); }}>
             <Trash2 className="w-3.5 h-3.5 text-destructive" />
           </Button>
         )}
       </td>
+
     </tr>
   );
 };
