@@ -531,10 +531,17 @@ const StaffMaster = () => {
 
 // ===================== ROW =====================
 const EmployeeRow = ({ e, idx, canEdit, deleting, onPatch, onPatchName, onPatchPosition, onPatchDepartment, onDelete }: {
-...
+  e: Employee;
+  idx: number;
+  canEdit: boolean;
+  deleting?: boolean;
+  onPatch: (id: string, key: keyof Employee, value: any) => void;
+  onPatchName: (e: Employee, first: string | null, last: string | null) => void;
+  onPatchPosition: (e: Employee, position: string | null) => void;
+  onPatchDepartment: (e: Employee, department: string | null) => void;
   onDelete: () => void;
-
 }) => {
+
   const exp = yearsBetween(e.onboarding_date);
   const age = ageFromBirthday(e.birthday);
   const remain = (Number(e.annual_leave_earned) || 0) - (Number(e.annual_leave_used) || 0) - (Number(e.annual_leave_sold) || 0);
