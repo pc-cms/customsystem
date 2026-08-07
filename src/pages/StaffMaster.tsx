@@ -530,15 +530,10 @@ const StaffMaster = () => {
 };
 
 // ===================== ROW =====================
-const EmployeeRow = ({ e, idx, canEdit, onPatch, onPatchName, onPatchPosition, onPatchDepartment, onDelete }: {
-  e: Employee;
-  idx: number;
-  canEdit: boolean;
-  onPatch: (id: string, key: keyof Employee, value: any) => void;
-  onPatchName: (e: Employee, first: string | null, last: string | null) => void;
-  onPatchPosition: (e: Employee, position: string | null) => void;
-  onPatchDepartment: (e: Employee, department: string | null) => void;
+const EmployeeRow = ({ e, idx, canEdit, deleting, onPatch, onPatchName, onPatchPosition, onPatchDepartment, onDelete }: {
+...
   onDelete: () => void;
+
 }) => {
   const exp = yearsBetween(e.onboarding_date);
   const age = ageFromBirthday(e.birthday);
