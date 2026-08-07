@@ -485,7 +485,7 @@ const StaffMaster = () => {
                     </tr>
                   );
                   list.forEach((e, idx) => {
-                    rows.push(<EmployeeRow key={e.id} e={e} idx={idx + 1} canEdit={canEdit} onPatch={onPatch} onPatchName={onPatchName} onPatchPosition={onPatchPosition} onPatchDepartment={onPatchDepartment} onDelete={() => del.mutate(e.id)} />);
+                    rows.push(<EmployeeRow key={e.id} e={e} idx={idx + 1} canEdit={canEdit} onPatch={onPatch} onPatchName={onPatchName} onPatchPosition={onPatchPosition} onPatchDepartment={onPatchDepartment} onDelete={() => del.mutate(e.id)} deleting={del.isPending} />);
                   });
                   return rows;
                 })}
