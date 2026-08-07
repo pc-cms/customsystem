@@ -18,10 +18,14 @@ const rnd = (seed: number) => {
   return x - Math.floor(x);
 };
 
+/** Demo months are cut to the first 15 days — enough to read, easy to check. */
+export const DEMO_DAY_COUNT = 15;
+
 export const demoMonthDays = (month: string): string[] => {
   const [y, m] = month.split("-").map(Number);
   const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
-  return Array.from({ length: last }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`);
+  const count = Math.min(last, DEMO_DAY_COUNT);
+  return Array.from({ length: count }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`);
 };
 
 const round = (n: number, step = 1000) => Math.round(n / step) * step;
