@@ -191,11 +191,12 @@ export const useDeleteDealer = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      // FK ON DELETE RESTRICT will block if history exists; UI should soft-deactivate instead.
-      const { error } = await supabase.from("employees").update({ payroll_status: "inactive" }).eq("id", id);
+      // Hard delete via secured RPC — cleans rota/breaklist/attendance/warnings/bonuses first.
+      const { error } = await supabase.rpc("hr_delete_employee", { _employee_id: id });
       if (error) throw error;
     },
-    onSuccess: () => invalidateEmployeeCaches(qc),
+    onSuccess: () => { invalidateEmployeeCaches(qc); toast.success("Employee removed"); },
+    onError: (e: Error) => toast.error(e.message),
   });
 };
 
