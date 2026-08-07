@@ -65,6 +65,8 @@ export interface OfficeBalanceData {
   rows: OfficeBalanceRow[];
   /** casino id → month totals (Result / Expenses / Profit) */
   casino_stats: Record<string, OfficeCasinoStat>;
+  /** Opening money carried over from the previous month (Cage + Bank). */
+  start_money: number;
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -80,11 +82,16 @@ export const monthBoundsOf = (month: string) => {
   return { from: `${month}-01`, to: `${month}-${String(last).padStart(2, "0")}` };
 };
 
-export const useOfficeBalanceReport = (month: string, enabled = true) => {
+/**
+ * @param startBalance Opening money of the month (Cage + Bank) carried over
+ *        from the previous month — the "Start" row. Without it the first day
+ *        could not be reconciled, because wallet history is cut at `from`.
+ */
+export const useOfficeBalanceReport = (month: string, enabled = true, startBalance = 0) => {
   const { from, to } = monthBoundsOf(month);
 
   return useQuery({
-    queryKey: ["office-balance-report", month],
+    queryKey: ["office-balance-report", month, startBalance],
     enabled: enabled && !!month,
     staleTime: 30_000,
     queryFn: async (): Promise<OfficeBalanceData> => {
@@ -226,11 +233,14 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
       let lastBank = 0;
       let lastBankCur: Record<string, number> = {};
       let lastMobile: Record<string, number> = {};
-      let office = 0;
-      let prevMoney: number | null = null;
+      // The opening stock sits in the office cage; wallet transactions of the
+      // month are applied on top of it.
+      let office = startBalance;
+      let prevMoney = startBalance;
       return {
         casinos: casinoList,
         casino_stats: casinoStats,
+        start_money: startBalance,
         rows: enumerateDates(from, to).map((date) => {
           const ins = inByDate[date] ?? {};
           const inTotal = Object.values(ins).reduce((s, v) => s + v, 0);
@@ -242,8 +252,8 @@ export const useOfficeBalanceReport = (month: string, enabled = true) => {
           lastBankCur = bankByCurRunning[date] ?? lastBankCur;
           lastMobile = mobileRunning[date] ?? lastMobile;
           const moneyTotal = office + lastBank;
-          const balance =
-            prevMoney == null ? 0 : prevMoney + inTotal - exp - trf - out - moneyTotal;
+          // Money yesterday + IN − Expenses − Transfer − OUT − Money today ≈ 0.
+          const balance = prevMoney + inTotal - exp - trf - out - moneyTotal;
           prevMoney = moneyTotal;
           const rate = FALLBACK_USD_RATE;
           const bankDetail = ["TZS", "USD", ...Object.keys(lastBankCur).filter((c) => c !== "TZS" && c !== "USD")]
