@@ -307,7 +307,7 @@ const SidebarSections = ({
     // group is visible (it maps to pit_rota / pit_attendance which already
     // gates the parent). Super-admin sees everything.
     const subs = allSubs.filter(s => {
-      if (s.roles && !isSuper && !s.roles.some(r => roles.includes(r))) return false;
+      if (s.roles && !isSuper && !s.roles.some(r => (roles as string[]).includes(r))) return false;
       const mk = moduleKeyForRoute(s.to, s.label);
       // License gate applies to everyone, including super_admin.
       if (mk && !licenseHasModule(license, mk)) return false;
