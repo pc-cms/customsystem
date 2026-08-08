@@ -44,7 +44,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   // ============= STAFF / FLOOR — flat URLs =============
   if (base === "/staff/employees") return "staff_employees";
   if (base === "/staff/playlist") return "employee_playlist";
-  if (base === "/rota/floor" || base === "/rota/security" || base === "/rota/office") return "staff_rota";
+  if (base === "/rota/floor" || base === "/rota/security" || base === "/rota/office" || base === "/rota/management") return "staff_rota";
   if (base === "/attendance/floor" || base === "/attendance/security" || base === "/attendance/office") return "staff_attendance";
   if (base === "/staff/master") return "staff_master";
   if (base === "/attendance/monthly") return "staff_master";

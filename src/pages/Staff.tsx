@@ -59,9 +59,11 @@ const DEPT_BORDER_COLORS: Record<string, string> = {
   hr: "border-orange-500/50",
   driver: "border-teal-500/50",
   reception: "border-rose-500/50",
+  manager: "border-indigo-500/50",
 };
 
 const DEPT_DOT_COLORS: Record<string, string> = {
+  manager: "bg-indigo-400",
   security: "bg-red-400",
   cashier: "bg-blue-400",
   bartender: "bg-amber-400",
@@ -75,6 +77,7 @@ const DEPT_DOT_COLORS: Record<string, string> = {
 };
 
 const DEPT_ROW_COLORS: Record<string, string> = {
+  manager: "bg-indigo-500/5",
   security: "bg-red-500/5",
   cashier: "bg-blue-500/5",
   bartender: "bg-amber-500/5",
@@ -88,7 +91,7 @@ const DEPT_ROW_COLORS: Record<string, string> = {
 };
 
 interface StaffProps {
-  forcedTab?: "employee" | "attendance" | "rota_floor" | "rota_security" | "rota_office";
+  forcedTab?: "employee" | "attendance" | "rota_floor" | "rota_security" | "rota_office" | "rota_management";
   forcedGroup?: "floor" | "security" | "office";
 }
 
@@ -136,13 +139,18 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
   const rotaGroup = rotaGroupKey ? getRotaGroup(rotaGroupKey, activeCasino) : null;
 
   // Map staff rota group → rota_locks scope
-  const lockScope: RotaScope | null = rotaGroupKey === "floor" ? "floor" : rotaGroupKey === "security" ? "security" : rotaGroupKey === "office" ? "office" : null;
+  const lockScope: RotaScope | null = rotaGroupKey === "floor" ? "floor" : rotaGroupKey === "security" ? "security" : rotaGroupKey === "office" ? "office" : rotaGroupKey === "management" ? "management" : null;
   const { data: groupLock } = useRotaLock(lockScope ?? "floor", month);
   const isLocked = isRotaTab && !!groupLock;
 
   // Attendance is scoped to a group (mirrors Rota grouping). Default: floor.
   const attGroupParam = (forcedGroup || searchParams.get("group") || "floor") as RotaGroupKey;
   const attGroupKey: RotaGroupKey = (ROTA_GROUPS as any)[attGroupParam] ? attGroupParam : "floor";
+
+  // Management rota is restricted: floor manager level and above only (Pit excluded).
+  const MGMT_ROTA_ROLES = ["super_admin", "boss", "general_manager", "manager", "shift_manager", "hr"];
+  const canSeeManagementRota = roles.some(r => MGMT_ROTA_ROLES.includes(r));
+
 
   const showMonthNav = isRotaTab || activeTab === "attendance";
 
@@ -151,6 +159,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
     rota_office: "Office Rota",
     rota_floor: "Floor Rota",
     rota_security: "Security Rota",
+    rota_management: "Management Rota",
     attendance: "Floor Attendance",
   };
 
@@ -261,7 +270,13 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
 
 
       {activeTab === "employee" && <EmployeeList />}
-      {isRotaTab && rotaGroupKey && <StaffRotaGrid month={month} groupKey={rotaGroupKey} monthLabel={monthLabel} readOnly={(isPast && !canEditRota) || !canManagePersonnel || isLocked} />}
+      {isRotaTab && rotaGroupKey === "management" && !canSeeManagementRota && (
+        <div className="p-8 text-center text-sm text-muted-foreground border border-dashed rounded-md">
+          Management rota is restricted to floor manager level and above.
+        </div>
+      )}
+      {isRotaTab && rotaGroupKey && (rotaGroupKey !== "management" || canSeeManagementRota) && <StaffRotaGrid month={month} groupKey={rotaGroupKey} monthLabel={monthLabel} readOnly={(isPast && !canEditRota) || !canManagePersonnel || isLocked} />}
+
       {activeTab === "attendance" && <StaffAttendanceGrid month={month} monthLabel={monthLabel} groupKey={attGroupKey} readOnly={(isPast && !canEditRota) || !canManagePersonnel} />}
     </div>
   );

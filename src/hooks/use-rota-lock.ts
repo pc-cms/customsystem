@@ -13,7 +13,7 @@ import { useAuth } from "@/lib/auth-context";
 import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { toast } from "sonner";
 
-export type RotaScope = "pit" | "floor" | "security" | "office";
+export type RotaScope = "pit" | "floor" | "security" | "office" | "management";
 
 const monthFirstDay = (yyyyMm: string) => `${yyyyMm}-01`;
 

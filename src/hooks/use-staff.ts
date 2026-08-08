@@ -8,7 +8,7 @@ import { invalidateEmployeeCaches } from "@/lib/invalidate-employees";
 import { toast } from "sonner";
 
 
-export type StaffDepartment = "security" | "cashier" | "bartender" | "hostess" | "waiter" | "cleaner" | "it" | "hr" | "driver" | "reception";
+export type StaffDepartment = "manager" | "security" | "cashier" | "bartender" | "hostess" | "waiter" | "cleaner" | "it" | "hr" | "driver" | "reception";
 
 export interface StaffMember {
   id: string;
@@ -24,6 +24,7 @@ export interface StaffMember {
 }
 
 export const DEPARTMENT_LABELS: Record<StaffDepartment, string> = {
+  manager: "Managers",
   security: "Security",
   cashier: "Cashiers",
   bartender: "Bar",
@@ -37,11 +38,17 @@ export const DEPARTMENT_LABELS: Record<StaffDepartment, string> = {
 };
 
 export const DEPARTMENT_ORDER: StaffDepartment[] = [
-  "security", "cashier", "bartender", "hostess", "waiter", "cleaner", "reception", "it", "hr", "driver",
+  "manager", "security", "cashier", "bartender", "hostess", "waiter", "cleaner", "reception", "it", "hr", "driver",
 ];
 
 // Rota group definitions
 export const ROTA_GROUPS = {
+  management: {
+    label: "Management",
+    departments: ["manager"] as StaffDepartment[],
+    shifts: ["D", "N", "T", "L", "E", "O"] as const,
+    shiftLabels: { D: "12:30 · 8h", N: "20:45 · 8h", T: "09:00–15:00 · 6h", L: "Leave · 0h", E: "17:45 · 8h", O: "Off · 0h" } as Record<string, string>,
+  },
   floor: {
     label: "Floor",
     departments: ["cashier", "bartender", "hostess", "waiter", "cleaner", "reception"] as StaffDepartment[],
@@ -152,7 +159,10 @@ const mapDept = (department: string, position: string | null): StaffDepartment =
     case "Bar":         return "bartender";
     case "Slots":       return position === "Waiter" ? "waiter" : "hostess";
     case "Housekeeper": return "cleaner";
-    case "Office":      return position === "HR" ? "hr" : "it";
+    case "Office":
+      if (position === "HR") return "hr";
+      if (position === "Manager") return "manager";
+      return "it";
     default:            return "cleaner";
   }
 };
@@ -228,6 +238,7 @@ const reverseDept = (d: StaffDepartment): { department: string; position: string
     case "it":
     case "driver":    return { department: "Office",   position: "IT" };
     case "hr":        return { department: "Office",   position: "HR" };
+    case "manager":   return { department: "Office",   position: "Manager" };
   }
 };
 

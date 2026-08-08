@@ -62,6 +62,7 @@ const StaffEmployeesPage = lazy(() => import("@/pages/flat/StaffFlat").then(m =>
 const EmployeePlaylist = lazy(() => import("@/pages/EmployeePlaylist"));
 const RotaFloorPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.RotaFloorPage })));
 const RotaSecurityPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.RotaSecurityPage })));
+const RotaManagementPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.RotaManagementPage })));
 const RotaOfficePage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.RotaOfficePage })));
 const AttendanceFloorPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.AttendanceFloorPage })));
 const AttendanceSecurityPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.AttendanceSecurityPage })));
@@ -248,6 +249,7 @@ const LegacyStaffRedirect = () => {
   else if (tab === "rota_floor") target = "/rota/floor";
   else if (tab === "rota_security") target = "/rota/security";
   else if (tab === "rota_office") target = "/rota/office";
+  else if (tab === "rota_management") target = "/rota/management";
   return <Navigate to={target} replace />;
 };
 
@@ -456,6 +458,7 @@ const ProtectedRoutes = () => {
           <Route path="/staff/playlist" element={<RoleGuard path="/staff/playlist"><ErrorBoundary><EmployeePlaylist /></ErrorBoundary></RoleGuard>} />
           <Route path="/rota/floor" element={<RoleGuard path="/rota/floor"><ErrorBoundary><RotaFloorPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/rota/security" element={<RoleGuard path="/rota/security"><ErrorBoundary><RotaSecurityPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/rota/management" element={<RoleGuard path="/rota/management"><ErrorBoundary><RotaManagementPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/rota/office" element={<RoleGuard path="/rota/office"><ErrorBoundary><RotaOfficePage /></ErrorBoundary></RoleGuard>} />
           <Route path="/attendance/floor" element={<RoleGuard path="/attendance/floor"><ErrorBoundary><AttendanceFloorPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/attendance/security" element={<RoleGuard path="/attendance/security"><ErrorBoundary><AttendanceSecurityPage /></ErrorBoundary></RoleGuard>} />
