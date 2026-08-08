@@ -918,171 +918,101 @@ const SubHead = ({
   // top-8 = 32px (height of first header row)
   const stickyTop = "top-8 z-10";
   return (
-    <>
-      <TableHead
-        className={cn(
-          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
-          bg,
-          stickyTop,
-        )}
-      >
-        {name} D
-      </TableHead>
-      <TableHead
-        className={cn(
-          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
-          bg,
-          stickyTop,
-        )}
-      >
-        {name} R
-      </TableHead>
-      <TableHead
-        className={cn(
-          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
-          bg,
-          endBorder,
-          stickyTop,
-        )}
-      >
-        {name} %
-      </TableHead>
-    </>
+    <TableHead
+      className={cn(
+        "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
+        bg,
+        endBorder,
+        stickyTop,
+      )}
+    >
+      {name}
+    </TableHead>
   );
 };
 
+/* Result-only body cell — Drop and Hold% are intentionally not shown here */
 const DRCell = ({
-  drop,
   result,
   hasData,
   bold,
   groupEnd,
-  alwaysShowDrop,
+  accent,
 }: {
-  drop: number;
+  drop?: number;
   result: number;
   hasData: boolean;
   bold?: boolean;
   groupEnd?: boolean;
   alwaysShowDrop?: boolean;
+  accent?: keyof typeof accentBg;
 }) => {
   const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
-  // Per-table Drop hidden by default; enabled for Mwanza via `alwaysShowDrop`.
-  const showDrop = !!bold || !!alwaysShowDrop;
-  if (!hasData && drop === 0 && result === 0) {
+  const tint = accent === "info" ? "bg-info/10" : undefined;
+  if (!hasData && result === 0) {
     return (
-      <>
-        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5">·</TableCell>
-        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5">—</TableCell>
-        <TableCell className={cn("text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5", endBorder)}>·</TableCell>
-      </>
+      <TableCell className={cn("text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5", endBorder, tint)}>—</TableCell>
     );
   }
   const isNeg = result < 0;
-  const pct = showDrop && drop > 0 ? (result / drop) * 100 : 0;
   return (
-    <>
-      <TableCell
-        className={cn(
-          "text-right font-mono tabular-nums whitespace-nowrap px-1.5",
-          bold && "font-semibold",
-          !showDrop && "text-muted-foreground/50",
-        )}
-      >
-        {showDrop ? (drop === 0 ? "—" : formatSpaced(drop)) : "·"}
-      </TableCell>
-      <TableCell
-        className={cn(
-          "text-right font-mono tabular-nums whitespace-nowrap px-1.5",
-          bold && "font-semibold",
-          isNeg && "text-destructive",
-        )}
-      >
-        {result === 0 ? "—" : formatSpaced(result)}
-      </TableCell>
-      <TableCell
-        className={cn(
-          "text-right font-mono tabular-nums text-xs whitespace-nowrap px-1.5",
-          isNeg && "text-destructive",
-          endBorder,
-          !showDrop && "text-muted-foreground/50",
-        )}
-      >
-        {showDrop ? (drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`) : "·"}
-      </TableCell>
-    </>
+    <TableCell
+      className={cn(
+        "text-right font-mono tabular-nums whitespace-nowrap px-1.5",
+        bold && "font-semibold",
+        isNeg && "text-destructive",
+        endBorder,
+        tint,
+      )}
+    >
+      {result === 0 ? "—" : formatSpaced(result)}
+    </TableCell>
   );
 };
 
-/* Compact period-total head cell for the header Σ row */
+/* Compact period-total head cell for the header Σ row (Result only) */
 const DRHeadCell = ({
-  drop,
   result,
   bold,
   groupEnd,
-  alwaysShowDrop,
 }: {
-  drop: number;
+  drop?: number;
   result: number;
   bold?: boolean;
   groupEnd?: boolean;
   alwaysShowDrop?: boolean;
+  accent?: keyof typeof accentBg;
 }) => {
   const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
   const isNeg = result < 0;
-  const showDrop = !!bold || !!alwaysShowDrop;
-  const pct = showDrop && drop > 0 ? (result / drop) * 100 : 0;
   // top-16 = 64px (sum of first two header rows, both h-8)
   const stickyTop = "top-16 z-10 [background-image:linear-gradient(hsl(var(--primary)/0.2),hsl(var(--primary)/0.2)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]";
   return (
-    <>
-      <TableHead
-        className={cn(
-          "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-foreground",
-          bold && "font-bold",
-          !showDrop && "text-muted-foreground/60",
-          stickyTop,
-        )}
-      >
-        {showDrop ? (drop === 0 ? "—" : formatSpaced(drop)) : "·"}
-      </TableHead>
-      <TableHead
-        className={cn(
-          "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-foreground",
-          bold && "font-bold",
-          isNeg && "text-destructive",
-          stickyTop,
-        )}
-      >
-        {result === 0 ? "—" : formatSpaced(result)}
-      </TableHead>
-      <TableHead
-        className={cn(
-          "text-right font-mono tabular-nums text-xs whitespace-nowrap px-1.5 text-foreground",
-          isNeg && "text-destructive",
-          !showDrop && "text-muted-foreground/60",
-          endBorder,
-          stickyTop,
-        )}
-      >
-        {showDrop ? (drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`) : "·"}
-      </TableHead>
-    </>
+    <TableHead
+      className={cn(
+        "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-foreground",
+        bold && "font-bold",
+        isNeg && "text-destructive",
+        endBorder,
+        stickyTop,
+      )}
+    >
+      {result === 0 ? "—" : formatSpaced(result)}
+    </TableHead>
   );
 };
 
-/* Group total row — single colSpan cell summarizing Drop / Result / Hold% per game group */
+/* Group total row — single colSpan cell summarizing Result per game group */
 const GroupTotalCells = ({
   colSpan,
-  drop,
   result,
   accent,
   noBorder,
 }: {
   colSpan: number;
-  drop: number;
+  drop?: number;
   result: number;
-  accent: "warning" | "success" | "destructive" | "primary";
+  accent: "warning" | "success" | "destructive" | "primary" | "info";
   noBorder?: boolean;
 }) => {
   const bgMap = {
@@ -1090,10 +1020,9 @@ const GroupTotalCells = ({
     success: "bg-success/15",
     destructive: "bg-destructive/15",
     primary: "bg-primary/25",
+    info: "bg-info/20",
   };
   const isNeg = result < 0;
-  const showDrop = accent === "primary"; // only grand-total row shows Drop
-  const pct = showDrop && drop > 0 ? (result / drop) * 100 : 0;
   return (
     <TableCell
       colSpan={colSpan}
@@ -1103,19 +1032,14 @@ const GroupTotalCells = ({
         !noBorder && "border-r-2 border-r-border",
       )}
     >
-      <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-2">D</span>
-      <span className="font-semibold mr-3">{showDrop ? (drop === 0 ? "—" : formatSpaced(drop)) : "·"}</span>
       <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-2">R</span>
-      <span className={cn("font-semibold mr-3", isNeg && "text-destructive")}>
+      <span className={cn("font-semibold", isNeg && "text-destructive")}>
         {result === 0 ? "—" : formatSpaced(result)}
-      </span>
-      <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-2">%</span>
-      <span className={cn("text-xs", isNeg && "text-destructive")}>
-        {showDrop ? (drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`) : "·"}
       </span>
     </TableCell>
   );
 };
+
 
 /* Inline drilldown — like the third photo (per-table full breakdown) */
 const DayDetail = ({ rows, date, totalDropFromCache, inByTable }: { rows: Row[]; date: string; totalDropFromCache: number; inByTable?: Map<string, number> }) => {
