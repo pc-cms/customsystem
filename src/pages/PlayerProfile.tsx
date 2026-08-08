@@ -506,14 +506,22 @@ const PlayerProfile = () => {
           <div className="flex-1 min-w-0 space-y-3">
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-2xl font-semibold text-card-foreground">{fullName}</h1>
+                {/* Level — promoted above the name and enlarged. */}
+                <div className="flex items-center gap-2 mb-1">
                   <LevelPicker
                     value={(player.category as PlayerCategory) || "normal"}
                     onPick={(v) => updateCategory.mutate({ player_id: player.id, category: v as any })}
                     canEdit={canEditLevel}
+                    size="lg"
                   />
+                  <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    {(player.category as string) || "normal"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-2xl font-semibold text-card-foreground">{fullName}</h1>
                   {player.status === "blacklist" && (
+
                     <span className="text-xs font-bold text-destructive border border-destructive rounded px-1.5 py-0.5">BL</span>
                   )}
                   {player.status === "blacklist" && (
