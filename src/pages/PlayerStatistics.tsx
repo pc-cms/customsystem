@@ -442,7 +442,12 @@ const PlayerStatistics = () => {
         chipDelta: chip.in - chip.out,
         result,
         isPresent,
-        zone: (zonesByPlayer.get(v.player_id) ?? null) as PlayerZone | null,
+        // Zone falls back to Live Game whenever an avg bet is recorded —
+        // a filled bet means the player is on a game table.
+        zone: (zonesByPlayer.get(v.player_id)
+          ?? ((summaryAvgBet(v.player_id) || (activeSession ? Number(activeSession.avg_bet || 0) : 0)) > 0 ? "LG" : null)) as PlayerZone | null,
+
+
       };
     }).filter(Boolean) as Array<NonNullable<ReturnType<typeof Object>>>;
   }, [visits, players, visitFin, activeSessionByPlayer, tableNameById, playersDropSplit, playerInDropSum, dailyAvgBetByPlayer, lifetimeVisitsByPlayer, visitsByPlayer, zonesByPlayer]);
@@ -1040,8 +1045,17 @@ const PlayerStatistics = () => {
         </div>
 
         <TabsContent value={tab} className="mt-0">
-          <div className="cms-panel rounded-lg" style={{ overflowX: "auto", overflowY: "visible", WebkitOverflowScrolling: "touch" }}>
-            <div style={{ overflowX: "auto", overflowY: "visible", WebkitOverflowScrolling: "touch" }}>
+          <div className="cms-panel rounded-lg">
+            {/* Single scroll container (both axes) so the sticky header row
+                actually pins while scrolling the grid. */}
+            <div
+              style={{
+                overflow: "auto",
+                maxHeight: "calc(100vh - var(--ppheader-h, 0px) - 210px)",
+                WebkitOverflowScrolling: "touch",
+              }}
+            >
+
               <table className="w-full text-xs">
                 <thead className="bg-zinc-900 border-b border-border">
                   <tr className="text-sm uppercase tracking-wider text-white">
@@ -1053,7 +1067,7 @@ const PlayerStatistics = () => {
                       const H = ({ k, align = "left", children, title, sticky }: { k: SortKey; align?: "left" | "right" | "center"; children: any; title?: string; sticky?: string }) => (
                         <th
                           title={title}
-                          style={{ top: "var(--ppheader-h, 0px)" }}
+                          style={{ top: "0px" }}
                           className={`px-2 py-3 cursor-pointer select-none hover:text-primary whitespace-nowrap font-bold sticky bg-zinc-900 text-white ${align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left"} ${sticky ? `${sticky} z-30` : "z-20"}`}
                           onClick={() => toggleSort(k)}
                         >
@@ -1062,9 +1076,9 @@ const PlayerStatistics = () => {
                       );
                       return (
                         <>
-                          <th style={{ top: "var(--ppheader-h, 0px)" }} onClick={() => toggleSort("card")} className="px-2 py-3 text-center sticky left-0 bg-zinc-900 text-white z-30 w-16 font-bold cursor-pointer select-none hover:text-primary whitespace-nowrap">Card<SortIcon k="card" /></th>
+                          <th style={{ top: "0px" }} onClick={() => toggleSort("card")} className="px-2 py-3 text-center sticky left-0 bg-zinc-900 text-white z-30 w-16 font-bold cursor-pointer select-none hover:text-primary whitespace-nowrap">Card<SortIcon k="card" /></th>
                           <th
-                            style={{ top: "var(--ppheader-h, 0px)" }}
+                            style={{ top: "0px" }}
                             className="px-2 py-3 sticky left-16 bg-zinc-900 text-white z-30 font-bold whitespace-nowrap text-left"
                           >
                             <span
@@ -1105,21 +1119,21 @@ const PlayerStatistics = () => {
                   </tr>
                   {filtered.length > 0 && (
                     <tr className="text-sm bg-[#F5D061] dark:bg-[#6B5A1A] border-b-2 border-primary/40 font-mono text-amber-950 dark:text-amber-50">
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-center sticky left-0 bg-[#F5D061] dark:bg-[#6B5A1A] text-amber-950 dark:text-amber-50 z-30 font-bold w-16">{totals.count}</td>
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-left uppercase tracking-wider font-bold sticky left-16 bg-[#F5D061] dark:bg-[#6B5A1A] text-amber-950 dark:text-amber-50 z-30">
+                      <td style={{ top: "38px", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-center sticky left-0 bg-[#F5D061] dark:bg-[#6B5A1A] text-amber-950 dark:text-amber-50 z-30 font-bold w-16">{totals.count}</td>
+                      <td style={{ top: "38px", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-2 py-2 text-left uppercase tracking-wider font-bold sticky left-16 bg-[#F5D061] dark:bg-[#6B5A1A] text-amber-950 dark:text-amber-50 z-30">
                         Total
                       </td>
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
-                      <td style={{ top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
+                      <td style={{ top: "38px", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
+                      <td style={{ top: "38px", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
+                      <td style={{ top: "38px", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
+                      <td style={{ top: "38px", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" }} className="px-1 py-2 sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20"></td>
                       {showFinancials && (() => {
                         const Money = ({ value, sign = false }: { value: number; sign?: boolean }) => {
                           if (!value) return <>·</>;
                           const prefix = sign && value > 0 ? "+" : "";
                           return <>{prefix}{formatCurrency(value)}</>;
                         };
-                        const stickyStyle = { top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" } as const;
+                        const stickyStyle = { top: "38px", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" } as const;
                         const stickyCls = "sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20";
                         return (
                           <>

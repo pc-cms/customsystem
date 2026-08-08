@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSessionState } from "@/hooks/use-session-state";
-import { Receipt, LayoutDashboard, Filter, ArrowUpDown, Users } from "lucide-react";
+import { Receipt, LayoutDashboard, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
@@ -13,17 +12,8 @@ import { canSeePlayerFinancials } from "@/lib/role-access";
 import { getBusinessDate } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { useTotalDrop } from "@/lib/drop-source";
-import {
-  useStaffMembers, useStaffRotaRange,
-  DEPARTMENT_LABELS, DEPARTMENT_ORDER,
-  STAFF_SHIFT_LABELS, STAFF_SHIFT_COLORS,
-  type StaffDepartment,
-} from "@/hooks/use-staff";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { CCTVDashboardSection } from "@/components/dashboard/CCTVDashboardSection";
 
 /**
@@ -92,8 +82,6 @@ const SummaryPanel = ({
   </section>
 );
 
-const ALL_SHIFTS = ["D", "M", "N", "G", "E", "L", "O"] as const;
-
 const Dashboard = () => {
   const { displayName, roles, casinoId } = useAuth();
   // Boss role lands on the TV overview instead of the operational dashboard.
@@ -107,8 +95,6 @@ const Dashboard = () => {
   const { data: tables = [] } = useGamingTables();
   // (live-game expenses fetched separately via pending count query below)
   const { data: tableResultMap = {} } = useDashboardTableResults(businessDate);
-  const { data: staffMembers = [] } = useStaffMembers();
-  const { data: staffRota = [] } = useStaffRotaRange(businessDate, businessDate);
 
   const isInitialLoading = loadingPlayers && loadingTx;
   const showFinancials = canSeePlayerFinancials(roles);
@@ -194,49 +180,30 @@ const Dashboard = () => {
 
   const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
-  // Floor Staff filters & sort
-  const [deptFilter, setDeptFilter] = useSessionState<StaffDepartment[]>("deptFilter", []);
-  const [shiftFilter, setShiftFilter] = useSessionState<string[]>("shiftFilter", []);
-  const [sortBy, setSortBy] = useSessionState<"name" | "department" | "shift">("sort", "department");
-  const [sortDir, setSortDir] = useSessionState<"asc" | "desc">("sortDir", "asc");
-
-  const rotaMap = useMemo(() => {
-    const m = new Map<string, string>();
-    staffRota.forEach((r: any) => m.set(r.staff_id, r.shift));
-    return m;
-  }, [staffRota]);
-
-  // Only staff actually on shift today: must have a rota entry that's not Off/Leave
-  const OFF_SHIFTS = new Set(["O", "L"]);
-
-  const floorStaff = useMemo(() => {
-    const list = staffMembers
-      .filter(s => s.is_active)
-      .map(s => ({ ...s, shift: rotaMap.get(s.id) }))
-      .filter(s => s.shift && !OFF_SHIFTS.has(s.shift))
-      .filter(s => deptFilter.length === 0 || deptFilter.includes(s.department))
-      .filter(s => shiftFilter.length === 0 || shiftFilter.includes(s.shift!));
-
-    const dir = sortDir === "asc" ? 1 : -1;
-    return list.sort((a, b) => {
-      if (sortBy === "name") return a.name.localeCompare(b.name) * dir;
-      if (sortBy === "shift") return (a.shift! ).localeCompare(b.shift!) * dir;
-      const dA = DEPARTMENT_ORDER.indexOf(a.department);
-      const dB = DEPARTMENT_ORDER.indexOf(b.department);
-      if (dA !== dB) return (dA - dB) * dir;
-      return a.name.localeCompare(b.name);
+  // Top players of the business day: aggregate today's transactions per player.
+  // Cut-off: Drop ≥ 1 000 000 or a non-zero result; max 10 rows, sorted by Drop.
+  const TOP_DROP_THRESHOLD = 1_000_000;
+  const topPlayersToday = useMemo(() => {
+    const byId = new Map<string, { id: string; drop: number; cashout: number }>();
+    for (const t of transactions as any[]) {
+      if (!t.player_id) continue;
+      const cur = byId.get(t.player_id) || { id: t.player_id, drop: 0, cashout: 0 };
+      const amt = Number(t.amount) || 0;
+      if (t.type === "buy" || t.type === "in") cur.drop += amt;
+      else if (t.type === "cashout" || t.type === "out") cur.cashout += amt;
+      byId.set(t.player_id, cur);
+    }
+    const nameById = new Map<string, string>();
+    (players as any[]).forEach(p => {
+      nameById.set(p.id, [p.first_name, p.last_name].filter(Boolean).join(" ") || p.nickname || "—");
     });
-  }, [staffMembers, rotaMap, deptFilter, shiftFilter, sortBy, sortDir]);
+    return Array.from(byId.values())
+      .map(r => ({ ...r, name: nameById.get(r.id) || "—", result: r.drop - r.cashout }))
+      .filter(r => r.drop >= TOP_DROP_THRESHOLD || r.result !== 0)
+      .sort((a, b) => b.drop - a.drop)
+      .slice(0, 10);
+  }, [transactions, players]);
 
-  const toggleSort = (col: "name" | "department" | "shift") => {
-    if (sortBy === col) setSortDir(d => d === "asc" ? "desc" : "asc");
-    else { setSortBy(col); setSortDir("asc"); }
-  };
-
-  const toggleDept = (d: StaffDepartment) =>
-    setDeptFilter(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
-  const toggleShift = (s: string) =>
-    setShiftFilter(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
 
   if (isInitialLoading) {
     return (
@@ -308,103 +275,48 @@ const Dashboard = () => {
         );
       })()}
 
-      {/* Floor Staff on Shift — full width, fills remaining height */}
-      <div className="cms-panel flex flex-col" style={{ minHeight: "60vh" }}>
-        <div className="cms-header flex items-center justify-between gap-2 flex-wrap">
-          <span>Floor Staff on Shift</span>
-          <div className="flex items-center gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-7 gap-1.5">
-                  <Filter className="w-3.5 h-3.5" />
-                  Department{deptFilter.length > 0 ? ` (${deptFilter.length})` : ""}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-52 p-2" align="end">
-                <div className="space-y-1 max-h-64 overflow-y-auto">
-                  {DEPARTMENT_ORDER.map(d => (
-                    <label key={d} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer text-sm">
-                      <Checkbox checked={deptFilter.includes(d)} onCheckedChange={() => toggleDept(d)} />
-                      <span>{DEPARTMENT_LABELS[d]}</span>
-                    </label>
+      {/* Top players today — Drop ≥ 1 000 000 or a non-zero result, max 10 rows. */}
+      {showFinancials && (
+        <div className="cms-panel flex flex-col">
+          <div className="cms-header flex items-center justify-between gap-2 flex-wrap">
+            <span>Top players today</span>
+            <span className="text-xs font-mono text-muted-foreground">{topPlayersToday.length} players</span>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {topPlayersToday.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No significant players yet today</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-card z-10">
+                  <tr className="border-b border-border">
+                    <th className="text-left px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">#</th>
+                    <th className="text-left px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Player</th>
+                    <th className="text-right px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Drop</th>
+                    <th className="text-right px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cashout</th>
+                    <th className="text-right px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Result</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topPlayersToday.map((p, i) => (
+                    <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                      <td className="px-4 py-1.5 font-mono text-xs text-muted-foreground">{i + 1}</td>
+                      <td className="px-4 py-1.5 text-card-foreground font-medium">
+                        <Link to={`/players/${p.id}`} className="hover:underline">{p.name}</Link>
+                      </td>
+                      <td className="px-4 py-1.5 text-right font-mono tabular-nums">{formatCurrency(p.drop)}</td>
+                      <td className="px-4 py-1.5 text-right font-mono tabular-nums">{formatCurrency(p.cashout)}</td>
+                      <td className={`px-4 py-1.5 text-right font-mono tabular-nums ${p.result > 0 ? "cms-amount-positive" : p.result < 0 ? "cms-amount-negative" : ""}`}>
+                        {p.result >= 0 ? "+" : ""}{formatCurrency(p.result)}
+                      </td>
+                    </tr>
                   ))}
-                </div>
-                {deptFilter.length > 0 && (
-                  <Button variant="ghost" size="sm" className="w-full mt-1 h-7" onClick={() => setDeptFilter([])}>Clear</Button>
-                )}
-              </PopoverContent>
-            </Popover>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-7 gap-1.5">
-                  <Filter className="w-3.5 h-3.5" />
-                  Shift{shiftFilter.length > 0 ? ` (${shiftFilter.length})` : ""}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-52 p-2" align="end">
-                <div className="space-y-1">
-                  {ALL_SHIFTS.map(s => (
-                    <label key={s} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer text-sm">
-                      <Checkbox checked={shiftFilter.includes(s)} onCheckedChange={() => toggleShift(s)} />
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${STAFF_SHIFT_COLORS[s] || "bg-muted text-muted-foreground"}`}>{s}</span>
-                      <span className="text-xs text-muted-foreground">{STAFF_SHIFT_LABELS[s] || s}</span>
-                    </label>
-                  ))}
-                </div>
-                {shiftFilter.length > 0 && (
-                  <Button variant="ghost" size="sm" className="w-full mt-1 h-7" onClick={() => setShiftFilter([])}>Clear</Button>
-                )}
-              </PopoverContent>
-            </Popover>
-
-            <span className="text-xs font-mono text-muted-foreground">{floorStaff.length} staff</span>
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
-          {floorStaff.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No staff on shift</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-card z-10">
-                <tr className="border-b border-border">
-                  <th className="text-left px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <button onClick={() => toggleSort("name")} className="inline-flex items-center gap-1 hover:text-foreground">
-                      Name <ArrowUpDown className="w-3 h-3" />
-                      {sortBy === "name" && <span className="text-[9px]">{sortDir === "asc" ? "▲" : "▼"}</span>}
-                    </button>
-                  </th>
-                  <th className="text-left px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <button onClick={() => toggleSort("department")} className="inline-flex items-center gap-1 hover:text-foreground">
-                      Department <ArrowUpDown className="w-3 h-3" />
-                      {sortBy === "department" && <span className="text-[9px]">{sortDir === "asc" ? "▲" : "▼"}</span>}
-                    </button>
-                  </th>
-                  <th className="text-right px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <button onClick={() => toggleSort("shift")} className="inline-flex items-center gap-1 hover:text-foreground ml-auto">
-                      Shift <ArrowUpDown className="w-3 h-3" />
-                      {sortBy === "shift" && <span className="text-[9px]">{sortDir === "asc" ? "▲" : "▼"}</span>}
-                    </button>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {floorStaff.map((s) => (
-                  <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/30">
-                    <td className="px-4 py-1.5 text-card-foreground font-medium">{s.name}</td>
-                    <td className="px-4 py-1.5 text-muted-foreground text-xs">{DEPARTMENT_LABELS[s.department]}</td>
-                    <td className="px-4 py-1.5 text-right">
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${STAFF_SHIFT_COLORS[s.shift!] || "bg-muted text-muted-foreground"}`}>
-                        {STAFF_SHIFT_LABELS[s.shift!] || s.shift}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
+      )}
+
     </PageShell>
   );
 };

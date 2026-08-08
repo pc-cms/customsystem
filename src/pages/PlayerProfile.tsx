@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import BlacklistPlayerDialog from "@/components/player/BlacklistPlayerDialog";
 import { formatCardId } from "@/lib/card-number";
 import PlayerVisitsBreakdown from "@/components/player/PlayerVisitsBreakdown";
+import PlayerVisitTrendChart from "@/components/player/PlayerVisitTrendChart";
 import PlayerChipAdjustmentsLog from "@/components/player/PlayerChipAdjustmentsLog";
 import { canSeePlayerFinancials } from "@/lib/role-access";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -506,14 +507,22 @@ const PlayerProfile = () => {
           <div className="flex-1 min-w-0 space-y-3">
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-2xl font-semibold text-card-foreground">{fullName}</h1>
+                {/* Level — promoted above the name and enlarged. */}
+                <div className="flex items-center gap-2 mb-1">
                   <LevelPicker
                     value={(player.category as PlayerCategory) || "normal"}
                     onPick={(v) => updateCategory.mutate({ player_id: player.id, category: v as any })}
                     canEdit={canEditLevel}
+                    size="lg"
                   />
+                  <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    {(player.category as string) || "normal"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-2xl font-semibold text-card-foreground">{fullName}</h1>
                   {player.status === "blacklist" && (
+
                     <span className="text-xs font-bold text-destructive border border-destructive rounded px-1.5 py-0.5">BL</span>
                   )}
                   {player.status === "blacklist" && (
@@ -579,12 +588,11 @@ const PlayerProfile = () => {
             {/* Tags moved up — right after name + level, in two columns. */}
             <PlayerStatusTagsEditor playerId={player.id} tagRows={tagRows} />
 
-            {/* KPIs: financials on row 1, time/visits on row 2 (5 cols on lg). */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+            {/* KPIs — row 1: Drop / Result / Comps / Total, row 2: Visits / Avg Drop / Avg session / Hold %. */}
+            <div className="space-y-2">
               {showFinancials && (
-                <>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <Kpi label="Drop" value={fmtMoney(lifetime.drop)} />
-                  <Kpi label="Cashout" value={fmtMoney(lifetime.cashout)} />
                   <Kpi
                     label="Result"
                     value={fmtMoney(lifetime.result)}
@@ -596,18 +604,28 @@ const PlayerProfile = () => {
                     value={fmtMoney(lifetime.total)}
                     valueClass={lifetime.total === 0 ? undefined : lifetime.total > 0 ? "cms-amount-positive" : "cms-amount-negative"}
                   />
-                </>
+                </div>
               )}
-              <Kpi label="Visits" value={lifetime.visitCount.toString()} />
-              <Kpi label="Total time" value={fmtDuration(lifetime.totalMins)} />
-              <Kpi label="Avg session" value={lifetime.avgSession ? fmtDuration(lifetime.avgSession) : "—"} />
-              {showFinancials && (
-                <Kpi
-                  label="Hold %"
-                  value={lifetime.hold === null ? "—" : `${lifetime.hold.toFixed(1)}%`}
-                />
-              )}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <Kpi label="Visits" value={lifetime.visitCount.toString()} />
+                {showFinancials && (
+                  <Kpi
+                    label="Avg Drop"
+                    value={lifetime.visitCount > 0 ? fmtMoney(Math.round(lifetime.drop / lifetime.visitCount)) : "—"}
+                  />
+                )}
+                <Kpi label="Avg session" value={lifetime.avgSession ? fmtDuration(lifetime.avgSession) : "—"} />
+                {showFinancials ? (
+                  <Kpi
+                    label="Hold %"
+                    value={lifetime.hold === null ? "—" : `${lifetime.hold.toFixed(1)}%`}
+                  />
+                ) : (
+                  <Kpi label="Total time" value={fmtDuration(lifetime.totalMins)} />
+                )}
+              </div>
             </div>
+
 
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 text-xs text-muted-foreground">
               <Field label="Phone" value={player.phone || "—"} />
@@ -851,6 +869,23 @@ const PlayerProfile = () => {
               valueClass={period.total === 0 ? undefined : period.total > 0 ? "cms-amount-positive" : "cms-amount-negative"}
             />
           </div>
+
+          <PageSection card title="Drop & Result per visit">
+            <PlayerVisitTrendChart
+              rows={(visitsInRange as any[]).map(v => {
+                const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0, dropR: 0, chipIn: 0, chipOut: 0 };
+                return {
+                  key: v.id,
+                  date: v.date,
+                  drop: f.dropR,
+                  result: (f.cashout + f.chipOut) - (f.totalIn + f.chipIn),
+                };
+              })}
+              rhythmDates={(visits as any[]).map(v => v.date)}
+            />
+          </PageSection>
+
+
 
           <PageSection card title={`By table (${tableStats.rows.length})`}>
             {tableStats.rows.length === 0 ? (

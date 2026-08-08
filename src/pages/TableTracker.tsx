@@ -27,6 +27,8 @@ import { useAuth } from "@/lib/auth-context";
 import { ChipCountPanel } from "@/components/tables/ChipCountPanel";
 import { TableAnalyticsChart } from "@/components/tables/TableAnalyticsChart";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 // 19:00 → 06:00, 1-hour intervals
 const generateSlots = () => {
@@ -53,11 +55,38 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const today = serverBusinessDate || getBusinessDate();
   const [date, setDate] = useSessionState<string>("date", today);
   const [mode, setMode] = useSessionState<"numbers" | "chips">("mode", "numbers");
-  const { isManager } = useAuth();
+  const { isManager, casinoId } = useAuth();
   const { data: tables = [] } = useGamingTables();
   const { data: trackerData = [] } = useTableTracker(date);
   
   const setValue = useSetTableTrackerValue();
+
+  // Per-table Drop = raw Σ IN transactions for the business day (project rule).
+  const { data: dropByTable = {} as Record<string, number> } = useQuery({
+    queryKey: ["table-tracker-drop", casinoId, date],
+    enabled: !!casinoId && !!date,
+    refetchInterval: 15_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("table_id, amount")
+        .eq("casino_id", casinoId)
+        .eq("business_date", date)
+        .in("type", ["in", "buy"])
+        .is("cancelled_at", null);
+      if (error) throw error;
+      const m: Record<string, number> = {};
+      (data ?? []).forEach((r: any) => {
+        if (!r.table_id) return;
+        m[r.table_id] = (m[r.table_id] || 0) + Number(r.amount || 0);
+      });
+      return m;
+    },
+  });
+  const dropTotal = useMemo(
+    () => Object.values(dropByTable).reduce((s, v) => s + Number(v || 0), 0),
+    [dropByTable]
+  );
 
   // Include closed tables that still have tracker data for the selected date,
   // so a stool closed mid-shift doesn't disappear from Numbers/Final view.
@@ -221,6 +250,9 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                       </th>
                     );
                   })}
+                  <th className="text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2 min-w-[120px] whitespace-nowrap border-l border-border">
+                    Drop
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -265,6 +297,11 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                         </td>
                       );
                     })}
+                    <td className="px-3 py-1 text-right whitespace-nowrap border-l border-border">
+                      <span className="font-mono tabular-nums text-sm font-bold text-card-foreground">
+                        {dropByTable[table.id] ? formatCurrency(dropByTable[table.id]) : "·"}
+                      </span>
+                    </td>
                   </tr>
                 ))}
                 <tr className="border-t-2 border-primary/30 bg-muted/30">
@@ -286,6 +323,11 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                       </td>
                     );
                   })}
+                  <td className="px-3 py-2 text-right whitespace-nowrap border-l border-border">
+                    <span className="font-mono tabular-nums text-sm font-bold text-card-foreground">
+                      {dropTotal ? formatCurrency(dropTotal) : "·"}
+                    </span>
+                  </td>
                 </tr>
               </tbody>
             </table>
