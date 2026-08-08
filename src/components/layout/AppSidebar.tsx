@@ -38,7 +38,7 @@ import mwanzaLogo from "@/assets/mwanza-logo.png";
 type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager" | "boss";
 
 // Section labels for the hybrid grouping (roles + shared ANALYTICS)
-type Section = "OVERVIEW" | "PIT" | "STAFF" | "CASHIER" | "RECEPTION" | "FINANCE" | "HR" | "ANALYTICS" | "CRM" | "MARKETING" | "BAR" | "PROMO" | "COMPANY" | "DEMO" | "SYSTEM";
+type Section = "OVERVIEW" | "PIT" | "STAFF" | "CASHIER" | "STATISTICS" | "RECEPTION" | "FINANCE" | "HR" | "ANALYTICS" | "CRM" | "MARKETING" | "BAR" | "PROMO" | "COMPANY" | "DEMO" | "SYSTEM";
 
 type NavItem = {
   to: string;
