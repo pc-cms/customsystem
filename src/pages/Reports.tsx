@@ -915,10 +915,23 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
   );
 };
 
-// =================== DAILY DIFF REPORT ===================
+// =================== LIVE GAME (daily) REPORT ===================
+const eatBizDate = (iso: string) => {
+  const d = new Date(iso);
+  const hh = parseInt(d.toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", hour12: false }), 10);
+  const tgt = hh < 7 ? new Date(d.getTime() - 86400_000) : d;
+  return tgt.toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" });
+};
+const eatTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString("en-GB", {
+    timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit", hour12: false,
+  });
+
 const DailyReport = ({ from, to }: { from: string; to: string }) => {
   const fmt = useFormatMoney();
   const { casinoId } = useAuth();
+  const navigate = useNavigate();
+  const [reprintId, setReprintId] = useState<string | null>(null);
   const { data: closedSet } = useClosedBusinessDates(from, to);
 
   const { data: rawRows = [], isLoading } = useQuery({
@@ -949,6 +962,33 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
     staleTime: 30_000,
   });
 
+  /* Closed live shift per business day — powers the Closed time column and
+     the Print / Edit&Print actions (moved here from the old Live Game tab). */
+  const { data: shiftByDate = {} } = useQuery({
+    queryKey: ["daily-diff-shifts", casinoId, from, to],
+    queryFn: async (): Promise<Record<string, { id: string; closed_at: string }>> => {
+      if (!casinoId || !from || !to) return {};
+      const fromIso = businessDayHourUTC(from, 7);
+      const toDate = new Date(to + "T00:00:00Z");
+      toDate.setUTCDate(toDate.getUTCDate() + 1);
+      const toIso = businessDayHourUTC(toDate.toISOString().slice(0, 10), 7);
+      const { data, error } = await supabase
+        .from("shifts")
+        .select("id, closed_at")
+        .eq("casino_id", casinoId)
+        .not("closed_at", "is", null)
+        .gte("closed_at", fromIso).lt("closed_at", toIso)
+        .order("closed_at", { ascending: true })
+        .limit(1000);
+      if (error) throw error;
+      const rec: Record<string, { id: string; closed_at: string }> = {};
+      (data || []).forEach((s: any) => { rec[eatBizDate(s.closed_at)] = { id: s.id, closed_at: s.closed_at }; });
+      return rec;
+    },
+    enabled: !!casinoId,
+    staleTime: 30_000,
+  });
+
   // Rule: show only CLOSED business days. Open (not-yet-closed) day is hidden
   // from the list, totals and KPIs.
   const rows = useMemo(
@@ -957,8 +997,6 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
   );
 
   const { sorted, sort, toggle } = useSorted(rows, { key: "date", dir: "desc" });
-
-
 
   const totals = useMemo(() => {
     const t = rows.reduce(
@@ -971,19 +1009,24 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
       }),
       { drop: 0, result: 0, playerResult: 0, miss: 0, balance: 0 },
     );
-    return { ...t, hold: t.drop > 0 ? (t.result / t.drop) * 100 : null };
+    return {
+      ...t,
+      hold: t.drop > 0 ? (t.result / t.drop) * 100 : null,
+      avgDrop: rows.length ? t.drop / rows.length : 0,
+    };
   }, [rows]);
 
   const fmtHold = (v: number | null) => v == null ? "—" : `${v.toFixed(1)}%`;
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
         <div className="cms-panel p-2">
           <p className="uppercase text-muted-foreground tracking-wider text-[10px]">Days</p>
           <p className="font-mono text-sm font-bold text-card-foreground">{rows.length}</p>
         </div>
         {[
+          { label: "AVG Drop", value: fmt(totals.avgDrop), cls: "text-card-foreground" },
           { label: "Drop", value: fmt(totals.drop), cls: "text-card-foreground" },
           { label: "Table Result", value: fmt(totals.result), cls: signCls(totals.result) },
           { label: "Hold %", value: fmtHold(totals.hold), cls: "text-card-foreground" },
@@ -999,45 +1042,73 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
         <DTHead>
           <DTRow>
             <SortHeader label="Date" k="date" sort={sort} toggle={toggle} type="date" />
+            <DTHeader type="time">Closed</DTHeader>
             <SortHeader label="Drop" k="drop" sort={sort} toggle={toggle} type="money" />
             <SortHeader label="Table Result" k="result" sort={sort} toggle={toggle} type="money" />
             <SortHeader label="Hold %" k="hold" sort={sort} toggle={toggle} type="money" />
             <SortHeader label="Player Result" k="playerResult" sort={sort} toggle={toggle} type="money" />
             <SortHeader label="Chip Difference" k="miss" sort={sort} toggle={toggle} type="money" />
             <SortHeader label="Gaming Balance" k="balance" sort={sort} toggle={toggle} type="money" />
+            <DTHeader type="actions" />
           </DTRow>
         </DTHead>
         <DTBody>
           {isLoading ? (
-            <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">Loading…</DTCell></DTRow>
+            <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-6">Loading…</DTCell></DTRow>
           ) : sorted.length === 0 ? (
-            <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">No closed business days in range</DTCell></DTRow>
-          ) : sorted.map((r) => (
-            <DTRow key={r.date}>
-              <DTCell type="date">{fmtDate(r.date)}</DTCell>
-              <DTCell type="money">{fmt(r.drop)}</DTCell>
-              <DTCell type="money"><span className={`font-bold ${signCls(r.result)}`}>{fmt(r.result)}</span></DTCell>
-              <DTCell type="money"><span className="text-muted-foreground">{fmtHold(r.hold)}</span></DTCell>
-              <DTCell type="money"><span className={signCls(r.playerResult)}>{fmt(r.playerResult)}</span></DTCell>
-              <DTCell type="money"><span className={signCls(r.miss)}>{fmt(r.miss)}</span></DTCell>
-              <DTCell type="money"><span className={`font-bold ${signCls(r.balance)}`}>{fmt(r.balance)}</span></DTCell>
-            </DTRow>
-          ))}
+            <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-6">No closed business days in range</DTCell></DTRow>
+          ) : sorted.map((r) => {
+            const sh = (shiftByDate as any)[r.date] as { id: string; closed_at: string } | undefined;
+            return (
+              <DTRow key={r.date}>
+                <DTCell type="date">{fmtDate(r.date)}</DTCell>
+                <DTCell type="time" className="text-muted-foreground font-mono">{sh ? eatTime(sh.closed_at) : "·"}</DTCell>
+                <DTCell type="money">{fmt(r.drop)}</DTCell>
+                <DTCell type="money"><span className={`font-bold ${signCls(r.result)}`}>{fmt(r.result)}</span></DTCell>
+                <DTCell type="money"><span className="text-muted-foreground">{fmtHold(r.hold)}</span></DTCell>
+                <DTCell type="money"><span className={signCls(r.playerResult)}>{fmt(r.playerResult)}</span></DTCell>
+                <DTCell type="money"><span className={signCls(r.miss)}>{fmt(r.miss)}</span></DTCell>
+                <DTCell type="money"><span className={`font-bold ${signCls(r.balance)}`}>{fmt(r.balance)}</span></DTCell>
+                <DTCell type="actions">
+                  <div className="flex gap-1 justify-end">
+                    <Button
+                      size="sm" variant="outline" className="h-7 gap-1 text-[11px]"
+                      disabled={!sh} onClick={() => sh && setReprintId(sh.id)}
+                    >
+                      <Printer className="w-3 h-3" /> Print
+                    </Button>
+                    <Button
+                      size="sm" variant="outline" className="h-7 gap-1 text-[11px]"
+                      disabled={!sh} onClick={() => sh && navigate(`/cage/shift/${sh.id}/edit-reprint`)}
+                    >
+                      <Printer className="w-3 h-3" /> Edit&Print
+                    </Button>
+                  </div>
+                </DTCell>
+              </DTRow>
+            );
+          })}
           {sorted.length > 0 && (
             <DTRow className="border-t-2 border-primary/40 bg-primary/10 font-bold text-[120%]">
               <DTCell type="date" className="uppercase text-primary">Total</DTCell>
+              <DTCell type="time" />
               <DTCell type="money">{fmt(totals.drop)}</DTCell>
               <DTCell type="money"><span className={signCls(totals.result)}>{fmt(totals.result)}</span></DTCell>
               <DTCell type="money">{fmtHold(totals.hold)}</DTCell>
               <DTCell type="money"><span className={signCls(totals.playerResult)}>{fmt(totals.playerResult)}</span></DTCell>
               <DTCell type="money"><span className={signCls(totals.miss)}>{fmt(totals.miss)}</span></DTCell>
               <DTCell type="money"><span className={signCls(totals.balance)}>{fmt(totals.balance)}</span></DTCell>
+              <DTCell type="actions" />
             </DTRow>
           )}
         </DTBody>
       </DataTable>
+      {reprintId && casinoId && (
+        <ReprintShiftDialog open onClose={() => setReprintId(null)} shiftId={reprintId} casinoId={casinoId} />
+      )}
     </div>
   );
 };
 
 export default Reports;
+
