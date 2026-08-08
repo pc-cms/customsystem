@@ -82,10 +82,11 @@ const Popover = ({ onClose, children, anchorRef }: {
   );
 };
 
-export const LevelPicker = ({ value, onPick, canEdit }: {
+export const LevelPicker = ({ value, onPick, canEdit, size = "sm" }: {
   value: PlayerCategory;
   onPick: (v: PlayerCategory) => void;
   canEdit: boolean;
+  size?: "sm" | "lg";
 }) => {
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -98,13 +99,15 @@ export const LevelPicker = ({ value, onPick, canEdit }: {
         onClick={() => canEdit && setOpen(o => !o)}
         title={`Level: ${value}`}
         className={cn(
-          "inline-flex items-center justify-center w-5 h-5 rounded-full border text-[10px] font-bold transition",
+          "inline-flex items-center justify-center rounded-full border font-bold transition",
+          size === "lg" ? "w-9 h-9 text-base" : "w-5 h-5 text-[10px]",
           LEVEL_TINT[value],
           canEdit && "hover:opacity-80 cursor-pointer",
         )}
       >
         {LEVEL_LETTER[value]}
       </button>
+
       {open && (
         <Popover onClose={() => setOpen(false)} anchorRef={btnRef}>
           <p className="text-[8px] text-muted-foreground uppercase px-1 mb-1">Level</p>
