@@ -127,6 +127,8 @@ type DayBucket = {
   arDrop: number; arResult: number;
   pkDrop: number; pkResult: number;
   bjDrop: number; bjResult: number;
+  clubDrop: number; clubResult: number;
+
   totalDrop: number; totalResult: number;
 };
 
