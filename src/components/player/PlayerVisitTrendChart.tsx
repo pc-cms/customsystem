@@ -3,7 +3,7 @@ import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   BarChart,
 } from "recharts";
-import { fmtDate } from "@/lib/format";
+import { fmtDate } from "@/lib/format-date";
 
 export type VisitTrendRow = {
   key: string;
