@@ -40,6 +40,7 @@ export const pathLoaders: Record<string, Loader> = {
   "/attendance/floor": () => import("@/pages/flat/StaffFlat"),
   "/attendance/security": () => import("@/pages/flat/StaffFlat"),
   "/attendance/office": () => import("@/pages/flat/StaffFlat"),
+  "/attendance/management": () => import("@/pages/flat/StaffFlat"),
   "/groups": () => import("@/pages/Groups"),
   "/reports": () => import("@/pages/Reports"),
   "/admin": () => import("@/pages/Admin"),
