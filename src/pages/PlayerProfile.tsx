@@ -869,6 +869,23 @@ const PlayerProfile = () => {
             />
           </div>
 
+          <PageSection card title="Drop & Result per visit">
+            <PlayerVisitTrendChart
+              rows={(visitsInRange as any[]).map(v => {
+                const f = visitFinancials.get(v.id) || { totalIn: 0, cashout: 0, comps: 0, dropR: 0, chipIn: 0, chipOut: 0 };
+                return {
+                  key: v.id,
+                  date: v.date,
+                  drop: f.dropR,
+                  result: (f.cashout + f.chipOut) - (f.totalIn + f.chipIn),
+                };
+              })}
+              rhythmDates={(visits as any[]).map(v => v.date)}
+            />
+          </PageSection>
+
+
+
           <PageSection card title={`By table (${tableStats.rows.length})`}>
             {tableStats.rows.length === 0 ? (
               <div className="text-sm text-muted-foreground">No table activity in this period.</div>
