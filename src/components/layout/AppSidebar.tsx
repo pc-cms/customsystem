@@ -9,6 +9,7 @@ import {
   Wallet, DoorOpen, ShieldAlert, Menu, Upload,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
   RefreshCw, AlertTriangle, User as UserIcon, Rows3, Rows2, Gift, CheckCircle2, Coffee, Megaphone, TrendingUp, ArrowLeftRight, BookOpen,
+  Joystick, LineChart,
 } from "lucide-react";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { resetPWACache } from "@/lib/pwa-register";
@@ -37,7 +38,7 @@ import mwanzaLogo from "@/assets/mwanza-logo.png";
 type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager" | "boss";
 
 // Section labels for the hybrid grouping (roles + shared ANALYTICS)
-type Section = "OVERVIEW" | "PIT" | "STAFF" | "CASHIER" | "RECEPTION" | "FINANCE" | "HR" | "ANALYTICS" | "CRM" | "MARKETING" | "BAR" | "PROMO" | "COMPANY" | "DEMO" | "SYSTEM";
+type Section = "OVERVIEW" | "PIT" | "STAFF" | "CASHIER" | "STATISTICS" | "RECEPTION" | "FINANCE" | "HR" | "ANALYTICS" | "CRM" | "MARKETING" | "BAR" | "PROMO" | "COMPANY" | "DEMO" | "SYSTEM";
 
 type NavItem = {
   to: string;
@@ -78,9 +79,17 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/transfers", icon: ArrowLeftRight, label: "Transfers", roles: ["super_admin", "cashier_slots"], section: "CASHIER" },
   // Unified Expenses — single page; source filter (Live/Slots/Office) for managers, locked to role for cashiers.
   { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "cashier", "cashier_slots"], section: "CASHIER" },
-  { to: "/reports", icon: FileBarChart, label: "Statistics", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "CASHIER" },
   { to: "/reports/blanks", icon: FileBarChart, label: "Blank Forms", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "general_manager" as AppRole, "boss" as AppRole, "cashier", "cashier_slots"], section: "CASHIER" },
   { to: "/tips-and-bonuses", icon: Gift, label: "Tips & Bonuses", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "CASHIER" },
+
+  // STATISTICS — flat tab launchers for the unified /reports page.
+  { to: "/reports?tab=total", icon: BarChart3, label: "Total", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
+  { to: "/reports?tab=daily", icon: Landmark, label: "Live Game", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
+  { to: "/reports?tab=slots", icon: Joystick, label: "Slots", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
+  { to: "/reports?tab=miss-chips", icon: Coins, label: "Miss Chips", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
+  { to: "/reports?tab=graphics", icon: LineChart, label: "Graphics", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
+  { to: "/reports?tab=groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
+  { to: "/reports?tab=tables", icon: Table2, label: "Tables", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
 
   // RECEPTION — alphabetical
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "shift_manager", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "RECEPTION" },
@@ -211,7 +220,8 @@ const parseItemTo = (to: string) => {
   return { base, tab };
 };
 
-const EXACT_NAV_PATHS = new Set(["/cage", "/cage/view", "/expenses", "/expenses/approvals"]);
+const EXACT_NAV_PATHS = new Set(["/cage", "/cage/view", "/expenses", "/expenses/approvals", "/reports"]);
+
 
 const routeMatchesNavItem = (pathname: string, to: string) => {
   const { base, tab } = parseItemTo(to);
@@ -254,7 +264,7 @@ const SidebarSections = ({
     (acc[item.section] ||= []).push(item);
     return acc;
   }, {});
-  const sectionOrder: Section[] = ["OVERVIEW", "PIT", "STAFF", "CASHIER", "RECEPTION", "FINANCE", "HR", "ANALYTICS", "CRM", "MARKETING", "BAR", "PROMO", "COMPANY", "DEMO", "SYSTEM"];
+  const sectionOrder: Section[] = ["OVERVIEW", "PIT", "STAFF", "CASHIER", "STATISTICS", "RECEPTION", "FINANCE", "HR", "ANALYTICS", "CRM", "MARKETING", "BAR", "PROMO", "COMPANY", "DEMO", "SYSTEM"];
   const sections = sectionOrder.filter(s => grouped[s]?.length || (s === "SYSTEM" && isManager));
 
   // Find which section contains the active route
