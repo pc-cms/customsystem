@@ -1040,8 +1040,17 @@ const PlayerStatistics = () => {
         </div>
 
         <TabsContent value={tab} className="mt-0">
-          <div className="cms-panel rounded-lg" style={{ overflowX: "auto", overflowY: "visible", WebkitOverflowScrolling: "touch" }}>
-            <div style={{ overflowX: "auto", overflowY: "visible", WebkitOverflowScrolling: "touch" }}>
+          <div className="cms-panel rounded-lg">
+            {/* Single scroll container (both axes) so the sticky header row
+                actually pins while scrolling the grid. */}
+            <div
+              style={{
+                overflow: "auto",
+                maxHeight: "calc(100vh - var(--ppheader-h, 0px) - 210px)",
+                WebkitOverflowScrolling: "touch",
+              }}
+            >
+
               <table className="w-full text-xs">
                 <thead className="bg-zinc-900 border-b border-border">
                   <tr className="text-sm uppercase tracking-wider text-white">
