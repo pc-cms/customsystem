@@ -444,8 +444,9 @@ const PlayerStatistics = () => {
         isPresent,
         // Zone falls back to Live Game whenever an avg bet is recorded —
         // a filled bet means the player is on a game table.
-        zone: ((zonesByPlayer.get(v.player_id) ?? null)
+        zone: (zonesByPlayer.get(v.player_id)
           ?? ((summaryAvgBet(v.player_id) || (activeSession ? Number(activeSession.avg_bet || 0) : 0)) > 0 ? "LG" : null)) as PlayerZone | null,
+
 
       };
     }).filter(Boolean) as Array<NonNullable<ReturnType<typeof Object>>>;
