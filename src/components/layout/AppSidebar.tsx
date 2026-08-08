@@ -9,7 +9,6 @@ import {
   Wallet, DoorOpen, ShieldAlert, Menu, Upload,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
   RefreshCw, AlertTriangle, User as UserIcon, Rows3, Rows2, Gift, CheckCircle2, Coffee, Megaphone, TrendingUp, ArrowLeftRight, BookOpen,
-  Joystick, LineChart,
 } from "lucide-react";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { resetPWACache } from "@/lib/pwa-register";
@@ -82,14 +81,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/reports/blanks", icon: FileBarChart, label: "Blank Forms", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "general_manager" as AppRole, "boss" as AppRole, "cashier", "cashier_slots"], section: "CASHIER" },
   { to: "/tips-and-bonuses", icon: Gift, label: "Tips & Bonuses", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "CASHIER" },
 
-  // STATISTICS — flat tab launchers for the unified /reports page.
-  { to: "/reports?tab=total", icon: BarChart3, label: "Total", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
-  { to: "/reports?tab=daily", icon: Landmark, label: "Live Game", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
-  { to: "/reports?tab=slots", icon: Joystick, label: "Slots", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
-  { to: "/reports?tab=miss-chips", icon: Coins, label: "Miss Chips", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
-  { to: "/reports?tab=graphics", icon: LineChart, label: "Graphics", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
-  { to: "/reports?tab=groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
-  { to: "/reports?tab=tables", icon: Table2, label: "Tables", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
+  // STATISTICS — single flat launcher for the unified /reports page.
+  { to: "/reports", icon: FileBarChart, label: "Statistics", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
 
   // RECEPTION — alphabetical
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "shift_manager", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "RECEPTION" },
@@ -283,21 +276,13 @@ const SidebarSections = ({
     return null;
   })();
 
+  // Persisted open state only matters for virtual groups (Attendance/Rota).
   const [open, setOpen] = useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = {};
     try {
       const stored = typeof window !== "undefined" ? localStorage.getItem(SECTIONS_STORAGE_KEY) : null;
-      if (stored) Object.assign(initial, JSON.parse(stored));
-    } catch { /* ignore */ }
-    if (activeSection) initial[activeSection] = true;
-    return initial;
+      return stored ? JSON.parse(stored) : {};
+    } catch { return {}; }
   });
-
-  // Auto-open the section that contains the active route
-  if (activeSection && !open[activeSection]) {
-    // schedule update to avoid setState-in-render
-    setTimeout(() => setOpen(o => ({ ...o, [activeSection]: true })), 0);
-  }
 
   const toggle = (s: string) => {
     setOpen(prev => {
@@ -426,8 +411,10 @@ const SidebarSections = ({
           : grouped[section] || [];
         if (!items.length) return null;
 
-        // OVERVIEW stays flat (Dashboard entries), everything else is a
-        // collapsible bold group header.
+        // OVERVIEW stays flat; everything else shows a static bold section
+        // label with its items always visible. Only virtual groups (Attendance,
+        // Rota) keep their own expand/collapse chevrons because they have real
+        // nested sub-items.
         if (section === FLAT_SECTION) {
           return (
             <div key={section} className="mb-1 space-y-0.5 [&_a]:font-semibold [&>div>a]:font-semibold">
@@ -436,27 +423,21 @@ const SidebarSections = ({
           );
         }
 
-        const isOpen = open[section] ?? (activeSection === section);
         return (
           <div key={section} className={idx > 0 ? "mt-1 border-t border-sidebar-border pt-1" : "mb-1"}>
-            <button
-              type="button"
-              onClick={() => toggle(section)}
+            <div
               className={cn(
-                "w-full flex items-center gap-2 px-3 h-8 rounded-md text-xs font-bold uppercase tracking-wide transition-colors",
+                "flex items-center gap-2 px-3 h-8 rounded-md text-xs font-bold uppercase tracking-wide transition-colors",
                 activeSection === section
                   ? "text-sidebar-primary"
-                  : "text-muted-foreground hover:bg-sidebar-accent",
+                  : "text-muted-foreground",
               )}
             >
               <span className="flex-1 text-left">{section}</span>
-              {isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-            </button>
-            {isOpen && (
-              <div className="space-y-0.5 mt-0.5">
-                {items.map(it => renderItem(it, section))}
-              </div>
-            )}
+            </div>
+            <div className="space-y-0.5 mt-0.5">
+              {items.map(it => renderItem(it, section))}
+            </div>
           </div>
         );
       })}
