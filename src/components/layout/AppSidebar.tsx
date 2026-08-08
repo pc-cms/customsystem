@@ -220,7 +220,8 @@ const parseItemTo = (to: string) => {
   return { base, tab };
 };
 
-const EXACT_NAV_PATHS = new Set(["/cage", "/cage/view", "/expenses", "/expenses/approvals"]);
+const EXACT_NAV_PATHS = new Set(["/cage", "/cage/view", "/expenses", "/expenses/approvals", "/reports"]);
+
 
 const routeMatchesNavItem = (pathname: string, to: string) => {
   const { base, tab } = parseItemTo(to);
