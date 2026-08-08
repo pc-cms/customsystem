@@ -1008,6 +1008,8 @@ export type Database = {
           id: string
           manager_comment: string | null
           manual_drop_slots: number
+          manual_slots_deposits: number
+          manual_slots_result: number
           opened_at: string
           opened_by: string
           reverses_id: string | null
@@ -1042,6 +1044,8 @@ export type Database = {
           id?: string
           manager_comment?: string | null
           manual_drop_slots?: number
+          manual_slots_deposits?: number
+          manual_slots_result?: number
           opened_at?: string
           opened_by: string
           reverses_id?: string | null
@@ -1076,6 +1080,8 @@ export type Database = {
           id?: string
           manager_comment?: string | null
           manual_drop_slots?: number
+          manual_slots_deposits?: number
+          manual_slots_result?: number
           opened_at?: string
           opened_by?: string
           reverses_id?: string | null

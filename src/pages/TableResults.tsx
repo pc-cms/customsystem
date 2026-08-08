@@ -35,6 +35,7 @@ import { fetchPaged } from "@/lib/fetch-paged";
 const AR_TABLES = ["AR1", "AR2", "AR3"] as const;
 const PK_TABLES = ["P1", "P2", "P3", "P4", "P5"] as const;
 const BJ_TABLES = ["BJ1"] as const;
+const CLUB_TABLES = ["Club"] as const;
 
 const PRESETS = [
   { key: "week", label: "Week" },
@@ -126,6 +127,8 @@ type DayBucket = {
   arDrop: number; arResult: number;
   pkDrop: number; pkResult: number;
   bjDrop: number; bjResult: number;
+  clubDrop: number; clubResult: number;
+
   totalDrop: number; totalResult: number;
 };
 
@@ -308,6 +311,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
       const ar = sumGroup(AR_TABLES);
       const pk = sumGroup(PK_TABLES);
       const bj = sumGroup(BJ_TABLES);
+      const club = sumGroup(CLUB_TABLES);
       return {
         date,
         cells,
@@ -318,8 +322,10 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
         pkResult: pk.res,
         bjDrop: bj.d,
         bjResult: bj.res,
-        totalDrop: ar.d + pk.d + bj.d,
-        totalResult: ar.res + pk.res + bj.res,
+        clubDrop: club.d,
+        clubResult: club.res,
+        totalDrop: ar.d + pk.d + bj.d + club.d,
+        totalResult: ar.res + pk.res + bj.res + club.res,
       };
     });
     return list.sort((a, b) => a.date.localeCompare(b.date));
@@ -331,8 +337,9 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
     let arDrop = 0, arResult = 0;
     let pkDrop = 0, pkResult = 0;
     let bjDrop = 0, bjResult = 0;
+    let clubDrop = 0, clubResult = 0;
     for (const b of buckets) {
-      for (const name of [...AR_TABLES, ...PK_TABLES, ...BJ_TABLES]) {
+      for (const name of [...AR_TABLES, ...PK_TABLES, ...BJ_TABLES, ...CLUB_TABLES]) {
         const c = b.cells[name];
         if (!c) continue;
         const acc = (cellsTotal[name] ||= { drop: 0, result: 0 });
@@ -342,14 +349,16 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
       arDrop += b.arDrop; arResult += b.arResult;
       pkDrop += b.pkDrop; pkResult += b.pkResult;
       bjDrop += b.bjDrop; bjResult += b.bjResult;
+      clubDrop += b.clubDrop; clubResult += b.clubResult;
     }
     return {
       cellsTotal,
       arDrop, arResult,
       pkDrop, pkResult,
       bjDrop, bjResult,
-      totalDrop: arDrop + pkDrop + bjDrop,
-      totalResult: arResult + pkResult + bjResult,
+      clubDrop, clubResult,
+      totalDrop: arDrop + pkDrop + bjDrop + clubDrop,
+      totalResult: arResult + pkResult + bjResult + clubResult,
     };
   }, [buckets]);
 
@@ -400,7 +409,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
   };
 
   /* Column groups */
-  const allTableCols = [...AR_TABLES, ...PK_TABLES, ...BJ_TABLES];
+  const allTableCols = [...AR_TABLES, ...PK_TABLES, ...BJ_TABLES, ...CLUB_TABLES];
 
   return (
     <div className="space-y-3 h-full flex flex-col">
@@ -654,25 +663,31 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                     Date
                   </TableHead>
                   <TableHead
-                    colSpan={AR_TABLES.length * 3}
+                    colSpan={AR_TABLES.length}
                     className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border [background-image:linear-gradient(hsl(var(--warning)/0.12),hsl(var(--warning)/0.12)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]"
                   >
                     American Roulette
                   </TableHead>
                   <TableHead
-                    colSpan={PK_TABLES.length * 3}
+                    colSpan={PK_TABLES.length}
                     className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border [background-image:linear-gradient(hsl(var(--success)/0.12),hsl(var(--success)/0.12)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]"
                   >
                     Poker (PK)
                   </TableHead>
                   <TableHead
-                    colSpan={BJ_TABLES.length * 3}
+                    colSpan={BJ_TABLES.length}
                     className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border [background-image:linear-gradient(hsl(var(--destructive)/0.12),hsl(var(--destructive)/0.12)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]"
                   >
                     Blackjack
                   </TableHead>
                   <TableHead
-                    colSpan={3}
+                    colSpan={CLUB_TABLES.length}
+                    className="sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border [background-image:linear-gradient(hsl(var(--info)/0.18),hsl(var(--info)/0.18)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]"
+                  >
+                    Club Poker
+                  </TableHead>
+                  <TableHead
+                    colSpan={1}
                     className="sticky top-0 z-20 text-center font-semibold [background-image:linear-gradient(hsl(var(--primary)/0.22),hsl(var(--primary)/0.22)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]"
                   >
                     Total Tables
@@ -690,6 +705,9 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                   ))}
                   {BJ_TABLES.map((t, i) => (
                     <SubHead key={t} name={t} accent="rose" groupEnd={i === BJ_TABLES.length - 1} />
+                  ))}
+                  {CLUB_TABLES.map((t, i) => (
+                    <SubHead key={t} name="CLUB" accent="info" groupEnd={i === CLUB_TABLES.length - 1} />
                   ))}
                   <SubHead name="ALL" accent="primary" bold />
                 </TableRow>
@@ -710,6 +728,10 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                   {BJ_TABLES.map((t, i) => {
                     const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
                     return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === BJ_TABLES.length - 1} alwaysShowDrop={showPerTableDrop} />;
+                  })}
+                  {CLUB_TABLES.map((t, i) => {
+                    const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
+                    return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === CLUB_TABLES.length - 1} accent="info" />;
                   })}
                   <DRHeadCell drop={periodTotalDrop} result={totals.totalResult} bold />
                 </TableRow>
@@ -801,6 +823,21 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                           );
                         })}
 
+                        {/* Club Poker cells */}
+                        {CLUB_TABLES.map((t, i) => {
+                          const c = b.cells[t] || emptyCell;
+                          return (
+                            <DRCell
+                              key={t}
+                              drop={c.drop}
+                              result={c.result}
+                              hasData={c.hasData}
+                              groupEnd={i === CLUB_TABLES.length - 1}
+                              accent="info"
+                            />
+                          );
+                        })}
+
                         {/* All */}
                         <DRCell drop={dropForDay(b.date)} result={b.totalResult} hasData bold />
                       </TableRow>
@@ -811,10 +848,11 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                           <TableCell
                             colSpan={
                               1 +
-                              AR_TABLES.length * 3 +
-                              PK_TABLES.length * 3 +
-                              BJ_TABLES.length * 3 +
-                              3
+                              AR_TABLES.length +
+                              PK_TABLES.length +
+                              BJ_TABLES.length +
+                              CLUB_TABLES.length +
+                              1
                             }
                             className="p-0"
                           >
@@ -833,10 +871,11 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                   <TableCell className="sticky left-0 bg-primary/20 z-10 border-r-2 border-r-border text-[11px] uppercase tracking-wide">
                     Σ by group
                   </TableCell>
-                  <GroupTotalCells colSpan={AR_TABLES.length * 3} drop={totals.arDrop} result={totals.arResult} accent="warning" />
-                  <GroupTotalCells colSpan={PK_TABLES.length * 3} drop={totals.pkDrop} result={totals.pkResult} accent="success" />
-                  <GroupTotalCells colSpan={BJ_TABLES.length * 3} drop={totals.bjDrop} result={totals.bjResult} accent="destructive" />
-                  <GroupTotalCells colSpan={3} drop={periodTotalDrop} result={totals.totalResult} accent="primary" noBorder />
+                  <GroupTotalCells colSpan={AR_TABLES.length} drop={totals.arDrop} result={totals.arResult} accent="warning" />
+                  <GroupTotalCells colSpan={PK_TABLES.length} drop={totals.pkDrop} result={totals.pkResult} accent="success" />
+                  <GroupTotalCells colSpan={BJ_TABLES.length} drop={totals.bjDrop} result={totals.bjResult} accent="destructive" />
+                  <GroupTotalCells colSpan={CLUB_TABLES.length} drop={totals.clubDrop} result={totals.clubResult} accent="info" />
+                  <GroupTotalCells colSpan={1} drop={periodTotalDrop} result={totals.totalResult} accent="primary" noBorder />
                 </TableRow>
               </TableBody>
             </table>
@@ -881,171 +920,101 @@ const SubHead = ({
   // top-8 = 32px (height of first header row)
   const stickyTop = "top-8 z-10";
   return (
-    <>
-      <TableHead
-        className={cn(
-          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
-          bg,
-          stickyTop,
-        )}
-      >
-        {name} D
-      </TableHead>
-      <TableHead
-        className={cn(
-          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
-          bg,
-          stickyTop,
-        )}
-      >
-        {name} R
-      </TableHead>
-      <TableHead
-        className={cn(
-          "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
-          bg,
-          endBorder,
-          stickyTop,
-        )}
-      >
-        {name} %
-      </TableHead>
-    </>
+    <TableHead
+      className={cn(
+        "text-right font-medium text-[10px] uppercase tracking-wide whitespace-nowrap px-1.5",
+        bg,
+        endBorder,
+        stickyTop,
+      )}
+    >
+      {name}
+    </TableHead>
   );
 };
 
+/* Result-only body cell — Drop and Hold% are intentionally not shown here */
 const DRCell = ({
-  drop,
   result,
   hasData,
   bold,
   groupEnd,
-  alwaysShowDrop,
+  accent,
 }: {
-  drop: number;
+  drop?: number;
   result: number;
   hasData: boolean;
   bold?: boolean;
   groupEnd?: boolean;
   alwaysShowDrop?: boolean;
+  accent?: keyof typeof accentBg;
 }) => {
   const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
-  // Per-table Drop hidden by default; enabled for Mwanza via `alwaysShowDrop`.
-  const showDrop = !!bold || !!alwaysShowDrop;
-  if (!hasData && drop === 0 && result === 0) {
+  const tint = accent === "info" ? "bg-info/10" : undefined;
+  if (!hasData && result === 0) {
     return (
-      <>
-        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5">·</TableCell>
-        <TableCell className="text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5">—</TableCell>
-        <TableCell className={cn("text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5", endBorder)}>·</TableCell>
-      </>
+      <TableCell className={cn("text-right text-muted-foreground/40 font-mono whitespace-nowrap px-1.5", endBorder, tint)}>—</TableCell>
     );
   }
   const isNeg = result < 0;
-  const pct = showDrop && drop > 0 ? (result / drop) * 100 : 0;
   return (
-    <>
-      <TableCell
-        className={cn(
-          "text-right font-mono tabular-nums whitespace-nowrap px-1.5",
-          bold && "font-semibold",
-          !showDrop && "text-muted-foreground/50",
-        )}
-      >
-        {showDrop ? (drop === 0 ? "—" : formatSpaced(drop)) : "·"}
-      </TableCell>
-      <TableCell
-        className={cn(
-          "text-right font-mono tabular-nums whitespace-nowrap px-1.5",
-          bold && "font-semibold",
-          isNeg && "text-destructive",
-        )}
-      >
-        {result === 0 ? "—" : formatSpaced(result)}
-      </TableCell>
-      <TableCell
-        className={cn(
-          "text-right font-mono tabular-nums text-xs whitespace-nowrap px-1.5",
-          isNeg && "text-destructive",
-          endBorder,
-          !showDrop && "text-muted-foreground/50",
-        )}
-      >
-        {showDrop ? (drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`) : "·"}
-      </TableCell>
-    </>
+    <TableCell
+      className={cn(
+        "text-right font-mono tabular-nums whitespace-nowrap px-1.5",
+        bold && "font-semibold",
+        isNeg && "text-destructive",
+        endBorder,
+        tint,
+      )}
+    >
+      {result === 0 ? "—" : formatSpaced(result)}
+    </TableCell>
   );
 };
 
-/* Compact period-total head cell for the header Σ row */
+/* Compact period-total head cell for the header Σ row (Result only) */
 const DRHeadCell = ({
-  drop,
   result,
   bold,
   groupEnd,
-  alwaysShowDrop,
 }: {
-  drop: number;
+  drop?: number;
   result: number;
   bold?: boolean;
   groupEnd?: boolean;
   alwaysShowDrop?: boolean;
+  accent?: keyof typeof accentBg;
 }) => {
   const endBorder = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/30";
   const isNeg = result < 0;
-  const showDrop = !!bold || !!alwaysShowDrop;
-  const pct = showDrop && drop > 0 ? (result / drop) * 100 : 0;
   // top-16 = 64px (sum of first two header rows, both h-8)
   const stickyTop = "top-16 z-10 [background-image:linear-gradient(hsl(var(--primary)/0.2),hsl(var(--primary)/0.2)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]";
   return (
-    <>
-      <TableHead
-        className={cn(
-          "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-foreground",
-          bold && "font-bold",
-          !showDrop && "text-muted-foreground/60",
-          stickyTop,
-        )}
-      >
-        {showDrop ? (drop === 0 ? "—" : formatSpaced(drop)) : "·"}
-      </TableHead>
-      <TableHead
-        className={cn(
-          "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-foreground",
-          bold && "font-bold",
-          isNeg && "text-destructive",
-          stickyTop,
-        )}
-      >
-        {result === 0 ? "—" : formatSpaced(result)}
-      </TableHead>
-      <TableHead
-        className={cn(
-          "text-right font-mono tabular-nums text-xs whitespace-nowrap px-1.5 text-foreground",
-          isNeg && "text-destructive",
-          !showDrop && "text-muted-foreground/60",
-          endBorder,
-          stickyTop,
-        )}
-      >
-        {showDrop ? (drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`) : "·"}
-      </TableHead>
-    </>
+    <TableHead
+      className={cn(
+        "text-right font-mono tabular-nums whitespace-nowrap px-1.5 text-foreground",
+        bold && "font-bold",
+        isNeg && "text-destructive",
+        endBorder,
+        stickyTop,
+      )}
+    >
+      {result === 0 ? "—" : formatSpaced(result)}
+    </TableHead>
   );
 };
 
-/* Group total row — single colSpan cell summarizing Drop / Result / Hold% per game group */
+/* Group total row — single colSpan cell summarizing Result per game group */
 const GroupTotalCells = ({
   colSpan,
-  drop,
   result,
   accent,
   noBorder,
 }: {
   colSpan: number;
-  drop: number;
+  drop?: number;
   result: number;
-  accent: "warning" | "success" | "destructive" | "primary";
+  accent: "warning" | "success" | "destructive" | "primary" | "info";
   noBorder?: boolean;
 }) => {
   const bgMap = {
@@ -1053,10 +1022,9 @@ const GroupTotalCells = ({
     success: "bg-success/15",
     destructive: "bg-destructive/15",
     primary: "bg-primary/25",
+    info: "bg-info/20",
   };
   const isNeg = result < 0;
-  const showDrop = accent === "primary"; // only grand-total row shows Drop
-  const pct = showDrop && drop > 0 ? (result / drop) * 100 : 0;
   return (
     <TableCell
       colSpan={colSpan}
@@ -1066,19 +1034,14 @@ const GroupTotalCells = ({
         !noBorder && "border-r-2 border-r-border",
       )}
     >
-      <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-2">D</span>
-      <span className="font-semibold mr-3">{showDrop ? (drop === 0 ? "—" : formatSpaced(drop)) : "·"}</span>
       <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-2">R</span>
-      <span className={cn("font-semibold mr-3", isNeg && "text-destructive")}>
+      <span className={cn("font-semibold", isNeg && "text-destructive")}>
         {result === 0 ? "—" : formatSpaced(result)}
-      </span>
-      <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-2">%</span>
-      <span className={cn("text-xs", isNeg && "text-destructive")}>
-        {showDrop ? (drop === 0 ? "—" : `${pct >= 0 ? "" : "-"}${Math.abs(pct).toFixed(1)}%`) : "·"}
       </span>
     </TableCell>
   );
 };
+
 
 /* Inline drilldown — like the third photo (per-table full breakdown) */
 const DayDetail = ({ rows, date, totalDropFromCache, inByTable }: { rows: Row[]; date: string; totalDropFromCache: number; inByTable?: Map<string, number> }) => {
@@ -1090,7 +1053,7 @@ const DayDetail = ({ rows, date, totalDropFromCache, inByTable }: { rows: Row[];
     const existing = byName.get(n);
     if (!existing || r.id.localeCompare(existing.id) > 0) byName.set(n, r);
   }
-  const order = [...AR_TABLES, ...PK_TABLES, ...BJ_TABLES];
+  const order = [...AR_TABLES, ...PK_TABLES, ...BJ_TABLES, ...CLUB_TABLES];
   const sorted = order
     .map((n) => byName.get(n))
     .filter((r): r is Row => Boolean(r));

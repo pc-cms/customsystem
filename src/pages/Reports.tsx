@@ -1,30 +1,26 @@
 import { useState, useMemo, lazy, Suspense } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
-import { usePlayers, useTransactions, useExpenses, usePlayerGroups } from "@/hooks/use-casino-data";
+import { useTransactions, useExpenses, usePlayerGroups } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Table2, Users, Receipt, Landmark, UsersRound, ArrowUp, ArrowDown, ArrowUpDown,
-  Coins, CalendarDays, Joystick, CreditCard, Printer, Check, BarChart3, Info,
+  Table2, Landmark, UsersRound, ArrowUp, ArrowDown, ArrowUpDown,
+  Coins, Joystick, Printer, Check, BarChart3,
 } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import MissChips from "@/pages/MissChips";
-import Expenses from "@/pages/finances/FinancesExpensesPage";
 import SlotsHistoryReport from "@/components/reports/SlotsHistoryReport";
-import CashlessReport from "@/components/reports/CashlessReport";
 import { PageShell } from "@/components/layout/PageShell";
 import { presetRange, type DatePreset } from "@/components/ui/date-range-presets";
 import { useMoneyMode, MoneyModeProvider, useFormatMoney } from "@/components/ui/data-table-toolbar";
-import { fmtDate, fmtDateTime } from "@/lib/format-date";
+import { fmtDate } from "@/lib/format-date";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { businessDayHourUTC } from "@/lib/business-day";
 import { useClosedBusinessDates } from "@/hooks/use-business-day-closure";
 import { fetchPaged } from "@/lib/fetch-paged";
-import { computeShiftCashFlow } from "@/lib/shift-cash";
 import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -77,20 +73,8 @@ const SortHeader = ({
   );
 };
 
-// Hook: fetch all shifts
-const useShifts = () => {
-  const { casinoId } = useAuth();
-  return useQuery({
-    queryKey: ["shifts", casinoId],
-    queryFn: async () => {
-      if (!casinoId) return [];
-      const { data, error } = await supabase.from("shifts").select("*").eq("casino_id", casinoId).order("opened_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!casinoId,
-  });
-};
+
+
 
 const toIsoDate = (d: Date) => {
   const y = d.getFullYear();
@@ -222,34 +206,25 @@ const Reports = () => {
       <MoneyModeProvider value={mode}>
       <Tabs defaultValue={initialTab} className="space-y-3">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="daily" className="gap-1 text-xs"><CalendarDays className="w-3.5 h-3.5" /> Daily Balance</TabsTrigger>
+          <TabsTrigger value="daily" className="gap-1 text-xs"><Landmark className="w-3.5 h-3.5" /> Live Game</TabsTrigger>
           <TabsTrigger value="total" className="gap-1 text-xs"><BarChart3 className="w-3.5 h-3.5" /> Total</TabsTrigger>
-          <TabsTrigger value="shifts" className="gap-1 text-xs"><Landmark className="w-3.5 h-3.5" /> Shifts</TabsTrigger>
-          <TabsTrigger value="live" className="gap-1 text-xs"><Landmark className="w-3.5 h-3.5" /> Live Game</TabsTrigger>
           <TabsTrigger value="slots" className="gap-1 text-xs"><Joystick className="w-3.5 h-3.5" /> Slots</TabsTrigger>
           <TabsTrigger value="tables" className="gap-1 text-xs"><Table2 className="w-3.5 h-3.5" /> Tables</TabsTrigger>
-          <TabsTrigger value="players" className="gap-1 text-xs"><Users className="w-3.5 h-3.5" /> Players</TabsTrigger>
           <TabsTrigger value="groups" className="gap-1 text-xs"><UsersRound className="w-3.5 h-3.5" /> Groups</TabsTrigger>
-          <TabsTrigger value="expenses" className="gap-1 text-xs"><Receipt className="w-3.5 h-3.5" /> Expenses</TabsTrigger>
-          <TabsTrigger value="cashless" className="gap-1 text-xs"><CreditCard className="w-3.5 h-3.5" /> Cashless</TabsTrigger>
           <TabsTrigger value="miss-chips" className="gap-1 text-xs"><Coins className="w-3.5 h-3.5" /> Miss Chips</TabsTrigger>
         </TabsList>
 
         <TabsContent value="daily"><DailyReport from={from} to={to} /></TabsContent>
         <TabsContent value="total"><TotalReport from={from} to={to} /></TabsContent>
-        <TabsContent value="shifts"><ShiftReport from={from} to={to} /></TabsContent>
-        <TabsContent value="live"><LiveGameReport from={from} to={to} /></TabsContent>
         <TabsContent value="slots"><SlotsHistoryReport from={from} to={to} embedded /></TabsContent>
         <TabsContent value="tables">
           <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>}>
             <TableResultsPage embedded embeddedFrom={from} embeddedTo={to} />
           </Suspense>
         </TabsContent>
-        <TabsContent value="players"><PlayerReport from={from} to={to} /></TabsContent>
         <TabsContent value="groups"><GroupReport from={from} to={to} /></TabsContent>
-        <TabsContent value="expenses"><Expenses embedded embeddedFrom={from} embeddedTo={to} /></TabsContent>
-        <TabsContent value="cashless"><CashlessReport from={from} to={to} embedded /></TabsContent>
         <TabsContent value="miss-chips"><MissChips embedded embeddedFrom={from} embeddedTo={to} /></TabsContent>
+
       </Tabs>
       </MoneyModeProvider>
     </PageShell>
@@ -257,257 +232,6 @@ const Reports = () => {
 };
 
 const signCls = (n: number) => n > 0 ? "cms-amount-positive" : n < 0 ? "cms-amount-negative" : "text-card-foreground";
-
-// =================== SHIFT REPORT ===================
-const ShiftReport = ({ from, to }: { from: string; to: string }) => {
-  const fmt = useFormatMoney();
-  const { data: shifts = [] } = useShifts();
-  const { data: expenses = [] } = useExpenses();
-
-  const filtered = useMemo(() => shifts.filter(s => {
-    const d = s.opened_at.split("T")[0];
-    return d >= from && d <= to;
-  }), [shifts, from, to]);
-
-  const shiftData = useMemo(() => filtered.map(s => {
-    const sExp = expenses.filter((e: any) => e.shift_id === s.id && e.approved);
-    const expTotal = sExp.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
-    const openTotals = (s.opening_float as any)?.totals || {};
-    const closeTotals = (s.closing_count as any)?.totals || {};
-    const openingCashOnly = Math.max(Number(openTotals.total_tzs || 0) - Number(openTotals.chips_tzs || 0), 0);
-    const hasClosing = s.status === "closed" && (s.closing_count != null);
-    const closingCashOnly = hasClosing
-      ? Number(closeTotals.total_tzs || 0) - Number(closeTotals.chips_tzs || 0)
-      : null;
-    const cashChange = closingCashOnly != null ? closingCashOnly - openingCashOnly : null;
-    const tablesResult = Number((s as any).shift_result || 0);
-    const slotsResult = 0;
-    const result = tablesResult + slotsResult;
-    const missTotal = Number((s as any).miss_total || 0);
-    const totalCash = result - missTotal - expTotal;
-    const balance = cashChange != null ? cashChange - totalCash : null;
-    return {
-      ...s,
-      opened_date: s.opened_at.split("T")[0],
-      expTotal, tablesResult, slotsResult, result, missTotal, totalCash,
-      balance: balance ?? 0,
-      balanceRaw: balance,
-    };
-  }), [filtered, expenses]);
-
-  const { sorted, sort, toggle } = useSorted(shiftData, { key: "opened_date", dir: "desc" });
-
-  const totals = useMemo(() => ({
-    tables: shiftData.reduce((s, d) => s + d.tablesResult, 0),
-    slots: shiftData.reduce((s, d) => s + d.slotsResult, 0),
-    result: shiftData.reduce((s, d) => s + d.result, 0),
-    expenses: shiftData.reduce((s, d) => s + d.expTotal, 0),
-    miss: shiftData.reduce((s, d) => s + d.missTotal, 0),
-    totalCash: shiftData.reduce((s, d) => s + d.totalCash, 0),
-  }), [shiftData]);
-
-  return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
-        {[
-          { label: "Shifts", value: String(shiftData.length), cls: "text-card-foreground" },
-          { label: "Tables", value: fmt(totals.tables), cls: signCls(totals.tables) },
-          { label: "Slots", value: fmt(totals.slots), cls: signCls(totals.slots) },
-          { label: "Result", value: fmt(totals.result), cls: signCls(totals.result) },
-          { label: "Miss Chips", value: fmt(totals.miss), cls: "text-warning" },
-          { label: "Total Cash", value: fmt(totals.totalCash), cls: signCls(totals.totalCash) },
-        ].map(c => (
-          <div key={c.label} className="cms-panel p-2">
-            <p className="uppercase text-muted-foreground tracking-wider text-[10px]">{c.label}</p>
-            <p className={`font-mono text-sm font-bold ${c.cls}`}>{c.value}</p>
-          </div>
-        ))}
-      </div>
-
-      <DataTable>
-        <DTHead>
-          <DTRow>
-            <SortHeader label="Date" k="opened_date" sort={sort} toggle={toggle} type="date" />
-            <SortHeader label="Status" k="status" sort={sort} toggle={toggle} type="status" />
-            <SortHeader label="Tables" k="tablesResult" sort={sort} toggle={toggle} type="money" />
-            <SortHeader label="Slots" k="slotsResult" sort={sort} toggle={toggle} type="money" />
-            <SortHeader label="Result" k="result" sort={sort} toggle={toggle} type="money" />
-            <SortHeader label="Expenses" k="expTotal" sort={sort} toggle={toggle} type="money" />
-            <SortHeader label="Miss Chips" k="missTotal" sort={sort} toggle={toggle} type="money" />
-            <SortHeader label="Total Cash" k="totalCash" sort={sort} toggle={toggle} type="money" />
-            <SortHeader label="Balance" k="balance" sort={sort} toggle={toggle} type="money" />
-          </DTRow>
-        </DTHead>
-        <DTBody>
-          {sorted.length === 0 ? (
-            <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-6">No shifts in range</DTCell></DTRow>
-          ) : sorted.map(s => (
-            <DTRow key={s.id}>
-              <DTCell type="date">{fmtDate(s.opened_at)}</DTCell>
-              <DTCell type="status">
-                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${s.status === "open" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
-                  {s.status}
-                </span>
-              </DTCell>
-              <DTCell type="money"><span className={signCls(s.tablesResult)}>{fmt(s.tablesResult)}</span></DTCell>
-              <DTCell type="money" className="text-muted-foreground">{fmt(s.slotsResult)}</DTCell>
-              <DTCell type="money"><span className={`font-bold ${signCls(s.result)}`}>{fmt(s.result)}</span></DTCell>
-              <DTCell type="money" className="text-warning">{fmt(s.expTotal)}</DTCell>
-              <DTCell type="money" className="text-warning">{fmt(s.missTotal)}</DTCell>
-              <DTCell type="money"><span className={`font-bold ${signCls(s.totalCash)}`}>{fmt(s.totalCash)}</span></DTCell>
-              <DTCell type="money">
-                <span className={`font-bold ${s.balanceRaw == null ? "text-muted-foreground" : s.balanceRaw === 0 ? "text-success" : "text-destructive"}`}>
-                  {s.balanceRaw != null ? `${s.balanceRaw >= 0 ? "+" : ""}${fmt(s.balanceRaw)}` : "—"}
-                </span>
-              </DTCell>
-            </DTRow>
-          ))}
-        </DTBody>
-      </DataTable>
-    </div>
-  );
-};
-
-// =================== LIVE GAME REPORT ===================
-const LiveGameReport = ({ from, to }: { from: string; to: string }) => {
-  const fmt = useFormatMoney();
-  const { casinoId } = useAuth();
-  const [reprintId, setReprintId] = useState<string | null>(null);
-  const navigate = useNavigate();
-
-  const { data: shifts = [], isLoading } = useQuery({
-    queryKey: ["reports-live", casinoId, from, to],
-    queryFn: async () => {
-      if (!casinoId || !from || !to) return [];
-      const fromIso = businessDayHourUTC(from, 7);
-      // exclusive end: +1 day at 07:00 EAT
-      const toDate = new Date(to + "T00:00:00Z");
-      toDate.setUTCDate(toDate.getUTCDate() + 1);
-      const toIso = businessDayHourUTC(toDate.toISOString().slice(0, 10), 7);
-      const { data, error } = await supabase
-        .from("shifts")
-        .select("id, opened_at, closed_at, miss_total, tables_result, balance, notes, cash_flow_delta, opening_float, closing_count, exchange_rates")
-        .gte("closed_at", fromIso)
-        .lt("closed_at", toIso)
-        .eq("casino_id", casinoId)
-        .not("closed_at", "is", null)
-        .order("closed_at", { ascending: false })
-        .limit(1000);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!casinoId,
-  });
-
-  // Prefer stored `cash_flow_delta` (kept in sync by BEFORE-trigger).
-  // Fallback: compute on the fly from snapshots — covers on-prem mirrors
-  // where the column exists but hasn't been backfilled yet.
-  const enriched = useMemo(() => {
-    return (shifts || []).map((s: any) => {
-      let cashDisplay: number | null =
-        s.cash_flow_delta == null ? null : Number(s.cash_flow_delta);
-      if (cashDisplay == null) {
-        const cf = computeShiftCashFlow(s);
-        if (cf) cashDisplay = cf.cashDelta;
-      }
-      return { ...s, cashDisplay };
-    });
-  }, [shifts]);
-
-  type K = "opened" | "closed" | "cash" | "miss" | "tables" | "balance";
-  const [sort, setSort] = useState<{ key: K; dir: SortDir }>({ key: "closed", dir: "desc" });
-  const toggle = (k: string) => setSort(s => s.key === k ? { key: k as K, dir: s.dir === "asc" ? "desc" : "asc" } : { key: k as K, dir: "desc" });
-
-  const sorted = useMemo(() => {
-    const getter: Record<K, (s: any) => any> = {
-      opened: s => s.opened_at, closed: s => s.closed_at,
-      cash: s => Number(s.cashDisplay || 0), miss: s => Number(s.miss_total || 0),
-      tables: s => Number(s.tables_result || 0),
-      balance: s => Number(s.balance ?? (s.closing_count as any)?.cash_desk_balance ?? 0),
-    };
-
-    const g = getter[sort.key];
-    return [...enriched].sort((a, b) => {
-      const va = g(a), vb = g(b);
-      if (typeof va === "number" && typeof vb === "number") return sort.dir === "asc" ? va - vb : vb - va;
-      return sort.dir === "asc" ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
-    });
-  }, [enriched, sort]);
-
-  return (
-    <TooltipProvider delayDuration={150}>
-    <div className="space-y-3">
-      <DataTable>
-        <DTHead>
-          <DTRow>
-            <SortHeader label="Opened" k="opened" sort={sort as any} toggle={toggle} type="date" />
-            <SortHeader label="Closed" k="closed" sort={sort as any} toggle={toggle} type="date" />
-            <SortHeader label="Cash" k="cash" sort={sort as any} toggle={toggle} type="money" />
-            <SortHeader label="Miss" k="miss" sort={sort as any} toggle={toggle} type="money" />
-            <SortHeader label="Tables" k="tables" sort={sort as any} toggle={toggle} type="money" />
-            <SortHeader label="Balance" k="balance" sort={sort as any} toggle={toggle} type="money" />
-
-            <DTHeader type="actions" />
-          </DTRow>
-        </DTHead>
-        <DTBody>
-          {isLoading ? (
-            <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">Loading…</DTCell></DTRow>
-          ) : sorted.length === 0 ? (
-            <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">No closings in range</DTCell></DTRow>
-          ) : sorted.map((s: any) => {
-            const cashVal = s.cashDisplay == null ? null : Number(s.cashDisplay);
-            const tables = Number(s.tables_result || 0);
-            const snapshotBal = (s.closing_count as any)?.cash_desk_balance;
-            const balance = s.balance != null
-              ? Number(s.balance)
-              : (snapshotBal != null ? Number(snapshotBal) : null);
-            const miss = Number(s.miss_total || 0);
-            return (
-              <DTRow key={s.id}>
-                <DTCell type="date">{s.opened_at ? fmtDateTime(s.opened_at) : "—"}</DTCell>
-                <DTCell type="date">{s.closed_at ? fmtDateTime(s.closed_at) : "—"}</DTCell>
-                <DTCell type="money">
-                  {cashVal == null ? (
-                    <span className="text-muted-foreground">—</span>
-                  ) : (
-                    <span className={signCls(cashVal)}>{fmt(cashVal)}</span>
-                  )}
-                </DTCell>
-                <DTCell type="money"><span className={signCls(-miss)}>{fmt(-miss)}</span></DTCell>
-                <DTCell type="money"><span className={`font-bold ${signCls(tables)}`}>{fmt(tables)}</span></DTCell>
-                <DTCell type="money">
-                  {balance == null ? (
-                    <span className="text-muted-foreground">—</span>
-                  ) : (
-                    <span className={signCls(balance)}>{fmt(balance)}</span>
-                  )}
-                </DTCell>
-
-
-
-                <DTCell type="actions">
-                  <div className="flex gap-1 justify-end">
-                    <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => setReprintId(s.id)}>
-                      <Printer className="w-3 h-3" /> Print
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => navigate(`/cage/shift/${s.id}/edit-reprint`)}>
-                      <Printer className="w-3 h-3" /> Edit&Print
-                    </Button>
-                  </div>
-                </DTCell>
-              </DTRow>
-            );
-          })}
-        </DTBody>
-      </DataTable>
-      {reprintId && casinoId && (
-        <ReprintShiftDialog open onClose={() => setReprintId(null)} shiftId={reprintId} casinoId={casinoId} />
-      )}
-    </div>
-    </TooltipProvider>
-  );
-};
 
 // =================== TOTAL REPORT (per business day rollup) ===================
 const TotalReport = ({ from, to }: { from: string; to: string }) => {
@@ -589,20 +313,46 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
     enabled: !!casinoId,
   });
 
-  type K = "date" | "dropTables" | "tablesResult" | "dropSlots" | "slotsResult" | "expenses" | "totalResults";
+  type K = "date" | "dropTables" | "tablesResult" | "holdTables" | "dropSlots" | "slotsResult" | "holdSlots" | "totalResults";
   const [sort, setSort] = useState<{ key: K; dir: SortDir }>({ key: "date", dir: "desc" });
   const toggle = (k: string) => setSort(s => s.key === k ? { key: k as K, dir: s.dir === "asc" ? "desc" : "asc" } : { key: k as K, dir: "desc" });
 
+  const holdOf = (res: number, drop: number) => (drop > 0 ? (res / drop) * 100 : null);
+  const fmtHold = (v: number | null) => (v == null ? "—" : `${v.toFixed(1)}%`);
+
   const sorted = useMemo(() => {
     const arr = [...rows] as any[];
+    const val = (r: any) => {
+      if (sort.key === "totalResults") return r.tablesResult + r.slotsResult;
+      if (sort.key === "holdTables") return holdOf(r.tablesResult, r.dropTables) ?? -Infinity;
+      if (sort.key === "holdSlots") return holdOf(r.slotsResult, r.dropSlots) ?? -Infinity;
+      return r[sort.key];
+    };
     arr.sort((a, b) => {
-      const av = sort.key === "totalResults" ? a.tablesResult + a.slotsResult : a[sort.key];
-      const bv = sort.key === "totalResults" ? b.tablesResult + b.slotsResult : b[sort.key];
+      const av = val(a); const bv = val(b);
       if (typeof av === "number" && typeof bv === "number") return sort.dir === "asc" ? av - bv : bv - av;
       return sort.dir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
     });
     return arr;
   }, [rows, sort]);
+
+  const totals = useMemo(() => {
+    const t = (rows as any[]).reduce((a, r) => ({
+      dropTables: a.dropTables + Number(r.dropTables || 0),
+      tablesResult: a.tablesResult + Number(r.tablesResult || 0),
+      dropSlots: a.dropSlots + Number(r.dropSlots || 0),
+      slotsResult: a.slotsResult + Number(r.slotsResult || 0),
+    }), { dropTables: 0, tablesResult: 0, dropSlots: 0, slotsResult: 0 });
+    const totalResult = t.tablesResult + t.slotsResult;
+    const totalDrop = t.dropTables + t.dropSlots;
+    return {
+      ...t,
+      totalResult,
+      holdTables: holdOf(t.tablesResult, t.dropTables),
+      holdSlots: holdOf(t.slotsResult, t.dropSlots),
+      totalHold: holdOf(totalResult, totalDrop),
+    };
+  }, [rows]);
 
   const updateDropSlots = useMutation({
     mutationFn: async ({ shiftIds, value }: { shiftIds: string[]; value: number }) => {
@@ -620,48 +370,83 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
   });
 
   return (
-    <DataTable>
-      <DTHead>
-        <DTRow>
-          <SortHeader label="Business Day" k="date" sort={sort as any} toggle={toggle} type="date" />
-          <SortHeader label="Drop Tables" k="dropTables" sort={sort as any} toggle={toggle} type="money" />
-          <SortHeader label="Tables Result" k="tablesResult" sort={sort as any} toggle={toggle} type="money" />
-          <SortHeader label="Drop Slots" k="dropSlots" sort={sort as any} toggle={toggle} type="money" />
-          <SortHeader label="Slots Result" k="slotsResult" sort={sort as any} toggle={toggle} type="money" />
-          <SortHeader label="Expenses" k="expenses" sort={sort as any} toggle={toggle} type="money" />
-          <SortHeader label="Total Results" k="totalResults" sort={sort as any} toggle={toggle} type="money" />
-        </DTRow>
-      </DTHead>
-      <DTBody>
-        {isLoading ? (
-          <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">Loading…</DTCell></DTRow>
-        ) : sorted.length === 0 ? (
-          <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">No closed shifts in range</DTCell></DTRow>
-        ) : sorted.map((r: any) => {
-          const totalResults = (r.tablesResult || 0) + (r.slotsResult || 0);
-          const slotsShiftIds: string[] = Array.isArray(r.slotsShiftIds) ? r.slotsShiftIds : [];
-          return (
-            <DTRow key={r.date}>
-              <DTCell type="date">{fmtDate(r.date)}</DTCell>
-              <DTCell type="money" className="text-muted-foreground">{fmt(r.dropTables || 0)}</DTCell>
-              <DTCell type="money"><span className={`font-semibold ${signCls(r.tablesResult || 0)}`}>{fmt(r.tablesResult || 0)}</span></DTCell>
-              <DTCell type="money">
-                <DropSlotsCell
-                  value={r.dropSlots || 0}
-                  canEdit={canEditDrop && slotsShiftIds.length > 0}
-                  onSave={(v) => updateDropSlots.mutate({ shiftIds: slotsShiftIds, value: v })}
-                />
-              </DTCell>
-              <DTCell type="money"><span className={`font-semibold ${signCls(r.slotsResult || 0)}`}>{fmt(r.slotsResult || 0)}</span></DTCell>
-              <DTCell type="money" className="text-muted-foreground">{fmt(r.expenses || 0)}</DTCell>
-              <DTCell type="money"><span className={`font-bold ${signCls(totalResults)}`}>{fmt(totalResults)}</span></DTCell>
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2">
+        {[
+          { label: "Drop Table", value: fmt(totals.dropTables), cls: "text-card-foreground" },
+          { label: "Result Table", value: fmt(totals.tablesResult), cls: signCls(totals.tablesResult) },
+          { label: "Hold", value: fmtHold(totals.holdTables), cls: "text-card-foreground" },
+          { label: "Drop Slots", value: fmt(totals.dropSlots), cls: "text-card-foreground" },
+          { label: "Result Slots", value: fmt(totals.slotsResult), cls: signCls(totals.slotsResult) },
+          { label: "Hold", value: fmtHold(totals.holdSlots), cls: "text-card-foreground" },
+          { label: "Total Result", value: fmt(totals.totalResult), cls: signCls(totals.totalResult) },
+          { label: "Total Hold", value: fmtHold(totals.totalHold), cls: "text-card-foreground" },
+        ].map((c, i) => (
+          <div key={`${c.label}-${i}`} className="cms-panel p-2">
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px]">{c.label}</p>
+            <p className={`font-mono text-sm font-bold ${c.cls}`}>{c.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <DataTable>
+        <DTHead>
+          <DTRow>
+            <SortHeader label="Business Day" k="date" sort={sort as any} toggle={toggle} type="date" />
+            <SortHeader label="Drop Table" k="dropTables" sort={sort as any} toggle={toggle} type="money" />
+            <SortHeader label="Result Table" k="tablesResult" sort={sort as any} toggle={toggle} type="money" />
+            <SortHeader label="Hold" k="holdTables" sort={sort as any} toggle={toggle} type="money" />
+            <SortHeader label="Drop Slots" k="dropSlots" sort={sort as any} toggle={toggle} type="money" />
+            <SortHeader label="Result Slots" k="slotsResult" sort={sort as any} toggle={toggle} type="money" />
+            <SortHeader label="Hold" k="holdSlots" sort={sort as any} toggle={toggle} type="money" />
+            <SortHeader label="Total Result" k="totalResults" sort={sort as any} toggle={toggle} type="money" />
+          </DTRow>
+        </DTHead>
+        <DTBody>
+          {isLoading ? (
+            <DTRow><DTCell colSpan={8} className="text-center text-muted-foreground py-6">Loading…</DTCell></DTRow>
+          ) : sorted.length === 0 ? (
+            <DTRow><DTCell colSpan={8} className="text-center text-muted-foreground py-6">No closed shifts in range</DTCell></DTRow>
+          ) : sorted.map((r: any) => {
+            const totalResults = (r.tablesResult || 0) + (r.slotsResult || 0);
+            const slotsShiftIds: string[] = Array.isArray(r.slotsShiftIds) ? r.slotsShiftIds : [];
+            return (
+              <DTRow key={r.date}>
+                <DTCell type="date">{fmtDate(r.date)}</DTCell>
+                <DTCell type="money" className="text-muted-foreground">{fmt(r.dropTables || 0)}</DTCell>
+                <DTCell type="money"><span className={`font-semibold ${signCls(r.tablesResult || 0)}`}>{fmt(r.tablesResult || 0)}</span></DTCell>
+                <DTCell type="money"><span className="text-muted-foreground">{fmtHold(holdOf(r.tablesResult || 0, r.dropTables || 0))}</span></DTCell>
+                <DTCell type="money">
+                  <DropSlotsCell
+                    value={r.dropSlots || 0}
+                    canEdit={canEditDrop && slotsShiftIds.length > 0}
+                    onSave={(v) => updateDropSlots.mutate({ shiftIds: slotsShiftIds, value: v })}
+                  />
+                </DTCell>
+                <DTCell type="money"><span className={`font-semibold ${signCls(r.slotsResult || 0)}`}>{fmt(r.slotsResult || 0)}</span></DTCell>
+                <DTCell type="money"><span className="text-muted-foreground">{fmtHold(holdOf(r.slotsResult || 0, r.dropSlots || 0))}</span></DTCell>
+                <DTCell type="money"><span className={`font-bold ${signCls(totalResults)}`}>{fmt(totalResults)}</span></DTCell>
+              </DTRow>
+            );
+          })}
+          {sorted.length > 0 && (
+            <DTRow className="border-t-2 border-primary/40 bg-primary/10 font-bold text-[120%]">
+              <DTCell type="date" className="uppercase text-primary">Total</DTCell>
+              <DTCell type="money">{fmt(totals.dropTables)}</DTCell>
+              <DTCell type="money"><span className={signCls(totals.tablesResult)}>{fmt(totals.tablesResult)}</span></DTCell>
+              <DTCell type="money">{fmtHold(totals.holdTables)}</DTCell>
+              <DTCell type="money">{fmt(totals.dropSlots)}</DTCell>
+              <DTCell type="money"><span className={signCls(totals.slotsResult)}>{fmt(totals.slotsResult)}</span></DTCell>
+              <DTCell type="money">{fmtHold(totals.holdSlots)}</DTCell>
+              <DTCell type="money"><span className={signCls(totals.totalResult)}>{fmt(totals.totalResult)}</span></DTCell>
             </DTRow>
-          );
-        })}
-      </DTBody>
-    </DataTable>
+          )}
+        </DTBody>
+      </DataTable>
+    </div>
   );
 };
+
 
 const DropSlotsCell = ({ value, canEdit, onSave }: { value: number; canEdit: boolean; onSave: (v: number) => void }) => {
   const fmt = useFormatMoney();
@@ -694,126 +479,6 @@ const DropSlotsCell = ({ value, canEdit, onSave }: { value: number; canEdit: boo
     </span>
   );
 };
-
-// =================== PLAYER REPORT ===================
-// Drop is peak-NEP per business day, summed across the range. Authoritative
-// source: `compute_players_drop_split` RPC — same formula as Player
-// Statistics, Tables and Dashboard. Cashout / expenses stay local sums.
-const PlayerReport = ({ from, to }: { from: string; to: string }) => {
-  const fmt = useFormatMoney();
-  const { casinoId } = useAuth();
-  const { data: players = [] } = usePlayers();
-  const { data: transactions = [] } = useTransactions();
-  const { data: expenses = [] } = useExpenses();
-
-  const fromIso = useMemo(() => businessDayHourUTC(from, 7), [from]);
-  const toIso = useMemo(() => {
-    const d = new Date(to + "T00:00:00Z");
-    d.setUTCDate(d.getUTCDate() + 1);
-    return businessDayHourUTC(d.toISOString().slice(0, 10), 7);
-  }, [to]);
-
-  const { data: dropByPlayer = {} } = useQuery({
-    queryKey: ["reports-players-drop-cache", casinoId, from, to],
-    queryFn: async (): Promise<Record<string, number>> => {
-      if (!casinoId || !from || !to) return {};
-      const rows = await fetchPaged<any>((f, t) => supabase
-        .from("player_day_drop_cache")
-        .select("player_id, peak")
-        .eq("casino_id", casinoId)
-        .gte("business_date", from).lte("business_date", to)
-        .range(f, t));
-      const rec: Record<string, number> = {};
-      rows.forEach((r) => {
-        if (!r?.player_id) return;
-        rec[r.player_id] = (rec[r.player_id] || 0) + (Number(r.peak) || 0);
-      });
-      return rec;
-    },
-    enabled: !!casinoId,
-    staleTime: 30_000,
-  });
-
-  const playerData = useMemo(() => {
-    // Business-day scoped (matches Drop from player_day_drop_cache).
-    const filteredTx = transactions.filter((t: any) => {
-      const d = t.business_date || (t.created_at ? t.created_at.split("T")[0] : "");
-      return d >= from && d <= to;
-    });
-    const filteredExp = expenses.filter((e: any) => {
-      const d = e.business_date || (e.created_at ? e.created_at.split("T")[0] : "");
-      return d >= from && d <= to && e.approved;
-    });
-    return players.filter(p => p.status === "active").map(p => {
-      const pTx = filteredTx.filter(t => t.player_id === p.id);
-      const pExp = filteredExp.filter((e: any) => e.player_id === p.id);
-      const drop = dropByPlayer[p.id] || 0;
-      const cashout = pTx.filter(t => (t.type === "cashout" || t.type === "out")).reduce((s, t) => s + Number(t.amount), 0);
-      const expTotal = pExp.reduce((s: number, e: any) => s + Number(e.amount), 0);
-      const result = cashout - drop;
-      const realResult = result - expTotal;
-      return {
-        ...p, player_name: `${p.first_name} ${p.last_name}`,
-        drop, cashout, expTotal, result, realResult, txCount: pTx.length,
-      };
-    }).filter(p => p.txCount > 0 || (dropByPlayer[p.id] || 0) > 0);
-  }, [players, transactions, expenses, from, to, dropByPlayer]);
-
-  const { sorted, sort, toggle } = useSorted(playerData, { key: "drop", dir: "desc" });
-  const totals = useMemo(() => sorted.reduce(
-    (a, p) => ({
-      drop: a.drop + p.drop, cashout: a.cashout + p.cashout, result: a.result + p.result,
-      expTotal: a.expTotal + p.expTotal, realResult: a.realResult + p.realResult, txCount: a.txCount + p.txCount,
-    }),
-    { drop: 0, cashout: 0, result: 0, expTotal: 0, realResult: 0, txCount: 0 },
-  ), [sorted]);
-
-  return (
-    <DataTable>
-      <DTHead>
-        <DTRow>
-          <SortHeader label="Player" k="player_name" sort={sort} toggle={toggle} type="name" />
-          <SortHeader label="Drop" k="drop" sort={sort} toggle={toggle} type="money" />
-          <SortHeader label="Cashout" k="cashout" sort={sort} toggle={toggle} type="money" />
-          <SortHeader label="Result" k="result" sort={sort} toggle={toggle} type="money" />
-          <SortHeader label="Expenses" k="expTotal" sort={sort} toggle={toggle} type="money" />
-          <SortHeader label="Real Result" k="realResult" sort={sort} toggle={toggle} type="money" />
-          <SortHeader label="Txns" k="txCount" sort={sort} toggle={toggle} type="int" />
-        </DTRow>
-      </DTHead>
-      <DTBody>
-        {sorted.length === 0 ? (
-          <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">No player data</DTCell></DTRow>
-        ) : sorted.map(p => (
-          <DTRow key={p.id}>
-            <DTCell type="name">
-              <span className="font-medium">{p.first_name} {p.last_name}</span>
-              {p.nickname && <span className="text-xs text-muted-foreground ml-1">({p.nickname})</span>}
-            </DTCell>
-            <DTCell type="money">{fmt(p.drop)}</DTCell>
-            <DTCell type="money">{fmt(p.cashout)}</DTCell>
-            <DTCell type="money"><span className={`font-bold ${signCls(p.result)}`}>{p.result >= 0 ? "+" : ""}{fmt(p.result)}</span></DTCell>
-            <DTCell type="money" className="text-warning">{fmt(p.expTotal)}</DTCell>
-            <DTCell type="money"><span className={`font-bold ${signCls(p.realResult)}`}>{p.realResult >= 0 ? "+" : ""}{fmt(p.realResult)}</span></DTCell>
-            <DTCell type="int" className="text-muted-foreground">{p.txCount}</DTCell>
-          </DTRow>
-        ))}
-        {sorted.length > 0 && (
-          <DTRow className="border-t-2 border-primary/30 bg-muted/30 font-bold">
-            <DTCell type="name" className="uppercase">Totals ({sorted.length})</DTCell>
-            <DTCell type="money">{fmt(totals.drop)}</DTCell>
-            <DTCell type="money">{fmt(totals.cashout)}</DTCell>
-            <DTCell type="money"><span className={signCls(totals.result)}>{fmt(totals.result)}</span></DTCell>
-            <DTCell type="money" className="text-warning">{fmt(totals.expTotal)}</DTCell>
-            <DTCell type="money"><span className={signCls(totals.realResult)}>{fmt(totals.realResult)}</span></DTCell>
-            <DTCell type="int" className="text-muted-foreground">{totals.txCount}</DTCell>
-          </DTRow>
-        )}
-      </DTBody>
-    </DataTable>
-  );
-};
-
 
 // =================== GROUP REPORT ===================
 const GroupReport = ({ from, to }: { from: string; to: string }) => {
@@ -915,10 +580,23 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
   );
 };
 
-// =================== DAILY DIFF REPORT ===================
+// =================== LIVE GAME (daily) REPORT ===================
+const eatBizDate = (iso: string) => {
+  const d = new Date(iso);
+  const hh = parseInt(d.toLocaleString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", hour12: false }), 10);
+  const tgt = hh < 7 ? new Date(d.getTime() - 86400_000) : d;
+  return tgt.toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" });
+};
+const eatTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString("en-GB", {
+    timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit", hour12: false,
+  });
+
 const DailyReport = ({ from, to }: { from: string; to: string }) => {
   const fmt = useFormatMoney();
   const { casinoId } = useAuth();
+  const navigate = useNavigate();
+  const [reprintId, setReprintId] = useState<string | null>(null);
   const { data: closedSet } = useClosedBusinessDates(from, to);
 
   const { data: rawRows = [], isLoading } = useQuery({
@@ -949,6 +627,33 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
     staleTime: 30_000,
   });
 
+  /* Closed live shift per business day — powers the Closed time column and
+     the Print / Edit&Print actions (moved here from the old Live Game tab). */
+  const { data: shiftByDate = {} } = useQuery({
+    queryKey: ["daily-diff-shifts", casinoId, from, to],
+    queryFn: async (): Promise<Record<string, { id: string; closed_at: string }>> => {
+      if (!casinoId || !from || !to) return {};
+      const fromIso = businessDayHourUTC(from, 7);
+      const toDate = new Date(to + "T00:00:00Z");
+      toDate.setUTCDate(toDate.getUTCDate() + 1);
+      const toIso = businessDayHourUTC(toDate.toISOString().slice(0, 10), 7);
+      const { data, error } = await supabase
+        .from("shifts")
+        .select("id, closed_at")
+        .eq("casino_id", casinoId)
+        .not("closed_at", "is", null)
+        .gte("closed_at", fromIso).lt("closed_at", toIso)
+        .order("closed_at", { ascending: true })
+        .limit(1000);
+      if (error) throw error;
+      const rec: Record<string, { id: string; closed_at: string }> = {};
+      (data || []).forEach((s: any) => { rec[eatBizDate(s.closed_at)] = { id: s.id, closed_at: s.closed_at }; });
+      return rec;
+    },
+    enabled: !!casinoId,
+    staleTime: 30_000,
+  });
+
   // Rule: show only CLOSED business days. Open (not-yet-closed) day is hidden
   // from the list, totals and KPIs.
   const rows = useMemo(
@@ -957,8 +662,6 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
   );
 
   const { sorted, sort, toggle } = useSorted(rows, { key: "date", dir: "desc" });
-
-
 
   const totals = useMemo(() => {
     const t = rows.reduce(
@@ -971,19 +674,24 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
       }),
       { drop: 0, result: 0, playerResult: 0, miss: 0, balance: 0 },
     );
-    return { ...t, hold: t.drop > 0 ? (t.result / t.drop) * 100 : null };
+    return {
+      ...t,
+      hold: t.drop > 0 ? (t.result / t.drop) * 100 : null,
+      avgDrop: rows.length ? t.drop / rows.length : 0,
+    };
   }, [rows]);
 
   const fmtHold = (v: number | null) => v == null ? "—" : `${v.toFixed(1)}%`;
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
         <div className="cms-panel p-2">
           <p className="uppercase text-muted-foreground tracking-wider text-[10px]">Days</p>
           <p className="font-mono text-sm font-bold text-card-foreground">{rows.length}</p>
         </div>
         {[
+          { label: "AVG Drop", value: fmt(totals.avgDrop), cls: "text-card-foreground" },
           { label: "Drop", value: fmt(totals.drop), cls: "text-card-foreground" },
           { label: "Table Result", value: fmt(totals.result), cls: signCls(totals.result) },
           { label: "Hold %", value: fmtHold(totals.hold), cls: "text-card-foreground" },
@@ -999,45 +707,73 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
         <DTHead>
           <DTRow>
             <SortHeader label="Date" k="date" sort={sort} toggle={toggle} type="date" />
+            <DTHeader type="time">Closed</DTHeader>
             <SortHeader label="Drop" k="drop" sort={sort} toggle={toggle} type="money" />
             <SortHeader label="Table Result" k="result" sort={sort} toggle={toggle} type="money" />
             <SortHeader label="Hold %" k="hold" sort={sort} toggle={toggle} type="money" />
             <SortHeader label="Player Result" k="playerResult" sort={sort} toggle={toggle} type="money" />
             <SortHeader label="Chip Difference" k="miss" sort={sort} toggle={toggle} type="money" />
             <SortHeader label="Gaming Balance" k="balance" sort={sort} toggle={toggle} type="money" />
+            <DTHeader type="actions" />
           </DTRow>
         </DTHead>
         <DTBody>
           {isLoading ? (
-            <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">Loading…</DTCell></DTRow>
+            <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-6">Loading…</DTCell></DTRow>
           ) : sorted.length === 0 ? (
-            <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">No closed business days in range</DTCell></DTRow>
-          ) : sorted.map((r) => (
-            <DTRow key={r.date}>
-              <DTCell type="date">{fmtDate(r.date)}</DTCell>
-              <DTCell type="money">{fmt(r.drop)}</DTCell>
-              <DTCell type="money"><span className={`font-bold ${signCls(r.result)}`}>{fmt(r.result)}</span></DTCell>
-              <DTCell type="money"><span className="text-muted-foreground">{fmtHold(r.hold)}</span></DTCell>
-              <DTCell type="money"><span className={signCls(r.playerResult)}>{fmt(r.playerResult)}</span></DTCell>
-              <DTCell type="money"><span className={signCls(r.miss)}>{fmt(r.miss)}</span></DTCell>
-              <DTCell type="money"><span className={`font-bold ${signCls(r.balance)}`}>{fmt(r.balance)}</span></DTCell>
-            </DTRow>
-          ))}
+            <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-6">No closed business days in range</DTCell></DTRow>
+          ) : sorted.map((r) => {
+            const sh = (shiftByDate as any)[r.date] as { id: string; closed_at: string } | undefined;
+            return (
+              <DTRow key={r.date}>
+                <DTCell type="date">{fmtDate(r.date)}</DTCell>
+                <DTCell type="time" className="text-muted-foreground font-mono">{sh ? eatTime(sh.closed_at) : "·"}</DTCell>
+                <DTCell type="money">{fmt(r.drop)}</DTCell>
+                <DTCell type="money"><span className={`font-bold ${signCls(r.result)}`}>{fmt(r.result)}</span></DTCell>
+                <DTCell type="money"><span className="text-muted-foreground">{fmtHold(r.hold)}</span></DTCell>
+                <DTCell type="money"><span className={signCls(r.playerResult)}>{fmt(r.playerResult)}</span></DTCell>
+                <DTCell type="money"><span className={signCls(r.miss)}>{fmt(r.miss)}</span></DTCell>
+                <DTCell type="money"><span className={`font-bold ${signCls(r.balance)}`}>{fmt(r.balance)}</span></DTCell>
+                <DTCell type="actions">
+                  <div className="flex gap-1 justify-end">
+                    <Button
+                      size="sm" variant="outline" className="h-7 gap-1 text-[11px]"
+                      disabled={!sh} onClick={() => sh && setReprintId(sh.id)}
+                    >
+                      <Printer className="w-3 h-3" /> Print
+                    </Button>
+                    <Button
+                      size="sm" variant="outline" className="h-7 gap-1 text-[11px]"
+                      disabled={!sh} onClick={() => sh && navigate(`/cage/shift/${sh.id}/edit-reprint`)}
+                    >
+                      <Printer className="w-3 h-3" /> Edit&Print
+                    </Button>
+                  </div>
+                </DTCell>
+              </DTRow>
+            );
+          })}
           {sorted.length > 0 && (
             <DTRow className="border-t-2 border-primary/40 bg-primary/10 font-bold text-[120%]">
               <DTCell type="date" className="uppercase text-primary">Total</DTCell>
+              <DTCell type="time" />
               <DTCell type="money">{fmt(totals.drop)}</DTCell>
               <DTCell type="money"><span className={signCls(totals.result)}>{fmt(totals.result)}</span></DTCell>
               <DTCell type="money">{fmtHold(totals.hold)}</DTCell>
               <DTCell type="money"><span className={signCls(totals.playerResult)}>{fmt(totals.playerResult)}</span></DTCell>
               <DTCell type="money"><span className={signCls(totals.miss)}>{fmt(totals.miss)}</span></DTCell>
               <DTCell type="money"><span className={signCls(totals.balance)}>{fmt(totals.balance)}</span></DTCell>
+              <DTCell type="actions" />
             </DTRow>
           )}
         </DTBody>
       </DataTable>
+      {reprintId && casinoId && (
+        <ReprintShiftDialog open onClose={() => setReprintId(null)} shiftId={reprintId} casinoId={casinoId} />
+      )}
     </div>
   );
 };
 
 export default Reports;
+
