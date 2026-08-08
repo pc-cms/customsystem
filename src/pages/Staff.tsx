@@ -270,7 +270,13 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
 
 
       {activeTab === "employee" && <EmployeeList />}
-      {isRotaTab && rotaGroupKey && <StaffRotaGrid month={month} groupKey={rotaGroupKey} monthLabel={monthLabel} readOnly={(isPast && !canEditRota) || !canManagePersonnel || isLocked} />}
+      {isRotaTab && rotaGroupKey === "management" && !canSeeManagementRota && (
+        <div className="p-8 text-center text-sm text-muted-foreground border border-dashed rounded-md">
+          Management rota is restricted to floor manager level and above.
+        </div>
+      )}
+      {isRotaTab && rotaGroupKey && (rotaGroupKey !== "management" || canSeeManagementRota) && <StaffRotaGrid month={month} groupKey={rotaGroupKey} monthLabel={monthLabel} readOnly={(isPast && !canEditRota) || !canManagePersonnel || isLocked} />}
+
       {activeTab === "attendance" && <StaffAttendanceGrid month={month} monthLabel={monthLabel} groupKey={attGroupKey} readOnly={(isPast && !canEditRota) || !canManagePersonnel} />}
     </div>
   );
