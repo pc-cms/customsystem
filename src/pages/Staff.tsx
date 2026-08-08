@@ -147,6 +147,11 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
   const attGroupParam = (forcedGroup || searchParams.get("group") || "floor") as RotaGroupKey;
   const attGroupKey: RotaGroupKey = (ROTA_GROUPS as any)[attGroupParam] ? attGroupParam : "floor";
 
+  // Management rota is restricted: floor manager level and above only (Pit excluded).
+  const MGMT_ROTA_ROLES = ["super_admin", "boss", "general_manager", "manager", "shift_manager", "hr"];
+  const canSeeManagementRota = roles.some(r => MGMT_ROTA_ROLES.includes(r));
+
+
   const showMonthNav = isRotaTab || activeTab === "attendance";
 
   const TAB_TITLES: Record<string, string> = {
