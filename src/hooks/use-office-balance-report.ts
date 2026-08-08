@@ -117,6 +117,7 @@ export const useOfficeBalanceReport = (month: string, enabled = true, startBalan
       ]);
 
       const casinoList: OfficeCasinoRef[] = casinos
+        .filter((c: any) => c.is_active !== false)
         .map((c: any) => ({ id: c.id, name: c.name }));
 
       const walletKind: Record<string, string> = {};
