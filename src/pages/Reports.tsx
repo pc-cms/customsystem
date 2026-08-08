@@ -225,6 +225,11 @@ const Reports = () => {
         </TabsContent>
         <TabsContent value="groups"><GroupReport from={from} to={to} /></TabsContent>
         <TabsContent value="miss-chips"><MissChips embedded embeddedFrom={from} embeddedTo={to} /></TabsContent>
+        <TabsContent value="graphics">
+          <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>}>
+            <YearlyGraphicsReport />
+          </Suspense>
+        </TabsContent>
 
       </Tabs>
       </MoneyModeProvider>
