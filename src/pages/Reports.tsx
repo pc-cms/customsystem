@@ -33,6 +33,7 @@ import {
 
 
 const TableResultsPage = lazy(() => import("@/pages/TableResults"));
+const YearlyGraphicsReport = lazy(() => import("@/components/reports/YearlyGraphicsReport"));
 
 // ----------- Sortable column helper -----------
 type SortDir = "asc" | "desc";
