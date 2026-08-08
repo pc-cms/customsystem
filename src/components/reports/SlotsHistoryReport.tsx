@@ -1,18 +1,20 @@
 /**
  * SlotsHistoryReport — read-only Slots cage shift history over an arbitrary
- * business-day range. Migrated to DataTable v2 + MoneyCell (Full/Compact toggle).
+ * business-day range. Columns mirror the Live Game report layout:
+ * Business Day / Closed / Drop / Net Win / Cashdesk / Client Balance /
+ * Card Miss / Balance / Print — with a TOTAL row at the bottom.
+ *
+ * Drop, Net Win and Client Balance are manual entries on the slots shift
+ * (`manual_drop_slots`, `manual_slots_result`, `manual_slots_deposits`),
+ * editable inline by managers/finance.
  */
 import { Fragment, KeyboardEvent, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Printer } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ChevronDown, ChevronRight, Printer, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { formatMoneyFull } from "@/lib/format-money";
-import { fmtDate, fmtDateTime } from "@/lib/format-date";
-import {
-  useCageSlotsHistory,
-  useSlotsCashlessAggByShift,
-  useSlotsClosingTotalsByShift,
-} from "@/hooks/use-cage-slots";
+import { fmtDate } from "@/lib/format-date";
+import { useCageSlotsHistory } from "@/hooks/use-cage-slots";
 import PrintSlotsShiftDialog from "@/components/cage-slots/PrintSlotsShiftDialog";
 import SlotsShiftReportBody from "@/components/cage-slots/SlotsShiftReportBody";
 import {
@@ -20,24 +22,58 @@ import {
 } from "@/components/ui/data-table";
 import { MoneyCell } from "@/components/ui/money-cell";
 import { useMoneyMode } from "@/components/ui/data-table-toolbar";
+import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/integrations/supabase/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
-const NORMALIZE_PROVIDER = (k: string): string | null => {
-  const v = String(k || "").toLowerCase().replace(/[\s_-]+/g, "");
-  if (v.includes("mpesa")) return "MPESA";
-  if (v.includes("tigo") || v.includes("tpesa")) return "TIGO";
-  if (v.includes("halo") || v.includes("hpesa")) return "HALOTEL";
-  if (v.includes("airtel")) return "AIRTEL";
-  return null;
-};
-
-type SortKey =
-  | "business_date" | "status" | "system" | "slots" | "cdr"
-  | "miss" | "clIn" | "clOut" | "clNet" | "balance";
+type SortKey = "business_date" | "drop" | "netWin" | "cdr" | "clientBalance" | "miss" | "balance";
 type SortDir = "asc" | "desc";
+
+const eatTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString("en-GB", {
+    timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit", hour12: false,
+  });
+
+/** Inline-editable money cell (same interaction as Drop Slots in Reports → Total). */
+const EditableMoney = ({
+  value, canEdit, mode, onSave,
+}: { value: number; canEdit: boolean; mode: any; onSave: (v: number) => void }) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(value || ""));
+  if (!canEdit) return <MoneyCell value={value || null} mode={mode} empty="·" />;
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setDraft(String(value || "")); setEditing(true); }}
+        className="hover:bg-muted/50 rounded px-1.5 py-0.5 -my-0.5 transition-colors"
+      >
+        {value ? <MoneyCell value={value} mode={mode} /> : <span className="text-muted-foreground/50">+ add</span>}
+      </button>
+    );
+  }
+  const save = () => { onSave(Number(draft) || 0); setEditing(false); };
+  return (
+    <span className="inline-flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      <Input
+        type="number" value={draft} autoFocus
+        onChange={(e) => setDraft(e.target.value)} onBlur={save}
+        onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}
+        className="h-7 w-28 text-right font-mono text-xs"
+      />
+      <Check className="w-3 h-3 text-muted-foreground" />
+    </span>
+  );
+};
 
 const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: string; embedded?: boolean }) => {
   const { data: allShifts = [], isLoading } = useCageSlotsHistory(500);
   const [mode, MoneyToggle] = useMoneyMode("slots-history-report");
+  const { roles } = useAuth();
+  const qc = useQueryClient();
+  const canEdit = roles.includes("super_admin") || roles.includes("manager") ||
+                  roles.includes("shift_manager") || roles.includes("finance_manager");
 
   const shifts = useMemo(() => {
     return allShifts.filter((s: any) => {
@@ -47,107 +83,88 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
     });
   }, [allShifts, from, to]);
 
-  const shiftIds = shifts.map((s: any) => s.id);
-  const { data: cashlessAgg = {} } = useSlotsCashlessAggByShift(shiftIds);
-  const { data: closingTotals = {} } = useSlotsClosingTotalsByShift(shiftIds);
   const [printShiftId, setPrintShiftId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "business_date", dir: "desc" });
 
-  const rows = useMemo(() => {
-    return shifts.map((s: any) => {
-      const ct = (closingTotals as any)[s.id];
-      const balance = Number(s.balance ?? ct?.shift_balance ?? 0);
-      const cdr = Number(s.cash_desk_result ?? s.actual_cage_result ?? 0);
-      const cMiss = Number(s.cards_miss || 0);
-      const sysRes = Number(s.system_shift_result || 0);
-      const slotsRes = Number(s.slots_result || 0);
+  const rows = useMemo(() => shifts.map((s: any) => ({
+    s,
+    drop: Number(s.manual_drop_slots || 0),
+    netWin: Number(s.manual_slots_result || 0),
+    cdr: Number(s.cash_desk_result ?? s.actual_cage_result ?? 0),
+    clientBalance: Number(s.manual_slots_deposits || 0),
+    miss: Number(s.cards_miss || 0),
+    balance: Number(s.balance || 0),
+  })), [shifts]);
 
-      const providersFromShift: Record<string, { in: number; out: number }> = {};
-      const addProv = (raw: any, dir: "in" | "out") => {
-        if (!raw || typeof raw !== "object") return;
-        Object.entries(raw).forEach(([k, v]) => {
-          const norm = NORMALIZE_PROVIDER(k);
-          if (!norm) return;
-          const pv = (providersFromShift[norm] ||= { in: 0, out: 0 });
-          pv[dir] += Number(v || 0);
-        });
-      };
-      addProv(s.cashless_in_providers, "in");
-      addProv(s.cashless_out_providers, "out");
-      const shiftClIn = Object.values(providersFromShift).reduce((a, p) => a + p.in, 0);
-      const shiftClOut = Object.values(providersFromShift).reduce((a, p) => a + p.out, 0);
-
-      const txAgg = (cashlessAgg as any)[s.id];
-      const txIn = txAgg?.in || 0;
-      const txOut = txAgg?.out || 0;
-
-      const clIn = txIn || shiftClIn || (ct?.cashless_in ?? 0);
-      const clOut = txOut || shiftClOut || (ct?.cashless_out ?? 0);
-      const clNet = clIn - clOut;
-
-      return { s, balance, cdr, cMiss, sysRes, slotsRes, clIn, clOut, clNet };
-    });
-  }, [shifts, cashlessAgg, closingTotals]);
-
-  const totals = useMemo(() => ({
-    shifts: rows.length,
-    slotsResult: rows.reduce((a, r) => a + r.slotsRes, 0),
-    cdr: rows.reduce((a, r) => a + r.cdr, 0),
-    cashlessNet: rows.reduce((a, r) => a + r.clNet, 0),
-    miss: rows.reduce((a, r) => a + r.cMiss, 0),
-    balance: rows.reduce((a, r) => a + r.balance, 0),
-  }), [rows]);
+  const totals = useMemo(() => {
+    const t = rows.reduce((a, r) => ({
+      drop: a.drop + r.drop,
+      netWin: a.netWin + r.netWin,
+      cdr: a.cdr + r.cdr,
+      clientBalance: a.clientBalance + r.clientBalance,
+      miss: a.miss + r.miss,
+      balance: a.balance + r.balance,
+    }), { drop: 0, netWin: 0, cdr: 0, clientBalance: 0, miss: 0, balance: 0 });
+    return {
+      ...t,
+      shifts: rows.length,
+      avgDrop: rows.length ? t.drop / rows.length : 0,
+      hold: t.drop > 0 ? (t.netWin / t.drop) * 100 : null,
+    };
+  }, [rows]);
 
   const sorted = useMemo(() => {
     const arr = [...rows];
-    const get = (r: typeof rows[number]): number | string => {
-      switch (sort.key) {
-        case "business_date": return r.s.business_date;
-        case "status":        return r.s.status;
-        case "system":        return r.sysRes;
-        case "slots":         return r.slotsRes;
-        case "cdr":           return r.cdr;
-        case "miss":          return r.cMiss;
-        case "clIn":          return r.clIn;
-        case "clOut":         return r.clOut;
-        case "clNet":         return r.clNet;
-        case "balance":       return r.balance;
-      }
-    };
+    const get = (r: typeof rows[number]): number | string =>
+      sort.key === "business_date" ? r.s.business_date : (r as any)[sort.key];
     arr.sort((a, b) => {
       const va = get(a); const vb = get(b);
       if (typeof va === "number" && typeof vb === "number") return sort.dir === "asc" ? va - vb : vb - va;
-      const sa = String(va); const sb = String(vb);
-      return sort.dir === "asc" ? sa.localeCompare(sb) : sb.localeCompare(sa);
+      return sort.dir === "asc"
+        ? String(va).localeCompare(String(vb))
+        : String(vb).localeCompare(String(va));
     });
     return arr;
   }, [rows, sort]);
 
   const toggleSort = (k: SortKey) =>
     setSort(s => (s.key === k ? { key: k, dir: s.dir === "asc" ? "desc" : "asc" } : { key: k, dir: "desc" }));
-
   const sortArrow = (k: SortKey) => sort.key === k ? (sort.dir === "asc" ? " ↑" : " ↓") : "";
 
   const signCls = (n: number) => n > 0 ? "cms-amount-positive" : n < 0 ? "cms-amount-negative" : "";
+  const fmtHold = (v: number | null) => v == null ? "—" : `${v.toFixed(1)}%`;
+
+  const updateField = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: number }) => {
+      const { error } = await supabase
+        .from("cage_slots_shifts")
+        .update({ [field]: value } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cage-slots-history"] });
+      qc.invalidateQueries({ queryKey: ["reports-total"] });
+      toast.success("Updated");
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to update"),
+  });
 
   return (
     <div className="space-y-3">
       {/* KPI summary tiles */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
         {[
-          { label: "Shifts", value: String(totals.shifts), cls: "text-card-foreground", raw: false },
-          { label: "Slots Result", value: totals.slotsResult, cls: signCls(totals.slotsResult), raw: true },
-          { label: "Cash Desk Result", value: totals.cdr, cls: signCls(totals.cdr), raw: true },
-          { label: "Cashless Net", value: totals.cashlessNet, cls: signCls(totals.cashlessNet), raw: true },
-          { label: "Cards Miss", value: totals.miss, cls: "text-warning", raw: true },
-          { label: "Balance", value: totals.balance, cls: signCls(totals.balance), raw: true },
+          { label: "Shifts", value: String(totals.shifts), cls: "text-card-foreground" },
+          { label: "AVG Drop", value: formatMoneyFull(totals.avgDrop), cls: "text-card-foreground" },
+          { label: "Drop", value: formatMoneyFull(totals.drop), cls: "text-card-foreground" },
+          { label: "Net Win", value: formatMoneyFull(totals.netWin), cls: signCls(totals.netWin) },
+          { label: "Hold", value: fmtHold(totals.hold), cls: "text-card-foreground" },
         ].map((c) => (
           <div key={c.label} className="cms-panel p-2">
             <p className="uppercase text-muted-foreground tracking-wider text-[10px]">{c.label}</p>
-            <p className={`font-mono text-sm font-bold ${c.cls}`}>
-              {c.raw ? formatMoneyFull(c.value as number) : (c.value as string)}
-            </p>
+            <p className={`font-mono text-sm font-bold ${c.cls}`}>{c.value}</p>
           </div>
         ))}
       </div>
@@ -158,35 +175,30 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
         </div>
       )}
 
-      <DataTable stickyFirstColumn>
+      <DataTable>
         <DTHead>
           <DTRow>
             <DTHeader type="date" className="cursor-pointer select-none" onClick={() => toggleSort("business_date")}>
               Business Day{sortArrow("business_date")}
             </DTHeader>
-            <DTHeader type="status" className="cursor-pointer select-none" onClick={() => toggleSort("status")}>
-              Status{sortArrow("status")}
-            </DTHeader>
             <DTHeader type="time">Closed</DTHeader>
-            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("system")}>System{sortArrow("system")}</DTHeader>
-            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("slots")}>Slots Result{sortArrow("slots")}</DTHeader>
-            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("cdr")}>Cash Desk Result{sortArrow("cdr")}</DTHeader>
-            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("miss")}>Cards Miss{sortArrow("miss")}</DTHeader>
-            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("clIn")}>Cashless IN{sortArrow("clIn")}</DTHeader>
-            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("clOut")}>Cashless OUT{sortArrow("clOut")}</DTHeader>
-            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("clNet")}>Cashless NET{sortArrow("clNet")}</DTHeader>
+            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("drop")}>Drop{sortArrow("drop")}</DTHeader>
+            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("netWin")}>Net Win{sortArrow("netWin")}</DTHeader>
+            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("cdr")}>Cashdesk{sortArrow("cdr")}</DTHeader>
+            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("clientBalance")}>Client Balance{sortArrow("clientBalance")}</DTHeader>
+            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("miss")}>Card Miss{sortArrow("miss")}</DTHeader>
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("balance")}>Balance{sortArrow("balance")}</DTHeader>
             <DTHeader type="actions" />
           </DTRow>
         </DTHead>
         <DTBody>
           {isLoading && (
-            <DTRow><DTCell colSpan={12} className="text-center text-muted-foreground py-4">Loading…</DTCell></DTRow>
+            <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-4">Loading…</DTCell></DTRow>
           )}
           {!isLoading && sorted.length === 0 && (
-            <DTRow><DTCell colSpan={12} className="text-center text-muted-foreground py-4">No closed slots shifts in range</DTCell></DTRow>
+            <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-4">No closed slots shifts in range</DTCell></DTRow>
           )}
-          {sorted.map(({ s, balance, cdr, cMiss, sysRes, slotsRes, clIn, clOut, clNet }) => {
+          {sorted.map(({ s, drop, netWin, cdr, clientBalance, miss, balance }) => {
             const isExpanded = expandedId === s.id;
             const toggleExpanded = () => setExpandedId(isExpanded ? null : s.id);
             const onRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
@@ -213,15 +225,31 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
                       {fmtDate(s.business_date)}
                     </span>
                   </DTCell>
-                  <DTCell type="status"><Badge variant="outline" className="text-[10px] uppercase">{String(s.status).replace("_", " ")}</Badge></DTCell>
-                  <DTCell type="time" className="text-muted-foreground">{s.closed_at ? new Date(s.closed_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit", hour12: false }) : "·"}</DTCell>
-                  <DTCell type="money"><MoneyCell value={sysRes} mode={mode} /></DTCell>
-                  <DTCell type="money"><MoneyCell value={slotsRes} mode={mode} signed /></DTCell>
+                  <DTCell type="time" className="text-muted-foreground font-mono">
+                    {s.closed_at ? eatTime(s.closed_at) : "·"}
+                  </DTCell>
+                  <DTCell type="money">
+                    <EditableMoney
+                      value={drop} canEdit={canEdit} mode={mode}
+                      onSave={(v) => updateField.mutate({ id: s.id, field: "manual_drop_slots", value: v })}
+                    />
+                  </DTCell>
+                  <DTCell type="money">
+                    <EditableMoney
+                      value={netWin} canEdit={canEdit} mode={mode}
+                      onSave={(v) => updateField.mutate({ id: s.id, field: "manual_slots_result", value: v })}
+                    />
+                  </DTCell>
                   <DTCell type="money"><MoneyCell value={cdr} mode={mode} signed /></DTCell>
-                  <DTCell type="money"><MoneyCell value={cMiss} mode={mode} empty="·" className={cMiss < 0 ? "cms-amount-negative" : ""} /></DTCell>
-                  <DTCell type="money"><MoneyCell value={clIn || null} mode={mode} empty="·" className={clIn ? "cms-amount-positive" : ""} /></DTCell>
-                  <DTCell type="money"><MoneyCell value={clOut ? -clOut : null} mode={mode} empty="·" className={clOut ? "cms-amount-negative" : ""} /></DTCell>
-                  <DTCell type="money"><MoneyCell value={clNet || null} mode={mode} signed empty="·" /></DTCell>
+                  <DTCell type="money">
+                    <EditableMoney
+                      value={clientBalance} canEdit={canEdit} mode={mode}
+                      onSave={(v) => updateField.mutate({ id: s.id, field: "manual_slots_deposits", value: v })}
+                    />
+                  </DTCell>
+                  <DTCell type="money">
+                    <MoneyCell value={miss || null} mode={mode} empty="·" className={miss < 0 ? "cms-amount-negative" : ""} />
+                  </DTCell>
                   <DTCell type="money"><MoneyCell value={balance} mode={mode} signed /></DTCell>
                   <DTCell type="actions" onClick={(e) => e.stopPropagation()}>
                     <Button variant="ghost" size="sm" onClick={() => setPrintShiftId(s.id)} className="gap-1 h-7">
@@ -231,7 +259,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
                 </DTRow>
                 {isExpanded && (
                   <DTRow className="bg-muted/10">
-                    <DTCell colSpan={12} className="p-3">
+                    <DTCell colSpan={9} className="p-3">
                       <SlotsShiftReportBody id={s.id} showHeader={false} compact />
                     </DTCell>
                   </DTRow>
@@ -239,6 +267,19 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
               </Fragment>
             );
           })}
+          {sorted.length > 0 && (
+            <DTRow className="border-t-2 border-primary/40 bg-primary/10 font-bold text-[120%]">
+              <DTCell type="date" className="uppercase text-primary">Total</DTCell>
+              <DTCell type="time" />
+              <DTCell type="money"><MoneyCell value={totals.drop} mode={mode} /></DTCell>
+              <DTCell type="money"><MoneyCell value={totals.netWin} mode={mode} signed /></DTCell>
+              <DTCell type="money"><MoneyCell value={totals.cdr} mode={mode} signed /></DTCell>
+              <DTCell type="money"><MoneyCell value={totals.clientBalance} mode={mode} /></DTCell>
+              <DTCell type="money"><MoneyCell value={totals.miss} mode={mode} signed /></DTCell>
+              <DTCell type="money"><MoneyCell value={totals.balance} mode={mode} signed /></DTCell>
+              <DTCell type="actions" />
+            </DTRow>
+          )}
         </DTBody>
       </DataTable>
 
