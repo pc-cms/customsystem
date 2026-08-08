@@ -130,8 +130,8 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
       titleRight={embedded ? undefined : <MoneyToggle />}
       card={false}
     >
-        <DataTable>
-          <DTHead>
+        <DataTable maxHeight={embedded ? "60vh" : "calc(100vh - 230px)"}>
+          <DTHead className="[&_th]:bg-muted">
             <DTRow>
               <DTHeader type="date">Date</DTHeader>
               {DENOMS_DESC.map((d) => (
@@ -173,7 +173,7 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
               </DTRow>
             ))}
             {dailyRows.length > 0 && (
-              <DTRow className="border-t-2 border-border bg-muted/40 font-semibold">
+              <DTRow className="sticky bottom-0 z-20 border-t-2 border-border font-semibold [&_td]:bg-muted">
                 <DTCell type="date">MONTH SUM</DTCell>
                 {DENOMS_DESC.map((d) => {
                   const v = monthSum.by[d] ?? 0;

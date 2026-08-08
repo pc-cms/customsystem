@@ -82,11 +82,14 @@ interface DataTableProps extends React.TableHTMLAttributes<HTMLTableElement> {
   stickyFirstColumn?: boolean;
   /** Hide outer border (for embedded usage). */
   bare?: boolean;
+  /** Constrain height and scroll vertically — enables sticky header/footer rows. */
+  maxHeight?: string;
 }
 
 export const DataTable = React.forwardRef<HTMLTableElement, DataTableProps>(
-  ({ className, scroll = true, stickyFirstColumn, bare, ...props }, ref) => (
+  ({ className, scroll = true, stickyFirstColumn, bare, maxHeight, ...props }, ref) => (
     <div
+      style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}
       className={cn(
         "w-full",
         scroll && "overflow-x-auto",
