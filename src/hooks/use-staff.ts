@@ -45,9 +45,10 @@ export const DEPARTMENT_ORDER: StaffDepartment[] = [
 export const ROTA_GROUPS = {
   management: {
     label: "Management",
+    // Dedicated management grid: D 10:00–18:00, M 12:00–20:00, N 18:00–06:00.
+    shifts: ["D", "M", "N", "L", "O"] as const,
     departments: ["manager"] as StaffDepartment[],
-    shifts: ["D", "N", "T", "L", "E", "O"] as const,
-    shiftLabels: { D: "12:30 · 8h", N: "20:45 · 8h", T: "09:00–15:00 · 6h", L: "Leave · 0h", E: "17:45 · 8h", O: "Off · 0h" } as Record<string, string>,
+    shiftLabels: { D: "10:00–18:00 · 8h", M: "12:00–20:00 · 8h", N: "18:00–06:00 · 12h", L: "Leave · 0h", O: "Off · 0h" } as Record<string, string>,
   },
   floor: {
     label: "Floor",
