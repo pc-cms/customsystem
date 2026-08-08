@@ -141,14 +141,14 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         .select("tables_result, slots_result, casino_id, business_date")
         .gte("business_date", start)
         .lt("business_date", endExclusive);
-      // Other Incomes — dedicated fin_incomes table (replaces legacy expenses.is_income hack).
-      const startMonth = ytd ? 1 : month;
+      // Other Incomes — real recorded incomes live in `fin_other_incomes`
+      // (the legacy `fin_incomes` planning table is empty, which showed 0 here).
       let incomesQ = (supabase as any)
-        .from("fin_incomes")
-        .select("fin_category_id, month, currency, amount, casino_id")
-        .eq("year", year)
-        .gte("month", startMonth)
-        .lte("month", month);
+        .from("fin_other_incomes")
+        .select("amount, fx_rate, currency, casino_id, business_date, reverses_id")
+        .gte("business_date", start)
+        .lt("business_date", endExclusive)
+        .is("reverses_id", null);
       // USD→TZS rate for the period (correct column = rate_to_tzs, filtered to USD).
       let ratesQ = supabase
         .from("fin_daily_rates")
