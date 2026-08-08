@@ -55,12 +55,11 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const today = serverBusinessDate || getBusinessDate();
   const [date, setDate] = useSessionState<string>("date", today);
   const [mode, setMode] = useSessionState<"numbers" | "chips">("mode", "numbers");
-  const { isManager } = useAuth();
+  const { isManager, casinoId } = useAuth();
   const { data: tables = [] } = useGamingTables();
   const { data: trackerData = [] } = useTableTracker(date);
   
   const setValue = useSetTableTrackerValue();
-  const { casinoId } = useAuth();
 
   // Per-table Drop = raw Σ IN transactions for the business day (project rule).
   const { data: dropByTable = {} as Record<string, number> } = useQuery({
