@@ -419,8 +419,10 @@ const SidebarSections = ({
           : grouped[section] || [];
         if (!items.length) return null;
 
-        // OVERVIEW stays flat (Dashboard entries), everything else is a
-        // collapsible bold group header.
+        // OVERVIEW stays flat; everything else shows a static bold section
+        // label with its items always visible. Only virtual groups (Attendance,
+        // Rota) keep their own expand/collapse chevrons because they have real
+        // nested sub-items.
         if (section === FLAT_SECTION) {
           return (
             <div key={section} className="mb-1 space-y-0.5 [&_a]:font-semibold [&>div>a]:font-semibold">
@@ -429,27 +431,21 @@ const SidebarSections = ({
           );
         }
 
-        const isOpen = open[section] ?? (activeSection === section);
         return (
           <div key={section} className={idx > 0 ? "mt-1 border-t border-sidebar-border pt-1" : "mb-1"}>
-            <button
-              type="button"
-              onClick={() => toggle(section)}
+            <div
               className={cn(
-                "w-full flex items-center gap-2 px-3 h-8 rounded-md text-xs font-bold uppercase tracking-wide transition-colors",
+                "flex items-center gap-2 px-3 h-8 rounded-md text-xs font-bold uppercase tracking-wide transition-colors",
                 activeSection === section
                   ? "text-sidebar-primary"
-                  : "text-muted-foreground hover:bg-sidebar-accent",
+                  : "text-muted-foreground",
               )}
             >
               <span className="flex-1 text-left">{section}</span>
-              {isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-            </button>
-            {isOpen && (
-              <div className="space-y-0.5 mt-0.5">
-                {items.map(it => renderItem(it, section))}
-              </div>
-            )}
+            </div>
+            <div className="space-y-0.5 mt-0.5">
+              {items.map(it => renderItem(it, section))}
+            </div>
           </div>
         );
       })}
