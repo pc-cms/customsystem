@@ -589,20 +589,46 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
     enabled: !!casinoId,
   });
 
-  type K = "date" | "dropTables" | "tablesResult" | "dropSlots" | "slotsResult" | "expenses" | "totalResults";
+  type K = "date" | "dropTables" | "tablesResult" | "holdTables" | "dropSlots" | "slotsResult" | "holdSlots" | "totalResults";
   const [sort, setSort] = useState<{ key: K; dir: SortDir }>({ key: "date", dir: "desc" });
   const toggle = (k: string) => setSort(s => s.key === k ? { key: k as K, dir: s.dir === "asc" ? "desc" : "asc" } : { key: k as K, dir: "desc" });
 
+  const holdOf = (res: number, drop: number) => (drop > 0 ? (res / drop) * 100 : null);
+  const fmtHold = (v: number | null) => (v == null ? "—" : `${v.toFixed(1)}%`);
+
   const sorted = useMemo(() => {
     const arr = [...rows] as any[];
+    const val = (r: any) => {
+      if (sort.key === "totalResults") return r.tablesResult + r.slotsResult;
+      if (sort.key === "holdTables") return holdOf(r.tablesResult, r.dropTables) ?? -Infinity;
+      if (sort.key === "holdSlots") return holdOf(r.slotsResult, r.dropSlots) ?? -Infinity;
+      return r[sort.key];
+    };
     arr.sort((a, b) => {
-      const av = sort.key === "totalResults" ? a.tablesResult + a.slotsResult : a[sort.key];
-      const bv = sort.key === "totalResults" ? b.tablesResult + b.slotsResult : b[sort.key];
+      const av = val(a); const bv = val(b);
       if (typeof av === "number" && typeof bv === "number") return sort.dir === "asc" ? av - bv : bv - av;
       return sort.dir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
     });
     return arr;
   }, [rows, sort]);
+
+  const totals = useMemo(() => {
+    const t = (rows as any[]).reduce((a, r) => ({
+      dropTables: a.dropTables + Number(r.dropTables || 0),
+      tablesResult: a.tablesResult + Number(r.tablesResult || 0),
+      dropSlots: a.dropSlots + Number(r.dropSlots || 0),
+      slotsResult: a.slotsResult + Number(r.slotsResult || 0),
+    }), { dropTables: 0, tablesResult: 0, dropSlots: 0, slotsResult: 0 });
+    const totalResult = t.tablesResult + t.slotsResult;
+    const totalDrop = t.dropTables + t.dropSlots;
+    return {
+      ...t,
+      totalResult,
+      holdTables: holdOf(t.tablesResult, t.dropTables),
+      holdSlots: holdOf(t.slotsResult, t.dropSlots),
+      totalHold: holdOf(totalResult, totalDrop),
+    };
+  }, [rows]);
 
   const updateDropSlots = useMutation({
     mutationFn: async ({ shiftIds, value }: { shiftIds: string[]; value: number }) => {
@@ -620,48 +646,83 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
   });
 
   return (
-    <DataTable>
-      <DTHead>
-        <DTRow>
-          <SortHeader label="Business Day" k="date" sort={sort as any} toggle={toggle} type="date" />
-          <SortHeader label="Drop Tables" k="dropTables" sort={sort as any} toggle={toggle} type="money" />
-          <SortHeader label="Tables Result" k="tablesResult" sort={sort as any} toggle={toggle} type="money" />
-          <SortHeader label="Drop Slots" k="dropSlots" sort={sort as any} toggle={toggle} type="money" />
-          <SortHeader label="Slots Result" k="slotsResult" sort={sort as any} toggle={toggle} type="money" />
-          <SortHeader label="Expenses" k="expenses" sort={sort as any} toggle={toggle} type="money" />
-          <SortHeader label="Total Results" k="totalResults" sort={sort as any} toggle={toggle} type="money" />
-        </DTRow>
-      </DTHead>
-      <DTBody>
-        {isLoading ? (
-          <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">Loading…</DTCell></DTRow>
-        ) : sorted.length === 0 ? (
-          <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">No closed shifts in range</DTCell></DTRow>
-        ) : sorted.map((r: any) => {
-          const totalResults = (r.tablesResult || 0) + (r.slotsResult || 0);
-          const slotsShiftIds: string[] = Array.isArray(r.slotsShiftIds) ? r.slotsShiftIds : [];
-          return (
-            <DTRow key={r.date}>
-              <DTCell type="date">{fmtDate(r.date)}</DTCell>
-              <DTCell type="money" className="text-muted-foreground">{fmt(r.dropTables || 0)}</DTCell>
-              <DTCell type="money"><span className={`font-semibold ${signCls(r.tablesResult || 0)}`}>{fmt(r.tablesResult || 0)}</span></DTCell>
-              <DTCell type="money">
-                <DropSlotsCell
-                  value={r.dropSlots || 0}
-                  canEdit={canEditDrop && slotsShiftIds.length > 0}
-                  onSave={(v) => updateDropSlots.mutate({ shiftIds: slotsShiftIds, value: v })}
-                />
-              </DTCell>
-              <DTCell type="money"><span className={`font-semibold ${signCls(r.slotsResult || 0)}`}>{fmt(r.slotsResult || 0)}</span></DTCell>
-              <DTCell type="money" className="text-muted-foreground">{fmt(r.expenses || 0)}</DTCell>
-              <DTCell type="money"><span className={`font-bold ${signCls(totalResults)}`}>{fmt(totalResults)}</span></DTCell>
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2">
+        {[
+          { label: "Drop Table", value: fmt(totals.dropTables), cls: "text-card-foreground" },
+          { label: "Result Table", value: fmt(totals.tablesResult), cls: signCls(totals.tablesResult) },
+          { label: "Hold", value: fmtHold(totals.holdTables), cls: "text-card-foreground" },
+          { label: "Drop Slots", value: fmt(totals.dropSlots), cls: "text-card-foreground" },
+          { label: "Result Slots", value: fmt(totals.slotsResult), cls: signCls(totals.slotsResult) },
+          { label: "Hold", value: fmtHold(totals.holdSlots), cls: "text-card-foreground" },
+          { label: "Total Result", value: fmt(totals.totalResult), cls: signCls(totals.totalResult) },
+          { label: "Total Hold", value: fmtHold(totals.totalHold), cls: "text-card-foreground" },
+        ].map((c, i) => (
+          <div key={`${c.label}-${i}`} className="cms-panel p-2">
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px]">{c.label}</p>
+            <p className={`font-mono text-sm font-bold ${c.cls}`}>{c.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <DataTable>
+        <DTHead>
+          <DTRow>
+            <SortHeader label="Business Day" k="date" sort={sort as any} toggle={toggle} type="date" />
+            <SortHeader label="Drop Table" k="dropTables" sort={sort as any} toggle={toggle} type="money" />
+            <SortHeader label="Result Table" k="tablesResult" sort={sort as any} toggle={toggle} type="money" />
+            <SortHeader label="Hold" k="holdTables" sort={sort as any} toggle={toggle} type="money" />
+            <SortHeader label="Drop Slots" k="dropSlots" sort={sort as any} toggle={toggle} type="money" />
+            <SortHeader label="Result Slots" k="slotsResult" sort={sort as any} toggle={toggle} type="money" />
+            <SortHeader label="Hold" k="holdSlots" sort={sort as any} toggle={toggle} type="money" />
+            <SortHeader label="Total Result" k="totalResults" sort={sort as any} toggle={toggle} type="money" />
+          </DTRow>
+        </DTHead>
+        <DTBody>
+          {isLoading ? (
+            <DTRow><DTCell colSpan={8} className="text-center text-muted-foreground py-6">Loading…</DTCell></DTRow>
+          ) : sorted.length === 0 ? (
+            <DTRow><DTCell colSpan={8} className="text-center text-muted-foreground py-6">No closed shifts in range</DTCell></DTRow>
+          ) : sorted.map((r: any) => {
+            const totalResults = (r.tablesResult || 0) + (r.slotsResult || 0);
+            const slotsShiftIds: string[] = Array.isArray(r.slotsShiftIds) ? r.slotsShiftIds : [];
+            return (
+              <DTRow key={r.date}>
+                <DTCell type="date">{fmtDate(r.date)}</DTCell>
+                <DTCell type="money" className="text-muted-foreground">{fmt(r.dropTables || 0)}</DTCell>
+                <DTCell type="money"><span className={`font-semibold ${signCls(r.tablesResult || 0)}`}>{fmt(r.tablesResult || 0)}</span></DTCell>
+                <DTCell type="money"><span className="text-muted-foreground">{fmtHold(holdOf(r.tablesResult || 0, r.dropTables || 0))}</span></DTCell>
+                <DTCell type="money">
+                  <DropSlotsCell
+                    value={r.dropSlots || 0}
+                    canEdit={canEditDrop && slotsShiftIds.length > 0}
+                    onSave={(v) => updateDropSlots.mutate({ shiftIds: slotsShiftIds, value: v })}
+                  />
+                </DTCell>
+                <DTCell type="money"><span className={`font-semibold ${signCls(r.slotsResult || 0)}`}>{fmt(r.slotsResult || 0)}</span></DTCell>
+                <DTCell type="money"><span className="text-muted-foreground">{fmtHold(holdOf(r.slotsResult || 0, r.dropSlots || 0))}</span></DTCell>
+                <DTCell type="money"><span className={`font-bold ${signCls(totalResults)}`}>{fmt(totalResults)}</span></DTCell>
+              </DTRow>
+            );
+          })}
+          {sorted.length > 0 && (
+            <DTRow className="border-t-2 border-primary/40 bg-primary/10 font-bold text-[120%]">
+              <DTCell type="date" className="uppercase text-primary">Total</DTCell>
+              <DTCell type="money">{fmt(totals.dropTables)}</DTCell>
+              <DTCell type="money"><span className={signCls(totals.tablesResult)}>{fmt(totals.tablesResult)}</span></DTCell>
+              <DTCell type="money">{fmtHold(totals.holdTables)}</DTCell>
+              <DTCell type="money">{fmt(totals.dropSlots)}</DTCell>
+              <DTCell type="money"><span className={signCls(totals.slotsResult)}>{fmt(totals.slotsResult)}</span></DTCell>
+              <DTCell type="money">{fmtHold(totals.holdSlots)}</DTCell>
+              <DTCell type="money"><span className={signCls(totals.totalResult)}>{fmt(totals.totalResult)}</span></DTCell>
             </DTRow>
-          );
-        })}
-      </DTBody>
-    </DataTable>
+          )}
+        </DTBody>
+      </DataTable>
+    </div>
   );
 };
+
 
 const DropSlotsCell = ({ value, canEdit, onSave }: { value: number; canEdit: boolean; onSave: (v: number) => void }) => {
   const fmt = useFormatMoney();
