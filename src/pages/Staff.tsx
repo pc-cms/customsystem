@@ -92,7 +92,7 @@ const DEPT_ROW_COLORS: Record<string, string> = {
 
 interface StaffProps {
   forcedTab?: "employee" | "attendance" | "rota_floor" | "rota_security" | "rota_office" | "rota_management";
-  forcedGroup?: "floor" | "security" | "office";
+  forcedGroup?: "floor" | "security" | "office" | "management";
 }
 
 const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
@@ -232,10 +232,10 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
             )}
             {activeTab === "attendance" && (
               <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap overflow-x-auto py-0.5">
-                {(["D", "N"] as const).map(s => (
+                {(attGroupKey === "management" ? (["D", "M", "N"] as const) : (["D", "N"] as const)).map(s => (
                   <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${STAFF_SHIFT_COLORS[s]}`}>
                     <span className="font-bold">{s}</span>
-                    <span className="opacity-80">{STAFF_SHIFT_LABELS[s]}</span>
+                    <span className="opacity-80">{attGroupKey === "management" ? getRotaGroup("management", activeCasino).shiftLabels[s] : STAFF_SHIFT_LABELS[s]}</span>
                   </span>
                 ))}
                 <span className="mx-1 h-4 w-px bg-border" />
@@ -277,7 +277,12 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
       )}
       {isRotaTab && rotaGroupKey && (rotaGroupKey !== "management" || canSeeManagementRota) && <StaffRotaGrid month={month} groupKey={rotaGroupKey} monthLabel={monthLabel} readOnly={(isPast && !canEditRota) || !canManagePersonnel || isLocked} />}
 
-      {activeTab === "attendance" && <StaffAttendanceGrid month={month} monthLabel={monthLabel} groupKey={attGroupKey} readOnly={(isPast && !canEditRota) || !canManagePersonnel} />}
+      {activeTab === "attendance" && attGroupKey === "management" && !canSeeManagementRota && (
+        <div className="p-8 text-center text-sm text-muted-foreground border border-dashed rounded-md">
+          Management attendance is restricted to floor manager level and above.
+        </div>
+      )}
+      {activeTab === "attendance" && (attGroupKey !== "management" || canSeeManagementRota) && <StaffAttendanceGrid month={month} monthLabel={monthLabel} groupKey={attGroupKey} readOnly={(isPast && !canEditRota) || !canManagePersonnel} />}
     </div>
   );
 };
@@ -1054,7 +1059,10 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
         // From 01.08.2026 on the new grid hours follow the shift (MO 6 / D 9 / M 12 / N 9).
         // Everything before that keeps the historical flat 8h.
         const useNewGrid = newShiftGrid && dateStr >= NEW_SHIFT_GRID_FROM;
-        const fillValue = useNewGrid ? String(predictedShiftHours(rotaShift, "staff")) : "8";
+        // Management grid: D 10:00–18:00 (8h), M 12:00–20:00 (8h), N 18:00–06:00 (12h).
+        const fillValue = groupKey === "management"
+          ? (rotaShift === "N" ? "12" : "8")
+          : useNewGrid ? String(predictedShiftHours(rotaShift, "staff")) : "8";
         autoFilledRef.current.add(key);
         setAttendanceRaw.mutate({ staff_id: s.id, date: dateStr, value: fillValue });
       }
