@@ -9,6 +9,7 @@ import {
   Wallet, DoorOpen, ShieldAlert, Menu, Upload,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
   RefreshCw, AlertTriangle, User as UserIcon, Rows3, Rows2, Gift, CheckCircle2, Coffee, Megaphone, TrendingUp, ArrowLeftRight, BookOpen,
+  Joystick, LineChart,
 } from "lucide-react";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { resetPWACache } from "@/lib/pwa-register";
