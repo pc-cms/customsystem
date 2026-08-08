@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import BlacklistPlayerDialog from "@/components/player/BlacklistPlayerDialog";
 import { formatCardId } from "@/lib/card-number";
 import PlayerVisitsBreakdown from "@/components/player/PlayerVisitsBreakdown";
+import PlayerVisitTrendChart from "@/components/player/PlayerVisitTrendChart";
 import PlayerChipAdjustmentsLog from "@/components/player/PlayerChipAdjustmentsLog";
 import { canSeePlayerFinancials } from "@/lib/role-access";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
