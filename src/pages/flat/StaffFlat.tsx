@@ -15,3 +15,4 @@ export const RotaOfficePage = () => <Staff forcedTab="rota_office" />;
 export const AttendanceFloorPage = () => <Staff forcedTab="attendance" forcedGroup="floor" />;
 export const AttendanceSecurityPage = () => <Staff forcedTab="attendance" forcedGroup="security" />;
 export const AttendanceOfficePage = () => <Staff forcedTab="attendance" forcedGroup="office" />;
+export const AttendanceManagementPage = () => <Staff forcedTab="attendance" forcedGroup="management" />;

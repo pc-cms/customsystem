@@ -45,9 +45,10 @@ export const DEPARTMENT_ORDER: StaffDepartment[] = [
 export const ROTA_GROUPS = {
   management: {
     label: "Management",
+    // Dedicated management grid: D 10:00–18:00, M 12:00–20:00, N 18:00–06:00.
+    shifts: ["D", "M", "N", "L", "O"] as const,
     departments: ["manager"] as StaffDepartment[],
-    shifts: ["D", "N", "T", "L", "E", "O"] as const,
-    shiftLabels: { D: "12:30 · 8h", N: "20:45 · 8h", T: "09:00–15:00 · 6h", L: "Leave · 0h", E: "17:45 · 8h", O: "Off · 0h" } as Record<string, string>,
+    shiftLabels: { D: "10:00–18:00 · 8h", M: "12:00–20:00 · 8h", N: "18:00–06:00 · 12h", L: "Leave · 0h", O: "Off · 0h" } as Record<string, string>,
   },
   floor: {
     label: "Floor",
@@ -111,7 +112,8 @@ export const getRotaGroup = (
   casino?: { slug?: string | null; code?: string | null; name?: string | null } | null,
 ): RotaGroupDef => {
   const base = ROTA_GROUPS[groupKey];
-  if (!usesArushaShiftGrid(casino)) {
+  // Management uses its own grid in every casino (D/M/N managers schedule).
+  if (groupKey === "management" || !usesArushaShiftGrid(casino)) {
     return { label: base.label, departments: [...base.departments], shifts: base.shifts as readonly string[], shiftLabels: base.shiftLabels };
   }
   return {

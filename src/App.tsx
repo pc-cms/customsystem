@@ -67,6 +67,7 @@ const RotaOfficePage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ 
 const AttendanceFloorPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.AttendanceFloorPage })));
 const AttendanceSecurityPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.AttendanceSecurityPage })));
 const AttendanceOfficePage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.AttendanceOfficePage })));
+const AttendanceManagementPage = lazy(() => import("@/pages/flat/StaffFlat").then(m => ({ default: m.AttendanceManagementPage })));
 const Groups = lazy(() => import("@/pages/Groups"));
 const Reports = lazy(() => import("@/pages/Reports"));
 const Admin = lazy(() => import("@/pages/Admin"));
@@ -463,6 +464,7 @@ const ProtectedRoutes = () => {
           <Route path="/attendance/floor" element={<RoleGuard path="/attendance/floor"><ErrorBoundary><AttendanceFloorPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/attendance/security" element={<RoleGuard path="/attendance/security"><ErrorBoundary><AttendanceSecurityPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/attendance/office" element={<RoleGuard path="/attendance/office"><ErrorBoundary><AttendanceOfficePage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/attendance/management" element={<RoleGuard path="/attendance/management"><ErrorBoundary><AttendanceManagementPage /></ErrorBoundary></RoleGuard>} />
 
           {/* Legacy → flat-URL redirects (keep bookmarks alive) */}
           <Route path="/pit" element={<LegacyPitRedirect />} />
