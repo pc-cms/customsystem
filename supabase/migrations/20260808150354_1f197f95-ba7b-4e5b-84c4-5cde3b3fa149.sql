@@ -1,0 +1,2 @@
+ALTER TABLE public.rota_locks DROP CONSTRAINT rota_locks_scope_check;
+ALTER TABLE public.rota_locks ADD CONSTRAINT rota_locks_scope_check CHECK (scope = ANY (ARRAY['pit'::text, 'floor'::text, 'security'::text, 'office'::text, 'management'::text]));
