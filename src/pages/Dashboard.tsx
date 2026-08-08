@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSessionState } from "@/hooks/use-session-state";
-import { Receipt, LayoutDashboard, Filter, ArrowUpDown, Users } from "lucide-react";
+import { Receipt, LayoutDashboard, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CardSkeleton, PlayerListSkeleton } from "@/components/LoadingSkeletons";
@@ -13,17 +12,9 @@ import { canSeePlayerFinancials } from "@/lib/role-access";
 import { getBusinessDate } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { useTotalDrop } from "@/lib/drop-source";
-import {
-  useStaffMembers, useStaffRotaRange,
-  DEPARTMENT_LABELS, DEPARTMENT_ORDER,
-  STAFF_SHIFT_LABELS, STAFF_SHIFT_COLORS,
-  type StaffDepartment,
-} from "@/hooks/use-staff";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { CCTVDashboardSection } from "@/components/dashboard/CCTVDashboardSection";
 
 /**
@@ -92,8 +83,6 @@ const SummaryPanel = ({
   </section>
 );
 
-const ALL_SHIFTS = ["D", "M", "N", "G", "E", "L", "O"] as const;
-
 const Dashboard = () => {
   const { displayName, roles, casinoId } = useAuth();
   // Boss role lands on the TV overview instead of the operational dashboard.
@@ -107,8 +96,6 @@ const Dashboard = () => {
   const { data: tables = [] } = useGamingTables();
   // (live-game expenses fetched separately via pending count query below)
   const { data: tableResultMap = {} } = useDashboardTableResults(businessDate);
-  const { data: staffMembers = [] } = useStaffMembers();
-  const { data: staffRota = [] } = useStaffRotaRange(businessDate, businessDate);
 
   const isInitialLoading = loadingPlayers && loadingTx;
   const showFinancials = canSeePlayerFinancials(roles);
