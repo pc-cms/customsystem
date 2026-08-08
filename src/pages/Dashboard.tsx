@@ -308,103 +308,48 @@ const Dashboard = () => {
         );
       })()}
 
-      {/* Floor Staff on Shift — full width, fills remaining height */}
-      <div className="cms-panel flex flex-col" style={{ minHeight: "60vh" }}>
-        <div className="cms-header flex items-center justify-between gap-2 flex-wrap">
-          <span>Floor Staff on Shift</span>
-          <div className="flex items-center gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-7 gap-1.5">
-                  <Filter className="w-3.5 h-3.5" />
-                  Department{deptFilter.length > 0 ? ` (${deptFilter.length})` : ""}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-52 p-2" align="end">
-                <div className="space-y-1 max-h-64 overflow-y-auto">
-                  {DEPARTMENT_ORDER.map(d => (
-                    <label key={d} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer text-sm">
-                      <Checkbox checked={deptFilter.includes(d)} onCheckedChange={() => toggleDept(d)} />
-                      <span>{DEPARTMENT_LABELS[d]}</span>
-                    </label>
+      {/* Top players today — Drop ≥ 1 000 000 or a non-zero result, max 10 rows. */}
+      {showFinancials && (
+        <div className="cms-panel flex flex-col">
+          <div className="cms-header flex items-center justify-between gap-2 flex-wrap">
+            <span>Top players today</span>
+            <span className="text-xs font-mono text-muted-foreground">{topPlayersToday.length} players</span>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {topPlayersToday.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No significant players yet today</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-card z-10">
+                  <tr className="border-b border-border">
+                    <th className="text-left px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">#</th>
+                    <th className="text-left px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Player</th>
+                    <th className="text-right px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Drop</th>
+                    <th className="text-right px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cashout</th>
+                    <th className="text-right px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Result</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topPlayersToday.map((p, i) => (
+                    <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                      <td className="px-4 py-1.5 font-mono text-xs text-muted-foreground">{i + 1}</td>
+                      <td className="px-4 py-1.5 text-card-foreground font-medium">
+                        <Link to={`/players/${p.id}`} className="hover:underline">{p.name}</Link>
+                      </td>
+                      <td className="px-4 py-1.5 text-right font-mono tabular-nums">{formatCurrency(p.drop)}</td>
+                      <td className="px-4 py-1.5 text-right font-mono tabular-nums">{formatCurrency(p.cashout)}</td>
+                      <td className={`px-4 py-1.5 text-right font-mono tabular-nums ${p.result > 0 ? "cms-amount-positive" : p.result < 0 ? "cms-amount-negative" : ""}`}>
+                        {p.result >= 0 ? "+" : ""}{formatCurrency(p.result)}
+                      </td>
+                    </tr>
                   ))}
-                </div>
-                {deptFilter.length > 0 && (
-                  <Button variant="ghost" size="sm" className="w-full mt-1 h-7" onClick={() => setDeptFilter([])}>Clear</Button>
-                )}
-              </PopoverContent>
-            </Popover>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-7 gap-1.5">
-                  <Filter className="w-3.5 h-3.5" />
-                  Shift{shiftFilter.length > 0 ? ` (${shiftFilter.length})` : ""}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-52 p-2" align="end">
-                <div className="space-y-1">
-                  {ALL_SHIFTS.map(s => (
-                    <label key={s} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer text-sm">
-                      <Checkbox checked={shiftFilter.includes(s)} onCheckedChange={() => toggleShift(s)} />
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${STAFF_SHIFT_COLORS[s] || "bg-muted text-muted-foreground"}`}>{s}</span>
-                      <span className="text-xs text-muted-foreground">{STAFF_SHIFT_LABELS[s] || s}</span>
-                    </label>
-                  ))}
-                </div>
-                {shiftFilter.length > 0 && (
-                  <Button variant="ghost" size="sm" className="w-full mt-1 h-7" onClick={() => setShiftFilter([])}>Clear</Button>
-                )}
-              </PopoverContent>
-            </Popover>
-
-            <span className="text-xs font-mono text-muted-foreground">{floorStaff.length} staff</span>
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
-          {floorStaff.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No staff on shift</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-card z-10">
-                <tr className="border-b border-border">
-                  <th className="text-left px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <button onClick={() => toggleSort("name")} className="inline-flex items-center gap-1 hover:text-foreground">
-                      Name <ArrowUpDown className="w-3 h-3" />
-                      {sortBy === "name" && <span className="text-[9px]">{sortDir === "asc" ? "▲" : "▼"}</span>}
-                    </button>
-                  </th>
-                  <th className="text-left px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <button onClick={() => toggleSort("department")} className="inline-flex items-center gap-1 hover:text-foreground">
-                      Department <ArrowUpDown className="w-3 h-3" />
-                      {sortBy === "department" && <span className="text-[9px]">{sortDir === "asc" ? "▲" : "▼"}</span>}
-                    </button>
-                  </th>
-                  <th className="text-right px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <button onClick={() => toggleSort("shift")} className="inline-flex items-center gap-1 hover:text-foreground ml-auto">
-                      Shift <ArrowUpDown className="w-3 h-3" />
-                      {sortBy === "shift" && <span className="text-[9px]">{sortDir === "asc" ? "▲" : "▼"}</span>}
-                    </button>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {floorStaff.map((s) => (
-                  <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/30">
-                    <td className="px-4 py-1.5 text-card-foreground font-medium">{s.name}</td>
-                    <td className="px-4 py-1.5 text-muted-foreground text-xs">{DEPARTMENT_LABELS[s.department]}</td>
-                    <td className="px-4 py-1.5 text-right">
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${STAFF_SHIFT_COLORS[s.shift!] || "bg-muted text-muted-foreground"}`}>
-                        {STAFF_SHIFT_LABELS[s.shift!] || s.shift}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
+      )}
+
     </PageShell>
   );
 };
