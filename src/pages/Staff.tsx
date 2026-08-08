@@ -59,9 +59,11 @@ const DEPT_BORDER_COLORS: Record<string, string> = {
   hr: "border-orange-500/50",
   driver: "border-teal-500/50",
   reception: "border-rose-500/50",
+  manager: "border-indigo-500/50",
 };
 
 const DEPT_DOT_COLORS: Record<string, string> = {
+  manager: "bg-indigo-400",
   security: "bg-red-400",
   cashier: "bg-blue-400",
   bartender: "bg-amber-400",
@@ -75,6 +77,7 @@ const DEPT_DOT_COLORS: Record<string, string> = {
 };
 
 const DEPT_ROW_COLORS: Record<string, string> = {
+  manager: "bg-indigo-500/5",
   security: "bg-red-500/5",
   cashier: "bg-blue-500/5",
   bartender: "bg-amber-500/5",
@@ -88,7 +91,7 @@ const DEPT_ROW_COLORS: Record<string, string> = {
 };
 
 interface StaffProps {
-  forcedTab?: "employee" | "attendance" | "rota_floor" | "rota_security" | "rota_office";
+  forcedTab?: "employee" | "attendance" | "rota_floor" | "rota_security" | "rota_office" | "rota_management";
   forcedGroup?: "floor" | "security" | "office";
 }
 
@@ -136,7 +139,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
   const rotaGroup = rotaGroupKey ? getRotaGroup(rotaGroupKey, activeCasino) : null;
 
   // Map staff rota group → rota_locks scope
-  const lockScope: RotaScope | null = rotaGroupKey === "floor" ? "floor" : rotaGroupKey === "security" ? "security" : rotaGroupKey === "office" ? "office" : null;
+  const lockScope: RotaScope | null = rotaGroupKey === "floor" ? "floor" : rotaGroupKey === "security" ? "security" : rotaGroupKey === "office" ? "office" : rotaGroupKey === "management" ? "management" : null;
   const { data: groupLock } = useRotaLock(lockScope ?? "floor", month);
   const isLocked = isRotaTab && !!groupLock;
 
@@ -151,6 +154,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
     rota_office: "Office Rota",
     rota_floor: "Floor Rota",
     rota_security: "Security Rota",
+    rota_management: "Management Rota",
     attendance: "Floor Attendance",
   };
 

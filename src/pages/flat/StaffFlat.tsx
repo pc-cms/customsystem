@@ -9,6 +9,7 @@ export const StaffEmployeesPage = () => <Staff forcedTab="employee" />;
 
 export const RotaFloorPage = () => <Staff forcedTab="rota_floor" />;
 export const RotaSecurityPage = () => <Staff forcedTab="rota_security" />;
+export const RotaManagementPage = () => <Staff forcedTab="rota_management" />;
 export const RotaOfficePage = () => <Staff forcedTab="rota_office" />;
 
 export const AttendanceFloorPage = () => <Staff forcedTab="attendance" forcedGroup="floor" />;
