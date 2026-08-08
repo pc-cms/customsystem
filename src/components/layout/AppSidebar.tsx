@@ -182,7 +182,7 @@ const STAFF_SUBITEMS_HR = [
 
 // Virtual parent groupings: Attendance / Rota each expand to Live + Floor + Security + Office.
 // Phase 2: each sub-item is a flat URL so the access matrix gates by ModuleKey.
-type VirtualSub = { to: string; icon: typeof ListChecks; label: string; matchPath: string; matchTab?: string; matchGroup?: string };
+type VirtualSub = { to: string; icon: typeof ListChecks; label: string; matchPath: string; matchTab?: string; matchGroup?: string; roles?: string[] };
 const ATTENDANCE_SUBITEMS: VirtualSub[] = [
   { to: "/attendance/live", icon: Gamepad2, label: "Live", matchPath: "/attendance/live" },
   { to: "/attendance/floor", icon: Building2, label: "Floor", matchPath: "/attendance/floor" },
@@ -194,6 +194,9 @@ const ROTA_SUBITEMS: VirtualSub[] = [
   { to: "/rota/floor", icon: Building2, label: "Floor", matchPath: "/rota/floor" },
   { to: "/rota/security", icon: Shield, label: "Security", matchPath: "/rota/security" },
   { to: "/rota/office", icon: Briefcase, label: "Office", matchPath: "/rota/office" },
+  // Management rota: floor manager level and above only (Pit must not see it).
+  { to: "/rota/management", icon: UserCheck, label: "Management", matchPath: "/rota/management",
+    roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "hr"] },
 ];
 
 const BREAKLIST_PATH = "/breaklist";
@@ -304,6 +307,7 @@ const SidebarSections = ({
     // group is visible (it maps to pit_rota / pit_attendance which already
     // gates the parent). Super-admin sees everything.
     const subs = allSubs.filter(s => {
+      if (s.roles && !isSuper && !s.roles.some(r => roles.includes(r))) return false;
       const mk = moduleKeyForRoute(s.to, s.label);
       // License gate applies to everyone, including super_admin.
       if (mk && !licenseHasModule(license, mk)) return false;
