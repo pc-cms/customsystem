@@ -78,7 +78,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/transfers", icon: ArrowLeftRight, label: "Transfers", roles: ["super_admin", "cashier_slots"], section: "CASHIER" },
   // Unified Expenses — single page; source filter (Live/Slots/Office) for managers, locked to role for cashiers.
   { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "cashier", "cashier_slots"], section: "CASHIER" },
-  { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "CASHIER" },
+  { to: "/reports", icon: FileBarChart, label: "Statistics", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "CASHIER" },
   { to: "/reports/blanks", icon: FileBarChart, label: "Blank Forms", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "general_manager" as AppRole, "boss" as AppRole, "cashier", "cashier_slots"], section: "CASHIER" },
   { to: "/tips-and-bonuses", icon: Gift, label: "Tips & Bonuses", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "CASHIER" },
 
