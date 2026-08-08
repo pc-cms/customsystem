@@ -212,6 +212,7 @@ const Reports = () => {
           <TabsTrigger value="tables" className="gap-1 text-xs"><Table2 className="w-3.5 h-3.5" /> Tables</TabsTrigger>
           <TabsTrigger value="groups" className="gap-1 text-xs"><UsersRound className="w-3.5 h-3.5" /> Groups</TabsTrigger>
           <TabsTrigger value="miss-chips" className="gap-1 text-xs"><Coins className="w-3.5 h-3.5" /> Miss Chips</TabsTrigger>
+          <TabsTrigger value="graphics" className="gap-1 text-xs"><LineChartIcon className="w-3.5 h-3.5" /> Graphics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="daily"><DailyReport from={from} to={to} /></TabsContent>
