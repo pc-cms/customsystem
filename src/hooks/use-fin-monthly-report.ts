@@ -203,6 +203,8 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       }
       const other = ((incomes as any)?.data || []).reduce((s: number, r: any) => {
         const amt = Number(r.amount || 0);
+        const fx = Number(r.fx_rate || 0);
+        if (fx > 0) return s + amt * fx;
         if (r.currency === "USD") return s + (avgUsdTzs ? amt * avgUsdTzs : 0);
         return s + amt; // TZS
       }, 0);
@@ -213,6 +215,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       const planMap = new Map<string, { tzs: number; usd: number }>();
       // Per (catId, currency) → Map<month, amount>
       const planMonthly = new Map<string, { tzs: Map<number, number>; usd: Map<number, number> }>();
+      const startMonth = ytd ? 1 : month;
       const endMonth = month;
       (budgets.data || []).forEach((b: any) => {
         const key = b.category_id;
