@@ -112,7 +112,8 @@ export const getRotaGroup = (
   casino?: { slug?: string | null; code?: string | null; name?: string | null } | null,
 ): RotaGroupDef => {
   const base = ROTA_GROUPS[groupKey];
-  if (!usesArushaShiftGrid(casino)) {
+  // Management uses its own grid in every casino (D/M/N managers schedule).
+  if (groupKey === "management" || !usesArushaShiftGrid(casino)) {
     return { label: base.label, departments: [...base.departments], shifts: base.shifts as readonly string[], shiftLabels: base.shiftLabels };
   }
   return {
