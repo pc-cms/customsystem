@@ -276,21 +276,13 @@ const SidebarSections = ({
     return null;
   })();
 
+  // Persisted open state only matters for virtual groups (Attendance/Rota).
   const [open, setOpen] = useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = {};
     try {
       const stored = typeof window !== "undefined" ? localStorage.getItem(SECTIONS_STORAGE_KEY) : null;
-      if (stored) Object.assign(initial, JSON.parse(stored));
-    } catch { /* ignore */ }
-    if (activeSection) initial[activeSection] = true;
-    return initial;
+      return stored ? JSON.parse(stored) : {};
+    } catch { return {}; }
   });
-
-  // Auto-open the section that contains the active route
-  if (activeSection && !open[activeSection]) {
-    // schedule update to avoid setState-in-render
-    setTimeout(() => setOpen(o => ({ ...o, [activeSection]: true })), 0);
-  }
 
   const toggle = (s: string) => {
     setOpen(prev => {
