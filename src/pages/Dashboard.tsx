@@ -194,49 +194,30 @@ const Dashboard = () => {
 
   const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
-  // Floor Staff filters & sort
-  const [deptFilter, setDeptFilter] = useSessionState<StaffDepartment[]>("deptFilter", []);
-  const [shiftFilter, setShiftFilter] = useSessionState<string[]>("shiftFilter", []);
-  const [sortBy, setSortBy] = useSessionState<"name" | "department" | "shift">("sort", "department");
-  const [sortDir, setSortDir] = useSessionState<"asc" | "desc">("sortDir", "asc");
-
-  const rotaMap = useMemo(() => {
-    const m = new Map<string, string>();
-    staffRota.forEach((r: any) => m.set(r.staff_id, r.shift));
-    return m;
-  }, [staffRota]);
-
-  // Only staff actually on shift today: must have a rota entry that's not Off/Leave
-  const OFF_SHIFTS = new Set(["O", "L"]);
-
-  const floorStaff = useMemo(() => {
-    const list = staffMembers
-      .filter(s => s.is_active)
-      .map(s => ({ ...s, shift: rotaMap.get(s.id) }))
-      .filter(s => s.shift && !OFF_SHIFTS.has(s.shift))
-      .filter(s => deptFilter.length === 0 || deptFilter.includes(s.department))
-      .filter(s => shiftFilter.length === 0 || shiftFilter.includes(s.shift!));
-
-    const dir = sortDir === "asc" ? 1 : -1;
-    return list.sort((a, b) => {
-      if (sortBy === "name") return a.name.localeCompare(b.name) * dir;
-      if (sortBy === "shift") return (a.shift! ).localeCompare(b.shift!) * dir;
-      const dA = DEPARTMENT_ORDER.indexOf(a.department);
-      const dB = DEPARTMENT_ORDER.indexOf(b.department);
-      if (dA !== dB) return (dA - dB) * dir;
-      return a.name.localeCompare(b.name);
+  // Top players of the business day: aggregate today's transactions per player.
+  // Cut-off: Drop ≥ 1 000 000 or a non-zero result; max 10 rows, sorted by Drop.
+  const TOP_DROP_THRESHOLD = 1_000_000;
+  const topPlayersToday = useMemo(() => {
+    const byId = new Map<string, { id: string; drop: number; cashout: number }>();
+    for (const t of transactions as any[]) {
+      if (!t.player_id) continue;
+      const cur = byId.get(t.player_id) || { id: t.player_id, drop: 0, cashout: 0 };
+      const amt = Number(t.amount) || 0;
+      if (t.type === "buy" || t.type === "in") cur.drop += amt;
+      else if (t.type === "cashout" || t.type === "out") cur.cashout += amt;
+      byId.set(t.player_id, cur);
+    }
+    const nameById = new Map<string, string>();
+    (players as any[]).forEach(p => {
+      nameById.set(p.id, [p.first_name, p.last_name].filter(Boolean).join(" ") || p.nickname || "—");
     });
-  }, [staffMembers, rotaMap, deptFilter, shiftFilter, sortBy, sortDir]);
+    return Array.from(byId.values())
+      .map(r => ({ ...r, name: nameById.get(r.id) || "—", result: r.drop - r.cashout }))
+      .filter(r => r.drop >= TOP_DROP_THRESHOLD || r.result !== 0)
+      .sort((a, b) => b.drop - a.drop)
+      .slice(0, 10);
+  }, [transactions, players]);
 
-  const toggleSort = (col: "name" | "department" | "shift") => {
-    if (sortBy === col) setSortDir(d => d === "asc" ? "desc" : "asc");
-    else { setSortBy(col); setSortDir("asc"); }
-  };
-
-  const toggleDept = (d: StaffDepartment) =>
-    setDeptFilter(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
-  const toggleShift = (s: string) =>
-    setShiftFilter(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
 
   if (isInitialLoading) {
     return (
