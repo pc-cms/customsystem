@@ -73,20 +73,8 @@ const SortHeader = ({
   );
 };
 
-// Hook: fetch all shifts
-const useShifts = () => {
-  const { casinoId } = useAuth();
-  return useQuery({
-    queryKey: ["shifts", casinoId],
-    queryFn: async () => {
-      if (!casinoId) return [];
-      const { data, error } = await supabase.from("shifts").select("*").eq("casino_id", casinoId).order("opened_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!casinoId,
-  });
-};
+
+
 
 const toIsoDate = (d: Date) => {
   const y = d.getFullYear();
