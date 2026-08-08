@@ -1,30 +1,26 @@
 import { useState, useMemo, lazy, Suspense } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
-import { usePlayers, useTransactions, useExpenses, usePlayerGroups } from "@/hooks/use-casino-data";
+import { useTransactions, useExpenses, usePlayerGroups } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Table2, Users, Receipt, Landmark, UsersRound, ArrowUp, ArrowDown, ArrowUpDown,
-  Coins, CalendarDays, Joystick, CreditCard, Printer, Check, BarChart3, Info,
+  Table2, Landmark, UsersRound, ArrowUp, ArrowDown, ArrowUpDown,
+  Coins, Joystick, Printer, Check, BarChart3,
 } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import MissChips from "@/pages/MissChips";
-import Expenses from "@/pages/finances/FinancesExpensesPage";
 import SlotsHistoryReport from "@/components/reports/SlotsHistoryReport";
-import CashlessReport from "@/components/reports/CashlessReport";
 import { PageShell } from "@/components/layout/PageShell";
 import { presetRange, type DatePreset } from "@/components/ui/date-range-presets";
 import { useMoneyMode, MoneyModeProvider, useFormatMoney } from "@/components/ui/data-table-toolbar";
-import { fmtDate, fmtDateTime } from "@/lib/format-date";
+import { fmtDate } from "@/lib/format-date";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { businessDayHourUTC } from "@/lib/business-day";
 import { useClosedBusinessDates } from "@/hooks/use-business-day-closure";
 import { fetchPaged } from "@/lib/fetch-paged";
-import { computeShiftCashFlow } from "@/lib/shift-cash";
 import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
