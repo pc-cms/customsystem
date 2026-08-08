@@ -82,14 +82,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/reports/blanks", icon: FileBarChart, label: "Blank Forms", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "general_manager" as AppRole, "boss" as AppRole, "cashier", "cashier_slots"], section: "CASHIER" },
   { to: "/tips-and-bonuses", icon: Gift, label: "Tips & Bonuses", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "CASHIER" },
 
-  // STATISTICS — flat tab launchers for the unified /reports page.
-  { to: "/reports?tab=total", icon: BarChart3, label: "Total", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
-  { to: "/reports?tab=daily", icon: Landmark, label: "Live Game", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
-  { to: "/reports?tab=slots", icon: Joystick, label: "Slots", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
-  { to: "/reports?tab=miss-chips", icon: Coins, label: "Miss Chips", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
-  { to: "/reports?tab=graphics", icon: LineChart, label: "Graphics", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
-  { to: "/reports?tab=groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
-  { to: "/reports?tab=tables", icon: Table2, label: "Tables", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
+  // STATISTICS — single flat launcher for the unified /reports page.
+  { to: "/reports", icon: FileBarChart, label: "Statistics", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "STATISTICS" },
 
   // RECEPTION — alphabetical
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "shift_manager", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "RECEPTION" },
