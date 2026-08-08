@@ -99,7 +99,7 @@ export const useOfficeBalanceReport = (month: string, enabled = true, startBalan
 
       const [casinos, wallets, expenses, tx, dayClosings] = await Promise.all([
         fetchPaged<any>((a, b) =>
-          sb.from("casinos").select("id, name").order("name").range(a, b)),
+          sb.from("casinos").select("id, name, is_active").order("name").range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("fin_wallets").select("id, casino_id, name, kind, currency").range(a, b)),
         fetchPaged<any>((a, b) =>
@@ -117,6 +117,7 @@ export const useOfficeBalanceReport = (month: string, enabled = true, startBalan
       ]);
 
       const casinoList: OfficeCasinoRef[] = casinos
+        .filter((c: any) => c.is_active !== false)
         .map((c: any) => ({ id: c.id, name: c.name }));
 
       const walletKind: Record<string, string> = {};
