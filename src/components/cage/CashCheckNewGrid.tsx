@@ -98,6 +98,21 @@ const CashCheckNewGrid = ({
 
   const chipCountedTzs = sumChips(chips);
   const chipExpectedTzs = sumChips(expected.expectedChips);
+  const b = expected.breakdown;
+
+  const signed = (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${formatNumberSpaces(Math.abs(v))}`;
+  const chipParts = [
+    `Opening ${formatNumberSpaces(b.openingChipsTzs)}`,
+    ...(b.fillTzs ? [`Fill ${signed(-b.fillTzs)}`] : []),
+    ...(b.creditTzs ? [`Credit ${signed(b.creditTzs)}`] : []),
+  ];
+  const cashParts = [
+    ...(b.addFloatTzs ? [`Add Float ${signed(b.addFloatTzs)}`] : []),
+    ...(b.collectionTzs ? [`Collection ${signed(-b.collectionTzs)}`] : []),
+    ...(b.slotsInTzs ? [`Slots In ${signed(b.slotsInTzs)}`] : []),
+    ...(b.slotsOutTzs ? [`Slots Out ${signed(-b.slotsOutTzs)}`] : []),
+    ...(b.expensesTzs ? [`Expenses ${signed(-b.expensesTzs)}`] : []),
+  ];
 
   return (
     <div className="space-y-3">
@@ -107,10 +122,19 @@ const CashCheckNewGrid = ({
         </div>
       )}
 
+      {expected.unallocatedChipsTzs !== 0 && (
+        <div className="text-[11px] text-warning px-2 py-1 rounded bg-warning/10 border border-warning/30">
+          Fill/Credit without chip breakdown: {signed(expected.unallocatedChipsTzs)} TZS — not applied per denomination.
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-start">
         {/* Column 1 — Chips */}
         <section className={sectionCls}>
           <p className={titleCls}>TZS Chips · expected / actual</p>
+          <p className="text-[10px] font-mono text-muted-foreground mb-2 leading-tight">
+            {chipParts.join(" · ")} → Expected
+          </p>
           <div className="grid grid-cols-[auto_auto_1fr_auto] gap-2 pb-1 mb-1 border-b border-border text-[9px] uppercase tracking-wider text-muted-foreground">
             <span>Chip</span>
             <span className="text-right">Exp</span>
@@ -136,6 +160,7 @@ const CashCheckNewGrid = ({
             </div>
           </div>
         </section>
+
 
         {/* Columns 2–4 — Cash per currency */}
         {CURRENCIES.map((cur) => {
