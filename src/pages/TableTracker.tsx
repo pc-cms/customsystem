@@ -94,9 +94,10 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   // Numbers grid reflects the same adjustment the Chips grid already applies.
   const { map: fcMap } = useShiftTableAdjustments();
   const fcTotal = useMemo(
-    () => Object.values(fcMap).reduce((s, v) => s + Number(v.adjustment || 0), 0),
+    () => Object.values(fcMap).reduce((s: number, v) => s + Number(v?.adjustment || 0), 0),
     [fcMap]
   );
+
 
 
   // Include closed tables that still have tracker data for the selected date,
