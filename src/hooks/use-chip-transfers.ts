@@ -74,6 +74,7 @@ export const usePlayerChipTransfers = (playerId: string | null | undefined) => {
  */
 export const useCreateChipTransferPair = () => {
   const qc = useQueryClient();
+  const { casinoId } = useAuth();
   return useMutation({
     mutationFn: async (input: {
       from_player: string;
@@ -93,6 +94,7 @@ export const useCreateChipTransferPair = () => {
         _table_id: input.table_id ?? null,
         _chips: input.chips ?? null,
         _note: input.note ?? "",
+        _casino_id: casinoId ?? null,
       });
       if (error) throw error;
       return data;

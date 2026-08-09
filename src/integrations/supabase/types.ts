@@ -11048,6 +11048,7 @@ export type Database = {
       create_chip_transfer_pair: {
         Args: {
           _amount: number
+          _casino_id?: string
           _chips?: Json
           _from_player: string
           _note?: string

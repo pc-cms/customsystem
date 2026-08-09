@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.create_chip_transfer_pair(uuid, uuid, bigint, uuid, jsonb, text);
