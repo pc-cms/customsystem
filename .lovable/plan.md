@@ -61,7 +61,7 @@ Vadim и Hussein указаны сразу в двух городах — их �
 Новые таблицы (миграция, с GRANT + RLS):
 
 - `management_people` — `id`, `name`, `kind` (`manager` | `cctv`), `is_active`, `sort_order`. Без привязки к казино — человек свободно назначается в любой слот.
-- `management_slots` — `id`, `block` (`casino` | `office` | `cctv`), `casino_id` (для блоков-казино), `month`, `slot_index`, `person_id` (nullable — пустой слот), уникальность `(block, casino_id, month, slot_index)` и `(month, person_id)`.
+- `management_slots` — `id`, `block` (`casino` | `office` | `cctv`), `casino_id` (для блоков-казино), `month`, `slot_index`, `person_id` (nullable — пустой слот), уникальность `(block, casino_id, month, slot_index)`; повтор человека в разных городах допускается (только предупреждение в UI).
 - `management_rota` — `slot_id`, `date`, `shift` (`D`/`M`/`N`/`L` — для не-CCTV), `city_casino_id` (для CCTV), уникальность `(slot_id, date)`.
 - `management_attendance` — `slot_id`, `date`, `value` (`A`/`L`/`S`), `recorded_by`, уникальность `(slot_id, date)`.
 
