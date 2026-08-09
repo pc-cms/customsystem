@@ -27,10 +27,19 @@ CCTV
 
 Общий список из Incidents, доступен в выпадашке любого слота:
 
-- Менеджеры: Bakha, Carol, Daniyar, Hussein, Konstantin, Oxana, Peter, Raushan, Sergey T, Sveta, Taras, Vadim, Valeriy, Yurii
+- Менеджеры: Bakha, Caroline, Daniyar, Hussein, Konstantin, Oxana, Peter, Raushan, Sergey K, Sergey T, Sveta, Taras, Vadim, Valeriy, Vyacheslav, Yurii
 - CCTV: Andrew, Alex, Vladimir, Vitalii
 
-Стартовая расстановка: Arusha — Taras, Peter, Konstantin; Mbeya — Daniyar, Hussein; остальные слоты пустые, заполняются из выпадашки. Список хранится в справочнике в базе (тип: менеджер / CCTV, активность, порядок), пополняется без правки кода.
+Стартовая расстановка:
+
+- Arusha — Taras, Vadim, Konstantin
+- Dodoma — Sergey T, Hussein, Bakha, Vadim
+- Mbeya — Daniyar, Hussein
+- Mwanza — Sveta, Oxana, Caroline, Vyacheslav
+- Office — Peter, Sergey K
+
+Vadim и Hussein указаны сразу в двух городах — их поставим в оба слота, а правило «один слот на месяц» смягчим до предупреждения, чтобы такие переезды/подмены не блокировались. Остальные слоты пустые, заполняются из выпадашки. Список хранится в справочнике в базе (тип: менеджер / CCTV, активность, порядок), пополняется без правки кода.
+
 
 ## Attendance
 
