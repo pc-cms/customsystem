@@ -11349,6 +11349,10 @@ export type Database = {
       get_user_casino_id: { Args: { _user_id: string }; Returns: string }
       has_any_pos_role: { Args: { _user: string }; Returns: boolean }
       has_cap: { Args: { _cap: string; _uid: string }; Returns: boolean }
+      has_casino_scope: {
+        Args: { _casino_id: string; _uid: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
