@@ -707,13 +707,15 @@ const OutForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, s
 };
 
 // =================== CASH CHECK ===================
-const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRates, cashChecks, businessDate }: {
+const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRates, cashChecks, businessDate, cageTransfers = [], shiftExpensesTzs = 0 }: {
   expectedBalance: number;
   shift: Tables<"shifts">;
   shiftTransactions: Tables<"transactions">[];
   exchangeRates: Record<string, number>;
   cashChecks: Tables<"cash_counts">[];
   businessDate: string;
+  cageTransfers?: Array<{ transfer_type: string; amount: number | string; chips?: unknown }>;
+  shiftExpensesTzs?: number;
 }) => {
   const shiftId = shift.id;
   const { hasRole } = useAuth();
