@@ -302,6 +302,30 @@ export default function OtherIncomesTab() {
           columns={columns}
           rowKey={(r) => r.id}
           loading={isLoading}
+          footerRows={[
+            {
+              key: "total",
+              className: "font-bold bg-muted/40 border-t border-border",
+              cell: (col, index) => {
+                if (index === 0) return "Total";
+                if (col.key === "amount") {
+                  const neg = total < 0;
+                  return (
+                    <span
+                      className={cn(
+                        "font-mono tabular-nums",
+                        neg ? "cms-amount-negative" : "cms-amount-positive",
+                      )}
+                    >
+                      {neg ? "−" : "+"}
+                      {formatNumberSpaces(Math.abs(total))}
+                    </span>
+                  );
+                }
+                return null;
+              },
+            },
+          ]}
           empty={
             <div className="text-sm text-muted-foreground text-center py-10">
               No other-income transactions in this period.
