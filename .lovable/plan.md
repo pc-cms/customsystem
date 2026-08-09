@@ -51,11 +51,13 @@ CCTV
 
 Новые таблицы (миграция, с GRANT + RLS):
 
-- `management_people` — `id`, `name`, `block` (`casino` | `office` | `cctv`), `casino_id` (для блоков-казино), `is_active`, `sort_order`.
-- `management_rota` — `person_id`, `date`, `shift` (`D`/`M`/`N`/`L` — для не-CCTV), `city_casino_id` (для CCTV), уникальность `(person_id, date)`.
-- `management_attendance` — `person_id`, `date`, `value` (`A`/`L`/`S`), `recorded_by`, уникальность `(person_id, date)`.
+- `management_people` — `id`, `name`, `kind` (`manager` | `cctv`), `is_active`, `sort_order`. Без привязки к казино — человек свободно назначается в любой слот.
+- `management_slots` — `id`, `block` (`casino` | `office` | `cctv`), `casino_id` (для блоков-казино), `month`, `slot_index`, `person_id` (nullable — пустой слот), уникальность `(block, casino_id, month, slot_index)` и `(month, person_id)`.
+- `management_rota` — `slot_id`, `date`, `shift` (`D`/`M`/`N`/`L` — для не-CCTV), `city_casino_id` (для CCTV), уникальность `(slot_id, date)`.
+- `management_attendance` — `slot_id`, `date`, `value` (`A`/`L`/`S`), `recorded_by`, уникальность `(slot_id, date)`.
 
-Доступ: чтение — всем аутентифицированным с правом модуля (без casino-скоупа); запись — `is_manager_op` / `general_manager` / `super_admin`, плюс `surveillance` только для строк с `block = 'cctv'`.
+Доступ: чтение — всем аутентифицированным с правом модуля (без casino-скоупа); запись — `is_manager_op` / `general_manager` / `super_admin`, плюс `surveillance` только для слотов с `block = 'cctv'`.
+
 
 Фронтенд:
 
