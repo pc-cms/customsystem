@@ -262,9 +262,13 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                       </th>
                     );
                   })}
+                  <th className="text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2 min-w-[120px] whitespace-nowrap border-l border-border" title="Credit − Fill for the active shift">
+                    F/C
+                  </th>
                   <th className="text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2 min-w-[120px] whitespace-nowrap border-l border-border">
                     Drop
                   </th>
+
                 </tr>
               </thead>
               <tbody>
