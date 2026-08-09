@@ -4,46 +4,41 @@
 
 ## Как выглядит
 
-Месячная сетка: строки — люди, колонки — дни. Люди сгруппированы в блоки:
+Месячная сетка: колонки — дни, строки — **слоты**. В каждом городе по 4 слота (можно добавить/убрать). Имя в слоте не жёсткое — выбирается выпадающим списком из общего списка всех менеджеров, поэтому любого менеджера можно поставить в любое казино (переезд, подмена).
 
 ```text
 ARUSHA
-  Taras        D  M  N  ·  D ...
-  Peter        ...
-  Konstantin   ...
-DODOMA
-  ...
-MWANZA
-  ...
-MBEYA
-  Daniyar / Hussein ...
-OFFICE
-  ...
+  [Taras      ▾]  D  M  N  ·  D ...
+  [Peter      ▾]  ...
+  [Konstantin ▾]  ...
+  [— выбрать —▾]
+DODOMA / MWANZA / MBEYA / OFFICE — так же, по 4 слота
 CCTV
-  Andrew      ARU  MWZ  ·  DOD ...
-  Alex        ...
+  [Andrew ▾]  ARU  MWZ  ·  DOD ...
+  [Alex   ▾]  ...
 ```
 
 - Блоки казино + Office: в клетке ставится смена — `D` 10:00–18:00 (8ч), `M` 13:00–21:00 (8ч), `N` 18:00–06:00 (12ч). Пусто = выходной, `L` = Leave. В Office такие же смены.
 - Блок CCTV: смена всегда 18:00–06:00 (12ч), поэтому выбирается не смена, а **город**: `ARU`, `MWZ`, `MBI`, `DOD` — где человек сегодня работает удалённо.
+- Один и тот же менеджер не может занимать два слота в одном месяце — при выборе имя, уже занятое в другом слоте, помечается и предлагается перенести (слот освобождается, смены переезжают вместе с ним).
 - Итоги по человеку справа: дни и часы. У CCTV дополнительно разбивка по городам.
 
 ## Список людей
 
-Из списка Incidents. Менеджеры распределены по своим блокам-казино:
+Общий список из Incidents, доступен в выпадашке любого слота:
 
-- Arusha: Taras, Peter, Konstantin
-- Mbeya: Daniyar, Hussein
-- Остальные менеджеры (Bakha, Carol, Oxana, Raushan, Sergey T, Sveta, Vadim, Valeriy, Yurii) — по блокам Mwanza / Dodoma / Office, расставим по вашему указанию, поправить можно в один клик.
+- Менеджеры: Bakha, Carol, Daniyar, Hussein, Konstantin, Oxana, Peter, Raushan, Sergey T, Sveta, Taras, Vadim, Valeriy, Yurii
 - CCTV: Andrew, Alex, Vladimir, Vitalii
 
-Список хранится в справочнике в базе (блок, активность, порядок), пополняется без правки кода.
+Стартовая расстановка: Arusha — Taras, Peter, Konstantin; Mbeya — Daniyar, Hussein; остальные слоты пустые, заполняются из выпадашки. Список хранится в справочнике в базе (тип: менеджер / CCTV, активность, порядок), пополняется без правки кода.
 
 ## Attendance
 
 - Заполняется автоматически из роты: стоит смена/город → день отработан, часы по смене (`D` 8, `M` 8, `N` 12, CCTV 12).
 - Поверх можно вручную поставить `A` (отсутствие), `L` (отпуск), `S` (больничный) — ручное значение важнее авто.
 - Ручная правка не стирает роту, хранится отдельным слоем.
+- Attendance берёт человека из слота роты, поэтому при переносе менеджера в другой город его часы едут за ним.
+
 
 ## Права
 
@@ -56,11 +51,13 @@ CCTV
 
 Новые таблицы (миграция, с GRANT + RLS):
 
-- `management_people` — `id`, `name`, `block` (`casino` | `office` | `cctv`), `casino_id` (для блоков-казино), `is_active`, `sort_order`.
-- `management_rota` — `person_id`, `date`, `shift` (`D`/`M`/`N`/`L` — для не-CCTV), `city_casino_id` (для CCTV), уникальность `(person_id, date)`.
-- `management_attendance` — `person_id`, `date`, `value` (`A`/`L`/`S`), `recorded_by`, уникальность `(person_id, date)`.
+- `management_people` — `id`, `name`, `kind` (`manager` | `cctv`), `is_active`, `sort_order`. Без привязки к казино — человек свободно назначается в любой слот.
+- `management_slots` — `id`, `block` (`casino` | `office` | `cctv`), `casino_id` (для блоков-казино), `month`, `slot_index`, `person_id` (nullable — пустой слот), уникальность `(block, casino_id, month, slot_index)` и `(month, person_id)`.
+- `management_rota` — `slot_id`, `date`, `shift` (`D`/`M`/`N`/`L` — для не-CCTV), `city_casino_id` (для CCTV), уникальность `(slot_id, date)`.
+- `management_attendance` — `slot_id`, `date`, `value` (`A`/`L`/`S`), `recorded_by`, уникальность `(slot_id, date)`.
 
-Доступ: чтение — всем аутентифицированным с правом модуля (без casino-скоупа); запись — `is_manager_op` / `general_manager` / `super_admin`, плюс `surveillance` только для строк с `block = 'cctv'`.
+Доступ: чтение — всем аутентифицированным с правом модуля (без casino-скоупа); запись — `is_manager_op` / `general_manager` / `super_admin`, плюс `surveillance` только для слотов с `block = 'cctv'`.
+
 
 Фронтенд:
 
