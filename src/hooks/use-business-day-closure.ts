@@ -146,7 +146,15 @@ export function useCloseBusinessDayWithFigures() {
       return data as { status: string; business_date?: string; open?: any };
     },
     onSuccess: (res) => {
+      const closed = !res?.status || !["already_closed", "figures_required", "has_open_cycles"].includes(res.status);
+      if (closed && casinoId) {
+        // Day really rolled over: drop the cached business date and every
+        // cached page of the finished day so screens start empty on the new day.
+        try { localStorage.removeItem(BD_CACHE_KEY(casinoId)); } catch { /* ignore */ }
+        qc.removeQueries();
+      }
       qc.invalidateQueries();
+
       if (res?.status === "already_closed") {
         toast.info(`Day ${res.business_date} is already closed`);
       } else if (res?.status === "figures_required") {

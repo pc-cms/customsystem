@@ -13,6 +13,8 @@ import {
   useOpenCyclesForDay,
 } from "@/hooks/use-business-day-closure";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+import { useShiftsTablesResultForDate } from "@/hooks/use-fin";
+import { formatNumberSpaces } from "@/lib/currency";
 
 /**
  * Close the current business day.
@@ -24,9 +26,11 @@ import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
  *   - cage slots shift closed
  *   - all gaming tables closed
  *   - no active player sessions / open visits
- * Confirmation always requires manager password. On success the figures are
- * written straight into Day Closings (Table Result / CashDesk Win).
+ * Confirmation always requires manager password. On success the four figures
+ * are written into the day's closed slots shift (Statistics → Slots) and into
+ * Day Closings; Table Result stays auto-computed from the closed table shifts.
  */
+
 
 const parseNum = (s: string): number | null => {
   const clean = s.replace(/\s/g, "").replace(",", ".");
@@ -57,6 +61,8 @@ export function CloseBusinessDayButton() {
   const { data: lastClosure } = useLastBusinessDayClosure();
   const { data: openCycles } = useOpenCyclesForDay();
   const closeMut = useCloseBusinessDayWithFigures();
+  const { data: tablesResultAuto = 0 } = useShiftsTablesResultForDate(currentDate);
+
   const [open, setOpen] = useState(false);
   const [askPassword, setAskPassword] = useState(false);
 
@@ -149,22 +155,31 @@ export function CloseBusinessDayButton() {
               <Label htmlFor="cbd-drop-slots">Drop Slots</Label>
               <Input id="cbd-drop-slots" inputMode="decimal" value={dropSlots}
                 onChange={e => setDropSlots(e.target.value)} placeholder="0" />
+              <p className="text-[11px] text-muted-foreground">→ Statistics · Slots — Drop</p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="cbd-net-win">Net Win</Label>
               <Input id="cbd-net-win" inputMode="decimal" value={netWin}
                 onChange={e => setNetWin(e.target.value)} placeholder="0" />
+              <p className="text-[11px] text-muted-foreground">→ Statistics · Slots — Net Win</p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="cbd-cashdesk-win">CashDesk Win</Label>
               <Input id="cbd-cashdesk-win" inputMode="decimal" value={cashDeskWin}
                 onChange={e => setCashDeskWin(e.target.value)} placeholder="0" />
+              <p className="text-[11px] text-muted-foreground">→ Slots — Cashdesk · Day Closing</p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="cbd-client-balance">Client Balance</Label>
               <Input id="cbd-client-balance" inputMode="decimal" value={clientBalance}
                 onChange={e => setClientBalance(e.target.value)} placeholder="0" />
+              <p className="text-[11px] text-muted-foreground">→ Slots — Client Balance · Day Closing</p>
             </div>
+          </div>
+
+          <div className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
+            <span className="text-muted-foreground">Table Result (auto, from closed tables)</span>
+            <span className="font-mono tabular-nums">{formatNumberSpaces(Math.round(tablesResultAuto))}</span>
           </div>
 
           <div className="space-y-1.5">
@@ -173,10 +188,12 @@ export function CloseBusinessDayButton() {
           </div>
 
           <ul className="list-disc pl-5 space-y-1 text-muted-foreground text-xs">
-            <li>Figures are saved into Day Closings (Table Result / CashDesk Win) immediately.</li>
+            <li>Figures overwrite the day's slots shift and Day Closings immediately.</li>
+            <li>Table Result is never taken from this form — it is computed automatically.</li>
             <li>Operational filters (Pit, Cashier, Reception) advance to the next day.</li>
             <li>If you forget to close, an automatic close runs at 11:00 AM.</li>
           </ul>
+
 
           <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
             Manager password will be required to confirm.
