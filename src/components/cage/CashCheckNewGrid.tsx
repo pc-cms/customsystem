@@ -176,11 +176,17 @@ const CashCheckNewGrid = ({
                 <p className={titleCls + " mb-0"}>{cur} Cash</p>
                 <span
                   className="font-mono text-[10px] text-muted-foreground tabular-nums"
-                  title="Expected total from opening + transactions"
+                  title="Expected total from opening + transactions + cage transfers"
                 >
                   exp {formatNumberSpaces(exp)}
                 </span>
               </div>
+              {cur === "TZS" && cashParts.length > 0 && (
+                <p className="text-[10px] font-mono text-muted-foreground -mt-1 mb-2 leading-tight">
+                  {cashParts.join(" · ")}
+                </p>
+              )}
+
               <CashDenomInput
                 values={cash[cur] || {}}
                 onChange={(v) => onCashChange(cur, v)}
