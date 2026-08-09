@@ -11045,30 +11045,18 @@ export type Database = {
           table_id: string
         }[]
       }
-      create_chip_transfer_pair:
-        | {
-            Args: {
-              _amount: number
-              _chips?: Json
-              _from_player: string
-              _note?: string
-              _table_id?: string
-              _to_player: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              _amount: number
-              _casino_id?: string
-              _chips?: Json
-              _from_player: string
-              _note?: string
-              _table_id?: string
-              _to_player: string
-            }
-            Returns: Json
-          }
+      create_chip_transfer_pair: {
+        Args: {
+          _amount: number
+          _casino_id?: string
+          _chips?: Json
+          _from_player: string
+          _note?: string
+          _table_id?: string
+          _to_player: string
+        }
+        Returns: Json
+      }
       create_office_expense: {
         Args: {
           p_amount: number
