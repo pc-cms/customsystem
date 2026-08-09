@@ -1,25 +1,36 @@
-# Managers — Rota и Attendance (сетевой раздел)
+# Rota Management / Attendance Management (сетевой раздел)
 
-Новый раздел **Managers** вместо привязки менеджеров к Office. Внутри — два подраздела: **Managers** и **CCTV**. Работает поверх всех казино сразу: одна общая сетка на месяц, независимо от того, какое казино выбрано в шапке.
+Раздел живёт в **Office**: две страницы — **Rota Management** и **Attendance Management**. Работают поверх всех казино сразу: одна общая сетка на месяц, независимо от того, какое казино выбрано в шапке.
+
+## Разделы внутри сетки
+
+Люди сгруппированы по локациям, каждая — свой блок строк с заголовком:
+
+1. Rooms
+2. Floor Manager
+3. Front Desk
+4. MB
+5. Office
+6. CCTV — отдельный блок (в речи «Social TV»), он же отдельная вкладка-фильтр
 
 ## Как это выглядит
 
-- В сайдбаре появляется пункт **Managers** с вкладками: `Rota` и `Attendance`, и переключателем групп `Managers` / `CCTV`.
-- Строки — люди, колонки — дни месяца.
-- **Менеджеры**: в квадратике смена + казино, например `ARU·D`. Смены: `D` 10:00–18:00 (8ч), `M` 13:00–21:00 (8ч), `N` 18:00–06:00 (12ч). Пусто = выходной, `L` = Leave.
+- Строки — люди (внутри своей локации), колонки — дни месяца.
+- **Менеджеры и офис**: в квадратике смена + казино, например `ARU·D`. Смены: `D` 10:00–18:00 (8ч), `M` 13:00–21:00 (8ч), `N` 18:00–06:00 (12ч). Пусто = выходной, `L` = Leave. Офисные локации используют те же смены, что и казино.
 - **CCTV**: смена всегда 18:00–06:00 (12ч), поэтому буква смены не показывается — в квадратике только код города, где человек работает удалённо: `ARU`, `MWZ`, `MBY`, `DOD`.
 - Каждое казино — свой цвет квадратика, чтобы месяц читался с одного взгляда.
-- Внизу — итоги: сколько дней человек отработал, часы и разбивка по казино (например `ARU 12 · MWZ 6`).
-
+- Внизу каждого блока и по человеку — итоги: дни, часы и разбивка по казино (например `ARU 12 · MWZ 6`).
 
 ## Список людей
 
-Берётся из списка, который уже используется в Incidents:
+Берётся из списка, который уже используется в Incidents, плюс распределение по локациям:
 
-- Менеджеры: Bakha, Carol, Daniyar, Hussein, Konstantin, Oxana, Peter, Raushan, Sergey T, Sveta, Taras, Vadim, Valeriy, Yurii
+- Менеджеры: Bakha, Carol, Daniyar, Hussein, Konstantin, Oxana, Raushan, Sergey T, Sveta, Vadim, Valeriy, Yurii
+- Office: Peter, Sergey K, Taras
 - CCTV: Andrew, Alex, Vladimir, Vitalii
 
-Список заводится в справочник в базе (с полем «домашнее казино» и флагом активности), чтобы дальше его можно было пополнять без правки кода. Начальное наполнение — именами выше; домашнее казино: Аруша — Taras, Peter, Konstantin; Мбея — Daniyar, Hussein; остальным ставится Мванза по умолчанию и правится в один клик.
+Список заводится в справочник в базе (локация, домашнее казино, флаг активности), чтобы дальше пополнять его без правки кода. Домашнее казино: Аруша — Taras, Peter, Konstantin; Мбея — Daniyar, Hussein; остальным Мванза по умолчанию, правится в один клик. Распределение по Rooms / Floor Manager / Front Desk / MB задаётся в справочнике — скажите, кого куда, либо расставим сразу в UI.
+
 
 ## Attendance
 
@@ -38,16 +49,17 @@
 
 Новые таблицы (миграция, с GRANT + RLS):
 
-- `management_people` — `id`, `name`, `kind` (`manager` | `cctv`), `home_casino_id`, `is_active`, `sort_order`.
+- `management_people` — `id`, `name`, `location` (`rooms` | `floor_manager` | `front_desk` | `mb` | `office` | `cctv`), `home_casino_id`, `is_active`, `sort_order`.
 - `management_rota` — `person_id`, `date`, `casino_id` (nullable — для `L`), `shift` (`D`/`M`/`N` для менеджеров, `N` по умолчанию для CCTV), `code` (`casino` | `L`), уникальность `(person_id, date)`.
 - `management_attendance` — `person_id`, `date`, `value` (`A`/`L`/`S`/`""`), `recorded_by`, уникальность `(person_id, date)`.
 
-Таблицы намеренно **без** `casino_id`-скоупа на уровне доступа: чтение — любому аутентифицированному пользователю с доступом к модулю; запись — `is_manager_op` / `general_manager` / `super_admin` для группы `manager`, плюс `surveillance` для группы `cctv` (проверка вида группы внутри политики через `management_people.kind`).
+Таблицы намеренно **без** `casino_id`-скоупа на уровне доступа: чтение — любому аутентифицированному пользователю с доступом к модулю; запись — `is_manager_op` / `general_manager` / `super_admin` для всех локаций, плюс `surveillance` только для `location = 'cctv'` (проверка внутри политики через `management_people.location`).
 
 Фронтенд:
 
-- `src/lib/modules.ts`: новые ключи `managers_rota`, `managers_attendance` (группа Operations); прописать дефолты в `role_module_defaults`.
-- Новые страницы `src/pages/managers/ManagersRotaPage.tsx` и `ManagersAttendancePage.tsx` + общий компонент сетки `ManagementGrid` (месяц, строки-люди, клетки-казино), стиль как у `StaffRotaGrid`.
+- `src/lib/modules.ts`: новые ключи `rota_management`, `attendance_management` (группа Operations); прописать дефолты в `role_module_defaults`.
+- Новые страницы `src/pages/office/RotaManagementPage.tsx` и `AttendanceManagementPage.tsx` + общий компонент `ManagementGrid` (месяц, блоки-локации, строки-люди, клетки `ARU·D`), стиль как у `StaffRotaGrid`.
+
 - Хуки `src/hooks/use-management-rota.ts` — чтение месяца, оптимистичная запись клетки, инвалидация.
 - Часы: расширить `src/lib/shift-hours.ts` scope `management` (D 8, M 8, N 12) и `cctv` (12).
 - Роутинг в `App.tsx` и пункт меню в `AppSidebar.tsx`; существующая вкладка `rota_management` в Staff остаётся для совместимости, но менеджеры переезжают в новый раздел.
