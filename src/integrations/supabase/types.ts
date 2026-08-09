@@ -5229,6 +5229,167 @@ export type Database = {
           },
         ]
       }
+      management_attendance: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          recorded_by: string | null
+          slot_id: string
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          recorded_by?: string | null
+          slot_id: string
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          recorded_by?: string | null
+          slot_id?: string
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "management_attendance_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "management_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      management_people: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          kind: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      management_rota: {
+        Row: {
+          city_casino_id: string | null
+          created_at: string
+          date: string
+          id: string
+          shift: string | null
+          slot_id: string
+          updated_at: string
+        }
+        Insert: {
+          city_casino_id?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          shift?: string | null
+          slot_id: string
+          updated_at?: string
+        }
+        Update: {
+          city_casino_id?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          shift?: string | null
+          slot_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "management_rota_city_casino_id_fkey"
+            columns: ["city_casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "management_rota_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "management_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      management_slots: {
+        Row: {
+          block: string
+          casino_id: string | null
+          created_at: string
+          id: string
+          month: string
+          person_id: string | null
+          slot_index: number
+          updated_at: string
+        }
+        Insert: {
+          block: string
+          casino_id?: string | null
+          created_at?: string
+          id?: string
+          month: string
+          person_id?: string | null
+          slot_index: number
+          updated_at?: string
+        }
+        Update: {
+          block?: string
+          casino_id?: string | null
+          created_at?: string
+          id?: string
+          month?: string
+          person_id?: string | null
+          slot_index?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "management_slots_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "management_slots_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "management_people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merge_group_dismissed: {
         Row: {
           dismissed_at: string
