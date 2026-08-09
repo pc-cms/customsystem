@@ -363,7 +363,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
           />
         </TabsContent>
         <TabsContent value="check" className="space-y-3">
-          <CashCheckForm expectedBalance={expectedTotal} shift={shift} shiftTransactions={shiftTransactions} exchangeRates={exchangeRates} cashChecks={cashChecks} businessDate={businessDate} />
+          <CashCheckForm expectedBalance={expectedTotal} shift={shift} shiftTransactions={shiftTransactions} exchangeRates={exchangeRates} cashChecks={cashChecks} businessDate={businessDate} cageTransfers={cageTransfers} shiftExpensesTzs={totalExpenses} />
           <TransactionsTable
             transactions={shiftTransactions}
             tableMap={tableMap}
@@ -707,13 +707,15 @@ const OutForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, s
 };
 
 // =================== CASH CHECK ===================
-const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRates, cashChecks, businessDate }: {
+const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRates, cashChecks, businessDate, cageTransfers = [], shiftExpensesTzs = 0 }: {
   expectedBalance: number;
   shift: Tables<"shifts">;
   shiftTransactions: Tables<"transactions">[];
   exchangeRates: Record<string, number>;
   cashChecks: Tables<"cash_counts">[];
   businessDate: string;
+  cageTransfers?: Array<{ transfer_type: string; amount: number | string; chips?: unknown }>;
+  shiftExpensesTzs?: number;
 }) => {
   const shiftId = shift.id;
   const { hasRole } = useAuth();
@@ -776,7 +778,10 @@ const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRate
 
   // New UI toggle (Old / New) — session-local, no persist.
   const [mode, setMode] = useState<"old" | "new">("old");
-  const expected = useExpectedCheckState(shift, shiftTransactions);
+  const expected = useExpectedCheckState(shift, shiftTransactions, {
+    transfers: cageTransfers,
+    expensesTzs: shiftExpensesTzs,
+  });
 
   // Per-cell variance for New mode: any chip denom or cash currency where
   // counted ≠ expected. Used to render "Balanced · variance" in red when the
@@ -887,6 +892,23 @@ const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRate
             cashlessOutSuggestion={cashlessSug?.out}
           />
         )}
+
+        {mode === "new" && (() => {
+          const chipsExp = Object.entries(expected.expectedChips)
+            .reduce((s, [d, q]) => s + Number(d) * (Number(q) || 0), 0);
+          const cashExp = CURRENCIES.reduce(
+            (s, c) => s + (expected.expectedCashByCurrency[c] || 0) * (c === "TZS" ? 1 : Number(exchangeRates[c] || 0)),
+            0,
+          );
+          const cellsExpected = chipsExp + cashExp + expected.unallocatedChipsTzs;
+          const gap = Math.round(cellsExpected - expectedBalance);
+          if (gap === 0) return null;
+          return (
+            <div className="mt-2 text-[11px] text-warning px-2 py-1 rounded bg-warning/10 border border-warning/30 font-mono">
+              Cells expected {formatCurrency(cellsExpected)} ≠ shift Expected {formatCurrency(expectedBalance)} · gap {gap > 0 ? "+" : ""}{formatCurrency(gap)} (closed-table settlements, bank & mobile are not counted per denomination)
+            </div>
+          );
+        })()}
 
         <div className="grid grid-cols-3 gap-2 pt-3 mt-3 border-t border-border">
           <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Expected</p><p className="font-mono text-xl font-bold text-card-foreground">{formatCurrency(expectedBalance)}</p></div>
