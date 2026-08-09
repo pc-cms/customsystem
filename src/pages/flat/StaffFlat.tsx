@@ -4,15 +4,16 @@
  * by ModuleKey instead of relying on `?tab=` and `?group=`.
  */
 import Staff from "@/pages/Staff";
+import ManagementSchedulePage from "@/pages/management/ManagementSchedulePage";
 
 export const StaffEmployeesPage = () => <Staff forcedTab="employee" />;
 
 export const RotaFloorPage = () => <Staff forcedTab="rota_floor" />;
 export const RotaSecurityPage = () => <Staff forcedTab="rota_security" />;
-export const RotaManagementPage = () => <Staff forcedTab="rota_management" />;
+export const RotaManagementPage = () => <ManagementSchedulePage mode="rota" />;
 export const RotaOfficePage = () => <Staff forcedTab="rota_office" />;
 
 export const AttendanceFloorPage = () => <Staff forcedTab="attendance" forcedGroup="floor" />;
 export const AttendanceSecurityPage = () => <Staff forcedTab="attendance" forcedGroup="security" />;
 export const AttendanceOfficePage = () => <Staff forcedTab="attendance" forcedGroup="office" />;
-export const AttendanceManagementPage = () => <Staff forcedTab="attendance" forcedGroup="management" />;
+export const AttendanceManagementPage = () => <ManagementSchedulePage mode="attendance" />;
