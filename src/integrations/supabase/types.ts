@@ -3756,12 +3756,15 @@ export type Database = {
       fin_day_closing: {
         Row: {
           business_date: string
+          cashdesk_win: number
           casino_id: string
           closed_by: string | null
           created_at: string
+          drop_slots: number
           id: string
           income_lines: Json
           locked_at: string | null
+          net_win: number
           notes: string | null
           players_card_balance: number
           slots_result: number
@@ -3771,12 +3774,15 @@ export type Database = {
         }
         Insert: {
           business_date: string
+          cashdesk_win?: number
           casino_id: string
           closed_by?: string | null
           created_at?: string
+          drop_slots?: number
           id?: string
           income_lines?: Json
           locked_at?: string | null
+          net_win?: number
           notes?: string | null
           players_card_balance?: number
           slots_result?: number
@@ -3786,12 +3792,15 @@ export type Database = {
         }
         Update: {
           business_date?: string
+          cashdesk_win?: number
           casino_id?: string
           closed_by?: string | null
           created_at?: string
+          drop_slots?: number
           id?: string
           income_lines?: Json
           locked_at?: string | null
+          net_win?: number
           notes?: string | null
           players_card_balance?: number
           slots_result?: number
@@ -10908,6 +10917,17 @@ export type Database = {
           _casino_id: string
           _force_close_cycles?: boolean
           _method: string
+        }
+        Returns: Json
+      }
+      close_business_day_with_figures: {
+        Args: {
+          _cashdesk_win: number
+          _casino_id: string
+          _client_balance: number
+          _drop_slots: number
+          _net_win: number
+          _notes?: string
         }
         Returns: Json
       }
