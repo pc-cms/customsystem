@@ -778,7 +778,10 @@ const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRate
 
   // New UI toggle (Old / New) — session-local, no persist.
   const [mode, setMode] = useState<"old" | "new">("old");
-  const expected = useExpectedCheckState(shift, shiftTransactions);
+  const expected = useExpectedCheckState(shift, shiftTransactions, {
+    transfers: cageTransfers,
+    expensesTzs: shiftExpensesTzs,
+  });
 
   // Per-cell variance for New mode: any chip denom or cash currency where
   // counted ≠ expected. Used to render "Balanced · variance" in red when the
