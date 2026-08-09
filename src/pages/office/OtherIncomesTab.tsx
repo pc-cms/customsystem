@@ -74,6 +74,11 @@ export default function OtherIncomesTab() {
     [categories],
   );
 
+  const total = useMemo(
+    () => incomes.reduce((sum, r) => sum + Number(r.amount || 0), 0),
+    [incomes],
+  );
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<{
