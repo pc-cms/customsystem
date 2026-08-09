@@ -23,7 +23,7 @@
 
 ## Attendance
 
-- Заполняется автоматически из роты: стоит код казино → день отработан (менеджер день — 8ч, ночь — 12ч, CCTV — 12ч; по группе, не по конкретной смене).
+- Заполняется автоматически из роты: стоит казино → день отработан. Часы: менеджер `D` 8ч, `M` 8ч, `N` 12ч; CCTV всегда 12ч.
 - Поверх можно вручную поставить код: `A` (отсутствие), `L` (отпуск), `S` (больничный) — ручное значение всегда важнее авто.
 - Ручная правка не стирает роту, она хранится отдельным слоем.
 
@@ -39,7 +39,7 @@
 Новые таблицы (миграция, с GRANT + RLS):
 
 - `management_people` — `id`, `name`, `kind` (`manager` | `cctv`), `home_casino_id`, `is_active`, `sort_order`.
-- `management_rota` — `person_id`, `date`, `casino_id` (nullable — для `L`), `code` (`casino` | `L`), уникальность `(person_id, date)`.
+- `management_rota` — `person_id`, `date`, `casino_id` (nullable — для `L`), `shift` (`D`/`M`/`N` для менеджеров, `N` по умолчанию для CCTV), `code` (`casino` | `L`), уникальность `(person_id, date)`.
 - `management_attendance` — `person_id`, `date`, `value` (`A`/`L`/`S`/`""`), `recorded_by`, уникальность `(person_id, date)`.
 
 Таблицы намеренно **без** `casino_id`-скоупа на уровне доступа: чтение — любому аутентифицированному пользователю с доступом к модулю; запись — `is_manager_op` / `general_manager` / `super_admin` для группы `manager`, плюс `surveillance` для группы `cctv` (проверка вида группы внутри политики через `management_people.kind`).
@@ -49,6 +49,6 @@
 - `src/lib/modules.ts`: новые ключи `managers_rota`, `managers_attendance` (группа Operations); прописать дефолты в `role_module_defaults`.
 - Новые страницы `src/pages/managers/ManagersRotaPage.tsx` и `ManagersAttendancePage.tsx` + общий компонент сетки `ManagementGrid` (месяц, строки-люди, клетки-казино), стиль как у `StaffRotaGrid`.
 - Хуки `src/hooks/use-management-rota.ts` — чтение месяца, оптимистичная запись клетки, инвалидация.
-- Часы: расширить `src/lib/shift-hours.ts` scope `management` (manager day 8, night 12, cctv 12).
+- Часы: расширить `src/lib/shift-hours.ts` scope `management` (D 8, M 8, N 12) и `cctv` (12).
 - Роутинг в `App.tsx` и пункт меню в `AppSidebar.tsx`; существующая вкладка `rota_management` в Staff остаётся для совместимости, но менеджеры переезжают в новый раздел.
 - Поднять версию приложения.
