@@ -61,6 +61,8 @@ export function CloseBusinessDayButton() {
   const { data: lastClosure } = useLastBusinessDayClosure();
   const { data: openCycles } = useOpenCyclesForDay();
   const closeMut = useCloseBusinessDayWithFigures();
+  const { data: tablesResultAuto = 0 } = useShiftsTablesResultForDate(currentDate);
+
   const [open, setOpen] = useState(false);
   const [askPassword, setAskPassword] = useState(false);
 
