@@ -1316,20 +1316,21 @@ function BreakdownRow({
   signed?: boolean;
   muted?: boolean;
 }) {
-  const cls = positive
-    ? "cms-amount-positive"
-    : negative
-      ? "cms-amount-negative"
-      : signed
-        ? v > 0
-          ? "cms-amount-positive"
-          : v < 0
-            ? "cms-amount-negative"
-            : "text-muted-foreground"
-        : muted
-          ? "text-muted-foreground"
-          : "";
-  const sign = positive ? "+" : negative ? "−" : signed && v > 0 ? "+" : signed && v < 0 ? "−" : "";
+  // Effective direction: a "positive" row with a negative value must flip to minus/red,
+  // and a "negative" (subtracted) row with a negative value flips to plus/green.
+  const dir = positive ? (v < 0 ? -1 : v > 0 ? 1 : 0) : negative ? (v < 0 ? 1 : v > 0 ? -1 : 0) : v > 0 ? 1 : v < 0 ? -1 : 0;
+  const cls =
+    positive || negative || signed
+      ? dir > 0
+        ? "cms-amount-positive"
+        : dir < 0
+          ? "cms-amount-negative"
+          : "text-muted-foreground"
+      : muted
+        ? "text-muted-foreground"
+        : "";
+  const sign = positive || negative || signed ? (dir > 0 ? "+" : dir < 0 ? "−" : "") : "";
+
   return (
     <div className="flex items-center justify-between px-3 py-1.5 border-b border-border last:border-b-0 text-xs">
       <span
