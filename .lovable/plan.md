@@ -49,16 +49,17 @@
 
 Новые таблицы (миграция, с GRANT + RLS):
 
-- `management_people` — `id`, `name`, `kind` (`manager` | `cctv`), `home_casino_id`, `is_active`, `sort_order`.
+- `management_people` — `id`, `name`, `location` (`rooms` | `floor_manager` | `front_desk` | `mb` | `office` | `cctv`), `home_casino_id`, `is_active`, `sort_order`.
 - `management_rota` — `person_id`, `date`, `casino_id` (nullable — для `L`), `shift` (`D`/`M`/`N` для менеджеров, `N` по умолчанию для CCTV), `code` (`casino` | `L`), уникальность `(person_id, date)`.
 - `management_attendance` — `person_id`, `date`, `value` (`A`/`L`/`S`/`""`), `recorded_by`, уникальность `(person_id, date)`.
 
-Таблицы намеренно **без** `casino_id`-скоупа на уровне доступа: чтение — любому аутентифицированному пользователю с доступом к модулю; запись — `is_manager_op` / `general_manager` / `super_admin` для группы `manager`, плюс `surveillance` для группы `cctv` (проверка вида группы внутри политики через `management_people.kind`).
+Таблицы намеренно **без** `casino_id`-скоупа на уровне доступа: чтение — любому аутентифицированному пользователю с доступом к модулю; запись — `is_manager_op` / `general_manager` / `super_admin` для всех локаций, плюс `surveillance` только для `location = 'cctv'` (проверка внутри политики через `management_people.location`).
 
 Фронтенд:
 
-- `src/lib/modules.ts`: новые ключи `managers_rota`, `managers_attendance` (группа Operations); прописать дефолты в `role_module_defaults`.
-- Новые страницы `src/pages/managers/ManagersRotaPage.tsx` и `ManagersAttendancePage.tsx` + общий компонент сетки `ManagementGrid` (месяц, строки-люди, клетки-казино), стиль как у `StaffRotaGrid`.
+- `src/lib/modules.ts`: новые ключи `rota_management`, `attendance_management` (группа Operations); прописать дефолты в `role_module_defaults`.
+- Новые страницы `src/pages/office/RotaManagementPage.tsx` и `AttendanceManagementPage.tsx` + общий компонент `ManagementGrid` (месяц, блоки-локации, строки-люди, клетки `ARU·D`), стиль как у `StaffRotaGrid`.
+
 - Хуки `src/hooks/use-management-rota.ts` — чтение месяца, оптимистичная запись клетки, инвалидация.
 - Часы: расширить `src/lib/shift-hours.ts` scope `management` (D 8, M 8, N 12) и `cctv` (12).
 - Роутинг в `App.tsx` и пункт меню в `AppSidebar.tsx`; существующая вкладка `rota_management` в Staff остаётся для совместимости, но менеджеры переезжают в новый раздел.
