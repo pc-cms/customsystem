@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button";
 import ManagementGrid from "@/components/management/ManagementGrid";
 import { useAuth } from "@/lib/auth-context";
 import { useSessionState } from "@/hooks/use-session-state";
-import { getBusinessDate } from "@/lib/business-date";
-import { useEffectiveBusinessDate } from "@/hooks/use-business-day";
+import { getBusinessDate } from "@/lib/business-day";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { MGMT_SHIFT_LABELS } from "@/hooks/use-management-rota";
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_COLORS } from "@/lib/shift-colors";
 
