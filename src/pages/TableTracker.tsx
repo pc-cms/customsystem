@@ -314,10 +314,28 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                       );
                     })}
                     <td className="px-3 py-1 text-right whitespace-nowrap border-l border-border">
+                      {(() => {
+                        const fc = fcMap[table.id];
+                        const adj = Number(fc?.adjustment || 0);
+                        if (!fc || (!fc.fill && !fc.credit)) return <span className="font-mono text-sm text-muted-foreground">·</span>;
+                        return (
+                          <div className="leading-tight">
+                            <div className={`font-mono tabular-nums text-sm font-bold ${adj > 0 ? "cms-amount-positive" : adj < 0 ? "cms-amount-negative" : "text-card-foreground"}`}>
+                              {formatCurrency(adj)}
+                            </div>
+                            <div className="text-[10px] font-mono text-muted-foreground">
+                              F {formatCurrency(fc.fill)} · C {formatCurrency(fc.credit)}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </td>
+                    <td className="px-3 py-1 text-right whitespace-nowrap border-l border-border">
                       <span className="font-mono tabular-nums text-sm font-bold text-card-foreground">
                         {dropByTable[table.id] ? formatCurrency(dropByTable[table.id]) : "·"}
                       </span>
                     </td>
+
                   </tr>
                 ))}
                 <tr className="border-t-2 border-primary/30 bg-muted/30">
