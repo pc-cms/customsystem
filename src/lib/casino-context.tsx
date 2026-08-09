@@ -289,6 +289,15 @@ export const CasinoProvider = ({ children }: { children: ReactNode }) => {
 
   const activeCasino = accessibleCasinos.find(c => c.id === activeCasinoId) ?? null;
 
+  // Local (non-network) account landing on a casino it has no access to:
+  // show an explicit denial instead of a shell full of empty screens.
+  const deniedCasino =
+    user && !loading && !hasGlobalAccess && subdomainCasino &&
+    accessibleCasinos.length > 0 &&
+    !accessibleCasinos.some(c => c.id === subdomainCasino.id)
+      ? subdomainCasino
+      : null;
+
   return (
     <CasinoContext.Provider value={{
       activeCasinoId,
@@ -299,7 +308,23 @@ export const CasinoProvider = ({ children }: { children: ReactNode }) => {
       detectedSlug,
       loading,
     }}>
-      {children}
+      {deniedCasino ? (
+        <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+          <div className="max-w-sm w-full text-center space-y-3 rounded-lg border border-border p-6">
+            <h1 className="text-lg font-semibold text-foreground">No access to {deniedCasino.name}</h1>
+            <p className="text-sm text-muted-foreground">
+              This account is not authorised for this casino. Sign in with an account that has access.
+            </p>
+            <button
+              className="w-full h-9 rounded-md bg-primary text-primary-foreground text-sm font-medium"
+              onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }}
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      ) : children}
     </CasinoContext.Provider>
   );
 };
+
