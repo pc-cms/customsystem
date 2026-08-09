@@ -142,24 +142,36 @@ export function useBossTopPlayers(casinoIds: string[]) {
     queryKey: ["boss-top-players", casinoIds, today],
     queryFn: async () => {
       if (!casinoIds.length) return [] as TopPlayer[];
+      // NOTE: `player_day_drop_cache` has NO foreign key to `players`, so a
+      // PostgREST embed (`players(...)`) returns 400. Names are joined client-side.
       const { data } = await supabase
         .from("player_day_drop_cache")
-        .select("casino_id, player_id, peak, players(first_name, last_name, nickname)")
+        .select("casino_id, player_id, peak")
         .in("casino_id", casinoIds)
         .eq("business_date", today)
         .order("peak", { ascending: false })
         .limit(200);
       const rows = (data || []) as any[];
+      const ids = [...new Set(rows.map((r) => r.player_id).filter(Boolean))];
+      const names = new Map<string, string>();
+      if (ids.length) {
+        const { data: pl } = await supabase
+          .from("players")
+          .select("id, first_name, last_name, nickname")
+          .in("id", ids);
+        for (const p of (pl || []) as any[]) {
+          names.set(p.id, p.nickname || `${p.first_name || ""} ${p.last_name || ""}`.trim() || "—");
+        }
+      }
       // Top 5 per casino
       const perCasino: Record<string, TopPlayer[]> = {};
       for (const r of rows) {
         const arr = perCasino[r.casino_id] || (perCasino[r.casino_id] = []);
         if (arr.length >= 5) continue;
-        const p = r.players || {};
-        const name = p.nickname || `${p.first_name || ""} ${p.last_name || ""}`.trim() || "—";
-        arr.push({ casinoId: r.casino_id, playerId: r.player_id, name, drop: Number(r.peak || 0) });
+        arr.push({ casinoId: r.casino_id, playerId: r.player_id, name: names.get(r.player_id) || "—", drop: Number(r.peak || 0) });
       }
       return Object.values(perCasino).flat();
+
     },
     enabled: casinoIds.length > 0,
     refetchInterval: 15_000,
