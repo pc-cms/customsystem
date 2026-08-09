@@ -77,9 +77,12 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false 
 
   // Auto-create slots for a fresh month (carrying over last month's people).
   const needsSeed = !isLoading && slots.length === 0 && casinos.length > 0;
-  if (needsSeed && !ensureSlots.isPending) {
+  const seedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!needsSeed || ensureSlots.isPending || seedRef.current === month) return;
+    seedRef.current = month;
     ensureSlots.mutate({ month, casinoIds: casinos.map((c) => c.id) });
-  }
+  }, [needsSeed, month, casinos]);
 
   const dates = useMemo(
     () => Array.from({ length: days }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`),
