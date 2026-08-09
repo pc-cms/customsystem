@@ -893,6 +893,23 @@ const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRate
           />
         )}
 
+        {mode === "new" && (() => {
+          const chipsExp = Object.entries(expected.expectedChips)
+            .reduce((s, [d, q]) => s + Number(d) * (Number(q) || 0), 0);
+          const cashExp = CURRENCIES.reduce(
+            (s, c) => s + (expected.expectedCashByCurrency[c] || 0) * (c === "TZS" ? 1 : Number(exchangeRates[c] || 0)),
+            0,
+          );
+          const cellsExpected = chipsExp + cashExp + expected.unallocatedChipsTzs;
+          const gap = Math.round(cellsExpected - expectedBalance);
+          if (gap === 0) return null;
+          return (
+            <div className="mt-2 text-[11px] text-warning px-2 py-1 rounded bg-warning/10 border border-warning/30 font-mono">
+              Cells expected {formatCurrency(cellsExpected)} ≠ shift Expected {formatCurrency(expectedBalance)} · gap {gap > 0 ? "+" : ""}{formatCurrency(gap)} (closed-table settlements, bank & mobile are not counted per denomination)
+            </div>
+          );
+        })()}
+
         <div className="grid grid-cols-3 gap-2 pt-3 mt-3 border-t border-border">
           <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Expected</p><p className="font-mono text-xl font-bold text-card-foreground">{formatCurrency(expectedBalance)}</p></div>
           <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Counted</p><p className="font-mono text-xl font-bold text-card-foreground">{formatCurrency(totalTzs)}</p></div>
