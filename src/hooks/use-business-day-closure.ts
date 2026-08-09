@@ -94,6 +94,80 @@ export function useLastBusinessDayClosure() {
   });
 }
 
+/** Open cycles blocking the day close (cage, slots, tables, sessions, visits). */
+export function useOpenCyclesForDay() {
+  const { activeCasinoId: casinoId } = useCasino();
+  return useQuery({
+    queryKey: ["open-cycles-for-day", casinoId],
+    queryFn: async () => {
+      if (!casinoId) return null;
+      const { data, error } = await supabase.rpc("list_open_cycles_for_day", {
+        _casino_id: casinoId,
+      });
+      if (error) return null;
+      return data as {
+        open_cage_shifts: any[];
+        open_slots_shifts: any[];
+        open_tables: any[];
+        active_sessions: any[];
+        open_visits: any[];
+      };
+    },
+    enabled: !!casinoId,
+    ...liveQueryOptions(),
+    refetchInterval: 30_000,
+  });
+}
+
+export type CloseDayFigures = {
+  dropSlots: number;
+  netWin: number;
+  cashDeskWin: number;
+  clientBalance: number;
+  notes?: string;
+};
+
+/** Manual close with mandatory day figures — writes straight into Day Closings. */
+export function useCloseBusinessDayWithFigures() {
+  const qc = useQueryClient();
+  const { activeCasinoId: casinoId } = useCasino();
+  return useMutation({
+    mutationFn: async (f: CloseDayFigures) => {
+      if (!casinoId) throw new Error("No casino");
+      const { data, error } = await supabase.rpc("close_business_day_with_figures", {
+        _casino_id: casinoId,
+        _drop_slots: f.dropSlots,
+        _net_win: f.netWin,
+        _cashdesk_win: f.cashDeskWin,
+        _client_balance: f.clientBalance,
+        _notes: f.notes || null,
+      });
+      if (error) throw error;
+      return data as { status: string; business_date?: string; open?: any };
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries();
+      if (res?.status === "already_closed") {
+        toast.info(`Day ${res.business_date} is already closed`);
+      } else if (res?.status === "figures_required") {
+        toast.error("All four figures are required");
+      } else if (res?.status === "has_open_cycles") {
+        const open = res.open || {};
+        const parts: string[] = [];
+        if (open.open_cage_shifts?.length) parts.push(`${open.open_cage_shifts.length} cage shift(s)`);
+        if (open.open_slots_shifts?.length) parts.push(`${open.open_slots_shifts.length} slots shift(s)`);
+        if (open.open_tables?.length) parts.push(`${open.open_tables.length} open table(s)`);
+        if (open.active_sessions?.length) parts.push(`${open.active_sessions.length} active session(s)`);
+        if (open.open_visits?.length) parts.push(`${open.open_visits.length} open visit(s)`);
+        toast.error(`Cannot close day — open: ${parts.join(", ") || "unknown"}`);
+      } else {
+        toast.success(`Business day ${res.business_date} closed`);
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
 /** Manual close. Authorized DB-side: Pit or Manager only. */
 export function useCloseBusinessDay() {
   const qc = useQueryClient();
