@@ -10869,6 +10869,14 @@ export type Database = {
         }
         Returns: Json
       }
+      chip_float_daily: {
+        Args: { _casino_id: string; _from: string; _to: string }
+        Returns: {
+          date: string
+          denomination: number
+          quantity: number
+        }[]
+      }
       chip_snapshots_latest: {
         Args: { _casino_id: string; _date: string }
         Returns: {
