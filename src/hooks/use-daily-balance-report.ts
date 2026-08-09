@@ -622,20 +622,18 @@ export const useDailyBalanceReport = (
 
       const chipMiss: Bucket = {}, chipFloat: Bucket = {};
       const chipsDetail: Record<string, ChipDetail[]> = {};
-      // Chip float (chips physically in the cage) — latest snapshot of the day.
-      const lastSnap: Record<string, any> = {};
-      chipSnaps.forEach((c) => {
-        const k = `${c.date}|${c.location_id ?? ""}|${c.denomination}`;
-        const prev = lastSnap[k];
-        if (!prev || String(c.created_at) > String(prev.created_at)) lastSnap[k] = c;
-      });
+      // Chip float — already reduced server-side to the latest snapshot per
+      // date/location/denomination (chip_float_daily RPC).
       const floatByDenom: Record<string, Record<number, number>> = {};
-      Object.values(lastSnap).forEach((c: any) => {
-        add(chipFloat, c.date, num(c.actual_quantity) * num(c.denomination));
-        const bucket = (floatByDenom[c.date] ??= {});
+      chipSnaps.forEach((c: any) => {
+        const d = String(c.date).slice(0, 10);
         const dn = num(c.denomination);
-        bucket[dn] = (bucket[dn] || 0) + num(c.actual_quantity);
+        const q = num(c.quantity);
+        add(chipFloat, d, q * dn);
+        const bucket = (floatByDenom[d] ??= {});
+        bucket[dn] = (bucket[dn] || 0) + q;
       });
+
 
       /**
        * Chip Diff of a day = Miss Chips of that day, exactly as in the
