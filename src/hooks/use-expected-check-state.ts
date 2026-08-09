@@ -81,11 +81,18 @@ const asCurrencyCash = (v: unknown): Record<string, number> => {
 export const useExpectedCheckState = (
   shift: Tables<"shifts"> | null | undefined,
   shiftTransactions: Tables<"transactions">[],
+  opts?: { transfers?: TransferLike[]; expensesTzs?: number },
 ): ExpectedCheckState => {
+  const transfers = opts?.transfers;
+  const expensesTzs = opts?.expensesTzs ?? 0;
+
   return useMemo(() => {
     const of = (shift?.opening_float || {}) as Record<string, unknown>;
     const hasOpening = !!of.chips || !!of.cash;
-    const expectedChips = asNumberRecord(of.chips);
+    const openingChips = asNumberRecord(of.chips);
+    const expectedChips = { ...openingChips };
+    const openingChipsTzs = Object.entries(openingChips)
+      .reduce((s, [d, q]) => s + Number(d) * Number(q || 0), 0);
     const expectedCashByCurrency: Record<string, number> = {};
     for (const c of CURRENCIES) expectedCashByCurrency[c] = 0;
     Object.assign(expectedCashByCurrency, asCurrencyCash(of.cash));
@@ -122,6 +129,73 @@ export const useExpectedCheckState = (
       }
     }
 
-    return { expectedChips, expectedCashByCurrency, hasOpening };
-  }, [shift, shiftTransactions]);
+    // ---- Cage transfers (Fill / Credit / Add Float / Collection / Slots) ----
+    let fillTzs = 0, creditTzs = 0, addFloatTzs = 0, collectionTzs = 0, slotsInTzs = 0, slotsOutTzs = 0;
+    let unallocatedChipsTzs = 0;
+
+    for (const t of transfers || []) {
+      const amt = Number(t.amount || 0);
+      switch (String(t.transfer_type)) {
+        case "fill":
+        case "credit": {
+          const isFill = t.transfer_type === "fill";
+          if (isFill) fillTzs += amt; else creditTzs += amt;
+          const chipMap = asNumberRecord(t.chips);
+          const denomKeys = Object.keys(chipMap);
+          if (denomKeys.length === 0) {
+            // No per-denom breakdown (legacy row) — keep the value out of the
+            // per-denomination expectations so it doesn't smear across denoms.
+            unallocatedChipsTzs += isFill ? -amt : amt;
+            break;
+          }
+          const sign = isFill ? -1 : +1; // Fill → chips leave the cage
+          for (const [d, qty] of Object.entries(chipMap)) {
+            const denom = Number(d);
+            expectedChips[denom] = (expectedChips[denom] || 0) + sign * Number(qty);
+          }
+          break;
+        }
+        case "add_float":
+          addFloatTzs += amt;
+          expectedCashByCurrency.TZS = (expectedCashByCurrency.TZS || 0) + amt;
+          break;
+        case "slots_in":
+          slotsInTzs += amt;
+          expectedCashByCurrency.TZS = (expectedCashByCurrency.TZS || 0) + amt;
+          break;
+        case "collection":
+          collectionTzs += amt;
+          expectedCashByCurrency.TZS = (expectedCashByCurrency.TZS || 0) - amt;
+          break;
+        case "slots_out":
+          slotsOutTzs += amt;
+          expectedCashByCurrency.TZS = (expectedCashByCurrency.TZS || 0) - amt;
+          break;
+        default:
+          break;
+      }
+    }
+
+    if (expensesTzs) {
+      expectedCashByCurrency.TZS = (expectedCashByCurrency.TZS || 0) - expensesTzs;
+    }
+
+    return {
+      expectedChips,
+      expectedCashByCurrency,
+      hasOpening,
+      unallocatedChipsTzs,
+      breakdown: {
+        openingChipsTzs,
+        fillTzs,
+        creditTzs,
+        addFloatTzs,
+        collectionTzs,
+        slotsInTzs,
+        slotsOutTzs,
+        expensesTzs,
+      },
+    };
+  }, [shift, shiftTransactions, transfers, expensesTzs]);
 };
+
