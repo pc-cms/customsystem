@@ -88,6 +88,15 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
     [dropByTable]
   );
 
+  // Live Fill/Credit for the active shift, shown as a dedicated column so the
+  // Numbers grid reflects the same adjustment the Chips grid already applies.
+  const { map: fcMap } = useShiftTableAdjustments();
+  const fcTotal = useMemo(
+    () => Object.values(fcMap).reduce((s, v) => s + Number(v.adjustment || 0), 0),
+    [fcMap]
+  );
+
+
   // Include closed tables that still have tracker data for the selected date,
   // so a stool closed mid-shift doesn't disappear from Numbers/Final view.
   const tablesWithData = useMemo(() => new Set(trackerData.map(t => t.table_id)), [trackerData]);
