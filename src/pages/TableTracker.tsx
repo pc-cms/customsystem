@@ -25,7 +25,6 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Target, Lock, Hash, Coins } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { ChipCountPanel } from "@/components/tables/ChipCountPanel";
-import { useShiftTableAdjustments } from "@/hooks/use-shift-table-adjustments";
 
 import { TableAnalyticsChart } from "@/components/tables/TableAnalyticsChart";
 import { Button } from "@/components/ui/button";
@@ -90,13 +89,8 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
     [dropByTable]
   );
 
-  // Live Fill/Credit for the active shift, shown as a dedicated column so the
-  // Numbers grid reflects the same adjustment the Chips grid already applies.
-  const { map: fcMap } = useShiftTableAdjustments();
-  const fcTotal = useMemo(
-    () => Object.values(fcMap).reduce((s: number, v) => s + Number(v?.adjustment || 0), 0),
-    [fcMap]
-  );
+  // Fill/Credit is already folded into each slot result written by the Chip
+  // Check snapshot, so the Numbers grid shows no separate F/C breakdown.
 
 
 
@@ -262,9 +256,6 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                       </th>
                     );
                   })}
-                  <th className="text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2 min-w-[120px] whitespace-nowrap border-l border-border" title="Credit − Fill for the active shift">
-                    F/C
-                  </th>
                   <th className="text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2 min-w-[120px] whitespace-nowrap border-l border-border">
                     Drop
                   </th>
@@ -314,23 +305,6 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                       );
                     })}
                     <td className="px-3 py-1 text-right whitespace-nowrap border-l border-border">
-                      {(() => {
-                        const fc = fcMap[table.id];
-                        const adj = Number(fc?.adjustment || 0);
-                        if (!fc || (!fc.fill && !fc.credit)) return <span className="font-mono text-sm text-muted-foreground">·</span>;
-                        return (
-                          <div className="leading-tight">
-                            <div className={`font-mono tabular-nums text-sm font-bold ${adj > 0 ? "cms-amount-positive" : adj < 0 ? "cms-amount-negative" : "text-card-foreground"}`}>
-                              {formatCurrency(adj)}
-                            </div>
-                            <div className="text-[10px] font-mono text-muted-foreground">
-                              F {formatCurrency(fc.fill)} · C {formatCurrency(fc.credit)}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </td>
-                    <td className="px-3 py-1 text-right whitespace-nowrap border-l border-border">
                       <span className="font-mono tabular-nums text-sm font-bold text-card-foreground">
                         {dropByTable[table.id] ? formatCurrency(dropByTable[table.id]) : "·"}
                       </span>
@@ -357,11 +331,6 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                       </td>
                     );
                   })}
-                  <td className="px-3 py-2 text-right whitespace-nowrap border-l border-border">
-                    <span className={`font-mono tabular-nums text-sm font-bold ${fcTotal > 0 ? "cms-amount-positive" : fcTotal < 0 ? "cms-amount-negative" : "text-card-foreground"}`}>
-                      {fcTotal ? formatCurrency(fcTotal) : "·"}
-                    </span>
-                  </td>
                   <td className="px-3 py-2 text-right whitespace-nowrap border-l border-border">
                     <span className="font-mono tabular-nums text-sm font-bold text-card-foreground">
                       {dropTotal ? formatCurrency(dropTotal) : "·"}
