@@ -262,10 +262,15 @@ export const useDailyBalanceReport = (
           sb.from("bank_checks")
             .select("check_date, amount, currency")
             .eq("casino_id", casino).gte("check_date", from).lte("check_date", to).range(a, b)),
-        fetchPaged<any>((a, b) =>
-          sb.from("chip_snapshots")
-            .select("date, denomination, actual_quantity, miss, location_id, created_at")
-            .eq("casino_id", casino).gte("date", from).lte("date", to).range(a, b)),
+        // Chip float — aggregated server-side (last snapshot per date/location/denom).
+        (async () => {
+          const { data, error } = await sb.rpc("chip_float_daily", {
+            _casino_id: casino, _from: from, _to: to,
+          });
+          if (error) throw error;
+          return (data ?? []) as any[];
+        })(),
+
         fetchPaged<any>((a, b) =>
           sb.from("transactions")
             .select("business_date, type, amount, cancelled_at")
