@@ -8,6 +8,12 @@
  *   - transactions (this shift):
  *       IN  → chips OUT of cage (subtract), money IN (add per currency).
  *       OUT → chips IN to cage  (add),      money OUT (subtract per currency).
+ *   - cage_transfers (this shift):
+ *       fill      → chips leave cage to the table  (subtract per denom).
+ *       credit    → chips return from the table    (add per denom).
+ *       add_float / slots_in  → cash TZS in.
+ *       collection / slots_out → cash TZS out.
+ *   - cage expenses (this shift) → cash TZS out.
  *
  * Cancelled transactions are ignored.
  *
@@ -24,7 +30,26 @@ export type ExpectedCheckState = {
   expectedChips: Record<number, number>;
   expectedCashByCurrency: Record<string, number>;
   hasOpening: boolean;
+  /** Fill/Credit value (TZS) that had no per-denomination breakdown. */
+  unallocatedChipsTzs: number;
+  breakdown: {
+    openingChipsTzs: number;
+    fillTzs: number;
+    creditTzs: number;
+    addFloatTzs: number;
+    collectionTzs: number;
+    slotsInTzs: number;
+    slotsOutTzs: number;
+    expensesTzs: number;
+  };
 };
+
+type TransferLike = {
+  transfer_type: string;
+  amount: number | string;
+  chips?: unknown;
+};
+
 
 const asNumberRecord = (v: unknown): Record<number, number> => {
   if (!v || typeof v !== "object") return {};
