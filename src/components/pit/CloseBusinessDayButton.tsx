@@ -13,6 +13,8 @@ import {
   useOpenCyclesForDay,
 } from "@/hooks/use-business-day-closure";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+import { useShiftsTablesResultForDate } from "@/hooks/use-fin";
+import { formatNumberSpaces } from "@/lib/currency";
 
 /**
  * Close the current business day.
@@ -24,9 +26,11 @@ import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
  *   - cage slots shift closed
  *   - all gaming tables closed
  *   - no active player sessions / open visits
- * Confirmation always requires manager password. On success the figures are
- * written straight into Day Closings (Table Result / CashDesk Win).
+ * Confirmation always requires manager password. On success the four figures
+ * are written into the day's closed slots shift (Statistics → Slots) and into
+ * Day Closings; Table Result stays auto-computed from the closed table shifts.
  */
+
 
 const parseNum = (s: string): number | null => {
   const clean = s.replace(/\s/g, "").replace(",", ".");
