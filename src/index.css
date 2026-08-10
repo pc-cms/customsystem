@@ -140,6 +140,15 @@
     --casino: 340 75% 48%;              /* Casino tier — vivid rose/pink */
     --casino-foreground: 0 0% 100%;
 
+    /* Chart series — maximally distinct hues for multi-line reports */
+    --chart-blue: 214 85% 52%;
+    --chart-green: 150 60% 38%;
+    --chart-violet: 268 70% 58%;
+    --chart-pink: 336 78% 52%;
+    --chart-grey: 215 16% 55%;
+
+
+
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 20% 10%;
     --sidebar-primary: 38 55% 72%;
