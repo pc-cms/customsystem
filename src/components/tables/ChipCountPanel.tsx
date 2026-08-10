@@ -373,6 +373,12 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                         </td>
                       );
                     })}
+                    <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} whitespace-nowrap ${fc.fill ? "text-destructive" : "text-muted-foreground/40"}`}>
+                      {fc.fill ? `-${formatCurrency(fc.fill)}` : "·"}
+                    </td>
+                    <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} whitespace-nowrap ${fc.credit ? "text-success" : "text-muted-foreground/40"}`}>
+                      {fc.credit ? `+${formatCurrency(fc.credit)}` : "·"}
+                    </td>
                     <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} font-bold whitespace-nowrap ${rowResult >= 0 ? "text-success" : "text-destructive"}`}>
                       {rowResult >= 0 ? "+" : ""}{formatCurrency(rowResult)}
                     </td>
@@ -384,9 +390,16 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                   Total
                 </td>
                 <td colSpan={visibleDenoms.length} />
+                <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${fillTotal ? "text-destructive" : "text-muted-foreground/40"}`}>
+                  {fillTotal ? `-${formatCurrency(fillTotal)}` : "·"}
+                </td>
+                <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${creditTotal ? "text-success" : "text-muted-foreground/40"}`}>
+                  {creditTotal ? `+${formatCurrency(creditTotal)}` : "·"}
+                </td>
                 <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${grandTotal >= 0 ? "text-success" : "text-destructive"}`}>
                   {grandTotal >= 0 ? "+" : ""}{formatCurrency(grandTotal)}
                 </td>
+
               </tr>
             </tbody>
           </table>
