@@ -173,6 +173,9 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   }, [countLocations, counts, baselineMap, visibleDenoms, adjustmentFor, latestSnapshotPerTable]);
 
   const grandTotal = rowResults.reduce((s, r) => s + r.total, 0);
+  const fillTotal = countLocations.reduce((s, loc) => s + breakdownFor(loc.id).fill, 0);
+  const creditTotal = countLocations.reduce((s, loc) => s + breakdownFor(loc.id).credit, 0);
+
 
   const setTrackerValue = useSetTableTrackerValue();
   const batchTracker = useBatchSetTableTrackerValue();
