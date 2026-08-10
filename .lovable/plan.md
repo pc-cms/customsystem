@@ -41,7 +41,14 @@ FINANCE
 
 Дальше без изменений: CASHIER (Cage Live Game, Cage Slots, Bank, Cashless, Transfers, Blank Forms), RECEPTION, HR, CRM, MARKETING, PROMO, SYSTEM (Import Reports, Logs, Admin).
 
-Merge Duplicates уезжает из SYSTEM в MANAGEMENT; Cage View, Expenses, Tips & Bonuses — из CASHIER в MANAGEMENT (для кассиров Expenses/Cashless остаются доступны, просто пункт живёт в новом разделе).
+Cage View, Expenses, Tips & Bonuses переезжают из CASHIER в MANAGEMENT (для кассиров Expenses/Cashless остаются доступны, просто пункт живёт в новом разделе).
+
+## 1a. Blacklist и Merge Duplicates — в шапку Player Tracking
+
+- Для менеджерских ролей (manager, shift_manager, finance_manager, general_manager, surveillance, super_admin) пункты Blacklist и Merge Duplicates убираются из сайдбара и появляются кнопками в шапке страницы Player Tracking (`/player-statistics`), рядом с заголовком.
+- Для роли reception Blacklist остаётся в сайдбаре в разделе RECEPTION как сейчас.
+- Сами страницы `/blacklist` и `/admin/merge-players` остаются доступны по своим маршрутам и правам — меняется только точка входа.
+
 
 ## 2. Graphics отдельной страницей
 
