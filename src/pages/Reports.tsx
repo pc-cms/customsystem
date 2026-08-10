@@ -220,11 +220,8 @@ const Reports = () => {
         <TabsContent value="slots"><SlotsHistoryReport from={from} to={to} embedded /></TabsContent>
         <TabsContent value="total"><TotalReport from={from} to={to} /></TabsContent>
         <TabsContent value="miss-chips"><MissChips embedded embeddedFrom={from} embeddedTo={to} /></TabsContent>
-        <TabsContent value="graphics">
-          <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>}>
-            <YearlyGraphicsReport />
-          </Suspense>
-        </TabsContent>
+        {/* Graphics moved to its own page: /reports/graphics */}
+
         <TabsContent value="groups"><GroupReport from={from} to={to} /></TabsContent>
         <TabsContent value="tables">
           <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>}>
