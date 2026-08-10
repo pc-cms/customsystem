@@ -327,20 +327,30 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                     })}
                   </tr>
                 ))}
-                {/* Drop row — business-day Drop (Σ IN transactions), shown just above Total */}
+                {/* Drop row — recorded per hour at snapshot time (stored, not recomputed) */}
                 <tr className="border-t border-border bg-muted/10">
                   <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase sticky left-0 bg-card z-10">
                     Drop
-                  </td>
-                  <td
-                    colSpan={SLOTS.length}
-                    className="px-3 py-2 text-right whitespace-nowrap"
-                  >
-                    <span className="font-mono tabular-nums text-sm font-bold text-card-foreground">
-                      {dropTotal ? formatCurrency(dropTotal) : "·"}
+                    <span className="block text-[10px] font-normal normal-case text-muted-foreground">
+                      day · {dropTotal ? formatCurrency(dropTotal) : "·"}
                     </span>
                   </td>
+                  {SLOTS.map((slot) => {
+                    const isActive = isToday && slot === currentSlot;
+                    const v = Number(dropBySlot[slot] || 0);
+                    return (
+                      <td
+                        key={slot}
+                        className={`px-2 py-2 text-center whitespace-nowrap ${isActive ? "bg-primary/10" : ""}`}
+                      >
+                        <div className="font-mono tabular-nums text-sm font-semibold text-card-foreground">
+                          {v ? formatCurrency(v) : "·"}
+                        </div>
+                      </td>
+                    );
+                  })}
                 </tr>
+
                 <tr className="border-t-2 border-primary/30 bg-muted/30">
                   <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase sticky left-0 bg-card z-10">
                     Total
