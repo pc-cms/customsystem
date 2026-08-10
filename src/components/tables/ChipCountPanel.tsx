@@ -411,12 +411,21 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                         </td>
                       );
                     })}
-                    <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} whitespace-nowrap ${fc.fill ? "text-destructive" : "text-muted-foreground/40"}`}>
-                      {fc.fill ? `-${formatCurrency(fc.fill)}` : "·"}
-                    </td>
-                    <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} whitespace-nowrap ${fc.credit ? "text-success" : "text-muted-foreground/40"}`}>
-                      {fc.credit ? `+${formatCurrency(fc.credit)}` : "·"}
-                    </td>
+                    {hasFC && (fcExpanded ? (
+                      <>
+                        <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} whitespace-nowrap ${fc.fill ? "cms-amount-negative" : "text-muted-foreground/40"}`}>
+                          {fc.fill ? `-${formatCurrency(fc.fill)}` : "·"}
+                        </td>
+                        <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} whitespace-nowrap ${fc.credit ? "cms-amount-positive" : "text-muted-foreground/40"}`}>
+                          {fc.credit ? `+${formatCurrency(fc.credit)}` : "·"}
+                        </td>
+                      </>
+                    ) : (
+                      <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} whitespace-nowrap ${fc.adjustment > 0 ? "cms-amount-positive" : fc.adjustment < 0 ? "cms-amount-negative" : "text-muted-foreground/40"}`}>
+                        {fc.adjustment ? `${fc.adjustment > 0 ? "+" : "-"}${formatCurrency(Math.abs(fc.adjustment))}` : "·"}
+                      </td>
+                    ))}
+
                     <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} font-bold whitespace-nowrap ${rowResult >= 0 ? "text-success" : "text-destructive"}`}>
                       {rowResult >= 0 ? "+" : ""}{formatCurrency(rowResult)}
                     </td>
