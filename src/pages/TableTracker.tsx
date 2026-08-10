@@ -89,6 +89,30 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
     [dropByTable]
   );
 
+  // Recorded hourly Drop (written by the chip-snapshot bridge at save time).
+  // Stored values are cumulative-at-the-moment, so the per-slot cell shows the
+  // recorded snapshot, not a recomputed number.
+  const { data: dropBySlot = {} as Record<string, number> } = useQuery({
+    queryKey: ["table-drop-tracker", casinoId, date],
+    enabled: !!casinoId && !!date,
+    refetchInterval: 15_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("table_drop_tracker" as any)
+        .select("time_slot, amount")
+        .eq("casino_id", casinoId)
+        .eq("date", date);
+      if (error) throw error;
+      const m: Record<string, number> = {};
+      ((data ?? []) as any[]).forEach((r: any) => {
+        if (!r?.time_slot) return;
+        m[r.time_slot] = (m[r.time_slot] || 0) + Number(r.amount || 0);
+      });
+      return m;
+    },
+  });
+
+
   // Fill/Credit is already folded into each slot result written by the Chip
   // Check snapshot, so the Numbers grid shows no separate F/C breakdown.
 
