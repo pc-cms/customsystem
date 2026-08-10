@@ -80,6 +80,8 @@ export type ModuleKey =
   | "report_lottery_sales"
   | "report_daily_balance"
   | "report_demo"
+  | "report_graphics"
+  | "blank_forms"
 
   | "report_am_budget"
   | "admin";
