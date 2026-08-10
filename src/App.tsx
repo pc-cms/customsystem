@@ -505,10 +505,6 @@ const ProtectedRoutes = () => {
           <Route path="/reports/expenses-casino" element={<RoleGuard path="/reports/expenses-matrix"><ErrorBoundary><ExpensesMatrixPage scope="casino" /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports/expenses-office" element={<RoleGuard path="/reports/expenses-matrix"><ErrorBoundary><ExpensesMatrixPage scope="office" /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports/office-balance" element={<RoleGuard path="/reports/daily-balance"><ErrorBoundary><OfficeBalanceReport /></ErrorBoundary></RoleGuard>} />
-          <Route path="/demo/casino-balance" element={<RoleGuard path="/demo/casino-balance"><ErrorBoundary><DailyBalanceReport demo /></ErrorBoundary></RoleGuard>} />
-          <Route path="/demo/office-balance" element={<RoleGuard path="/demo/office-balance"><ErrorBoundary><OfficeBalanceReport demo /></ErrorBoundary></RoleGuard>} />
-          <Route path="/demo/expenses-casino" element={<RoleGuard path="/demo/expenses-casino"><ErrorBoundary><ExpensesMatrixPage scope="casino" demo /></ErrorBoundary></RoleGuard>} />
-          <Route path="/demo/expenses-office" element={<RoleGuard path="/demo/expenses-office"><ErrorBoundary><ExpensesMatrixPage scope="office" demo /></ErrorBoundary></RoleGuard>} />
 
           <Route path="/reports/blanks" element={<RoleGuard path="/reports"><ErrorBoundary><BlanksPage /></ErrorBoundary></RoleGuard>} />
 

@@ -37,7 +37,7 @@ import mwanzaLogo from "@/assets/mwanza-logo.png";
 type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager" | "boss";
 
 // Section labels for the hybrid grouping (roles + shared ANALYTICS)
-type Section = "OVERVIEW" | "PIT" | "STAFF" | "CASHIER" | "STATISTICS" | "RECEPTION" | "FINANCE" | "HR" | "ANALYTICS" | "CRM" | "MARKETING" | "BAR" | "PROMO" | "COMPANY" | "DEMO" | "SYSTEM";
+type Section = "OVERVIEW" | "PIT" | "STAFF" | "CASHIER" | "STATISTICS" | "RECEPTION" | "FINANCE" | "HR" | "ANALYTICS" | "CRM" | "MARKETING" | "BAR" | "PROMO" | "COMPANY" | "SYSTEM";
 
 type NavItem = {
   to: string;
@@ -97,11 +97,6 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/reports/expenses-casino", icon: Receipt, label: "Expenses · Casino", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "COMPANY" },
   { to: "/reports/expenses-office", icon: Receipt, label: "Expenses · Office", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "COMPANY" },
 
-  // DEMO — identical reports filled with synthetic data (nothing is stored).
-  { to: "/demo/casino-balance", icon: FileBarChart, label: "Demo · Casino Balance", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "DEMO" },
-  { to: "/demo/office-balance", icon: Building2, label: "Demo · Office Balance", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "DEMO" },
-  { to: "/demo/expenses-casino", icon: Receipt, label: "Demo · Expenses Casino", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "DEMO" },
-  { to: "/demo/expenses-office", icon: Receipt, label: "Demo · Expenses Office", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "DEMO" },
 
 
   // HR — Personnel admin (legacy /dealers and /staff/employees superseded by Staff Master)
@@ -257,7 +252,7 @@ const SidebarSections = ({
     (acc[item.section] ||= []).push(item);
     return acc;
   }, {});
-  const sectionOrder: Section[] = ["OVERVIEW", "PIT", "STAFF", "CASHIER", "STATISTICS", "RECEPTION", "FINANCE", "HR", "ANALYTICS", "CRM", "MARKETING", "BAR", "PROMO", "COMPANY", "DEMO", "SYSTEM"];
+  const sectionOrder: Section[] = ["OVERVIEW", "PIT", "STAFF", "CASHIER", "STATISTICS", "RECEPTION", "FINANCE", "HR", "ANALYTICS", "CRM", "MARKETING", "BAR", "PROMO", "COMPANY", "SYSTEM"];
   const sections = sectionOrder.filter(s => grouped[s]?.length || (s === "SYSTEM" && isManager));
 
   // Find which section contains the active route
