@@ -151,7 +151,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
 
   // Live Fill/Credit adjustments for the active shift (per table).
   // displayed = (actual − baseline) × denom + (Σcredit − Σfill)
-  const { adjustmentFor } = useShiftTableAdjustments();
+  const { adjustmentFor, breakdownFor, adjustmentAt } = useShiftTableAdjustments();
 
   const rowResults = useMemo(() => {
     return countLocations.map(loc => {
@@ -173,6 +173,9 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   }, [countLocations, counts, baselineMap, visibleDenoms, adjustmentFor, latestSnapshotPerTable]);
 
   const grandTotal = rowResults.reduce((s, r) => s + r.total, 0);
+  const fillTotal = countLocations.reduce((s, loc) => s + breakdownFor(loc.id).fill, 0);
+  const creditTotal = countLocations.reduce((s, loc) => s + breakdownFor(loc.id).credit, 0);
+
 
   const setTrackerValue = useSetTableTrackerValue();
   const batchTracker = useBatchSetTableTrackerValue();
@@ -299,7 +302,10 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
               {visibleDenoms.map(d => (
                 <col key={d} style={{ width: t.chipColW }} />
               ))}
+              <col style={{ width: "110px" }} />
+              <col style={{ width: "110px" }} />
               <col style={{ width: t.resultColW }} />
+
             </colgroup>
             <thead>
               <tr className="border-b border-border">
@@ -319,13 +325,18 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                     </th>
                   );
                 })}
+                <th className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider`}>Fill</th>
+                <th className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider`}>Credit</th>
                 <th className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider`}>Result</th>
+
               </tr>
             </thead>
             <tbody>
               {countLocations.map((loc, ri) => {
                 const locCounts = counts[loc.key] || {};
                 const rowResult = rowResults[ri]?.total ?? 0;
+                const fc = breakdownFor(loc.id);
+
                 return (
                   <tr key={loc.key} className={`border-b border-border last:border-0 ${ri % 2 === 1 ? "bg-muted/10" : ""}`}>
                     <td
@@ -367,6 +378,12 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                         </td>
                       );
                     })}
+                    <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} whitespace-nowrap ${fc.fill ? "text-destructive" : "text-muted-foreground/40"}`}>
+                      {fc.fill ? `-${formatCurrency(fc.fill)}` : "·"}
+                    </td>
+                    <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} whitespace-nowrap ${fc.credit ? "text-success" : "text-muted-foreground/40"}`}>
+                      {fc.credit ? `+${formatCurrency(fc.credit)}` : "·"}
+                    </td>
                     <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} font-bold whitespace-nowrap ${rowResult >= 0 ? "text-success" : "text-destructive"}`}>
                       {rowResult >= 0 ? "+" : ""}{formatCurrency(rowResult)}
                     </td>
@@ -378,9 +395,16 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                   Total
                 </td>
                 <td colSpan={visibleDenoms.length} />
+                <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${fillTotal ? "text-destructive" : "text-muted-foreground/40"}`}>
+                  {fillTotal ? `-${formatCurrency(fillTotal)}` : "·"}
+                </td>
+                <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${creditTotal ? "text-success" : "text-muted-foreground/40"}`}>
+                  {creditTotal ? `+${formatCurrency(creditTotal)}` : "·"}
+                </td>
                 <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${grandTotal >= 0 ? "text-success" : "text-destructive"}`}>
                   {grandTotal >= 0 ? "+" : ""}{formatCurrency(grandTotal)}
                 </td>
+
               </tr>
             </tbody>
           </table>
@@ -409,11 +433,12 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     return Object.values(groups).map(g => {
       const perTable: Record<string, number> = {};
       Object.entries(g.perTableDenoms).forEach(([tid, dn]) => {
-        perTable[tid] = chipSnapshotResult(dn.actual, dn.expected) + adjustmentFor(tid);
+        perTable[tid] = chipSnapshotResult(dn.actual, dn.expected) + adjustmentAt(tid, g.ts);
       });
       return { ts: g.ts, perTable, perTableDenoms: g.perTableDenoms, total: Object.values(perTable).reduce((s, v) => s + v, 0) };
     }).sort((a, b) => b.ts.localeCompare(a.ts));
-  }, [snapshotsFull, adjustmentFor]);
+  }, [snapshotsFull, adjustmentAt]);
+
 
   const detailGroup = useMemo(
     () => (detailTs ? history.find(h => h.ts === detailTs) ?? null : null),

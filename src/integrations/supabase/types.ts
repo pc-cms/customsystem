@@ -10144,6 +10144,39 @@ export type Database = {
         }
         Relationships: []
       }
+      table_drop_tracker: {
+        Row: {
+          amount: number
+          casino_id: string
+          created_at: string
+          date: string
+          id: string
+          table_id: string
+          time_slot: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          casino_id: string
+          created_at?: string
+          date: string
+          id?: string
+          table_id: string
+          time_slot: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          casino_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          table_id?: string
+          time_slot?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       table_head_count: {
         Row: {
           casino_id: string

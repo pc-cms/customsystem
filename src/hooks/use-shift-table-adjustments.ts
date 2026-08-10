@@ -29,15 +29,15 @@ export const useShiftTableAdjustments = (shiftIdOverride?: string | null) => {
   const query = useQuery({
     queryKey: ["shift-table-adjustments", casinoId, shiftId],
     queryFn: async () => {
-      if (!casinoId || !shiftId) return [] as Array<{ table_id: string | null; transfer_type: string; amount: number }>;
+      if (!casinoId || !shiftId) return [] as Array<{ table_id: string | null; transfer_type: string; amount: number; created_at: string }>;
       const { data, error } = await supabase
         .from("cage_transfers")
-        .select("table_id, transfer_type, amount")
+        .select("table_id, transfer_type, amount, created_at")
         .eq("casino_id", casinoId)
         .eq("shift_id", shiftId)
         .in("transfer_type", ["fill", "credit"]);
       if (error) throw error;
-      return (data ?? []) as Array<{ table_id: string | null; transfer_type: string; amount: number }>;
+      return (data ?? []) as Array<{ table_id: string | null; transfer_type: string; amount: number; created_at: string }>;
     },
     enabled: !!casinoId && !!shiftId,
     ...liveQueryOptions(),
@@ -60,6 +60,27 @@ export const useShiftTableAdjustments = (shiftIdOverride?: string | null) => {
   /** Convenience accessor: adjustment for a single table (0 if none). */
   const adjustmentFor = (tableId: string): number => map[tableId]?.adjustment ?? 0;
 
+  /** Fill/Credit totals for a single table (zeros if none). */
+  const breakdownFor = (tableId: string): TableAdjustment =>
+    map[tableId] ?? { fill: 0, credit: 0, adjustment: 0 };
+
+  /**
+   * Adjustment accumulated for a table up to (and including) a timestamp.
+   * Mirrors the DB bridge trigger, so each hourly snapshot only carries the
+   * Fill/Credit that had already happened at that moment.
+   */
+  const adjustmentAt = (tableId: string, iso: string): number => {
+    let sum = 0;
+    (query.data || []).forEach(row => {
+      if (row.table_id !== tableId) return;
+      if (!row.created_at || row.created_at > iso) return;
+      const amt = Number(row.amount || 0);
+      if (row.transfer_type === "fill") sum -= amt;
+      else if (row.transfer_type === "credit") sum += amt;
+    });
+    return sum;
+  };
+
   /** Flat map tableId → adjustment number (for liveTableResult). */
   const adjustmentMap = useMemo<Record<string, number>>(() => {
     const out: Record<string, number> = {};
@@ -67,5 +88,6 @@ export const useShiftTableAdjustments = (shiftIdOverride?: string | null) => {
     return out;
   }, [map]);
 
-  return { map, adjustmentMap, adjustmentFor, shiftId, isLoading: query.isLoading };
+  return { map, adjustmentMap, adjustmentFor, breakdownFor, adjustmentAt, shiftId, isLoading: query.isLoading };
 };
+

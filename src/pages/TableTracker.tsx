@@ -89,6 +89,30 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
     [dropByTable]
   );
 
+  // Recorded hourly Drop (written by the chip-snapshot bridge at save time).
+  // Stored values are cumulative-at-the-moment, so the per-slot cell shows the
+  // recorded snapshot, not a recomputed number.
+  const { data: dropBySlot = {} as Record<string, number> } = useQuery({
+    queryKey: ["table-drop-tracker", casinoId, date],
+    enabled: !!casinoId && !!date,
+    refetchInterval: 15_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("table_drop_tracker" as any)
+        .select("time_slot, amount")
+        .eq("casino_id", casinoId)
+        .eq("date", date);
+      if (error) throw error;
+      const m: Record<string, number> = {};
+      ((data ?? []) as any[]).forEach((r: any) => {
+        if (!r?.time_slot) return;
+        m[r.time_slot] = (m[r.time_slot] || 0) + Number(r.amount || 0);
+      });
+      return m;
+    },
+  });
+
+
   // Fill/Credit is already folded into each slot result written by the Chip
   // Check snapshot, so the Numbers grid shows no separate F/C breakdown.
 
@@ -303,20 +327,30 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                     })}
                   </tr>
                 ))}
-                {/* Drop row — business-day Drop (Σ IN transactions), shown just above Total */}
+                {/* Drop row — recorded per hour at snapshot time (stored, not recomputed) */}
                 <tr className="border-t border-border bg-muted/10">
                   <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase sticky left-0 bg-card z-10">
                     Drop
-                  </td>
-                  <td
-                    colSpan={SLOTS.length}
-                    className="px-3 py-2 text-right whitespace-nowrap"
-                  >
-                    <span className="font-mono tabular-nums text-sm font-bold text-card-foreground">
-                      {dropTotal ? formatCurrency(dropTotal) : "·"}
+                    <span className="block text-[10px] font-normal normal-case text-muted-foreground">
+                      day · {dropTotal ? formatCurrency(dropTotal) : "·"}
                     </span>
                   </td>
+                  {SLOTS.map((slot) => {
+                    const isActive = isToday && slot === currentSlot;
+                    const v = Number(dropBySlot[slot] || 0);
+                    return (
+                      <td
+                        key={slot}
+                        className={`px-2 py-2 text-center whitespace-nowrap ${isActive ? "bg-primary/10" : ""}`}
+                      >
+                        <div className="font-mono tabular-nums text-sm font-semibold text-card-foreground">
+                          {v ? formatCurrency(v) : "·"}
+                        </div>
+                      </td>
+                    );
+                  })}
                 </tr>
+
                 <tr className="border-t-2 border-primary/30 bg-muted/30">
                   <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase sticky left-0 bg-card z-10">
                     Total
