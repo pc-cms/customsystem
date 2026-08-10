@@ -26,6 +26,8 @@ import {
   type OfficeBalanceRow,
 } from "@/hooks/use-office-balance-report";
 import { demoOfficeBalance } from "@/lib/demo-report-data";
+import StartBalanceDialog from "@/components/reports/StartBalanceDialog";
+import { useAuth } from "@/lib/auth-context";
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
@@ -66,7 +68,11 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   const [drill, setDrill] = useState<
     { row: Row; col: string; label: string; amount: number; lines: DrillLine[] } | null
   >(null);
+  const [startOpen, setStartOpen] = useState(false);
   const navigate = useNavigate();
+  const { roles } = useAuth();
+  const canEditStart =
+    !demo && roles.some((r) => ["super_admin", "finance_manager"].includes(r));
 
   const query = useOfficeBalanceReport(month, !demo);
   const data = demo ? demoOfficeBalance(month) : query.data;
@@ -390,7 +396,17 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
           <span className="whitespace-nowrap text-xs text-muted-foreground">
             {rows.length} days · {casinos.length} casinos
           </span>
+          {canEditStart && (
+            <Button variant="outline" size="sm" className="ml-2" onClick={() => setStartOpen(true)}>
+              Edit Start
+            </Button>
+          )}
         </PageHeader>
+
+        {canEditStart && (
+          <StartBalanceDialog open={startOpen} onOpenChange={setStartOpen} start={data?.start} />
+        )}
+
 
         {/* Row 1 — Month */}
         <div className="mb-2 flex items-center justify-center gap-1 rounded-md border border-border bg-card px-2 py-1">
