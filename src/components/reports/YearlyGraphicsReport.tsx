@@ -43,7 +43,7 @@ const SERIES: { key: SeriesKey; name: string; color: string }[] = [
   { key: "resultTable", name: "Result Table", color: "hsl(var(--chart-green))" },
   { key: "dropSlots", name: "Drop Slots", color: "hsl(var(--chart-violet))" },
   { key: "resultSlots", name: "Result Slots", color: "hsl(var(--chart-pink))" },
-  { key: "headCount", name: "HeadCount", color: "hsl(var(--chart-grey))" },
+  { key: "headCount", name: "HeadCount", color: "hsl(var(--chart-gold))" },
 ];
 
 const compact = (v: number): string => {
@@ -282,8 +282,8 @@ const YearlyGraphicsReport = () => {
               yAxisId="right"
               dataKey="headCount"
               name="HeadCount"
-              fill="hsl(var(--muted-foreground))"
-              fillOpacity={0.22}
+              fill="hsl(var(--chart-gold))"
+              fillOpacity={0.55}
               barSize={18}
               radius={[3, 3, 0, 0]}
               hide={hidden.has("headCount")}
