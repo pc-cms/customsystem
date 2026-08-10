@@ -4330,6 +4330,39 @@ export type Database = {
           },
         ]
       }
+      fin_report_start: {
+        Row: {
+          bank: number
+          cage_casino: number
+          cage_office: number
+          created_at: string
+          id: string
+          scope: string
+          started_on: string | null
+          updated_at: string
+        }
+        Insert: {
+          bank?: number
+          cage_casino?: number
+          cage_office?: number
+          created_at?: string
+          id?: string
+          scope?: string
+          started_on?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bank?: number
+          cage_casino?: number
+          cage_office?: number
+          created_at?: string
+          id?: string
+          scope?: string
+          started_on?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fin_wallet_tx: {
         Row: {
           amount: number
@@ -4429,6 +4462,7 @@ export type Database = {
           currency: string
           id: string
           is_active: boolean
+          is_office: boolean
           kind: string
           name: string
           sort_order: number
@@ -4443,6 +4477,7 @@ export type Database = {
           currency: string
           id?: string
           is_active?: boolean
+          is_office?: boolean
           kind: string
           name: string
           sort_order?: number
@@ -4457,6 +4492,7 @@ export type Database = {
           currency?: string
           id?: string
           is_active?: boolean
+          is_office?: boolean
           kind?: string
           name?: string
           sort_order?: number
