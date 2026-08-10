@@ -17,10 +17,17 @@ Cage Office   = кошельки с флагом Office (сейфы валют +
 Bank          = кошельки kind=bank (CRDB TZS/USD, NBC TZS/USD)
 Result        = Столы + Слоты + Бар + JP
 Diff          = chip difference + card balance дня
-IN / Transfer = парные движения кошельков: казино → офис и офис → казино
+Transfer      = парные движения кошельков: офис → казино
 Expenses      = офисные расходы дня
-OUT           = выплаты владельцу / AK
+OUT / IN      = collections (см. ниже): OUT — обычная запись, IN — та же запись с минусом
 ```
+
+## OUT и IN — это одна сущность: collections
+
+- **OUT** — collections как сейчас: расход через office, деньги ушли из компании (владелец / AK).
+- **IN** — та же категория collections, но с обратным знаком: деньги вернулись, значит денег стало больше. Отдельного механизма нет, отдельная строка «IN по казино» из collections казино тоже убирается.
+- В таблице показываем одну колонку: положительное значение — красным как OUT, отрицательное — зелёным как IN. В формуле участвует один член со своим знаком.
+
 
 ## Унифицированный drill-down
 
@@ -29,7 +36,7 @@ OUT           = выплаты владельцу / AK
 - **Cage Casino** — Safe Live, Safe Slots + разбивка по номиналам из закрытия дня (Live Game и Slots отдельными блоками), строка «вчерашний остаток» и строка «трансферы».
 - **Cage Office** — все кошельки с флагом Office: Safe TZS / USD / EUR / GBP / KES (в валюте и в TZS по курсу дня) и мобильные (M PESA, Tigo, AirTell, Halo, Main Phone).
 - **Bank** — CRDB TZS, CRDB USD, NBC TZS, NBC USD; в отчёте они идут как отдельные кошельки офиса, отдельная колонка Bank = их сумма.
-- **Result / Diff / Expenses / IN / Transfer** — расшифровка по источникам (по казино, по категориям, по парам переводов).
+- **Result / Diff / Expenses / Transfer / OUT-IN** — расшифровка по источникам: по казино, по категориям, по парам переводов, по записям collections (со знаком).
 
 Компонент drill-down один на все колонки: заголовок, строки «кошелёк — валюта — сумма — сумма в TZS», итог.
 
@@ -51,8 +58,9 @@ OUT           = выплаты владельцу / AK
 ## Что чиним по пути
 
 - Cage Office сейчас берётся из ручного поля «Start» в браузере — заменяем на кошельки с флагом Office.
-- IN по казино ищет расходы категории «collections» (за август всего 3 записи) — заменяем на парные переводы кошельков.
-- Transfer определяется догадкой — заменяем на вторую ногу той же пары.
+- Колонки «IN по казино» из collections убираем — остаётся одна колонка OUT/IN по знаку записи collections.
+- Transfer определяется догадкой («любой приход, кроме банка») — заменяем на вторую ногу парного перевода офис → казино.
+
 - Result считает только столы и слоты — добавляем бар и JP, Diff выносим отдельно.
 - Cage Casino должен читать закрытия по номиналам в одном формате для Live и Slots — проверяем запись при закрытии смены.
 
@@ -60,7 +68,7 @@ OUT           = выплаты владельцу / AK
 
 - Миграция: `fin_wallets.is_office boolean not null default false`; таблица стартовых значений отчёта (casino_id, start_date, cage_casino, cage_office, bank); проставить флаг существующим `cash` и `mobile_money`.
 - `use-day-balance-snapshot.ts`: снимок пишется по `is_office` и `kind='bank'`, добавляется признак подтверждения дня; после успеха `invalidateFinance(qc)`.
-- `use-office-balance-report.ts`: старт из базы; Cage Casino как running-баланс (вчера + закрытия − трансферы); Cage Office/Bank из снимка; IN/Transfer по парам `transfer_out`/`transfer_in` с сопоставлением кошельков; полный Fin Result; поле `status: pending | recorded`; на каждую ячейку возвращать массив строк для drill-down.
+- `use-office-balance-report.ts`: старт из базы; Cage Casino как running-баланс (вчера + закрытия − трансферы); Cage Office/Bank из снимка; Transfer по парам `transfer_out`/`transfer_in`; одно поле `collections_net` (сумма collections со знаком: плюс = OUT, минус = IN); полный Fin Result; поле `status: pending | recorded`; на каждую ячейку возвращать массив строк для drill-down.
 - Новый общий компонент `WalletDrillPanel` (список кошельков + номиналы + итог), используется всеми колонками отчёта.
 - `OfficeBalanceReport.tsx`: бейдж Pending/Recorded, строка Start только для чтения, единый drill на всех денежных колонках.
 - Настройки кошельков: переключатель Office wallet (finance_manager и выше).
@@ -69,6 +77,6 @@ OUT           = выплаты владельцу / AK
 ## Порядок запуска
 
 1. Флаг Office + стартовые значения в базе + Record пишет снимок офиса и банка, статус строки.
-2. Cage Casino как running-баланс из закрытий, IN/Transfer по парам, полный Result и Diff.
+2. Cage Casino как running-баланс из закрытий, Transfer по парам, OUT/IN одной колонкой из collections, полный Result и Diff.
 3. Единый drill-down на всех колонках.
 4. Ваш проход: задать дату старта и суммы, отметить офисные кошельки, за первый день нажать Record и убедиться, что Balance = 0.
