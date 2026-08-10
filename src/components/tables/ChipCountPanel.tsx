@@ -175,6 +175,12 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const grandTotal = rowResults.reduce((s, r) => s + r.total, 0);
   const fillTotal = countLocations.reduce((s, loc) => s + breakdownFor(loc.id).fill, 0);
   const creditTotal = countLocations.reduce((s, loc) => s + breakdownFor(loc.id).credit, 0);
+  // Fill/Credit columns only exist when the shift actually has such operations.
+  const hasFC = fillTotal !== 0 || creditTotal !== 0;
+  const [fcExpanded, setFcExpanded] = useState(false);
+
+
+
 
 
   const setTrackerValue = useSetTableTrackerValue();
@@ -302,9 +308,11 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
               {visibleDenoms.map(d => (
                 <col key={d} style={{ width: t.chipColW }} />
               ))}
-              <col style={{ width: "110px" }} />
-              <col style={{ width: "110px" }} />
+              {hasFC && (fcExpanded
+                ? <><col style={{ width: "95px" }} /><col style={{ width: "95px" }} /></>
+                : <col style={{ width: "80px" }} />)}
               <col style={{ width: t.resultColW }} />
+
 
             </colgroup>
             <thead>
@@ -325,8 +333,33 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                     </th>
                   );
                 })}
-                <th className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider`}>Fill</th>
-                <th className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider`}>Credit</th>
+                {hasFC && (fcExpanded ? (
+                  <>
+                    <th
+                      className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider cursor-pointer select-none`}
+                      onClick={() => setFcExpanded(false)}
+                      title="Collapse Fill/Credit"
+                    >
+                      Fill
+                    </th>
+                    <th
+                      className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider cursor-pointer select-none`}
+                      onClick={() => setFcExpanded(false)}
+                      title="Collapse Fill/Credit"
+                    >
+                      Credit
+                    </th>
+                  </>
+                ) : (
+                  <th
+                    className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider cursor-pointer select-none`}
+                    onClick={() => setFcExpanded(true)}
+                    title="Expand Fill / Credit"
+                  >
+                    F/C
+                  </th>
+                ))}
+
                 <th className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider`}>Result</th>
 
               </tr>
@@ -378,12 +411,21 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                         </td>
                       );
                     })}
-                    <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} whitespace-nowrap ${fc.fill ? "text-destructive" : "text-muted-foreground/40"}`}>
-                      {fc.fill ? `-${formatCurrency(fc.fill)}` : "·"}
-                    </td>
-                    <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} whitespace-nowrap ${fc.credit ? "text-success" : "text-muted-foreground/40"}`}>
-                      {fc.credit ? `+${formatCurrency(fc.credit)}` : "·"}
-                    </td>
+                    {hasFC && (fcExpanded ? (
+                      <>
+                        <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} whitespace-nowrap ${fc.fill ? "cms-amount-negative" : "text-muted-foreground/40"}`}>
+                          {fc.fill ? `-${formatCurrency(fc.fill)}` : "·"}
+                        </td>
+                        <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} whitespace-nowrap ${fc.credit ? "cms-amount-positive" : "text-muted-foreground/40"}`}>
+                          {fc.credit ? `+${formatCurrency(fc.credit)}` : "·"}
+                        </td>
+                      </>
+                    ) : (
+                      <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} whitespace-nowrap ${fc.adjustment > 0 ? "cms-amount-positive" : fc.adjustment < 0 ? "cms-amount-negative" : "text-muted-foreground/40"}`}>
+                        {fc.adjustment ? `${fc.adjustment > 0 ? "+" : "-"}${formatCurrency(Math.abs(fc.adjustment))}` : "·"}
+                      </td>
+                    ))}
+
                     <td className={`px-2 ${t.rowPadY} text-right font-mono ${t.resultText} font-bold whitespace-nowrap ${rowResult >= 0 ? "text-success" : "text-destructive"}`}>
                       {rowResult >= 0 ? "+" : ""}{formatCurrency(rowResult)}
                     </td>
@@ -395,12 +437,21 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                   Total
                 </td>
                 <td colSpan={visibleDenoms.length} />
-                <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${fillTotal ? "text-destructive" : "text-muted-foreground/40"}`}>
-                  {fillTotal ? `-${formatCurrency(fillTotal)}` : "·"}
-                </td>
-                <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${creditTotal ? "text-success" : "text-muted-foreground/40"}`}>
-                  {creditTotal ? `+${formatCurrency(creditTotal)}` : "·"}
-                </td>
+                {hasFC && (fcExpanded ? (
+                  <>
+                    <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${fillTotal ? "cms-amount-negative" : "text-muted-foreground/40"}`}>
+                      {fillTotal ? `-${formatCurrency(fillTotal)}` : "·"}
+                    </td>
+                    <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${creditTotal ? "cms-amount-positive" : "text-muted-foreground/40"}`}>
+                      {creditTotal ? `+${formatCurrency(creditTotal)}` : "·"}
+                    </td>
+                  </>
+                ) : (
+                  <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${(creditTotal - fillTotal) > 0 ? "cms-amount-positive" : (creditTotal - fillTotal) < 0 ? "cms-amount-negative" : "text-muted-foreground/40"}`}>
+                    {(creditTotal - fillTotal) ? `${creditTotal - fillTotal > 0 ? "+" : "-"}${formatCurrency(Math.abs(creditTotal - fillTotal))}` : "·"}
+                  </td>
+                ))}
+
                 <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${grandTotal >= 0 ? "text-success" : "text-destructive"}`}>
                   {grandTotal >= 0 ? "+" : ""}{formatCurrency(grandTotal)}
                 </td>

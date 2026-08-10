@@ -89,10 +89,10 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
     [dropByTable]
   );
 
-  // Recorded hourly Drop (written by the chip-snapshot bridge at save time).
-  // Stored values are cumulative-at-the-moment, so the per-slot cell shows the
-  // recorded snapshot, not a recomputed number.
-  const { data: dropBySlot = {} as Record<string, number> } = useQuery({
+  // Recorded hourly Drop. Written server-side every hour (cron) and by the
+  // chip-snapshot bridge. Stored values are cumulative-at-the-moment, so the
+  // per-slot cell shows the recorded snapshot, not a recomputed number.
+  const { data: dropBySlot = {} as Record<string, number>, refetch: refetchDropSlots } = useQuery({
     queryKey: ["table-drop-tracker", casinoId, date],
     enabled: !!casinoId && !!date,
     refetchInterval: 15_000,
@@ -111,6 +111,19 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
       return m;
     },
   });
+
+  // Fix the current hour on open so the column isn't empty until the cron runs.
+  useEffect(() => {
+    if (!casinoId || date !== today) return;
+    let cancelled = false;
+    (async () => {
+      await supabase.rpc("record_table_drop_slot" as any);
+      if (!cancelled) refetchDropSlots();
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [casinoId, date, today]);
+
 
 
   // Fill/Credit is already folded into each slot result written by the Chip
