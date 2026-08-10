@@ -504,7 +504,15 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
     if (item.to === "/crm/players" && !item.roles.some(r => roles.includes(r))) return false;
     // Blacklist stays in the sidebar only for Reception; management roles reach
     // it (and Merge Duplicates) from the Player Tracking page header.
-    if (item.to === "/blacklist" && !roles.includes("reception" as AppRole)) return false;
+    // Blacklist lives under Reception, but Surveillance and Account Managers
+    // still need it in the sidebar (they have no Player Tracking header button).
+    if (
+      item.to === "/blacklist" &&
+      !roles.some((r) =>
+        (["reception", "surveillance", "account_manager"] as AppRole[]).includes(r as AppRole),
+      )
+    )
+      return false;
 
 
     const mk = moduleKeyForRoute(item.to, item.label);
