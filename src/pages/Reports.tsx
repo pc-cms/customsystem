@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Table2, Landmark, UsersRound, ArrowUp, ArrowDown, ArrowUpDown,
-  Coins, Joystick, Printer, Check, BarChart3, LineChart as LineChartIcon,
+  Coins, Joystick, Printer, Check, BarChart3,
 } from "lucide-react";
 
 import MissChips from "@/pages/MissChips";
@@ -33,7 +33,7 @@ import {
 
 
 const TableResultsPage = lazy(() => import("@/pages/TableResults"));
-const YearlyGraphicsReport = lazy(() => import("@/components/reports/YearlyGraphicsReport"));
+
 
 // ----------- Sortable column helper -----------
 type SortDir = "asc" | "desc";
@@ -211,7 +211,7 @@ const Reports = () => {
           <TabsTrigger value="slots" className="gap-1 text-xs"><Joystick className="w-3.5 h-3.5" /> Slots</TabsTrigger>
           <TabsTrigger value="total" className="gap-1 text-xs"><BarChart3 className="w-3.5 h-3.5" /> Total</TabsTrigger>
           <TabsTrigger value="miss-chips" className="gap-1 text-xs"><Coins className="w-3.5 h-3.5" /> Miss Chips</TabsTrigger>
-          <TabsTrigger value="graphics" className="gap-1 text-xs"><LineChartIcon className="w-3.5 h-3.5" /> Graphics</TabsTrigger>
+          
           <TabsTrigger value="groups" className="gap-1 text-xs"><UsersRound className="w-3.5 h-3.5" /> Groups</TabsTrigger>
           <TabsTrigger value="tables" className="gap-1 text-xs"><Table2 className="w-3.5 h-3.5" /> Tables</TabsTrigger>
         </TabsList>
@@ -220,11 +220,8 @@ const Reports = () => {
         <TabsContent value="slots"><SlotsHistoryReport from={from} to={to} embedded /></TabsContent>
         <TabsContent value="total"><TotalReport from={from} to={to} /></TabsContent>
         <TabsContent value="miss-chips"><MissChips embedded embeddedFrom={from} embeddedTo={to} /></TabsContent>
-        <TabsContent value="graphics">
-          <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>}>
-            <YearlyGraphicsReport />
-          </Suspense>
-        </TabsContent>
+        {/* Graphics moved to its own page: /reports/graphics */}
+
         <TabsContent value="groups"><GroupReport from={from} to={to} /></TabsContent>
         <TabsContent value="tables">
           <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>}>

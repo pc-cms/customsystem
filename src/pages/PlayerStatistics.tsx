@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
-import { BarChart3, Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { BarChart3, Search, ArrowUp, ArrowDown, ArrowUpDown, ShieldAlert, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -70,6 +71,7 @@ const fetchPaged = async <T,>(
 
 const PlayerStatistics = () => {
   const { casinoId, roles, user } = useAuth();
+  const navigate = useNavigate();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
   // Manager and Shift Manager can also browse historical periods (day/week/month/year/custom)
@@ -935,7 +937,21 @@ const PlayerStatistics = () => {
         subtitle={subtitleText}
         centerSlot={dateControl}
         date={!canBrowseHistory}
-      />
+      >
+        {/* Blacklist / Merge Duplicates live here for management roles (they were
+            removed from the sidebar; Reception still has them in the sidebar). */}
+        {roles.some(r => ["super_admin", "manager", "shift_manager", "finance_manager"].includes(r)) && (
+          <>
+            <Button variant="outline" size="sm" onClick={() => navigate("/blacklist")}>
+              <ShieldAlert className="w-4 h-4 mr-1" /> Blacklist
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/admin/merge-players")}>
+              <Users className="w-4 h-4 mr-1" /> Merge Duplicates
+            </Button>
+          </>
+        )}
+      </PageHeader>
+
 
       <PlayerPreviewHeader range={{ from: fromDate, to: toDate }} />
 

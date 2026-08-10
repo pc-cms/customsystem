@@ -37,7 +37,7 @@ import mwanzaLogo from "@/assets/mwanza-logo.png";
 type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager" | "boss";
 
 // Section labels for the hybrid grouping (roles + shared ANALYTICS)
-type Section = "OVERVIEW" | "PIT" | "STAFF" | "CASHIER" | "STATISTICS" | "RECEPTION" | "FINANCE" | "HR" | "ANALYTICS" | "CRM" | "MARKETING" | "BAR" | "PROMO" | "COMPANY" | "SYSTEM";
+type Section = "OVERVIEW" | "PIT" | "ANALYTICS" | "STAFF" | "MANAGEMENT" | "FINANCE" | "CASHIER" | "RECEPTION" | "HR" | "CRM" | "MARKETING" | "BAR" | "PROMO" | "SYSTEM";
 
 type NavItem = {
   to: string;
@@ -48,54 +48,55 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  // OVERVIEW
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "OVERVIEW" },
+  // OVERVIEW — flat entry above the sections.
   { to: "/boss-dashboard", icon: LayoutDashboard, label: "Dashboard TV", roles: ["super_admin", "boss" as AppRole], section: "OVERVIEW" },
 
-
-  // PIT — alphabetical order (trackers + incidents).
-  { to: "/breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
-  { to: "/incidents", icon: AlertTriangle, label: "Incidents", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "PIT" },
-  { to: "/pitbook", icon: BookOpen, label: "Pit Book", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager"], section: "PIT" },
+  // PIT
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "PIT" },
   { to: "/player-statistics", icon: Users, label: "Player Tracking", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/table-tracker", icon: Target, label: "Table Check", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/tables", icon: Table2, label: "Tables Tracking", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "PIT" },
+  { to: "/pitbook", icon: BookOpen, label: "Pit Book", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager"], section: "PIT" },
+  { to: "/incidents", icon: AlertTriangle, label: "CCTV Reports", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "PIT" },
 
-  // STAFF — Attendance + Rota (each expands to Live/Floor/Security/Office).
-  { to: "__attendance__", icon: ClipboardPen, label: "Attendance", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "STAFF" },
+  // ANALYTICS
+  { to: "/reports", icon: FileBarChart, label: "Statistics", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/reports/graphics", icon: TrendingUp, label: "Graphics", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "ANALYTICS" },
+
+  // STAFF — Rota + Attendance (each expands to Live/Floor/Security/Office).
   { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "STAFF" },
+  { to: "__attendance__", icon: ClipboardPen, label: "Attendance", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "STAFF" },
   { to: "/staff/playlist", icon: UserCheck, label: "Employee List", roles: ["super_admin", "manager", "shift_manager", "surveillance"], section: "STAFF" },
 
+  // MANAGEMENT — read/manage surfaces for floor management.
+  { to: "/cage/view", icon: Landmark, label: "Cage View", roles: ["super_admin", "manager", "shift_manager", "surveillance"], section: "MANAGEMENT" },
+  { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "cashier", "cashier_slots"], section: "MANAGEMENT" },
+  { to: "/tips-and-bonuses", icon: Gift, label: "Tips & Bonuses", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "MANAGEMENT" },
+
+  // FINANCE — Office + group-level reports (casino + head office).
+  { to: "/office", icon: Briefcase, label: "Office", roles: ["super_admin", "manager", "finance_manager", "shift_manager"], section: "FINANCE" },
+  { to: "/reports/daily-balance", icon: FileBarChart, label: "Casino Monthly Balance", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "FINANCE" },
+  { to: "/reports/office-balance", icon: Building2, label: "Office Monthly Balance", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "FINANCE" },
+  { to: "/reports/expenses-casino", icon: Receipt, label: "Expenses · Casino", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "FINANCE" },
+  { to: "/reports/expenses-office", icon: Receipt, label: "Expenses · Office", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "FINANCE" },
+
   // CASHIER — transactional Cage operations.
-  { to: "/cage/view", icon: Landmark, label: "Cage View", roles: ["super_admin", "manager", "shift_manager", "surveillance"], section: "CASHIER" },
   { to: "/cage", icon: Landmark, label: "Cage Live Game", roles: ["super_admin", "cashier"], section: "CASHIER" },
   // Cage Slots: cashier-only surface. Managers/Finance/Surveillance/Pit use Cage View (which shows slots checks too).
   { to: "/cage-slots", icon: Coins, label: "Cage Slots", roles: ["cashier_slots"], section: "CASHIER" },
-  // Closings hub retired — merged into /reports (Total, Live Game, Slots, Expenses tabs).
   { to: "/bank-checks", icon: CreditCard, label: "Bank", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "CASHIER" },
   // Unified Cashless & Transfers — single page each; source filter (Live/Slots) for managers, locked to role for cashiers.
   { to: "/cashless", icon: CreditCard, label: "Cashless", roles: ["super_admin", "manager", "shift_manager", "cashier", "cashier_slots", "finance_manager"], section: "CASHIER" },
   { to: "/transfers", icon: ArrowLeftRight, label: "Transfers", roles: ["super_admin", "cashier_slots"], section: "CASHIER" },
-  // Unified Expenses — single page; source filter (Live/Slots/Office) for managers, locked to role for cashiers.
-  { to: "/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "cashier", "cashier_slots"], section: "CASHIER" },
-  { to: "/reports/blanks", icon: FileBarChart, label: "Blank Forms", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "general_manager" as AppRole, "boss" as AppRole, "cashier", "cashier_slots"], section: "CASHIER" },
-  { to: "/tips-and-bonuses", icon: Gift, label: "Tips & Bonuses", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "CASHIER" },
-
-  // STATISTICS — single flat launcher for the unified /reports page.
-  { to: "/reports", icon: FileBarChart, label: "Statistics", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "STATISTICS" },
+  { to: "/reports/blanks", icon: FileBarChart, label: "Blank Forms", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "boss" as AppRole, "cashier", "cashier_slots"], section: "CASHIER" },
 
   // RECEPTION — alphabetical
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "shift_manager", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "RECEPTION" },
   { to: "/guests", icon: UserCheck, label: "Guests", roles: ["super_admin", "manager", "shift_manager", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "RECEPTION" },
   { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "shift_manager", "reception", "finance_manager"], section: "RECEPTION" },
 
-  // OFFICE — sole entry point for finance/budget/reports (all as flat tabs).
-  { to: "/office", icon: Briefcase, label: "Office", roles: ["super_admin", "manager", "finance_manager", "shift_manager"], section: "FINANCE" },
-  // COMPANY — group-level reports (casino + head office).
-  { to: "/reports/daily-balance", icon: FileBarChart, label: "Casino Monthly Balance", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "COMPANY" },
-  { to: "/reports/office-balance", icon: Building2, label: "Office Monthly Balance", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "COMPANY" },
-  { to: "/reports/expenses-casino", icon: Receipt, label: "Expenses · Casino", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "COMPANY" },
-  { to: "/reports/expenses-office", icon: Receipt, label: "Expenses · Office", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "COMPANY" },
 
 
 
@@ -108,8 +109,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/payroll/bank-export", icon: Wallet, label: "Payroll · Bank Export", roles: ["super_admin", "finance_manager"], section: "HR" },
   { to: "/payroll/settings", icon: Wallet, label: "Payroll · Settings", roles: ["super_admin", "finance_manager"], section: "HR" },
 
-  // ANALYTICS — shared
-  { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "ANALYTICS" },
+
+
 
   // CRM
   { to: "/crm/players", icon: UsersRound, label: "Player CRM", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "hr", "account_manager" as AppRole], section: "CRM" },
@@ -143,7 +144,7 @@ const NAV_ITEMS: NavItem[] = [
 
   // SYSTEM — admin/system tools
   { to: "/import-reports", icon: Upload, label: "Import Reports", roles: ["super_admin", "manager"], section: "SYSTEM" },
-  { to: "/admin/merge-players", icon: Users, label: "Merge Duplicates", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "SYSTEM" },
+  // Merge Duplicates moved to the Player Tracking page header (managers).
   { to: "/logs", icon: ClipboardList, label: "Logs", roles: ["super_admin", "manager", "finance_manager"], section: "SYSTEM" },
 
 
@@ -252,7 +253,7 @@ const SidebarSections = ({
     (acc[item.section] ||= []).push(item);
     return acc;
   }, {});
-  const sectionOrder: Section[] = ["OVERVIEW", "PIT", "STAFF", "CASHIER", "STATISTICS", "RECEPTION", "FINANCE", "HR", "ANALYTICS", "CRM", "MARKETING", "BAR", "PROMO", "COMPANY", "SYSTEM"];
+  const sectionOrder: Section[] = ["OVERVIEW", "PIT", "ANALYTICS", "STAFF", "MANAGEMENT", "FINANCE", "CASHIER", "RECEPTION", "HR", "CRM", "MARKETING", "BAR", "PROMO", "SYSTEM"];
   const sections = sectionOrder.filter(s => grouped[s]?.length || (s === "SYSTEM" && isManager));
 
   // Find which section contains the active route
@@ -496,6 +497,10 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
     if (item.to === "/cage" && !isSuper && !roles.includes("cashier" as AppRole)) return false;
     if (item.to === "/cage/view" && !isSuper && roles.includes("cashier" as AppRole)) return false;
     if (item.to === "/crm/players" && !item.roles.some(r => roles.includes(r))) return false;
+    // Blacklist stays in the sidebar only for Reception; management roles reach
+    // it (and Merge Duplicates) from the Player Tracking page header.
+    if (item.to === "/blacklist" && !roles.includes("reception" as AppRole)) return false;
+
 
     const mk = moduleKeyForRoute(item.to, item.label);
 

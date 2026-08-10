@@ -138,6 +138,7 @@ const ExpensesMatrixPage = lazy(() => import("@/pages/reports/ExpensesMatrix"));
 const OfficeBalanceReport = lazy(() => import("@/pages/reports/OfficeBalanceReport"));
 
 const BlanksPage = lazy(() => import("@/pages/reports/BlanksPage"));
+const GraphicsPage = lazy(() => import("@/pages/reports/GraphicsPage"));
 
 const TipsAndBonuses = lazy(() => import("@/pages/TipsAndBonuses"));
 const HrWarnings = lazy(() => import("@/pages/hr/Warnings"));
@@ -506,7 +507,9 @@ const ProtectedRoutes = () => {
           <Route path="/reports/expenses-office" element={<RoleGuard path="/reports/expenses-matrix"><ErrorBoundary><ExpensesMatrixPage scope="office" /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports/office-balance" element={<RoleGuard path="/reports/daily-balance"><ErrorBoundary><OfficeBalanceReport /></ErrorBoundary></RoleGuard>} />
 
-          <Route path="/reports/blanks" element={<RoleGuard path="/reports"><ErrorBoundary><BlanksPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/reports/blanks" element={<RoleGuard path="/reports/blanks"><ErrorBoundary><BlanksPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/reports/graphics" element={<RoleGuard path="/reports/graphics"><ErrorBoundary><GraphicsPage /></ErrorBoundary></RoleGuard>} />
+
 
           <Route path="/import-reports" element={<RoleGuard path="/import-reports"><ImportReports /></RoleGuard>} />
           <Route path="/table-results" element={<Navigate to="/reports?tab=table-results" replace />} />

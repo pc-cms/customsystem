@@ -80,6 +80,8 @@ export type ModuleKey =
   | "report_lottery_sales"
   | "report_daily_balance"
   | "report_demo"
+  | "report_graphics"
+  | "blank_forms"
 
   | "report_am_budget"
   | "admin";
@@ -153,6 +155,8 @@ export const MODULES: ModuleDef[] = [
   { key: "logs", label: "Activity Logs", group: "Reports" },
   { key: "report_daily_balance", label: "Report · Daily Balance", group: "Reports" },
   { key: "report_demo", label: "Demo Reports", group: "Reports" },
+  { key: "report_graphics", label: "Graphics", group: "Reports" },
+  { key: "blank_forms", label: "Blank Forms", group: "Reports" },
 
 
   // Staff / HR / System
