@@ -296,7 +296,7 @@ const YearlyGraphicsReport = () => {
               type="natural"
               dataKey="dropTable"
               name="Drop Table"
-              stroke="hsl(var(--primary))"
+              stroke="hsl(var(--chart-blue))"
               strokeWidth={2.5}
               fill="url(#gradDropTable)"
               dot={false}
