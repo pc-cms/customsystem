@@ -414,11 +414,15 @@ const SidebarSections = ({
         // nested sub-items.
         if (section === FLAT_SECTION) {
           return (
-            <div key={section} className="mb-1 space-y-0.5 [&_a]:font-semibold [&>div>a]:font-semibold">
+            <div
+              key={section}
+              className="mb-2 pb-2 space-y-0.5 border-b-2 border-[hsl(var(--warning))] [&_a]:font-semibold [&>div>a]:font-semibold"
+            >
               {items.map(it => renderItem(it, section))}
             </div>
           );
         }
+
 
         return (
           <div key={section} className={idx > 0 ? "mt-1 border-t border-sidebar-border pt-1" : "mb-1"}>
