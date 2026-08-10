@@ -377,7 +377,7 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2">
         {[
           { label: "Drop Table", value: fmt(totals.dropTables), cls: "text-card-foreground" },
           { label: "Result Table", value: fmt(totals.tablesResult), cls: signCls(totals.tablesResult) },
@@ -386,7 +386,6 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
           { label: "Result Slots", value: fmt(totals.slotsResult), cls: signCls(totals.slotsResult) },
           { label: "Hold", value: fmtHold(totals.holdSlots), cls: "text-card-foreground" },
           { label: "Total Result", value: fmt(totals.totalResult), cls: signCls(totals.totalResult) },
-          { label: "Total Hold", value: fmtHold(totals.totalHold), cls: "text-card-foreground" },
         ].map((c, i) => (
           <div key={`${c.label}-${i}`} className="cms-panel p-2">
             <p className="uppercase text-muted-foreground tracking-wider text-[10px]">{c.label}</p>
