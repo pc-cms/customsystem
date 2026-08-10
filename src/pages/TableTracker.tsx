@@ -97,16 +97,19 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
     enabled: !!casinoId && !!date,
     refetchInterval: 15_000,
     queryFn: async () => {
+      // Only the casino TOTAL rows (table_id IS NULL) — a snapshot of the
+      // Total Drop shown on Player Tracking at the moment of recording.
       const { data, error } = await supabase
         .from("table_drop_tracker" as any)
-        .select("time_slot, amount")
+        .select("time_slot, amount, table_id")
         .eq("casino_id", casinoId)
-        .eq("date", date);
+        .eq("date", date)
+        .is("table_id", null);
       if (error) throw error;
       const m: Record<string, number> = {};
       ((data ?? []) as any[]).forEach((r: any) => {
         if (!r?.time_slot) return;
-        m[r.time_slot] = (m[r.time_slot] || 0) + Number(r.amount || 0);
+        m[r.time_slot] = Number(r.amount || 0);
       });
       return m;
     },
