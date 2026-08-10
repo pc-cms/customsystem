@@ -98,7 +98,7 @@ const Reports = () => {
   const [preset, setPreset] = useSessionState<DatePreset>("preset", "custom");
   const initialTab = (typeof window !== "undefined"
     ? new URLSearchParams(window.location.search).get("tab")
-    : null) || "total";
+    : null) || "daily";
   const [mode, MoneyToggle] = useMoneyMode("reports-global");
 
   const handleMonthChange = (year: number, month: number) => {
