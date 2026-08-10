@@ -36,7 +36,7 @@ OUT / IN      = collections (см. ниже): OUT — обычная запис�
 - **Cage Casino** — Safe Live, Safe Slots + разбивка по номиналам из закрытия дня (Live Game и Slots отдельными блоками), строка «вчерашний остаток» и строка «трансферы».
 - **Cage Office** — все кошельки с флагом Office: Safe TZS / USD / EUR / GBP / KES (в валюте и в TZS по курсу дня) и мобильные (M PESA, Tigo, AirTell, Halo, Main Phone).
 - **Bank** — CRDB TZS, CRDB USD, NBC TZS, NBC USD; в отчёте они идут как отдельные кошельки офиса, отдельная колонка Bank = их сумма.
-- **Result / Diff / Expenses / IN / Transfer** — расшифровка по источникам (по казино, по категориям, по парам переводов).
+- **Result / Diff / Expenses / Transfer / OUT-IN** — расшифровка по источникам: по казино, по категориям, по парам переводов, по записям collections (со знаком).
 
 Компонент drill-down один на все колонки: заголовок, строки «кошелёк — валюта — сумма — сумма в TZS», итог.
 
