@@ -48,11 +48,12 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  // OVERVIEW — flat entry above the sections.
+  // OVERVIEW — flat entries above the sections.
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "OVERVIEW" },
   { to: "/boss-dashboard", icon: LayoutDashboard, label: "Dashboard TV", roles: ["super_admin", "boss" as AppRole], section: "OVERVIEW" },
 
   // PIT
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "PIT" },
+
   { to: "/player-statistics", icon: Users, label: "Player Tracking", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/table-tracker", icon: Target, label: "Table Check", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
@@ -413,14 +414,18 @@ const SidebarSections = ({
         // nested sub-items.
         if (section === FLAT_SECTION) {
           return (
-            <div key={section} className="mb-1 space-y-0.5 [&_a]:font-semibold [&>div>a]:font-semibold">
+            <div
+              key={section}
+              className="mb-2 pb-2 space-y-0.5 border-b-2 border-[hsl(var(--warning))] [&_a]:font-semibold [&>div>a]:font-semibold"
+            >
               {items.map(it => renderItem(it, section))}
             </div>
           );
         }
 
+
         return (
-          <div key={section} className={idx > 0 ? "mt-1 border-t border-sidebar-border pt-1" : "mb-1"}>
+          <div key={section} className={idx > 0 && sections[idx - 1] !== FLAT_SECTION ? "mt-1 border-t border-sidebar-border pt-1" : "mb-1"}>
             <div
               className={cn(
                 "flex items-center gap-2 px-3 h-8 rounded-md text-xs font-bold uppercase tracking-wide transition-colors",
