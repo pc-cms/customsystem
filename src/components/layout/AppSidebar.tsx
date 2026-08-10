@@ -425,7 +425,7 @@ const SidebarSections = ({
 
 
         return (
-          <div key={section} className={idx > 0 ? "mt-1 border-t border-sidebar-border pt-1" : "mb-1"}>
+          <div key={section} className={idx > 0 && sections[idx - 1] !== FLAT_SECTION ? "mt-1 border-t border-sidebar-border pt-1" : "mb-1"}>
             <div
               className={cn(
                 "flex items-center gap-2 px-3 h-8 rounded-md text-xs font-bold uppercase tracking-wide transition-colors",
