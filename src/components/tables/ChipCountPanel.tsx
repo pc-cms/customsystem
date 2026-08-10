@@ -437,12 +437,21 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                   Total
                 </td>
                 <td colSpan={visibleDenoms.length} />
-                <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${fillTotal ? "text-destructive" : "text-muted-foreground/40"}`}>
-                  {fillTotal ? `-${formatCurrency(fillTotal)}` : "·"}
-                </td>
-                <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${creditTotal ? "text-success" : "text-muted-foreground/40"}`}>
-                  {creditTotal ? `+${formatCurrency(creditTotal)}` : "·"}
-                </td>
+                {hasFC && (fcExpanded ? (
+                  <>
+                    <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${fillTotal ? "cms-amount-negative" : "text-muted-foreground/40"}`}>
+                      {fillTotal ? `-${formatCurrency(fillTotal)}` : "·"}
+                    </td>
+                    <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${creditTotal ? "cms-amount-positive" : "text-muted-foreground/40"}`}>
+                      {creditTotal ? `+${formatCurrency(creditTotal)}` : "·"}
+                    </td>
+                  </>
+                ) : (
+                  <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${(creditTotal - fillTotal) > 0 ? "cms-amount-positive" : (creditTotal - fillTotal) < 0 ? "cms-amount-negative" : "text-muted-foreground/40"}`}>
+                    {(creditTotal - fillTotal) ? `${creditTotal - fillTotal > 0 ? "+" : "-"}${formatCurrency(Math.abs(creditTotal - fillTotal))}` : "·"}
+                  </td>
+                ))}
+
                 <td className={`px-2 py-2 text-right font-mono ${t.totalText} font-bold whitespace-nowrap ${grandTotal >= 0 ? "text-success" : "text-destructive"}`}>
                   {grandTotal >= 0 ? "+" : ""}{formatCurrency(grandTotal)}
                 </td>
