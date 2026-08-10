@@ -68,7 +68,11 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   const [drill, setDrill] = useState<
     { row: Row; col: string; label: string; amount: number; lines: DrillLine[] } | null
   >(null);
+  const [startOpen, setStartOpen] = useState(false);
   const navigate = useNavigate();
+  const { roles } = useAuth();
+  const canEditStart =
+    !demo && roles.some((r) => ["super_admin", "finance_manager"].includes(r));
 
   const query = useOfficeBalanceReport(month, !demo);
   const data = demo ? demoOfficeBalance(month) : query.data;
