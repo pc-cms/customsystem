@@ -11931,6 +11931,7 @@ export type Database = {
         Args: { _business_date: string; _player_id: string }
         Returns: undefined
       }
+      record_table_drop_slot: { Args: never; Returns: number }
       redeem_promo_fifo: {
         Args: {
           p_amount: number
