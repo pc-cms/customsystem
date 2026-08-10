@@ -138,6 +138,7 @@ const ExpensesMatrixPage = lazy(() => import("@/pages/reports/ExpensesMatrix"));
 const OfficeBalanceReport = lazy(() => import("@/pages/reports/OfficeBalanceReport"));
 
 const BlanksPage = lazy(() => import("@/pages/reports/BlanksPage"));
+const GraphicsPage = lazy(() => import("@/pages/reports/GraphicsPage"));
 
 const TipsAndBonuses = lazy(() => import("@/pages/TipsAndBonuses"));
 const HrWarnings = lazy(() => import("@/pages/hr/Warnings"));
