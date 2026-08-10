@@ -497,6 +497,10 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
     if (item.to === "/cage" && !isSuper && !roles.includes("cashier" as AppRole)) return false;
     if (item.to === "/cage/view" && !isSuper && roles.includes("cashier" as AppRole)) return false;
     if (item.to === "/crm/players" && !item.roles.some(r => roles.includes(r))) return false;
+    // Blacklist stays in the sidebar only for Reception; management roles reach
+    // it (and Merge Duplicates) from the Player Tracking page header.
+    if (item.to === "/blacklist" && !roles.includes("reception" as AppRole)) return false;
+
 
     const mk = moduleKeyForRoute(item.to, item.label);
 
