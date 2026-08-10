@@ -26,6 +26,8 @@ import {
   type OfficeBalanceRow,
 } from "@/hooks/use-office-balance-report";
 import { demoOfficeBalance } from "@/lib/demo-report-data";
+import StartBalanceDialog from "@/components/reports/StartBalanceDialog";
+import { useAuth } from "@/hooks/use-auth";
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
