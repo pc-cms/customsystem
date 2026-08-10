@@ -68,7 +68,7 @@ OUT / IN      = collections (см. ниже): OUT — обычная запис�
 
 - Миграция: `fin_wallets.is_office boolean not null default false`; таблица стартовых значений отчёта (casino_id, start_date, cage_casino, cage_office, bank); проставить флаг существующим `cash` и `mobile_money`.
 - `use-day-balance-snapshot.ts`: снимок пишется по `is_office` и `kind='bank'`, добавляется признак подтверждения дня; после успеха `invalidateFinance(qc)`.
-- `use-office-balance-report.ts`: старт из базы; Cage Casino как running-баланс (вчера + закрытия − трансферы); Cage Office/Bank из снимка; IN/Transfer по парам `transfer_out`/`transfer_in` с сопоставлением кошельков; полный Fin Result; поле `status: pending | recorded`; на каждую ячейку возвращать массив строк для drill-down.
+- `use-office-balance-report.ts`: старт из базы; Cage Casino как running-баланс (вчера + закрытия − трансферы); Cage Office/Bank из снимка; Transfer по парам `transfer_out`/`transfer_in`; одно поле `collections_net` (сумма collections со знаком: плюс = OUT, минус = IN); полный Fin Result; поле `status: pending | recorded`; на каждую ячейку возвращать массив строк для drill-down.
 - Новый общий компонент `WalletDrillPanel` (список кошельков + номиналы + итог), используется всеми колонками отчёта.
 - `OfficeBalanceReport.tsx`: бейдж Pending/Recorded, строка Start только для чтения, единый drill на всех денежных колонках.
 - Настройки кошельков: переключатель Office wallet (finance_manager и выше).
