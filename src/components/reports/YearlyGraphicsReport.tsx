@@ -64,7 +64,8 @@ const YearlyGraphicsReport = () => {
   const from = `${year}-01-01`;
   const to = `${year}-12-31`;
 
-  const lastMonth = year === now.getFullYear() ? now.getMonth() : 11;
+  // Only completed months are plotted — the running month is left blank.
+  const lastMonth = year === now.getFullYear() ? now.getMonth() - 1 : 11;
 
   const toggle = (k: SeriesKey) =>
     setHidden(prev => {
