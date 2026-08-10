@@ -98,7 +98,7 @@ const Reports = () => {
   const [preset, setPreset] = useSessionState<DatePreset>("preset", "custom");
   const initialTab = (typeof window !== "undefined"
     ? new URLSearchParams(window.location.search).get("tab")
-    : null) || "total";
+    : null) || "daily";
   const [mode, MoneyToggle] = useMoneyMode("reports-global");
 
   const handleMonthChange = (year: number, month: number) => {
@@ -207,18 +207,18 @@ const Reports = () => {
       <MoneyModeProvider value={mode}>
       <Tabs defaultValue={initialTab} className="space-y-3">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="total" className="gap-1 text-xs"><BarChart3 className="w-3.5 h-3.5" /> Total</TabsTrigger>
           <TabsTrigger value="daily" className="gap-1 text-xs"><Landmark className="w-3.5 h-3.5" /> Live Game</TabsTrigger>
           <TabsTrigger value="slots" className="gap-1 text-xs"><Joystick className="w-3.5 h-3.5" /> Slots</TabsTrigger>
+          <TabsTrigger value="total" className="gap-1 text-xs"><BarChart3 className="w-3.5 h-3.5" /> Total</TabsTrigger>
           <TabsTrigger value="miss-chips" className="gap-1 text-xs"><Coins className="w-3.5 h-3.5" /> Miss Chips</TabsTrigger>
           <TabsTrigger value="graphics" className="gap-1 text-xs"><LineChartIcon className="w-3.5 h-3.5" /> Graphics</TabsTrigger>
           <TabsTrigger value="groups" className="gap-1 text-xs"><UsersRound className="w-3.5 h-3.5" /> Groups</TabsTrigger>
           <TabsTrigger value="tables" className="gap-1 text-xs"><Table2 className="w-3.5 h-3.5" /> Tables</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="total"><TotalReport from={from} to={to} /></TabsContent>
         <TabsContent value="daily"><DailyReport from={from} to={to} /></TabsContent>
         <TabsContent value="slots"><SlotsHistoryReport from={from} to={to} embedded /></TabsContent>
+        <TabsContent value="total"><TotalReport from={from} to={to} /></TabsContent>
         <TabsContent value="miss-chips"><MissChips embedded embeddedFrom={from} embeddedTo={to} /></TabsContent>
         <TabsContent value="graphics">
           <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>}>
@@ -377,7 +377,7 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2">
         {[
           { label: "Drop Table", value: fmt(totals.dropTables), cls: "text-card-foreground" },
           { label: "Result Table", value: fmt(totals.tablesResult), cls: signCls(totals.tablesResult) },
@@ -386,7 +386,6 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
           { label: "Result Slots", value: fmt(totals.slotsResult), cls: signCls(totals.slotsResult) },
           { label: "Hold", value: fmtHold(totals.holdSlots), cls: "text-card-foreground" },
           { label: "Total Result", value: fmt(totals.totalResult), cls: signCls(totals.totalResult) },
-          { label: "Total Hold", value: fmtHold(totals.totalHold), cls: "text-card-foreground" },
         ].map((c, i) => (
           <div key={`${c.label}-${i}`} className="cms-panel p-2">
             <p className="uppercase text-muted-foreground tracking-wider text-[10px]">{c.label}</p>

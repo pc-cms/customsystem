@@ -39,11 +39,11 @@ type Point = {
 type SeriesKey = "dropTable" | "resultTable" | "dropSlots" | "resultSlots" | "headCount";
 
 const SERIES: { key: SeriesKey; name: string; color: string }[] = [
-  { key: "dropTable", name: "Drop Table", color: "hsl(var(--primary))" },
-  { key: "resultTable", name: "Result Table", color: "hsl(var(--success))" },
-  { key: "dropSlots", name: "Drop Slots", color: "hsl(var(--info))" },
-  { key: "resultSlots", name: "Result Slots", color: "hsl(var(--warning))" },
-  { key: "headCount", name: "HeadCount", color: "hsl(var(--muted-foreground))" },
+  { key: "dropTable", name: "Drop Table", color: "hsl(var(--chart-blue))" },
+  { key: "resultTable", name: "Result Table", color: "hsl(var(--chart-green))" },
+  { key: "dropSlots", name: "Drop Slots", color: "hsl(var(--chart-violet))" },
+  { key: "resultSlots", name: "Result Slots", color: "hsl(var(--chart-pink))" },
+  { key: "headCount", name: "HeadCount", color: "hsl(var(--chart-grey))" },
 ];
 
 const compact = (v: number): string => {
@@ -64,7 +64,8 @@ const YearlyGraphicsReport = () => {
   const from = `${year}-01-01`;
   const to = `${year}-12-31`;
 
-  const lastMonth = year === now.getFullYear() ? now.getMonth() : 11;
+  // Only completed months are plotted — the running month is left blank.
+  const lastMonth = year === now.getFullYear() ? now.getMonth() - 1 : 11;
 
   const toggle = (k: SeriesKey) =>
     setHidden(prev => {
@@ -243,8 +244,8 @@ const YearlyGraphicsReport = () => {
           <ComposedChart data={points} margin={{ top: 16, right: 16, bottom: 8, left: 4 }}>
             <defs>
               <linearGradient id="gradDropTable" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.28} />
-                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
+                <stop offset="0%" stopColor="hsl(var(--chart-blue))" stopOpacity={0.28} />
+                <stop offset="100%" stopColor="hsl(var(--chart-blue))" stopOpacity={0.02} />
               </linearGradient>
             </defs>
 
@@ -295,7 +296,7 @@ const YearlyGraphicsReport = () => {
               type="natural"
               dataKey="dropTable"
               name="Drop Table"
-              stroke="hsl(var(--primary))"
+              stroke="hsl(var(--chart-blue))"
               strokeWidth={2.5}
               fill="url(#gradDropTable)"
               dot={false}
