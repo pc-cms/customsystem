@@ -10151,7 +10151,7 @@ export type Database = {
           created_at: string
           date: string
           id: string
-          table_id: string
+          table_id: string | null
           time_slot: string
           updated_at: string
         }
@@ -10161,7 +10161,7 @@ export type Database = {
           created_at?: string
           date: string
           id?: string
-          table_id: string
+          table_id?: string | null
           time_slot: string
           updated_at?: string
         }
@@ -10171,7 +10171,7 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
-          table_id?: string
+          table_id?: string | null
           time_slot?: string
           updated_at?: string
         }

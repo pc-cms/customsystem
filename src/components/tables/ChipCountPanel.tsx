@@ -175,8 +175,9 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const grandTotal = rowResults.reduce((s, r) => s + r.total, 0);
   const fillTotal = countLocations.reduce((s, loc) => s + breakdownFor(loc.id).fill, 0);
   const creditTotal = countLocations.reduce((s, loc) => s + breakdownFor(loc.id).credit, 0);
-  // Fill/Credit columns only exist when the shift actually has such operations.
-  const hasFC = fillTotal !== 0 || creditTotal !== 0;
+  // Fill/Credit column is always visible (collapsed by default) so operators
+  // can see there were no transfers instead of wondering where it went.
+  const hasFC = true;
   const [fcExpanded, setFcExpanded] = useState(false);
 
 
