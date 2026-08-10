@@ -199,6 +199,15 @@
     --casino: 340 80% 62%;              /* Casino tier — vivid rose/pink */
     --casino-foreground: 0 0% 100%;
 
+    /* Chart series — dark mode */
+    --chart-blue: 212 90% 64%;
+    --chart-green: 150 62% 50%;
+    --chart-violet: 268 80% 70%;
+    --chart-pink: 336 82% 64%;
+    --chart-grey: 215 18% 62%;
+
+
+
     --sidebar-background: 220 20% 5%;
     --sidebar-foreground: 220 14% 90%;
     --sidebar-primary: 38 60% 65%;
