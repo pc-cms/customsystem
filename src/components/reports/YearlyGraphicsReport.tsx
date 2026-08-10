@@ -39,11 +39,11 @@ type Point = {
 type SeriesKey = "dropTable" | "resultTable" | "dropSlots" | "resultSlots" | "headCount";
 
 const SERIES: { key: SeriesKey; name: string; color: string }[] = [
-  { key: "dropTable", name: "Drop Table", color: "hsl(var(--primary))" },
-  { key: "resultTable", name: "Result Table", color: "hsl(var(--success))" },
-  { key: "dropSlots", name: "Drop Slots", color: "hsl(var(--info))" },
-  { key: "resultSlots", name: "Result Slots", color: "hsl(var(--warning))" },
-  { key: "headCount", name: "HeadCount", color: "hsl(var(--muted-foreground))" },
+  { key: "dropTable", name: "Drop Table", color: "hsl(var(--chart-blue))" },
+  { key: "resultTable", name: "Result Table", color: "hsl(var(--chart-green))" },
+  { key: "dropSlots", name: "Drop Slots", color: "hsl(var(--chart-violet))" },
+  { key: "resultSlots", name: "Result Slots", color: "hsl(var(--chart-pink))" },
+  { key: "headCount", name: "HeadCount", color: "hsl(var(--chart-grey))" },
 ];
 
 const compact = (v: number): string => {
