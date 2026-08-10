@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Table2, Landmark, UsersRound, ArrowUp, ArrowDown, ArrowUpDown,
-  Coins, Joystick, Printer, Check, BarChart3, LineChart as LineChartIcon,
+  Coins, Joystick, Printer, Check, BarChart3,
 } from "lucide-react";
 
 import MissChips from "@/pages/MissChips";
