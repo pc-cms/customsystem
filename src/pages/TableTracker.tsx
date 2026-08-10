@@ -310,7 +310,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                             }}
                             onBlur={(e) => handleSave(table.id, slot, e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, ti, si)}
-                            className={`w-full h-9 text-center text-sm font-mono tabular-nums whitespace-nowrap bg-transparent border border-border rounded-md px-1 focus:border-primary focus:outline-none ${
+                            className={`w-full h-9 text-center text-sm font-mono font-bold tabular-nums whitespace-nowrap bg-transparent border border-border rounded-md px-1 focus:border-primary focus:outline-none ${
                               val && val > 0 ? "cms-amount-positive" : val && val < 0 ? "cms-amount-negative" : "text-card-foreground"
                             } ${isActive ? "border-primary/30" : ""} ${readOnly ? "cursor-not-allowed opacity-70" : ""}`}
                             placeholder="·"
@@ -322,7 +322,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                 ))}
                 {/* Drop row — recorded per hour at snapshot time (stored, not recomputed) */}
                 <tr className="border-t border-border bg-muted/10">
-                  <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase sticky left-0 bg-card z-10">
+                  <td className="px-3 py-2 text-xs font-normal text-muted-foreground uppercase sticky left-0 bg-card z-10">
                     Drop
                   </td>
 
@@ -334,7 +334,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                         key={slot}
                         className={`px-2 py-2 text-center whitespace-nowrap ${isActive ? "bg-primary/10" : ""}`}
                       >
-                        <div className="font-mono tabular-nums text-sm font-bold text-card-foreground">
+                        <div className="font-mono tabular-nums text-sm font-normal text-card-foreground">
                           {v ? formatCurrency(v) : "·"}
                         </div>
 
