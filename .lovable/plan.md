@@ -29,8 +29,7 @@ MANAGEMENT
   Cage View
   Expenses
   Tips & Bonuses
-  Blacklist
-  Merge Duplicates
+
 
 FINANCE
   Office
