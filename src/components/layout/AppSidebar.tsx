@@ -48,11 +48,12 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  // OVERVIEW — flat entry above the sections.
+  // OVERVIEW — flat entries above the sections.
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "OVERVIEW" },
   { to: "/boss-dashboard", icon: LayoutDashboard, label: "Dashboard TV", roles: ["super_admin", "boss" as AppRole], section: "OVERVIEW" },
 
   // PIT
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "PIT" },
+
   { to: "/player-statistics", icon: Users, label: "Player Tracking", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/table-tracker", icon: Target, label: "Table Check", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
