@@ -396,7 +396,17 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
           <span className="whitespace-nowrap text-xs text-muted-foreground">
             {rows.length} days · {casinos.length} casinos
           </span>
+          {canEditStart && (
+            <Button variant="outline" size="sm" className="ml-2" onClick={() => setStartOpen(true)}>
+              Edit Start
+            </Button>
+          )}
         </PageHeader>
+
+        {canEditStart && (
+          <StartBalanceDialog open={startOpen} onOpenChange={setStartOpen} start={data?.start} />
+        )}
+
 
         {/* Row 1 — Month */}
         <div className="mb-2 flex items-center justify-center gap-1 rounded-md border border-border bg-card px-2 py-1">
