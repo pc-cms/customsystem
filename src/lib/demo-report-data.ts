@@ -193,117 +193,117 @@ const DEMO_CASINOS = [
   { id: "demo-dodoma", name: "Dodoma" },
 ];
 
-/** Office Monthly Balance — synthetic company-wide month. */
+/** Company Daily Balance — synthetic company-wide month. */
 export const demoOfficeBalance = (month: string): OfficeBalanceData => {
   const days = demoMonthDays(month);
+  let cage = 120_000_000;
   let office = 10_000_000;
-  // Clean opening bank stock — nothing carried over from earlier months.
-  let bank = 15_000_000;
-  /** "Start" row — money carried over from the previous month (Cage + Bank). */
-  const startMoney = office + bank;
+  const bank = 15_000_000;
+  const start = { cage_casino: cage, cage_office: office, bank, started_on: null };
+  const startMoney = cage + office + bank;
 
+  let prevMoney = startMoney;
   const rows: OfficeBalanceRow[] = days.map((date, i) => {
     const r = (k: number) => rnd(i * 11 + k);
-    const ins: Record<string, number> = {};
+
+    // Gaming result of the day, split per casino.
+    const perCasino: Record<string, number> = {};
     DEMO_CASINOS.forEach((c, k) => {
-      const on = (i + k) % 3 === 0;
-      ins[c.id] = on ? round(6_000_000 + r(k + 1) * 22_000_000, 100_000) : 0;
+      perCasino[c.id] = round(2_500_000 + r(k + 1) * 9_000_000, 100_000);
     });
-    const inTotal = Object.values(ins).reduce((s, v) => s + v, 0);
+    const result = Object.values(perCasino).reduce((s, v) => s + v, 0);
+    const diff = round((r(9) - 0.5) * 900_000, 10_000);
     const expenses = round(800_000 + r(5) * 5_500_000, 1000);
-    // Office cash never goes negative and is swept out so it stays in a
-    // realistic band — every movement is backed by the day's inflow.
-    const avail = Math.max(0, office + inTotal - expenses);
-    const transfer = i % 6 === 2 ? round(Math.min(avail * 0.3, 4_000_000 + r(6) * 9_000_000), 100_000) : 0;
-    const rest = avail - transfer;
-    const excess = Math.max(0, rest - 15_000_000);
-    // Negative `out` = money received back from IK (inflow into the office).
-    const out = i % 7 === 3
+    // Collections: positive = OUT (money left the company), negative = IN.
+    const collections = i % 7 === 3
       ? -round(3_000_000 + r(8) * 8_000_000, 100_000)
-      : i % 4 === 1 || excess > 0
-        ? round(Math.min(rest, Math.max(excess, r(7) * 12_000_000)), 100_000)
+      : i % 4 === 1
+        ? round(4_000_000 + r(7) * 12_000_000, 100_000)
         : 0;
+    const transfer = i % 6 === 2 ? round(4_000_000 + r(6) * 9_000_000, 100_000) : 0;
 
-    // Opening money of the day — on day 1 it is the "Start" row (carried over
-    // from the previous month), afterwards the previous day's Money total.
-    const prevMoney = office + bank;
-    office = rest - out;
-    // Bank is a pure stock in the demo — no unexplained drift, so every day
-    // reconciles to exactly zero.
-
-    const moneyTotal = office + bank;
-    const balance =
-      prevMoney == null ? 0 : prevMoney + inTotal - expenses - transfer - out - moneyTotal;
-
-    // Office cage split into TZS notes + a USD stack, summing exactly to `office`.
-    const denoms = [10000, 5000, 2000, 1000];
-    const usdQty = Math.max(0, Math.round((office * 0.08) / (100 * RATE)));
-    let cageRest = office - usdQty * 100 * RATE;
-    const cageDetail = denoms.map((den, k) => {
-      const share = k === denoms.length - 1 ? cageRest : Math.floor((cageRest * [0.55, 0.25, 0.13, 0.07][k]) / den) * den;
-      const qty = Math.max(0, Math.floor(share / den));
-      if (k < denoms.length - 1) cageRest -= qty * den;
-      return { currency: "TZS", denomination: den, quantity: qty, tzs: qty * den };
-    });
-    if (usdQty) cageDetail.push({ currency: "USD", denomination: 100, quantity: usdQty, tzs: usdQty * 100 * RATE });
+    // Money moves exactly by the day's economics → Balance stays at zero.
+    const delta = result + diff - expenses - collections;
+    cage = cage + delta * 0.7 + transfer;
+    office = office + delta * 0.3 - transfer;
+    const moneyTotal = cage + office + bank;
+    const balance = prevMoney + result + diff - expenses - collections - moneyTotal;
+    prevMoney = moneyTotal;
 
     return {
       date,
       weekday: WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()],
-      in_by_casino: ins,
-      in_total: inTotal,
+      status: (i < days.length - 1 ? "recorded" : "pending") as "recorded" | "pending",
+      result,
+      diff,
+      cage_casino: cage,
       cage_office: office,
       bank,
       expenses,
       transfer_casino: transfer,
-      out_ak: out,
-      fin_result: inTotal - expenses - out,
+      collections_net: collections,
       money_total: moneyTotal,
       balance,
-      cage_detail: cageDetail,
-      mobile_detail: {
-        AirTell: round(r(11) * 4_500_000, 1000),
-        Tigo: round(r(12) * 3_100_000, 1000),
-        Halo: round(r(13) * 1_400_000, 1000),
-        Mpesa: round(r(14) * 6_200_000, 1000),
-      },
-      bank_detail: [
-        { currency: "TZS", amount: round(bank * 0.82, 1000), rate: 1, tzs: round(bank * 0.82, 1000) },
-        {
-          currency: "USD",
-          amount: round((bank * 0.18) / RATE, 10),
-          rate: RATE,
-          tzs: round(bank * 0.18, 1000),
-        },
+      fin_result: result + diff - expenses,
+      cage_casino_detail: DEMO_CASINOS.flatMap((c, k) => [
+        { label: `${c.name} · Live cage`, value: round((cage * 0.7) / DEMO_CASINOS.length, 1000) },
+        { label: `${c.name} · Slots cage`, value: round((cage * 0.3) / DEMO_CASINOS.length, 1000) },
+      ]),
+      cage_office_detail: [
+        { label: "Office safe TZS", sub: "TZS", value: round(office * 0.72, 1000) },
+        { label: "Office safe USD", sub: "USD", value: round(office * 0.18, 1000) },
+        { label: "Mpesa", sub: "TZS", value: round(office * 0.1, 1000) },
       ],
-
+      bank_detail: [
+        { label: "Bank account TZS", sub: "TZS", value: round(bank * 0.82, 1000) },
+        { label: "Bank account USD", sub: "USD", value: round(bank * 0.18, 1000) },
+      ],
+      result_detail: DEMO_CASINOS.flatMap((c) => [
+        { label: `${c.name} · Tables`, value: round(perCasino[c.id] * 0.6, 1000) },
+        { label: `${c.name} · Slots`, value: round(perCasino[c.id] * 0.32, 1000) },
+        { label: `${c.name} · Bar`, value: round(perCasino[c.id] * 0.08, 1000) },
+      ]),
+      diff_detail: [
+        { label: "Miss chips", value: round(diff * 0.6, 1000) },
+        { label: "Card balance", value: round(diff * 0.4, 1000) },
+      ],
       expenses_detail: [
         { label: "Head office salary", value: round(expenses * 0.5, 1000) },
         { label: "IT & services", value: round(expenses * 0.2, 1000) },
         { label: "Licences & tax", value: round(expenses * 0.3, 1000) },
       ],
-      in_detail: DEMO_CASINOS.filter((c) => ins[c.id]).map((c) => ({
-        label: `${c.name} · Collection`, value: ins[c.id],
-      })),
-      out_detail: out ? [{ label: out < 0 ? "Received from IK" : "Payout IK", value: out }] : [],
+      transfer_detail: transfer
+        ? [{ label: "Office safe → Cage", sub: DEMO_CASINOS[i % 4].name, value: transfer }]
+        : [],
+      collections_detail: collections
+        ? [{
+            label: collections < 0 ? "Collection returned (IN)" : "Collection (OUT)",
+            sub: DEMO_CASINOS[i % 4].name,
+            value: collections,
+          }]
+        : [],
     };
-
   });
 
-  // Month P&L per casino — IN roughly tracks the profit each casino generates.
   const casino_stats = Object.fromEntries(
     DEMO_CASINOS.map((c, k) => {
-      const result = rows.reduce((s, r) => s + (r.in_by_casino[c.id] || 0), 0) * (1.05 + k * 0.04);
-      // Mbeya finishes the month in the red — expenses exceed the result.
+      const result = rows.reduce((s, row) => s + row.result, 0) / DEMO_CASINOS.length * (1 + k * 0.04);
       const ratio = c.id === "demo-mbeya" ? 1.28 : 0.34 + k * 0.05;
       const expenses = result * ratio;
       return [c.id, { result: round(result, 1000), expenses: round(expenses, 1000), profit: round(result - expenses, 1000) }];
     }),
   );
 
-
-  return { casinos: DEMO_CASINOS, rows, casino_stats, start_money: startMoney };
+  return {
+    casinos: DEMO_CASINOS,
+    rows,
+    casino_stats,
+    start_money: startMoney,
+    start,
+    start_editable: false,
+  };
 };
+
 
 const CASINO_CATS = [
   "Salary", "Fuel", "Taxi", "Food & Alcohol", "Repairs", "Cleaning",
