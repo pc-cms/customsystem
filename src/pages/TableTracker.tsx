@@ -62,32 +62,9 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   
   const setValue = useSetTableTrackerValue();
 
-  // Per-table Drop = raw Σ IN transactions for the business day (project rule).
-  const { data: dropByTable = {} as Record<string, number> } = useQuery({
-    queryKey: ["table-tracker-drop", casinoId, date],
-    enabled: !!casinoId && !!date,
-    refetchInterval: 15_000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("transactions")
-        .select("table_id, amount")
-        .eq("casino_id", casinoId)
-        .eq("business_date", date)
-        .in("type", ["in", "buy"])
-        .is("cancelled_at", null);
-      if (error) throw error;
-      const m: Record<string, number> = {};
-      (data ?? []).forEach((r: any) => {
-        if (!r.table_id) return;
-        m[r.table_id] = (m[r.table_id] || 0) + Number(r.amount || 0);
-      });
-      return m;
-    },
-  });
-  const dropTotal = useMemo(
-    () => Object.values(dropByTable).reduce((s, v) => s + Number(v || 0), 0),
-    [dropByTable]
-  );
+  // Per-table Drop cells are never displayed (project rule); the Drop row uses
+  // recorded Total Drop snapshots only.
+
 
   // Recorded hourly Drop. Written server-side every hour (cron) and by the
   // chip-snapshot bridge. Stored values are cumulative-at-the-moment, so the
