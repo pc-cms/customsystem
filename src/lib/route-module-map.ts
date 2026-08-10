@@ -118,7 +118,8 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
 
   // ============= REPORTS =============
   if (base === "/miss-chips") return "miss_chips";
-  if (base === "/reports/blanks") return "reports";
+  if (base === "/reports/blanks") return "blank_forms";
+  if (base === "/reports/graphics") return "report_graphics";
   if (base === "/reports") return "reports";
   if (base === "/business-days") return "reports";
   if (base === "/weekly-bonus") return "tips_and_bonuses";
