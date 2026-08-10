@@ -301,14 +301,22 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                         </td>
                       );
                     })}
-                    <td className="px-3 py-1 text-right whitespace-nowrap border-l border-border">
-                      <span className="font-mono tabular-nums text-sm font-bold text-card-foreground">
-                        {dropByTable[table.id] ? formatCurrency(dropByTable[table.id]) : "·"}
-                      </span>
-                    </td>
-
                   </tr>
                 ))}
+                {/* Drop row — business-day Drop (Σ IN transactions), shown just above Total */}
+                <tr className="border-t border-border bg-muted/10">
+                  <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase sticky left-0 bg-card z-10">
+                    Drop
+                  </td>
+                  <td
+                    colSpan={SLOTS.length}
+                    className="px-3 py-2 text-right whitespace-nowrap"
+                  >
+                    <span className="font-mono tabular-nums text-sm font-bold text-card-foreground">
+                      {dropTotal ? formatCurrency(dropTotal) : "·"}
+                    </span>
+                  </td>
+                </tr>
                 <tr className="border-t-2 border-primary/30 bg-muted/30">
                   <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase sticky left-0 bg-card z-10">
                     Total
