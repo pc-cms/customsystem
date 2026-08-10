@@ -308,9 +308,11 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
               {visibleDenoms.map(d => (
                 <col key={d} style={{ width: t.chipColW }} />
               ))}
-              <col style={{ width: "110px" }} />
-              <col style={{ width: "110px" }} />
+              {hasFC && (fcExpanded
+                ? <><col style={{ width: "95px" }} /><col style={{ width: "95px" }} /></>
+                : <col style={{ width: "80px" }} />)}
               <col style={{ width: t.resultColW }} />
+
 
             </colgroup>
             <thead>
