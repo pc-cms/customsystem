@@ -332,6 +332,8 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
               {countLocations.map((loc, ri) => {
                 const locCounts = counts[loc.key] || {};
                 const rowResult = rowResults[ri]?.total ?? 0;
+                const fc = breakdownFor(loc.id);
+
                 return (
                   <tr key={loc.key} className={`border-b border-border last:border-0 ${ri % 2 === 1 ? "bg-muted/10" : ""}`}>
                     <td
