@@ -71,6 +71,7 @@ const fetchPaged = async <T,>(
 
 const PlayerStatistics = () => {
   const { casinoId, roles, user } = useAuth();
+  const navigate = useNavigate();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();
   // Manager and Shift Manager can also browse historical periods (day/week/month/year/custom)
