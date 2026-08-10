@@ -144,7 +144,7 @@ const NAV_ITEMS: NavItem[] = [
 
   // SYSTEM — admin/system tools
   { to: "/import-reports", icon: Upload, label: "Import Reports", roles: ["super_admin", "manager"], section: "SYSTEM" },
-  { to: "/admin/merge-players", icon: Users, label: "Merge Duplicates", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "SYSTEM" },
+  // Merge Duplicates moved to the Player Tracking page header (managers).
   { to: "/logs", icon: ClipboardList, label: "Logs", roles: ["super_admin", "manager", "finance_manager"], section: "SYSTEM" },
 
 
