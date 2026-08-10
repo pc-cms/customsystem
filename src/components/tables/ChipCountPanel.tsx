@@ -333,8 +333,33 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                     </th>
                   );
                 })}
-                <th className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider`}>Fill</th>
-                <th className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider`}>Credit</th>
+                {hasFC && (fcExpanded ? (
+                  <>
+                    <th
+                      className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider cursor-pointer select-none`}
+                      onClick={() => setFcExpanded(false)}
+                      title="Collapse Fill/Credit"
+                    >
+                      Fill
+                    </th>
+                    <th
+                      className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider cursor-pointer select-none`}
+                      onClick={() => setFcExpanded(false)}
+                      title="Collapse Fill/Credit"
+                    >
+                      Credit
+                    </th>
+                  </>
+                ) : (
+                  <th
+                    className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider cursor-pointer select-none`}
+                    onClick={() => setFcExpanded(true)}
+                    title="Expand Fill / Credit"
+                  >
+                    F/C
+                  </th>
+                ))}
+
                 <th className={`text-right ${t.headerPadY} px-2 text-muted-foreground font-medium text-xs uppercase tracking-wider`}>Result</th>
 
               </tr>
