@@ -336,11 +336,6 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                       </td>
                     );
                   })}
-                  <td className="px-3 py-2 text-right whitespace-nowrap border-l border-border">
-                    <span className="font-mono tabular-nums text-sm font-bold text-card-foreground">
-                      {dropTotal ? formatCurrency(dropTotal) : "·"}
-                    </span>
-                  </td>
 
                 </tr>
               </tbody>
