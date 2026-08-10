@@ -175,6 +175,10 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const grandTotal = rowResults.reduce((s, r) => s + r.total, 0);
   const fillTotal = countLocations.reduce((s, loc) => s + breakdownFor(loc.id).fill, 0);
   const creditTotal = countLocations.reduce((s, loc) => s + breakdownFor(loc.id).credit, 0);
+  // Fill/Credit columns only exist when the shift actually has such operations.
+  const hasFC = fillTotal !== 0 || creditTotal !== 0;
+
+
 
 
   const setTrackerValue = useSetTableTrackerValue();
