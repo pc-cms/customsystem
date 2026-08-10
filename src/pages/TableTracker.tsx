@@ -347,10 +347,8 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                 <tr className="border-t border-border bg-muted/10">
                   <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase sticky left-0 bg-card z-10">
                     Drop
-                    <span className="block text-[10px] font-normal normal-case text-muted-foreground">
-                      day · {dropTotal ? formatCurrency(dropTotal) : "·"}
-                    </span>
                   </td>
+
                   {SLOTS.map((slot) => {
                     const isActive = isToday && slot === currentSlot;
                     const v = Number(dropBySlot[slot] || 0);
