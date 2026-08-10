@@ -109,8 +109,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/payroll/bank-export", icon: Wallet, label: "Payroll · Bank Export", roles: ["super_admin", "finance_manager"], section: "HR" },
   { to: "/payroll/settings", icon: Wallet, label: "Payroll · Settings", roles: ["super_admin", "finance_manager"], section: "HR" },
 
-  // ANALYTICS — shared
-  { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "ANALYTICS" },
+
+
 
   // CRM
   { to: "/crm/players", icon: UsersRound, label: "Player CRM", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "hr", "account_manager" as AppRole], section: "CRM" },
