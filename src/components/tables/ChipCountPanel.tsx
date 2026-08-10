@@ -409,11 +409,12 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
     return Object.values(groups).map(g => {
       const perTable: Record<string, number> = {};
       Object.entries(g.perTableDenoms).forEach(([tid, dn]) => {
-        perTable[tid] = chipSnapshotResult(dn.actual, dn.expected) + adjustmentFor(tid);
+        perTable[tid] = chipSnapshotResult(dn.actual, dn.expected) + adjustmentAt(tid, g.ts);
       });
       return { ts: g.ts, perTable, perTableDenoms: g.perTableDenoms, total: Object.values(perTable).reduce((s, v) => s + v, 0) };
     }).sort((a, b) => b.ts.localeCompare(a.ts));
-  }, [snapshotsFull, adjustmentFor]);
+  }, [snapshotsFull, adjustmentAt]);
+
 
   const detailGroup = useMemo(
     () => (detailTs ? history.find(h => h.ts === detailTs) ?? null : null),
