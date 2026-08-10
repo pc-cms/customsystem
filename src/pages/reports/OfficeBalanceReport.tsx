@@ -1,75 +1,76 @@
 /**
- * Company → Office Monthly Balance.
+ * Company → Daily Balance (Office Monthly Balance).
  *
- * Company-wide head-office grid: IN from each casino, office cage, bank,
- * office expenses, transfers back to casinos and payouts (OUT / AK).
- * All figures TZS.
+ * Company-wide daily ledger: gaming Result, Diff, the three money pots
+ * (Cage Casino / Cage Office / Bank), Expenses, internal transfers and
+ * collections (OUT / IN). Every money cell drills down to the wallets it is
+ * made of. All figures TZS.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, ChevronDown, ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
 import { Button } from "@/components/ui/button";
-
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import CurrencyCashTable from "@/components/reports/CurrencyCashTable";
 import DrillHeader from "@/components/reports/DrillHeader";
 import { useSessionState } from "@/hooks/use-session-state";
 import { formatMoneyFull } from "@/lib/format-money";
-import { fmtDate } from "@/lib/format-date";
 import { cn } from "@/lib/utils";
-import { useOfficeBalanceReport, type OfficeBalanceRow } from "@/hooks/use-office-balance-report";
+import {
+  useOfficeBalanceReport,
+  type DrillLine,
+  type OfficeBalanceRow,
+} from "@/hooks/use-office-balance-report";
 import { demoOfficeBalance } from "@/lib/demo-report-data";
-import StartingBalanceTile, { readStartingBalance } from "@/components/reports/StartingBalanceTile";
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
-type Zone = "result" | "in" | "money" | "spend" | "balance";
+type Zone = "result" | "money" | "spend" | "balance";
 
 /** Table row = a real business day, plus one synthetic "Start" opening row. */
 type Row = OfficeBalanceRow & { kind: "day" | "start" };
 
 const ZONE_HEAD: Record<Zone, string> = {
   result: "bg-[color-mix(in_srgb,hsl(var(--primary))_16%,hsl(var(--card)))]",
-  in: "bg-[color-mix(in_srgb,hsl(var(--success))_16%,hsl(var(--card)))]",
   money: "bg-[color-mix(in_srgb,hsl(var(--warning))_16%,hsl(var(--card)))]",
   spend: "bg-[color-mix(in_srgb,hsl(var(--destructive))_14%,hsl(var(--card)))]",
   balance: "bg-muted",
 };
 const ZONE_BG: Record<Zone, string> = {
   result: "bg-[color-mix(in_srgb,hsl(var(--primary))_4%,hsl(var(--card)))]",
-  in: "bg-[color-mix(in_srgb,hsl(var(--success))_4%,hsl(var(--card)))]",
   money: "bg-[color-mix(in_srgb,hsl(var(--warning))_4%,hsl(var(--card)))]",
   spend: "bg-[color-mix(in_srgb,hsl(var(--destructive))_4%,hsl(var(--card)))]",
   balance: "bg-[color-mix(in_srgb,hsl(var(--muted))_45%,hsl(var(--card)))]",
 };
 
 const FORMULAS: Record<string, string> = {
-  in_total: "Σ collections received from every casino",
-  cage_office: "Running office cash: previous + IN − Expenses − Transfer → Casino − OUT",
-  bank: "Bank wallet balances at the end of the day (all casinos, TZS-valued)",
-  expenses: "Office-source expenses of the day (collections excluded)",
-  transfer_casino: "Money sent from the office back into the casinos",
-  out_ak: "IK settlement: minus = payout out of the company, plus = money received from IK",
-  balance: "Balance = Money yesterday + IN − Expenses − Transfer → Casino − OUT − Money today\nMoney = Cage + Bank. Should stay near zero.",
+  result: "Tables + Slots (net of card balance) + Bar + JP of every casino",
+  diff: "Miss chips + players card balance of the day",
+  cage_casino: "Live cage + Slots cage at closing, per casino (money only, chips excluded)",
+  cage_office: "Wallets flagged as Office — currency safes and mobile money",
+  bank: "Bank wallets at the end of the day (all casinos, TZS-valued)",
+  expenses: "Operating expenses of the day (collections excluded)",
+  transfer_casino: "Office → Casino transfers. Internal move — not part of the Balance formula",
+  collections_net: "Collections: minus = money paid out of the company, plus = money returned",
+  money_total: "Cage Casino + Cage Office + Bank at the end of the day",
+  balance:
+    "Balance = Money yesterday + Result ± Diff − Expenses − OUT/IN − Money today\nShould stay at zero.",
 };
 
 const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   const [month, setMonth] = useSessionState(demo ? "obr-demo-month" : "obr-month", currentMonth());
-  const [inOpen, setInOpen] = useSessionState(demo ? "obr-demo-in-open" : "obr-in-open", false);
-  const [drill, setDrill] = useState<{ row: Row; col: string; label: string; amount: number } | null>(null);
+  const [drill, setDrill] = useState<
+    { row: Row; col: string; label: string; amount: number; lines: DrillLine[] } | null
+  >(null);
   const navigate = useNavigate();
-  /** Opening money of the month (Cage + Bank) — manual, per month. */
-  const startKey = `${demo ? "obr-demo" : "obr"}-start-${month}`;
-  const [startBalance, setStartBalance] = useState(0);
-  useEffect(() => { setStartBalance(readStartingBalance(startKey)); }, [startKey]);
-  const query = useOfficeBalanceReport(month, !demo, startBalance);
+
+  const query = useOfficeBalanceReport(month, !demo);
   const data = demo ? demoOfficeBalance(month) : query.data;
-  const startMoney = demo ? data?.start_money ?? 0 : startBalance;
+  const startMoney = data?.start_money ?? 0;
   const rows = data?.rows ?? [];
   const casinos = data?.casinos ?? [];
   const stats = data?.casino_stats ?? {};
@@ -83,46 +84,53 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
     const flow = (fn: (r: OfficeBalanceRow) => number) => rows.reduce((s, r) => s + fn(r), 0);
     const last = rows.length ? rows[rows.length - 1] : null;
     return {
-      in_total: flow((r) => r.in_total),
+      result: flow((r) => r.result),
+      diff: flow((r) => r.diff),
       expenses: flow((r) => r.expenses),
       transfer_casino: flow((r) => r.transfer_casino),
-      out_ak: flow((r) => r.out_ak),
+      collections_net: flow((r) => r.collections_net),
       fin_result: flow((r) => r.fin_result),
+      cage_casino: last?.cage_casino ?? 0,
       cage_office: last?.cage_office ?? 0,
       bank: last?.bank ?? 0,
+      money_total: last?.money_total ?? 0,
       balance: last?.balance ?? 0,
-      byCasino: Object.fromEntries(
-        casinos.map((c) => [c.id, flow((r) => r.in_by_casino[c.id] || 0)]),
-      ) as Record<string, number>,
     };
-  }, [rows, casinos]);
+  }, [rows]);
 
   /** "Start" opening row + the plain day rows. */
-  const displayRows = useMemo<Row[]>(
-    () => [
+  const displayRows = useMemo<Row[]>(() => {
+    const start = data?.start;
+    const empty: DrillLine[] = [];
+    return [
       {
-        ...({} as OfficeBalanceRow),
         date: `${month}-00`,
         weekday: "",
-        in_by_casino: {},
-        in_total: 0,
-        cage_office: startMoney,
-        bank: 0,
+        status: "recorded",
+        result: 0,
+        diff: 0,
+        cage_casino: start?.cage_casino ?? 0,
+        cage_office: start?.cage_office ?? 0,
+        bank: start?.bank ?? 0,
         expenses: 0,
         transfer_casino: 0,
-        out_ak: 0,
-        fin_result: 0,
+        collections_net: 0,
         money_total: startMoney,
-        balance: startMoney,
-        expenses_detail: [],
-        in_detail: [],
-        out_detail: [],
+        balance: 0,
+        fin_result: 0,
+        cage_casino_detail: empty,
+        cage_office_detail: empty,
+        bank_detail: empty,
+        result_detail: empty,
+        diff_detail: empty,
+        expenses_detail: empty,
+        transfer_detail: empty,
+        collections_detail: empty,
         kind: "start" as const,
-      } as Row,
+      },
       ...rows.map((r) => ({ ...r, kind: "day" as const })),
-    ],
-    [rows, startMoney, month],
-  );
+    ];
+  }, [rows, startMoney, month, data?.start]);
 
   const money = (n: number) =>
     !n ? <span className="text-muted-foreground">{demo ? "0" : "·"}</span> : (
@@ -161,34 +169,51 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
     </span>
   );
 
-  const drillCell = (col: string, label?: string) => (r: Row, v: number) => (
-    <span
-      className={cn(v && "cursor-pointer underline-offset-2 hover:underline")}
-      onClick={(e) => {
-        if (!v) return;
-        e.stopPropagation();
-        setDrill({ row: r, col, label: label ?? col.toUpperCase(), amount: v });
-      }}
-    >
-      {money(v)}
-    </span>
-  );
+  /** Every money cell opens the same drill panel, fed by its own lines. */
+  const drillCell =
+    (col: string, label: string, pick: (r: Row) => DrillLine[], signed = false) =>
+    (r: Row, v: number) => (
+      <span
+        className={cn(
+          v && "cursor-pointer underline-offset-2 hover:underline",
+          signed && v < 0 && "cms-amount-negative",
+          signed && v > 0 && "cms-amount-positive",
+          signed && "font-semibold",
+        )}
+        onClick={(e) => {
+          if (!v) return;
+          e.stopPropagation();
+          setDrill({ row: r, col, label, amount: v, lines: pick(r) });
+        }}
+      >
+        {signed
+          ? v ? formatMoneyFull(Math.round(v)) : <span className="text-muted-foreground">{demo ? "0" : "·"}</span>
+          : money(v)}
+      </span>
+    );
 
   const columns: ColumnDef<Row>[] = [
     {
       key: "date",
       header: "Date",
       type: "date",
-      style: { width: 78, minWidth: 78 },
+      style: { width: 92, minWidth: 92 },
       accessor: (r) =>
         r.kind === "start" ? (
           <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-wider text-foreground">
             Start
           </span>
         ) : (
-          <span className="whitespace-nowrap font-mono text-[12px] font-semibold tabular-nums">
+          <span className="inline-flex items-center gap-1 whitespace-nowrap font-mono text-[12px] font-semibold tabular-nums">
             {r.date.slice(8, 10)}/{r.date.slice(5, 7)}
-            <span className="ml-1 text-[10px] font-normal text-muted-foreground">{r.weekday}</span>
+            <span className="text-[10px] font-normal text-muted-foreground">{r.weekday}</span>
+            <span
+              className={cn(
+                "h-1.5 w-1.5 rounded-full",
+                r.status === "recorded" ? "bg-success" : "bg-warning",
+              )}
+              title={r.status === "recorded" ? "Recorded" : "Pending — wallets not recorded yet"}
+            />
           </span>
         ),
       sortValue: (r) => r.date,
@@ -202,65 +227,67 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             : "bg-card",
         ),
     },
-    
-    ...(inOpen ? casinos : []).map<ColumnDef<Row>>((c, i) => ({
-      key: `in_${c.id}`,
-      header: head(`IN · ${c.name}`, "in_total"),
-      type: "money" as const,
-      style: { minWidth: 118 },
-      accessor: (r) => drillCell("in", `IN · ${c.name}`)(r, r.in_by_casino[c.id] || 0),
-      sortValue: (r) => r.in_by_casino[c.id] || 0,
-      headerClassName: headCls("in", i === 0),
-      cellClassName: cellCls("in", i === 0),
-    })),
     {
-      key: "in_total",
-      header: (
-        <span className="inline-flex items-center gap-1">
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); setInOpen(!inOpen); }}
-            className="inline-flex items-center gap-1 rounded px-0.5 hover:bg-foreground/10"
-            aria-label={inOpen ? "Collapse IN by casino" : "Expand IN by casino"}
-          >
-            {inOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-            IN Total
-          </button>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Info className="h-3 w-3 shrink-0 opacity-50 hover:opacity-100" />
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-xs whitespace-pre-line text-xs">
-              {FORMULAS.in_total}
-            </TooltipContent>
-          </Tooltip>
-        </span>
-      ),
+      key: "result",
+      header: head("Result", "result"),
       type: "money",
       style: { minWidth: 124 },
-      accessor: (r) => drillCell("in", "IN Total")(r, r.in_total),
-      sortValue: (r) => r.in_total,
-      headerClassName: headCls("in", !inOpen),
-      cellClassName: cellCls("in", !inOpen),
+      accessor: (r) => drillCell("result", "Result", (x) => x.result_detail)(r, r.result),
+      sortValue: (r) => r.result,
+      headerClassName: headCls("result", true),
+      cellClassName: cellCls("result", true),
     },
     {
-      key: "cage_office",
-      header: head("Cage", "cage_office"),
+      key: "diff",
+      header: head("Diff", "diff"),
       type: "money",
-      style: { minWidth: 128 },
-      accessor: (r) => drillCell("cage", "Cage · Office")(r, r.cage_office),
-      sortValue: (r) => r.cage_office,
+      style: { minWidth: 110 },
+      accessor: (r) => drillCell("diff", "Diff", (x) => x.diff_detail, true)(r, r.diff),
+      sortValue: (r) => r.diff,
+      headerClassName: headCls("result", false),
+      cellClassName: cellCls("result", false),
+    },
+    {
+      key: "cage_casino",
+      header: head("Cage Casino", "cage_casino"),
+      type: "money",
+      style: { minWidth: 132 },
+      accessor: (r) =>
+        drillCell("cage_casino", "Cage Casino", (x) => x.cage_casino_detail)(r, r.cage_casino),
+      sortValue: (r) => r.cage_casino,
       headerClassName: headCls("money", true),
       cellClassName: cellCls("money", true),
     },
-
+    {
+      key: "cage_office",
+      header: head("Cage Office", "cage_office"),
+      type: "money",
+      style: { minWidth: 128 },
+      accessor: (r) =>
+        drillCell("cage_office", "Cage Office", (x) => x.cage_office_detail)(r, r.cage_office),
+      sortValue: (r) => r.cage_office,
+      headerClassName: headCls("money", false),
+      cellClassName: cellCls("money", false),
+    },
     {
       key: "bank",
       header: head("Bank", "bank"),
       type: "money",
       style: { minWidth: 128 },
-      accessor: (r) => drillCell("bank", "Bank")(r, r.bank),
+      accessor: (r) => drillCell("bank", "Bank", (x) => x.bank_detail)(r, r.bank),
       sortValue: (r) => r.bank,
+      headerClassName: headCls("money", false),
+      cellClassName: cellCls("money", false),
+    },
+    {
+      key: "money_total",
+      header: head("Money Total", "money_total"),
+      type: "money",
+      style: { minWidth: 134 },
+      accessor: (r) => (
+        <span className="font-semibold">{money(r.money_total)}</span>
+      ),
+      sortValue: (r) => r.money_total,
       headerClassName: headCls("money", false),
       cellClassName: cellCls("money", false),
     },
@@ -289,34 +316,22 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       key: "transfer_casino",
       header: head("Transfer → Casino", "transfer_casino"),
       type: "money",
-      style: { minWidth: 136 },
-      accessor: (r) => money(r.transfer_casino),
+      style: { minWidth: 140 },
+      accessor: (r) =>
+        drillCell("transfer", "Transfer → Casino", (x) => x.transfer_detail)(r, r.transfer_casino),
       sortValue: (r) => r.transfer_casino,
       headerClassName: headCls("spend", false),
       cellClassName: cellCls("spend", false),
     },
     {
-      key: "out_ak",
-      header: head("IK (+/−)", "out_ak"),
+      key: "collections_net",
+      header: head("OUT / IN", "collections_net"),
       type: "money",
-      style: { minWidth: 124 },
-      accessor: (r) => {
-        const v = -r.out_ak; // out = money leaving the company (−), inflow from IK (+)
-        return (
-          <span
-            className={cn(
-              "font-semibold",
-              v < 0 && "cms-amount-negative",
-              v > 0 && "cms-amount-positive",
-              v && "cursor-pointer underline-offset-2 hover:underline",
-            )}
-            onClick={(e) => { if (!v) return; e.stopPropagation(); setDrill({ row: r, col: "out", label: "IK (+/−)", amount: v }); }}
-          >
-            {v ? formatMoneyFull(Math.round(v)) : <span className="text-muted-foreground">{demo ? "0" : "·"}</span>}
-          </span>
-        );
-      },
-      sortValue: (r) => -r.out_ak,
+      style: { minWidth: 128 },
+      // Positive collections = money OUT of the company → shown as minus.
+      accessor: (r) =>
+        drillCell("collections", "OUT / IN", (x) => x.collections_detail, true)(r, -r.collections_net),
+      sortValue: (r) => -r.collections_net,
       headerClassName: headCls("spend", false),
       cellClassName: cellCls("spend", false),
     },
@@ -325,9 +340,7 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       header: head("Balance", "balance"),
       type: "money",
       style: { minWidth: 130 },
-      accessor: (r) => (
-        <span className="font-bold">{money(r.balance)}</span>
-      ),
+      accessor: (r) => <span className="font-bold">{money(r.balance)}</span>,
       sortValue: (r) => r.balance,
       headerClassName: headCls("balance", true),
       cellClassName: cellCls("balance", true),
@@ -343,16 +356,16 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             if (col.key === "date")
               return <span className="text-[11px] font-bold uppercase tracking-wider text-foreground">Total</span>;
             const k = String(col.key);
-            const raw = k.startsWith("in_") && k !== "in_total"
-              ? totals.byCasino[k.slice(3)] ?? 0
-              : (totals as unknown as Record<string, number>)[k] ?? 0;
-            const v = k === "out_ak" ? -raw : raw;
+            const raw = (totals as unknown as Record<string, number>)[k] ?? 0;
+            const v = k === "collections_net" ? -raw : k === "balance" ? totals.balance : raw;
             return (
-              <span className={cn(
-                "whitespace-nowrap font-mono text-[11px] font-bold tabular-nums",
-                v < 0 && "cms-amount-negative",
-                k === "out_ak" && v > 0 && "cms-amount-positive",
-              )}>
+              <span
+                className={cn(
+                  "whitespace-nowrap font-mono text-[11px] font-bold tabular-nums",
+                  v < 0 && "cms-amount-negative",
+                  k === "collections_net" && v > 0 && "cms-amount-positive",
+                )}
+              >
                 {v ? formatMoneyFull(Math.round(v)) : demo ? "0" : "·"}
               </span>
             );
@@ -365,19 +378,13 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
     month: "long", year: "numeric", timeZone: "UTC",
   });
 
-  const drillRows =
-    drill?.col === "expenses" ? drill.row.expenses_detail
-      : drill?.col === "in" ? drill.row.in_detail
-        : drill?.col === "out" ? drill.row.out_detail
-          : [];
-
   return (
     <TooltipProvider delayDuration={100}>
       <PageShell>
         <PageHeader
           icon={Building2}
-          title="Office Monthly Balance"
-          subtitle="Company-wide head office grid — IN per casino, cage, bank, expenses, payouts (TZS)"
+          title="Company Daily Balance"
+          subtitle="Company-wide ledger — result, money in cage / office / bank, expenses and collections (TZS)"
         >
           {demo && <Badge variant="outline" className="mr-2">DEMO DATA</Badge>}
           <span className="whitespace-nowrap text-xs text-muted-foreground">
@@ -417,20 +424,14 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
           </div>
         )}
 
-        {/* Row 3 — Start / IN Total / Office Expenses / Money Total / IK */}
+        {/* Row 3 — Start / Result / Expenses / Money Total / OUT-IN */}
         <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
-          <StartingBalanceTile
-            storageKey={startKey}
-            readOnly={demo}
-            value={startMoney}
-            hint={demo ? "Carried over from the previous month" : "Cage + Bank carried over · click to edit"}
-            onChange={setStartBalance}
-          />
           {([
-            ["IN Total", totals.in_total, "Σ collections received from every casino"],
-            ["Office Expenses", -Math.abs(totals.expenses), "Office-source expenses of the month"],
-            ["Money Total", totals.cage_office + totals.bank, "Cage + Bank at the end of the month"],
-            ["IK (+/−)", -totals.out_ak, "Minus = payout out, plus = received from IK"],
+            ["Start", startMoney, "Money carried over from the previous month"],
+            ["Result", totals.result + totals.diff, "Gaming result ± diff of the month"],
+            ["Expenses", -Math.abs(totals.expenses), "Operating expenses of the month"],
+            ["Money Total", totals.money_total, "Cage Casino + Office + Bank at the end of the month"],
+            ["OUT / IN", -totals.collections_net, "Minus = paid out of the company, plus = returned"],
           ] as const).map(([label, value, hint]) => (
             <div key={label} className="rounded-md border border-border bg-card px-3 py-2">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
@@ -441,9 +442,6 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             </div>
           ))}
         </div>
-
-
-
 
         <PageSection card={false}>
           <div className="max-h-[72vh] overflow-auto rounded-md border border-border">
@@ -473,49 +471,31 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
                       source={drill.label}
                       date={drill.row.date}
                       amount={drill.amount}
-                      signed={drill.col === "out"}
+                      signed={drill.col === "collections" || drill.col === "diff"}
                     />
                   )}
                 </div>
               </SheetTitle>
             </SheetHeader>
-            {drill?.col === "cage" ? (
-              <div className="mt-4">
-                <CurrencyCashTable
-                  rows={drill.row.cage_detail ?? []}
-                  totalLabel="Total cage"
-                  total={drill.row.cage_office}
-                  mobile={drill.row.mobile_detail ?? {}}
-                />
-              </div>
-            ) : drill?.col === "bank" ? (
-              <div className="mt-4">
-                <CurrencyCashTable
-                  title="Bank by currency"
-                  rows={(drill.row.bank_detail ?? []).map((b) => ({
-                    currency: b.currency,
-                    denomination: 1,
-                    quantity: b.amount,
-                    tzs: b.tzs,
-                  }))}
-                  totalLabel="Total bank"
-                  total={drill.row.bank}
-                />
-              </div>
-            ) : (
-            <div className="mt-4 space-y-3">
-              <div className="rounded-md border border-border text-xs">
-              {drillRows.map((d, i) => (
-                <div key={`${d.label}-${i}`} className="flex items-center justify-between border-b border-border/60 px-2 py-1.5 last:border-0">
-                  <span className="truncate text-muted-foreground">{d.label}</span>
-                  <span className="font-mono tabular-nums">{formatMoneyFull(Math.round(d.value))}</span>
+            <div className="mt-4 rounded-md border border-border text-xs">
+              {(drill?.lines ?? []).map((d, i) => (
+                <div
+                  key={`${d.label}-${i}`}
+                  className="flex items-center justify-between gap-2 border-b border-border/60 px-2 py-1.5 last:border-0"
+                >
+                  <span className="truncate text-muted-foreground">
+                    {d.label}
+                    {d.sub && <span className="ml-1 text-[10px] opacity-70">{d.sub}</span>}
+                  </span>
+                  <span className={cn("font-mono tabular-nums", d.value < 0 && "cms-amount-negative")}>
+                    {formatMoneyFull(Math.round(d.value))}
+                  </span>
                 </div>
               ))}
-              {!drillRows.length && <div className="px-2 py-4 text-center text-muted-foreground">No entries</div>}
-              </div>
+              {!drill?.lines?.length && (
+                <div className="px-2 py-4 text-center text-muted-foreground">No entries</div>
+              )}
             </div>
-            )}
-
           </SheetContent>
         </Sheet>
       </PageShell>
