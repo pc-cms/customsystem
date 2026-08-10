@@ -244,8 +244,8 @@ const YearlyGraphicsReport = () => {
           <ComposedChart data={points} margin={{ top: 16, right: 16, bottom: 8, left: 4 }}>
             <defs>
               <linearGradient id="gradDropTable" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.28} />
-                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
+                <stop offset="0%" stopColor="hsl(var(--chart-blue))" stopOpacity={0.28} />
+                <stop offset="100%" stopColor="hsl(var(--chart-blue))" stopOpacity={0.02} />
               </linearGradient>
             </defs>
 
