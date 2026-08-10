@@ -334,9 +334,10 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
                         key={slot}
                         className={`px-2 py-2 text-center whitespace-nowrap ${isActive ? "bg-primary/10" : ""}`}
                       >
-                        <div className="font-mono tabular-nums text-sm font-semibold text-card-foreground">
+                        <div className="font-mono tabular-nums text-sm font-bold text-card-foreground">
                           {v ? formatCurrency(v) : "·"}
                         </div>
+
                       </td>
                     );
                   })}
