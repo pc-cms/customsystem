@@ -168,6 +168,8 @@ export interface DailyBalanceRow {
   chips_detail: ChipDetail[];
   /** Cage money breakdown at closing (cash by currency/denomination + cashless). */
   cage_detail: CageDetail;
+  /** Every wallet as of that day — feeds the universal money drill. */
+  money_detail: MoneyWallet[];
   /** Transfers cage → manager safe of the day. */
   transfers_manager: TransferDetail[];
   /** Bank transfer legs of the day (signed). */
