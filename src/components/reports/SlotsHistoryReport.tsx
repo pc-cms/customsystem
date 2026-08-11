@@ -124,11 +124,11 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
     cdr: cashdeskByDate.has(s.business_date)
       ? Number(cashdeskByDate.get(s.business_date))
       : Number(s.cash_desk_result ?? s.actual_cage_result ?? 0),
-
     clientBalance: Number(s.manual_slots_deposits || 0),
     miss: Number(s.cards_miss || 0),
     balance: Number(s.balance || 0),
-  })), [shifts]);
+  })), [shifts, cashdeskByDate]);
+
 
   const totals = useMemo(() => {
     const t = rows.reduce((a, r) => ({
