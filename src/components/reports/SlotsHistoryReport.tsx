@@ -7,6 +7,11 @@
  * Drop, Net Win and Client Balance are manual entries on the slots shift
  * (`manual_drop_slots`, `manual_slots_result`, `manual_slots_deposits`),
  * editable inline by managers/finance.
+ *
+ * Cashdesk comes from the day closing (`fin_day_closing.cashdesk_win`, the
+ * CashDesk Win entered in Close Day) whenever the day is closed; otherwise it
+ * falls back to the shift's computed cash desk result.
+
  */
 import { Fragment, KeyboardEvent, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Printer, Check } from "lucide-react";
