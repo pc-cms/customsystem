@@ -239,6 +239,7 @@ export const useDailyBalanceReport = (
         otherIncomeRows,
         daySnaps,
         monthStart,
+        walletCounts,
       ] = await Promise.all([
 
 
