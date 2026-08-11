@@ -181,8 +181,9 @@ const Dashboard = () => {
   const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
   // Top players of the business day: aggregate today's transactions per player.
-  // Cut-off: Drop ≥ 1 000 000 or a non-zero result; max 10 rows, sorted by Drop.
+  // Cut-off: Drop > 1 000 000 OR |Result| > 1 000 000; max 10 rows, sorted by Drop.
   const TOP_DROP_THRESHOLD = 1_000_000;
+  const TOP_RESULT_THRESHOLD = 1_000_000;
   const topPlayersToday = useMemo(() => {
     const byId = new Map<string, { id: string; drop: number; cashout: number }>();
     for (const t of transactions as any[]) {
@@ -199,7 +200,7 @@ const Dashboard = () => {
     });
     return Array.from(byId.values())
       .map(r => ({ ...r, name: nameById.get(r.id) || "—", result: r.drop - r.cashout }))
-      .filter(r => r.drop >= TOP_DROP_THRESHOLD || r.result !== 0)
+      .filter(r => r.drop > TOP_DROP_THRESHOLD || Math.abs(r.result) > TOP_RESULT_THRESHOLD)
       .sort((a, b) => b.drop - a.drop)
       .slice(0, 10);
   }, [transactions, players]);
