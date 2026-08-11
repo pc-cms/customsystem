@@ -367,8 +367,8 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false 
             const isCctv = b.block === "cctv";
             const roster = people.filter((p) => (isCctv ? p.kind === "cctv" : p.kind === "manager"));
             return (
-              <>
-                <tr key={`${b.key}-h`} className="bg-primary/10">
+              <React.Fragment key={b.key}>
+                <tr className="bg-primary/10">
                   <td
                     colSpan={dates.length + 2}
                     className="sticky left-0 border-y border-border px-2 py-1 text-[10px] font-bold tracking-wider uppercase"
