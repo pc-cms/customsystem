@@ -209,6 +209,10 @@ const num = (v: unknown) => {
 
 const dateOnly = (iso: string | null | undefined) => (iso ? iso.slice(0, 10) : "");
 
+/** Previous calendar day of a YYYY-MM-DD string. */
+export const prevDate = (d: string) =>
+  new Date(new Date(`${d}T00:00:00Z`).getTime() - 86400000).toISOString().slice(0, 10);
+
 export const enumerateDates = (from: string, to: string): string[] => {
   const out: string[] = [];
   const start = new Date(`${from}T00:00:00Z`);
@@ -624,10 +628,23 @@ export const useDailyBalanceReport = (
        * down at the most recent physical count on or before that day.
        */
       const countsByWallet: Record<string, { d: string; ts: number; tzs: number; units: number }[]> = {};
+      /**
+       * A count taken while the current business day is still OPEN actually
+       * closes the previous (already closed) business day: the money is counted
+       * after the shift ends, before the new day's results exist. Without this
+       * the last closed row shows stale money and Variance never converges
+       * until the next morning.
+       */
+      const moneyDateOf = (iso: string) => {
+        const bd = businessDateOf(iso);
+        if (closedDays.has(bd)) return bd;
+        const prev = prevDate(bd);
+        return closedDays.has(prev) ? prev : bd;
+      };
       (walletCounts as any[]).forEach((c: any) => {
         if (!c.wallet_id) return;
         (countsByWallet[c.wallet_id] ??= []).push({
-          d: businessDateOf(c.created_at),
+          d: moneyDateOf(c.created_at),
           ts: new Date(c.created_at).getTime(),
           tzs: num(c.physical_total_tzs) || num(c.physical_total),
           units: num(c.physical_total),
