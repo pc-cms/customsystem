@@ -1,0 +1,1 @@
+update public.role_module_defaults set can_view = true where module_key = 'groups' and role in ('boss','general_manager','manager','shift_manager');
