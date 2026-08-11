@@ -632,9 +632,14 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             return wrap(
               <ManualCell date={r.date} field={MANUAL_FIELDS[c.id]} value={c.value(r)} />,
             );
+          // Bank USD keeps its USD tooltip AND opens the drill like every money cell.
           if (r.kind === "day" && c.id === "bank_usd")
             return wrap(
-              <span title={`${money(Math.round(num(r, "bank_usd_raw")))} USD`}>
+              <span
+                title={`${money(Math.round(num(r, "bank_usd_raw")))} USD`}
+                className="cursor-pointer underline-offset-2 hover:underline"
+                onClick={(e) => { e.stopPropagation(); setDrill({ row: r, col: c.id }); }}
+              >
                 {money(Math.round(num(r, "bank_usd")))}
               </span>,
             );
