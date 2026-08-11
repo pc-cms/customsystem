@@ -109,11 +109,17 @@ export interface DailyBalanceRow {
   cage_manager: number;
   /** Transfers into bank accounts (positive leg). */
   transfer_bank: number;
-  /** Terminal — cash-desk closing legs marked as BANK for that day (daily flow). */
-  terminal_tzs: number;
-  terminal_usd: number;
-  terminal_total: number;
-  terminal_detail: TerminalLeg[];
+  /** Cash-desk result (gross cashdesk win) from the day-closing record. */
+  cash_desk_result: number;
+  /** Other incomes / fees (non-JP) from fin_other_incomes. */
+  other_income: number;
+  /** Jackpot (JP) income from fin_other_incomes. */
+  jp: number;
+  /** Missed cards (negative = shortage) — Cage Slots cards miss. */
+  missed_cards: number;
+  /** Collections / owner withdrawals — shown as a reference column (part of Office Out). */
+  collections: number;
+
   /** Bank account balances at end of day, split by currency (TZS-valued). */
   bank_tzs: number;
   bank_usd: number;
