@@ -63,7 +63,7 @@ const NAV_ITEMS: NavItem[] = [
 
   // ANALYTICS
   { to: "/reports", icon: FileBarChart, label: "Statistics", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
-  { to: "/reports/graphics", icon: TrendingUp, label: "Graphics", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/reports/graphics", icon: TrendingUp, label: "Graphics", roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "ANALYTICS" },
 
   // STAFF — Rota + Attendance (each expands to Live/Floor/Security/Office).
