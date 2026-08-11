@@ -663,7 +663,7 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
                 {money(Math.round(num(r, "bank_usd")))}
               </span>,
             );
-          const rendered = money(Math.round(c.value(r)));
+          const rendered = money(Math.round(c.value(r)), SIGNED_IDS.has(c.id));
 
           if (c.id === "expenses")
             return wrap(
