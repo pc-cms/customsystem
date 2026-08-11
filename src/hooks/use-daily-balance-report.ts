@@ -593,54 +593,56 @@ export const useDailyBalanceReport = (
 
 
 
-      const allTxDates = Array.from(
-        new Set([...Object.keys(txByDate), ...Object.keys(floatByDate)]),
-      ).sort();
-      /** Per-wallet running balance — feeds the "Cage Manager" detail panel. */
-      const perWallet: Record<string, number> = {};
-      /** Same running balance kept in the wallet's own currency (units). */
-      const perWalletUnits: Record<string, number> = {};
-      wallets.forEach((w) => {
-        const f = num(w.starting_float_amount);
-        const d: string = w.starting_float_date ? String(w.starting_float_date).slice(0, 10) : "";
-        if (!f || (d && d >= from)) return;
-        perWallet[w.id] = (w.currency || "TZS") === "TZS" ? f : f * FALLBACK_USD_RATE;
-        perWalletUnits[w.id] = f;
+      /**
+       * WALLET BALANCE = LAST PHYSICAL COUNT. Nothing else.
+       * No starting floats, no ledger replay, no accumulation of movements:
+       * the balance of a wallet on a given day is exactly the amount written
+       * down at the most recent physical count on or before that day.
+       */
+      const countsByWallet: Record<string, { d: string; tzs: number; units: number }[]> = {};
+      (walletCounts as any[]).forEach((c: any) => {
+        if (!c.wallet_id) return;
+        (countsByWallet[c.wallet_id] ??= []).push({
+          d: businessDateOf(c.created_at),
+          tzs: num(c.physical_total_tzs) || num(c.physical_total),
+          units: num(c.physical_total),
+        });
       });
+      Object.values(countsByWallet).forEach((l) =>
+        l.sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0)),
+      );
+      /** Last recorded count of a wallet as of `d` (null when never counted). */
+      const countAt = (wid: string, d: string) => {
+        const l = countsByWallet[wid];
+        if (!l) return null;
+        let r: { d: string; tzs: number; units: number } | null = null;
+        for (const c of l) { if (c.d <= d) r = c; else break; }
+        return r;
+      };
+
+      /** Per-wallet balance of the LAST day of the range (drill-down panels). */
+      const perWallet: Record<string, number> = {};
+      const perWalletUnits: Record<string, number> = {};
       const officeWalletsByDate: Record<string, WalletBalance[]> = {};
+      const bankWalletsByDate: Record<string, WalletBalance[]> = {};
       const officeWallets = wallets.filter((w) => isOfficeKind(w.kind));
+      const bankWallets = wallets.filter((w) => isBankKind(w.kind));
 
-      for (const d of allTxDates) {
-        const f = floatByDate[d];
-        if (f) {
-          cageCasinoBal += f.cageCasino;
-          cageBal += f.cage; officeBal += f.office;
-          bankTzsBal += f.bankTzs; bankUsdBal += f.bankUsd;
-          wallets.forEach((w) => {
-            const wf = num(w.starting_float_amount);
-            const wd: string = w.starting_float_date ? String(w.starting_float_date).slice(0, 10) : "";
-            if (!wf || !wd || wd !== d) return;
-            const rate = rateByDate[d] || FALLBACK_USD_RATE;
-            perWallet[w.id] = (perWallet[w.id] || 0) +
-              ((w.currency || "TZS") === "TZS" ? wf : wf * rate);
-            perWalletUnits[w.id] = (perWalletUnits[w.id] || 0) + wf;
-          });
-        }
-        for (const t of txByDate[d] ?? []) {
-          const k = walletKind[t.wallet_id];
-          const v = signedWalletTxTzs(t);
-          perWallet[t.wallet_id] = (perWallet[t.wallet_id] || 0) + v;
-          // Native units: same sign rule, but on the raw `amount` column.
-          perWalletUnits[t.wallet_id] = (perWalletUnits[t.wallet_id] || 0) +
-            signedWalletTxTzs({ kind: t.kind, amount: t.amount, amount_tzs: t.amount });
-
-          if (CASINO_CAGE_KINDS.has(k)) cageCasinoBal += v;
-          if (CAGE_KINDS.has(k)) cageBal += v;
-          else if (isOfficeKind(k)) officeBal += v;
-          else if (isBankKind(k)) {
-            if (walletCurrency[t.wallet_id] === "TZS") bankTzsBal += v; else bankUsdBal += v;
+      for (const d of enumerateDates(from, to)) {
+        let cageCasinoBal = 0, cageBal = 0, officeBal = 0, bankTzsBal = 0, bankUsdBal = 0;
+        wallets.forEach((w) => {
+          const c = countAt(w.id, d);
+          if (!c) return;
+          const v = c.tzs;
+          perWallet[w.id] = v;
+          perWalletUnits[w.id] = c.units;
+          if (CASINO_CAGE_KINDS.has(w.kind)) cageCasinoBal += v;
+          if (CAGE_KINDS.has(w.kind)) cageBal += v;
+          else if (isOfficeKind(w.kind)) officeBal += v;
+          else if (isBankKind(w.kind)) {
+            if ((walletCurrency[w.id] || "TZS") === "TZS") bankTzsBal += v; else bankUsdBal += v;
           }
-        }
+        });
         cageCasinoRunning[d] = cageCasinoBal;
         cageRunning[d] = cageBal;
         officeRunning[d] = officeBal;
@@ -648,12 +650,18 @@ export const useDailyBalanceReport = (
         bankTzsRunning[d] = bankTzsBal;
         bankUsdRunning[d] = bankUsdBal;
 
-        officeWalletsByDate[d] = officeWallets.map((w) => ({
-          name: w.name,
-          currency: w.currency || "TZS",
-          balance: perWallet[w.id] || 0,
-          units: perWalletUnits[w.id] || 0,
-        }));
+        const snapshotOf = (list: typeof officeWallets) =>
+          list.map((w) => {
+            const c = countAt(w.id, d);
+            return {
+              name: w.name,
+              currency: w.currency || "TZS",
+              balance: c?.tzs ?? 0,
+              units: c?.units ?? 0,
+            };
+          });
+        officeWalletsByDate[d] = snapshotOf(officeWallets);
+        bankWalletsByDate[d] = snapshotOf(bankWallets);
       }
 
 
