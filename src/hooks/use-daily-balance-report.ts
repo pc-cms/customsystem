@@ -614,6 +614,7 @@ export const useDailyBalanceReport = (
       for (const d of allTxDates) {
         const f = floatByDate[d];
         if (f) {
+          cageCasinoBal += f.cageCasino;
           cageBal += f.cage; officeBal += f.office;
           bankTzsBal += f.bankTzs; bankUsdBal += f.bankUsd;
           wallets.forEach((w) => {
@@ -630,17 +631,20 @@ export const useDailyBalanceReport = (
           const v = signedWalletTxTzs(t);
           perWallet[t.wallet_id] = (perWallet[t.wallet_id] || 0) + v;
 
+          if (CASINO_CAGE_KINDS.has(k)) cageCasinoBal += v;
           if (CAGE_KINDS.has(k)) cageBal += v;
           else if (isOfficeKind(k)) officeBal += v;
           else if (isBankKind(k)) {
             if (walletCurrency[t.wallet_id] === "TZS") bankTzsBal += v; else bankUsdBal += v;
           }
         }
+        cageCasinoRunning[d] = cageCasinoBal;
         cageRunning[d] = cageBal;
         officeRunning[d] = officeBal;
         bankRunning[d] = bankTzsBal + bankUsdBal;
         bankTzsRunning[d] = bankTzsBal;
         bankUsdRunning[d] = bankUsdBal;
+
         officeWalletsByDate[d] = officeWallets.map((w) => ({
           name: w.name,
           currency: w.currency || "TZS",
