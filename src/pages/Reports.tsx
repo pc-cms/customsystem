@@ -306,12 +306,13 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
         r.dropSlots += Number(s.manual_drop_slots || 0);
         r.slotsShiftIds.push(s.id);
       });
-      // Result Slots strictly from Close Day; missing closing => 0 (editable).
+      // Result Slots strictly from Close Day. A zero (day closed without the
+      // figure, or no closing row) stays editable so it can be filled manually.
       (closingData || []).forEach((c: any) => {
         if (!c.business_date) return;
         const r = row(c.business_date);
         r.slotsResult = Number(c.net_win || 0);
-        r.slotsLocked = true;
+        r.slotsLocked = r.slotsResult !== 0;
       });
       (expRes.data || []).forEach((e: any) => {
         const r = row(eatDate(e.created_at));
