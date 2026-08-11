@@ -70,7 +70,9 @@ export function CloseBusinessDayButton() {
   const [netWin, setNetWin] = useState("");
   const [cashDeskWin, setCashDeskWin] = useState("");
   const [clientBalance, setClientBalance] = useState("");
+  const [jpIn, setJpIn] = useState("");
   const [notes, setNotes] = useState("");
+
 
   const canSee = roles.some(r =>
     ["cashier", "cashier_slots", "manager", "pit", "finance_manager", "super_admin"].includes(r)
