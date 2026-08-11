@@ -661,12 +661,14 @@ export const useDailyBalanceReport = (
        * Per-day figure — never cumulative.
        */
       const missByDenomDate: Record<string, Record<number, number>> = {};
+      const cardsMiss: Bucket = {};
       shifts
         .filter((s) => s.closed_at)
         .forEach((s) => {
           const d = businessDateOf(s.opened_at);
           const cc = (s.closing_count as any) || {};
-          add(chipMiss, d, num(cc.chip_miss_total));
+          // Negative sign: miss chips reduce the expected balance.
+          add(chipMiss, d, -num(cc.chip_miss_total));
           const by = (cc.chip_miss_by_denom || {}) as Record<string, unknown>;
           const bucket = (missByDenomDate[d] ??= {});
           Object.entries(by).forEach(([dn, q]) => {
@@ -675,6 +677,12 @@ export const useDailyBalanceReport = (
             bucket[den] = (bucket[den] || 0) + num(q);
           });
         });
+      // Missed cards come from cage slots shifts — negative sign like miss chips.
+      slotShifts.forEach((s) => {
+        const d = String(s.business_date).slice(0, 10);
+        add(cardsMiss, d, -num(s.cards_miss));
+      });
+
       const chipDates = new Set([...Object.keys(missByDenomDate), ...Object.keys(floatByDenom)]);
       chipDates.forEach((date) => {
         const miss = missByDenomDate[date] || {};
