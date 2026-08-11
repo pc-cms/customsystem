@@ -237,7 +237,7 @@ export const useDailyBalanceReport = (
 
         fetchPaged<any>((a, b) =>
           sb.from("fin_day_closing")
-            .select("business_date, tables_result, slots_result, players_card_balance")
+            .select("business_date, tables_result, slots_result, cashdesk_win, players_card_balance")
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("shifts")
