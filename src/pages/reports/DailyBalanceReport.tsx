@@ -164,29 +164,37 @@ const START_FIELDS: Record<string, MonthStartField | undefined> = {
 
 
 /**
- * Per-section column zone tint — OPAQUE (mixed against --card) so that sticky
- * frozen columns never let scrolling content bleed through. Static literals so
- * Tailwind's JIT scanner picks them up.
+ * Flat palette: no tints, no translucency. Cells stay on `--card`; sections are
+ * told apart by a coloured header underline only.
  */
 const ZONE_BG: Record<SectionKey, string> = {
-  incomes: "bg-[color-mix(in_srgb,hsl(var(--success))_5%,hsl(var(--card)))]",
-  diff: "bg-[color-mix(in_srgb,hsl(var(--warning))_6%,hsl(var(--card)))]",
-  transfers: "bg-[color-mix(in_srgb,hsl(var(--info))_6%,hsl(var(--card)))]",
-  money: "bg-[color-mix(in_srgb,hsl(var(--primary))_5%,hsl(var(--card)))]",
-  expenses: "bg-[color-mix(in_srgb,hsl(var(--destructive))_5%,hsl(var(--card)))]",
-  office: "bg-[color-mix(in_srgb,hsl(var(--accent))_18%,hsl(var(--card)))]",
-  balances: "bg-[color-mix(in_srgb,hsl(var(--muted))_45%,hsl(var(--card)))]",
+  incomes: "bg-card",
+  diff: "bg-card",
+  transfers: "bg-card",
+  money: "bg-card",
+  expenses: "bg-card",
+  office: "bg-card",
+  balances: "bg-card",
 };
 
+/** Section accent — a solid underline under the header cell. */
 const ZONE_HEAD: Record<SectionKey, string> = {
-  incomes: "bg-[color-mix(in_srgb,hsl(var(--success))_14%,hsl(var(--muted)))]",
-  diff: "bg-[color-mix(in_srgb,hsl(var(--warning))_16%,hsl(var(--muted)))]",
-  transfers: "bg-[color-mix(in_srgb,hsl(var(--info))_16%,hsl(var(--muted)))]",
-  money: "bg-[color-mix(in_srgb,hsl(var(--primary))_13%,hsl(var(--muted)))]",
-  expenses: "bg-[color-mix(in_srgb,hsl(var(--destructive))_14%,hsl(var(--muted)))]",
-  office: "bg-[color-mix(in_srgb,hsl(var(--accent))_40%,hsl(var(--muted)))]",
-  balances: "bg-muted",
+  incomes: "bg-muted border-b-success",
+  diff: "bg-muted border-b-warning",
+  transfers: "bg-muted border-b-info",
+  money: "bg-muted border-b-primary",
+  expenses: "bg-muted border-b-destructive",
+  office: "bg-muted border-b-accent-foreground",
+  balances: "bg-muted border-b-foreground",
 };
+
+/** Columns whose sign carries meaning — rendered with an explicit + / − and colour. */
+const SIGNED_IDS = new Set([
+  "result", "tables_result", "slots_result", "bar_result", "jp", "tips_total",
+  "diff_total", "chip_difference", "slots_diff", "missed_cards",
+  "office_total", "balance",
+]);
+
 
 /** Section → the headline column that carries the expand arrow (first total col). */
 const SECTION_ANCHOR: Record<string, string> = Object.fromEntries(
