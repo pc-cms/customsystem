@@ -383,6 +383,23 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
     onError: (e: any) => toast.error(e.message || "Failed to update"),
   });
 
+  /** Backfill Net Win for days that never went through Close Day. */
+  const updateNetWin = useMutation({
+    mutationFn: async ({ date, value }: { date: string; value: number }) => {
+      const { error } = await supabase
+        .from("fin_day_closing")
+        .upsert({ casino_id: casinoId, business_date: date, net_win: value } as any,
+                { onConflict: "casino_id,business_date" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["reports-total"] });
+      qc.invalidateQueries({ queryKey: ["slots-report-day-closings"] });
+      toast.success("Net Win updated");
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to update"),
+  });
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2">
