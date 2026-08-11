@@ -687,12 +687,13 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
         },
 
         headerClassName: cn(
-          "whitespace-nowrap border-b-4 text-[12px] uppercase tracking-wide",
+          "whitespace-nowrap border-b-2 text-[12px] uppercase tracking-wide",
           ZONE_HEAD[c.section],
           first ? "border-l-2 border-l-border" : "border-l border-l-border/60",
-          c.total ? "font-extrabold text-foreground" : "font-bold text-foreground/80",
-          hot ? "border-b-primary text-primary" : "border-b-primary/70",
+          c.total ? "font-extrabold text-foreground" : "font-bold text-foreground",
+          hot && "text-primary",
         ),
+
         cellClassName: (r: Row) =>
           cn(
             "py-0.5 whitespace-nowrap font-mono text-[11px] leading-tight tabular-nums",
