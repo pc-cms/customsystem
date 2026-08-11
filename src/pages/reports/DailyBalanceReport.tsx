@@ -401,12 +401,17 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   /** Cell drill-down: which column of which row is being inspected. */
   const [drill, setDrill] = useState<{ row: DailyBalanceRow; col: string } | null>(null);
 
-  const startKey = `dbr-start-balance:${activeCasino?.id ?? "none"}:${month}`;
-  const [startBalance, setStartBalance] = useState(0);
-  useEffect(() => {
-    const raw = typeof window !== "undefined" ? window.localStorage.getItem(startKey) : null;
-    setStartBalance(raw ? Number(raw) || 0 : 0);
-  }, [startKey]);
+  /** Opening money of the month — stored in `fin_month_start`, editable in the Start row. */
+  const { data: monthStart } = useMonthStart(month);
+  const startFields = {
+    cage_casino: Number(monthStart?.cage_casino || 0),
+    cage_manager: Number(monthStart?.cage_manager || 0),
+    bank_tzs: Number(monthStart?.bank_tzs || 0),
+    bank_usd: Number(monthStart?.bank_usd || 0),
+  };
+  const startBalance =
+    startFields.cage_casino + startFields.cage_manager + startFields.bank_tzs + startFields.bank_usd;
+
 
 
 
@@ -629,13 +634,25 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
               {node}
             </span>
           );
-          // Opening row: only the carried-over money / balance figures.
-          if (r.kind === "start")
+          // Opening row: editable opening money + carried-over totals.
+          if (r.kind === "start") {
+            if (!demo && START_FIELDS[c.id])
+              return wrap(
+                <StartCell month={month} field={START_FIELDS[c.id]!} value={startFields[START_FIELDS[c.id]!]} />,
+              );
+            if (c.id === "bank_total")
+              return wrap(
+                <span className="font-semibold">
+                  {money(Math.round(startFields.bank_tzs + startFields.bank_usd))}
+                </span>,
+              );
             return wrap(
               c.id === "balance" || c.id === "money_total"
                 ? <span className="font-semibold">{money(Math.round(startBalance))}</span>
                 : blank,
             );
+          }
+
           // Business day still open → no figures in any column.
           if (!r.day_closed) return wrap(blank);
           // Days before the recorded Start keep results & expenses only.
@@ -797,13 +814,10 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       {/* Row 2: Starting Balance · Casino Result · Money · Expenses · Balance */}
       <div className="mb-3 grid grid-cols-5 gap-2">
         <StartingBalanceTile
-          storageKey={startKey}
-          hint={`Opening ${monthLabel} · manual`}
-          onChange={(v) => {
-            setStartBalance(v);
-            invalidateFinance(qc);
-          }}
+          value={startBalance}
+          hint={startBalance ? `Opening ${monthLabel}` : `Opening ${monthLabel} · fill the Start row`}
         />
+
         <Tile label="Casino Result" value={num(grandRow, "casino_result")} hint="Live Game + Slots + Bar" />
         <Tile
           label="Money"
