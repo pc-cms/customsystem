@@ -74,6 +74,7 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
       { id: "tables_result", label: "Live Game", value: (r) => num(r, "tables_result") },
       { id: "slots_result", label: "Slots", value: (r) => num(r, "slots_result") },
       { id: "bar_result", label: "Bar", value: (r) => num(r, "bar_result") },
+      { id: "jp", label: "JP", value: (r) => num(r, "jp") },
       { id: "tips_total", label: "Tips", value: (r) => num(r, "tips_tables") + num(r, "tips_slots") },
     ],
   },
@@ -84,6 +85,7 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
       { id: "diff_total", label: "Diff", total: true, value: (r) => num(r, "diff_total") },
       { id: "chip_difference", label: "Chip Diff", value: (r) => num(r, "chip_difference") },
       { id: "slots_diff", label: "Slots Diff", value: (r) => num(r, "slots_diff") },
+      { id: "missed_cards", label: "Missed Cards", value: (r) => num(r, "missed_cards") },
     ],
   },
   {
@@ -112,9 +114,6 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     label: "Expenses",
     cols: [
       { id: "expenses", label: "Expenses", total: true, value: (r) => num(r, "expenses") },
-      { id: "other_income", label: "Other Incomes", value: (r) => num(r, "other_income") },
-      { id: "jp", label: "JP", value: (r) => num(r, "jp") },
-      { id: "missed_cards", label: "Missed Cards", value: (r) => num(r, "missed_cards") },
     ],
   },
   {
@@ -126,6 +125,7 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
       { id: "money_out", label: "−", value: (r) => num(r, "money_out") },
     ],
   },
+
   {
     key: "balances",
     label: "Variance",
