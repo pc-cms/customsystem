@@ -281,14 +281,10 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false 
           disabled={!editable}
           rows={rotaRows(isCctv)}
           title={r?.shift ? MGMT_SHIFT_LABELS[r.shift] : undefined}
-          cellClassName={`w-full h-6 rounded text-[10px] font-mono ${cls} ${editable ? "hover:ring-1 hover:ring-primary" : ""}`}
-          onSelect={(v) => {
-            if (!v) return setRota.mutate({ slotId: slot.id, date, shift: null, cityCasinoId: null, month });
-            if (v.startsWith("city:")) {
-              return setRota.mutate({ slotId: slot.id, date, shift: "N", cityCasinoId: v.slice(5), month });
-            }
-            setRota.mutate({ slotId: slot.id, date, shift: v as MgmtShift, cityCasinoId: null, month });
-          }}
+          cellClassName={`w-full h-6 rounded text-[10px] font-mono focus:outline-none focus:ring-1 focus:ring-primary ${cls} ${editable ? "hover:ring-1 hover:ring-primary" : ""}`}
+          onSelect={(v) => applyValue(slot, date, v)}
+          onKeyDown={(e) => editable && handleKeyDown(e, slot, date, isCctv, value)}
+          onPaste={(e) => editable && handlePaste(e, slot, date, isCctv)}
         />
       );
     }
