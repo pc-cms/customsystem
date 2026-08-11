@@ -142,6 +142,7 @@ export const demoDailyBalanceRows = (month: string): DailyBalanceRow[] => {
         quantity: Math.round(300 + rnd(i * 17 + k) * 1500),
         miss: Math.round((rnd(i * 19 + k) - 0.5) * 40),
       })),
+      money_detail: [],
       cage_detail: {
         cash: cashDenoms,
         cashless: [
