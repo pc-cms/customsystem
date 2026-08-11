@@ -823,7 +823,11 @@ export const useDailyBalanceReport = (
           const opening = firstRow ? startingBalance : prevMoney;
           firstRow = false;
           const diffTotal = o.chipDiff + o.slotsDiff;
-          const officeNet = o.inV - o.outV;
+          // OFFICE (+ / −) is a MANUAL figure typed inline in the report.
+          const officeInV = num(l?.office_in);
+          const officeOutV = num(l?.office_out);
+          const officeNet = officeInV - officeOutV;
+
           const feesV = feesByDate[date] ?? 0;
           // Tips are a MANUAL figure (legacy row), kept outside the cash reconciliation.
           const tipsV = l?.tips_tables != null ? num(l.tips_tables) : (o.tips ?? 0);
@@ -852,8 +856,9 @@ export const useDailyBalanceReport = (
             bank_usd_raw: rate ? (hidden ? 0 : bankUsd) / rate : 0,
             bank_tzs_manual: false,
             bank_usd_manual: false,
-            money_in: o.inV,
-            money_out: o.outV,
+            money_in: officeInV,
+            money_out: officeOutV,
+
             money_total: moneyTotal,
             money_hidden: hidden,
             // P&L of the day — Casino Result − Expenses ± Diff.
@@ -1034,7 +1039,10 @@ export type ManualLegacyField =
   | "bank_account_usd"
   | "tips_tables"
   | "office_transfer"
+  | "office_in"
+  | "office_out"
   | "collection_bank";
+
 
 export const useSetBankBalance = () => {
   const qc = useQueryClient();

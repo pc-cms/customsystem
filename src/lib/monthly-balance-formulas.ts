@@ -99,19 +99,20 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
   },
   office_total: {
     formula: "Office net = (+) money in − (−) money out",
-    source: "fin_wallet_tx (external_income, collection)",
+    source: "Manual — typed inline in this report",
     total: "sum",
   },
   money_in: {
-    formula: "Owner deposits into the business",
-    source: "fin_wallet_tx (kind = external_income, positive)",
+    formula: "Money into the office",
+    source: "Manual — click the cell to type it",
     total: "sum",
   },
   money_out: {
-    formula: "Collections / owner withdrawals",
-    source: "fin_wallet_tx (kind = collection)",
+    formula: "Money out of the office",
+    source: "Manual — click the cell to type it",
     total: "sum",
   },
+
   money_total: {
     formula: "Cage Casino + Cage Manager + Bank TZS + Bank USD",
     source: "Stock of all money at end of day",
