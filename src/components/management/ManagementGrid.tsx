@@ -306,8 +306,10 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false 
         disabled={!editable}
         rows={attRows}
         title={manual ? undefined : worked ? `${auto}h (auto)` : undefined}
-        cellClassName={`w-full h-6 rounded text-[10px] font-mono ${cls} ${editable ? "hover:ring-1 hover:ring-primary" : ""}`}
-        onSelect={(v) => setAtt.mutate({ slotId: slot.id, date, value: (v as any) || null, month })}
+        cellClassName={`w-full h-6 rounded text-[10px] font-mono focus:outline-none focus:ring-1 focus:ring-primary ${cls} ${editable ? "hover:ring-1 hover:ring-primary" : ""}`}
+        onSelect={(v) => applyValue(slot, date, v)}
+        onKeyDown={(e) => editable && handleKeyDown(e, slot, date, isCctv, manual || null)}
+        onPaste={(e) => editable && handlePaste(e, slot, date, isCctv)}
       />
     );
   };
