@@ -100,10 +100,10 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     key: "money",
     label: "Bank",
     cols: [
-      { id: "terminal_total", label: "Terminal", total: true, value: (r) => num(r, "terminal_total") },
       { id: "bank_total", label: "Bank", total: true, value: (r) => num(r, "bank_tzs") + num(r, "bank_usd") },
       { id: "bank_tzs", label: "Bank TZS", value: (r) => num(r, "bank_tzs") },
       { id: "bank_usd", label: "Bank USD", value: (r) => num(r, "bank_usd") },
+      { id: "collections", label: "Collections", value: (r) => num(r, "collections") },
     ],
   },
 
@@ -112,7 +112,9 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     label: "Expenses",
     cols: [
       { id: "expenses", label: "Expenses", total: true, value: (r) => num(r, "expenses") },
-      { id: "fees", label: "Fees", total: true, value: (r) => num(r, "fees") },
+      { id: "other_income", label: "Other Incomes", value: (r) => num(r, "other_income") },
+      { id: "jp", label: "JP", value: (r) => num(r, "jp") },
+      { id: "missed_cards", label: "Missed Cards", value: (r) => num(r, "missed_cards") },
     ],
   },
   {
@@ -137,8 +139,9 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
 /** Money columns — blanked for the days that precede the recorded Start. */
 const MONEY_IDS = new Set([
   "cage_casino", "cage_manager", "transfer_cage_manager", "transfer_bank",
-  "terminal_total", "bank_total", "bank_tzs", "bank_usd", "money_total", "balance",
+  "bank_total", "bank_tzs", "bank_usd", "money_total", "balance", "collections",
 ]);
+
 
 /** Columns typed by hand — mapped to their `fin_legacy_balance` field. */
 const MANUAL_FIELDS: Record<string, ManualLegacyField | undefined> = {
