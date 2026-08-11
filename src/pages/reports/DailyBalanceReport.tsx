@@ -871,51 +871,27 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
                   total={num(drill.row, "chip_difference")}
                 />
               )}
-              {drill.col === "cage_casino" && (
-                <>
-                  <DenomTable
-                    rows={drill.row.cage_detail?.cash ?? []}
-                    mobile={drill.row.cage_detail?.mobile ?? {}}
-                  />
-
-                  <DrillTable
-                    title="Cashless"
-                    rows={(drill.row.cage_detail?.cashless ?? []).map((c) => ({
-                      label: c.name, units: c.amount, rate: 1, tzs: c.amount,
-                    }))}
-                  />
-                  <DrillTable
-                    title="Slots cage"
-                    rows={[{
-                      label: "Closing total",
-                      units: drill.row.cage_detail?.slots_total ?? 0,
-                      rate: 1,
-                      tzs: drill.row.cage_detail?.slots_total ?? 0,
-                    }]}
-                    totalLabel="Cage Casino"
-                    total={num(drill.row, "cage_casino")}
-                  />
-                </>
-              )}
-              {drill.col === "cage_manager" && (
-                <DrillTable
-                  title="Office wallets"
-                  rows={walletRows(drill.row.office_wallets)}
-                  totalLabel="Cage Manager"
-                  total={num(drill.row, "cage_manager")}
-                />
-              )}
-              {(drill.col === "bank_tzs" || drill.col === "bank_usd") && (
-                <DrillTable
-                  title="Bank wallets"
-                  rows={walletRows(
-                    (drill.row.bank_wallets ?? []).filter((w) =>
-                      drill.col === "bank_tzs"
-                        ? (w.currency || "TZS") === "TZS"
-                        : (w.currency || "TZS") !== "TZS",
-                    ),
-                  )}
-                  totalLabel={drill.col === "bank_tzs" ? "Bank TZS" : "Bank USD"}
+              {(drill.col === "cage_casino" ||
+                drill.col === "cage_manager" ||
+                drill.col === "bank_total" ||
+                drill.col === "bank_tzs" ||
+                drill.col === "bank_usd" ||
+                drill.col === "money_total") && (
+                <MoneyDrill
+                  wallets={drill.row.money_detail ?? []}
+                  buckets={
+                    drill.col === "cage_casino"
+                      ? ["cage"]
+                      : drill.col === "cage_manager"
+                        ? ["office"]
+                        : drill.col === "money_total"
+                          ? ["cage", "office", "bank"]
+                          : ["bank"]
+                  }
+                  currency={
+                    drill.col === "bank_tzs" ? "TZS" : drill.col === "bank_usd" ? "FX" : undefined
+                  }
+                  totalLabel={ALL_COLS.find((c) => c.id === drill.col)?.label ?? "Total"}
                   total={num(drill.row, drill.col as keyof DailyBalanceRow)}
                 />
               )}
