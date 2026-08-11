@@ -123,13 +123,18 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
 
   const rows = useMemo(() => shifts.map((s: any) => {
     const c = closingByDate.get(s.business_date);
+    const netWin = c ? c.netWin : 0;
+    const cdr = c ? c.cashdesk : 0;
     return {
       s,
       drop: Number(s.manual_drop_slots || 0),
       // Net Win / Cashdesk come ONLY from Close Day. No fallback to shift figures.
-      netWin: c ? c.netWin : 0,
-      cdr: c ? c.cashdesk : 0,
-      locked: !!c,
+      netWin,
+      cdr,
+      // A figure entered at Close Day is read-only; a zero (day closed without
+      // figures, or no closing at all) can still be filled in manually.
+      netWinLocked: netWin !== 0,
+      cdrLocked: cdr !== 0,
       clientBalance: Number(s.manual_slots_deposits || 0),
       miss: Number(s.cards_miss || 0),
       balance: Number(s.balance || 0),
