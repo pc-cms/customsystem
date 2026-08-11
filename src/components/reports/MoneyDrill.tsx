@@ -103,8 +103,19 @@ const MoneyDrill = ({
         />
       )}
       <DrillTable
-        rows={[]}
-        emptyText="—"
+        title="Summary"
+        rows={[
+          { label: "Cash", units: cashTotal, rate: 1, tzs: cashTotal },
+          { label: "Mobile money", units: mobileTotal, rate: 1, tzs: mobileTotal },
+          ...(bank.length
+            ? [{
+                label: "Bank",
+                units: bankRows.reduce((s, r) => s + r.tzs, 0),
+                rate: 1,
+                tzs: bankRows.reduce((s, r) => s + r.tzs, 0),
+              }]
+            : []),
+        ]}
         totalLabel={totalLabel}
         total={total}
       />
