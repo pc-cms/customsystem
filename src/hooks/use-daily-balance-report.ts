@@ -1033,7 +1033,7 @@ export const useSetBankBalance = () => {
   const { activeCasinoId } = useCasino();
   return useMutation({
     mutationFn: async (
-      { date, field, value }: { date: string; field: "bank_account" | "bank_account_usd"; value: number },
+      { date, field, value }: { date: string; field: ManualLegacyField; value: number },
     ) => {
       if (!activeCasinoId) throw new Error("No casino");
       const { error } = await (supabase as any)
