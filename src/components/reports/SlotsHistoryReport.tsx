@@ -119,7 +119,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
   }, [allShifts, from, to]);
 
   const [printShiftId, setPrintShiftId] = useState<string | null>(null);
-  const [expandedId] = useState<string | null>(null);
+  
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "business_date", dir: "desc" });
 
   const rows = useMemo(() => shifts.map((s: any) => {
