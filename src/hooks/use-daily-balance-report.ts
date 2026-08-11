@@ -917,6 +917,7 @@ export const useDailyBalanceReport = (
               name: w.name,
               currency: w.currency || "TZS",
               balance: perWallet[w.id] || 0,
+              units: perWalletUnits[w.id] || 0,
             })),
             office_movements: officeMoves[date] ?? [],
             expenses_detail: Object.entries(expDetail[date] ?? {})
