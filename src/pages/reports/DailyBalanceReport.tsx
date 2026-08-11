@@ -879,10 +879,13 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
           {drill && (
             <div className="mt-4 space-y-3 text-xs">
               {drill.col === "chip_difference" && (
-                <DrillList
+                <DrillTable
+                  title="Miss chips by denomination"
                   rows={(drill.row.chips_detail ?? []).map((c) => ({
-                    label: `${formatMoneyFull(c.denomination)} × ${c.miss}`,
-                    value: c.miss * c.denomination,
+                    label: `Chip ${formatMoneyFull(c.denomination)}`,
+                    units: c.miss,
+                    rate: c.denomination,
+                    tzs: c.miss * c.denomination,
                   }))}
                   totalLabel="Chip diff"
                   total={num(drill.row, "chip_difference")}
@@ -895,37 +898,57 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
                     mobile={drill.row.cage_detail?.mobile ?? {}}
                   />
 
-                  <DrillList
+                  <DrillTable
                     title="Cashless"
                     rows={(drill.row.cage_detail?.cashless ?? []).map((c) => ({
-                      label: c.name, value: c.amount,
+                      label: c.name, units: c.amount, rate: 1, tzs: c.amount,
                     }))}
                   />
-                  <DrillList
+                  <DrillTable
                     title="Slots cage"
-                    rows={[{ label: "Closing total", value: drill.row.cage_detail?.slots_total ?? 0 }]}
+                    rows={[{
+                      label: "Closing total",
+                      units: drill.row.cage_detail?.slots_total ?? 0,
+                      rate: 1,
+                      tzs: drill.row.cage_detail?.slots_total ?? 0,
+                    }]}
                     totalLabel="Cage Casino"
                     total={num(drill.row, "cage_casino")}
                   />
                 </>
               )}
               {drill.col === "cage_manager" && (
-                <DrillList
+                <DrillTable
                   title="Office wallets"
-                  rows={(drill.row.office_wallets ?? []).map((w) => ({
-                    label: `${w.name} (${w.currency})`, value: w.balance,
-                  }))}
+                  rows={walletRows(drill.row.office_wallets)}
                   totalLabel="Cage Manager"
                   total={num(drill.row, "cage_manager")}
                 />
               )}
+              {(drill.col === "bank_tzs" || drill.col === "bank_usd") && (
+                <DrillTable
+                  title="Bank wallets"
+                  rows={walletRows(
+                    (drill.row.bank_wallets ?? []).filter((w) =>
+                      drill.col === "bank_tzs"
+                        ? (w.currency || "TZS") === "TZS"
+                        : (w.currency || "TZS") !== "TZS",
+                    ),
+                  )}
+                  totalLabel={drill.col === "bank_tzs" ? "Bank TZS" : "Bank USD"}
+                  total={num(drill.row, drill.col as keyof DailyBalanceRow)}
+                />
+              )}
               {(drill.col === "transfer_cage_manager" || drill.col === "transfer_bank") && (
-                <DrillList
+                <DrillTable
+                  title="Transfers"
                   rows={(
                     drill.col === "transfer_bank"
                       ? drill.row.transfers_bank ?? []
                       : drill.row.transfers_manager ?? []
-                  ).map((t) => ({ label: `${t.from} → ${t.to}`, value: t.amount }))}
+                  ).map((t) => ({
+                    label: `${t.from} → ${t.to}`, units: t.amount, rate: 1, tzs: t.amount,
+                  }))}
                   totalLabel="Total"
                   total={num(drill.row, drill.col as keyof DailyBalanceRow)}
                 />
