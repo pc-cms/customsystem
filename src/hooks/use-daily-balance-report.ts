@@ -209,6 +209,10 @@ const num = (v: unknown) => {
 
 const dateOnly = (iso: string | null | undefined) => (iso ? iso.slice(0, 10) : "");
 
+/** Previous calendar day of a YYYY-MM-DD string. */
+export const prevDate = (d: string) =>
+  new Date(new Date(`${d}T00:00:00Z`).getTime() - 86400000).toISOString().slice(0, 10);
+
 export const enumerateDates = (from: string, to: string): string[] => {
   const out: string[] = [];
   const start = new Date(`${from}T00:00:00Z`);
