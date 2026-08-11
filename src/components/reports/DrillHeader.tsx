@@ -28,7 +28,7 @@ const DrillHeader = ({
     <div className="font-mono text-xs tabular-nums text-muted-foreground">{fmtDate(date)}</div>
     <div
       className={cn(
-        "font-mono text-2xl font-bold tabular-nums",
+        "font-mono text-lg font-bold tabular-nums",
         signed && amount < 0 && "cms-amount-negative",
         signed && amount > 0 && "cms-amount-positive",
       )}
