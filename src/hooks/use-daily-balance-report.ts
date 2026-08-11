@@ -904,11 +904,11 @@ export const useDailyBalanceReport = (
             transfers_manager: managerTransfers[date] ?? [],
             transfers_bank: bankTransfers[date] ?? [],
             office_wallets: lastOfficeWallets,
-            bank_wallets: bankWalletDefs.map((w) => ({
+            bank_wallets: bankWalletsByDate[date] ?? bankWalletDefs.map((w) => ({
               name: w.name,
               currency: w.currency || "TZS",
-              balance: perWallet[w.id] || 0,
-              units: perWalletUnits[w.id] || 0,
+              balance: 0,
+              units: 0,
             })),
             office_movements: officeMoves[date] ?? [],
             expenses_detail: Object.entries(expDetail[date] ?? {})
