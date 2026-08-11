@@ -1,5 +1,6 @@
 import { CURRENCIES } from "@/lib/currency";
 import { formatMoneyFull } from "@/lib/format-money";
+import DrillTable, { type DrillRow } from "@/components/reports/DrillTable";
 
 export interface CashDenomRow {
   currency: string;
