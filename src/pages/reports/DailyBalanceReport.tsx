@@ -565,7 +565,7 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             {r.legacy && <Badge variant="outline" className="ml-1 h-4 px-1 text-[10px]">imp</Badge>}
           </span>
         ),
-      headerClassName: "whitespace-nowrap border-b-4 border-b-primary bg-muted font-bold uppercase tracking-wide text-foreground",
+      headerClassName: "whitespace-nowrap border-b-2 border-b-foreground bg-muted font-bold uppercase tracking-wide text-foreground",
       cellClassName: (r: Row) =>
         cn(
           "py-0.5 leading-tight",
