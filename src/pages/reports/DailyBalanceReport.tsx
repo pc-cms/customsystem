@@ -134,6 +134,20 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
   },
 ];
 
+/** Money columns — blanked for the days that precede the recorded Start. */
+const MONEY_IDS = new Set([
+  "cage_casino", "cage_manager", "transfer_cage_manager", "transfer_bank",
+  "terminal_total", "bank_total", "bank_tzs", "bank_usd", "money_total", "balance",
+]);
+
+/** Columns typed by hand — mapped to their `fin_legacy_balance` field. */
+const MANUAL_FIELDS: Record<string, ManualLegacyField | undefined> = {
+  tips_total: "tips_tables",
+  transfer_cage_manager: "office_transfer",
+  transfer_bank: "collection_bank",
+};
+
+
 /**
  * Per-section column zone tint — OPAQUE (mixed against --card) so that sticky
  * frozen columns never let scrolling content bleed through. Static literals so
