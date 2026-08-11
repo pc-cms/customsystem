@@ -226,10 +226,10 @@ const CreditCell = ({ date, value }: { date: string; value: number }) => {
   );
 };
 
-/** Manual bank balance (TZS or USD) — inline editor, saved per day on blur. */
-const BankCell = ({
-  date, value, field, manual,
-}: { date: string; value: number; field: "bank_account" | "bank_account_usd"; manual: boolean }) => {
+/** Manual figure stored in `fin_legacy_balance` — inline editor, saved on blur. */
+const ManualCell = ({
+  date, value, field, width = "w-28",
+}: { date: string; value: number; field: ManualLegacyField; width?: string }) => {
   const save = useSetBankBalance();
   const [draft, setDraft] = useState<string>("");
   const [editing, setEditing] = useState(false);
@@ -240,7 +240,7 @@ const BankCell = ({
       value={shown}
       placeholder={rounded ? undefined : "·"}
       inputMode="numeric"
-      title={manual ? "Manual entry" : "Computed from wallets — type to override"}
+      title="Manual entry"
       onClick={(e) => e.stopPropagation()}
       onFocus={() => { setEditing(true); setDraft(rounded ? String(rounded) : ""); }}
       onChange={(e) => setDraft(e.target.value.replace(/[^\d.-]/g, ""))}
@@ -249,13 +249,11 @@ const BankCell = ({
         const v = Number(draft || 0);
         if (Number.isFinite(v) && v !== rounded) save.mutate({ date, field, value: v });
       }}
-      className={cn(
-        "h-6 w-28 px-1 text-right font-mono text-xs tabular-nums",
-        !manual && "border-dashed text-muted-foreground",
-      )}
+      className={cn("h-6 px-1 text-right font-mono text-xs tabular-nums", width)}
     />
   );
 };
+
 
 /** Compact KPI tile. */
 const Tile = ({ label, value, hint }: { label: string; value: number; hint?: string }) => (
