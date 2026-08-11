@@ -444,7 +444,7 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false 
                     </tr>
                   );
                 })}
-              </>
+              </React.Fragment>
             );
           })}
         </tbody>
