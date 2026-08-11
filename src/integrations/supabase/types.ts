@@ -11559,6 +11559,7 @@ export type Database = {
         Args: { p_amount: number; p_casino_id: string; p_note?: string }
         Returns: string
       }
+      force_close_business_day_0800: { Args: never; Returns: Json }
       gc_pending_server_registrations: { Args: never; Returns: undefined }
       generate_card_number: { Args: never; Returns: string }
       get_business_date_for_casino: {
