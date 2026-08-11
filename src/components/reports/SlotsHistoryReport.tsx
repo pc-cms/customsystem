@@ -191,6 +191,28 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
     onError: (e: any) => toast.error(e.message || "Failed to update"),
   });
 
+  /**
+   * Manual backfill for days that were never closed via Close Day.
+   * Creates (or updates) the fin_day_closing row for that business date.
+   * Once a Close Day row exists the cells become read-only.
+   */
+  const updateClosingField = useMutation({
+    mutationFn: async ({ date, field, value }: { date: string; field: "net_win" | "cashdesk_win"; value: number }) => {
+      const { error } = await supabase
+        .from("fin_day_closing")
+        .upsert({ casino_id: casinoId, business_date: date, [field]: value } as any,
+                { onConflict: "casino_id,business_date" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["slots-report-day-closings"] });
+      qc.invalidateQueries({ queryKey: ["reports-total"] });
+      qc.invalidateQueries({ queryKey: ["cage-slots-history"] });
+      toast.success("Updated");
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to update"),
+  });
+
   return (
     <div className="space-y-3">
       {/* KPI summary tiles */}
