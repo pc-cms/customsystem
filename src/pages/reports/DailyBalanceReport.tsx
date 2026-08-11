@@ -100,11 +100,13 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     key: "money",
     label: "Bank",
     cols: [
+      { id: "terminal_total", label: "Terminal", total: true, value: (r) => num(r, "terminal_total") },
       { id: "bank_total", label: "Bank", total: true, value: (r) => num(r, "bank_tzs") + num(r, "bank_usd") },
       { id: "bank_tzs", label: "Bank TZS", value: (r) => num(r, "bank_tzs") },
       { id: "bank_usd", label: "Bank USD", value: (r) => num(r, "bank_usd") },
     ],
   },
+
   {
     key: "expenses",
     label: "Expenses",
