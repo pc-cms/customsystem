@@ -730,8 +730,13 @@ export const useDailyBalanceReport = (
       const bar: Bucket = {};
       posOrders.filter((o) => o.status !== "void").forEach((o) => add(bar, o.business_date, num(o.total_tzs)));
 
-      /** Other incomes (JP + non-JP) converted to TZS. Reversed rows are excluded. */
-      const otherIncomeByDate: Bucket = {};
+      /**
+       * Other incomes (JP + non-JP) converted to TZS. Reversed rows are excluded.
+       * Non-JP incomes feed the OFFICE columns: positive → Office (+),
+       * negative → Office (−) as an absolute value.
+       */
+      const otherIncPos: Bucket = {};
+      const otherIncNeg: Bucket = {};
       const jpByDate: Bucket = {};
       (otherIncomeRows as any[]).filter((f) => !f.reversed_by_id && !f.reverses_id).forEach((f) => {
         const fx = num(f.fx_rate) || 1;
@@ -739,10 +744,13 @@ export const useDailyBalanceReport = (
         const d = String(f.business_date).slice(0, 10);
         if (String(f.source || "") === "jp") {
           add(jpByDate, d, amt);
+        } else if (amt >= 0) {
+          add(otherIncPos, d, amt);
         } else {
-          add(otherIncomeByDate, d, amt);
+          add(otherIncNeg, d, -amt);
         }
       });
+
 
 
       const legacyByDate: Record<string, any> = {};
