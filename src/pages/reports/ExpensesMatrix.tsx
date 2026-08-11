@@ -16,6 +16,7 @@ import { useCasino } from "@/lib/casino-context";
 import { useSearchParams } from "react-router-dom";
 import { useSessionState } from "@/hooks/use-session-state";
 import DrillHeader from "@/components/reports/DrillHeader";
+import DrillTable from "@/components/reports/DrillTable";
 import { formatMoneyFull } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
 import { cn } from "@/lib/utils";
