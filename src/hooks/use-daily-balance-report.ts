@@ -625,6 +625,29 @@ export const useDailyBalanceReport = (
         add(terminal, b.check_date, v);
       });
 
+      /**
+       * Terminal — money marked as BANK in the cash-desk closing of the day
+       * (`closing_count.bank` → { tzs, usd }). It is a DAILY FLOW, summed over
+       * the shifts of the business day, never a running balance.
+       */
+      const terminalTzs: Bucket = {}, terminalUsd: Bucket = {};
+      const terminalDetail: Record<string, TerminalLeg[]> = {};
+      shifts.filter((s) => s.closed_at).forEach((s) => {
+        const d = businessDateOf(s.opened_at);
+        const bank = ((s.closing_count as any)?.bank || {}) as { tzs?: number; usd?: number };
+        const t = num(bank.tzs), u = num(bank.usd);
+        if (!t && !u) return;
+        add(terminalTzs, d, t);
+        add(terminalUsd, d, u);
+        (terminalDetail[d] ??= []).push({
+          shift: dateOnly(s.closed_at) === d ? "Live shift" : `Live shift ${dateOnly(s.closed_at)}`,
+          tzs: t,
+          usd: u,
+        });
+      });
+
+
+
       const chipMiss: Bucket = {}, chipFloat: Bucket = {};
       const chipsDetail: Record<string, ChipDetail[]> = {};
       // Chip float — already reduced server-side to the latest snapshot per
