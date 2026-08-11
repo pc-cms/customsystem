@@ -518,34 +518,10 @@ export const useDailyBalanceReport = (
       const bankTzsRunning: Bucket = {}, bankUsdRunning: Bucket = {};
       const walletCurrency: Record<string, string> = {};
       wallets.forEach((w) => { walletCurrency[w.id] = w.currency || "TZS"; });
-      /**
-       * Starting floats are applied on their `starting_float_date` (or at the
-       * very beginning when that date is before the visible range). USD floats
-       * are converted to TZS with the daily rate.
-       */
-      const floatByDate: Record<string, { cageCasino: number; cage: number; office: number; bankTzs: number; bankUsd: number }> = {};
-      const floatBucket = (d: string) =>
-        (floatByDate[d] ??= { cageCasino: 0, cage: 0, office: 0, bankTzs: 0, bankUsd: 0 });
       // Cage Casino wallets: the live/slots cage safes. Live data stores them as
       // the short kind "safe" (Safe Live / Safe Slots); the long enum names are
       // kept for legacy rows.
       const CASINO_CAGE_KINDS = new Set(["safe", "cage_table", "cage_slot"]);
-      let cageCasinoBal = 0, cageBal = 0, officeBal = 0, bankTzsBal = 0, bankUsdBal = 0;
-      wallets.forEach((w) => {
-        const f = num(w.starting_float_amount);
-        if (!f) return;
-        const d: string = w.starting_float_date ? String(w.starting_float_date).slice(0, 10) : "";
-        const cur = (w.currency || "TZS") as string;
-        const rate = rateByDate[d] || FALLBACK_USD_RATE;
-        const v = cur === "TZS" ? f : f * rate;
-        const b = floatBucket(!d || d < from ? "0000-00-00" : d);
-        if (CASINO_CAGE_KINDS.has(w.kind)) b.cageCasino += v;
-        if (CAGE_KINDS.has(w.kind)) b.cage += v;
-        else if (isOfficeKind(w.kind)) b.office += v;
-        else if (isBankKind(w.kind)) {
-          if (cur === "TZS") b.bankTzs += v; else b.bankUsd += v;
-        }
-      });
 
 
       const walletName: Record<string, string> = {};
