@@ -299,7 +299,9 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
       });
       (slotsRes.data || []).forEach((s: any) => {
         const r = row(s.business_date);
-        r.slotsResult += Number(s.slots_result || 0);
+        // Result Slots = Net Win entered at Close Day (manual figure wins).
+        r.slotsResult += Number(s.manual_slots_result ?? s.slots_result ?? 0);
+
         r.dropSlots += Number(s.manual_drop_slots || 0);
         r.slotsShiftIds.push(s.id);
       });
