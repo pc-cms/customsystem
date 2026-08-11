@@ -55,7 +55,10 @@ export interface TransferDetail {
 export interface WalletBalance {
   name: string;
   currency: string;
+  /** Balance converted to TZS. */
   balance: number;
+  /** Balance in the wallet's own currency (units). */
+  units?: number;
 }
 
 export interface DailyBalanceRow {
