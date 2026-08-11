@@ -635,14 +635,23 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             );
           // Business day still open → no figures in any column.
           if (!r.day_closed) return wrap(blank);
+          // Days before the recorded Start keep results & expenses only.
+          if (r.money_hidden && MONEY_IDS.has(c.id)) return wrap(blank);
 
           if (r.kind === "day" && c.id === "credit_deposit")
             return wrap(<CreditCell date={r.date} value={num(r, "credit_deposit")} />);
-          if (r.kind === "day" && c.id === "bank_tzs")
-            return wrap(<BankCell date={r.date} field="bank_account" value={num(r, "bank_tzs")} manual={!!r.bank_tzs_manual} />);
+          if (r.kind === "day" && MANUAL_FIELDS[c.id])
+            return wrap(
+              <ManualCell date={r.date} field={MANUAL_FIELDS[c.id]} value={c.value(r)} />,
+            );
           if (r.kind === "day" && c.id === "bank_usd")
-            return wrap(<BankCell date={r.date} field="bank_account_usd" value={num(r, "bank_usd_raw")} manual={!!r.bank_usd_manual} />);
+            return wrap(
+              <span title={`${money(Math.round(num(r, "bank_usd_raw")))} USD`}>
+                {money(Math.round(num(r, "bank_usd")))}
+              </span>,
+            );
           const rendered = money(Math.round(c.value(r)));
+
           if (c.id === "expenses")
             return wrap(
               <span
