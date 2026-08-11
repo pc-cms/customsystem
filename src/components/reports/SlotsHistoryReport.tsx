@@ -13,15 +13,16 @@
  * falls back to the shift's computed cash desk result.
 
  */
-import { Fragment, KeyboardEvent, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Printer, Check } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Printer, Check } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatMoneyFull } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
 import { useCageSlotsHistory } from "@/hooks/use-cage-slots";
 import PrintSlotsShiftDialog from "@/components/cage-slots/PrintSlotsShiftDialog";
-import SlotsShiftReportBody from "@/components/cage-slots/SlotsShiftReportBody";
+
 import {
   DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell,
 } from "@/components/ui/data-table";
@@ -118,7 +119,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
   }, [allShifts, from, to]);
 
   const [printShiftId, setPrintShiftId] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId] = useState<string | null>(null);
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "business_date", dir: "desc" });
 
   const rows = useMemo(() => shifts.map((s: any) => {
