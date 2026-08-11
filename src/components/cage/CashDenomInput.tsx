@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { formatCashDenomLabel, CURRENCY_SYMBOLS, formatNumberSpaces } from "@/lib/currency";
+import { NumberInput } from "@/components/ui/number-input";
 
 const cashSum = (cash: Record<number, number>) =>
   Object.entries(cash).reduce((s, [d, c]) => s + Number(d) * (c || 0), 0);
@@ -46,12 +47,12 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
           <span className={`cms-chip bg-muted text-foreground shrink-0 justify-center ${t.chip}`}>
             {formatCashDenomLabel(d, currency)}
           </span>
-          <input
+          <NumberInput
             ref={el => { refs.current[d] = el; }}
-            type="number"
+            decimals={0}
             className={`no-spin font-mono rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary flex-1 min-w-0 ${t.input}`}
-            value={values[d] || ""}
-            onChange={e => onChange({ ...values, [d]: Number(e.target.value) || 0 })}
+            value={values[d] || 0}
+            onValueChange={v => onChange({ ...values, [d]: v || 0 })}
             onKeyDown={e => {
               if (e.key === "Enter") {
                 e.preventDefault();
@@ -60,8 +61,7 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
                 else onSubmit?.();
               }
             }}
-            placeholder={placeholders?.[d] ? String(placeholders[d]) : "0"}
-            inputMode="numeric"
+            placeholderValue={placeholders?.[d]}
           />
         </div>
       ))}
@@ -70,18 +70,14 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
           <span className={`cms-chip bg-muted text-foreground shrink-0 justify-center ${t.chip}`}>
             Coins
           </span>
-          <input
-            type="number"
+          <NumberInput
+            decimals={0}
             min={0}
             step={1}
             className={`no-spin font-mono rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary flex-1 min-w-0 ${t.input}`}
-            value={cents || ""}
-            onChange={e => {
-              const raw = Math.max(0, Math.floor(Number(e.target.value) || 0));
-              onCentsChange!(raw);
-            }}
-            placeholder={centsPlaceholder ? String(centsPlaceholder) : "0"}
-            inputMode="numeric"
+            value={cents || 0}
+            onValueChange={v => onCentsChange!(Math.max(0, Math.floor(v || 0)))}
+            placeholderValue={centsPlaceholder}
           />
         </div>
       )}

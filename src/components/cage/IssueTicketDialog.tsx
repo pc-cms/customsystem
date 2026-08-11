@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PlayerSearch from "@/components/cage/PlayerSearch";
 import PlayerInfoCard from "@/components/cage/PlayerInfoCard";
@@ -94,7 +95,7 @@ export default function IssueTicketDialog({ open, onOpenChange, players, tables,
           </div>
           <div>
             <Label>Tickets</Label>
-            <Input type="number" min={1} value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))} />
+            <NumberInput decimals={0} min={1} value={qty} onValueChange={(v) => setQty(Math.max(1, v || 1))} />
           </div>
           {lot && (
             <p className="text-sm">

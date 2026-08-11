@@ -4,6 +4,7 @@
  */
 import { useRef, useCallback, type CSSProperties } from "react";
 import { CHIP_DENOMS, formatChipLabel, formatNumberSpaces } from "@/lib/currency";
+import { NumberInput } from "@/components/ui/number-input";
 import { useChipColors, resolveChipColor, useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 
 type Size = "sm" | "md" | "lg";
@@ -92,15 +93,14 @@ const ChipDenomInput = ({
               >
                 {formatChipLabel(d)}
               </button>
-              <input
+              <NumberInput
                 ref={el => { inputRefs.current[d] = el; }}
-                type="number"
-                className={`no-spin font-mono w-full min-w-0 rounded border border-border bg-background px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary ${tokens.inputH} ${tokens.inputText}`}
-                value={values[d] || ""}
-                onChange={e => handleChange(d, e.target.value)}
+                decimals={0}
+                value={values[d] || 0}
+                onValueChange={v => onChange({ ...values, [d]: v && v >= 0 ? v : 0 })}
                 onKeyDown={e => handleKeyDown(e, idx)}
-                placeholder={placeholder?.[d] !== undefined ? String(placeholder[d]) : "0"}
-                inputMode="numeric"
+                placeholderValue={placeholder?.[d]}
+                className={`no-spin font-mono w-full min-w-0 rounded border border-border bg-background px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary ${tokens.inputH} ${tokens.inputText}`}
               />
               {showValue && val > 0 && size !== "sm" && (
                 <span className="font-mono text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
