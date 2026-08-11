@@ -273,24 +273,21 @@ const ExpensesMatrixPage = ({
               {cell?.day ? "day total" : `month total · ${monthLabel}`}
             </div>
           </SheetHeader>
-          <div className="mt-4 rounded-md border border-border">
-            {cellItems.map((it) => (
-              <div key={it.id} className="border-b border-border/60 px-2 py-1.5 text-xs last:border-0">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate">
-                    {!cell?.day && (
-                      <span className="mr-2 font-mono text-[10px] text-muted-foreground">{fmtDate(it.date)}</span>
-                    )}
-                    {it.description || "—"}
-                  </span>
-                  <span className="font-mono tabular-nums">{formatMoneyFull(Math.round(it.amount))}</span>
-                </div>
-                {it.wallet && <div className="text-[10px] text-muted-foreground">{it.wallet}</div>}
-              </div>
-            ))}
-            {!cellItems.length && (
-              <div className="px-2 py-4 text-center text-xs text-muted-foreground">No entries</div>
-            )}
+          <div className="mt-4 text-xs">
+            <DrillTable
+              rows={cellItems.map((it) => ({
+                label: [
+                  !cell?.day ? fmtDate(it.date) : null,
+                  it.description || "—",
+                  it.wallet || null,
+                ].filter(Boolean).join(" · "),
+                units: it.amount,
+                rate: 1,
+                tzs: it.amount,
+              }))}
+              total={cellTotal}
+              emptyText="No entries"
+            />
           </div>
         </SheetContent>
       </Sheet>
