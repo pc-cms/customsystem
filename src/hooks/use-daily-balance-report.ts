@@ -745,6 +745,12 @@ export const useDailyBalanceReport = (
       const startingBalance = ms
         ? startRow.cage + startRow.manager + startRow.bankTzs + startRow.bankUsd
         : manualStart;
+      /**
+       * Money columns only exist from the recorded Start date onwards — the days
+       * before it keep results and expenses only.
+       */
+      const moneyFrom: string = ms?.start_date ? String(ms.start_date).slice(0, 10) : "";
+
       const snapByDate: Record<string, any> = {};
       (daySnaps as any[]).forEach((s) => {
         snapByDate[String(s.business_date).slice(0, 10)] = s.data || {};
