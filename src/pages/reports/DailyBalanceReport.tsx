@@ -570,7 +570,7 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
         cn(
           "py-0.5 leading-tight",
           r.kind === "start"
-            ? "border-b-4 border-b-primary/70 bg-[color-mix(in_srgb,hsl(var(--primary))_12%,hsl(var(--card)))]"
+            ? "border-b-2 border-b-border bg-muted"
             : rowBg(r) ?? "bg-card",
         ),
     },
