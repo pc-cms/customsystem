@@ -829,7 +829,8 @@ export const useDailyBalanceReport = (
           const manager = snap?.cage_manager != null ? num(snap.cage_manager) : o.manager;
           const bankTzs = snap?.bank_tzs != null ? num(snap.bank_tzs) : o.bankTzs;
           const bankUsd = snap?.bank_usd != null ? num(snap.bank_usd) : o.bankUsd;
-          const bankTotal = bankTzs + bankUsd * rate;
+          // bank_usd is ALREADY stored converted to TZS (snapshot + ledger use amount_tzs).
+          const bankTotal = bankTzs + bankUsd;
           // Money hidden for the days that precede the recorded Start.
           const hidden = !!moneyFrom && date < moneyFrom;
           const moneyTotal = hidden ? 0 : cageCasino + manager + bankTotal;
