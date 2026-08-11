@@ -1028,6 +1028,14 @@ export const useSetCreditDeposit = () => {
  * Bank balances (TZS / USD) are manual end-of-day figures, edited inline in the
  * Casino Monthly Balance grid and stored in `fin_legacy_balance`.
  */
+/** Manual columns of the report, stored per day in `fin_legacy_balance`. */
+export type ManualLegacyField =
+  | "bank_account"
+  | "bank_account_usd"
+  | "tips_tables"
+  | "office_transfer"
+  | "collection_bank";
+
 export const useSetBankBalance = () => {
   const qc = useQueryClient();
   const { activeCasinoId } = useCasino();
