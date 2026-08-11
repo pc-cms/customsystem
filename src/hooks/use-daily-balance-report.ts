@@ -316,12 +316,13 @@ export const useDailyBalanceReport = (
           sb.from("business_day_closures")
             .select("business_date")
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
-        // Fees booked in Other incomes (source = 'fee').
+        // All Other incomes (JP + non-JP) converted to TZS.
         fetchPaged<any>((a, b) =>
           sb.from("fin_other_incomes")
-            .select("business_date, amount, currency, fx_rate, source, reversed_by_id")
-            .eq("casino_id", casino).eq("source", "fee")
+            .select("business_date, amount, currency, fx_rate, source, reversed_by_id, reverses_id")
+            .eq("casino_id", casino)
             .gte("business_date", from).lte("business_date", to).range(a, b)),
+
         // Recorded closing snapshots (money frozen at day close).
         fetchPaged<any>((a, b) =>
           sb.from("fin_day_balance_snapshot")
