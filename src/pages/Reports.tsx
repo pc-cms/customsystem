@@ -294,7 +294,7 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
       const map: Record<string, any> = {};
       const row = (d: string) => (map[d] ||= {
         date: d, dropTables: 0, tablesResult: 0, dropSlots: 0, slotsResult: 0, expenses: 0,
-        slotsShiftIds: [] as string[],
+        slotsShiftIds: [] as string[], slotsLocked: false,
       });
       (liveRes.data || []).forEach((s: any) => {
         if (!s.closed_at) return;
@@ -303,11 +303,15 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
       });
       (slotsRes.data || []).forEach((s: any) => {
         const r = row(s.business_date);
-        // Result Slots = Net Win entered at Close Day (manual figure wins).
-        r.slotsResult += Number(s.manual_slots_result ?? s.slots_result ?? 0);
-
         r.dropSlots += Number(s.manual_drop_slots || 0);
         r.slotsShiftIds.push(s.id);
+      });
+      // Result Slots strictly from Close Day; missing closing => 0 (editable).
+      (closingData || []).forEach((c: any) => {
+        if (!c.business_date) return;
+        const r = row(c.business_date);
+        r.slotsResult = Number(c.net_win || 0);
+        r.slotsLocked = true;
       });
       (expRes.data || []).forEach((e: any) => {
         const r = row(eatDate(e.created_at));
