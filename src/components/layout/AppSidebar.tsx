@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 import arushaLogo from "@/assets/arusha-logo.png";
 import mwanzaLogo from "@/assets/mwanza-logo.png";
 
-type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager" | "boss";
+type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager" | "boss" | "general_manager";
 
 // Section labels for the hybrid grouping (roles + shared ANALYTICS)
 type Section = "OVERVIEW" | "PIT" | "ANALYTICS" | "STAFF" | "MANAGEMENT" | "FINANCE" | "CASHIER" | "RECEPTION" | "HR" | "CRM" | "MARKETING" | "BAR" | "PROMO" | "SYSTEM";
