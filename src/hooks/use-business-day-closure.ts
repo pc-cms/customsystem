@@ -124,6 +124,7 @@ export type CloseDayFigures = {
   netWin: number;
   cashDeskWin: number;
   clientBalance: number;
+  jpIn?: number | null;
   notes?: string;
 };
 
@@ -141,10 +142,12 @@ export function useCloseBusinessDayWithFigures() {
         _cashdesk_win: f.cashDeskWin,
         _client_balance: f.clientBalance,
         _notes: f.notes || null,
-      });
+        _jp_in: f.jpIn ?? null,
+      } as any);
       if (error) throw error;
       return data as { status: string; business_date?: string; open?: any };
     },
+
     onSuccess: (res) => {
       const closed = !res?.status || !["already_closed", "figures_required", "has_open_cycles"].includes(res.status);
       if (closed && casinoId) {
