@@ -227,6 +227,7 @@ const HEAT_IDS = new Set(ALL_COLS.map((c) => c.id));
 /** Columns that open a right-hand breakdown panel when a cell is clicked. */
 const DRILL_IDS = new Set([
   "chip_difference", "cage_casino", "cage_manager", "transfer_cage_manager", "transfer_bank",
+  "bank_tzs", "bank_usd",
 ]);
 
 
