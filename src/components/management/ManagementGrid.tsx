@@ -8,7 +8,7 @@
  * Rota mode      : cell = shift D / M / N / L (CCTV: city code ARU/MWZ/MBI/DOD).
  * Attendance mode: cell = auto value from the rota, overridable with A / L / S.
  */
-import { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -151,6 +151,117 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false 
     { label: "Status", options: (["A", "L", "S"] as const).map((v) => ({ value: v, label: v, className: UNIFIED_ATT_COLORS[v] })) },
   ];
 
+  // ---- Keyboard entry (same rules as the other rotas) --------------------
+  // Letters type a value straight into the cell, Space moves on, Backspace
+  // clears, arrows navigate, paste fills a run of days.
+  const focusCell = (from: HTMLElement, dir: "next" | "prev" | "up" | "down") => {
+    const td = from.closest("td");
+    if (!td) return;
+    if (dir === "next" || dir === "prev") {
+      const sib = dir === "next" ? td.nextElementSibling : td.previousElementSibling;
+      const btn = sib?.querySelector("button") as HTMLElement | null;
+      if (btn) return btn.focus();
+      if (dir === "next") {
+        const nextRow = td.closest("tr")?.nextElementSibling;
+        (nextRow?.querySelector("td:nth-child(2) button") as HTMLElement | null)?.focus();
+      }
+      return;
+    }
+    const idx = Array.from(td.parentElement!.children).indexOf(td);
+    let row = td.closest("tr") as Element | null;
+    while (row) {
+      row = dir === "down" ? row.nextElementSibling : row.previousElementSibling;
+      const btn = row?.children[idx]?.querySelector("button") as HTMLElement | null;
+      if (btn) return btn.focus();
+      if (!row) return;
+    }
+  };
+
+  /** Resolve a typed token to a rota value for the given block. */
+  const parseToken = (raw: string, isCctv: boolean, current: string | null): string | null | undefined => {
+    const key = raw.trim().toUpperCase();
+    if (!key) return undefined;
+    if (isCctv) {
+      if (key === "L") return "L";
+      // Exact city code (ARU / MWZ / …) or unique first letter; repeated
+      // presses cycle through cities sharing the same letter.
+      const exact = casinos.find((c) => (cityCodeById.get(c.id) || "") === key);
+      if (exact) return `city:${exact.id}`;
+      const matches = casinos.filter(
+        (c) => (cityCodeById.get(c.id) || "").startsWith(key) || c.name.toUpperCase().startsWith(key),
+      );
+      if (!matches.length) return undefined;
+      const curId = current?.startsWith("city:") ? current.slice(5) : null;
+      const at = matches.findIndex((c) => c.id === curId);
+      return `city:${matches[(at + 1) % matches.length].id}`;
+    }
+    return (SHIFTS as string[]).includes(key) ? key : undefined;
+  };
+
+  const applyValue = (slot: MgmtSlot, date: string, v: string | null) => {
+    if (mode === "attendance") {
+      return setAtt.mutate({ slotId: slot.id, date, value: (v as any) || null, month });
+    }
+    if (!v) return setRota.mutate({ slotId: slot.id, date, shift: null, cityCasinoId: null, month });
+    if (v.startsWith("city:")) {
+      return setRota.mutate({ slotId: slot.id, date, shift: "N", cityCasinoId: v.slice(5), month });
+    }
+    setRota.mutate({ slotId: slot.id, date, shift: v as MgmtShift, cityCasinoId: null, month });
+  };
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLButtonElement>,
+    slot: MgmtSlot,
+    date: string,
+    isCctv: boolean,
+    current: string | null,
+  ) => {
+    const key = e.key;
+    const el = e.currentTarget as HTMLElement;
+    if (key === " " || e.code === "Space") {
+      e.preventDefault();
+      focusCell(el, "next");
+      return;
+    }
+    if (key === "Backspace" || key === "Delete") {
+      e.preventDefault();
+      applyValue(slot, date, null);
+      return;
+    }
+    if (key === "ArrowRight" || key === "Tab") { e.preventDefault(); focusCell(el, "next"); return; }
+    if (key === "ArrowLeft") { e.preventDefault(); focusCell(el, "prev"); return; }
+    if (key === "ArrowDown") { e.preventDefault(); focusCell(el, "down"); return; }
+    if (key === "ArrowUp") { e.preventDefault(); focusCell(el, "up"); return; }
+    if (key.length !== 1) return;
+    const parsed =
+      mode === "attendance"
+        ? (["A", "L", "S"].includes(key.toUpperCase()) ? key.toUpperCase() : undefined)
+        : parseToken(key, isCctv, current);
+    if (parsed === undefined) return;
+    e.preventDefault();
+    applyValue(slot, date, parsed);
+    focusCell(el, "next");
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLButtonElement>, slot: MgmtSlot, date: string, isCctv: boolean) => {
+    e.preventDefault();
+    const tokens = e.clipboardData.getData("text").trim().toUpperCase().split(/[\s,;\t]+/).filter(Boolean);
+    const startIdx = dates.indexOf(date);
+    if (startIdx < 0) return;
+    tokens.forEach((tok, i) => {
+      const d = dates[startIdx + i];
+      if (!d) return;
+      const v =
+        mode === "attendance"
+          ? (["A", "L", "S"].includes(tok) ? tok : ["-", "·", "."].includes(tok) ? null : undefined)
+          : ["-", "·", "."].includes(tok)
+            ? null
+            : parseToken(tok, isCctv, null);
+      if (v === undefined) return;
+      applyValue(slot, d, v);
+    });
+  };
+
   const cellFor = (slot: MgmtSlot, date: string, isCctv: boolean) => {
     const r = rotaMap.get(`${slot.id}|${date}`);
     const editable = canEdit && (!cctvOnly || isCctv) && !!slot.person_id;
@@ -170,14 +281,10 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false 
           disabled={!editable}
           rows={rotaRows(isCctv)}
           title={r?.shift ? MGMT_SHIFT_LABELS[r.shift] : undefined}
-          cellClassName={`w-full h-6 rounded text-[10px] font-mono ${cls} ${editable ? "hover:ring-1 hover:ring-primary" : ""}`}
-          onSelect={(v) => {
-            if (!v) return setRota.mutate({ slotId: slot.id, date, shift: null, cityCasinoId: null, month });
-            if (v.startsWith("city:")) {
-              return setRota.mutate({ slotId: slot.id, date, shift: "N", cityCasinoId: v.slice(5), month });
-            }
-            setRota.mutate({ slotId: slot.id, date, shift: v as MgmtShift, cityCasinoId: null, month });
-          }}
+          cellClassName={`w-full h-6 rounded text-[10px] font-mono focus:outline-none focus:ring-1 focus:ring-primary ${cls} ${editable ? "hover:ring-1 hover:ring-primary" : ""}`}
+          onSelect={(v) => applyValue(slot, date, v)}
+          onKeyDown={(e) => editable && handleKeyDown(e, slot, date, isCctv, value)}
+          onPaste={(e) => editable && handlePaste(e, slot, date, isCctv)}
         />
       );
     }
@@ -199,8 +306,10 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false 
         disabled={!editable}
         rows={attRows}
         title={manual ? undefined : worked ? `${auto}h (auto)` : undefined}
-        cellClassName={`w-full h-6 rounded text-[10px] font-mono ${cls} ${editable ? "hover:ring-1 hover:ring-primary" : ""}`}
-        onSelect={(v) => setAtt.mutate({ slotId: slot.id, date, value: (v as any) || null, month })}
+        cellClassName={`w-full h-6 rounded text-[10px] font-mono focus:outline-none focus:ring-1 focus:ring-primary ${cls} ${editable ? "hover:ring-1 hover:ring-primary" : ""}`}
+        onSelect={(v) => applyValue(slot, date, v)}
+        onKeyDown={(e) => editable && handleKeyDown(e, slot, date, isCctv, manual || null)}
+        onPaste={(e) => editable && handlePaste(e, slot, date, isCctv)}
       />
     );
   };
@@ -258,8 +367,8 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false 
             const isCctv = b.block === "cctv";
             const roster = people.filter((p) => (isCctv ? p.kind === "cctv" : p.kind === "manager"));
             return (
-              <>
-                <tr key={`${b.key}-h`} className="bg-primary/10">
+              <React.Fragment key={b.key}>
+                <tr className="bg-primary/10">
                   <td
                     colSpan={dates.length + 2}
                     className="sticky left-0 border-y border-border px-2 py-1 text-[10px] font-bold tracking-wider uppercase"
@@ -335,7 +444,7 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false 
                     </tr>
                   );
                 })}
-              </>
+              </React.Fragment>
             );
           })}
         </tbody>

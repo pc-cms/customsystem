@@ -88,6 +88,10 @@ export default function ManagementSchedulePage({ mode }: { mode: "rota" | "atten
                   ))}
                 </>
               )}
+              <span className="mx-1 h-4 w-px bg-border" />
+              <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                Type {mode === "attendance" ? "A / L / S" : "D M N L · CCTV: city letter"} · Space = next · Backspace = clear
+              </span>
             </div>
           </div>
         }
