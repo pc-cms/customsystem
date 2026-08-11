@@ -27,6 +27,7 @@ import {
 } from "@/hooks/use-office-balance-report";
 import { demoOfficeBalance } from "@/lib/demo-report-data";
 import StartBalanceDialog from "@/components/reports/StartBalanceDialog";
+import DrillTable from "@/components/reports/DrillTable";
 import { useAuth } from "@/lib/auth-context";
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
@@ -493,24 +494,17 @@ const OfficeBalanceReport = ({ demo = false }: { demo?: boolean }) => {
                 </div>
               </SheetTitle>
             </SheetHeader>
-            <div className="mt-4 rounded-md border border-border text-xs">
-              {(drill?.lines ?? []).map((d, i) => (
-                <div
-                  key={`${d.label}-${i}`}
-                  className="flex items-center justify-between gap-2 border-b border-border/60 px-2 py-1.5 last:border-0"
-                >
-                  <span className="truncate text-muted-foreground">
-                    {d.label}
-                    {d.sub && <span className="ml-1 text-[10px] opacity-70">{d.sub}</span>}
-                  </span>
-                  <span className={cn("font-mono tabular-nums", d.value < 0 && "cms-amount-negative")}>
-                    {formatMoneyFull(Math.round(d.value))}
-                  </span>
-                </div>
-              ))}
-              {!drill?.lines?.length && (
-                <div className="px-2 py-4 text-center text-muted-foreground">No entries</div>
-              )}
+            <div className="mt-4 text-xs">
+              <DrillTable
+                rows={(drill?.lines ?? []).map((d) => ({
+                  label: d.sub ? `${d.label} (${d.sub})` : d.label,
+                  units: d.value,
+                  rate: 1,
+                  tzs: d.value,
+                }))}
+                total={drill?.amount}
+                emptyText="No entries"
+              />
             </div>
           </SheetContent>
         </Sheet>

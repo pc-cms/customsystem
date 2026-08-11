@@ -161,14 +161,14 @@ export const demoDailyBalanceRows = (month: string): DailyBalanceRow[] => {
       transfers_manager: trfManager ? [{ amount: trfManager, from: "Safe Live", to: "Safe TZS" }] : [],
       transfers_bank: trfBank ? [{ amount: trfBank, from: "Cage", to: "NBC TZS" }] : [],
       office_wallets: [
-        { name: "Safe TZS", currency: "TZS", balance: round(manager * 0.7, 1000) },
-        { name: "Safe USD", currency: "USD", balance: round(manager * 0.2, 1000) },
-        { name: "M PESA", currency: "TZS", balance: round(manager * 0.1, 1000) },
+        { name: "Safe TZS", currency: "TZS", balance: round(manager * 0.7, 1000), units: round(manager * 0.7, 1000) },
+        { name: "Safe USD", currency: "USD", balance: round(manager * 0.2, 1000), units: round(manager * 0.2, 1000) / 2600 },
+        { name: "M PESA", currency: "TZS", balance: round(manager * 0.1, 1000), units: round(manager * 0.1, 1000) },
       ],
       bank_wallets: [
-        { name: "NBC TZS", currency: "TZS", balance: round(bankTzs * 0.6, 1000) },
-        { name: "CRDB TZS", currency: "TZS", balance: round(bankTzs * 0.4, 1000) },
-        { name: "NBC USD", currency: "USD", balance: bankUsd },
+        { name: "NBC TZS", currency: "TZS", balance: round(bankTzs * 0.6, 1000), units: round(bankTzs * 0.6, 1000) },
+        { name: "CRDB TZS", currency: "TZS", balance: round(bankTzs * 0.4, 1000), units: round(bankTzs * 0.4, 1000) },
+        { name: "NBC USD", currency: "USD", balance: bankUsd, units: bankUsd / 2600 },
       ],
       office_movements: [
         ...(moneyIn ? [{ amount: moneyIn, from: "Owner", to: "Safe TZS" }] : []),
