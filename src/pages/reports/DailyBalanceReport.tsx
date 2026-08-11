@@ -240,11 +240,11 @@ const CreditCell = ({ date, value }: { date: string; value: number }) => {
   const save = useSetCreditDeposit();
   const [draft, setDraft] = useState<string>("");
   const [editing, setEditing] = useState(false);
-  const shown = editing ? draft : value ? String(Math.round(value)) : "";
+  const shown = editing ? draft : value ? String(Math.round(value)) : "0";
   return (
     <Input
       value={shown}
-      placeholder="·"
+      placeholder="0"
       inputMode="numeric"
       onClick={(e) => e.stopPropagation()}
       onFocus={() => { setEditing(true); setDraft(value ? String(Math.round(value)) : ""); }}
@@ -267,11 +267,11 @@ const ManualCell = ({
   const [draft, setDraft] = useState<string>("");
   const [editing, setEditing] = useState(false);
   const rounded = Math.round(value);
-  const shown = editing ? draft : rounded ? String(rounded) : "";
+  const shown = editing ? draft : rounded ? String(rounded) : "0";
   return (
     <Input
       value={shown}
-      placeholder={rounded ? undefined : "·"}
+      placeholder="0"
       inputMode="numeric"
       title="Manual entry"
       onClick={(e) => e.stopPropagation()}
@@ -330,11 +330,11 @@ const StartCell = ({
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState(false);
   const rounded = Math.round(value);
-  const shown = editing ? draft : rounded ? String(rounded) : "";
+  const shown = editing ? draft : rounded ? String(rounded) : "0";
   return (
     <Input
       value={shown}
-      placeholder={rounded ? undefined : "·"}
+      placeholder="0"
       inputMode="numeric"
       title="Opening balance — manual"
       onClick={(e) => e.stopPropagation()}
