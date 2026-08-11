@@ -9,6 +9,8 @@ import { DataTable } from "@/components/ui/data-table";
 import { FormGrid } from "@/components/ui/form-grid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
+import { formatNumberSpaces } from "@/lib/currency";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +18,7 @@ import { toast } from "sonner";
 import { fmtDateTime, fmtDateOnly } from "@/lib/format-date";
 import VerificationBonusSettings from "@/components/admin/VerificationBonusSettings";
 
-const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
+const fmt = (n: number) => formatNumberSpaces(n ?? 0);
 
 const PromoGrantsPage = () => {
   const { activeCasinoId } = useCasino();
@@ -158,8 +160,8 @@ const PromoGrantsPage = () => {
           </div>
           <div>
             <Label>Amount (credits)</Label>
-            <Input type="number" min={1} value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: Math.max(0, +e.target.value || 0) })} />
+            <NumberInput min={1} value={form.amount}
+              onValueChange={(v) => setForm({ ...form, amount: Math.max(0, v ?? 0) })} />
           </div>
           <div>
             <Label>Source</Label>

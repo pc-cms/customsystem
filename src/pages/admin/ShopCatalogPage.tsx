@@ -9,6 +9,8 @@ import { FormGrid } from "@/components/ui/form-grid";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
+import { formatNumberSpaces } from "@/lib/currency";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -16,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useCasino } from "@/lib/casino-context";
 
-const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
+const fmt = (n: number) => formatNumberSpaces(n ?? 0);
 
 const empty = {
   id: null as string | null,
@@ -147,13 +149,13 @@ const ShopCatalogPage = () => {
           </div>
           <div>
             <Label>Price (credits) *</Label>
-            <Input type="number" min={1} value={form.price_credits}
-              onChange={(e) => setForm({ ...form, price_credits: +e.target.value || 0 })} />
+            <NumberInput min={1} value={form.price_credits}
+              onValueChange={(v) => setForm({ ...form, price_credits: v ?? 0 })} />
           </div>
           <div>
             <Label>Stock Qty</Label>
-            <Input type="number" min={0} value={form.stock_qty}
-              onChange={(e) => setForm({ ...form, stock_qty: +e.target.value || 0 })} />
+            <NumberInput min={0} value={form.stock_qty}
+              onValueChange={(v) => setForm({ ...form, stock_qty: v ?? 0 })} />
           </div>
           <div>
             <Label>Photo URL</Label>

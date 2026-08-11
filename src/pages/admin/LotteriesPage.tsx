@@ -9,6 +9,8 @@ import { FormGrid } from "@/components/ui/form-grid";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
+import { formatNumberSpaces } from "@/lib/currency";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +18,7 @@ import { toast } from "sonner";
 import { fmtDate } from "@/lib/format-date";
 import { useCasino } from "@/lib/casino-context";
 
-const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
+const fmt = (n: number) => formatNumberSpaces(n ?? 0);
 
 const LotteriesPage = () => {
   const { activeCasinoId } = useCasino();
@@ -141,18 +143,18 @@ const LotteriesPage = () => {
           </div>
           <div>
             <Label>Ticket Price (credits) *</Label>
-            <Input type="number" min={1} value={form.ticket_price_credits}
-              onChange={(e) => setForm({ ...form, ticket_price_credits: +e.target.value || 0 })} />
+            <NumberInput min={1} value={form.ticket_price_credits}
+              onValueChange={(v) => setForm({ ...form, ticket_price_credits: v ?? 0 })} />
           </div>
           <div>
             <Label>Max Tickets per Player (0 = unlimited)</Label>
-            <Input type="number" min={0} value={form.max_tickets_per_player}
-              onChange={(e) => setForm({ ...form, max_tickets_per_player: +e.target.value || 0 })} />
+            <NumberInput min={0} value={form.max_tickets_per_player}
+              onValueChange={(v) => setForm({ ...form, max_tickets_per_player: v ?? 0 })} />
           </div>
           <div>
             <Label>Total Cap (0 = unlimited)</Label>
-            <Input type="number" min={0} value={form.total_tickets_cap}
-              onChange={(e) => setForm({ ...form, total_tickets_cap: +e.target.value || 0 })} />
+            <NumberInput min={0} value={form.total_tickets_cap}
+              onValueChange={(v) => setForm({ ...form, total_tickets_cap: v ?? 0 })} />
           </div>
           <div className="col-span-full">
             <Label>Description</Label>

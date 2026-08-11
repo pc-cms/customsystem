@@ -9,6 +9,7 @@ import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth-context";
@@ -322,7 +323,7 @@ const HolidayDialog = ({ monthCursor, holidays, onClose }: {
             </label>
             <label className="space-y-1 text-xs col-span-1">
               <span className="text-muted-foreground">Multiplier</span>
-              <Input type="number" step="0.1" min="1" max="3" value={multiplier} onChange={e => setMultiplier(e.target.value)} />
+              <NumberInput decimals={1} min={1} max={3} step={0.1} value={multiplier} onValueChange={v => setMultiplier(v == null ? "" : String(v))} />
             </label>
           </div>
           <Button

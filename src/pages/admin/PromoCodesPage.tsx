@@ -9,6 +9,8 @@ import { FormGrid } from "@/components/ui/form-grid";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
+import { formatNumberSpaces } from "@/lib/currency";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -119,7 +121,7 @@ const PromoCodesPage = () => {
                   <tr key={c.id} className="border-b border-border/50 hover:bg-muted/20">
                     <td className="p-2 font-mono font-semibold">{c.code}</td>
                     <td className="p-2">{camp?.name ?? "—"}</td>
-                    <td className="p-2 text-right font-mono">{(c.amount ?? 0).toLocaleString("fr-FR").replace(/,/g, " ")}</td>
+                    <td className="p-2 text-right font-mono">{formatNumberSpaces(c.amount ?? 0)}</td>
                     <td className="p-2">
                       <Badge variant="outline" className="text-xs">{c.code_kind}</Badge>
                     </td>
@@ -173,14 +175,14 @@ const PromoCodesPage = () => {
           {form.code_kind === "batch" && (
             <div>
               <Label>Count</Label>
-              <Input type="number" min={1} max={1000} value={form.count}
-                onChange={(e) => setForm({ ...form, count: Math.max(1, Math.min(1000, +e.target.value || 1)) })} />
+              <NumberInput min={1} max={1000} value={form.count}
+                onValueChange={(v) => setForm({ ...form, count: Math.max(1, Math.min(1000, v ?? 1)) })} />
             </div>
           )}
           <div>
             <Label>Amount (credits per code)</Label>
-            <Input type="number" min={1} value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: Math.max(0, +e.target.value || 0) })} />
+            <NumberInput min={1} value={form.amount}
+              onValueChange={(v) => setForm({ ...form, amount: Math.max(0, v ?? 0) })} />
           </div>
           <div>
             <Label>Batch Label (optional)</Label>
@@ -190,8 +192,8 @@ const PromoCodesPage = () => {
           </div>
           <div>
             <Label>Per-Player Limit</Label>
-            <Input type="number" min={1} value={form.per_player_limit}
-              onChange={(e) => setForm({ ...form, per_player_limit: Math.max(1, +e.target.value || 1) })} />
+            <NumberInput min={1} value={form.per_player_limit}
+              onValueChange={(v) => setForm({ ...form, per_player_limit: Math.max(1, v ?? 1) })} />
           </div>
           <div>
             <Label>Grant Lifetime</Label>
