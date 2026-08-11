@@ -296,13 +296,18 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
                       onSave={(v) => updateField.mutate({ id: s.id, field: "manual_drop_slots", value: v })}
                     />
                   </DTCell>
-                  <DTCell type="money">
+                  <DTCell type="money" title={locked ? "From Close Day" : undefined}>
                     <EditableMoney
-                      value={netWin} canEdit={canEdit} mode={mode}
-                      onSave={(v) => updateField.mutate({ id: s.id, field: "manual_slots_result", value: v })}
+                      value={netWin} canEdit={canEdit && !locked} mode={mode}
+                      onSave={(v) => updateClosingField.mutate({ date: s.business_date, field: "net_win", value: v })}
                     />
                   </DTCell>
-                  <DTCell type="money"><MoneyCell value={cdr} mode={mode} signed /></DTCell>
+                  <DTCell type="money" title={locked ? "From Close Day" : undefined}>
+                    <EditableMoney
+                      value={cdr} canEdit={canEdit && !locked} mode={mode}
+                      onSave={(v) => updateClosingField.mutate({ date: s.business_date, field: "cashdesk_win", value: v })}
+                    />
+                  </DTCell>
                   <DTCell type="money">
                     <EditableMoney
                       value={clientBalance} canEdit={canEdit} mode={mode}
