@@ -70,7 +70,9 @@ export function CloseBusinessDayButton() {
   const [netWin, setNetWin] = useState("");
   const [cashDeskWin, setCashDeskWin] = useState("");
   const [clientBalance, setClientBalance] = useState("");
+  const [jpIn, setJpIn] = useState("");
   const [notes, setNotes] = useState("");
+
 
   const canSee = roles.some(r =>
     ["cashier", "cashier_slots", "manager", "pit", "finance_manager", "super_admin"].includes(r)
@@ -106,9 +108,12 @@ export function CloseBusinessDayButton() {
         netWin: figures.netWin as number,
         cashDeskWin: figures.cashDeskWin as number,
         clientBalance: figures.clientBalance as number,
+        jpIn: parseNum(jpIn),
         notes: notes.trim() || undefined,
       });
-      setDropSlots(""); setNetWin(""); setCashDeskWin(""); setClientBalance(""); setNotes("");
+      setDropSlots(""); setNetWin(""); setCashDeskWin(""); setClientBalance("");
+      setJpIn(""); setNotes("");
+
     } catch {
       /* toast already shown */
     }
@@ -175,7 +180,14 @@ export function CloseBusinessDayButton() {
                 onChange={e => setClientBalance(e.target.value)} placeholder="0" />
               <p className="text-[11px] text-muted-foreground">→ Slots — Client Balance · Day Closing</p>
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="cbd-jp-in">JP (IN) — optional</Label>
+              <Input id="cbd-jp-in" inputMode="decimal" value={jpIn}
+                onChange={e => setJpIn(e.target.value)} placeholder="0" />
+              <p className="text-[11px] text-muted-foreground">→ Office · Day Closings — JP (income)</p>
+            </div>
           </div>
+
 
           <div className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
             <span className="text-muted-foreground">Table Result (auto, from closed tables)</span>

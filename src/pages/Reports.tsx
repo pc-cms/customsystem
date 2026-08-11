@@ -258,9 +258,10 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
         fetchPaged<any>((f, t) => supabase.from("shifts").select("id, closed_at, tables_result")
           .eq("casino_id", casinoId).eq("status", "closed")
           .gte("closed_at", fromIso).lt("closed_at", toIso).range(f, t)),
-        fetchPaged<any>((f, t) => supabase.from("cage_slots_shifts").select("id, business_date, status, slots_result, manual_drop_slots")
+        fetchPaged<any>((f, t) => supabase.from("cage_slots_shifts").select("id, business_date, status, slots_result, manual_slots_result, manual_drop_slots")
           .eq("casino_id", casinoId).eq("status", "closed")
           .gte("business_date", from).lt("business_date", toStr).range(f, t)),
+
         fetchPaged<any>((f, t) => supabase.from("expenses").select("amount, created_at")
           .eq("casino_id", casinoId)
           .gte("created_at", fromIso).lt("created_at", toIso).range(f, t)),
@@ -298,7 +299,9 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
       });
       (slotsRes.data || []).forEach((s: any) => {
         const r = row(s.business_date);
-        r.slotsResult += Number(s.slots_result || 0);
+        // Result Slots = Net Win entered at Close Day (manual figure wins).
+        r.slotsResult += Number(s.manual_slots_result ?? s.slots_result ?? 0);
+
         r.dropSlots += Number(s.manual_drop_slots || 0);
         r.slotsShiftIds.push(s.id);
       });

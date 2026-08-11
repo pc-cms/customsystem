@@ -7,6 +7,11 @@
  * Drop, Net Win and Client Balance are manual entries on the slots shift
  * (`manual_drop_slots`, `manual_slots_result`, `manual_slots_deposits`),
  * editable inline by managers/finance.
+ *
+ * Cashdesk comes from the day closing (`fin_day_closing.cashdesk_win`, the
+ * CashDesk Win entered in Close Day) whenever the day is closed; otherwise it
+ * falls back to the shift's computed cash desk result.
+
  */
 import { Fragment, KeyboardEvent, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Printer, Check } from "lucide-react";
@@ -24,7 +29,7 @@ import { MoneyCell } from "@/components/ui/money-cell";
 import { useMoneyMode } from "@/components/ui/data-table-toolbar";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 type SortKey = "business_date" | "drop" | "netWin" | "cdr" | "clientBalance" | "miss" | "balance";
@@ -70,10 +75,35 @@ const EditableMoney = ({
 const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: string; embedded?: boolean }) => {
   const { data: allShifts = [], isLoading } = useCageSlotsHistory(500);
   const [mode, MoneyToggle] = useMoneyMode("slots-history-report");
-  const { roles } = useAuth();
+  const { roles, casinoId } = useAuth() as any;
   const qc = useQueryClient();
   const canEdit = roles.includes("super_admin") || roles.includes("manager") ||
                   roles.includes("shift_manager") || roles.includes("finance_manager");
+
+  // Cashdesk source of truth: the CashDesk Win entered in Close Day.
+  const { data: closings = [] } = useQuery({
+    queryKey: ["slots-report-day-closings", casinoId, from, to],
+    queryFn: async () => {
+      if (!casinoId || !from || !to) return [];
+      const { data, error } = await supabase
+        .from("fin_day_closing")
+        .select("business_date, cashdesk_win")
+        .eq("casino_id", casinoId)
+        .gte("business_date", from)
+        .lte("business_date", to);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!casinoId,
+  });
+
+  const cashdeskByDate = useMemo(() => {
+    const m = new Map<string, number>();
+    (closings as any[]).forEach((r) => {
+      if (r.cashdesk_win != null) m.set(r.business_date, Number(r.cashdesk_win));
+    });
+    return m;
+  }, [closings]);
 
   const shifts = useMemo(() => {
     return allShifts.filter((s: any) => {
@@ -91,11 +121,14 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
     s,
     drop: Number(s.manual_drop_slots || 0),
     netWin: Number(s.manual_slots_result || 0),
-    cdr: Number(s.cash_desk_result ?? s.actual_cage_result ?? 0),
+    cdr: cashdeskByDate.has(s.business_date)
+      ? Number(cashdeskByDate.get(s.business_date))
+      : Number(s.cash_desk_result ?? s.actual_cage_result ?? 0),
     clientBalance: Number(s.manual_slots_deposits || 0),
     miss: Number(s.cards_miss || 0),
     balance: Number(s.balance || 0),
-  })), [shifts]);
+  })), [shifts, cashdeskByDate]);
+
 
   const totals = useMemo(() => {
     const t = rows.reduce((a, r) => ({
