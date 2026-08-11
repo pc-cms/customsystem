@@ -20,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import CurrencyCashTable from "@/components/reports/CurrencyCashTable";
 import MoneyDrill from "@/components/reports/MoneyDrill";
 import DrillHeader from "@/components/reports/DrillHeader";
 import { useCasino } from "@/lib/casino-context";
@@ -359,32 +358,6 @@ const StartCell = ({
     />
   );
 };
-
-
-/**
- * Cash summarised per currency (no denomination breakdown) — every currency is
- * listed even when zero: CUR | amount | rate | TZS.
- */
-const DenomTable = ({
-  rows,
-  mobile,
-}: {
-  rows: { currency: string; denomination: number; quantity: number; tzs: number }[];
-  mobile?: Record<string, number>;
-}) => <CurrencyCashTable rows={rows} mobile={mobile} />;
-
-
-/** Wallet balances → unified drill rows (name already carries the currency). */
-const walletRows = (wallets?: WalletBalance[]): DrillRow[] =>
-  (wallets ?? []).map((w) => {
-    const units = w.units ?? w.balance;
-    return {
-      label: w.name,
-      units,
-      rate: (w.currency || "TZS") === "TZS" ? 1 : units ? w.balance / units : 0,
-      tzs: w.balance,
-    };
-  });
 
 
 const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
@@ -892,7 +865,7 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
                     drill.col === "bank_tzs" ? "TZS" : drill.col === "bank_usd" ? "FX" : undefined
                   }
                   totalLabel={ALL_COLS.find((c) => c.id === drill.col)?.label ?? "Total"}
-                  total={num(drill.row, drill.col as keyof DailyBalanceRow)}
+                  total={ALL_COLS.find((c) => c.id === drill.col)?.value(drill.row) ?? 0}
                 />
               )}
               {(drill.col === "transfer_cage_manager" || drill.col === "transfer_bank") && (
