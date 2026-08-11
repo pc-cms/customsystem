@@ -8,6 +8,8 @@ import { useCasinoSetting } from "@/hooks/use-casino-setting";
 import type { SettingSpec } from "@/lib/casino-settings-spec";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NumberInput, parseSpacedNumber } from "@/components/ui/number-input";
+import { formatNumberSpaces } from "@/lib/currency";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -107,10 +109,9 @@ function renderControl(
     case "number":
       return (
         <div className="flex items-center gap-2">
-          <Input
-            type="number"
+          <NumberInput
             value={(value as number) ?? 0}
-            onChange={(e) => onChange(Number(e.target.value))}
+            onValueChange={(v) => onChange(v ?? 0)}
             min={spec.min}
             max={spec.max}
             step={spec.step}
@@ -211,7 +212,7 @@ function StringListEditor({ value, onChange, disabled }: { value: string[]; onCh
 function NumberListEditor({ value, onChange, disabled }: { value: number[]; onChange: (v: number[]) => void; disabled: boolean }) {
   const [entry, setEntry] = useState("");
   const add = () => {
-    const n = Number(entry);
+    const n = parseSpacedNumber(entry) ?? NaN;
     if (!Number.isFinite(n) || n <= 0 || value.includes(n)) return;
     onChange([...value, n].sort((a, b) => b - a));
     setEntry("");
@@ -222,7 +223,7 @@ function NumberListEditor({ value, onChange, disabled }: { value: number[]; onCh
       <div className="flex flex-wrap gap-1">
         {value.map((v, i) => (
           <Badge key={v + "" + i} variant="secondary" className="gap-1 font-mono">
-            {v.toLocaleString("en-US").replace(/,/g, " ")}
+            {formatNumberSpaces(v)}
             <button onClick={() => remove(i)} disabled={disabled} className="hover:text-destructive">
               <X className="w-3 h-3" />
             </button>
@@ -230,10 +231,9 @@ function NumberListEditor({ value, onChange, disabled }: { value: number[]; onCh
         ))}
       </div>
       <div className="flex gap-2">
-        <Input
-          type="number"
+        <NumberInput
           value={entry}
-          onChange={(e) => setEntry(e.target.value)}
+          onValueChange={(v) => setEntry(v == null ? "" : String(v))}
           onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
           placeholder="Add value"
           className="w-40"

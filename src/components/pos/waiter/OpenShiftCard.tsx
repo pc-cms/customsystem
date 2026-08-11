@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
 import { toast } from "@/hooks/use-toast";
 import { useOpenPosShift, suggestShiftType, type PosShiftType } from "@/hooks/use-pos-shift";

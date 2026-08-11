@@ -12,6 +12,7 @@
  *  - Min column widths so inputs are comfortable (~100px+); page scrolls horizontally.
  */
 import { useMemo, useRef, useState } from "react";
+import { NumberInput } from "@/components/ui/number-input";
 import { useSessionState } from "@/hooks/use-session-state";
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Camera, Check, ChevronLeft, ChevronRight, ImageIcon, Loader2, RotateCcw, Search, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -592,11 +593,11 @@ const Incidents = () => {
                     />
                   </td>
                   <td className="px-1 py-1">
-                    <Input
-                      type="number"
+                    <NumberInput
                       min={0}
+                      allowNegative={false}
                       value={form.points || 0}
-                      onChange={(e) => setF("points", Number(e.target.value) || 0)}
+                      onValueChange={(v) => setF("points", v ?? 0)}
                       className={`${cellInput} text-right`}
                     />
                   </td>
@@ -914,7 +915,7 @@ const IncidentRow = ({
       </td>
       <td className="px-1 py-1 text-right font-semibold">
         {editing ? (
-          <Input type="number" min={0} value={draft.points} onChange={(e) => setD("points", Number(e.target.value) || 0)} className={`${cellInput} text-right`} />
+          <NumberInput min={0} allowNegative={false} value={draft.points} onValueChange={(v) => setD("points", v ?? 0)} className={`${cellInput} text-right`} />
         ) : (i.points || 0)}
       </td>
       <td className="px-1 py-1 whitespace-normal break-words text-muted-foreground">

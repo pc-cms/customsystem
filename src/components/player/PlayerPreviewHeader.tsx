@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, forwardRef } from "react";
 import PlayerPhotoLightbox from "@/components/player/PlayerPhotoLightbox";
 import { useNavigate } from "react-router-dom";
 import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check, UtensilsCrossed, Megaphone, MessageSquare, Pencil } from "lucide-react";
@@ -87,12 +87,14 @@ const usePeriodPlayerStats = (
 };
 
 /** Numeric input that displays "10 000" formatting and stores raw integer. */
-const NumberInput = ({
-  value, onChange, placeholder, ariaLabel, className,
-}: { value: string; onChange: (v: string) => void; placeholder: string; ariaLabel: string; className?: string }) => {
+const NumberInput = forwardRef<HTMLInputElement, {
+  value: string; onChange: (v: string) => void; placeholder: string; ariaLabel: string; className?: string;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+}>(({ value, onChange, placeholder, ariaLabel, className, onKeyDown }, ref) => {
   const display = value ? formatNumberSpaces(Number(value.replace(/\D/g, "")) || 0) : "";
   return (
     <Input
+      ref={ref}
       inputMode="numeric"
       aria-label={ariaLabel}
       placeholder={placeholder}
@@ -101,10 +103,12 @@ const NumberInput = ({
         const raw = e.target.value.replace(/\D/g, "");
         onChange(raw);
       }}
+      onKeyDown={onKeyDown}
       className={cn("font-mono text-sm font-semibold tabular-nums text-right h-9", className)}
     />
   );
-};
+});
+NumberInput.displayName = "NumberInput";
 
 /** Compact stat tile used in the header — uniform across Drop / Cash In / Result. */
 const StatTile = ({
@@ -229,10 +233,15 @@ const ChipAdjustInline = ({
       {active && (
         <div className="flex items-center gap-1.5">
           <NumberInput
+            ref={inputRef}
             value={value}
             onChange={setValue}
             placeholder={active === "in" ? "Amount IN" : "Amount OUT"}
             ariaLabel={active === "in" ? "Amount IN" : "Amount OUT"}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); commit(); }
+              if (e.key === "Escape") { e.preventDefault(); cancel(); }
+            }}
             className="w-24"
           />
           <Input

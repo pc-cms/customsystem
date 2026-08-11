@@ -4,6 +4,7 @@ import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -325,10 +326,11 @@ function RecipeEditor({
                   ))}
                 </SelectContent>
               </Select>
-              <Input
-                type="number" step="0.01" placeholder="Qty"
+              <NumberInput
+                decimals={0}
+                placeholder="Qty"
                 value={draft.quantity ?? ""}
-                onChange={(e) => setDraft({ ...draft, quantity: parseFloat(e.target.value) || undefined })}
+                onValueChange={(v) => setDraft({ ...draft, quantity: v ?? undefined })}
               />
               <Input
                 placeholder="Unit (ml, g…)"

@@ -31,6 +31,7 @@ import {
 } from "@/lib/staff-dictionaries";
 import { EditableCell } from "@/components/staff-master/editable-cell";
 import { SignedImage } from "@/components/SignedImage";
+import { NumberInput } from "@/components/ui/number-input";
 
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n).replace(/,/g, " ");
 
@@ -726,7 +727,7 @@ const NewEmployeeRow = ({ casinoId, onSave }: {
         </select>
       </td>
       <td className={`${td} text-right font-mono px-2`}>
-        <input type="number" placeholder="0" value={v.basic_salary || ""} onChange={(e) => set("basic_salary", Number(e.target.value) || 0)} onBlur={tryCommit}
+        <NumberInput placeholder="0" value={v.basic_salary || 0} onValueChange={(val) => set("basic_salary", val ?? 0)} onBlur={tryCommit}
           className="w-full bg-transparent border-0 px-1 text-xs text-right focus:outline-none focus:bg-background focus:border focus:border-primary/40" />
       </td>
       <td className={td}>
