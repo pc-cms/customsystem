@@ -236,10 +236,11 @@ export const useDailyBalanceReport = (
         legacy,
         slotsClosing,
         dayClosures,
-        feeRows,
+        otherIncomeRows,
         daySnaps,
         monthStart,
       ] = await Promise.all([
+
 
         fetchPaged<any>((a, b) =>
           sb.from("fin_day_closing")
