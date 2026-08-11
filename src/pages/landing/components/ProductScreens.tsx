@@ -3,6 +3,7 @@ import { SectionLabel } from "./SectionLabel";
 import { DarkPanel } from "./DarkPanel";
 import { CommandPanel } from "./CommandPanel";
 import { StaggerContainer, StaggerItem, SectionReveal } from "@/lib/motion";
+import { formatNumberSpaces } from "@/lib/currency";
 
 /** Abstract dark module screen — no real screenshots. */
 function ModuleScreen({ kind }: { kind: "cage" | "pit" | "finance" | "players" | "club" }) {
@@ -43,7 +44,7 @@ function ModuleScreen({ kind }: { kind: "cage" | "pit" | "finance" | "players" |
           <div key={w} style={{ display: "grid", gridTemplateColumns: "1fr 100px 60px", gap: 10, alignItems: "center", padding: "8px 12px", border: "1px solid var(--l-border)", borderRadius: 6, background: "var(--l-bg-2)" }}>
             <span className="l-mono" style={{ fontSize: 11, color: "var(--l-text)", letterSpacing: "0.1em" }}>{w}</span>
             <span className="l-mono l-tnum" style={{ fontSize: 11, color: "var(--l-gold)", textAlign: "right" }}>
-              {(450000 + i * 132000).toLocaleString().replace(/,/g, " ")}
+              {formatNumberSpaces(450000 + i * 132000)}
             </span>
             <span style={{ height: 4, borderRadius: 2, background: "var(--l-border)", overflow: "hidden" }}>
               <span style={{ display: "block", height: "100%", width: `${40 + i * 12}%`, background: "var(--l-teal)" }} />

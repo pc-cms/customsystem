@@ -8,6 +8,7 @@ import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query
 import { supabase } from "@/integrations/supabase/client";
 import { getCachedRuntimeConfig } from "@/lib/runtime-config";
 import { toast } from "sonner";
+import { formatNumberSpaces } from "@/lib/currency";
 
 export interface ServerIdentity {
   casino_id: string;
@@ -78,7 +79,7 @@ export const useSeedPush = () => {
         body: JSON.stringify(casinoId ? { casino_id: casinoId } : {}),
       }),
     onSuccess: (data: { total_inserted: number }) => {
-      toast.success(`Queued ${data.total_inserted.toLocaleString()} rows for upload to Cloud`);
+      toast.success(`Queued ${formatNumberSpaces(data.total_inserted)} rows for upload to Cloud`);
       qc.invalidateQueries({ queryKey: ["seed-push-status"] });
     },
     onError: (e: Error) => toast.error(e.message),

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -72,11 +73,11 @@ export const ChipEmissionDialog = ({ trigger }: { trigger?: React.ReactNode }) =
           </div>
           <div className="space-y-1.5">
             <Label>Quantity to add</Label>
-            <Input
-              type="number"
+            <NumberInput
+              decimals={0}
               min={1}
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
+              value={quantity === "" ? null : quantity}
+              onValueChange={(v) => setQuantity(v == null ? "" : String(v))}
               placeholder="e.g., 100"
             />
           </div>

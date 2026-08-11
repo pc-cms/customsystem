@@ -3,6 +3,7 @@ import SeatedPlayerChip, { type SeatedPlayer } from "./SeatedPlayerChip";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Users, Lock } from "lucide-react";
 import { useState } from "react";
+import { formatNumberSpaces } from "@/lib/currency";
 
 export interface FloorTable {
   id: string;
@@ -114,7 +115,7 @@ const FloorTableCard = ({ table, players, onOpen, onPlayerDropped, onStopPlayer,
             {players.map(p => (
               <li key={p.id} className="flex items-center justify-between gap-3 text-[10px]">
                 <span>{p.first_name} {p.last_name}</span>
-                <span className="font-mono text-muted-foreground">{p.avgBet > 0 ? p.avgBet.toLocaleString() : "—"}</span>
+                <span className="font-mono text-muted-foreground">{p.avgBet > 0 ? formatNumberSpaces(p.avgBet) : "—"}</span>
               </li>
             ))}
           </ul>

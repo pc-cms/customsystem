@@ -1,6 +1,7 @@
 import { useMemo, useState, Fragment } from "react";
 import { ChevronRight, ChevronDown, Calendar } from "lucide-react";
 import { fmtDate } from "@/lib/format-date";
+import { formatNumberSpaces } from "@/lib/currency";
 
 // Visits breakdown grouped Month → Week → Day.
 // Player perspective:
@@ -31,7 +32,7 @@ type Props = {
 
 const fmtMoney = (n: number) => {
   const sign = n < 0 ? "-" : "";
-  return `${sign}${Math.abs(Math.round(n)).toLocaleString()}`;
+  return `${sign}${formatNumberSpaces(Math.abs(Math.round(n)))}`;
 };
 const dot = <span className="text-muted-foreground">·</span>;
 const fmtDuration = (mins: number) => {

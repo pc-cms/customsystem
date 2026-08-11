@@ -9,8 +9,9 @@ import { DataTable } from "@/components/ui/data-table";
 import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 import { fmtDateTime } from "@/lib/format-date";
 import { useSessionState } from "@/hooks/use-session-state";
+import { formatNumberSpaces } from "@/lib/currency";
 
-const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
+const fmt = (n: number) => formatNumberSpaces(n ?? 0);
 
 export default function CashbackReport() {
   const { activeCasinoId } = useCasino();

@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
@@ -184,9 +185,9 @@ export default function FinancesMoneyChangePage() {
               <SelectContent>{wallets.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name} ({w.currency})</SelectItem>)}</SelectContent>
             </Select>
           </FormField>
-          <FormField span={4} label={`From amount (${form.from_currency})`}><Input type="number" step="0.01" value={form.from_amount || ""} onChange={(e) => setForm({ ...form, from_amount: Number(e.target.value) })} /></FormField>
-          <FormField span={4} label="Rate"><Input type="number" step="0.000001" value={form.rate || 1} onChange={(e) => setForm({ ...form, rate: Number(e.target.value), to_amount: Number((Number(form.from_amount) * Number(e.target.value)).toFixed(2)) })} /></FormField>
-          <FormField span={4} label={`To amount (${form.to_currency})`}><Input type="number" step="0.01" value={form.to_amount || ""} onChange={(e) => setForm({ ...form, to_amount: Number(e.target.value) })} /></FormField>
+          <FormField span={4} label={`From amount (${form.from_currency})`}><NumberInput decimals={2} value={form.from_amount ?? 0} onValueChange={(v) => setForm({ ...form, from_amount: v ?? 0 })} /></FormField>
+          <FormField span={4} label="Rate"><NumberInput decimals={6} value={form.rate ?? 1} onValueChange={(v) => setForm({ ...form, rate: v ?? 1, to_amount: Number((Number(form.from_amount) * Number(v ?? 1)).toFixed(2)) })} /></FormField>
+          <FormField span={4} label={`To amount (${form.to_currency})`}><NumberInput decimals={2} value={form.to_amount ?? 0} onValueChange={(v) => setForm({ ...form, to_amount: v ?? 0 })} /></FormField>
           <FormField span={12} label="Note"><Input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></FormField>
         </FormGrid>
         <div className="mt-4 flex justify-end gap-2">

@@ -1,6 +1,7 @@
 import { fmtDate } from "@/lib/format-date";
 import { formatCurrency } from "@/lib/currency";
 import type { TipsRow } from "@/hooks/use-tips";
+import { formatNumberSpaces } from "@/lib/currency";
 
 const chipsToCells = (chips: Record<string, number> | null): { denom: number; count: number }[] => {
   if (!chips) return [];
@@ -10,7 +11,7 @@ const chipsToCells = (chips: Record<string, number> | null): { denom: number; co
     .sort((a, b) => b.denom - a.denom);
 };
 
-const formatDenom = (value: number) => value.toLocaleString("en-US").replace(/,/g, " ");
+const formatDenom = (value: number) => formatNumberSpaces(value);
 
 interface TipsLedgerTableProps {
   rows: TipsRow[];

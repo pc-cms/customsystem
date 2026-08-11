@@ -5,6 +5,7 @@ import {
   BarShiftsPanel, BarStockCountsPanel,
 } from "./ReportPanels";
 import type { BusinessDayClosure, SnapshotSection } from "@/hooks/use-business-day-history";
+import { formatNumberSpaces } from "@/lib/currency";
 
 type TabDef = { key: string; label: string; render: (rows: any[], date: string, casinoId: string) => JSX.Element };
 
@@ -71,7 +72,7 @@ export const ClosureDetail = ({ closure }: { closure: BusinessDayClosure }) => {
 const fmt = (n: number) => {
   const v = Math.round(Number(n || 0));
   const sign = v < 0 ? "−" : v > 0 ? "+" : "";
-  return `${sign}${Math.abs(v).toLocaleString("en-US").replace(/,/g, " ")}`;
+  return `${sign}${formatNumberSpaces(Math.abs(v))}`;
 };
 
 const DailyResultBlock = ({ daily }: { daily: any }) => {

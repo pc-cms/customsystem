@@ -8,6 +8,7 @@ import PrintPortal from "@/components/cage/PrintPortal";
 import { CHIP_DENOMS, formatCurrency, formatChipLabel, formatNumberSpaces, formatCashDenomLabel, CURRENCIES, CASH_DENOMS, CURRENCY_SYMBOLS } from "@/lib/currency";
 import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import ChipToken from "@/components/ChipToken";
+import { NumberInput } from "@/components/ui/number-input";
 import { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
@@ -754,11 +755,11 @@ const CloseShiftDialog = ({
                     <td className="px-2 py-1.5 text-foreground font-semibold"><ChipToken denom={d} /></td>
                     <td className="px-2 py-1.5 text-right text-foreground">{op || "·"}</td>
                     <td className="px-2 py-1.5 text-right">
-                      <input
-                        type="number"
-                        value={cl || ""}
-                        onChange={e => setChipCounts(c => ({ ...c, [d]: Number(e.target.value) || 0 }))}
-                        placeholder={op ? String(op) : "0"}
+                      <NumberInput
+                        decimals={0}
+                        value={cl || 0}
+                        onValueChange={v => setChipCounts(c => ({ ...c, [d]: v || 0 }))}
+                        placeholderValue={op}
                         className="no-spin h-8 w-24 font-mono text-sm text-right px-2 bg-background border border-border rounded text-foreground"
                       />
                     </td>
