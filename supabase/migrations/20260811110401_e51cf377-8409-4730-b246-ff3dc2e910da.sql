@@ -1,0 +1,1 @@
+ALTER TABLE public.fin_month_start ADD COLUMN IF NOT EXISTS start_date date;

@@ -4194,6 +4194,7 @@ export type Database = {
           diff_total: number
           id: string
           month: string
+          start_date: string | null
           tips_total: number
           updated_at: string
         }
@@ -4207,6 +4208,7 @@ export type Database = {
           diff_total?: number
           id?: string
           month: string
+          start_date?: string | null
           tips_total?: number
           updated_at?: string
         }
@@ -4220,6 +4222,7 @@ export type Database = {
           diff_total?: number
           id?: string
           month?: string
+          start_date?: string | null
           tips_total?: number
           updated_at?: string
         }
