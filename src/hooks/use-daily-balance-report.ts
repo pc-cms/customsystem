@@ -764,48 +764,53 @@ export const useDailyBalanceReport = (
         }) => {
           // Money frozen at closing time wins over the live wallet balance.
           const snap = snapByDate[date];
-          // Manual bank overrides (inline editor) win over computed balances.
-          const manualTzs = l?.bank_account != null ? num(l.bank_account) : null;
-          const manualUsdRaw = l?.bank_account_usd != null ? num(l.bank_account_usd) : null;
           const cage = snap?.cage_casino != null ? num(snap.cage_casino) : o.cage;
           const manager = snap?.cage_manager != null ? num(snap.cage_manager) : o.manager;
-          const bankTzs = snap?.bank_tzs != null
-            ? num(snap.bank_tzs)
-            : (manualTzs != null ? manualTzs : o.bankTzs);
-          const bankUsd = snap?.bank_usd != null
-            ? num(snap.bank_usd)
-            : (manualUsdRaw != null ? manualUsdRaw * rate : o.bankUsd);
-          const moneyTotal = cage + manager + bankTzs + bankUsd;
+          // Bank ALWAYS comes from the bank wallets (CRDB + NBC), split by currency.
+          const bankTzs = o.bankTzs;
+          const bankUsd = o.bankUsd;
+          const terminalTzsV = terminalTzs[date] ?? 0;
+          const terminalUsdV = terminalUsd[date] ?? 0;
+          const terminalTotal = terminalTzsV + terminalUsdV * rate;
+          // Money hidden for the days that precede the recorded Start.
+          const hidden = !!moneyFrom && date < moneyFrom;
+          const moneyTotal = hidden ? 0 : cage + manager + bankTzs + bankUsd + terminalTotal;
           const opening = firstRow ? startingBalance : prevMoney;
           firstRow = false;
           const diffTotal = o.chipDiff + o.slotsDiff;
           const officeNet = o.inV - o.outV;
           const feesV = feesByDate[date] ?? 0;
-          const tipsV = o.tips ?? 0;
-          // Cash balance — tips are held outside the cage cash, so they are not
-          // part of the money reconciliation (they stay in the Fin Result only).
-          const balance =
-            opening + o.result + diffTotal + feesV + officeNet - o.expenses - moneyTotal;
-          prevMoney = moneyTotal;
+          // Tips are a MANUAL figure (legacy row), kept outside the cash reconciliation.
+          const tipsV = l?.tips_tables != null ? num(l.tips_tables) : (o.tips ?? 0);
+          const balance = hidden
+            ? 0
+            : opening + o.result + diffTotal + feesV + officeNet - o.expenses - moneyTotal;
+          if (!hidden) prevMoney = moneyTotal;
           return {
             live_cash_result: o.live,
             slots_diff: o.slotsDiff,
             diff_total: diffTotal,
-            cage_casino: cage,
+            cage_casino: hidden ? 0 : cage,
             cage_cash_part: o.cashPart,
             cage_cashless_part: o.cashlessPart,
             cage_carried: o.carried,
-            transfer_cage_manager: trfToManager[date] ?? 0,
-            cage_manager: manager,
-            transfer_bank: trfToBank[date] ?? 0,
-            bank_tzs: bankTzs,
-            bank_usd: bankUsd,
-            bank_usd_raw: manualUsdRaw ?? (rate ? bankUsd / rate : 0),
-            bank_tzs_manual: manualTzs != null,
-            bank_usd_manual: manualUsdRaw != null,
+            // Manual figure until the Wallets transfer screen exists.
+            transfer_cage_manager: num(l?.office_transfer),
+            cage_manager: hidden ? 0 : manager,
+            transfer_bank: num(l?.collection_bank),
+            terminal_tzs: terminalTzsV,
+            terminal_usd: terminalUsdV,
+            terminal_total: terminalTotal,
+            terminal_detail: terminalDetail[date] ?? [],
+            bank_tzs: hidden ? 0 : bankTzs,
+            bank_usd: hidden ? 0 : bankUsd,
+            bank_usd_raw: rate ? (hidden ? 0 : bankUsd) / rate : 0,
+            bank_tzs_manual: false,
+            bank_usd_manual: false,
             money_in: o.inV,
             money_out: o.outV,
             money_total: moneyTotal,
+            money_hidden: hidden,
             // P&L of the day — Casino Result − Expenses ± Diff.
             fin_result: o.result + diffTotal - o.expenses,
             balance,
@@ -828,6 +833,7 @@ export const useDailyBalanceReport = (
             snapshot: !!snap,
           };
         };
+
 
 
 
