@@ -1,31 +1,35 @@
-# Fix: Cage Casino drill-down (duplicates + sum mismatch)
+# Casino Monthly Balance — исправления drill-down и колонок
 
-## What is wrong
+## Что не так (проверено в коде)
 
-Verified in `src/hooks/use-daily-balance-report.ts`:
+1. **Cage Casino: цифра и разбивка берутся из разных источников.**
+   Значение ячейки (10 000 000) считается из **физических пересчётов кошельков** (последний count кошельков `cage_table` / `cage_slot` на дату).
+   Панель разбивки строится из **закрытий смен** (`closing_count.cash`, `closing_count.mobile`, `cashless_in/out_providers`, инвентарь слот-кассы).
+   Поэтому блоки не сходятся: 8 944 000 + 0 + 5 110 000 + 0 = 14 054 000, а не 10 000 000.
 
-- The **number** in the cell (`cage_casino` = 10 000 000) is built from **wallet physical counts** — the last physical count of every cage wallet (`cage_table` / `cage_slot`) on or before the selected date.
-- The **breakdown panel** (`cage_detail`) is built from a **completely different source**: shift closing counts (`closing_count.cash`, `closing_count.mobile`, `cashless_in/out_providers`) plus the slots closing inventory.
+2. **Дубликаты провайдеров.** Блок «Mobile Money» берёт `closing_count.mobile` (AirTell, Tigo, Halo, Mpesa), блок «Cashless» — провайдеров смены (Tigo, Mpesa, AirTel). Это одни и те же каналы, показанные дважды и с разным написанием (AirTell / AirTel).
 
-Two different sources = the blocks do not add up to the cell: 8 944 000 + 0 + 5 110 000 + 0 = 14 054 000, not 10 000 000.
+3. **Разный вид drill-панелей.** Cage Manager и Bank уже используют единый `DrillTable` (Name / Units / Rate / TZS), а Cage Casino — старый `CurrencyCashTable`.
 
-The duplicated providers come from the same split: the "Mobile Money" block reads `closing_count.mobile` (AirTell, Tigo, Halo, Mpesa) and the "Cashless" block reads the shift cashless providers (Tigo, Mpesa, AirTel) — the same channels shown twice, with inconsistent spelling (AirTell / AirTel).
+4. **Bank USD не кликабельна.** В рендере ячейки для `bank_usd` стоит ранний возврат (подсказка с суммой в USD) до проверки drill-колонок, поэтому клик не открывает панель, хотя данные для неё уже есть.
 
-## What will change
+## Что сделаем
 
-1. Rebuild the Cage Casino breakdown from the **same source as the number**: the last physical count of each cage wallet as of the selected day. The panel total will then always equal the cell value.
-2. Panel structure (uniform `DrillTable` format Name / Units / Rate / TZS):
-   - **Cash by currency** — one row per counted cash wallet/currency (units in own currency, rate, TZS).
-   - **Mobile money / Cashless** — one single merged block, one row per provider, names normalized (AirTel, Tigo, Halotel, M-Pesa) so nothing appears twice.
-   - **Slots cage** — the slots cage wallet count.
-   - Grand total row = the cell value, exact.
-3. Optional denomination detail per cash row (the counts store `denominations`), shown as a nested expandable line — keeping the existing look.
-4. Zero-value rows keep showing `0` (not a dot), per the current CMB rule.
+1. **Cage Casino** — разбивку строим из того же источника, что и цифру: последний физический пересчёт каждого кассового кошелька на выбранную дату. Итог панели всегда будет равен значению ячейки.
+2. Структура панели — единый формат `DrillTable` (Name / Units / Rate / TZS), как в Cage Manager:
+   - **Cash by currency** — по одной строке на кошелёк/валюту (единицы в своей валюте, курс, TZS);
+   - **Mobile money / Cashless** — один общий блок, по строке на провайдера, названия нормализованы (AirTel, Tigo, Halotel, M-Pesa) — дублей не будет;
+   - **Slots cage** — кошелёк слот-кассы;
+   - итоговая строка = значение ячейки, точно.
+   - Пустые строки показывают `0`, а не точку (текущее правило CMB).
+   - Детализация по купюрам остаётся доступной раскрытием строки (в счётах хранится `denominations`).
+3. **Bank USD** делаем кликабельной: подсказка с суммой в USD сохраняется, но ячейка открывает ту же панель Bank wallets, что и Bank TZS.
+4. **Колонку Collections убираем полностью** из отчёта (заголовок, значения, экспорт/печать).
 
-## Technical notes
+## Технические детали
 
-- `cage_detail` in `use-daily-balance-report.ts` is rebuilt inside the loop that already computes `cageCasinoRunning`, using `countAt(wallet, date)` — the same helper — instead of shift `closing_count` data.
-- Currency conversion reuses `walletCurrency` + the day's rate, so units × rate = TZS on every row.
-- Provider name normalization reuses the mapping already present in `src/components/reports/CurrencyCashTable.tsx` / `use-cashless.ts`.
-- Rendering in `src/pages/reports/DailyBalanceReport.tsx` (block `drill.col === "cage_casino"`) is reduced to `DrillTable` sections over the new structure; `CurrencyCashTable` stays used only where the old shape is still needed.
-- Version bump.
+- `cage_detail` в `src/hooks/use-daily-balance-report.ts` перестраивается внутри цикла, который уже считает `cageCasinoRunning`, через тот же helper `countAt(wallet, date)`, вместо данных `closing_count` смен.
+- Конвертация валют — через `walletCurrency` и курс дня, чтобы в каждой строке units × rate = TZS.
+- Нормализация имён провайдеров — по существующему маппингу из `CurrencyCashTable.tsx` / `use-cashless.ts`.
+- В `src/pages/reports/DailyBalanceReport.tsx`: блок `drill.col === "cage_casino"` переводится на `DrillTable`; ранний возврат для `bank_usd` заменяется на вариант с drill-обработчиком; колонка `collections` удаляется из конфигурации колонок и связанных списков.
+- Повышение версии приложения.
