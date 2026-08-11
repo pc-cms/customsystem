@@ -465,22 +465,33 @@ export const useDailyBalanceReport = (
 
 
       /**
-       * Expenses column = operating expenses only. "Collection" / "CAPEX" are
-       * payouts to the owner, not costs — they belong to Office OUT.
+       * Expenses column = approved operating expenses only. "Collection" is a
+       * payout to the owner and is shown as a reference column (Collections).
+       * Wallets logic: approved, not voided, not a reversal, and either an
+       * office expense or the business day is closed.
        */
-      const isCollectionCat = (row: any) =>
-        String(row?.fin_categories?.group_code || row?.category?.group_code || "") === "collections";
-      const expByDate: Bucket = {}, bankExpByDate: Bucket = {};
+      const isCollectionCat = (row: any) => {
+        const gc = String(row?.fin_categories?.group_code || row?.category?.group_code || "").toLowerCase();
+        const name = String(row?.fin_categories?.name || row?.category?.name || "").toLowerCase();
+        return gc.includes("collection") || name.includes("collection");
+      };
+      const isApprovedExpense = (e: any) => e.approved === true && !e.voided_at && e.reversal_of === null;
+      const isOfficeExpense = (e: any) => String(e.source || "") === "office";
+      const expByDate: Bucket = {}, bankExpByDate: Bucket = {}, collectionsByDate: Bucket = {};
       const expDetail: Record<string, Record<string, number>> = {};
-      expenses.filter((e) => !e.voided_at).forEach((e) => {
+      expenses.filter((e) => isApprovedExpense(e) && (isOfficeExpense(e) || closedDays.has(e.business_date))).forEach((e) => {
         const v = tzs(e);
-        if (isCollectionCat(e)) return;
+        if (isCollectionCat(e)) {
+          add(collectionsByDate, e.business_date, v);
+          return;
+        }
         add(expByDate, e.business_date, v);
         const label = e.fin_categories?.name || e.description || "Other";
         ((expDetail[e.business_date] ??= {}))[label] =
           (expDetail[e.business_date]?.[label] || 0) + v;
         if (isBankKind(walletKind[e.wallet_id])) add(bankExpByDate, e.business_date, v);
       });
+
 
       const collections: Bucket = {}, officeIn: Bucket = {}, officeOut: Bucket = {};
       const trfToManager: Bucket = {}, trfToBank: Bucket = {}, ownerIn: Bucket = {};
