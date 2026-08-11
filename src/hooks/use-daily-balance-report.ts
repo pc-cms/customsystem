@@ -623,26 +623,30 @@ export const useDailyBalanceReport = (
        * the balance of a wallet on a given day is exactly the amount written
        * down at the most recent physical count on or before that day.
        */
-      const countsByWallet: Record<string, { d: string; tzs: number; units: number }[]> = {};
+      const countsByWallet: Record<string, { d: string; ts: number; tzs: number; units: number }[]> = {};
       (walletCounts as any[]).forEach((c: any) => {
         if (!c.wallet_id) return;
         (countsByWallet[c.wallet_id] ??= []).push({
           d: businessDateOf(c.created_at),
+          ts: new Date(c.created_at).getTime(),
           tzs: num(c.physical_total_tzs) || num(c.physical_total),
           units: num(c.physical_total),
         });
       });
+      // Several counts can happen on the same business day — order by the exact
+      // timestamp so "last count of the day" is really the last one.
       Object.values(countsByWallet).forEach((l) =>
-        l.sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0)),
+        l.sort((a, b) => (a.d === b.d ? a.ts - b.ts : a.d < b.d ? -1 : 1)),
       );
       /** Last recorded count of a wallet as of `d` (null when never counted). */
       const countAt = (wid: string, d: string) => {
         const l = countsByWallet[wid];
         if (!l) return null;
-        let r: { d: string; tzs: number; units: number } | null = null;
+        let r: { d: string; ts: number; tzs: number; units: number } | null = null;
         for (const c of l) { if (c.d <= d) r = c; else break; }
         return r;
       };
+
 
       /** Per-wallet balance of the LAST day of the range (drill-down panels). */
       const perWallet: Record<string, number> = {};
