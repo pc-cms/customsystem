@@ -1015,7 +1015,9 @@ export const useDailyBalanceReport = (
             slotsDiff: cardBal[date] ?? 0,
             chipDiff: chipMiss[date] ?? 0,
             tips: (tipsTables[date] ?? 0) + (tipsSlots[date] ?? 0),
-            otherIncome: otherIncomeByDate[date] ?? 0,
+            officeIn: otherIncPos[date] ?? 0,
+            officeOut: otherIncNeg[date] ?? 0,
+
             jp: jpByDate[date] ?? 0,
             missedCards: cardsMiss[date] ?? 0,
             collections: collectionsByDate[date] ?? 0,
