@@ -254,11 +254,11 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
       const toStr = toDate.toISOString().slice(0, 10);
       const toIso = businessDayHourUTC(toStr, 7);
 
-      const [liveData, slotsData, expData, dropData] = await Promise.all([
+      const [liveData, slotsData, expData, dropData, closingData] = await Promise.all([
         fetchPaged<any>((f, t) => supabase.from("shifts").select("id, closed_at, tables_result")
           .eq("casino_id", casinoId).eq("status", "closed")
           .gte("closed_at", fromIso).lt("closed_at", toIso).range(f, t)),
-        fetchPaged<any>((f, t) => supabase.from("cage_slots_shifts").select("id, business_date, status, slots_result, manual_slots_result, manual_drop_slots")
+        fetchPaged<any>((f, t) => supabase.from("cage_slots_shifts").select("id, business_date, status, manual_drop_slots")
           .eq("casino_id", casinoId).eq("status", "closed")
           .gte("business_date", from).lt("business_date", toStr).range(f, t)),
 
@@ -269,6 +269,10 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
         // SAME source as Player Statistics / Dashboard / Tables — keeps every
         // screen in sync. Paged so long periods (year / All) aren't truncated.
         fetchPaged<any>((f, t) => supabase.from("player_day_drop_cache").select("business_date, peak")
+          .eq("casino_id", casinoId)
+          .gte("business_date", from).lt("business_date", toStr).range(f, t)),
+        // Result Slots = Net Win entered at Close Day. No fallback to computed figures.
+        fetchPaged<any>((f, t) => supabase.from("fin_day_closing").select("business_date, net_win")
           .eq("casino_id", casinoId)
           .gte("business_date", from).lt("business_date", toStr).range(f, t)),
       ]);
