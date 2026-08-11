@@ -356,7 +356,7 @@ export const useDailyBalanceReport = (
         row.amount_tzs != null ? num(row.amount_tzs) : num(row.amount);
 
       // ---- per-date aggregation buckets ---------------------------------
-      const tablesRes: Bucket = {}, slotsRes: Bucket = {}, cardBal: Bucket = {};
+      const tablesRes: Bucket = {}, slotsRes: Bucket = {}, cardBal: Bucket = {}, manualClientBal: Bucket = {};
       closings.forEach((c) => {
         tablesRes[c.business_date] = num(c.tables_result);
         // Slots always come from the Close Day figures: CashDesk Win.
