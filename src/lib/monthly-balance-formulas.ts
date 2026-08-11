@@ -58,13 +58,13 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
     total: "sum",
   },
   cage_casino: {
-    formula: "Live cage (cash + cashless) + Slots cage at closing — MONEY ONLY, chips excluded",
-    source: "shifts closing cash & cashless providers, cage_slots_shifts",
+    formula: "Running balance of cage_table + cage_slot wallets (TZS + USD at daily rate). Chips excluded.",
+    source: "fin_wallet_tx + starting floats for wallets with kind = cage_table / cage_slot",
     total: "stock",
   },
   bank_total: {
     formula: "Bank TZS + Bank USD (converted at the daily rate)",
-    source: "fin_legacy_balance / bank wallets",
+    source: "fin_day_balance_snapshot (record) or bank wallets running balance",
     total: "stock",
   },
   transfer_cage_manager: {
@@ -73,8 +73,8 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
     total: "sum",
   },
   cage_manager: {
-    formula: "Manager (office) safe balance at end of day",
-    source: "Office safe wallet: starting float + all posted movements",
+    formula: "Manager (office) safe balance at end of day — frozen from Record when day is closed",
+    source: "fin_day_balance_snapshot.cage_manager, else office wallet running balance",
     total: "stock",
   },
   transfer_bank: {
@@ -83,18 +83,38 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
     total: "sum",
   },
   bank_tzs: {
-    formula: "Bank balance in TZS — manual figure when entered, else wallet running balance",
-    source: "fin_legacy_balance.bank_account / bank wallets (TZS)",
+    formula: "Bank balance in TZS — frozen from Record when day is closed",
+    source: "fin_day_balance_snapshot.bank_tzs, else bank wallet running balance",
     total: "stock",
   },
   bank_usd: {
-    formula: "Bank balance in USD × daily rate — manual figure when entered",
-    source: "fin_legacy_balance.bank_account_usd / bank wallets (USD)",
+    formula: "Bank balance in USD × daily rate — frozen from Record when day is closed",
+    source: "fin_day_balance_snapshot.bank_usd, else bank wallet running balance",
     total: "stock",
   },
   expenses: {
-    formula: "Approved expenses of the business day (cage + office)",
-    source: "expenses (approved), posted on day closing",
+    formula: "Approved operating expenses (office immediately; cage only after day closing)",
+    source: "expenses approved = true, not voided, not reversals",
+    total: "sum",
+  },
+  other_income: {
+    formula: "Non-JP other incomes (fees, etc.)",
+    source: "fin_other_incomes (excluding JP)",
+    total: "sum",
+  },
+  jp: {
+    formula: "Jackpot income of the day",
+    source: "fin_other_incomes (type = JP)",
+    total: "sum",
+  },
+  missed_cards: {
+    formula: "Missed Cards (shortage) from cage slots shifts",
+    source: "cage_slots_shifts.cards_miss",
+    total: "sum",
+  },
+  collections: {
+    formula: "Collection / owner withdrawals (reference column, part of Office Out)",
+    source: "expenses in Collection category",
     total: "sum",
   },
   office_total: {
@@ -112,7 +132,6 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
     source: "Manual — click the cell to type it",
     total: "sum",
   },
-
   money_total: {
     formula: "Cage Casino + Cage Manager + Bank TZS + Bank USD",
     source: "Stock of all money at end of day",
@@ -124,7 +143,7 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
     total: "sum",
   },
   balance: {
-    formula: "Variance = Money (actual) − (yesterday Money + Result + IN − OUT − Expenses). Should be 0",
+    formula: "Variance = Start + Result + Diff + JP + Other Incomes + Office IN − Expenses − Office OUT − Money Total",
     source: "Derived control check",
     total: "stock",
   },
