@@ -13,15 +13,16 @@
  * falls back to the shift's computed cash desk result.
 
  */
-import { Fragment, KeyboardEvent, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Printer, Check } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Printer, Check } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatMoneyFull } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
 import { useCageSlotsHistory } from "@/hooks/use-cage-slots";
 import PrintSlotsShiftDialog from "@/components/cage-slots/PrintSlotsShiftDialog";
-import SlotsShiftReportBody from "@/components/cage-slots/SlotsShiftReportBody";
+
 import {
   DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell,
 } from "@/components/ui/data-table";
@@ -118,7 +119,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
   }, [allShifts, from, to]);
 
   const [printShiftId, setPrintShiftId] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "business_date", dir: "desc" });
 
   const rows = useMemo(() => shifts.map((s: any) => {
@@ -266,32 +267,9 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
             <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-4">No closed slots shifts in range</DTCell></DTRow>
           )}
           {sorted.map(({ s, drop, netWin, cdr, clientBalance, miss, balance, netWinLocked, cdrLocked }) => {
-            const isExpanded = expandedId === s.id;
-            const toggleExpanded = () => setExpandedId(isExpanded ? null : s.id);
-            const onRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                toggleExpanded();
-              }
-            };
             return (
-              <Fragment key={s.id}>
-                <DTRow
-                  className={`cursor-pointer ${isExpanded ? "bg-accent/20" : ""}`}
-                  onClick={toggleExpanded}
-                  onKeyDown={onRowKeyDown}
-                  tabIndex={0}
-                  role="button"
-                  aria-expanded={isExpanded}
-                >
-                  <DTCell type="date">
-                    <span className="inline-flex items-center gap-1">
-                      {isExpanded
-                        ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-                        : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
-                      {fmtDate(s.business_date)}
-                    </span>
-                  </DTCell>
+              <DTRow key={s.id}>
+                  <DTCell type="date">{fmtDate(s.business_date)}</DTCell>
                   <DTCell type="time" className="text-muted-foreground font-mono">
                     {s.closed_at ? eatTime(s.closed_at) : "·"}
                   </DTCell>
@@ -323,22 +301,15 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
                     <MoneyCell value={miss || null} mode={mode} empty="·" className={miss < 0 ? "cms-amount-negative" : ""} />
                   </DTCell>
                   <DTCell type="money"><MoneyCell value={balance} mode={mode} signed /></DTCell>
-                  <DTCell type="actions" onClick={(e) => e.stopPropagation()}>
+                  <DTCell type="actions">
                     <Button variant="ghost" size="sm" onClick={() => setPrintShiftId(s.id)} className="gap-1 h-7">
                       <Printer className="w-3.5 h-3.5" /> Print
                     </Button>
                   </DTCell>
-                </DTRow>
-                {isExpanded && (
-                  <DTRow className="bg-muted/10">
-                    <DTCell colSpan={9} className="p-3">
-                      <SlotsShiftReportBody id={s.id} showHeader={false} compact />
-                    </DTCell>
-                  </DTRow>
-                )}
-              </Fragment>
+              </DTRow>
             );
           })}
+
           {sorted.length > 0 && (
             <DTRow className="border-t-2 border-primary/40 bg-primary/10 font-bold text-[120%]">
               <DTCell type="date" className="uppercase text-primary">Total</DTCell>

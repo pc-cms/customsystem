@@ -8,9 +8,7 @@
  * Column model: every section shows ONE headline "total" column when collapsed;
  * clicking the group header reveals its component columns.
  */
-import { invalidateFinance } from "@/lib/fin-invalidate";
-import { useEffect, useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Wallet2, ChevronLeft, ChevronRight, Info } from "lucide-react";
 
@@ -32,7 +30,8 @@ import { cn } from "@/lib/utils";
 import { formulaText } from "@/lib/monthly-balance-formulas";
 import {
   useDailyBalanceReport, useSetCreditDeposit, useSetBankBalance,
-  type DailyBalanceRow, type ManualLegacyField,
+  useMonthStart, useSetMonthStart,
+  type DailyBalanceRow, type ManualLegacyField, type MonthStartField,
 } from "@/hooks/use-daily-balance-report";
 import { demoDailyBalanceRows } from "@/lib/demo-report-data";
 
@@ -146,6 +145,15 @@ const MANUAL_FIELDS: Record<string, ManualLegacyField | undefined> = {
   transfer_cage_manager: "office_transfer",
   transfer_bank: "collection_bank",
 };
+
+/** Start row → editable opening fields in `fin_month_start`. */
+const START_FIELDS: Record<string, MonthStartField | undefined> = {
+  cage_casino: "cage_casino",
+  cage_manager: "cage_manager",
+  bank_tzs: "bank_tzs",
+  bank_usd: "bank_usd",
+};
+
 
 
 /**
@@ -288,65 +296,52 @@ const Tile = ({ label, value, hint }: { label: string; value: number; hint?: str
   </div>
 );
 
-/** Manually entered opening balance for the month (carried over from the previous month). */
-const StartingBalanceTile = ({
-  storageKey, hint, onChange,
-}: { storageKey: string; hint?: string; onChange?: (v: number) => void }) => {
-  const [value, setValue] = useState<number>(() => {
-    const raw = typeof window !== "undefined" ? window.localStorage.getItem(storageKey) : null;
-    return raw ? Number(raw) || 0 : 0;
-  });
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
-
-  useEffect(() => {
-    const raw = typeof window !== "undefined" ? window.localStorage.getItem(storageKey) : null;
-    setValue(raw ? Number(raw) || 0 : 0);
-    setEditing(false);
-  }, [storageKey]);
-
-  const commit = () => {
-    const next = Number(String(draft).replace(/[^\d.-]/g, "")) || 0;
-    setValue(next);
-    window.localStorage.setItem(storageKey, String(next));
-    setEditing(false);
-    onChange?.(next);
-  };
-
-  return (
-    <div className="rounded-md border border-border bg-card px-3 py-2">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Starting Balance</div>
-      {editing ? (
-        <input
-          autoFocus
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") commit();
-            if (e.key === "Escape") setEditing(false);
-          }}
-          className="w-full bg-transparent font-mono text-lg tabular-nums outline-none"
-        />
-      ) : (
-        <button
-          type="button"
-          onClick={() => {
-            setDraft(value ? String(value) : "");
-            setEditing(true);
-          }}
-          className={cn(
-            "block w-full text-left font-mono text-lg tabular-nums",
-            value < 0 ? "cms-amount-negative" : "cms-amount-positive",
-          )}
-        >
-          {formatMoneyFull(Math.round(value))}
-        </button>
+/** Opening money of the month — sum of the Start row (read-only tile). */
+const StartingBalanceTile = ({ value, hint }: { value: number; hint?: string }) => (
+  <div className="rounded-md border border-border bg-card px-3 py-2">
+    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Starting Balance</div>
+    <div
+      className={cn(
+        "font-mono text-lg tabular-nums",
+        value < 0 ? "cms-amount-negative" : "cms-amount-positive",
       )}
-      <div className="text-[10px] text-muted-foreground">{hint ?? "Manual · click to edit"}</div>
+    >
+      {formatMoneyFull(Math.round(value))}
     </div>
+    <div className="text-[10px] text-muted-foreground">
+      {hint ?? (value ? "From the Start row" : "Start row is empty — fill it in the table")}
+    </div>
+  </div>
+);
+
+/** Editable cell of the synthetic "Start" row — persisted in `fin_month_start`. */
+const StartCell = ({
+  month, field, value,
+}: { month: string; field: MonthStartField; value: number }) => {
+  const save = useSetMonthStart(month);
+  const [draft, setDraft] = useState("");
+  const [editing, setEditing] = useState(false);
+  const rounded = Math.round(value);
+  const shown = editing ? draft : rounded ? String(rounded) : "";
+  return (
+    <Input
+      value={shown}
+      placeholder={rounded ? undefined : "·"}
+      inputMode="numeric"
+      title="Opening balance — manual"
+      onClick={(e) => e.stopPropagation()}
+      onFocus={() => { setEditing(true); setDraft(rounded ? String(rounded) : ""); }}
+      onChange={(e) => setDraft(e.target.value.replace(/[^\d.-]/g, ""))}
+      onBlur={() => {
+        setEditing(false);
+        const v = Number(draft || 0);
+        if (Number.isFinite(v) && v !== rounded) save.mutate({ field, value: v });
+      }}
+      className="h-6 w-28 px-1 text-right font-mono text-xs font-semibold tabular-nums"
+    />
   );
 };
+
 
 /**
  * Cash summarised per currency (no denomination breakdown) — every currency is
@@ -405,7 +400,6 @@ const DrillList = ({
 const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   const { activeCasino } = useCasino();
   const navigate = useNavigate();
-  const qc = useQueryClient();
   const [month, setMonth] = useSessionState(demo ? "dbr-demo-month" : "dbr-month", currentMonth());
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
   /** Fixed display options — every column is always shown, in full figures. */
@@ -414,12 +408,17 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   /** Cell drill-down: which column of which row is being inspected. */
   const [drill, setDrill] = useState<{ row: DailyBalanceRow; col: string } | null>(null);
 
-  const startKey = `dbr-start-balance:${activeCasino?.id ?? "none"}:${month}`;
-  const [startBalance, setStartBalance] = useState(0);
-  useEffect(() => {
-    const raw = typeof window !== "undefined" ? window.localStorage.getItem(startKey) : null;
-    setStartBalance(raw ? Number(raw) || 0 : 0);
-  }, [startKey]);
+  /** Opening money of the month — stored in `fin_month_start`, editable in the Start row. */
+  const { data: monthStart } = useMonthStart(month);
+  const startFields = {
+    cage_casino: Number(monthStart?.cage_casino || 0),
+    cage_manager: Number(monthStart?.cage_manager || 0),
+    bank_tzs: Number(monthStart?.bank_tzs || 0),
+    bank_usd: Number(monthStart?.bank_usd || 0),
+  };
+  const startBalance =
+    startFields.cage_casino + startFields.cage_manager + startFields.bank_tzs + startFields.bank_usd;
+
 
 
 
@@ -642,13 +641,25 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
               {node}
             </span>
           );
-          // Opening row: only the carried-over money / balance figures.
-          if (r.kind === "start")
+          // Opening row: editable opening money + carried-over totals.
+          if (r.kind === "start") {
+            if (!demo && START_FIELDS[c.id])
+              return wrap(
+                <StartCell month={month} field={START_FIELDS[c.id]!} value={startFields[START_FIELDS[c.id]!]} />,
+              );
+            if (c.id === "bank_total")
+              return wrap(
+                <span className="font-semibold">
+                  {money(Math.round(startFields.bank_tzs + startFields.bank_usd))}
+                </span>,
+              );
             return wrap(
               c.id === "balance" || c.id === "money_total"
                 ? <span className="font-semibold">{money(Math.round(startBalance))}</span>
                 : blank,
             );
+          }
+
           // Business day still open → no figures in any column.
           if (!r.day_closed) return wrap(blank);
           // Days before the recorded Start keep results & expenses only.
@@ -810,13 +821,10 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
       {/* Row 2: Starting Balance · Casino Result · Money · Expenses · Balance */}
       <div className="mb-3 grid grid-cols-5 gap-2">
         <StartingBalanceTile
-          storageKey={startKey}
-          hint={`Opening ${monthLabel} · manual`}
-          onChange={(v) => {
-            setStartBalance(v);
-            invalidateFinance(qc);
-          }}
+          value={startBalance}
+          hint={startBalance ? `Opening ${monthLabel}` : `Opening ${monthLabel} · fill the Start row`}
         />
+
         <Tile label="Casino Result" value={num(grandRow, "casino_result")} hint="Live Game + Slots + Bar" />
         <Tile
           label="Money"

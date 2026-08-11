@@ -1056,3 +1056,46 @@ export const useSetBankBalance = () => {
     onError: (e: any) => toast.error(e.message),
   });
 };
+
+/** Opening money of the month ("Start" row) — stored in `fin_month_start`. */
+export type MonthStartField = "cage_casino" | "cage_manager" | "bank_tzs" | "bank_usd";
+
+export const useMonthStart = (month: string) => {
+  const { activeCasinoId } = useCasino();
+  return useQuery({
+    queryKey: ["fin-month-start", activeCasinoId, month],
+    enabled: !!activeCasinoId && !!month,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("fin_month_start")
+        .select("*")
+        .eq("casino_id", activeCasinoId)
+        .eq("month", `${month}-01`)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+  });
+};
+
+export const useSetMonthStart = (month: string) => {
+  const qc = useQueryClient();
+  const { activeCasinoId } = useCasino();
+  return useMutation({
+    mutationFn: async ({ field, value }: { field: MonthStartField; value: number }) => {
+      if (!activeCasinoId) throw new Error("No casino");
+      const { error } = await (supabase as any)
+        .from("fin_month_start")
+        .upsert(
+          { casino_id: activeCasinoId, month: `${month}-01`, [field]: value },
+          { onConflict: "casino_id,month" },
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fin-month-start"] });
+      invalidateFinance(qc);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+};
