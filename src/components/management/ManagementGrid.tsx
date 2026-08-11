@@ -8,7 +8,7 @@
  * Rota mode      : cell = shift D / M / N / L (CCTV: city code ARU/MWZ/MBI/DOD).
  * Attendance mode: cell = auto value from the rota, overridable with A / L / S.
  */
-import { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
