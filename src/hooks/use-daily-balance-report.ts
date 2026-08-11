@@ -883,12 +883,18 @@ export const useDailyBalanceReport = (
         }) => {
           // Cage Casino = live ledger of cage_table + cage_slot only (no snap).
           const cageCasino = o.cageCasino;
-          // Manager / Bank freeze at closing time: snapshot wins over live wallet balance.
+          /**
+           * Manager / Bank come from the SAME source as Cage Casino: the last
+           * physical wallet count on or before that date. `countAt` is already
+           * date-aware, so a later count never changes a past day — the old
+           * `fin_day_balance_snapshot` freeze is not used any more (it mixed
+           * two sources and made Money differ from the Wallets Grand Total).
+           */
           const snap = snapByDate[date];
-          const manager = snap?.cage_manager != null ? num(snap.cage_manager) : o.manager;
-          const bankTzs = snap?.bank_tzs != null ? num(snap.bank_tzs) : o.bankTzs;
-          const bankUsd = snap?.bank_usd != null ? num(snap.bank_usd) : o.bankUsd;
-          // bank_usd is ALREADY stored converted to TZS (snapshot + ledger use amount_tzs).
+          const manager = o.manager;
+          const bankTzs = o.bankTzs;
+          const bankUsd = o.bankUsd;
+          // bank_usd is ALREADY stored converted to TZS (ledger uses amount_tzs).
           const bankTotal = bankTzs + bankUsd;
           // Money hidden for the days that precede the recorded Start.
           const hidden = !!moneyFrom && date < moneyFrom;
