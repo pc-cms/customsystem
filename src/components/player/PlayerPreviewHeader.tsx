@@ -18,6 +18,7 @@ import CategoryBadge from "@/components/player/CategoryBadge";
 import FlagBadges from "@/components/player/FlagBadges";
 import { splitTagsBySource } from "@/lib/player-tags";
 import { Button } from "@/components/ui/button";
+import { NumberInput } from "@/components/ui/number-input";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth-context";
 import { canSeePlayerFinancials } from "@/lib/role-access";
@@ -228,13 +229,13 @@ const ChipAdjustInline = ({
       </div>
       {active && (
         <div className="flex items-center gap-1.5">
-          <input
+          <NumberInput
             ref={inputRef}
-            type="number"
-            inputMode="numeric"
+            decimals={0}
+            allowNegative={false}
             placeholder={active === "in" ? "Amount IN" : "Amount OUT"}
-            value={value}
-            onChange={(e) => setValue(e.target.value.replace(/[^0-9]/g, ""))}
+            value={value === "" ? null : value}
+            onValueChange={(v) => setValue(v == null ? "" : String(v))}
             onKeyDown={(e) => {
               if (e.key === "Enter") { e.preventDefault(); commit(); }
               if (e.key === "Escape") { e.preventDefault(); cancel(); }

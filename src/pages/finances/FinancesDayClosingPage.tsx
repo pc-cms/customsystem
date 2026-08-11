@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -214,11 +215,11 @@ export default function FinancesDayClosingPage() {
                   </Select>
                 </div>
                 <div className="col-span-3"><label className="text-xs text-muted-foreground">Amount</label>
-                  <Input type="number" step="0.01" disabled={locked} value={l.amount || ""} onChange={(e) => updateLine(i, { amount: Number(e.target.value), denominations: {} })} /></div>
+                  <NumberInput decimals={2} disabled={locked} value={l.amount ?? 0} onValueChange={(v) => updateLine(i, { amount: v ?? 0, denominations: {} })} /></div>
                 <div className="col-span-2"><label className="text-xs text-muted-foreground">Currency</label>
                   <Input value={l.currency} disabled className="font-mono" /></div>
                 <div className="col-span-2"><label className="text-xs text-muted-foreground">FX → TZS</label>
-                  <Input type="number" step="0.000001" disabled={locked} value={l.fx_rate || 1} onChange={(e) => updateLine(i, { fx_rate: Number(e.target.value) })} /></div>
+                  <NumberInput decimals={6} disabled={locked} value={l.fx_rate ?? 1} onValueChange={(v) => updateLine(i, { fx_rate: v ?? 1 })} /></div>
                 <div className="col-span-1 text-right">
                   {!locked && <Button variant="ghost" size="sm" onClick={() => removeLine(i)}><Trash2 className="w-3.5 h-3.5" /></Button>}
                 </div>

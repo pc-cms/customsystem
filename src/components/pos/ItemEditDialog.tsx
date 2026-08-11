@@ -134,53 +134,47 @@ export const ItemEditDialog = ({
           </Select>
         </FormField>
         <FormField span={6} label="Price (TZS)" required>
-          <Input
-            type="number"
-            inputMode="numeric"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
+          <NumberInput
+            decimals={2}
+            value={price === "" ? "" : Number(price)}
+            onValueChange={(v) => setPrice(v == null ? "" : String(v))}
           />
         </FormField>
         <FormField span={6} label="Stock qty" hint="Leave empty to disable tracking">
-          <Input
-            type="number"
-            inputMode="numeric"
-            value={stockQty}
-            onChange={(e) => setStockQty(e.target.value)}
+          <NumberInput
+            decimals={0}
+            value={stockQty === "" ? "" : Number(stockQty)}
+            onValueChange={(v) => setStockQty(v == null ? "" : String(v))}
           />
         </FormField>
         <FormField span={6} label="Low threshold" hint="Alert when stock falls below">
-          <Input
-            type="number"
-            inputMode="numeric"
-            value={lowThreshold}
-            onChange={(e) => setLowThreshold(e.target.value)}
+          <NumberInput
+            decimals={0}
+            value={lowThreshold === "" ? "" : Number(lowThreshold)}
+            onValueChange={(v) => setLowThreshold(v == null ? "" : String(v))}
           />
         </FormField>
         <FormField span={4} label="Bottle size (ml)" hint="For per-serving pricing">
-          <Input
-            type="number"
-            inputMode="numeric"
-            value={bottleMl}
-            onChange={(e) => setBottleMl(e.target.value)}
+          <NumberInput
+            decimals={0}
+            value={bottleMl === "" ? "" : Number(bottleMl)}
+            onValueChange={(v) => setBottleMl(v == null ? "" : String(v))}
             placeholder="e.g. 750"
           />
         </FormField>
         <FormField span={4} label="Serving size (ml)" hint="Pour size">
-          <Input
-            type="number"
-            inputMode="numeric"
-            value={servingMl}
-            onChange={(e) => setServingMl(e.target.value)}
+          <NumberInput
+            decimals={0}
+            value={servingMl === "" ? "" : Number(servingMl)}
+            onValueChange={(v) => setServingMl(v == null ? "" : String(v))}
             placeholder="e.g. 50"
           />
         </FormField>
         <FormField span={4} label="Round step (TZS)" hint="Suggested price rounds up to this">
-          <Input
-            type="number"
-            inputMode="numeric"
-            value={roundStep}
-            onChange={(e) => setRoundStep(e.target.value)}
+          <NumberInput
+            decimals={0}
+            value={roundStep === "" ? "" : Number(roundStep)}
+            onValueChange={(v) => setRoundStep(v == null ? "" : String(v))}
           />
         </FormField>
       </FormGrid>

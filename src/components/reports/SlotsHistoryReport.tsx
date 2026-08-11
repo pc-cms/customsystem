@@ -18,6 +18,7 @@ import { Printer, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { formatMoneyFull } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
 import { useCageSlotsHistory } from "@/hooks/use-cage-slots";
@@ -62,9 +63,9 @@ const EditableMoney = ({
   const save = () => { onSave(Number(draft) || 0); setEditing(false); };
   return (
     <span className="inline-flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-      <Input
-        type="number" value={draft} autoFocus
-        onChange={(e) => setDraft(e.target.value)} onBlur={save}
+      <NumberInput
+        decimals={0} value={draft === "" ? null : draft} autoFocus
+        onValueChange={(v) => setDraft(v == null ? "" : String(v))} onBlur={save}
         onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}
         className="h-7 w-28 text-right font-mono text-xs"
       />
