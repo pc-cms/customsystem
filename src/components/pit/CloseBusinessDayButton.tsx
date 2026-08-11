@@ -180,7 +180,14 @@ export function CloseBusinessDayButton() {
                 onChange={e => setClientBalance(e.target.value)} placeholder="0" />
               <p className="text-[11px] text-muted-foreground">→ Slots — Client Balance · Day Closing</p>
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="cbd-jp-in">JP (IN) — optional</Label>
+              <Input id="cbd-jp-in" inputMode="decimal" value={jpIn}
+                onChange={e => setJpIn(e.target.value)} placeholder="0" />
+              <p className="text-[11px] text-muted-foreground">→ Office · Day Closings — JP (income)</p>
+            </div>
           </div>
+
 
           <div className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
             <span className="text-muted-foreground">Table Result (auto, from closed tables)</span>
