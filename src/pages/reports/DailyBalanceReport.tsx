@@ -31,7 +31,8 @@ import { fmtDate } from "@/lib/format-date";
 import { cn } from "@/lib/utils";
 import { formulaText } from "@/lib/monthly-balance-formulas";
 import {
-  useDailyBalanceReport, useSetCreditDeposit, useSetBankBalance, type DailyBalanceRow,
+  useDailyBalanceReport, useSetCreditDeposit, useSetBankBalance,
+  type DailyBalanceRow, type ManualLegacyField,
 } from "@/hooks/use-daily-balance-report";
 import { demoDailyBalanceRows } from "@/lib/demo-report-data";
 
