@@ -7,23 +7,26 @@
 | Live Game | Close Day → `tables_result` (только оттуда, не из смен) |
 | Slots | Close Day → `cashdesk_win − players_card_balance` |
 | Bar | POS-заказы дня (без void) |
-| Tips | Транзакции tips (столы) + tips кассы слотов |
+| Tips | **Ручной ввод** в ячейке (пока не автоматизируем) |
 | Casino Result | Live Game + Slots + Bar |
 | Chip Diff | Miss Chips закрытых смен дня |
 | Slots Diff | Close Day → `players_card_balance` |
 | Cage Casino | Деньги в кассе на закрытие: Live cage (наличные + cashless + mobile) + Cage Slots (закрывающая инвентаризация). Фишки не входят |
-| Internal Transfer | Переводы касса → офисный сейф |
+| Internal Transfer | **Ручной ввод** (позже — отдельный интерфейс переводов в Wallets) |
 | Cage Manager | Офисные кошельки (Wallets): офисный сейф + mobile money + резервы |
-| Bank Transfer | Переводы в банковские кошельки |
+| Bank Transfer | **Ручной ввод** (позже — отдельный интерфейс переводов в Wallets) |
 | **Terminal (новая, перед Bank)** | Дневной поток: поле BANK из закрытия касс (Live `closing_count.bank` TZS/USD + аналог по слотам). Это оборот дня, не остаток |
 | **Bank TZS (новая связка)** | Кошельки CRDB TZS + NBC TZS |
 | **Bank USD (в валюте) + пересчёт** | Кошельки CRDB USD + NBC USD; показываем сумму в USD и её эквивалент в TZS по курсу дня |
 | Bank (итог) | Bank TZS + Bank USD (TZS) |
 | Expenses | Утверждённые расходы дня (касса + офис) |
 | Office +/− | Внешние приходы и коллекции (Wallets) |
-| Money | Cage Casino + Cage Manager + Bank (TZS+USD) |
+| Money | Cage Casino + Cage Manager + Bank (TZS+USD) + Terminal за день |
 | Fin Result | Result + Diff − Expenses |
 | Balance (сверка) | Вчера Money + Result + Diff + Fees + Office − Expenses − Money сегодня → 0 |
+
+Ручные поля (Tips, Internal Transfer, Bank Transfer) редактируются прямо в ячейке отчёта и хранятся по дню и казино; они не пересчитываются системой.
+
 
 Ручные значения (fin_legacy_balance) и Excel-импорт для банков больше не подменяют кошельки — банк всегда из кошельков.
 
