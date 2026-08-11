@@ -54,15 +54,16 @@ const BASE_KEYS: (keyof DailyBalanceRow)[] = [
   "casino_result", "tables_result", "slots_result", "live_cash_result", "slots_diff",
   "bar_result", "tips_tables", "tips_slots", "chip_difference", "diff_total",
   "transfer_cage_manager", "transfer_bank",
-  "expenses", "fees", "bank_expenses", "money_in", "money_out", "fin_result",
+  "expenses", "bank_expenses", "money_in", "money_out", "fin_result",
   "day_total", "cash_desk_result", "day_balance", "collection_bank",
+  "other_income", "jp", "missed_cards",
 ];
-
 
 /** SNAPSHOT fields — end-of-day stock values, never summed (last value wins). */
 const SNAPSHOT_KEYS: (keyof DailyBalanceRow)[] = [
   "cage_casino", "cage_manager", "bank_tzs", "bank_usd", "money_total", "balance",
 ];
+
 
 const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
   {
@@ -99,10 +100,10 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     key: "money",
     label: "Bank",
     cols: [
-      { id: "terminal_total", label: "Terminal", total: true, value: (r) => num(r, "terminal_total") },
       { id: "bank_total", label: "Bank", total: true, value: (r) => num(r, "bank_tzs") + num(r, "bank_usd") },
       { id: "bank_tzs", label: "Bank TZS", value: (r) => num(r, "bank_tzs") },
       { id: "bank_usd", label: "Bank USD", value: (r) => num(r, "bank_usd") },
+      { id: "collections", label: "Collections", value: (r) => num(r, "collections") },
     ],
   },
 
@@ -111,7 +112,9 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     label: "Expenses",
     cols: [
       { id: "expenses", label: "Expenses", total: true, value: (r) => num(r, "expenses") },
-      { id: "fees", label: "Fees", total: true, value: (r) => num(r, "fees") },
+      { id: "other_income", label: "Other Incomes", value: (r) => num(r, "other_income") },
+      { id: "jp", label: "JP", value: (r) => num(r, "jp") },
+      { id: "missed_cards", label: "Missed Cards", value: (r) => num(r, "missed_cards") },
     ],
   },
   {
@@ -125,19 +128,21 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
   },
   {
     key: "balances",
-    label: "Balance",
+    label: "Variance",
     cols: [
       { id: "money_total", label: "Money", total: true, value: (r) => num(r, "money_total") },
-      { id: "balance", label: "Balance", total: true, value: (r) => num(r, "balance") },
+      { id: "balance", label: "Variance", total: true, value: (r) => num(r, "balance") },
     ],
   },
+
 ];
 
 /** Money columns — blanked for the days that precede the recorded Start. */
 const MONEY_IDS = new Set([
   "cage_casino", "cage_manager", "transfer_cage_manager", "transfer_bank",
-  "terminal_total", "bank_total", "bank_tzs", "bank_usd", "money_total", "balance",
+  "bank_total", "bank_tzs", "bank_usd", "money_total", "balance", "collections",
 ]);
+
 
 /** Columns typed by hand — mapped to their `fin_legacy_balance` field. */
 const MANUAL_FIELDS: Record<string, ManualLegacyField | undefined> = {
@@ -552,7 +557,7 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
 
 
   /** Full figures only — no compact M / K suffixes anywhere in this grid. */
-  const blank = <span className="text-muted-foreground">{demo ? "0" : "·"}</span>;
+  const blank = <span className="text-muted-foreground">0</span>;
   const money = (n: number) =>
     !n ? blank : (
       <span className={n < 0 ? "cms-amount-negative" : undefined}>{formatMoneyFull(n)}</span>
@@ -837,7 +842,7 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
         <Tile label="Expenses" value={-num(grandRow, "expenses")} />
 
         <Tile
-          label="Balance"
+          label="Variance"
           value={Number(lastClosedRow?.balance || 0)}
           hint={lastClosedDate ? fmtDate(lastClosedDate) : undefined}
         />

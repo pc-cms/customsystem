@@ -44,18 +44,12 @@ export interface CageDetail {
 }
 
 
-/** One cash-desk closing leg marked as BANK (Terminal column detail). */
-export interface TerminalLeg {
-  shift: string;
-  tzs: number;
-  usd: number;
-}
-
 export interface TransferDetail {
   amount: number;
   from: string;
   to: string;
 }
+
 
 
 export interface WalletBalance {
@@ -83,15 +77,12 @@ export interface DailyBalanceRow {
   office_transfer: number;
   office_in: number;
   office_out: number;
-  bank_terminal: number;
-  bank_fee: number;
   bank_account: number;
   bank_expenses: number;
   credit_deposit: number;
   expenses: number;
-  /** Fees booked as "Other incomes" of type `fee` (TZS). */
-  fees: number;
   chips_float: number;
+
   /** Σ incomes of the day: Tables + Slots + Bar + Credit/Deposit */
   day_total: number;
   /** Cash Desk − Day Total (cash vs declared result) */
@@ -115,11 +106,16 @@ export interface DailyBalanceRow {
   cage_manager: number;
   /** Transfers into bank accounts (positive leg). */
   transfer_bank: number;
-  /** Terminal — cash-desk closing legs marked as BANK for that day (daily flow). */
-  terminal_tzs: number;
-  terminal_usd: number;
-  terminal_total: number;
-  terminal_detail: TerminalLeg[];
+  /** Other incomes / fees (non-JP) from fin_other_incomes. */
+  other_income: number;
+  /** Jackpot (JP) income from fin_other_incomes. */
+  jp: number;
+  /** Missed cards (negative = shortage) — Cage Slots cards miss. */
+  missed_cards: number;
+  /** Collections / owner withdrawals — shown as a reference column (part of Office Out). */
+  collections: number;
+
+
   /** Bank account balances at end of day, split by currency (TZS-valued). */
   bank_tzs: number;
   bank_usd: number;
@@ -237,10 +233,11 @@ export const useDailyBalanceReport = (
         legacy,
         slotsClosing,
         dayClosures,
-        feeRows,
+        otherIncomeRows,
         daySnaps,
         monthStart,
       ] = await Promise.all([
+
 
         fetchPaged<any>((a, b) =>
           sb.from("fin_day_closing")
@@ -257,8 +254,9 @@ export const useDailyBalanceReport = (
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("expenses")
-            .select("business_date, amount, amount_tzs, currency, wallet_id, voided_at, description, fin_category_id, fin_categories(name, group_code)")
+            .select("business_date, amount, amount_tzs, currency, wallet_id, source, approved, voided_at, reversal_of, description, fin_category_id, fin_categories(name, group_code)")
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
+
         fetchPaged<any>((a, b) =>
           sb.from("fin_wallet_tx")
             .select("business_date, wallet_id, kind, amount_tzs, amount, note, ref_table, posted_at, category_id, fin_categories(name, group_code)")
@@ -315,12 +313,13 @@ export const useDailyBalanceReport = (
           sb.from("business_day_closures")
             .select("business_date")
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
-        // Fees booked in Other incomes (source = 'fee').
+        // All Other incomes (JP + non-JP) converted to TZS.
         fetchPaged<any>((a, b) =>
           sb.from("fin_other_incomes")
-            .select("business_date, amount, currency, fx_rate, source, reversed_by_id")
-            .eq("casino_id", casino).eq("source", "fee")
+            .select("business_date, amount, currency, fx_rate, source, reversed_by_id, reverses_id")
+            .eq("casino_id", casino)
             .gte("business_date", from).lte("business_date", to).range(a, b)),
+
         // Recorded closing snapshots (money frozen at day close).
         fetchPaged<any>((a, b) =>
           sb.from("fin_day_balance_snapshot")
@@ -463,16 +462,26 @@ export const useDailyBalanceReport = (
 
 
       /**
-       * Expenses column = operating expenses only. "Collection" / "CAPEX" are
-       * payouts to the owner, not costs — they belong to Office OUT.
+       * Expenses column = approved operating expenses only. "Collection" is a
+       * payout to the owner and is shown as a reference column (Collections).
+       * Wallets logic: approved, not voided, not a reversal, and either an
+       * office expense or the business day is closed.
        */
-      const isCollectionCat = (row: any) =>
-        String(row?.fin_categories?.group_code || row?.category?.group_code || "") === "collections";
-      const expByDate: Bucket = {}, bankExpByDate: Bucket = {};
+      const isCollectionCat = (row: any) => {
+        const gc = String(row?.fin_categories?.group_code || row?.category?.group_code || "").toLowerCase();
+        const name = String(row?.fin_categories?.name || row?.category?.name || "").toLowerCase();
+        return gc.includes("collection") || name.includes("collection");
+      };
+      const isApprovedExpense = (e: any) => e.approved === true && !e.voided_at && e.reversal_of === null;
+      const isOfficeExpense = (e: any) => String(e.source || "") === "office";
+      const expByDate: Bucket = {}, bankExpByDate: Bucket = {}, collectionsByDate: Bucket = {};
       const expDetail: Record<string, Record<string, number>> = {};
-      expenses.filter((e) => !e.voided_at).forEach((e) => {
+      expenses.filter((e) => isApprovedExpense(e) && (isOfficeExpense(e) || closedDays.has(e.business_date))).forEach((e) => {
         const v = tzs(e);
-        if (isCollectionCat(e)) return;
+        if (isCollectionCat(e)) {
+          add(collectionsByDate, e.business_date, v);
+          return;
+        }
         add(expByDate, e.business_date, v);
         const label = e.fin_categories?.name || e.description || "Other";
         ((expDetail[e.business_date] ??= {}))[label] =
@@ -480,10 +489,13 @@ export const useDailyBalanceReport = (
         if (isBankKind(walletKind[e.wallet_id])) add(bankExpByDate, e.business_date, v);
       });
 
+
       const collections: Bucket = {}, officeIn: Bucket = {}, officeOut: Bucket = {};
       const trfToManager: Bucket = {}, trfToBank: Bucket = {}, ownerIn: Bucket = {};
       const officeMoves: Record<string, TransferDetail[]> = {};
+      const cageCasinoRunning: Bucket = {};
       const cageRunning: Bucket = {}, officeRunning: Bucket = {}, bankRunning: Bucket = {};
+
 
       const bankTzsRunning: Bucket = {}, bankUsdRunning: Bucket = {};
       const walletCurrency: Record<string, string> = {};
@@ -493,10 +505,11 @@ export const useDailyBalanceReport = (
        * very beginning when that date is before the visible range). USD floats
        * are converted to TZS with the daily rate.
        */
-      const floatByDate: Record<string, { cage: number; office: number; bankTzs: number; bankUsd: number }> = {};
+      const floatByDate: Record<string, { cageCasino: number; cage: number; office: number; bankTzs: number; bankUsd: number }> = {};
       const floatBucket = (d: string) =>
-        (floatByDate[d] ??= { cage: 0, office: 0, bankTzs: 0, bankUsd: 0 });
-      let cageBal = 0, officeBal = 0, bankTzsBal = 0, bankUsdBal = 0;
+        (floatByDate[d] ??= { cageCasino: 0, cage: 0, office: 0, bankTzs: 0, bankUsd: 0 });
+      const CASINO_CAGE_KINDS = new Set(["cage_table", "cage_slot"]);
+      let cageCasinoBal = 0, cageBal = 0, officeBal = 0, bankTzsBal = 0, bankUsdBal = 0;
       wallets.forEach((w) => {
         const f = num(w.starting_float_amount);
         if (!f) return;
@@ -505,12 +518,14 @@ export const useDailyBalanceReport = (
         const rate = rateByDate[d] || FALLBACK_USD_RATE;
         const v = cur === "TZS" ? f : f * rate;
         const b = floatBucket(!d || d < from ? "0000-00-00" : d);
+        if (CASINO_CAGE_KINDS.has(w.kind)) b.cageCasino += v;
         if (CAGE_KINDS.has(w.kind)) b.cage += v;
         else if (isOfficeKind(w.kind)) b.office += v;
         else if (isBankKind(w.kind)) {
           if (cur === "TZS") b.bankTzs += v; else b.bankUsd += v;
         }
       });
+
 
       const walletName: Record<string, string> = {};
       wallets.forEach((w) => { walletName[w.id] = w.name; });
@@ -598,6 +613,7 @@ export const useDailyBalanceReport = (
       for (const d of allTxDates) {
         const f = floatByDate[d];
         if (f) {
+          cageCasinoBal += f.cageCasino;
           cageBal += f.cage; officeBal += f.office;
           bankTzsBal += f.bankTzs; bankUsdBal += f.bankUsd;
           wallets.forEach((w) => {
@@ -614,17 +630,20 @@ export const useDailyBalanceReport = (
           const v = signedWalletTxTzs(t);
           perWallet[t.wallet_id] = (perWallet[t.wallet_id] || 0) + v;
 
+          if (CASINO_CAGE_KINDS.has(k)) cageCasinoBal += v;
           if (CAGE_KINDS.has(k)) cageBal += v;
           else if (isOfficeKind(k)) officeBal += v;
           else if (isBankKind(k)) {
             if (walletCurrency[t.wallet_id] === "TZS") bankTzsBal += v; else bankUsdBal += v;
           }
         }
+        cageCasinoRunning[d] = cageCasinoBal;
         cageRunning[d] = cageBal;
         officeRunning[d] = officeBal;
         bankRunning[d] = bankTzsBal + bankUsdBal;
         bankTzsRunning[d] = bankTzsBal;
         bankUsdRunning[d] = bankUsdBal;
+
         officeWalletsByDate[d] = officeWallets.map((w) => ({
           name: w.name,
           currency: w.currency || "TZS",
@@ -634,33 +653,6 @@ export const useDailyBalanceReport = (
 
 
 
-      const terminal: Bucket = {};
-      bankChecks.forEach((b) => {
-        const rate = rateByDate[b.check_date] || FALLBACK_USD_RATE;
-        const v = b.currency === "USD" ? num(b.amount) * rate : num(b.amount);
-        add(terminal, b.check_date, v);
-      });
-
-      /**
-       * Terminal — money marked as BANK in the cash-desk closing of the day
-       * (`closing_count.bank` → { tzs, usd }). It is a DAILY FLOW, summed over
-       * the shifts of the business day, never a running balance.
-       */
-      const terminalTzs: Bucket = {}, terminalUsd: Bucket = {};
-      const terminalDetail: Record<string, TerminalLeg[]> = {};
-      shifts.filter((s) => s.closed_at).forEach((s) => {
-        const d = businessDateOf(s.opened_at);
-        const bank = ((s.closing_count as any)?.bank || {}) as { tzs?: number; usd?: number };
-        const t = num(bank.tzs), u = num(bank.usd);
-        if (!t && !u) return;
-        add(terminalTzs, d, t);
-        add(terminalUsd, d, u);
-        (terminalDetail[d] ??= []).push({
-          shift: dateOnly(s.closed_at) === d ? "Live shift" : `Live shift ${dateOnly(s.closed_at)}`,
-          tzs: t,
-          usd: u,
-        });
-      });
 
 
 
@@ -686,12 +678,14 @@ export const useDailyBalanceReport = (
        * Per-day figure — never cumulative.
        */
       const missByDenomDate: Record<string, Record<number, number>> = {};
+      const cardsMiss: Bucket = {};
       shifts
         .filter((s) => s.closed_at)
         .forEach((s) => {
           const d = businessDateOf(s.opened_at);
           const cc = (s.closing_count as any) || {};
-          add(chipMiss, d, num(cc.chip_miss_total));
+          // Negative sign: miss chips reduce the expected balance.
+          add(chipMiss, d, -num(cc.chip_miss_total));
           const by = (cc.chip_miss_by_denom || {}) as Record<string, unknown>;
           const bucket = (missByDenomDate[d] ??= {});
           Object.entries(by).forEach(([dn, q]) => {
@@ -700,6 +694,12 @@ export const useDailyBalanceReport = (
             bucket[den] = (bucket[den] || 0) + num(q);
           });
         });
+      // Missed cards come from cage slots shifts — negative sign like miss chips.
+      slotShifts.forEach((s) => {
+        const d = String(s.business_date).slice(0, 10);
+        add(cardsMiss, d, -num(s.cards_miss));
+      });
+
       const chipDates = new Set([...Object.keys(missByDenomDate), ...Object.keys(floatByDenom)]);
       chipDates.forEach((date) => {
         const miss = missByDenomDate[date] || {};
@@ -722,13 +722,20 @@ export const useDailyBalanceReport = (
       const bar: Bucket = {};
       posOrders.filter((o) => o.status !== "void").forEach((o) => add(bar, o.business_date, num(o.total_tzs)));
 
-      /** Fees (Other incomes, source = 'fee') converted to TZS. */
-      const feesByDate: Bucket = {};
-      (feeRows as any[]).filter((f) => !f.reversed_by_id).forEach((f) => {
+      /** Other incomes (JP + non-JP) converted to TZS. Reversed rows are excluded. */
+      const otherIncomeByDate: Bucket = {};
+      const jpByDate: Bucket = {};
+      (otherIncomeRows as any[]).filter((f) => !f.reversed_by_id && !f.reverses_id).forEach((f) => {
         const fx = num(f.fx_rate) || 1;
         const amt = String(f.currency || "TZS") === "TZS" ? num(f.amount) : num(f.amount) * fx;
-        add(feesByDate, String(f.business_date).slice(0, 10), amt);
+        const d = String(f.business_date).slice(0, 10);
+        if (String(f.source || "") === "jp") {
+          add(jpByDate, d, amt);
+        } else {
+          add(otherIncomeByDate, d, amt);
+        }
       });
+
 
       const legacyByDate: Record<string, any> = {};
       legacy.forEach((l) => { legacyByDate[l.business_date] = l; });
@@ -801,25 +808,23 @@ export const useDailyBalanceReport = (
 
         /** Casino Monthly Balance derived block (shared by legacy + live rows). */
         const cmb = (o: {
-          cage: number; cashPart: number; cashlessPart: number; carried: boolean;
+          cageCasino: number; cashPart: number; cashlessPart: number; carried: boolean;
           manager: number; bankTzs: number; bankUsd: number;
           expenses: number; inV: number; outV: number; result: number;
           live: number; slotsDiff: number; chipDiff: number;
-          tips?: number;
+          tips?: number; otherIncome?: number; jp?: number; missedCards?: number; collections?: number;
         }) => {
-          // Money frozen at closing time wins over the live wallet balance.
+          // Cage Casino = live ledger of cage_table + cage_slot only (no snap).
+          const cageCasino = o.cageCasino;
+          // Manager / Bank freeze at closing time: snapshot wins over live wallet balance.
           const snap = snapByDate[date];
-          const cage = snap?.cage_casino != null ? num(snap.cage_casino) : o.cage;
           const manager = snap?.cage_manager != null ? num(snap.cage_manager) : o.manager;
-          // Bank ALWAYS comes from the bank wallets (CRDB + NBC), split by currency.
-          const bankTzs = o.bankTzs;
-          const bankUsd = o.bankUsd;
-          const terminalTzsV = terminalTzs[date] ?? 0;
-          const terminalUsdV = terminalUsd[date] ?? 0;
-          const terminalTotal = terminalTzsV + terminalUsdV * rate;
+          const bankTzs = snap?.bank_tzs != null ? num(snap.bank_tzs) : o.bankTzs;
+          const bankUsd = snap?.bank_usd != null ? num(snap.bank_usd) : o.bankUsd;
+          const bankTotal = bankTzs + bankUsd * rate;
           // Money hidden for the days that precede the recorded Start.
           const hidden = !!moneyFrom && date < moneyFrom;
-          const moneyTotal = hidden ? 0 : cage + manager + bankTzs + bankUsd + terminalTotal;
+          const moneyTotal = hidden ? 0 : cageCasino + manager + bankTotal;
           const opening = firstRow ? startingBalance : prevMoney;
           firstRow = false;
           const diffTotal = o.chipDiff + o.slotsDiff;
@@ -828,18 +833,20 @@ export const useDailyBalanceReport = (
           const officeOutV = num(l?.office_out);
           const officeNet = officeInV - officeOutV;
 
-          const feesV = feesByDate[date] ?? 0;
-          // Tips are a MANUAL figure (legacy row), kept outside the cash reconciliation.
-          const tipsV = l?.tips_tables != null ? num(l.tips_tables) : (o.tips ?? 0);
-          const balance = hidden
+          const otherIncomeV = o.otherIncome ?? 0;
+          const jpV = o.jp ?? 0;
+          const missedCardsV = o.missedCards ?? 0;
+          const collectionsV = o.collections ?? 0;
+          // Variance = Start + Result + Diff + JP + Other Incomes + Office IN - Expenses - Office OUT - Money Total.
+          const variance = hidden
             ? 0
-            : opening + o.result + diffTotal + feesV + officeNet - o.expenses - moneyTotal;
+            : opening + o.result + diffTotal + jpV + otherIncomeV + officeInV - o.expenses - officeOutV - moneyTotal;
           if (!hidden) prevMoney = moneyTotal;
           return {
             live_cash_result: o.live,
             slots_diff: o.slotsDiff,
             diff_total: diffTotal,
-            cage_casino: hidden ? 0 : cage,
+            cage_casino: hidden ? 0 : cageCasino,
             cage_cash_part: o.cashPart,
             cage_cashless_part: o.cashlessPart,
             cage_carried: o.carried,
@@ -847,10 +854,6 @@ export const useDailyBalanceReport = (
             transfer_cage_manager: num(l?.office_transfer),
             cage_manager: hidden ? 0 : manager,
             transfer_bank: num(l?.collection_bank),
-            terminal_tzs: terminalTzsV,
-            terminal_usd: terminalUsdV,
-            terminal_total: terminalTotal,
-            terminal_detail: terminalDetail[date] ?? [],
             bank_tzs: hidden ? 0 : bankTzs,
             bank_usd: hidden ? 0 : bankUsd,
             bank_usd_raw: rate ? (hidden ? 0 : bankUsd) / rate : 0,
@@ -858,13 +861,16 @@ export const useDailyBalanceReport = (
             bank_usd_manual: false,
             money_in: officeInV,
             money_out: officeOutV,
-
+            other_income: otherIncomeV,
+            jp: jpV,
+            missed_cards: missedCardsV,
+            collections: collectionsV,
             money_total: moneyTotal,
             money_hidden: hidden,
             // P&L of the day — Casino Result − Expenses ± Diff.
             fin_result: o.result + diffTotal - o.expenses,
-            balance,
-            balance_check: opening + o.result + diffTotal + feesV + officeNet - o.expenses,
+            balance: variance,
+            balance_check: opening + o.result + diffTotal + jpV + otherIncomeV + officeNet - o.expenses,
             chips_detail: chipsDetail[date] ?? [],
             cage_detail: cageDetail[date] ?? { cash: [], cashless: [], mobile: {}, slots_total: 0 },
             transfers_manager: managerTransfers[date] ?? [],
@@ -879,7 +885,7 @@ export const useDailyBalanceReport = (
             expenses_detail: Object.entries(expDetail[date] ?? {})
               .map(([label, value]) => ({ label, value }))
               .sort((a, b) => b.value - a.value),
-            tips_total: tipsV,
+            tips_total: o.tips ?? 0,
             snapshot: !!snap,
           };
         };
@@ -888,9 +894,8 @@ export const useDailyBalanceReport = (
 
 
 
+
         if (!hasSystemData && l) {
-          const gross = num(l.bank_terminal);
-          const net = gross / (1 + BANK_COMMISSION_RATE);
           const lTotal = num(l.tables_result) + num(l.slots_result) + num(l.bar_result) + manualCredit;
           return {
             date,
@@ -910,8 +915,6 @@ export const useDailyBalanceReport = (
             office_transfer: num(l.office_transfer),
             office_in: num(l.office_in),
             office_out: num(l.office_out),
-            bank_terminal: net,
-            bank_fee: gross - net,
             bank_account: num(l.bank_account),
             bank_expenses: num(l.bank_expenses),
             credit_deposit: manualCredit,
@@ -920,7 +923,7 @@ export const useDailyBalanceReport = (
             day_total: lTotal,
             day_balance: num(l.cash_desk_result) - lTotal,
             ...cmb({
-              cage: num(l.cage_cash), cashPart: num(l.cage_cash), cashlessPart: 0, carried: false,
+              cageCasino: num(l.cage_cash), cashPart: num(l.cage_cash), cashlessPart: 0, carried: false,
               manager: num(l.office_cash),
               bankTzs: num(l.bank_account), bankUsd: 0,
               expenses: num(l.expenses) + num(l.bank_expenses),
@@ -929,25 +932,22 @@ export const useDailyBalanceReport = (
               live: num(l.cash_desk_result), slotsDiff: 0,
               chipDiff: num(l.chip_difference),
               tips: num(l.tips_tables) + num(l.tips_slots),
-
+              otherIncome: 0, jp: 0, missedCards: 0, collections: num(l.collection_bank),
             }),
-            fees: feesByDate[date] ?? 0,
             legacy: true,
             hasSystemData: false,
             day_closed: true,
           } satisfies DailyBalanceRow;
         }
 
-        // Bank checks are entered GROSS (3% on top) — strip the commission.
-        const gross = terminal[date] ?? 0;
-        const net = gross / (1 + BANK_COMMISSION_RATE);
+
         const dayTotal = tables + slotsNet + barV + manualCredit;
         const cdr = cashDesk[date] ?? 0;
-        // Cage Casino = ALL money in the live cage + slots cage (cash + cashless)
+        // Cage Casino = running ledger of cage_table + cage_slot wallets only.
         const cashPart = cageClosing[date] ?? null;
         const cashlessPart = cageCashless[date] ?? 0;
         const carried = false;
-        const cage = (cashPart ?? 0) + cashlessPart;
+        const cageCasino = cageCasinoRunning[date] ?? 0;
         const expensesV = expByDate[date] ?? 0;
         return {
           date,
@@ -958,9 +958,9 @@ export const useDailyBalanceReport = (
           tables_result: tables,
           slots_result: slotsNet,
           bar_result: barV,
-          // Cage Cash = closing cash of LIVE + SLOTS cage shifts (falls back to wallet balance)
-          cage_cash: cage,
-          collection_bank: collections[date] ?? 0,
+          // Cage Cash = closing cash of LIVE + SLOTS cage shifts (reference only)
+          cage_cash: (cashPart ?? 0) + cashlessPart,
+          collection_bank: collectionsByDate[date] ?? 0,
           chip_difference: chipMiss[date] ?? 0,
           tips_tables: tipsTables[date] ?? 0,
           tips_slots: tipsSlots[date] ?? 0,
@@ -968,8 +968,6 @@ export const useDailyBalanceReport = (
           office_transfer: (officeIn[date] ?? 0) - (officeOut[date] ?? 0),
           office_in: officeIn[date] ?? 0,
           office_out: officeOut[date] ?? 0,
-          bank_terminal: net,
-          bank_fee: gross - net,
           bank_account: lastBank,
           bank_expenses: bankExpByDate[date] ?? 0,
           credit_deposit: manualCredit,
@@ -978,7 +976,7 @@ export const useDailyBalanceReport = (
           day_total: dayTotal,
           day_balance: cdr - dayTotal,
           ...cmb({
-            cage,
+            cageCasino,
             cashPart: cashPart ?? 0,
             cashlessPart,
             carried,
@@ -992,13 +990,16 @@ export const useDailyBalanceReport = (
             slotsDiff: cardBal[date] ?? 0,
             chipDiff: chipMiss[date] ?? 0,
             tips: (tipsTables[date] ?? 0) + (tipsSlots[date] ?? 0),
-
+            otherIncome: otherIncomeByDate[date] ?? 0,
+            jp: jpByDate[date] ?? 0,
+            missedCards: cardsMiss[date] ?? 0,
+            collections: collectionsByDate[date] ?? 0,
           }),
-          fees: feesByDate[date] ?? 0,
           legacy: false,
           hasSystemData,
           day_closed: closedDays.has(date),
         } satisfies DailyBalanceRow;
+
       });
 
 

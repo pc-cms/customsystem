@@ -1,42 +1,32 @@
-# Casino Monthly Balance — привести деньги и результаты к логике Wallets
+# Casino Monthly Balance — CMB/Wallets alignment
 
-CMB остаётся независимым контрольным отчётом (Variance может отличаться от Wallets в этом месяце из-за разной точки старта — Start в CMB = вчера/сегодня). Но источники цифр приводим к одной модели.
+## Goal
+Make the **Casino Monthly Balance** report an independent control report whose logic matches the **Wallets** module and the user's 15 answers.
 
-## Что меняем по деньгам (Money Total)
+## Decisions implemented
 
-1. **Cage Casino** — считаем из кошельков `cage_table` + `cage_slot` (не из закрытий смен). Закрытия смен остаются только источником результатов, не источником денег.
-2. **Cage Manager и Bank** — берём из записи Record (`fin_day_balance_snapshot`), которая фиксирует состояние всех кошельков на конец бизнес-дня, кроме `cage_table` / `cage_slot`. Если снимка за день нет — ячейка ставится `0`, а не пустая (`·`).
-3. **Terminal** — колонку убираем полностью (деньги приходят в банк, двойной счёт).
-4. Money Total = Cage Casino (кошельки) + Cage Manager (Record) + Bank TZS + Bank USD.
+1. **Cage Casino** — running ledger of `cage_table` + `cage_slot` wallets (TZS + USD at daily rate). Chips excluded. No snapshot override.
+2. **Cage Manager** — from `fin_day_balance_snapshot` (Record) when available; otherwise live office wallet running balance.
+3. **Bank** — from `fin_day_balance_snapshot` (Record) when available; otherwise live bank wallet running balance. Split by TZS/USD.
+4. **Terminal column removed** — no `terminal_tzs`, `terminal_usd`, `terminal_total`, `bank_terminal`, `bank_fee`.
+5. **Other Incomes / JP** — new columns pulled from `fin_other_incomes` (JP separate; everything else is Other Incomes).
+6. **Missed Chips** — sign matches the Office convention (negative = shortage, reduces expected balance).
+7. **Missed Cards** — new column from `cage_slots_shifts.cards_miss`, same negative sign as Missed Chips.
+8. **Collections** — new reference column for expenses in the Collection category (part of Office Out).
+9. **Expenses** — only `approved = true`, not voided, not reversals; office expenses show immediately, cage expenses only after the business day is closed.
+10. **Variance formula** — `Start + Result + Diff + JP + Other Incomes + Office IN − Expenses − Office OUT − Money Total`.
+11. **Fin Result** — unchanged: `Result − Expenses ± Diff`.
+12. **Money Total** — `Cage Casino + Cage Manager + Bank TZS + Bank USD`.
+13. **Empty cells** — display `0` instead of `·`.
+14. **Balance label** — renamed to **Variance** in the report header, section label, and top tile.
+15. **Start row** — editable opening fields from `fin_month_start`; rows before the recorded Start date hide money columns.
 
-## Что меняем по результатам и Diff
+## Files changed
+- `src/hooks/use-daily-balance-report.ts` — core data model, running balances, variance formula, snapshot/ledger split.
+- `src/pages/reports/DailyBalanceReport.tsx` — new column layout, zero blanks, Variance label.
+- `src/lib/monthly-balance-formulas.ts` — updated tooltips/sources.
+- `src/lib/demo-report-data.ts` — synced demo rows with the new schema.
 
-5. **Miss Chips** — знак приводим к офисной/Wallets-логике (минус в ожидаемом, как в `fin_balance_snapshot`).
-6. **Miss Cards** — добавляем отдельную колонку (тот же знак, что Miss Chips).
-7. **Card Balance учитывается один раз**: Slots берём gross из Close Day, Card Balance остаётся отдельной колонкой Diff. Двойного вычета в Slots больше нет.
-8. **Bar / POS** — оставляем в Result как есть.
-9. **JP и Other Incomes** — добавляем колонки: JP отдельно, Other Incomes = все `fin_other_incomes` кроме JP (сейчас берётся только `source = 'fee'`).
-10. **Collections** — добавляем колонку; по факту это Office OUT (одно и то же движение), поэтому Collections и Office OUT не суммируются дважды: Collections показывается как справочная колонка, а в Variance участвует Office OUT.
-
-## Расходы
-
-11. Фильтр расходов приводим к Wallets: только `approved = true`, без reversal; кассовые (Live/Slots) учитываются после закрытия бизнес-дня, office — сразу.
-
-## Start и Variance
-
-12. Строка Start остаётся ручной (`fin_month_start`). Автоподтягивание из кошельков не делаем; добавляем предупреждение в UI, если Start пустой.
-13. Variance считается по колонкам отчёта:
-
-```text
-Variance = Start + Result + Diff (Miss Chips − , Miss Cards − , Card Balance +)
-         + JP + Other Incomes + Office IN
-         − Expenses − Office OUT
-         − Money Total
-```
-
-## Технические детали
-
-- `src/hooks/use-daily-balance-report.ts`: `DailyBalanceRow` расширяем полями `jp`, `other_income`, `missed_cards`, `collections`; `cage_casino` переводим на кошельки `cage_table`/`cage_slot`; `cage_manager` / `bank_tzs` / `bank_usd` читаем из `fin_day_balance_snapshot`; удаляем `terminal_*` и `bank_check` агрегацию; расходы фильтруем по `approved` + закрытию дня.
-- `src/pages/reports/DailyBalanceReport.tsx`: убрать колонку Terminal, добавить JP, Other Incomes, Miss Cards, Collections; пересобрать формулу Variance и плитки итогов.
-- `src/lib/monthly-balance-formulas.ts`: обновить описания источников для всех изменённых колонок.
-- Поднять версию в `package.json`.
+## Verification
+- `bun run build` passes.
+- `bunx tsc --noEmit` passes.
