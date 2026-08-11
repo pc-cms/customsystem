@@ -109,8 +109,6 @@ export interface DailyBalanceRow {
   cage_manager: number;
   /** Transfers into bank accounts (positive leg). */
   transfer_bank: number;
-  /** Cash-desk result (gross cashdesk win) from the day-closing record. */
-  cash_desk_result: number;
   /** Other incomes / fees (non-JP) from fin_other_incomes. */
   other_income: number;
   /** Jackpot (JP) income from fin_other_incomes. */
@@ -119,6 +117,7 @@ export interface DailyBalanceRow {
   missed_cards: number;
   /** Collections / owner withdrawals — shown as a reference column (part of Office Out). */
   collections: number;
+
 
   /** Bank account balances at end of day, split by currency (TZS-valued). */
   bank_tzs: number;
