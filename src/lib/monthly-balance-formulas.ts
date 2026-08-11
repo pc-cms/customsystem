@@ -115,17 +115,17 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
 
   office_total: {
     formula: "Office net = (+) money in − (−) money out",
-    source: "Manual — typed inline in this report",
+    source: "fin_other_incomes split by sign (positive → +, negative → −)",
     total: "sum",
   },
   money_in: {
-    formula: "Money into the office",
-    source: "Manual — click the cell to type it",
+    formula: "Positive other incomes of the day",
+    source: "fin_other_incomes (amount > 0, JP excluded)",
     total: "sum",
   },
   money_out: {
-    formula: "Money out of the office",
-    source: "Manual — click the cell to type it",
+    formula: "Negative other incomes of the day (absolute value)",
+    source: "fin_other_incomes (amount < 0, JP excluded)",
     total: "sum",
   },
   money_total: {
@@ -134,15 +134,16 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
     total: "stock",
   },
   fin_result: {
-    formula: "Casino Result − Expenses ± Diff (chips + slots)",
+    formula: "Casino Result (incl. JP) − Expenses ± Diff",
     source: "Derived from Result, Expenses and Diff",
     total: "sum",
   },
   balance: {
-    formula: "Variance = Start + Result + Diff + JP + Other Incomes + Office IN − Expenses − Office OUT − Money Total",
-    source: "Derived control check",
+    formula: "Variance = Money yesterday (or Start) + Result ± Diff − Expenses ± Office − Money today",
+    source: "Derived control check — ideal value is 0",
     total: "stock",
   },
+
 };
 
 export const formulaText = (id: string): string | null => {
