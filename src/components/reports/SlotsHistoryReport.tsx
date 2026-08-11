@@ -265,7 +265,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
           {!isLoading && sorted.length === 0 && (
             <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-4">No closed slots shifts in range</DTCell></DTRow>
           )}
-          {sorted.map(({ s, drop, netWin, cdr, clientBalance, miss, balance, locked }) => {
+          {sorted.map(({ s, drop, netWin, cdr, clientBalance, miss, balance, netWinLocked, cdrLocked }) => {
             const isExpanded = expandedId === s.id;
             const toggleExpanded = () => setExpandedId(isExpanded ? null : s.id);
             const onRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
