@@ -9,7 +9,6 @@
  * clicking the group header reveals its component columns.
  */
 import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Wallet2, ChevronLeft, ChevronRight, Info } from "lucide-react";
 
@@ -401,7 +400,6 @@ const DrillList = ({
 const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   const { activeCasino } = useCasino();
   const navigate = useNavigate();
-  const qc = useQueryClient();
   const [month, setMonth] = useSessionState(demo ? "dbr-demo-month" : "dbr-month", currentMonth());
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
   /** Fixed display options — every column is always shown, in full figures. */
