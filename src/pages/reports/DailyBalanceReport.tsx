@@ -31,7 +31,8 @@ import { fmtDate } from "@/lib/format-date";
 import { cn } from "@/lib/utils";
 import { formulaText } from "@/lib/monthly-balance-formulas";
 import {
-  useDailyBalanceReport, useSetCreditDeposit, useSetBankBalance, type DailyBalanceRow,
+  useDailyBalanceReport, useSetCreditDeposit, useSetBankBalance,
+  type DailyBalanceRow, type ManualLegacyField,
 } from "@/hooks/use-daily-balance-report";
 import { demoDailyBalanceRows } from "@/lib/demo-report-data";
 
@@ -99,11 +100,13 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     key: "money",
     label: "Bank",
     cols: [
+      { id: "terminal_total", label: "Terminal", total: true, value: (r) => num(r, "terminal_total") },
       { id: "bank_total", label: "Bank", total: true, value: (r) => num(r, "bank_tzs") + num(r, "bank_usd") },
       { id: "bank_tzs", label: "Bank TZS", value: (r) => num(r, "bank_tzs") },
       { id: "bank_usd", label: "Bank USD", value: (r) => num(r, "bank_usd") },
     ],
   },
+
   {
     key: "expenses",
     label: "Expenses",
@@ -130,6 +133,20 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
     ],
   },
 ];
+
+/** Money columns — blanked for the days that precede the recorded Start. */
+const MONEY_IDS = new Set([
+  "cage_casino", "cage_manager", "transfer_cage_manager", "transfer_bank",
+  "terminal_total", "bank_total", "bank_tzs", "bank_usd", "money_total", "balance",
+]);
+
+/** Columns typed by hand — mapped to their `fin_legacy_balance` field. */
+const MANUAL_FIELDS: Record<string, ManualLegacyField | undefined> = {
+  tips_total: "tips_tables",
+  transfer_cage_manager: "office_transfer",
+  transfer_bank: "collection_bank",
+};
+
 
 /**
  * Per-section column zone tint — OPAQUE (mixed against --card) so that sticky
@@ -226,10 +243,10 @@ const CreditCell = ({ date, value }: { date: string; value: number }) => {
   );
 };
 
-/** Manual bank balance (TZS or USD) — inline editor, saved per day on blur. */
-const BankCell = ({
-  date, value, field, manual,
-}: { date: string; value: number; field: "bank_account" | "bank_account_usd"; manual: boolean }) => {
+/** Manual figure stored in `fin_legacy_balance` — inline editor, saved on blur. */
+const ManualCell = ({
+  date, value, field, width = "w-28",
+}: { date: string; value: number; field: ManualLegacyField; width?: string }) => {
   const save = useSetBankBalance();
   const [draft, setDraft] = useState<string>("");
   const [editing, setEditing] = useState(false);
@@ -240,7 +257,7 @@ const BankCell = ({
       value={shown}
       placeholder={rounded ? undefined : "·"}
       inputMode="numeric"
-      title={manual ? "Manual entry" : "Computed from wallets — type to override"}
+      title="Manual entry"
       onClick={(e) => e.stopPropagation()}
       onFocus={() => { setEditing(true); setDraft(rounded ? String(rounded) : ""); }}
       onChange={(e) => setDraft(e.target.value.replace(/[^\d.-]/g, ""))}
@@ -249,13 +266,11 @@ const BankCell = ({
         const v = Number(draft || 0);
         if (Number.isFinite(v) && v !== rounded) save.mutate({ date, field, value: v });
       }}
-      className={cn(
-        "h-6 w-28 px-1 text-right font-mono text-xs tabular-nums",
-        !manual && "border-dashed text-muted-foreground",
-      )}
+      className={cn("h-6 px-1 text-right font-mono text-xs tabular-nums", width)}
     />
   );
 };
+
 
 /** Compact KPI tile. */
 const Tile = ({ label, value, hint }: { label: string; value: number; hint?: string }) => (
@@ -636,14 +651,23 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             );
           // Business day still open → no figures in any column.
           if (!r.day_closed) return wrap(blank);
+          // Days before the recorded Start keep results & expenses only.
+          if (r.money_hidden && MONEY_IDS.has(c.id)) return wrap(blank);
 
           if (r.kind === "day" && c.id === "credit_deposit")
             return wrap(<CreditCell date={r.date} value={num(r, "credit_deposit")} />);
-          if (r.kind === "day" && c.id === "bank_tzs")
-            return wrap(<BankCell date={r.date} field="bank_account" value={num(r, "bank_tzs")} manual={!!r.bank_tzs_manual} />);
+          if (r.kind === "day" && MANUAL_FIELDS[c.id])
+            return wrap(
+              <ManualCell date={r.date} field={MANUAL_FIELDS[c.id]} value={c.value(r)} />,
+            );
           if (r.kind === "day" && c.id === "bank_usd")
-            return wrap(<BankCell date={r.date} field="bank_account_usd" value={num(r, "bank_usd_raw")} manual={!!r.bank_usd_manual} />);
+            return wrap(
+              <span title={`${money(Math.round(num(r, "bank_usd_raw")))} USD`}>
+                {money(Math.round(num(r, "bank_usd")))}
+              </span>,
+            );
           const rendered = money(Math.round(c.value(r)));
+
           if (c.id === "expenses")
             return wrap(
               <span

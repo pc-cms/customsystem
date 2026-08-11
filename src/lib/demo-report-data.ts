@@ -88,6 +88,11 @@ export const demoDailyBalanceRows = (month: string): DailyBalanceRow[] => {
     return {
       date,
       weekday: WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()],
+      terminal_tzs: 0,
+      terminal_usd: 0,
+      terminal_total: 0,
+      terminal_detail: [],
+      money_hidden: false,
       rate_usd: RATE,
       casino_result: result,
       cash_desk_result: round(result * 0.9, 1000),
