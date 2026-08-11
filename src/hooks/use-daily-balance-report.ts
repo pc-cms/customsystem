@@ -496,7 +496,9 @@ export const useDailyBalanceReport = (
       const collections: Bucket = {}, officeIn: Bucket = {}, officeOut: Bucket = {};
       const trfToManager: Bucket = {}, trfToBank: Bucket = {}, ownerIn: Bucket = {};
       const officeMoves: Record<string, TransferDetail[]> = {};
+      const cageCasinoRunning: Bucket = {};
       const cageRunning: Bucket = {}, officeRunning: Bucket = {}, bankRunning: Bucket = {};
+
 
       const bankTzsRunning: Bucket = {}, bankUsdRunning: Bucket = {};
       const walletCurrency: Record<string, string> = {};
