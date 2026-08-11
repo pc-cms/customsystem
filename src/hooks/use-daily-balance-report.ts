@@ -257,8 +257,9 @@ export const useDailyBalanceReport = (
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("expenses")
-            .select("business_date, amount, amount_tzs, currency, wallet_id, voided_at, description, fin_category_id, fin_categories(name, group_code)")
+            .select("business_date, amount, amount_tzs, currency, wallet_id, source, approved, voided_at, reversal_of, description, fin_category_id, fin_categories(name, group_code)")
             .eq("casino_id", casino).gte("business_date", from).lte("business_date", to).range(a, b)),
+
         fetchPaged<any>((a, b) =>
           sb.from("fin_wallet_tx")
             .select("business_date, wallet_id, kind, amount_tzs, amount, note, ref_table, posted_at, category_id, fin_categories(name, group_code)")
