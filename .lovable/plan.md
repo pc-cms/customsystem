@@ -1,61 +1,42 @@
-# Wallets vs Casino Monthly Balance: где расходятся деньги
+# Casino Monthly Balance — привести деньги и результаты к логике Wallets
 
-Ниже — построчное сравнение двух моделей и список того, что нужно добавить в Casino Monthly Balance (CMB), чтобы его Variance означал то же самое, что Variance в Wallets.
+CMB остаётся независимым контрольным отчётом (Variance может отличаться от Wallets в этом месяце из-за разной точки старта — Start в CMB = вчера/сегодня). Но источники цифр приводим к одной модели.
 
-## Как считает Wallets (RPC `fin_balance_snapshot`)
+## Что меняем по деньгам (Money Total)
+
+1. **Cage Casino** — считаем из кошельков `cage_table` + `cage_slot` (не из закрытий смен). Закрытия смен остаются только источником результатов, не источником денег.
+2. **Cage Manager и Bank** — берём из записи Record (`fin_day_balance_snapshot`), которая фиксирует состояние всех кошельков на конец бизнес-дня, кроме `cage_table` / `cage_slot`. Если снимка за день нет — ячейка пустая (`·`), а не подставленный ledger.
+3. **Terminal** — колонку убираем полностью (деньги приходят в банк, двойной счёт).
+4. Money Total = Cage Casino (кошельки) + Cage Manager (Record) + Bank TZS + Bank USD.
+
+## Что меняем по результатам и Diff
+
+5. **Miss Chips** — знак приводим к офисной/Wallets-логике (минус в ожидаемом, как в `fin_balance_snapshot`).
+6. **Miss Cards** — добавляем отдельную колонку (тот же знак, что Miss Chips).
+7. **Card Balance учитывается один раз**: Slots берём gross из Close Day, Card Balance остаётся отдельной колонкой Diff. Двойного вычета в Slots больше нет.
+8. **Bar / POS** — оставляем в Result как есть.
+9. **JP и Other Incomes** — добавляем колонки: JP отдельно, Other Incomes = все `fin_other_incomes` кроме JP (сейчас берётся только `source = 'fee'`).
+10. **Collections** — добавляем колонку; по факту это Office OUT (одно и то же движение), поэтому Collections и Office OUT не суммируются дважды: Collections показывается как справочная колонка, а в Variance участвует Office OUT.
+
+## Расходы
+
+11. Фильтр расходов приводим к Wallets: только `approved = true`, без reversal; кассовые (Live/Slots) учитываются после закрытия бизнес-дня, office — сразу.
+
+## Start и Variance
+
+12. Строка Start остаётся ручной (`fin_month_start`). Автоподтягивание из кошельков не делаем; добавляем предупреждение в UI, если Start пустой.
+13. Variance считается по колонкам отчёта:
 
 ```text
-Expected = Starting Float (по кошелькам)
-         + Live (fin_day_closing.tables_result)
-         + Slots (fin_day_closing.slots_result)
-         + Other Incomes (кроме JP) + JP
-         + Card Balance (players_card_balance)
-         − Miss Chips − Miss Cards      (в RPC они уже с минусом)
-         − Expenses (approved, день закрыт; office — сразу)
-         − Collections
-Actual   = Σ по кошелькам последнего снимка cash_count_snapshots (иначе starting float)
-Variance = Actual − Expected
+Variance = Start + Result + Diff (Miss Chips − , Miss Cards − , Card Balance +)
+         + JP + Other Incomes + Office IN
+         − Expenses − Office OUT
+         − Money Total
 ```
-
-## Как считает Casino Monthly Balance (`use-daily-balance-report.ts`)
-
-```text
-Result      = Tables + (Slots − Card Balance) + Bar
-Diff        = Miss Chips (+) + Card Balance (+)
-Money Total = Cage Casino (закрытия смен Live+Slots: касса+cashless)
-            + Cage Manager (running ledger office-кошельков)
-            + Bank TZS + Bank USD (running ledger bank-кошельков)
-            + Terminal (closing_count.bank за день)
-Variance    = Opening + Result + Diff + Fees + OfficeNet − Expenses − Money Total
-```
-
-## Расхождения (по источникам)
-
-1. **Actual считается по-разному.** Wallets = только физические снимки (`cash_count_snapshots`). CMB = ledger по движениям кошельков + касса из закрытий смен. Если снимка не делали, Wallets покажет float, а CMB — реальный ledger. Это главный источник расхождения на уровне «денег».
-2. **Касса (Cage) в CMB берётся не из кошельков, а из `shifts.closing_count` / `cage_slots_shifts`.** Если в казино заведены кошельки `cage_table` / `cage_slot`, одна и та же касса присутствует в обеих моделях по разным источникам — цифры не совпадают по определению.
-3. **Terminal.** В CMB он прибавляется к Money Total как дневной поток, при этом эти же деньги позже приходят на банковский кошелёк. Как только транзакция в банк проведена, сумма считается дважды.
-4. **Знак Miss Chips противоположный.** В Wallets `missed_chips` уходит в Expected со знаком «минус», в CMB `chip_difference` прибавляется к Diff со знаком «плюс». По одному и тому же дню две страницы дадут разницу в 2 × Miss.
-5. **Card Balance.** В CMB он вычитается в Slots и тут же прибавляется в Diff (итог 0). В Wallets `slots_result` берётся полностью, и `card_balance` добавляется сверху — риск двойного учёта карт.
-6. **Bar / POS.** Входит в Result в CMB, полностью отсутствует в Expected Wallets.
-7. **JP и Other Incomes.** Wallets учитывает все `fin_other_incomes` (+ JP отдельно). CMB берёт только строки с `source = 'fee'`; прочие Other Incomes и JP в отчёт не попадают.
-8. **Расходы фильтруются по-разному.** Wallets: только `approved = true`, `reversal_of is null` и только при закрытом бизнес-дне (office — сразу). CMB: все не-voided расходы дня без проверки approved и без ожидания закрытия дня. Не утверждённые расходы попадают только в CMB.
-9. **Collections.** Wallets вычитает их отдельной строкой из Expected. В CMB они исключены из Expenses и должны сидеть в Office OUT, который теперь заполняется вручную — сейчас это просто не учитывается.
-10. **Стартовая точка.** Wallets = сумма `starting_float_amount` по кошелькам. CMB = строка Start из `fin_month_start`. Если Start заполнен не полностью (как было по Аруше), Variance уезжает на всю недостающую сумму.
-
-## Рекомендации: что добавить в Casino Monthly Balance
-
-1. **Единый источник Actual.** Money Total собирать из тех же кошельков, что и Wallets (снимок `cash_count_snapshots` на конец дня), а закрытия смен использовать как источник снимка кассы, а не как отдельный столбец денег.
-2. **Убрать Terminal из Money Total**, оставив его информационной колонкой потока (или помечать проведённые в банк суммы, чтобы исключить двойной счёт).
-3. **Привести знаки к Wallets:** Miss Chips — минус, Miss Cards — минус (сейчас Miss Cards в CMB вообще нет, добавить колонку).
-4. **Card Balance учитывать один раз** — выбрать: либо Slots gross + Card Balance, либо Slots net без Diff.
-5. **Добавить колонки JP и Other Incomes** (не только fee), чтобы Result CMB совпадал с Incomes Wallets.
-6. **Согласовать фильтр расходов:** только `approved`, без reversal, и учёт после закрытия бизнес-дня (office — сразу), как в RPC.
-7. **Добавить колонку Collections** с тем же определением, что в RPC (группа `collections`, кроме transfer / money change), и вычитать её из ожидаемого.
-8. **Строку Start валидировать:** предупреждение в UI, если `fin_month_start` пустой или не совпадает с суммой кошельков на дату старта.
-9. **Панель расшифровки Variance по дню** (как в Wallets Breakdown): Opening → Result → Diff → Incomes → Expenses → Collections → Money Total, чтобы расхождение читалось глазами.
 
 ## Технические детали
 
-- Источник Wallets: RPC `fin_balance_snapshot` + `src/hooks/use-fin-balance.ts` (`computeBalanceTotals`).
-- Источник CMB: `src/hooks/use-daily-balance-report.ts` (функция `cmb`), рендер `src/pages/reports/DailyBalanceReport.tsx`, подписи формул `src/lib/monthly-balance-formulas.ts`.
-- Реализация правок: расширить `DailyBalanceRow` полями `jp`, `other_income`, `missed_cards`, `collections`; переключить `cage`/`manager`/`bank` на снимки кошельков; обновить `COLUMN_FORMULAS`; поднять версию в `package.json`.
+- `src/hooks/use-daily-balance-report.ts`: `DailyBalanceRow` расширяем полями `jp`, `other_income`, `missed_cards`, `collections`; `cage_casino` переводим на кошельки `cage_table`/`cage_slot`; `cage_manager` / `bank_tzs` / `bank_usd` читаем из `fin_day_balance_snapshot`; удаляем `terminal_*` и `bank_check` агрегацию; расходы фильтруем по `approved` + закрытию дня.
+- `src/pages/reports/DailyBalanceReport.tsx`: убрать колонку Terminal, добавить JP, Other Incomes, Miss Cards, Collections; пересобрать формулу Variance и плитки итогов.
+- `src/lib/monthly-balance-formulas.ts`: обновить описания источников для всех изменённых колонок.
+- Поднять версию в `package.json`.
