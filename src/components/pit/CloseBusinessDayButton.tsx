@@ -108,9 +108,12 @@ export function CloseBusinessDayButton() {
         netWin: figures.netWin as number,
         cashDeskWin: figures.cashDeskWin as number,
         clientBalance: figures.clientBalance as number,
+        jpIn: parseNum(jpIn),
         notes: notes.trim() || undefined,
       });
-      setDropSlots(""); setNetWin(""); setCashDeskWin(""); setClientBalance(""); setNotes("");
+      setDropSlots(""); setNetWin(""); setCashDeskWin(""); setClientBalance("");
+      setJpIn(""); setNotes("");
+
     } catch {
       /* toast already shown */
     }
