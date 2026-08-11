@@ -896,8 +896,6 @@ export const useDailyBalanceReport = (
 
 
         if (!hasSystemData && l) {
-          const gross = num(l.bank_terminal);
-          const net = gross / (1 + BANK_COMMISSION_RATE);
           const lTotal = num(l.tables_result) + num(l.slots_result) + num(l.bar_result) + manualCredit;
           return {
             date,
@@ -917,8 +915,6 @@ export const useDailyBalanceReport = (
             office_transfer: num(l.office_transfer),
             office_in: num(l.office_in),
             office_out: num(l.office_out),
-            bank_terminal: net,
-            bank_fee: gross - net,
             bank_account: num(l.bank_account),
             bank_expenses: num(l.bank_expenses),
             credit_deposit: manualCredit,
@@ -927,7 +923,7 @@ export const useDailyBalanceReport = (
             day_total: lTotal,
             day_balance: num(l.cash_desk_result) - lTotal,
             ...cmb({
-              cage: num(l.cage_cash), cashPart: num(l.cage_cash), cashlessPart: 0, carried: false,
+              cageCasino: num(l.cage_cash), cashPart: num(l.cage_cash), cashlessPart: 0, carried: false,
               manager: num(l.office_cash),
               bankTzs: num(l.bank_account), bankUsd: 0,
               expenses: num(l.expenses) + num(l.bank_expenses),
@@ -936,14 +932,14 @@ export const useDailyBalanceReport = (
               live: num(l.cash_desk_result), slotsDiff: 0,
               chipDiff: num(l.chip_difference),
               tips: num(l.tips_tables) + num(l.tips_slots),
-
+              otherIncome: 0, jp: 0, missedCards: 0, collections: num(l.collection_bank),
             }),
-            fees: feesByDate[date] ?? 0,
             legacy: true,
             hasSystemData: false,
             day_closed: true,
           } satisfies DailyBalanceRow;
         }
+
 
         // Bank checks are entered GROSS (3% on top) — strip the commission.
         const gross = terminal[date] ?? 0;
