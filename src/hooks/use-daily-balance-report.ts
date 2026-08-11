@@ -440,10 +440,18 @@ export const useDailyBalanceReport = (
         add(cashDesk, s.business_date, num(s.cash_desk_result));
         add(slotsCashDesk, s.business_date, num(s.cash_desk_result));
         add(slotsDeclared, s.business_date, num(s.slots_result));
+        // Client Balance — same source as Statistics → Slots (manual entry).
+        add(manualClientBal, s.business_date, num(s.manual_slots_deposits));
         // Cashless balance of the slots cage — snapshot, last shift wins.
         cageCashless[s.business_date] = (cageCashless[s.business_date] ?? 0) + num(s.cashless_final);
         if (slotsRes[s.business_date] == null) add(slotsRes, s.business_date, num(s.slots_result));
       });
+      // Statistics is the source of truth for Client Balance; fall back to the
+      // Close Day figure only when no slots shift carries the manual value.
+      for (const d of Object.keys(manualClientBal)) {
+        if (manualClientBal[d] !== 0) cardBal[d] = manualClientBal[d];
+      }
+
       // Slots cage closing inventory — snapshot: keep the LAST closing per day.
       const lastSlotsInv: Record<string, { at: string; total: number }> = {};
       slotsClosing.forEach((i) => {
