@@ -61,6 +61,28 @@ export interface WalletBalance {
   units?: number;
 }
 
+/** Money bucket a wallet belongs to (drives the universal money drill). */
+export type MoneyBucket = "cage" | "office" | "bank";
+
+/**
+ * One wallet as of a given day — the single source of every money figure in
+ * the report (last physical count on or before that date).
+ */
+export interface MoneyWallet {
+  name: string;
+  kind: string;
+  currency: string;
+  /** Amount in the wallet's own currency. */
+  units: number;
+  /** Amount converted to TZS. */
+  tzs: number;
+  bucket: MoneyBucket;
+  /** true for mobile-money / cashless channels (AirTell, Tigo, Halo, M-Pesa). */
+  mobile: boolean;
+}
+
+
+
 export interface DailyBalanceRow {
 
   date: string;
