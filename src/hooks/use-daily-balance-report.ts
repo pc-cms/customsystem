@@ -952,6 +952,7 @@ export const useDailyBalanceReport = (
 
             chips_detail: chipsDetail[date] ?? [],
             cage_detail: cageDetail[date] ?? { cash: [], cashless: [], mobile: {}, slots_total: 0 },
+            money_detail: hidden ? [] : (moneyByDate[date] ?? []),
             transfers_manager: managerTransfers[date] ?? [],
             transfers_bank: bankTransfers[date] ?? [],
             office_wallets: lastOfficeWallets,
