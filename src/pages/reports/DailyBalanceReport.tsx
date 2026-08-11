@@ -723,11 +723,19 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             const c = ALL_COLS.find((x) => x.id === col.key);
             const v = c ? Math.round(c.value(grandRow)) : 0;
             const tip = formulaText(col.key);
+            const signed = SIGNED_IDS.has(String(col.key));
             return (
               <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                <span className={cn("font-mono text-[11px] font-bold tabular-nums", v < 0 && "cms-amount-negative")}>
+                <span
+                  className={cn(
+                    "font-mono text-[11px] font-bold tabular-nums",
+                    v < 0 ? "cms-amount-negative" : signed && v > 0 ? "cms-amount-positive" : undefined,
+                  )}
+                >
+                  {signed && v > 0 ? "+" : ""}
                   {formatMoneyFull(v)}
                 </span>
+
 
                 {tip && (
                   <Tooltip>
