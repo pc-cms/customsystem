@@ -27,6 +27,7 @@ import {
 } from "@/hooks/use-office-balance-report";
 import { demoOfficeBalance } from "@/lib/demo-report-data";
 import StartBalanceDialog from "@/components/reports/StartBalanceDialog";
+import DrillTable from "@/components/reports/DrillTable";
 import { useAuth } from "@/lib/auth-context";
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
