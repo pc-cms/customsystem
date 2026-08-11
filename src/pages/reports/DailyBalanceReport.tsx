@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import CurrencyCashTable from "@/components/reports/CurrencyCashTable";
+import MoneyDrill from "@/components/reports/MoneyDrill";
 import DrillHeader from "@/components/reports/DrillHeader";
 import { useCasino } from "@/lib/casino-context";
 import { useSessionState } from "@/hooks/use-session-state";
@@ -107,7 +108,6 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
       { id: "bank_total", label: "Bank", total: true, value: (r) => num(r, "bank_tzs") + num(r, "bank_usd") },
       { id: "bank_tzs", label: "Bank TZS", value: (r) => num(r, "bank_tzs") },
       { id: "bank_usd", label: "Bank USD", value: (r) => num(r, "bank_usd") },
-      { id: "collections", label: "Collections", value: (r) => num(r, "collections") },
     ],
   },
 
@@ -142,7 +142,7 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
 /** Money columns — blanked for the days that precede the recorded Start. */
 const MONEY_IDS = new Set([
   "cage_casino", "cage_manager", "transfer_cage_manager", "transfer_bank",
-  "bank_total", "bank_tzs", "bank_usd", "money_total", "balance", "collections",
+  "bank_total", "bank_tzs", "bank_usd", "money_total", "balance",
 ]);
 
 
@@ -227,7 +227,7 @@ const HEAT_IDS = new Set(ALL_COLS.map((c) => c.id));
 /** Columns that open a right-hand breakdown panel when a cell is clicked. */
 const DRILL_IDS = new Set([
   "chip_difference", "cage_casino", "cage_manager", "transfer_cage_manager", "transfer_bank",
-  "bank_tzs", "bank_usd",
+  "bank_total", "bank_tzs", "bank_usd", "money_total",
 ]);
 
 
