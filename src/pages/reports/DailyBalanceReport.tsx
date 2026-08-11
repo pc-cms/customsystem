@@ -32,7 +32,9 @@ import {
   useDailyBalanceReport, useSetCreditDeposit, useSetBankBalance,
   useMonthStart, useSetMonthStart,
   type DailyBalanceRow, type ManualLegacyField, type MonthStartField,
+  type WalletBalance,
 } from "@/hooks/use-daily-balance-report";
+import DrillTable, { type DrillRow } from "@/components/reports/DrillTable";
 import { demoDailyBalanceRows } from "@/lib/demo-report-data";
 
 type SectionKey = "incomes" | "diff" | "expenses" | "office" | "transfers" | "money" | "balances";
