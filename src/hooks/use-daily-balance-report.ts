@@ -955,7 +955,9 @@ export const useDailyBalanceReport = (
               live: num(l.cash_desk_result), slotsDiff: 0,
               chipDiff: num(l.chip_difference),
               tips: num(l.tips_tables) + num(l.tips_slots),
-              otherIncome: 0, jp: 0, missedCards: 0, collections: num(l.collection_bank),
+              officeIn: num(l.office_in), officeOut: num(l.office_out),
+              jp: 0, missedCards: 0, collections: num(l.collection_bank),
+
             }),
             legacy: true,
             hasSystemData: false,
