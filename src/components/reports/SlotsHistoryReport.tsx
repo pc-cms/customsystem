@@ -266,32 +266,9 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
             <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-4">No closed slots shifts in range</DTCell></DTRow>
           )}
           {sorted.map(({ s, drop, netWin, cdr, clientBalance, miss, balance, netWinLocked, cdrLocked }) => {
-            const isExpanded = expandedId === s.id;
-            const toggleExpanded = () => setExpandedId(isExpanded ? null : s.id);
-            const onRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                toggleExpanded();
-              }
-            };
             return (
-              <Fragment key={s.id}>
-                <DTRow
-                  className={`cursor-pointer ${isExpanded ? "bg-accent/20" : ""}`}
-                  onClick={toggleExpanded}
-                  onKeyDown={onRowKeyDown}
-                  tabIndex={0}
-                  role="button"
-                  aria-expanded={isExpanded}
-                >
-                  <DTCell type="date">
-                    <span className="inline-flex items-center gap-1">
-                      {isExpanded
-                        ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-                        : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
-                      {fmtDate(s.business_date)}
-                    </span>
-                  </DTCell>
+              <DTRow key={s.id}>
+                  <DTCell type="date">{fmtDate(s.business_date)}</DTCell>
                   <DTCell type="time" className="text-muted-foreground font-mono">
                     {s.closed_at ? eatTime(s.closed_at) : "·"}
                   </DTCell>
@@ -323,22 +300,15 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
                     <MoneyCell value={miss || null} mode={mode} empty="·" className={miss < 0 ? "cms-amount-negative" : ""} />
                   </DTCell>
                   <DTCell type="money"><MoneyCell value={balance} mode={mode} signed /></DTCell>
-                  <DTCell type="actions" onClick={(e) => e.stopPropagation()}>
+                  <DTCell type="actions">
                     <Button variant="ghost" size="sm" onClick={() => setPrintShiftId(s.id)} className="gap-1 h-7">
                       <Printer className="w-3.5 h-3.5" /> Print
                     </Button>
                   </DTCell>
-                </DTRow>
-                {isExpanded && (
-                  <DTRow className="bg-muted/10">
-                    <DTCell colSpan={9} className="p-3">
-                      <SlotsShiftReportBody id={s.id} showHeader={false} compact />
-                    </DTCell>
-                  </DTRow>
-                )}
-              </Fragment>
+              </DTRow>
             );
           })}
+
           {sorted.length > 0 && (
             <DTRow className="border-t-2 border-primary/40 bg-primary/10 font-bold text-[120%]">
               <DTCell type="date" className="uppercase text-primary">Total</DTCell>
