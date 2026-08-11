@@ -811,25 +811,23 @@ export const useDailyBalanceReport = (
 
         /** Casino Monthly Balance derived block (shared by legacy + live rows). */
         const cmb = (o: {
-          cage: number; cashPart: number; cashlessPart: number; carried: boolean;
+          cageCasino: number; cashPart: number; cashlessPart: number; carried: boolean;
           manager: number; bankTzs: number; bankUsd: number;
           expenses: number; inV: number; outV: number; result: number;
           live: number; slotsDiff: number; chipDiff: number;
-          tips?: number;
+          tips?: number; otherIncome?: number; jp?: number; missedCards?: number; collections?: number;
         }) => {
-          // Money frozen at closing time wins over the live wallet balance.
+          // Cage Casino = live ledger of cage_table + cage_slot only (no snap).
+          const cageCasino = o.cageCasino;
+          // Manager / Bank freeze at closing time: snapshot wins over live wallet balance.
           const snap = snapByDate[date];
-          const cage = snap?.cage_casino != null ? num(snap.cage_casino) : o.cage;
           const manager = snap?.cage_manager != null ? num(snap.cage_manager) : o.manager;
-          // Bank ALWAYS comes from the bank wallets (CRDB + NBC), split by currency.
-          const bankTzs = o.bankTzs;
-          const bankUsd = o.bankUsd;
-          const terminalTzsV = terminalTzs[date] ?? 0;
-          const terminalUsdV = terminalUsd[date] ?? 0;
-          const terminalTotal = terminalTzsV + terminalUsdV * rate;
+          const bankTzs = snap?.bank_tzs != null ? num(snap.bank_tzs) : o.bankTzs;
+          const bankUsd = snap?.bank_usd != null ? num(snap.bank_usd) : o.bankUsd;
+          const bankTotal = bankTzs + bankUsd * rate;
           // Money hidden for the days that precede the recorded Start.
           const hidden = !!moneyFrom && date < moneyFrom;
-          const moneyTotal = hidden ? 0 : cage + manager + bankTzs + bankUsd + terminalTotal;
+          const moneyTotal = hidden ? 0 : cageCasino + manager + bankTotal;
           const opening = firstRow ? startingBalance : prevMoney;
           firstRow = false;
           const diffTotal = o.chipDiff + o.slotsDiff;
@@ -838,18 +836,20 @@ export const useDailyBalanceReport = (
           const officeOutV = num(l?.office_out);
           const officeNet = officeInV - officeOutV;
 
-          const feesV = feesByDate[date] ?? 0;
-          // Tips are a MANUAL figure (legacy row), kept outside the cash reconciliation.
-          const tipsV = l?.tips_tables != null ? num(l.tips_tables) : (o.tips ?? 0);
-          const balance = hidden
+          const otherIncomeV = o.otherIncome ?? 0;
+          const jpV = o.jp ?? 0;
+          const missedCardsV = o.missedCards ?? 0;
+          const collectionsV = o.collections ?? 0;
+          // Variance = Start + Result + Diff + JP + Other Incomes + Office IN - Expenses - Office OUT - Money Total.
+          const variance = hidden
             ? 0
-            : opening + o.result + diffTotal + feesV + officeNet - o.expenses - moneyTotal;
+            : opening + o.result + diffTotal + jpV + otherIncomeV + officeInV - o.expenses - officeOutV - moneyTotal;
           if (!hidden) prevMoney = moneyTotal;
           return {
             live_cash_result: o.live,
             slots_diff: o.slotsDiff,
             diff_total: diffTotal,
-            cage_casino: hidden ? 0 : cage,
+            cage_casino: hidden ? 0 : cageCasino,
             cage_cash_part: o.cashPart,
             cage_cashless_part: o.cashlessPart,
             cage_carried: o.carried,
@@ -857,10 +857,6 @@ export const useDailyBalanceReport = (
             transfer_cage_manager: num(l?.office_transfer),
             cage_manager: hidden ? 0 : manager,
             transfer_bank: num(l?.collection_bank),
-            terminal_tzs: terminalTzsV,
-            terminal_usd: terminalUsdV,
-            terminal_total: terminalTotal,
-            terminal_detail: terminalDetail[date] ?? [],
             bank_tzs: hidden ? 0 : bankTzs,
             bank_usd: hidden ? 0 : bankUsd,
             bank_usd_raw: rate ? (hidden ? 0 : bankUsd) / rate : 0,
@@ -868,15 +864,18 @@ export const useDailyBalanceReport = (
             bank_usd_manual: false,
             money_in: officeInV,
             money_out: officeOutV,
-
+            other_income: otherIncomeV,
+            jp: jpV,
+            missed_cards: missedCardsV,
+            collections: collectionsV,
             money_total: moneyTotal,
             money_hidden: hidden,
             // P&L of the day — Casino Result − Expenses ± Diff.
             fin_result: o.result + diffTotal - o.expenses,
-            balance,
-            balance_check: opening + o.result + diffTotal + feesV + officeNet - o.expenses,
+            balance: variance,
+            balance_check: opening + o.result + diffTotal + jpV + otherIncomeV + officeNet - o.expenses,
             chips_detail: chipsDetail[date] ?? [],
-            cage_detail: cageDetail[date] ?? { cash: [], cashless: [], mobile: {}, slots_total: 0 },
+            cage_detail: cageDetail[date] ?? { cash: [], cashless: {}, mobile: {}, slots_total: 0 },
             transfers_manager: managerTransfers[date] ?? [],
             transfers_bank: bankTransfers[date] ?? [],
             office_wallets: lastOfficeWallets,
@@ -889,10 +888,11 @@ export const useDailyBalanceReport = (
             expenses_detail: Object.entries(expDetail[date] ?? {})
               .map(([label, value]) => ({ label, value }))
               .sort((a, b) => b.value - a.value),
-            tips_total: tipsV,
+            tips_total: o.tips ?? 0,
             snapshot: !!snap,
           };
         };
+
 
 
 
