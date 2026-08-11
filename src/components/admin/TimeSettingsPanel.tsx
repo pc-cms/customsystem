@@ -10,6 +10,7 @@
  */
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
@@ -182,7 +183,7 @@ export const TimeSettingsPanel = () => {
           ))}
           <div className="border-t border-border pt-4">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1 block">Cage Float Target (TZS)</label>
-            <Input type="number" value={cageFloat} onChange={e => setCageFloat(e.target.value)} className="w-48 font-mono" placeholder="e.g. 10000000" />
+            <NumberInput value={cageFloat} onValueChange={(v) => setCageFloat(v == null ? "" : String(v))} className="w-48 font-mono" placeholder="e.g. 10000000" />
             <p className="text-[10px] text-muted-foreground mt-0.5">Target cash amount in cage at all times</p>
           </div>
         </div>

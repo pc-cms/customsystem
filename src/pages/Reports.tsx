@@ -4,6 +4,7 @@ import { useTransactions, useExpenses, usePlayerGroups } from "@/hooks/use-casin
 import { useAuth } from "@/lib/auth-context";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Button } from "@/components/ui/button";
 import {
   Table2, Landmark, UsersRound, ArrowUp, ArrowDown, ArrowUpDown,
@@ -510,9 +511,9 @@ const DropSlotsCell = ({ value, canEdit, onSave }: { value: number; canEdit: boo
   const save = () => { onSave(Number(draft) || 0); setEditing(false); };
   return (
     <span className="inline-flex items-center gap-1">
-      <Input
-        type="number" value={draft} autoFocus
-        onChange={(e) => setDraft(e.target.value)} onBlur={save}
+      <NumberInput
+        value={draft} autoFocus
+        onValueChange={(v) => setDraft(v == null ? "" : String(v))} onBlur={save}
         onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}
         className="h-7 w-24 text-right font-mono text-xs"
       />

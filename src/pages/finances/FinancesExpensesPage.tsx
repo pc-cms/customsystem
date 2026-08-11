@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
@@ -353,11 +354,11 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
             </FormField>
           ) : (
             <FormField span={4} label="Amount">
-              <Input type="number" step="0.01" value={form.amount || ""} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} />
+              <NumberInput decimals={2} value={form.amount ?? 0} onValueChange={(v) => setForm({ ...form, amount: v ?? 0 })} />
             </FormField>
           )}
           <FormField span={3} label="FX → TZS">
-            <Input type="number" step="0.000001" value={form.exchange_rate || 1} onChange={(e) => setForm({ ...form, exchange_rate: Number(e.target.value) })} />
+            <NumberInput decimals={6} value={form.exchange_rate ?? 1} onValueChange={(v) => setForm({ ...form, exchange_rate: v ?? 1 })} />
           </FormField>
           <FormField span={12} label="Description">
             <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} />

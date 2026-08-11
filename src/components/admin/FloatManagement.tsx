@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CHIP_DENOMS, formatChipLabel, formatCurrency } from "@/lib/currency";
+import { NumberInput } from "@/components/ui/number-input";
 import { useChipColors, resolveChipColor, useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { Lock, Save, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -191,11 +192,10 @@ const FloatManagement = () => {
                       const val = getValue(loc.key, d);
                       return (
                         <td key={loc.key} className="px-1 py-0.5">
-                          <input
-                            type="number"
-                            min="0"
+                          <NumberInput
+                            min={0}
                             value={val || ""}
-                            onChange={e => handleChange(loc.key, d, e.target.value)}
+                            onValueChange={(v) => handleChange(loc.key, d, v == null ? "" : String(v))}
                             disabled={isLocked}
                             className="w-16 h-7 rounded text-[11px] font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground mx-auto block disabled:opacity-50 disabled:cursor-not-allowed"
                             placeholder="0"

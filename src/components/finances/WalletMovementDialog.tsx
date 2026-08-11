@@ -15,6 +15,7 @@ import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight } from "lucide-react";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
@@ -290,12 +291,11 @@ export default function WalletMovementDialog({
                   : {})}
               />
             ) : (
-              <Input
-                type="number"
-                step="0.01"
+              <NumberInput
+                decimals={2}
                 placeholder={`Amount (${currency})`}
                 value={amountInput}
-                onChange={(e) => setAmountInput(e.target.value)}
+                onValueChange={(v) => setAmountInput(v == null ? "" : String(v))}
                 className="font-mono"
               />
             )}

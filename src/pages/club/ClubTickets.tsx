@@ -4,7 +4,7 @@ import { clubApi, fetchLotteries, fetchMyTickets } from "@/lib/club-api";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ShieldAlert } from "lucide-react";
@@ -102,12 +102,11 @@ export default function ClubTickets() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
+                  <NumberInput
                     min={1}
                     max={l.max_tickets_per_player ?? 99}
                     value={qtyMap[l.id] ?? 1}
-                    onChange={(e) => setQtyMap((m) => ({ ...m, [l.id]: Math.max(1, Number(e.target.value) || 1) }))}
+                    onValueChange={(v) => setQtyMap((m) => ({ ...m, [l.id]: Math.max(1, v ?? 1) }))}
                     className="w-20"
                   />
                   <Button

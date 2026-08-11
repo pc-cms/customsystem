@@ -35,6 +35,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput, formatSpacedValue } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
@@ -867,17 +868,16 @@ export default function FinancesWalletsPage() {
                                   </div>
                                 </>
                               ) : (
-                                <Input
-                                  type="number"
-                                  step="0.01"
+                                <NumberInput
+                                  decimals={2}
                                   placeholder={
                                     lastCounts?.get(w.id)
-                                      ? String(lastCounts.get(w.id)!.total)
+                                      ? formatSpacedValue(lastCounts.get(w.id)!.total, 2, true)
                                       : `Amount (${w.currency})`
                                   }
                                   value={amountInput[w.id] || ""}
-                                  onChange={(e) =>
-                                    setAmountInput((s) => ({ ...s, [w.id]: e.target.value }))
+                                  onValueChange={(v) =>
+                                    setAmountInput((s) => ({ ...s, [w.id]: v == null ? "" : String(v) }))
                                   }
                                   className="font-mono"
                                 />
@@ -1170,11 +1170,10 @@ export default function FinancesWalletsPage() {
             </Select>
           </FormField>
           <FormField span={6} label="Sort order">
-            <Input
-              type="number"
-              value={walletForm.sort_order || 0}
-              onChange={(e) =>
-                setWalletForm({ ...walletForm, sort_order: Number(e.target.value) })
+            <NumberInput
+              value={walletForm.sort_order ?? 0}
+              onValueChange={(v) =>
+                setWalletForm({ ...walletForm, sort_order: v ?? 0 })
               }
             />
           </FormField>
@@ -1185,12 +1184,11 @@ export default function FinancesWalletsPage() {
             </div>
           </FormField>
           <FormField span={5} label={`Amount (${walletForm.currency || "TZS"})`}>
-            <Input
-              type="number"
-              step="0.01"
+            <NumberInput
+              decimals={2}
               value={walletForm.starting_float_amount ?? 0}
-              onChange={(e) =>
-                setWalletForm({ ...walletForm, starting_float_amount: e.target.value })
+              onValueChange={(v) =>
+                setWalletForm({ ...walletForm, starting_float_amount: v == null ? "" : String(v) })
               }
             />
           </FormField>

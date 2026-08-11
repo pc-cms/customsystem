@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
+import { formatNumberSpaces } from "@/lib/currency";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { FormGrid } from "@/components/ui/form-grid";
@@ -19,7 +21,7 @@ interface Props {
   player: { id: string; full_name: string; casino_id: string | null; casino_name?: string | null } | null;
 }
 
-const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
+const fmt = (n: number) => formatNumberSpaces(n ?? 0);
 
 const QuickGrantDialog = ({ open, onOpenChange, player }: Props) => {
   const qc = useQueryClient();
@@ -93,11 +95,9 @@ const QuickGrantDialog = ({ open, onOpenChange, player }: Props) => {
       <FormGrid>
         <div>
           <Label>Amount</Label>
-          <Input
-            type="number"
-            inputMode="numeric"
+          <NumberInput
             value={amount}
-            onChange={(e) => setAmount(Number(e.target.value || 0))}
+            onValueChange={(v) => setAmount(v ?? 0)}
           />
         </div>
         <div>

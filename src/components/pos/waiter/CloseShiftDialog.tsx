@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { FormField, FormGrid } from "@/components/ui/form-grid";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { toast } from "@/hooks/use-toast";
@@ -97,11 +98,10 @@ export const CloseShiftDialog = ({ open, onOpenChange, shift, openTabsCount, onC
 
         <FormGrid>
           <FormField span={6} label="Closing cash in drawer">
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={closingCash}
-              onChange={(e) => setClosingCash(e.target.value)}
+            <NumberInput
+              decimals={0}
+              value={Number(closingCash) || 0}
+              onValueChange={(v) => setClosingCash(String(v ?? 0))}
               className="text-lg"
             />
           </FormField>

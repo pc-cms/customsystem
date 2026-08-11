@@ -7,6 +7,7 @@ import { useGamingTables, useSetTableTrackerValue, useBatchSetTableTrackerValue,
 import { CHIP_DENOMS, formatChipLabel, formatCurrency } from "@/lib/currency";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useChipColors, resolveChipColor, useVisibleChipDenoms } from "@/hooks/use-chip-colors";
+import { NumberInput } from "@/components/ui/number-input";
 import { nowEAT, getBusinessDate } from "@/lib/business-day";
 import { chipSnapshotResult } from "@/lib/table-live-result";
 import { useShiftTableAdjustments } from "@/hooks/use-shift-table-adjustments";
@@ -392,21 +393,18 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
                       const displayValue = isEmpty ? String(lastCheck) : String(raw);
                       return (
                         <td key={d} className={`${t.rowPadX} ${t.rowPadY}`}>
-                          <input
-                            type="number" min="0" max="999" maxLength={3}
-                            value={displayValue}
-                            onFocus={e => { requestAnimationFrame(() => (e.target as HTMLInputElement).select()); }}
-                            onChange={e => {
-                              if (e.target.value === "") {
+                          <NumberInput
+                            decimals={0} min={0} max={999}
+                            value={isEmpty ? null : (raw as number)}
+                            onValueChange={v => {
+                              if (v == null) {
                                 setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: NaN as any } }));
                                 return;
                               }
-                              let val = parseInt(e.target.value, 10);
-                              if (isNaN(val)) return;
-                              if (val > 999) val = 999;
-                              if (val < 0) val = 0;
-                              setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: val } }));
+                              setCounts(c => ({ ...c, [loc.key]: { ...(c[loc.key] || {}), [d]: v } }));
                             }}
+                            placeholderValue={lastCheck}
+                            onFocus={e => { requestAnimationFrame(() => (e.target as HTMLInputElement).select()); }}
                             className={`no-spin w-full ${t.inputH} ${t.inputText} rounded font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground`}
                           />
                         </td>

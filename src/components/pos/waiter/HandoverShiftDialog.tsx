@@ -16,6 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { FormField, FormGrid } from "@/components/ui/form-grid";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -200,11 +201,10 @@ export const HandoverShiftDialog = ({
 
         <FormGrid>
           <FormField span={4} label="Closing cash (= opening cash)">
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={closingCash}
-              onChange={(e) => setClosingCash(e.target.value)}
+            <NumberInput
+              decimals={0}
+              value={Number(closingCash) || 0}
+              onValueChange={(v) => setClosingCash(String(v ?? 0))}
               className="text-lg"
             />
           </FormField>

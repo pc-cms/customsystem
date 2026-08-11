@@ -9,6 +9,7 @@ import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -195,19 +196,17 @@ export default function PosPurchases() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Input
-                    type="number"
-                    inputMode="decimal"
+                  <NumberInput
+                    decimals={0}
                     placeholder="Qty"
-                    value={d.qty}
-                    onChange={(e) => updateDraft(i, { qty: e.target.value })}
+                    value={d.qty === "" ? "" : Number(d.qty)}
+                    onValueChange={(v) => updateDraft(i, { qty: v == null ? "" : String(v) })}
                   />
-                  <Input
-                    type="number"
-                    inputMode="decimal"
+                  <NumberInput
+                    decimals={2}
                     placeholder="Unit cost"
-                    value={d.unit_cost_tzs}
-                    onChange={(e) => updateDraft(i, { unit_cost_tzs: e.target.value })}
+                    value={d.unit_cost_tzs === "" ? "" : Number(d.unit_cost_tzs)}
+                    onValueChange={(v) => updateDraft(i, { unit_cost_tzs: v == null ? "" : String(v) })}
                   />
                   <Button
                     variant="ghost"

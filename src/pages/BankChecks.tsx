@@ -4,6 +4,7 @@ import { Loader2, Upload, Plus, CreditCard } from "lucide-react";
 import { downloadXlsx } from "@/lib/excel-export";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterBar } from "@/components/layout/FilterBar";
@@ -351,10 +352,9 @@ function ManualAddDialog({
           </div>
           <div className="col-span-2">
             <Label>Amount (with 3% commission)</Label>
-            <Input
-              type="number"
-              value={form.amount || ""}
-              onChange={(e) => upd("amount", Number(e.target.value) || 0)}
+            <NumberInput
+              value={form.amount || 0}
+              onValueChange={(v) => upd("amount", v ?? 0)}
             />
             {form.amount > 0 && (
               <p className="text-xs text-muted-foreground mt-1">

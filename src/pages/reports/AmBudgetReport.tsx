@@ -15,8 +15,9 @@ import { fmtDateTime } from "@/lib/format-date";
 import { downloadXlsx } from "@/lib/excel-export";
 import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 import { useSessionState } from "@/hooks/use-session-state";
+import { formatNumberSpaces } from "@/lib/currency";
 
-const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
+const fmt = (n: number) => formatNumberSpaces(n ?? 0);
 
 export default function AmBudgetReport() {
   const { activeCasinoId } = useCasino();

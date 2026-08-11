@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { useCasino } from "@/lib/casino-context";
 
 interface TrackedItem {
@@ -108,21 +109,18 @@ export const StockCountPanel = ({ value, onChange, hideExpected = true }: Props)
                       exp {it.stock_qty}
                     </span>
                   )}
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
+                  <NumberInput
+                    decimals={0}
+                    min={0}
                     placeholder="·"
                     className="h-8 w-24 text-right font-mono tabular-nums no-spin"
-                    value={v === undefined ? "" : String(v)}
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      if (raw === "") {
+                    value={v === undefined ? "" : v}
+                    onValueChange={(n) => {
+                      if (n == null) {
                         const { [it.id]: _, ...rest } = value;
                         onChange(rest);
-                      } else {
-                        const n = Number(raw);
-                        if (Number.isFinite(n) && n >= 0) onChange({ ...value, [it.id]: n });
+                      } else if (n >= 0) {
+                        onChange({ ...value, [it.id]: n });
                       }
                     }}
                   />

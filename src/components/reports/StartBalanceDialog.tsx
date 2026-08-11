@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import type { OfficeStart } from "@/hooks/use-office-balance-report";
+import { formatNumberSpaces } from "@/lib/currency";
 
 interface Props {
   open: boolean;
@@ -94,7 +95,7 @@ const StartBalanceDialog = ({ open, onOpenChange, start }: Props) => {
           </div>
           <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
             <span className="text-muted-foreground">Total</span>
-            <span className="font-mono font-bold tabular-nums">{total.toLocaleString("en-US").replace(/,/g, " ")}</span>
+            <span className="font-mono font-bold tabular-nums">{formatNumberSpaces(total)}</span>
           </div>
         </div>
 

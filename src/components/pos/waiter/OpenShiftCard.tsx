@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
 import { toast } from "@/hooks/use-toast";
 import { useOpenPosShift, suggestShiftType, type PosShiftType } from "@/hooks/use-pos-shift";
@@ -84,11 +85,10 @@ export const OpenShiftCard = ({ casinoId, userId }: Props) => {
         </FormField>
 
         <FormField span={12} label="Opening cash (TZS)" required>
-          <Input
-            type="number"
-            inputMode="numeric"
-            value={cash}
-            onChange={(e) => setCash(e.target.value)}
+          <NumberInput
+            decimals={0}
+            value={Number(cash) || 0}
+            onValueChange={(v) => setCash(String(v ?? 0))}
             className="text-lg"
             autoFocus
           />

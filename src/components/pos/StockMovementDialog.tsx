@@ -9,6 +9,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { FormField, FormGrid } from "@/components/ui/form-grid";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -111,12 +112,11 @@ export const StockMovementDialog = ({ open, onOpenChange, item }: Props) => {
 
         <FormGrid>
           <FormField span={6} label="Quantity" required>
-            <Input
-              type="number"
-              inputMode="numeric"
+            <NumberInput
+              decimals={0}
               min={1}
-              value={qty}
-              onChange={(e) => setQty(e.target.value)}
+              value={qty === "" ? "" : Number(qty)}
+              onValueChange={(v) => setQty(v == null ? "" : String(v))}
               autoFocus
             />
           </FormField>

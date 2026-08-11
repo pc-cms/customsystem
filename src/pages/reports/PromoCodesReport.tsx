@@ -14,8 +14,9 @@ import { Button } from "@/components/ui/button";
 import { fmtDateTime } from "@/lib/format-date";
 import { downloadXlsx } from "@/lib/excel-export";
 import { useSessionState } from "@/hooks/use-session-state";
+import { formatNumberSpaces } from "@/lib/currency";
 
-const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
+const fmt = (n: number) => formatNumberSpaces(n ?? 0);
 
 export default function PromoCodesReport() {
   const { activeCasinoId } = useCasino();

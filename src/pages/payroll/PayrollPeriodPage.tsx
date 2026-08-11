@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -286,10 +287,9 @@ const EntriesGrid = ({ entries, canEdit, period }: { entries: PayrollEntry[]; ca
                 return (
                   <DTCell key={k} numeric>
                     {canEdit ? (
-                      <input
-                        type="number"
+                      <NumberInput
                         value={cur as number}
-                        onChange={ev => onChange(e.id, k, Number(ev.target.value) || 0)}
+                        onValueChange={val => onChange(e.id, k, val ?? 0)}
                         onBlur={() => onBlur(e.id, k)}
                         className="w-20 h-7 px-1 text-right font-mono text-xs bg-transparent border border-border rounded focus:outline-none focus:border-primary"
                       />

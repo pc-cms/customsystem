@@ -4,6 +4,7 @@ import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { useFinDailyRates, useUpsertFinDailyRate, useEnsureDailyRates } from "@/hooks/use-fin-daily-rates";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
@@ -135,13 +136,11 @@ function RateCell({
 
   return (
     <td className="px-3 py-2 text-right">
-      <Input
-        type="number"
-        inputMode="decimal"
-        step="0.000001"
+      <NumberInput
+        decimals={6}
         value={display}
         placeholder={value == null ? "·" : ""}
-        onChange={(e) => setDraft(e.target.value)}
+        onValueChange={(v) => setDraft(v == null ? "" : String(v))}
         onBlur={commit}
         onKeyDown={(e) => {
           if (e.key === "Enter") (e.target as HTMLInputElement).blur();

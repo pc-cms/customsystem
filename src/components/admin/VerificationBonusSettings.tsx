@@ -5,6 +5,7 @@ import { PageSection } from "@/components/layout/PageShell";
 import { FormGrid } from "@/components/ui/form-grid";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -70,11 +71,10 @@ export default function VerificationBonusSettings({ casinoId }: Props) {
       <FormGrid>
         <div>
           <Label>Amount (credits)</Label>
-          <Input
-            type="number"
+          <NumberInput
             min={0}
             value={amount}
-            onChange={(e) => setAmount(Math.max(0, +e.target.value || 0))}
+            onValueChange={(v) => setAmount(Math.max(0, v ?? 0))}
           />
         </div>
         <div>

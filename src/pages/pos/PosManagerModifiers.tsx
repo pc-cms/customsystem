@@ -4,6 +4,7 @@ import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { DataTable, DTBody, DTCell, DTHead, DTHeader, DTRow } from "@/components/ui/data-table";
@@ -138,10 +139,10 @@ export default function PosManagerModifiers() {
             </div>
             <div>
               <label className="text-xs uppercase text-muted-foreground">Price delta (TZS, per unit)</label>
-              <Input
-                type="number"
+              <NumberInput
+                decimals={0}
                 value={edit.price_tzs_delta ?? 0}
-                onChange={(e) => setEdit({ ...edit, price_tzs_delta: parseInt(e.target.value) || 0 })}
+                onValueChange={(v) => setEdit({ ...edit, price_tzs_delta: v ?? 0 })}
               />
               <p className="text-[11px] text-muted-foreground mt-1">
                 Can be 0 (display-only) or negative (discount).

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { formatNumberSpaces } from "@/lib/currency";
+import { NumberInput } from "@/components/ui/number-input";
 
 /**
  * Click-to-edit numeric cell used in Monthly Report inline editor.
@@ -49,21 +50,20 @@ export const InlineNumberCell = ({
     );
   }
 
-  const commit = () => {
-    const n = Number(raw.replace(/[\s,]/g, "")) || 0;
+  const commit = (n: number) => {
     setEditing(false);
     if (n !== value) onCommit(n);
   };
 
   return (
-    <input
+    <NumberInput
       ref={ref}
-      type="number"
-      value={raw}
-      onChange={(e) => setRaw(e.target.value)}
-      onBlur={commit}
+      decimals={0}
+      value={raw === "" ? null : raw}
+      onValueChange={(v) => setRaw(v == null ? "" : String(v))}
+      onBlur={() => commit(Number(raw) || 0)}
       onKeyDown={(e) => {
-        if (e.key === "Enter") { e.preventDefault(); commit(); }
+        if (e.key === "Enter") { e.preventDefault(); commit(Number(raw) || 0); }
         if (e.key === "Escape") { setEditing(false); setRaw(String(value || "")); }
       }}
       onClick={(e) => e.stopPropagation()}

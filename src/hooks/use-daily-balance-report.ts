@@ -516,7 +516,10 @@ export const useDailyBalanceReport = (
       const floatByDate: Record<string, { cageCasino: number; cage: number; office: number; bankTzs: number; bankUsd: number }> = {};
       const floatBucket = (d: string) =>
         (floatByDate[d] ??= { cageCasino: 0, cage: 0, office: 0, bankTzs: 0, bankUsd: 0 });
-      const CASINO_CAGE_KINDS = new Set(["cage_table", "cage_slot"]);
+      // Cage Casino wallets: the live/slots cage safes. Live data stores them as
+      // the short kind "safe" (Safe Live / Safe Slots); the long enum names are
+      // kept for legacy rows.
+      const CASINO_CAGE_KINDS = new Set(["safe", "cage_table", "cage_slot"]);
       let cageCasinoBal = 0, cageBal = 0, officeBal = 0, bankTzsBal = 0, bankUsdBal = 0;
       wallets.forEach((w) => {
         const f = num(w.starting_float_amount);

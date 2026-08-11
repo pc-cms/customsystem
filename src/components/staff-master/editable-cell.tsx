@@ -4,6 +4,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { Check, X } from "lucide-react";
+import { formatSpacedInput } from "@/components/ui/number-input";
 
 type Base = {
   className?: string;
@@ -111,12 +112,16 @@ export function EditableCell(props: EditableCellProps) {
     );
   }
 
+  const isNumber = props.type === "number";
   return (
     <input
       ref={inputRef as any}
-      type={props.type === "number" ? "number" : props.type === "date" ? "date" : "text"}
+      type={props.type === "date" ? "date" : "text"}
+      inputMode={isNumber ? "numeric" : undefined}
       value={draft ?? ""}
-      onChange={(e) => setDraft(e.target.value)}
+      onChange={(e) =>
+        setDraft(isNumber ? formatSpacedInput(e.target.value, 0, true) : e.target.value)
+      }
       onBlur={commit}
       onKeyDown={onKey}
       placeholder={props.placeholder}

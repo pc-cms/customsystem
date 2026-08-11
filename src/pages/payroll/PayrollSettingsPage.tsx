@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
@@ -129,12 +130,12 @@ export default function PayrollSettingsPage() {
             {bk.map((b, i) => (
               <DTRow key={i}>
                 <DTCell>{i + 1}</DTCell>
-                <DTCell numeric><Input type="number" value={b.lower_bound} disabled={!isSuper}
-                  onChange={e => { const c = [...bk]; c[i] = { ...c[i], lower_bound: e.target.value }; setBk(c); }} className="font-mono text-right h-8" /></DTCell>
-                <DTCell numeric><Input type="number" value={b.upper_bound ?? ""} placeholder="∞" disabled={!isSuper}
-                  onChange={e => { const c = [...bk]; c[i] = { ...c[i], upper_bound: e.target.value }; setBk(c); }} className="font-mono text-right h-8" /></DTCell>
-                <DTCell numeric><Input type="number" value={b.base_tax} disabled={!isSuper}
-                  onChange={e => { const c = [...bk]; c[i] = { ...c[i], base_tax: e.target.value }; setBk(c); }} className="font-mono text-right h-8" /></DTCell>
+                <DTCell numeric><NumberInput value={b.lower_bound} disabled={!isSuper}
+                  onValueChange={v => { const c = [...bk]; c[i] = { ...c[i], lower_bound: v ?? 0 }; setBk(c); }} className="font-mono text-right h-8" /></DTCell>
+                <DTCell numeric><NumberInput value={b.upper_bound ?? ""} placeholder="∞" disabled={!isSuper}
+                  onValueChange={v => { const c = [...bk]; c[i] = { ...c[i], upper_bound: v }; setBk(c); }} className="font-mono text-right h-8" /></DTCell>
+                <DTCell numeric><NumberInput value={b.base_tax} disabled={!isSuper}
+                  onValueChange={v => { const c = [...bk]; c[i] = { ...c[i], base_tax: v ?? 0 }; setBk(c); }} className="font-mono text-right h-8" /></DTCell>
                 <DTCell numeric><Input type="number" step="0.01" value={b.rate_pct} disabled={!isSuper}
                   onChange={e => { const c = [...bk]; c[i] = { ...c[i], rate_pct: e.target.value }; setBk(c); }} className="font-mono text-right h-8" /></DTCell>
                 <DTCell>

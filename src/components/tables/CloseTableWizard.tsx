@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Lock, ChevronLeft, ChevronRight, ShieldAlert, X } from "lucide-react";
 import { formatChipLabel, formatCurrency } from "@/lib/currency";
 import ChipToken from "@/components/ChipToken";
+import { NumberInput } from "@/components/ui/number-input";
 import { useChipColors, resolveChipColor, useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { useChipBaseline, useSetSingleTableResult, useReopenSingleTable, useCloseAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
 import { useChipSnapshots } from "@/hooks/use-chips";
@@ -344,20 +345,17 @@ export const CloseTableWizard = ({ open, onClose, tables, date: dateProp, readOn
                       {expected}
                     </td>
                     <td className="py-1 px-1">
-                      <input
-                        type="number"
-                        min="0"
-                        value={hasInput ? (raw as number) : ""}
-                        readOnly={readOnly}
+                      <NumberInput
+                        decimals={0}
+                        min={0}
+                        value={hasInput ? (raw as number) : null}
                         disabled={readOnly}
-                        onChange={e => {
+                        onValueChange={v => {
                           if (readOnly) return;
-                          if (e.target.value === "") { setCount(d, NaN as any); return; }
-                          const v = parseInt(e.target.value, 10);
-                          setCount(d, isNaN(v) ? (NaN as any) : v);
+                          setCount(d, v == null ? (NaN as any) : v);
                         }}
                         className="no-spin w-full max-w-[180px] h-12 mx-auto block rounded text-xl font-mono font-semibold text-center border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary text-card-foreground placeholder:text-muted-foreground/60 placeholder:font-normal disabled:opacity-100 disabled:cursor-default"
-                        placeholder={String(lastCheck)}
+                        placeholderValue={lastCheck}
                       />
                     </td>
 

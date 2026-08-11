@@ -9,8 +9,9 @@ import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
 import { fmtDateTime, fmtDateOnly } from "@/lib/format-date";
+import { formatNumberSpaces } from "@/lib/currency";
 
-const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
+const fmt = (n: number) => formatNumberSpaces(n ?? 0);
 
 const PromoIssuanceReport = () => {
   const { activeCasinoId } = useCasino();

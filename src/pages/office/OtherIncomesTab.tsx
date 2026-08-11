@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
@@ -408,11 +409,11 @@ export default function OtherIncomesTab() {
           </FormField>
 
           <FormField span={6} label={`Amount (${activeWallet?.currency || form.currency})`}>
-            <Input
-              type="number"
-              step="0.01"
+            <NumberInput
+              decimals={2}
+              allowNegative
               value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              onValueChange={(v) => setForm({ ...form, amount: v == null ? "" : String(v) })}
               placeholder="0 (use minus for deduction)"
             />
           </FormField>

@@ -35,6 +35,7 @@ import { PlayerNotesPanel } from "@/components/player/PlayerNotesPanel";
 import { useAuth } from "@/lib/auth-context";
 import { useBusinessDayFilter } from "@/hooks/use-business-day-filter";
 import { edgeFor, theoFromHands, theoFromDrop, holdPct } from "@/lib/casino-edges";
+import { formatNumberSpaces } from "@/lib/currency";
 
 // CCTV (surveillance) and finance_manager get read-only access on this page.
 // Manager / Super Admin can edit via the dialog.
@@ -55,7 +56,7 @@ const visitDuration = (v: any) => {
 
 const fmtMoney = (n: number) => {
   const sign = n < 0 ? "-" : "";
-  return `${sign}${Math.abs(n).toLocaleString()}`;
+  return `${sign}${formatNumberSpaces(Math.abs(n))}`;
 };
 
 const dot = () => <span className="text-muted-foreground">·</span>;

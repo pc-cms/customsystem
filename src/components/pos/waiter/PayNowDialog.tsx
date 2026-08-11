@@ -15,6 +15,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { toast } from "@/hooks/use-toast";
@@ -141,20 +142,18 @@ export const PayNowDialog = ({
 
         <FormGrid>
           <FormField span={6} label="Cash">
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={cash}
-              onChange={(e) => setCash(e.target.value)}
+            <NumberInput
+              decimals={0}
+              value={Number(cash) || 0}
+              onValueChange={(v) => setCash(String(v ?? 0))}
               className="text-lg"
             />
           </FormField>
           <FormField span={6} label="Card">
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={card}
-              onChange={(e) => setCard(e.target.value)}
+            <NumberInput
+              decimals={0}
+              value={Number(card) || 0}
+              onValueChange={(v) => setCard(String(v ?? 0))}
               className="text-lg"
             />
           </FormField>
