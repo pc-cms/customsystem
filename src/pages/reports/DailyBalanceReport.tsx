@@ -164,29 +164,37 @@ const START_FIELDS: Record<string, MonthStartField | undefined> = {
 
 
 /**
- * Per-section column zone tint — OPAQUE (mixed against --card) so that sticky
- * frozen columns never let scrolling content bleed through. Static literals so
- * Tailwind's JIT scanner picks them up.
+ * Flat palette: no tints, no translucency. Cells stay on `--card`; sections are
+ * told apart by a coloured header underline only.
  */
 const ZONE_BG: Record<SectionKey, string> = {
-  incomes: "bg-[color-mix(in_srgb,hsl(var(--success))_5%,hsl(var(--card)))]",
-  diff: "bg-[color-mix(in_srgb,hsl(var(--warning))_6%,hsl(var(--card)))]",
-  transfers: "bg-[color-mix(in_srgb,hsl(var(--info))_6%,hsl(var(--card)))]",
-  money: "bg-[color-mix(in_srgb,hsl(var(--primary))_5%,hsl(var(--card)))]",
-  expenses: "bg-[color-mix(in_srgb,hsl(var(--destructive))_5%,hsl(var(--card)))]",
-  office: "bg-[color-mix(in_srgb,hsl(var(--accent))_18%,hsl(var(--card)))]",
-  balances: "bg-[color-mix(in_srgb,hsl(var(--muted))_45%,hsl(var(--card)))]",
+  incomes: "bg-card",
+  diff: "bg-card",
+  transfers: "bg-card",
+  money: "bg-card",
+  expenses: "bg-card",
+  office: "bg-card",
+  balances: "bg-card",
 };
 
+/** Section accent — a solid underline under the header cell. */
 const ZONE_HEAD: Record<SectionKey, string> = {
-  incomes: "bg-[color-mix(in_srgb,hsl(var(--success))_14%,hsl(var(--muted)))]",
-  diff: "bg-[color-mix(in_srgb,hsl(var(--warning))_16%,hsl(var(--muted)))]",
-  transfers: "bg-[color-mix(in_srgb,hsl(var(--info))_16%,hsl(var(--muted)))]",
-  money: "bg-[color-mix(in_srgb,hsl(var(--primary))_13%,hsl(var(--muted)))]",
-  expenses: "bg-[color-mix(in_srgb,hsl(var(--destructive))_14%,hsl(var(--muted)))]",
-  office: "bg-[color-mix(in_srgb,hsl(var(--accent))_40%,hsl(var(--muted)))]",
-  balances: "bg-muted",
+  incomes: "bg-muted border-b-success",
+  diff: "bg-muted border-b-warning",
+  transfers: "bg-muted border-b-info",
+  money: "bg-muted border-b-primary",
+  expenses: "bg-muted border-b-destructive",
+  office: "bg-muted border-b-accent-foreground",
+  balances: "bg-muted border-b-foreground",
 };
+
+/** Columns whose sign carries meaning — rendered with an explicit + / − and colour. */
+const SIGNED_IDS = new Set([
+  "result", "tables_result", "slots_result", "bar_result", "jp", "tips_total",
+  "diff_total", "chip_difference", "slots_diff", "missed_cards",
+  "office_total", "balance",
+]);
+
 
 /** Section → the headline column that carries the expand arrow (first total col). */
 const SECTION_ANCHOR: Record<string, string> = Object.fromEntries(
@@ -488,54 +496,13 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
     [expanded],
   );
 
-  /** Max abs value per heat column — drives the fill intensity. */
-  const heatMax = useMemo(() => {
-    const m: Record<string, number> = {};
-    for (const c of ALL_COLS) {
-      if (!HEAT_IDS.has(c.id)) continue;
-      m[c.id] = Math.max(1, ...rows.filter((r) => r.day_closed).map((r) => Math.abs(c.value(r))));
-    }
-    return m;
-  }, [rows]);
-
-  // NOTE: all cell tints must be OPAQUE — sticky (frozen) columns would
-  // otherwise let scrolling cells bleed through. We blend against --card
-  // with color-mix instead of using alpha. Classes are static literals so
-  // Tailwind's JIT scanner picks them up.
-  const HEAT_POS = [
-    "bg-[color-mix(in_srgb,hsl(var(--success))_6%,hsl(var(--card)))]",
-    "bg-[color-mix(in_srgb,hsl(var(--success))_11%,hsl(var(--card)))]",
-    "bg-[color-mix(in_srgb,hsl(var(--success))_18%,hsl(var(--card)))]",
-  ];
-  const HEAT_NEG = [
-    "bg-[color-mix(in_srgb,hsl(var(--destructive))_6%,hsl(var(--card)))]",
-    "bg-[color-mix(in_srgb,hsl(var(--destructive))_11%,hsl(var(--card)))]",
-    "bg-[color-mix(in_srgb,hsl(var(--destructive))_18%,hsl(var(--card)))]",
-  ];
-
-  const heatClass = (col: Col, v: number) => {
-    if (!heatmap || !HEAT_IDS.has(col.id) || !v) return undefined;
-    const ratio = Math.abs(v) / (heatMax[col.id] || 1);
-    const step = ratio > 0.66 ? 2 : ratio > 0.33 ? 1 : 0;
-    return (v > 0 ? HEAT_POS : HEAT_NEG)[step];
-  };
-
   /**
-   * Single background layer per row — prevents stacked translucent fills.
-   * Priority: open day > last closed day > today > weekend > (cell heat).
+   * Flat grid: no heat fills, no tinted rows. Only the "open day" row keeps a
+   * neutral muted background so unfinished days stay obvious.
    */
-  const rowBg = (r: Row): string | undefined => {
-    // Open (not yet closed) business days are tinted with an OPAQUE mix so
-    // sticky frozen columns do not let scrolling content bleed through.
-    if (!r.day_closed) return "bg-[color-mix(in_srgb,hsl(var(--muted))_30%,hsl(var(--card)))]";
-    if (r.date === lastClosedDate)
-      return "bg-[color-mix(in_srgb,hsl(var(--warning))_14%,hsl(var(--card)))]";
-    if (r.date === today())
-      return "bg-[color-mix(in_srgb,hsl(var(--primary))_10%,hsl(var(--card)))]";
-    if (r.weekday === "Sat" || r.weekday === "Sun")
-      return "bg-[color-mix(in_srgb,hsl(var(--muted))_40%,hsl(var(--card)))]";
-    return undefined;
-  };
+  const rowBg = (r: Row): string | undefined =>
+    !r.day_closed ? "bg-muted" : undefined;
+
 
   /** "Start" opening row + plain day rows (no weekly subtotals in this grid). */
   const displayRows = useMemo<Row[]>(
@@ -557,10 +524,22 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
 
   /** Full figures only — no compact M / K suffixes anywhere in this grid. */
   const blank = <span className="text-muted-foreground">0</span>;
-  const money = (n: number) =>
+  /**
+   * `signed` columns show an explicit + / − and are coloured by sign;
+   * plain stock columns stay neutral.
+   */
+  const money = (n: number, signed = false) =>
     !n ? blank : (
-      <span className={n < 0 ? "cms-amount-negative" : undefined}>{formatMoneyFull(n)}</span>
+      <span
+        className={
+          n < 0 ? "cms-amount-negative" : signed ? "cms-amount-positive" : undefined
+        }
+      >
+        {signed && n > 0 ? "+" : ""}
+        {formatMoneyFull(n)}
+      </span>
     );
+
 
 
   /** Column hover highlight — the whole column plus its header light up. */
@@ -586,12 +565,12 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             {r.legacy && <Badge variant="outline" className="ml-1 h-4 px-1 text-[10px]">imp</Badge>}
           </span>
         ),
-      headerClassName: "whitespace-nowrap border-b-4 border-b-primary bg-muted font-bold uppercase tracking-wide text-foreground",
+      headerClassName: "whitespace-nowrap border-b-2 border-b-foreground bg-muted font-bold uppercase tracking-wide text-foreground",
       cellClassName: (r: Row) =>
         cn(
           "py-0.5 leading-tight",
           r.kind === "start"
-            ? "border-b-4 border-b-primary/70 bg-[color-mix(in_srgb,hsl(var(--primary))_12%,hsl(var(--card)))]"
+            ? "border-b-2 border-b-border bg-muted"
             : rowBg(r) ?? "bg-card",
         ),
     },
@@ -684,7 +663,7 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
                 {money(Math.round(num(r, "bank_usd")))}
               </span>,
             );
-          const rendered = money(Math.round(c.value(r)));
+          const rendered = money(Math.round(c.value(r)), SIGNED_IDS.has(c.id));
 
           if (c.id === "expenses")
             return wrap(
@@ -708,25 +687,24 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
         },
 
         headerClassName: cn(
-          "whitespace-nowrap border-b-4 text-[12px] uppercase tracking-wide",
+          "whitespace-nowrap border-b-2 text-[12px] uppercase tracking-wide",
           ZONE_HEAD[c.section],
           first ? "border-l-2 border-l-border" : "border-l border-l-border/60",
-          c.total ? "font-extrabold text-foreground" : "font-bold text-foreground/80",
-          hot ? "border-b-primary text-primary" : "border-b-primary/70",
+          c.total ? "font-extrabold text-foreground" : "font-bold text-foreground",
+          hot && "text-primary",
         ),
+
         cellClassName: (r: Row) =>
           cn(
             "py-0.5 whitespace-nowrap font-mono text-[11px] leading-tight tabular-nums",
             first ? "border-l-2 border-l-border" : "border-l border-l-border/40",
-            c.total ? "font-semibold text-foreground" : "text-foreground/70",
+            c.total ? "font-semibold text-foreground" : "text-foreground",
             r.kind === "start"
-              ? "border-b-4 border-b-primary/70 bg-[color-mix(in_srgb,hsl(var(--primary))_12%,hsl(var(--card)))] font-semibold"
-              : rowBg(r)
-                ?? (r.day_closed ? heatClass(c, Math.round(c.value(r))) : undefined)
-                ?? ZONE_BG[c.section],
-            // Focused column: a soft tint, no hard ring.
-            hot && "!bg-[color-mix(in_srgb,hsl(var(--primary))_7%,hsl(var(--card)))] text-foreground",
+              ? "border-b-2 border-b-border bg-muted font-semibold"
+              : rowBg(r) ?? ZONE_BG[c.section],
+            hot && "!bg-muted",
           ),
+
 
 
 
@@ -746,11 +724,19 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             const c = ALL_COLS.find((x) => x.id === col.key);
             const v = c ? Math.round(c.value(grandRow)) : 0;
             const tip = formulaText(col.key);
+            const signed = SIGNED_IDS.has(String(col.key));
             return (
               <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                <span className={cn("font-mono text-[11px] font-bold tabular-nums", v < 0 && "cms-amount-negative")}>
+                <span
+                  className={cn(
+                    "font-mono text-[11px] font-bold tabular-nums",
+                    v < 0 ? "cms-amount-negative" : signed && v > 0 ? "cms-amount-positive" : undefined,
+                  )}
+                >
+                  {signed && v > 0 ? "+" : ""}
                   {formatMoneyFull(v)}
                 </span>
+
 
                 {tip && (
                   <Tooltip>
