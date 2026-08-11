@@ -941,16 +941,13 @@ export const useDailyBalanceReport = (
         }
 
 
-        // Bank checks are entered GROSS (3% on top) — strip the commission.
-        const gross = terminal[date] ?? 0;
-        const net = gross / (1 + BANK_COMMISSION_RATE);
         const dayTotal = tables + slotsNet + barV + manualCredit;
         const cdr = cashDesk[date] ?? 0;
-        // Cage Casino = ALL money in the live cage + slots cage (cash + cashless)
+        // Cage Casino = running ledger of cage_table + cage_slot wallets only.
         const cashPart = cageClosing[date] ?? null;
         const cashlessPart = cageCashless[date] ?? 0;
         const carried = false;
-        const cage = (cashPart ?? 0) + cashlessPart;
+        const cageCasino = cageCasinoRunning[date] ?? 0;
         const expensesV = expByDate[date] ?? 0;
         return {
           date,
@@ -961,9 +958,9 @@ export const useDailyBalanceReport = (
           tables_result: tables,
           slots_result: slotsNet,
           bar_result: barV,
-          // Cage Cash = closing cash of LIVE + SLOTS cage shifts (falls back to wallet balance)
-          cage_cash: cage,
-          collection_bank: collections[date] ?? 0,
+          // Cage Cash = closing cash of LIVE + SLOTS cage shifts (reference only)
+          cage_cash: (cashPart ?? 0) + cashlessPart,
+          collection_bank: collectionsByDate[date] ?? 0,
           chip_difference: chipMiss[date] ?? 0,
           tips_tables: tipsTables[date] ?? 0,
           tips_slots: tipsSlots[date] ?? 0,
@@ -971,8 +968,6 @@ export const useDailyBalanceReport = (
           office_transfer: (officeIn[date] ?? 0) - (officeOut[date] ?? 0),
           office_in: officeIn[date] ?? 0,
           office_out: officeOut[date] ?? 0,
-          bank_terminal: net,
-          bank_fee: gross - net,
           bank_account: lastBank,
           bank_expenses: bankExpByDate[date] ?? 0,
           credit_deposit: manualCredit,
@@ -981,7 +976,7 @@ export const useDailyBalanceReport = (
           day_total: dayTotal,
           day_balance: cdr - dayTotal,
           ...cmb({
-            cage,
+            cageCasino,
             cashPart: cashPart ?? 0,
             cashlessPart,
             carried,
@@ -995,13 +990,16 @@ export const useDailyBalanceReport = (
             slotsDiff: cardBal[date] ?? 0,
             chipDiff: chipMiss[date] ?? 0,
             tips: (tipsTables[date] ?? 0) + (tipsSlots[date] ?? 0),
-
+            otherIncome: otherIncomeByDate[date] ?? 0,
+            jp: jpByDate[date] ?? 0,
+            missedCards: cardsMiss[date] ?? 0,
+            collections: collectionsByDate[date] ?? 0,
           }),
-          fees: feesByDate[date] ?? 0,
           legacy: false,
           hasSystemData,
           day_closed: closedDays.has(date),
         } satisfies DailyBalanceRow;
+
       });
 
 
