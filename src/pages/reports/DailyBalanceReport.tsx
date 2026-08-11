@@ -149,9 +149,8 @@ const MANUAL_FIELDS: Record<string, ManualLegacyField | undefined> = {
   tips_total: "tips_tables",
   transfer_cage_manager: "office_transfer",
   transfer_bank: "collection_bank",
-  money_in: "office_in",
-  money_out: "office_out",
 };
+
 
 
 /** Start row → editable opening fields in `fin_month_start`. */
