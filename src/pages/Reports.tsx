@@ -254,11 +254,11 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
       const toStr = toDate.toISOString().slice(0, 10);
       const toIso = businessDayHourUTC(toStr, 7);
 
-      const [liveData, slotsData, expData, dropData] = await Promise.all([
+      const [liveData, slotsData, expData, dropData, closingData] = await Promise.all([
         fetchPaged<any>((f, t) => supabase.from("shifts").select("id, closed_at, tables_result")
           .eq("casino_id", casinoId).eq("status", "closed")
           .gte("closed_at", fromIso).lt("closed_at", toIso).range(f, t)),
-        fetchPaged<any>((f, t) => supabase.from("cage_slots_shifts").select("id, business_date, status, slots_result, manual_slots_result, manual_drop_slots")
+        fetchPaged<any>((f, t) => supabase.from("cage_slots_shifts").select("id, business_date, status, manual_drop_slots")
           .eq("casino_id", casinoId).eq("status", "closed")
           .gte("business_date", from).lt("business_date", toStr).range(f, t)),
 
@@ -269,6 +269,10 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
         // SAME source as Player Statistics / Dashboard / Tables — keeps every
         // screen in sync. Paged so long periods (year / All) aren't truncated.
         fetchPaged<any>((f, t) => supabase.from("player_day_drop_cache").select("business_date, peak")
+          .eq("casino_id", casinoId)
+          .gte("business_date", from).lt("business_date", toStr).range(f, t)),
+        // Result Slots = Net Win entered at Close Day. No fallback to computed figures.
+        fetchPaged<any>((f, t) => supabase.from("fin_day_closing").select("business_date, net_win")
           .eq("casino_id", casinoId)
           .gte("business_date", from).lt("business_date", toStr).range(f, t)),
       ]);
@@ -290,7 +294,7 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
       const map: Record<string, any> = {};
       const row = (d: string) => (map[d] ||= {
         date: d, dropTables: 0, tablesResult: 0, dropSlots: 0, slotsResult: 0, expenses: 0,
-        slotsShiftIds: [] as string[],
+        slotsShiftIds: [] as string[], slotsLocked: false,
       });
       (liveRes.data || []).forEach((s: any) => {
         if (!s.closed_at) return;
@@ -299,11 +303,15 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
       });
       (slotsRes.data || []).forEach((s: any) => {
         const r = row(s.business_date);
-        // Result Slots = Net Win entered at Close Day (manual figure wins).
-        r.slotsResult += Number(s.manual_slots_result ?? s.slots_result ?? 0);
-
         r.dropSlots += Number(s.manual_drop_slots || 0);
         r.slotsShiftIds.push(s.id);
+      });
+      // Result Slots strictly from Close Day; missing closing => 0 (editable).
+      (closingData || []).forEach((c: any) => {
+        if (!c.business_date) return;
+        const r = row(c.business_date);
+        r.slotsResult = Number(c.net_win || 0);
+        r.slotsLocked = true;
       });
       (expRes.data || []).forEach((e: any) => {
         const r = row(eatDate(e.created_at));
@@ -375,6 +383,23 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
     onError: (e: any) => toast.error(e.message || "Failed to update"),
   });
 
+  /** Backfill Net Win for days that never went through Close Day. */
+  const updateNetWin = useMutation({
+    mutationFn: async ({ date, value }: { date: string; value: number }) => {
+      const { error } = await supabase
+        .from("fin_day_closing")
+        .upsert({ casino_id: casinoId, business_date: date, net_win: value } as any,
+                { onConflict: "casino_id,business_date" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["reports-total"] });
+      qc.invalidateQueries({ queryKey: ["slots-report-day-closings"] });
+      toast.success("Net Win updated");
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to update"),
+  });
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2">
@@ -428,7 +453,17 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
                     onSave={(v) => updateDropSlots.mutate({ shiftIds: slotsShiftIds, value: v })}
                   />
                 </DTCell>
-                <DTCell type="money"><span className={`font-semibold ${signCls(r.slotsResult || 0)}`}>{fmt(r.slotsResult || 0)}</span></DTCell>
+                <DTCell type="money" title={r.slotsLocked ? "From Close Day" : undefined}>
+                  {r.slotsLocked || !canEditDrop ? (
+                    <span className={`font-semibold ${signCls(r.slotsResult || 0)}`}>{fmt(r.slotsResult || 0)}</span>
+                  ) : (
+                    <DropSlotsCell
+                      value={r.slotsResult || 0}
+                      canEdit
+                      onSave={(v) => updateNetWin.mutate({ date: r.date, value: v })}
+                    />
+                  )}
+                </DTCell>
                 <DTCell type="money"><span className="text-muted-foreground">{fmtHold(holdOf(r.slotsResult || 0, r.dropSlots || 0))}</span></DTCell>
                 <DTCell type="money"><span className={`font-bold ${signCls(totalResults)}`}>{fmt(totalResults)}</span></DTCell>
               </DTRow>

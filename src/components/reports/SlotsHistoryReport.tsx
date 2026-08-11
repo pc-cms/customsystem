@@ -87,7 +87,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
       if (!casinoId || !from || !to) return [];
       const { data, error } = await supabase
         .from("fin_day_closing")
-        .select("business_date, cashdesk_win")
+        .select("business_date, cashdesk_win, net_win")
         .eq("casino_id", casinoId)
         .gte("business_date", from)
         .lte("business_date", to);
@@ -97,10 +97,14 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
     enabled: !!casinoId,
   });
 
-  const cashdeskByDate = useMemo(() => {
-    const m = new Map<string, number>();
+  /** business_date -> Close Day figures. Presence of the row locks the cells. */
+  const closingByDate = useMemo(() => {
+    const m = new Map<string, { cashdesk: number; netWin: number }>();
     (closings as any[]).forEach((r) => {
-      if (r.cashdesk_win != null) m.set(r.business_date, Number(r.cashdesk_win));
+      m.set(r.business_date, {
+        cashdesk: Number(r.cashdesk_win || 0),
+        netWin: Number(r.net_win || 0),
+      });
     });
     return m;
   }, [closings]);
@@ -117,17 +121,20 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "business_date", dir: "desc" });
 
-  const rows = useMemo(() => shifts.map((s: any) => ({
-    s,
-    drop: Number(s.manual_drop_slots || 0),
-    netWin: Number(s.manual_slots_result || 0),
-    cdr: cashdeskByDate.has(s.business_date)
-      ? Number(cashdeskByDate.get(s.business_date))
-      : Number(s.cash_desk_result ?? s.actual_cage_result ?? 0),
-    clientBalance: Number(s.manual_slots_deposits || 0),
-    miss: Number(s.cards_miss || 0),
-    balance: Number(s.balance || 0),
-  })), [shifts, cashdeskByDate]);
+  const rows = useMemo(() => shifts.map((s: any) => {
+    const c = closingByDate.get(s.business_date);
+    return {
+      s,
+      drop: Number(s.manual_drop_slots || 0),
+      // Net Win / Cashdesk come ONLY from Close Day. No fallback to shift figures.
+      netWin: c ? c.netWin : 0,
+      cdr: c ? c.cashdesk : 0,
+      locked: !!c,
+      clientBalance: Number(s.manual_slots_deposits || 0),
+      miss: Number(s.cards_miss || 0),
+      balance: Number(s.balance || 0),
+    };
+  }), [shifts, closingByDate]);
 
 
   const totals = useMemo(() => {
@@ -184,6 +191,28 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
     onError: (e: any) => toast.error(e.message || "Failed to update"),
   });
 
+  /**
+   * Manual backfill for days that were never closed via Close Day.
+   * Creates (or updates) the fin_day_closing row for that business date.
+   * Once a Close Day row exists the cells become read-only.
+   */
+  const updateClosingField = useMutation({
+    mutationFn: async ({ date, field, value }: { date: string; field: "net_win" | "cashdesk_win"; value: number }) => {
+      const { error } = await supabase
+        .from("fin_day_closing")
+        .upsert({ casino_id: casinoId, business_date: date, [field]: value } as any,
+                { onConflict: "casino_id,business_date" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["slots-report-day-closings"] });
+      qc.invalidateQueries({ queryKey: ["reports-total"] });
+      qc.invalidateQueries({ queryKey: ["cage-slots-history"] });
+      toast.success("Updated");
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to update"),
+  });
+
   return (
     <div className="space-y-3">
       {/* KPI summary tiles */}
@@ -231,7 +260,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
           {!isLoading && sorted.length === 0 && (
             <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-4">No closed slots shifts in range</DTCell></DTRow>
           )}
-          {sorted.map(({ s, drop, netWin, cdr, clientBalance, miss, balance }) => {
+          {sorted.map(({ s, drop, netWin, cdr, clientBalance, miss, balance, locked }) => {
             const isExpanded = expandedId === s.id;
             const toggleExpanded = () => setExpandedId(isExpanded ? null : s.id);
             const onRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
@@ -267,13 +296,18 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
                       onSave={(v) => updateField.mutate({ id: s.id, field: "manual_drop_slots", value: v })}
                     />
                   </DTCell>
-                  <DTCell type="money">
+                  <DTCell type="money" title={locked ? "From Close Day" : undefined}>
                     <EditableMoney
-                      value={netWin} canEdit={canEdit} mode={mode}
-                      onSave={(v) => updateField.mutate({ id: s.id, field: "manual_slots_result", value: v })}
+                      value={netWin} canEdit={canEdit && !locked} mode={mode}
+                      onSave={(v) => updateClosingField.mutate({ date: s.business_date, field: "net_win", value: v })}
                     />
                   </DTCell>
-                  <DTCell type="money"><MoneyCell value={cdr} mode={mode} signed /></DTCell>
+                  <DTCell type="money" title={locked ? "From Close Day" : undefined}>
+                    <EditableMoney
+                      value={cdr} canEdit={canEdit && !locked} mode={mode}
+                      onSave={(v) => updateClosingField.mutate({ date: s.business_date, field: "cashdesk_win", value: v })}
+                    />
+                  </DTCell>
                   <DTCell type="money">
                     <EditableMoney
                       value={clientBalance} canEdit={canEdit} mode={mode}
