@@ -44,11 +44,19 @@ export interface CageDetail {
 }
 
 
+/** One cash-desk closing leg marked as BANK (Terminal column detail). */
+export interface TerminalLeg {
+  shift: string;
+  tzs: number;
+  usd: number;
+}
+
 export interface TransferDetail {
   amount: number;
   from: string;
   to: string;
 }
+
 
 export interface WalletBalance {
   name: string;
