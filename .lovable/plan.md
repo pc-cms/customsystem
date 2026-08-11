@@ -52,11 +52,13 @@
 - Кошельки приводятся к тем же значениям: starting float на 10.08, движения до 10.08 отсутствуют.
 
 ## Технические детали
-- `src/hooks/use-daily-balance-report.ts`: Slots из `cashdesk_win − players_card_balance`; банк только из кошельков CRDB/NBC с разделением TZS/USD (+`bank_usd_raw` в USD); новые поля `terminal_tzs`, `terminal_usd`, `terminal_total`, `terminal_detail`; отсечка денежных колонок до даты старта (`money_from`).
-- `src/pages/reports/DailyBalanceReport.tsx`: колонка Terminal перед Bank, Bank USD показывает USD + TZS, drill-down для Terminal, пустые ячейки для дней до старта.
-- `src/lib/monthly-balance-formulas.ts`: тексты формул для Terminal, Bank TZS/USD, Slots.
+- `src/hooks/use-daily-balance-report.ts`: Slots из `cashdesk_win − players_card_balance`; банк только из кошельков CRDB/NBC с разделением TZS/USD (+`bank_usd_raw` в USD); новые поля `terminal_tzs`, `terminal_usd`, `terminal_total`, `terminal_detail`; Money = Cage + Manager + Bank + Terminal; ручные поля Tips / Internal Transfer / Bank Transfer подтягиваются из таблицы ручных значений по дню; отсечка денежных колонок до даты старта (`money_from`).
+- Ручные значения: хранение по (казино, дата) — используем существующую `fin_legacy_balance` (поля `tips_tables`, `office_transfer`, `collection_bank`) без новой таблицы; инлайн-редактор в ячейке, как у Bank TZS сейчас.
+- `src/pages/reports/DailyBalanceReport.tsx`: колонка Terminal перед Bank, Bank USD показывает USD + TZS, drill-down для Terminal, инлайн-ввод трёх ручных колонок, пустые ячейки для дней до старта.
+- `src/lib/monthly-balance-formulas.ts`: тексты формул для Terminal, Bank TZS/USD, Slots, Money и ручных колонок.
 - Диалог Start: запись в `fin_month_start` по каждому казино.
 - Данные: удаление `fin_day_balance_snapshot`, `fin_wallet_tx`, `fin_legacy_balance` за 01–09.08 по 4 казино; заполнение `fin_month_start` вашими цифрами на 10.08.
+
 
 ## Что нужно от вас
 Цифры на утро 10.08 по каждому казино: Cage Casino, Cage Manager (офис), Bank CRDB TZS, NBC TZS, CRDB USD, NBC USD. Без них Start останется нулевым.
