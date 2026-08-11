@@ -1,39 +1,40 @@
-# Исправление Casino Monthly Balance
+# Casino Monthly Balance — перестановка колонок и новая формула Variance
 
-## Что исправим
+## 1. Перестановка колонок
 
-1. **Cage Casino**
-   - Уберём расчёт через несуществующие для текущих касс типы кошельков `cage_table / cage_slot`.
-   - Источник: последний сохранённый **Record** за бизнес-день отдельно для Live Cage и Slots Cage.
-   - Формула: `Live Cage money + Slots Cage money`.
-   - Включим все деньги касс: TZS cash, иностранную валюту в TZS, cashless/mobile и bank, если они входят в сохранённое состояние кассы.
-   - Полностью исключим chips.
-   - Если Record одной из касс отсутствует, её часть равна `0`; перенос вчерашнего значения запрещён.
+- **JP** переносим в блок **Casino Result**, ставим перед **Tips**. Отдельной колонки JP в блоке доходов больше нет.
+- **Missed Cards** переносим в блок **Diff** (рядом с Miss Chips и Slots Diff), знак сохраняем прежний.
+- **Other Incomes** как отдельная колонка убирается: положительные суммы попадают в **Office +**, отрицательные — в **Office −** (по модулю).
 
-2. **Фиксация дневного состояния**
-   - Каждая строка CMB будет показывать состояние после нажатия **Record**.
-   - Если Record нажимали несколько раз, используется последний Record этого бизнес-дня.
-   - Старые строки не будут пересчитываться из текущих остатков.
+## 2. Формула Variance
 
-3. **Manager и Bank**
-   - `Cage Manager`, `Bank TZS` и `Bank USD` будут читаться из последнего общего снимка Record.
-   - Cage Casino останется независимым: Live и Slots берутся из записей соответствующих касс.
-   - Для дня без сохранённого значения применяется согласованное резервное поведение Wallets; итоговые пустые значения отображаются как `0`.
+```text
+Variance = Деньги на вчера (или Start)
+         + Result
+         ± Diff
+         − Expenses
+         ± Office
+         − Деньги на сегодня
+```
 
-4. **Money Total и Variance**
-   - `Money Total = Cage Casino + Cage Manager + Bank TZS + Bank USD (в TZS)`.
-   - `Variance = Start + Result + Diff + JP + Other Incomes + Office IN − Expenses − Office OUT − Money Total`.
-   - Проверим, что USD конвертируется ровно один раз.
+Идеальное значение — `0`.
 
-5. **Детализация и проверка**
-   - Детализация Cage Casino покажет отдельные строки Live Cage и Slots Cage и их денежные составляющие без chips.
-   - Обновим подсказки источников в заголовках CMB.
-   - Сверим Мбею на фактическом дне: ожидаемая контрольная сумма `9 000 000 + 1 000 000 = 10 000 000` для соответствующего Record.
-   - Проверим дни с двумя Record, отсутствующим Record одной кассы, валютой/cashless и записанным нулём.
+- «Деньги на вчера» = Money Total предыдущей строки; для первой строки месяца — строка **Start**.
+- Result уже включает JP.
+- Diff включает Miss Chips, Missed Cards и Slots Diff.
+- Office = Office + минус Office −, включая перенесённые Other Incomes.
+- «Деньги на сегодня» = Money Total этой строки.
 
-## Технические детали
+## 3. Cage Casino и Money Total (по ранее согласованным ответам)
 
-- Перестроим агрегацию в хуке CMB с ledger-running balance на последние дневные snapshots Live/Slots.
-- Для выбора последней записи используем время создания/обновления Record в пределах `business_date`.
-- Не будем суммировать несколько проверок или несколько смен за день: stock-значение всегда заменяется последним снимком.
-- Сохраним текущие правила строк Start, Result, Diff, Office и Expenses без изменений.
+- Cage Casino = Live Cage + Slots Cage из последнего **Record** бизнес-дня, все деньги кроме фишек; нет Record — `0`.
+- Cage Manager / Bank TZS / Bank USD — из последнего Record; USD конвертируется ровно один раз.
+- Money Total = Cage Casino + Cage Manager + Bank TZS + Bank USD (в TZS).
+- Пустые ячейки отображаются как `0`.
+
+## 4. Технические детали
+
+- `src/hooks/use-daily-balance-report.ts`: перенос `jp` в расчёт Result, `missed_cards` в `diff_total`, распределение `fin_other_incomes` по знаку в manual Office `+`/`−` (как справочная добавка к ручному вводу), новая формула Variance с переносом Money Total предыдущего дня.
+- `src/pages/reports/DailyBalanceReport.tsx`: порядок колонок (JP перед Tips в Casino Result, Missed Cards в Diff), удаление колонки Other Incomes, обновление плиток итогов и подписи Variance.
+- `src/lib/monthly-balance-formulas.ts`: обновить описания источников и формулу Variance.
+- Поднять версию в `package.json`.
