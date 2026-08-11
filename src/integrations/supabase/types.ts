@@ -11150,17 +11150,30 @@ export type Database = {
         }
         Returns: Json
       }
-      close_business_day_with_figures: {
-        Args: {
-          _cashdesk_win: number
-          _casino_id: string
-          _client_balance: number
-          _drop_slots: number
-          _net_win: number
-          _notes?: string
-        }
-        Returns: Json
-      }
+      close_business_day_with_figures:
+        | {
+            Args: {
+              _cashdesk_win: number
+              _casino_id: string
+              _client_balance: number
+              _drop_slots: number
+              _net_win: number
+              _notes?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _cashdesk_win: number
+              _casino_id: string
+              _client_balance: number
+              _drop_slots: number
+              _jp_in?: number
+              _net_win: number
+              _notes?: string
+            }
+            Returns: Json
+          }
       close_open_sessions_5am: { Args: never; Returns: Json }
       club_buy_lottery_ticket: {
         Args: {
