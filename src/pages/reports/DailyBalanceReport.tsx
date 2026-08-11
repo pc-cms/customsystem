@@ -842,7 +842,7 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
         <Tile label="Expenses" value={-num(grandRow, "expenses")} />
 
         <Tile
-          label="Balance"
+          label="Variance"
           value={Number(lastClosedRow?.balance || 0)}
           hint={lastClosedDate ? fmtDate(lastClosedDate) : undefined}
         />
