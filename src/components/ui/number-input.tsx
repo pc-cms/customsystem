@@ -69,8 +69,8 @@ export type NumberInputProps = Omit<
   value: number | string | null | undefined;
   /** Preferred callback — receives the parsed number (null when empty). */
   onValueChange?: (value: number | null) => void;
-  /** Legacy callback kept for existing call sites — receives a number (0 when empty). */
-  onChange?: (value: number) => void;
+  /** Legacy callback kept for existing call sites — receives the raw numeric string ("" when empty). */
+  onChange?: (value: string) => void;
   /** Fractional digits allowed (0 = integers only). */
   decimals?: number;
   allowNegative?: boolean;
@@ -115,7 +115,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
 
     const notify = (v: number | null) => {
       onValueChange?.(v);
-      onChange?.(v ?? 0);
+      onChange?.(v == null ? "" : String(v));
     };
 
     const [focused, setFocused] = useState(false);
