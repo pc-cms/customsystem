@@ -97,18 +97,13 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
     source: "expenses approved = true, not voided, not reversals",
     total: "sum",
   },
-  other_income: {
-    formula: "Non-JP other incomes (fees, etc.)",
-    source: "fin_other_incomes (excluding JP)",
-    total: "sum",
-  },
   jp: {
-    formula: "Jackpot income of the day",
-    source: "fin_other_incomes (type = JP)",
+    formula: "Jackpot of the day — part of the Casino Result block, signed as recorded",
+    source: "fin_other_incomes (source = JP)",
     total: "sum",
   },
   missed_cards: {
-    formula: "Missed Cards (shortage) from cage slots shifts",
+    formula: "Missed Cards (shortage) — part of Diff",
     source: "cage_slots_shifts.cards_miss",
     total: "sum",
   },
@@ -117,6 +112,7 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
     source: "expenses in Collection category",
     total: "sum",
   },
+
   office_total: {
     formula: "Office net = (+) money in − (−) money out",
     source: "Manual — typed inline in this report",
