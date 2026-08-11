@@ -115,6 +115,11 @@ export interface DailyBalanceRow {
   cage_manager: number;
   /** Transfers into bank accounts (positive leg). */
   transfer_bank: number;
+  /** Terminal — cash-desk closing legs marked as BANK for that day (daily flow). */
+  terminal_tzs: number;
+  terminal_usd: number;
+  terminal_total: number;
+  terminal_detail: TerminalLeg[];
   /** Bank account balances at end of day, split by currency (TZS-valued). */
   bank_tzs: number;
   bank_usd: number;
@@ -126,8 +131,10 @@ export interface DailyBalanceRow {
   money_in: number;
   /** Collections / owner withdrawals. */
   money_out: number;
-  /** Cage Casino + Cage Manager + Bank (TZS + USD) at end of day. */
+  /** Cage Casino + Cage Manager + Bank (TZS + USD) + Terminal at end of day. */
   money_total: number;
+  /** True for days before the recorded Start — money columns are not tracked. */
+  money_hidden: boolean;
   /** Financial result = Casino result − expenses + office net (IN − OUT). */
   fin_result: number;
   /** Variance: Money (actual) − control figure (expected). Should tend to 0. */
