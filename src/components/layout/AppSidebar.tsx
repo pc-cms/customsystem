@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 import arushaLogo from "@/assets/arusha-logo.png";
 import mwanzaLogo from "@/assets/mwanza-logo.png";
 
-type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager" | "boss";
+type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager" | "boss" | "general_manager";
 
 // Section labels for the hybrid grouping (roles + shared ANALYTICS)
 type Section = "OVERVIEW" | "PIT" | "ANALYTICS" | "STAFF" | "MANAGEMENT" | "FINANCE" | "CASHIER" | "RECEPTION" | "HR" | "CRM" | "MARKETING" | "BAR" | "PROMO" | "SYSTEM";
@@ -62,9 +62,9 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/incidents", icon: AlertTriangle, label: "CCTV Reports", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "PIT" },
 
   // ANALYTICS
-  { to: "/reports", icon: FileBarChart, label: "Statistics", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
+  { to: "/reports", icon: FileBarChart, label: "Statistics", roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/reports/graphics", icon: TrendingUp, label: "Graphics", roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
-  { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "manager", "shift_manager", "finance_manager"], section: "ANALYTICS" },
+  { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "finance_manager"], section: "ANALYTICS" },
 
   // STAFF — Rota + Attendance (each expands to Live/Floor/Security/Office).
   { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "STAFF" },
