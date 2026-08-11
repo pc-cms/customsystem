@@ -363,13 +363,10 @@ export function PosModifierConfigDialog({
             {draft.effect_type === "multiply_quantity" ? (
               <div>
                 <label className="text-xs uppercase text-muted-foreground">Multiplier</label>
-                <Input
-                  type="number"
-                  step="0.01"
+                <NumberInput
+                  decimals={2}
                   value={draft.multiplier ?? ""}
-                  onChange={(e) =>
-                    setDraft({ ...draft, multiplier: parseFloat(e.target.value) })
-                  }
+                  onValueChange={(v) => setDraft({ ...draft, multiplier: v ?? undefined })}
                 />
               </div>
             ) : draft.effect_type === "remove_ingredient" ? (
@@ -377,11 +374,10 @@ export function PosModifierConfigDialog({
             ) : (
               <div>
                 <label className="text-xs uppercase text-muted-foreground">Quantity</label>
-                <Input
-                  type="number"
-                  step="0.01"
+                <NumberInput
+                  decimals={2}
                   value={draft.quantity ?? ""}
-                  onChange={(e) => setDraft({ ...draft, quantity: parseFloat(e.target.value) })}
+                  onValueChange={(v) => setDraft({ ...draft, quantity: v ?? undefined })}
                 />
               </div>
             )}

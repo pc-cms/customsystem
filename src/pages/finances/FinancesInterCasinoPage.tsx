@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
@@ -184,11 +185,10 @@ export default function FinancesInterCasinoPage() {
             </Select>
           </FormField>
           <FormField span={6} label="Amount">
-            <Input
-              type="number"
-              step="0.01"
-              value={form.amount || ""}
-              onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })}
+            <NumberInput
+              decimals={2}
+              value={form.amount ?? 0}
+              onValueChange={(v) => setForm({ ...form, amount: v ?? 0 })}
             />
           </FormField>
           <FormField span={12} label="Note">

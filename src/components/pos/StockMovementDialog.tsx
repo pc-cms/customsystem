@@ -111,12 +111,11 @@ export const StockMovementDialog = ({ open, onOpenChange, item }: Props) => {
 
         <FormGrid>
           <FormField span={6} label="Quantity" required>
-            <Input
-              type="number"
-              inputMode="numeric"
+            <NumberInput
+              decimals={0}
               min={1}
-              value={qty}
-              onChange={(e) => setQty(e.target.value)}
+              value={qty === "" ? "" : Number(qty)}
+              onValueChange={(v) => setQty(v == null ? "" : String(v))}
               autoFocus
             />
           </FormField>

@@ -4,6 +4,7 @@
  */
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -79,11 +80,11 @@ export default function QuickIncomeDialog({ open, onOpenChange, source, title, d
           </Select>
         </FormField>
         <FormField span={6} label={`Amount (${activeWallet?.currency || "TZS"})`}>
-          <Input
-            type="number"
-            step="0.01"
+          <NumberInput
+            decimals={2}
+            allowNegative
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onValueChange={(v) => setAmount(v == null ? "" : String(v))}
             placeholder="0 (use minus for deduction)"
           />
         </FormField>

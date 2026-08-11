@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatNumberSpaces } from "@/lib/currency";
 import { useRunCloseMonth } from "@/hooks/use-fin-month-closures";
@@ -267,14 +268,13 @@ function WalletAmountList({
               <td className="px-2 py-1">{r.name}</td>
               <td className="px-2 py-1 font-mono">{r.currency}</td>
               <td className="px-2 py-1 text-right">
-                <Input
-                  type="number"
-                  step="0.01"
+                <NumberInput
+                  decimals={2}
                   className="h-7 text-right font-mono"
                   value={r.amount}
-                  onChange={(e) => {
+                  onValueChange={(v) => {
                     const next = [...rows];
-                    next[i] = { ...r, amount: Number(e.target.value) || 0 };
+                    next[i] = { ...r, amount: v ?? 0 };
                     onChange(next);
                   }}
                 />
