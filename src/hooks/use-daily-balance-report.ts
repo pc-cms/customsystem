@@ -333,6 +333,12 @@ export const useDailyBalanceReport = (
           sb.from("fin_month_start")
             .select("*")
             .eq("casino_id", casino).eq("month", from).range(a, b)),
+        // Physical counts — THE source of every wallet balance in this report.
+        fetchPaged<any>((a, b) =>
+          sb.from("cash_count_snapshots")
+            .select("wallet_id, physical_total, physical_total_tzs, created_at")
+            .eq("casino_id", casino).lte("created_at", toIso)
+            .order("created_at", { ascending: true }).range(a, b)),
       ]);
 
 
