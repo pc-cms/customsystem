@@ -615,11 +615,14 @@ export const useDailyBalanceReport = (
       ).sort();
       /** Per-wallet running balance — feeds the "Cage Manager" detail panel. */
       const perWallet: Record<string, number> = {};
+      /** Same running balance kept in the wallet's own currency (units). */
+      const perWalletUnits: Record<string, number> = {};
       wallets.forEach((w) => {
         const f = num(w.starting_float_amount);
         const d: string = w.starting_float_date ? String(w.starting_float_date).slice(0, 10) : "";
         if (!f || (d && d >= from)) return;
         perWallet[w.id] = (w.currency || "TZS") === "TZS" ? f : f * FALLBACK_USD_RATE;
+        perWalletUnits[w.id] = f;
       });
       const officeWalletsByDate: Record<string, WalletBalance[]> = {};
       const officeWallets = wallets.filter((w) => isOfficeKind(w.kind));
@@ -637,12 +640,16 @@ export const useDailyBalanceReport = (
             const rate = rateByDate[d] || FALLBACK_USD_RATE;
             perWallet[w.id] = (perWallet[w.id] || 0) +
               ((w.currency || "TZS") === "TZS" ? wf : wf * rate);
+            perWalletUnits[w.id] = (perWalletUnits[w.id] || 0) + wf;
           });
         }
         for (const t of txByDate[d] ?? []) {
           const k = walletKind[t.wallet_id];
           const v = signedWalletTxTzs(t);
           perWallet[t.wallet_id] = (perWallet[t.wallet_id] || 0) + v;
+          // Native units: same sign rule, but on the raw `amount` column.
+          perWalletUnits[t.wallet_id] = (perWalletUnits[t.wallet_id] || 0) +
+            signedWalletTxTzs({ kind: t.kind, amount: t.amount, amount_tzs: t.amount });
 
           if (CASINO_CAGE_KINDS.has(k)) cageCasinoBal += v;
           if (CAGE_KINDS.has(k)) cageBal += v;
@@ -662,6 +669,7 @@ export const useDailyBalanceReport = (
           name: w.name,
           currency: w.currency || "TZS",
           balance: perWallet[w.id] || 0,
+          units: perWalletUnits[w.id] || 0,
         }));
       }
 
