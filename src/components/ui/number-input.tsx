@@ -66,8 +66,11 @@ export type NumberInputProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
   "value" | "onChange" | "type" | "step" | "min" | "max"
 > & {
-  value: number | null | undefined;
-  onValueChange: (value: number | null) => void;
+  value: number | string | null | undefined;
+  /** Preferred callback — receives the parsed number (null when empty). */
+  onValueChange?: (value: number | null) => void;
+  /** Legacy callback kept for existing call sites — receives a number (0 when empty). */
+  onChange?: (value: number) => void;
   /** Fractional digits allowed (0 = integers only). */
   decimals?: number;
   allowNegative?: boolean;
@@ -84,8 +87,9 @@ export type NumberInputProps = Omit<
 export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
   (
     {
-      value,
+      value: valueProp,
       onValueChange,
+      onChange,
       decimals = 0,
       allowNegative = true,
       keepZero = false,
@@ -102,6 +106,18 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
     },
     ref,
   ) => {
+    const value =
+      valueProp === "" || valueProp == null
+        ? null
+        : typeof valueProp === "number"
+          ? valueProp
+          : parseSpacedNumber(String(valueProp));
+
+    const notify = (v: number | null) => {
+      onValueChange?.(v);
+      onChange?.(v ?? 0);
+    };
+
     const [focused, setFocused] = useState(false);
     const [raw, setRaw] = useState(() => formatSpacedValue(value, decimals, keepZero));
 
@@ -118,8 +134,8 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
 
     const emit = (text: string) => {
       const parsed = parseSpacedNumber(text);
-      if (parsed == null) { onValueChange(null); return; }
-      onValueChange(clamp(parsed));
+      if (parsed == null) { notify(null); return; }
+      notify(clamp(parsed));
     };
 
     const hint =
@@ -146,7 +162,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
           const parsed = parseSpacedNumber(raw);
           const final = parsed == null ? null : clamp(parsed);
           setRaw(formatSpacedValue(final, decimals, keepZero));
-          if (final !== (value ?? null)) onValueChange(final);
+          if (final !== (value ?? null)) notify(final);
           onBlur?.(e);
         }}
         onKeyDown={(e) => {
@@ -155,7 +171,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
             const base = parseSpacedNumber(raw) ?? 0;
             const next = clamp(base + (e.key === "ArrowUp" ? step : -step));
             setRaw(formatSpacedValue(next, decimals, true));
-            onValueChange(next);
+            notify(next);
           }
           onKeyDown?.(e);
         }}
