@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import CurrencyCashTable from "@/components/reports/CurrencyCashTable";
+import MoneyDrill from "@/components/reports/MoneyDrill";
 import DrillHeader from "@/components/reports/DrillHeader";
 import { useCasino } from "@/lib/casino-context";
 import { useSessionState } from "@/hooks/use-session-state";
@@ -32,9 +32,8 @@ import {
   useDailyBalanceReport, useSetCreditDeposit, useSetBankBalance,
   useMonthStart, useSetMonthStart,
   type DailyBalanceRow, type ManualLegacyField, type MonthStartField,
-  type WalletBalance,
 } from "@/hooks/use-daily-balance-report";
-import DrillTable, { type DrillRow } from "@/components/reports/DrillTable";
+import DrillTable from "@/components/reports/DrillTable";
 import { demoDailyBalanceRows } from "@/lib/demo-report-data";
 
 type SectionKey = "incomes" | "diff" | "expenses" | "office" | "transfers" | "money" | "balances";
@@ -107,7 +106,6 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
       { id: "bank_total", label: "Bank", total: true, value: (r) => num(r, "bank_tzs") + num(r, "bank_usd") },
       { id: "bank_tzs", label: "Bank TZS", value: (r) => num(r, "bank_tzs") },
       { id: "bank_usd", label: "Bank USD", value: (r) => num(r, "bank_usd") },
-      { id: "collections", label: "Collections", value: (r) => num(r, "collections") },
     ],
   },
 
@@ -142,7 +140,7 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
 /** Money columns — blanked for the days that precede the recorded Start. */
 const MONEY_IDS = new Set([
   "cage_casino", "cage_manager", "transfer_cage_manager", "transfer_bank",
-  "bank_total", "bank_tzs", "bank_usd", "money_total", "balance", "collections",
+  "bank_total", "bank_tzs", "bank_usd", "money_total", "balance",
 ]);
 
 
@@ -227,7 +225,7 @@ const HEAT_IDS = new Set(ALL_COLS.map((c) => c.id));
 /** Columns that open a right-hand breakdown panel when a cell is clicked. */
 const DRILL_IDS = new Set([
   "chip_difference", "cage_casino", "cage_manager", "transfer_cage_manager", "transfer_bank",
-  "bank_tzs", "bank_usd",
+  "bank_total", "bank_tzs", "bank_usd", "money_total",
 ]);
 
 
@@ -359,32 +357,6 @@ const StartCell = ({
     />
   );
 };
-
-
-/**
- * Cash summarised per currency (no denomination breakdown) — every currency is
- * listed even when zero: CUR | amount | rate | TZS.
- */
-const DenomTable = ({
-  rows,
-  mobile,
-}: {
-  rows: { currency: string; denomination: number; quantity: number; tzs: number }[];
-  mobile?: Record<string, number>;
-}) => <CurrencyCashTable rows={rows} mobile={mobile} />;
-
-
-/** Wallet balances → unified drill rows (name already carries the currency). */
-const walletRows = (wallets?: WalletBalance[]): DrillRow[] =>
-  (wallets ?? []).map((w) => {
-    const units = w.units ?? w.balance;
-    return {
-      label: w.name,
-      units,
-      rate: (w.currency || "TZS") === "TZS" ? 1 : units ? w.balance / units : 0,
-      tzs: w.balance,
-    };
-  });
 
 
 const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
@@ -632,9 +604,14 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             return wrap(
               <ManualCell date={r.date} field={MANUAL_FIELDS[c.id]} value={c.value(r)} />,
             );
+          // Bank USD keeps its USD tooltip AND opens the drill like every money cell.
           if (r.kind === "day" && c.id === "bank_usd")
             return wrap(
-              <span title={`${money(Math.round(num(r, "bank_usd_raw")))} USD`}>
+              <span
+                title={`${money(Math.round(num(r, "bank_usd_raw")))} USD`}
+                className="cursor-pointer underline-offset-2 hover:underline"
+                onClick={(e) => { e.stopPropagation(); setDrill({ row: r, col: c.id }); }}
+              >
                 {money(Math.round(num(r, "bank_usd")))}
               </span>,
             );
@@ -866,52 +843,28 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
                   total={num(drill.row, "chip_difference")}
                 />
               )}
-              {drill.col === "cage_casino" && (
-                <>
-                  <DenomTable
-                    rows={drill.row.cage_detail?.cash ?? []}
-                    mobile={drill.row.cage_detail?.mobile ?? {}}
-                  />
-
-                  <DrillTable
-                    title="Cashless"
-                    rows={(drill.row.cage_detail?.cashless ?? []).map((c) => ({
-                      label: c.name, units: c.amount, rate: 1, tzs: c.amount,
-                    }))}
-                  />
-                  <DrillTable
-                    title="Slots cage"
-                    rows={[{
-                      label: "Closing total",
-                      units: drill.row.cage_detail?.slots_total ?? 0,
-                      rate: 1,
-                      tzs: drill.row.cage_detail?.slots_total ?? 0,
-                    }]}
-                    totalLabel="Cage Casino"
-                    total={num(drill.row, "cage_casino")}
-                  />
-                </>
-              )}
-              {drill.col === "cage_manager" && (
-                <DrillTable
-                  title="Office wallets"
-                  rows={walletRows(drill.row.office_wallets)}
-                  totalLabel="Cage Manager"
-                  total={num(drill.row, "cage_manager")}
-                />
-              )}
-              {(drill.col === "bank_tzs" || drill.col === "bank_usd") && (
-                <DrillTable
-                  title="Bank wallets"
-                  rows={walletRows(
-                    (drill.row.bank_wallets ?? []).filter((w) =>
-                      drill.col === "bank_tzs"
-                        ? (w.currency || "TZS") === "TZS"
-                        : (w.currency || "TZS") !== "TZS",
-                    ),
-                  )}
-                  totalLabel={drill.col === "bank_tzs" ? "Bank TZS" : "Bank USD"}
-                  total={num(drill.row, drill.col as keyof DailyBalanceRow)}
+              {(drill.col === "cage_casino" ||
+                drill.col === "cage_manager" ||
+                drill.col === "bank_total" ||
+                drill.col === "bank_tzs" ||
+                drill.col === "bank_usd" ||
+                drill.col === "money_total") && (
+                <MoneyDrill
+                  wallets={drill.row.money_detail ?? []}
+                  buckets={
+                    drill.col === "cage_casino"
+                      ? ["cage"]
+                      : drill.col === "cage_manager"
+                        ? ["office"]
+                        : drill.col === "money_total"
+                          ? ["cage", "office", "bank"]
+                          : ["bank"]
+                  }
+                  currency={
+                    drill.col === "bank_tzs" ? "TZS" : drill.col === "bank_usd" ? "FX" : undefined
+                  }
+                  totalLabel={ALL_COLS.find((c) => c.id === drill.col)?.label ?? "Total"}
+                  total={ALL_COLS.find((c) => c.id === drill.col)?.value(drill.row) ?? 0}
                 />
               )}
               {(drill.col === "transfer_cage_manager" || drill.col === "transfer_bank") && (

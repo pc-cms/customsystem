@@ -61,6 +61,28 @@ export interface WalletBalance {
   units?: number;
 }
 
+/** Money bucket a wallet belongs to (drives the universal money drill). */
+export type MoneyBucket = "cage" | "office" | "bank";
+
+/**
+ * One wallet as of a given day — the single source of every money figure in
+ * the report (last physical count on or before that date).
+ */
+export interface MoneyWallet {
+  name: string;
+  kind: string;
+  currency: string;
+  /** Amount in the wallet's own currency. */
+  units: number;
+  /** Amount converted to TZS. */
+  tzs: number;
+  bucket: MoneyBucket;
+  /** true for mobile-money / cashless channels (AirTell, Tigo, Halo, M-Pesa). */
+  mobile: boolean;
+}
+
+
+
 export interface DailyBalanceRow {
 
   date: string;
@@ -146,6 +168,8 @@ export interface DailyBalanceRow {
   chips_detail: ChipDetail[];
   /** Cage money breakdown at closing (cash by currency/denomination + cashless). */
   cage_detail: CageDetail;
+  /** Every wallet as of that day — feeds the universal money drill. */
+  money_detail: MoneyWallet[];
   /** Transfers cage → manager safe of the day. */
   transfers_manager: TransferDetail[];
   /** Bank transfer legs of the day (signed). */
@@ -625,24 +649,44 @@ export const useDailyBalanceReport = (
       const perWalletUnits: Record<string, number> = {};
       const officeWalletsByDate: Record<string, WalletBalance[]> = {};
       const bankWalletsByDate: Record<string, WalletBalance[]> = {};
+      const moneyByDate: Record<string, MoneyWallet[]> = {};
       const officeWallets = wallets.filter((w) => isOfficeKind(w.kind));
       const bankWallets = wallets.filter((w) => isBankKind(w.kind));
+      /**
+       * Every wallet lands in exactly one money bucket, so
+       * Money = Cage Casino + Cage Manager + Bank always equals the Grand Total
+       * of the Wallets screen for that date — nothing can fall between buckets.
+       */
+      const bucketOf = (kind: string): MoneyBucket =>
+        isBankKind(kind) ? "bank" : isOfficeKind(kind) ? "office" : "cage";
+      const isMobileKind = (kind: string, name: string) =>
+        kind === "mobile_money" || /airtel|airtell|tigo|halo|mpesa|m-pesa|pesa/i.test(name);
 
       for (const d of enumerateDates(from, to)) {
         let cageCasinoBal = 0, cageBal = 0, officeBal = 0, bankTzsBal = 0, bankUsdBal = 0;
+        const detail: MoneyWallet[] = [];
         wallets.forEach((w) => {
           const c = countAt(w.id, d);
+          const v = c?.tzs ?? 0;
+          const bucket = bucketOf(w.kind);
+          detail.push({
+            name: w.name,
+            kind: w.kind,
+            currency: w.currency || "TZS",
+            units: c?.units ?? 0,
+            tzs: v,
+            bucket,
+            mobile: isMobileKind(w.kind, w.name),
+          });
           if (!c) return;
-          const v = c.tzs;
           perWallet[w.id] = v;
           perWalletUnits[w.id] = c.units;
-          if (CASINO_CAGE_KINDS.has(w.kind)) cageCasinoBal += v;
-          if (CAGE_KINDS.has(w.kind)) cageBal += v;
-          else if (isOfficeKind(w.kind)) officeBal += v;
-          else if (isBankKind(w.kind)) {
-            if ((walletCurrency[w.id] || "TZS") === "TZS") bankTzsBal += v; else bankUsdBal += v;
-          }
+          if (bucket === "cage") { cageCasinoBal += v; cageBal += v; }
+          else if (bucket === "office") officeBal += v;
+          else if ((walletCurrency[w.id] || "TZS") === "TZS") bankTzsBal += v;
+          else bankUsdBal += v;
         });
+        moneyByDate[d] = detail;
         cageCasinoRunning[d] = cageCasinoBal;
         cageRunning[d] = cageBal;
         officeRunning[d] = officeBal;
@@ -663,6 +707,7 @@ export const useDailyBalanceReport = (
         officeWalletsByDate[d] = snapshotOf(officeWallets);
         bankWalletsByDate[d] = snapshotOf(bankWallets);
       }
+
 
 
 
@@ -838,12 +883,18 @@ export const useDailyBalanceReport = (
         }) => {
           // Cage Casino = live ledger of cage_table + cage_slot only (no snap).
           const cageCasino = o.cageCasino;
-          // Manager / Bank freeze at closing time: snapshot wins over live wallet balance.
+          /**
+           * Manager / Bank come from the SAME source as Cage Casino: the last
+           * physical wallet count on or before that date. `countAt` is already
+           * date-aware, so a later count never changes a past day — the old
+           * `fin_day_balance_snapshot` freeze is not used any more (it mixed
+           * two sources and made Money differ from the Wallets Grand Total).
+           */
           const snap = snapByDate[date];
-          const manager = snap?.cage_manager != null ? num(snap.cage_manager) : o.manager;
-          const bankTzs = snap?.bank_tzs != null ? num(snap.bank_tzs) : o.bankTzs;
-          const bankUsd = snap?.bank_usd != null ? num(snap.bank_usd) : o.bankUsd;
-          // bank_usd is ALREADY stored converted to TZS (snapshot + ledger use amount_tzs).
+          const manager = o.manager;
+          const bankTzs = o.bankTzs;
+          const bankUsd = o.bankUsd;
+          // bank_usd is ALREADY stored converted to TZS (ledger uses amount_tzs).
           const bankTotal = bankTzs + bankUsd;
           // Money hidden for the days that precede the recorded Start.
           const hidden = !!moneyFrom && date < moneyFrom;
@@ -901,6 +952,7 @@ export const useDailyBalanceReport = (
 
             chips_detail: chipsDetail[date] ?? [],
             cage_detail: cageDetail[date] ?? { cash: [], cashless: [], mobile: {}, slots_total: 0 },
+            money_detail: hidden ? [] : (moneyByDate[date] ?? []),
             transfers_manager: managerTransfers[date] ?? [],
             transfers_bank: bankTransfers[date] ?? [],
             office_wallets: lastOfficeWallets,
