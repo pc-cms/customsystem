@@ -36,36 +36,11 @@ export const MobileMoneyTable = ({
   const total = Object.values(agg).reduce((s, v) => s + v, 0);
 
   return (
-    <div>
-      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {title}
-      </div>
-      <div className="overflow-hidden rounded-md border border-border">
-        <table className="w-full text-[11px]">
-          <tbody>
-            {names.map((n) => (
-              <tr
-                key={n}
-                className={`border-b border-border/60 last:border-0 ${agg[n] ? "" : "text-muted-foreground"}`}
-              >
-                <td className="px-2 py-1 font-semibold">{n}</td>
-                <td className="px-2 py-1 text-right font-mono tabular-nums">
-                  {formatMoneyFull(Math.round(agg[n] || 0))}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="border-t-2 border-border bg-muted/50 font-bold">
-              <td className="px-2 py-1 uppercase tracking-wider">Total</td>
-              <td className="px-2 py-1 text-right font-mono tabular-nums">
-                {formatMoneyFull(Math.round(total))}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
+    <DrillTable
+      title={title}
+      rows={names.map((n) => ({ label: n, units: agg[n] || 0, rate: 1, tzs: agg[n] || 0 }))}
+      total={total}
+    />
   );
 };
 
