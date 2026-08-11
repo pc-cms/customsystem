@@ -8,8 +8,7 @@
  * Column model: every section shows ONE headline "total" column when collapsed;
  * clicking the group header reveals its component columns.
  */
-import { invalidateFinance } from "@/lib/fin-invalidate";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Wallet2, ChevronLeft, ChevronRight, Info } from "lucide-react";
