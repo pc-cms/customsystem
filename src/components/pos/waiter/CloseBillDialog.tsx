@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
@@ -172,22 +173,22 @@ export const CloseBillDialog = ({ open, onOpenChange, tab, onClosed }: Props) =>
 
         <FormGrid>
           <FormField span={6} label="Cash">
-            <Input type="number" inputMode="numeric" value={cash}
-              onChange={(e) => setCash(e.target.value)} className="text-lg" />
+            <NumberInput decimals={0} value={Number(cash) || 0}
+              onValueChange={(v) => setCash(String(v ?? 0))} className="text-lg" />
           </FormField>
           <FormField span={6} label="Card">
-            <Input type="number" inputMode="numeric" value={card}
-              onChange={(e) => setCard(e.target.value)} className="text-lg" />
+            <NumberInput decimals={0} value={Number(card) || 0}
+              onValueChange={(v) => setCard(String(v ?? 0))} className="text-lg" />
           </FormField>
           <FormField span={6} label="Comp · player"
             hint={!hasPlayer ? "Only available for player tabs" : undefined}>
-            <Input type="number" inputMode="numeric" value={compPlayer}
-              onChange={(e) => setCompPlayer(e.target.value)}
+            <NumberInput decimals={0} value={Number(compPlayer) || 0}
+              onValueChange={(v) => setCompPlayer(String(v ?? 0))}
               disabled={!hasPlayer} className="text-lg" />
           </FormField>
           <FormField span={6} label="Comp · house">
-            <Input type="number" inputMode="numeric" value={compHouse}
-              onChange={(e) => setCompHouse(e.target.value)} className="text-lg" />
+            <NumberInput decimals={0} value={Number(compHouse) || 0}
+              onValueChange={(v) => setCompHouse(String(v ?? 0))} className="text-lg" />
           </FormField>
           <FormField
             span={12}
@@ -195,8 +196,8 @@ export const CloseBillDialog = ({ open, onOpenChange, tab, onClosed }: Props) =>
             hint={!hasPlayer ? "Walk-in tabs cannot be charged" : "Postpaid — settled later in Cage"}
           >
             <div className="flex gap-2">
-              <Input type="number" inputMode="numeric" value={playerCharge}
-                onChange={(e) => setPlayerCharge(e.target.value)}
+              <NumberInput decimals={0} value={Number(playerCharge) || 0}
+                onValueChange={(v) => setPlayerCharge(String(v ?? 0))}
                 disabled={!hasPlayer} className="text-lg" />
               <Button type="button" variant="outline" disabled={!hasPlayer} onClick={fillCharge}>
                 Full
