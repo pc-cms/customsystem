@@ -32,7 +32,8 @@ import { cn } from "@/lib/utils";
 import { formulaText } from "@/lib/monthly-balance-formulas";
 import {
   useDailyBalanceReport, useSetCreditDeposit, useSetBankBalance,
-  type DailyBalanceRow, type ManualLegacyField,
+  useMonthStart, useSetMonthStart,
+  type DailyBalanceRow, type ManualLegacyField, type MonthStartField,
 } from "@/hooks/use-daily-balance-report";
 import { demoDailyBalanceRows } from "@/lib/demo-report-data";
 
@@ -146,6 +147,15 @@ const MANUAL_FIELDS: Record<string, ManualLegacyField | undefined> = {
   transfer_cage_manager: "office_transfer",
   transfer_bank: "collection_bank",
 };
+
+/** Start row → editable opening fields in `fin_month_start`. */
+const START_FIELDS: Record<string, MonthStartField | undefined> = {
+  cage_casino: "cage_casino",
+  cage_manager: "cage_manager",
+  bank_tzs: "bank_tzs",
+  bank_usd: "bank_usd",
+};
+
 
 
 /**
