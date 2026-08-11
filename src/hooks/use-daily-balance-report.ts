@@ -77,15 +77,12 @@ export interface DailyBalanceRow {
   office_transfer: number;
   office_in: number;
   office_out: number;
-  bank_terminal: number;
-  bank_fee: number;
   bank_account: number;
   bank_expenses: number;
   credit_deposit: number;
   expenses: number;
-  /** Fees booked as "Other incomes" of type `fee` (TZS). */
-  fees: number;
   chips_float: number;
+
   /** Σ incomes of the day: Tables + Slots + Bar + Credit/Deposit */
   day_total: number;
   /** Cash Desk − Day Total (cash vs declared result) */
