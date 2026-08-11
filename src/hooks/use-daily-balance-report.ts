@@ -628,10 +628,23 @@ export const useDailyBalanceReport = (
        * down at the most recent physical count on or before that day.
        */
       const countsByWallet: Record<string, { d: string; ts: number; tzs: number; units: number }[]> = {};
+      /**
+       * A count taken while the current business day is still OPEN actually
+       * closes the previous (already closed) business day: the money is counted
+       * after the shift ends, before the new day's results exist. Without this
+       * the last closed row shows stale money and Variance never converges
+       * until the next morning.
+       */
+      const moneyDateOf = (iso: string) => {
+        const bd = businessDateOf(iso);
+        if (closedDays.has(bd)) return bd;
+        const prev = prevDate(bd);
+        return closedDays.has(prev) ? prev : bd;
+      };
       (walletCounts as any[]).forEach((c: any) => {
         if (!c.wallet_id) return;
         (countsByWallet[c.wallet_id] ??= []).push({
-          d: businessDateOf(c.created_at),
+          d: moneyDateOf(c.created_at),
           ts: new Date(c.created_at).getTime(),
           tzs: num(c.physical_total_tzs) || num(c.physical_total),
           units: num(c.physical_total),
