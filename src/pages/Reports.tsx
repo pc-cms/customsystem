@@ -453,7 +453,17 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
                     onSave={(v) => updateDropSlots.mutate({ shiftIds: slotsShiftIds, value: v })}
                   />
                 </DTCell>
-                <DTCell type="money"><span className={`font-semibold ${signCls(r.slotsResult || 0)}`}>{fmt(r.slotsResult || 0)}</span></DTCell>
+                <DTCell type="money" title={r.slotsLocked ? "From Close Day" : undefined}>
+                  {r.slotsLocked || !canEditDrop ? (
+                    <span className={`font-semibold ${signCls(r.slotsResult || 0)}`}>{fmt(r.slotsResult || 0)}</span>
+                  ) : (
+                    <DropSlotsCell
+                      value={r.slotsResult || 0}
+                      canEdit
+                      onSave={(v) => updateNetWin.mutate({ date: r.date, value: v })}
+                    />
+                  )}
+                </DTCell>
                 <DTCell type="money"><span className="text-muted-foreground">{fmtHold(holdOf(r.slotsResult || 0, r.dropSlots || 0))}</span></DTCell>
                 <DTCell type="money"><span className={`font-bold ${signCls(totalResults)}`}>{fmt(totalResults)}</span></DTCell>
               </DTRow>
