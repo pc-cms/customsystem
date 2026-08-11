@@ -54,7 +54,7 @@ export const COLUMN_FORMULAS: Record<string, ColumnFormula> = {
   },
   slots_diff: {
     formula: "Players card balance of the day",
-    source: "fin_day_closing.players_card_balance",
+    source: "cage_slots_shifts.manual_slots_deposits (Statistics → Slots → Client Balance)",
     total: "sum",
   },
   cage_casino: {
