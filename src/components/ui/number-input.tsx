@@ -12,10 +12,12 @@ import { cn } from "@/lib/utils";
 
 /** "1 000 000,50" / "1,000,000.50" / "1000000.5" → 1000000.5 */
 export const parseSpacedNumber = (raw: string): number | null => {
-  const cleaned = String(raw)
-    .replace(/[\s\u00a0\u202f]/g, "")
-    .replace(/,/g, ".")
-    .replace(/[^0-9.-]/g, "");
+  let text = String(raw).replace(/[\s\u00a0\u202f]/g, "");
+  // Commas may be thousands separators ("1,000,000.50") or a decimal comma
+  // ("1234,50"). Treat them as separators unless there is exactly one and no dot.
+  const commas = (text.match(/,/g) || []).length;
+  text = commas === 1 && !text.includes(".") ? text.replace(",", ".") : text.replace(/,/g, "");
+  const cleaned = text.replace(/[^0-9.-]/g, "");
   if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") return null;
   const n = Number(cleaned);
   return Number.isFinite(n) ? n : null;
