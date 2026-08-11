@@ -353,7 +353,8 @@ export const useDailyBalanceReport = (
       const tablesRes: Bucket = {}, slotsRes: Bucket = {}, cardBal: Bucket = {};
       closings.forEach((c) => {
         tablesRes[c.business_date] = num(c.tables_result);
-        slotsRes[c.business_date] = num(c.slots_result);
+        // Slots always come from the Close Day figures: CashDesk Win.
+        slotsRes[c.business_date] = c.cashdesk_win != null ? num(c.cashdesk_win) : num(c.slots_result);
         cardBal[c.business_date] = num(c.players_card_balance);
       });
 
