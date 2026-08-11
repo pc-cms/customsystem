@@ -496,54 +496,13 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
     [expanded],
   );
 
-  /** Max abs value per heat column — drives the fill intensity. */
-  const heatMax = useMemo(() => {
-    const m: Record<string, number> = {};
-    for (const c of ALL_COLS) {
-      if (!HEAT_IDS.has(c.id)) continue;
-      m[c.id] = Math.max(1, ...rows.filter((r) => r.day_closed).map((r) => Math.abs(c.value(r))));
-    }
-    return m;
-  }, [rows]);
-
-  // NOTE: all cell tints must be OPAQUE — sticky (frozen) columns would
-  // otherwise let scrolling cells bleed through. We blend against --card
-  // with color-mix instead of using alpha. Classes are static literals so
-  // Tailwind's JIT scanner picks them up.
-  const HEAT_POS = [
-    "bg-[color-mix(in_srgb,hsl(var(--success))_6%,hsl(var(--card)))]",
-    "bg-[color-mix(in_srgb,hsl(var(--success))_11%,hsl(var(--card)))]",
-    "bg-[color-mix(in_srgb,hsl(var(--success))_18%,hsl(var(--card)))]",
-  ];
-  const HEAT_NEG = [
-    "bg-[color-mix(in_srgb,hsl(var(--destructive))_6%,hsl(var(--card)))]",
-    "bg-[color-mix(in_srgb,hsl(var(--destructive))_11%,hsl(var(--card)))]",
-    "bg-[color-mix(in_srgb,hsl(var(--destructive))_18%,hsl(var(--card)))]",
-  ];
-
-  const heatClass = (col: Col, v: number) => {
-    if (!heatmap || !HEAT_IDS.has(col.id) || !v) return undefined;
-    const ratio = Math.abs(v) / (heatMax[col.id] || 1);
-    const step = ratio > 0.66 ? 2 : ratio > 0.33 ? 1 : 0;
-    return (v > 0 ? HEAT_POS : HEAT_NEG)[step];
-  };
-
   /**
-   * Single background layer per row — prevents stacked translucent fills.
-   * Priority: open day > last closed day > today > weekend > (cell heat).
+   * Flat grid: no heat fills, no tinted rows. Only the "open day" row keeps a
+   * neutral muted background so unfinished days stay obvious.
    */
-  const rowBg = (r: Row): string | undefined => {
-    // Open (not yet closed) business days are tinted with an OPAQUE mix so
-    // sticky frozen columns do not let scrolling content bleed through.
-    if (!r.day_closed) return "bg-[color-mix(in_srgb,hsl(var(--muted))_30%,hsl(var(--card)))]";
-    if (r.date === lastClosedDate)
-      return "bg-[color-mix(in_srgb,hsl(var(--warning))_14%,hsl(var(--card)))]";
-    if (r.date === today())
-      return "bg-[color-mix(in_srgb,hsl(var(--primary))_10%,hsl(var(--card)))]";
-    if (r.weekday === "Sat" || r.weekday === "Sun")
-      return "bg-[color-mix(in_srgb,hsl(var(--muted))_40%,hsl(var(--card)))]";
-    return undefined;
-  };
+  const rowBg = (r: Row): string | undefined =>
+    !r.day_closed ? "bg-muted" : undefined;
+
 
   /** "Start" opening row + plain day rows (no weekly subtotals in this grid). */
   const displayRows = useMemo<Row[]>(
