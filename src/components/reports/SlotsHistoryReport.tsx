@@ -29,7 +29,7 @@ import { MoneyCell } from "@/components/ui/money-cell";
 import { useMoneyMode } from "@/components/ui/data-table-toolbar";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 type SortKey = "business_date" | "drop" | "netWin" | "cdr" | "clientBalance" | "miss" | "balance";
