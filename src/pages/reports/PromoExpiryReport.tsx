@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { fmtDateOnly } from "@/lib/format-date";
+import { formatNumberSpaces } from "@/lib/currency";
 
-const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
+const fmt = (n: number) => formatNumberSpaces(n ?? 0);
 
 export default function PromoExpiryReport() {
   const { activeCasinoId } = useCasino();

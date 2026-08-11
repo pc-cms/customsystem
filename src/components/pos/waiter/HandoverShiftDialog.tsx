@@ -200,11 +200,10 @@ export const HandoverShiftDialog = ({
 
         <FormGrid>
           <FormField span={4} label="Closing cash (= opening cash)">
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={closingCash}
-              onChange={(e) => setClosingCash(e.target.value)}
+            <NumberInput
+              decimals={0}
+              value={Number(closingCash) || 0}
+              onValueChange={(v) => setClosingCash(String(v ?? 0))}
               className="text-lg"
             />
           </FormField>

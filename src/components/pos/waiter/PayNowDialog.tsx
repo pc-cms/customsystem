@@ -141,20 +141,18 @@ export const PayNowDialog = ({
 
         <FormGrid>
           <FormField span={6} label="Cash">
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={cash}
-              onChange={(e) => setCash(e.target.value)}
+            <NumberInput
+              decimals={0}
+              value={Number(cash) || 0}
+              onValueChange={(v) => setCash(String(v ?? 0))}
               className="text-lg"
             />
           </FormField>
           <FormField span={6} label="Card">
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={card}
-              onChange={(e) => setCard(e.target.value)}
+            <NumberInput
+              decimals={0}
+              value={Number(card) || 0}
+              onValueChange={(v) => setCard(String(v ?? 0))}
               className="text-lg"
             />
           </FormField>

@@ -97,11 +97,10 @@ export const CloseShiftDialog = ({ open, onOpenChange, shift, openTabsCount, onC
 
         <FormGrid>
           <FormField span={6} label="Closing cash in drawer">
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={closingCash}
-              onChange={(e) => setClosingCash(e.target.value)}
+            <NumberInput
+              decimals={0}
+              value={Number(closingCash) || 0}
+              onValueChange={(v) => setClosingCash(String(v ?? 0))}
               className="text-lg"
             />
           </FormField>

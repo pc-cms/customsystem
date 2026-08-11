@@ -4,6 +4,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { Check, X } from "lucide-react";
+import { formatSpacedInput } from "@/components/ui/number-input";
 
 type Base = {
   className?: string;

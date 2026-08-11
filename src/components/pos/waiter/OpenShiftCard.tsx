@@ -84,11 +84,10 @@ export const OpenShiftCard = ({ casinoId, userId }: Props) => {
         </FormField>
 
         <FormField span={12} label="Opening cash (TZS)" required>
-          <Input
-            type="number"
-            inputMode="numeric"
-            value={cash}
-            onChange={(e) => setCash(e.target.value)}
+          <NumberInput
+            decimals={0}
+            value={Number(cash) || 0}
+            onValueChange={(v) => setCash(String(v ?? 0))}
             className="text-lg"
             autoFocus
           />
