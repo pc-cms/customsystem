@@ -828,7 +828,8 @@ export const useDailyBalanceReport = (
           manager: number; bankTzs: number; bankUsd: number;
           expenses: number; inV: number; outV: number; result: number;
           live: number; slotsDiff: number; chipDiff: number;
-          tips?: number; otherIncome?: number; jp?: number; missedCards?: number; collections?: number;
+          tips?: number; officeIn?: number; officeOut?: number; jp?: number;
+          missedCards?: number; collections?: number;
         }) => {
           // Cage Casino = live ledger of cage_table + cage_slot only (no snap).
           const cageCasino = o.cageCasino;
@@ -844,22 +845,26 @@ export const useDailyBalanceReport = (
           const moneyTotal = hidden ? 0 : cageCasino + manager + bankTotal;
           const opening = firstRow ? startingBalance : prevMoney;
           firstRow = false;
-          const diffTotal = o.chipDiff + o.slotsDiff;
-          // OFFICE (+ / −) is a MANUAL figure typed inline in the report.
-          const officeInV = num(l?.office_in);
-          const officeOutV = num(l?.office_out);
-          const officeNet = officeInV - officeOutV;
-
-          const otherIncomeV = o.otherIncome ?? 0;
           const jpV = o.jp ?? 0;
           const missedCardsV = o.missedCards ?? 0;
+          // Diff = Miss Chips + Missed Cards + Slots Diff.
+          const diffTotal = o.chipDiff + o.slotsDiff + missedCardsV;
+          // OFFICE (+ / −) comes from Other Incomes, split by sign.
+          const officeInV = o.officeIn ?? 0;
+          const officeOutV = o.officeOut ?? 0;
+          const officeNet = officeInV - officeOutV;
+
+          // JP is part of the Casino Result block.
+          const resultV = o.result + jpV;
           const collectionsV = o.collections ?? 0;
-          // Variance = Start + Result + Diff + JP + Other Incomes + Office IN - Expenses - Office OUT - Money Total.
+          // Variance = Money yesterday + Result ± Diff − Expenses ± Office − Money today.
           const variance = hidden
             ? 0
-            : opening + o.result + diffTotal + jpV + otherIncomeV + officeInV - o.expenses - officeOutV - moneyTotal;
-          if (!hidden) prevMoney = moneyTotal;
+            : opening + resultV + diffTotal - o.expenses + officeNet - moneyTotal;
+          // Carry the last recorded money forward when a day has no record at all.
+          if (!hidden && moneyTotal !== 0) prevMoney = moneyTotal;
           return {
+            casino_result: resultV,
             live_cash_result: o.live,
             slots_diff: o.slotsDiff,
             diff_total: diffTotal,
@@ -878,16 +883,17 @@ export const useDailyBalanceReport = (
             bank_usd_manual: false,
             money_in: officeInV,
             money_out: officeOutV,
-            other_income: otherIncomeV,
+            other_income: 0,
             jp: jpV,
             missed_cards: missedCardsV,
             collections: collectionsV,
             money_total: moneyTotal,
             money_hidden: hidden,
             // P&L of the day — Casino Result − Expenses ± Diff.
-            fin_result: o.result + diffTotal - o.expenses,
+            fin_result: resultV + diffTotal - o.expenses,
             balance: variance,
-            balance_check: opening + o.result + diffTotal + jpV + otherIncomeV + officeNet - o.expenses,
+            balance_check: opening + resultV + diffTotal + officeNet - o.expenses,
+
             chips_detail: chipsDetail[date] ?? [],
             cage_detail: cageDetail[date] ?? { cash: [], cashless: [], mobile: {}, slots_total: 0 },
             transfers_manager: managerTransfers[date] ?? [],
