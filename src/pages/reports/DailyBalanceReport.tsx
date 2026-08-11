@@ -128,12 +128,13 @@ const SECTIONS: { key: SectionKey; label: string; cols: Col[] }[] = [
   },
   {
     key: "balances",
-    label: "Balance",
+    label: "Variance",
     cols: [
       { id: "money_total", label: "Money", total: true, value: (r) => num(r, "money_total") },
-      { id: "balance", label: "Balance", total: true, value: (r) => num(r, "balance") },
+      { id: "balance", label: "Variance", total: true, value: (r) => num(r, "balance") },
     ],
   },
+
 ];
 
 /** Money columns — blanked for the days that precede the recorded Start. */
