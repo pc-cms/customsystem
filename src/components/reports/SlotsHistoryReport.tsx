@@ -87,7 +87,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
       if (!casinoId || !from || !to) return [];
       const { data, error } = await supabase
         .from("fin_day_closing")
-        .select("business_date, cashdesk_win")
+        .select("business_date, cashdesk_win, net_win")
         .eq("casino_id", casinoId)
         .gte("business_date", from)
         .lte("business_date", to);
@@ -97,10 +97,14 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
     enabled: !!casinoId,
   });
 
-  const cashdeskByDate = useMemo(() => {
-    const m = new Map<string, number>();
+  /** business_date -> Close Day figures. Presence of the row locks the cells. */
+  const closingByDate = useMemo(() => {
+    const m = new Map<string, { cashdesk: number; netWin: number }>();
     (closings as any[]).forEach((r) => {
-      if (r.cashdesk_win != null) m.set(r.business_date, Number(r.cashdesk_win));
+      m.set(r.business_date, {
+        cashdesk: Number(r.cashdesk_win || 0),
+        netWin: Number(r.net_win || 0),
+      });
     });
     return m;
   }, [closings]);
@@ -117,17 +121,20 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "business_date", dir: "desc" });
 
-  const rows = useMemo(() => shifts.map((s: any) => ({
-    s,
-    drop: Number(s.manual_drop_slots || 0),
-    netWin: Number(s.manual_slots_result || 0),
-    cdr: cashdeskByDate.has(s.business_date)
-      ? Number(cashdeskByDate.get(s.business_date))
-      : Number(s.cash_desk_result ?? s.actual_cage_result ?? 0),
-    clientBalance: Number(s.manual_slots_deposits || 0),
-    miss: Number(s.cards_miss || 0),
-    balance: Number(s.balance || 0),
-  })), [shifts, cashdeskByDate]);
+  const rows = useMemo(() => shifts.map((s: any) => {
+    const c = closingByDate.get(s.business_date);
+    return {
+      s,
+      drop: Number(s.manual_drop_slots || 0),
+      // Net Win / Cashdesk come ONLY from Close Day. No fallback to shift figures.
+      netWin: c ? c.netWin : 0,
+      cdr: c ? c.cashdesk : 0,
+      locked: !!c,
+      clientBalance: Number(s.manual_slots_deposits || 0),
+      miss: Number(s.cards_miss || 0),
+      balance: Number(s.balance || 0),
+    };
+  }), [shifts, closingByDate]);
 
 
   const totals = useMemo(() => {
