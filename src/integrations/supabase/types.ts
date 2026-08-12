@@ -1370,6 +1370,7 @@ export type Database = {
       }
       cash_count_snapshots: {
         Row: {
+          business_date: string | null
           casino_id: string
           counted_by: string
           created_at: string
@@ -1387,6 +1388,7 @@ export type Database = {
           wallet_type: Database["public"]["Enums"]["wallet_type"]
         }
         Insert: {
+          business_date?: string | null
           casino_id: string
           counted_by: string
           created_at?: string
@@ -1404,6 +1406,7 @@ export type Database = {
           wallet_type: Database["public"]["Enums"]["wallet_type"]
         }
         Update: {
+          business_date?: string | null
           casino_id?: string
           counted_by?: string
           created_at?: string
