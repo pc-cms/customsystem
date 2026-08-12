@@ -522,6 +522,61 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
         ),
     },
 
+    {
+      key: "freeze",
+      header: "",
+      style: { width: 30, minWidth: 30 },
+      accessor: (r) => {
+        if (r.kind === "start" || demo) return null;
+        const drifted =
+          r.frozen && r.live_balance != null &&
+          Math.round(r.live_balance) !== Math.round(Number(r.balance || 0));
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                disabled={!canFreeze || freeze.isPending || unfreeze.isPending}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!canFreeze) return;
+                  r.frozen ? unfreeze.mutate({ date: r.date }) : freeze.mutate({ row: r });
+                }}
+                className={cn(
+                  "flex h-5 w-5 items-center justify-center rounded",
+                  r.frozen ? "text-primary" : "text-muted-foreground/40 hover:text-foreground",
+                  drifted && "text-warning",
+                  !canFreeze && "cursor-default",
+                )}
+              >
+                {r.frozen ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-xs">
+              {r.frozen ? (
+                <div className="space-y-0.5">
+                  <div className="font-semibold">Frozen{r.frozen_at ? ` · ${fmtDate(r.frozen_at)}` : ""}</div>
+                  {drifted && (
+                    <div className="text-warning">
+                      ≠ live: {formatMoneyFull(Math.round(r.live_balance || 0))}
+                    </div>
+                  )}
+                  {canFreeze && <div className="text-muted-foreground">Click to unfreeze</div>}
+                </div>
+              ) : (
+                <span>{canFreeze ? "Freeze this day" : "Not frozen"}</span>
+              )}
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
+      headerClassName: "border-b-2 border-b-foreground bg-muted",
+      cellClassName: (r: Row) =>
+        cn("py-0.5", r.kind === "start" ? "border-b-2 border-b-border bg-muted" : rowBg(r) ?? "bg-card"),
+    },
+
+
+
 
     ...visibleMoneyCols.map<ColumnDef<Row>>((c, i) => {
       const first = i === 0 || visibleMoneyCols[i - 1].section !== c.section;
