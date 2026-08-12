@@ -387,7 +387,9 @@ export const useDailyBalanceReport = (
         fetchPaged<any>((a, b) =>
           sb.from("cash_count_snapshots")
             .select("wallet_id, physical_total, physical_total_tzs, created_at, business_date")
-            .eq("casino_id", casino).lte("created_at", toIso)
+            // Filter by the business day the count is FOR, not when it was typed:
+            // a count for 11/08 is normally entered on 12/08.
+            .eq("casino_id", casino).lte("business_date", to)
             .order("created_at", { ascending: true }).range(a, b)),
       ]);
 
