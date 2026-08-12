@@ -338,7 +338,7 @@ const EditReprintShiftPage = () => {
 
   const tableRowOverrides = useMemo(() => {
     if (!state) return undefined;
-    const out: Record<string, { res: number; cl?: number; fl?: number; cr?: number }> = {};
+    const out: Record<string, { res: number; cl?: number; fl?: number; cr?: number; inVal?: number }> = {};
     Object.entries(state.tableRes || {}).forEach(([id, v]) => { out[id] = { res: Number(v) || 0 }; });
     // Close (chips on table) — Σ(actual × denom) from edited per-denom grid.
     Object.entries(state.tableChips || {}).forEach(([id, byDenom]) => {
