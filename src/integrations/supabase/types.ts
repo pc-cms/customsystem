@@ -3608,6 +3608,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_income: boolean
+          main_code: string | null
           name: string
           sort_order: number
           updated_at: string
@@ -3619,6 +3620,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_income?: boolean
+          main_code?: string | null
           name: string
           sort_order?: number
           updated_at?: string
@@ -3630,11 +3632,20 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_income?: boolean
+          main_code?: string | null
           name?: string
           sort_order?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fin_categories_main_code_fkey"
+            columns: ["main_code"]
+            isOneToOne: false
+            referencedRelation: "fin_main_categories"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       fin_category_aliases: {
         Row: {
@@ -4043,6 +4054,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fin_main_categories: {
+        Row: {
+          code: string
+          created_at: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
       }
       fin_money_change: {
         Row: {
