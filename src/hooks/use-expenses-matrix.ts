@@ -22,17 +22,30 @@ export interface ExpenseCategoryRow {
   label: string;
   /** Budget group (fin_categories.group_code), e.g. fixed / variable / salary. */
   group?: string;
+  /** Main category code (fin_main_categories.code) or "unallocated". */
+  mainCode: string;
   /** day (YYYY-MM-DD) → amount TZS */
   byDay: Record<string, number>;
   total: number;
 }
 
+export interface ExpenseMainCategory {
+  code: string;
+  label: string;
+  sortOrder: number;
+}
+
 export interface ExpensesMatrix {
   rows: ExpenseCategoryRow[];
+  /** Fixed list of main categories (+ trailing Unallocated). */
+  mains: ExpenseMainCategory[];
   /** `${code}|${day}` → the individual expenses behind a cell. */
   items: Record<string, ExpenseItem[]>;
   days: string[];
 }
+
+export const UNALLOCATED = "unallocated";
+
 
 const num = (v: unknown) => {
   const n = Number(v);
