@@ -309,14 +309,24 @@ export const demoOfficeBalance = (month: string): OfficeBalanceData => {
 };
 
 
-const CASINO_CATS = [
-  "Salary", "Fuel", "Taxi", "Food & Alcohol", "Repairs", "Cleaning",
-  "Security", "Internet & IT", "Utilities", "Gaming tax", "Advertising", "Other",
+const CASINO_CATS: [string, string][] = [
+  ["Salary", "salary"], ["Fuel", "transport"], ["Taxi", "transport"], ["Food & Alcohol", "bar"],
+  ["Repairs", "repair"], ["Cleaning", "service"], ["Security", "service"], ["Internet & IT", "utilities"],
+  ["Utilities", "utilities"], ["Gaming tax", "taxes"], ["Advertising", "marketing"], ["Other", "unallocated"],
 ];
-const OFFICE_CATS = [
-  "Head office salary", "Rent", "Licences", "IT & services", "Bank charges",
-  "Travel & visa", "Legal & audit", "Office supplies", "Other office",
+const OFFICE_CATS: [string, string][] = [
+  ["Head office salary", "salary"], ["Rent", "rent"], ["Licences", "licences"], ["IT & services", "service"],
+  ["Bank charges", "fees"], ["Travel & visa", "visa_permits"], ["Legal & audit", "fees"],
+  ["Office supplies", "stationary"], ["Other office", "unallocated"],
 ];
+
+const DEMO_MAINS = [
+  ["taxes", "Taxes"], ["rent", "Rent"], ["rent_equipment", "Rent Equipment"], ["service", "Service"],
+  ["licences", "Licences"], ["visa_permits", "Visa & Permits"], ["transport", "Transport"], ["salary", "Salary"],
+  ["utilities", "Utilitys"], ["bar", "Bar"], ["stationary", "Stationary"], ["capex", "CAPEX"],
+  ["marketing", "Marketing"], ["repair", "Repair"], ["bonus", "Bonus"], ["corporate", "Corporate"],
+  ["fees", "Fees"], ["unallocated", "Unallocated"],
+].map(([code, label], i) => ({ code, label, sortOrder: (i + 1) * 10 }));
 
 /** Expenses matrix — synthetic categories × days. */
 export const demoExpensesMatrix = (month: string, scope: "casino" | "office"): ExpensesMatrix => {
@@ -324,7 +334,7 @@ export const demoExpensesMatrix = (month: string, scope: "casino" | "office"): E
   const cats = scope === "office" ? OFFICE_CATS : CASINO_CATS;
   const items: ExpensesMatrix["items"] = {};
 
-  const rows: ExpenseCategoryRow[] = cats.map((label, ci) => {
+  const rows: ExpenseCategoryRow[] = cats.map(([label, mainCode], ci) => {
     const code = `demo-${scope}-${ci}`;
     const byDay: Record<string, number> = {};
     let total = 0;
@@ -339,8 +349,9 @@ export const demoExpensesMatrix = (month: string, scope: "casino" | "office"): E
         { id: `${code}-${d}-2`, date: d, amount: v - round(v * 0.6, 1000), description: `${label} · cash`, wallet: "M PESA" },
       ];
     });
-    return { code, label, byDay, total };
+    return { code, label, mainCode, byDay, total };
   });
 
-  return { rows, items, days };
+  return { rows, mains: DEMO_MAINS, items, days };
 };
+

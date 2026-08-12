@@ -82,11 +82,13 @@ export const useExpensesMatrix = (
       const sb = supabase as any;
       const casino = activeCasinoId!;
 
-      const [finCats, cats, rows, wallets] = await Promise.all([
+      const [finCats, mainCats, cats, rows, wallets] = await Promise.all([
         fetchPaged<any>((a, b) =>
           sb.from("fin_categories")
-            .select("id, name, group_code, group_name, sort_order, is_income, is_active")
+            .select("id, name, group_code, group_name, sort_order, is_income, is_active, main_code")
             .range(a, b)),
+        fetchPaged<any>((a, b) =>
+          sb.from("fin_main_categories").select("code, label, sort_order").range(a, b)),
         fetchPaged<any>((a, b) =>
           sb.from("expense_categories").select("code, label, active")
             .eq("casino_id", casino).range(a, b)),
@@ -105,6 +107,13 @@ export const useExpensesMatrix = (
       const label: Record<string, string> = {};
       cats.forEach((c: any) => { label[c.code] = c.label || titleCase(c.code); });
 
+      const mains: ExpenseMainCategory[] = [
+        ...mainCats
+          .map((m: any) => ({ code: m.code, label: m.label, sortOrder: m.sort_order ?? 100 }))
+          .sort((a, b) => a.sortOrder - b.sortOrder),
+        { code: UNALLOCATED, label: "Unallocated", sortOrder: 9_999 },
+      ];
+
       /** Budget categories (fin_categories, expense side) drive the row list. */
       const budget: Record<string, any> = {};
       finCats.forEach((c: any) => { budget[c.id] = c; });
@@ -113,10 +122,18 @@ export const useExpensesMatrix = (
       const items: Record<string, ExpenseItem[]> = {};
       const order: Record<string, number> = {};
 
-      const ensure = (code: string, name?: string, group?: string, sort?: number) => {
-        const r = (byCode[code] ??= { code, label: name || label[code] || titleCase(code), group, byDay: {}, total: 0 });
+      const ensure = (code: string, name?: string, group?: string, sort?: number, mainCode?: string) => {
+        const r = (byCode[code] ??= {
+          code,
+          label: name || label[code] || titleCase(code),
+          group,
+          mainCode: mainCode || UNALLOCATED,
+          byDay: {},
+          total: 0,
+        });
         if (name) r.label = name;
         if (group) r.group = group;
+        if (mainCode) r.mainCode = mainCode;
         if (sort != null) order[code] = sort;
         return r;
       };
@@ -127,7 +144,7 @@ export const useExpensesMatrix = (
         .filter((c: any) => c.is_income === false && c.is_active !== false)
         .forEach((c: any) => {
           const gi = GROUPS.indexOf(c.group_code);
-          ensure(c.id, c.name, c.group_code, (gi < 0 ? GROUPS.length : gi) * 1000 + (c.sort_order ?? 0));
+          ensure(c.id, c.name, c.group_code, (gi < 0 ? GROUPS.length : gi) * 1000 + (c.sort_order ?? 0), c.main_code || UNALLOCATED);
         });
 
       const inScope = (e: any) =>
@@ -140,7 +157,9 @@ export const useExpensesMatrix = (
         const code = fin ? String(fin.id) : (e.category_code || e.category || "other");
         const day = String(e.business_date).slice(0, 10);
         const v = e.amount_tzs != null ? num(e.amount_tzs) : num(e.amount);
-        const r = fin ? ensure(fin.id, fin.name, fin.group_code) : ensure(code);
+        const r = fin
+          ? ensure(fin.id, fin.name, fin.group_code, undefined, fin.main_code || UNALLOCATED)
+          : ensure(code);
         r.byDay[day] = (r.byDay[day] || 0) + v;
         r.total += v;
         (items[`${code}|${day}`] ??= []).push({
@@ -158,9 +177,11 @@ export const useExpensesMatrix = (
           const ob = order[b.code] ?? 999_999;
           return oa !== ob ? oa - ob : a.label.localeCompare(b.label);
         }),
+        mains,
         items,
         days,
       };
+
     },
   });
 };
