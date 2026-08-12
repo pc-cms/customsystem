@@ -100,6 +100,9 @@ export interface DailyBalanceRow {
   /** true when the day was manually frozen (figures come from the snapshot). */
   frozen?: boolean;
   frozen_at?: string | null;
+  /** true when RECORD locked the money columns of that day. */
+  money_recorded?: boolean;
+
   /** Live (recomputed) figures kept alongside a frozen row for the "≠ live" mark. */
   live_balance?: number;
   live_money_total?: number;
