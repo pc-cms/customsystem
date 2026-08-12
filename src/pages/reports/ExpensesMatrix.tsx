@@ -1,11 +1,12 @@
 /**
  * Reports → Expenses by category.
  *
- * Categories (rows, alphabetical) × days of the selected month (columns).
+ * Rows are the 17 fixed MAIN categories (+ Unallocated) × days of the selected
+ * month. Each main row expands into its subcategories (fin_categories).
  * Opened from the Expenses column of Casino Monthly Balance. All figures TZS.
  */
 import { useMemo, useState, useEffect } from "react";
-import { Receipt, ChevronLeft, ChevronRight } from "lucide-react";
+import { Receipt, ChevronLeft, ChevronRight, ChevronDown, ChevronRightIcon } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
@@ -20,7 +21,7 @@ import DrillTable from "@/components/reports/DrillTable";
 import { formatMoneyFull } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
 import { cn } from "@/lib/utils";
-import { useExpensesMatrix, type ExpenseCategoryRow, type ExpenseScope } from "@/hooks/use-expenses-matrix";
+import { useExpensesMatrix, type ExpenseScope } from "@/hooks/use-expenses-matrix";
 import { demoExpensesMatrix } from "@/lib/demo-report-data";
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
@@ -31,13 +32,27 @@ const SCOPE_TITLE: Record<ExpenseScope, string> = {
   office: "Expenses · Office",
 };
 
+/** One rendered line: a main category or one of its subcategories. */
+type Row = {
+  key: string;
+  kind: "main" | "sub";
+  /** Underlying category codes behind the line (main = all its subs). */
+  codes: string[];
+  label: string;
+  byDay: Record<string, number>;
+  total: number;
+  mainCode: string;
+  subCount: number;
+};
+
 const ExpensesMatrixPage = ({
   scope = "all",
   demo = false,
 }: { scope?: ExpenseScope; demo?: boolean }) => {
   const { activeCasino } = useCasino();
   const [month, setMonth] = useSessionState(`exp-matrix-month${demo ? "-demo" : ""}`, currentMonth());
-  const [cell, setCell] = useState<{ code: string; label: string; day: string | null } | null>(null);
+  const [cell, setCell] = useState<{ codes: string[]; label: string; day: string | null } | null>(null);
+  const [open, setOpen] = useState<Record<string, boolean>>({});
   const [params] = useSearchParams();
   /** Day highlighted when arriving from another report (?month=&date=). */
   const focusDay = params.get("date");
@@ -50,18 +65,60 @@ const ExpensesMatrixPage = ({
   const data = demo ? demoExpensesMatrix(month, scope === "office" ? "office" : "casino") : query.data;
   const isLoading = !demo && query.isLoading;
 
-
-  const rows = data?.rows ?? [];
   const days = data?.days ?? [];
+
+  /** Main rows in fixed order, each followed by its subcategories when open. */
+  const rows: Row[] = useMemo(() => {
+    if (!data) return [];
+    const out: Row[] = [];
+    for (const m of data.mains) {
+      const subs = data.rows.filter((r) => (r.mainCode || "unallocated") === m.code);
+      const byDay: Record<string, number> = {};
+      let total = 0;
+      subs.forEach((s) => {
+        total += s.total;
+        Object.entries(s.byDay).forEach(([d, v]) => { byDay[d] = (byDay[d] || 0) + v; });
+      });
+      out.push({
+        key: `main:${m.code}`,
+        kind: "main",
+        codes: subs.map((s) => s.code),
+        label: m.label,
+        byDay,
+        total,
+        mainCode: m.code,
+        subCount: subs.length,
+      });
+      if (open[m.code]) {
+        subs.forEach((s) =>
+          out.push({
+            key: `sub:${s.code}`,
+            kind: "sub",
+            codes: [s.code],
+            label: s.label,
+            byDay: s.byDay,
+            total: s.total,
+            mainCode: m.code,
+            subCount: 0,
+          }),
+        );
+      }
+    }
+    return out;
+  }, [data, open]);
 
   const stepMonth = (delta: number) => {
     const [y, m] = month.split("-").map(Number);
     setMonth(new Date(Date.UTC(y, m - 1 + delta, 1)).toISOString().slice(0, 7));
   };
 
-  /** Max spend in a single cell — drives the heat fill intensity. */
+  /** Max spend in a single MAIN cell — drives the heat fill intensity. */
   const heatMax = useMemo(
-    () => Math.max(1, ...rows.flatMap((r) => Object.values(r.byDay).map((v) => Math.abs(v)))),
+    () =>
+      Math.max(
+        1,
+        ...rows.filter((r) => r.kind === "main").flatMap((r) => Object.values(r.byDay).map((v) => Math.abs(v))),
+      ),
     [rows],
   );
 
@@ -70,33 +127,49 @@ const ExpensesMatrixPage = ({
     "bg-[color-mix(in_srgb,hsl(var(--destructive))_20%,hsl(var(--card)))]",
     "bg-[color-mix(in_srgb,hsl(var(--destructive))_32%,hsl(var(--card)))]",
   ];
-  const heatClass = (v: number) => {
-    if (!v) return undefined;
+  const heatClass = (v: number, kind: Row["kind"]) => {
+    if (!v || kind !== "main") return undefined;
     const ratio = Math.abs(v) / heatMax;
     return HEAT[ratio > 0.66 ? 2 : ratio > 0.33 ? 1 : 0];
   };
 
-  const money = (n: number) =>
+  const money = (n: number, bold: boolean) =>
     !n
-      ? <span className="text-muted-foreground/50">{demo ? "0" : "·"}</span>
-      : <span className="font-semibold text-foreground">{formatMoneyFull(Math.round(n))}</span>;
+      ? <span className="text-muted-foreground/50">0</span>
+      : <span className={cn(bold ? "font-bold text-foreground" : "font-medium text-foreground/90")}>
+          {formatMoneyFull(Math.round(n))}
+        </span>;
 
-  const columns: ColumnDef<ExpenseCategoryRow>[] = [
+  const columns: ColumnDef<Row>[] = [
     {
       key: "label",
       header: "Category",
-      style: { width: 200, minWidth: 200 },
-      accessor: (r) => (
-        <div className="truncate whitespace-nowrap text-[11px] font-semibold text-foreground" title={r.label}>
-          {r.label}
-        </div>
-      ),
-      sortValue: (r) => r.label,
-      cellClassName: () => "py-0.5 leading-tight bg-card",
+      style: { width: 220, minWidth: 220 },
+      accessor: (r) =>
+        r.kind === "main" ? (
+          <button
+            type="button"
+            className="flex w-full items-center gap-1 truncate whitespace-nowrap text-left text-[11px] font-extrabold uppercase tracking-wide text-foreground"
+            onClick={() => setOpen((o) => ({ ...o, [r.mainCode]: !o[r.mainCode] }))}
+            title={r.label}
+          >
+            {open[r.mainCode]
+              ? <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
+              : <ChevronRightIcon className="h-3.5 w-3.5 shrink-0 opacity-70" />}
+            <span className="truncate">{r.label}</span>
+            <span className="ml-auto text-[10px] font-normal text-muted-foreground">{r.subCount}</span>
+          </button>
+        ) : (
+          <div className="truncate whitespace-nowrap pl-5 text-[11px] text-muted-foreground" title={r.label}>
+            {r.label}
+          </div>
+        ),
+      cellClassName: (r) =>
+        cn("py-0.5 leading-tight", r.kind === "main" ? "bg-muted/40" : "bg-card"),
       headerClassName:
         "whitespace-nowrap border-b-2 border-border bg-muted text-[12px] font-extrabold uppercase tracking-wide text-foreground",
     },
-    ...days.map<ColumnDef<ExpenseCategoryRow>>((d) => ({
+    ...days.map<ColumnDef<Row>>((d) => ({
       key: d,
       header: d.slice(8),
       type: "money" as const,
@@ -109,22 +182,21 @@ const ExpensesMatrixPage = ({
             onClick={(e) => {
               if (!v) return;
               e.stopPropagation();
-              setCell({ code: r.code, label: r.label, day: d });
+              setCell({ codes: r.codes, label: r.label, day: d });
             }}
           >
-            {money(v)}
+            {money(v, r.kind === "main")}
           </span>
         );
       },
-      sortValue: (r) => r.byDay[d] || 0,
       headerClassName: cn(
         "whitespace-nowrap border-l border-border border-b-2 text-[12px] font-extrabold text-foreground bg-muted",
         focusDay === d && "ring-2 ring-inset ring-primary",
       ),
-      cellClassName: (r: ExpenseCategoryRow) =>
+      cellClassName: (r: Row) =>
         cn(
           "py-0.5 whitespace-nowrap border-l border-border/60 font-mono text-[11px] leading-tight tabular-nums",
-          heatClass(r.byDay[d] || 0) ?? "bg-card",
+          heatClass(r.byDay[d] || 0, r.kind) ?? (r.kind === "main" ? "bg-muted/40" : "bg-card"),
           focusDay === d && "ring-1 ring-inset ring-primary/50",
         ),
     })),
@@ -139,13 +211,12 @@ const ExpensesMatrixPage = ({
           onClick={(e) => {
             if (!r.total) return;
             e.stopPropagation();
-            setCell({ code: r.code, label: r.label, day: null });
+            setCell({ codes: r.codes, label: r.label, day: null });
           }}
         >
-          {money(r.total)}
+          {money(r.total, r.kind === "main")}
         </span>
       ),
-      sortValue: (r) => r.total,
       headerClassName:
         "whitespace-nowrap border-l-2 border-border border-b-2 text-[12px] font-extrabold uppercase tracking-wide text-foreground bg-muted",
       cellClassName: () =>
@@ -153,15 +224,15 @@ const ExpensesMatrixPage = ({
     },
   ];
 
-
-  const grandTotal = rows.reduce((s, r) => s + r.total, 0);
+  const mainRows = rows.filter((r) => r.kind === "main");
+  const grandTotal = mainRows.reduce((s, r) => s + r.total, 0);
 
   const footerRows = rows.length
     ? [
         {
           key: "total",
           className: "font-bold border-t-2 border-border bg-muted",
-          cell: (col: ColumnDef<ExpenseCategoryRow>) => {
+          cell: (col: ColumnDef<Row>) => {
             if (col.key === "label")
               return (
                 <span className="text-[11px] font-bold uppercase tracking-wider text-foreground">
@@ -171,7 +242,7 @@ const ExpensesMatrixPage = ({
             const v =
               col.key === "total"
                 ? grandTotal
-                : rows.reduce((s, r) => s + (r.byDay[col.key as string] || 0), 0);
+                : mainRows.reduce((s, r) => s + (r.byDay[col.key as string] || 0), 0);
             return (
               <span
                 className={cn(
@@ -179,10 +250,9 @@ const ExpensesMatrixPage = ({
                   col.key === "total" && "text-primary",
                 )}
               >
-                {v ? formatMoneyFull(Math.round(v)) : demo ? "0" : "·"}
+                {v ? formatMoneyFull(Math.round(v)) : "0"}
               </span>
             );
-
           },
         },
       ]
@@ -195,10 +265,9 @@ const ExpensesMatrixPage = ({
   /** Sheet contents: one day, or the whole month when the Total cell was clicked. */
   const cellItems = useMemo(() => {
     if (!cell || !data) return [];
-    if (cell.day) return data.items[`${cell.code}|${cell.day}`] ?? [];
-    return days
-      .flatMap((d) => data.items[`${cell.code}|${d}`] ?? [])
-      .sort((a, b) => a.date.localeCompare(b.date));
+    const pick = (d: string) => cell.codes.flatMap((c) => data.items[`${c}|${d}`] ?? []);
+    if (cell.day) return pick(cell.day);
+    return days.flatMap(pick).sort((a, b) => a.date.localeCompare(b.date));
   }, [cell, data, days]);
 
   const cellTotal = cellItems.reduce((s, it) => s + it.amount, 0);
@@ -210,19 +279,18 @@ const ExpensesMatrixPage = ({
         title={SCOPE_TITLE[scope]}
         subtitle={
           scope === "office"
-            ? "Head-office expenses — category × day matrix, all figures in TZS"
+            ? "Head-office expenses — main category × day matrix, all figures in TZS"
             : scope === "casino"
-              ? "Casino floor expenses (Live + Slots) — category × day matrix, TZS"
-              : "Category × day matrix for the selected month — all figures in TZS"
+              ? "Casino floor expenses (Live + Slots) — main category × day matrix, TZS"
+              : "Main category × day matrix for the selected month — all figures in TZS"
         }
         context={demo ? "Demo" : activeCasino?.name}
       >
         {demo && <Badge variant="outline" className="mr-2">DEMO DATA</Badge>}
         <span className="whitespace-nowrap text-xs text-muted-foreground">
-          {rows.length} categories · {formatMoneyFull(Math.round(grandTotal))}
+          {mainRows.length} categories · {formatMoneyFull(Math.round(grandTotal))}
         </span>
       </PageHeader>
-
 
       <div className="mb-2 flex items-center justify-center gap-1 rounded-md border border-border bg-card px-2 py-1">
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => stepMonth(-1)} aria-label="Previous month">
@@ -237,13 +305,12 @@ const ExpensesMatrixPage = ({
         </Button>
       </div>
 
-
       <PageSection card={false}>
         <div className="max-h-[74vh] overflow-auto rounded-md border border-border">
           <SmartTable
             data={rows}
             columns={columns}
-            rowKey={(r) => r.code}
+            rowKey={(r) => r.key}
             loading={isLoading}
             stickyColumns={[0]}
             stickyHeader
