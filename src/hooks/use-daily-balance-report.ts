@@ -921,18 +921,21 @@ export const useDailyBalanceReport = (
           missedCards?: number; collections?: number;
         }) => {
           // Cage Casino = live ledger of cage_table + cage_slot only (no snap).
-          const cageCasino = o.cageCasino;
           /**
-           * Manager / Bank come from the SAME source as Cage Casino: the last
-           * physical wallet count on or before that date. `countAt` is already
-           * date-aware, so a later count never changes a past day — the old
-           * `fin_day_balance_snapshot` freeze is not used any more (it mixed
-           * two sources and made Money differ from the Wallets Grand Total).
+           * A wallet can be recounted ten times a day. What the CMB row shows is
+           * the state at the moment the RECORD button was pressed for that
+           * business day (`money_locked` snapshot). Until a day is recorded the
+           * money columns follow the last physical count on or before that date;
+           * after RECORD they are frozen and later recounts belong to the
+           * current day only.
            */
           const snap = snapByDate[date];
-          const manager = o.manager;
-          const bankTzs = o.bankTzs;
-          const bankUsd = o.bankUsd;
+          const moneyLocked = !!snap?.money_locked;
+          const cageCasino = moneyLocked ? num(snap.cage_casino) : o.cageCasino;
+          const manager = moneyLocked ? num(snap.cage_manager) : o.manager;
+          const bankTzs = moneyLocked ? num(snap.bank_tzs) : o.bankTzs;
+          const bankUsd = moneyLocked ? num(snap.bank_usd) : o.bankUsd;
+
           // bank_usd is ALREADY stored converted to TZS (ledger uses amount_tzs).
           const bankTotal = bankTzs + bankUsd;
           // Money hidden for the days that precede the recorded Start.
