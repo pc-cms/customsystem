@@ -101,7 +101,13 @@ export default function FinancesWalletsPage() {
    */
   const recordTargetDate = dayToRecord();
   const recordDay = useRecordDayBalance();
-  const { data: recordedSnap } = useDayBalanceSnapshot(recordTargetDate);
+  /**
+   * Business day the physical counts are FOR. We always close YESTERDAY, so
+   * counting on 12/08 normally records the 11/08 balances. The user can move
+   * this date when catching up on an older day.
+   */
+  const [countForDate, setCountForDate] = useState<string>(recordTargetDate);
+  const { data: recordedSnap } = useDayBalanceSnapshot(countForDate);
 
 
   const now = new Date();
@@ -160,12 +166,13 @@ export default function FinancesWalletsPage() {
   }, [snap]);
 
   /**
-   * Count freshness. Actual = last recorded state per wallet, so wallets counted
-   * on different days silently mix points in time inside one Variance number.
-   * refDate = period end, capped at today (EAT).
+   * Count freshness is measured against the business day we are CLOSING
+   * (`countForDate`), not the calendar day. Counting yesterday's money this
+   * morning is the normal flow and must never be reported as stale.
    */
   const todayEat = eatDate(new Date());
-  const refDate = range.to < todayEat ? range.to : todayEat;
+  const refDate = countForDate < range.from ? range.from
+    : countForDate > range.to ? range.to : countForDate;
   const freshness = useMemo<CountFreshnessRow[]>(() => {
     const refMs = new Date(`${refDate}T00:00:00Z`).getTime();
     return (snap?.wallets || []).map((w) => {
@@ -459,10 +466,10 @@ export default function FinancesWalletsPage() {
       toast.error("Enter physical count");
       return;
     }
-    // Physical counts must land on the day they are entered — not on the
-    // last day of the selected month. Clamp today into the selected period.
-    const todayEat = new Date(Date.now() + 3 * 3600_000).toISOString().slice(0, 10);
-    const countDate = todayEat < range.from ? range.from : todayEat > range.to ? range.to : todayEat;
+    // A count belongs to the business day it is FOR, chosen above the table.
+    // Entering 11/08 figures on 12/08 is the normal flow — the business day is
+    // always closed the next morning.
+    const countDate = countForDate;
     setSavingId(w.id);
     let variance = 0;
     try {
@@ -568,6 +575,28 @@ export default function FinancesWalletsPage() {
         >
           <ArrowUpRight className="w-4 h-4" /> Money Out
         </Button>
+        <div
+          className="flex items-center gap-2 h-9 px-2 rounded-md border border-border bg-card"
+          title="Business day the counts are for. A business day is always closed the next morning."
+        >
+          <span className="text-xs text-muted-foreground whitespace-nowrap">Counting for</span>
+          <input
+            type="date"
+            value={countForDate}
+            max={todayEat}
+            onChange={(e) => e.target.value && setCountForDate(e.target.value)}
+            className="h-7 bg-transparent text-xs font-mono text-foreground outline-none"
+          />
+          {countForDate !== recordTargetDate && (
+            <button
+              type="button"
+              className="text-[10px] uppercase tracking-wide text-primary"
+              onClick={() => setCountForDate(recordTargetDate)}
+            >
+              reset
+            </button>
+          )}
+        </div>
         <Button
           variant={recordedSnap ? "outline" : "default"}
           size="sm"
@@ -575,17 +604,18 @@ export default function FinancesWalletsPage() {
           disabled={recordDay.isPending}
           title={
             recordedSnap
-              ? `Recorded ${fmtDate(recordTargetDate)} · re-record to overwrite`
-              : `Record safes & bank as of ${fmtDate(recordTargetDate)}`
+              ? `Recorded ${fmtDate(countForDate)} · re-record to overwrite`
+              : `Record safes & bank as of ${fmtDate(countForDate)}`
           }
-          onClick={() => recordDay.mutate(recordTargetDate)}
+          onClick={() => recordDay.mutate(countForDate)}
         >
           <Save className={cn("w-4 h-4", recordDay.isPending && "animate-pulse")} />
-          Record {fmtDate(recordTargetDate)}
+          Record {fmtDate(countForDate)}
         </Button>
         <Button size="sm" className="h-9" onClick={openNewWallet}>
           <Plus className="w-4 h-4" /> Add Wallet
         </Button>
+
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
