@@ -75,7 +75,11 @@ export function CloseBusinessDayButton() {
 
 
   const canSee = roles.some(r =>
-    ["cashier", "cashier_slots", "manager", "pit", "finance_manager", "super_admin"].includes(r)
+    [
+      "cashier", "cashier_slots", "pit",
+      "manager", "shift_manager", "general_manager", "finance_manager",
+      "super_admin",
+    ].includes(r)
   );
 
   const figures = useMemo(() => ({
