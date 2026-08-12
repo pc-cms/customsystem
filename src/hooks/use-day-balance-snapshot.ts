@@ -13,14 +13,12 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { businessDateOf } from "@/lib/business-day";
-import { signedWalletTxTzs } from "@/lib/wallet-tx-sign";
 
 const num = (v: unknown) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 };
 
-const CAGE_KINDS = new Set(["safe", "cage_table", "cage_slot", "main_cash"]);
 const isOfficeKind = (k: string) =>
   k === "cash" || k === "mobile_money" || k === "office_safe" || String(k).endsWith("_reserve");
 const isBankKind = (k: string) => k === "bank" || k === "bank_account";
