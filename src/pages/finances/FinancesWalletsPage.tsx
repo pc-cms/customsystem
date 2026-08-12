@@ -166,12 +166,13 @@ export default function FinancesWalletsPage() {
   }, [snap]);
 
   /**
-   * Count freshness. Actual = last recorded state per wallet, so wallets counted
-   * on different days silently mix points in time inside one Variance number.
-   * refDate = period end, capped at today (EAT).
+   * Count freshness is measured against the business day we are CLOSING
+   * (`countForDate`), not the calendar day. Counting yesterday's money this
+   * morning is the normal flow and must never be reported as stale.
    */
   const todayEat = eatDate(new Date());
-  const refDate = range.to < todayEat ? range.to : todayEat;
+  const refDate = countForDate < range.from ? range.from
+    : countForDate > range.to ? range.to : countForDate;
   const freshness = useMemo<CountFreshnessRow[]>(() => {
     const refMs = new Date(`${refDate}T00:00:00Z`).getTime();
     return (snap?.wallets || []).map((w) => {
