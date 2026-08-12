@@ -987,6 +987,8 @@ export const useDailyBalanceReport = (
             collections: collectionsV,
             money_total: moneyTotal,
             money_hidden: hidden,
+            /** true when RECORD locked the money columns of this day. */
+            money_recorded: moneyLocked,
             // P&L of the day — Casino Result − Expenses ± Diff.
             fin_result: resultV + diffTotal - o.expenses,
             balance: variance,
@@ -994,7 +996,12 @@ export const useDailyBalanceReport = (
 
             chips_detail: chipsDetail[date] ?? [],
             cage_detail: cageDetail[date] ?? { cash: [], cashless: [], mobile: {}, slots_total: 0 },
-            money_detail: hidden ? [] : (moneyByDate[date] ?? []),
+            money_detail: hidden
+              ? []
+              : moneyLocked && Array.isArray(snap?.money_detail)
+                ? snap.money_detail
+                : (moneyByDate[date] ?? []),
+
             transfers_manager: managerTransfers[date] ?? [],
             transfers_bank: bankTransfers[date] ?? [],
             office_wallets: lastOfficeWallets,
