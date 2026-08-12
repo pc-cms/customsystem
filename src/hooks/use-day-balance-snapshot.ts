@@ -68,15 +68,12 @@ export const useRecordDayBalance = () => {
     mutationFn: async (businessDate: string) => {
       if (!activeCasinoId) throw new Error("No casino selected");
       const sb = supabase as any;
-      const [{ data: wallets, error: wErr }, { data: counts, error: cErr }] = await Promise.all([
-        sb.from("fin_wallets")
-          .select("id, name, kind, currency")
-          .eq("casino_id", activeCasinoId),
-        sb.from("fin_wallet_counts_view_dummy_never") // placeholder replaced below
-          .select("*").limit(0),
-      ]);
+      const { data: wallets, error: wErr } = await sb
+        .from("fin_wallets")
+        .select("id, name, kind, currency")
+        .eq("casino_id", activeCasinoId);
       if (wErr) throw wErr;
-      void cErr;
+
 
       const { data: snaps, error: sErr } = await sb
         .from("cash_count_snapshots")
