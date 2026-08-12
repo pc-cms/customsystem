@@ -6,7 +6,7 @@
  * Opened from the Expenses column of Casino Monthly Balance. All figures TZS.
  */
 import { useMemo, useState, useEffect } from "react";
-import { Receipt, ChevronLeft, ChevronRight, ChevronDown, ChevronRightIcon } from "lucide-react";
+import { Receipt, ChevronLeft, ChevronRight, ChevronDown, ChevronRight as ChevronRightIcon } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
