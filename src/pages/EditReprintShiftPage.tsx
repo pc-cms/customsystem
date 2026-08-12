@@ -23,6 +23,7 @@ import ShiftClosingReport from "@/components/cage/ShiftClosingReport";
 import ChipMovementReport from "@/components/cage/ChipMovementReport";
 import PrintPortal from "@/components/cage/PrintPortal";
 import { printLiveGameReport } from "@/components/cage/printLiveGameReport";
+import { fetchTotalDrop } from "@/lib/drop-source";
 import { useAuth } from "@/lib/auth-context";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -115,6 +116,7 @@ const EditReprintShiftPage = () => {
         { data: cashless },
         { data: tableResRpc },
         { data: snapshots },
+        { data: inTx },
       ] = await Promise.all([
         supabase.from("gaming_tables").select("*").eq("casino_id", casinoId!),
         supabase.from("expenses").select("amount").eq("shift_id", shiftId),
@@ -133,7 +135,20 @@ const EditReprintShiftPage = () => {
           .gte("created_at", fromIso)
           .lte("created_at", toIso)
           .order("created_at", { ascending: true }),
+        supabase.from("transactions")
+          .select("table_id, amount, type, cancelled_at")
+          .eq("shift_id", shiftId)
+          .in("type", ["in", "buy"])
+          .is("cancelled_at", null),
       ]);
+      // Per-table Drop = raw Σ IN transactions for this shift (same rule as the report).
+      const tableDrop: Record<string, number> = {};
+      (inTx || []).forEach((r: any) => {
+        if (!r?.table_id) return;
+        tableDrop[r.table_id] = (tableDrop[r.table_id] || 0) + Number(r.amount || 0);
+      });
+      const bDate = (shift as any)?.closed_at ? businessDateForEAT((shift as any).closed_at) : "";
+      const totalDrop = bDate ? await fetchTotalDrop({ casinoId: casinoId!, fromDate: bDate }) : 0;
       const totalExpenses = (exp || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
       const tableResults: Record<string, number> = {};
       (tableResRpc || []).forEach((r: any) => {
@@ -151,7 +166,7 @@ const EditReprintShiftPage = () => {
           actual: Number(r.actual_quantity || 0),
         };
       });
-      return { shift, tables: tables || [], totalExpenses, transfers: transfers || [], cashless: cashless || [], tableResults, tableChips };
+      return { shift, tables: tables || [], totalExpenses, transfers: transfers || [], cashless: cashless || [], tableResults, tableChips, tableDrop, totalDrop };
     },
   });
 
@@ -221,6 +236,8 @@ const EditReprintShiftPage = () => {
       exchangeRates: ((shift as any).exchange_rates || {}) as Record<string, number>,
       tableRes: { ...(data?.tableResults || {}) } as Record<string, number>,
       tableFill, tableCredit,
+      tableDrop: { ...(data?.tableDrop || {}) } as Record<string, number>,
+      totalDrop: Number(data?.totalDrop || 0),
       tableChips: JSON.parse(JSON.stringify(data?.tableChips || {})) as Record<string, Record<number, { expected: number; actual: number }>>,
     };
   }, [shift, data]);
@@ -331,6 +348,10 @@ const EditReprintShiftPage = () => {
       );
       out[id] = { ...(out[id] || { res: 0 }), cl };
     });
+    // Per-table Drop — print-only override
+    Object.entries(state.tableDrop || {}).forEach(([id, v]) => {
+      out[id] = { ...(out[id] || { res: 0 }), inVal: Number(v) || 0 };
+    });
     // Per-table Fill / Credit — print-only overrides
     Object.entries(state.tableFill || {}).forEach(([id, v]) => {
       out[id] = { ...(out[id] || { res: 0 }), fl: Number(v) || 0 };
@@ -339,7 +360,7 @@ const EditReprintShiftPage = () => {
       out[id] = { ...(out[id] || { res: 0 }), cr: Number(v) || 0 };
     });
     return out;
-  }, [state?.tableRes, state?.tableChips, state?.tableFill, state?.tableCredit]);
+  }, [state?.tableRes, state?.tableChips, state?.tableFill, state?.tableCredit, state?.tableDrop]);
 
   const reportTables = useMemo(
     () => (tables || []).filter(t => !t.is_archived).sort((a, b) => a.name.localeCompare(b.name)),
@@ -388,6 +409,14 @@ const EditReprintShiftPage = () => {
             tableRes={state.tableRes}
             tableFill={state.tableFill}
             tableCredit={state.tableCredit}
+            tableDrop={state.tableDrop}
+            totalDrop={state.totalDrop}
+            onDropChange={(tableId, n) => {
+              const nextDrop = { ...(state.tableDrop || {}), [tableId]: n };
+              const sum = reportTables.reduce((s2, tt) => s2 + (Number(nextDrop[tt.id]) || 0), 0);
+              setState({ ...state, tableDrop: nextDrop, totalDrop: sum });
+            }}
+            onTotalDropChange={(n) => setState({ ...state, totalDrop: n })}
             onFillChange={(tableId, n) => {
               // Casino formula: Result = Drop + Credit − Fill + Δchips.
               // Increasing Fill decreases Result 1:1.
@@ -583,6 +612,7 @@ const EditReprintShiftPage = () => {
                     cashlessOverride={state.cashlessIO}
                     cashFlowTransfersOverride={{ addFloat: state.addFloat, slotsOut: state.slotsOut }}
                     tableRowOverrides={tableRowOverrides}
+                    totalDropOverride={state.totalDrop}
                   />
                   <ChipMovementReport
                     shift={shift}
@@ -692,6 +722,10 @@ const TableChipsFullGrid = ({
   tableRes,
   tableFill,
   tableCredit,
+  tableDrop,
+  totalDrop,
+  onDropChange,
+  onTotalDropChange,
   onCellChange,
   onResultChange,
   onFillChange,
@@ -702,6 +736,10 @@ const TableChipsFullGrid = ({
   tableRes: Record<string, number>;
   tableFill?: Record<string, number>;
   tableCredit?: Record<string, number>;
+  tableDrop?: Record<string, number>;
+  totalDrop?: number;
+  onDropChange?: (tableId: string, n: number) => void;
+  onTotalDropChange?: (n: number) => void;
   onCellChange: (tableId: string, denom: number, actual: number) => void;
   onResultChange: (tableId: string, n: number) => void;
   onFillChange?: (tableId: string, n: number) => void;
@@ -743,6 +781,7 @@ const TableChipsFullGrid = ({
               ))}
               <th className="text-center px-1 py-1 min-w-[100px]" title="Fill — chips issued from cage to the table (print-only)">Fill</th>
               <th className="text-center px-1 py-1 min-w-[100px]" title="Credit — chips returned from table to cage (print-only)">Credit</th>
+              <th className="text-center px-1 py-1 min-w-[110px]" title="DROP — printed per table (print-only)">Drop</th>
               <th className="text-right px-2 py-1 min-w-[110px]">Result (TZS)</th>
             </tr>
           </thead>
@@ -788,6 +827,12 @@ const TableChipsFullGrid = ({
                       onChange={(n) => onCreditChange?.(t.id, n)}
                     />
                   </td>
+                  <td className="px-1 py-1">
+                    <NumInput
+                      value={Number(tableDrop?.[t.id]) || 0}
+                      onChange={(n) => onDropChange?.(t.id, n)}
+                    />
+                  </td>
                   <td className="px-2 py-1">
                     <NumInput
                       value={Number(tableRes?.[t.id]) || 0}
@@ -804,6 +849,9 @@ const TableChipsFullGrid = ({
               <td colSpan={denoms.length} />
               <td className="px-1 py-1 text-right font-mono tabular-nums">{formatNumberSpaces(totalFill)}</td>
               <td className="px-1 py-1 text-right font-mono tabular-nums">{formatNumberSpaces(totalCredit)}</td>
+              <td className="px-1 py-1">
+                <NumInput value={Number(totalDrop) || 0} onChange={(n) => onTotalDropChange?.(n)} />
+              </td>
               <td className="px-2 py-1 text-right font-mono tabular-nums">{formatNumberSpaces(totalResult)}</td>
             </tr>
           </tfoot>
