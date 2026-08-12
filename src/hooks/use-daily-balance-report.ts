@@ -940,7 +940,7 @@ export const useDailyBalanceReport = (
             : opening + resultV + diffTotal - o.expenses + officeNet - moneyTotal;
           // Carry the last recorded money forward when a day has no record at all.
           if (!hidden && moneyTotal !== 0) prevMoney = moneyTotal;
-          return {
+          const base = {
             casino_result: resultV,
             live_cash_result: o.live,
             slots_diff: o.slotsDiff,
@@ -990,6 +990,27 @@ export const useDailyBalanceReport = (
             tips_total: o.tips ?? 0,
             snapshot: !!snap,
           };
+
+          /**
+           * FREEZE — a manually locked day. The stored snapshot replaces every
+           * computed figure, so later edits of Close Day / expenses / wallet
+           * counts can no longer move a day that was already signed off.
+           * The live figures stay available as `live_*` for the "≠ live" mark.
+           */
+          if (!snap?.frozen) return base;
+          const frozen: any = {
+            ...base,
+            frozen: true,
+            frozen_at: snap.frozen_at ?? null,
+            live_balance: base.balance,
+            live_money_total: base.money_total,
+            live_casino_result: base.casino_result,
+          };
+          for (const k of FREEZE_FIELDS) {
+            if (snap[k] != null && Number.isFinite(Number(snap[k]))) frozen[k] = Number(snap[k]);
+          }
+          if (!hidden && frozen.money_total !== 0) prevMoney = frozen.money_total;
+          return frozen;
         };
 
 
