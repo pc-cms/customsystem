@@ -44,6 +44,8 @@ interface Props {
   /** ===== Optional in-memory overrides for "Reprint with edits" =====
    *  When provided, replace internally-fetched values without touching DB. */
   tableRowOverrides?: Record<string, Partial<{ op: number; fl: number; cr: number; cl: number; inVal: number; res: number }>>;
+  /** Print-only override for the Total DROP cell ("Reprint with edits"). */
+  totalDropOverride?: number | null;
   cashlessOverride?: { inByProv: Record<string, number>; outByProv: Record<string, number> };
   tipsByShiftOverride?: { day: number; night: number };
   cashFlowTransfersOverride?: { addFloat: number; slotsOut: number };
