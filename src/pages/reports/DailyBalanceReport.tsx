@@ -363,6 +363,13 @@ const StartCell = ({
 
 const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   const { activeCasino } = useCasino();
+  const { roles } = useAuth();
+  /** Only finance / management roles may freeze or unfreeze a day. */
+  const canFreeze = (roles ?? []).some((r: string) =>
+    ["super_admin", "finance_manager", "manager", "general_manager", "boss"].includes(r),
+  );
+  const freeze = useFreezeDayBalance();
+  const unfreeze = useUnfreezeDayBalance();
   const navigate = useNavigate();
   const [month, setMonth] = useSessionState(demo ? "dbr-demo-month" : "dbr-month", currentMonth());
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
