@@ -10,7 +10,8 @@
  */
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Wallet2, ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { Wallet2, ChevronLeft, ChevronRight, Info, Lock, LockOpen } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -31,6 +32,7 @@ import { formulaText } from "@/lib/monthly-balance-formulas";
 import {
   useDailyBalanceReport, useSetCreditDeposit, useSetBankBalance,
   useMonthStart, useSetMonthStart,
+  useFreezeDayBalance, useUnfreezeDayBalance,
   type DailyBalanceRow, type ManualLegacyField, type MonthStartField,
 } from "@/hooks/use-daily-balance-report";
 import DrillTable from "@/components/reports/DrillTable";
