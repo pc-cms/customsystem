@@ -83,7 +83,28 @@ export interface MoneyWallet {
 
 
 
+/**
+ * Fields persisted when a day is frozen — every figure the CMB grid shows.
+ * Details (drill-down panels) stay live: only the headline numbers are locked.
+ */
+export const FREEZE_FIELDS = [
+  "casino_result", "tables_result", "slots_result", "bar_result", "jp",
+  "tips_tables", "tips_slots", "chip_difference", "slots_diff", "missed_cards",
+  "diff_total", "expenses", "bank_expenses", "money_in", "money_out",
+  "cage_casino", "cage_manager", "bank_tzs", "bank_usd",
+  "transfer_cage_manager", "transfer_bank", "collection_bank",
+  "money_total", "fin_result", "balance",
+] as const;
+
 export interface DailyBalanceRow {
+  /** true when the day was manually frozen (figures come from the snapshot). */
+  frozen?: boolean;
+  frozen_at?: string | null;
+  /** Live (recomputed) figures kept alongside a frozen row for the "≠ live" mark. */
+  live_balance?: number;
+  live_money_total?: number;
+  live_casino_result?: number;
+
 
   date: string;
   weekday: string;
@@ -940,7 +961,7 @@ export const useDailyBalanceReport = (
             : opening + resultV + diffTotal - o.expenses + officeNet - moneyTotal;
           // Carry the last recorded money forward when a day has no record at all.
           if (!hidden && moneyTotal !== 0) prevMoney = moneyTotal;
-          return {
+          const base = {
             casino_result: resultV,
             live_cash_result: o.live,
             slots_diff: o.slotsDiff,
@@ -990,6 +1011,27 @@ export const useDailyBalanceReport = (
             tips_total: o.tips ?? 0,
             snapshot: !!snap,
           };
+
+          /**
+           * FREEZE — a manually locked day. The stored snapshot replaces every
+           * computed figure, so later edits of Close Day / expenses / wallet
+           * counts can no longer move a day that was already signed off.
+           * The live figures stay available as `live_*` for the "≠ live" mark.
+           */
+          if (!snap?.frozen) return base;
+          const frozen: any = {
+            ...base,
+            frozen: true,
+            frozen_at: snap.frozen_at ?? null,
+            live_balance: base.balance,
+            live_money_total: base.money_total,
+            live_casino_result: base.casino_result,
+          };
+          for (const k of FREEZE_FIELDS) {
+            if (snap[k] != null && Number.isFinite(Number(snap[k]))) frozen[k] = Number(snap[k]);
+          }
+          if (!hidden && frozen.money_total !== 0) prevMoney = frozen.money_total;
+          return frozen;
         };
 
 
@@ -1209,6 +1251,65 @@ export const useSetMonthStart = (month: string) => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["fin-month-start"] });
+      invalidateFinance(qc);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+};
+
+/**
+ * FREEZE / UNFREEZE a day of the Casino Monthly Balance.
+ * The whole headline row is stored in `fin_day_balance_snapshot.data`; once
+ * present with `frozen: true` the report reads it instead of recomputing.
+ */
+export const useFreezeDayBalance = () => {
+  const qc = useQueryClient();
+  const { activeCasinoId } = useCasino();
+  return useMutation({
+    mutationFn: async ({ row }: { row: DailyBalanceRow }) => {
+      if (!activeCasinoId) throw new Error("No casino");
+      const { data: auth } = await supabase.auth.getUser();
+      const payload: Record<string, any> = {
+        frozen: true,
+        frozen_at: new Date().toISOString(),
+      };
+      for (const k of FREEZE_FIELDS) payload[k] = Number((row as any)[k] || 0);
+      const { error } = await (supabase as any)
+        .from("fin_day_balance_snapshot")
+        .upsert(
+          {
+            casino_id: activeCasinoId,
+            business_date: row.date,
+            data: payload,
+            recorded_by: auth?.user?.id ?? null,
+          },
+          { onConflict: "casino_id,business_date" },
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Day frozen");
+      invalidateFinance(qc);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+};
+
+export const useUnfreezeDayBalance = () => {
+  const qc = useQueryClient();
+  const { activeCasinoId } = useCasino();
+  return useMutation({
+    mutationFn: async ({ date }: { date: string }) => {
+      if (!activeCasinoId) throw new Error("No casino");
+      const { error } = await (supabase as any)
+        .from("fin_day_balance_snapshot")
+        .delete()
+        .eq("casino_id", activeCasinoId)
+        .eq("business_date", date);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Day unfrozen");
       invalidateFinance(qc);
     },
     onError: (e: any) => toast.error(e.message),

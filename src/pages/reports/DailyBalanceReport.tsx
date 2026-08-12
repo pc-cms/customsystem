@@ -10,7 +10,8 @@
  */
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Wallet2, ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { Wallet2, ChevronLeft, ChevronRight, Info, Lock, LockOpen } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -31,6 +32,7 @@ import { formulaText } from "@/lib/monthly-balance-formulas";
 import {
   useDailyBalanceReport, useSetCreditDeposit, useSetBankBalance,
   useMonthStart, useSetMonthStart,
+  useFreezeDayBalance, useUnfreezeDayBalance,
   type DailyBalanceRow, type ManualLegacyField, type MonthStartField,
 } from "@/hooks/use-daily-balance-report";
 import DrillTable from "@/components/reports/DrillTable";
@@ -361,6 +363,13 @@ const StartCell = ({
 
 const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
   const { activeCasino } = useCasino();
+  const { roles } = useAuth();
+  /** Only finance / management roles may freeze or unfreeze a day. */
+  const canFreeze = (roles ?? []).some((r: string) =>
+    ["super_admin", "finance_manager", "manager", "general_manager", "boss"].includes(r),
+  );
+  const freeze = useFreezeDayBalance();
+  const unfreeze = useUnfreezeDayBalance();
   const navigate = useNavigate();
   const [month, setMonth] = useSessionState(demo ? "dbr-demo-month" : "dbr-month", currentMonth());
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
@@ -521,6 +530,61 @@ const DailyBalanceReport = ({ demo = false }: { demo?: boolean }) => {
             : rowBg(r) ?? "bg-card",
         ),
     },
+
+    {
+      key: "freeze",
+      header: "",
+      style: { width: 30, minWidth: 30 },
+      accessor: (r) => {
+        if (r.kind === "start" || demo) return null;
+        const drifted =
+          r.frozen && r.live_balance != null &&
+          Math.round(r.live_balance) !== Math.round(Number(r.balance || 0));
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                disabled={!canFreeze || freeze.isPending || unfreeze.isPending}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!canFreeze) return;
+                  r.frozen ? unfreeze.mutate({ date: r.date }) : freeze.mutate({ row: r });
+                }}
+                className={cn(
+                  "flex h-5 w-5 items-center justify-center rounded",
+                  r.frozen ? "text-primary" : "text-muted-foreground/40 hover:text-foreground",
+                  drifted && "text-warning",
+                  !canFreeze && "cursor-default",
+                )}
+              >
+                {r.frozen ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-xs">
+              {r.frozen ? (
+                <div className="space-y-0.5">
+                  <div className="font-semibold">Frozen{r.frozen_at ? ` · ${fmtDate(r.frozen_at)}` : ""}</div>
+                  {drifted && (
+                    <div className="text-warning">
+                      ≠ live: {formatMoneyFull(Math.round(r.live_balance || 0))}
+                    </div>
+                  )}
+                  {canFreeze && <div className="text-muted-foreground">Click to unfreeze</div>}
+                </div>
+              ) : (
+                <span>{canFreeze ? "Freeze this day" : "Not frozen"}</span>
+              )}
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
+      headerClassName: "border-b-2 border-b-foreground bg-muted",
+      cellClassName: (r: Row) =>
+        cn("py-0.5", r.kind === "start" ? "border-b-2 border-b-border bg-muted" : rowBg(r) ?? "bg-card"),
+    },
+
+
 
 
     ...visibleMoneyCols.map<ColumnDef<Row>>((c, i) => {
