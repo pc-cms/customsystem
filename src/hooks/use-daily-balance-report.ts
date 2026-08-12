@@ -650,22 +650,17 @@ export const useDailyBalanceReport = (
        */
       const countsByWallet: Record<string, { d: string; ts: number; tzs: number; units: number }[]> = {};
       /**
-       * A count taken while the current business day is still OPEN actually
-       * closes the previous (already closed) business day: the money is counted
-       * after the shift ends, before the new day's results exist. Without this
-       * the last closed row shows stale money and Variance never converges
-       * until the next morning.
+       * The day a count belongs to is EXPLICIT: `business_date` is chosen by the
+       * user when counting ("counting for 11/08" done on the morning of 12/08 —
+       * the normal flow, because a business day is always closed the next day).
+       * Legacy rows without it fall back to the business day of created_at.
        */
-      const moneyDateOf = (iso: string) => {
-        const bd = businessDateOf(iso);
-        if (closedDays.has(bd)) return bd;
-        const prev = prevDate(bd);
-        return closedDays.has(prev) ? prev : bd;
-      };
+      const moneyDateOf = (c: any) =>
+        c.business_date ? String(c.business_date).slice(0, 10) : businessDateOf(c.created_at);
       (walletCounts as any[]).forEach((c: any) => {
         if (!c.wallet_id) return;
         (countsByWallet[c.wallet_id] ??= []).push({
-          d: moneyDateOf(c.created_at),
+          d: moneyDateOf(c),
           ts: new Date(c.created_at).getTime(),
           tzs: num(c.physical_total_tzs) || num(c.physical_total),
           units: num(c.physical_total),
