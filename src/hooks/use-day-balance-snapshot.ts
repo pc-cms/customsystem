@@ -13,14 +13,12 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { businessDateOf } from "@/lib/business-day";
-import { signedWalletTxTzs } from "@/lib/wallet-tx-sign";
 
 const num = (v: unknown) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 };
 
-const CAGE_KINDS = new Set(["safe", "cage_table", "cage_slot", "main_cash"]);
 const isOfficeKind = (k: string) =>
   k === "cash" || k === "mobile_money" || k === "office_safe" || String(k).endsWith("_reserve");
 const isBankKind = (k: string) => k === "bank" || k === "bank_account";
@@ -53,9 +51,13 @@ export const useDayBalanceSnapshot = (businessDate: string) => {
 };
 
 /**
- * Records (or overwrites) the safes / bank balances as of the end of a business
- * day. Cage figures are NOT stored — they already come from the immutable shift
- * closing counts.
+ * Records (or overwrites) the money held at the end of a business day.
+ *
+ * A wallet can be recounted ten times a day: what lands in the Casino Monthly
+ * Balance is the state at the moment RECORD is pressed — the last physical
+ * count of every wallet on or before that business date. Once recorded, the
+ * money columns of that CMB row are LOCKED: later recounts belong to the
+ * current day and can no longer move a day that was already recorded.
  */
 export const useRecordDayBalance = () => {
   const qc = useQueryClient();
@@ -64,49 +66,76 @@ export const useRecordDayBalance = () => {
     mutationFn: async (businessDate: string) => {
       if (!activeCasinoId) throw new Error("No casino selected");
       const sb = supabase as any;
-      const [{ data: wallets, error: wErr }, { data: tx, error: tErr }] = await Promise.all([
-        sb.from("fin_wallets")
-          .select("id, kind, currency, starting_float_amount, starting_float_date")
-          .eq("casino_id", activeCasinoId),
-        sb.from("fin_wallet_tx")
-          .select("wallet_id, kind, amount, amount_tzs")
-          .eq("casino_id", activeCasinoId)
-          .not("posted_at", "is", null)
-          .lte("business_date", businessDate),
-      ]);
+      const { data: wallets, error: wErr } = await sb
+        .from("fin_wallets")
+        .select("id, name, kind, currency")
+        .eq("casino_id", activeCasinoId);
       if (wErr) throw wErr;
-      if (tErr) throw tErr;
 
-      const byId: Record<string, any> = {};
-      let manager = 0, bankTzs = 0, bankUsd = 0;
-      (wallets ?? []).forEach((w: any) => {
-        byId[w.id] = w;
-        const floatDate = w.starting_float_date ? String(w.starting_float_date).slice(0, 10) : "";
-        if (!num(w.starting_float_amount) || (floatDate && floatDate > businessDate)) return;
-        const v = num(w.starting_float_amount);
-        if (isOfficeKind(w.kind)) manager += v;
-        else if (isBankKind(w.kind)) {
-          if ((w.currency || "TZS") === "TZS") bankTzs += v; else bankUsd += v;
-        }
+
+      const { data: snaps, error: sErr } = await sb
+        .from("cash_count_snapshots")
+        .select("wallet_id, physical_total, physical_total_tzs, created_at, business_date")
+        .eq("casino_id", activeCasinoId)
+        .lte("business_date", businessDate)
+        .order("created_at", { ascending: true });
+      if (sErr) throw sErr;
+
+      /** Last physical count of each wallet on or before the recorded day. */
+      const last: Record<string, { tzs: number; units: number }> = {};
+      (snaps ?? []).forEach((c: any) => {
+        if (!c.wallet_id) return;
+        last[c.wallet_id] = {
+          tzs: num(c.physical_total_tzs) || num(c.physical_total),
+          units: num(c.physical_total),
+        };
       });
-      (tx ?? []).forEach((t: any) => {
-        const w = byId[t.wallet_id];
-        if (!w) return;
-        const v = signedWalletTxTzs(t);
-        if (isOfficeKind(w.kind)) manager += v;
-        else if (isBankKind(w.kind)) {
-          if ((w.currency || "TZS") === "TZS") bankTzs += v; else bankUsd += v;
-        } else if (CAGE_KINDS.has(w.kind)) {
-          // cage wallets are informational here — the report uses closing counts
-        }
+
+      let cage = 0, manager = 0, bankTzs = 0, bankUsd = 0;
+      const detail: any[] = [];
+      (wallets ?? []).forEach((w: any) => {
+        const c = last[w.id];
+        const v = c?.tzs ?? 0;
+        const bucket = isBankKind(w.kind) ? "bank" : isOfficeKind(w.kind) ? "office" : "cage";
+        detail.push({
+          name: w.name,
+          kind: w.kind,
+          currency: w.currency || "TZS",
+          units: c?.units ?? 0,
+          tzs: v,
+          bucket,
+          mobile: w.kind === "mobile_money" || /airtel|airtell|tigo|halo|mpesa|m-pesa|pesa/i.test(w.name || ""),
+        });
+        if (!c) return;
+        if (bucket === "cage") cage += v;
+        else if (bucket === "office") manager += v;
+        else if ((w.currency || "TZS") === "TZS") bankTzs += v;
+        else bankUsd += v;
       });
 
       const { data: auth } = await supabase.auth.getUser();
+      const { data: existing } = await sb
+        .from("fin_day_balance_snapshot")
+        .select("data")
+        .eq("casino_id", activeCasinoId)
+        .eq("business_date", businessDate)
+        .maybeSingle();
+
       const { error } = await sb.from("fin_day_balance_snapshot").upsert(
         {
           casino_id: activeCasinoId,
           business_date: businessDate,
-          data: { cage_manager: manager, bank_tzs: bankTzs, bank_usd: bankUsd },
+          data: {
+            ...(existing?.data || {}),
+            money_locked: true,
+            recorded_at: new Date().toISOString(),
+            cage_casino: cage,
+            cage_manager: manager,
+            bank_tzs: bankTzs,
+            bank_usd: bankUsd,
+            money_total: cage + manager + bankTzs + bankUsd,
+            money_detail: detail,
+          },
           recorded_by: auth?.user?.id ?? null,
         },
         { onConflict: "casino_id,business_date" },
@@ -121,3 +150,4 @@ export const useRecordDayBalance = () => {
     onError: (e: any) => toast.error(e.message),
   });
 };
+
