@@ -102,6 +102,12 @@ export default function FinancesWalletsPage() {
   const recordTargetDate = dayToRecord();
   const recordDay = useRecordDayBalance();
   const { data: recordedSnap } = useDayBalanceSnapshot(recordTargetDate);
+  /**
+   * Business day the physical counts are FOR. We always close YESTERDAY, so
+   * counting on 12/08 normally records the 11/08 balances. The user can move
+   * this date when catching up on an older day.
+   */
+  const [countForDate, setCountForDate] = useState<string>(recordTargetDate);
 
 
   const now = new Date();
