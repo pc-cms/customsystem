@@ -53,6 +53,8 @@ import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import WalletMovementDialog, { type MovementMode } from "@/components/finances/WalletMovementDialog";
+import StaleCountsNotice, { type CountFreshnessRow } from "@/components/office/StaleCountsNotice";
+
 import { useRecordDayBalance, useDayBalanceSnapshot, dayToRecord } from "@/hooks/use-day-balance-snapshot";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -62,9 +64,27 @@ const KINDS = ["cash", "bank", "mobile_money", "safe", "cage", "external"];
 const CASH_LIKE_KINDS = new Set(["cash", "safe"]);
 const CURRENCY_ORDER = ["TZS", "USD", "EUR", "GBP", "KES"];
 
-type WalletSortKey = "name" | "kind" | "currency" | "starting_float" | "balance_native" | "balance_tzs";
+type WalletSortKey =
+  | "name"
+  | "kind"
+  | "currency"
+  | "starting_float"
+  | "balance_native"
+  | "balance_tzs"
+  | "counted";
 
 const WALLET_SORT_DEFAULT: { key: WalletSortKey; dir: "asc" | "desc" } = { key: "name", dir: "asc" };
+
+/** Business date (EAT) of a timestamp — counts belong to the day they were taken. */
+const eatDate = (ts: string | Date) =>
+  new Date(ts).toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" });
+const eatTime = (ts: string | Date) =>
+  new Date(ts).toLocaleTimeString("en-GB", {
+    timeZone: "Africa/Dar_es_Salaam",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
 
 /* ============ Page ============ */
 
@@ -138,6 +158,44 @@ export default function FinancesWalletsPage() {
     );
     return m;
   }, [snap]);
+
+  /**
+   * Count freshness. Actual = last recorded state per wallet, so wallets counted
+   * on different days silently mix points in time inside one Variance number.
+   * refDate = period end, capped at today (EAT).
+   */
+  const todayEat = eatDate(new Date());
+  const refDate = range.to < todayEat ? range.to : todayEat;
+  const freshness = useMemo<CountFreshnessRow[]>(() => {
+    const refMs = new Date(`${refDate}T00:00:00Z`).getTime();
+    return (snap?.wallets || []).map((w) => {
+      const asof = (w as any).physical_asof as string | null;
+      const cd = asof ? eatDate(asof) : null;
+      const days = cd
+        ? Math.max(0, Math.round((refMs - new Date(`${cd}T00:00:00Z`).getTime()) / 86400000))
+        : null;
+      return {
+        wallet_id: w.wallet_id,
+        name: w.name,
+        currency: w.currency,
+        actual_native: Number(w.actual_native ?? w.ledger_native ?? w.ledger ?? 0),
+        actual_tzs: Number(w.actual_tzs ?? w.ledger_tzs ?? w.ledger ?? 0),
+        counted_date: cd,
+        counted_time: asof ? eatTime(asof) : null,
+        source: ((w as any).physical_source as string) ?? null,
+        days,
+        stale: !cd || cd < refDate,
+      };
+    });
+  }, [snap, refDate]);
+
+  const freshnessByWallet = useMemo(() => {
+    const m = new Map<string, CountFreshnessRow>();
+    freshness.forEach((r) => m.set(r.wallet_id, r));
+    return m;
+  }, [freshness]);
+
+
 
   /* Last physical count per wallet — shown as grey placeholder hints. */
   const { data: lastCounts } = useQuery({
@@ -290,14 +348,19 @@ export default function FinancesWalletsPage() {
           av = ledA.tzs;
           bv = ledB.tzs;
           break;
+        case "counted":
+          av = freshnessByWallet.get(a.id)?.counted_date || "";
+          bv = freshnessByWallet.get(b.id)?.counted_date || "";
+          break;
       }
+
       if (typeof av === "string") {
         return av.localeCompare(bv) * mult;
       }
       return (av > bv ? 1 : av < bv ? -1 : 0) * mult;
     });
     return list;
-  }, [wallets, walletSort, ledgerByWallet]);
+  }, [wallets, walletSort, ledgerByWallet, freshnessByWallet]);
 
   const txRows = useMemo(() => {
     let list = tx as any[];
@@ -352,6 +415,24 @@ export default function FinancesWalletsPage() {
   const [savingId, setSavingId] = useState<string | null>(null);
 
   const toggleRow = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
+
+  /** Open the count form for every wallet whose last count is older than refDate. */
+  const countAllStale = () => {
+    const stale = freshness.filter((r) => r.stale);
+    if (!stale.length) return;
+    setExpanded((s) => {
+      const n = { ...s };
+      stale.forEach((r) => {
+        n[r.wallet_id] = true;
+      });
+      return n;
+    });
+    setTimeout(
+      () => document.getElementById("wallets-table")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      50,
+    );
+  };
+
 
   const saveCount = async (w: any) => {
     if (!user || !activeCasinoId) {
@@ -545,6 +626,13 @@ export default function FinancesWalletsPage() {
         </div>
       </PageSection>
 
+      {/* COUNT FRESHNESS — Actual is only as fresh as the last count per wallet */}
+      <PageSection card={false}>
+        <StaleCountsNotice rows={freshness} refDate={refDate} onCountAll={countAllStale} />
+      </PageSection>
+
+
+
       {/* BREAKDOWN + GRAND TOTAL */}
       <div id="wallets-breakdown" className="grid grid-cols-1 lg:grid-cols-2 gap-4 scroll-mt-20">
         <PageSection title="Breakdown (Expected)" card={false}>
@@ -681,7 +769,9 @@ export default function FinancesWalletsPage() {
       )}
 
       {/* WALLETS TABLE */}
+      <div id="wallets-table" className="scroll-mt-20" />
       <PageSection title="Wallets" card={false}>
+
         <div className="rounded-md border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-muted text-xs uppercase">
@@ -723,7 +813,14 @@ export default function FinancesWalletsPage() {
                 >
                   Balance (TZS) <WalletSortIcon k="balance_tzs" />
                 </th>
+                <th
+                  className="px-3 py-2 text-left cursor-pointer select-none"
+                  onClick={() => toggleWalletSort("counted")}
+                >
+                  Counted <WalletSortIcon k="counted" />
+                </th>
                 <th className="w-12"></th>
+
               </tr>
             </thead>
             <tbody>
@@ -737,6 +834,8 @@ export default function FinancesWalletsPage() {
                   ? cashSum(denomVals) + centsVal / 100
                   : Number(amountInput[w.id] || 0);
                 const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0 };
+                const fresh = freshnessByWallet.get(w.id);
+
                 const variance = counted - led.native;
                 return (
                   <Fragment key={w.id}>
@@ -767,16 +866,34 @@ export default function FinancesWalletsPage() {
                       <td className="text-right font-mono tabular-nums">
                         {formatNumberSpaces(led.native)}{" "}
                         <span className="text-[10px] text-muted-foreground">{w.currency}</span>
-                        {led.asof && (
-                          <div className="text-[10px] text-muted-foreground font-sans">
-                            {led.source === "manual" ? "counted" : "after movement"}{" "}
-                            {fmtDateOnly(led.asof)}
-                          </div>
-                        )}
                       </td>
                       <td className="text-right font-mono tabular-nums">
                         {formatNumberSpaces(led.tzs)}
                       </td>
+                      <td className="px-3 whitespace-nowrap text-xs">
+                        {fresh?.counted_date ? (
+                          <>
+                            <span
+                              className={cn(
+                                "font-mono tabular-nums",
+                                fresh.stale ? "text-amber-600 dark:text-amber-400" : undefined,
+                              )}
+                            >
+                              {fmtDate(fresh.counted_date)}
+                            </span>{" "}
+                            <span className="text-[10px] text-muted-foreground">
+                              {fresh.counted_time}
+                            </span>
+                            <div className="text-[10px] text-muted-foreground">
+                              {fresh.source === "manual" ? "counted" : "after movement"}
+                              {fresh.stale && fresh.days ? ` · ${fresh.days}d old` : ""}
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground">never counted</span>
+                        )}
+                      </td>
+
                       <td className="text-right pr-3 whitespace-nowrap">
                         <Button
                           variant="ghost"
@@ -823,7 +940,7 @@ export default function FinancesWalletsPage() {
                     </tr>
                     {isOpen && (
                       <tr className="bg-muted/30 border-t border-border">
-                        <td colSpan={8} className="p-4">
+                        <td colSpan={9} className="p-4">
                           <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                             <div>
                               <div className="flex items-baseline justify-between mb-2">
@@ -958,7 +1075,7 @@ export default function FinancesWalletsPage() {
               })}
               {!wallets.length && (
                 <tr>
-                  <td colSpan={8} className="text-center text-muted-foreground py-6">
+                  <td colSpan={9} className="text-center text-muted-foreground py-6">
                     No wallets yet
                   </td>
                 </tr>
@@ -978,7 +1095,7 @@ export default function FinancesWalletsPage() {
                   <td className="px-3 py-2 text-right font-mono tabular-nums font-semibold">
                     {formatNumberSpaces(grandTotals.tzs)}
                   </td>
-                  <td />
+                  <td /><td />
                 </tr>
                 <tr className="border-t border-border/50">
                   <td colSpan={5} className="px-3 py-1.5 text-right text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -990,7 +1107,7 @@ export default function FinancesWalletsPage() {
                       @ {formatNumberSpaces(usdRate)}
                     </span>
                   </td>
-                  <td />
+                  <td /><td />
                 </tr>
               </tfoot>
             )}

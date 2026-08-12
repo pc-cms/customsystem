@@ -244,7 +244,27 @@
   .tabular, .cms-data, table, input[type="number"] {
     font-variant-numeric: tabular-nums;
   }
+  /* Native widgets (autofill, date/number pickers, scrollbars) follow the theme */
+  html.dark {
+    color-scheme: dark;
+  }
+  html:not(.dark) {
+    color-scheme: light;
+  }
+  /* Chrome paints autofilled inputs bright white — repaint with theme tokens */
+  html.dark input:-webkit-autofill,
+  html.dark input:-webkit-autofill:hover,
+  html.dark input:-webkit-autofill:focus,
+  html.dark textarea:-webkit-autofill,
+  html.dark select:-webkit-autofill {
+    -webkit-text-fill-color: hsl(var(--foreground));
+    caret-color: hsl(var(--foreground));
+    -webkit-box-shadow: 0 0 0 1000px hsl(var(--background)) inset;
+    box-shadow: 0 0 0 1000px hsl(var(--background)) inset;
+    transition: background-color 9999s ease-in-out 0s;
+  }
 }
+
 
 @layer components {
   .cms-panel {
