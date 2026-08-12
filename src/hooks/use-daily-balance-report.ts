@@ -83,7 +83,28 @@ export interface MoneyWallet {
 
 
 
+/**
+ * Fields persisted when a day is frozen — every figure the CMB grid shows.
+ * Details (drill-down panels) stay live: only the headline numbers are locked.
+ */
+export const FREEZE_FIELDS = [
+  "casino_result", "tables_result", "slots_result", "bar_result", "jp",
+  "tips_tables", "tips_slots", "chip_difference", "slots_diff", "missed_cards",
+  "diff_total", "expenses", "bank_expenses", "money_in", "money_out",
+  "cage_casino", "cage_manager", "bank_tzs", "bank_usd",
+  "transfer_cage_manager", "transfer_bank", "collection_bank",
+  "money_total", "fin_result", "balance",
+] as const;
+
 export interface DailyBalanceRow {
+  /** true when the day was manually frozen (figures come from the snapshot). */
+  frozen?: boolean;
+  frozen_at?: string | null;
+  /** Live (recomputed) figures kept alongside a frozen row for the "≠ live" mark. */
+  live_balance?: number;
+  live_money_total?: number;
+  live_casino_result?: number;
+
 
   date: string;
   weekday: string;
