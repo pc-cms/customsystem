@@ -44,6 +44,8 @@ interface Props {
   /** ===== Optional in-memory overrides for "Reprint with edits" =====
    *  When provided, replace internally-fetched values without touching DB. */
   tableRowOverrides?: Record<string, Partial<{ op: number; fl: number; cr: number; cl: number; inVal: number; res: number }>>;
+  /** Print-only override for the Total DROP cell ("Reprint with edits"). */
+  totalDropOverride?: number | null;
   cashlessOverride?: { inByProv: Record<string, number>; outByProv: Record<string, number> };
   tipsByShiftOverride?: { day: number; night: number };
   cashFlowTransfersOverride?: { addFloat: number; slotsOut: number };
@@ -58,7 +60,7 @@ const ShiftClosingReport = ({
   shift, tables, closingCount, openingFloat, exchangeRates,
   totalExpenses, missTotal, resultTable, balance, businessDate,
   tipsTotal, cashierName, managerName,
-  tableRowOverrides, cashlessOverride, tipsByShiftOverride, cashFlowTransfersOverride,
+  tableRowOverrides, totalDropOverride, cashlessOverride, tipsByShiftOverride, cashFlowTransfersOverride,
 }: Props) => {
 
   const { casinoId } = useAuth();
@@ -465,7 +467,7 @@ const ShiftClosingReport = ({
             <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totals.fill)}</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totals.credit)}</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totals.close)}</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totalDropFromCache)}</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(totalDropOverride ?? totalDropFromCache)}</td>
             <td className="border border-black px-1.5 py-0.5 text-right">
               {totals.result >= 0 ? numAlways(totals.result) : `-${numAlways(Math.abs(totals.result))}`}
             </td>
