@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
+import { useLoginVersionCheck } from "@/lib/login-version-check";
 
 export default function PosLogin() {
+  useLoginVersionCheck();
   const { user, roles: typedRoles } = useAuth();
   const roles = typedRoles as readonly string[];
   const navigate = useNavigate();
