@@ -79,11 +79,26 @@ export const useArchiveFinCategory = () => {
   });
 };
 
+/** Fixed list of MAIN expense categories (Taxes, Rent, Salary, …). */
+export const useFinMainCategories = () =>
+  useQuery({
+    queryKey: ["fin-main-categories"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("fin_main_categories")
+        .select("code, label, sort_order")
+        .order("sort_order");
+      if (error) throw error;
+      return (data ?? []) as { code: string; label: string; sort_order: number }[];
+    },
+    ...liveQueryOptions(),
+  });
+
 /** Create a new category inside a group. sort_order = max+1 in that group. */
 export const useCreateFinCategory = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { group_code: string; group_name: string; name: string; is_income?: boolean }) => {
+    mutationFn: async (input: { group_code: string; group_name: string; name: string; is_income?: boolean; main_code?: string | null }) => {
       const { data: existing } = await supabase
         .from("fin_categories")
         .select("sort_order")
@@ -91,16 +106,18 @@ export const useCreateFinCategory = () => {
         .order("sort_order", { ascending: false })
         .limit(1);
       const nextSort = (existing?.[0]?.sort_order ?? 0) + 10;
-      const { error } = await supabase.from("fin_categories").insert({
+      const { error } = await (supabase as any).from("fin_categories").insert({
         group_code: input.group_code,
         group_name: input.group_name,
         name: input.name.trim(),
         sort_order: nextSort,
         is_income: input.is_income ?? false,
         is_active: true,
+        main_code: input.main_code ?? null,
       });
       if (error) throw error;
     },
+
     onSuccess: () => {
       invalidateFinance(qc);
       toast.success("Category added");
