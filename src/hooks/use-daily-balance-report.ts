@@ -1256,3 +1256,62 @@ export const useSetMonthStart = (month: string) => {
     onError: (e: any) => toast.error(e.message),
   });
 };
+
+/**
+ * FREEZE / UNFREEZE a day of the Casino Monthly Balance.
+ * The whole headline row is stored in `fin_day_balance_snapshot.data`; once
+ * present with `frozen: true` the report reads it instead of recomputing.
+ */
+export const useFreezeDayBalance = () => {
+  const qc = useQueryClient();
+  const { activeCasinoId } = useCasino();
+  return useMutation({
+    mutationFn: async ({ row }: { row: DailyBalanceRow }) => {
+      if (!activeCasinoId) throw new Error("No casino");
+      const { data: auth } = await supabase.auth.getUser();
+      const payload: Record<string, any> = {
+        frozen: true,
+        frozen_at: new Date().toISOString(),
+      };
+      for (const k of FREEZE_FIELDS) payload[k] = Number((row as any)[k] || 0);
+      const { error } = await (supabase as any)
+        .from("fin_day_balance_snapshot")
+        .upsert(
+          {
+            casino_id: activeCasinoId,
+            business_date: row.date,
+            data: payload,
+            recorded_by: auth?.user?.id ?? null,
+          },
+          { onConflict: "casino_id,business_date" },
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Day frozen");
+      invalidateFinance(qc);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+};
+
+export const useUnfreezeDayBalance = () => {
+  const qc = useQueryClient();
+  const { activeCasinoId } = useCasino();
+  return useMutation({
+    mutationFn: async ({ date }: { date: string }) => {
+      if (!activeCasinoId) throw new Error("No casino");
+      const { error } = await (supabase as any)
+        .from("fin_day_balance_snapshot")
+        .delete()
+        .eq("casino_id", activeCasinoId)
+        .eq("business_date", date);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Day unfrozen");
+      invalidateFinance(qc);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+};
