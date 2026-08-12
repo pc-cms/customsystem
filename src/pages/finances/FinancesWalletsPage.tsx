@@ -459,10 +459,10 @@ export default function FinancesWalletsPage() {
       toast.error("Enter physical count");
       return;
     }
-    // Physical counts must land on the day they are entered — not on the
-    // last day of the selected month. Clamp today into the selected period.
-    const todayEat = new Date(Date.now() + 3 * 3600_000).toISOString().slice(0, 10);
-    const countDate = todayEat < range.from ? range.from : todayEat > range.to ? range.to : todayEat;
+    // A count belongs to the business day it is FOR, chosen above the table.
+    // Entering 11/08 figures on 12/08 is the normal flow — the business day is
+    // always closed the next morning.
+    const countDate = countForDate;
     setSavingId(w.id);
     let variance = 0;
     try {
