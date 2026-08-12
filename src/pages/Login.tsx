@@ -3,6 +3,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Shield } from "lucide-react";
+import { useLoginVersionCheck } from "@/lib/login-version-check";
 
 const LOGIN_DOMAIN = "@cms.local";
 
@@ -25,6 +26,7 @@ const BRANCH_LOGOS: Record<string, string> = {
 const GOLD = "#E8C688";
 
 const Login = () => {
+  useLoginVersionCheck();
   const { signIn } = useAuth();
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
