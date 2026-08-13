@@ -419,7 +419,9 @@ export default function FinancesWalletsPage() {
   const [centsInput, setCentsInput] = useState<Record<string, number>>({});
   const [amountInput, setAmountInput] = useState<Record<string, string>>({});
   const [countNote, setCountNote] = useState<Record<string, string>>({});
+  const [touchedCount, setTouchedCount] = useState<Record<string, boolean>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+
 
   const toggleRow = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
 
@@ -452,9 +454,11 @@ export default function FinancesWalletsPage() {
       ? cashSum(denomCounts[w.id] || {}) + cents / 100
       : Number(amountInput[w.id] || 0);
     // Guard against an untouched panel — never write a zeroing adjustment
-    // just because someone clicked Save without entering anything.
+    // just because someone clicked Save without entering anything. But an
+    // explicitly entered zero (empty wallet) is a valid physical count.
+    const countTouched = !!touchedCount[w.id];
     const denomEntered = useDenoms
-      && (Object.values(denomCounts[w.id] || {}).some((v) => Number(v) > 0) || cents > 0);
+      && (countTouched || Object.values(denomCounts[w.id] || {}).some((v) => Number(v) > 0) || cents > 0);
     const amountEntered = !useDenoms
       && amountInput[w.id] !== undefined
       && String(amountInput[w.id]).trim() !== "";
@@ -466,6 +470,7 @@ export default function FinancesWalletsPage() {
       toast.error("Enter physical count");
       return;
     }
+
     // A count belongs to the business day it is FOR, chosen above the table.
     // Entering 11/08 figures on 12/08 is the normal flow — the business day is
     // always closed the next morning.
@@ -516,8 +521,10 @@ export default function FinancesWalletsPage() {
       setCentsInput((s) => ({ ...s, [w.id]: 0 }));
       setAmountInput((s) => ({ ...s, [w.id]: "" }));
       setCountNote((s) => ({ ...s, [w.id]: "" }));
+      setTouchedCount((s) => ({ ...s, [w.id]: false }));
       setExpanded((s) => ({ ...s, [w.id]: false }));
       invalidateFinance(qc);
+
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -990,7 +997,10 @@ export default function FinancesWalletsPage() {
                                 <>
                                   <CashDenomInput
                                     values={denomVals}
-                                    onChange={(v) => setDenomCounts((s) => ({ ...s, [w.id]: v }))}
+                                    onChange={(v) => {
+                                      setDenomCounts((s) => ({ ...s, [w.id]: v }));
+                                      setTouchedCount((s) => ({ ...s, [w.id]: true }));
+                                    }}
                                     denoms={denoms}
                                     currency={w.currency}
                                     size="sm"
@@ -998,8 +1008,11 @@ export default function FinancesWalletsPage() {
                                     {...(w.currency === "TZS"
                                       ? {
                                           cents: centsVal,
-                                          onCentsChange: (c: number) =>
-                                            setCentsInput((s) => ({ ...s, [w.id]: c })),
+                                          onCentsChange: (c: number) => {
+                                            setCentsInput((s) => ({ ...s, [w.id]: c }));
+                                            setTouchedCount((s) => ({ ...s, [w.id]: true }));
+                                          },
+
                                           centsPlaceholder: (() => {
                                             const t = lastCounts?.get(w.id)?.total ?? 0;
                                             return Math.round((t - Math.trunc(t)) * 100);
@@ -1023,11 +1036,13 @@ export default function FinancesWalletsPage() {
                                       : `Amount (${w.currency})`
                                   }
                                   value={amountInput[w.id] || ""}
-                                  onValueChange={(v) =>
-                                    setAmountInput((s) => ({ ...s, [w.id]: v == null ? "" : String(v) }))
-                                  }
+                                  onValueChange={(v) => {
+                                    setAmountInput((s) => ({ ...s, [w.id]: v == null ? "" : String(v) }));
+                                    setTouchedCount((s) => ({ ...s, [w.id]: true }));
+                                  }}
                                   className="font-mono"
                                 />
+
                               )}
                             </div>
 
