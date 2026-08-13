@@ -462,24 +462,258 @@ Sidebar sections are the current UX grouping. Each entry maps to a `ModuleKey` i
 
 ## 11. Entry Points for New Developers
 
-1. **`src/App.tsx`** — routes, lazy-loaded pages, RoleGuard, QueryClient config.
-2. **`src/lib/auth-context.tsx`** — who is logged in, roles, Manager Override, sign-in/out, cache isolation.
-3. **`src/lib/casino-context.tsx`** — which casino is active, subdomain resolution, summary mode, casino switch.
-4. **`src/lib/role-access.ts`** — financial scope, primary role, capabilities.
-5. **`src/lib/modules.ts`** + **`src/lib/route-module-map.ts`** — module catalog and route gating.
-6. **`src/hooks/use-*.ts`** — domain-specific TanStack Query hooks.
-7. **`src/components/layout/`** — AppSidebar, AppLayout, PageShell wrappers.
-8. **`src/components/ui/smart-table.tsx`** — canonical table component.
-9. **`docs/ACCESS-MATRIX.md`** — full role × menu × depth matrix.
-10. **`docs/ONBOARDING.md`** — older developer onboarding (still useful, but verify against this doc).
-11. **`mem://index.md`** — project memory with business-logic nuances.
-12. **`deploy/README.md`** — on-prem installation guide.
-13. **`supabase/functions/`** — Edge Functions (OCR, sync, user management, verify-manager, etc.).
-14. **`supabase/migrations/`** — database schema and business logic history.
+This is the recommended reading order for the first two days. Read top to bottom — every
+later file assumes the concepts introduced by the earlier ones.
+
+### 11.1 `src/App.tsx` — the spine of the application
+
+Everything starts here. The file wires together five concerns:
+
+- **Provider stack.** `QueryClientProvider` → `ThemeProvider` → `AuthProvider` →
+  `CasinoProvider` → `TooltipProvider` → `BrowserRouter`. The order matters: casino
+  resolution depends on the authenticated profile, and every data hook depends on both.
+- **QueryClient configuration.** Offline-first defaults: `networkMode: "offlineFirst"`,
+  long `staleTime` for reference data, retry with exponential backoff, and a persister
+  (`src/lib/query-persister.ts`) that dehydrates the cache into IndexedDB. High-churn
+  query keys are denylisted from persistence so a stale drop/tracker value never
+  survives a reload.
+- **Route table.** Every page is `React.lazy()`-loaded so the initial bundle stays small.
+  Route chunks are warmed by `usePrefetchCriticalData` based on the user's allowed
+  modules — a cashier never downloads the finance chunks.
+- **`RoleGuard`.** A wrapper that resolves the current route to a module via
+  `route-module-map.ts`, checks the effective permission set, and redirects to the
+  user's landing route when access is denied. Guards are declarative; never re-implement
+  access checks inside a page.
+- **Global singletons.** Realtime subscriptions (`useRealtimeSubscriptions`), business-day
+  watcher, sync engine and the PWA update notifier are mounted exactly once here. Never
+  mount them again in `AppLayout` or a page — duplicates cause double invalidations.
+
+### 11.2 `src/lib/auth-context.tsx` — identity
+
+Answers "who is logged in, and what may they do". Responsibilities:
+
+- Holds `session`, `user`, `profile`, `roles[]`, `casinoId`, `loading`.
+- Subscribes to `supabase.auth.onAuthStateChange` **before** calling `getSession()` — the
+  reverse order causes missed events and stuck loading states.
+- **Manager Override**: a password-gated, time-boxed elevation. The password check runs
+  server-side in the `verify-manager` Edge Function; the client only stores a flag plus
+  expiry. Override is never persisted across a full sign-out.
+- **Cache isolation**: on sign-in/sign-out and on casino change, the React Query cache and
+  the IndexedDB persister namespace are cleared/rekeyed so a Mbeya cashier can never see
+  cached Arusha data on a shared device.
+- **Token hygiene**: refresh is owned by a single elected tab (`auth-leader.ts`, Web Locks)
+  and all `/auth/v1/token` calls are coalesced by `auth-throttle.ts`. Both are installed in
+  `main.tsx` before React mounts. This exists because casinos run 5–10 devices behind one
+  public IP and were tripping Supabase's per-IP rate limit.
+
+### 11.3 `src/lib/casino-context.tsx` — tenancy
+
+Answers "which casino am I looking at".
+
+- Resolves the active casino from, in priority order: on-prem `runtime-config.json`,
+  the hostname/subdomain (`mwanza.`, `arusha.`, `mbeya.`, `club.`, `premier.`), then the
+  user's `profiles.casino_id`.
+- **Summary mode**: on the `premier` host, network roles (`boss`, `general_manager`,
+  `finance_manager`, `super_admin`) get a cross-casino aggregate view. Pages must handle
+  `isSummaryMode` explicitly — `casinoId` is `null` there.
+- **Casino switching** for multi-casino users flushes scoped queries and rewrites the
+  persisted cache namespace.
+- Use `useDataScope()` (`src/hooks/use-data-scope.ts`) in pages instead of reading auth and
+  casino separately — it distinguishes "still booting" from "genuinely empty" and prevents
+  the "No data found" flash on cold start.
+
+### 11.4 `src/lib/role-access.ts` — coarse-grained access
+
+Three primitives, all pure functions over `roles: string[]`:
+
+- `getFinancialScope(roles)` → `"all" | "shift" | "none"`. Controls whether a user sees
+  lifetime financials, only the current business day, or nothing at all.
+- `getPrimaryRole(roles)` / `getPrimaryRoleLabel(roles)` — the UI must **never** render a
+  list of roles; it renders exactly one, chosen by a fixed priority order.
+- `ROLE_CAPABILITIES` + `hasCapability(roles, cap)` — capabilities are `manage.ops`,
+  `manage.core`, `manage.finance`, `view.all_casinos`, `manage.roles`. This map mirrors the
+  `public.role_capabilities` table. Roles are independent entities, never aliases of each
+  other: two roles may share capabilities today and diverge tomorrow by editing this map
+  and the table, without touching a single call site.
+
+### 11.5 `src/lib/modules.ts` + `src/lib/route-module-map.ts` — fine-grained access
+
+- `modules.ts` is the **catalog**: every functional area of the app as a stable module key,
+  grouped by sidebar section, with a human label and default depth. It is the vocabulary
+  shared by the sidebar, the guards, the permission matrix UI and the DB defaults in
+  `role_module_defaults`.
+- `route-module-map.ts` maps URL paths to module keys. `RoleGuard`, prefetching and the
+  sidebar all consult it, so adding a page means: add the module key, add the route map
+  entry, add the sidebar item — in that order.
+- Effective permissions = `role_module_defaults` for the user's roles, overlaid with
+  per-user overrides on `user_casino_access`. Overrides can both grant and revoke.
+
+### 11.6 `src/hooks/use-*.ts` — the data layer (~120 files)
+
+One file per domain (`use-players`, `use-transactions`, `use-tables`, `use-expenses`,
+`use-dealers`, `use-shift`, `use-fin-*`, `use-pos-*`, …). Conventions:
+
+- Query keys are arrays starting with the domain and always including `casinoId` and, where
+  relevant, the business date. Never fetch without the casino in the key.
+- Mutations use the offline-capable wrapper (`src/lib/offline-mutation.ts`) so a write made
+  with no connectivity lands in the outbox and replays automatically.
+- Invalidation is centralised per domain (`invalidateFinance`, `invalidateEmployees`, …)
+  and debounced, so a realtime burst does not trigger dozens of refetches.
+- `src/hooks/use-casino-data.ts` is a barrel re-export kept for backwards compatibility —
+  add new hooks to the domain file, not to the barrel.
+
+### 11.7 `src/components/layout/` — the shell
+
+- `AppLayout.tsx` — sidebar + scroll container, full-width route list, `Suspense` skeletons,
+  offline/licence banners, mobile header. Explicitly does **not** mount realtime.
+- `AppSidebar.tsx` — the navigation source of truth: sections, items, permission gating,
+  collapsed state (persisted in `localStorage`), and the mobile drawer.
+- `PageShell.tsx` / `PageHeader.tsx` — standard page frame: title, subtitle, actions slot,
+  consistent spacing and print behaviour.
+- `FilterBar.tsx`, `TablePanel.tsx`, `WizardShell.tsx`, `InlineEditor.tsx` — reusable
+  building blocks for list pages, multi-step flows and inline edits.
+
+### 11.8 `src/components/ui/smart-table.tsx` — the canonical table
+
+Config-driven grid used by every new list page. Key API:
+
+- `ColumnDef<T>` — `key`, `header`, `render`, `align`, `width`, `sortable`, `footer`, and
+  `hidden(ctx: TableCtx)` for permission-gated columns.
+- `SmartTableProps<T>` — data, columns, sorting (`SortState`), row key, row click, sticky
+  header, density, empty state, loading skeleton, export hooks.
+- Auto-virtualises above ~200 rows; below that it renders plainly so printing works.
+- Hand-rolled `<table>` markup or `DataTable + map` is forbidden in new code.
+
+### 11.9 `docs/ACCESS-MATRIX.md`
+
+The full role × menu × depth matrix, kept in sync with `role_module_defaults`. Read it
+before changing any permission; update it in the same commit as the change.
+
+### 11.10 `docs/ONBOARDING.md`
+
+The older developer onboarding. Still useful for historical context and some setup steps,
+but where it disagrees with this document, **this document wins**.
+
+### 11.11 `mem://index.md` — project memory
+
+Non-obvious business rules that are not derivable from the code: drop source of truth,
+chip conservation, tips neutrality, cashless manual balances, formatting rules, and a list
+of explicitly rejected ideas. Treat entries as hard requirements.
+
+### 11.12 `deploy/README.md` — on-prem
+
+Installation, pairing a local box to the cloud, Docker Compose stack, Nginx, sync nodes,
+licence and fleet agents, backup/restore. Companion docs: `deploy/HA-SETUP.md`,
+`deploy/MIGRATION-v2.md`, `deploy/ARCHIVE-RESTORE.md`, `deploy/REMOTE-ACCESS.md`.
+
+### 11.13 `supabase/functions/` — Edge Functions (~45)
+
+Grouped by purpose:
+
+- **User management**: `create-user`, `admin-list-users`, `admin-update-user`,
+  `disable-user`, `reset-user-password`.
+- **Authorisation**: `verify-manager` (Manager Override and Close Day password checks).
+- **OCR / import**: `ocr-document`, `bank-check-ocr`, `import-report-ocr`,
+  `fin-excel-import`, `fin-balance-import`.
+- **Club / player app**: `club-login-password`, `club-send-otp`, `club-verify-otp`,
+  `club-register-player`, `club-submit-kyc`, `club-cancel-kyc`, `club-wallet`,
+  `club-shop-order`, `club-buy-ticket`, `club-redeem-code`, `club-update-profile`,
+  `cashier-redeem-by-qr`.
+- **Promo**: `promo-generate-codes`, `promo-expire`.
+- **Cloud ↔ on-prem**: `cloud-clone-*`, `cloud-schema-export`, `cloud-seed-export`,
+  `cloud-snapshot-build`, `cloud-parity-counts`, `mirror-parity`, `peer-mesh`,
+  `register-onprem-channel`, `installer-*`, `upload-backup`.
+- **Fleet / licence**: `fleet-heartbeat`, `fleet-incident-forward`, `verify-license`,
+  `report-health`, `endpoint-smoke-test`.
+- **Branding**: `casino-branding`, `casino-manifest` (per-subdomain PWA manifest & theme).
+
+Edge Functions are deployed automatically; they are the only place where the service role
+key is used, and it must never be logged or returned.
+
+### 11.14 `supabase/migrations/` — schema history (600+ files)
+
+The migrations are the authoritative history of both schema **and** business logic: wallet
+triggers, table-result recalculation, overdraft guards, budget locks, business-day closure
+RPCs and audit triggers all live here. When a number in the UI looks wrong, grep the
+migrations for the trigger or RPC that produces it before touching the frontend.
 
 ---
 
-## 12. Glossary
+## 12. Deep Dive: How a Casino Day Actually Flows
+
+A narrative walkthrough that ties the modules together. This is the mental model a new
+developer needs before touching finance code.
+
+**07:00 EAT — the business day rolls over.** Every timestamp is bucketed into a business
+date by the DB helper `get_current_business_date()`. Anything recorded at 03:00 belongs to
+the *previous* calendar date. The frontend must use `useEffectiveBusinessDate()`; the raw
+`getBusinessDate()` helper is a fallback only.
+
+**Shift opens.** A cashier opens a cage shift with a starting float — a physical count of
+cash and chips. This float is the anchor for every later variance calculation. Chips leave
+the cage to the tables as Fills; they come back as Credits. Both are logged as transactions
+and both print on the shift closing report.
+
+**Players arrive.** Reception checks in a player (or registers a new one), which creates a
+`casino_visits` row. Every buy-in at a table is an IN transaction: this is **Drop**.
+Per-table Drop is the raw sum of `in`/`buy` transactions with `cancelled_at IS NULL`. Total
+Drop for the casino is *not* the sum of those rows — it is the sum of per-player peaks from
+`player_day_drop_cache`, because a player recycling chips between tables would otherwise be
+counted many times. The two numbers legitimately differ; that is by design and documented
+in `src/lib/drop-source.ts`.
+
+**Pit runs the floor.** Rota assigns dealers to tables per hour, Breaklist rotates them,
+Attendance records who actually showed up, Table Tracker snapshots head counts and average
+bets per hour, Pit Book records narrative notes and Incidents capture anything abnormal
+(with CCTV references). None of this is inferred — every value is typed in by a human, on
+purpose.
+
+**Tables close.** Each table is counted at close. The result is `current − baseline`,
+adjusted by fills, credits and any manual chip adjustment. Table results roll up into
+`shifts.tables_result` — never sum `gaming_tables.closing_result` yourself for P&L.
+
+**Cage closes.** The cashier counts the drawer. Cash Desk Result (CDR) is the drawer delta.
+Tips are deliberately excluded from CDR and from the shift balance — they are tracked in
+their own ledger and paid out separately. Miss Chips (unaccounted chips) surface here as a
+cage delta, kept separate from the Chip Conservation identity
+`Initial = Inventory + Floor`.
+
+**Day closes.** A manager presses Close Day (roles: `manager`, `shift_manager`,
+`general_manager`, `super_admin`, gated by `verify-manager`). This writes `fin_day_closing`
+with live-game and slots figures, slot drop, cash desk, difference and JP. If nobody
+closes manually, an automatic closure fires at 09:00 EAT — the manual closure always takes
+precedence. Cash expenses that were entered during the day post to the wallets **only** at
+this moment; office and card expenses post immediately.
+
+**Wallets and variance.** A wallet's balance is *strictly* the latest physical count
+snapshot (`cash_count_snapshots`) — never an accumulation of transactions. Counts entered
+before the rollover belong to the previous business date, and the Wallets page exposes an
+explicit "Counting for [date]" selector plus a **Record** button that freezes the day's
+figures into `fin_day_balance_snapshot`. Variance is then
+`(Actual − Starting Float) − Expected`, with chip signs inverted: a negative chip figure
+means there is *more* money, not less. The Casino Monthly Balance (CMB) report reads the
+frozen snapshots, so a later recount cannot silently rewrite history.
+
+**Reports.** CMB (per casino) and OMB (office) roll up into the Company view. Monthly
+closure (`fin_close_month`) locks the period. Everything printable goes through the blank
+generators in `src/lib/blanks/`, which produce clean, ink-friendly PDFs with the same
+numbers the screen shows.
+
+**Audit.** No record is ever deleted or silently edited. Corrections are new transactions,
+cancellations are `cancelled_at` marks, and every mutation is written to `activity_logs` by
+the `tg_activity_log` database trigger — never by UI code.
+
+**Offline.** If the network drops, writes queue in the outbox and the UI keeps working
+against the persisted cache. Reconnection replays the queue with exponential backoff
+(1s → 16s). On on-prem installs the local Postgres node syncs with the cloud through
+`sync_outbox`; the cloud is authoritative unless a node has been explicitly promoted, and
+replicas are forced into read-only mode both in the UI (`use-readonly-mode.ts`) and by the
+`_enforce_replication_mode` trigger.
+
+---
+
+## 13. Glossary
+
 
 | Term | Meaning |
 |------|---------|
