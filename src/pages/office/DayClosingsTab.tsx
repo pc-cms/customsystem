@@ -234,6 +234,8 @@ export default function DayClosingsTab() {
               <td className="px-3 py-2 text-xs uppercase tracking-wider">Totals · {MONTH_NAMES[month-1]}</td>
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.tables))}>{formatNumberSpaces(totals.tables)}</td>
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.slots - totals.cards))}>{formatNumberSpaces(totals.slots - totals.cards)}</td>
+              <td className="px-3 py-2 text-right font-mono text-muted-foreground">{totals.drop ? formatNumberSpaces(totals.drop) : "·"}</td>
+              <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.cash))}>{totals.cash ? formatNumberSpaces(totals.cash) : "·"}</td>
               <td className={cn("px-3 py-2 text-right font-mono", totals.cards ? "cms-amount-negative" : "text-muted-foreground")}>{totals.cards ? `− ${formatNumberSpaces(totals.cards)}` : "·"}</td>
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.jp))}>{totals.jp ? formatNumberSpaces(totals.jp) : "·"}</td>
               <td className={cn("px-3 py-2 text-right font-mono", amountToneClass(totals.missChips))}>{formatNumberSpaces(totals.missChips)}</td>
