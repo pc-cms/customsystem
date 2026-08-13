@@ -45,6 +45,7 @@ import {
   useAllCasinos,
   useDisableUser,
   useResetPassword,
+  MIN_PASSWORD_LENGTH,
   useUpdateUserRoles,
   useUpdateUserProfile,
   type AdminUserRow,
@@ -522,8 +523,8 @@ const PasswordCell = ({ onApply }: { onApply: (pwd: string) => Promise<void> }) 
   const [pwd, setPwd] = useState("");
   const [busy, setBusy] = useState(false);
   const apply = async () => {
-    if (pwd.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (pwd.length < MIN_PASSWORD_LENGTH) {
+      toast.error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
       return;
     }
     setBusy(true);

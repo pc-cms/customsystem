@@ -33,6 +33,7 @@ import {
   useUpdateUserRoles,
   useResetPassword,
   useDisableUser,
+  MIN_PASSWORD_LENGTH,
 } from "./users-hooks";
 import { KeyRound, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -103,7 +104,7 @@ export const UserEditorDialog = ({ open, onOpenChange, target }: Props) => {
     if (!target) return false;
     if (target.mode === "create") {
       if (!login.trim() || !displayName.trim()) return false;
-      if (password.length < 6) return false;
+      if (password.length < MIN_PASSWORD_LENGTH) return false;
       if (isSuperAdmin && !casinoId) return false;
       return true;
     }
@@ -192,7 +193,7 @@ export const UserEditorDialog = ({ open, onOpenChange, target }: Props) => {
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="min 6 characters"
+                placeholder={`min ${MIN_PASSWORD_LENGTH} characters`}
               />
             </div>
           </div>
@@ -266,7 +267,7 @@ export const UserEditorDialog = ({ open, onOpenChange, target }: Props) => {
                     type="text"
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
-                    placeholder="New password (min 6 chars)"
+                    placeholder={`New password (min ${MIN_PASSWORD_LENGTH} chars)`}
                     className="pl-8 font-mono"
                   />
                 </div>
@@ -274,8 +275,8 @@ export const UserEditorDialog = ({ open, onOpenChange, target }: Props) => {
                   variant="outline"
                   onClick={async () => {
                     if (target.mode !== "edit") return;
-                    if (newPassword.length < 6) {
-                      toast.error("Password must be at least 6 characters");
+                    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+                      toast.error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
                       return;
                     }
                     try {
@@ -283,7 +284,7 @@ export const UserEditorDialog = ({ open, onOpenChange, target }: Props) => {
                       setNewPassword("");
                     } catch {/* toast in hook */}
                   }}
-                  disabled={resetPassword.isPending || newPassword.length < 6}
+                  disabled={resetPassword.isPending || newPassword.length < MIN_PASSWORD_LENGTH}
                 >
                   {resetPassword.isPending ? "Resetting…" : "Reset"}
                 </Button>

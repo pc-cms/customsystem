@@ -285,18 +285,29 @@ export const useCreateUser = () => {
   });
 };
 
+/** Minimum password length enforced by the auth provider. UI must match it. */
+export const MIN_PASSWORD_LENGTH = 8;
+
 /** Reset another user's password (manager scoped to own casino). */
 export const useResetPassword = () => {
   return useMutation({
     mutationFn: async ({ userId, newPassword }: { userId: string; newPassword: string }) => {
+      if (newPassword.length < MIN_PASSWORD_LENGTH) {
+        throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+      }
       const { data, error } = await supabase.functions.invoke("reset-user-password", {
         body: { user_id: userId, new_password: newPassword },
       });
       if (error) throw new Error(await readFunctionError(error));
       if (data?.error) throw new Error(data.error);
-      return data;
+      if (!data?.ok) throw new Error("Password was not saved — try again");
+      return data as { ok: true; email?: string; updated_at?: string; disabled?: boolean };
     },
-    onSuccess: () => toast.success("Password reset"),
+    onSuccess: (data) => {
+      const login = data?.email ? String(data.email).split("@")[0] : "user";
+      toast.success(`Password saved for ${login}`);
+      if (data?.disabled) toast.warning("Account is disabled — user still cannot sign in");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 };

@@ -11,6 +11,21 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+/** GoTrue rejections are terse — translate them into actionable admin messages. */
+const humanizeAuthError = (raw: string): string => {
+  const m = raw.toLowerCase();
+  if (m.includes("pwned") || m.includes("compromised") || m.includes("weak")) {
+    return "This password was rejected as too common. Use a less predictable one.";
+  }
+  if (m.includes("at least") || m.includes("length")) {
+    return "Password too short — minimum is 8 characters.";
+  }
+  if (m.includes("same as the old") || m.includes("should be different")) {
+    return "New password must differ from the current one.";
+  }
+  return raw;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -31,7 +46,11 @@ Deno.serve(async (req) => {
     const adminClient = createClient(supabaseUrl, serviceKey);
     const { user_id, new_password } = await req.json();
     if (!user_id || !new_password) return json({ error: "Missing user_id or new_password" }, 400);
-    if (String(new_password).length < 6) return json({ error: "Password must be at least 6 characters" }, 400);
+
+    const password = String(new_password);
+    // Must match the project auth policy (min_password_length = 8), otherwise
+    // GoTrue silently rejects the write and the admin thinks it succeeded.
+    if (password.length < 8) return json({ error: "Password must be at least 8 characters" }, 400);
 
     const [{ data: hasManager }, { data: hasSuperAdmin }] = await Promise.all([
       adminClient.rpc("has_role", { _user_id: caller.id, _role: "manager" }),
@@ -67,12 +86,33 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { error: updateError } = await adminClient.auth.admin.updateUserById(user_id, {
-      password: String(new_password),
-    });
-    if (updateError) throw updateError;
+    const { data: updated, error: updateError } = await adminClient.auth.admin.updateUserById(
+      user_id,
+      { password },
+    );
+    if (updateError) {
+      console.error("[reset-user-password] gotrue rejected:", updateError.message);
+      return json({ error: humanizeAuthError(updateError.message) }, 400);
+    }
 
-    return json({ ok: true, user_id });
+    // Verify the write actually landed — never report success on a no-op.
+    const { data: check, error: checkError } = await adminClient.auth.admin.getUserById(user_id);
+    if (checkError || !check?.user) {
+      return json({ error: "Password update could not be verified" }, 400);
+    }
+
+    console.log(
+      "[reset-user-password] ok",
+      JSON.stringify({ by: caller.id, target: user_id, at: check.user.updated_at }),
+    );
+
+    return json({
+      ok: true,
+      user_id,
+      email: check.user.email,
+      updated_at: check.user.updated_at,
+      disabled: !!(check.user as any).banned_until,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[reset-user-password] failed:", message, err);
