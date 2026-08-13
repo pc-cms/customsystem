@@ -1,48 +1,47 @@
-# Бизнес-день 12/08 не закрылся: Arusha, Mwanza, Dodoma
+# Бизнес-день 12/08: статус и починка автозакрытия
 
-## Что случилось
+## Статус на 10:30 EAT 13/08
 
-Данные по столам за 12/08 есть и не потеряны:
-
-| Казино | Столов | Tables Result | Смена кассы |
+| Казино | День 12/08 | Tables Result | Слоты (Drop / Net / CD) |
 |---|---|---|---|
-| Arusha | 9 | +14 401 500 | закрыта 13/08 02:12 |
-| Mwanza | 8 | −8 315 000 | закрыта 13/08 02:12 |
-| Mbeya | 6 | +87 000 | закрыта 13/08 01:20 |
+| Arusha | закрыт вручную 10:21 | +14 401 500 | 96 203 490 / −9 194 520 / −9 297 765 |
+| Mbeya | закрыт вручную 04:38 | +87 000 | 25 000 / −20 000 / −20 000 |
+| Mwanza | НЕ закрыт | −8 315 000 (столы есть) | не внесены |
+| Dodoma | НЕ закрыт | нет данных | нет данных |
 
-Но запись о закрытии бизнес-дня 12/08 (`business_day_closures`) есть только у Mbeya (закрыл менеджер вручную). У Arusha, Mwanza и Dodoma её нет — поэтому статистика/Day Closings за 12/08 пустые.
+Да, Аруша закрыта. Цифры Mbeya (Drop 25 000, Net −20 000, CD −20 000, Cashless 0, JP 0) совпадают с тем, что уже в базе — менять нечего.
 
-## Причина (подтверждена логами)
+Данные столов за 12/08 нигде не потеряны: `table_daily_results` заполнена по всем казино, смены кассы столов закрыты. Пустой в статистике был только сам «день».
 
-Оба крона-автозакрытия падают с одной и той же ошибкой:
+## Причина, почему дни не закрылись сами (подтверждено логами)
+
+Оба крона автозакрытия падают с одной ошибкой:
 
 ```text
 new row for relation "business_day_closures"
 violates check constraint "business_day_closures_closed_method_check"
 ```
 
-Constraint разрешает только `'manual'` и `'auto_11am'`, а функции пишут новые значения:
-- `force_close_business_day_0800()` (05:00 UTC / 08:00 EAT) → `auto_0800`
-- `auto_close_forgotten_business_days()` (каждый час после 09:00 EAT) → `auto_09am`
+Constraint разрешает только `manual` и `auto_11am`, а функции пишут новые методы:
+- `force_close_business_day_0800()` (08:00 EAT) → `auto_0800`
+- `auto_close_forgotten_business_days()` (ежечасно после 09:00 EAT) → `auto_09am`
 
-Так что автозакрытие уже несколько дней не работает вообще — закрывается только то, что менеджер закрыл руками. Ручное закрытие Mbeya прошло, потому что метод `manual` разрешён.
+То есть автозакрытие не работает вовсе — проходит только ручное. Именно поэтому Mbeya и Arusha закрыты (руками), а Mwanza и Dodoma висят.
 
 ## Что делаю
 
-1. Миграция: расширяю check-constraint на `manual`, `auto_11am`, `auto_0800`, `auto_09am` (заодно `auto`), чтобы автозакрытие перестало падать.
-2. Досоздаю закрытия бизнес-дня 12/08 для Arusha и Mwanza — с реальными результатами столов из `table_daily_results`, чтобы статистика подтянулась. Dodoma закрою пустым днём (там нет ни смен, ни результатов).
-3. Проверяю Day Closings/статистику после закрытия: Tables Result, Drop, Live Tables за 12/08 по каждому казино.
+1. Миграция: расширяю check-constraint до `manual`, `auto_11am`, `auto_0800`, `auto_09am`. После этого автозакрытие в 08:00 EAT снова начнёт работать.
+2. Закрываю бизнес-день 12/08 для Mwanza (столы уже посчитаны, результат −8 315 000) и для Dodoma (пустой день).
+3. Проверяю после закрытия: Day Closings, Statistics и Live Tables за 12/08 по всем казино.
 
-## Что понадобится от вас
+## Нужно от вас
 
-Для Arusha и Mwanza в Day Closings нужны цифры слотов за 12/08 (Slot drop / Net win / Cashdesk / Difference / JP) — как вы присылали по Mbeya за 11/08. Без них строка дня закроется с нулями по слотам, и её потом нужно будет дозаполнить вручную через Office → Day Closings.
-
-Также у Mbeya строка 12/08 сейчас с цифрами слотов Drop 25 000 / Net win −20 000 / Cashdesk −20 000 и не залочена — скажите, если это черновик и надо поправить.
+Цифры слотов Mwanza за 12/08: Slot drop / Net win / Cashdesk / Cashless money / JP. Без них день закроется с нулями по слотам, и строку придётся дозаполнять вручную в Office → Day Closings.
 
 ## Технические детали
 
-- Таблица: `public.business_day_closures`, constraint `business_day_closures_closed_method_check`.
-- Функции: `public.force_close_business_day_0800()`, `public.auto_close_forgotten_business_days()` → обе через `close_business_day(casino, method, force)`.
-- Cron: `force_close_business_day_0800` (`0 5 * * *`), `auto-close-business-day` (`5 * * * *`).
-- Ошибки видны в `cron_run_log` за 13/08 05:00 и 06:05 UTC.
-- Backfill закрытий 12/08 — через `close_business_day_with_figures` / прямой insert с сохранением snapshot, без изменения `table_daily_results`.
+- `public.business_day_closures`, constraint `business_day_closures_closed_method_check`.
+- Функции: `force_close_business_day_0800()`, `auto_close_forgotten_business_days()` → обе через `close_business_day(casino, method, force)`.
+- Cron: `force_close_business_day_0800` (`0 5 * * *` UTC), `auto-close-business-day` (`5 * * * *`).
+- Ошибки в `cron_run_log` за 13/08 05:00 и 06:05 UTC.
+- Закрытие 12/08 для Mwanza/Dodoma — через `close_business_day` со снапшотом, без правки `table_daily_results`.
