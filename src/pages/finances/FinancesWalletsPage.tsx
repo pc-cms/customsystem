@@ -1036,11 +1036,13 @@ export default function FinancesWalletsPage() {
                                       : `Amount (${w.currency})`
                                   }
                                   value={amountInput[w.id] || ""}
-                                  onValueChange={(v) =>
-                                    setAmountInput((s) => ({ ...s, [w.id]: v == null ? "" : String(v) }))
-                                  }
+                                  onValueChange={(v) => {
+                                    setAmountInput((s) => ({ ...s, [w.id]: v == null ? "" : String(v) }));
+                                    setTouchedCount((s) => ({ ...s, [w.id]: true }));
+                                  }}
                                   className="font-mono"
                                 />
+
                               )}
                             </div>
 
