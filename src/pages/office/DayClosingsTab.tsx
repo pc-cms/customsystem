@@ -156,7 +156,7 @@ export default function DayClosingsTab() {
   }, [list]);
 
   const totals = useMemo(() => {
-    const t = { tables: 0, slots: 0, missChips: 0, missCards: 0, cards: 0, jp: 0 };
+    const t = { tables: 0, slots: 0, drop: 0, cash: 0, missChips: 0, missCards: 0, cards: 0, jp: 0 };
     // dates are descending → the first non-zero card balance is the latest one.
     let cardsFound = false;
     dates.forEach((d) => {
@@ -164,6 +164,8 @@ export default function DayClosingsTab() {
       const agg = aggMap?.get(d);
       t.tables += Number(existing?.tables_result ?? agg?.tables ?? 0);
       t.slots += Number(existing?.slots_result ?? agg?.slots ?? 0);
+      t.drop += Number(existing?.drop_slots ?? 0);
+      t.cash += Number(existing?.cashdesk_win ?? 0);
       t.missChips += Number(agg?.missChips ?? 0);
       t.missCards += Number(agg?.missCards ?? 0);
       t.jp += Number(jpByDate.get(d) || 0);
