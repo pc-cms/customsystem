@@ -217,6 +217,8 @@ export default function DayClosingsTab() {
               <th className="text-left px-3 py-2 w-32">Date</th>
               <th className="text-right px-3 py-2 w-44">Tables</th>
               <th className="text-right px-3 py-2 w-44">Slots</th>
+              <th className="text-right px-3 py-2 w-36" title="Slot Drop from Close Day. Editable manually.">Slot Drop</th>
+              <th className="text-right px-3 py-2 w-36" title="Cash Desk result from Close Day. Editable manually.">Cash Desk</th>
               <th className="text-right px-3 py-2 w-40" title="Deposits held on player cards. Subtracted from the Slots result; the cash itself stays in the desk.">Card Balance</th>
               <th className="text-right px-3 py-2 w-36" title="Jackpot contribution booked as income (IN) on this business day.">JP (IN)</th>
               <th className="text-right px-3 py-2 w-32">Miss Chips</th>
