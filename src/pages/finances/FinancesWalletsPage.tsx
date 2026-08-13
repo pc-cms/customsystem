@@ -419,7 +419,9 @@ export default function FinancesWalletsPage() {
   const [centsInput, setCentsInput] = useState<Record<string, number>>({});
   const [amountInput, setAmountInput] = useState<Record<string, string>>({});
   const [countNote, setCountNote] = useState<Record<string, string>>({});
+  const [touchedCount, setTouchedCount] = useState<Record<string, boolean>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+
 
   const toggleRow = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
 
