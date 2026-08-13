@@ -454,9 +454,11 @@ export default function FinancesWalletsPage() {
       ? cashSum(denomCounts[w.id] || {}) + cents / 100
       : Number(amountInput[w.id] || 0);
     // Guard against an untouched panel — never write a zeroing adjustment
-    // just because someone clicked Save without entering anything.
+    // just because someone clicked Save without entering anything. But an
+    // explicitly entered zero (empty wallet) is a valid physical count.
+    const countTouched = !!touchedCount[w.id];
     const denomEntered = useDenoms
-      && (Object.values(denomCounts[w.id] || {}).some((v) => Number(v) > 0) || cents > 0);
+      && (countTouched || Object.values(denomCounts[w.id] || {}).some((v) => Number(v) > 0) || cents > 0);
     const amountEntered = !useDenoms
       && amountInput[w.id] !== undefined
       && String(amountInput[w.id]).trim() !== "";
@@ -468,6 +470,7 @@ export default function FinancesWalletsPage() {
       toast.error("Enter physical count");
       return;
     }
+
     // A count belongs to the business day it is FOR, chosen above the table.
     // Entering 11/08 figures on 12/08 is the normal flow — the business day is
     // always closed the next morning.
