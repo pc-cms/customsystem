@@ -997,7 +997,10 @@ export default function FinancesWalletsPage() {
                                 <>
                                   <CashDenomInput
                                     values={denomVals}
-                                    onChange={(v) => setDenomCounts((s) => ({ ...s, [w.id]: v }))}
+                                    onChange={(v) => {
+                                      setDenomCounts((s) => ({ ...s, [w.id]: v }));
+                                      setTouchedCount((s) => ({ ...s, [w.id]: true }));
+                                    }}
                                     denoms={denoms}
                                     currency={w.currency}
                                     size="sm"
@@ -1005,8 +1008,11 @@ export default function FinancesWalletsPage() {
                                     {...(w.currency === "TZS"
                                       ? {
                                           cents: centsVal,
-                                          onCentsChange: (c: number) =>
-                                            setCentsInput((s) => ({ ...s, [w.id]: c })),
+                                          onCentsChange: (c: number) => {
+                                            setCentsInput((s) => ({ ...s, [w.id]: c }));
+                                            setTouchedCount((s) => ({ ...s, [w.id]: true }));
+                                          },
+
                                           centsPlaceholder: (() => {
                                             const t = lastCounts?.get(w.id)?.total ?? 0;
                                             return Math.round((t - Math.trunc(t)) * 100);
