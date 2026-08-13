@@ -290,25 +290,35 @@ function DayRow({
   useEffect(() => { setJp(jpPosted ? formatNumberSpaces(jpPosted) : ""); }, [jpPosted]);
   const jpNum = jp === "" ? 0 : parseAmountInput(jp);
 
-  const [state, setState] = useState<RowState>(() => ({
+  const buildState = (): RowState => ({
     tables: existing?.tables_result != null ? formatNumberSpaces(existing.tables_result) : "",
     slots: existing?.slots_result != null ? formatNumberSpaces(existing.slots_result) : "",
+    drop: existing?.drop_slots != null ? formatNumberSpaces(existing.drop_slots) : "",
+    cash: existing?.cashdesk_win != null ? formatNumberSpaces(existing.cashdesk_win) : "",
     cards: existing?.players_card_balance ? formatNumberSpaces(existing.players_card_balance) : "",
     comment: existing?.notes ?? "",
-  }));
+  });
+
+  const [state, setState] = useState<RowState>(buildState);
 
   useEffect(() => {
-    setState({
-      tables: existing?.tables_result != null ? formatNumberSpaces(existing.tables_result) : "",
-      slots: existing?.slots_result != null ? formatNumberSpaces(existing.slots_result) : "",
-      cards: existing?.players_card_balance ? formatNumberSpaces(existing.players_card_balance) : "",
-      comment: existing?.notes ?? "",
-    });
-  }, [existing?.id, existing?.tables_result, existing?.slots_result, existing?.players_card_balance, existing?.notes]);
+    setState(buildState());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    existing?.id,
+    existing?.tables_result,
+    existing?.slots_result,
+    existing?.drop_slots,
+    existing?.cashdesk_win,
+    existing?.players_card_balance,
+    existing?.notes,
+  ]);
 
 
   const tablesNum = state.tables === "" ? tablesAuto : parseAmountInput(state.tables);
   const slotsNum = state.slots === "" ? slotsAuto : parseAmountInput(state.slots);
+  const dropNum = state.drop === "" ? 0 : parseAmountInput(state.drop);
+  const cashNum = state.cash === "" ? 0 : parseAmountInput(state.cash);
   // Players Card Balance: deposits held on player cards — always >= 0.
   const cardsNum = Math.abs(state.cards === "" ? 0 : parseAmountInput(state.cards));
 
