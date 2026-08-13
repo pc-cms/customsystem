@@ -183,12 +183,14 @@ const ManagerOverrideDialog = ({
         .select("role")
         .eq("user_id", profile.user_id);
 
-      const isManager = roles?.some(r => r.role === "manager" || r.role === "shift_manager");
+      const RFID_ALLOWED_ROLES = ["manager", "shift_manager", "general_manager", "super_admin"];
+      const isManager = roles?.some(r => RFID_ALLOWED_ROLES.includes(r.role));
       if (!isManager) {
-        setError(`${profile.display_name} is not a manager or floor manager`);
+        setError(`${profile.display_name} is not allowed to confirm this action`);
         setLoading(false);
         return;
       }
+
 
       if (casinoId) {
         await logAction(casinoId, "system", actionType, {

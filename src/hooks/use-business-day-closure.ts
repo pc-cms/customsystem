@@ -179,39 +179,12 @@ export function useCloseBusinessDayWithFigures() {
   });
 }
 
-/** Manual close. Authorized DB-side: Pit or Manager only. */
-export function useCloseBusinessDay() {
-  const qc = useQueryClient();
-  const { activeCasinoId: casinoId } = useCasino();
-  return useMutation({
-    mutationFn: async () => {
-      if (!casinoId) throw new Error("No casino");
-      const { data, error } = await supabase.rpc("close_business_day", {
-        _casino_id: casinoId,
-        _method: "manual",
-        _force_close_cycles: false,
-      });
-      if (error) throw error;
-      return data as { status: string; business_date: string; open?: any };
-    },
-    onSuccess: (res) => {
-      qc.invalidateQueries();
-      if (res?.status === "already_closed") {
-        toast.info(`Day ${res.business_date} is already closed`);
-      } else if (res?.status === "has_open_cycles") {
-        const open = res.open || {};
-        const parts: string[] = [];
-        if (open.open_cage_shifts?.length) parts.push(`${open.open_cage_shifts.length} cage shift(s)`);
-        if (open.active_sessions?.length) parts.push(`${open.active_sessions.length} active player session(s)`);
-        if (open.open_visits?.length) parts.push(`${open.open_visits.length} open visit(s)`);
-        toast.error(`Cannot close day — open: ${parts.join(", ") || "unknown"}`);
-      } else {
-        toast.success(`Business day ${res.business_date} closed`);
-      }
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-}
+/**
+ * NOTE: closing a day WITHOUT figures is intentionally not exposed to the UI.
+ * The single canonical path is `useCloseBusinessDayWithFigures` (Close Day
+ * button). Server-side cron jobs remain as an emergency safety net.
+ */
+
 
 /** Set of YYYY-MM-DD dates that have been closed for this casino in [from, to]. */
 export function useClosedBusinessDates(fromDate: string, toDate: string) {
