@@ -353,6 +353,9 @@ function DayRow({
         business_date: date,
         tables_result: tablesNum,
         slots_result: slotsNum,
+        drop_slots: state.drop === "" ? (existing?.drop_slots ?? null) : dropNum,
+        net_win: state.slots === "" ? (existing?.net_win ?? null) : slotsNum,
+        cashdesk_win: state.cash === "" ? (existing?.cashdesk_win ?? null) : cashNum,
         players_card_balance: cardsNum,
         notes: finalComment || null,
       });
