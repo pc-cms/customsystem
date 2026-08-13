@@ -426,6 +426,34 @@ function DayRow({
           inputMode="decimal"
           disabled={!editable}
           placeholder="0"
+          title="Slot Drop entered on Close Day. Editable manually."
+          value={state.drop}
+          onChange={(e) => setState((s) => ({ ...s, drop: formatAmountInput(e.target.value) }))}
+          className="text-right font-mono h-8"
+        />
+      </td>
+
+      <td className="px-3 py-2 text-right">
+        <Input
+          type="text"
+          inputMode="decimal"
+          disabled={!editable}
+          placeholder="0"
+          title="Cash Desk result entered on Close Day. Editable manually."
+          value={state.cash}
+          onChange={(e) => setState((s) => ({ ...s, cash: formatAmountInput(e.target.value) }))}
+          className={cn("text-right font-mono h-8", cashNum !== 0 && amountToneClass(cashNum))}
+        />
+      </td>
+
+
+
+      <td className="px-3 py-2 text-right">
+        <Input
+          type="text"
+          inputMode="decimal"
+          disabled={!editable}
+          placeholder="0"
           title="Deposits held on player cards (end-of-day balance). Subtracted from the Slots result."
           value={state.cards}
           onChange={(e) => setState((s) => ({ ...s, cards: formatAmountInput(e.target.value).replace("-", "") }))}
