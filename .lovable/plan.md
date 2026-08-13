@@ -1,47 +1,91 @@
-# Бизнес-день 12/08: статус и починка автозакрытия
+# Создание полного onboarding-гайда для CMS
 
-## Статус на 10:30 EAT 13/08
+## Цель
+Подготовить структурированный продуктово-технический onboarding-документ, который можно отдать новому разработчику / продуктовому специалисту: архитектура, стек, модули, бизнес-логика, роли, правила работы с данными и деплой.
 
-| Казино | День 12/08 | Tables Result | Слоты (Drop / Net / CD) |
-|---|---|---|---|
-| Arusha | закрыт вручную 10:21 | +14 401 500 | 96 203 490 / −9 194 520 / −9 297 765 |
-| Mbeya | закрыт вручную 04:38 | +87 000 | 25 000 / −20 000 / −20 000 |
-| Mwanza | НЕ закрыт | −8 315 000 (столы есть) | не внесены |
-| Dodoma | НЕ закрыт | нет данных | нет данных |
+## Формат выходного артефакта
+1. Markdown-файл в репозитории: `docs/DEVELOPER-ONBOARDING.md` (для версионирования и быстрого поиска).
+2. DOCX-версия для печати/рассылки: `/mnt/documents/CMS-Developer-Onboarding.docx`.
 
-Да, Аруша закрыта. Цифры Mbeya (Drop 25 000, Net −20 000, CD −20 000, Cashless 0, JP 0) совпадают с тем, что уже в базе — менять нечего.
+## Общее описание продукта
+CMS — операционная платформа для управления наземными казино в реальном времени. Полный цикл: касса, pit, столы, игроки, финансы, персонал, отчёты, аудит. Ключевой принцип — **ручной ввод**, иммутабельность данных, отказ от AI-автоматики, аудит через новые транзакции и CCTV.
 
-Данные столов за 12/08 нигде не потеряны: `table_daily_results` заполнена по всем казино, смены кассы столов закрыты. Пустой в статистике был только сам «день».
+## Технический стек
+- **Frontend**: React 18, Vite 5, TypeScript 5, Tailwind CSS 3, shadcn/ui, Radix primitives.
+- **State / data**: TanStack React Query 5, React Query Persist Client, offline-first outbox, IndexedDB.
+- **Routing**: React Router 6.
+- **Charts / motion**: Recharts, GSAP / Framer Motion (`motion`).
+- **Forms**: React Hook Form + Zod.
+- **PDF / Excel**: jsPDF + jspdf-autotable, ExcelJS.
+- **Backend**: Lovable Cloud (Supabase) — PostgreSQL, Auth, Edge Functions, Realtime, Storage.
+- **PWA**: Vite PWA plugin, Workbox, offline queue, sync engine.
+- **Testing**: Vitest, Playwright, React Testing Library.
+- **Деплой**: Lovable preview + published URL, on-prem Docker/самостоятельный сервер.
 
-## Причина, почему дни не закрылись сами (подтверждено логами)
+## Архитектура
+- **Multi-tenancy**: `casino_id` на всех прикладных таблицах, RLS-изоляция через `get_user_casino_id(auth.uid())`.
+- **Аутентификация**: Supabase Auth, роли в отдельной таблице `user_roles`, управление через `profiles.casino_id`.
+- **Бизнес-логика в БД**: триггеры для балансов кошельков, результатов столов, контроля овердрафта, бюджетных блокировок, аудит-логов.
+- **Offline-first**: write-and-sync кассира, exponential backoff 1–16 сек, outbox с автоматическим повтором.
+- **Часовой пояс**: Africa/Dar_es_Salaam (EAT, UTC+3). Бизнес-день переходит в 07:00 EAT.
+- **Распределение**: облако авторитетно, локальные серверы синхронизируются.
 
-Оба крона автозакрытия падают с одной ошибкой:
+## Роли и доступ
+- **Роли**: `cashier`, `cashier_slots`, `pit`, `manager`, `shift_manager`, `reception`, `finance_manager`, `surveillance`, `super_admin`, `hr`, `pos_waiter`, `pos_bartender`, `pos_manager`, `boss`, `general_manager`.
+- **Financial scope**: `all` (менеджеры, финансы, супер-админ, surveillance), `shift` (pit/shift_manager), `none` (cashier, reception, hr).
+- **Capability-модель**: `manage.ops`, `manage.core`, `manage.finance`, `view.all_casinos`, `manage.roles`.
+- **Permission Matrix**: `role_module_defaults` + персональные оверрайды на `user_casino_access` / модульном уровне.
+- **Manager Override**: временное повышение прав с логированием.
 
-```text
-new row for relation "business_day_closures"
-violates check constraint "business_day_closures_closed_method_check"
-```
+## Модули системы (группы)
+- **Operations**: Dashboard, Dashboard TV, Pit (Rota, Breaklist, Attendance, Active Players, Dealers, Pit Book, Incidents), Tables, Table Tracker, Table Results, Cage, Cage Slots, Closings, Tips & Bonuses, Cashless, Bank Checks.
+- **Players**: Players, Guests, Blacklist, Groups, Reception (check-in/register/update), Player CRM, KYC Reviews.
+- **Finance**: Finance Dashboard, Wallets, Cash Count, Budget, Daily Review, Monthly Expenses, Payroll, Inter-Casino Transfers, Finance Summary.
+- **Reports**: Reports, Miss Chips, Cancelled Transactions, Graphics, Daily Balance, Office/Casino Expenses, Activity Logs, Blank Forms, Import Reports.
+- **Club**: Promo Codes, Promo Grants, Lotteries, Shop Catalog / Orders, AM Budget, AM Performance, FM Top-ups, Promo reports.
+- **System**: Admin Panel, Floor Staff (Employees, Rota, Attendance, Master HR), CCTV, Marketing Campaigns, Blank Forms.
 
-Constraint разрешает только `manual` и `auto_11am`, а функции пишут новые методы:
-- `force_close_business_day_0800()` (08:00 EAT) → `auto_0800`
-- `auto_close_forgotten_business_days()` (ежечасно после 09:00 EAT) → `auto_09am`
+## Ключевые бизнес-правила
+- **Drop**: per-table = raw сумма IN-транзакций (`in`, `buy`) по открытой смене. Total Drop = сумма peak из `player_day_drop_cache`.
+- **Variance / Casino Balance**: `Variance = (Actual − Starting Float) − Expected`. Знаки инвертированы для чипов (минус = избыток денег).
+- **Кошельки**: баланс = строго последний физический пересчёт (`cash_count_snapshots`), без накопления транзакций.
+- **Фишки**: Chip Conservation Law — Initial = Inventory + Floor; Miss отдельно (как cage delta).
+- **Расходы**: кассовые расходы откладываются до закрытия бизнес-дня; офисные/карты проводятся сразу.
+- **JP**: Jackpot учитывается в Expected; отдельная страница для расходов по выплате JP.
+- **Деньги / формат**: разделитель тысяч — пробел (`1 000 000`), даты — `DD/MM/YYYY`, валюты — TZS, USD, EUR, GBP, KES (сортировка от большей к меньшей).
+- **Бизнес-день**: rollover в 07:00 EAT, принудительное закрытие в 09:00 EAT.
 
-То есть автозакрытие не работает вовсе — проходит только ручное. Именно поэтому Mbeya и Arusha закрыты (руками), а Mwanza и Dodoma висят.
+## Модель данных (обзор)
+- **Операционные**: `casinos`, `profiles`, `user_roles`, `shifts`, `transactions`, `expenses`, `gaming_tables`, `chip_*`, `cash_counts`.
+- **Финансовые**: `fin_wallets`, `fin_wallet_tx`, `fin_day_closing`, `fin_day_balance_snapshot`, `fin_month_closures`, `fin_budget`, `fin_categories`, `cash_count_snapshots`, `bank_checks`.
+- **Игроки**: `players`, `player_cards`, `player_tags`, `player_groups`, `casino_visits`, `client_sessions`, `player_merges`.
+- **Персонал**: `employees`, `dealers`, `pit_rota`, `breaklist`, `staff_rota`, `staff_attendance`, `management_rota`, `management_attendance`, `payroll_*`, `staff_warnings`.
+- **POS/Club**: `pos_*`, `club_*`, `promo_*`, `lotteries`, `shop_*`, `am_budget_*`.
+- **Аудит/синхронизация**: `activity_logs`, `sync_outbox`, `sync_*`, `incidents`, `cctv_observations`.
 
-## Что делаю
+## Правила разработки
+- **SmartTable**: все новые таблицы — через `SmartTable` (`src/components/ui/smart-table.tsx`); ручной `<table>` запрещён.
+- **Аудит**: логи действий пишутся только триггерами через `tg_activity_log`; `logAction()` в UI запрещён.
+- **Локализация UI**: интерфейс строго на английском; внутренняя коммуникация на русском.
+- **Цвета**: семантические токены из `index.css` / Tailwind; никаких хардкодов `text-white`/`bg-black`/`bg-[#…]`.
+- **Числа/даты**: глобальные форматёры `formatMoney`, `fmtDate`, компонент `NumberInput` с разделителем-пробелом.
+- **Дебаунс**: поисковые поля — 200–250 мс; `startTransition` для переключения табов.
 
-1. Миграция: расширяю check-constraint до `manual`, `auto_11am`, `auto_0800`, `auto_09am`. После этого автозакрытие в 08:00 EAT снова начнёт работать.
-2. Закрываю бизнес-день 12/08 для Mwanza (столы уже посчитаны, результат −8 315 000) и для Dodoma (пустой день).
-3. Проверяю после закрытия: Day Closings, Statistics и Live Tables за 12/08 по всем казино.
+## Деплой и эксплуатация
+- **Lovable Cloud**: миграции из `supabase/migrations/`, Edge Functions из `supabase/functions/`, автоматический деплой.
+- **On-prem**: Docker Compose (`deploy/docker-compose.yml`), Nginx, PostgreSQL, sync-узлы, fleet/license agents.
+- **Версионирование**: версия в `package.json` (текущая 1.3.609), Service Worker обновляется при логине.
+- **Резервное копирование**: см. `deploy/ARCHIVE-RESTORE.md` и `deploy/backup/backup.sh`.
 
-## Нужно от вас
+## План работы
+1. **Исследование** — прочитать оставшиеся ключевые файлы: `src/App.tsx`, `src/lib/auth-context.tsx`, `src/lib/casino-context.tsx`, `src/lib/modules.ts`, `src/lib/route-module-map.ts`, `src/lib/casino-settings-spec.ts`, `docs/ACCESS-MATRIX.md`, `docs/ONBOARDING.md`, `deploy/README.md`, `supabase/migrations` (последние 5–10).
+2. **Синтез** — собрать единую структуру разделов выше в Markdown.
+3. **Написание Markdown** — создать `docs/DEVELOPER-ONBOARDING.md` с оглавлением, таблицами ролей/модулей/правил.
+4. **Генерация DOCX** — с помощью `docx` сгенерировать форматированный документ (A4, Arial, таблицы, заголовки) и сохранить в `/mnt/documents/CMS-Developer-Onboarding.docx`.
+5. **Верификация** — проверить, что оба файла созданы, DOCX валиден, Markdown отображается без ошибок.
 
-Цифры слотов Mwanza за 12/08: Slot drop / Net win / Cashdesk / Cashless money / JP. Без них день закроется с нулями по слотам, и строку придётся дозаполнять вручную в Office → Day Closings.
-
-## Технические детали
-
-- `public.business_day_closures`, constraint `business_day_closures_closed_method_check`.
-- Функции: `force_close_business_day_0800()`, `auto_close_forgotten_business_days()` → обе через `close_business_day(casino, method, force)`.
-- Cron: `force_close_business_day_0800` (`0 5 * * *` UTC), `auto-close-business-day` (`5 * * * *`).
-- Ошибки в `cron_run_log` за 13/08 05:00 и 06:05 UTC.
-- Закрытие 12/08 для Mwanza/Dodoma — через `close_business_day` со снапшотом, без правки `table_daily_results`.
+## Критерии завершения
+- [ ] `docs/DEVELOPER-ONBOARDING.md` содержит продуктовое описание, стек, архитектуру, роли, модули, бизнес-правила, модель данных, конвенции и деплой.
+- [ ] `/mnt/documents/CMS-Developer-Onboarding.docx` успешно сгенерирован и валиден.
+- [ ] Документ не содержит секретов (Supabase ключей, паролей, project IDs).
+- [ ] Обе версии доступны для скачивания / просмотра.
