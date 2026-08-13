@@ -11059,6 +11059,19 @@ export type Database = {
       _sum_denoms: { Args: { p: Json }; Returns: number }
       _sum_mobile: { Args: { p: Json }; Returns: number }
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
+      admin_active_sessions: {
+        Args: never
+        Returns: {
+          created_at: string
+          ip: string
+          not_after: string
+          refreshed_at: string
+          session_id: string
+          updated_at: string
+          user_agent: string
+          user_id: string
+        }[]
+      }
       am_issue_grant: {
         Args: {
           p_amount: number
