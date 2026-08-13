@@ -40,7 +40,7 @@ function buildMonthDates(year: number, month: number): string[] {
   return out;
 }
 
-type RowState = { tables: string; slots: string; cards: string; comment: string };
+type RowState = { tables: string; slots: string; drop: string; cash: string; cards: string; comment: string };
 
 const parseAmountInput = (value: string): number => {
   const raw = value.replace(/\s+/g, "").replace(",", ".");
