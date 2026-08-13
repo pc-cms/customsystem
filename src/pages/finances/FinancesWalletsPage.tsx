@@ -521,8 +521,10 @@ export default function FinancesWalletsPage() {
       setCentsInput((s) => ({ ...s, [w.id]: 0 }));
       setAmountInput((s) => ({ ...s, [w.id]: "" }));
       setCountNote((s) => ({ ...s, [w.id]: "" }));
+      setTouchedCount((s) => ({ ...s, [w.id]: false }));
       setExpanded((s) => ({ ...s, [w.id]: false }));
       invalidateFinance(qc);
+
     } catch (e: any) {
       toast.error(e.message);
     } finally {
