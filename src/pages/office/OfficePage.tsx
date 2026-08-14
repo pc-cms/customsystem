@@ -1,26 +1,21 @@
 import { lazy, Suspense, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import DayClosingsTab from "./DayClosingsTab";
 import OtherIncomesTab from "./OtherIncomesTab";
 import RatesTab from "./RatesTab";
 import JpTab from "./JpTab";
 import { BalanceBanner } from "@/components/office/BalanceBanner";
+import { OfficeShell } from "@/components/office/office-shell";
 
 const FinancesMoneyChangePage = lazy(() => import("@/pages/finances/FinancesMoneyChangePage"));
 const FinancesWalletsPage = lazy(() => import("@/pages/finances/FinancesWalletsPage"));
-const FinancesBudgetPage = lazy(() => import("@/pages/finances/FinancesBudgetPage"));
-const FinancesBudgetVsActualPage = lazy(() => import("@/pages/finances/FinancesBudgetVsActualPage"));
-const FinancesBudgetDifferencePage = lazy(() => import("@/pages/finances/FinancesBudgetDifferencePage"));
 const FinancesMonthlyReportPage = lazy(() => import("@/pages/finances/FinancesMonthlyReportPage"));
 
 // Flat, alphabetically sorted top-level tabs — no nested sub-tabs.
 // Balance was merged into Wallets (2026-07-20) — legacy `?tab=balance` redirects.
+// Actual / Budget / Difference moved to their own /budget section (2026-08-14).
 const TABS = [
-  { value: "actual", label: "Actual" },
-  { value: "budget", label: "Budget" },
   { value: "day-closings", label: "Day Closings" },
-  { value: "difference", label: "Difference" },
   { value: "jp", label: "JP" },
   { value: "money-change", label: "Money Change" },
   { value: "monthly-report", label: "Monthly Report" },
@@ -33,20 +28,28 @@ type TabValue = (typeof TABS)[number]["value"];
 
 const DEFAULT_TAB: TabValue = "wallets";
 
+/** Tabs that moved to /budget — old links keep working. */
+const BUDGET_TABS = new Set(["actual", "budget", "difference"]);
+
 export default function OfficePage() {
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const raw = params.get("tab") || DEFAULT_TAB;
   // Legacy redirect: balance → wallets (merged 2026-07-20)
   const normalised: TabValue = raw === "balance" ? "wallets" : (raw as TabValue);
   const tab: TabValue = TABS.some((t) => t.value === normalised) ? normalised : DEFAULT_TAB;
 
   useEffect(() => {
+    if (BUDGET_TABS.has(raw)) {
+      navigate(`/budget?tab=${raw}`, { replace: true });
+      return;
+    }
     if (raw === "balance") {
       const next = new URLSearchParams(params);
       next.set("tab", "wallets");
       setParams(next, { replace: true });
     }
-  }, [raw, params, setParams]);
+  }, [raw, params, setParams, navigate]);
 
   const onChange = (v: string) => {
     const next = new URLSearchParams(params);
@@ -55,23 +58,16 @@ export default function OfficePage() {
   };
 
   return (
-    <div className="space-y-4">
-      <BalanceBanner />
-      <Tabs value={tab} onValueChange={onChange}>
-        <TabsList className="h-9 flex-wrap">
-          {TABS.map((t) => (
-            <TabsTrigger key={t.value} value={t.value} className="text-xs">
-              {t.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-
+    <OfficeShell
+      storageKey="office.period"
+      tabs={TABS}
+      tab={tab}
+      onTabChange={onChange}
+      showPeriod={tab !== "rates" && tab !== "money-change"}
+      banner={<BalanceBanner />}
+    >
       <Suspense fallback={<div className="text-sm text-muted-foreground p-4">Loading…</div>}>
-        {tab === "actual" && <FinancesBudgetVsActualPage />}
-        {tab === "budget" && <FinancesBudgetPage />}
         {tab === "day-closings" && <DayClosingsTab />}
-        {tab === "difference" && <FinancesBudgetDifferencePage />}
         {tab === "jp" && <JpTab />}
         {tab === "money-change" && <FinancesMoneyChangePage />}
         {tab === "monthly-report" && <FinancesMonthlyReportPage />}
@@ -79,6 +75,6 @@ export default function OfficePage() {
         {tab === "rates" && <RatesTab />}
         {tab === "wallets" && <FinancesWalletsPage />}
       </Suspense>
-    </div>
+    </OfficeShell>
   );
 }

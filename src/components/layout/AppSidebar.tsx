@@ -78,6 +78,7 @@ const NAV_ITEMS: NavItem[] = [
 
   // FINANCE — Office + group-level reports (casino + head office).
   { to: "/office", icon: Briefcase, label: "Office", roles: ["super_admin", "manager", "finance_manager", "shift_manager"], section: "FINANCE" },
+  { to: "/budget", icon: Target, label: "Budget", roles: ["super_admin", "manager", "finance_manager", "shift_manager"], section: "FINANCE" },
   { to: "/reports/daily-balance", icon: FileBarChart, label: "Casino Monthly Balance", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "FINANCE" },
   { to: "/reports/office-balance", icon: Building2, label: "Office Monthly Balance", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "FINANCE" },
   { to: "/reports/expenses-casino", icon: Receipt, label: "Expenses · Casino", roles: ["super_admin", "finance_manager", "general_manager" as AppRole, "boss" as AppRole], section: "FINANCE" },

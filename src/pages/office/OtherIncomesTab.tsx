@@ -6,8 +6,7 @@
 import { useMemo, useState } from "react";
 import { Coins, Plus, Undo2, Pencil, Trash2 } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
-import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
+import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
@@ -55,11 +54,8 @@ export default function OtherIncomesTab() {
     roles.includes("finance_manager") ||
     roles.includes("manager");
 
-  const [preset, setPreset] = useSessionState<DatePreset>("other-inc.preset", "month");
-  const [range, setRange] = useSessionState<{ from: string; to: string }>(
-    "other-inc.range",
-    presetRange("month"),
-  );
+  const { period } = useOfficePeriod();
+  const range = { from: period.from, to: period.to };
 
   // JP lives on its own tab (Office → JP) — keep it out of this list.
   const { data: incomes = [], isLoading } = useOtherIncomes(range.from, range.to, { exclude: ["jp"] });
@@ -270,32 +266,16 @@ export default function OtherIncomesTab() {
 
   return (
     <PageShell>
-      <PageHeader
-        icon={Coins}
-        title="Other Incomes"
-        subtitle="Investments, transfers, refunds · editable, negative amounts allowed"
-      >
-        <FinanceCasinoSwitcher allowNetwork={false} />
-        <DateRangePresets
-          preset={preset}
-          from={range.from}
-          to={range.to}
-          onChange={({ preset, from, to }) => {
-            setPreset(preset);
-            setRange({ from, to });
-          }}
-        />
-        {canWrite && (
-          <>
-            <Button onClick={() => openAdd("fee")} size="sm" variant="outline">
-              <Plus className="w-4 h-4" /> Fee
-            </Button>
-            <Button onClick={() => openAdd()} size="sm">
-              <Plus className="w-4 h-4" /> Add Income
-            </Button>
-          </>
-        )}
-      </PageHeader>
+      {canWrite && (
+        <OfficeActions>
+          <Button onClick={() => openAdd("fee")} size="sm" variant="outline">
+            <Plus className="w-4 h-4" /> Fee
+          </Button>
+          <Button onClick={() => openAdd()} size="sm">
+            <Plus className="w-4 h-4" /> Add Income
+          </Button>
+        </OfficeActions>
+      )}
 
       <PageSection card={false}>
         <SmartTable

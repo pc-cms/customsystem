@@ -7,8 +7,7 @@
 import { useMemo, useState } from "react";
 import { Trophy, Plus, Minus, Pencil, Trash2 } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
-import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
+import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
@@ -42,11 +41,8 @@ export default function JpTab() {
     roles.includes("finance_manager") ||
     roles.includes("manager");
 
-  const [preset, setPreset] = useSessionState<DatePreset>("jp.preset", "month");
-  const [range, setRange] = useSessionState<{ from: string; to: string }>(
-    "jp.range",
-    presetRange("month"),
-  );
+  const { period } = useOfficePeriod();
+  const range = { from: period.from, to: period.to };
 
   const { data: rows = [], isLoading } = useOtherIncomes(range.from, range.to, {
     only: [...JP_ONLY] as any,
@@ -211,32 +207,16 @@ export default function JpTab() {
 
   return (
     <PageShell>
-      <PageHeader
-        icon={Trophy}
-        title="JP"
-        subtitle="Jackpot ledger · contributions (IN) and payouts (OUT) · entered here or in Day Closings"
-      >
-        <FinanceCasinoSwitcher allowNetwork={false} />
-        <DateRangePresets
-          preset={preset}
-          from={range.from}
-          to={range.to}
-          onChange={({ preset, from, to }) => {
-            setPreset(preset);
-            setRange({ from, to });
-          }}
-        />
-        {canWrite && (
-          <>
-            <Button onClick={() => openAdd("out")} size="sm" variant="outline">
-              <Minus className="w-4 h-4" /> JP Payout
-            </Button>
-            <Button onClick={() => openAdd("in")} size="sm">
-              <Plus className="w-4 h-4" /> Add JP
-            </Button>
-          </>
-        )}
-      </PageHeader>
+      {canWrite && (
+        <OfficeActions>
+          <Button onClick={() => openAdd("out")} size="sm" variant="outline">
+            <Minus className="w-4 h-4" /> JP Payout
+          </Button>
+          <Button onClick={() => openAdd("in")} size="sm">
+            <Plus className="w-4 h-4" /> Add JP
+          </Button>
+        </OfficeActions>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <TotalCard label="Contributions (IN)" value={totals.inSum} />

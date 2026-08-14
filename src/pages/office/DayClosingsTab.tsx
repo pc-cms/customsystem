@@ -4,8 +4,7 @@ import {
   ChevronLeft, ChevronRight, Bot, CircleDashed,
 } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
-import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
+import { useOfficePeriod } from "@/components/office/office-shell";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Button } from "@/components/ui/button";
@@ -133,9 +132,9 @@ function useMonthClosures(year: number, month: number) {
 }
 
 export default function DayClosingsTab() {
-  const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const { period } = useOfficePeriod();
+  const year = period.year;
+  const month = period.month;
   const dates = useMemo(() => buildMonthDates(year, month), [year, month]);
 
   const { data: list = [] } = useDayClosingList();
@@ -305,11 +304,6 @@ export default function DayClosingsTab() {
 
 
 
-  const shiftMonth = (delta: number) => {
-    const d = new Date(year, month - 1 + delta, 1);
-    setYear(d.getFullYear());
-    setMonth(d.getMonth() + 1);
-  };
 
   const numCell = (
     r: Row,
@@ -470,30 +464,6 @@ export default function DayClosingsTab() {
 
   return (
     <PageShell>
-      <PageHeader
-        icon={ClipboardPen}
-        title="Day Closings"
-        subtitle="Manual entry per business day · auto values shown as placeholders"
-      >
-        <FinanceCasinoSwitcher allowNetwork={false} />
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => shiftMonth(-1)}>
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <Input
-            type="month"
-            value={`${year}-${pad(month)}`}
-            onChange={(e) => {
-              const [y, m] = e.target.value.split("-").map(Number);
-              if (y && m) { setYear(y); setMonth(m); }
-            }}
-            className="h-8 w-[150px]"
-          />
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => shiftMonth(1)}>
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
-      </PageHeader>
 
 
 

@@ -76,6 +76,7 @@ const Staff = lazy(() => import("@/pages/Staff"));
 // Finances/* routes have been removed. Everything financial lives under /office as flat tabs.
 // The `@/pages/finances/*` files remain on disk because Office lazy-loads them internally.
 const OfficePage = lazy(() => import("@/pages/office/OfficePage"));
+const BudgetPage = lazy(() => import("@/pages/budget/BudgetPage"));
 const Reception = lazy(() => import("@/pages/Reception"));
 const Guests = lazy(() => import("@/pages/Guests"));
 const Blacklist = lazy(() => import("@/pages/Blacklist"));
@@ -474,6 +475,7 @@ const ProtectedRoutes = () => {
           <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
           {/* All finance surfaces live under /office as flat tabs. /finances/* routes are removed. */}
           <Route path="/office" element={<RoleGuard path="/office"><ErrorBoundary><OfficePage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/budget" element={<RoleGuard path="/office"><ErrorBoundary><BudgetPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
           <Route path="/stats" element={<Navigate to="/player-statistics" replace />} />
           <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />

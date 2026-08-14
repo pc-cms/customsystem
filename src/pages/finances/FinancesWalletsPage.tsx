@@ -31,7 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,10 +111,8 @@ export default function FinancesWalletsPage() {
 
 
   const now = new Date();
-  const [ym, setYm] = useSessionState<{ year: number; month: number }>("ym", {
-    year: now.getFullYear(),
-    month: now.getMonth() + 1,
-  });
+  const { period } = useOfficePeriod();
+  const ym = { year: period.year, month: period.month };
   const [walletFilter, setWalletFilter] = useSessionState<string>("wallet", "all");
   const [kindFilter, setKindFilter] = useSessionState<string>("kind", "all");
   const [sort, setSort] = useSessionState<"date_desc" | "date_asc" | "amount_desc" | "amount_asc">(
@@ -543,21 +541,7 @@ export default function FinancesWalletsPage() {
 
   return (
     <PageShell>
-      <PageHeader
-        icon={Wallet}
-        title="Wallets"
-        subtitle="Cash, bank, safe & cage ledger · reconciliation"
-        centerSlot={
-          <div className="flex items-center gap-2 flex-nowrap overflow-x-auto">
-            <FinanceCasinoSwitcher allowNetwork={false} />
-            <MonthCarousel
-              year={ym.year}
-              month={ym.month}
-              onChange={(year, month) => setYm({ year, month })}
-            />
-          </div>
-        }
-      >
+      <OfficeActions>
         <Button
           variant="secondary"
           size="sm"
@@ -641,7 +625,7 @@ export default function FinancesWalletsPage() {
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-      </PageHeader>
+      </OfficeActions>
       {/* KPI STRIP */}
       <PageSection card={false}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
