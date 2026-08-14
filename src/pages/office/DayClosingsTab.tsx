@@ -544,17 +544,8 @@ export default function DayClosingsTab() {
         </div>
       </PageHeader>
 
-      {(health.notLocked || health.auto || health.mismatch || health.missing) > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-card px-3 py-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {MONTH_NAMES[month - 1]} health
-          </span>
-          <Chip n={health.notLocked} label="not locked" tone="amber" />
-          <Chip n={health.auto} label="auto-closed" tone="sky" />
-          <Chip n={health.mismatch} label="variance vs cage" tone="rose" />
-          <Chip n={health.missing} label="missing row" tone="rose" />
-        </div>
-      )}
+
+
 
       <PageSection bodyClassName="p-0">
         <div className="max-h-[70vh] overflow-auto">
