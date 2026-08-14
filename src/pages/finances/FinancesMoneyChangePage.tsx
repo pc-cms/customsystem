@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { ArrowLeftRight, Plus, TrendingUp } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
-import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
+import { OfficeActions } from "@/components/office/office-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
