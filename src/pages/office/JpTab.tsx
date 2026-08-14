@@ -208,32 +208,16 @@ export default function JpTab() {
 
   return (
     <PageShell>
-      <PageHeader
-        icon={Trophy}
-        title="JP"
-        subtitle="Jackpot ledger · contributions (IN) and payouts (OUT) · entered here or in Day Closings"
-      >
-        <FinanceCasinoSwitcher allowNetwork={false} />
-        <DateRangePresets
-          preset={preset}
-          from={range.from}
-          to={range.to}
-          onChange={({ preset, from, to }) => {
-            setPreset(preset);
-            setRange({ from, to });
-          }}
-        />
-        {canWrite && (
-          <>
-            <Button onClick={() => openAdd("out")} size="sm" variant="outline">
-              <Minus className="w-4 h-4" /> JP Payout
-            </Button>
-            <Button onClick={() => openAdd("in")} size="sm">
-              <Plus className="w-4 h-4" /> Add JP
-            </Button>
-          </>
-        )}
-      </PageHeader>
+      {canWrite && (
+        <OfficeActions>
+          <Button onClick={() => openAdd("out")} size="sm" variant="outline">
+            <Minus className="w-4 h-4" /> JP Payout
+          </Button>
+          <Button onClick={() => openAdd("in")} size="sm">
+            <Plus className="w-4 h-4" /> Add JP
+          </Button>
+        </OfficeActions>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <TotalCard label="Contributions (IN)" value={totals.inSum} />
