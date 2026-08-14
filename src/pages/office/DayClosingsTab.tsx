@@ -299,20 +299,8 @@ export default function DayClosingsTab() {
     return t;
   }, [rows]);
 
-  /* ---------- month health summary ---------- */
-  const health = useMemo(() => {
-    let notLocked = 0, auto = 0, mismatch = 0, missing = 0;
-    rows.forEach((r) => {
-      if (!r.hadActivity && !r.existing) return;
-      if (!r.existing) { missing++; return; }
-      if (!r.existing.locked_at) notLocked++;
-      if (r.closedByManager === false) auto++;
-      const dT = Math.abs(Number(r.existing.tables_result ?? 0) - r.agg.tables);
-      const dS = Math.abs(Number(r.existing.slots_result ?? 0) - r.agg.slots);
-      if (dT > 1 || dS > 1) mismatch++;
-    });
-    return { notLocked, auto, mismatch, missing };
-  }, [rows]);
+
+
 
   const shiftMonth = (delta: number) => {
     const d = new Date(year, month - 1 + delta, 1);
