@@ -2,10 +2,10 @@ import { useMemo, useState } from "react";
 import { FileSpreadsheet, ChevronRight, ChevronDown, Download, Pencil, Trash2, Plus } from "lucide-react";
 import { EditExpenseDialog, type EditableExpense } from "@/components/expenses/EditExpenseDialog";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { YearSelect } from "@/components/ui/year-select";
+
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
