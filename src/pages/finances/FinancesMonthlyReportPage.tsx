@@ -73,9 +73,11 @@ export default function FinancesMonthlyReportPage() {
   const { accessibleCasinos, activeCasinoId } = useCasino();
   const isPremier = typeof window !== "undefined" && /(?:^|\.)premier\./.test(window.location.hostname);
 
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const { period } = useOfficePeriod();
+  const year = period.year;
+  const month = period.month;
   const [scope, setScope] = useState<string>(activeCasinoId || "");
+
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editRow, setEditRow] = useState<EditableExpense | null>(null);
 
