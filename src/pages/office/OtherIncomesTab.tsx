@@ -54,11 +54,8 @@ export default function OtherIncomesTab() {
     roles.includes("finance_manager") ||
     roles.includes("manager");
 
-  const [preset, setPreset] = useSessionState<DatePreset>("other-inc.preset", "month");
-  const [range, setRange] = useSessionState<{ from: string; to: string }>(
-    "other-inc.range",
-    presetRange("month"),
-  );
+  const { period } = useOfficePeriod();
+  const range = { from: period.from, to: period.to };
 
   // JP lives on its own tab (Office → JP) — keep it out of this list.
   const { data: incomes = [], isLoading } = useOtherIncomes(range.from, range.to, { exclude: ["jp"] });
