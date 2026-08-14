@@ -42,11 +42,8 @@ export default function JpTab() {
     roles.includes("finance_manager") ||
     roles.includes("manager");
 
-  const [preset, setPreset] = useSessionState<DatePreset>("jp.preset", "month");
-  const [range, setRange] = useSessionState<{ from: string; to: string }>(
-    "jp.range",
-    presetRange("month"),
-  );
+  const { period } = useOfficePeriod();
+  const range = { from: period.from, to: period.to };
 
   const { data: rows = [], isLoading } = useOtherIncomes(range.from, range.to, {
     only: [...JP_ONLY] as any,
