@@ -20,12 +20,16 @@
 
 ```text
 [ Balance banner ]
-[ Wallets  Day Closings  JP  Other Incomes  … ]   [ Casino ]  [ ‹  August 2026  › ]  [действия вкладки]
+[ Wallets  Day Closings  JP  Other Incomes  … ]        [ ‹  August 2026  › ]  [действия вкладки]
 ```
 
 - Активная вкладка выделяется явно (заливка + акцентная подчёркивающая полоса), чтобы сразу было видно, где находишься.
-- Селектор казино — один на весь раздел, не дублируется во вкладках.
 - Правый край — слот для кнопок конкретной вкладки (Add, Export, Close Month и т.п.).
+
+### 1a. Убираем селектор казино полностью
+
+Кнопка выбора казино убирается везде, у всех ролей. Данные всегда берутся по домену, на котором открыто приложение. Для домена premier позже будет отдельный интерфейс — сейчас он просто не показывает переключатель.
+
 
 ### 2. Единый выбор периода: месяц по умолчанию
 
@@ -45,7 +49,9 @@
 
 - Новый контекст `OfficePeriodContext` в `src/pages/office/OfficePage.tsx`: хранит `{ mode: "month" | "custom", year, month, from, to }`, синхронизирован с query-параметрами URL и `useSessionState`.
 - Новый компонент `src/components/office/PeriodPicker.tsx`: стрелки + кнопка-дропдаун (Popover со списком месяцев, `YearSelect` и режимом Custom с `Calendar`). Существующий `DateRangePresets` остаётся для других разделов приложения и не трогается.
-- Новый компонент `src/components/office/OfficeToolbar.tsx`: табы (`Tabs`/`TabsList` с усиленным активным состоянием), `FinanceCasinoSwitcher`, `PeriodPicker`, слот действий (через небольшой портал-слот, чтобы вкладка могла отрендерить свои кнопки в общую панель).
+- Новый компонент `src/components/office/OfficeToolbar.tsx`: табы (`Tabs`/`TabsList` с усиленным активным состоянием), `PeriodPicker`, слот действий (через небольшой портал-слот, чтобы вкладка могла отрендерить свои кнопки в общую панель).
+- `FinanceCasinoSwitcher` перестаёт рендериться: компонент возвращает `null` (заглушка на будущий premier-интерфейс), а его использования удаляются из `RatesTab`, `DayClosingsTab`, `OtherIncomesTab`, `JpTab`, `FinancesWalletsPage`, `FinancesOfficeSafePage`, `FinancesMoneyChangePage`, `FinancesInterCasinoPage`, `FinancesExpensesPage`, `FinancesDayClosingPage`, `FinancesDashboardPage`, `FinancesBudgetVsActualPage`, `FinancesBudgetPage`, `FinancesBudgetDifferencePage`, `FinancesAuditLogPage`. Данные скоупятся по казино текущего домена, как и раньше.
+
 - Вкладки правятся точечно: удаляется `PageHeader` (или остаётся без `subtitle` и без контролов), локальные состояния периода заменяются на `useOfficePeriod()`; кнопки действий переезжают в общий слот. Затрагиваются: `DayClosingsTab`, `JpTab`, `OtherIncomesTab`, `RatesTab`, `FinancesWalletsPage`, `FinancesMonthlyReportPage`, `FinancesBudgetVsActualPage`, `FinancesBudgetPage`, `FinancesBudgetDifferencePage`, `FinancesMoneyChangePage`.
 - Страницы Finances, которые открываются и вне Office, продолжают работать автономно: при отсутствии контекста используют собственное состояние периода (fallback).
 - Панель делается `sticky` под баннером баланса, с горизонтальным скроллом табов на узких экранах.
