@@ -7,8 +7,7 @@
 import { useMemo, useState } from "react";
 import { Trophy, Plus, Minus, Pencil, Trash2 } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
-import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
+import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
