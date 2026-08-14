@@ -111,10 +111,8 @@ export default function FinancesWalletsPage() {
 
 
   const now = new Date();
-  const [ym, setYm] = useSessionState<{ year: number; month: number }>("ym", {
-    year: now.getFullYear(),
-    month: now.getMonth() + 1,
-  });
+  const { period } = useOfficePeriod();
+  const ym = { year: period.year, month: period.month };
   const [walletFilter, setWalletFilter] = useSessionState<string>("wallet", "all");
   const [kindFilter, setKindFilter] = useSessionState<string>("kind", "all");
   const [sort, setSort] = useSessionState<"date_desc" | "date_asc" | "amount_desc" | "amount_asc">(
