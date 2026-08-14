@@ -193,7 +193,10 @@ export default function DayClosingsTab() {
   const val = (r: Row) => {
     const d = drafts[r.date] || {};
     const tables = d.tables ?? (r.existing?.tables_result != null ? Number(r.existing.tables_result) : r.agg.tables);
-    const slots = d.slots ?? (r.existing?.slots_result != null ? Number(r.existing.slots_result) : r.agg.slots);
+    const slots = d.slots ?? (r.existing?.slots_result != null
+      ? Number(r.existing.slots_result)
+      : (r.existing?.cashdesk_win != null ? Number(r.existing.cashdesk_win) : r.agg.slots));
+
     const drop = d.drop ?? Number(r.existing?.drop_slots ?? 0);
     const cash = d.cash ?? Number(r.existing?.cashdesk_win ?? 0);
     const cards = Math.abs(d.cards ?? Number(r.existing?.players_card_balance ?? 0));
