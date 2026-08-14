@@ -77,6 +77,11 @@ export default function FinancesMonthlyReportPage() {
   const year = period.year;
   const month = period.month;
   const [scope, setScope] = useState<string>(activeCasinoId || "");
+  // Casino comes from the global casino context — no per-casino buttons here.
+  useEffect(() => {
+    setScope((s) => (s === "network" ? s : activeCasinoId || ""));
+  }, [activeCasinoId]);
+
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editRow, setEditRow] = useState<EditableExpense | null>(null);
