@@ -346,21 +346,21 @@ export default function DayClosingsTab() {
       key: "date",
       header: "Date",
       type: "date",
-      style: { width: 92 },
+      style: { width: 100 },
       accessor: (r) => <span className="font-mono text-[11px] whitespace-nowrap">{fmtDate(r.date)}</span>,
     },
     {
       key: "status",
-      header: "Status",
+      header: "",
       type: "status",
-      style: { width: 104 },
-      accessor: (r) => <StatusBadge row={r} />,
+      style: { width: 48 },
+      accessor: (r) => <div className="flex justify-center"><StatusBadge row={r} /></div>,
     },
     {
       key: "tables",
       header: "Tables",
       type: "money",
-      style: { width: 132 },
+      style: { width: 168 },
       headerClassName: "text-right",
       accessor: (r) => numCell(r, val(r).tables, (n) => setField(r.date, { tables: n }), {
         placeholder: r.agg.tables,
@@ -371,36 +371,27 @@ export default function DayClosingsTab() {
       key: "slots",
       header: "Slots",
       type: "money",
-      style: { width: 132 },
+      style: { width: 168 },
       accessor: (r) => numCell(r, val(r).slots, (n) => setField(r.date, { slots: n }), {
         placeholder: r.agg.slots,
-        title: `Auto from slots cage: ${formatNumberSpaces(r.agg.slots)}`,
+        title: `Cash Desk Win from Close Day. Editable manually.`,
       }),
     },
     {
       key: "drop",
       header: "Slot Drop",
       type: "money",
-      style: { width: 128 },
+      style: { width: 168 },
       accessor: (r) => numCell(r, val(r).drop, (n) => setField(r.date, { drop: n }), {
         tone: false,
         title: "Slot Drop from Close Day. Editable manually.",
       }),
     },
     {
-      key: "cash",
-      header: "Cash Desk",
-      type: "money",
-      style: { width: 128 },
-      accessor: (r) => numCell(r, val(r).cash, (n) => setField(r.date, { cash: n }), {
-        title: "Cash Desk result from Close Day. Editable manually.",
-      }),
-    },
-    {
       key: "cards",
       header: "Card Balance",
       type: "money",
-      style: { width: 124 },
+      style: { width: 150 },
       accessor: (r) => numCell(r, val(r).cards, (n) => setField(r.date, { cards: Math.abs(n) }), {
         tone: false,
         allowNegative: false,
@@ -411,38 +402,16 @@ export default function DayClosingsTab() {
       key: "jp",
       header: "JP (IN)",
       type: "money",
-      style: { width: 124 },
+      style: { width: 150 },
       accessor: (r) => numCell(r, val(r).jp, (n) => setField(r.date, { jp: n }), {
         title: `JP booked as income on this business day. Posted: ${formatNumberSpaces(r.jpPosted)}`,
       }),
     },
     {
-      key: "missChips",
-      header: "Miss Chips",
-      type: "money",
-      style: { width: 108 },
-      accessor: (r) => (
-        <span className={cn("font-mono text-[12px]", amountToneClass(r.agg.missChips))}>
-          {formatNumberSpaces(r.agg.missChips)}
-        </span>
-      ),
-    },
-    {
-      key: "missCards",
-      header: "Miss Cards",
-      type: "money",
-      style: { width: 108 },
-      accessor: (r) => (
-        <span className={cn("font-mono text-[12px]", amountToneClass(r.agg.missCards))}>
-          {formatNumberSpaces(r.agg.missCards)}
-        </span>
-      ),
-    },
-    {
       key: "comment",
       header: "Comment",
       type: "text",
-      style: { minWidth: 160 },
+      style: { minWidth: 180 },
       accessor: (r) => (
         <Input
           disabled={!isEditable(r)}
@@ -453,6 +422,7 @@ export default function DayClosingsTab() {
         />
       ),
     },
+
     {
       key: "actions",
       header: "",
