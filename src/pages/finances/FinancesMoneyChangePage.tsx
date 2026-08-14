@@ -67,10 +67,9 @@ export default function FinancesMoneyChangePage() {
 
   return (
     <PageShell>
-      <PageHeader icon={ArrowLeftRight} title="Money Change" subtitle="Cross-currency / cross-casino allowed">
-        <FinanceCasinoSwitcher allowNetwork={false} />
+      <OfficeActions>
         <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4" /> New Change</Button>
-      </PageHeader>
+      </OfficeActions>
 
       <Tabs defaultValue="log" className="w-full">
         <TabsList>
