@@ -541,21 +541,7 @@ export default function FinancesWalletsPage() {
 
   return (
     <PageShell>
-      <PageHeader
-        icon={Wallet}
-        title="Wallets"
-        subtitle="Cash, bank, safe & cage ledger · reconciliation"
-        centerSlot={
-          <div className="flex items-center gap-2 flex-nowrap overflow-x-auto">
-            <FinanceCasinoSwitcher allowNetwork={false} />
-            <MonthCarousel
-              year={ym.year}
-              month={ym.month}
-              onChange={(year, month) => setYm({ year, month })}
-            />
-          </div>
-        }
-      >
+      <OfficeActions>
         <Button
           variant="secondary"
           size="sm"
