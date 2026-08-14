@@ -266,32 +266,16 @@ export default function OtherIncomesTab() {
 
   return (
     <PageShell>
-      <PageHeader
-        icon={Coins}
-        title="Other Incomes"
-        subtitle="Investments, transfers, refunds · editable, negative amounts allowed"
-      >
-        <FinanceCasinoSwitcher allowNetwork={false} />
-        <DateRangePresets
-          preset={preset}
-          from={range.from}
-          to={range.to}
-          onChange={({ preset, from, to }) => {
-            setPreset(preset);
-            setRange({ from, to });
-          }}
-        />
-        {canWrite && (
-          <>
-            <Button onClick={() => openAdd("fee")} size="sm" variant="outline">
-              <Plus className="w-4 h-4" /> Fee
-            </Button>
-            <Button onClick={() => openAdd()} size="sm">
-              <Plus className="w-4 h-4" /> Add Income
-            </Button>
-          </>
-        )}
-      </PageHeader>
+      {canWrite && (
+        <OfficeActions>
+          <Button onClick={() => openAdd("fee")} size="sm" variant="outline">
+            <Plus className="w-4 h-4" /> Fee
+          </Button>
+          <Button onClick={() => openAdd()} size="sm">
+            <Plus className="w-4 h-4" /> Add Income
+          </Button>
+        </OfficeActions>
+      )}
 
       <PageSection card={false}>
         <SmartTable
