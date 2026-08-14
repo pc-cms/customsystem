@@ -7,7 +7,7 @@ import JpTab from "./JpTab";
 import { BalanceBanner } from "@/components/office/BalanceBanner";
 import { OfficeShell } from "@/components/office/office-shell";
 
-const FinancesMoneyChangePage = lazy(() => import("@/pages/finances/FinancesMoneyChangePage"));
+
 const FinancesWalletsPage = lazy(() => import("@/pages/finances/FinancesWalletsPage"));
 const FinancesMonthlyReportPage = lazy(() => import("@/pages/finances/FinancesMonthlyReportPage"));
 
@@ -17,7 +17,7 @@ const FinancesMonthlyReportPage = lazy(() => import("@/pages/finances/FinancesMo
 const TABS = [
   { value: "day-closings", label: "Day Closings" },
   { value: "jp", label: "JP" },
-  { value: "money-change", label: "Money Change" },
+  
   { value: "monthly-report", label: "Monthly Report" },
   { value: "other-incomes", label: "Other Incomes" },
   { value: "rates", label: "Rates" },
@@ -36,7 +36,7 @@ export default function OfficePage() {
   const navigate = useNavigate();
   const raw = params.get("tab") || DEFAULT_TAB;
   // Legacy redirect: balance → wallets (merged 2026-07-20)
-  const normalised: TabValue = raw === "balance" ? "wallets" : (raw as TabValue);
+  const normalised: TabValue = raw === "balance" || raw === "money-change" ? "wallets" : (raw as TabValue);
   const tab: TabValue = TABS.some((t) => t.value === normalised) ? normalised : DEFAULT_TAB;
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function OfficePage() {
       navigate(`/budget?tab=${raw}`, { replace: true });
       return;
     }
-    if (raw === "balance") {
+    if (raw === "balance" || raw === "money-change") {
       const next = new URLSearchParams(params);
       next.set("tab", "wallets");
       setParams(next, { replace: true });
@@ -63,13 +63,12 @@ export default function OfficePage() {
       tabs={TABS}
       tab={tab}
       onTabChange={onChange}
-      showPeriod={tab !== "rates" && tab !== "money-change"}
+      showPeriod={tab !== "rates"}
       banner={<BalanceBanner />}
     >
       <Suspense fallback={<div className="text-sm text-muted-foreground p-4">Loading…</div>}>
         {tab === "day-closings" && <DayClosingsTab />}
         {tab === "jp" && <JpTab />}
-        {tab === "money-change" && <FinancesMoneyChangePage />}
         {tab === "monthly-report" && <FinancesMonthlyReportPage />}
         {tab === "other-incomes" && <OtherIncomesTab />}
         {tab === "rates" && <RatesTab />}
