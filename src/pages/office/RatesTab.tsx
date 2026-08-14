@@ -49,13 +49,6 @@ export default function RatesTab() {
 
   return (
     <PageShell>
-      <PageHeader
-        icon={TrendingUp}
-        title="Rates"
-        subtitle="Per-casino daily FX → TZS · Office-owned"
-      >
-        <FinanceCasinoSwitcher allowNetwork={false} />
-      </PageHeader>
 
       <PageSection bodyClassName="p-0 overflow-hidden">
         <table className="w-full text-sm">
