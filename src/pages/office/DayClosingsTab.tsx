@@ -193,7 +193,10 @@ export default function DayClosingsTab() {
   const val = (r: Row) => {
     const d = drafts[r.date] || {};
     const tables = d.tables ?? (r.existing?.tables_result != null ? Number(r.existing.tables_result) : r.agg.tables);
-    const slots = d.slots ?? (r.existing?.slots_result != null ? Number(r.existing.slots_result) : r.agg.slots);
+    const slots = d.slots ?? (r.existing?.slots_result != null
+      ? Number(r.existing.slots_result)
+      : (r.existing?.cashdesk_win != null ? Number(r.existing.cashdesk_win) : r.agg.slots));
+
     const drop = d.drop ?? Number(r.existing?.drop_slots ?? 0);
     const cash = d.cash ?? Number(r.existing?.cashdesk_win ?? 0);
     const cards = Math.abs(d.cards ?? Number(r.existing?.players_card_balance ?? 0));
@@ -240,7 +243,7 @@ export default function DayClosingsTab() {
         slots_result: v.slots,
         drop_slots: v.drop,
         net_win: v.slots,
-        cashdesk_win: v.cash,
+        cashdesk_win: v.slots,
         players_card_balance: v.cards,
         notes: finalComment || null,
       });
@@ -299,20 +302,8 @@ export default function DayClosingsTab() {
     return t;
   }, [rows]);
 
-  /* ---------- month health summary ---------- */
-  const health = useMemo(() => {
-    let notLocked = 0, auto = 0, mismatch = 0, missing = 0;
-    rows.forEach((r) => {
-      if (!r.hadActivity && !r.existing) return;
-      if (!r.existing) { missing++; return; }
-      if (!r.existing.locked_at) notLocked++;
-      if (r.closedByManager === false) auto++;
-      const dT = Math.abs(Number(r.existing.tables_result ?? 0) - r.agg.tables);
-      const dS = Math.abs(Number(r.existing.slots_result ?? 0) - r.agg.slots);
-      if (dT > 1 || dS > 1) mismatch++;
-    });
-    return { notLocked, auto, mismatch, missing };
-  }, [rows]);
+
+
 
   const shiftMonth = (delta: number) => {
     const d = new Date(year, month - 1 + delta, 1);
@@ -346,21 +337,21 @@ export default function DayClosingsTab() {
       key: "date",
       header: "Date",
       type: "date",
-      style: { width: 92 },
+      style: { width: 100 },
       accessor: (r) => <span className="font-mono text-[11px] whitespace-nowrap">{fmtDate(r.date)}</span>,
     },
     {
       key: "status",
-      header: "Status",
+      header: "",
       type: "status",
-      style: { width: 104 },
-      accessor: (r) => <StatusBadge row={r} />,
+      style: { width: 48 },
+      accessor: (r) => <div className="flex justify-center"><StatusBadge row={r} /></div>,
     },
     {
       key: "tables",
       header: "Tables",
       type: "money",
-      style: { width: 132 },
+      style: { width: 168 },
       headerClassName: "text-right",
       accessor: (r) => numCell(r, val(r).tables, (n) => setField(r.date, { tables: n }), {
         placeholder: r.agg.tables,
@@ -371,36 +362,27 @@ export default function DayClosingsTab() {
       key: "slots",
       header: "Slots",
       type: "money",
-      style: { width: 132 },
+      style: { width: 168 },
       accessor: (r) => numCell(r, val(r).slots, (n) => setField(r.date, { slots: n }), {
         placeholder: r.agg.slots,
-        title: `Auto from slots cage: ${formatNumberSpaces(r.agg.slots)}`,
+        title: `Cash Desk Win from Close Day. Editable manually.`,
       }),
     },
     {
       key: "drop",
       header: "Slot Drop",
       type: "money",
-      style: { width: 128 },
+      style: { width: 168 },
       accessor: (r) => numCell(r, val(r).drop, (n) => setField(r.date, { drop: n }), {
         tone: false,
         title: "Slot Drop from Close Day. Editable manually.",
       }),
     },
     {
-      key: "cash",
-      header: "Cash Desk",
-      type: "money",
-      style: { width: 128 },
-      accessor: (r) => numCell(r, val(r).cash, (n) => setField(r.date, { cash: n }), {
-        title: "Cash Desk result from Close Day. Editable manually.",
-      }),
-    },
-    {
       key: "cards",
       header: "Card Balance",
       type: "money",
-      style: { width: 124 },
+      style: { width: 150 },
       accessor: (r) => numCell(r, val(r).cards, (n) => setField(r.date, { cards: Math.abs(n) }), {
         tone: false,
         allowNegative: false,
@@ -411,38 +393,16 @@ export default function DayClosingsTab() {
       key: "jp",
       header: "JP (IN)",
       type: "money",
-      style: { width: 124 },
+      style: { width: 150 },
       accessor: (r) => numCell(r, val(r).jp, (n) => setField(r.date, { jp: n }), {
         title: `JP booked as income on this business day. Posted: ${formatNumberSpaces(r.jpPosted)}`,
       }),
     },
     {
-      key: "missChips",
-      header: "Miss Chips",
-      type: "money",
-      style: { width: 108 },
-      accessor: (r) => (
-        <span className={cn("font-mono text-[12px]", amountToneClass(r.agg.missChips))}>
-          {formatNumberSpaces(r.agg.missChips)}
-        </span>
-      ),
-    },
-    {
-      key: "missCards",
-      header: "Miss Cards",
-      type: "money",
-      style: { width: 108 },
-      accessor: (r) => (
-        <span className={cn("font-mono text-[12px]", amountToneClass(r.agg.missCards))}>
-          {formatNumberSpaces(r.agg.missCards)}
-        </span>
-      ),
-    },
-    {
       key: "comment",
       header: "Comment",
       type: "text",
-      style: { minWidth: 160 },
+      style: { minWidth: 180 },
       accessor: (r) => (
         <Input
           disabled={!isEditable(r)}
@@ -453,6 +413,7 @@ export default function DayClosingsTab() {
         />
       ),
     },
+
     {
       key: "actions",
       header: "",
@@ -500,22 +461,12 @@ export default function DayClosingsTab() {
       case "tables": return <Money v={totals.tables} />;
       case "slots": return <Money v={totals.slots - totals.cards} />;
       case "drop": return <span className="font-mono text-[12px] text-muted-foreground">{formatNumberSpaces(totals.drop)}</span>;
-      case "cash": return <Money v={totals.cash} />;
       case "cards": return <span className={cn("font-mono text-[12px]", totals.cards ? "cms-amount-negative" : "text-muted-foreground")}>{totals.cards ? `− ${formatNumberSpaces(totals.cards)}` : "0"}</span>;
       case "jp": return <Money v={totals.jp} />;
-      case "missChips": return <Money v={totals.missChips} />;
-      case "missCards": return <Money v={totals.missCards} />;
-      case "comment": return (
-        <span className="text-[11px] text-muted-foreground">
-          Result:{" "}
-          <span className={cn("font-mono", amountToneClass(totals.tables + totals.slots - totals.cards))}>
-            {formatNumberSpaces(totals.tables + totals.slots - totals.cards)}
-          </span>
-        </span>
-      );
       default: return null;
     }
   };
+
 
   return (
     <PageShell>
@@ -544,17 +495,8 @@ export default function DayClosingsTab() {
         </div>
       </PageHeader>
 
-      {(health.notLocked || health.auto || health.mismatch || health.missing) > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-card px-3 py-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {MONTH_NAMES[month - 1]} health
-          </span>
-          <Chip n={health.notLocked} label="not locked" tone="amber" />
-          <Chip n={health.auto} label="auto-closed" tone="sky" />
-          <Chip n={health.mismatch} label="variance vs cage" tone="rose" />
-          <Chip n={health.missing} label="missing row" tone="rose" />
-        </div>
-      )}
+
+
 
       <PageSection bodyClassName="p-0">
         <div className="max-h-[70vh] overflow-auto">
@@ -626,48 +568,36 @@ const Money = ({ v }: { v: number }) => (
   <span className={cn("font-mono text-[12px]", amountToneClass(v))}>{formatNumberSpaces(v)}</span>
 );
 
-const Chip = ({ n, label, tone }: { n: number; label: string; tone: "amber" | "sky" | "rose" }) => {
-  if (!n) return null;
-  const cls =
-    tone === "amber" ? "border-amber-500/40 text-amber-500"
-      : tone === "sky" ? "border-sky-500/40 text-sky-500"
-        : "border-rose-500/40 text-rose-500";
-  return (
-    <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider", cls)}>
-      {n} {label}
-    </span>
-  );
-};
-
 const StatusBadge = ({ row }: { row: Row }) => {
-  const base = "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider";
+  const base = "inline-flex h-6 w-6 items-center justify-center rounded border";
   if (!row.existing) {
     if (!row.hadActivity && row.closedByManager === null) {
       return <span className="text-[10px] text-muted-foreground">—</span>;
     }
     return (
-      <span className={cn(base, "border-rose-500/40 text-rose-500")} title="No Day Closing row for this business date">
-        <CircleDashed className="h-3 w-3" /> Missing
+      <span className={cn(base, "border-rose-500/40 text-rose-500")} title="Missing: no Day Closing row for this business date">
+        <CircleDashed className="h-3.5 w-3.5" />
       </span>
     );
   }
   if (!row.existing.locked_at) {
     return (
-      <span className={cn(base, "border-amber-500/40 text-amber-500")} title="Figures entered but not confirmed (OK not pressed)">
-        <Unlock className="h-3 w-3" /> Not locked
+      <span className={cn(base, "border-amber-500/40 text-amber-500")} title="Not locked: figures entered but not confirmed (OK not pressed)">
+        <Unlock className="h-3.5 w-3.5" />
       </span>
     );
   }
   if (row.closedByManager === false) {
     return (
-      <span className={cn(base, "border-sky-500/40 text-sky-500")} title="Business day was closed automatically, not by a manager">
-        <Bot className="h-3 w-3" /> Auto
+      <span className={cn(base, "border-sky-500/40 text-sky-500")} title="Auto: business day was closed automatically, not by a manager">
+        <Bot className="h-3.5 w-3.5" />
       </span>
     );
   }
   return (
     <span className={cn(base, "border-border text-muted-foreground")} title={`Locked ${fmtDate(row.existing.locked_at)}`}>
-      <Lock className="h-3 w-3" /> Locked
+      <Lock className="h-3.5 w-3.5" />
     </span>
   );
 };
+
