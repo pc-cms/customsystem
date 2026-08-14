@@ -133,9 +133,9 @@ function useMonthClosures(year: number, month: number) {
 }
 
 export default function DayClosingsTab() {
-  const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const { period } = useOfficePeriod();
+  const year = period.year;
+  const month = period.month;
   const dates = useMemo(() => buildMonthDates(year, month), [year, month]);
 
   const { data: list = [] } = useDayClosingList();
