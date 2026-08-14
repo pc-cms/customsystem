@@ -242,36 +242,23 @@ export default function FinancesMonthlyReportPage() {
 
   return (
     <PageShell>
-      <PageHeader
-        icon={FileSpreadsheet}
-        title="Monthly Report"
-        subtitle="Plan vs Actual, with drill-down per category"
-        belowHeader={
-          <div className="flex items-center gap-2 flex-wrap">
-            <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-              <SelectContent>{MONTHS.map((m, i) => <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>)}</SelectContent>
-            </Select>
-            <YearSelect value={year} onChange={setYear} className="w-32" />
-
-            <div className="flex items-center gap-2 ml-2">
-              {data?.usd_rate ? (
-                <span className="text-[10px] text-muted-foreground">USD→TZS @ {formatNumberSpaces(Math.round(data.usd_rate))}</span>
-              ) : null}
-            </div>
-            <Tabs value={scope || activeCasinoId || ""} onValueChange={setScope} className="ml-auto">
-              <TabsList>
-                {accessibleCasinos.map((c) => (
-                  <TabsTrigger key={c.id} value={c.id}>{c.name}</TabsTrigger>
-                ))}
-                {isPremier && <TabsTrigger value="network">Network</TabsTrigger>}
-              </TabsList>
-            </Tabs>
-          </div>
-        }
-      >
+      <OfficeActions>
+        {data?.usd_rate ? (
+          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+            USD→TZS @ {formatNumberSpaces(Math.round(data.usd_rate))}
+          </span>
+        ) : null}
+        <Tabs value={scope || activeCasinoId || ""} onValueChange={setScope}>
+          <TabsList className="h-8">
+            {accessibleCasinos.map((c) => (
+              <TabsTrigger key={c.id} value={c.id} className="text-xs">{c.name}</TabsTrigger>
+            ))}
+            {isPremier && <TabsTrigger value="network" className="text-xs">Network</TabsTrigger>}
+          </TabsList>
+        </Tabs>
         <Button variant="outline" size="sm" onClick={exportXlsx} disabled={!data}><Download className="w-4 h-4" /> XLSX</Button>
-      </PageHeader>
+      </OfficeActions>
+
 
       {/* SUMMARY — Incomes + Budget (Plan/Actual/Remain) + Profit & Net Balance, single compact table */}
       {data && <SummaryBlock data={data} />}
