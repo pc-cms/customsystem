@@ -474,6 +474,7 @@ const ProtectedRoutes = () => {
           <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
           {/* All finance surfaces live under /office as flat tabs. /finances/* routes are removed. */}
           <Route path="/office" element={<RoleGuard path="/office"><ErrorBoundary><OfficePage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/budget" element={<RoleGuard path="/office"><ErrorBoundary><BudgetPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
           <Route path="/stats" element={<Navigate to="/player-statistics" replace />} />
           <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />
