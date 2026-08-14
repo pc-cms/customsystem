@@ -248,14 +248,16 @@ export default function FinancesMonthlyReportPage() {
             USD→TZS @ {formatNumberSpaces(Math.round(data.usd_rate))}
           </span>
         ) : null}
-        <Tabs value={scope || activeCasinoId || ""} onValueChange={setScope}>
-          <TabsList className="h-8">
-            {accessibleCasinos.map((c) => (
-              <TabsTrigger key={c.id} value={c.id} className="text-xs">{c.name}</TabsTrigger>
-            ))}
-            {isPremier && <TabsTrigger value="network" className="text-xs">Network</TabsTrigger>}
-          </TabsList>
-        </Tabs>
+        {isPremier && (
+          <Button
+            variant={scope === "network" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setScope(scope === "network" ? activeCasinoId || "" : "network")}
+          >
+            Network
+          </Button>
+        )}
+
         <Button variant="outline" size="sm" onClick={exportXlsx} disabled={!data}><Download className="w-4 h-4" /> XLSX</Button>
       </OfficeActions>
 
