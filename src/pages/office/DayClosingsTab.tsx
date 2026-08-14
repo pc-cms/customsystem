@@ -305,11 +305,6 @@ export default function DayClosingsTab() {
 
 
 
-  const shiftMonth = (delta: number) => {
-    const d = new Date(year, month - 1 + delta, 1);
-    setYear(d.getFullYear());
-    setMonth(d.getMonth() + 1);
-  };
 
   const numCell = (
     r: Row,
