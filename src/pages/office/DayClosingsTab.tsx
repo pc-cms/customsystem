@@ -500,22 +500,12 @@ export default function DayClosingsTab() {
       case "tables": return <Money v={totals.tables} />;
       case "slots": return <Money v={totals.slots - totals.cards} />;
       case "drop": return <span className="font-mono text-[12px] text-muted-foreground">{formatNumberSpaces(totals.drop)}</span>;
-      case "cash": return <Money v={totals.cash} />;
       case "cards": return <span className={cn("font-mono text-[12px]", totals.cards ? "cms-amount-negative" : "text-muted-foreground")}>{totals.cards ? `− ${formatNumberSpaces(totals.cards)}` : "0"}</span>;
       case "jp": return <Money v={totals.jp} />;
-      case "missChips": return <Money v={totals.missChips} />;
-      case "missCards": return <Money v={totals.missCards} />;
-      case "comment": return (
-        <span className="text-[11px] text-muted-foreground">
-          Result:{" "}
-          <span className={cn("font-mono", amountToneClass(totals.tables + totals.slots - totals.cards))}>
-            {formatNumberSpaces(totals.tables + totals.slots - totals.cards)}
-          </span>
-        </span>
-      );
       default: return null;
     }
   };
+
 
   return (
     <PageShell>
