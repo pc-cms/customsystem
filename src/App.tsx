@@ -76,6 +76,7 @@ const Staff = lazy(() => import("@/pages/Staff"));
 // Finances/* routes have been removed. Everything financial lives under /office as flat tabs.
 // The `@/pages/finances/*` files remain on disk because Office lazy-loads them internally.
 const OfficePage = lazy(() => import("@/pages/office/OfficePage"));
+const BudgetPage = lazy(() => import("@/pages/budget/BudgetPage"));
 const Reception = lazy(() => import("@/pages/Reception"));
 const Guests = lazy(() => import("@/pages/Guests"));
 const Blacklist = lazy(() => import("@/pages/Blacklist"));
