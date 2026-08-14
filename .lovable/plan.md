@@ -31,6 +31,17 @@
 Кнопка выбора казино убирается везде, у всех ролей. Данные всегда берутся по домену, на котором открыто приложение. Для домена premier позже будет отдельный интерфейс — сейчас он просто не показывает переключатель.
 
 
+### 1b. Budget — отдельный раздел в сайдбаре
+
+Вкладки **Actual**, **Budget**, **Difference** уходят из Office и становятся собственным разделом:
+
+- в левом меню, в группе **FINANCE**, появляется пункт **Budget** (рядом с Office);
+- внутри страницы — три вкладки: Actual · Budget · Difference, с той же общей панелью и выбором периода;
+- из панели Office эти три вкладки убираются, там остаются Day Closings, JP, Money Change, Monthly Report, Other Incomes, Rates, Wallets.
+
+Доступ к разделу — те же роли, что сейчас видят эти вкладки в Office (super_admin, manager, finance_manager, shift_manager).
+
+
 ### 2. Единый выбор периода: месяц по умолчанию
 
 Вместо пяти кнопок — компактный выбор периода:
@@ -55,4 +66,5 @@
 - Вкладки правятся точечно: удаляется `PageHeader` (или остаётся без `subtitle` и без контролов), локальные состояния периода заменяются на `useOfficePeriod()`; кнопки действий переезжают в общий слот. Затрагиваются: `DayClosingsTab`, `JpTab`, `OtherIncomesTab`, `RatesTab`, `FinancesWalletsPage`, `FinancesMonthlyReportPage`, `FinancesBudgetVsActualPage`, `FinancesBudgetPage`, `FinancesBudgetDifferencePage`, `FinancesMoneyChangePage`.
 - Страницы Finances, которые открываются и вне Office, продолжают работать автономно: при отсутствии контекста используют собственное состояние периода (fallback).
 - Панель делается `sticky` под баннером баланса, с горизонтальным скроллом табов на узких экранах.
+- Новый роут `/budget` (`src/pages/budget/BudgetPage.tsx`) с табами `actual | budget | difference`, использующий тот же toolbar и контекст периода; в `src/App.tsx` добавляется `Route path="/budget"` под `RoleGuard`, в `src/components/layout/AppSidebar.tsx` — пункт `{ to: "/budget", label: "Budget", section: "FINANCE" }`. Из `OFFICE_TABS` в `OfficePage.tsx` удаляются `actual`, `budget`, `difference`; при заходе на `/office?tab=budget` — редирект на `/budget`.
 - Версия приложения поднимается в `package.json`.
