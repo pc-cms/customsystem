@@ -470,30 +470,6 @@ export default function DayClosingsTab() {
 
   return (
     <PageShell>
-      <PageHeader
-        icon={ClipboardPen}
-        title="Day Closings"
-        subtitle="Manual entry per business day · auto values shown as placeholders"
-      >
-        <FinanceCasinoSwitcher allowNetwork={false} />
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => shiftMonth(-1)}>
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <Input
-            type="month"
-            value={`${year}-${pad(month)}`}
-            onChange={(e) => {
-              const [y, m] = e.target.value.split("-").map(Number);
-              if (y && m) { setYear(y); setMonth(m); }
-            }}
-            className="h-8 w-[150px]"
-          />
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => shiftMonth(1)}>
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
-      </PageHeader>
 
 
 
