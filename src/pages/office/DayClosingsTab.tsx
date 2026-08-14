@@ -240,7 +240,7 @@ export default function DayClosingsTab() {
         slots_result: v.slots,
         drop_slots: v.drop,
         net_win: v.slots,
-        cashdesk_win: v.cash,
+        cashdesk_win: v.slots,
         players_card_balance: v.cards,
         notes: finalComment || null,
       });
