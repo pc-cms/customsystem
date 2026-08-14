@@ -626,48 +626,36 @@ const Money = ({ v }: { v: number }) => (
   <span className={cn("font-mono text-[12px]", amountToneClass(v))}>{formatNumberSpaces(v)}</span>
 );
 
-const Chip = ({ n, label, tone }: { n: number; label: string; tone: "amber" | "sky" | "rose" }) => {
-  if (!n) return null;
-  const cls =
-    tone === "amber" ? "border-amber-500/40 text-amber-500"
-      : tone === "sky" ? "border-sky-500/40 text-sky-500"
-        : "border-rose-500/40 text-rose-500";
-  return (
-    <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider", cls)}>
-      {n} {label}
-    </span>
-  );
-};
-
 const StatusBadge = ({ row }: { row: Row }) => {
-  const base = "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider";
+  const base = "inline-flex h-6 w-6 items-center justify-center rounded border";
   if (!row.existing) {
     if (!row.hadActivity && row.closedByManager === null) {
       return <span className="text-[10px] text-muted-foreground">—</span>;
     }
     return (
-      <span className={cn(base, "border-rose-500/40 text-rose-500")} title="No Day Closing row for this business date">
-        <CircleDashed className="h-3 w-3" /> Missing
+      <span className={cn(base, "border-rose-500/40 text-rose-500")} title="Missing: no Day Closing row for this business date">
+        <CircleDashed className="h-3.5 w-3.5" />
       </span>
     );
   }
   if (!row.existing.locked_at) {
     return (
-      <span className={cn(base, "border-amber-500/40 text-amber-500")} title="Figures entered but not confirmed (OK not pressed)">
-        <Unlock className="h-3 w-3" /> Not locked
+      <span className={cn(base, "border-amber-500/40 text-amber-500")} title="Not locked: figures entered but not confirmed (OK not pressed)">
+        <Unlock className="h-3.5 w-3.5" />
       </span>
     );
   }
   if (row.closedByManager === false) {
     return (
-      <span className={cn(base, "border-sky-500/40 text-sky-500")} title="Business day was closed automatically, not by a manager">
-        <Bot className="h-3 w-3" /> Auto
+      <span className={cn(base, "border-sky-500/40 text-sky-500")} title="Auto: business day was closed automatically, not by a manager">
+        <Bot className="h-3.5 w-3.5" />
       </span>
     );
   }
   return (
     <span className={cn(base, "border-border text-muted-foreground")} title={`Locked ${fmtDate(row.existing.locked_at)}`}>
-      <Lock className="h-3 w-3" /> Locked
+      <Lock className="h-3.5 w-3.5" />
     </span>
   );
 };
+
