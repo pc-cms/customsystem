@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { TrendingUp } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
-import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { useFinDailyRates, useUpsertFinDailyRate, useEnsureDailyRates } from "@/hooks/use-fin-daily-rates";
 import { formatNumberSpaces } from "@/lib/currency";
@@ -41,52 +40,88 @@ export default function RatesTab() {
 
   const byKey = useMemo(() => {
     const m = new Map<string, number>();
-    rows.forEach((r) => m.set(`${r.business_date}|${r.currency}`, Number(r.rate_to_tzs)));
+    rows.forEach((r) => m.set(`${r.business_date}|${r.currency}`, Math.round(Number(r.rate_to_tzs))));
     return m;
   }, [rows]);
 
   return (
     <PageShell>
-
-      <PageSection bodyClassName="p-0 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-muted text-xs uppercase tracking-wider text-muted-foreground">
-            <tr>
-              <th className="text-left px-3 py-2 w-32">Date</th>
-              {CURRENCIES.map((c) => (
-                <th key={c} className="text-right px-3 py-2 w-40">
-                  {c} → TZS
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {dates.map((date) => (
-              <tr
-                key={date}
+      {/* Today's rates as headline cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {CURRENCIES.map((c) => {
+          const cur = byKey.get(`${today}|${c}`) ?? null;
+          const prev = byKey.get(`${dates[1]}|${c}`) ?? null;
+          const diff = cur != null && prev != null ? cur - prev : 0;
+          return (
+            <div
+              key={c}
+              className="rounded-lg border border-border bg-card/60 px-4 py-3 flex flex-col gap-1"
+            >
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                {c} → TZS
+              </div>
+              <div className="font-mono text-xl tabular-nums">
+                {cur == null ? <span className="text-muted-foreground">·</span> : formatNumberSpaces(cur)}
+              </div>
+              <div
                 className={cn(
-                  "border-t border-border",
-                  date === today && "bg-primary/5",
+                  "inline-flex items-center gap-1 text-[11px] font-mono",
+                  diff > 0 && "cms-amount-positive",
+                  diff < 0 && "cms-amount-negative",
+                  diff === 0 && "text-muted-foreground",
                 )}
               >
-                <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">
-                  {fmtDate(date)}
-                  {date === today && (
-                    <span className="ml-2 text-[10px] uppercase text-primary">today</span>
-                  )}
-                </td>
+                {diff > 0 ? <ArrowUpRight className="w-3 h-3" /> : diff < 0 ? <ArrowDownRight className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+                {diff === 0 ? "no change" : formatNumberSpaces(Math.abs(diff))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <PageSection bodyClassName="p-0 overflow-hidden">
+        <div className="max-h-[65vh] overflow-auto">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 z-10 bg-muted text-[11px] uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="text-left px-3 py-2 w-36">Date</th>
                 {CURRENCIES.map((c) => (
-                  <RateCell
-                    key={c}
-                    date={date}
-                    currency={c}
-                    value={byKey.get(`${date}|${c}`) ?? null}
-                  />
+                  <th key={c} className="text-right px-3 py-2 w-44">
+                    {c} → TZS
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {dates.map((date) => (
+                <tr
+                  key={date}
+                  className={cn(
+                    "border-t border-border transition-colors hover:bg-muted/40",
+                    date === today
+                      ? "bg-primary/5 border-l-2 border-l-primary"
+                      : "odd:bg-muted/10",
+                  )}
+                >
+                  <td className="px-3 py-1.5 font-mono text-xs whitespace-nowrap">
+                    {fmtDate(date)}
+                    {date === today && (
+                      <span className="ml-2 text-[10px] uppercase tracking-wider text-primary">today</span>
+                    )}
+                  </td>
+                  {CURRENCIES.map((c) => (
+                    <RateCell
+                      key={c}
+                      date={date}
+                      currency={c}
+                      value={byKey.get(`${date}|${c}`) ?? null}
+                    />
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </PageSection>
     </PageShell>
   );
@@ -107,7 +142,7 @@ function RateCell({
 
   const commit = async () => {
     if (draft === "") return;
-    const n = Number(draft);
+    const n = Math.round(Number(draft));
     if (!Number.isFinite(n) || n <= 0) {
       toast.error("Invalid rate");
       return;
@@ -126,9 +161,9 @@ function RateCell({
   };
 
   return (
-    <td className="px-3 py-2 text-right">
+    <td className="px-3 py-1.5 text-right">
       <NumberInput
-        decimals={6}
+        decimals={0}
         value={display}
         placeholder={value == null ? "·" : ""}
         onValueChange={(v) => setDraft(v == null ? "" : String(v))}
@@ -137,16 +172,11 @@ function RateCell({
           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
         }}
         className={cn(
-          "text-right font-mono h-8",
+          "text-right font-mono tabular-nums h-8 bg-transparent border-transparent hover:border-border focus:border-primary",
           value == null && "text-muted-foreground",
-          draft !== "" && "ring-1 ring-primary/40",
+          draft !== "" && "ring-1 ring-primary/40 border-primary/40",
         )}
       />
-      {value != null && (
-        <div className="text-[10px] text-muted-foreground mt-0.5 pr-1">
-          {formatNumberSpaces(value)}
-        </div>
-      )}
     </td>
   );
 }
