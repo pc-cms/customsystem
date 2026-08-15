@@ -11225,6 +11225,19 @@ export type Database = {
             }
             Returns: Json
           }
+        | {
+            Args: {
+              _business_date: string
+              _cashdesk_win: number
+              _casino_id: string
+              _client_balance: number
+              _drop_slots: number
+              _jp_in: number
+              _net_win: number
+              _notes: string
+            }
+            Returns: Json
+          }
       close_open_sessions_5am: { Args: never; Returns: Json }
       club_buy_lottery_ticket: {
         Args: {
