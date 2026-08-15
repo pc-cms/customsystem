@@ -40,7 +40,8 @@ const GuestsList = ({ players, tables, onSelect }: Props) => {
       return data || [];
     },
     enabled: !!casinoId,
-    refetchInterval: 30000,
+    // Realtime (client_sessions) — основной источник; интервал только как fallback.
+    refetchInterval: 10000,
   });
 
   const tableMap = new Map(tables.map(t => [t.id, t]));
