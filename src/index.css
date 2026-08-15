@@ -227,6 +227,15 @@
   * {
     @apply border-border;
   }
+  /* Every text-entry field must show a visible outline in both themes */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]):not([type="file"]):not([class*="border-0"]):not([class*="border-none"]),
+  textarea:not([class*="border-0"]):not([class*="border-none"]),
+  select:not([class*="border-0"]):not([class*="border-none"]) {
+    border-width: 1px;
+    border-style: solid;
+    border-color: hsl(var(--input));
+  }
+
   html {
     @apply scroll-smooth;
     font-size: 17px; /* Design tokens v2: 17px body baseline */
