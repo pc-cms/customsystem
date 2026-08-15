@@ -506,7 +506,10 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
 
   const selectedPlayer = useMemo(() => players.find(p => p.id === playerId) || null, [players, playerId]);
 
+  const submittingRef = useRef(false);
+
   const handleSubmit = () => {
+    if (submittingRef.current || loading) return;
     if (!playerId || tzsAmount <= 0) return;
     if (Number(amount) <= 0) { toast.error("Amount must be greater than zero"); return; }
     if (selectedPlayer?.status === "blacklist") { toast.error("BLOCKED — Player is blacklisted"); return; }
@@ -518,11 +521,31 @@ const InForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, sh
         rate: exchangeRates[currency],
       };
     }
+    const snapshot = { playerId, tableId, amount, chips };
+    submittingRef.current = true;
+    // Clear immediately so the same transaction cannot be submitted twice.
+    lastEditSource.current = "chips";
+    setAmount("");
+    setChips({});
+    setPlayerId("");
+    setTableId("");
     onSubmit({
-      player_id: playerId, table_id: tableId || null, type: "in" as const, amount: tzsAmount, shift_id: shiftId,
-      chips: Object.keys(chips).length > 0 ? chipsPayload : undefined,
-    }, { onSuccess: () => { setAmount(""); setChips({}); amountRef.current?.focus(); } });
+      player_id: snapshot.playerId, table_id: snapshot.tableId || null, type: "in" as const, amount: tzsAmount, shift_id: shiftId,
+      chips: Object.keys(snapshot.chips).length > 0 ? chipsPayload : undefined,
+    }, {
+      onSuccess: () => { amountRef.current?.focus(); },
+      onError: () => {
+        // Restore the entry so the cashier can retry without retyping.
+        setPlayerId(snapshot.playerId);
+        setTableId(snapshot.tableId);
+        lastEditSource.current = "chips";
+        setChips(snapshot.chips);
+        setAmount(snapshot.amount);
+      },
+      onSettled: () => { submittingRef.current = false; },
+    });
   };
+
 
   const form = (
     <div className="space-y-3">
