@@ -181,14 +181,32 @@ export function CloseBusinessDayButton({ className }: { className?: string }) {
         title={
           <span className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-600" />
-            Close business day {currentDate || ""}
+            {isBackfill ? `Record day figures ${effectiveDate}` : `Close business day ${effectiveDate}`}
           </span>
         }
       >
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           {/* LEFT — conditions, table result, last closure */}
           <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="cbd-date" className="text-xs">Business date</Label>
+              <input
+                id="cbd-date"
+                type="date"
+                value={effectiveDate}
+                max={currentDate || undefined}
+                onChange={(e) => setTargetDate(e.target.value)}
+                className={cn(FIELD_CLASS, "text-left")}
+              />
+              {isBackfill && (
+                <p className="text-xs text-muted-foreground">
+                  Day already closed — figures will be saved into Day Closings only.
+                </p>
+              )}
+            </div>
+
             <button
+
               type="button"
               onClick={() => setShowConditions((v) => !v)}
               disabled={!canClose}
