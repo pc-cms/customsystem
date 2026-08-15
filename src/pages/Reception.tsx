@@ -458,6 +458,7 @@ const PlayerConfirmCard = ({
   isPending: boolean;
 }) => {
   const isBlacklisted = player.status === "blacklist";
+  const isVirtual = player.category === "casino";
 
   return (
     <div className={`cms-panel p-4 ${isBlacklisted ? "border-destructive/50 bg-destructive/5" : ""}`}>
