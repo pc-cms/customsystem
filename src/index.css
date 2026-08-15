@@ -126,7 +126,8 @@
     --destructive-foreground: 0 0% 100%;
 
     --border: 38 40% 78%;
-    --input: 38 40% 78%;
+    --input: 220 12% 62%;         /* clearly visible field outline on light bg */
+
     --ring: 38 55% 72%;
 
     --radius: 0.5rem;             /* 8px — tighter, less dark corner bleed */
@@ -189,7 +190,8 @@
     --destructive-foreground: 0 0% 100%;
 
     --border: 38 35% 32%;
-    --input: 38 35% 32%;
+    --input: 220 10% 42%;         /* clearly visible field outline on dark bg */
+
     --ring: 38 60% 65%;
 
     /* Muted-modern status — dark mode */
@@ -225,6 +227,15 @@
   * {
     @apply border-border;
   }
+  /* Every text-entry field must show a visible outline in both themes */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]):not([type="file"]):not([class*="border-0"]):not([class*="border-none"]),
+  textarea:not([class*="border-0"]):not([class*="border-none"]),
+  select:not([class*="border-0"]):not([class*="border-none"]) {
+    border-width: 1px;
+    border-style: solid;
+    border-color: hsl(var(--input));
+  }
+
   html {
     @apply scroll-smooth;
     font-size: 17px; /* Design tokens v2: 17px body baseline */
