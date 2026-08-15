@@ -1,32 +1,24 @@
-# Slots в балансе Wallets = Cash Desk Win
+# Закрытие Arusha за 14/08/2026
 
-## Что меняется
+В `fin_day_closing` нет строки для Arusha за 14/08 (авто-закрытие прошло без цифр). Вношу день вручную.
 
-Сейчас в отчёте Wallets / Balance строка **Slots** берётся из `fin_day_closing.slots_result` (Net Win слотов). По требованию она должна браться из колонки **Cash Desk Win** (`fin_day_closing.cashdesk_win`) — то есть из реальных денег, прошедших через кассу слотов.
+## Данные
 
-Это меняет:
-- значение Slots в Expected (итог и по дням),
-- дневную разбивку (Daily audit rows),
-- итоговый Variance = Actual − Expected.
+| Поле | Значение | Источник |
+|---|---|---|
+| Tables Result (Live Game) | −3 586 000 | Cash Desk Report Arusha 14/08 |
+| Drop Slots | 25 381 730 | ваши данные |
+| Net Win (Slots) | 552 750 | ваши данные |
+| Cash Desk Win | 448 071 | ваши данные |
+| JP | 20 249 | ваши данные |
+| Clients (Card Balance) | −33 430 | ваши данные |
 
-Формула Expected остаётся прежней, меняется только источник Slots:
-
-```text
-Expected = Starting Float
-         + Live Game (tables_result)
-         + Slots (cashdesk_win)   <-- было slots_result
-         + Other Incomes + JP + Card Balance
-         + Missed Chips + Missed Cards
-         − Expenses − Collections
-```
+`slots_result` заполняю значением Cash Desk Win (448 071) — так же, как в уже закрытых днях Arusha/Mbeya/Mwanza.
+JP записываю в `income_lines` строкой JP = 20 249, как в остальных днях.
 
 ## Технически
 
-- Обновить функцию `fin_balance_snapshot`: заменить `SUM(slots_result)` на `SUM(cashdesk_win)` в блоке `incomes` и в дневной разбивке (`daily`), а также в поле `net` каждого дня и в условии фильтрации дней с движением.
-- Клиентский код (`use-fin-balance.ts`, `FinancesWalletsPage.tsx`, `BalanceBanner.tsx`) не меняется — поле `incomes.slots` остаётся тем же.
-- Подпись источника в UI/подсказках, где указано «Slots result», поправить на «Cash Desk Win» (Wallets).
-- Поднять версию приложения.
+- INSERT в `public.fin_day_closing` для casino Arusha, business_date 2026-08-14 (через insert-инструмент, не миграция).
+- После записи проверю, что день отображается в Office → Day Closings и попадает в Wallets/Balance и CMB.
 
-## Вопрос вне области изменений
-
-Casino Monthly Balance (CMB) и Dashboard/Monthly Report продолжают использовать `slots_result` — трогать их не буду, если не скажете иначе.
+Строку не блокирую (`locked_at` оставляю пустым), чтобы менеджер мог поправить цифры.
