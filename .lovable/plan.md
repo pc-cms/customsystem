@@ -2,7 +2,7 @@
 
 ## Что сейчас (проверено)
 
-- Виртуальные игроки категории `casino`: ARK FLOOR / ARK LIVE GAME (Arusha), MBI FLOOR / MBI LIVE GAME (Mbeya), MWZ FLOOR / MWZ LIVE GAME (Mwanza), DOD FLOOR / DOD LIVE GAME (Dodoma).
+- Виртуальные игроки категории `casino` — правило применяется ко всем четырём казино: ARK FLOOR / ARK LIVE GAME (Arusha), MBI FLOOR / MBI LIVE GAME (Mbeya), MWZ FLOOR / MWZ LIVE GAME (Mwanza), **DOD FLOOR / DOD LIVE GAME (Dodoma)**.
 - Вход: edge-функция `auto-checkin-tips`, вызывается двумя дублирующими cron-задачами (`auto-checkin-tips-arusha` и `auto-checkin-tips-daily`) в 10:00 UTC = **13:00 EAT**.
 - Выход: `auto_close_business_day` (04:05 UTC = 07:05 EAT, внутри защита «не раньше 7 утра») закрывает все открытые визиты, плюс закрытие бизнес-дня.
 - Ручной чекаут в Reception и Guests сейчас доступен всем — визит можно закрыть в любой момент, ничем не блокируется.
