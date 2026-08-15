@@ -324,9 +324,9 @@ export function CloseBusinessDayButton({ className }: { className?: string }) {
         onClose={() => setAskPassword(false)}
         onConfirm={handleManagerVerified}
         title="Confirm Close Business Day"
-        description={`Enter manager credentials to close business day ${currentDate || ""}.`}
+        description={`Enter manager credentials to ${isBackfill ? "record figures for" : "close"} business day ${effectiveDate}.`}
         actionType="BUSINESS_DAY_CLOSE_CONFIRM"
-        actionDetails={{ business_date: currentDate, ...figures }}
+        actionDetails={{ business_date: effectiveDate, ...figures }}
       />
     </>
   );
