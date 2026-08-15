@@ -99,14 +99,16 @@ export function CloseBusinessDayButton({ className }: { className?: string }) {
   const { data: lastClosure } = useLastBusinessDayClosure();
   const { data: openCycles } = useOpenCyclesForDay();
   const closeMut = useCloseBusinessDayWithFigures();
-  const { data: tablesResultAuto = 0 } = useShiftsTablesResultForDate(currentDate);
 
   const [open, setOpen] = useState(false);
   const [askPassword, setAskPassword] = useState(false);
   const [showConditions, setShowConditions] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
-
   const [targetDate, setTargetDate] = useState<string>("");
+
+  const { data: tablesResultAuto = 0 } = useShiftsTablesResultForDate(targetDate || currentDate);
+
+
   const [dropSlots, setDropSlots] = useState<number | null>(null);
   const [netWin, setNetWin] = useState<number | null>(null);
   const [cashDeskWin, setCashDeskWin] = useState<number | null>(null);
