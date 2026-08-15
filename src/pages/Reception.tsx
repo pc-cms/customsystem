@@ -538,6 +538,10 @@ const PlayerConfirmCard = ({
         </Button>
         {isBlacklisted ? (
           <div className="text-sm font-medium text-destructive">Entry denied</div>
+        ) : isVirtual ? (
+          <div className="text-xs text-muted-foreground text-right max-w-[280px]">
+            Virtual account — closes automatically at the business-day rollover
+          </div>
         ) : isCheckedIn ? (
           <Button onClick={onCheckOut} disabled={isPending} className="gap-1.5 h-11 px-6 min-w-[180px]" variant="secondary">
             <LogOut className="w-4 h-4" /> Check Out
