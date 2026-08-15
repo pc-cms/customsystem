@@ -106,6 +106,7 @@ export function CloseBusinessDayButton({ className }: { className?: string }) {
   const [showConditions, setShowConditions] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
 
+  const [targetDate, setTargetDate] = useState<string>("");
   const [dropSlots, setDropSlots] = useState<number | null>(null);
   const [netWin, setNetWin] = useState<number | null>(null);
   const [cashDeskWin, setCashDeskWin] = useState<number | null>(null);
@@ -120,11 +121,16 @@ export function CloseBusinessDayButton({ className }: { className?: string }) {
 
   if (!canSee) return null;
 
+  const effectiveDate = targetDate || currentDate || "";
+  // Recording figures for an earlier (already closed) day never depends on
+  // today's open cycles — it only writes into Day Closings.
+  const isBackfill = !!currentDate && !!effectiveDate && effectiveDate !== currentDate;
+
   const c = openCycles;
-  const cageOk = !c?.open_cage_shifts?.length;
-  const slotsOk = !c?.open_slots_shifts?.length;
-  const tablesOk = !c?.open_tables?.length;
-  const sessionsOk = !c?.active_sessions?.length && !c?.open_visits?.length;
+  const cageOk = isBackfill || !c?.open_cage_shifts?.length;
+  const slotsOk = isBackfill || !c?.open_slots_shifts?.length;
+  const tablesOk = isBackfill || !c?.open_tables?.length;
+  const sessionsOk = isBackfill || (!c?.active_sessions?.length && !c?.open_visits?.length);
   const figuresOk = Object.values(figures).every((v) => v !== null);
   const conditions = [cageOk, slotsOk, tablesOk, sessionsOk, figuresOk];
   const passed = conditions.filter(Boolean).length;
@@ -146,13 +152,15 @@ export function CloseBusinessDayButton({ className }: { className?: string }) {
         clientBalance: figures.clientBalance as number,
         jpIn,
         notes: notes.trim() || undefined,
+        businessDate: effectiveDate || null,
       });
       setDropSlots(null); setNetWin(null); setCashDeskWin(null); setClientBalance(null);
-      setJpIn(null); setNotes("");
+      setJpIn(null); setNotes(""); setTargetDate("");
     } catch {
       /* toast already shown by the mutation */
     }
   };
+
 
   return (
     <>
