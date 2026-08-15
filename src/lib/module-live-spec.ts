@@ -93,6 +93,12 @@ export const MODULE_LIVE_SPEC: Partial<Record<ModuleKey, LiveTableSpec[]>> = {
     { table: "cage_transfers", queryKeyPrefixes: ["cage-transfers"] },
     { table: "chip_transfers", queryKeyPrefixes: ["chip-transfers"] },
     { table: "chip_inventory", queryKeyPrefixes: ["chip-inventory", "chips"] },
+    // Новая регистрация / изменение игрока должны появляться у кассира сразу,
+    // а не после refetchOnMount / истечения staleTime.
+    { table: "players", queryKeyPrefixes: ["players"] },
+    { table: "player_cards", queryKeyPrefixes: ["players"] },
+    // Посадка игрока за стол — список Guests показывает стол.
+    { table: "client_sessions", queryKeyPrefixes: ["active-sessions-cage"] },
   ],
   cage_view: [
     { table: "shifts", queryKeyPrefixes: ["shifts", "shift"] },
