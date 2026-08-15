@@ -288,7 +288,7 @@ const Guests = () => {
             <LogIn className="w-3 h-3" /> Check In
           </Button>
         )}
-        {!r.isCandidate && r.isInside && (
+        {!r.isCandidate && r.isInside && r.category !== "casino" && (
           <Button variant="outline" size="sm" className="h-7 ml-1 text-xs gap-1" onClick={() => confirmExit.mutate(r.id)} disabled={confirmExit.isPending}>
             <LogOut className="w-3 h-3" /> Check Out
           </Button>
