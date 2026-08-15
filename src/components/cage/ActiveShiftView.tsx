@@ -652,7 +652,10 @@ const OutForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, s
     return raw * (exchangeRates[payoutCurrency] || 0);
   }, [payoutAmount, payoutCurrency, exchangeRates, total]);
 
+  const submittingRef = useRef(false);
+
   const handleSubmit = () => {
+    if (submittingRef.current || loading) return;
     if (!playerId || total <= 0) return;
     if (selectedPlayer?.status === "blacklist") { toast.error("BLOCKED — Player is blacklisted"); return; }
     const raw = Number(payoutAmount) || 0;
@@ -669,9 +672,25 @@ const OutForm = ({ players, tables, exchangeRates, shiftId, onSubmit, loading, s
         payout_amount: raw,
       };
     }
-    onSubmit({ player_id: playerId, table_id: null, type: "out" as const, amount: payoutTzs, chips: chipsPayload, shift_id: shiftId },
-      { onSuccess: () => { setChips({}); setPayoutAmount(""); } });
+    const snapshot = { playerId, chips, payoutAmount };
+    submittingRef.current = true;
+    // Clear immediately so the same transaction cannot be submitted twice.
+    setChips({});
+    setPayoutAmount("");
+    setPlayerId("");
+    onSubmit(
+      { player_id: snapshot.playerId, table_id: null, type: "out" as const, amount: payoutTzs, chips: chipsPayload, shift_id: shiftId },
+      {
+        onError: () => {
+          setPlayerId(snapshot.playerId);
+          setChips(snapshot.chips);
+          setPayoutAmount(snapshot.payoutAmount);
+        },
+        onSettled: () => { submittingRef.current = false; },
+      },
+    );
   };
+
 
   const form = (
     <div className="space-y-3">
