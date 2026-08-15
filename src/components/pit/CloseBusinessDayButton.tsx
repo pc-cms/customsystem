@@ -99,12 +99,15 @@ export function CloseBusinessDayButton({ className }: { className?: string }) {
   const { data: lastClosure } = useLastBusinessDayClosure();
   const { data: openCycles } = useOpenCyclesForDay();
   const closeMut = useCloseBusinessDayWithFigures();
-  const { data: tablesResultAuto = 0 } = useShiftsTablesResultForDate(currentDate);
 
   const [open, setOpen] = useState(false);
   const [askPassword, setAskPassword] = useState(false);
   const [showConditions, setShowConditions] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [targetDate, setTargetDate] = useState<string>("");
+
+  const { data: tablesResultAuto = 0 } = useShiftsTablesResultForDate(targetDate || currentDate);
+
 
   const [dropSlots, setDropSlots] = useState<number | null>(null);
   const [netWin, setNetWin] = useState<number | null>(null);
@@ -120,11 +123,16 @@ export function CloseBusinessDayButton({ className }: { className?: string }) {
 
   if (!canSee) return null;
 
+  const effectiveDate = targetDate || currentDate || "";
+  // Recording figures for an earlier (already closed) day never depends on
+  // today's open cycles — it only writes into Day Closings.
+  const isBackfill = !!currentDate && !!effectiveDate && effectiveDate !== currentDate;
+
   const c = openCycles;
-  const cageOk = !c?.open_cage_shifts?.length;
-  const slotsOk = !c?.open_slots_shifts?.length;
-  const tablesOk = !c?.open_tables?.length;
-  const sessionsOk = !c?.active_sessions?.length && !c?.open_visits?.length;
+  const cageOk = isBackfill || !c?.open_cage_shifts?.length;
+  const slotsOk = isBackfill || !c?.open_slots_shifts?.length;
+  const tablesOk = isBackfill || !c?.open_tables?.length;
+  const sessionsOk = isBackfill || (!c?.active_sessions?.length && !c?.open_visits?.length);
   const figuresOk = Object.values(figures).every((v) => v !== null);
   const conditions = [cageOk, slotsOk, tablesOk, sessionsOk, figuresOk];
   const passed = conditions.filter(Boolean).length;
@@ -146,13 +154,15 @@ export function CloseBusinessDayButton({ className }: { className?: string }) {
         clientBalance: figures.clientBalance as number,
         jpIn,
         notes: notes.trim() || undefined,
+        businessDate: effectiveDate || null,
       });
       setDropSlots(null); setNetWin(null); setCashDeskWin(null); setClientBalance(null);
-      setJpIn(null); setNotes("");
+      setJpIn(null); setNotes(""); setTargetDate("");
     } catch {
       /* toast already shown by the mutation */
     }
   };
+
 
   return (
     <>
@@ -173,14 +183,32 @@ export function CloseBusinessDayButton({ className }: { className?: string }) {
         title={
           <span className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-600" />
-            Close business day {currentDate || ""}
+            {isBackfill ? `Record day figures ${effectiveDate}` : `Close business day ${effectiveDate}`}
           </span>
         }
       >
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           {/* LEFT — conditions, table result, last closure */}
           <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="cbd-date" className="text-xs">Business date</Label>
+              <input
+                id="cbd-date"
+                type="date"
+                value={effectiveDate}
+                max={currentDate || undefined}
+                onChange={(e) => setTargetDate(e.target.value)}
+                className={cn(FIELD_CLASS, "text-left")}
+              />
+              {isBackfill && (
+                <p className="text-xs text-muted-foreground">
+                  Day already closed — figures will be saved into Day Closings only.
+                </p>
+              )}
+            </div>
+
             <button
+
               type="button"
               onClick={() => setShowConditions((v) => !v)}
               disabled={!canClose}
@@ -296,9 +324,9 @@ export function CloseBusinessDayButton({ className }: { className?: string }) {
         onClose={() => setAskPassword(false)}
         onConfirm={handleManagerVerified}
         title="Confirm Close Business Day"
-        description={`Enter manager credentials to close business day ${currentDate || ""}.`}
+        description={`Enter manager credentials to ${isBackfill ? "record figures for" : "close"} business day ${effectiveDate}.`}
         actionType="BUSINESS_DAY_CLOSE_CONFIRM"
-        actionDetails={{ business_date: currentDate, ...figures }}
+        actionDetails={{ business_date: effectiveDate, ...figures }}
       />
     </>
   );

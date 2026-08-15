@@ -126,6 +126,8 @@ export type CloseDayFigures = {
   clientBalance: number;
   jpIn?: number | null;
   notes?: string;
+  /** Optional explicit business date (defaults to the current open day). */
+  businessDate?: string | null;
 };
 
 /** Manual close with mandatory day figures — writes straight into Day Closings. */
@@ -143,13 +145,14 @@ export function useCloseBusinessDayWithFigures() {
         _client_balance: f.clientBalance,
         _notes: f.notes || null,
         _jp_in: f.jpIn ?? null,
+        _business_date: f.businessDate ?? null,
       } as any);
       if (error) throw error;
       return data as { status: string; business_date?: string; open?: any };
     },
 
     onSuccess: (res) => {
-      const closed = !res?.status || !["already_closed", "figures_required", "has_open_cycles"].includes(res.status);
+      const closed = !res?.status || !["already_closed", "figures_required", "has_open_cycles", "future_date", "figures_saved"].includes(res.status);
       if (closed && casinoId) {
         // Day really rolled over: drop the cached business date and every
         // cached page of the finished day so screens start empty on the new day.
@@ -158,7 +161,11 @@ export function useCloseBusinessDayWithFigures() {
       }
       qc.invalidateQueries();
 
-      if (res?.status === "already_closed") {
+      if (res?.status === "figures_saved") {
+        toast.success(`Figures saved for ${res.business_date} (day was already closed)`);
+      } else if (res?.status === "future_date") {
+        toast.error("Cannot record figures for a future business date");
+      } else if (res?.status === "already_closed") {
         toast.info(`Day ${res.business_date} is already closed`);
       } else if (res?.status === "figures_required") {
         toast.error("All four figures are required");
@@ -178,6 +185,7 @@ export function useCloseBusinessDayWithFigures() {
     onError: (e: Error) => toast.error(e.message),
   });
 }
+
 
 /**
  * NOTE: closing a day WITHOUT figures is intentionally not exposed to the UI.
