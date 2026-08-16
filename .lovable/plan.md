@@ -1,24 +1,34 @@
-# Numeric inputs: arrow-key navigation instead of value stepping
+# Цифровые ячейки: стрелки переключают поле, а не меняют значение
 
-## Goal
-In chip-count grids, cash-count grids and every other numeric cell, the up/down arrows must no longer increase or decrease the number. Instead arrows move focus between fields, so a counter can fill a whole column with one hand, just like Tab.
+## Цель
+Везде, где вводятся числа (фишки, наличные, флоты, открытие/закрытие смены, закрытие дня, расходы, POS и т.д.) стрелки вверх/вниз больше не увеличивают и не уменьшают цифру. Вместо этого они перемещают курсор в соседнюю ячейку — как Tab, только удобнее для счёта одной рукой.
 
-## Behaviour after the change
-- Arrow Up / Arrow Down: move focus to the previous / next numeric field (same behaviour as Shift+Tab / Tab).
-- Arrow Left / Arrow Right: normal caret movement inside the number; only when the caret is already at the very start (Left) or very end (Right) of the field does focus jump to the previous / next numeric field.
-- Tab / Shift+Tab: unchanged, native behaviour.
-- Enter: unchanged where a screen already defines it (chip grid jumps to the next denomination and then submits).
-- Native browser spinner arrows stay hidden (the `no-spin` styling already covers this).
-- Moving focus selects the whole value in the target field, so typing overwrites it.
+## Как будет работать
+- Стрелка вверх / вниз — переход на предыдущее / следующее числовое поле.
+- Стрелка влево / вправо — обычное перемещение курсора внутри числа; переход в соседнее поле только если курсор уже в самом начале (влево) или в самом конце (вправо).
+- Tab / Shift+Tab — как сейчас.
+- Enter — как сейчас (в сетке фишек идёт на следующий номинал, на последнем — отправляет форму).
+- Родные стрелочки браузера (спиннеры) скрыты во всех числовых полях, включая те, что ещё используют `type="number"`.
+- При переходе значение в новой ячейке выделяется целиком — набор сразу перезаписывает старое число.
 
-Field order for arrows follows the visual DOM order of numeric fields inside the nearest enclosing form / dialog / panel, so a chip column, a cash column or a stock-count list is traversed top to bottom.
+Порядок обхода — визуальный порядок полей внутри ближайшей формы / диалога / панели: колонка фишек, колонка наличных, список остатков считается сверху вниз.
 
-## Technical notes
-- `src/components/ui/number-input.tsx` is the single primitive used by chip input, cash input, POS stock count, inline report cells, etc. All changes land there.
-  - Delete the `ArrowUp` / `ArrowDown` increment branch and stop using the `step` prop for stepping (prop kept as a no-op for existing call sites to avoid touching every screen).
-  - Tag every rendered input with `data-num-input` so siblings can be discovered.
-  - Add a shared helper that collects `input[data-num-input]:not([disabled]):not([readonly])` inside the closest `form`, `[role=dialog]`, or `[data-num-group]` container (falling back to `document`), sorts by DOM order, and focuses the neighbour with `select()`.
-  - Custom `onKeyDown` handlers passed in by call sites keep running first; navigation only fires when the event was not already prevented (so the chip grid's Enter logic is untouched).
-- `src/components/staff-master/editable-cell.tsx` uses a raw `<input>` rather than `NumberInput`; give its numeric variant the same `data-num-input` tag and key handling so the staff grid behaves consistently.
-- Add unit coverage in `src/test/number-input.test.ts` for the navigation helper's ordering/edge-caret logic.
-- Bump the app version in `package.json`.
+## Где это заработает
+Общий примитив `NumberInput` уже используется практически везде, поэтому правка одного файла покрывает:
+- Касса: открытие смены, закрытие смены, Chips Check, Cash Count, промо, тикеты, трансферы.
+- Слоты: открытие/закрытие смены, трансферы, Tips/CD, карты.
+- Флоты и настройки: Float Management, настройки казино, эмиссия фишек.
+- Финансы: Wallets (физический пересчёт), Day Closings, расходы, Inter-Casino, Monthly Report, Office (JP, Rates, Other Incomes).
+- Прочее: POS (закупки, рецепты, склад), Payroll, Attendance, инциденты, лотереи, промо, Player Tracking.
+
+Отдельно доработаем поля, которые ещё не используют общий примитив (Staff Master, POS-настройки, Break List, Payroll, промо-страницы) — им дадим то же поведение.
+
+## Техническая часть
+- `src/components/ui/number-input.tsx`:
+  - убрать ветку инкремента по `ArrowUp` / `ArrowDown` (проп `step` останется как no-op, чтобы не трогать десятки вызовов);
+  - помечать каждый инпут атрибутом `data-num-input`;
+  - общий хелпер собирает `input[data-num-input]:not([disabled]):not([readonly])` внутри ближайшего `form` / `[role=dialog]` / `[data-num-group]` (иначе — весь документ), сортирует по DOM-порядку и фокусирует соседа с `select()`;
+  - пользовательский `onKeyDown` вызывается первым; навигация срабатывает только если событие не было отменено — логика Enter в сетке фишек не ломается.
+- `src/components/staff-master/editable-cell.tsx` и оставшиеся `type="number"` поля (POS-настройки, Break List, Payroll, промо, категории) — навесить тот же атрибут и обработчик, спиннеры скрыть через существующий класс `no-spin` / глобальное правило в `src/index.css`.
+- Тесты в `src/test/number-input.test.ts` на порядок обхода и поведение курсора у границ.
+- Поднять версию приложения в `package.json`.
