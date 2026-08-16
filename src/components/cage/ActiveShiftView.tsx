@@ -911,7 +911,16 @@ const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRate
         },
       },
       total: totalTzs,
-    }, { onSuccess: () => setShowDiff(true) });
+    }, {
+      onSuccess: () => {
+        setShowDiff(true);
+        recordedRef.current = true;
+        try { localStorage.removeItem(draftKey); } catch { /* noop */ }
+        clearDirty(draftKey);
+        // allow a new draft cycle for the next check
+        setTimeout(() => { recordedRef.current = false; }, 0);
+      },
+    });
   };
 
   const diffLabel = (() => {
