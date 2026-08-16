@@ -20,7 +20,7 @@ import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-bu
 import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, isExtraShift } from "@/lib/shift-colors";
 import { predictedShiftHours } from "@/lib/shift-hours";
 import { useCasino } from "@/lib/casino-context";
-import { usesArushaShiftGrid } from "@/hooks/use-staff";
+import { usesArushaShiftGrid, usesDodomaShiftGrid } from "@/hooks/use-staff";
 import { parseAttValue, normalizeAttInput, isStatusCode } from "@/lib/attendance-code";
 
 import { PageShell } from "@/components/layout/PageShell";
@@ -671,7 +671,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   const endDate = `${month}-${String(daysInMonth).padStart(2, "0")}`;
 
   const { activeCasino } = useCasino();
-  const hoursScope = usesArushaShiftGrid(activeCasino) ? "pit_arusha" : "pit";
+  const hoursScope = usesDodomaShiftGrid(activeCasino) ? "pit_dodoma" : usesArushaShiftGrid(activeCasino) ? "pit_arusha" : "pit";
   const { data: dealers = [] } = useDealers();
   const { data: rota = [] } = usePitRotaRange(startDate, endDate);
   const { data: monthAttendance = [] } = useDealerAttendanceRange(startDate, endDate);
@@ -1047,7 +1047,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   const activeDealers = sortByCategory(dealers.filter((d: any) => d.is_active && !d.is_pit_boss), attSort);
   const pitBosses = sortByCategory(dealers.filter((d: any) => d.is_active && d.is_pit_boss), attSort);
 
-  const attHoursScope = usesArushaShiftGrid(activeCasinoForAtt) ? "pit_arusha" : "pit";
+  const attHoursScope = usesDodomaShiftGrid(activeCasinoForAtt) ? "pit_dodoma" : usesArushaShiftGrid(activeCasinoForAtt) ? "pit_arusha" : "pit";
 
   const getRotaShift = (dealerId: string, day: number): string | null => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
