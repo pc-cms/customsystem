@@ -10,7 +10,7 @@
  * Staff:            every working shift → 8h
  * Leave (L) and Off (O) are always 0h.
  */
-export type ShiftHoursScope = "pit" | "staff" | "pit_arusha";
+export type ShiftHoursScope = "pit" | "staff" | "pit_arusha" | "pit_dodoma";
 
 const NON_WORKING = new Set(["L", "O", "SP", "A", "S"]);
 
