@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatSpacedInput, formatSpacedValue, parseSpacedNumber } from "@/components/ui/number-input";
+import { formatSpacedInput, formatSpacedValue, parseSpacedNumber, numericNavDirection } from "@/components/ui/number-input";
 describe("number input", () => {
   it("groups while typing", () => {
     expect(formatSpacedInput("1234567", 0, true)).toBe("1 234 567");
@@ -18,5 +18,22 @@ describe("number input", () => {
     expect(formatSpacedValue(1000000, 0, true)).toBe("1 000 000");
     expect(formatSpacedValue(-1234.5, 2, true)).toBe("-1 234.50");
     expect(formatSpacedValue(0, 0, false)).toBe("");
+  });
+});
+
+describe("arrow navigation", () => {
+  it("moves on up/down", () => {
+    expect(numericNavDirection("ArrowUp", 2, 2, 5)).toBe(-1);
+    expect(numericNavDirection("ArrowDown", 2, 2, 5)).toBe(1);
+  });
+  it("left/right only at caret edges", () => {
+    expect(numericNavDirection("ArrowLeft", 0, 0, 5)).toBe(-1);
+    expect(numericNavDirection("ArrowLeft", 1, 1, 5)).toBe(null);
+    expect(numericNavDirection("ArrowRight", 5, 5, 5)).toBe(1);
+    expect(numericNavDirection("ArrowRight", 4, 4, 5)).toBe(null);
+  });
+  it("ignores selections and other keys", () => {
+    expect(numericNavDirection("ArrowLeft", 0, 3, 5)).toBe(null);
+    expect(numericNavDirection("Enter", 0, 0, 5)).toBe(null);
   });
 });

@@ -78,12 +78,66 @@ export type NumberInputProps = Omit<
   allowNegative?: boolean;
   /** Show "0" instead of an empty field when the value is 0. */
   keepZero?: boolean;
-  /** Arrow up/down increment. */
+  /** Deprecated no-op — arrows navigate between cells instead of stepping. */
   step?: number;
   min?: number;
   max?: number;
   /** Numeric placeholder — formatted with spaces automatically. */
   placeholderValue?: number | null;
+};
+
+/**
+ * Arrow-key navigation between numeric cells.
+ *
+ * Up/Down always move focus to the previous/next numeric input; Left/Right move
+ * the caret and only jump when the caret already sits at the edge of the value.
+ * Fields are discovered inside the closest form / dialog / [data-num-group],
+ * in visual DOM order.
+ */
+const NUM_INPUT_SELECTOR =
+  'input[data-num-input]:not([disabled]):not([readonly]), input[type="number"]:not([disabled]):not([readonly])';
+
+export const collectNumericInputs = (el: HTMLInputElement): HTMLInputElement[] => {
+  const scope: ParentNode =
+    el.closest("form, [role='dialog'], [data-num-group]") ?? el.ownerDocument;
+  return Array.from(scope.querySelectorAll<HTMLInputElement>(NUM_INPUT_SELECTOR));
+};
+
+export const focusNeighborNumericInput = (el: HTMLInputElement, dir: 1 | -1): boolean => {
+  const list = collectNumericInputs(el);
+  const idx = list.indexOf(el);
+  if (idx === -1) return false;
+  const next = list[idx + dir];
+  if (!next) return false;
+  next.focus();
+  next.select?.();
+  return true;
+};
+
+/** Decide the navigation direction for a key event (null = do nothing). */
+export const numericNavDirection = (
+  key: string,
+  caretStart: number | null,
+  caretEnd: number | null,
+  length: number,
+): 1 | -1 | null => {
+  if (key === "ArrowUp") return -1;
+  if (key === "ArrowDown") return 1;
+  if (caretStart == null || caretEnd == null || caretStart !== caretEnd) return null;
+  if (key === "ArrowLeft") return caretStart === 0 ? -1 : null;
+  if (key === "ArrowRight") return caretEnd === length ? 1 : null;
+  return null;
+};
+
+export const handleNumericArrowNav = (
+  e: React.KeyboardEvent<HTMLInputElement> | KeyboardEvent,
+) => {
+  if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  const el = ("currentTarget" in e ? e.currentTarget : null) as HTMLInputElement | null;
+  if (!el || !(el instanceof HTMLInputElement)) return;
+  const dir = numericNavDirection(e.key, el.selectionStart, el.selectionEnd, el.value.length);
+  if (!dir) return;
+  if (focusNeighborNumericInput(el, dir)) e.preventDefault();
 };
 
 export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
@@ -95,7 +149,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
       decimals = 0,
       allowNegative = true,
       keepZero = false,
-      step = 1,
+      step: _step,
       min,
       max,
       placeholderValue,
@@ -168,15 +222,10 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
           onBlur?.(e);
         }}
         onKeyDown={(e) => {
-          if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-            e.preventDefault();
-            const base = parseSpacedNumber(raw) ?? 0;
-            const next = clamp(base + (e.key === "ArrowUp" ? step : -step));
-            setRaw(formatSpacedValue(next, decimals, true));
-            notify(next);
-          }
           onKeyDown?.(e);
+          handleNumericArrowNav(e);
         }}
+        data-num-input=""
         {...rest}
       />
     );
