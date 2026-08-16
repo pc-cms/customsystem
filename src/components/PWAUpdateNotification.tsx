@@ -53,6 +53,27 @@ export const PWAUpdateNotification = () => {
 
   if (!visible) return null;
 
+  // Unsaved input on screen (Chips Check, cash count…) — never block the UI,
+  // show a small corner banner instead so nothing is lost.
+  if (dirty) {
+    return (
+      <div className="fixed bottom-4 right-4 z-[9999] max-w-xs rounded-lg border border-border bg-card shadow-xl p-3 flex items-start gap-3">
+        <Download className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-foreground">New version ready</p>
+          <p className="text-[11px] text-muted-foreground mb-2">
+            Finish and save your current entry, then update.
+          </p>
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleUpdate}>
+            <RefreshCw className="w-3 h-3 mr-1" /> Update now
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+
+
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="w-full max-w-md mx-4 bg-card border border-border rounded-xl shadow-2xl p-6 text-center animate-in zoom-in-95 duration-200">
