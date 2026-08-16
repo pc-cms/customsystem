@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { RefreshCw, Download, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { hasDirtyWork, subscribeDirty } from "@/lib/dirty-guard";
 
 declare const __APP_VERSION__: string | undefined;
 
