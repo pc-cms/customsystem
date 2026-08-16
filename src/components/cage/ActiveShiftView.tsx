@@ -44,6 +44,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useExpectedCheckState } from "@/hooks/use-expected-check-state";
 import CashCheckNewGrid from "@/components/cage/CashCheckNewGrid";
+import { setDirty, clearDirty } from "@/lib/dirty-guard";
 
 import {
   MOBILE_PROVIDERS, emptyMobile, emptyBanks, mobileTotal, bankTotalTzs,
