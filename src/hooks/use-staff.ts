@@ -106,6 +106,12 @@ export const usesArushaShiftGrid = (casino?: { slug?: string | null; code?: stri
   return s.includes("arusha") || /\bar\b/.test(s);
 };
 
+/** True for Dodoma — Live Game shifts: M 20:00–06:00 (10h), N 18:00–06:00 (12h). */
+export const usesDodomaShiftGrid = (casino?: { slug?: string | null; code?: string | null; name?: string | null } | null): boolean => {
+  const s = `${casino?.slug ?? ""} ${casino?.code ?? ""} ${casino?.name ?? ""}`.toLowerCase();
+  return s.includes("dodoma") || /\bdod\b/.test(s);
+};
+
 /** Resolve the rota group definition for a group + casino. */
 export const getRotaGroup = (
   groupKey: RotaGroupKey,
