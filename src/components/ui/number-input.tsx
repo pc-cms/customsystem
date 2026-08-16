@@ -78,7 +78,7 @@ export type NumberInputProps = Omit<
   allowNegative?: boolean;
   /** Show "0" instead of an empty field when the value is 0. */
   keepZero?: boolean;
-  /** Arrow up/down increment. */
+  /** Deprecated no-op — arrows navigate between cells instead of stepping. */
   step?: number;
   min?: number;
   max?: number;
@@ -94,7 +94,8 @@ export type NumberInputProps = Omit<
  * Fields are discovered inside the closest form / dialog / [data-num-group],
  * in visual DOM order.
  */
-const NUM_INPUT_SELECTOR = 'input[data-num-input]:not([disabled]):not([readonly])';
+const NUM_INPUT_SELECTOR =
+  'input[data-num-input]:not([disabled]):not([readonly]), input[type="number"]:not([disabled]):not([readonly])';
 
 export const collectNumericInputs = (el: HTMLInputElement): HTMLInputElement[] => {
   const scope: ParentNode =
@@ -128,10 +129,12 @@ export const numericNavDirection = (
   return null;
 };
 
-export const handleNumericArrowNav = (e: React.KeyboardEvent<HTMLInputElement>) => {
+export const handleNumericArrowNav = (
+  e: React.KeyboardEvent<HTMLInputElement> | KeyboardEvent,
+) => {
   if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
-  const el = e.currentTarget;
-  if (!el) return;
+  const el = ("currentTarget" in e ? e.currentTarget : null) as HTMLInputElement | null;
+  if (!el || !(el instanceof HTMLInputElement)) return;
   const dir = numericNavDirection(e.key, el.selectionStart, el.selectionEnd, el.value.length);
   if (!dir) return;
   if (focusNeighborNumericInput(el, dir)) e.preventDefault();
@@ -146,7 +149,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
       decimals = 0,
       allowNegative = true,
       keepZero = false,
-      step = 1,
+      step: _step,
       min,
       max,
       placeholderValue,
