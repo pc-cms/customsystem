@@ -17,6 +17,9 @@ export const PWAUpdateNotification = () => {
   const [visible, setVisible] = useState(false);
   const [updateFn, setUpdateFn] = useState<UpdateFn | null>(null);
   const [currentVersion, setCurrentVersion] = useState("");
+  const [dirty, setDirtyState] = useState(hasDirtyWork());
+
+  useEffect(() => subscribeDirty(() => setDirtyState(hasDirtyWork())), []);
 
   useEffect(() => {
     setCurrentVersion(
