@@ -1,4 +1,5 @@
 import { createRoot } from "react-dom/client";
+import { installNumericArrowNav } from "@/lib/numeric-nav";
 import App from "./App.tsx";
 import "./index.css";
 import { setupPWA } from "./lib/pwa-register";
@@ -41,6 +42,7 @@ try {
 // white screen seen on slow / flaky connections.
 const bootDeadline = new Promise((resolve) => setTimeout(resolve, 5000));
 Promise.race([runtimeReady, bootDeadline]).finally(() => {
+  installNumericArrowNav();
   createRoot(document.getElementById("root")!).render(<App />);
   // Register PWA service worker (no-op in editor preview / iframe / dev)
   setupPWA();

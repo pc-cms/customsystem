@@ -13,8 +13,10 @@ export const installNumericArrowNav = () => {
     if (el.disabled || el.readOnly) return;
     const isNumeric = el.type === "number" || el.hasAttribute("data-num-input");
     if (!isNumeric) return;
-    const caret = el.type === "number" ? 0 : el.selectionStart;
-    const caretEnd = el.type === "number" ? el.value.length : el.selectionEnd;
+    // <input type="number"> exposes no caret position, so only Up/Down navigate.
+    const isNative = el.type === "number";
+    const caret = isNative ? null : el.selectionStart;
+    const caretEnd = isNative ? null : el.selectionEnd;
     const dir = numericNavDirection(e.key, caret, caretEnd, el.value.length);
     if (!dir) return;
     if (focusNeighborNumericInput(el, dir)) e.preventDefault();
