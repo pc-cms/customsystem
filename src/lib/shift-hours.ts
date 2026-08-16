@@ -39,11 +39,25 @@ const PIT_ARUSHA_HOURS: Record<string, number> = {
   T: 6,
 };
 
+/** Live Game Dodoma grid: M 20:00–06:00 10h, N 18:00–06:00 12h. */
+const PIT_DODOMA_HOURS: Record<string, number> = {
+  M: 10,
+  EM: 10,
+  N: 12,
+  EN: 12,
+  SW: 10,
+  ESW: 10,
+  E: 10,
+  G: 10,
+  T: 6,
+};
+
 export function predictedShiftHours(shift: string | null | undefined, scope: ShiftHoursScope = "pit"): number {
   if (!shift) return 0;
   const s = shift.toUpperCase();
   if (NON_WORKING.has(s)) return 0;
   if (scope === "staff") return STAFF_HOURS[s] ?? 8;
+  if (scope === "pit_dodoma") return PIT_DODOMA_HOURS[s] ?? 10;
   if (scope === "pit_arusha") return PIT_ARUSHA_HOURS[s] ?? 11;
   if (s === "M" || s === "EM") return 11;
   if (s === "SW" || s === "ESW") return 11;
