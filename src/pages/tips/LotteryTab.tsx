@@ -42,9 +42,11 @@ const ticketsForResult = (result: number): number => {
   if (abs === 0) return 0;
   const full = Math.floor(abs / TICKET_UNIT);
   const remainder = abs - full * TICKET_UNIT;
-  // Plus or minus counts the same: 500 000 of result = 1 ticket.
-  return full + (remainder >= ROUNDUP_THRESHOLD ? 1 : 0);
+  const base = full + (remainder >= ROUNDUP_THRESHOLD ? 1 : 0);
+  // Losing players (negative result) get double tickets.
+  return result < 0 ? base * 2 : base;
 };
+
 
 const playerName = (p: any) => {
   const nick = p.nickname ? ` "${p.nickname}"` : "";
