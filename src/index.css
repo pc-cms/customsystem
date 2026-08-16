@@ -369,15 +369,16 @@
     height: 2.75rem;
     font-size: 11px;
   }
-  /* Hide number input spinners */
-  input[type="number"].no-spin::-webkit-outer-spin-button,
-  input[type="number"].no-spin::-webkit-inner-spin-button {
+  /* Hide native number spinners everywhere — arrows navigate cells instead */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
   }
-  input[type="number"].no-spin {
+  input[type="number"] {
     -moz-appearance: textfield;
   }
+
 }
 @layer utilities {
   .animate-fade-in {
