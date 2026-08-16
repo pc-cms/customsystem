@@ -1369,6 +1369,7 @@ function InlineChipCell({
 
   const commit = async () => {
     const newValue = parseSpacedNumber(raw) || 0;
+    if (!raw.trim()) { setEditing(false); return; }
     const delta = newValue - (value || 0);
     if (delta === 0) { setEditing(false); setRaw(""); return; }
     try {
@@ -1383,6 +1384,7 @@ function InlineChipCell({
       // toast handled by hook
     }
   };
+
 
   return (
     <>
