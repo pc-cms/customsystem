@@ -4,7 +4,7 @@
  * Rules (manual, casino-set):
  *  - Period = the 7-day window Fri..Thu containing the picked date.
  *  - Each player's RESULT for the period = cashout − drop (cashout-buy).
- *  - 1 ticket per full 500,000 of result — plus OR minus, treated the same.
+ *  - 1 ticket per full 500,000 of result; losing players get double tickets.
  *  - Round-up rule: a remainder ≥ 270,000 grants one extra ticket.
  *  - Players with 0 tickets are hidden.
  *  - "Print" produces a clean Name + Tickets list.
@@ -88,7 +88,7 @@ export default function LotteryTab({ belowHeader }: { belowHeader?: ReactNode })
       <PageHeader
         icon={Ticket}
         title="Lottery"
-        subtitle="Weekly player draw · 1 ticket per 500 000 result, plus or minus (round up from 270 000)"
+        subtitle="Weekly player draw · 1 ticket per 500 000 result (round up from 270 000) · losers get x2"
         centerSlot={
           <div className="flex items-center gap-6 text-center">
             <div>
