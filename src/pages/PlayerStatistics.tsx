@@ -1406,7 +1406,10 @@ function InlineChipCell({
           inputMode="numeric"
           value={raw}
           onChange={(e) => setRaw(formatInputWithSpaces(e.target.value))}
-          onBlur={() => { if (!create.isPending) { setEditing(false); setRaw(""); } }}
+          // Blur must SAVE, not discard: operators typed the amount and clicked
+          // elsewhere, losing the entry ("не сохраняет"). Enter still commits;
+          // Escape (which clears `raw` first) is the only way to cancel.
+          onBlur={() => { if (!create.isPending) commit(); }}
           onKeyDown={(e) => {
             if (e.key === "Enter") { e.preventDefault(); commit(); }
             if (e.key === "Escape") { e.preventDefault(); setEditing(false); setRaw(""); }
