@@ -118,6 +118,7 @@ export function EditableCell(props: EditableCellProps) {
       ref={inputRef as any}
       type={props.type === "date" ? "date" : "text"}
       inputMode={isNumber ? "numeric" : undefined}
+      {...(isNumber ? { "data-num-input": "" } : {})}
       value={draft ?? ""}
       onChange={(e) =>
         setDraft(isNumber ? formatSpacedInput(e.target.value, 0, true) : e.target.value)
