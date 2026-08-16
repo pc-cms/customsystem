@@ -14,6 +14,9 @@
  *    purge caches, and hard-reload ONCE per session (sessionStorage flag
  *    prevents infinite reload loops).
  */
+import { toast } from "sonner";
+import { hasDirtyWork } from "@/lib/dirty-guard";
+
 const RECOVERY_FLAG = "__pwa_chunk_recovery_done__";
 
 const CHUNK_ERROR_PATTERNS = [
