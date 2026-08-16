@@ -151,6 +151,7 @@ const LEVEL_TINT: Record<string, string> = {
  */
 const ChipAdjustInline = ({
   chipIn, chipOut, note, setChipIn, setChipOut, setNote, onSubmit, pending,
+  totalIn, totalOut,
 }: {
   chipIn: string;
   chipOut: string;
@@ -160,6 +161,10 @@ const ChipAdjustInline = ({
   setNote: (v: string) => void;
   onSubmit: () => void;
   pending: boolean;
+  /** Already recorded totals for the selected period — shown when idle so the
+   *  operator sees the saved amount instead of an empty "IN" placeholder. */
+  totalIn: number;
+  totalOut: number;
 }) => {
   const [active, setActive] = useState<null | "in" | "out">(null);
   const inputRef = useRef<HTMLInputElement>(null);
