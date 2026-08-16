@@ -51,7 +51,8 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         cleanupOutdatedCaches: true,
         clientsClaim: true,
-        skipWaiting: true,
+        // НЕ skipWaiting: новая версия применяется только по кнопке.
+        skipWaiting: false,
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/~oauth/, /^\/api/],
         // Cache JS/CSS/images aggressively (hashed filenames are safe)
