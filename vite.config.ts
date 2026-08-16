@@ -40,7 +40,10 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "autoUpdate",
+      // "prompt" — новый SW встаёт в waiting и ждёт кнопки "Update now".
+      // autoUpdate + skipWaiting перезагружал страницу прямо во время работы
+      // кассира (терялся несохранённый Chips Check) — не возвращать.
+      registerType: "prompt",
       injectRegister: null, // we register manually with iframe/preview guard
       devOptions: { enabled: false },
       includeAssets: ["favicon.png", "apple-touch-icon.png", "icon-192-any.png", "icon-512-any.png", "icon-192-maskable.png", "icon-512-maskable.png", "arusha-logo.png", "manifest.json", "manifest-arusha.json", "manifest-mwanza.json", "manifest-dodoma.json", "manifest-mbeya.json", "manifest-premier.json"],
@@ -48,7 +51,8 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         cleanupOutdatedCaches: true,
         clientsClaim: true,
-        skipWaiting: true,
+        // НЕ skipWaiting: новая версия применяется только по кнопке.
+        skipWaiting: false,
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/~oauth/, /^\/api/],
         // Cache JS/CSS/images aggressively (hashed filenames are safe)

@@ -14,6 +14,9 @@
  *    purge caches, and hard-reload ONCE per session (sessionStorage flag
  *    prevents infinite reload loops).
  */
+import { toast } from "sonner";
+import { hasDirtyWork } from "@/lib/dirty-guard";
+
 const RECOVERY_FLAG = "__pwa_chunk_recovery_done__";
 
 const CHUNK_ERROR_PATTERNS = [
@@ -56,10 +59,26 @@ const recoverFromStaleCache = async () => {
     console.warn("[ChunkRecovery] Already attempted recovery this session — giving up.");
     return;
   }
+
+  // NEVER reload while the operator has unsaved input on screen
+  // (Chips Check, cash count, etc.) — ask instead.
+  if (hasDirtyWork()) {
+    console.warn("[ChunkRecovery] Stale chunk, but unsaved work on screen — asking user.");
+    toast("New version available", {
+      description: "Save your current entry, then click Reload.",
+      duration: Infinity,
+      action: { label: "Reload", onClick: () => { void purgeAndReload(); } },
+    });
+    return;
+  }
+
   sessionStorage.setItem(RECOVERY_FLAG, "1");
-
   console.warn("[ChunkRecovery] Stale chunk detected — purging SW caches and reloading.");
+  await purgeAndReload();
+};
 
+const purgeAndReload = async () => {
+  sessionStorage.setItem(RECOVERY_FLAG, "1");
   try {
     // Unregister every service worker on this origin
     if ("serviceWorker" in navigator) {

@@ -44,6 +44,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useExpectedCheckState } from "@/hooks/use-expected-check-state";
 import CashCheckNewGrid from "@/components/cage/CashCheckNewGrid";
+import { setDirty, clearDirty } from "@/lib/dirty-guard";
 
 import {
   MOBILE_PROVIDERS, emptyMobile, emptyBanks, mobileTotal, bankTotalTzs,
@@ -767,19 +768,42 @@ const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRate
   const createCount = useCreateCashCount();
   const lastCheck = cashChecks[0];
   const lastDenoms = (lastCheck?.denominations || {}) as Record<string, unknown>;
-  const [chipCounts, setChipCounts] = useState<Record<number, number>>(() => (lastDenoms.chips as Record<number, number>) || {});
-  const [cash, setCash] = useState<Record<string, Record<number, number>>>(() => (lastDenoms.cash as Record<string, Record<number, number>>) || emptyCash());
-  const [bankBal, setBankBal] = useState<Banks>(() => (lastDenoms.bank as Banks) || emptyBanks());
+
+  // Draft of the in-progress count — survives any page reload (SW update,
+  // chunk recovery, accidental refresh). Cleared after a successful Record.
+  const draftKey = `cms:cash-check-draft:${shiftId}`;
+  const draft = useMemo(() => {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      return raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
+    } catch { return null; }
+  }, [draftKey]);
+
+  const [chipCounts, setChipCounts] = useState<Record<number, number>>(() => (draft?.chips as Record<number, number>) || (lastDenoms.chips as Record<number, number>) || {});
+  const [cash, setCash] = useState<Record<string, Record<number, number>>>(() => (draft?.cash as Record<string, Record<number, number>>) || (lastDenoms.cash as Record<string, Record<number, number>>) || emptyCash());
+  const [bankBal, setBankBal] = useState<Banks>(() => (draft?.bank as Banks) || (lastDenoms.bank as Banks) || emptyBanks());
   // Mobile Balance is MANUAL-ONLY — never carry forward from previous shift/day.
   // Within the SAME shift we re-seed from the last check so the cashier's
   // typed balance survives across subsequent mid-shift checks (and the final
   // closing check), instead of silently resetting to 0 each time.
   const [mobileBal, setMobileBal] = useState<MobileProviders>(
-    () => ({ ...emptyMobile(), ...((lastDenoms.mobile as MobileProviders) || {}) }),
+    () => ({ ...emptyMobile(), ...((draft?.mobile as MobileProviders) || (lastDenoms.mobile as MobileProviders) || {}) }),
   );
 
-  const [cashlessIn, setCashlessIn] = useState<MobileProviders>(() => ({ ...emptyMobile(), ...((lastDenoms.cashless_in_providers as MobileProviders) || {}) }));
-  const [cashlessOut, setCashlessOut] = useState<MobileProviders>(() => ({ ...emptyMobile(), ...((lastDenoms.cashless_out_providers as MobileProviders) || {}) }));
+  const [cashlessIn, setCashlessIn] = useState<MobileProviders>(() => ({ ...emptyMobile(), ...((draft?.cashless_in as MobileProviders) || (lastDenoms.cashless_in_providers as MobileProviders) || {}) }));
+  const [cashlessOut, setCashlessOut] = useState<MobileProviders>(() => ({ ...emptyMobile(), ...((draft?.cashless_out as MobileProviders) || (lastDenoms.cashless_out_providers as MobileProviders) || {}) }));
+
+  // Persist draft + mark the form dirty while values differ from the last
+  // recorded check, so nothing auto-reloads the page mid-count.
+  const recordedRef = useRef(false);
+  useEffect(() => {
+    if (recordedRef.current) return;
+    const payload = { chips: chipCounts, cash, bank: bankBal, mobile: mobileBal, cashless_in: cashlessIn, cashless_out: cashlessOut };
+    try { localStorage.setItem(draftKey, JSON.stringify(payload)); } catch { /* quota */ }
+    setDirty(draftKey, true);
+  }, [draftKey, chipCounts, cash, bankBal, mobileBal, cashlessIn, cashlessOut]);
+
+  useEffect(() => () => { clearDirty(draftKey); }, [draftKey]);
   const seededId = useRef<string | null>(lastCheck?.id || null);
   useEffect(() => {
     if (lastCheck && lastCheck.id !== seededId.current) {
@@ -887,7 +911,16 @@ const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRate
         },
       },
       total: totalTzs,
-    }, { onSuccess: () => setShowDiff(true) });
+    }, {
+      onSuccess: () => {
+        setShowDiff(true);
+        recordedRef.current = true;
+        try { localStorage.removeItem(draftKey); } catch { /* noop */ }
+        clearDirty(draftKey);
+        // allow a new draft cycle for the next check
+        setTimeout(() => { recordedRef.current = false; }, 0);
+      },
+    });
   };
 
   const diffLabel = (() => {
