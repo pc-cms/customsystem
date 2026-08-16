@@ -159,39 +159,48 @@ export default function LotteryTab({ belowHeader }: { belowHeader?: ReactNode })
 
       {/* Print-only view: clean Name + Tickets list */}
       <PrintPortal>
-        <div className="p-8">
-          <div className="text-center mb-4">
-            <h1 className="text-2xl font-bold">Lottery — Player Tickets</h1>
-            <div className="text-sm text-muted-foreground">
-              {fmtDateOnly(periodStart)} – {fmtDateOnly(periodEnd)}
+        {(() => {
+          const n = rows.length;
+          const cols = n <= 32 ? 1 : n <= 70 ? 2 : n <= 120 ? 3 : 4;
+          const perCol = Math.ceil(n / cols) || 1;
+          const chunks = Array.from({ length: cols }, (_, c) => rows.slice(c * perCol, (c + 1) * perCol));
+          const fs = cols >= 4 ? "9px" : cols === 3 ? "10px" : cols === 2 ? "11px" : "13px";
+          const pad = cols >= 3 ? "1px 2px" : "2px 4px";
+          return (
+            <div style={{ padding: "6mm" }}>
+              <div style={{ textAlign: "center", marginBottom: "3mm" }}>
+                <h1 style={{ fontSize: cols === 1 ? "18px" : "15px", fontWeight: 700, margin: 0 }}>Lottery — Player Tickets</h1>
+                <div style={{ fontSize: "11px" }}>
+                  {fmtDateOnly(periodStart)} – {fmtDateOnly(periodEnd)} · {totals.players} players · {totals.tickets} tickets
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: "4mm", alignItems: "flex-start" }}>
+                {chunks.map((chunk, ci) => (
+                  <table key={ci} style={{ flex: 1, borderCollapse: "collapse", fontSize: fs }}>
+                    <thead>
+                      <tr style={{ borderBottom: "1.5px solid #000" }}>
+                        <th style={{ textAlign: "left", padding: pad, width: "22px" }}>#</th>
+                        <th style={{ textAlign: "left", padding: pad }}>Player</th>
+                        <th style={{ textAlign: "right", padding: pad, width: "34px" }}>Tk</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {chunk.map((r, i) => (
+                        <tr key={r.id} style={{ borderBottom: "1px solid #ddd" }}>
+                          <td style={{ padding: pad }}>{ci * perCol + i + 1}</td>
+                          <td style={{ padding: pad, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: cols >= 3 ? "45mm" : "70mm" }}>{r.name}</td>
+                          <td style={{ padding: pad, textAlign: "right", fontWeight: 700, fontFamily: "monospace" }}>{r.tickets}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ))}
+              </div>
             </div>
-          </div>
-          <table className="w-full text-base border-collapse">
-            <thead>
-              <tr className="border-b-2 border-black">
-                <th className="text-left py-2 w-10">#</th>
-                <th className="text-left py-2">Player</th>
-                <th className="text-right py-2 w-28">Tickets</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr key={r.id} className="border-b border-gray-300">
-                  <td className="py-1.5">{i + 1}</td>
-                  <td className="py-1.5">{r.name}</td>
-                  <td className="py-1.5 text-right font-mono font-bold">{r.tickets}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="border-t-2 border-black font-bold">
-                <td className="py-2" colSpan={2}>Total · {totals.players} players</td>
-                <td className="py-2 text-right font-mono">{totals.tickets}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+          );
+        })()}
       </PrintPortal>
+
     </PageShell>
   );
 }
