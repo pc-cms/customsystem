@@ -211,9 +211,13 @@ const ChipAdjustInline = ({
           <ArrowDownToLine className="w-4 h-4 text-success shrink-0" />
           <span className={cn(
             "font-mono tabular-nums text-sm flex-1",
-            !chipIn && "text-muted-foreground/60"
+            !chipIn && !totalIn && "text-muted-foreground/60"
           )}>
-            {chipIn ? formatNumberSpaces(Number(chipIn)) : "IN"}
+            {chipIn
+              ? formatNumberSpaces(Number(chipIn))
+              : totalIn
+                ? formatNumberSpaces(totalIn)
+                : "IN"}
           </span>
         </button>
         <button
@@ -229,9 +233,13 @@ const ChipAdjustInline = ({
           <ArrowUpFromLine className="w-4 h-4 text-destructive shrink-0" />
           <span className={cn(
             "font-mono tabular-nums text-sm flex-1",
-            !chipOut && "text-muted-foreground/60"
+            !chipOut && !totalOut && "text-muted-foreground/60"
           )}>
-            {chipOut ? formatNumberSpaces(Number(chipOut)) : "OUT"}
+            {chipOut
+              ? formatNumberSpaces(Number(chipOut))
+              : totalOut
+                ? formatNumberSpaces(totalOut)
+                : "OUT"}
           </span>
         </button>
       </div>
