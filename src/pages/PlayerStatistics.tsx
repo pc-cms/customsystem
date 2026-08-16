@@ -339,6 +339,23 @@ const PlayerStatistics = () => {
       }
       return null;
     };
+    // Chip movements are often recorded AFTER the player already checked out.
+    // Never drop them: fall back to the nearest visit in the window (the last
+    // one that started before the record, else the first visit of the window).
+    const resolveVisit = (playerId: string, ts: number | null) => {
+      const arr = visitsByPlayer.get(playerId);
+      if (!arr || arr.length === 0) return null;
+      if (ts != null) {
+        const exact = findVisit(playerId, ts);
+        if (exact) return exact;
+        let prev: any = null;
+        for (const v of arr) {
+          if (new Date(v.checked_in_at).getTime() <= ts) prev = v; else break;
+        }
+        return prev ?? arr[0];
+      }
+      return arr[arr.length - 1];
+    };
     const m = new Map<string, { inDrop: number; out: number; chipIn: number; chipOut: number; inCount: number; outCount: number }>();
     for (const v of visits as any[]) {
       m.set(v.id, { inDrop: 0, out: 0, chipIn: 0, chipOut: 0, inCount: 0, outCount: 0 });
@@ -352,23 +369,20 @@ const PlayerStatistics = () => {
       else if (t.type === "cashout" || t.type === "out") { f.out += amt; f.outCount += 1; }
     }
     for (const ct of chipTransfers as any[]) {
-      const v = findVisit(ct.player_id, new Date(ct.created_at).getTime());
+      const v = resolveVisit(ct.player_id, ct.created_at ? new Date(ct.created_at).getTime() : null);
       if (!v) continue;
       const f = m.get(v.id)!;
       const amt = Number(ct.amount) || 0;
       if (ct.direction === "in") f.chipIn += amt; else f.chipOut += amt;
     }
     for (const a of chipAdjustments as any[]) {
-      // chipAdjustments query does not select created_at — attribute to player's latest visit as fallback.
-      const arr = visitsByPlayer.get(a.player_id);
-      const v = (a as any).created_at
-        ? findVisit(a.player_id, new Date((a as any).created_at).getTime())
-        : (arr && arr.length ? arr[arr.length - 1] : null);
+      const v = resolveVisit(a.player_id, (a as any).created_at ? new Date((a as any).created_at).getTime() : null);
       if (!v) continue;
       const f = m.get(v.id)!;
       f.chipIn += Number(a.chip_in) || 0;
       f.chipOut += Number(a.chip_out) || 0;
     }
+
     return m;
   }, [visits, transactions, chipTransfers, chipAdjustments, visitsByPlayer]);
 
