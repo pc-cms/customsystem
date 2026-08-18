@@ -59,6 +59,50 @@ export type Database = {
         }
         Relationships: []
       }
+      ace_collector_installs: {
+        Row: {
+          casino_id: string
+          casino_slug: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          token_sha256: string
+          used_at: string | null
+          used_hostname: string | null
+        }
+        Insert: {
+          casino_id: string
+          casino_slug: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          token_sha256: string
+          used_at?: string | null
+          used_hostname?: string | null
+        }
+        Update: {
+          casino_id?: string
+          casino_slug?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          token_sha256?: string
+          used_at?: string | null
+          used_hostname?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ace_collector_installs_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ace_finance_snapshots: {
         Row: {
           apply_error: string | null
@@ -11194,6 +11238,24 @@ export type Database = {
       _has_payload: { Args: { snap: Json }; Returns: boolean }
       _sum_denoms: { Args: { p: Json }; Returns: number }
       _sum_mobile: { Args: { p: Json }; Returns: number }
+      ace_admin_list_collectors: {
+        Args: never
+        Returns: {
+          casino_id: string
+          casino_name: string
+          created_at: string
+          display_name: string
+          id: string
+          is_active: boolean
+          last_live_at: string
+          last_seen_at: string
+          location_code: string
+        }[]
+      }
+      ace_admin_set_collector_active: {
+        Args: { _active: boolean; _id: string }
+        Returns: undefined
+      }
       ace_apply_closed_report: {
         Args: {
           _business_date: string
@@ -11205,6 +11267,17 @@ export type Database = {
         }
         Returns: Json
       }
+      ace_create_install_token: {
+        Args: { _casino_id: string }
+        Returns: {
+          casino_id: string
+          casino_name: string
+          casino_slug: string
+          expires_at: string
+          token: string
+        }[]
+      }
+      ace_is_collector_admin: { Args: never; Returns: boolean }
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
       admin_active_sessions: {
         Args: never
