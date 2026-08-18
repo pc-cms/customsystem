@@ -35,9 +35,22 @@ def in_closing_window(cfg: Config) -> bool:
     return cfg.closing_window_start <= now.hour < cfg.closing_window_end
 
 
+def current_period_label(client: AceClient) -> str:
+    """Exact label of the live period (period_id == 0) from the ACE selector."""
+    periods = parse_periods(client.report_page_html())
+    for pid, label in periods:
+        if pid == 0 and (label or "").strip():
+            return label.strip()
+    raise AceError(
+        "ACE live period (period_id=0) not found in the report period selector — "
+        "cannot determine current period label"
+    )
+
+
 def collect_live(client: AceClient):
+    label = current_period_label(client)
     html = client.consolidation_html(0)
-    return parse_consolidation(html, 0)
+    return parse_consolidation(html, 0, label)
 
 
 def latest_closed_period(client: AceClient) -> tuple[int, str] | None:
@@ -50,9 +63,10 @@ def run_live(client, api, cfg, logger, dry_run: bool) -> bool:
     report = collect_live(client)
     payload = report.as_payload(cfg.location_code)
     logger.info(
-        "[%s] LIVE drop=%s net_win=%s cashdesk=%s cashless=%s jp_out=%s active_credits=%s",
-        cfg.location_code, report.total_drop, report.net_win, report.win_cashdesk,
-        report.cashless_money_difference, report.jackpot_slip_out, report.active_credits,
+        "[%s] LIVE period=%r drop=%s net_win=%s cashdesk=%s cashless=%s jp_out=%s active_credits=%s",
+        cfg.location_code, report.period_label, report.total_drop, report.net_win,
+        report.win_cashdesk, report.cashless_money_difference, report.jackpot_slip_out,
+        report.active_credits,
     )
     api.send(payload, dry_run=dry_run)
     return True
@@ -113,6 +127,7 @@ def main(argv: list[str] | None = None) -> int:
             client.login()
             logger.info("ACE login    : OK")
             report = collect_live(client)
+            logger.info("LIVE period  : %r", report.period_label)
             logger.info("LIVE sample  : drop=%s net_win=%s cashdesk=%s cashless=%s jp_out=%s active_credits=%s",
                         report.total_drop, report.net_win, report.win_cashdesk,
                         report.cashless_money_difference, report.jackpot_slip_out,
