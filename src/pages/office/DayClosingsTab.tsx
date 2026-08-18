@@ -399,6 +399,24 @@ export default function DayClosingsTab() {
       }),
     },
     {
+      key: "ace_jp_out",
+      header: "JP Slip OUT (ACE)",
+      type: "money",
+      style: { width: 150 },
+      accessor: (r) => {
+        const v = aceJpSlipOut?.get(r.date);
+        return (
+          <div
+            className="text-right font-mono tabular-nums text-[12px] text-muted-foreground"
+            title="Read-only figure from the applied ACE closed report. Not JP (IN)."
+          >
+            {v == null ? "—" : formatNumberSpaces(v)}
+          </div>
+        );
+      },
+    },
+
+    {
       key: "comment",
       header: "Comment",
       type: "text",
