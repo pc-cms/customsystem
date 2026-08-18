@@ -77,3 +77,58 @@ export function useAceFinancePeriods(locationCode: string | null | undefined, li
     staleTime: 60_000,
   });
 }
+
+/** ACE live feed is only trusted while it is at most 15 minutes old. */
+export const ACE_LIVE_MAX_AGE_MS = 15 * 60 * 1000;
+
+/**
+ * Live ACE slots result for a location, already gated by freshness.
+ * `fresh === false` means callers MUST keep their existing calculation.
+ */
+export function useAceLiveSlotsResult(locationCode: string | null | undefined) {
+  const { data } = useAceFinanceLive(locationCode);
+  const receivedAt = data?.received_at ? new Date(data.received_at).getTime() : null;
+  const ageMs = receivedAt ? Date.now() - receivedAt : null;
+  const fresh = ageMs != null && ageMs >= 0 && ageMs <= ACE_LIVE_MAX_AGE_MS;
+  return {
+    fresh,
+    netWin: fresh ? Number(data?.net_win ?? 0) : null,
+    ageMs,
+    periodLabel: data?.period_label ?? null,
+    receivedAt: data?.received_at ?? null,
+  };
+}
+
+/**
+ * Applied ACE closed snapshots for one casino in a business-date range.
+ * Returns a map business_date → jackpot_slip_out (ACE-only figure, never JP IN).
+ */
+export function useAceJackpotSlipOutByDate(
+  casinoId: string | null | undefined,
+  fromDate: string,
+  toDate: string,
+) {
+  return useQuery({
+    enabled: !!casinoId && !!fromDate && !!toDate,
+    queryKey: ["ace-jp-slip-out", casinoId, fromDate, toDate],
+    queryFn: async (): Promise<Map<string, number>> => {
+      const { data, error } = await supabase
+        .from("ace_finance_snapshots" as any)
+        .select("business_date, jackpot_slip_out, apply_status, period_id")
+        .eq("casino_id", casinoId!)
+        .gt("period_id", 0)
+        .eq("apply_status", "applied")
+        .gte("business_date", fromDate)
+        .lte("business_date", toDate);
+      if (error) throw error;
+      const m = new Map<string, number>();
+      ((data ?? []) as any[]).forEach((r) => {
+        if (!r.business_date) return;
+        m.set(r.business_date, (m.get(r.business_date) || 0) + Number(r.jackpot_slip_out || 0));
+      });
+      return m;
+    },
+    staleTime: 60_000,
+  });
+}
+
