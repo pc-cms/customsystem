@@ -11341,6 +11341,18 @@ export type Database = {
       auto_close_business_day: { Args: never; Returns: Json }
       auto_close_forgotten_business_days: { Args: never; Returns: undefined }
       box_license_mode: { Args: never; Returns: string }
+      box_license_state: {
+        Args: never
+        Returns: {
+          activated_at: string
+          full_days: number
+          id: string
+          last_heartbeat_at: string
+          license_expires_at: string
+          node_id: string
+          restricted_days: number
+        }[]
+      }
       build_business_day_snapshot: {
         Args: { _business_date: string; _casino_id: string }
         Returns: Json
