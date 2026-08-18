@@ -250,8 +250,8 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
             />
           </Panel>
 
-
           <Panel title="MTD" accent={accent}>
+
             <MetricsGrid
               tables={{
                 drop: day.mtd.drop,
