@@ -152,6 +152,9 @@ const Dashboard = () => {
   // Total Drop — single source of truth: `player_day_drop_cache` (same value
   // shown on Player Statistics). Per-table Drop is never displayed.
   const { data: totalDrop = 0 } = useTotalDrop({ casinoId, fromDate: businessDate });
+  // Slots figures come from the ACE collector (live snapshot, refreshed ~every 5 min).
+  const { activeCasino } = useCasino();
+  const ace = useAceLiveSlotsResult(activeCasino?.slug ?? null);
 
   // Pending expenses across BOTH cages (Live Game + Slots) — drives the
   // Approvals tile for manager / shift_manager / finance_manager / super_admin.
