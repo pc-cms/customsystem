@@ -151,7 +151,21 @@ interface Props {
 }
 
 export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto" }: Props) {
+  // Arusha only: a FRESH (≤15 min) ACE live feed replaces the displayed slots
+  // result. Anything stale or missing falls back to the existing calculation.
+  const ace = useAceLiveSlotsResult(slug === "arusha" ? "arusha" : null);
+  const useAce = slug === "arusha" && ace.fresh && ace.netWin != null;
+  const aceHint = useAce
+    ? `ACE Live · ${Math.max(0, Math.round((ace.ageMs ?? 0) / 60000))}m ago${ace.periodLabel ? ` · ${ace.periodLabel}` : ""}`
+    : null;
+  const todaySlots: CasinoMetric | undefined = day
+    ? useAce
+      ? { ...day.slots, result: ace.netWin as number }
+      : day.slots
+    : undefined;
+
   const layoutClass =
+
     orientation === "cols"
       ? "flex flex-row divide-y-0 divide-x divide-white/5"
       : orientation === "rows"
