@@ -174,6 +174,26 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
       : day.slots
     : undefined;
 
+  // Total headline must also reflect ACE slots drop/result, replacing the old
+  // slots figure (which was either zero drop or cage slots result).
+  const todayTotal: CasinoMetric | undefined = day
+    ? useAce
+      ? {
+          ...day.total,
+          drop: day.total.drop + (ace.totalDrop as number),
+          result: day.total.result - day.slots.result + (ace.netWin as number),
+          headCount: day.total.headCount,
+          hold:
+            day.total.drop + (ace.totalDrop as number) > 0
+              ? ((day.total.result - day.slots.result + (ace.netWin as number)) /
+                  (day.total.drop + (ace.totalDrop as number))) *
+                100
+              : 0,
+        }
+      : day.total
+    : undefined;
+
+
 
   const layoutClass =
 
