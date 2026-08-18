@@ -232,7 +232,7 @@ export default function DayClosingsTab() {
 
     const drop = d.drop ?? Number(r.existing?.drop_slots ?? 0);
     const cash = d.cash ?? Number(r.existing?.cashdesk_win ?? 0);
-    const cards = Math.abs(d.cards ?? Number(r.existing?.players_card_balance ?? 0));
+    const cards = d.cards ?? Number(r.existing?.players_card_balance ?? 0);
     const jp = d.jp ?? r.jpPosted;
     const comment = d.comment ?? (r.existing?.notes ?? "");
     return { tables, slots, drop, cash, cards, jp, comment };
