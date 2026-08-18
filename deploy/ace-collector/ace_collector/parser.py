@@ -95,7 +95,7 @@ def _find_td_by_title(soup: BeautifulSoup, title_needle: str, row_needle: str | 
 
 def parse_period_label(soup: BeautifulSoup) -> str:
     """Best-effort extraction of the ACE period label shown on the report."""
-    for sel in ("#period_id", "select[name=period_id]"):
+    for sel in ("#select_period_id", "select[name=select_period_id]", "#period_id", "select[name=period_id]"):
         select = soup.select_one(sel)
         if select:
             opt = select.find("option", selected=True) or select.find("option")
@@ -110,7 +110,12 @@ def parse_periods(html: str) -> list[tuple[int, str]]:
     """All (period_id, label) options from the report page, in document order."""
     soup = BeautifulSoup(html, "html.parser")
     out: list[tuple[int, str]] = []
-    select = soup.select_one("select[name=period_id]") or soup.select_one("#period_id")
+    select = (
+        soup.select_one("#select_period_id")
+        or soup.select_one("select[name=select_period_id]")
+        or soup.select_one("select[name=period_id]")
+        or soup.select_one("#period_id")
+    )
     if not select:
         return out
     for opt in select.find_all("option"):
