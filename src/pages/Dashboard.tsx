@@ -15,6 +15,57 @@ import { useTotalDrop } from "@/lib/drop-source";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CCTVDashboardSection } from "@/components/dashboard/CCTVDashboardSection";
+import { useCasino } from "@/lib/casino-context";
+import { useAceLiveSlotsResult } from "@/hooks/use-ace-finance";
+
+/** Compact KPI tile for the top row (Expenses / Headcount / Total). */
+const StatTile = ({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  href,
+  signed,
+  emphasis,
+}: {
+  label: string;
+  value: React.ReactNode;
+  hint?: string;
+  icon?: any;
+  href?: string;
+  signed?: number;
+  emphasis?: boolean;
+}) => {
+  const colorCls =
+    signed === undefined ? "" : signed < 0 ? "cms-amount-negative" : signed > 0 ? "cms-amount-positive" : "";
+  const body = (
+    <div
+      className={`rounded-md border bg-card px-4 py-3 h-full flex flex-col justify-between gap-2 ${
+        emphasis ? "border-primary/40 bg-primary/5" : "border-border"
+      }`}
+    >
+      <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold">
+        {Icon && <Icon className="w-3.5 h-3.5 text-primary shrink-0" />}
+        <span className="truncate">{label}</span>
+      </span>
+      <span
+        className={`font-mono font-extrabold tabular-nums whitespace-nowrap ${
+          emphasis ? "text-3xl" : "text-3xl"
+        } ${colorCls || "text-foreground"}`}
+      >
+        {value}
+      </span>
+      {hint && <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{hint}</span>}
+    </div>
+  );
+  return href ? (
+    <Link to={href} className="block hover:opacity-90 transition-opacity">
+      {body}
+    </Link>
+  ) : (
+    body
+  );
+};
 
 /**
  * Single-panel summary strip — one bordered card, one row per metric.
