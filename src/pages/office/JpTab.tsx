@@ -143,6 +143,21 @@ export default function JpTab() {
       style: { width: 130 },
     },
     {
+      key: "origin",
+      header: "Entered in",
+      accessor: (r) => (
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          {String(r.note || "").includes("Day Closings")
+            ? "Day Closings"
+            : String(r.note || "").includes("Close Day")
+              ? "Close Day"
+              : "JP tab"}
+        </span>
+      ),
+      style: { width: 120 },
+    },
+    {
+
       key: "wallet",
       header: "Wallet",
       accessor: (r) => (

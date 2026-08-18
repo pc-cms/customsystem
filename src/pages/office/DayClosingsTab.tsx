@@ -17,7 +17,7 @@ import {
   useLockDayClosing,
   useFinWallets,
 } from "@/hooks/use-fin";
-import { useOtherIncomes, useAddOtherIncome } from "@/hooks/use-other-incomes";
+import { useOtherIncomes, useAddOtherIncome, useUpdateOtherIncome } from "@/hooks/use-other-incomes";
 import { useAceJackpotSlipOutByDate } from "@/hooks/use-ace-finance";
 
 import { useQuery } from "@tanstack/react-query";
@@ -55,6 +55,10 @@ type Row = {
   existing: any;
   agg: DayAgg;
   jpPosted: number;
+  /** Existing JP contribution row of that day, edited in place. */
+  jpRow?: any;
+  jpRowsCount?: number;
+
   /** null = no business-day closure record, true = closed by a manager, false = auto-closed */
   closedByManager: boolean | null;
   hadActivity: boolean;
@@ -158,13 +162,32 @@ export default function DayClosingsTab() {
     return (w.find((x) => x.kind === "cash") || w[0])?.id || "";
   }, [wallets]);
 
+  /**
+   * JP (IN) of a day = contributions only. Payouts (negative rows, often for a
+   * previous period) live on the JP tab and must never distort the day figure.
+   */
+  const jpPositive = useMemo(
+    () => (incomes as any[]).filter((r) => r.source === "jp" && Number(r.amount || 0) > 0),
+    [incomes],
+  );
+
   const jpByDate = useMemo(() => {
     const m = new Map<string, number>();
-    (incomes as any[])
-      .filter((r) => r.source === "jp")
-      .forEach((r) => m.set(r.business_date, (m.get(r.business_date) || 0) + Number(r.amount || 0)));
+    jpPositive.forEach((r) => m.set(r.business_date, (m.get(r.business_date) || 0) + Number(r.amount || 0)));
     return m;
-  }, [incomes]);
+  }, [jpPositive]);
+
+  /** Row that the JP cell edits: the one created here, otherwise the newest one. */
+  const jpRowByDate = useMemo(() => {
+    const m = new Map<string, any>();
+    jpPositive.forEach((r) => {
+      const cur = m.get(r.business_date);
+      const fromHere = String(r.note || "").includes("Day Closings");
+      if (!cur) m.set(r.business_date, r);
+      else if (fromHere && !String(cur.note || "").includes("Day Closings")) m.set(r.business_date, r);
+    });
+    return m;
+  }, [jpPositive]);
 
   const byDate = useMemo(() => {
     const m = new Map<string, any>();
@@ -179,10 +202,13 @@ export default function DayClosingsTab() {
       existing: byDate.get(date),
       agg,
       jpPosted: Number(jpByDate.get(date) || 0),
+      jpRow: jpRowByDate.get(date) || null,
+      jpRowsCount: jpPositive.filter((r) => r.business_date === date).length,
       closedByManager: closureMap?.has(date) ? !!closureMap.get(date) : null,
       hadActivity: agg.tables !== 0 || agg.slots !== 0 || agg.missChips !== 0 || agg.missCards !== 0,
     };
-  }), [dates, byDate, aggMap, jpByDate, closureMap]);
+  }), [dates, byDate, aggMap, jpByDate, jpRowByDate, jpPositive, closureMap]);
+
 
   /* ---------- editing state (kept in the parent so row heights never shift) ---------- */
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
@@ -193,6 +219,8 @@ export default function DayClosingsTab() {
   const upsert = useUpsertDayClosing();
   const lock = useLockDayClosing();
   const addIncome = useAddOtherIncome();
+  const updateIncome = useUpdateOtherIncome();
+
   const { activeCasinoId } = useCasino();
 
   const val = (r: Row) => {
@@ -229,18 +257,34 @@ export default function DayClosingsTab() {
     const finalComment = noteOverride ?? v.comment;
     const tid = `day-${r.date}`;
     try {
-      const jpDelta = v.jp - r.jpPosted;
-      if (jpDelta !== 0) {
-        if (!jpWalletId) throw new Error("No TZS wallet configured for JP");
-        await addIncome.mutateAsync({
-          business_date: r.date,
-          wallet_id: jpWalletId,
-          source: "jp",
-          currency: "TZS",
-          amount: jpDelta,
-          note: "JP · Day Closings",
-        });
+      // JP (IN): edit the existing contribution row of the day instead of
+      // stacking correction rows. Payouts are never touched from here.
+      if (v.jp !== r.jpPosted) {
+        if (r.jpRow) {
+          await updateIncome.mutateAsync({
+            id: r.jpRow.id,
+            business_date: r.date,
+            wallet_id: r.jpRow.wallet_id,
+            fin_category_id: r.jpRow.fin_category_id,
+            source: "jp",
+            currency: r.jpRow.currency || "TZS",
+            amount: v.jp,
+            fx_rate: Number(r.jpRow.fx_rate ?? 1),
+            note: r.jpRow.note || "JP · Day Closings",
+          });
+        } else {
+          if (!jpWalletId) throw new Error("No TZS wallet configured for JP");
+          await addIncome.mutateAsync({
+            business_date: r.date,
+            wallet_id: jpWalletId,
+            source: "jp",
+            currency: "TZS",
+            amount: v.jp,
+            note: "JP · Day Closings",
+          });
+        }
       }
+
       await upsert.mutateAsync({
         id: r.existing?.id,
         business_date: r.date,
@@ -394,9 +438,14 @@ export default function DayClosingsTab() {
       header: "JP (IN)",
       type: "money",
       style: { width: 150 },
-      accessor: (r) => numCell(r, val(r).jp, (n) => setField(r.date, { jp: n }), {
-        title: `JP booked as income on this business day. Posted: ${formatNumberSpaces(r.jpPosted)}`,
+      accessor: (r) => numCell(r, val(r).jp, (n) => setField(r.date, { jp: Math.abs(n) }), {
+        allowNegative: false,
+        title:
+          `JP contributions booked on this business day. Posted: ${formatNumberSpaces(r.jpPosted)}`
+          + (Number(r.jpRowsCount || 0) > 1 ? ` · ${r.jpRowsCount} entries — editing the Day Closings one` : "")
+          + ". Payouts are entered on the JP tab and never shown here.",
       }),
+
     },
     {
       key: "ace_jp_out",
