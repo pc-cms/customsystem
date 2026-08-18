@@ -83,8 +83,8 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
   const incomes = s.incomes;
   // Starting float is an income at the beginning of the period: the physical
   // count of a wallet contains it, so Expected must contain it too.
-  // Collections = owner withdrawal / CAPEX: the cash physically leaves the casino,
-  // so it must reduce Expected. Pure internal moves (transfers, money change) stay neutral.
+  // Collections = owner withdrawal / CAPEX and Transfers (inter-casino / money change):
+  // in both cases cash physically leaves this casino's wallets, so both reduce Expected.
   const expected =
     (s.starting_float?.grand_tzs || 0) +
     (incomes.live_game || 0) +
