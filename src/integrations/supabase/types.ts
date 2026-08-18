@@ -59,6 +59,98 @@ export type Database = {
         }
         Relationships: []
       }
+      ace_finance_snapshots: {
+        Row: {
+          cashless_money_difference: number
+          id: string
+          is_live: boolean
+          jackpot_slip_out: number
+          location_code: string
+          net_win: number
+          period_id: number
+          period_label: string
+          received_at: string
+          source: string
+          total_drop: number
+          updated_at: string
+          win_cashdesk: number
+        }
+        Insert: {
+          cashless_money_difference: number
+          id?: string
+          is_live?: boolean
+          jackpot_slip_out: number
+          location_code: string
+          net_win: number
+          period_id: number
+          period_label: string
+          received_at?: string
+          source?: string
+          total_drop: number
+          updated_at?: string
+          win_cashdesk: number
+        }
+        Update: {
+          cashless_money_difference?: number
+          id?: string
+          is_live?: boolean
+          jackpot_slip_out?: number
+          location_code?: string
+          net_win?: number
+          period_id?: number
+          period_label?: string
+          received_at?: string
+          source?: string
+          total_drop?: number
+          updated_at?: string
+          win_cashdesk?: number
+        }
+        Relationships: []
+      }
+      ace_ingest_keys: {
+        Row: {
+          casino_id: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          is_active: boolean
+          key_sha256: string
+          last_seen_at: string | null
+          location_code: string
+          updated_at: string
+        }
+        Insert: {
+          casino_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          key_sha256: string
+          last_seen_at?: string | null
+          location_code: string
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          key_sha256?: string
+          last_seen_at?: string | null
+          location_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ace_ingest_keys_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_logs: {
         Row: {
           action: string
@@ -10795,6 +10887,24 @@ export type Database = {
       }
     }
     Views: {
+      ace_finance_latest: {
+        Row: {
+          cashless_money_difference: number | null
+          id: string | null
+          is_live: boolean | null
+          jackpot_slip_out: number | null
+          location_code: string | null
+          net_win: number | null
+          period_id: number | null
+          period_label: string | null
+          received_at: string | null
+          source: string | null
+          total_drop: number | null
+          updated_at: string | null
+          win_cashdesk: number | null
+        }
+        Relationships: []
+      }
       chip_conservation_status: {
         Row: {
           archived_miss: number | null
