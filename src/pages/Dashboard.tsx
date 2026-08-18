@@ -282,50 +282,90 @@ const Dashboard = () => {
         <CCTVDashboardSection />
       )}
 
-      {/* Day at a glance + Tables Totals — two columns. */}
+      {/* Top KPI tiles + Slots / Live Table columns. */}
       {(() => {
         const isSurveillance = roles.includes("surveillance") && !roles.includes("manager") && !roles.includes("super_admin");
         if (!showFinancials) return null;
 
-        const leftRows: Array<{ label: string; value: React.ReactNode; icon?: any; href?: string; signed?: number }> = [];
-        if (!isSurveillance && canApproveExpenses) {
-          leftRows.push({ label: "Daily Expenses", value: pendingExpenses, icon: Receipt, href: "/expenses" });
-        }
-        leftRows.push({ label: "Headcount", value: headcountToday, icon: Users, href: "/reception" });
-        leftRows.push({ label: "Active Players", value: activePlayersToday, icon: Users, href: "/reception" });
+        const DOT = "·";
+        const slotsResult = ace.fresh ? Number(ace.netWin ?? 0) : 0;
+        const grandTotal = totalResult + slotsResult;
+        const aceHint = ace.fresh
+          ? `ACE Live · ${Math.max(0, Math.round((ace.ageMs ?? 0) / 60000))}m ago`
+          : "No ACE data";
 
-        const rightRows = Object.entries(gameTypeTotals).map(([_, t]) => ({
+        const slotsRows = [
+          {
+            label: "Drop",
+            value: ace.fresh ? formatCurrency(Number(ace.totalDrop ?? 0)) : DOT,
+          },
+          { label: "Active Credits", value: DOT },
+        ];
+
+        const tableRows = Object.entries(gameTypeTotals).map(([_, t]) => ({
           label: t.label,
           signed: t.result,
           href: "/tables",
           value: `${t.result >= 0 ? "+" : ""}${formatCurrency(t.result)}`,
         }));
+        tableRows.push({
+          label: "Total Drop",
+          signed: undefined as unknown as number,
+          href: "/tables",
+          value: formatCurrency(totalDrop),
+        });
 
         return (
-          <div className="grid lg:grid-cols-2 gap-4">
-            <SummaryPanel
-              title="Day at a glance"
-              rows={leftRows}
-              total={{
-                label: "Total Drop",
-                signed: totalDrop,
-                value: formatCurrency(totalDrop),
-              }}
-            />
-            {gameTypeCount > 0 && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <StatTile
+                label="Expenses"
+                value={!isSurveillance && canApproveExpenses ? pendingExpenses : DOT}
+                icon={Receipt}
+                href={!isSurveillance && canApproveExpenses ? "/expenses" : undefined}
+              />
+              <StatTile
+                label="Headcount"
+                value={headcountToday}
+                hint={`${activePlayersToday} active players`}
+                icon={Users}
+                href="/reception"
+              />
+              <StatTile
+                label="Total · Live Table + Slots"
+                value={`${grandTotal >= 0 ? "+" : ""}${formatCurrency(grandTotal)}`}
+                signed={grandTotal}
+                hint={ace.fresh ? "incl. ACE slots net win" : "slots not included (no ACE)"}
+                emphasis
+              />
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-4">
               <SummaryPanel
-                title="Tables Totals"
-                rows={rightRows}
+                title={`Slots · ${aceHint}`}
+                rows={slotsRows}
                 total={{
-                  label: "Total Casino",
+                  label: "Result",
+                  signed: ace.fresh ? slotsResult : undefined,
+                  value: ace.fresh
+                    ? `${slotsResult >= 0 ? "+" : ""}${formatCurrency(slotsResult)}`
+                    : DOT,
+                }}
+              />
+              <SummaryPanel
+                title="Live Table"
+                rows={tableRows}
+                total={{
+                  label: "Result",
                   signed: totalResult,
                   value: `${totalResult >= 0 ? "+" : ""}${formatCurrency(totalResult)}`,
                 }}
               />
-            )}
-          </div>
+            </div>
+          </>
         );
       })()}
+
 
       {/* Top players today — Drop ≥ 1 000 000 or a non-zero result, max 10 rows. */}
       {showFinancials && (
