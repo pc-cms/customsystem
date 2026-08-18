@@ -650,6 +650,7 @@ const EditReprintShiftPage = () => {
               cashlessOverride={state.cashlessIO}
               cashFlowTransfersOverride={{ addFloat: state.addFloat, slotsOut: state.slotsOut }}
               tableRowOverrides={tableRowOverrides}
+              totalDropOverride={state.totalDrop}
             />
             <ChipMovementReport
               shift={shift}
