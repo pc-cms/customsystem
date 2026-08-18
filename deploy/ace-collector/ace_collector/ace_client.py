@@ -9,6 +9,7 @@ import logging
 import urllib3
 
 import requests
+from bs4 import BeautifulSoup
 
 from .config import Config
 
@@ -53,25 +54,41 @@ class AceClient:
         return resp
 
     # ------------------------------------------------------------------ login
+    @staticmethod
+    def _parse_hidden_uid(html: str) -> str:
+        """Extract the dynamic hidden `text_uid` value from the ACE login form."""
+        soup = BeautifulSoup(html, "html.parser")
+        field = soup.find("input", attrs={"name": "text_uid"})
+        if field is None:
+            return ""
+        return (field.get("value") or "").strip()
+
     def login(self) -> None:
         if self._logged_in:
             return
-        # Prime cookies.
+        # Prime cookies and read the dynamic hidden UID.
         try:
-            self._get("/login.php")
+            page = self._get("/login.php")
         except requests.RequestException as exc:
             raise AceError(f"ACE unreachable at {self.base}: {exc}") from exc
 
+        text_uid = self._parse_hidden_uid(page.text)
+        if not text_uid:
+            logger.warning("Hidden text_uid not found on /login.php — sending empty value")
+
         payload = {
+            "form_login_name": "",
             "login": self.cfg.ace_username,
             "password": self.cfg.ace_password,
-            "text_uid": "",
+            "text_uid": text_uid,
             "select_lang": "1",
             "lang_name": "1",
+            "lang_old_name": "1",
+            "role_name": "",
+            "button_ok": "",
         }
         resp = self._post("/login.php", payload)
-        body = resp.text.lower()
-        if "login.php" in resp.url and ("password" in body and "logout" not in body):
+        if "form_manager_name" not in resp.text:
             raise AceError("ACE login failed — check ACE_USERNAME / ACE_PASSWORD")
         self._logged_in = True
         logger.debug("ACE login OK as %s", self.cfg.ace_username)
