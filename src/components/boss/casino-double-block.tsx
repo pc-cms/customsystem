@@ -193,9 +193,8 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
       : day.total
     : undefined;
 
-
-
   const layoutClass =
+
 
     orientation === "cols"
       ? "flex flex-row divide-y-0 divide-x divide-white/5"
