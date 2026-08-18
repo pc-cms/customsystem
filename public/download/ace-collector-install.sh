@@ -92,25 +92,23 @@ while [[ -z "$ACE_PASS" ]]; do
   read -r -s -p "ACE password (hidden): " ACE_PASS </dev/tty; echo
 done
 
-# ── 3. fetch collector package if needed ───────────────────────────────────
-if [[ ! -f "${APP_DIR}/install.sh" ]]; then
-  log "Downloading collector package..."
-  TMP="$(mktemp -d)"
-  trap 'rm -rf "$TMP"' EXIT
-  curl -fsSL "$PACKAGE_URL" -o "$TMP/ace.tar.gz" || fail "Could not download ${PACKAGE_URL}"
-  tar -xzf "$TMP/ace.tar.gz" -C "$TMP"
-  [[ -f "$TMP/ace-collector/install.sh" ]] || fail "Bad collector package."
-  SRC="$TMP/ace-collector"
-else
-  SRC="$APP_DIR"
-fi
+# ── 3. ALWAYS fetch the latest collector package ───────────────────────────
+log "Downloading latest collector package..."
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+curl -fsSL "$PACKAGE_URL" -o "$TMP/ace.tar.gz" || fail "Could not download ${PACKAGE_URL}"
+tar -xzf "$TMP/ace.tar.gz" -C "$TMP"
+[[ -f "$TMP/ace-collector/install.sh" ]] || fail "Bad collector package."
+SRC="$TMP/ace-collector"
+ok "Fresh installer extracted"
 
-# ── 4. run the collector installer noninteractively ────────────────────────
+# ── 4. run the fresh installer noninteractively ────────────────────────────
 chmod +x "$SRC/install.sh" "$SRC/run.sh" 2>/dev/null || true
 NONINTERACTIVE=1 \
 ACE_URL="$ACE_URL" ACE_USER="$ACE_USER" ACE_PASS="$ACE_PASS" \
 API_URL="$API_URL" ACE_KEY="$ACE_KEY" LOCATION="$LOCATION" \
   bash "$SRC/install.sh"
+
 
 unset ACE_KEY ACE_PASS
 

@@ -60,12 +60,14 @@ python3 -m venv "$APP_DIR/venv"
 "$APP_DIR/venv/bin/pip" install -q -r "$APP_DIR/requirements.txt"
 ok "Dependencies installed (requests, beautifulsoup4)"
 
-# ── 5. configuration (interactive, or noninteractive via env) ──────────────
+# ── 5. configuration (noninteractive when NONINTERACTIVE=1) ────────────────
 
 # Noninteractive mode: set NONINTERACTIVE=1 and provide
 #   ACE_URL ACE_USER ACE_PASS API_URL ACE_KEY LOCATION
+# In this mode the script NEVER prompts (no API URL / x-ace-key / location questions).
 echo
 if [[ "${NONINTERACTIVE:-0}" == "1" ]]; then
+
   ACE_URL="${ACE_URL:-$DEF_ACE_URL}"
   ACE_USER="${ACE_USER:-}"
   ACE_PASS="${ACE_PASS:-}"
