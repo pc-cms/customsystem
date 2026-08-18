@@ -1,18 +1,50 @@
-"""HTML parsing of the ACE Finance consolidation report."""
+"""HTML parsing of the ACE Finance consolidation report.
+
+Row/cell algorithm (matches the real ACE layout):
+  * For every <tr>, collect normalized text of every <td>/<th>.
+  * "ΔTotal Drop"  -> cells[0] == label, value = cells[1]
+  * "NET WIN"      -> cells[0] == label, value = cells[1]
+  * "WIN, CashDesk"-> anywhere in the NET WIN row, value = next cell
+  * "Cashless Money" -> anywhere in any row, Difference = cell + 4
+  * "Jackpot Slip"   -> anywhere in any row, OUT/Paid = cell + 3
+
+Presence is tracked separately from the numeric value: a real 0 is valid,
+a structurally missing field raises AceParseError so cron never submits
+false zeros.
+"""
 from __future__ import annotations
 
 import logging
 import re
+import unicodedata
 from dataclasses import dataclass, asdict
 
 from bs4 import BeautifulSoup
 
 logger = logging.getLogger("ace-collector")
 
-CASHLESS_TITLE = "change of card accounts balance"
-JACKPOT_TITLE = "all paid and reversal slips for the period"
 
-NUM_RE = re.compile(r"-?[\d\u00a0\u202f ,.]+")
+class AceParseError(RuntimeError):
+    """Raised when the ACE report structure does not contain a required field."""
+
+
+TOTAL_DROP_LABEL = "total drop"
+NET_WIN_LABEL = "net win"
+CASHDESK_LABEL = "win, cashdesk"
+CASHLESS_LABEL = "cashless money"
+JACKPOT_LABEL = "jackpot slip"
+
+
+def _norm(text: str | None) -> str:
+    """Normalize a cell text for comparison (strip Δ, NBSP, punctuation noise)."""
+    if not text:
+        return ""
+    s = unicodedata.normalize("NFKC", text)
+    s = s.replace("\u00a0", " ").replace("\u202f", " ")
+    s = s.replace("\u0394", "").replace("Δ", "").replace("∆", "")
+    s = re.sub(r"\s+", " ", s).strip()
+    s = s.strip(" :.\u2013-")
+    return s.lower()
 
 
 def to_number(text: str | None) -> float:
@@ -24,7 +56,6 @@ def to_number(text: str | None) -> float:
     raw = re.sub(r"[^0-9,.\-+]", "", raw)
     if not raw or raw in ("-", "+", ".", ","):
         return 0.0
-    # Decide decimal separator: last of , or .
     last_comma = raw.rfind(",")
     last_dot = raw.rfind(".")
     if last_comma > last_dot:
@@ -35,6 +66,10 @@ def to_number(text: str | None) -> float:
         return float(raw)
     except ValueError:
         return 0.0
+
+
+def _is_numeric_cell(text: str) -> bool:
+    return bool(re.search(r"\d", text or ""))
 
 
 @dataclass
@@ -53,49 +88,22 @@ class FinanceReport:
         return data
 
 
-def _cells(row) -> list:
-    return row.find_all(["td", "th"])
-
-
-def _row_label(row) -> str:
-    cells = _cells(row)
-    if not cells:
-        return ""
-    return cells[0].get_text(" ", strip=True)
-
-
-def _first_number_after_label(row) -> float:
-    for cell in _cells(row)[1:]:
-        txt = cell.get_text(" ", strip=True)
-        if NUM_RE.fullmatch(txt.strip() or "x") or re.search(r"\d", txt):
-            return to_number(txt)
-    return 0.0
-
-
-def _find_row(soup: BeautifulSoup, needle: str):
-    needle_low = needle.lower()
+def _rows(soup: BeautifulSoup) -> list[list[str]]:
+    out: list[list[str]] = []
     for row in soup.find_all("tr"):
-        label = _row_label(row).lower()
-        if needle_low in label:
-            return row
-    return None
-
-
-def _find_td_by_title(soup: BeautifulSoup, title_needle: str, row_needle: str | None = None):
-    title_low = title_needle.lower()
-    for row in soup.find_all("tr"):
-        if row_needle and row_needle.lower() not in _row_label(row).lower():
-            continue
-        for cell in _cells(row):
-            title = (cell.get("title") or "").lower()
-            if title_low in title:
-                return cell
-    return None
+        cells = [c.get_text(" ", strip=True) for c in row.find_all(["td", "th"])]
+        out.append(cells)
+    return out
 
 
 def parse_period_label(soup: BeautifulSoup) -> str:
     """Best-effort extraction of the ACE period label shown on the report."""
-    for sel in ("#select_period_id", "select[name=select_period_id]", "#period_id", "select[name=period_id]"):
+    for sel in (
+        "#select_period_id",
+        "select[name=select_period_id]",
+        "#period_id",
+        "select[name=period_id]",
+    ):
         select = soup.select_one(sel)
         if select:
             opt = select.find("option", selected=True) or select.find("option")
@@ -128,55 +136,100 @@ def parse_periods(html: str) -> list[tuple[int, str]]:
 
 def parse_consolidation(html: str, period_id: int, period_label: str = "") -> FinanceReport:
     soup = BeautifulSoup(html, "html.parser")
+    rows = _rows(soup)
 
-    drop_row = _find_row(soup, "total drop")
-    net_row = _find_row(soup, "net win")
-    cash_row = _find_row(soup, "win, cashdesk") or _find_row(soup, "win, cash desk")
+    found: dict[str, float] = {}
 
-    cashless_td = _find_td_by_title(soup, CASHLESS_TITLE)
-    jackpot_td = _find_td_by_title(soup, JACKPOT_TITLE, row_needle="jackpot slip")
+    def take(key: str, cells: list[str], idx: int) -> None:
+        if key in found or idx >= len(cells):
+            return
+        raw = cells[idx]
+        if not _is_numeric_cell(raw):
+            return
+        found[key] = to_number(raw)
 
-    report = FinanceReport(
+    for cells in rows:
+        if not cells:
+            continue
+        head = _norm(cells[0])
+
+        if head == TOTAL_DROP_LABEL:
+            take("total_drop", cells, 1)
+
+        if head == NET_WIN_LABEL:
+            take("net_win", cells, 1)
+            for i, cell in enumerate(cells):
+                if _norm(cell) == CASHDESK_LABEL:
+                    take("win_cashdesk", cells, i + 1)
+
+        for i, cell in enumerate(cells):
+            n = _norm(cell)
+            if n == CASHLESS_LABEL:
+                take("cashless_money_difference", cells, i + 4)
+            elif n == JACKPOT_LABEL:
+                take("jackpot_slip_out", cells, i + 3)
+
+    required = (
+        ("total_drop", "ΔTotal Drop"),
+        ("net_win", "NET WIN"),
+        ("win_cashdesk", "WIN, CashDesk"),
+        ("cashless_money_difference", "Cashless Money Difference"),
+        ("jackpot_slip_out", "Jackpot Slip OUT"),
+    )
+    missing = [human for key, human in required if key not in found]
+    if missing:
+        raise AceParseError(
+            "ACE report structure changed — missing fields: " + ", ".join(missing)
+        )
+
+    return FinanceReport(
         period_id=period_id,
         period_label=period_label or parse_period_label(soup),
-        total_drop=_first_number_after_label(drop_row) if drop_row else 0.0,
-        net_win=_first_number_after_label(net_row) if net_row else 0.0,
-        win_cashdesk=_first_number_after_label(cash_row) if cash_row else 0.0,
-        cashless_money_difference=to_number(cashless_td.get_text(" ", strip=True)) if cashless_td else 0.0,
-        jackpot_slip_out=to_number(jackpot_td.get_text(" ", strip=True)) if jackpot_td else 0.0,
+        total_drop=found["total_drop"],
+        net_win=found["net_win"],
+        win_cashdesk=found["win_cashdesk"],
+        cashless_money_difference=found["cashless_money_difference"],
+        jackpot_slip_out=found["jackpot_slip_out"],
     )
 
-    missing = [
-        name
-        for name, found in (
-            ("Total Drop", drop_row),
-            ("NET WIN", net_row),
-            ("WIN, CashDesk", cash_row),
-            ("Cashless Money Difference", cashless_td),
-            ("Jackpot Slip OUT", jackpot_td),
-        )
-        if found is None
-    ]
-    if missing:
-        logger.warning("Metrics not found in ACE report: %s", ", ".join(missing))
 
-    return report
+MONTHS = {
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+    "jul": 7, "aug": 8, "sep": 9, "sept": 9, "oct": 10, "nov": 11, "dec": 12,
+}
 
-
-DATE_PATTERNS = (
-    (re.compile(r"(\d{4})[./-](\d{2})[./-](\d{2})"), ("y", "m", "d")),
-    (re.compile(r"(\d{2})[./-](\d{2})[./-](\d{4})"), ("d", "m", "y")),
+NUMERIC_DATE_PATTERNS = (
+    (re.compile(r"(\d{4})[./-](\d{1,2})[./-](\d{1,2})"), ("y", "m", "d")),
+    (re.compile(r"(\d{1,2})[./-](\d{1,2})[./-](\d{4})"), ("d", "m", "y")),
 )
+
+TEXT_DATE_RE = re.compile(r"\b(\d{1,2})[\s./-]+([A-Za-z]{3,})[\s./-]+(\d{4})\b")
+TEXT_DATE_RE_2 = re.compile(r"\b([A-Za-z]{3,})[\s./-]+(\d{1,2}),?[\s./-]+(\d{4})\b")
 
 
 def business_date_from_label(label: str) -> str | None:
-    """Extract YYYY-MM-DD directly from the ACE period label."""
+    """Extract YYYY-MM-DD from an ACE period label (numeric or textual month)."""
     if not label:
         return None
-    for pattern, order in DATE_PATTERNS:
+
+    m = TEXT_DATE_RE.search(label)
+    if m:
+        day, month_name, year = m.group(1), m.group(2), m.group(3)
+    else:
+        m = TEXT_DATE_RE_2.search(label)
+        if m:
+            month_name, day, year = m.group(1), m.group(2), m.group(3)
+        else:
+            month_name = None
+    if month_name:
+        month = MONTHS.get(month_name[:4].lower()) or MONTHS.get(month_name[:3].lower())
+        if month:
+            return f"{int(year):04d}-{month:02d}-{int(day):02d}"
+
+    for pattern, order in NUMERIC_DATE_PATTERNS:
         m = pattern.search(label)
         if not m:
             continue
         parts = dict(zip(order, m.groups()))
-        return f"{parts['y']}-{parts['m']}-{parts['d']}"
+        return f"{int(parts['y']):04d}-{int(parts['m']):02d}-{int(parts['d']):02d}"
     return None
