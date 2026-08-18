@@ -82,6 +82,15 @@ Deno.serve(async (req) => {
     else numbers[f] = n;
   }
 
+  // Optional for backward compatibility with already-installed older collectors.
+  let active_credits: number | null = null;
+  if (body.active_credits !== undefined && body.active_credits !== null && body.active_credits !== "") {
+    const v = body.active_credits;
+    const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
+    if (!Number.isFinite(n)) errors.push("active_credits");
+    else active_credits = n;
+  }
+
   const isClosed = Number.isInteger(period_id) && period_id > 0;
 
   const rawBd = typeof body.business_date === "string" ? body.business_date.trim() : "";
@@ -158,6 +167,7 @@ Deno.serve(async (req) => {
     period_id,
     period_label,
     ...numbers,
+    active_credits,
     business_date,
     closed_at_local,
     casino_id: cred.casino_id ?? null,
@@ -192,6 +202,7 @@ Deno.serve(async (req) => {
       location_code: data.location_code,
       period_id: data.period_id,
       received_at: data.received_at,
+      active_credits,
     });
   }
 
@@ -237,6 +248,7 @@ Deno.serve(async (req) => {
     business_date,
     closing_applied_at: appliedAt,
     jackpot_slip_out: numbers.jackpot_slip_out,
+    active_credits,
   });
 });
 

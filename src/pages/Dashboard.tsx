@@ -302,7 +302,13 @@ const Dashboard = () => {
             label: "Drop",
             value: ace.fresh ? formatCurrency(Number(ace.totalDrop ?? 0)) : DOT,
           },
-          { label: "Active Credits", value: DOT },
+          {
+            label: "Active Credits",
+            value:
+              ace.fresh && ace.activeCredits != null
+                ? formatCurrency(Number(ace.activeCredits))
+                : DOT,
+          },
         ];
 
         const tableRows = Object.entries(gameTypeTotals).map(([_, t]) => ({
