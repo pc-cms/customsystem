@@ -7,6 +7,8 @@
  */
 import { formatMoneyFull } from "@/lib/format-money";
 import type { CasinoDay, CasinoMetric } from "@/hooks/use-boss-dashboard";
+import { useAceLiveSlotsResult } from "@/hooks/use-ace-finance";
+
 
 const formatSigned = (n: number) => {
   const s = formatMoneyFull(Math.abs(Math.round(n)));
