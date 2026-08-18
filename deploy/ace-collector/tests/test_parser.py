@@ -24,7 +24,8 @@ def build_html(
     cashdesk="-658 386.00",
     cashless="-51 390.00",
     jackpot="21 195.00",
-    include=("drop", "net", "cashdesk", "cashless", "jackpot"),
+    active_credits="123 456.00",
+    include=("drop", "net", "cashdesk", "cashless", "jackpot", "active"),
 ) -> str:
     rows = []
     if "drop" in include:
@@ -40,6 +41,8 @@ def build_html(
         )
     if "jackpot" in include:
         rows.append(_row("&#916;Ticket", "2.00", "Jackpot Slip", "x", "y", jackpot))
+    if "active" in include:
+        rows.append(_row("Active credits", active_credits, "", ""))
     return "<html><table>" + "".join(rows) + "</table></html>"
 
 
@@ -51,6 +54,7 @@ class ParseConsolidationTest(unittest.TestCase):
         self.assertEqual(r.win_cashdesk, -658386.00)
         self.assertEqual(r.cashless_money_difference, -51390.00)
         self.assertEqual(r.jackpot_slip_out, 21195.00)
+        self.assertEqual(r.active_credits, 123456.00)
 
     def test_present_zero_values_are_valid(self):
         r = parse_consolidation(
@@ -60,6 +64,7 @@ class ParseConsolidationTest(unittest.TestCase):
                 cashdesk="0.00",
                 cashless="0.00",
                 jackpot="0.00",
+                active_credits="0.00",
             ),
             0,
         )
@@ -70,15 +75,15 @@ class ParseConsolidationTest(unittest.TestCase):
                 r.win_cashdesk,
                 r.cashless_money_difference,
                 r.jackpot_slip_out,
+                r.active_credits,
             ),
-            (0.0, 0.0, 0.0, 0.0, 0.0),
+            (0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
         )
 
     def test_missing_field_raises(self):
-        for missing in ("drop", "net", "cashdesk", "cashless", "jackpot"):
-            include = tuple(
-                k for k in ("drop", "net", "cashdesk", "cashless", "jackpot") if k != missing
-            )
+        all_keys = ("drop", "net", "cashdesk", "cashless", "jackpot", "active")
+        for missing in all_keys:
+            include = tuple(k for k in all_keys if k != missing)
             with self.subTest(missing=missing):
                 with self.assertRaises(AceParseError):
                     parse_consolidation(build_html(include=include), 0)

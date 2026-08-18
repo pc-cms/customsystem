@@ -50,9 +50,9 @@ def run_live(client, api, cfg, logger, dry_run: bool) -> bool:
     report = collect_live(client)
     payload = report.as_payload(cfg.location_code)
     logger.info(
-        "[%s] LIVE drop=%s net_win=%s cashdesk=%s cashless=%s jp_out=%s",
+        "[%s] LIVE drop=%s net_win=%s cashdesk=%s cashless=%s jp_out=%s active_credits=%s",
         cfg.location_code, report.total_drop, report.net_win, report.win_cashdesk,
-        report.cashless_money_difference, report.jackpot_slip_out,
+        report.cashless_money_difference, report.jackpot_slip_out, report.active_credits,
     )
     api.send(payload, dry_run=dry_run)
     return True
@@ -73,7 +73,10 @@ def run_closing(client, api, cfg, logger, dry_run: bool) -> bool:
     payload = report.as_payload(cfg.location_code)
     payload["business_date"] = business_date
     payload["closed_at_local"] = report.period_label
-    logger.info("[%s] CLOSED period_id=%s business_date=%s label=%r", cfg.location_code, period_id, business_date, report.period_label)
+    logger.info(
+        "[%s] CLOSED period_id=%s business_date=%s active_credits=%s label=%r",
+        cfg.location_code, period_id, business_date, report.active_credits, report.period_label,
+    )
     api.send(payload, dry_run=dry_run)
     return True
 
@@ -110,9 +113,10 @@ def main(argv: list[str] | None = None) -> int:
             client.login()
             logger.info("ACE login    : OK")
             report = collect_live(client)
-            logger.info("LIVE sample  : drop=%s net_win=%s cashdesk=%s cashless=%s jp_out=%s",
+            logger.info("LIVE sample  : drop=%s net_win=%s cashdesk=%s cashless=%s jp_out=%s active_credits=%s",
                         report.total_drop, report.net_win, report.win_cashdesk,
-                        report.cashless_money_difference, report.jackpot_slip_out)
+                        report.cashless_money_difference, report.jackpot_slip_out,
+                        report.active_credits)
             periods = parse_periods(client.report_page_html())
             logger.info("Periods seen : %s", periods[:5] or "none")
         except (AceError, Exception) as exc:  # noqa: BLE001
