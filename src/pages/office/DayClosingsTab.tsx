@@ -18,6 +18,8 @@ import {
   useFinWallets,
 } from "@/hooks/use-fin";
 import { useOtherIncomes, useAddOtherIncome } from "@/hooks/use-other-incomes";
+import { useAceJackpotSlipOutByDate } from "@/hooks/use-ace-finance";
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
