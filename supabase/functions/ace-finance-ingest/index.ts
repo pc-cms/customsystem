@@ -70,9 +70,14 @@ Deno.serve(async (req) => {
   const period_id = typeof rawPeriod === "number" ? rawPeriod : Number(rawPeriod);
   if (!Number.isInteger(period_id) || period_id < 0) errors.push("period_id");
 
-  const period_label =
+  // Live (period_id === 0) tolerates a missing label from older collectors.
+  let period_label =
     typeof body.period_label === "string" ? body.period_label.trim() : "";
-  if (!period_label || period_label.length > 200) errors.push("period_label");
+  if (period_label.length > 200) errors.push("period_label");
+  else if (!period_label) {
+    if (period_id === 0) period_label = "LIVE";
+    else errors.push("period_label");
+  }
 
   const numbers: Record<string, number> = {};
   for (const f of NUMERIC_FIELDS) {
