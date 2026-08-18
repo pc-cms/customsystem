@@ -54,11 +54,13 @@ const MetricsGrid = ({
   slots,
   total,
   accent,
+  slotsHint,
 }: {
   tables: CasinoMetric;
   slots: CasinoMetric;
   total: CasinoMetric;
   accent: string;
+  slotsHint?: string | null;
 }) => (
   <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-x-4 gap-y-2 items-baseline">
     {/* header row */}
@@ -84,10 +86,16 @@ const MetricsGrid = ({
     {/* Slots */}
     <span className="text-[0.68em] uppercase tracking-[0.2em] text-muted-foreground font-semibold">
       Slots
+      {slotsHint && (
+        <span className="block text-[0.72em] normal-case tracking-normal text-muted-foreground/60 font-normal">
+          {slotsHint}
+        </span>
+      )}
     </span>
     <Cell value={formatMoneyFull(slots.drop)} />
     <Cell value={formatSigned(slots.result)} tone="signed" />
     <Cell value={`${slots.hold.toFixed(1)}%`} />
+
 
     {/* divider */}
     <span className="col-span-4 h-px bg-white/10 my-1" />
