@@ -7,6 +7,8 @@
  */
 import { formatMoneyFull } from "@/lib/format-money";
 import type { CasinoDay, CasinoMetric } from "@/hooks/use-boss-dashboard";
+import { useAceLiveSlotsResult } from "@/hooks/use-ace-finance";
+
 
 const formatSigned = (n: number) => {
   const s = formatMoneyFull(Math.abs(Math.round(n)));
@@ -54,11 +56,13 @@ const MetricsGrid = ({
   slots,
   total,
   accent,
+  slotsHint,
 }: {
   tables: CasinoMetric;
   slots: CasinoMetric;
   total: CasinoMetric;
   accent: string;
+  slotsHint?: string | null;
 }) => (
   <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-x-4 gap-y-2 items-baseline">
     {/* header row */}
@@ -84,10 +88,16 @@ const MetricsGrid = ({
     {/* Slots */}
     <span className="text-[0.68em] uppercase tracking-[0.2em] text-muted-foreground font-semibold">
       Slots
+      {slotsHint && (
+        <span className="block text-[0.72em] normal-case tracking-normal text-muted-foreground/60 font-normal">
+          {slotsHint}
+        </span>
+      )}
     </span>
     <Cell value={formatMoneyFull(slots.drop)} />
     <Cell value={formatSigned(slots.result)} tone="signed" />
     <Cell value={`${slots.hold.toFixed(1)}%`} />
+
 
     {/* divider */}
     <span className="col-span-4 h-px bg-white/10 my-1" />
@@ -143,7 +153,21 @@ interface Props {
 }
 
 export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto" }: Props) {
+  // Arusha only: a FRESH (≤15 min) ACE live feed replaces the displayed slots
+  // result. Anything stale or missing falls back to the existing calculation.
+  const ace = useAceLiveSlotsResult(slug === "arusha" ? "arusha" : null);
+  const useAce = slug === "arusha" && ace.fresh && ace.netWin != null;
+  const aceHint = useAce
+    ? `ACE Live · ${Math.max(0, Math.round((ace.ageMs ?? 0) / 60000))}m ago${ace.periodLabel ? ` · ${ace.periodLabel}` : ""}`
+    : null;
+  const todaySlots: CasinoMetric | undefined = day
+    ? useAce
+      ? { ...day.slots, result: ace.netWin as number }
+      : day.slots
+    : undefined;
+
   const layoutClass =
+
     orientation === "cols"
       ? "flex flex-row divide-y-0 divide-x divide-white/5"
       : orientation === "rows"
@@ -191,10 +215,12 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
           <Panel title="Today" accent={accent}>
             <MetricsGrid
               tables={day.live}
-              slots={day.slots}
+              slots={todaySlots ?? day.slots}
+              slotsHint={aceHint}
               total={day.total}
               accent={accent}
             />
+
           </Panel>
 
           <Panel title="MTD" accent={accent}>

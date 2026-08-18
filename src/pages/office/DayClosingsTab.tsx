@@ -18,6 +18,8 @@ import {
   useFinWallets,
 } from "@/hooks/use-fin";
 import { useOtherIncomes, useAddOtherIncome } from "@/hooks/use-other-incomes";
+import { useAceJackpotSlipOutByDate } from "@/hooks/use-ace-finance";
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
@@ -146,6 +148,10 @@ export default function DayClosingsTab() {
   const monthTo = `${year}-${pad(month)}-${pad(new Date(year, month, 0).getDate())}`;
   const { data: incomes = [] } = useOtherIncomes(monthFrom, monthTo, { only: ["jp"] });
   const { data: wallets = [] } = useFinWallets();
+  const { activeCasinoId: aceCasinoId } = useCasino();
+  // Read-only ACE figure — never mixed with JP (IN).
+  const { data: aceJpSlipOut } = useAceJackpotSlipOutByDate(aceCasinoId, monthFrom, monthTo);
+
 
   const jpWalletId = useMemo(() => {
     const w = (wallets as any[]).filter((x) => (x.currency || "TZS") === "TZS");
@@ -392,6 +398,24 @@ export default function DayClosingsTab() {
         title: `JP booked as income on this business day. Posted: ${formatNumberSpaces(r.jpPosted)}`,
       }),
     },
+    {
+      key: "ace_jp_out",
+      header: "JP Slip OUT (ACE)",
+      type: "money",
+      style: { width: 150 },
+      accessor: (r) => {
+        const v = aceJpSlipOut?.get(r.date);
+        return (
+          <div
+            className="text-right font-mono tabular-nums text-[12px] text-muted-foreground"
+            title="Read-only figure from the applied ACE closed report. Not JP (IN)."
+          >
+            {v == null ? "—" : formatNumberSpaces(v)}
+          </div>
+        );
+      },
+    },
+
     {
       key: "comment",
       header: "Comment",
