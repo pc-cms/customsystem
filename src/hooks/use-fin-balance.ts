@@ -96,7 +96,8 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
     (incomes.missed_chips || 0) +
     (incomes.missed_cards || 0) -
     (s.expenses_total || 0) -
-    (s.collections_total || 0);
+    (s.collections_total || 0) -
+    (s.transfers_total || 0);
   // Actual = physical counts only. Every movement writes an automatic count,
   // so the ledger is never added on top.
   const actual = (s.wallets || []).reduce((sum, w) => {
