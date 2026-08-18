@@ -146,6 +146,10 @@ export default function DayClosingsTab() {
   const monthTo = `${year}-${pad(month)}-${pad(new Date(year, month, 0).getDate())}`;
   const { data: incomes = [] } = useOtherIncomes(monthFrom, monthTo, { only: ["jp"] });
   const { data: wallets = [] } = useFinWallets();
+  const { activeCasinoId: aceCasinoId } = useCasino();
+  // Read-only ACE figure — never mixed with JP (IN).
+  const { data: aceJpSlipOut } = useAceJackpotSlipOutByDate(aceCasinoId, monthFrom, monthTo);
+
 
   const jpWalletId = useMemo(() => {
     const w = (wallets as any[]).filter((x) => (x.currency || "TZS") === "TZS");
