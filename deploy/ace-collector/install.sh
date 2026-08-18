@@ -14,7 +14,6 @@ LOGROTATE_FILE="/etc/logrotate.d/ace-collector"
 SVC_USER="acecollector"
 
 DEF_ACE_URL="https://192.168.1.191"
-DEF_ACE_USER="Taras"
 DEF_API_URL="https://rpehngjvwcnipvkouluu.supabase.co/functions/v1/ace-finance-ingest"
 DEF_LOCATION="arusha"
 DEF_TZ="Africa/Dar_es_Salaam"
@@ -61,32 +60,48 @@ python3 -m venv "$APP_DIR/venv"
 "$APP_DIR/venv/bin/pip" install -q -r "$APP_DIR/requirements.txt"
 ok "Dependencies installed (requests, beautifulsoup4)"
 
-# ── 5. interactive configuration ───────────────────────────────────────────
+# ── 5. configuration (interactive, or noninteractive via env) ──────────────
+
+# Noninteractive mode: set NONINTERACTIVE=1 and provide
+#   ACE_URL ACE_USER ACE_PASS API_URL ACE_KEY LOCATION
 echo
-echo -e "${CYAN}--- Configuration ---${NC}"
+if [[ "${NONINTERACTIVE:-0}" == "1" ]]; then
+  ACE_URL="${ACE_URL:-$DEF_ACE_URL}"
+  ACE_USER="${ACE_USER:-}"
+  ACE_PASS="${ACE_PASS:-}"
+  API_URL="${API_URL:-$DEF_API_URL}"
+  ACE_KEY="${ACE_KEY:-}"
+  LOCATION="${LOCATION:-$DEF_LOCATION}"
+  [[ -n "$ACE_USER" ]] || fail "NONINTERACTIVE: ACE_USER is required"
+  [[ -n "$ACE_PASS" ]] || fail "NONINTERACTIVE: ACE_PASS is required"
+  [[ -n "$ACE_KEY"  ]] || fail "NONINTERACTIVE: ACE_KEY is required"
+  log "Noninteractive install for location '${LOCATION}'"
+else
+  echo -e "${CYAN}--- Configuration ---${NC}"
 
-read -r -p "ACE base URL [${DEF_ACE_URL}]: " ACE_URL </dev/tty || true
-ACE_URL="${ACE_URL:-$DEF_ACE_URL}"
+  read -r -p "ACE base URL [${DEF_ACE_URL}]: " ACE_URL </dev/tty || true
+  ACE_URL="${ACE_URL:-$DEF_ACE_URL}"
 
-read -r -p "ACE username [${DEF_ACE_USER}]: " ACE_USER </dev/tty || true
-ACE_USER="${ACE_USER:-$DEF_ACE_USER}"
+  read -r -p "ACE username: " ACE_USER </dev/tty || true
 
-ACE_PASS=""
-while [[ -z "$ACE_PASS" ]]; do
-  read -r -s -p "ACE password (hidden): " ACE_PASS </dev/tty; echo
-done
+  ACE_PASS=""
+  while [[ -z "$ACE_PASS" ]]; do
+    read -r -s -p "ACE password (hidden): " ACE_PASS </dev/tty; echo
+  done
 
-read -r -p "Casino System API URL [${DEF_API_URL}]: " API_URL </dev/tty || true
-API_URL="${API_URL:-$DEF_API_URL}"
+  read -r -p "Casino System API URL [${DEF_API_URL}]: " API_URL </dev/tty || true
+  API_URL="${API_URL:-$DEF_API_URL}"
 
-ACE_KEY=""
-while [[ -z "$ACE_KEY" ]]; do
-  read -r -s -p "x-ace-key (hidden): " ACE_KEY </dev/tty; echo
-done
+  ACE_KEY=""
+  while [[ -z "$ACE_KEY" ]]; do
+    read -r -s -p "x-ace-key (hidden): " ACE_KEY </dev/tty; echo
+  done
 
-read -r -p "Location code [${DEF_LOCATION}]: " LOCATION </dev/tty || true
-LOCATION="${LOCATION:-$DEF_LOCATION}"
+  read -r -p "Location code [${DEF_LOCATION}]: " LOCATION </dev/tty || true
+  LOCATION="${LOCATION:-$DEF_LOCATION}"
+fi
 LOCATION="$(echo "$LOCATION" | tr '[:upper:]' '[:lower:]' | tr -d ' ')"
+
 
 # ── 6. env file ────────────────────────────────────────────────────────────
 log "Writing ${ENV_FILE}"
