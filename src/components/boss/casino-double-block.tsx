@@ -257,8 +257,9 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
 
       <div className="px-6 py-2 border-t border-white/5 flex items-center justify-between text-[0.55em] uppercase tracking-[0.22em] text-muted-foreground/70">
         <span>Tables · Reports Daily Balance</span>
-        <span>Slots · soon</span>
+        <span>{useAce ? "Slots · ACE Live" : "Slots · Day Closing / Live"}</span>
       </div>
+
     </section>
   );
 }
