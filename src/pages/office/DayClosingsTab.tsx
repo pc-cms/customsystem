@@ -219,6 +219,8 @@ export default function DayClosingsTab() {
   const upsert = useUpsertDayClosing();
   const lock = useLockDayClosing();
   const addIncome = useAddOtherIncome();
+  const updateIncome = useUpdateOtherIncome();
+
   const { activeCasinoId } = useCasino();
 
   const val = (r: Row) => {
@@ -255,18 +257,34 @@ export default function DayClosingsTab() {
     const finalComment = noteOverride ?? v.comment;
     const tid = `day-${r.date}`;
     try {
-      const jpDelta = v.jp - r.jpPosted;
-      if (jpDelta !== 0) {
-        if (!jpWalletId) throw new Error("No TZS wallet configured for JP");
-        await addIncome.mutateAsync({
-          business_date: r.date,
-          wallet_id: jpWalletId,
-          source: "jp",
-          currency: "TZS",
-          amount: jpDelta,
-          note: "JP · Day Closings",
-        });
+      // JP (IN): edit the existing contribution row of the day instead of
+      // stacking correction rows. Payouts are never touched from here.
+      if (v.jp !== r.jpPosted) {
+        if (r.jpRow) {
+          await updateIncome.mutateAsync({
+            id: r.jpRow.id,
+            business_date: r.date,
+            wallet_id: r.jpRow.wallet_id,
+            fin_category_id: r.jpRow.fin_category_id,
+            source: "jp",
+            currency: r.jpRow.currency || "TZS",
+            amount: v.jp,
+            fx_rate: Number(r.jpRow.fx_rate ?? 1),
+            note: r.jpRow.note || "JP · Day Closings",
+          });
+        } else {
+          if (!jpWalletId) throw new Error("No TZS wallet configured for JP");
+          await addIncome.mutateAsync({
+            business_date: r.date,
+            wallet_id: jpWalletId,
+            source: "jp",
+            currency: "TZS",
+            amount: v.jp,
+            note: "JP · Day Closings",
+          });
+        }
       }
+
       await upsert.mutateAsync({
         id: r.existing?.id,
         business_date: r.date,
