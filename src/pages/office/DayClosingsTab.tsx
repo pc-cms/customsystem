@@ -232,7 +232,7 @@ export default function DayClosingsTab() {
 
     const drop = d.drop ?? Number(r.existing?.drop_slots ?? 0);
     const cash = d.cash ?? Number(r.existing?.cashdesk_win ?? 0);
-    const cards = Math.abs(d.cards ?? Number(r.existing?.players_card_balance ?? 0));
+    const cards = d.cards ?? Number(r.existing?.players_card_balance ?? 0);
     const jp = d.jp ?? r.jpPosted;
     const comment = d.comment ?? (r.existing?.notes ?? "");
     return { tables, slots, drop, cash, cards, jp, comment };
@@ -345,8 +345,8 @@ export default function DayClosingsTab() {
       t.missChips += Number(r.agg.missChips ?? 0);
       t.missCards += Number(r.agg.missCards ?? 0);
       t.jp += r.jpPosted;
-      const cb = Math.abs(Number(r.existing?.players_card_balance ?? 0));
-      if (!cardsFound && cb > 0) { t.cards = cb; cardsFound = true; }
+      const cb = Number(r.existing?.players_card_balance ?? 0);
+      if (!cardsFound && cb !== 0) { t.cards = cb; cardsFound = true; }
     });
     return t;
   }, [rows]);
@@ -427,10 +427,10 @@ export default function DayClosingsTab() {
       header: "Card Balance",
       type: "money",
       style: { width: 150 },
-      accessor: (r) => numCell(r, val(r).cards, (n) => setField(r.date, { cards: Math.abs(n) }), {
+      accessor: (r) => numCell(r, val(r).cards, (n) => setField(r.date, { cards: n }), {
         tone: false,
-        allowNegative: false,
-        title: "Deposits held on player cards. Subtracted from the Slots result.",
+        allowNegative: true,
+        title: "Client balance held on player cards. Subtracted from the Slots result. Negative values allowed.",
       }),
     },
     {
@@ -528,7 +528,7 @@ export default function DayClosingsTab() {
       case "tables": return <Money v={totals.tables} />;
       case "slots": return <Money v={totals.slots - totals.cards} />;
       case "drop": return <span className="font-mono text-[12px] text-muted-foreground">{formatNumberSpaces(totals.drop)}</span>;
-      case "cards": return <span className={cn("font-mono text-[12px]", totals.cards ? "cms-amount-negative" : "text-muted-foreground")}>{totals.cards ? `− ${formatNumberSpaces(totals.cards)}` : "0"}</span>;
+      case "cards": return <span className={cn("font-mono text-[12px]", totals.cards ? "cms-amount-negative" : "text-muted-foreground")}>{totals.cards ? `${totals.cards > 0 ? "− " : "+ "}${formatNumberSpaces(Math.abs(totals.cards))}` : "0"}</span>;
       case "jp": return <Money v={totals.jp} />;
       default: return null;
     }
