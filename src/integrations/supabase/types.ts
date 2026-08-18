@@ -61,7 +61,13 @@ export type Database = {
       }
       ace_finance_snapshots: {
         Row: {
+          apply_error: string | null
+          apply_status: string | null
+          business_date: string | null
           cashless_money_difference: number
+          casino_id: string | null
+          closed_at_local: string | null
+          closing_applied_at: string | null
           id: string
           is_live: boolean
           jackpot_slip_out: number
@@ -76,7 +82,13 @@ export type Database = {
           win_cashdesk: number
         }
         Insert: {
+          apply_error?: string | null
+          apply_status?: string | null
+          business_date?: string | null
           cashless_money_difference: number
+          casino_id?: string | null
+          closed_at_local?: string | null
+          closing_applied_at?: string | null
           id?: string
           is_live?: boolean
           jackpot_slip_out: number
@@ -91,7 +103,13 @@ export type Database = {
           win_cashdesk: number
         }
         Update: {
+          apply_error?: string | null
+          apply_status?: string | null
+          business_date?: string | null
           cashless_money_difference?: number
+          casino_id?: string | null
+          closed_at_local?: string | null
+          closing_applied_at?: string | null
           id?: string
           is_live?: boolean
           jackpot_slip_out?: number
@@ -105,7 +123,15 @@ export type Database = {
           updated_at?: string
           win_cashdesk?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ace_finance_snapshots_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ace_ingest_keys: {
         Row: {
@@ -11168,6 +11194,17 @@ export type Database = {
       _has_payload: { Args: { snap: Json }; Returns: boolean }
       _sum_denoms: { Args: { p: Json }; Returns: number }
       _sum_mobile: { Args: { p: Json }; Returns: number }
+      ace_apply_closed_report: {
+        Args: {
+          _business_date: string
+          _cashdesk_win: number
+          _casino_id: string
+          _client_balance: number
+          _drop_slots: number
+          _net_win: number
+        }
+        Returns: Json
+      }
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
       admin_active_sessions: {
         Args: never
