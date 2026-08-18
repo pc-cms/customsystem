@@ -15,6 +15,7 @@ export interface AceFinanceSnapshot {
   win_cashdesk: number;
   cashless_money_difference: number;
   jackpot_slip_out: number;
+  active_credits: number | null;
   source: string;
   is_live: boolean;
   received_at: string;
@@ -36,6 +37,8 @@ export function useAceFinanceLatest(locationCode: string | null | undefined) {
       return (data ?? null) as unknown as AceFinanceSnapshot | null;
     },
     staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -55,6 +58,8 @@ export function useAceFinanceLive(locationCode: string | null | undefined) {
       return (data ?? null) as unknown as AceFinanceSnapshot | null;
     },
     staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -94,6 +99,8 @@ export function useAceLiveSlotsResult(locationCode: string | null | undefined) {
     fresh,
     totalDrop: fresh ? Number(data?.total_drop ?? 0) : null,
     netWin: fresh ? Number(data?.net_win ?? 0) : null,
+    activeCredits:
+      fresh && data?.active_credits != null ? Number(data.active_credits) : null,
     ageMs,
     periodLabel: data?.period_label ?? null,
     receivedAt: data?.received_at ?? null,

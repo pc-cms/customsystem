@@ -57,12 +57,14 @@ const MetricsGrid = ({
   total,
   accent,
   slotsHint,
+  slotsSubHint,
 }: {
   tables: CasinoMetric;
   slots: CasinoMetric;
   total: CasinoMetric;
   accent: string;
   slotsHint?: string | null;
+  slotsSubHint?: string | null;
 }) => (
   <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-x-4 gap-y-2 items-baseline">
     {/* header row */}
@@ -91,6 +93,11 @@ const MetricsGrid = ({
       {slotsHint && (
         <span className="block text-[0.72em] normal-case tracking-normal text-muted-foreground/60 font-normal">
           {slotsHint}
+        </span>
+      )}
+      {slotsSubHint && (
+        <span className="block text-[0.72em] normal-case tracking-normal text-muted-foreground/60 font-normal">
+          {slotsSubHint}
         </span>
       )}
     </span>
@@ -161,6 +168,10 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
   const aceHint = useAce
     ? `ACE Live · ${Math.max(0, Math.round((ace.ageMs ?? 0) / 60000))}m ago${ace.periodLabel ? ` · ${ace.periodLabel}` : ""}`
     : null;
+  const aceActiveCredits =
+    ace.fresh && ace.activeCredits != null
+      ? `Active Credits · ${formatMoneyFull(Math.round(ace.activeCredits))}`
+      : null;
   const todaySlots: CasinoMetric | undefined = day
     ? useAce
       ? {
@@ -245,6 +256,7 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
               tables={day.live}
               slots={todaySlots ?? day.slots}
               slotsHint={aceHint}
+              slotsSubHint={aceActiveCredits}
               total={todayTotal ?? day.total}
               accent={accent}
             />

@@ -33,6 +33,7 @@ NET_WIN_LABEL = "net win"
 CASHDESK_LABEL = "win, cashdesk"
 CASHLESS_LABEL = "cashless money"
 JACKPOT_LABEL = "jackpot slip"
+ACTIVE_CREDITS_LABEL = "active credits"
 
 
 def _norm(text: str | None) -> str:
@@ -81,6 +82,7 @@ class FinanceReport:
     win_cashdesk: float
     cashless_money_difference: float
     jackpot_slip_out: float
+    active_credits: float
 
     def as_payload(self, location_code: str) -> dict:
         data = asdict(self)
@@ -156,6 +158,9 @@ def parse_consolidation(html: str, period_id: int, period_label: str = "") -> Fi
         if head == TOTAL_DROP_LABEL:
             take("total_drop", cells, 1)
 
+        if head == ACTIVE_CREDITS_LABEL:
+            take("active_credits", cells, 1)
+
         if head == NET_WIN_LABEL:
             take("net_win", cells, 1)
             for i, cell in enumerate(cells):
@@ -175,6 +180,7 @@ def parse_consolidation(html: str, period_id: int, period_label: str = "") -> Fi
         ("win_cashdesk", "WIN, CashDesk"),
         ("cashless_money_difference", "Cashless Money Difference"),
         ("jackpot_slip_out", "Jackpot Slip OUT"),
+        ("active_credits", "Active credits"),
     )
     missing = [human for key, human in required if key not in found]
     if missing:
@@ -190,6 +196,7 @@ def parse_consolidation(html: str, period_id: int, period_label: str = "") -> Fi
         win_cashdesk=found["win_cashdesk"],
         cashless_money_difference=found["cashless_money_difference"],
         jackpot_slip_out=found["jackpot_slip_out"],
+        active_credits=found["active_credits"],
     )
 
 
