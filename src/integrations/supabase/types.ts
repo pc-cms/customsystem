@@ -105,6 +105,7 @@ export type Database = {
       }
       ace_finance_snapshots: {
         Row: {
+          active_credits: number | null
           apply_error: string | null
           apply_status: string | null
           business_date: string | null
@@ -126,6 +127,7 @@ export type Database = {
           win_cashdesk: number
         }
         Insert: {
+          active_credits?: number | null
           apply_error?: string | null
           apply_status?: string | null
           business_date?: string | null
@@ -147,6 +149,7 @@ export type Database = {
           win_cashdesk: number
         }
         Update: {
+          active_credits?: number | null
           apply_error?: string | null
           apply_status?: string | null
           business_date?: string | null
@@ -10959,7 +10962,14 @@ export type Database = {
     Views: {
       ace_finance_latest: {
         Row: {
+          active_credits: number | null
+          apply_error: string | null
+          apply_status: string | null
+          business_date: string | null
           cashless_money_difference: number | null
+          casino_id: string | null
+          closed_at_local: string | null
+          closing_applied_at: string | null
           id: string | null
           is_live: boolean | null
           jackpot_slip_out: number | null
@@ -10973,7 +10983,15 @@ export type Database = {
           updated_at: string | null
           win_cashdesk: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ace_finance_snapshots_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chip_conservation_status: {
         Row: {
