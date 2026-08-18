@@ -438,9 +438,14 @@ export default function DayClosingsTab() {
       header: "JP (IN)",
       type: "money",
       style: { width: 150 },
-      accessor: (r) => numCell(r, val(r).jp, (n) => setField(r.date, { jp: n }), {
-        title: `JP booked as income on this business day. Posted: ${formatNumberSpaces(r.jpPosted)}`,
+      accessor: (r) => numCell(r, val(r).jp, (n) => setField(r.date, { jp: Math.abs(n) }), {
+        allowNegative: false,
+        title:
+          `JP contributions booked on this business day. Posted: ${formatNumberSpaces(r.jpPosted)}`
+          + (Number(r.jpRowsCount || 0) > 1 ? ` · ${r.jpRowsCount} entries — editing the Day Closings one` : "")
+          + ". Payouts are entered on the JP tab and never shown here.",
       }),
+
     },
     {
       key: "ace_jp_out",
