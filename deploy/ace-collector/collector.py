@@ -50,8 +50,8 @@ def run_live(client, api, cfg, logger, dry_run: bool) -> bool:
     report = collect_live(client)
     payload = report.as_payload(cfg.location_code)
     logger.info(
-        "LIVE drop=%s net_win=%s cashdesk=%s cashless=%s jp_out=%s",
-        report.total_drop, report.net_win, report.win_cashdesk,
+        "[%s] LIVE drop=%s net_win=%s cashdesk=%s cashless=%s jp_out=%s",
+        cfg.location_code, report.total_drop, report.net_win, report.win_cashdesk,
         report.cashless_money_difference, report.jackpot_slip_out,
     )
     api.send(payload, dry_run=dry_run)
@@ -73,7 +73,7 @@ def run_closing(client, api, cfg, logger, dry_run: bool) -> bool:
     payload = report.as_payload(cfg.location_code)
     payload["business_date"] = business_date
     payload["closed_at_local"] = report.period_label
-    logger.info("CLOSED period_id=%s business_date=%s label=%r", period_id, business_date, report.period_label)
+    logger.info("[%s] CLOSED period_id=%s business_date=%s label=%r", cfg.location_code, period_id, business_date, report.period_label)
     api.send(payload, dry_run=dry_run)
     return True
 
@@ -103,7 +103,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.health:
         logger.info("ACE base URL : %s (verify_tls=%s)", cfg.ace_base_url, cfg.ace_verify_tls)
         logger.info("API URL      : %s", cfg.api_url)
-        logger.info("Location     : %s", cfg.location_code)
+        logger.info("Casino       : %s", cfg.location_code)
         logger.info("Timezone     : %s (closing %02d:00-%02d:00)",
                     cfg.timezone, cfg.closing_window_start, cfg.closing_window_end)
         try:
