@@ -92,12 +92,14 @@ export function useAceLiveSlotsResult(locationCode: string | null | undefined) {
   const fresh = ageMs != null && ageMs >= 0 && ageMs <= ACE_LIVE_MAX_AGE_MS;
   return {
     fresh,
+    totalDrop: fresh ? Number(data?.total_drop ?? 0) : null,
     netWin: fresh ? Number(data?.net_win ?? 0) : null,
     ageMs,
     periodLabel: data?.period_label ?? null,
     receivedAt: data?.received_at ?? null,
   };
 }
+
 
 /**
  * Applied ACE closed snapshots for one casino in a business-date range.

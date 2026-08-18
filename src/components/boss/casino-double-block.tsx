@@ -153,20 +153,48 @@ interface Props {
 }
 
 export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto" }: Props) {
-  // Arusha only: a FRESH (≤15 min) ACE live feed replaces the displayed slots
-  // result. Anything stale or missing falls back to the existing calculation.
-  const ace = useAceLiveSlotsResult(slug === "arusha" ? "arusha" : null);
-  const useAce = slug === "arusha" && ace.fresh && ace.netWin != null;
+  // A FRESH (≤15 min) ACE live feed replaces the displayed slots drop & result
+  // for any casino whose slug matches an ACE location_code. Stale or missing data
+  // falls back to the existing calculation.
+  const ace = useAceLiveSlotsResult(slug);
+  const useAce = ace.fresh && ace.totalDrop != null && ace.netWin != null;
   const aceHint = useAce
     ? `ACE Live · ${Math.max(0, Math.round((ace.ageMs ?? 0) / 60000))}m ago${ace.periodLabel ? ` · ${ace.periodLabel}` : ""}`
     : null;
   const todaySlots: CasinoMetric | undefined = day
     ? useAce
-      ? { ...day.slots, result: ace.netWin as number }
+      ? {
+          ...day.slots,
+          drop: ace.totalDrop as number,
+          result: ace.netWin as number,
+          hold: (ace.totalDrop as number) > 0
+            ? ((ace.netWin as number) / (ace.totalDrop as number)) * 100
+            : 0,
+        }
       : day.slots
     : undefined;
 
+  // Total headline must also reflect ACE slots drop/result, replacing the old
+  // slots figure (which was either zero drop or cage slots result).
+  const todayTotal: CasinoMetric | undefined = day
+    ? useAce
+      ? {
+          ...day.total,
+          drop: day.total.drop + (ace.totalDrop as number),
+          result: day.total.result - day.slots.result + (ace.netWin as number),
+          headCount: day.total.headCount,
+          hold:
+            day.total.drop + (ace.totalDrop as number) > 0
+              ? ((day.total.result - day.slots.result + (ace.netWin as number)) /
+                  (day.total.drop + (ace.totalDrop as number))) *
+                100
+              : 0,
+        }
+      : day.total
+    : undefined;
+
   const layoutClass =
+
 
     orientation === "cols"
       ? "flex flex-row divide-y-0 divide-x divide-white/5"
@@ -217,13 +245,13 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
               tables={day.live}
               slots={todaySlots ?? day.slots}
               slotsHint={aceHint}
-              total={day.total}
+              total={todayTotal ?? day.total}
               accent={accent}
             />
-
           </Panel>
 
           <Panel title="MTD" accent={accent}>
+
             <MetricsGrid
               tables={{
                 drop: day.mtd.drop,
@@ -248,8 +276,9 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
 
       <div className="px-6 py-2 border-t border-white/5 flex items-center justify-between text-[0.55em] uppercase tracking-[0.22em] text-muted-foreground/70">
         <span>Tables · Reports Daily Balance</span>
-        <span>Slots · soon</span>
+        <span>{useAce ? "Slots · ACE Live" : "Slots · Day Closing / Live"}</span>
       </div>
+
     </section>
   );
 }
