@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ServerIdentityPanel } from "./ServerIdentityPanel";
+import { AceCollectorPanel } from "./AceCollectorPanel";
+
 import { SyncStatusPanel } from "./SyncStatusPanel";
 import { MirrorHealthPanel } from "./MirrorHealthPanel";
 import { PeerLinksPanel } from "./PeerLinksPanel";
