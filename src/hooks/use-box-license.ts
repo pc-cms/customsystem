@@ -35,13 +35,15 @@ export function useBoxLicense(): BoxLicenseState {
   const { data } = useQuery({
     queryKey: ["box-license"],
     queryFn: async (): Promise<BoxLicenseState> => {
-      const { data: rows } = await supabase
-        .from("box_licenses")
-        .select("*")
-        .order("activated_at", { ascending: true })
-        .limit(1);
+      // Secret-free license state (no license_key / challenge_nonce):
+      // readable by any signed-in user, secrets stay super_admin-only.
+      const { data: rows } = await supabase.rpc("box_license_state" as any);
 
-      const license = (rows?.[0] as BoxLicenseRow | undefined) ?? null;
+      const row = (Array.isArray(rows) ? rows[0] : null) as Partial<BoxLicenseRow> | null;
+      const license = row
+        ? ({ license_key: null, challenge_nonce: null, notes: null, ...row } as BoxLicenseRow)
+        : null;
+
 
       if (!license) {
         return {
