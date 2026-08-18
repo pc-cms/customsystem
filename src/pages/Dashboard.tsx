@@ -15,6 +15,57 @@ import { useTotalDrop } from "@/lib/drop-source";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CCTVDashboardSection } from "@/components/dashboard/CCTVDashboardSection";
+import { useCasino } from "@/lib/casino-context";
+import { useAceLiveSlotsResult } from "@/hooks/use-ace-finance";
+
+/** Compact KPI tile for the top row (Expenses / Headcount / Total). */
+const StatTile = ({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  href,
+  signed,
+  emphasis,
+}: {
+  label: string;
+  value: React.ReactNode;
+  hint?: string;
+  icon?: any;
+  href?: string;
+  signed?: number;
+  emphasis?: boolean;
+}) => {
+  const colorCls =
+    signed === undefined ? "" : signed < 0 ? "cms-amount-negative" : signed > 0 ? "cms-amount-positive" : "";
+  const body = (
+    <div
+      className={`rounded-md border bg-card px-4 py-3 h-full flex flex-col justify-between gap-2 ${
+        emphasis ? "border-primary/40 bg-primary/5" : "border-border"
+      }`}
+    >
+      <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold">
+        {Icon && <Icon className="w-3.5 h-3.5 text-primary shrink-0" />}
+        <span className="truncate">{label}</span>
+      </span>
+      <span
+        className={`font-mono font-extrabold tabular-nums whitespace-nowrap ${
+          emphasis ? "text-3xl" : "text-3xl"
+        } ${colorCls || "text-foreground"}`}
+      >
+        {value}
+      </span>
+      {hint && <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{hint}</span>}
+    </div>
+  );
+  return href ? (
+    <Link to={href} className="block hover:opacity-90 transition-opacity">
+      {body}
+    </Link>
+  ) : (
+    body
+  );
+};
 
 /**
  * Single-panel summary strip — one bordered card, one row per metric.
@@ -101,6 +152,9 @@ const Dashboard = () => {
   // Total Drop — single source of truth: `player_day_drop_cache` (same value
   // shown on Player Statistics). Per-table Drop is never displayed.
   const { data: totalDrop = 0 } = useTotalDrop({ casinoId, fromDate: businessDate });
+  // Slots figures come from the ACE collector (live snapshot, refreshed ~every 5 min).
+  const { activeCasino } = useCasino();
+  const ace = useAceLiveSlotsResult(activeCasino?.slug ?? null);
 
   // Pending expenses across BOTH cages (Live Game + Slots) — drives the
   // Approvals tile for manager / shift_manager / finance_manager / super_admin.
@@ -231,50 +285,90 @@ const Dashboard = () => {
         <CCTVDashboardSection />
       )}
 
-      {/* Day at a glance + Tables Totals — two columns. */}
+      {/* Top KPI tiles + Slots / Live Table columns. */}
       {(() => {
         const isSurveillance = roles.includes("surveillance") && !roles.includes("manager") && !roles.includes("super_admin");
         if (!showFinancials) return null;
 
-        const leftRows: Array<{ label: string; value: React.ReactNode; icon?: any; href?: string; signed?: number }> = [];
-        if (!isSurveillance && canApproveExpenses) {
-          leftRows.push({ label: "Daily Expenses", value: pendingExpenses, icon: Receipt, href: "/expenses" });
-        }
-        leftRows.push({ label: "Headcount", value: headcountToday, icon: Users, href: "/reception" });
-        leftRows.push({ label: "Active Players", value: activePlayersToday, icon: Users, href: "/reception" });
+        const DOT = "·";
+        const slotsResult = ace.fresh ? Number(ace.netWin ?? 0) : 0;
+        const grandTotal = totalResult + slotsResult;
+        const aceHint = ace.fresh
+          ? `ACE Live · ${Math.max(0, Math.round((ace.ageMs ?? 0) / 60000))}m ago`
+          : "No ACE data";
 
-        const rightRows = Object.entries(gameTypeTotals).map(([_, t]) => ({
+        const slotsRows = [
+          {
+            label: "Drop",
+            value: ace.fresh ? formatCurrency(Number(ace.totalDrop ?? 0)) : DOT,
+          },
+          { label: "Active Credits", value: DOT },
+        ];
+
+        const tableRows = Object.entries(gameTypeTotals).map(([_, t]) => ({
           label: t.label,
           signed: t.result,
           href: "/tables",
           value: `${t.result >= 0 ? "+" : ""}${formatCurrency(t.result)}`,
         }));
+        tableRows.push({
+          label: "Total Drop",
+          signed: undefined as unknown as number,
+          href: "/tables",
+          value: formatCurrency(totalDrop),
+        });
 
         return (
-          <div className="grid lg:grid-cols-2 gap-4">
-            <SummaryPanel
-              title="Day at a glance"
-              rows={leftRows}
-              total={{
-                label: "Total Drop",
-                signed: totalDrop,
-                value: formatCurrency(totalDrop),
-              }}
-            />
-            {gameTypeCount > 0 && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <StatTile
+                label="Expenses"
+                value={!isSurveillance && canApproveExpenses ? pendingExpenses : DOT}
+                icon={Receipt}
+                href={!isSurveillance && canApproveExpenses ? "/expenses" : undefined}
+              />
+              <StatTile
+                label="Headcount"
+                value={headcountToday}
+                hint={`${activePlayersToday} active players`}
+                icon={Users}
+                href="/reception"
+              />
+              <StatTile
+                label="Total · Live Table + Slots"
+                value={`${grandTotal >= 0 ? "+" : ""}${formatCurrency(grandTotal)}`}
+                signed={grandTotal}
+                hint={ace.fresh ? "incl. ACE slots net win" : "slots not included (no ACE)"}
+                emphasis
+              />
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-4">
               <SummaryPanel
-                title="Tables Totals"
-                rows={rightRows}
+                title={`Slots · ${aceHint}`}
+                rows={slotsRows}
                 total={{
-                  label: "Total Casino",
+                  label: "Result",
+                  signed: ace.fresh ? slotsResult : undefined,
+                  value: ace.fresh
+                    ? `${slotsResult >= 0 ? "+" : ""}${formatCurrency(slotsResult)}`
+                    : DOT,
+                }}
+              />
+              <SummaryPanel
+                title="Live Table"
+                rows={tableRows}
+                total={{
+                  label: "Result",
                   signed: totalResult,
                   value: `${totalResult >= 0 ? "+" : ""}${formatCurrency(totalResult)}`,
                 }}
               />
-            )}
-          </div>
+            </div>
+          </>
         );
       })()}
+
 
       {/* Top players today — Drop ≥ 1 000 000 or a non-zero result, max 10 rows. */}
       {showFinancials && (
