@@ -345,8 +345,8 @@ export default function DayClosingsTab() {
       t.missChips += Number(r.agg.missChips ?? 0);
       t.missCards += Number(r.agg.missCards ?? 0);
       t.jp += r.jpPosted;
-      const cb = Math.abs(Number(r.existing?.players_card_balance ?? 0));
-      if (!cardsFound && cb > 0) { t.cards = cb; cardsFound = true; }
+      const cb = Number(r.existing?.players_card_balance ?? 0);
+      if (!cardsFound && cb !== 0) { t.cards = cb; cardsFound = true; }
     });
     return t;
   }, [rows]);
