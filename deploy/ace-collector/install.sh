@@ -14,79 +14,47 @@ LOGROTATE_FILE="/etc/logrotate.d/ace-collector"
 SVC_USER="acecollector"
 
 DEF_ACE_URL="https://192.168.1.191"
-DEF_ACE_USER="Taras"
-DEF_API_URL="https://rpehngjvwcnipvkouluu.supabase.co/functions/v1/ace-finance-ingest"
-DEF_LOCATION="arusha"
-DEF_TZ="Africa/Dar_es_Salaam"
-
-GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; CYAN='\033[0;36m'; NC='\033[0m'
-log()  { echo -e "${CYAN}[ace]${NC} $*"; }
-ok()   { echo -e "${GREEN}[ ok ]${NC} $*"; }
-warn() { echo -e "${YELLOW}[warn]${NC} $*"; }
-fail() { echo -e "${RED}[fail]${NC} $*" >&2; exit 1; }
-
-[[ $EUID -eq 0 ]] || fail "Run as root:  sudo ./install.sh"
-
-SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-echo -e "${CYAN}=== ACE Collector installer ===${NC}"
-
-# ── 1. packages ────────────────────────────────────────────────────────────
-log "Installing system packages..."
-export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq
-apt-get install -y -qq python3 python3-venv python3-pip ca-certificates cron util-linux
-ok "Packages installed"
-
-# ── 2. service user ────────────────────────────────────────────────────────
-if id -u "$SVC_USER" >/dev/null 2>&1; then
-  ok "User ${SVC_USER} already exists"
-else
-  useradd --system --no-create-home --shell /usr/sbin/nologin "$SVC_USER"
-  ok "Created system user ${SVC_USER}"
-fi
-
-# ── 3. copy project ────────────────────────────────────────────────────────
-log "Installing project into ${APP_DIR}"
-mkdir -p "$APP_DIR"
-if [[ "$SRC_DIR" != "$APP_DIR" ]]; then
-  cp -a "$SRC_DIR"/. "$APP_DIR"/
-fi
-chmod +x "$APP_DIR/run.sh" "$APP_DIR/install.sh" 2>/dev/null || true
-
-# ── 4. venv ────────────────────────────────────────────────────────────────
-log "Creating Python virtualenv..."
-python3 -m venv "$APP_DIR/venv"
-"$APP_DIR/venv/bin/pip" install --upgrade pip -q
-"$APP_DIR/venv/bin/pip" install -q -r "$APP_DIR/requirements.txt"
-ok "Dependencies installed (requests, beautifulsoup4)"
-
-# ── 5. interactive configuration ───────────────────────────────────────────
+# ── 5. configuration (interactive, or noninteractive via env) ──────────────
+# Noninteractive mode: set NONINTERACTIVE=1 and provide
+#   ACE_URL ACE_USER ACE_PASS API_URL ACE_KEY LOCATION
 echo
-echo -e "${CYAN}--- Configuration ---${NC}"
+if [[ "${NONINTERACTIVE:-0}" == "1" ]]; then
+  ACE_URL="${ACE_URL:-$DEF_ACE_URL}"
+  ACE_USER="${ACE_USER:-}"
+  ACE_PASS="${ACE_PASS:-}"
+  API_URL="${API_URL:-$DEF_API_URL}"
+  ACE_KEY="${ACE_KEY:-}"
+  LOCATION="${LOCATION:-$DEF_LOCATION}"
+  [[ -n "$ACE_USER" ]] || fail "NONINTERACTIVE: ACE_USER is required"
+  [[ -n "$ACE_PASS" ]] || fail "NONINTERACTIVE: ACE_PASS is required"
+  [[ -n "$ACE_KEY"  ]] || fail "NONINTERACTIVE: ACE_KEY is required"
+  log "Noninteractive install for location '${LOCATION}'"
+else
+  echo -e "${CYAN}--- Configuration ---${NC}"
 
-read -r -p "ACE base URL [${DEF_ACE_URL}]: " ACE_URL </dev/tty || true
-ACE_URL="${ACE_URL:-$DEF_ACE_URL}"
+  read -r -p "ACE base URL [${DEF_ACE_URL}]: " ACE_URL </dev/tty || true
+  ACE_URL="${ACE_URL:-$DEF_ACE_URL}"
 
-read -r -p "ACE username [${DEF_ACE_USER}]: " ACE_USER </dev/tty || true
-ACE_USER="${ACE_USER:-$DEF_ACE_USER}"
+  read -r -p "ACE username: " ACE_USER </dev/tty || true
 
-ACE_PASS=""
-while [[ -z "$ACE_PASS" ]]; do
-  read -r -s -p "ACE password (hidden): " ACE_PASS </dev/tty; echo
-done
+  ACE_PASS=""
+  while [[ -z "$ACE_PASS" ]]; do
+    read -r -s -p "ACE password (hidden): " ACE_PASS </dev/tty; echo
+  done
 
-read -r -p "Casino System API URL [${DEF_API_URL}]: " API_URL </dev/tty || true
-API_URL="${API_URL:-$DEF_API_URL}"
+  read -r -p "Casino System API URL [${DEF_API_URL}]: " API_URL </dev/tty || true
+  API_URL="${API_URL:-$DEF_API_URL}"
 
-ACE_KEY=""
-while [[ -z "$ACE_KEY" ]]; do
-  read -r -s -p "x-ace-key (hidden): " ACE_KEY </dev/tty; echo
-done
+  ACE_KEY=""
+  while [[ -z "$ACE_KEY" ]]; do
+    read -r -s -p "x-ace-key (hidden): " ACE_KEY </dev/tty; echo
+  done
 
-read -r -p "Location code [${DEF_LOCATION}]: " LOCATION </dev/tty || true
-LOCATION="${LOCATION:-$DEF_LOCATION}"
+  read -r -p "Location code [${DEF_LOCATION}]: " LOCATION </dev/tty || true
+  LOCATION="${LOCATION:-$DEF_LOCATION}"
+fi
 LOCATION="$(echo "$LOCATION" | tr '[:upper:]' '[:lower:]' | tr -d ' ')"
+
 
 # ── 6. env file ────────────────────────────────────────────────────────────
 log "Writing ${ENV_FILE}"
