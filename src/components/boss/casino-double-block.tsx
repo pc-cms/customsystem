@@ -246,11 +246,11 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
               tables={day.live}
               slots={todaySlots ?? day.slots}
               slotsHint={aceHint}
-              total={day.total}
+              total={todayTotal ?? day.total}
               accent={accent}
             />
-
           </Panel>
+
 
           <Panel title="MTD" accent={accent}>
             <MetricsGrid
