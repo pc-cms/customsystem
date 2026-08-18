@@ -427,10 +427,10 @@ export default function DayClosingsTab() {
       header: "Card Balance",
       type: "money",
       style: { width: 150 },
-      accessor: (r) => numCell(r, val(r).cards, (n) => setField(r.date, { cards: Math.abs(n) }), {
+      accessor: (r) => numCell(r, val(r).cards, (n) => setField(r.date, { cards: n }), {
         tone: false,
-        allowNegative: false,
-        title: "Deposits held on player cards. Subtracted from the Slots result.",
+        allowNegative: true,
+        title: "Client balance held on player cards. Subtracted from the Slots result. Negative values allowed.",
       }),
     },
     {
