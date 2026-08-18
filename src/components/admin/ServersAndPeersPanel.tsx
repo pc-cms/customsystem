@@ -134,7 +134,9 @@ export const ServersAndPeersPanel = () => {
 
       {/* Core: this server + its peers */}
       <ServerIdentityPanel />
+      <AceCollectorPanel />
       <PeerLinksPanel />
+
       <SyncStatusPanel />
       <MirrorHealthPanel />
 
