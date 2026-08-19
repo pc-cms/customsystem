@@ -213,6 +213,25 @@ NUMERIC_DATE_PATTERNS = (
 
 TEXT_DATE_RE = re.compile(r"\b(\d{1,2})[\s./-]+([A-Za-z]{3,})[\s./-]+(\d{4})\b")
 TEXT_DATE_RE_2 = re.compile(r"\b([A-Za-z]{3,})[\s./-]+(\d{1,2}),?[\s./-]+(\d{4})\b")
+TIME_RE = re.compile(r"\b(\d{1,2}):(\d{2})\b")
+
+# Casino business day rolls over at 07:00 local time (Africa/Dar_es_Salaam).
+BUSINESS_DAY_ROLLOVER_HOUR = 7
+
+
+def _apply_rollover(iso_date: str, label: str) -> str:
+    """A report closed before 07:00 belongs to the previous business day."""
+    m = TIME_RE.search(label)
+    if not m:
+        return iso_date
+    hour = int(m.group(1))
+    if hour >= BUSINESS_DAY_ROLLOVER_HOUR or hour > 23:
+        return iso_date
+    try:
+        d = _dt.date.fromisoformat(iso_date)
+    except ValueError:
+        return iso_date
+    return (d - _dt.timedelta(days=1)).isoformat()
 
 
 def business_date_from_label(label: str) -> str | None:
@@ -232,12 +251,14 @@ def business_date_from_label(label: str) -> str | None:
     if month_name:
         month = MONTHS.get(month_name[:4].lower()) or MONTHS.get(month_name[:3].lower())
         if month:
-            return f"{int(year):04d}-{month:02d}-{int(day):02d}"
+            return _apply_rollover(f"{int(year):04d}-{month:02d}-{int(day):02d}", label)
 
     for pattern, order in NUMERIC_DATE_PATTERNS:
         m = pattern.search(label)
         if not m:
             continue
         parts = dict(zip(order, m.groups()))
-        return f"{int(parts['y']):04d}-{int(parts['m']):02d}-{int(parts['d']):02d}"
+        return _apply_rollover(
+            f"{int(parts['y']):04d}-{int(parts['m']):02d}-{int(parts['d']):02d}", label
+        )
     return None
