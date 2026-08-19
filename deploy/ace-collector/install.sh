@@ -153,7 +153,7 @@ ok "Logrotate configured (14 daily rotations)"
 # ── 8. cron ────────────────────────────────────────────────────────────────
 mkdir -p /run/lock
 cat > "$CRON_FILE" <<EOF
-# ACE Collector — every 5 minutes + once after reboot
+# ACE Collector — every minute (session is cached & reused) + once after reboot
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 * * * * * ${SVC_USER} /usr/bin/flock -n /run/lock/ace-collector.lock ${APP_DIR}/run.sh >> ${LOG_DIR}/collector.log 2>&1
