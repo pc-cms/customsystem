@@ -534,6 +534,50 @@ export type Database = {
           },
         ]
       }
+      boss_report_extras: {
+        Row: {
+          amount: number
+          casino_id: string
+          created_at: string
+          id: string
+          label: string
+          month: number
+          sort_order: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          amount?: number
+          casino_id: string
+          created_at?: string
+          id?: string
+          label: string
+          month: number
+          sort_order?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          amount?: number
+          casino_id?: string
+          created_at?: string
+          id?: string
+          label?: string
+          month?: number
+          sort_order?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boss_report_extras_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       box_config: {
         Row: {
           branding: Json
