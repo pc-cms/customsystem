@@ -215,18 +215,14 @@ TEXT_DATE_RE = re.compile(r"\b(\d{1,2})[\s./-]+([A-Za-z]{3,})[\s./-]+(\d{4})\b")
 TEXT_DATE_RE_2 = re.compile(r"\b([A-Za-z]{3,})[\s./-]+(\d{1,2}),?[\s./-]+(\d{4})\b")
 TIME_RE = re.compile(r"\b(\d{1,2}):(\d{2})\b")
 
-# Casino business day rolls over at 07:00 local time (Africa/Dar_es_Salaam).
+# An ACE closed report is produced on the calendar day AFTER the business day it
+# covers (the closing itself can happen any time in the morning: 05:00, 08:00,
+# 11:00 ...). So the label date always maps to the previous business day.
 BUSINESS_DAY_ROLLOVER_HOUR = 7
 
 
 def _apply_rollover(iso_date: str, label: str) -> str:
-    """A report closed before 07:00 belongs to the previous business day."""
-    m = TIME_RE.search(label)
-    if not m:
-        return iso_date
-    hour = int(m.group(1))
-    if hour >= BUSINESS_DAY_ROLLOVER_HOUR or hour > 23:
-        return iso_date
+    """Closed ACE report dated D covers business day D-1, regardless of time."""
     try:
         d = _dt.date.fromisoformat(iso_date)
     except ValueError:
