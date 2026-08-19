@@ -136,6 +136,11 @@ chown -R "$SVC_USER":"$SVC_USER" "$LOG_DIR"
 chmod 0755 "$LOG_DIR"
 chown -R "$SVC_USER":"$SVC_USER" "$APP_DIR"
 
+# persistent ACE session cache (keeps the login alive between runs)
+touch "$APP_DIR/.ace-session.json"
+chown "$SVC_USER":"$SVC_USER" "$APP_DIR/.ace-session.json"
+chmod 0600 "$APP_DIR/.ace-session.json"
+
 cat > "$LOGROTATE_FILE" <<EOF
 ${LOG_DIR}/*.log {
     daily
