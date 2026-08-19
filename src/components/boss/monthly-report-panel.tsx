@@ -177,11 +177,13 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
   const { data, isLoading } = useBossMonthlyReport(casinos, { year, month });
   const { roles } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const canEdit = roles.includes("super_admin") || roles.includes("finance_manager");
 
   const casinoIds = useMemo(() => casinos.map((c) => c.id), [casinos]);
   const reportYear = data?.year ?? year ?? new Date().getFullYear();
   const reportMonth = data?.month ?? month ?? new Date().getMonth() + 1;
+  const sortedIds = useMemo(() => [...casinoIds].sort().join(","), [casinoIds]);
   const { data: extrasRaw } = useBossReportExtras(casinoIds, reportYear, reportMonth);
   const upsert = useUpsertBossReportExtra();
   const del = useDeleteBossReportExtra();
@@ -194,12 +196,16 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
     return map;
   }, [extrasRaw]);
 
+  const invalidateExtras = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["boss-report-extras", sortedIds, reportYear, reportMonth] });
+    queryClient.invalidateQueries({ queryKey: ["boss-monthly-report"] });
+  }, [queryClient, sortedIds, reportYear, reportMonth]);
+
   const handleAmountChange = useCallback(
     (casinoId: string, label: string, amount: number) => {
       const existing = extrasById.get(`${casinoId}|${label}`);
       upsert.mutate(
         {
-          id: existing ? undefined : undefined,
           casino_id: casinoId,
           year: reportYear,
           month: reportMonth,
@@ -208,6 +214,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
           sort_order: existing ? existing.sort_order : 0,
         },
         {
+          onSuccess: invalidateExtras,
           onError: (err) => {
             console.error("Failed to save extra", err);
             toast({ title: "Save failed", description: String(err), variant: "destructive" });
@@ -215,7 +222,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
         }
       );
     },
-    [extrasById, reportYear, reportMonth, upsert, toast]
+    [extrasById, reportYear, reportMonth, upsert, invalidateExtras, toast]
   );
 
   const handleLabelChange = useCallback(
@@ -231,13 +238,12 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
               .eq("id", r.id)
           )
         );
-        // refetch via mutation hook invalidation
-        upsert.mutate({ casino_id: rows[0].casino_id, year: reportYear, month: reportMonth, label: newLabel, amount: rows[0].amount, sort_order: rows[0].sort_order });
+        invalidateExtras();
       } catch (e) {
         toast({ title: "Rename failed", description: String(e), variant: "destructive" });
       }
     },
-    [extrasRaw, reportYear, reportMonth, upsert, toast]
+    [extrasRaw, invalidateExtras, toast]
   );
 
   const handleDeleteRow = useCallback(
@@ -260,9 +266,11 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
       label = `${base} ${n++}`;
     }
     casinos.forEach((c) => {
-      upsert.mutate({ casino_id: c.id, year: reportYear, month: reportMonth, label, amount: 0, sort_order: 0 });
+      upsert.mutate({ casino_id: c.id, year: reportYear, month: reportMonth, label, amount: 0, sort_order: 0 }, {
+        onSuccess: invalidateExtras,
+      });
     });
-  }, [casinos, extrasById, reportYear, reportMonth, upsert]);
+  }, [casinos, extrasById, reportYear, reportMonth, upsert, invalidateExtras]);
 
   const today = data?.today;
 
