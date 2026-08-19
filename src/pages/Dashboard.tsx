@@ -365,7 +365,7 @@ const Dashboard = () => {
                 title="Live Table"
                 rows={tableRows}
                 total={{
-                  label: "Net Win",
+                  label: "Result",
                   signed: totalResult,
                   value: `${totalResult >= 0 ? "+" : ""}${formatCurrency(totalResult)}`,
                 }}
