@@ -23,7 +23,7 @@ Expected Profit           = Прогноз результата
 
 - **Новая таблица** `boss_report_extras`: `id`, `casino_id`, `year`, `month`, `label`, `amount` (numeric), `sort_order`, `created_at/updated_at`, уникальность по (casino_id, year, month, label). GRANT для `authenticated`/`service_role`, RLS: чтение — super_admin / finance-роли / boss / GM; запись — только super_admin и `can_finance`.
 - **`src/hooks/use-boss-monthly-report.ts`**: убрать сбор extras из `expenses` (Collection по группе `collections` остаётся), убрать выборку `fin_wallet_tx` и поле `safe`; читать extras из новой таблицы; пересчитать `expectedProfit` по формуле выше; отдать в totals `daysElapsed`, `daysInMonth`, `forecastResult`.
-- **Синтетическая строка «Approx Bonus for Managers (5%)»** остаётся расчётной и не редактируется (или удаляется, если она не нужна в ручном списке — по умолчанию оставляю).
+- **Синтетическая строка «Approx Bonus for Managers (5%)»** остаётся расчётной: `5% от max(0, Result − Estimated Expenses)`, отображается отдельной строкой внутри блока Extra Expenses, не редактируется.
 - **Новый хук** `use-boss-report-extras.ts`: список + upsert/delete с инвалидацией отчёта.
 - **`src/components/boss/monthly-report-panel.tsx`**: блок Extra Expenses рендерит редактируемые ячейки (права через `useAuth`/роли), кнопка «+ Add row» и удаление строки для разрешённых ролей; удалить строки SAFE и Total; подпись у Expected Profit с пояснением прогноза.
 - Существующие записи не мигрируем — блок стартует пустым, суммы вносятся вручную.
