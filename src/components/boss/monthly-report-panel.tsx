@@ -4,6 +4,7 @@
  */
 import { useMemo, useState, useCallback, useRef } from "react";
 import { CalendarDays, Plus, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useBossMonthlyReport, type CasinoRef } from "@/hooks/use-boss-monthly-report";
 import { useBossReportExtras, useUpsertBossReportExtra, useDeleteBossReportExtra } from "@/hooks/use-boss-report-extras";
 import { formatMoneyFull } from "@/lib/format-money";
