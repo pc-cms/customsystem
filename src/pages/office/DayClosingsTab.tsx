@@ -440,30 +440,16 @@ export default function DayClosingsTab() {
       style: { width: 150 },
       accessor: (r) => numCell(r, val(r).jp, (n) => setField(r.date, { jp: Math.abs(n) }), {
         allowNegative: false,
+        placeholder: aceJpSlipOut?.get(r.date) ?? 0,
         title:
           `JP contributions booked on this business day. Posted: ${formatNumberSpaces(r.jpPosted)}`
+          + (aceJpSlipOut?.get(r.date) != null ? ` · ACE: ${formatNumberSpaces(aceJpSlipOut.get(r.date) as number)}` : "")
           + (Number(r.jpRowsCount || 0) > 1 ? ` · ${r.jpRowsCount} entries — editing the Day Closings one` : "")
           + ". Payouts are entered on the JP tab and never shown here.",
       }),
 
     },
-    {
-      key: "ace_jp_out",
-      header: "JP Slip OUT (ACE)",
-      type: "money",
-      style: { width: 150 },
-      accessor: (r) => {
-        const v = aceJpSlipOut?.get(r.date);
-        return (
-          <div
-            className="text-right font-mono tabular-nums text-[12px] text-muted-foreground"
-            title="Read-only figure from the applied ACE closed report. Not JP (IN)."
-          >
-            {v == null ? "—" : formatNumberSpaces(v)}
-          </div>
-        );
-      },
-    },
+
 
     {
       key: "comment",
