@@ -1,14 +1,14 @@
 /**
  * useBossMonthlyReport — MTD financial rollup across selected casinos.
- * Mirrors the manager Excel report: per-casino totals + daily rows.
  *
  * Sources:
  *   - Result (Live+Slots):   fin_day_closing.tables_result + slots_result
+ *                            with live fallback for today when not yet closed
  *   - Other incomes:         fin_other_incomes.amount * fx_rate (→ TZS)
  *   - Collection:            expenses.amount_tzs joined w/ fin_categories.group_code='collections'
- *   - Extra Expenses buckets by fin_categories.group_code (fixed/tax/salary/…)
+ *   - Extra Expenses:        boss_report_extras (manual per casino / month)
  *   - Estimated Expenses:    fin_budget.planned_amount (TZS rows only)
- *   - SAFE snapshot:         Σ fin_wallet_tx.amount_tzs (kind-signed) per casino
+ *   - Bonus 5%:              synthetic 5% of max(0, Result − Estimated Expenses)
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,10 +25,11 @@ export type DailyRow = {
 };
 
 export type ExtraBucket = {
-  key: string;   // group_code
+  key: string;
   label: string;
   perCasino: Record<string, number>;
   total: number;
+  editable?: boolean;
 };
 
 export type Summary = {
@@ -41,29 +42,25 @@ export type Summary = {
   playersCards: Record<string, number>;
   other:      Record<string, number>;
   collection: Record<string, number>;
-  extras:     ExtraBucket[];          // detailed by group_code (excl. collections + income)
+  extras:     ExtraBucket[];          // manual extras + synthetic bonus5
   extrasTotal: Record<string, number>;
-  bonus5:     Record<string, number>; // 5% of Result
-  safe:       Record<string, number>;
+  bonus5:     Record<string, number>;
   totals: {
     estimated: number; result: number; other: number; collection: number;
     tables: number; slots: number; playersCards: number;
-    extras: number; bonus5: number; safe: number;
+    extras: number; bonus5: number;
     expectedProfit: number; balance: number; total: number; dailyBalance: number;
+    daysElapsed: number; daysInMonth: number; forecastResult: number;
   };
 };
-
 
 export type BossMonthlyReport = {
   summary: Summary;
   daily: DailyRow[];
   monthStart: string;
   today: string;
-};
-
-const monthStartDate = (todayStr: string): string => {
-  const d = new Date(todayStr);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+  year: number;
+  month: number;
 };
 
 const nextDay = (iso: string): string => {
@@ -82,30 +79,14 @@ const enumerateDays = (fromISO: string, toISO: string): string[] => {
   return out;
 };
 
-// Human labels for the group_code buckets shown as "Extra Expenses"
-const GROUP_LABELS: Record<string, string> = {
-  fixed:      "Fixed Costs & Licences",
-  tax:        "Government Taxes",
-  salary:     "Salary Expenses",
-  variable:   "Variable Expenses",
-  petrol:     "Petrol Expenses",
-  additional: "Additional Expenses",
-};
-const GROUP_ORDER = ["fixed", "tax", "salary", "variable", "petrol", "additional"];
-
-// kinds that reduce wallet balance
-const NEG_KINDS = new Set(["expense", "change_out", "transfer_out"]);
-
 export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: number; month?: number }) {
   const today = getBusinessDate();
   const now = new Date(today);
   const year = opts?.year ?? now.getFullYear();
   const month = opts?.month ?? (now.getMonth() + 1);
   const from = `${year}-${String(month).padStart(2, "0")}-01`;
-  // Last day of the selected month
   const lastDay = new Date(year, month, 0).getDate();
   const monthEnd = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-  // If viewing current month → cap at today; otherwise use month end
   const isCurrentMonth = from.slice(0, 7) === today.slice(0, 7);
   const to = isCurrentMonth ? today : monthEnd;
   const ids = casinos.map(c => c.id).sort().join(",");
@@ -121,7 +102,6 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
       const zeroPer = (): Record<string, number> =>
         Object.fromEntries(casinoIds.map(id => [id, 0]));
 
-      // fin_categories map (for grouping expenses)
       const { data: cats } = await supabase
         .from("fin_categories")
         .select("id, group_code, name, is_income");
@@ -129,8 +109,7 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
       (cats || []).forEach((c: any) =>
         catMap.set(c.id, { group: c.group_code, income: c.is_income }));
 
-      // Parallel fetches
-      const [closingsRes, otherRes, expensesRes, budgetRes, walletTxRes, ratesRes, shiftsRes, slotShiftsRes] = await Promise.all([
+      const [closingsRes, otherRes, expensesRes, budgetRes, extrasRes, ratesRes, shiftsRes, slotShiftsRes] = await Promise.all([
         supabase.from("fin_day_closing")
           .select("casino_id, business_date, tables_result, slots_result, players_card_balance")
           .in("casino_id", casinoIds)
@@ -154,17 +133,17 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
           .in("casino_id", casinoIds)
           .eq("year", Number(from.slice(0, 4)))
           .eq("month", Number(from.slice(5, 7))),
-        supabase.from("fin_wallet_tx")
-          .select("casino_id, amount_tzs, kind")
+        supabase.from("boss_report_extras")
+          .select("casino_id, label, amount, sort_order")
           .in("casino_id", casinoIds)
-          .lte("business_date", to),
+          .eq("year", year)
+          .eq("month", month)
+          .order("sort_order", { ascending: true })
+          .order("label", { ascending: true }),
         supabase.from("cage_slots_exchange_rates")
           .select("casino_id, currency_code, rate_to_tzs, created_at")
           .in("casino_id", casinoIds)
           .order("created_at", { ascending: false }),
-        // Live fallback for days that are NOT yet closed in fin_day_closing:
-        //   tables → shifts.tables_result (business-day window 07:00 EAT)
-        //   slots  → cage_slots_shifts.system_shift_result
         supabase.from("shifts")
           .select("casino_id, opened_at, tables_result")
           .in("casino_id", casinoIds)
@@ -177,8 +156,6 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
           .lte("business_date", to),
       ]);
 
-
-      // Build per-casino latest FX map from Cage rates, with sensible fallbacks
       const FX_FALLBACK: Record<string, number> = { TZS: 1, USD: 2600, EUR: 2800, GBP: 3000, KES: 17 };
       const fxByCasino = new Map<string, Record<string, number>>();
       for (const r of (ratesRes.data || []) as any[]) {
@@ -197,7 +174,6 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
       const result = zeroPer();
       const tables = zeroPer();
       const slotsRaw = zeroPer();
-      // Players Card Balance is a balance (latest entry of the month), not a flow.
       const cardsLatestDate = new Map<string, string>();
       const playersCards = zeroPer();
       const dailyMap = new Map<string, DailyRow>();
@@ -228,11 +204,11 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
         }
       }
 
-      // ---- Live fallback for days without a fin_day_closing row (e.g. today) ----
+      // Live fallback for days not yet closed
       const closedKeys = new Set(
         ((closingsRes.data || []) as any[]).map(r => `${r.casino_id}|${r.business_date}`),
       );
-      const liveTables = new Map<string, number>(); // `${casino}|${date}` -> TZS
+      const liveTables = new Map<string, number>();
       const liveSlots = new Map<string, number>();
       for (const s of (shiftsRes.data || []) as any[]) {
         const d = businessDateOf(s.opened_at);
@@ -244,9 +220,6 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
         const k = `${s.casino_id}|${s.business_date}`;
         liveSlots.set(k, (liveSlots.get(k) || 0) + Number(s.system_shift_result || 0));
       }
-      // Open (unclosed) shifts have tables_result = NULL. For those days fall back
-      // to the LATEST chip-count snapshot per table — exactly what each casino
-      // dashboard shows: Σ (actual − expected) × denomination.
       const openDays = new Set<string>();
       for (const s of (shiftsRes.data || []) as any[]) {
         if (s.tables_result !== null && s.tables_result !== undefined) continue;
@@ -275,7 +248,7 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
       }
 
       for (const k of new Set([...liveTables.keys(), ...liveSlots.keys()])) {
-        if (closedKeys.has(k)) continue; // day closing is authoritative
+        if (closedKeys.has(k)) continue;
         const [casinoId, date] = k.split("|");
         if (!casinoIds.includes(casinoId)) continue;
         const tv = liveTables.get(k) || 0;
@@ -292,13 +265,11 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
         }
       }
 
-      // Net out player card deposits once per month: Result = Tables + (Slots − Cards)
       const slots = zeroPer();
       for (const id of casinoIds) {
         slots[id] = (slotsRaw[id] || 0) - (playersCards[id] || 0);
         result[id] = (result[id] || 0) - (playersCards[id] || 0);
       }
-
 
       // Other incomes
       const other = zeroPer();
@@ -308,40 +279,32 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
         other[r.casino_id] = (other[r.casino_id] || 0) + v;
       }
 
-      // Expenses → collection + extras by group_code
+      // Collections from expenses (group_code = collections)
       const collection = zeroPer();
-      const extrasMap = new Map<string, Record<string, number>>();
       for (const r of (expensesRes.data || []) as any[]) {
         const amt = Number(r.amount_tzs ?? r.amount ?? 0);
         if (!amt) continue;
         const cat = r.fin_category_id ? catMap.get(r.fin_category_id) : undefined;
-        const group = cat?.group || "additional";
-        if (cat?.income) continue;
-        if (group === "collections") {
-          collection[r.casino_id] = (collection[r.casino_id] || 0) + amt;
-          const row = dailyMap.get(r.business_date);
-          if (row) row.collection += amt;
-        } else if (group !== "income") {
-          const key = GROUP_ORDER.includes(group) ? group : "additional";
-          if (!extrasMap.has(key)) extrasMap.set(key, zeroPer());
-          const bucket = extrasMap.get(key)!;
-          bucket[r.casino_id] = (bucket[r.casino_id] || 0) + amt;
-        }
+        if (cat?.income || (cat?.group || "additional") !== "collections") continue;
+        collection[r.casino_id] = (collection[r.casino_id] || 0) + amt;
+        const row = dailyMap.get(r.business_date);
+        if (row) row.collection += amt;
       }
 
-      // Estimated Expenses — convert non-TZS via latest Cage rates
+      // Estimated Expenses
       const estimated = zeroPer();
       for (const b of (budgetRes.data || []) as any[]) {
         const rate = fxRate(b.casino_id, b.currency || "TZS");
         estimated[b.casino_id] = (estimated[b.casino_id] || 0) + Number(b.planned_amount || 0) * rate;
       }
 
-      // SAFE snapshot per casino
-      const safe = zeroPer();
-      for (const t of (walletTxRes.data || []) as any[]) {
-        const raw = Number(t.amount_tzs || 0);
-        const signed = NEG_KINDS.has(t.kind) ? -Math.abs(raw) : Math.abs(raw);
-        safe[t.casino_id] = (safe[t.casino_id] || 0) + signed;
+      // Manual extras (per label)
+      const labelMap = new Map<string, Record<string, number>>();
+      for (const r of (extrasRes.data || []) as any[]) {
+        const label = r.label || "Extra";
+        if (!labelMap.has(label)) labelMap.set(label, zeroPer());
+        const bucket = labelMap.get(label)!;
+        bucket[r.casino_id] = (bucket[r.casino_id] || 0) + Number(r.amount || 0);
       }
 
       // Bonus 5% of (Result − Estimated Expenses); floor at 0
@@ -351,20 +314,16 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
         bonus5[id] = Math.max(0, base) * 0.05;
       }
 
-      // Extras aggregate per casino
+      // Extras aggregate: manual rows + bonus5
       const extrasTotal = zeroPer();
-      const extras: ExtraBucket[] = GROUP_ORDER
-        .filter(k => extrasMap.has(k))
-        .map(k => {
-          const per = extrasMap.get(k)!;
-          const total = Object.values(per).reduce((a, b) => a + b, 0);
+      const extras: ExtraBucket[] = Array.from(labelMap.entries())
+        .map(([label, per]) => {
           for (const id of casinoIds) extrasTotal[id] = (extrasTotal[id] || 0) + (per[id] || 0);
-          return { key: k, label: GROUP_LABELS[k] || k, perCasino: per, total };
+          return { key: label, label, perCasino: per, total: Object.values(per).reduce((a, b) => a + b, 0), editable: true };
         });
-      // add bonus 5% as synthetic bucket
       const bonusTotal = Object.values(bonus5).reduce((a, b) => a + b, 0);
       if (bonusTotal > 0) {
-        extras.push({ key: "bonus5", label: "Approx Bonus for Managers (5%)", perCasino: bonus5, total: bonusTotal });
+        extras.push({ key: "bonus5", label: "Approx Bonus for Managers (5%)", perCasino: bonus5, total: bonusTotal, editable: false });
         for (const id of casinoIds) extrasTotal[id] = (extrasTotal[id] || 0) + (bonus5[id] || 0);
       }
 
@@ -376,14 +335,17 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
       const tCollection = sumRec(collection);
       const tExtras = sumRec(extrasTotal);
       const tBonus = sumRec(bonus5);
-      const tSafe = sumRec(safe);
       const balance = tResult + tOther - tEstimated - tExtras - tCollection;
-      const expectedProfit = tResult - tEstimated - tExtras - tCollection + tOther;
-      const total = tSafe + balance;
 
-      // Daily balance: monthly fixed costs (Estimated + Extras) are charged ONCE
-      // on the first row of the period; each following day only adds the day's
-      // result and subtracts the day's collection.
+      // Expected profit: forecast average daily result to end of month
+      const daysInMonth = lastDay;
+      const daysElapsed = Math.max(1, Object.values(dailyMap).filter(d => d.jcResult !== 0 || d.collection !== 0).length || 1);
+      const avgDailyResult = tResult / daysElapsed;
+      const forecastResult = avgDailyResult * daysInMonth;
+      const expectedProfit = forecastResult - tEstimated - tExtras - tCollection + tOther;
+      const total = balance; // SAFE removed
+
+      // Daily balance: fixed costs charged once on first row
       const days = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
       let running = -(tEstimated + tExtras);
       for (const d of days) {
@@ -392,16 +354,19 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
       }
 
       return {
-        monthStart: from, today: isCurrentMonth ? today : monthEnd,
-
+        monthStart: from,
+        today: isCurrentMonth ? today : monthEnd,
+        year,
+        month,
         summary: {
-          estimated, result, tables, slots, playersCards, other, collection, extras, extrasTotal, bonus5, safe,
+          estimated, result, tables, slots, playersCards, other, collection, extras, extrasTotal, bonus5,
           totals: {
             estimated: tEstimated, result: tResult, other: tOther, collection: tCollection,
             tables: sumRec(tables), slots: sumRec(slots), playersCards: sumRec(playersCards),
-            extras: tExtras, bonus5: tBonus, safe: tSafe,
+            extras: tExtras, bonus5: tBonus,
             expectedProfit, balance, total,
             dailyBalance: days.length ? days[days.length - 1].balance : 0,
+            daysElapsed, daysInMonth, forecastResult,
           },
         },
         daily: days,
