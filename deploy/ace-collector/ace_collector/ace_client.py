@@ -111,8 +111,8 @@ class AceClient:
             return ""
         return (field.get("value") or "").strip()
 
-    def login(self) -> None:
-        if self._logged_in:
+    def login(self, force: bool = False) -> None:
+        if self._logged_in and not force:
             return
         # Prime cookies and read the dynamic hidden UID.
         try:
