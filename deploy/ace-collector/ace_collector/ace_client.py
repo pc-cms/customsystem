@@ -139,17 +139,27 @@ class AceClient:
         if "form_manager_name" not in resp.text:
             raise AceError("ACE login failed — check ACE_USERNAME / ACE_PASSWORD")
         self._logged_in = True
+        self._save_cookies()
         logger.debug("ACE login OK as %s", self.cfg.ace_username)
 
     # -------------------------------------------------------------- managers
-    def enter_manager_finance(self) -> None:
-        """Emulate Manager -> Finance menu selection."""
+    def enter_manager_finance(self) -> str:
+        """Emulate Manager -> Finance menu selection (re-login if session died)."""
         self.login()
-        self._post(
+        resp = self._post(
             "/users/manager/manager.php",
             {"form_manager_name": "", "button_current_control": ""},
         )
+        if self._looks_logged_out(resp.text):
+            logger.debug("Cached ACE session expired — re-authenticating")
+            self._drop_cached_session()
+            self.login(force=True)
+            resp = self._post(
+                "/users/manager/manager.php",
+                {"form_manager_name": "", "button_current_control": ""},
+            )
         logger.debug("Manager -> Finance context entered")
+        return resp.text
 
     # --------------------------------------------------------------- reports
     def consolidation_html(self, period_id: int) -> str:
@@ -166,9 +176,12 @@ class AceClient:
             "order_dir": "",
         }
         resp = self._post("/users/manager/report_c.php", payload)
+        self._save_cookies()
         return resp.text
 
     def report_page_html(self) -> str:
         """Raw Finance report page (used to discover available periods)."""
         self.enter_manager_finance()
-        return self._get("/users/manager/report_c.php").text
+        html = self._get("/users/manager/report_c.php").text
+        self._save_cookies()
+        return html
