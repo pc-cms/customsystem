@@ -156,7 +156,7 @@ cat > "$CRON_FILE" <<EOF
 # ACE Collector — every 5 minutes + once after reboot
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-*/5 * * * * ${SVC_USER} /usr/bin/flock -n /run/lock/ace-collector.lock ${APP_DIR}/run.sh >> ${LOG_DIR}/collector.log 2>&1
+* * * * * ${SVC_USER} /usr/bin/flock -n /run/lock/ace-collector.lock ${APP_DIR}/run.sh >> ${LOG_DIR}/collector.log 2>&1
 @reboot ${SVC_USER} sleep 30 && /usr/bin/flock -n /run/lock/ace-collector.lock ${APP_DIR}/run.sh >> ${LOG_DIR}/collector.log 2>&1
 EOF
 chmod 0644 "$CRON_FILE"

@@ -36,8 +36,8 @@ export function useAceFinanceLatest(locationCode: string | null | undefined) {
       if (error) throw error;
       return (data ?? null) as unknown as AceFinanceSnapshot | null;
     },
-    staleTime: 30_000,
-    refetchInterval: 30_000,
+    staleTime: 10_000,
+    refetchInterval: 10_000,
     refetchIntervalInBackground: false,
   });
 }
@@ -57,8 +57,8 @@ export function useAceFinanceLive(locationCode: string | null | undefined) {
       if (error) throw error;
       return (data ?? null) as unknown as AceFinanceSnapshot | null;
     },
-    staleTime: 30_000,
-    refetchInterval: 30_000,
+    staleTime: 10_000,
+    refetchInterval: 10_000,
     refetchIntervalInBackground: false,
   });
 }
