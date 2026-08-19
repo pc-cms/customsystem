@@ -3,7 +3,7 @@
 
 Every run:
   * always sends LIVE (period_id=0) finance metrics
-  * additionally, inside the closing window (default 08:00 <= t < 12:00,
+  * additionally, inside the closing window (default 07:00 <= t < 12:00,
     Africa/Dar_es_Salaam), sends the latest closed period (period_id != 0)
 
 Commands:

@@ -64,7 +64,7 @@ class Config:
             api_key=os.environ.get("ACE_INGEST_KEY", ""),
             location_code=os.environ.get("LOCATION_CODE", "arusha").strip().lower(),
             timezone=os.environ.get("ACE_TZ", DEFAULT_TZ),
-            closing_window_start=int(os.environ.get("CLOSING_WINDOW_START", "8")),
+            closing_window_start=int(os.environ.get("CLOSING_WINDOW_START", "7")),
             closing_window_end=int(os.environ.get("CLOSING_WINDOW_END", "12")),
             http_timeout=int(os.environ.get("HTTP_TIMEOUT", "60")),
         )
