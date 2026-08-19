@@ -336,24 +336,33 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
         </header>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-[0.9em] border-collapse">
+          <table className="w-full text-[0.9em] border-collapse table-fixed">
+            <colgroup>
+              <col style={{ width: "26%" }} />
+              {casinos.map((c) => (
+                <col key={c.id} style={{ width: `${Math.max(10, 60 / Math.max(1, casinos.length))}%` }} />
+              ))}
+              <col style={{ width: "16%" }} />
+              {canEdit && <col style={{ width: "32px" }} />}
+            </colgroup>
             <thead>
               <tr className="text-[0.6em] uppercase tracking-widest text-muted-foreground">
                 <th className="text-left px-4 py-2 font-semibold">Metric</th>
                 {casinos.map((c) => (
-                  <th key={c.id} className="text-right px-3 py-2 font-semibold" style={{ color: accentMap[c.id] }}>
+                  <th key={c.id} className="text-right px-3 py-2 font-semibold truncate" style={{ color: accentMap[c.id] }}>
                     {c.name}
                   </th>
                 ))}
                 <th className="text-right px-4 py-2 font-bold text-primary">Total</th>
+                {canEdit && <th className="px-1 py-2" />}
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.label} className="border-t border-white/5 odd:bg-white/[0.015]">
                   <td
-                    className={`px-4 py-1.5 ${r.strong ? "font-bold" : ""} ${r.muted ? "pl-8 text-muted-foreground text-[0.9em]" : ""} ${r.hint ? "cursor-help underline decoration-dotted underline-offset-4" : ""}`}
-                    title={r.hint}
+                    className={`px-4 py-1.5 truncate ${r.strong ? "font-bold" : ""} ${r.muted ? "pl-8 text-muted-foreground text-[0.9em]" : ""} ${r.hint ? "cursor-help underline decoration-dotted underline-offset-4" : ""}`}
+                    title={r.hint || r.label}
                   >
                     {r.label}
                   </td>
@@ -361,12 +370,13 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
                     <AmountCell key={c.id} value={r.per[c.id] || 0} bold={r.strong} dim={r.muted} />
                   ))}
                   <AmountCell value={r.total} bold={!r.muted} dim={r.muted} />
+                  {canEdit && <td />}
                 </tr>
               ))}
 
               {/* Extras section */}
               <tr className="border-t-2 border-white/10 bg-white/[0.02]">
-                <td className="px-4 pt-3 pb-1 text-[0.65em] uppercase tracking-widest text-muted-foreground" colSpan={casinos.length + 2}>
+                <td className="px-4 pt-3 pb-1 text-[0.65em] uppercase tracking-widest text-muted-foreground" colSpan={casinos.length + 2 + (canEdit ? 1 : 0)}>
                   <div className="flex items-center justify-between">
                     <span>Extra Expenses</span>
                     {canEdit && (
@@ -387,7 +397,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
                       disabled={!canEdit}
                     />
                   ) : (
-                    <td className="px-4 py-1 pl-6 text-muted-foreground">· {b.label}</td>
+                    <td className="px-4 py-1 pl-6 text-muted-foreground truncate" title={b.label}>· {b.label}</td>
                   )}
                   {casinos.map((c) =>
                     b.editable ? (
@@ -403,16 +413,18 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
                     )
                   )}
                   <AmountCell value={b.total} dim />
-                  {b.editable && canEdit && (
-                    <td className="px-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDeleteRow(b.label)}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+                  {canEdit && (
+                    <td className="px-1">
+                      {b.editable && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDeleteRow(b.label)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      )}
                     </td>
                   )}
                 </tr>
@@ -423,6 +435,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
                   <AmountCell key={c.id} value={summary.extrasTotal[c.id] || 0} bold />
                 ))}
                 <AmountCell value={t.extras} bold />
+                {canEdit && <td />}
               </tr>
 
               {/* Bottom stats */}
@@ -430,17 +443,19 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
                 <td
                   className="px-4 py-2 font-bold uppercase tracking-widest text-[0.8em] text-primary"
                   title={expectedHint}
+                  colSpan={1 + casinos.length}
                 >
                   Expected Profit
                 </td>
-                <td colSpan={casinos.length} />
                 <AmountCell value={t.expectedProfit} bold />
+                {canEdit && <td />}
               </tr>
               <tr className="border-t border-white/10 bg-white/[0.05]">
-                <td className="px-4 py-2 font-bold">Balance (current month)</td>
-                <td colSpan={casinos.length} />
+                <td className="px-4 py-2 font-bold" colSpan={1 + casinos.length}>Balance (current month)</td>
                 <AmountCell value={t.balance} bold />
+                {canEdit && <td />}
               </tr>
+
             </tbody>
           </table>
         </div>
