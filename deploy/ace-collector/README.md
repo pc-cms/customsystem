@@ -107,7 +107,7 @@ error is logged and the next cron run simply retries with current values.
 `/etc/cron.d/ace-collector`:
 
 ```
-*/5 * * * * acecollector /usr/bin/flock -n /run/lock/ace-collector.lock /opt/ace-collector/run.sh >> /var/log/ace-collector/collector.log 2>&1
+* * * * * acecollector /usr/bin/flock -n /run/lock/ace-collector.lock /opt/ace-collector/run.sh >> /var/log/ace-collector/collector.log 2>&1
 @reboot     acecollector sleep 30 && /usr/bin/flock -n /run/lock/ace-collector.lock /opt/ace-collector/run.sh >> /var/log/ace-collector/collector.log 2>&1
 ```
 

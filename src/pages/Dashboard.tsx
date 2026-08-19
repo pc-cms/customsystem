@@ -354,7 +354,7 @@ const Dashboard = () => {
                 title={`Slots · ${aceHint}`}
                 rows={slotsRows}
                 total={{
-                  label: "Result",
+                  label: "Net Win",
                   signed: ace.fresh ? slotsResult : undefined,
                   value: ace.fresh
                     ? `${slotsResult >= 0 ? "+" : ""}${formatCurrency(slotsResult)}`
@@ -365,7 +365,7 @@ const Dashboard = () => {
                 title="Live Table"
                 rows={tableRows}
                 total={{
-                  label: "Result",
+                  label: "Net Win",
                   signed: totalResult,
                   value: `${totalResult >= 0 ? "+" : ""}${formatCurrency(totalResult)}`,
                 }}
