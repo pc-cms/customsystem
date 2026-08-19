@@ -30,6 +30,17 @@ SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo -e "${CYAN}=== ACE Collector installer ===${NC}"
 
+# Existing installation + manual run → never overwrite config, delegate to update.sh
+if [[ "${NONINTERACTIVE:-0}" != "1" && -f "$ENV_FILE" ]]; then
+  ok "Existing installation detected (${ENV_FILE})"
+  log "Configuration will NOT be touched — switching to update mode."
+  if [[ -x "$SRC_DIR/update.sh" || -f "$SRC_DIR/update.sh" ]]; then
+    exec bash "$SRC_DIR/update.sh" "$@"
+  fi
+  fail "update.sh not found in ${SRC_DIR}. Re-download the collector package."
+fi
+
+
 # ── 1. packages ────────────────────────────────────────────────────────────
 log "Installing system packages..."
 export DEBIAN_FRONTEND=noninteractive

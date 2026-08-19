@@ -34,6 +34,23 @@ No secret is stored in the archive or in the repository.
 
 ---
 
+## 1b. Update an existing installation
+
+```bash
+tar -xzf ace-collector-server.tar.gz
+cd ace-collector
+sudo ./update.sh
+```
+
+`update.sh` never touches `/etc/ace-collector.env`, never asks for credentials
+and preserves `/opt/ace-collector/.ace-session.json`. It refreshes application
+code, dependencies, logrotate and the cron entry (every minute).
+Running `sudo ./install.sh` on a server that already has a config automatically
+delegates to `update.sh`.
+
+---
+
+
 ## 2. What it collects
 
 From `POST /users/manager/report_c.php` with
