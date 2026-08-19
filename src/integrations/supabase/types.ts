@@ -11488,6 +11488,10 @@ export type Database = {
             }
             Returns: Json
           }
+      close_casino_business_day_auto: {
+        Args: { _business_date: string; _casino_id: string; _method?: string }
+        Returns: Json
+      }
       close_open_sessions_5am: { Args: never; Returns: Json }
       club_buy_lottery_ticket: {
         Args: {
