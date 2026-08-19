@@ -339,7 +339,11 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
 
       // Expected profit: forecast average daily result to end of month
       const daysInMonth = lastDay;
-      const daysElapsed = Math.max(1, Object.values(dailyMap).filter(d => d.jcResult !== 0 || d.collection !== 0).length || 1);
+      const dayRows = Array.from(dailyMap.values());
+      const daysElapsed = Math.max(
+        1,
+        dayRows.filter(d => d.jcResult !== 0 || d.collection !== 0).length,
+      );
       const avgDailyResult = tResult / daysElapsed;
       const forecastResult = avgDailyResult * daysInMonth;
       const expectedProfit = forecastResult - tEstimated - tExtras - tCollection + tOther;
