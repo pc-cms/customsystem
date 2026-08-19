@@ -2,10 +2,15 @@
  * MonthlyReportPanel — TV-friendly MTD report for Boss dashboard.
  * Left: cross-casino summary. Right: day-by-day rows with today highlighted.
  */
-import { useMemo } from "react";
-import { CalendarDays } from "lucide-react";
+import { useMemo, useState, useCallback, useRef } from "react";
+import { CalendarDays, Plus, Trash2 } from "lucide-react";
 import { useBossMonthlyReport, type CasinoRef } from "@/hooks/use-boss-monthly-report";
+import { useBossReportExtras, useUpsertBossReportExtra, useDeleteBossReportExtra } from "@/hooks/use-boss-report-extras";
 import { formatMoneyFull } from "@/lib/format-money";
+import { useAuth } from "@/lib/auth-context";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 type Props = {
   casinos: CasinoRef[];
@@ -36,8 +41,226 @@ const AmountCell = ({ value, bold, dim }: { value: number; bold?: boolean; dim?:
   );
 };
 
+const parseInput = (raw: string): number | null => {
+  const v = Number(raw.replace(/\s/g, "").replace(/,/g, ""));
+  return Number.isNaN(v) ? null : v;
+};
+
+const EditableAmountCell = ({
+  value,
+  onCommit,
+  disabled,
+  dim,
+}: {
+  value: number;
+  onCommit: (v: number) => void;
+  disabled?: boolean;
+  dim?: boolean;
+}) => {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const startEdit = () => {
+    if (disabled) return;
+    setEditing(true);
+    setText(value === 0 ? "" : String(value));
+    setTimeout(() => inputRef.current?.select(), 10);
+  };
+
+  const commit = useCallback(() => {
+    const v = parseInput(text);
+    if (v !== null && v !== value) {
+      onCommit(v);
+    }
+    setEditing(false);
+  }, [text, value, onCommit]);
+
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") commit();
+    else if (e.key === "Escape") setEditing(false);
+  };
+
+  const cls =
+    value === 0 ? "text-muted-foreground/60" :
+    value < 0 ? "cms-amount-negative" : "text-foreground/90";
+
+  if (!editing) {
+    return (
+      <td
+        onClick={startEdit}
+        className={`px-3 py-1.5 text-right font-mono tabular-nums ${dim ? "opacity-70" : ""} ${disabled ? "" : "cursor-text hover:bg-white/5"} ${cls}`}
+        title={disabled ? undefined : "Click to edit"}
+      >
+        {value === 0 ? "·" : fmt(value)}
+      </td>
+    );
+  }
+
+  return (
+    <td className="px-1 py-0.5">
+      <Input
+        ref={inputRef}
+        type="number"
+        step="1"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={handleKey}
+        className="h-7 text-right font-mono text-sm py-0 px-1"
+        autoFocus
+      />
+    </td>
+  );
+};
+
+const EditableLabelCell = ({
+  value,
+  onCommit,
+  disabled,
+}: {
+  value: string;
+  onCommit: (v: string) => void;
+  disabled?: boolean;
+}) => {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const startEdit = () => {
+    if (disabled) return;
+    setEditing(true);
+    setText(value);
+    setTimeout(() => inputRef.current?.select(), 10);
+  };
+
+  const commit = useCallback(() => {
+    if (text.trim() && text.trim() !== value) onCommit(text.trim());
+    setEditing(false);
+  }, [text, value, onCommit]);
+
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") commit();
+    else if (e.key === "Escape") setEditing(false);
+  };
+
+  if (!editing) {
+    return (
+      <td
+        onClick={startEdit}
+        className={`px-4 py-1 pl-6 text-muted-foreground ${disabled ? "" : "cursor-text hover:bg-white/5"}`}
+        title={disabled ? undefined : "Click to edit"}
+      >
+        · {value}
+      </td>
+    );
+  }
+
+  return (
+    <td className="px-2 py-0.5">
+      <Input
+        ref={inputRef}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={handleKey}
+        className="h-7 text-sm py-0 px-2"
+        autoFocus
+      />
+    </td>
+  );
+};
+
 export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
   const { data, isLoading } = useBossMonthlyReport(casinos, { year, month });
+  const { roles } = useAuth();
+  const { toast } = useToast();
+  const canEdit = roles.includes("super_admin") || roles.includes("finance_manager");
+
+  const casinoIds = useMemo(() => casinos.map((c) => c.id), [casinos]);
+  const reportYear = data?.year ?? year ?? new Date().getFullYear();
+  const reportMonth = data?.month ?? month ?? new Date().getMonth() + 1;
+  const { data: extrasRaw } = useBossReportExtras(casinoIds, reportYear, reportMonth);
+  const upsert = useUpsertBossReportExtra();
+  const del = useDeleteBossReportExtra();
+
+  const extrasById = useMemo(() => {
+    const map = new Map<string, { label: string; amount: number; sort_order: number; casinoId: string }>();
+    (extrasRaw || []).forEach((r) => {
+      map.set(`${r.casino_id}|${r.label}`, { label: r.label, amount: r.amount, sort_order: r.sort_order, casinoId: r.casino_id });
+    });
+    return map;
+  }, [extrasRaw]);
+
+  const handleAmountChange = useCallback(
+    (casinoId: string, label: string, amount: number) => {
+      const existing = extrasById.get(`${casinoId}|${label}`);
+      upsert.mutate(
+        {
+          id: existing ? undefined : undefined,
+          casino_id: casinoId,
+          year: reportYear,
+          month: reportMonth,
+          label,
+          amount,
+          sort_order: existing ? existing.sort_order : 0,
+        },
+        {
+          onError: (err) => {
+            console.error("Failed to save extra", err);
+            toast({ title: "Save failed", description: String(err), variant: "destructive" });
+          },
+        }
+      );
+    },
+    [extrasById, reportYear, reportMonth, upsert, toast]
+  );
+
+  const handleLabelChange = useCallback(
+    async (oldLabel: string, newLabel: string) => {
+      const rows = (extrasRaw || []).filter((r) => r.label === oldLabel);
+      if (!rows.length || newLabel === oldLabel) return;
+      try {
+        await Promise.all(
+          rows.map((r) =>
+            supabase
+              .from("boss_report_extras")
+              .update({ label: newLabel })
+              .eq("id", r.id)
+          )
+        );
+        // refetch via mutation hook invalidation
+        upsert.mutate({ casino_id: rows[0].casino_id, year: reportYear, month: reportMonth, label: newLabel, amount: rows[0].amount, sort_order: rows[0].sort_order });
+      } catch (e) {
+        toast({ title: "Rename failed", description: String(e), variant: "destructive" });
+      }
+    },
+    [extrasRaw, reportYear, reportMonth, upsert, toast]
+  );
+
+  const handleDeleteRow = useCallback(
+    async (label: string) => {
+      const rows = (extrasRaw || []).filter((r) => r.label === label);
+      try {
+        await Promise.all(rows.map((r) => del.mutateAsync(r.id)));
+      } catch (e) {
+        toast({ title: "Delete failed", description: String(e), variant: "destructive" });
+      }
+    },
+    [extrasRaw, del, toast]
+  );
+
+  const addRow = useCallback(() => {
+    const base = "New extra";
+    let label = base;
+    let n = 1;
+    while (extrasById.has(`${casinos[0]?.id}|${label}`)) {
+      label = `${base} ${n++}`;
+    }
+    casinos.forEach((c) => {
+      upsert.mutate({ casino_id: c.id, year: reportYear, month: reportMonth, label, amount: 0, sort_order: 0 });
+    });
+  }, [casinos, extrasById, reportYear, reportMonth, upsert]);
 
   const today = data?.today;
 
@@ -57,7 +280,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
   const { summary, daily } = data;
   const t = summary.totals;
 
-  // Summary row builder: label, per-casino record, total, opts
+  // Summary row builder
   type Row = { label: string; per: Record<string, number>; total: number; strong?: boolean; muted?: boolean; hint?: string; };
   const cardsHint =
     t.playersCards > 0
@@ -72,6 +295,9 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
     { label: "Collection",             per: summary.collection, total: t.collection },
   ];
 
+  const expectedHint =
+    `Avg daily result × ${t.daysInMonth} days − Estimated Expenses − Extra Expenses + Other Incomes. ` +
+    `Based on ${t.daysElapsed} day${t.daysElapsed === 1 ? "" : "s"} so far.`;
 
   const monthLabel = new Date(data.monthStart).toLocaleDateString("en-GB", {
     month: "long", year: "numeric",
@@ -104,7 +330,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
             <thead>
               <tr className="text-[0.6em] uppercase tracking-widest text-muted-foreground">
                 <th className="text-left px-4 py-2 font-semibold">Metric</th>
-                {casinos.map((c, i) => (
+                {casinos.map((c) => (
                   <th key={c.id} className="text-right px-3 py-2 font-semibold" style={{ color: accentMap[c.id] }}>
                     {c.name}
                   </th>
@@ -128,20 +354,57 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
                 </tr>
               ))}
 
-
               {/* Extras section */}
               <tr className="border-t-2 border-white/10 bg-white/[0.02]">
                 <td className="px-4 pt-3 pb-1 text-[0.65em] uppercase tracking-widest text-muted-foreground" colSpan={casinos.length + 2}>
-                  Extra Expenses
+                  <div className="flex items-center justify-between">
+                    <span>Extra Expenses</span>
+                    {canEdit && (
+                      <Button variant="ghost" size="sm" className="h-6 px-2 text-[0.8em]" onClick={addRow}>
+                        <Plus className="w-3 h-3 mr-1" />
+                        Add row
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
               {summary.extras.map((b) => (
                 <tr key={b.key} className="border-t border-white/5 text-[0.9em]">
-                  <td className="px-4 py-1 pl-6 text-muted-foreground">· {b.label}</td>
-                  {casinos.map((c) => (
-                    <AmountCell key={c.id} value={b.perCasino[c.id] || 0} dim />
-                  ))}
+                  {b.editable ? (
+                    <EditableLabelCell
+                      value={b.label}
+                      onCommit={(v) => handleLabelChange(b.label, v)}
+                      disabled={!canEdit}
+                    />
+                  ) : (
+                    <td className="px-4 py-1 pl-6 text-muted-foreground">· {b.label}</td>
+                  )}
+                  {casinos.map((c) =>
+                    b.editable ? (
+                      <EditableAmountCell
+                        key={c.id}
+                        value={b.perCasino[c.id] || 0}
+                        onCommit={(v) => handleAmountChange(c.id, b.label, v)}
+                        disabled={!canEdit}
+                        dim
+                      />
+                    ) : (
+                      <AmountCell key={c.id} value={b.perCasino[c.id] || 0} dim />
+                    )
+                  )}
                   <AmountCell value={b.total} dim />
+                  {b.editable && canEdit && (
+                    <td className="px-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDeleteRow(b.label)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </td>
+                  )}
                 </tr>
               ))}
               <tr className="border-t border-white/10 bg-white/[0.03] font-semibold">
@@ -154,26 +417,19 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
 
               {/* Bottom stats */}
               <tr className="border-t-2 border-primary/40 bg-primary/5">
-                <td className="px-4 py-2 font-bold uppercase tracking-widest text-[0.8em] text-primary">Expected Profit</td>
+                <td
+                  className="px-4 py-2 font-bold uppercase tracking-widest text-[0.8em] text-primary"
+                  title={expectedHint}
+                >
+                  Expected Profit
+                </td>
                 <td colSpan={casinos.length} />
                 <AmountCell value={t.expectedProfit} bold />
-              </tr>
-              <tr className="border-t border-white/10">
-                <td className="px-4 py-2 font-bold">SAFE</td>
-                {casinos.map((c) => (
-                  <AmountCell key={c.id} value={summary.safe[c.id] || 0} bold />
-                ))}
-                <AmountCell value={t.safe} bold />
               </tr>
               <tr className="border-t border-white/10 bg-white/[0.05]">
                 <td className="px-4 py-2 font-bold">Balance (current month)</td>
                 <td colSpan={casinos.length} />
                 <AmountCell value={t.balance} bold />
-              </tr>
-              <tr className="border-t-2 border-primary/30 bg-gradient-to-r from-primary/10 to-transparent">
-                <td className="px-4 py-3 font-extrabold uppercase tracking-widest text-primary">Total (SAFE + Balance)</td>
-                <td colSpan={casinos.length} />
-                <AmountCell value={t.total} bold />
               </tr>
             </tbody>
           </table>
@@ -256,7 +512,6 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
                 ))}
                 <AmountCell value={t.collection} bold />
                 <AmountCell value={t.dailyBalance} bold />
-
               </tr>
             </tfoot>
           </table>
