@@ -5,7 +5,9 @@ same authenticated session without duplicating login logic.
 """
 from __future__ import annotations
 
+import json
 import logging
+import os
 import urllib3
 
 import requests
@@ -18,6 +20,10 @@ logger = logging.getLogger("ace-collector")
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 USER_AGENT = "ACE-Collector/1.0 (+casinosystem.app)"
+
+DEFAULT_SESSION_FILE = os.environ.get(
+    "ACE_SESSION_FILE", "/opt/ace-collector/.ace-session.json"
+)
 
 
 class AceError(RuntimeError):
