@@ -371,7 +371,8 @@ const Dashboard = () => {
                 title={`Slots · ${aceHint}`}
                 rows={slotsRows}
                 total={{
-                  label: "Net Win",
+                  label: "Result",
+
                   signed: ace.fresh ? slotsResult : undefined,
                   value: ace.fresh
                     ? `${slotsResult >= 0 ? "+" : ""}${formatCurrency(slotsResult)}`
