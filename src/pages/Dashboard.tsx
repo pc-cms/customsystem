@@ -291,7 +291,8 @@ const Dashboard = () => {
         if (!showFinancials) return null;
 
         const DOT = "·";
-        const slotsResult = ace.fresh ? Number(ace.netWin ?? 0) : 0;
+        const slotsNetWin = ace.fresh ? Number(ace.netWin ?? 0) : 0;
+        const slotsResult = ace.fresh ? slotsNetWin - Number(ace.activeCredits ?? 0) : 0;
         const grandTotal = totalResult + slotsResult;
         const aceHint = ace.fresh
           ? `ACE Live · ${Math.max(0, Math.round((ace.ageMs ?? 0) / 60000))}m ago`
@@ -309,7 +310,23 @@ const Dashboard = () => {
                 ? formatCurrency(Number(ace.activeCredits))
                 : DOT,
           },
+          {
+            label: "Net Win",
+            signed: ace.fresh ? slotsNetWin : undefined,
+            value: ace.fresh
+              ? `${slotsNetWin >= 0 ? "+" : ""}${formatCurrency(slotsNetWin)}`
+              : DOT,
+          },
+          {
+            label: "Cashdesk Win",
+            signed: ace.fresh && ace.winCashdesk != null ? ace.winCashdesk : undefined,
+            value:
+              ace.fresh && ace.winCashdesk != null
+                ? `${ace.winCashdesk >= 0 ? "+" : ""}${formatCurrency(ace.winCashdesk)}`
+                : DOT,
+          },
         ];
+
 
         const tableRows = Object.entries(gameTypeTotals).map(([_, t]) => ({
           label: t.label,
