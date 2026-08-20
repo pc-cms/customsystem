@@ -48,7 +48,7 @@
 На каждой строке отчёта — иконка-подсказка с формулой и источником, например:
 
 ```text
-Result (Live+Slots)  Live (закрытие дня или открытые смены) + Slots − Players Card Balance
+Result (Live+Slots)  Только закрытые дни: Live + Slots − Players Card Balance
 Collection           Расходы месяца в категориях группы Collections
 Estimated Expenses   Бюджет месяца, пересчитанный в TZS по курсу на дату
 Extra Expenses       Ручные строки отчёта + Approx Bonus 5%
