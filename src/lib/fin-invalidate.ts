@@ -14,7 +14,6 @@ const FIN_QUERY_ROOTS = [
   "fin-monthly-report",
   "boss-monthly-report",
   "boss-dashboard",
-  "expenses-matrix",
   "office-safe",
   "cash-count-snapshots",
   "shifts-tables-result",
