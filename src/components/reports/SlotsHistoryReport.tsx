@@ -277,12 +277,13 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
                   <DTCell type="time" className="text-muted-foreground font-mono">
                     {s.closed_at ? eatTime(s.closed_at) : "·"}
                   </DTCell>
-                  <DTCell type="money">
+                  <DTCell type="money" title={dropLocked ? "From Close Day / ACE Collector" : undefined}>
                     <EditableMoney
-                      value={drop} canEdit={canEdit} mode={mode}
+                      value={drop} canEdit={canEdit && !dropLocked} mode={mode}
                       onSave={(v) => updateField.mutate({ id: s.id, field: "manual_drop_slots", value: v })}
                     />
                   </DTCell>
+
                   <DTCell type="money" title={netWinLocked ? "From Close Day" : undefined}>
                     <EditableMoney
                       value={netWin} canEdit={canEdit && !netWinLocked} mode={mode}
