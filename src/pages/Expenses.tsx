@@ -104,7 +104,7 @@ interface ExpensesProps {
 }
 
 const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
-  const { isManager, roles } = useAuth();
+  const { isManager, roles, casinoId } = useAuth();
   const { activeCasino } = useCasino();
   const isCashierLive = roles.includes("cashier") && !roles.includes("cashier_slots");
   const isCashierSlots = roles.includes("cashier_slots") && !roles.includes("cashier");
