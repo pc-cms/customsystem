@@ -330,6 +330,10 @@ export default function DayClosingsTab() {
   };
 
   const onOk = (r: Row) => {
+    if (isOpenDay(r)) {
+      toast.error("Business day is still open — close the day first");
+      return;
+    }
     const v = val(r);
     if (needsNote(r) && (v.comment || "").trim().length < 3) {
       setVarianceNote(v.comment || "");
