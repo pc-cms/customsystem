@@ -413,7 +413,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
               <tr className="border-t-2 border-white/10 bg-white/[0.02]">
                 <td className="px-4 pt-3 pb-1 text-[0.65em] uppercase tracking-widest text-muted-foreground" colSpan={casinos.length + 2 + (canEdit ? 1 : 0)}>
                   <div className="flex items-center justify-between">
-                    <span>Extra Expenses</span>
+                    <span>Extra Expenses<HintIcon text={extrasHint} /></span>
                     {canEdit && (
                       <Button variant="ghost" size="sm" className="h-6 px-2 text-[0.8em]" onClick={addRow}>
                         <Plus className="w-3 h-3 mr-1" />
