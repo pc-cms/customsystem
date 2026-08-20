@@ -153,8 +153,7 @@ const Blacklist = () => {
 
   const blacklisted = useMemo(
     () =>
-      players
-        .filter(p => p.status === "blacklist")
+      [...players]
         .sort((a: any, b: any) => {
           const ta = new Date(blacklistedAt[a.id] || a.updated_at || 0).getTime();
           const tb = new Date(blacklistedAt[b.id] || b.updated_at || 0).getTime();
@@ -193,12 +192,12 @@ const Blacklist = () => {
 
   const [cachedPlayers, setCachedPlayers] = useState<any[]>([]);
   useEffect(() => {
-    if (!navigator.onLine || players.length === 0) {
+    if (!navigator.onLine || blacklisted.length === 0) {
       getCachedBlacklist().then(cached => {
         if (cached.length > 0 && blacklisted.length === 0) setCachedPlayers(cached);
       });
     }
-  }, [blacklisted.length, players.length]);
+  }, [blacklisted.length]);
 
   const displayList = filteredBL.length > 0 || search ? filteredBL : (blacklisted.length > 0 ? blacklisted : cachedPlayers);
 
@@ -208,6 +207,7 @@ const Blacklist = () => {
       if (error) throw error;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["players-blacklist"] });
       queryClient.invalidateQueries({ queryKey: ["players"] });
       toast.success("Player status updated");
     },
