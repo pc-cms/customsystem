@@ -455,13 +455,18 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
                 <DTCell type="money" className="text-muted-foreground">{fmt(r.dropTables || 0)}</DTCell>
                 <DTCell type="money"><span className={`font-semibold ${signCls(r.tablesResult || 0)}`}>{fmt(r.tablesResult || 0)}</span></DTCell>
                 <DTCell type="money"><span className="text-muted-foreground">{fmtHold(holdOf(r.tablesResult || 0, r.dropTables || 0))}</span></DTCell>
-                <DTCell type="money">
-                  <DropSlotsCell
-                    value={r.dropSlots || 0}
-                    canEdit={canEditDrop && slotsShiftIds.length > 0}
-                    onSave={(v) => updateDropSlots.mutate({ shiftIds: slotsShiftIds, value: v })}
-                  />
+                <DTCell type="money" title={r.dropSlotsLocked ? "From Close Day / ACE Collector" : undefined}>
+                  {r.dropSlotsLocked ? (
+                    <span className="font-mono">{fmt(r.dropSlots || 0)}</span>
+                  ) : (
+                    <DropSlotsCell
+                      value={r.dropSlots || 0}
+                      canEdit={canEditDrop && slotsShiftIds.length > 0}
+                      onSave={(v) => updateDropSlots.mutate({ shiftIds: slotsShiftIds, value: v })}
+                    />
+                  )}
                 </DTCell>
+
                 <DTCell type="money" title={r.slotsLocked ? "From Close Day" : undefined}>
                   {r.slotsLocked || !canEditDrop ? (
                     <span className={`font-semibold ${signCls(r.slotsResult || 0)}`}>{fmt(r.slotsResult || 0)}</span>
