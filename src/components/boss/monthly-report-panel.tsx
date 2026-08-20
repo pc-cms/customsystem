@@ -293,6 +293,32 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
     [casinos, accentFor],
   );
 
+  const desktop = view === "desktop";
+  const stickyHead = desktop ? "sticky left-0 z-20 bg-[hsl(240_20%_7%)]" : "";
+  const stickyCell = desktop ? "sticky left-0 z-10 bg-[hsl(240_20%_7%)]" : "";
+
+  if (!casinos.length) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center text-muted-foreground">
+        No casinos selected for this report.
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-6 text-center space-y-3">
+        <div className="text-sm font-semibold text-destructive">Monthly report failed to load</div>
+        <div className="font-mono text-xs text-muted-foreground break-words">
+          {(error as { message?: string })?.message || String(error)}
+        </div>
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => refetch()}>
+          <RefreshCw className="w-3.5 h-3.5" /> Retry
+        </Button>
+      </div>
+    );
+  }
+
   if (isLoading || !data) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center text-muted-foreground">
@@ -300,6 +326,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
       </div>
     );
   }
+
 
   const { summary, daily } = data;
   const t = summary.totals;
