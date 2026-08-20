@@ -2,8 +2,12 @@
  * MonthlyReportPanel — TV-friendly MTD report for Boss dashboard.
  * Left: cross-casino summary. Right: day-by-day rows with today highlighted.
  */
-import { useMemo, useState, useCallback, useRef } from "react";
-import { CalendarDays, Plus, Trash2, Info } from "lucide-react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { CalendarDays, Plus, Trash2, Info, Tv, Monitor as MonitorIcon, RefreshCw } from "lucide-react";
+
+type ReportView = "tv" | "desktop";
+const VIEW_KEY = "cms.boss-report-view";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useBossMonthlyReport, type CasinoRef } from "@/hooks/use-boss-monthly-report";
@@ -36,7 +40,7 @@ const AmountCell = ({ value, bold, dim }: { value: number; bold?: boolean; dim?:
                  (bold ? "text-foreground" : "text-foreground/90");
   return (
     <td
-      className={`px-3 py-1.5 text-right font-mono tabular-nums ${bold ? "font-bold" : ""} ${dim ? "opacity-70" : ""} ${cls}`}
+      className={`px-3 py-1.5 text-right font-mono tabular-nums whitespace-nowrap ${bold ? "font-bold" : ""} ${dim ? "opacity-70" : ""} ${cls}`}
     >
       {value === 0 ? "·" : fmt(value)}
     </td>
@@ -105,7 +109,7 @@ const EditableAmountCell = ({
     return (
       <td
         onClick={startEdit}
-        className={`px-3 py-1.5 text-right font-mono tabular-nums ${dim ? "opacity-70" : ""} ${disabled ? "" : "cursor-text hover:bg-white/5"} ${cls}`}
+        className={`px-3 py-1.5 text-right font-mono tabular-nums whitespace-nowrap ${dim ? "opacity-70" : ""} ${disabled ? "" : "cursor-text hover:bg-white/5"} ${cls}`}
         title={disabled ? undefined : "Click to edit"}
       >
         {value === 0 ? "·" : fmt(value)}
@@ -188,7 +192,17 @@ const EditableLabelCell = ({
 };
 
 export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
-  const { data, isLoading } = useBossMonthlyReport(casinos, { year, month });
+  const { data, isLoading, error, refetch } = useBossMonthlyReport(casinos, { year, month });
+  const [view, setView] = useState<ReportView>(() => {
+    if (typeof window === "undefined") return "tv";
+    const stored = window.localStorage.getItem(VIEW_KEY);
+    if (stored === "tv" || stored === "desktop") return stored;
+    return window.innerWidth < 1600 ? "desktop" : "tv";
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(VIEW_KEY, view); } catch { /* ignore */ }
+  }, [view]);
+
   const { roles } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -293,6 +307,32 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
     [casinos, accentFor],
   );
 
+  const desktop = view === "desktop";
+  const stickyHead = desktop ? "sticky left-0 z-20 bg-[hsl(240_20%_7%)]" : "";
+  const stickyCell = desktop ? "sticky left-0 z-10 bg-[hsl(240_20%_7%)]" : "";
+
+  if (!casinos.length) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center text-muted-foreground">
+        No casinos selected for this report.
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-6 text-center space-y-3">
+        <div className="text-sm font-semibold text-destructive">Monthly report failed to load</div>
+        <div className="font-mono text-xs text-muted-foreground break-words">
+          {(error as { message?: string })?.message || String(error)}
+        </div>
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => refetch()}>
+          <RefreshCw className="w-3.5 h-3.5" /> Retry
+        </Button>
+      </div>
+    );
+  }
+
   if (isLoading || !data) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center text-muted-foreground">
@@ -300,6 +340,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
       </div>
     );
   }
+
 
   const { summary, daily } = data;
   const t = summary.totals;
@@ -349,46 +390,69 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
   });
 
   return (
-    <div className="grid gap-4 grid-cols-1 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+    <div className={desktop ? "grid gap-4 grid-cols-1" : "grid gap-4 grid-cols-1 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]"}>
       {/* ============ LEFT: Summary ============ */}
       <section
         className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden"
         style={{ boxShadow: "0 0 40px hsl(var(--primary) / 0.08) inset" }}
       >
-        <header className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
+        <header className="px-5 py-3 border-b border-white/10 flex items-center justify-between gap-3">
           <div>
             <div className="text-[0.7em] uppercase tracking-[0.28em] text-muted-foreground">Company Report</div>
             <div className="text-[1.1em] font-extrabold tracking-wide">{monthLabel}</div>
           </div>
-          <div className="flex items-center gap-3 text-[0.65em] uppercase tracking-widest text-muted-foreground">
-            {casinos.map((c, i) => (
-              <span key={c.id} className="inline-flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-sm" style={{ background: accentMap[c.id] }} />
-                {c.name}
-              </span>
-            ))}
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-3 text-[0.65em] uppercase tracking-widest text-muted-foreground">
+              {casinos.map((c, i) => (
+                <span key={c.id} className="inline-flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-sm" style={{ background: accentMap[c.id] }} />
+                  {c.name}
+                </span>
+              ))}
+            </div>
+            <div className="flex items-center rounded-md border border-white/10 bg-black/30 p-0.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setView("tv")}
+                title="TV layout — large text, two columns"
+                className={`px-2 py-1 rounded-sm inline-flex items-center gap-1 text-xs ${view === "tv" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+              >
+                <Tv className="w-3.5 h-3.5" /> TV
+              </button>
+              <button
+                type="button"
+                onClick={() => setView("desktop")}
+                title="Desktop layout — dense rows, single-line figures, horizontal scroll"
+                className={`px-2 py-1 rounded-sm inline-flex items-center gap-1 text-xs ${view === "desktop" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+              >
+                <MonitorIcon className="w-3.5 h-3.5" /> Desktop
+              </button>
+            </div>
           </div>
         </header>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-[0.9em] border-collapse table-fixed">
-            <colgroup>
-              <col style={{ width: "26%" }} />
-              {casinos.map((c) => (
-                <col key={c.id} style={{ width: `${Math.max(10, 60 / Math.max(1, casinos.length))}%` }} />
-              ))}
-              <col style={{ width: "16%" }} />
-              {canEdit && <col style={{ width: "32px" }} />}
-            </colgroup>
+
+          <table className={`border-collapse ${desktop ? "min-w-max text-[13px]" : "w-full text-[0.9em] table-fixed"}`}>
+            {!desktop && (
+              <colgroup>
+                <col style={{ width: "26%" }} />
+                {casinos.map((c) => (
+                  <col key={c.id} style={{ width: `${Math.max(10, 60 / Math.max(1, casinos.length))}%` }} />
+                ))}
+                <col style={{ width: "16%" }} />
+                {canEdit && <col style={{ width: "32px" }} />}
+              </colgroup>
+            )}
             <thead>
               <tr className="text-[0.6em] uppercase tracking-widest text-muted-foreground">
-                <th className="text-left px-4 py-2 font-semibold">Metric</th>
+                <th className={`text-left px-4 py-2 font-semibold ${stickyHead}`}>Metric</th>
                 {casinos.map((c) => (
-                  <th key={c.id} className="text-right px-3 py-2 font-semibold truncate" style={{ color: accentMap[c.id] }}>
+                  <th key={c.id} className={`text-right px-3 py-2 font-semibold whitespace-nowrap ${desktop ? "min-w-[112px]" : "truncate"}`} style={{ color: accentMap[c.id] }}>
                     {c.name}
                   </th>
                 ))}
-                <th className="text-right px-4 py-2 font-bold text-primary">Total</th>
+                <th className={`text-right px-4 py-2 font-bold text-primary whitespace-nowrap ${desktop ? "min-w-[128px]" : ""}`}>Total</th>
                 {canEdit && <th className="px-1 py-2" />}
               </tr>
             </thead>
@@ -396,8 +460,9 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
               {rows.map((r) => (
                 <tr key={r.label} className="border-t border-white/5 odd:bg-white/[0.015]">
                   <td
-                    className={`px-4 py-1.5 truncate ${r.strong ? "font-bold" : ""} ${r.muted ? "pl-8 text-muted-foreground text-[0.9em]" : ""}`}
+                    className={`px-4 py-1.5 whitespace-nowrap ${stickyCell} ${r.strong ? "font-bold" : ""} ${r.muted ? "pl-8 text-muted-foreground text-[0.9em]" : ""}`}
                   >
+
                     {r.label}
                     {r.hint && <HintIcon text={r.hint} />}
                   </td>
@@ -513,20 +578,22 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
           </div>
         </header>
 
-        <div className="overflow-auto max-h-[70vh]">
-          <table className="w-full text-[0.85em] border-collapse">
-            <thead className="sticky top-0 z-10 bg-[hsl(240_20%_7%)]">
+        <div className={desktop ? "overflow-auto max-h-[65vh]" : "overflow-auto max-h-[70vh]"}>
+          <table className={`border-collapse ${desktop ? "min-w-max text-[13px]" : "w-full text-[0.85em]"}`}>
+
+            <thead className="sticky top-0 z-20 bg-[hsl(240_20%_7%)]">
               <tr className="text-[0.62em] uppercase tracking-widest text-muted-foreground">
-                <th className="text-left px-3 py-2 font-semibold">Date</th>
-                <th className="text-right px-3 py-2 font-semibold text-primary">JC Result</th>
+                <th className={`text-left px-3 py-2 font-semibold whitespace-nowrap ${desktop ? "sticky left-0 z-20 bg-[hsl(240_20%_7%)]" : ""}`}>Date</th>
+                <th className={`text-right px-3 py-2 font-semibold text-primary whitespace-nowrap ${desktop ? "min-w-[120px]" : ""}`}>JC Result</th>
                 {casinos.map((c) => (
-                  <th key={c.id} className="text-right px-3 py-2 font-semibold" style={{ color: accentMap[c.id] }}>
+                  <th key={c.id} title={c.name} className={`text-right px-3 py-2 font-semibold whitespace-nowrap ${desktop ? "min-w-[112px]" : ""}`} style={{ color: accentMap[c.id] }}>
                     {c.name.slice(0, 3).toUpperCase()}
                   </th>
                 ))}
-                <th className="text-right px-3 py-2 font-semibold">Collect.</th>
-                <th className="text-right px-3 py-2 font-semibold">Balance</th>
+                <th className={`text-right px-3 py-2 font-semibold whitespace-nowrap ${desktop ? "min-w-[112px]" : ""}`}>Collect.</th>
+                <th className={`text-right px-3 py-2 font-semibold whitespace-nowrap ${desktop ? "min-w-[128px]" : ""}`}>Balance</th>
               </tr>
+
             </thead>
             <tbody>
               {daily.map((d, idx) => {
@@ -545,7 +612,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
                       empty && !isToday ? "text-muted-foreground/50" : "",
                     ].join(" ")}
                   >
-                    <td className="px-3 py-1.5 whitespace-nowrap">
+                    <td className={`px-3 py-1.5 whitespace-nowrap ${desktop ? "sticky left-0 z-10 bg-[hsl(240_20%_7%)]" : ""}`}>
                       {isToday && (
                         <span className="inline-flex items-center gap-1 mr-2 px-1.5 py-0.5 rounded-sm bg-primary text-primary-foreground text-[0.55em] uppercase tracking-widest font-bold">
                           <span className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-pulse" />
