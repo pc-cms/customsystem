@@ -269,6 +269,16 @@ const StaffMaster = () => {
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  /** Jump to the inline "new employee" row at the bottom of the grid and focus it. */
+  const focusNewEmployeeRow = useCallback(() => {
+    const row = document.getElementById("staff-master-new-row");
+    if (!row) return;
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+    const input = row.querySelector<HTMLInputElement>("input[data-new-employee-first]");
+    setTimeout(() => input?.focus(), 300);
+  }, []);
+
+
   // Sorting state
   const [sortKey, setSortKey] = useSessionState<SortKey | null>("sortKey", null);
   const [sortDir, setSortDir] = useSessionState<SortDir>("sortDir", "asc");
