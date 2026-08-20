@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchPaged } from "@/lib/fetch-paged";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
