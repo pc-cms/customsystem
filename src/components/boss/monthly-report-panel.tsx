@@ -3,7 +3,7 @@
  * Left: cross-casino summary. Right: day-by-day rows with today highlighted.
  */
 import { useMemo, useState, useCallback, useRef } from "react";
-import { CalendarDays, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, Plus, Trash2, Info } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useBossMonthlyReport, type CasinoRef } from "@/hooks/use-boss-monthly-report";
