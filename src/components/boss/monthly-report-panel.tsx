@@ -532,7 +532,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
               {daily.map((d, idx) => {
                 const isToday = d.date === today;
                 const isWeekBoundary = idx > 0 && new Date(d.date).getDay() === 1;
-                const empty = d.jcResult === 0 && d.collection === 0;
+                const empty = !d.closed;
                 return (
                   <tr
                     key={d.date}
