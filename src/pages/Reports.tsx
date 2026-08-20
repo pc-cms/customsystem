@@ -273,7 +273,7 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
           .eq("casino_id", casinoId)
           .gte("business_date", from).lt("business_date", toStr).range(f, t)),
         // Result Slots = Net Win entered at Close Day. No fallback to computed figures.
-        fetchPaged<any>((f, t) => supabase.from("fin_day_closing").select("business_date, net_win")
+        fetchPaged<any>((f, t) => supabase.from("fin_day_closing").select("business_date, net_win, drop_slots")
           .eq("casino_id", casinoId)
           .gte("business_date", from).lt("business_date", toStr).range(f, t)),
       ]);
@@ -295,7 +295,7 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
       const map: Record<string, any> = {};
       const row = (d: string) => (map[d] ||= {
         date: d, dropTables: 0, tablesResult: 0, dropSlots: 0, slotsResult: 0, expenses: 0,
-        slotsShiftIds: [] as string[], slotsLocked: false,
+        slotsShiftIds: [] as string[], slotsLocked: false, dropSlotsLocked: false,
       });
       (liveRes.data || []).forEach((s: any) => {
         if (!s.closed_at) return;
@@ -314,6 +314,13 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
         const r = row(c.business_date);
         r.slotsResult = Number(c.net_win || 0);
         r.slotsLocked = r.slotsResult !== 0;
+        // Drop Slots: ACE Collector / Close Day figure wins over the manual
+        // cage entry, so Statistics matches Day Closings and the Dashboard.
+        const aceDrop = Number(c.drop_slots || 0);
+        if (aceDrop !== 0) {
+          r.dropSlots = aceDrop;
+          r.dropSlotsLocked = true;
+        }
       });
       (expRes.data || []).forEach((e: any) => {
         const r = row(eatDate(e.created_at));
