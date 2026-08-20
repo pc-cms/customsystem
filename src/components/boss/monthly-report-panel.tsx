@@ -3,7 +3,7 @@
  * Left: cross-casino summary. Right: day-by-day rows with today highlighted.
  */
 import { useMemo, useState, useCallback, useRef } from "react";
-import { CalendarDays, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, Plus, Trash2, Info } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useBossMonthlyReport, type CasinoRef } from "@/hooks/use-boss-monthly-report";
@@ -42,6 +42,20 @@ const AmountCell = ({ value, bold, dim }: { value: number; bold?: boolean; dim?:
     </td>
   );
 };
+
+/** Small "where does this number come from" hint (hover on desktop, long-press on touch). */
+const HintIcon = ({ text }: { text: string }) => (
+  <span
+    role="note"
+    tabIndex={0}
+    title={text}
+    aria-label={text}
+    className="inline-flex align-middle ml-1.5 text-muted-foreground/70 hover:text-primary cursor-help"
+  >
+    <Info className="w-3 h-3" />
+  </span>
+);
+
 
 const parseInput = (raw: string): number | null => {
   const v = Number(raw.replace(/\s/g, "").replace(/,/g, ""));
@@ -292,22 +306,43 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
 
   // Summary row builder
   type Row = { label: string; per: Record<string, number>; total: number; strong?: boolean; muted?: boolean; hint?: string; };
-  const cardsHint =
-    t.playersCards > 0
-      ? `Slots − Players Card Balance (deposits on player cards): −${fmt(t.playersCards)}`
-      : "Slots result net of Players Card Balance (deposits on player cards)";
   const rows: Row[] = [
-    { label: "Estimated Expenses",     per: summary.estimated, total: t.estimated },
-    { label: "Result (Live + Slots)",  per: summary.result,    total: t.result, strong: true },
-    { label: "Live Game",              per: summary.tables,    total: t.tables, muted: true },
-    { label: "Slots",                  per: summary.slots,     total: t.slots, muted: true, hint: cardsHint },
-    { label: "Other incomes",          per: summary.other,     total: t.other },
-    { label: "Collection",             per: summary.collection, total: t.collection },
+    {
+      label: "Estimated Expenses", per: summary.estimated, total: t.estimated,
+      hint: "Monthly budget (Finance → Budget), converted to TZS with the exchange rate of the entry date.",
+    },
+    {
+      label: "Result (Live + Slots)", per: summary.result, total: t.result, strong: true,
+      hint: "Closed business days only: Live Game result + Slots result (Day Closings). Open days are excluded.",
+    },
+    {
+      label: "Live Game", per: summary.tables, total: t.tables, muted: true,
+      hint: "Day Closings → Tables Result, closed business days only.",
+    },
+    {
+      label: "Slots", per: summary.slots, total: t.slots, muted: true,
+      hint: "Day Closings → Slots Result (ACE), closed business days only.",
+    },
+    {
+      label: "Players Card Balance", per: summary.playersCards, total: t.playersCards, muted: true,
+      hint: "Latest Players Card Balance of the month. Informational only — not subtracted from Result.",
+    },
+    {
+      label: "Other incomes", per: summary.other, total: t.other,
+      hint: "Finance → Other Incomes for the month (amount × FX rate), reversed entries excluded.",
+    },
+    {
+      label: "Collection", per: summary.collection, total: t.collection,
+      hint: "Expenses of the month in categories of the 'Collections' group (voided entries excluded).",
+    },
   ];
 
   const expectedHint =
-    `Avg daily result × ${t.daysInMonth} days − Estimated Expenses − Extra Expenses + Other Incomes. ` +
-    `Based on ${t.daysElapsed} day${t.daysElapsed === 1 ? "" : "s"} so far.`;
+    `Forecast Result (avg per closed day × ${t.daysInMonth} days) − Estimated Expenses − Extra Expenses − Collection + Other Incomes. ` +
+    `Based on ${t.daysElapsed} closed day${t.daysElapsed === 1 ? "" : "s"}.`;
+  const balanceHint = "Result + Other Incomes − Estimated Expenses − Extra Expenses − Collection.";
+  const extrasHint = "Manual extra expenses for the month, plus Approx Bonus for Managers = 5% of max(0, Result − Estimated Expenses).";
+
 
   const monthLabel = new Date(data.monthStart).toLocaleDateString("en-GB", {
     month: "long", year: "numeric",
@@ -361,10 +396,10 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
               {rows.map((r) => (
                 <tr key={r.label} className="border-t border-white/5 odd:bg-white/[0.015]">
                   <td
-                    className={`px-4 py-1.5 truncate ${r.strong ? "font-bold" : ""} ${r.muted ? "pl-8 text-muted-foreground text-[0.9em]" : ""} ${r.hint ? "cursor-help underline decoration-dotted underline-offset-4" : ""}`}
-                    title={r.hint || r.label}
+                    className={`px-4 py-1.5 truncate ${r.strong ? "font-bold" : ""} ${r.muted ? "pl-8 text-muted-foreground text-[0.9em]" : ""}`}
                   >
                     {r.label}
+                    {r.hint && <HintIcon text={r.hint} />}
                   </td>
                   {casinos.map((c) => (
                     <AmountCell key={c.id} value={r.per[c.id] || 0} bold={r.strong} dim={r.muted} />
@@ -378,7 +413,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
               <tr className="border-t-2 border-white/10 bg-white/[0.02]">
                 <td className="px-4 pt-3 pb-1 text-[0.65em] uppercase tracking-widest text-muted-foreground" colSpan={casinos.length + 2 + (canEdit ? 1 : 0)}>
                   <div className="flex items-center justify-between">
-                    <span>Extra Expenses</span>
+                    <span>Extra Expenses<HintIcon text={extrasHint} /></span>
                     {canEdit && (
                       <Button variant="ghost" size="sm" className="h-6 px-2 text-[0.8em]" onClick={addRow}>
                         <Plus className="w-3 h-3 mr-1" />
@@ -442,19 +477,23 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
               <tr className="border-t-2 border-primary/40 bg-primary/5">
                 <td
                   className="px-4 py-2 font-bold uppercase tracking-widest text-[0.8em] text-primary"
-                  title={expectedHint}
                   colSpan={1 + casinos.length}
                 >
                   Expected Profit
+                  <HintIcon text={expectedHint} />
                 </td>
                 <AmountCell value={t.expectedProfit} bold />
                 {canEdit && <td />}
               </tr>
               <tr className="border-t border-white/10 bg-white/[0.05]">
-                <td className="px-4 py-2 font-bold" colSpan={1 + casinos.length}>Balance (current month)</td>
+                <td className="px-4 py-2 font-bold" colSpan={1 + casinos.length}>
+                  Balance (current month)
+                  <HintIcon text={balanceHint} />
+                </td>
                 <AmountCell value={t.balance} bold />
                 {canEdit && <td />}
               </tr>
+
 
             </tbody>
           </table>
@@ -493,7 +532,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
               {daily.map((d, idx) => {
                 const isToday = d.date === today;
                 const isWeekBoundary = idx > 0 && new Date(d.date).getDay() === 1;
-                const empty = d.jcResult === 0 && d.collection === 0;
+                const empty = !d.closed;
                 return (
                   <tr
                     key={d.date}
@@ -517,6 +556,14 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
                       <span className="ml-2 text-[0.7em] uppercase tracking-wider text-muted-foreground">
                         {weekday(d.date)}
                       </span>
+                      {!d.closed && (
+                        <span
+                          className="ml-2 px-1 py-0.5 rounded-sm border border-white/15 text-[0.55em] uppercase tracking-widest text-muted-foreground"
+                          title="Business day is not closed yet — excluded from Result"
+                        >
+                          Open
+                        </span>
+                      )}
                     </td>
                     <AmountCell value={d.jcResult} bold={isToday} />
                     {casinos.map((c) => (

@@ -11402,6 +11402,14 @@ export type Database = {
       }
       auto_close_business_day: { Args: never; Returns: Json }
       auto_close_forgotten_business_days: { Args: never; Returns: undefined }
+      boss_fx_rate: {
+        Args: { _casino_id: string; _currency: string; _date: string }
+        Returns: number
+      }
+      boss_monthly_report: {
+        Args: { _casino_ids: string[]; _month: number; _year: number }
+        Returns: Json
+      }
       box_license_mode: { Args: never; Returns: string }
       box_license_state: {
         Args: never

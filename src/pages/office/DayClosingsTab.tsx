@@ -28,6 +28,7 @@ import { fmtDate } from "@/lib/format-date";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getBusinessDate } from "@/lib/business-day";
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
@@ -238,8 +239,13 @@ export default function DayClosingsTab() {
     return { tables, slots, drop, cash, cards, jp, comment };
   };
 
+  /** The business day that is still running — no figures may be stored for it. */
+  const openBusinessDate = getBusinessDate();
+  const isOpenDay = (r: Row) => r.date >= openBusinessDate && r.closedByManager === null;
+
   const isLocked = (r: Row) => !!r.existing?.locked_at;
-  const isEditable = (r: Row) => !isLocked(r) || (!!isManager && !!unlocked[r.date]);
+  const isEditable = (r: Row) =>
+    !isOpenDay(r) && (!isLocked(r) || (!!isManager && !!unlocked[r.date]));
   const varianceOf = (r: Row) => {
     const v = val(r);
     return { dT: Math.abs(v.tables - r.agg.tables), dS: Math.abs(v.slots - r.agg.slots) };
@@ -324,6 +330,10 @@ export default function DayClosingsTab() {
   };
 
   const onOk = (r: Row) => {
+    if (isOpenDay(r)) {
+      toast.error("Business day is still open — close the day first");
+      return;
+    }
     const v = val(r);
     if (needsNote(r) && (v.comment || "").trim().length < 3) {
       setVarianceNote(v.comment || "");
@@ -473,6 +483,18 @@ export default function DayClosingsTab() {
       type: "actions",
       style: { width: 96 },
       accessor: (r) => {
+        if (isOpenDay(r)) {
+          return (
+            <div className="flex items-center justify-end">
+              <span
+                className="text-[10px] uppercase tracking-widest text-muted-foreground"
+                title="Business day is still open — figures are shown as preview only and are not saved"
+              >
+                Open
+              </span>
+            </div>
+          );
+        }
         if (isLocked(r) && !unlocked[r.date]) {
           return (
             <div className="flex items-center justify-end gap-1">
