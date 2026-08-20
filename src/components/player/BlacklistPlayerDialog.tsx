@@ -48,6 +48,8 @@ export const BlacklistPlayerDialog = ({ open, onClose, playerId, playerName }: P
       toast.success(`${playerName} blacklisted`);
       qc.invalidateQueries({ queryKey: ["player", playerId] });
       qc.invalidateQueries({ queryKey: ["players"] });
+      qc.invalidateQueries({ queryKey: ["players-blacklist"] });
+
       setReason("");
       onClose();
     } catch (e: any) {

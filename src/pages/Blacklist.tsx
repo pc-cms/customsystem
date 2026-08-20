@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchPaged } from "@/lib/fetch-paged";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
@@ -73,17 +75,41 @@ const Blacklist = () => {
   const [addTarget, setAddTarget] = useState<{ id: string; name: string } | null>(null);
   const { select: selectPlayer } = useSelectedPlayer();
 
+  // Blacklisted players only — server-side filter + paging.
+  // (A plain `select("*")` on players is capped at 1000 rows by the API and
+  // silently dropped most blacklist entries.)
   const { data: players = [] } = useQuery({
-    queryKey: ["players"],
+    queryKey: ["players-blacklist"],
     queryFn: async () => {
+      return await fetchPaged<any>((from, to) => supabase
+        .from("players")
+        .select("*")
+        .eq("status", "blacklist")
+        .order("updated_at", { ascending: false })
+        .range(from, to));
+    },
+  });
+
+  // Global player search (server-side) for the "add to blacklist" search bar.
+  const searchTerm = search.trim();
+  const { data: searchRows = [] } = useQuery({
+    queryKey: ["players-blacklist-search", searchTerm],
+    enabled: searchTerm.length >= 2,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const like = `%${searchTerm}%`;
       const { data, error } = await supabase
         .from("players")
         .select("*")
-        .order("updated_at", { ascending: false });
+        .neq("status", "blacklist")
+        .or(`first_name.ilike.${like},last_name.ilike.${like},nickname.ilike.${like},id_number.ilike.${like},phone.ilike.${like}`)
+        .order("updated_at", { ascending: false })
+        .limit(12);
       if (error) throw error;
-      return data;
+      return data || [];
     },
   });
+
 
   // Last visit per player (most recent casino_visits.checked_in_at)
   const { data: lastVisits = {} as Record<string, string> } = useQuery({
@@ -127,8 +153,7 @@ const Blacklist = () => {
 
   const blacklisted = useMemo(
     () =>
-      players
-        .filter(p => p.status === "blacklist")
+      [...players]
         .sort((a: any, b: any) => {
           const ta = new Date(blacklistedAt[a.id] || a.updated_at || 0).getTime();
           const tb = new Date(blacklistedAt[b.id] || b.updated_at || 0).getTime();
@@ -146,18 +171,9 @@ const Blacklist = () => {
     );
   }, [blacklisted, search]);
 
-  // Global search across ALL players for the search bar (above the banned grid)
-  const searchResults = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return [];
-    return players
-      .filter(p => p.status !== "blacklist")
-      .filter(p =>
-        `${p.first_name} ${p.last_name} ${p.nickname ?? ""} ${p.id_number ?? ""} ${p.phone ?? ""}`
-          .toLowerCase().includes(q)
-      )
-      .slice(0, 12);
-  }, [players, search]);
+  // Global search across ALL players (server-side, see query above)
+  const searchResults = searchRows;
+
 
   useEffect(() => {
     if (blacklisted.length > 0) {
@@ -176,12 +192,12 @@ const Blacklist = () => {
 
   const [cachedPlayers, setCachedPlayers] = useState<any[]>([]);
   useEffect(() => {
-    if (!navigator.onLine || players.length === 0) {
+    if (!navigator.onLine || blacklisted.length === 0) {
       getCachedBlacklist().then(cached => {
         if (cached.length > 0 && blacklisted.length === 0) setCachedPlayers(cached);
       });
     }
-  }, [blacklisted.length, players.length]);
+  }, [blacklisted.length]);
 
   const displayList = filteredBL.length > 0 || search ? filteredBL : (blacklisted.length > 0 ? blacklisted : cachedPlayers);
 
@@ -191,6 +207,7 @@ const Blacklist = () => {
       if (error) throw error;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["players-blacklist"] });
       queryClient.invalidateQueries({ queryKey: ["players"] });
       toast.success("Player status updated");
     },
