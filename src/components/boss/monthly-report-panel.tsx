@@ -477,19 +477,23 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
               <tr className="border-t-2 border-primary/40 bg-primary/5">
                 <td
                   className="px-4 py-2 font-bold uppercase tracking-widest text-[0.8em] text-primary"
-                  title={expectedHint}
                   colSpan={1 + casinos.length}
                 >
                   Expected Profit
+                  <HintIcon text={expectedHint} />
                 </td>
                 <AmountCell value={t.expectedProfit} bold />
                 {canEdit && <td />}
               </tr>
               <tr className="border-t border-white/10 bg-white/[0.05]">
-                <td className="px-4 py-2 font-bold" colSpan={1 + casinos.length}>Balance (current month)</td>
+                <td className="px-4 py-2 font-bold" colSpan={1 + casinos.length}>
+                  Balance (current month)
+                  <HintIcon text={balanceHint} />
+                </td>
                 <AmountCell value={t.balance} bold />
                 {canEdit && <td />}
               </tr>
+
 
             </tbody>
           </table>
