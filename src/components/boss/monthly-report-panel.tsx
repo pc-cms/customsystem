@@ -188,7 +188,17 @@ const EditableLabelCell = ({
 };
 
 export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
-  const { data, isLoading } = useBossMonthlyReport(casinos, { year, month });
+  const { data, isLoading, error, refetch } = useBossMonthlyReport(casinos, { year, month });
+  const [view, setView] = useState<ReportView>(() => {
+    if (typeof window === "undefined") return "tv";
+    const stored = window.localStorage.getItem(VIEW_KEY);
+    if (stored === "tv" || stored === "desktop") return stored;
+    return window.innerWidth < 1600 ? "desktop" : "tv";
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(VIEW_KEY, view); } catch { /* ignore */ }
+  }, [view]);
+
   const { roles } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
