@@ -9,7 +9,6 @@ import type { QueryClient } from "@tanstack/react-query";
  * was written leaves the report (and its KPI tiles) stale until a full reload.
  */
 const FIN_QUERY_ROOTS = [
-  "daily-balance-report",
   "fin-day-balance-snapshot",
   "fin-balance-snapshot",
   "fin-monthly-report",
