@@ -571,7 +571,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
                       empty && !isToday ? "text-muted-foreground/50" : "",
                     ].join(" ")}
                   >
-                    <td className="px-3 py-1.5 whitespace-nowrap">
+                    <td className={`px-3 py-1.5 whitespace-nowrap ${desktop ? "sticky left-0 z-10 bg-[hsl(240_20%_7%)]" : ""}`}>
                       {isToday && (
                         <span className="inline-flex items-center gap-1 mr-2 px-1.5 py-0.5 rounded-sm bg-primary text-primary-foreground text-[0.55em] uppercase tracking-widest font-bold">
                           <span className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-pulse" />
