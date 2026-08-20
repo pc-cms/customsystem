@@ -89,7 +89,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
       if (!casinoId || !from || !to) return [];
       const { data, error } = await supabase
         .from("fin_day_closing")
-        .select("business_date, cashdesk_win, net_win")
+        .select("business_date, cashdesk_win, net_win, drop_slots")
         .eq("casino_id", casinoId)
         .gte("business_date", from)
         .lte("business_date", to);
@@ -101,11 +101,12 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
 
   /** business_date -> Close Day figures. Presence of the row locks the cells. */
   const closingByDate = useMemo(() => {
-    const m = new Map<string, { cashdesk: number; netWin: number }>();
+    const m = new Map<string, { cashdesk: number; netWin: number; drop: number }>();
     (closings as any[]).forEach((r) => {
       m.set(r.business_date, {
         cashdesk: Number(r.cashdesk_win || 0),
         netWin: Number(r.net_win || 0),
+        drop: Number(r.drop_slots || 0),
       });
     });
     return m;
@@ -129,7 +130,9 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
     const cdr = c ? c.cashdesk : 0;
     return {
       s,
-      drop: Number(s.manual_drop_slots || 0),
+      // Drop: ACE Collector / Close Day figure wins over the manual cage entry.
+      drop: c && c.drop !== 0 ? c.drop : Number(s.manual_drop_slots || 0),
+      dropLocked: !!c && c.drop !== 0,
       // Net Win / Cashdesk come ONLY from Close Day. No fallback to shift figures.
       netWin,
       cdr,
@@ -267,7 +270,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
           {!isLoading && sorted.length === 0 && (
             <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-4">No closed slots shifts in range</DTCell></DTRow>
           )}
-          {sorted.map(({ s, drop, netWin, cdr, clientBalance, miss, balance, netWinLocked, cdrLocked }) => {
+          {sorted.map(({ s, drop, dropLocked, netWin, cdr, clientBalance, miss, balance, netWinLocked, cdrLocked }) => {
             return (
               <DTRow key={s.id}>
                   <DTCell type="date">{fmtDate(s.business_date)}</DTCell>
