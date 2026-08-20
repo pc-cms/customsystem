@@ -32,7 +32,22 @@ RLS на `fin_categories`: чтение доступно всем авториз
 
 Что НЕ трогаем: Office, Budget, Monthly Report в Office, Day Closings, Dashboard TV, таблицы БД (данные остаются, удаляется только UI).
 
+## 5. Statistics: цифры Slots из ACE Collector
+
+Проверено: коллектор через `ace_apply_closed_report` пишет закрытый день в `fin_day_closing` — `drop_slots`, `net_win`, `cashdesk_win`, `players_card_balance`. Day Closings читает эту таблицу, поэтому там ACE виден.
+
+В Statistics источники расходятся:
+- `src/pages/Reports.tsx` (вкладка Total): `Result Slots` берётся из `fin_day_closing.net_win` (ACE уже работает), а `Drop Slots` — из `cage_slots_shifts.manual_drop_slots`, куда ACE ничего не пишет.
+- `src/components/reports/SlotsHistoryReport.tsx` (вкладка Slots): `Drop` тоже из `manual_drop_slots`.
+
+Что делаем (только чтение/отображение, логику приёма ACE не трогаем):
+- Единый приоритет источника Drop Slots: если за бизнес-день есть `fin_day_closing.drop_slots` (данные ACE / Close Day) — показываем его, иначе fallback на ручной `manual_drop_slots`.
+- Применить в Total-вкладке Reports и в SlotsHistoryReport, чтобы Statistics, Day Closings и Dashboard давали одну цифру.
+- Где есть ACE-значение — ячейка read-only с подписью источника (как сделано для JP); где нет — остаётся ручной ввод.
+- Казино без коллектора (Mwanza, Dodoma, Mbeya) продолжают работать на ручном вводе без изменений.
+
 ## Технические детали
+
 - Файлы: `src/App.tsx`, `src/components/layout/AppSidebar.tsx`, `src/lib/route-module-map.ts`, `src/lib/fin-invalidate.ts`, `src/components/expenses/CategoryCombobox.tsx`, `src/hooks/use-day-balance-snapshot.ts`, удаление файлов в `src/pages/reports/` и соответствующих хуков.
 - Проверка: типизация без ошибок, отсутствие «мертвых» импортов, ручная проверка меню под ролями super_admin / finance_manager / boss.
 - Версия приложения повышается после внесения изменений.
