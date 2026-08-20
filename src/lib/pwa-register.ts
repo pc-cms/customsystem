@@ -88,6 +88,7 @@ export async function setupPWA() {
       },
       onNeedRefresh() {
         console.log("[PWA] New version available — waiting for user to confirm");
+        swUpdateFn = updateSW;
 
         // Fire global event so the blocking dialog can react.
         window.dispatchEvent(new CustomEvent("pwa:update-available", {
@@ -100,15 +101,76 @@ export async function setupPWA() {
           duration: Infinity,
           action: {
             label: "Update now",
-            onClick: () => { updateSW(true); },
+            onClick: () => { void applyUpdate(); },
           },
         });
       },
     });
+    swUpdateFn = updateSW;
   } catch (e) {
     console.warn("[PWA] Registration failed:", e);
   }
 }
+
+/** vite-plugin-pwa updater, captured on registration. */
+let swUpdateFn: ((reload?: boolean) => Promise<void>) | null = null;
+
+/** Is there really a new build waiting (waiting/installing SW)? */
+export async function hasPendingUpdate(): Promise<boolean> {
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration?.();
+    return !!(reg?.waiting || reg?.installing);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Apply a pending update — bulletproof version.
+ *
+ * `updateSW(true)` alone silently does nothing when there is no waiting SW
+ * (or when the waiting worker never answers SKIP_WAITING): the promise
+ * neither resolves nor rejects, so the button looks dead and only
+ * Ctrl+Shift+R helps. Here we:
+ *   1. message the waiting worker directly,
+ *   2. reload on `controllerchange`,
+ *   3. after a 3s watchdog fall back to a full cache reset + hard reload
+ *      (what Ctrl+Shift+R does, but keeping the Supabase session).
+ */
+export async function applyUpdate(): Promise<void> {
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    window.location.reload();
+  };
+
+  try {
+    navigator.serviceWorker?.addEventListener("controllerchange", finish, { once: true });
+  } catch { /* ignore */ }
+
+  // Drop the cached HTML shell so the reload always gets fresh index.html.
+  try {
+    if (typeof caches !== "undefined") await caches.delete("html");
+  } catch { /* ignore */ }
+
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration?.();
+    reg?.waiting?.postMessage({ type: "SKIP_WAITING" });
+  } catch { /* ignore */ }
+
+  try {
+    void swUpdateFn?.(true);
+  } catch { /* ignore */ }
+
+  // Watchdog — nothing happened within 3s → hard reset.
+  window.setTimeout(() => {
+    if (done) return;
+    done = true;
+    void resetPWACache();
+  }, 3000);
+}
+
 
 /**
  * Manually clear SW caches and reload. Used by Admin "Force update" button.
