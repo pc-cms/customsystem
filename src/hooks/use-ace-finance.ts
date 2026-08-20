@@ -101,6 +101,9 @@ export function useAceLiveSlotsResult(locationCode: string | null | undefined) {
     netWin: fresh ? Number(data?.net_win ?? 0) : null,
     activeCredits:
       fresh && data?.active_credits != null ? Number(data.active_credits) : null,
+    winCashdesk:
+      fresh && (data as any)?.win_cashdesk != null ? Number((data as any).win_cashdesk) : null,
+
     ageMs,
     periodLabel: data?.period_label ?? null,
     receivedAt: data?.received_at ?? null,
