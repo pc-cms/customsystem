@@ -556,6 +556,14 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
                       <span className="ml-2 text-[0.7em] uppercase tracking-wider text-muted-foreground">
                         {weekday(d.date)}
                       </span>
+                      {!d.closed && (
+                        <span
+                          className="ml-2 px-1 py-0.5 rounded-sm border border-white/15 text-[0.55em] uppercase tracking-widest text-muted-foreground"
+                          title="Business day is not closed yet — excluded from Result"
+                        >
+                          Open
+                        </span>
+                      )}
                     </td>
                     <AmountCell value={d.jcResult} bold={isToday} />
                     {casinos.map((c) => (
