@@ -292,22 +292,43 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
 
   // Summary row builder
   type Row = { label: string; per: Record<string, number>; total: number; strong?: boolean; muted?: boolean; hint?: string; };
-  const cardsHint =
-    t.playersCards > 0
-      ? `Slots − Players Card Balance (deposits on player cards): −${fmt(t.playersCards)}`
-      : "Slots result net of Players Card Balance (deposits on player cards)";
   const rows: Row[] = [
-    { label: "Estimated Expenses",     per: summary.estimated, total: t.estimated },
-    { label: "Result (Live + Slots)",  per: summary.result,    total: t.result, strong: true },
-    { label: "Live Game",              per: summary.tables,    total: t.tables, muted: true },
-    { label: "Slots",                  per: summary.slots,     total: t.slots, muted: true, hint: cardsHint },
-    { label: "Other incomes",          per: summary.other,     total: t.other },
-    { label: "Collection",             per: summary.collection, total: t.collection },
+    {
+      label: "Estimated Expenses", per: summary.estimated, total: t.estimated,
+      hint: "Monthly budget (Finance → Budget), converted to TZS with the exchange rate of the entry date.",
+    },
+    {
+      label: "Result (Live + Slots)", per: summary.result, total: t.result, strong: true,
+      hint: "Closed business days only: Live Game result + Slots result (Day Closings). Open days are excluded.",
+    },
+    {
+      label: "Live Game", per: summary.tables, total: t.tables, muted: true,
+      hint: "Day Closings → Tables Result, closed business days only.",
+    },
+    {
+      label: "Slots", per: summary.slots, total: t.slots, muted: true,
+      hint: "Day Closings → Slots Result (ACE), closed business days only.",
+    },
+    {
+      label: "Players Card Balance", per: summary.playersCards, total: t.playersCards, muted: true,
+      hint: "Latest Players Card Balance of the month. Informational only — not subtracted from Result.",
+    },
+    {
+      label: "Other incomes", per: summary.other, total: t.other,
+      hint: "Finance → Other Incomes for the month (amount × FX rate), reversed entries excluded.",
+    },
+    {
+      label: "Collection", per: summary.collection, total: t.collection,
+      hint: "Expenses of the month in categories of the 'Collections' group (voided entries excluded).",
+    },
   ];
 
   const expectedHint =
-    `Avg daily result × ${t.daysInMonth} days − Estimated Expenses − Extra Expenses + Other Incomes. ` +
-    `Based on ${t.daysElapsed} day${t.daysElapsed === 1 ? "" : "s"} so far.`;
+    `Forecast Result (avg per closed day × ${t.daysInMonth} days) − Estimated Expenses − Extra Expenses − Collection + Other Incomes. ` +
+    `Based on ${t.daysElapsed} closed day${t.daysElapsed === 1 ? "" : "s"}.`;
+  const balanceHint = "Result + Other Incomes − Estimated Expenses − Extra Expenses − Collection.";
+  const extrasHint = "Manual extra expenses for the month, plus Approx Bonus for Managers = 5% of max(0, Result − Estimated Expenses).";
+
 
   const monthLabel = new Date(data.monthStart).toLocaleDateString("en-GB", {
     month: "long", year: "numeric",
