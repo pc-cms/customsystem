@@ -349,28 +349,49 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
   });
 
   return (
-    <div className="grid gap-4 grid-cols-1 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+    <div className={desktop ? "grid gap-4 grid-cols-1" : "grid gap-4 grid-cols-1 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]"}>
       {/* ============ LEFT: Summary ============ */}
       <section
         className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden"
         style={{ boxShadow: "0 0 40px hsl(var(--primary) / 0.08) inset" }}
       >
-        <header className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
+        <header className="px-5 py-3 border-b border-white/10 flex items-center justify-between gap-3">
           <div>
             <div className="text-[0.7em] uppercase tracking-[0.28em] text-muted-foreground">Company Report</div>
             <div className="text-[1.1em] font-extrabold tracking-wide">{monthLabel}</div>
           </div>
-          <div className="flex items-center gap-3 text-[0.65em] uppercase tracking-widest text-muted-foreground">
-            {casinos.map((c, i) => (
-              <span key={c.id} className="inline-flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-sm" style={{ background: accentMap[c.id] }} />
-                {c.name}
-              </span>
-            ))}
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-3 text-[0.65em] uppercase tracking-widest text-muted-foreground">
+              {casinos.map((c, i) => (
+                <span key={c.id} className="inline-flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-sm" style={{ background: accentMap[c.id] }} />
+                  {c.name}
+                </span>
+              ))}
+            </div>
+            <div className="flex items-center rounded-md border border-white/10 bg-black/30 p-0.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setView("tv")}
+                title="TV layout — large text, two columns"
+                className={`px-2 py-1 rounded-sm inline-flex items-center gap-1 text-xs ${view === "tv" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+              >
+                <Tv className="w-3.5 h-3.5" /> TV
+              </button>
+              <button
+                type="button"
+                onClick={() => setView("desktop")}
+                title="Desktop layout — dense rows, single-line figures, horizontal scroll"
+                className={`px-2 py-1 rounded-sm inline-flex items-center gap-1 text-xs ${view === "desktop" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+              >
+                <MonitorIcon className="w-3.5 h-3.5" /> Desktop
+              </button>
+            </div>
           </div>
         </header>
 
         <div className="overflow-x-auto">
+
           <table className="w-full text-[0.9em] border-collapse table-fixed">
             <colgroup>
               <col style={{ width: "26%" }} />
