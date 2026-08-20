@@ -300,6 +300,19 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     }
   };
 
+  if (!casinoId) {
+    return (
+      <div className="space-y-6">
+        {!embedded && (
+          <PageHeader icon={Receipt} title="Expenses" subtitle="No casino selected" />
+        )}
+        <div className="cms-panel p-8 text-center text-sm text-muted-foreground">
+          Expenses are per-casino. Pick a casino in the switcher to view or create entries.
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-6">
