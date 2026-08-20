@@ -29,7 +29,7 @@
 `daysElapsed` сейчас считает только дни с ненулевым результатом, поэтому прогноз завышается.
 
 Новая логика:
-- `daysElapsed` = число закрытых бизнес-дней месяца (дней с записью в `fin_day_closing`).
+- `daysElapsed` = число закрытых бизнес-дней месяца (по `business_day_closures`).
 - Прошедший месяц: если закрыты все дни, прогноз равен факту.
 - Формулы остаются прежними: `Forecast = (Result / daysElapsed) × дней в месяце`, `Expected Profit = Forecast − Estimated − Extras − Collection + Other`.
 
