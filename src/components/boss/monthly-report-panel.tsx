@@ -513,8 +513,9 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
           </div>
         </header>
 
-        <div className="overflow-auto max-h-[70vh]">
-          <table className="w-full text-[0.85em] border-collapse">
+        <div className={desktop ? "overflow-auto max-h-[65vh]" : "overflow-auto max-h-[70vh]"}>
+          <table className={`border-collapse ${desktop ? "min-w-max text-[13px]" : "w-full text-[0.85em]"}`}>
+
             <thead className="sticky top-0 z-10 bg-[hsl(240_20%_7%)]">
               <tr className="text-[0.62em] uppercase tracking-widest text-muted-foreground">
                 <th className="text-left px-3 py-2 font-semibold">Date</th>
