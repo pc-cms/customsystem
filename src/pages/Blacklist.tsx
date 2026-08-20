@@ -172,18 +172,9 @@ const Blacklist = () => {
     );
   }, [blacklisted, search]);
 
-  // Global search across ALL players for the search bar (above the banned grid)
-  const searchResults = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return [];
-    return players
-      .filter(p => p.status !== "blacklist")
-      .filter(p =>
-        `${p.first_name} ${p.last_name} ${p.nickname ?? ""} ${p.id_number ?? ""} ${p.phone ?? ""}`
-          .toLowerCase().includes(q)
-      )
-      .slice(0, 12);
-  }, [players, search]);
+  // Global search across ALL players (server-side, see query above)
+  const searchResults = searchRows;
+
 
   useEffect(() => {
     if (blacklisted.length > 0) {
