@@ -199,7 +199,10 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   const [editingExpense, setEditingExpense] = useState<EditableExpense | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft(roleDefaultSource)]);
 
-  const isLoading = loadingExpenses;
+  // With no casino selected (super_admin / finance on the summary domain) the
+  // query stays disabled — TanStack v5 keeps `isLoading` true forever, which
+  // used to freeze this page on the skeleton. Treat that as "no casino".
+  const isLoading = !!casinoId && loadingExpenses;
 
   const filters = useMemo(
     () => ({
