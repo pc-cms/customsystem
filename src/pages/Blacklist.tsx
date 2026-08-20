@@ -73,17 +73,41 @@ const Blacklist = () => {
   const [addTarget, setAddTarget] = useState<{ id: string; name: string } | null>(null);
   const { select: selectPlayer } = useSelectedPlayer();
 
+  // Blacklisted players only — server-side filter + paging.
+  // (A plain `select("*")` on players is capped at 1000 rows by the API and
+  // silently dropped most blacklist entries.)
   const { data: players = [] } = useQuery({
-    queryKey: ["players"],
+    queryKey: ["players-blacklist"],
     queryFn: async () => {
+      return await fetchPaged<any>((from, to) => supabase
+        .from("players")
+        .select("*")
+        .eq("status", "blacklist")
+        .order("updated_at", { ascending: false })
+        .range(from, to));
+    },
+  });
+
+  // Global player search (server-side) for the "add to blacklist" search bar.
+  const searchTerm = search.trim();
+  const { data: searchRows = [] } = useQuery({
+    queryKey: ["players-blacklist-search", searchTerm],
+    enabled: searchTerm.length >= 2,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const like = `%${searchTerm}%`;
       const { data, error } = await supabase
         .from("players")
         .select("*")
-        .order("updated_at", { ascending: false });
+        .neq("status", "blacklist")
+        .or(`first_name.ilike.${like},last_name.ilike.${like},nickname.ilike.${like},id_number.ilike.${like},phone.ilike.${like}`)
+        .order("updated_at", { ascending: false })
+        .limit(12);
       if (error) throw error;
-      return data;
+      return data || [];
     },
   });
+
 
   // Last visit per player (most recent casino_visits.checked_in_at)
   const { data: lastVisits = {} as Record<string, string> } = useQuery({
