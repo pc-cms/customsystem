@@ -415,6 +415,9 @@ const StaffMaster = () => {
         {canEdit && (
           <>
             <input ref={fileRef} type="file" accept=".xlsx" className="hidden" onChange={handlePickFile} />
+            <Button size="sm" onClick={focusNewEmployeeRow}>
+              <Plus className="w-4 h-4 mr-1" /> Add Employee
+            </Button>
             <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
               <Upload className="w-4 h-4 mr-1" /> Import from Excel
             </Button>
@@ -423,6 +426,7 @@ const StaffMaster = () => {
             </Button>
           </>
         )}
+
       </PageHeader>
 
       <PageSection card={false}>
