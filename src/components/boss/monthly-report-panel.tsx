@@ -43,6 +43,20 @@ const AmountCell = ({ value, bold, dim }: { value: number; bold?: boolean; dim?:
   );
 };
 
+/** Small "where does this number come from" hint (hover on desktop, long-press on touch). */
+const HintIcon = ({ text }: { text: string }) => (
+  <span
+    role="note"
+    tabIndex={0}
+    title={text}
+    aria-label={text}
+    className="inline-flex align-middle ml-1.5 text-muted-foreground/70 hover:text-primary cursor-help"
+  >
+    <Info className="w-3 h-3" />
+  </span>
+);
+
+
 const parseInput = (raw: string): number | null => {
   const v = Number(raw.replace(/\s/g, "").replace(/,/g, ""));
   return Number.isNaN(v) ? null : v;
