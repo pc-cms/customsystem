@@ -483,6 +483,18 @@ export default function DayClosingsTab() {
       type: "actions",
       style: { width: 96 },
       accessor: (r) => {
+        if (isOpenDay(r)) {
+          return (
+            <div className="flex items-center justify-end">
+              <span
+                className="text-[10px] uppercase tracking-widest text-muted-foreground"
+                title="Business day is still open — figures are shown as preview only and are not saved"
+              >
+                Open
+              </span>
+            </div>
+          );
+        }
         if (isLocked(r) && !unlocked[r.date]) {
           return (
             <div className="flex items-center justify-end gap-1">
