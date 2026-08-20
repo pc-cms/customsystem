@@ -9,6 +9,7 @@ import { RefreshCw, Download, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { hasDirtyWork, subscribeDirty } from "@/lib/dirty-guard";
+import { applyUpdate, hasPendingUpdate } from "@/lib/pwa-register";
 
 declare const __APP_VERSION__: string | undefined;
 
@@ -19,6 +20,7 @@ export const PWAUpdateNotification = () => {
   const [updateFn, setUpdateFn] = useState<UpdateFn | null>(null);
   const [currentVersion, setCurrentVersion] = useState("");
   const [dirty, setDirtyState] = useState(hasDirtyWork());
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => subscribeDirty(() => setDirtyState(hasDirtyWork())), []);
 
@@ -66,8 +68,8 @@ export const PWAUpdateNotification = () => {
           <p className="text-[11px] text-muted-foreground mb-2">
             Finish and save your current entry, then update.
           </p>
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleUpdate}>
-            <RefreshCw className="w-3 h-3 mr-1" /> Update now
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleUpdate} disabled={busy}>
+            <RefreshCw className={cn("w-3 h-3 mr-1", busy && "animate-spin")} /> {busy ? "Updating…" : "Update now"}
           </Button>
         </div>
       </div>
@@ -105,13 +107,14 @@ export const PWAUpdateNotification = () => {
         <div className="flex flex-col gap-2">
           <Button
             onClick={handleUpdate}
+            disabled={busy}
             className={cn(
               "w-full h-11 text-base font-semibold",
               "bg-primary text-primary-foreground hover:bg-primary/90"
             )}
           >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Update now
+            <RefreshCw className={cn("w-4 h-4 mr-2", busy && "animate-spin")} />
+            {busy ? "Updating…" : "Update now"}
           </Button>
 
           <p className="text-[10px] text-muted-foreground mt-1">
