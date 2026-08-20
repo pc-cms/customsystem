@@ -668,7 +668,7 @@ const NewEmployeeRow = ({ casinoId, onSave }: {
   const td = "h-9 align-middle border-b border-r border-border/40 whitespace-nowrap bg-primary/5";
 
   return (
-    <tr className="bg-primary/5">
+    <tr className="bg-primary/5" id="staff-master-new-row">
       <td className={`${td} sticky left-0 z-10`} style={{ minWidth: STICKY.photo.w, width: STICKY.photo.w, background: "hsl(var(--primary) / 0.05)" }}>
         <Plus className="w-3.5 h-3.5 text-muted-foreground mx-auto" />
       </td>
@@ -678,6 +678,7 @@ const NewEmployeeRow = ({ casinoId, onSave }: {
       <td className={`${td} sticky z-10 border-l border-border`} style={{ left: STICKY.first.left, minWidth: STICKY.first.w, width: STICKY.first.w, background: "hsl(var(--primary) / 0.05)" }}>
         <input
           autoFocus={false}
+          data-new-employee-first
           placeholder="First name"
           value={v.first}
           onChange={(e) => set("first", e.target.value)}
@@ -686,6 +687,7 @@ const NewEmployeeRow = ({ casinoId, onSave }: {
           className="w-full bg-transparent border-0 px-1 text-xs focus:outline-none focus:bg-background focus:border focus:border-primary/40"
         />
       </td>
+
       <td className={`${td} sticky z-10 border-r border-border`} style={{ left: STICKY.last.left, minWidth: STICKY.last.w, width: STICKY.last.w, background: "hsl(var(--primary) / 0.05)" }}>
         <input
           placeholder="Last name"
