@@ -2,8 +2,12 @@
  * MonthlyReportPanel — TV-friendly MTD report for Boss dashboard.
  * Left: cross-casino summary. Right: day-by-day rows with today highlighted.
  */
-import { useMemo, useState, useCallback, useRef } from "react";
-import { CalendarDays, Plus, Trash2, Info } from "lucide-react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { CalendarDays, Plus, Trash2, Info, Tv, Monitor as MonitorIcon, RefreshCw } from "lucide-react";
+
+type ReportView = "tv" | "desktop";
+const VIEW_KEY = "cms.boss-report-view";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useBossMonthlyReport, type CasinoRef } from "@/hooks/use-boss-monthly-report";
