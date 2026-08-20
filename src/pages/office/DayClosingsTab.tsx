@@ -239,8 +239,13 @@ export default function DayClosingsTab() {
     return { tables, slots, drop, cash, cards, jp, comment };
   };
 
+  /** The business day that is still running — no figures may be stored for it. */
+  const openBusinessDate = getBusinessDate();
+  const isOpenDay = (r: Row) => r.date >= openBusinessDate && r.closedByManager === null;
+
   const isLocked = (r: Row) => !!r.existing?.locked_at;
-  const isEditable = (r: Row) => !isLocked(r) || (!!isManager && !!unlocked[r.date]);
+  const isEditable = (r: Row) =>
+    !isOpenDay(r) && (!isLocked(r) || (!!isManager && !!unlocked[r.date]));
   const varianceOf = (r: Row) => {
     const v = val(r);
     return { dT: Math.abs(v.tables - r.agg.tables), dS: Math.abs(v.slots - r.agg.slots) };
