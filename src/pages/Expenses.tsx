@@ -104,7 +104,7 @@ interface ExpensesProps {
 }
 
 const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
-  const { isManager, roles } = useAuth();
+  const { isManager, roles, casinoId } = useAuth();
   const { activeCasino } = useCasino();
   const isCashierLive = roles.includes("cashier") && !roles.includes("cashier_slots");
   const isCashierSlots = roles.includes("cashier_slots") && !roles.includes("cashier");
@@ -199,7 +199,10 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   const [editingExpense, setEditingExpense] = useState<EditableExpense | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft(roleDefaultSource)]);
 
-  const isLoading = loadingExpenses;
+  // With no casino selected (super_admin / finance on the summary domain) the
+  // query stays disabled — TanStack v5 keeps `isLoading` true forever, which
+  // used to freeze this page on the skeleton. Treat that as "no casino".
+  const isLoading = !!casinoId && loadingExpenses;
 
   const filters = useMemo(
     () => ({
@@ -296,6 +299,19 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
       /* toast handled */
     }
   };
+
+  if (!casinoId) {
+    return (
+      <div className="space-y-6">
+        {!embedded && (
+          <PageHeader icon={Receipt} title="Expenses" subtitle="No casino selected" />
+        )}
+        <div className="cms-panel p-8 text-center text-sm text-muted-foreground">
+          Expenses are per-casino. Pick a casino in the switcher to view or create entries.
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
