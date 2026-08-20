@@ -61,8 +61,8 @@ Expected Profit      Прогноз результата на месяц − Est
 
 ## Технические детали
 
-- Новая SQL-функция `public.boss_monthly_report(uuid[], int, int)` — `SECURITY INVOKER`, `STABLE`, `SET search_path = public`; данные фильтруются существующими RLS-политиками (`fin_day_closing`, `shifts`, `cage_slots_shifts`, `expenses`, `fin_budget`, `fin_other_incomes`, `boss_report_extras`).
-- Логика 1:1 переносится из `src/hooks/use-boss-monthly-report.ts`, включая fallback по открытым сменам и дельту фишек на столах (`chip_snapshots_latest`).
+- Новая SQL-функция `public.boss_monthly_report(uuid[], int, int)` — `SECURITY INVOKER`, `STABLE`, `SET search_path = public`; данные фильтруются существующими RLS-политиками (`fin_day_closing`, `expenses`, `fin_budget`, `fin_other_incomes`, `boss_report_extras`).
+- Логика переносится из `src/hooks/use-boss-monthly-report.ts`; блоки live-fallback (`shifts`, `cage_slots_shifts`, `chip_snapshots_latest`) удаляются.
 - Хук сохраняет прежние типы `Summary` / `DailyRow` / `BossMonthlyReport`, поэтому `monthly-report-panel.tsx` не переписывается — меняется только источник данных и добавляются подсказки.
 - Инлайн-редактор Extra Expenses (`boss_report_extras`) не меняется.
 - Версия приложения повышается.
