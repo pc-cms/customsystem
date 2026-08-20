@@ -40,7 +40,7 @@ const AmountCell = ({ value, bold, dim }: { value: number; bold?: boolean; dim?:
                  (bold ? "text-foreground" : "text-foreground/90");
   return (
     <td
-      className={`px-3 py-1.5 text-right font-mono tabular-nums ${bold ? "font-bold" : ""} ${dim ? "opacity-70" : ""} ${cls}`}
+      className={`px-3 py-1.5 text-right font-mono tabular-nums whitespace-nowrap ${bold ? "font-bold" : ""} ${dim ? "opacity-70" : ""} ${cls}`}
     >
       {value === 0 ? "·" : fmt(value)}
     </td>
@@ -109,7 +109,7 @@ const EditableAmountCell = ({
     return (
       <td
         onClick={startEdit}
-        className={`px-3 py-1.5 text-right font-mono tabular-nums ${dim ? "opacity-70" : ""} ${disabled ? "" : "cursor-text hover:bg-white/5"} ${cls}`}
+        className={`px-3 py-1.5 text-right font-mono tabular-nums whitespace-nowrap ${dim ? "opacity-70" : ""} ${disabled ? "" : "cursor-text hover:bg-white/5"} ${cls}`}
         title={disabled ? undefined : "Click to edit"}
       >
         {value === 0 ? "·" : fmt(value)}
