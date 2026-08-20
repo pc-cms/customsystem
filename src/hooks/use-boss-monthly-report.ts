@@ -106,16 +106,27 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
     queryKey: ["boss-monthly-report", ids, year, month],
     enabled: casinos.length > 0,
     refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
     staleTime: 30_000,
-    queryFn: async (): Promise<BossMonthlyReport> => {
+    // Fail fast instead of hanging on "Loading…" for minutes.
+    retry: 1,
+    retryDelay: 2_000,
+    queryFn: async ({ signal }): Promise<BossMonthlyReport> => {
       const casinoIds = casinos.map(c => c.id);
       const zeroPer = (): Record<string, number> =>
         Object.fromEntries(casinoIds.map(id => [id, 0]));
 
-      const { data, error } = await (supabase as any).rpc("boss_monthly_report", {
-        _casino_ids: casinoIds, _year: year, _month: month,
-      });
+      // Hard 25s ceiling — a stuck request aborts and surfaces the Retry UI.
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 25_000);
+      signal?.addEventListener("abort", () => ctrl.abort());
+      const { data, error } = await (supabase as any)
+        .rpc("boss_monthly_report", { _casino_ids: casinoIds, _year: year, _month: month })
+        .abortSignal(ctrl.signal)
+        .then((r: any) => r, (e: any) => ({ data: null, error: e }))
+        .finally(() => clearTimeout(timer));
       if (error) throw error;
+
       const payload = (data || {}) as RpcPayload;
 
       const estimated = zeroPer();

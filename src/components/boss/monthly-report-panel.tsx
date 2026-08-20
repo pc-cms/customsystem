@@ -335,11 +335,20 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
 
   if (isLoading || !data) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center text-muted-foreground">
-        Loading monthly report…
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-2">
+        <div className="h-4 w-48 rounded bg-white/10 animate-pulse" />
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div key={i} className="flex gap-2">
+            <div className="h-5 flex-[2] rounded bg-white/[0.06] animate-pulse" />
+            {Array.from({ length: Math.min(casinos.length, 6) }).map((__, j) => (
+              <div key={j} className="h-5 flex-1 rounded bg-white/[0.06] animate-pulse" />
+            ))}
+          </div>
+        ))}
       </div>
     );
   }
+
 
 
   const { summary, daily } = data;
