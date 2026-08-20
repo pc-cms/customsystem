@@ -36,7 +36,11 @@ export const PWAUpdateNotification = () => {
       if (detail?.update) {
         setUpdateFn(() => detail.update as UpdateFn);
       }
-      setVisible(true);
+      // Only raise the dialog when a build is actually waiting to install —
+      // otherwise the button would have nothing to apply.
+      void hasPendingUpdate().then((pending) => {
+        if (pending || detail?.update) setVisible(true);
+      });
     };
 
     window.addEventListener("pwa:update-available", handler);
@@ -44,16 +48,10 @@ export const PWAUpdateNotification = () => {
   }, []);
 
   const handleUpdate = async () => {
-    if (!updateFn) {
-      window.location.reload();
-      return;
-    }
-    try {
-      await updateFn(true);
-    } catch {
-      window.location.reload();
-    }
+    setBusy(true);
+    await applyUpdate();
   };
+
 
   if (!visible) return null;
 
