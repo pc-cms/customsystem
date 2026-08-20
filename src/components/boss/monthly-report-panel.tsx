@@ -392,24 +392,26 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
 
         <div className="overflow-x-auto">
 
-          <table className="w-full text-[0.9em] border-collapse table-fixed">
-            <colgroup>
-              <col style={{ width: "26%" }} />
-              {casinos.map((c) => (
-                <col key={c.id} style={{ width: `${Math.max(10, 60 / Math.max(1, casinos.length))}%` }} />
-              ))}
-              <col style={{ width: "16%" }} />
-              {canEdit && <col style={{ width: "32px" }} />}
-            </colgroup>
+          <table className={`border-collapse ${desktop ? "min-w-max text-[13px]" : "w-full text-[0.9em] table-fixed"}`}>
+            {!desktop && (
+              <colgroup>
+                <col style={{ width: "26%" }} />
+                {casinos.map((c) => (
+                  <col key={c.id} style={{ width: `${Math.max(10, 60 / Math.max(1, casinos.length))}%` }} />
+                ))}
+                <col style={{ width: "16%" }} />
+                {canEdit && <col style={{ width: "32px" }} />}
+              </colgroup>
+            )}
             <thead>
               <tr className="text-[0.6em] uppercase tracking-widest text-muted-foreground">
-                <th className="text-left px-4 py-2 font-semibold">Metric</th>
+                <th className={`text-left px-4 py-2 font-semibold ${stickyHead}`}>Metric</th>
                 {casinos.map((c) => (
-                  <th key={c.id} className="text-right px-3 py-2 font-semibold truncate" style={{ color: accentMap[c.id] }}>
+                  <th key={c.id} className={`text-right px-3 py-2 font-semibold whitespace-nowrap ${desktop ? "min-w-[112px]" : "truncate"}`} style={{ color: accentMap[c.id] }}>
                     {c.name}
                   </th>
                 ))}
-                <th className="text-right px-4 py-2 font-bold text-primary">Total</th>
+                <th className={`text-right px-4 py-2 font-bold text-primary whitespace-nowrap ${desktop ? "min-w-[128px]" : ""}`}>Total</th>
                 {canEdit && <th className="px-1 py-2" />}
               </tr>
             </thead>
@@ -417,8 +419,9 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
               {rows.map((r) => (
                 <tr key={r.label} className="border-t border-white/5 odd:bg-white/[0.015]">
                   <td
-                    className={`px-4 py-1.5 truncate ${r.strong ? "font-bold" : ""} ${r.muted ? "pl-8 text-muted-foreground text-[0.9em]" : ""}`}
+                    className={`px-4 py-1.5 whitespace-nowrap ${stickyCell} ${r.strong ? "font-bold" : ""} ${r.muted ? "pl-8 text-muted-foreground text-[0.9em]" : ""}`}
                   >
+
                     {r.label}
                     {r.hint && <HintIcon text={r.hint} />}
                   </td>
