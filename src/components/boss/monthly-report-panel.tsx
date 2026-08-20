@@ -396,10 +396,10 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
               {rows.map((r) => (
                 <tr key={r.label} className="border-t border-white/5 odd:bg-white/[0.015]">
                   <td
-                    className={`px-4 py-1.5 truncate ${r.strong ? "font-bold" : ""} ${r.muted ? "pl-8 text-muted-foreground text-[0.9em]" : ""} ${r.hint ? "cursor-help underline decoration-dotted underline-offset-4" : ""}`}
-                    title={r.hint || r.label}
+                    className={`px-4 py-1.5 truncate ${r.strong ? "font-bold" : ""} ${r.muted ? "pl-8 text-muted-foreground text-[0.9em]" : ""}`}
                   >
                     {r.label}
+                    {r.hint && <HintIcon text={r.hint} />}
                   </td>
                   {casinos.map((c) => (
                     <AmountCell key={c.id} value={r.per[c.id] || 0} bold={r.strong} dim={r.muted} />
