@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useFinCategories, useFinMainCategories, useCreateFinCategory } from "@/hooks/use-fin";
+import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -42,6 +43,10 @@ export const CategoryCombobox = ({
   const { data: cats = [] } = useFinCategories();
   const { data: mains = [] } = useFinMainCategories();
   const create = useCreateFinCategory();
+  // RLS on fin_categories allows writes only for super_admin / finance_manager.
+  // Everyone else must not see a button that always fails.
+  const { hasRole } = useAuth();
+  const canCreateCategory = hasRole("super_admin") || hasRole("finance_manager");
   const [open, setOpen] = useState(false);
   const [newFor, setNewFor] = useState<{ code: string; label: string } | null>(null);
   const [newName, setNewName] = useState("");
@@ -114,6 +119,7 @@ export const CategoryCombobox = ({
                       {c.name}
                     </CommandItem>
                   ))}
+                  {canCreateCategory && (
                   <CommandItem
                     value={`${g.label} new subcategory`}
                     className="text-muted-foreground"
@@ -125,6 +131,7 @@ export const CategoryCombobox = ({
                     <Plus className="mr-2 h-3.5 w-3.5" />
                     New subcategory
                   </CommandItem>
+                  )}
                 </CommandGroup>
               ))}
             </CommandList>

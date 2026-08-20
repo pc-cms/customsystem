@@ -134,9 +134,6 @@ const FmTopupsPage = lazy(() => import("@/pages/admin/FmTopupsPage"));
 const MergePlayersPage = lazy(() => import("@/pages/admin/MergePlayersPage"));
 const PromoCodesReport = lazy(() => import("@/pages/reports/PromoCodesReport"));
 const LotterySalesReport = lazy(() => import("@/pages/reports/LotterySalesReport"));
-const DailyBalanceReport = lazy(() => import("@/pages/reports/DailyBalanceReport"));
-const ExpensesMatrixPage = lazy(() => import("@/pages/reports/ExpensesMatrix"));
-const OfficeBalanceReport = lazy(() => import("@/pages/reports/OfficeBalanceReport"));
 
 const BlanksPage = lazy(() => import("@/pages/reports/BlanksPage"));
 const GraphicsPage = lazy(() => import("@/pages/reports/GraphicsPage"));
@@ -503,11 +500,6 @@ const ProtectedRoutes = () => {
           <Route path="/admin/fm-topups" element={<RoleGuard path="/admin"><ErrorBoundary><FmTopupsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports/promo-codes" element={<ErrorBoundary><PromoCodesReport /></ErrorBoundary>} />
           <Route path="/reports/lottery-sales" element={<ErrorBoundary><LotterySalesReport /></ErrorBoundary>} />
-          <Route path="/reports/daily-balance" element={<RoleGuard path="/reports/daily-balance"><ErrorBoundary><DailyBalanceReport /></ErrorBoundary></RoleGuard>} />
-          <Route path="/reports/expenses-matrix" element={<RoleGuard path="/reports/expenses-matrix"><ErrorBoundary><ExpensesMatrixPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/reports/expenses-casino" element={<RoleGuard path="/reports/expenses-matrix"><ErrorBoundary><ExpensesMatrixPage scope="casino" /></ErrorBoundary></RoleGuard>} />
-          <Route path="/reports/expenses-office" element={<RoleGuard path="/reports/expenses-matrix"><ErrorBoundary><ExpensesMatrixPage scope="office" /></ErrorBoundary></RoleGuard>} />
-          <Route path="/reports/office-balance" element={<RoleGuard path="/reports/daily-balance"><ErrorBoundary><OfficeBalanceReport /></ErrorBoundary></RoleGuard>} />
 
           <Route path="/reports/blanks" element={<RoleGuard path="/reports/blanks"><ErrorBoundary><BlanksPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports/graphics" element={<RoleGuard path="/reports/graphics"><ErrorBoundary><GraphicsPage /></ErrorBoundary></RoleGuard>} />
