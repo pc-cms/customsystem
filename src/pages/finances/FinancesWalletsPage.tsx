@@ -122,7 +122,7 @@ export default function FinancesWalletsPage() {
     };
   }, [ym]);
   const monthRange = range;
-  const monthLabel = `${MONTHS[ym.month - 1]} ${ym.year}`;
+  
 
   // Unified snapshot — same source of truth as former Balance tab.
   const { data: snap, isFetching } = useFinBalanceSnapshot(range.from, range.to);
