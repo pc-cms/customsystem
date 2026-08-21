@@ -163,10 +163,10 @@ export const UsersTab = () => {
         <div>
           <h3 className="text-sm font-semibold text-card-foreground">Users &amp; Roles</h3>
           <p className="text-xs text-muted-foreground">
-            Click any cell to edit. Roles, login and name update instantly. Password is set per row via the Reset field.
+            Click any cell to edit. Roles, login, name and casino access update instantly. Password is set per row via the Reset field.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -188,6 +188,14 @@ export const UsersTab = () => {
               ))}
             </SelectContent>
           </Select>
+          <div className="flex items-center gap-2 border rounded-md px-3 py-1.5 h-9">
+            <Switch
+              id="show-inactive"
+              checked={showInactive}
+              onCheckedChange={setShowInactive}
+            />
+            <Label htmlFor="show-inactive" className="text-xs cursor-pointer">Show inactive</Label>
+          </div>
           <Button onClick={() => navigate("/admin/users/new")} className="gap-1.5">
             <Plus className="w-4 h-4" /> New User
           </Button>
