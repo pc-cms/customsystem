@@ -436,14 +436,14 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
           </div>
         </header>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full">
 
           <table className={`border-collapse ${desktop ? "min-w-max text-[13px]" : "w-full text-[0.9em] table-fixed"}`}>
             {!desktop && (
               <colgroup>
-                <col style={{ width: "26%" }} />
+                <col style={{ width: "22%" }} />
                 {casinos.map((c) => (
-                  <col key={c.id} style={{ width: `${Math.max(10, 60 / Math.max(1, casinos.length))}%` }} />
+                  <col key={c.id} />
                 ))}
                 <col style={{ width: "16%" }} />
                 {canEdit && <col style={{ width: "32px" }} />}
