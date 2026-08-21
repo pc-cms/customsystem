@@ -66,11 +66,22 @@ export function TableAnalyticsChart({ date }: { date: string }) {
   const slots = useMemo(buildSlots, []);
 
   const dataBySlot = useMemo(() => {
-    const map: Record<string, Record<number, { value: number; ts: string }>> = {};
-    const put = (tableId: string, slotKey: number, value: number, ts: string) => {
+    // Source priority: chip counts (Chips Check) always win over manual Numbers
+    // entries in the same 20-min slot; within one source the later ts wins.
+    const rank = { tracker: 0, chips: 1 } as const;
+    const map: Record<string, Record<number, { value: number; ts: string; src: keyof typeof rank }>> = {};
+    const put = (
+      tableId: string,
+      slotKey: number,
+      value: number,
+      ts: string,
+      src: keyof typeof rank,
+    ) => {
       if (!map[tableId]) map[tableId] = {};
       const cur = map[tableId][slotKey];
-      if (!cur || ts > cur.ts) map[tableId][slotKey] = { value, ts };
+      if (!cur || rank[src] > rank[cur.src] || (rank[src] === rank[cur.src] && ts > cur.ts)) {
+        map[tableId][slotKey] = { value, ts, src };
+      }
     };
     const groups: Record<string, Record<string, { actual: Record<number, number>; expected: Record<number, number> }>> = {};
     snapshots.forEach((s: any) => {
@@ -86,20 +97,23 @@ export function TableAnalyticsChart({ date }: { date: string }) {
       if (slotKey == null) return;
       Object.entries(perTableDenoms).forEach(([tableId, denoms]) => {
         const value = chipSnapshotResult(denoms.actual, denoms.expected);
-        put(tableId, slotKey, value, ts);
+        put(tableId, slotKey, value, ts, "chips");
       });
     });
     tracker.forEach((t: any) => {
       const [h, m] = String(t.time_slot).split(":").map(Number);
       let normH = h;
       if (normH < 6) normH += 24;
-      const slotKey = normH * 60 + (m || 0);
+      const mins = normH * 60 + (m || 0);
+      // snap onto the 20-min grid so manual entries land on chart slots
+      const slotKey = Math.floor(mins / 20) * 20;
       if (slotKey < 18 * 60 || slotKey > 29 * 60) return;
       const ts = `tracker-${t.time_slot}-${t.id || ""}`;
-      put(t.table_id, slotKey, Number(t.value), ts);
+      put(t.table_id, slotKey, Number(t.value), ts, "tracker");
     });
     return map;
   }, [snapshots, tracker]);
+
 
   const chartData = useMemo(() => {
     return slots.map(slot => {
