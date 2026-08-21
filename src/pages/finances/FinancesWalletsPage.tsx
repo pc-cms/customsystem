@@ -53,6 +53,7 @@ import { cn } from "@/lib/utils";
 import {
   WALLET_GROUPS,
   WALLET_GROUP_ORDER,
+  WALLET_GROUP_KINDS,
   groupOfWallet,
   walletGroupLabel,
   type WalletGroup,
@@ -367,7 +368,14 @@ export default function FinancesWalletsPage() {
     is_active: true,
   });
   const openNewWallet = () => {
-    setWalletForm({ name: "", kind: "cash", currency: "TZS", sort_order: 0, is_active: true });
+    setWalletForm({
+      name: "",
+      kind: "cash",
+      wallet_group: "cash",
+      currency: "TZS",
+      sort_order: 0,
+      is_active: true,
+    });
     setWalletOpen(true);
   };
 
