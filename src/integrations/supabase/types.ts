@@ -11491,6 +11491,20 @@ export type Database = {
       }
       auto_close_business_day: { Args: never; Returns: Json }
       auto_close_forgotten_business_days: { Args: never; Returns: undefined }
+      blacklist_network_players: {
+        Args: never
+        Returns: {
+          casino_id: string
+          first_name: string
+          full_name: string
+          id: string
+          last_name: string
+          nickname: string
+          photo_url: string
+          status: string
+          updated_at: string
+        }[]
+      }
       boss_fx_rate: {
         Args: { _casino_id: string; _currency: string; _date: string }
         Returns: number
