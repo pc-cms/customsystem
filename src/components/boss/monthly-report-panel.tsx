@@ -398,7 +398,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
     <div className={desktop ? "grid gap-4 grid-cols-1" : "grid gap-4 grid-cols-1 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]"}>
       {/* ============ LEFT: Summary ============ */}
       <section
-        className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden"
+        className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden min-w-0"
         style={{ boxShadow: "0 0 40px hsl(var(--primary) / 0.08) inset" }}
       >
         <header className="px-5 py-3 border-b border-white/10 flex items-center justify-between gap-3">
@@ -436,14 +436,14 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
           </div>
         </header>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full">
 
           <table className={`border-collapse ${desktop ? "min-w-max text-[13px]" : "w-full text-[0.9em] table-fixed"}`}>
             {!desktop && (
               <colgroup>
-                <col style={{ width: "26%" }} />
+                <col style={{ width: "22%" }} />
                 {casinos.map((c) => (
-                  <col key={c.id} style={{ width: `${Math.max(10, 60 / Math.max(1, casinos.length))}%` }} />
+                  <col key={c.id} />
                 ))}
                 <col style={{ width: "16%" }} />
                 {canEdit && <col style={{ width: "32px" }} />}
@@ -572,7 +572,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
 
       {/* ============ RIGHT: Daily rows ============ */}
       <section
-        className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden flex flex-col"
+        className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden flex flex-col min-w-0"
         style={{ boxShadow: "0 0 40px hsl(var(--primary) / 0.08) inset" }}
       >
         <header className="px-5 py-3 border-b border-white/10 flex items-center gap-2">
@@ -583,9 +583,19 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
           </div>
         </header>
 
-        <div className={desktop ? "overflow-auto max-h-[65vh]" : "overflow-auto max-h-[70vh]"}>
-          <table className={`border-collapse ${desktop ? "min-w-max text-[13px]" : "w-full text-[0.85em]"}`}>
-
+        <div className={`w-full ${desktop ? "overflow-auto max-h-[65vh]" : "overflow-auto max-h-[70vh]"}`}>
+          <table className={`border-collapse ${desktop ? "min-w-max text-[13px]" : "w-full text-[0.85em] table-fixed"}`}>
+            {!desktop && (
+              <colgroup>
+                <col style={{ width: "18%" }} />
+                <col style={{ width: "16%" }} />
+                {casinos.map((c) => (
+                  <col key={c.id} style={{ width: `${Math.max(10, 40 / Math.max(1, casinos.length))}%` }} />
+                ))}
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "14%" }} />
+              </colgroup>
+            )}
             <thead className="sticky top-0 z-20 bg-[hsl(240_20%_7%)]">
               <tr className="text-[0.62em] uppercase tracking-widest text-muted-foreground">
                 <th className={`text-left px-3 py-2 font-semibold whitespace-nowrap ${desktop ? "sticky left-0 z-20 bg-[hsl(240_20%_7%)]" : ""}`}>Date</th>
