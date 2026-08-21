@@ -825,7 +825,7 @@ export default function FinancesWalletsPage() {
                       <td className="text-right font-mono tabular-nums text-xs">
                         {w.starting_float_amount
                           ? `${formatNumberSpaces(Number(w.starting_float_amount))} ${w.currency}`
-                          : "·"}
+                          : `0 ${w.currency}`}
                         {w.starting_float_date && (
                           <div className="text-[10px] text-muted-foreground">
                             from {fmtDateOnly(w.starting_float_date)}
