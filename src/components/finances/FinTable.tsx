@@ -125,7 +125,7 @@ export function FinAmount({
   const tone = signed ? (v < 0 ? "cms-amount-negative" : v > 0 ? "cms-amount-positive" : "text-muted-foreground") : "text-foreground";
   return (
     <span className={cn("font-mono tabular-nums text-[12px]", tone, className)}>
-      {v === 0 ? "·" : formatNumberSpaces(v)}
+      {formatNumberSpaces(v)}
       {ccy && ccy !== "TZS" && (
         <span className="ml-1 text-[10px] text-muted-foreground">{ccy}</span>
       )}
