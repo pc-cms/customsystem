@@ -598,15 +598,15 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
             )}
             <thead className="sticky top-0 z-20 bg-[hsl(240_20%_7%)]">
               <tr className="text-[0.62em] uppercase tracking-widest text-muted-foreground">
-                <th className={`text-left px-3 py-2 font-semibold whitespace-nowrap ${desktop ? "sticky left-0 z-20 bg-[hsl(240_20%_7%)]" : ""}`}>Date</th>
-                <th className={`text-right px-3 py-2 font-semibold text-primary whitespace-nowrap ${desktop ? "min-w-[120px]" : ""}`}>JC Result</th>
+                <th className={`text-left ${desktop ? "px-3 py-2" : "px-1 py-1"} font-semibold whitespace-nowrap ${desktop ? "sticky left-0 z-20 bg-[hsl(240_20%_7%)]" : ""}`}>Date</th>
+                <th className={`text-right ${desktop ? "px-3 py-2" : "px-1 py-1"} font-semibold text-primary whitespace-nowrap ${desktop ? "min-w-[120px]" : ""}`}>JC Result</th>
                 {casinos.map((c) => (
-                  <th key={c.id} title={c.name} className={`text-right px-3 py-2 font-semibold whitespace-nowrap ${desktop ? "min-w-[112px]" : ""}`} style={{ color: accentMap[c.id] }}>
+                  <th key={c.id} title={c.name} className={`text-right ${desktop ? "px-3 py-2" : "px-1 py-1"} font-semibold whitespace-nowrap ${desktop ? "min-w-[112px]" : ""}`} style={{ color: accentMap[c.id] }}>
                     {c.name.slice(0, 3).toUpperCase()}
                   </th>
                 ))}
-                <th className={`text-right px-3 py-2 font-semibold whitespace-nowrap ${desktop ? "min-w-[112px]" : ""}`}>Collect.</th>
-                <th className={`text-right px-3 py-2 font-semibold whitespace-nowrap ${desktop ? "min-w-[128px]" : ""}`}>Balance</th>
+                <th className={`text-right ${desktop ? "px-3 py-2" : "px-1 py-1"} font-semibold whitespace-nowrap ${desktop ? "min-w-[112px]" : ""}`}>Collect.</th>
+                <th className={`text-right ${desktop ? "px-3 py-2" : "px-1 py-1"} font-semibold whitespace-nowrap ${desktop ? "min-w-[128px]" : ""}`}>Balance</th>
               </tr>
 
             </thead>
