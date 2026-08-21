@@ -61,7 +61,7 @@ export default function RatesTab() {
                 {c} → TZS
               </div>
               <div className="font-mono text-xl tabular-nums">
-                {cur == null ? <span className="text-muted-foreground">·</span> : formatNumberSpaces(cur)}
+                {cur == null ? <span className="text-muted-foreground">0</span> : formatNumberSpaces(cur)}
               </div>
               <div
                 className={cn(
