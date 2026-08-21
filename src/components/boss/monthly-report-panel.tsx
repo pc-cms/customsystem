@@ -398,7 +398,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
     <div className={desktop ? "grid gap-4 grid-cols-1" : "grid gap-4 grid-cols-1 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]"}>
       {/* ============ LEFT: Summary ============ */}
       <section
-        className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden"
+        className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden min-w-0"
         style={{ boxShadow: "0 0 40px hsl(var(--primary) / 0.08) inset" }}
       >
         <header className="px-5 py-3 border-b border-white/10 flex items-center justify-between gap-3">
@@ -572,7 +572,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
 
       {/* ============ RIGHT: Daily rows ============ */}
       <section
-        className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden flex flex-col"
+        className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden flex flex-col min-w-0"
         style={{ boxShadow: "0 0 40px hsl(var(--primary) / 0.08) inset" }}
       >
         <header className="px-5 py-3 border-b border-white/10 flex items-center gap-2">
