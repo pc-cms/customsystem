@@ -33,14 +33,14 @@ const dateShort = (iso: string) => {
 const weekday = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", { weekday: "short" });
 
-const AmountCell = ({ value, bold, dim }: { value: number; bold?: boolean; dim?: boolean }) => {
+const AmountCell = ({ value, bold, dim, compact, tabular }: { value: number; bold?: boolean; dim?: boolean; compact?: boolean; tabular?: boolean }) => {
   const cls =
     value === 0 ? "text-muted-foreground/60" :
     value < 0  ? "cms-amount-negative" :
                  (bold ? "text-foreground" : "text-foreground/90");
   return (
     <td
-      className={`px-3 py-1.5 text-right font-mono tabular-nums whitespace-nowrap ${bold ? "font-bold" : ""} ${dim ? "opacity-70" : ""} ${cls}`}
+      className={`${compact ? "px-1 py-1" : "px-3 py-1.5"} text-right font-mono ${tabular === false ? "" : "tabular-nums"} whitespace-nowrap ${bold ? "font-bold" : ""} ${dim ? "opacity-70" : ""} ${cls}`}
     >
       {value === 0 ? "·" : fmt(value)}
     </td>
@@ -584,29 +584,29 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
         </header>
 
         <div className={`w-full ${desktop ? "overflow-auto max-h-[65vh]" : "overflow-auto max-h-[70vh]"}`}>
-          <table className={`border-collapse ${desktop ? "min-w-max text-[13px]" : "w-full text-[0.85em] table-fixed"}`}>
+          <table className={`border-collapse ${desktop ? "min-w-max text-[13px]" : "w-full text-[0.75em] table-fixed"}`}>
             {!desktop && (
               <colgroup>
-                <col style={{ width: "18%" }} />
-                <col style={{ width: "16%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "13%" }} />
                 {casinos.map((c) => (
-                  <col key={c.id} style={{ width: `${Math.max(10, 40 / Math.max(1, casinos.length))}%` }} />
+                  <col key={c.id} style={{ width: `${Math.max(10, 46 / Math.max(1, casinos.length))}%` }} />
                 ))}
                 <col style={{ width: "12%" }} />
-                <col style={{ width: "14%" }} />
+                <col style={{ width: "15%" }} />
               </colgroup>
             )}
             <thead className="sticky top-0 z-20 bg-[hsl(240_20%_7%)]">
               <tr className="text-[0.62em] uppercase tracking-widest text-muted-foreground">
-                <th className={`text-left px-3 py-2 font-semibold whitespace-nowrap ${desktop ? "sticky left-0 z-20 bg-[hsl(240_20%_7%)]" : ""}`}>Date</th>
-                <th className={`text-right px-3 py-2 font-semibold text-primary whitespace-nowrap ${desktop ? "min-w-[120px]" : ""}`}>JC Result</th>
+                <th className={`text-left ${desktop ? "px-3 py-2" : "px-1 py-1"} font-semibold whitespace-nowrap ${desktop ? "sticky left-0 z-20 bg-[hsl(240_20%_7%)]" : ""}`}>Date</th>
+                <th className={`text-right ${desktop ? "px-3 py-2" : "px-1 py-1"} font-semibold text-primary whitespace-nowrap ${desktop ? "min-w-[120px]" : ""}`}>JC Result</th>
                 {casinos.map((c) => (
-                  <th key={c.id} title={c.name} className={`text-right px-3 py-2 font-semibold whitespace-nowrap ${desktop ? "min-w-[112px]" : ""}`} style={{ color: accentMap[c.id] }}>
+                  <th key={c.id} title={c.name} className={`text-right ${desktop ? "px-3 py-2" : "px-1 py-1"} font-semibold whitespace-nowrap ${desktop ? "min-w-[112px]" : ""}`} style={{ color: accentMap[c.id] }}>
                     {c.name.slice(0, 3).toUpperCase()}
                   </th>
                 ))}
-                <th className={`text-right px-3 py-2 font-semibold whitespace-nowrap ${desktop ? "min-w-[112px]" : ""}`}>Collect.</th>
-                <th className={`text-right px-3 py-2 font-semibold whitespace-nowrap ${desktop ? "min-w-[128px]" : ""}`}>Balance</th>
+                <th className={`text-right ${desktop ? "px-3 py-2" : "px-1 py-1"} font-semibold whitespace-nowrap ${desktop ? "min-w-[112px]" : ""}`}>Collect.</th>
+                <th className={`text-right ${desktop ? "px-3 py-2" : "px-1 py-1"} font-semibold whitespace-nowrap ${desktop ? "min-w-[128px]" : ""}`}>Balance</th>
               </tr>
 
             </thead>
@@ -647,12 +647,12 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
                         </span>
                       )}
                     </td>
-                    <AmountCell value={d.jcResult} bold={isToday} />
+                    <AmountCell value={d.jcResult} bold={isToday} compact={!desktop} tabular={false} />
                     {casinos.map((c) => (
-                      <AmountCell key={c.id} value={d.perCasino[c.id] || 0} bold={isToday} />
+                      <AmountCell key={c.id} value={d.perCasino[c.id] || 0} bold={isToday} compact={!desktop} tabular={false} />
                     ))}
-                    <AmountCell value={d.collection} bold={isToday} />
-                    <AmountCell value={d.balance} bold />
+                    <AmountCell value={d.collection} bold={isToday} compact={!desktop} tabular={false} />
+                    <AmountCell value={d.balance} bold compact={!desktop} tabular={false} />
                   </tr>
                 );
               })}
@@ -660,12 +660,12 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
             <tfoot className="sticky bottom-0 bg-[hsl(240_20%_7%)] border-t-2 border-primary/40">
               <tr className="font-extrabold text-[0.95em]">
                 <td className="px-3 py-2 uppercase tracking-widest text-primary">Total</td>
-                <AmountCell value={t.result} bold />
+                <AmountCell value={t.result} bold compact={!desktop} tabular={false} />
                 {casinos.map((c) => (
-                  <AmountCell key={c.id} value={summary.result[c.id] || 0} bold />
+                  <AmountCell key={c.id} value={summary.result[c.id] || 0} bold compact={!desktop} tabular={false} />
                 ))}
-                <AmountCell value={t.collection} bold />
-                <AmountCell value={t.dailyBalance} bold />
+                <AmountCell value={t.collection} bold compact={!desktop} tabular={false} />
+                <AmountCell value={t.dailyBalance} bold compact={!desktop} tabular={false} />
               </tr>
             </tfoot>
           </table>
