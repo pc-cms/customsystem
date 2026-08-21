@@ -647,12 +647,12 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
                         </span>
                       )}
                     </td>
-                    <AmountCell value={d.jcResult} bold={isToday} compact={!desktop} />
+                    <AmountCell value={d.jcResult} bold={isToday} compact={!desktop} tabular={false} />
                     {casinos.map((c) => (
-                      <AmountCell key={c.id} value={d.perCasino[c.id] || 0} bold={isToday} compact={!desktop} />
+                      <AmountCell key={c.id} value={d.perCasino[c.id] || 0} bold={isToday} compact={!desktop} tabular={false} />
                     ))}
-                    <AmountCell value={d.collection} bold={isToday} compact={!desktop} />
-                    <AmountCell value={d.balance} bold compact={!desktop} />
+                    <AmountCell value={d.collection} bold={isToday} compact={!desktop} tabular={false} />
+                    <AmountCell value={d.balance} bold compact={!desktop} tabular={false} />
                   </tr>
                 );
               })}
