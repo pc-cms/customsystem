@@ -952,17 +952,11 @@ const PlayerStatistics = () => {
         centerSlot={dateControl}
         date={!canBrowseHistory}
       >
-        {/* Blacklist / Merge Duplicates live here for management roles (they were
-            removed from the sidebar; Reception still has them in the sidebar). */}
+        {/* Merge Duplicates for management roles (Blacklist lives in the sidebar). */}
         {roles.some(r => ["super_admin", "manager", "shift_manager", "finance_manager"].includes(r)) && (
-          <>
-            <Button variant="outline" size="sm" onClick={() => navigate("/blacklist")}>
-              <ShieldAlert className="w-4 h-4 mr-1" /> Blacklist
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate("/admin/merge-players")}>
-              <Users className="w-4 h-4 mr-1" /> Merge Duplicates
-            </Button>
-          </>
+          <Button variant="outline" size="sm" onClick={() => navigate("/admin/merge-players")}>
+            <Users className="w-4 h-4 mr-1" /> Merge Duplicates
+          </Button>
         )}
       </PageHeader>
 

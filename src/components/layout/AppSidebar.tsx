@@ -64,7 +64,7 @@ const NAV_ITEMS: NavItem[] = [
   // ANALYTICS
   { to: "/reports", icon: FileBarChart, label: "Statistics", roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/reports/graphics", icon: TrendingUp, label: "Graphics", roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
-  { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "finance_manager"], section: "ANALYTICS" },
+  { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "boss", "general_manager", "manager", "finance_manager"], section: "ANALYTICS" },
 
   // STAFF — Rota + Attendance (each expands to Live/Floor/Security/Office).
   { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "STAFF" },
@@ -78,7 +78,7 @@ const NAV_ITEMS: NavItem[] = [
 
   // FINANCE — Office + group-level reports (casino + head office).
   { to: "/office", icon: Briefcase, label: "Office", roles: ["super_admin", "manager", "finance_manager", "shift_manager"], section: "FINANCE" },
-  { to: "/budget", icon: Target, label: "Budget", roles: ["super_admin", "manager", "finance_manager", "shift_manager"], section: "FINANCE" },
+  { to: "/budget", icon: Target, label: "Budget", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
 
   // CASHIER — transactional Cage operations.
   { to: "/cage", icon: Landmark, label: "Cage Live Game", roles: ["super_admin", "cashier"], section: "CASHIER" },
@@ -499,15 +499,12 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
     if (item.to === "/cage" && !isSuper && !roles.includes("cashier" as AppRole)) return false;
     if (item.to === "/cage/view" && !isSuper && roles.includes("cashier" as AppRole)) return false;
     if (item.to === "/crm/players" && !item.roles.some(r => roles.includes(r))) return false;
-    // Blacklist stays in the sidebar only for Reception; management roles reach
-    // it (and Merge Duplicates) from the Player Tracking page header.
-    // Blacklist lives under Reception, but Surveillance and Account Managers
-    // still need it in the sidebar (they have no Player Tracking header button).
+    // Blacklist lives in the sidebar for every role allowed by the module matrix.
+    // Shift Manager must not see Groups / Budget / HR Warnings.
     if (
-      item.to === "/blacklist" &&
-      !roles.some((r) =>
-        (["reception", "surveillance", "account_manager"] as AppRole[]).includes(r as AppRole),
-      )
+      ["/groups", "/budget", "/hr/warnings"].includes(item.to) &&
+      !isSuper &&
+      roles.includes("shift_manager" as AppRole)
     )
       return false;
 
