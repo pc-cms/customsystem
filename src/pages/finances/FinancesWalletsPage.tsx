@@ -146,16 +146,17 @@ export default function FinancesWalletsPage() {
 
   // per-wallet map for physical-count inline UI.
   // Balance = Actual = last recorded wallet state (manual count, or the state
-  // written automatically after a movement). Never a cumulative ledger replay.
+  // written automatically after a movement). The book/ledger replay is never used.
   const ledgerByWallet = useMemo(() => {
     const m = new Map<
       string,
-      { native: number; tzs: number; asof?: string | null; source?: string | null }
+      { native: number; tzs: number; counted: boolean; asof?: string | null; source?: string | null }
     >();
     (snap?.wallets || []).forEach((w) =>
       m.set(w.wallet_id, {
-        native: Number(w.actual_native ?? w.ledger_native ?? w.ledger ?? 0),
-        tzs: Number(w.actual_tzs ?? w.ledger_tzs ?? w.ledger ?? 0),
+        native: Number(w.actual_native ?? 0),
+        tzs: Number(w.actual_tzs ?? 0),
+        counted: w.actual_tzs != null,
         asof: (w as any).physical_asof ?? null,
         source: (w as any).physical_source ?? null,
       }),
@@ -183,8 +184,8 @@ export default function FinancesWalletsPage() {
         wallet_id: w.wallet_id,
         name: w.name,
         currency: w.currency,
-        actual_native: Number(w.actual_native ?? w.ledger_native ?? w.ledger ?? 0),
-        actual_tzs: Number(w.actual_tzs ?? w.ledger_tzs ?? w.ledger ?? 0),
+        actual_native: Number(w.actual_native ?? 0),
+        actual_tzs: Number(w.actual_tzs ?? 0),
         counted_date: cd,
         counted_time: asof ? eatTime(asof) : null,
         source: ((w as any).physical_source as string) ?? null,
@@ -230,83 +231,30 @@ export default function FinancesWalletsPage() {
     },
   });
 
-  /* Movements booked AFTER the last physical count — used to build the
-     EXPECTED per-denomination hint (last count ± denominations of movements).
-     Movements saved without a breakdown are reported as "unallocated". */
-  const { data: sinceCount } = useQuery({
-    queryKey: ["wallet-tx-since-count", activeCasinoId, lastCounts ? [...lastCounts.keys()].length : 0],
-    enabled: !!activeCasinoId,
-    staleTime: 15_000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("fin_wallet_tx")
-        .select("wallet_id, kind, amount, denominations, created_at")
-        .eq("casino_id", activeCasinoId!)
-        // Pending movements (business day not closed yet) are not part of the balance.
-        .not("posted_at", "is", null)
-        .order("created_at", { ascending: false })
-        .limit(1500);
-      if (error) throw error;
-      const m = new Map<string, { denoms: Record<number, number>; unallocated: number }>();
-      (data || []).forEach((r: any) => {
-        if (!r.wallet_id) return;
-        if (r.kind === "adjustment") return; // count-reconciliation, not real cash movement
-        const cut = lastCounts?.get(r.wallet_id)?.at;
-        if (cut && new Date(r.created_at) <= new Date(cut)) return;
-        const sign = Number(r.amount) < 0 || r.kind === "expense" || r.kind === "transfer_out" || r.kind === "change_out" ? -1 : 1;
-        const entry = m.get(r.wallet_id) || { denoms: {}, unallocated: 0 };
-        const d = r.denominations as Record<string, number> | null;
-        if (d && Object.keys(d).length) {
-          Object.entries(d).forEach(([k, v]) => {
-            if (k === "cents") return;
-            const den = Number(k);
-            if (!den) return;
-            entry.denoms[den] = (entry.denoms[den] || 0) + sign * Number(v || 0);
-          });
-        } else {
-          entry.unallocated += sign * Math.abs(Number(r.amount || 0));
-        }
-        m.set(r.wallet_id, entry);
-      });
-      return m;
-    },
-  });
-
-  /* Expected denominations per wallet = last count + signed movements. */
+  /* Denomination hints come from the LAST PHYSICAL COUNT only.
+     No ledger / movement replay is used anywhere on this page. */
   const expectedDenoms = useMemo(() => {
     const m = new Map<string, { denoms: Record<number, number>; unallocated: number }>();
-    const ids = new Set<string>([
-      ...(lastCounts ? [...lastCounts.keys()] : []),
-      ...(sinceCount ? [...sinceCount.keys()] : []),
-    ]);
-    ids.forEach((id) => {
+    (lastCounts ? [...lastCounts.keys()] : []).forEach((id) => {
       const base = lastCounts?.get(id)?.denoms || {};
-      const delta = sinceCount?.get(id);
       const denoms: Record<number, number> = {};
       Object.entries(base).forEach(([k, v]) => {
         if (String(k) === "cents") return;
         denoms[Number(k)] = Number(v || 0);
       });
-      Object.entries(delta?.denoms || {}).forEach(([k, v]) => {
-        denoms[Number(k)] = (denoms[Number(k)] || 0) + Number(v || 0);
-      });
-      m.set(id, { denoms, unallocated: delta?.unallocated || 0 });
+      m.set(id, { denoms, unallocated: 0 });
     });
     return m;
-  }, [lastCounts, sinceCount]);
+  }, [lastCounts]);
 
   // Grand totals in TZS and USD — Actual (last recorded count), same source as Variance.
   const grandTotals = useMemo(() => {
-    const tzs = (snap?.wallets || []).reduce(
-      (s, w) => s + Number(w.actual_tzs ?? w.ledger_tzs ?? w.ledger ?? 0),
-      0,
-    );
+    const tzs = (snap?.wallets || []).reduce((s, w) => s + Number(w.actual_tzs ?? 0), 0);
     const usd = usdRate > 0 ? tzs / usdRate : 0;
     // per-currency native totals
     const perCcy: Record<string, number> = {};
     (snap?.wallets || []).forEach((w) => {
-      perCcy[w.currency] =
-        (perCcy[w.currency] || 0) + Number(w.actual_native ?? w.ledger_native ?? w.ledger ?? 0);
+      perCcy[w.currency] = (perCcy[w.currency] || 0) + Number(w.actual_native ?? 0);
     });
     return { tzs, usd, perCcy };
   }, [snap, usdRate]);
@@ -326,8 +274,8 @@ export default function FinancesWalletsPage() {
     list.sort((a, b) => {
       let av: any;
       let bv: any;
-      const ledA = ledgerByWallet.get(a.id) || { native: 0, tzs: 0 };
-      const ledB = ledgerByWallet.get(b.id) || { native: 0, tzs: 0 };
+      const ledA = ledgerByWallet.get(a.id) || { native: 0, tzs: 0, counted: false };
+      const ledB = ledgerByWallet.get(b.id) || { native: 0, tzs: 0, counted: false };
       switch (key) {
         case "name":
           av = a.name || "";
@@ -476,7 +424,7 @@ export default function FinancesWalletsPage() {
     setSavingId(w.id);
     let variance = 0;
     try {
-      const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0 };
+      const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0, counted: false };
       let fxRate = 1;
       if (w.currency === "USD") {
         fxRate = usdRate;
@@ -854,7 +802,7 @@ export default function FinancesWalletsPage() {
                 const counted = useDenoms
                   ? cashSum(denomVals) + centsVal / 100
                   : Number(amountInput[w.id] || 0);
-                const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0 };
+                const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0, counted: false };
                 const fresh = freshnessByWallet.get(w.id);
 
                 const variance = counted - led.native;
@@ -885,11 +833,17 @@ export default function FinancesWalletsPage() {
                         )}
                       </td>
                       <td className="text-right font-mono tabular-nums">
-                        {formatNumberSpaces(led.native)}{" "}
-                        <span className="text-[10px] text-muted-foreground">{w.currency}</span>
+                        {led.counted ? (
+                          <>
+                            {formatNumberSpaces(led.native)}{" "}
+                            <span className="text-[10px] text-muted-foreground">{w.currency}</span>
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground">·</span>
+                        )}
                       </td>
                       <td className="text-right font-mono tabular-nums">
-                        {formatNumberSpaces(led.tzs)}
+                        {led.counted ? formatNumberSpaces(led.tzs) : <span className="text-muted-foreground">·</span>}
                       </td>
                       <td className="px-3 whitespace-nowrap text-xs">
                         {fresh?.counted_date ? (
@@ -1005,10 +959,7 @@ export default function FinancesWalletsPage() {
                                       : {})}
                                   />
                                   <div className="mt-1 text-[10px] text-muted-foreground/70">
-                                    Grey hints = expected notes (last count ± movements)
-                                    {expectedDenoms.get(w.id)?.unallocated
-                                      ? ` · ${formatNumberSpaces(expectedDenoms.get(w.id)!.unallocated)} ${w.currency} unallocated`
-                                      : ""}
+                                    Grey hints = notes from the last physical count
                                   </div>
                                 </>
                               ) : (
@@ -1034,16 +985,16 @@ export default function FinancesWalletsPage() {
                               <div className="rounded-md border border-border bg-card p-3 space-y-1">
                                 <div className="flex items-center justify-between text-xs">
                                   <span className="text-muted-foreground">
-                                    Ledger ({w.currency})
+                                    Last count ({w.currency})
                                   </span>
                                   <span className="font-mono tabular-nums">
-                                    {formatNumberSpaces(led.native)}
+                                    {led.counted ? formatNumberSpaces(led.native) : "·"}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                  <span>Ledger (TZS)</span>
+                                  <span>Last count (TZS)</span>
                                   <span className="font-mono tabular-nums">
-                                    {formatNumberSpaces(led.tzs)}
+                                    {led.counted ? formatNumberSpaces(led.tzs) : "·"}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs">
@@ -1053,7 +1004,7 @@ export default function FinancesWalletsPage() {
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between text-sm font-semibold pt-1 border-t border-border">
-                                  <span>Variance</span>
+                                  <span>Change vs last count</span>
                                   <span
                                     className={cn(
                                       "font-mono tabular-nums",

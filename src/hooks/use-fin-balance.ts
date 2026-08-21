@@ -98,12 +98,12 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
     (s.expenses_total || 0) -
     (s.collections_total || 0) -
     (s.transfers_total || 0);
-  // Actual = physical counts only. Every movement writes an automatic count,
-  // so the ledger is never added on top.
-  const actual = (s.wallets || []).reduce((sum, w) => {
-    if (w.actual_tzs != null) return sum + Number(w.actual_tzs);
-    return sum + Number(w.ledger_tzs ?? w.ledger ?? 0);
-  }, 0);
+  // Actual = physical counts ONLY. Wallets that were never counted contribute 0 —
+  // the book/ledger replay is never used as a fallback.
+  const actual = (s.wallets || []).reduce(
+    (sum, w) => (w.actual_tzs != null ? sum + Number(w.actual_tzs) : sum),
+    0,
+  );
 
   return { expected, actual, variance: actual - expected };
 };
