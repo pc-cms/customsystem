@@ -50,9 +50,26 @@ import StaleCountsNotice, { type CountFreshnessRow } from "@/components/office/S
 import { dayToRecord } from "@/hooks/use-day-balance-snapshot";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  WALLET_GROUPS,
+  WALLET_GROUP_ORDER,
+  WALLET_GROUP_KINDS,
+  groupOfWallet,
+  walletGroupLabel,
+  type WalletGroup,
+} from "@/lib/wallet-groups";
 
 const CURRENCIES = ["TZS", "USD", "EUR", "GBP", "KES"];
-const KINDS = ["cash", "bank", "mobile_money", "safe", "cage", "external"];
+const KINDS = [
+  "cash",
+  "bank",
+  "mobile_money",
+  "digital_wallet",
+  "selcom",
+  "safe",
+  "cage",
+  "external",
+];
 const CASH_LIKE_KINDS = new Set(["cash", "safe"]);
 const CURRENCY_ORDER = ["TZS", "USD", "EUR", "GBP", "KES"];
 
@@ -65,6 +82,7 @@ type WalletSortKey =
   | "balance_tzs"
   | "counted";
 
+/** Default view: canonical Group -> Name. Column clicks sort WITHIN each group. */
 const WALLET_SORT_DEFAULT: { key: WalletSortKey; dir: "asc" | "desc" } = { key: "name", dir: "asc" };
 
 /** Business date (EAT) of a timestamp — counts belong to the day they were taken. */
@@ -110,6 +128,8 @@ export default function FinancesWalletsPage() {
     "walletSort",
     WALLET_SORT_DEFAULT,
   );
+  /** Inactive wallets are hidden by default; legacy wallets stay visible while active. */
+  const [includeInactive, setIncludeInactive] = useSessionState<boolean>("walletInactive", false);
   const [closeOpen, setCloseOpen] = useState(false);
 
   // Whole page is scoped to a single calendar month.
@@ -255,10 +275,16 @@ export default function FinancesWalletsPage() {
   };
 
   const visibleWallets = useMemo(() => {
-    const list = [...wallets] as any[];
+    const list = (wallets as any[]).filter((w) => includeInactive || w.is_active !== false);
     const { key, dir } = walletSort;
     const mult = dir === "asc" ? 1 : -1;
-    list.sort((a, b) => {
+    const sorted = [...list];
+    sorted.sort((a, b) => {
+      // Canonical group always wins — column sorts apply INSIDE each group.
+      const ga = WALLET_GROUP_ORDER[groupOfWallet(a)] ?? 99;
+      const gb = WALLET_GROUP_ORDER[groupOfWallet(b)] ?? 99;
+      if (ga !== gb) return ga - gb;
+
       let av: any;
       let bv: any;
       const ledA = ledgerByWallet.get(a.id) || { native: 0, tzs: 0, counted: false };
@@ -295,12 +321,15 @@ export default function FinancesWalletsPage() {
       }
 
       if (typeof av === "string") {
-        return av.localeCompare(bv) * mult;
+        const c = av.localeCompare(bv) * mult;
+        return c !== 0 ? c : String(a.name || "").localeCompare(String(b.name || ""));
       }
-      return (av > bv ? 1 : av < bv ? -1 : 0) * mult;
+      const c = (av > bv ? 1 : av < bv ? -1 : 0) * mult;
+      return c !== 0 ? c : String(a.name || "").localeCompare(String(b.name || ""));
     });
-    return list;
-  }, [wallets, walletSort, ledgerByWallet, freshnessByWallet]);
+    return sorted;
+  }, [wallets, walletSort, ledgerByWallet, freshnessByWallet, includeInactive]);
+
 
   const txRows = useMemo(() => {
     let list = tx as any[];
@@ -339,7 +368,14 @@ export default function FinancesWalletsPage() {
     is_active: true,
   });
   const openNewWallet = () => {
-    setWalletForm({ name: "", kind: "cash", currency: "TZS", sort_order: 0, is_active: true });
+    setWalletForm({
+      name: "",
+      kind: "cash",
+      wallet_group: "cash",
+      currency: "TZS",
+      sort_order: 0,
+      is_active: true,
+    });
     setWalletOpen(true);
   };
 
@@ -673,6 +709,17 @@ export default function FinancesWalletsPage() {
       {/* WALLETS TABLE */}
       <div id="wallets-table" className="scroll-mt-20" />
       <PageSection title="Wallets" card={false}>
+        <div className="flex items-center justify-end gap-2 mb-2">
+          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="h-3.5 w-3.5 accent-primary"
+              checked={includeInactive}
+              onChange={(e) => setIncludeInactive(e.target.checked)}
+            />
+            Include inactive
+          </label>
+        </div>
 
         <div className="rounded-md border border-border overflow-hidden">
           <table className="w-full text-sm">
@@ -726,7 +773,7 @@ export default function FinancesWalletsPage() {
               </tr>
             </thead>
             <tbody>
-              {visibleWallets.map((w) => {
+              {visibleWallets.map((w, idx) => {
                 const isOpen = !!expanded[w.id];
                 const useDenoms = CASH_LIKE_KINDS.has(w.kind);
                 const denoms = CASH_DENOMS[w.currency] || CASH_DENOMS.TZS;
@@ -737,10 +784,23 @@ export default function FinancesWalletsPage() {
                   : Number(amountInput[w.id] || 0);
                 const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0, counted: false };
                 const fresh = freshnessByWallet.get(w.id);
+                const grp = groupOfWallet(w);
+                const prevGrp = idx > 0 ? groupOfWallet(visibleWallets[idx - 1]) : null;
+                const showGroupHeader = grp !== prevGrp;
 
                 const variance = counted - led.native;
                 return (
                   <Fragment key={w.id}>
+                    {showGroupHeader && (
+                      <tr className="bg-muted/60 border-t-2 border-border">
+                        <td
+                          colSpan={9}
+                          className="px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+                        >
+                          {walletGroupLabel(grp)}
+                        </td>
+                      </tr>
+                    )}
                     <tr
                       className="border-t border-border hover:bg-muted/40 cursor-pointer"
                       onClick={() => toggleRow(w.id)}
@@ -986,7 +1046,7 @@ export default function FinancesWalletsPage() {
                   </Fragment>
                 );
               })}
-              {!wallets.length && (
+              {!visibleWallets.length && (
                 <tr>
                   <td colSpan={9} className="text-center text-muted-foreground py-6">
                     No wallets yet
@@ -1165,7 +1225,33 @@ export default function FinancesWalletsPage() {
               onChange={(e) => setWalletForm({ ...walletForm, name: e.target.value })}
             />
           </FormField>
-          <FormField span={3} label="Kind">
+          <FormField span={3} label="Group">
+            <Select
+              value={groupOfWallet(walletForm)}
+              onValueChange={(v) => {
+                const g = v as WalletGroup;
+                const kinds = WALLET_GROUP_KINDS[g] || [];
+                setWalletForm({
+                  ...walletForm,
+                  wallet_group: g,
+                  is_legacy: g === "legacy_other",
+                  kind: kinds.includes(walletForm.kind) ? walletForm.kind : kinds[0] || walletForm.kind,
+                });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {WALLET_GROUPS.map((g) => (
+                  <SelectItem key={g} value={g}>
+                    {walletGroupLabel(g)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+          <FormField span={3} label="Type">
             <Select
               value={walletForm.kind}
               onValueChange={(v) => setWalletForm({ ...walletForm, kind: v })}
@@ -1174,9 +1260,14 @@ export default function FinancesWalletsPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {KINDS.map((k) => (
+                {Array.from(
+                  new Set([
+                    ...(WALLET_GROUP_KINDS[groupOfWallet(walletForm)] || []),
+                    ...(walletForm.kind ? [walletForm.kind] : []),
+                  ]),
+                ).map((k) => (
                   <SelectItem key={k} value={k}>
-                    {k}
+                    {String(k).replace(/_/g, " ")}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1199,7 +1290,7 @@ export default function FinancesWalletsPage() {
               </SelectContent>
             </Select>
           </FormField>
-          <FormField span={6} label="Sort order">
+          <FormField span={3} label="Sort order">
             <NumberInput
               value={walletForm.sort_order ?? 0}
               onValueChange={(v) =>
@@ -1207,6 +1298,37 @@ export default function FinancesWalletsPage() {
               }
             />
           </FormField>
+          <FormField span={3} label="Canonical code">
+            <Input
+              value={walletForm.canonical_code || ""}
+              onChange={(e) => setWalletForm({ ...walletForm, canonical_code: e.target.value })}
+              placeholder="e.g. CASH_TZS"
+            />
+          </FormField>
+          <FormField span={3} label="Provider ref">
+            <Input
+              value={walletForm.provider_account_ref || ""}
+              onChange={(e) =>
+                setWalletForm({ ...walletForm, provider_account_ref: e.target.value })
+              }
+              placeholder="Optional"
+            />
+          </FormField>
+          <FormField span={3} label="Active">
+            <Select
+              value={walletForm.is_active === false ? "no" : "yes"}
+              onValueChange={(v) => setWalletForm({ ...walletForm, is_active: v === "yes" })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="yes">Active</SelectItem>
+                <SelectItem value="no">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </FormField>
+
 
           <FormField span={12}>
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1 mb-1 border-t border-border pt-2">

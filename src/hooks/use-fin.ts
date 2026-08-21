@@ -211,6 +211,13 @@ export const useUpsertFinWallet = () => {
         is_active: input.is_active ?? true,
         sort_order: input.sort_order ?? 0,
       };
+      // Canonical metadata (Finance Hub mapping) — only sent when provided.
+      if (input.wallet_group !== undefined) payload.wallet_group = input.wallet_group || null;
+      if (input.canonical_code !== undefined) payload.canonical_code = input.canonical_code || null;
+      if (input.provider !== undefined) payload.provider = input.provider || null;
+      if (input.provider_account_ref !== undefined)
+        payload.provider_account_ref = input.provider_account_ref || null;
+      if (input.is_legacy !== undefined) payload.is_legacy = !!input.is_legacy;
       // Starting Float fields (editable by manager/finance_manager/super_admin)
       if (input.starting_float_amount !== undefined)
         payload.starting_float_amount = Number(input.starting_float_amount) || 0;

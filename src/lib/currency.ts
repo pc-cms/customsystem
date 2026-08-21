@@ -24,9 +24,11 @@ export const DEFAULT_EXCHANGE_RATES: Record<string, number> = {
 };
 
 // Cash denominations per currency
+// Cash denominations per currency (banknotes only — no coin grids).
+// EUR 500 is kept: first-series notes remain legal tender and hold value.
 export const CASH_DENOMS: Record<string, number[]> = {
   TZS: [10_000, 5_000, 2_000, 1_000],
-  USD: [100, 50, 20, 10, 5, 1],
+  USD: [100, 50, 20, 10, 5, 2, 1],
   EUR: [500, 200, 100, 50, 20, 10, 5],
   GBP: [50, 20, 10, 5],
   KES: [1000, 500, 200, 100, 50],
