@@ -701,6 +701,17 @@ export default function FinancesWalletsPage() {
       {/* WALLETS TABLE */}
       <div id="wallets-table" className="scroll-mt-20" />
       <PageSection title="Wallets" card={false}>
+        <div className="flex items-center justify-end gap-2 mb-2">
+          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="h-3.5 w-3.5 accent-primary"
+              checked={includeInactive}
+              onChange={(e) => setIncludeInactive(e.target.checked)}
+            />
+            Include inactive
+          </label>
+        </div>
 
         <div className="rounded-md border border-border overflow-hidden">
           <table className="w-full text-sm">
