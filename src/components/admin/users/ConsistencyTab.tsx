@@ -55,7 +55,7 @@ export const ConsistencyTab = () => {
   }, [users, selectedRole]);
 
   const userIds = useMemo(() => roleUsers.map((u) => u.user_id), [roleUsers]);
-  const { data: overridesByUser } = useUserOverridesForUsers(userIds);
+  const { data: overridesByUser } = useAllUserOverrides(userIds);
 
   const baselineMap = useMemo(() => {
     const m = new Map<string, { can_view: boolean; can_write: boolean; day_horizon: string }>();
