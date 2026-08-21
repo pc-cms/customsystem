@@ -584,7 +584,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
         </header>
 
         <div className={`w-full ${desktop ? "overflow-auto max-h-[65vh]" : "overflow-auto max-h-[70vh]"}`}>
-          <table className={`border-collapse ${desktop ? "min-w-max text-[13px]" : "w-full text-[0.85em] table-fixed"}`}>
+          <table className={`border-collapse ${desktop ? "min-w-max text-[13px]" : "w-full text-[0.75em] table-fixed"}`}>
             {!desktop && (
               <colgroup>
                 <col style={{ width: "14%" }} />
