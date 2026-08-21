@@ -59,7 +59,7 @@ export function WalletsCompactTable({
                   {w.name} <span className="text-[10px] text-muted-foreground">{w.currency}</span>
                 </td>
                 <td className={cn("text-right font-mono tabular-nums", phys == null && "text-muted-foreground/60")}>
-                  {phys == null ? "·" : formatNumberSpaces(phys)}
+                  {phys == null ? "0" : formatNumberSpaces(phys)}
                 </td>
                 <td className="text-right font-mono tabular-nums text-muted-foreground">
                   {formatNumberSpaces(ledger)}
