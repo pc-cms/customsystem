@@ -67,3 +67,17 @@ export const groupOfWallet = (w: { wallet_group?: string | null; kind?: string |
 
 export const walletGroupLabel = (g: string): string =>
   WALLET_GROUP_LABELS[g as WalletGroup] || "LEGACY / OTHER";
+
+/**
+ * Permanent canonical wallets that exist on EVERY casino location and must
+ * never be classified as legacy, archived, or merged into another wallet.
+ * "Legacy / Other" is only for genuinely unclassified historical wallets.
+ */
+export const PERMANENT_CANONICAL_WALLETS: { name: string; code: string; group: WalletGroup }[] = [
+  { name: "Main Phone", code: "MM_MAIN_PHONE_TZS", group: "mobile_money" },
+  { name: "Safe Live", code: "SAFE_LIVE_TZS", group: "operational_safes" },
+  { name: "Safe Slots", code: "SAFE_SLOTS_TZS", group: "operational_safes" },
+];
+
+export const isPermanentCanonicalWallet = (w: { name?: string | null; canonical_code?: string | null }): boolean =>
+  PERMANENT_CANONICAL_WALLETS.some(p => p.code === w.canonical_code || p.name === w.name);
