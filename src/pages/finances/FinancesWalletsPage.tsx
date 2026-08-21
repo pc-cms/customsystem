@@ -85,21 +85,16 @@ export default function FinancesWalletsPage() {
   const { user, roles } = useAuth();
   const qc = useQueryClient();
   const isSuperAdmin = roles.includes("super_admin");
+  const canCloseMonth = roles.some((r) =>
+    ["super_admin", "admin", "manager", "general_manager", "finance_manager"].includes(r),
+  );
   const { data: wallets = [] } = useFinWallets();
   const upsert = useUpsertFinWallet();
   /**
-   * We always close YESTERDAY: on 05/08 the recorded day is 04/08 (it rolled
-   * over at 07:00 EAT). Re-recording during the day overwrites the snapshot.
+   * Physical counts always belong to the business day being closed (yesterday):
+   * on 05/08 the counted day is 04/08 (it rolled over at 07:00 EAT).
    */
-  const recordTargetDate = dayToRecord();
-  const recordDay = useRecordDayBalance();
-  /**
-   * Business day the physical counts are FOR. We always close YESTERDAY, so
-   * counting on 12/08 normally records the 11/08 balances. The user can move
-   * this date when catching up on an older day.
-   */
-  const [countForDate, setCountForDate] = useState<string>(recordTargetDate);
-  const { data: recordedSnap } = useDayBalanceSnapshot(countForDate);
+  const countForDate = dayToRecord();
 
 
   const now = new Date();
