@@ -33,14 +33,14 @@ const dateShort = (iso: string) => {
 const weekday = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", { weekday: "short" });
 
-const AmountCell = ({ value, bold, dim, compact }: { value: number; bold?: boolean; dim?: boolean; compact?: boolean }) => {
+const AmountCell = ({ value, bold, dim, compact, tabular }: { value: number; bold?: boolean; dim?: boolean; compact?: boolean; tabular?: boolean }) => {
   const cls =
     value === 0 ? "text-muted-foreground/60" :
     value < 0  ? "cms-amount-negative" :
                  (bold ? "text-foreground" : "text-foreground/90");
   return (
     <td
-      className={`${compact ? "px-1.5 py-1" : "px-3 py-1.5"} text-right font-mono tabular-nums whitespace-nowrap ${bold ? "font-bold" : ""} ${dim ? "opacity-70" : ""} ${cls}`}
+      className={`${compact ? "px-1 py-1" : "px-3 py-1.5"} text-right font-mono ${tabular === false ? "" : "tabular-nums"} whitespace-nowrap ${bold ? "font-bold" : ""} ${dim ? "opacity-70" : ""} ${cls}`}
     >
       {value === 0 ? "·" : fmt(value)}
     </td>
