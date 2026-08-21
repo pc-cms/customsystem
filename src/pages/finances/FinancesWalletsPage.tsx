@@ -1038,7 +1038,7 @@ export default function FinancesWalletsPage() {
                   </Fragment>
                 );
               })}
-              {!wallets.length && (
+              {!visibleWallets.length && (
                 <tr>
                   <td colSpan={9} className="text-center text-muted-foreground py-6">
                     No wallets yet
