@@ -292,13 +292,17 @@ export const UsersTab = () => {
                   />
                 </DTCell>
                 {showCasinoColumn && (
-                  <DTCell className="text-xs text-muted-foreground">
-                    {casinoName(r.casino_id)}
-                    {r.casino_ids.length > 1 && (
-                      <span className="ml-1 text-muted-foreground/60">
-                        +{r.casino_ids.length - 1}
-                      </span>
-                    )}
+                  <DTCell className="text-xs">
+                    <CasinoCell
+                      row={r}
+                      casinos={casinos}
+                      editable={isSuperAdmin}
+                      onSave={({ primaryCasinoId, casinoIds }) =>
+                        updateAccess
+                          .mutateAsync({ userId: r.user_id, primaryCasinoId, casinoIds })
+                          .catch(() => {})
+                      }
+                    />
                   </DTCell>
                 )}
                 <DTCell align="right">
@@ -320,10 +324,26 @@ export const UsersTab = () => {
                       variant="ghost"
                       size="icon"
                       onClick={() =>
-                        setDisableTarget({ id: r.user_id, name: r.display_name || "User" })
+                        setDisableTarget({
+                          id: r.user_id,
+                          name: r.display_name || "User",
+                          enable: !!r.disabled_at,
+                        })
                       }
-                      title="Disable user"
-                      disabled={isSelf || !!r.disabled_at}
+                      title={r.disabled_at ? "Enable user" : "Disable user"}
+                      disabled={isSelf}
+                      className={`h-8 w-8 ${r.disabled_at ? "text-emerald-600 hover:text-emerald-600" : "text-amber-600 hover:text-amber-600"}`}
+                    >
+                      {r.disabled_at ? <Power className="w-3.5 h-3.5" /> : <PowerOff className="w-3.5 h-3.5" />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() =>
+                        setDeleteTarget({ id: r.user_id, name: r.display_name || "User", login: r.login })
+                      }
+                      title="Delete user"
+                      disabled={isSelf}
                       className="h-8 w-8 text-destructive hover:text-destructive"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
