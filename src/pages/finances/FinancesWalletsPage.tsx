@@ -272,10 +272,16 @@ export default function FinancesWalletsPage() {
   };
 
   const visibleWallets = useMemo(() => {
-    const list = [...wallets] as any[];
+    const list = (wallets as any[]).filter((w) => includeInactive || w.is_active !== false);
     const { key, dir } = walletSort;
     const mult = dir === "asc" ? 1 : -1;
-    list.sort((a, b) => {
+    const sorted = [...list];
+    sorted.sort((a, b) => {
+      // Canonical group always wins — column sorts apply INSIDE each group.
+      const ga = WALLET_GROUP_ORDER[groupOfWallet(a)] ?? 99;
+      const gb = WALLET_GROUP_ORDER[groupOfWallet(b)] ?? 99;
+      if (ga !== gb) return ga - gb;
+
       let av: any;
       let bv: any;
       const ledA = ledgerByWallet.get(a.id) || { native: 0, tzs: 0, counted: false };
@@ -312,12 +318,15 @@ export default function FinancesWalletsPage() {
       }
 
       if (typeof av === "string") {
-        return av.localeCompare(bv) * mult;
+        const c = av.localeCompare(bv) * mult;
+        return c !== 0 ? c : String(a.name || "").localeCompare(String(b.name || ""));
       }
-      return (av > bv ? 1 : av < bv ? -1 : 0) * mult;
+      const c = (av > bv ? 1 : av < bv ? -1 : 0) * mult;
+      return c !== 0 ? c : String(a.name || "").localeCompare(String(b.name || ""));
     });
-    return list;
-  }, [wallets, walletSort, ledgerByWallet, freshnessByWallet]);
+    return sorted;
+  }, [wallets, walletSort, ledgerByWallet, freshnessByWallet, includeInactive]);
+
 
   const txRows = useMemo(() => {
     let list = tx as any[];
