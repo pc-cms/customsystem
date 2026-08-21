@@ -11983,8 +11983,38 @@ export type Database = {
         Args: { p_business_date: string; p_casino_id: string }
         Returns: number
       }
+      finance_hub_closings: {
+        Args: {
+          p_casino_ids?: string[]
+          p_cursor?: string
+          p_from?: string
+          p_limit?: number
+          p_to?: string
+        }
+        Returns: Json
+      }
+      finance_hub_expenses: {
+        Args: {
+          p_casino_ids?: string[]
+          p_cursor?: string
+          p_from?: string
+          p_limit?: number
+          p_to?: string
+        }
+        Returns: Json
+      }
+      finance_hub_performance: {
+        Args: {
+          p_casino_ids?: string[]
+          p_cursor?: string
+          p_from?: string
+          p_limit?: number
+          p_to?: string
+        }
+        Returns: Json
+      }
       finance_hub_transactions: {
-        Args: { p_limit?: number; p_since?: string }
+        Args: { p_cursor?: string; p_limit?: number; p_since?: string }
         Returns: Json
       }
       finance_hub_wallet_snapshot: {
