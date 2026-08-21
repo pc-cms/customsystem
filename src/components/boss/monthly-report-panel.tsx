@@ -371,11 +371,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
     },
     {
       label: "Slots", per: summary.slots, total: t.slots, muted: true,
-      hint: "Day Closings → Slots Result (ACE), closed business days only.",
-    },
-    {
-      label: "Players Card Balance", per: summary.playersCards, total: t.playersCards, muted: true,
-      hint: "Latest Players Card Balance of the month. Informational only — not subtracted from Result.",
+      hint: "Cash desk win minus money on the cards (Players Card Balance), closed business days only.",
     },
     {
       label: "Other incomes", per: summary.other, total: t.other,

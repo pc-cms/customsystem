@@ -6,7 +6,8 @@
  * Sources:
  *   - Result (Live+Slots):   fin_day_closing.tables_result + slots_result,
  *                            CLOSED business days only (business_day_closures)
- *   - Players Card Balance:  informational only (NOT subtracted from Result)
+ *   - Slots:                 slots_result − players_card_balance (cash desk win minus money on the cards)
+ *   - Players Card Balance:  kept in data but no longer shown as a separate Boss report row
  *   - Other incomes:         fin_other_incomes.amount * fx_rate (→ TZS)
  *   - Collection:            expenses in fin_categories.group_code = 'collections'
  *   - Estimated Expenses:    fin_budget.planned_amount converted with dated FX
@@ -140,8 +141,9 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
       for (const p of payload.per_casino || []) {
         const id = p.casino_id;
         tables[id] = Number(p.tables || 0);
-        slots[id] = Number(p.slots || 0);
+        // Slots result for the Boss view = cash desk win minus money still on player cards.
         playersCards[id] = Number(p.players_cards || 0);
+        slots[id] = Number(p.slots || 0) - playersCards[id];
         other[id] = Number(p.other || 0);
         collection[id] = Number(p.collection || 0);
         estimated[id] = Number(p.estimated || 0);
