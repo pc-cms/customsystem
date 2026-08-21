@@ -1029,7 +1029,7 @@ export default function FinancesWalletsPage() {
       </PageSection>
 
       {/* TRANSACTIONS */}
-      <PageSection title={`Transactions · ${monthLabel} · ${txRows.length}`} card={false}>
+      <PageSection title={`Transactions · ${txRows.length}`} card={false}>
         <div className="flex flex-wrap items-center gap-2 mb-2">
           <Select value={walletFilter} onValueChange={setWalletFilter}>
             <SelectTrigger className="h-9 w-[180px]">
