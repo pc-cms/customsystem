@@ -3,7 +3,7 @@
  *
  * Columns: Login (inline editable), Name (inline editable), Roles (popover
  * multi-select with chips), Password (set new + Apply per row), Casino
- * (super-admin / premier only), Status + Actions.
+ * (editable popover), Status + Actions.
  *
  * Single batched call via `useAdminUsers` (admin-list-users edge function)
  * returns login, display_name, roles, casino_ids in one round-trip.
@@ -18,6 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   DataTable,
   DTHead,
@@ -35,6 +37,9 @@ import {
   KeyRound,
   Check,
   X,
+  Star,
+  Power,
+  PowerOff,
 } from "lucide-react";
 import { UserPermissionsDialog } from "@/components/admin/UserPermissionsDialog";
 import {
@@ -48,6 +53,8 @@ import {
   MIN_PASSWORD_LENGTH,
   useUpdateUserRoles,
   useUpdateUserProfile,
+  useDeleteUser,
+  useUpdateUserCasinoAccess,
   type AdminUserRow,
 } from "./users-hooks";
 import {
@@ -74,16 +81,21 @@ export const UsersTab = () => {
   const { data: rows = [], isLoading } = useAdminUsers();
   const { data: casinos = [] } = useAllCasinos();
   const disableUser = useDisableUser();
+  const deleteUser = useDeleteUser();
   const resetPassword = useResetPassword();
   const updateRoles = useUpdateUserRoles();
   const updateProfile = useUpdateUserProfile();
+  const updateAccess = useUpdateUserCasinoAccess();
 
   const [search, setSearch] = useState("");
   const [casinoFilter, setCasinoFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("login");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [permsTarget, setPermsTarget] = useState<{ id: string; name: string } | null>(null);
-  const [disableTarget, setDisableTarget] = useState<{ id: string; name: string } | null>(null);
+  const [disableTarget, setDisableTarget] = useState<{ id: string; name: string; enable: boolean } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; login: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [showInactive, setShowInactive] = useState(false);
 
   const availableRoles = isSuperAdmin
     ? (ALL_ROLES as readonly string[])
@@ -97,11 +109,12 @@ export const UsersTab = () => {
     const visible = isSuperAdmin
       ? rows
       : rows.filter((r) => !r.roles.includes("super_admin"));
+    const byStatus = showInactive ? visible : visible.filter((r) => !r.disabled_at);
     const byCasino = casinoFilter === "all"
-      ? visible
+      ? byStatus
       : casinoFilter === "__none__"
-        ? visible.filter((r) => !r.casino_id && r.casino_ids.length === 0)
-        : visible.filter((r) => r.casino_id === casinoFilter || r.casino_ids.includes(casinoFilter));
+        ? byStatus.filter((r) => !r.casino_id && r.casino_ids.length === 0)
+        : byStatus.filter((r) => r.casino_id === casinoFilter || r.casino_ids.includes(casinoFilter));
     const matched = !q
       ? byCasino
       : byCasino.filter((r) => {
@@ -131,7 +144,7 @@ export const UsersTab = () => {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return sorted;
-  }, [rows, search, isSuperAdmin, sortKey, sortDir, casinos, casinoFilter]);
+  }, [rows, search, isSuperAdmin, sortKey, sortDir, casinos, casinoFilter, showInactive]);
 
   const toggleSort = (k: SortKey) => {
     if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -150,10 +163,10 @@ export const UsersTab = () => {
         <div>
           <h3 className="text-sm font-semibold text-card-foreground">Users &amp; Roles</h3>
           <p className="text-xs text-muted-foreground">
-            Click any cell to edit. Roles, login and name update instantly. Password is set per row via the Reset field.
+            Click any cell to edit. Roles, login, name and casino access update instantly. Password is set per row via the Reset field.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -175,6 +188,14 @@ export const UsersTab = () => {
               ))}
             </SelectContent>
           </Select>
+          <div className="flex items-center gap-2 border rounded-md px-3 py-1.5 h-9">
+            <Switch
+              id="show-inactive"
+              checked={showInactive}
+              onCheckedChange={setShowInactive}
+            />
+            <Label htmlFor="show-inactive" className="text-xs cursor-pointer">Show inactive</Label>
+          </div>
           <Button onClick={() => navigate("/admin/users/new")} className="gap-1.5">
             <Plus className="w-4 h-4" /> New User
           </Button>
@@ -271,13 +292,17 @@ export const UsersTab = () => {
                   />
                 </DTCell>
                 {showCasinoColumn && (
-                  <DTCell className="text-xs text-muted-foreground">
-                    {casinoName(r.casino_id)}
-                    {r.casino_ids.length > 1 && (
-                      <span className="ml-1 text-muted-foreground/60">
-                        +{r.casino_ids.length - 1}
-                      </span>
-                    )}
+                  <DTCell className="text-xs">
+                    <CasinoCell
+                      row={r}
+                      casinos={casinos}
+                      editable={isSuperAdmin}
+                      onSave={({ primaryCasinoId, casinoIds }) =>
+                        updateAccess
+                          .mutateAsync({ userId: r.user_id, primaryCasinoId, casinoIds })
+                          .catch(() => {})
+                      }
+                    />
                   </DTCell>
                 )}
                 <DTCell align="right">
@@ -299,10 +324,26 @@ export const UsersTab = () => {
                       variant="ghost"
                       size="icon"
                       onClick={() =>
-                        setDisableTarget({ id: r.user_id, name: r.display_name || "User" })
+                        setDisableTarget({
+                          id: r.user_id,
+                          name: r.display_name || "User",
+                          enable: !!r.disabled_at,
+                        })
                       }
-                      title="Disable user"
-                      disabled={isSelf || !!r.disabled_at}
+                      title={r.disabled_at ? "Enable user" : "Disable user"}
+                      disabled={isSelf}
+                      className={`h-8 w-8 ${r.disabled_at ? "text-emerald-600 hover:text-emerald-600" : "text-amber-600 hover:text-amber-600"}`}
+                    >
+                      {r.disabled_at ? <Power className="w-3.5 h-3.5" /> : <PowerOff className="w-3.5 h-3.5" />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() =>
+                        setDeleteTarget({ id: r.user_id, name: r.display_name || "User", login: r.login })
+                      }
+                      title="Delete user"
+                      disabled={isSelf}
                       className="h-8 w-8 text-destructive hover:text-destructive"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -349,10 +390,11 @@ export const UsersTab = () => {
       <AlertDialog open={!!disableTarget} onOpenChange={(o) => !o && setDisableTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Disable user?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {disableTarget?.enable ? "Enable user?" : "Disable user?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {disableTarget?.name} will no longer be able to sign in. Historical logs and records
-              stay intact.
+              {disableTarget?.name} will {disableTarget?.enable ? "be able to sign in again" : "no longer be able to sign in"}. Historical logs and records stay intact.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -361,12 +403,47 @@ export const UsersTab = () => {
               onClick={() => {
                 if (!disableTarget) return;
                 disableUser.mutate(
-                  { userId: disableTarget.id },
+                  { userId: disableTarget.id, action: disableTarget.enable ? "enable" : "disable" },
                   { onSuccess: () => setDisableTarget(null) },
                 );
               }}
             >
-              Disable
+              {disableTarget?.enable ? "Enable" : "Disable"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) { setDeleteTarget(null); setDeleteConfirm(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete user permanently?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the login, profile, roles and access records for <strong>{deleteTarget?.name}</strong>. Historical logs and records remain, but the user will be shown as "Deleted user".
+              <br /><br />
+              Type <strong>{deleteTarget?.login}</strong> to confirm.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            value={deleteConfirm}
+            onChange={(e) => setDeleteConfirm(e.target.value)}
+            placeholder={`Type ${deleteTarget?.login ?? "login"} to confirm`}
+            className="mt-2"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteConfirm("")}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteConfirm !== deleteTarget?.login || deleteUser.isPending}
+              onClick={() => {
+                if (!deleteTarget) return;
+                deleteUser.mutate(
+                  { userId: deleteTarget.id },
+                  { onSuccess: () => { setDeleteTarget(null); setDeleteConfirm(""); } },
+                );
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -515,6 +592,129 @@ const RoleCell = ({
           </Button>
         </div>
       </PopoverContent>
+    </Popover>
+  );
+};
+
+const CasinoCell = ({
+  row,
+  casinos,
+  editable,
+  onSave,
+}: {
+  row: AdminUserRow;
+  casinos: { id: string; name: string }[];
+  editable: boolean;
+  onSave: (payload: { primaryCasinoId?: string; casinoIds: string[] }) => Promise<void>;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [primaryId, setPrimaryId] = useState(row.casino_id);
+  const [selectedIds, setSelectedIds] = useState(new Set(row.casino_ids));
+  const isMutating = false;
+
+  const apply = async () => {
+    setOpen(false);
+    const nextIds = Array.from(selectedIds);
+    if (nextIds.includes(primaryId ?? "")) {
+      await onSave({ primaryCasinoId: primaryId, casinoIds: nextIds });
+    } else {
+      // If primary was removed, pick first available selection as new primary
+      const newPrimary = nextIds[0] ?? null;
+      await onSave({ primaryCasinoId: newPrimary ?? undefined, casinoIds: nextIds });
+    }
+  };
+
+  const toggle = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const extraCount = Math.max(0, row.casino_ids.length - 1);
+  const displayName = row.casino_id ? casinos.find((c) => c.id === row.casino_id)?.name ?? row.casino_id.slice(0, 8) : "—";
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        if (o) {
+          setPrimaryId(row.casino_id);
+          setSelectedIds(new Set(row.casino_ids));
+        }
+        setOpen(o);
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={`w-full text-left px-1 -mx-1 py-0.5 rounded truncate ${editable ? "hover:bg-accent/40" : ""}`}
+          disabled={!editable}
+        >
+          <span className="inline-flex items-center gap-1">
+            {displayName}
+            {row.casino_id && <Star className="w-3 h-3 text-amber-500 fill-amber-500" />}
+          </span>
+          {extraCount > 0 && (
+            <span className="ml-1 text-muted-foreground/60">+{extraCount}</span>
+          )}
+        </button>
+      </PopoverTrigger>
+      {editable && (
+        <PopoverContent className="w-64 p-2" align="start">
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider px-1 mb-1">
+            Casino access
+          </div>
+          <div className="space-y-0.5">
+            {casinos.map((c) => {
+              const checked = selectedIds.has(c.id);
+              const isPrimary = primaryId === c.id;
+              return (
+                <label
+                  key={c.id}
+                  className="flex items-center gap-2 text-sm cursor-pointer rounded px-2 py-1 hover:bg-muted/40"
+                >
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={(v) => toggle(c.id, v === true)}
+                  />
+                  <span className="flex-1 truncate">{c.name}</span>
+                  {isPrimary && (
+                    <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Primary</Badge>
+                  )}
+                  {checked && !isPrimary && (
+                    <button
+                      type="button"
+                      onClick={() => setPrimaryId(c.id)}
+                      className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                    >
+                      Set primary
+                    </button>
+                  )}
+                </label>
+              );
+            })}
+          </div>
+          <div className="flex justify-end gap-1 pt-2 mt-1 border-t border-border">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setPrimaryId(row.casino_id);
+                setSelectedIds(new Set(row.casino_ids));
+                setOpen(false);
+              }}
+            >
+              <X className="w-3.5 h-3.5" />
+            </Button>
+            <Button size="sm" onClick={apply} disabled={isMutating}>
+              <Check className="w-3.5 h-3.5 mr-1" /> Apply
+            </Button>
+          </div>
+        </PopoverContent>
+      )}
     </Popover>
   );
 };

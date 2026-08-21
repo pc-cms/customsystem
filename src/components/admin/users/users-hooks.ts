@@ -312,13 +312,13 @@ export const useResetPassword = () => {
   });
 };
 
-/** Disable a user login while keeping historical audit records intact. */
+/** Disable or re-enable a user login while keeping historical audit records intact. */
 export const useDisableUser = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ userId }: { userId: string }) => {
+    mutationFn: async ({ userId, action }: { userId: string; action?: "disable" | "enable" }) => {
       const { data, error } = await supabase.functions.invoke("disable-user", {
-        body: { user_id: userId },
+        body: { user_id: userId, action },
       });
       if (error) throw new Error(await readFunctionError(error));
       if (data?.error) throw new Error(data.error);
@@ -327,7 +327,67 @@ export const useDisableUser = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-users:list-v2"] });
       qc.invalidateQueries({ queryKey: ["admin-users:profiles"] });
-      toast.success("User disabled");
+      toast.success("User updated");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+};
+
+/** Permanently delete a user account and all related permission/access records. */
+export const useDeleteUser = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId }: { userId: string }) => {
+      const { data, error } = await supabase.functions.invoke("delete-user", { body: { user_id: userId } });
+      if (error) throw new Error(await readFunctionError(error));
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users:list-v2"] });
+      qc.invalidateQueries({ queryKey: ["admin-users:profiles"] });
+      qc.invalidateQueries({ queryKey: ["admin-users:roles"] });
+      toast.success("User deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+};
+
+/** Update which casinos a user can access (primary + extra access). */
+export const useUpdateUserCasinoAccess = () => {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async (input: { userId: string; primaryCasinoId?: string; casinoIds: string[] }) => {
+      const { userId, primaryCasinoId, casinoIds } = input;
+      const upserts = casinoIds
+        .filter((id) => id !== primaryCasinoId)
+        .map((casino_id) => ({
+          user_id: userId,
+          casino_id,
+          granted_by: user?.id ?? null,
+        }));
+
+      const { error: delErr } = await supabase.from("user_casino_access").delete().eq("user_id", userId);
+      if (delErr) throw delErr;
+
+      if (upserts.length > 0) {
+        const { error: insErr } = await supabase.from("user_casino_access").insert(upserts);
+        if (insErr) throw insErr;
+      }
+
+      if (primaryCasinoId !== undefined) {
+        const { error: updErr } = await supabase
+          .from("profiles")
+          .update({ casino_id: primaryCasinoId })
+          .eq("user_id", userId);
+        if (updErr) throw updErr;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users:list-v2"] });
+      qc.invalidateQueries({ queryKey: ["admin-users:profiles"] });
+      toast.success("Casino access updated");
     },
     onError: (e: Error) => toast.error(e.message),
   });

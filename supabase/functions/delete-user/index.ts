@@ -29,15 +29,9 @@ Deno.serve(async (req) => {
     if (!caller) return json({ error: "Not authenticated" }, 401);
 
     const adminClient = createClient(supabaseUrl, serviceKey);
-    const { user_id, action } = await req.json();
+    const { user_id } = await req.json();
     if (!user_id) return json({ error: "Missing user_id" }, 400);
-    if (user_id === caller.id) return json({ error: "You cannot modify your own account" }, 400);
-
-    const enableMode = action === "enable";
-    const disableMode = action === "disable" || action === undefined || action === null;
-    if (!enableMode && !disableMode) {
-      return json({ error: "Invalid action. Use 'enable' or 'disable'" }, 400);
-    }
+    if (user_id === caller.id) return json({ error: "You cannot delete your own account" }, 400);
 
     const [{ data: hasManager }, { data: hasSuperAdmin }] = await Promise.all([
       adminClient.rpc("has_role", { _user_id: caller.id, _role: "manager" }),
@@ -59,7 +53,7 @@ Deno.serve(async (req) => {
       _role: "super_admin",
     });
     if (targetIsSuper && !hasSuperAdmin) {
-      return json({ error: "Only Super Admin can modify a Super Admin account" }, 403);
+      return json({ error: "Only Super Admin can delete a Super Admin account" }, 403);
     }
 
     if (!hasSuperAdmin) {
@@ -69,40 +63,33 @@ Deno.serve(async (req) => {
         .eq("user_id", caller.id)
         .maybeSingle();
       if (!callerProfile || callerProfile.casino_id !== targetProfile.casino_id) {
-        return json({ error: "You can only modify users from your own casino" }, 403);
+        return json({ error: "You can only delete users from your own casino" }, 403);
       }
     }
 
-    if (enableMode) {
-      const { error: unbanError } = await adminClient.auth.admin.updateUserById(user_id, {
-        ban_duration: "0h",
-      });
-      if (unbanError) throw unbanError;
-
-      const { error: profileError } = await adminClient
-        .from("profiles")
-        .update({ disabled_at: null, disabled_by: null })
-        .eq("user_id", user_id);
-      if (profileError) throw profileError;
-
-      return json({ ok: true, user_id, enabled: true, display_name: targetProfile.display_name });
+    // Clean up dependent rows first (auth cascade is not available for these tables).
+    const cleanup = await Promise.all([
+      adminClient.from("user_roles").delete().eq("user_id", user_id),
+      adminClient.from("user_module_permissions").delete().eq("user_id", user_id),
+      adminClient.from("user_casino_access").delete().eq("user_id", user_id),
+    ]);
+    for (const { error } of cleanup) {
+      if (error) throw error;
     }
-
-    const { error: banError } = await adminClient.auth.admin.updateUserById(user_id, {
-      ban_duration: "876000h",
-    });
-    if (banError) throw banError;
 
     const { error: profileError } = await adminClient
       .from("profiles")
-      .update({ disabled_at: new Date().toISOString(), disabled_by: caller.id })
+      .delete()
       .eq("user_id", user_id);
     if (profileError) throw profileError;
 
-    return json({ ok: true, user_id, disabled: true, display_name: targetProfile.display_name });
+    const { error: deleteError } = await adminClient.auth.admin.deleteUser(user_id);
+    if (deleteError) throw deleteError;
+
+    return json({ ok: true, user_id, display_name: targetProfile.display_name });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[disable-user] failed:", message, err);
+    console.error("[delete-user] failed:", message, err);
     return json({ error: message }, 400);
   }
 });

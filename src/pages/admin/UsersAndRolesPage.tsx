@@ -1,12 +1,12 @@
 /**
- * Users & Roles — user management, role defaults, cross-casino access.
+ * Users & Roles — user management, role defaults, role consistency.
  */
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, ShieldCheck, Globe, MonitorSmartphone } from "lucide-react";
+import { Users, ShieldCheck, Scale, MonitorSmartphone } from "lucide-react";
 import { UsersTab } from "@/components/admin/users/UsersTab";
 import { ActiveSessionsTab } from "@/components/admin/users/ActiveSessionsTab";
 import { RoleDefaultsEditor } from "@/components/admin/RoleDefaultsEditor";
-import { CasinoAccessManagement } from "@/components/admin/CasinoAccessManagement";
+import { ConsistencyTab } from "@/components/admin/users/ConsistencyTab";
 import { useAuth } from "@/lib/auth-context";
 
 export const UsersAndRolesPage = () => {
@@ -26,8 +26,8 @@ export const UsersAndRolesPage = () => {
           </TabsTrigger>
         )}
         {isSuperAdmin && (
-          <TabsTrigger value="casino-access" className="gap-1.5">
-            <Globe className="w-3.5 h-3.5" /> Casino Access
+          <TabsTrigger value="consistency" className="gap-1.5">
+            <Scale className="w-3.5 h-3.5" /> Consistency
           </TabsTrigger>
         )}
       </TabsList>
@@ -35,7 +35,7 @@ export const UsersAndRolesPage = () => {
       <TabsContent value="users"><UsersTab /></TabsContent>
       <TabsContent value="sessions"><ActiveSessionsTab /></TabsContent>
       {isSuperAdmin && <TabsContent value="role-defaults"><RoleDefaultsEditor /></TabsContent>}
-      {isSuperAdmin && <TabsContent value="casino-access"><CasinoAccessManagement /></TabsContent>}
+      {isSuperAdmin && <TabsContent value="consistency"><ConsistencyTab /></TabsContent>}
     </Tabs>
   );
 };
