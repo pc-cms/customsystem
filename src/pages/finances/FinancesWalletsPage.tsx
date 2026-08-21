@@ -1270,7 +1270,7 @@ export default function FinancesWalletsPage() {
         maxDate={range.to}
       />
 
-      {isSuperAdmin && (
+      {canCloseMonth && (
         <CloseMonthWizard
           open={closeOpen}
           onOpenChange={setCloseOpen}
