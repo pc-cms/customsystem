@@ -10,7 +10,7 @@
 //   inclusive-exclusive: pass next_cursor back as `cursor` for the next page.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "1.1.0";
+const VERSION = "1.2.0";
 const MAX_PAGE = 1000;
 
 const corsHeaders = {
@@ -22,7 +22,7 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const MODES = ["health", "snapshot", "transactions", "performance", "expenses", "closings"] as const;
+const MODES = ["health", "snapshot", "transactions", "performance", "expenses", "closings", "fx_rates"] as const;
 
 const SCOPE_BY_MODE: Record<string, string> = {
   snapshot: "wallets:read",
@@ -30,6 +30,7 @@ const SCOPE_BY_MODE: Record<string, string> = {
   performance: "performance:read",
   expenses: "expenses:read",
   closings: "closings:read",
+  fx_rates: "fx:read",
 };
 
 const json = (body: unknown, status = 200) =>
@@ -140,6 +141,19 @@ Deno.serve(async (req) => {
       p_from: from, p_to: to, p_casino_ids: casinoIds, p_limit: limit, p_cursor: cursor || null,
     });
     if (error) return fail("expenses_failed", error.message);
+    rows = (data as any)?.row_count ?? 0;
+    payload = data as any;
+  } else if (mode === "fx_rates") {
+    const currency = param("currency");
+    const sourceType = param("source_type");
+    if (currency && !/^[A-Z]{3}(,[A-Z]{3})*$/.test(currency)) return json({ error: "invalid_currency" }, 400);
+    const { data, error } = await admin.rpc("finance_hub_fx_rates", {
+      p_from: from, p_to: to, p_casino_ids: casinoIds,
+      p_currencies: currency ? currency.split(",") : null,
+      p_source_types: sourceType ? sourceType.split(",") : null,
+      p_limit: limit, p_cursor: cursor || null,
+    });
+    if (error) return fail("fx_rates_failed", error.message);
     rows = (data as any)?.row_count ?? 0;
     payload = data as any;
   } else if (mode === "closings") {

@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.finance_hub_fx_rates(date,date,uuid[],text[],text[],integer,text) TO supabase_read_only_user;
