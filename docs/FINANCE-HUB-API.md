@@ -1,7 +1,7 @@
 # Finance Hub Export API (read-only)
 
 Endpoint: `POST|GET /functions/v1/finance-hub-export`
-Service version: `1.1.0`
+Service version: `1.2.0`
 
 Read-only mirror of CMS finance + operational result data for the external
 Amaell Finance Hub. The endpoint performs **no writes to financial tables** —
@@ -21,7 +21,7 @@ Provisioning (run once, outside the repo):
 ```sql
 insert into finance_hub_api_clients (name, token_sha256, scopes)
 values ('amaell-finance-hub', '<sha256-hex-of-token>',
-        array['wallets:read','transactions:read','performance:read','expenses:read','closings:read']);
+        array['wallets:read','transactions:read','performance:read','expenses:read','closings:read','fx:read']);
 ```
 
 Errors: `401 missing_token` / `401 invalid_token` / `403 forbidden` (scope) /
@@ -32,7 +32,7 @@ Errors: `401 missing_token` / `401 invalid_token` / `403 forbidden` (scope) /
 Every response includes:
 
 ```jsonc
-{ "generated_at": "...", "mode": "...", "service_version": "1.1.0", "source_generated_at": "..." }
+{ "generated_at": "...", "mode": "...", "service_version": "1.2.0", "source_generated_at": "..." }
 ```
 
 Every paginated mode additionally includes:
@@ -180,3 +180,71 @@ Day rows: `casino_id`, `casino_name`, `business_date`, `status`
 
 Limitation: there is no separate "finance period lock" table beyond
 `fin_day_closing.locked_at` and `fin_month_closures`; nothing is invented.
+
+### `fx_rates` (scope `fx:read`)
+
+Authoritative per-casino FX history so Finance Hub can reproduce the **exact**
+TZS equivalents CMS used. Read-only; no rate is invented and no historical value
+is recalculated. Base currency is always TZS (`base_currency: "TZS"`); TZS itself
+is implicitly 1 and is **not** emitted as a row.
+
+Params: `from`, `to` (effective business date), `casino_id`,
+`currency` (CSV, e.g. `USD,EUR`), `source_type` (CSV), `limit`, `cursor`.
+
+```json
+{
+  "fx_rates": [{
+    "source_id": "uuid", "source_type": "office_daily_rate",
+    "source_table": "fin_daily_rates", "source_ref_id": "uuid", "precedence": 1,
+    "casino_id": "uuid", "casino_name": "Arusha", "casino_code": "ARU",
+    "currency": "USD", "rate_to_tzs": 2600,
+    "effective_business_date": "2026-08-21", "period_year": 2026, "period_month": 8,
+    "is_frozen": true, "frozen_reason": "month_closed",
+    "month_closed_at": "...", "day_locked_at": null,
+    "source_updated_at": "...", "cursor": "2026-08-21|uuid"
+  }]
+}
+```
+
+#### Source of truth and precedence
+
+| precedence | `source_type` | CMS source | Used by |
+|---|---|---|---|
+| 1 | `office_daily_rate` | `fin_daily_rates` (casino_id, business_date, currency) | Office/Wallets, day & month finance reporting, `snapshot.ledger_tzs` / `actual_tzs` |
+| 2 | `cage_shift_rate` | `shifts.exchange_rates` (jsonb, per live cage shift) | Cash-desk conversions during a shift; also the first fallback CMS uses for the USD rate in the wallet snapshot |
+| 3 | `cage_slots_shift_rate` | `cage_slots_exchange_rates` (per slots shift) | Slots cage shift conversions |
+
+Reconciliation rule: for a given casino + business date, pick the
+`office_daily_rate` row (precedence 1). Only if it is absent for that
+casino/date/currency should Finance Hub fall back to precedence 2, then 3 —
+this mirrors `finance_hub_wallet_snapshot`, which reads the latest
+`fin_daily_rates` row at or before the date and uses the latest closed cage
+shift rate only as the USD fallback. Money already converted at posting time
+(`fin_wallet_tx.fx_rate`, `expenses.exchange_rate`, `fin_other_incomes.fx_rate`)
+is exported with its own stored rate and must never be re-converted.
+
+#### Frozen vs mutable
+
+`is_frozen` is true when the reporting period the rate belongs to is closed:
+`month_closed` (`fin_month_closures`) > `day_closing_locked`
+(`fin_day_closing.locked_at`) > `business_day_closed` (`business_day_closures`) >
+`shift_closed` (cage/slots shift with `closed_at`). Frozen rows must never be
+re-derived from a newer rate. Current-day office rates before day closure are
+mutable (`is_frozen: false`) and may change until the day is closed.
+
+#### Known gaps (return `null`/absent — do not guess)
+
+- `fin_daily_rates` exists only from **2026-06-07** onward and only for
+  `USD, EUR, GBP, KES`. Earlier business dates have no office rate row; Finance
+  Hub must treat those periods as "no CMS rate" rather than back-filling.
+- Currencies never traded at a branch simply have no rows for that branch.
+- There is no month-level FX table in CMS; monthly reporting converts with the
+  daily office rate, so no `month` rate layer is exported.
+- TZS has no row by design (implicit 1).
+
+#### Bank / cash account identity
+
+Already covered by `snapshot`: `wallet_id`, `canonical_code`, `name`,
+`wallet_group`, `kind`, `currency`, `provider`, `provider_account_ref`,
+`finance_hub_account_id`, `is_active`, `is_legacy`. No bank-statement or
+office-payment workflow is added to CMS — those stay in Finance Hub.
