@@ -12003,6 +12003,18 @@ export type Database = {
         }
         Returns: Json
       }
+      finance_hub_fx_rates: {
+        Args: {
+          p_casino_ids?: string[]
+          p_currencies?: string[]
+          p_cursor?: string
+          p_from?: string
+          p_limit?: number
+          p_source_types?: string[]
+          p_to?: string
+        }
+        Returns: Json
+      }
       finance_hub_performance: {
         Args: {
           p_casino_ids?: string[]
