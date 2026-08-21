@@ -1,0 +1,1 @@
+update public.role_module_defaults set can_view = false where role = 'shift_manager' and module_key in ('groups','hr_warnings','finance_budget');
