@@ -3,7 +3,7 @@
  *
  * Columns: Login (inline editable), Name (inline editable), Roles (popover
  * multi-select with chips), Password (set new + Apply per row), Casino
- * (super-admin / premier only), Status + Actions.
+ * (editable popover), Status + Actions.
  *
  * Single batched call via `useAdminUsers` (admin-list-users edge function)
  * returns login, display_name, roles, casino_ids in one round-trip.
@@ -18,6 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   DataTable,
   DTHead,
@@ -35,6 +37,9 @@ import {
   KeyRound,
   Check,
   X,
+  Star,
+  Power,
+  PowerOff,
 } from "lucide-react";
 import { UserPermissionsDialog } from "@/components/admin/UserPermissionsDialog";
 import {
@@ -48,6 +53,8 @@ import {
   MIN_PASSWORD_LENGTH,
   useUpdateUserRoles,
   useUpdateUserProfile,
+  useDeleteUser,
+  useUpdateUserCasinoAccess,
   type AdminUserRow,
 } from "./users-hooks";
 import {
@@ -74,16 +81,21 @@ export const UsersTab = () => {
   const { data: rows = [], isLoading } = useAdminUsers();
   const { data: casinos = [] } = useAllCasinos();
   const disableUser = useDisableUser();
+  const deleteUser = useDeleteUser();
   const resetPassword = useResetPassword();
   const updateRoles = useUpdateUserRoles();
   const updateProfile = useUpdateUserProfile();
+  const updateAccess = useUpdateUserCasinoAccess();
 
   const [search, setSearch] = useState("");
   const [casinoFilter, setCasinoFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("login");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [permsTarget, setPermsTarget] = useState<{ id: string; name: string } | null>(null);
-  const [disableTarget, setDisableTarget] = useState<{ id: string; name: string } | null>(null);
+  const [disableTarget, setDisableTarget] = useState<{ id: string; name: string; enable: boolean } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; login: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [showInactive, setShowInactive] = useState(false);
 
   const availableRoles = isSuperAdmin
     ? (ALL_ROLES as readonly string[])
@@ -97,11 +109,12 @@ export const UsersTab = () => {
     const visible = isSuperAdmin
       ? rows
       : rows.filter((r) => !r.roles.includes("super_admin"));
+    const byStatus = showInactive ? visible : visible.filter((r) => !r.disabled_at);
     const byCasino = casinoFilter === "all"
-      ? visible
+      ? byStatus
       : casinoFilter === "__none__"
-        ? visible.filter((r) => !r.casino_id && r.casino_ids.length === 0)
-        : visible.filter((r) => r.casino_id === casinoFilter || r.casino_ids.includes(casinoFilter));
+        ? byStatus.filter((r) => !r.casino_id && r.casino_ids.length === 0)
+        : byStatus.filter((r) => r.casino_id === casinoFilter || r.casino_ids.includes(casinoFilter));
     const matched = !q
       ? byCasino
       : byCasino.filter((r) => {
@@ -131,7 +144,7 @@ export const UsersTab = () => {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return sorted;
-  }, [rows, search, isSuperAdmin, sortKey, sortDir, casinos, casinoFilter]);
+  }, [rows, search, isSuperAdmin, sortKey, sortDir, casinos, casinoFilter, showInactive]);
 
   const toggleSort = (k: SortKey) => {
     if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
