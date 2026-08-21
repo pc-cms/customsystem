@@ -988,13 +988,13 @@ export default function FinancesWalletsPage() {
                                     Last count ({w.currency})
                                   </span>
                                   <span className="font-mono tabular-nums">
-                                    {led.counted ? formatNumberSpaces(led.native) : "·"}
+                                    {led.counted ? formatNumberSpaces(led.native) : "0"}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                                   <span>Last count (TZS)</span>
                                   <span className="font-mono tabular-nums">
-                                    {led.counted ? formatNumberSpaces(led.tzs) : "·"}
+                                    {led.counted ? formatNumberSpaces(led.tzs) : "0"}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs">
