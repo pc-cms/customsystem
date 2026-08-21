@@ -274,8 +274,8 @@ export default function FinancesWalletsPage() {
     list.sort((a, b) => {
       let av: any;
       let bv: any;
-      const ledA = ledgerByWallet.get(a.id) || { native: 0, tzs: 0 };
-      const ledB = ledgerByWallet.get(b.id) || { native: 0, tzs: 0 };
+      const ledA = ledgerByWallet.get(a.id) || { native: 0, tzs: 0, counted: false };
+      const ledB = ledgerByWallet.get(b.id) || { native: 0, tzs: 0, counted: false };
       switch (key) {
         case "name":
           av = a.name || "";
@@ -424,7 +424,7 @@ export default function FinancesWalletsPage() {
     setSavingId(w.id);
     let variance = 0;
     try {
-      const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0 };
+      const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0, counted: false };
       let fxRate = 1;
       if (w.currency === "USD") {
         fxRate = usdRate;
@@ -802,7 +802,7 @@ export default function FinancesWalletsPage() {
                 const counted = useDenoms
                   ? cashSum(denomVals) + centsVal / 100
                   : Number(amountInput[w.id] || 0);
-                const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0 };
+                const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0, counted: false };
                 const fresh = freshnessByWallet.get(w.id);
 
                 const variance = counted - led.native;
