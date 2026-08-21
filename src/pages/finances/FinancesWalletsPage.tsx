@@ -839,11 +839,11 @@ export default function FinancesWalletsPage() {
                             <span className="text-[10px] text-muted-foreground">{w.currency}</span>
                           </>
                         ) : (
-                          <span className="text-muted-foreground">·</span>
+                          <span className="text-muted-foreground">0</span>
                         )}
                       </td>
                       <td className="text-right font-mono tabular-nums">
-                        {led.counted ? formatNumberSpaces(led.tzs) : <span className="text-muted-foreground">·</span>}
+                        {led.counted ? formatNumberSpaces(led.tzs) : <span className="text-muted-foreground">0</span>}
                       </td>
                       <td className="px-3 whitespace-nowrap text-xs">
                         {fresh?.counted_date ? (
