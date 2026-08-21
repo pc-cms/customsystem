@@ -4776,6 +4776,77 @@ export type Database = {
           },
         ]
       }
+      finance_hub_api_audit: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          id: string
+          mode: string
+          ok: boolean
+          rows_returned: number | null
+          since_cursor: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          mode: string
+          ok?: boolean
+          rows_returned?: number | null
+          since_cursor?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          mode?: string
+          ok?: boolean
+          rows_returned?: number | null
+          since_cursor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_hub_api_audit_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "finance_hub_api_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_hub_api_clients: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          last_used_at: string | null
+          name: string
+          scopes: string[]
+          token_sha256: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          name: string
+          scopes?: string[]
+          token_sha256: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          scopes?: string[]
+          token_sha256?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fleet_bulk_operations: {
         Row: {
           completed_at: string | null
@@ -11911,6 +11982,14 @@ export type Database = {
       finalize_player_daily_avg_bets: {
         Args: { p_business_date: string; p_casino_id: string }
         Returns: number
+      }
+      finance_hub_transactions: {
+        Args: { p_limit?: number; p_since?: string }
+        Returns: Json
+      }
+      finance_hub_wallet_snapshot: {
+        Args: { p_casino_ids?: string[] }
+        Returns: Json
       }
       find_duplicate_groups: {
         Args: { _casino_id?: string; _limit?: number }
