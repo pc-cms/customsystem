@@ -11,7 +11,9 @@
 - Пункт «Reconcile Now» (ручное обновление — данные и так обновляются автоматически).
 - Меню «…» исчезает: в нём останется только Close Month, поэтому выносим его отдельной кнопкой.
 
-Итоговая шапка: `Money In` · `Money Out` · `Add Wallet` · `Close Month` (только super admin).
+Итоговая шапка: `Money In` · `Money Out` · `Add Wallet` · `Close Month`.
+
+`Close Month` (и диалог закрытия месяца) доступен ролям: `manager`, `finance_manager`, `admin`/`super_admin` — вместо текущего «только super admin».
 
 ## Дублирование месяца
 
@@ -19,7 +21,7 @@
 
 ## Технические детали
 
-- Правки только в `src/pages/finances/FinancesWalletsPage.tsx`: удаляем состояние `countForDate`, `recordedSnap`, вызов `recordDay`, обработчик `reconcileNow` и блок `DropdownMenu`; `Close Month` рендерим кнопкой с иконкой.
+- Правки только в `src/pages/finances/FinancesWalletsPage.tsx`: удаляем состояние `countForDate`, `recordedSnap`, вызов `recordDay`, обработчик `reconcileNow` и блок `DropdownMenu`; `Close Month` рендерим кнопкой с иконкой; условие `isSuperAdmin` заменяем на `canCloseMonth` (manager / finance_manager / admin / super_admin) и для кнопки, и для диалога.
 - `refDate` (дата, на которую считается свежесть пересчётов) переводим на текущий бизнес-день закрытия `dayToRecord()` вместо выбираемой даты — логика расчётов и сохранение пересчётов кошельков не меняются.
 - Неиспользуемые импорты (`MonthCarousel`, `Save`, `RotateCw`, `MoreHorizontal`, `useRecordDayBalance`) удаляем.
 - Хук `use-day-balance-snapshot.ts` и таблицу в БД не трогаем (данные сохраняются), просто перестаём вызывать запись.
@@ -27,4 +29,4 @@
 
 ## Что не меняется
 
-Пересчёты кошельков, Variance, KPI, список транзакций, Close Month, права доступа.
+Пересчёты кошельков, Variance, KPI, список транзакций, сама логика закрытия месяца.
