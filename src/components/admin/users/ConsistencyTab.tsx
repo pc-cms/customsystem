@@ -6,6 +6,8 @@
  * selected users (or a whole module) back to the role default.
  */
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +32,6 @@ import {
 } from "./users-hooks";
 import {
   useRoleModuleDefaults,
-  useUserModuleOverrides,
   useSetUserModuleOverrides,
   HORIZON_LABEL,
   type OverrideRow,
