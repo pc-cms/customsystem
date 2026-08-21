@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
-import { BarChart3, Search, ArrowUp, ArrowDown, ArrowUpDown, ShieldAlert, Users } from "lucide-react";
+import { BarChart3, Search, ArrowUp, ArrowDown, ArrowUpDown, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
