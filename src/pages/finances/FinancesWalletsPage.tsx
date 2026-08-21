@@ -833,11 +833,17 @@ export default function FinancesWalletsPage() {
                         )}
                       </td>
                       <td className="text-right font-mono tabular-nums">
-                        {formatNumberSpaces(led.native)}{" "}
-                        <span className="text-[10px] text-muted-foreground">{w.currency}</span>
+                        {led.counted ? (
+                          <>
+                            {formatNumberSpaces(led.native)}{" "}
+                            <span className="text-[10px] text-muted-foreground">{w.currency}</span>
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground">·</span>
+                        )}
                       </td>
                       <td className="text-right font-mono tabular-nums">
-                        {formatNumberSpaces(led.tzs)}
+                        {led.counted ? formatNumberSpaces(led.tzs) : <span className="text-muted-foreground">·</span>}
                       </td>
                       <td className="px-3 whitespace-nowrap text-xs">
                         {fresh?.counted_date ? (
