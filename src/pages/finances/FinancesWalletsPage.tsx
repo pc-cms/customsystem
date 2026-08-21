@@ -1217,7 +1217,33 @@ export default function FinancesWalletsPage() {
               onChange={(e) => setWalletForm({ ...walletForm, name: e.target.value })}
             />
           </FormField>
-          <FormField span={3} label="Kind">
+          <FormField span={3} label="Group">
+            <Select
+              value={groupOfWallet(walletForm)}
+              onValueChange={(v) => {
+                const g = v as WalletGroup;
+                const kinds = WALLET_GROUP_KINDS[g] || [];
+                setWalletForm({
+                  ...walletForm,
+                  wallet_group: g,
+                  is_legacy: g === "legacy_other",
+                  kind: kinds.includes(walletForm.kind) ? walletForm.kind : kinds[0] || walletForm.kind,
+                });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {WALLET_GROUPS.map((g) => (
+                  <SelectItem key={g} value={g}>
+                    {walletGroupLabel(g)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+          <FormField span={3} label="Type">
             <Select
               value={walletForm.kind}
               onValueChange={(v) => setWalletForm({ ...walletForm, kind: v })}
@@ -1226,9 +1252,14 @@ export default function FinancesWalletsPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {KINDS.map((k) => (
+                {Array.from(
+                  new Set([
+                    ...(WALLET_GROUP_KINDS[groupOfWallet(walletForm)] || []),
+                    ...(walletForm.kind ? [walletForm.kind] : []),
+                  ]),
+                ).map((k) => (
                   <SelectItem key={k} value={k}>
-                    {k}
+                    {String(k).replace(/_/g, " ")}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1251,7 +1282,7 @@ export default function FinancesWalletsPage() {
               </SelectContent>
             </Select>
           </FormField>
-          <FormField span={6} label="Sort order">
+          <FormField span={3} label="Sort order">
             <NumberInput
               value={walletForm.sort_order ?? 0}
               onValueChange={(v) =>
@@ -1259,6 +1290,37 @@ export default function FinancesWalletsPage() {
               }
             />
           </FormField>
+          <FormField span={3} label="Canonical code">
+            <Input
+              value={walletForm.canonical_code || ""}
+              onChange={(e) => setWalletForm({ ...walletForm, canonical_code: e.target.value })}
+              placeholder="e.g. CASH_TZS"
+            />
+          </FormField>
+          <FormField span={3} label="Provider ref">
+            <Input
+              value={walletForm.provider_account_ref || ""}
+              onChange={(e) =>
+                setWalletForm({ ...walletForm, provider_account_ref: e.target.value })
+              }
+              placeholder="Optional"
+            />
+          </FormField>
+          <FormField span={3} label="Active">
+            <Select
+              value={walletForm.is_active === false ? "no" : "yes"}
+              onValueChange={(v) => setWalletForm({ ...walletForm, is_active: v === "yes" })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="yes">Active</SelectItem>
+                <SelectItem value="no">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </FormField>
+
 
           <FormField span={12}>
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1 mb-1 border-t border-border pt-2">
