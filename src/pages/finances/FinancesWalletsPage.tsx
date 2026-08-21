@@ -146,16 +146,17 @@ export default function FinancesWalletsPage() {
 
   // per-wallet map for physical-count inline UI.
   // Balance = Actual = last recorded wallet state (manual count, or the state
-  // written automatically after a movement). Never a cumulative ledger replay.
+  // written automatically after a movement). The book/ledger replay is never used.
   const ledgerByWallet = useMemo(() => {
     const m = new Map<
       string,
-      { native: number; tzs: number; asof?: string | null; source?: string | null }
+      { native: number; tzs: number; counted: boolean; asof?: string | null; source?: string | null }
     >();
     (snap?.wallets || []).forEach((w) =>
       m.set(w.wallet_id, {
-        native: Number(w.actual_native ?? w.ledger_native ?? w.ledger ?? 0),
-        tzs: Number(w.actual_tzs ?? w.ledger_tzs ?? w.ledger ?? 0),
+        native: Number(w.actual_native ?? 0),
+        tzs: Number(w.actual_tzs ?? 0),
+        counted: w.actual_tzs != null,
         asof: (w as any).physical_asof ?? null,
         source: (w as any).physical_source ?? null,
       }),
