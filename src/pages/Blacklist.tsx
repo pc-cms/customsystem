@@ -75,20 +75,18 @@ const Blacklist = () => {
   const [addTarget, setAddTarget] = useState<{ id: string; name: string } | null>(null);
   const { select: selectPlayer } = useSelectedPlayer();
 
-  // Blacklisted players only — server-side filter + paging.
-  // (A plain `select("*")` on players is capped at 1000 rows by the API and
-  // silently dropped most blacklist entries.)
+  // Blacklisted players — network-wide safety list via RPC.
+  // The RPC returns minimal fields only (no phone / ID number / documents), so
+  // staff of other branches can still recognise a banned player without PII access.
   const { data: players = [] } = useQuery({
     queryKey: ["players-blacklist"],
     queryFn: async () => {
-      return await fetchPaged<any>((from, to) => supabase
-        .from("players")
-        .select("*")
-        .eq("status", "blacklist")
-        .order("updated_at", { ascending: false })
-        .range(from, to));
+      const { data, error } = await supabase.rpc("blacklist_network_players");
+      if (error) throw error;
+      return (data || []) as any[];
     },
   });
+
 
   // Global player search (server-side) for the "add to blacklist" search bar.
   const searchTerm = search.trim();
