@@ -49,3 +49,7 @@ verify_jwt = false
 # verify_jwt=false — function validates Bearer token + super_admin role in code.
 [functions.cloud-snapshot-build]
 verify_jwt = false
+
+# finance-hub-export: token auth in code (SHA-256 vs finance_hub_api_clients).
+[functions.finance-hub-export]
+verify_jwt = false
