@@ -332,10 +332,10 @@ export default function PosManagerMenu() {
                           numeric
                           className={lowStock ? "text-cms-amount-negative" : ""}
                         >
-                          {it.stock_qty == null ? "·" : formatNumberSpaces(it.stock_qty)}
+                          {it.stock_qty == null ? "0" : formatNumberSpaces(it.stock_qty)}
                         </DTCell>
                         <DTCell numeric>
-                          {it.low_threshold == null ? "·" : formatNumberSpaces(it.low_threshold)}
+                          {it.low_threshold == null ? "0" : formatNumberSpaces(it.low_threshold)}
                         </DTCell>
                         <DTCell align="center">
                           {it.is_active ? (

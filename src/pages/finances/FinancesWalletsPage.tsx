@@ -825,7 +825,7 @@ export default function FinancesWalletsPage() {
                       <td className="text-right font-mono tabular-nums text-xs">
                         {w.starting_float_amount
                           ? `${formatNumberSpaces(Number(w.starting_float_amount))} ${w.currency}`
-                          : "·"}
+                          : `0 ${w.currency}`}
                         {w.starting_float_date && (
                           <div className="text-[10px] text-muted-foreground">
                             from {fmtDateOnly(w.starting_float_date)}
@@ -839,11 +839,11 @@ export default function FinancesWalletsPage() {
                             <span className="text-[10px] text-muted-foreground">{w.currency}</span>
                           </>
                         ) : (
-                          <span className="text-muted-foreground">·</span>
+                          <span className="text-muted-foreground">0</span>
                         )}
                       </td>
                       <td className="text-right font-mono tabular-nums">
-                        {led.counted ? formatNumberSpaces(led.tzs) : <span className="text-muted-foreground">·</span>}
+                        {led.counted ? formatNumberSpaces(led.tzs) : <span className="text-muted-foreground">0</span>}
                       </td>
                       <td className="px-3 whitespace-nowrap text-xs">
                         {fresh?.counted_date ? (
@@ -988,13 +988,13 @@ export default function FinancesWalletsPage() {
                                     Last count ({w.currency})
                                   </span>
                                   <span className="font-mono tabular-nums">
-                                    {led.counted ? formatNumberSpaces(led.native) : "·"}
+                                    {led.counted ? formatNumberSpaces(led.native) : "0"}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                                   <span>Last count (TZS)</span>
                                   <span className="font-mono tabular-nums">
-                                    {led.counted ? formatNumberSpaces(led.tzs) : "·"}
+                                    {led.counted ? formatNumberSpaces(led.tzs) : "0"}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs">

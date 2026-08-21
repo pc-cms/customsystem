@@ -356,10 +356,10 @@ export default function FinancesBudgetPage() {
                             );
                           })}
                           <td className={cn("sticky z-10 bg-card text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border", stickyRightEdge)} style={{ right: yearW }}>
-                            {yTzs ? fmtN(yTzs) : <span className="text-muted-foreground/40">·</span>}
+                            {fmtT(yTzs)}
                           </td>
                           <td className={cn("sticky right-0 z-10 bg-card text-right pr-2 font-mono tabular-nums whitespace-nowrap border-l-2 border-border", stickyRightEdge)}>
-                            {yUsd ? fmtN(yUsd) : <span className="text-muted-foreground/40">·</span>}
+                            {fmtT(yUsd)}
                           </td>
                         </tr>
                       );
