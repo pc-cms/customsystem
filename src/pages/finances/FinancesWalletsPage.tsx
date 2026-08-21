@@ -127,6 +127,8 @@ export default function FinancesWalletsPage() {
     "walletSort",
     WALLET_SORT_DEFAULT,
   );
+  /** Inactive wallets are hidden by default; legacy wallets stay visible while active. */
+  const [includeInactive, setIncludeInactive] = useSessionState<boolean>("walletInactive", false);
   const [closeOpen, setCloseOpen] = useState(false);
 
   // Whole page is scoped to a single calendar month.
