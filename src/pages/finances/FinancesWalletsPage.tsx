@@ -156,7 +156,7 @@ export default function FinancesWalletsPage() {
    * (`countForDate`), not the calendar day. Counting yesterday's money this
    * morning is the normal flow and must never be reported as stale.
    */
-  const todayEat = eatDate(new Date());
+  
   const refDate = countForDate < range.from ? range.from
     : countForDate > range.to ? range.to : countForDate;
   const freshness = useMemo<CountFreshnessRow[]>(() => {
