@@ -279,6 +279,29 @@ export const ConsistencyTab = () => {
   );
 };
 
-const useUserOverridesForUsers = (userIds: string[]) => {
-  return useUserModuleOverrides(userIds.length > 0 ? userIds[0] : null);
+const useAllUserOverrides = (userIds: string[]) => {
+  return useQuery({
+    queryKey: ["user-module-overrides-bulk", userIds.slice().sort().join(",")],
+    queryFn: async (): Promise<Map<string, OverrideRow[]>> => {
+      if (userIds.length === 0) return new Map();
+      const { data, error } = await supabase
+        .from("user_module_permissions")
+        .select("user_id, module_key, can_view, can_write, day_horizon")
+        .in("user_id", userIds);
+      if (error) throw error;
+      const map = new Map<string, OverrideRow[]>();
+      (data || []).forEach((row: any) => {
+        const list = map.get(row.user_id) || [];
+        list.push({
+          module_key: row.module_key,
+          can_view: row.can_view,
+          can_write: row.can_write,
+          day_horizon: row.day_horizon,
+        });
+        map.set(row.user_id, list);
+      });
+      return map;
+    },
+    enabled: userIds.length > 0,
+  });
 };
