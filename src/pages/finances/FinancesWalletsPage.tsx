@@ -50,9 +50,25 @@ import StaleCountsNotice, { type CountFreshnessRow } from "@/components/office/S
 import { dayToRecord } from "@/hooks/use-day-balance-snapshot";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  WALLET_GROUPS,
+  WALLET_GROUP_ORDER,
+  groupOfWallet,
+  walletGroupLabel,
+  type WalletGroup,
+} from "@/lib/wallet-groups";
 
 const CURRENCIES = ["TZS", "USD", "EUR", "GBP", "KES"];
-const KINDS = ["cash", "bank", "mobile_money", "safe", "cage", "external"];
+const KINDS = [
+  "cash",
+  "bank",
+  "mobile_money",
+  "digital_wallet",
+  "selcom",
+  "safe",
+  "cage",
+  "external",
+];
 const CASH_LIKE_KINDS = new Set(["cash", "safe"]);
 const CURRENCY_ORDER = ["TZS", "USD", "EUR", "GBP", "KES"];
 
@@ -65,6 +81,7 @@ type WalletSortKey =
   | "balance_tzs"
   | "counted";
 
+/** Default view: canonical Group -> Name. Column clicks sort WITHIN each group. */
 const WALLET_SORT_DEFAULT: { key: WalletSortKey; dir: "asc" | "desc" } = { key: "name", dir: "asc" };
 
 /** Business date (EAT) of a timestamp — counts belong to the day they were taken. */
