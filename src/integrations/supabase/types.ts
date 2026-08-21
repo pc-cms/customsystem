@@ -4704,49 +4704,67 @@ export type Database = {
       }
       fin_wallets: {
         Row: {
+          canonical_code: string | null
           casino_id: string
           created_at: string
           currency: string
+          finance_hub_account_id: string | null
           id: string
           is_active: boolean
+          is_legacy: boolean
           is_office: boolean
           kind: string
           name: string
+          provider: string | null
+          provider_account_ref: string | null
           sort_order: number
           starting_float_amount: number
           starting_float_date: string | null
           starting_float_note: string | null
           updated_at: string
+          wallet_group: string | null
         }
         Insert: {
+          canonical_code?: string | null
           casino_id: string
           created_at?: string
           currency: string
+          finance_hub_account_id?: string | null
           id?: string
           is_active?: boolean
+          is_legacy?: boolean
           is_office?: boolean
           kind: string
           name: string
+          provider?: string | null
+          provider_account_ref?: string | null
           sort_order?: number
           starting_float_amount?: number
           starting_float_date?: string | null
           starting_float_note?: string | null
           updated_at?: string
+          wallet_group?: string | null
         }
         Update: {
+          canonical_code?: string | null
           casino_id?: string
           created_at?: string
           currency?: string
+          finance_hub_account_id?: string | null
           id?: string
           is_active?: boolean
+          is_legacy?: boolean
           is_office?: boolean
           kind?: string
           name?: string
+          provider?: string | null
+          provider_account_ref?: string | null
           sort_order?: number
           starting_float_amount?: number
           starting_float_date?: string | null
           starting_float_note?: string | null
           updated_at?: string
+          wallet_group?: string | null
         }
         Relationships: [
           {
