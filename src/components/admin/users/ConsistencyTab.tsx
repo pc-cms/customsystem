@@ -33,9 +33,9 @@ import {
 import {
   useRoleModuleDefaults,
   useSetUserModuleOverrides,
-  HORIZON_LABEL,
   type OverrideRow,
 } from "@/hooks/use-module-permissions";
+import { HORIZON_LABEL } from "@/components/admin/PermissionMatrix";
 import { MODULES } from "@/lib/modules";
 import type { AdminUserRow } from "./users-hooks";
 
