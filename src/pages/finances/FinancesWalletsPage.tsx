@@ -982,16 +982,16 @@ export default function FinancesWalletsPage() {
                               <div className="rounded-md border border-border bg-card p-3 space-y-1">
                                 <div className="flex items-center justify-between text-xs">
                                   <span className="text-muted-foreground">
-                                    Ledger ({w.currency})
+                                    Last count ({w.currency})
                                   </span>
                                   <span className="font-mono tabular-nums">
-                                    {formatNumberSpaces(led.native)}
+                                    {led.counted ? formatNumberSpaces(led.native) : "·"}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                  <span>Ledger (TZS)</span>
+                                  <span>Last count (TZS)</span>
                                   <span className="font-mono tabular-nums">
-                                    {formatNumberSpaces(led.tzs)}
+                                    {led.counted ? formatNumberSpaces(led.tzs) : "·"}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs">
@@ -1001,7 +1001,7 @@ export default function FinancesWalletsPage() {
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between text-sm font-semibold pt-1 border-t border-border">
-                                  <span>Variance</span>
+                                  <span>Change vs last count</span>
                                   <span
                                     className={cn(
                                       "font-mono tabular-nums",
