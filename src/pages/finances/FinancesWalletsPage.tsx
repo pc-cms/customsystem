@@ -506,65 +506,14 @@ export default function FinancesWalletsPage() {
         >
           <ArrowUpRight className="w-4 h-4" /> Money Out
         </Button>
-        <div
-          className="flex items-center gap-2 h-9 px-2 rounded-md border border-border bg-card"
-          title="Business day the counts are for. A business day is always closed the next morning."
-        >
-          <span className="text-xs text-muted-foreground whitespace-nowrap">Counting for</span>
-          <input
-            type="date"
-            value={countForDate}
-            max={todayEat}
-            onChange={(e) => e.target.value && setCountForDate(e.target.value)}
-            className="h-7 bg-transparent text-xs font-mono text-foreground outline-none"
-          />
-          {countForDate !== recordTargetDate && (
-            <button
-              type="button"
-              className="text-[10px] uppercase tracking-wide text-primary"
-              onClick={() => setCountForDate(recordTargetDate)}
-            >
-              reset
-            </button>
-          )}
-        </div>
-        <Button
-          variant={recordedSnap ? "outline" : "default"}
-          size="sm"
-          className="h-9"
-          disabled={recordDay.isPending}
-          title={
-            recordedSnap
-              ? `Recorded ${fmtDate(countForDate)} · re-record to overwrite`
-              : `Record safes & bank as of ${fmtDate(countForDate)}`
-          }
-          onClick={() => recordDay.mutate(countForDate)}
-        >
-          <Save className={cn("w-4 h-4", recordDay.isPending && "animate-pulse")} />
-          Record {fmtDate(countForDate)}
-        </Button>
         <Button size="sm" className="h-9" onClick={openNewWallet}>
           <Plus className="w-4 h-4" /> Add Wallet
         </Button>
-
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="h-9 w-9" aria-label="More actions">
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={reconcileNow}>
-              <RotateCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} /> Reconcile Now
-            </DropdownMenuItem>
-            {isSuperAdmin && (
-              <DropdownMenuItem onClick={() => setCloseOpen(true)}>
-                <CalendarCheck className="w-4 h-4 mr-2" /> Close Month
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {canCloseMonth && (
+          <Button variant="outline" size="sm" className="h-9" onClick={() => setCloseOpen(true)}>
+            <CalendarCheck className="w-4 h-4" /> Close Month
+          </Button>
+        )}
       </OfficeActions>
       {/* KPI STRIP */}
       <PageSection card={false}>
