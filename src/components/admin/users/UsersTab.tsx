@@ -390,10 +390,11 @@ export const UsersTab = () => {
       <AlertDialog open={!!disableTarget} onOpenChange={(o) => !o && setDisableTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Disable user?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {disableTarget?.enable ? "Enable user?" : "Disable user?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {disableTarget?.name} will no longer be able to sign in. Historical logs and records
-              stay intact.
+              {disableTarget?.name} will {disableTarget?.enable ? "be able to sign in again" : "no longer be able to sign in"}. Historical logs and records stay intact.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -402,12 +403,47 @@ export const UsersTab = () => {
               onClick={() => {
                 if (!disableTarget) return;
                 disableUser.mutate(
-                  { userId: disableTarget.id },
+                  { userId: disableTarget.id, action: disableTarget.enable ? "enable" : "disable" },
                   { onSuccess: () => setDisableTarget(null) },
                 );
               }}
             >
-              Disable
+              {disableTarget?.enable ? "Enable" : "Disable"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) { setDeleteTarget(null); setDeleteConfirm(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete user permanently?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the login, profile, roles and access records for <strong>{deleteTarget?.name}</strong>. Historical logs and records remain, but the user will be shown as "Deleted user".
+              <br /><br />
+              Type <strong>{deleteTarget?.login}</strong> to confirm.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            value={deleteConfirm}
+            onChange={(e) => setDeleteConfirm(e.target.value)}
+            placeholder={`Type ${deleteTarget?.login ?? "login"} to confirm`}
+            className="mt-2"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteConfirm("")}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteConfirm !== deleteTarget?.login || deleteUser.isPending}
+              onClick={() => {
+                if (!deleteTarget) return;
+                deleteUser.mutate(
+                  { userId: deleteTarget.id },
+                  { onSuccess: () => { setDeleteTarget(null); setDeleteConfirm(""); } },
+                );
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
