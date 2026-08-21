@@ -596,6 +596,129 @@ const RoleCell = ({
   );
 };
 
+const CasinoCell = ({
+  row,
+  casinos,
+  editable,
+  onSave,
+}: {
+  row: AdminUserRow;
+  casinos: { id: string; name: string }[];
+  editable: boolean;
+  onSave: (payload: { primaryCasinoId?: string; casinoIds: string[] }) => Promise<void>;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [primaryId, setPrimaryId] = useState(row.casino_id);
+  const [selectedIds, setSelectedIds] = useState(new Set(row.casino_ids));
+  const isMutating = false;
+
+  const apply = async () => {
+    setOpen(false);
+    const nextIds = Array.from(selectedIds);
+    if (nextIds.includes(primaryId ?? "")) {
+      await onSave({ primaryCasinoId: primaryId, casinoIds: nextIds });
+    } else {
+      // If primary was removed, pick first available selection as new primary
+      const newPrimary = nextIds[0] ?? null;
+      await onSave({ primaryCasinoId: newPrimary ?? undefined, casinoIds: nextIds });
+    }
+  };
+
+  const toggle = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const extraCount = Math.max(0, row.casino_ids.length - 1);
+  const displayName = row.casino_id ? casinos.find((c) => c.id === row.casino_id)?.name ?? row.casino_id.slice(0, 8) : "—";
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        if (o) {
+          setPrimaryId(row.casino_id);
+          setSelectedIds(new Set(row.casino_ids));
+        }
+        setOpen(o);
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={`w-full text-left px-1 -mx-1 py-0.5 rounded truncate ${editable ? "hover:bg-accent/40" : ""}`}
+          disabled={!editable}
+        >
+          <span className="inline-flex items-center gap-1">
+            {displayName}
+            {row.casino_id && <Star className="w-3 h-3 text-amber-500 fill-amber-500" />}
+          </span>
+          {extraCount > 0 && (
+            <span className="ml-1 text-muted-foreground/60">+{extraCount}</span>
+          )}
+        </button>
+      </PopoverTrigger>
+      {editable && (
+        <PopoverContent className="w-64 p-2" align="start">
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider px-1 mb-1">
+            Casino access
+          </div>
+          <div className="space-y-0.5">
+            {casinos.map((c) => {
+              const checked = selectedIds.has(c.id);
+              const isPrimary = primaryId === c.id;
+              return (
+                <label
+                  key={c.id}
+                  className="flex items-center gap-2 text-sm cursor-pointer rounded px-2 py-1 hover:bg-muted/40"
+                >
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={(v) => toggle(c.id, v === true)}
+                  />
+                  <span className="flex-1 truncate">{c.name}</span>
+                  {isPrimary && (
+                    <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">Primary</Badge>
+                  )}
+                  {checked && !isPrimary && (
+                    <button
+                      type="button"
+                      onClick={() => setPrimaryId(c.id)}
+                      className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                    >
+                      Set primary
+                    </button>
+                  )}
+                </label>
+              );
+            })}
+          </div>
+          <div className="flex justify-end gap-1 pt-2 mt-1 border-t border-border">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setPrimaryId(row.casino_id);
+                setSelectedIds(new Set(row.casino_ids));
+                setOpen(false);
+              }}
+            >
+              <X className="w-3.5 h-3.5" />
+            </Button>
+            <Button size="sm" onClick={apply} disabled={isMutating}>
+              <Check className="w-3.5 h-3.5 mr-1" /> Apply
+            </Button>
+          </div>
+        </PopoverContent>
+      )}
+    </Popover>
+  );
+};
+
 const PasswordCell = ({ onApply }: { onApply: (pwd: string) => Promise<void> }) => {
   const [pwd, setPwd] = useState("");
   const [busy, setBusy] = useState(false);
