@@ -649,12 +649,12 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
             <tfoot className="sticky bottom-0 bg-[hsl(240_20%_7%)] border-t-2 border-primary/40">
               <tr className="font-extrabold text-[0.95em]">
                 <td className="px-3 py-2 uppercase tracking-widest text-primary">Total</td>
-                <AmountCell value={t.result} bold />
+                <AmountCell value={t.result} bold compact={!desktop} />
                 {casinos.map((c) => (
-                  <AmountCell key={c.id} value={summary.result[c.id] || 0} bold />
+                  <AmountCell key={c.id} value={summary.result[c.id] || 0} bold compact={!desktop} />
                 ))}
-                <AmountCell value={t.collection} bold />
-                <AmountCell value={t.dailyBalance} bold />
+                <AmountCell value={t.collection} bold compact={!desktop} />
+                <AmountCell value={t.dailyBalance} bold compact={!desktop} />
               </tr>
             </tfoot>
           </table>
