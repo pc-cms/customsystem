@@ -19,17 +19,9 @@ import {
   ArrowDown,
   ChevronRight,
   ChevronDown,
-  RotateCw,
-  MoreHorizontal,
   CalendarCheck,
-  Save,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
@@ -40,7 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
-import { MonthCarousel, MONTHS } from "@/components/payroll/MonthCarousel";
+
 import { useFinWallets, useUpsertFinWallet, useFinWalletTx } from "@/hooks/use-fin";
 import { useFinBalanceSnapshot, computeBalanceTotals } from "@/hooks/use-fin-balance";
 import { fmtDate } from "@/lib/format-date";
@@ -55,7 +47,7 @@ import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import WalletMovementDialog, { type MovementMode } from "@/components/finances/WalletMovementDialog";
 import StaleCountsNotice, { type CountFreshnessRow } from "@/components/office/StaleCountsNotice";
 
-import { useRecordDayBalance, useDayBalanceSnapshot, dayToRecord } from "@/hooks/use-day-balance-snapshot";
+import { dayToRecord } from "@/hooks/use-day-balance-snapshot";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -93,21 +85,16 @@ export default function FinancesWalletsPage() {
   const { user, roles } = useAuth();
   const qc = useQueryClient();
   const isSuperAdmin = roles.includes("super_admin");
+  const canCloseMonth = roles.some((r) =>
+    ["super_admin", "admin", "manager", "general_manager", "finance_manager"].includes(r),
+  );
   const { data: wallets = [] } = useFinWallets();
   const upsert = useUpsertFinWallet();
   /**
-   * We always close YESTERDAY: on 05/08 the recorded day is 04/08 (it rolled
-   * over at 07:00 EAT). Re-recording during the day overwrites the snapshot.
+   * Physical counts always belong to the business day being closed (yesterday):
+   * on 05/08 the counted day is 04/08 (it rolled over at 07:00 EAT).
    */
-  const recordTargetDate = dayToRecord();
-  const recordDay = useRecordDayBalance();
-  /**
-   * Business day the physical counts are FOR. We always close YESTERDAY, so
-   * counting on 12/08 normally records the 11/08 balances. The user can move
-   * this date when catching up on an older day.
-   */
-  const [countForDate, setCountForDate] = useState<string>(recordTargetDate);
-  const { data: recordedSnap } = useDayBalanceSnapshot(countForDate);
+  const countForDate = dayToRecord();
 
 
   const now = new Date();
@@ -135,7 +122,7 @@ export default function FinancesWalletsPage() {
     };
   }, [ym]);
   const monthRange = range;
-  const monthLabel = `${MONTHS[ym.month - 1]} ${ym.year}`;
+  
 
   // Unified snapshot — same source of truth as former Balance tab.
   const { data: snap, isFetching } = useFinBalanceSnapshot(range.from, range.to);
@@ -169,7 +156,7 @@ export default function FinancesWalletsPage() {
    * (`countForDate`), not the calendar day. Counting yesterday's money this
    * morning is the normal flow and must never be reported as stale.
    */
-  const todayEat = eatDate(new Date());
+  
   const refDate = countForDate < range.from ? range.from
     : countForDate > range.to ? range.to : countForDate;
   const freshness = useMemo<CountFreshnessRow[]>(() => {
@@ -336,9 +323,6 @@ export default function FinancesWalletsPage() {
   const varianceTone =
     Math.abs(totals.variance) < 1 ? "neutral" : totals.variance > 0 ? "positive" : "negative";
 
-  const reconcileNow = () => {
-    invalidateFinance(qc);
-  };
 
   /* ===== wallet movement (transactional cash in/out/transfer) ===== */
   const [moveOpen, setMoveOpen] = useState(false);
@@ -514,65 +498,14 @@ export default function FinancesWalletsPage() {
         >
           <ArrowUpRight className="w-4 h-4" /> Money Out
         </Button>
-        <div
-          className="flex items-center gap-2 h-9 px-2 rounded-md border border-border bg-card"
-          title="Business day the counts are for. A business day is always closed the next morning."
-        >
-          <span className="text-xs text-muted-foreground whitespace-nowrap">Counting for</span>
-          <input
-            type="date"
-            value={countForDate}
-            max={todayEat}
-            onChange={(e) => e.target.value && setCountForDate(e.target.value)}
-            className="h-7 bg-transparent text-xs font-mono text-foreground outline-none"
-          />
-          {countForDate !== recordTargetDate && (
-            <button
-              type="button"
-              className="text-[10px] uppercase tracking-wide text-primary"
-              onClick={() => setCountForDate(recordTargetDate)}
-            >
-              reset
-            </button>
-          )}
-        </div>
-        <Button
-          variant={recordedSnap ? "outline" : "default"}
-          size="sm"
-          className="h-9"
-          disabled={recordDay.isPending}
-          title={
-            recordedSnap
-              ? `Recorded ${fmtDate(countForDate)} · re-record to overwrite`
-              : `Record safes & bank as of ${fmtDate(countForDate)}`
-          }
-          onClick={() => recordDay.mutate(countForDate)}
-        >
-          <Save className={cn("w-4 h-4", recordDay.isPending && "animate-pulse")} />
-          Record {fmtDate(countForDate)}
-        </Button>
         <Button size="sm" className="h-9" onClick={openNewWallet}>
           <Plus className="w-4 h-4" /> Add Wallet
         </Button>
-
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="h-9 w-9" aria-label="More actions">
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={reconcileNow}>
-              <RotateCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} /> Reconcile Now
-            </DropdownMenuItem>
-            {isSuperAdmin && (
-              <DropdownMenuItem onClick={() => setCloseOpen(true)}>
-                <CalendarCheck className="w-4 h-4 mr-2" /> Close Month
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {canCloseMonth && (
+          <Button variant="outline" size="sm" className="h-9" onClick={() => setCloseOpen(true)}>
+            <CalendarCheck className="w-4 h-4" /> Close Month
+          </Button>
+        )}
       </OfficeActions>
       {/* KPI STRIP */}
       <PageSection card={false}>
@@ -1096,7 +1029,7 @@ export default function FinancesWalletsPage() {
       </PageSection>
 
       {/* TRANSACTIONS */}
-      <PageSection title={`Transactions · ${monthLabel} · ${txRows.length}`} card={false}>
+      <PageSection title={`Transactions · ${txRows.length}`} card={false}>
         <div className="flex flex-wrap items-center gap-2 mb-2">
           <Select value={walletFilter} onValueChange={setWalletFilter}>
             <SelectTrigger className="h-9 w-[180px]">
@@ -1334,7 +1267,7 @@ export default function FinancesWalletsPage() {
         maxDate={range.to}
       />
 
-      {isSuperAdmin && (
+      {canCloseMonth && (
         <CloseMonthWizard
           open={closeOpen}
           onOpenChange={setCloseOpen}
