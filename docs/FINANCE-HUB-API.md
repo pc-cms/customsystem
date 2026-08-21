@@ -49,6 +49,7 @@ Pagination rules (stable contract — do not change without updating consumers):
 - Cursors are opaque strings of the form `<sort_key>|<uuid>`:
   - transactions / expenses: `<created_at ISO UTC>|<row uuid>`
   - performance / closings: `<business_date>|<casino_id>`
+  - fx_rates: `<effective_business_date>|<source_id uuid>`
 - Requesting the same cursor twice returns the same page (idempotent); consumers de-duplicate on the row UUID.
 - Missing source data is returned as `null`. Values are never fabricated.
 
