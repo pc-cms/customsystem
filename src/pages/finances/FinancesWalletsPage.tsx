@@ -765,7 +765,7 @@ export default function FinancesWalletsPage() {
               </tr>
             </thead>
             <tbody>
-              {visibleWallets.map((w) => {
+              {visibleWallets.map((w, idx) => {
                 const isOpen = !!expanded[w.id];
                 const useDenoms = CASH_LIKE_KINDS.has(w.kind);
                 const denoms = CASH_DENOMS[w.currency] || CASH_DENOMS.TZS;
@@ -776,10 +776,23 @@ export default function FinancesWalletsPage() {
                   : Number(amountInput[w.id] || 0);
                 const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0, counted: false };
                 const fresh = freshnessByWallet.get(w.id);
+                const grp = groupOfWallet(w);
+                const prevGrp = idx > 0 ? groupOfWallet(visibleWallets[idx - 1]) : null;
+                const showGroupHeader = grp !== prevGrp;
 
                 const variance = counted - led.native;
                 return (
                   <Fragment key={w.id}>
+                    {showGroupHeader && (
+                      <tr className="bg-muted/60 border-t-2 border-border">
+                        <td
+                          colSpan={9}
+                          className="px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+                        >
+                          {walletGroupLabel(grp)}
+                        </td>
+                      </tr>
+                    )}
                     <tr
                       className="border-t border-border hover:bg-muted/40 cursor-pointer"
                       onClick={() => toggleRow(w.id)}
