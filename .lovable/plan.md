@@ -1,24 +1,26 @@
-# Per-table result chart: only Chips Check data
+# График per-table result: только данные Chips Check
 
-## What changes
+## Что меняем
 
-The 20-minute per-table graph (18:00 → 06:00) currently draws points from two sources at once:
+20-минутный график per-table result (18:00 → 06:00) сейчас рисует точки из двух источников:
 
-1. Chips Check snapshots (chip count per table, actual vs expected)
-2. Numbers / Table Tracker manual entries
+1. **Chips Check** — снимки фишек по столам (actual vs expected)
+2. **Numbers / Table Tracker** — ручные записи
 
-When both exist in the same 20-minute slot, the later one wins, so the line can jump between two different meanings.
+Когда оба источника есть в одном 20-минутном слоте, побеждает последний, и линия может прыгать между двумя разными смыслами.
 
-After the change the chart is built **only** from Chips Check snapshots. Numbers entries are ignored — they stay untouched in their own screen, they just no longer feed this graph.
+После изменения график будет строиться **только** из Chips Check снимков. Записи Numbers остаются в своём экране, но больше не попадают в этот график.
 
-## Behaviour details
+## Поведение после изменения
 
-- Each point = result of the chip count for that table at that time slot (same value logic as today for snapshots).
-- Slots with no chip check stay empty (no line point), so the line reflects only real counts.
-- Time slots, colours, tooltip and Y axis stay as they are now.
+- Каждая точка = результат чип-чека для стола в этом временном слоте (та же логика, что сейчас для снимков).
+- Слоты без чип-чека остаются пустыми — линия отображает только реальные пересчёты.
+- Цвета, подсказки, ось Y и разметка времени остаются как сейчас.
 
-## Technical
+## Технические детали
 
-- `src/components/tables/TableAnalyticsChart.tsx`: drop the `useTableTracker` data feed from `dataBySlot` (and the now unused import/hook call). Keep the `useChipSnapshotsFull` grouping and `chipSnapshotResult` computation.
-- No database or backend changes.
-- Version bump.
+- Файл: `src/components/tables/TableAnalyticsChart.tsx`
+- Убрать подписку и использование `useTableTracker` в `dataBySlot` (и неиспользуемый импорт).
+- Оставить группировку `useChipSnapshotsFull` и вычисление `chipSnapshotResult`.
+- Бэкенд и база не меняются.
+- Повысить версию приложения.
