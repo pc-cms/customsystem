@@ -11,7 +11,9 @@
 - Пункт «Reconcile Now» (ручное обновление — данные и так обновляются автоматически).
 - Меню «…» исчезает: в нём останется только Close Month, поэтому выносим его отдельной кнопкой.
 
-Итоговая шапка: `Money In` · `Money Out` · `Add Wallet` · `Close Month` (только super admin).
+Итоговая шапка: `Money In` · `Money Out` · `Add Wallet` · `Close Month`.
+
+`Close Month` (и диалог закрытия месяца) доступен ролям: `manager`, `finance_manager`, `admin`/`super_admin` — вместо текущего «только super admin».
 
 ## Дублирование месяца
 
