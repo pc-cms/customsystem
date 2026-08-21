@@ -323,9 +323,6 @@ export default function FinancesWalletsPage() {
   const varianceTone =
     Math.abs(totals.variance) < 1 ? "neutral" : totals.variance > 0 ? "positive" : "negative";
 
-  const reconcileNow = () => {
-    invalidateFinance(qc);
-  };
 
   /* ===== wallet movement (transactional cash in/out/transfer) ===== */
   const [moveOpen, setMoveOpen] = useState(false);
