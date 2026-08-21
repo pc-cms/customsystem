@@ -27,7 +27,7 @@ const eatDecimalHours = (iso: string): number => {
 
 const buildSlots = (): { label: string; key: number }[] => {
   const slots: { label: string; key: number }[] = [];
-  for (let mins = 18 * 60; mins <= 29 * 60; mins += 30) {
+  for (let mins = 18 * 60; mins <= 29 * 60; mins += 20) {
     const h = Math.floor(mins / 60) % 24;
     const m = mins % 60;
     slots.push({ label: `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`, key: mins });
@@ -38,8 +38,8 @@ const buildSlots = (): { label: string; key: number }[] => {
 const slotKeyFor = (decH: number): number | null => {
   let h = decH;
   if (h < 6) h += 24;
-  if (h < 18 || h > 29.5) return null;
-  return Math.floor((h * 60) / 30) * 30;
+  if (h < 18 || h > 29 + 40 / 60) return null;
+  return Math.floor((h * 60) / 20) * 20;
 };
 
 const niceMax = (v: number): number => {
