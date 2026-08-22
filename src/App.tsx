@@ -336,8 +336,26 @@ const getDefaultRoute = (roles: string[]) => {
   return "/";
 };
 
+/**
+ * CONTROL ROOM LAB guard — super_admin only. Everyone else is redirected home.
+ * The lab is a read-only presentation preview; it renders no mutation controls.
+ */
+const LabGuard = () => {
+  const { roles, loading } = useAuth();
+  if (loading) return <FullScreenLoader />;
+  if (!roles.includes("super_admin")) return <Navigate to="/" replace />;
+  return (
+    <LabPeriodProvider>
+      <Suspense fallback={<FullScreenLoader />}>
+        <Outlet />
+      </Suspense>
+    </LabPeriodProvider>
+  );
+};
+
 const ProtectedRoutes = () => {
   const { user, loading } = useAuth();
+
 
 
   // Expose queryClient to auth-context (which lives outside QueryClientProvider
