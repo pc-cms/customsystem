@@ -8,8 +8,10 @@ import { BalanceBanner } from "@/components/office/BalanceBanner";
 import { OfficeShell } from "@/components/office/office-shell";
 
 
+const WalletDayGridTab = lazy(() => import("./WalletDayGridTab"));
 const FinancesWalletsPage = lazy(() => import("@/pages/finances/FinancesWalletsPage"));
 const FinancesMonthlyReportPage = lazy(() => import("@/pages/finances/FinancesMonthlyReportPage"));
+
 
 // Flat, alphabetically sorted top-level tabs — no nested sub-tabs.
 // Balance was merged into Wallets (2026-07-20) — legacy `?tab=balance` redirects.
