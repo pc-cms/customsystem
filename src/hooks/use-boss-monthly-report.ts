@@ -212,7 +212,7 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
       const tCollection = sumRec(collection);
       const tExtras = sumRec(extrasTotal);
       const tBonus = sumRec(bonus5);
-      const balance = tResult + tOther - tEstimated - tExtras - tCollection;
+      const balance = tResult - tEstimated - tExtras - tCollection;
 
       // Forecast: average of CLOSED business days only
       const daysInMonth = lastDay;
