@@ -284,6 +284,7 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
                 hold: day.mtd.hold,
               }}
               slots={{ drop: 0, result: 0, headCount: 0, hold: 0 }}
+              slotsAvailable={false}
               total={{
                 drop: day.mtd.drop,
                 result: day.mtd.result,
@@ -299,9 +300,10 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
       )}
 
       <div className="px-6 py-2 border-t border-white/5 flex items-center justify-between text-[0.55em] uppercase tracking-[0.22em] text-muted-foreground/70">
-        <span>Tables · Reports Daily Balance</span>
-        <span>{useAce ? "Slots · ACE Live" : "Slots · Day Closing / Live"}</span>
+        <span>Tables · Chips Check / Day Closing</span>
+        <span>{useAce ? "Slots · ACE Live" : "Slots · Day Closing only"}</span>
       </div>
+
 
     </section>
   );
