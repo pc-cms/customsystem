@@ -58,6 +58,7 @@ const MetricsGrid = ({
   accent,
   slotsHint,
   slotsSubHint,
+  slotsAvailable = true,
 }: {
   tables: CasinoMetric;
   slots: CasinoMetric;
@@ -65,6 +66,7 @@ const MetricsGrid = ({
   accent: string;
   slotsHint?: string | null;
   slotsSubHint?: string | null;
+  slotsAvailable?: boolean;
 }) => (
   <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-x-4 gap-y-2 items-baseline">
     {/* header row */}
@@ -101,9 +103,10 @@ const MetricsGrid = ({
         </span>
       )}
     </span>
-    <Cell value={formatMoneyFull(slots.drop)} />
-    <Cell value={formatSigned(slots.result)} tone="signed" />
-    <Cell value={`${slots.hold.toFixed(1)}%`} />
+    <Cell value={slotsAvailable ? formatMoneyFull(slots.drop) : "·"} />
+    <Cell value={slotsAvailable ? formatSigned(slots.result) : "·"} tone="signed" />
+    <Cell value={slotsAvailable ? `${slots.hold.toFixed(1)}%` : "·"} />
+
 
 
     {/* divider */}
