@@ -83,7 +83,7 @@ export const AppLayout = () => {
               </V2Scope>
             </div>
           ) : (
-            <div className="p-3 sm:p-6 max-w-[1600px] xl:max-w-[1900px] mx-auto animate-fade-in">
+            <div className="p-3 sm:p-6 max-w-[1600px] mx-auto animate-fade-in">
               <V2Scope>
                 <Suspense fallback={<PageLoader />}>
                   <Outlet />
