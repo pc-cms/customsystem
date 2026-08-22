@@ -4151,6 +4151,122 @@ export type Database = {
           },
         ]
       }
+      fin_inter_casino_transfers: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          amount: number
+          business_date: string
+          created_at: string
+          created_by: string
+          currency: string
+          from_casino_id: string
+          from_wallet_id: string
+          id: string
+          in_tx_id: string | null
+          note: string | null
+          out_tx_id: string | null
+          resolution_note: string | null
+          reversal_tx_id: string | null
+          status: string
+          to_casino_id: string
+          to_wallet_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          amount: number
+          business_date: string
+          created_at?: string
+          created_by: string
+          currency: string
+          from_casino_id: string
+          from_wallet_id: string
+          id?: string
+          in_tx_id?: string | null
+          note?: string | null
+          out_tx_id?: string | null
+          resolution_note?: string | null
+          reversal_tx_id?: string | null
+          status?: string
+          to_casino_id: string
+          to_wallet_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          amount?: number
+          business_date?: string
+          created_at?: string
+          created_by?: string
+          currency?: string
+          from_casino_id?: string
+          from_wallet_id?: string
+          id?: string
+          in_tx_id?: string | null
+          note?: string | null
+          out_tx_id?: string | null
+          resolution_note?: string | null
+          reversal_tx_id?: string | null
+          status?: string
+          to_casino_id?: string
+          to_wallet_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_inter_casino_transfers_from_casino_id_fkey"
+            columns: ["from_casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_inter_casino_transfers_from_wallet_id_fkey"
+            columns: ["from_wallet_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_inter_casino_transfers_in_tx_id_fkey"
+            columns: ["in_tx_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallet_tx"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_inter_casino_transfers_out_tx_id_fkey"
+            columns: ["out_tx_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallet_tx"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_inter_casino_transfers_reversal_tx_id_fkey"
+            columns: ["reversal_tx_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallet_tx"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_inter_casino_transfers_to_casino_id_fkey"
+            columns: ["to_casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_inter_casino_transfers_to_wallet_id_fkey"
+            columns: ["to_wallet_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_legacy_balance: {
         Row: {
           bank_account: number
@@ -11916,6 +12032,24 @@ export type Database = {
       fin_denoms_scale: {
         Args: { p_denoms: Json; p_factor: number }
         Returns: Json
+      }
+      fin_inter_casino_accept: {
+        Args: { _to_wallet_id: string; _transfer_id: string }
+        Returns: undefined
+      }
+      fin_inter_casino_resolve: {
+        Args: { _action: string; _reason?: string; _transfer_id: string }
+        Returns: undefined
+      }
+      fin_inter_casino_send: {
+        Args: {
+          _amount: number
+          _business_date: string
+          _from_wallet_id: string
+          _note?: string
+          _to_casino_id: string
+        }
+        Returns: string
       }
       fin_lock_day_closing: {
         Args: { p_id: string; p_variance_note?: string }
