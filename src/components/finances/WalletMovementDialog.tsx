@@ -32,8 +32,8 @@ const CASH_LIKE_KINDS = new Set(["cash", "safe", "cage"]);
 export type MovementMode = "in" | "out" | "transfer";
 
 const MODES: { id: MovementMode; label: string; icon: any; tone: string }[] = [
-  { id: "in", label: "Money In", icon: ArrowDownLeft, tone: "cms-amount-positive" },
-  { id: "out", label: "Money Out", icon: ArrowUpRight, tone: "cms-amount-negative" },
+  { id: "in", label: "Add money", icon: ArrowDownLeft, tone: "cms-amount-positive" },
+  { id: "out", label: "Take money", icon: ArrowUpRight, tone: "cms-amount-negative" },
   { id: "transfer", label: "Transfer", icon: ArrowLeftRight, tone: "text-foreground" },
 ];
 
@@ -141,7 +141,7 @@ export default function WalletMovementDialog({
           {
             ...common,
             wallet_id: wallet.id,
-            kind: "income",
+            kind: "adjustment_in",
             amount,
             amount_tzs: amount * fxRate,
             note: baseNote || `Money in · ${wallet.name}`,
@@ -152,7 +152,7 @@ export default function WalletMovementDialog({
           {
             ...common,
             wallet_id: wallet.id,
-            kind: "expense",
+            kind: "adjustment_out",
             amount,
             amount_tzs: amount * fxRate,
             note: baseNote || `Money out · ${wallet.name}`,
@@ -200,7 +200,7 @@ export default function WalletMovementDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Wallet Movement"
-      description="Book money in, money out or a transfer — with denominations"
+      description="Balance adjustment in / out or a transfer — not counted as income or expense"
       size="table"
     >
       <div className="space-y-4">
