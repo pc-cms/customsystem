@@ -50,8 +50,8 @@ export const PageHeader = memo(function PageHeader({
     date === true ? (serverBusinessDate || getBusinessDate()) : date && typeof date !== "boolean" ? date : null;
 
   return (
-    <div className={cn("mb-4 pb-3 border-b border-border space-y-3", className)}>
-      <div className="flex items-center justify-between gap-3">
+    <div className={cn("cms-page-header mb-4 pb-3 border-b border-border space-y-3", className)}>
+      <div className="cms-page-header-row flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0 shrink-0 text-xs">
           {Icon && (
             <div className="w-9 h-9 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
