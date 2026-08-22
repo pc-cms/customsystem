@@ -76,18 +76,23 @@ export const AppLayout = () => {
         <main className="flex-1 overflow-y-auto">
           {isFullWidth ? (
             <div className="p-3 sm:p-4 animate-fade-in h-full">
-              <Suspense fallback={<PageLoader />}>
-                <Outlet />
-              </Suspense>
+              <V2Scope>
+                <Suspense fallback={<PageLoader />}>
+                  <Outlet />
+                </Suspense>
+              </V2Scope>
             </div>
           ) : (
-            <div className="p-3 sm:p-6 max-w-[1600px] mx-auto animate-fade-in">
-              <Suspense fallback={<PageLoader />}>
-                <Outlet />
-              </Suspense>
+            <div className="p-3 sm:p-6 max-w-[1600px] xl:max-w-[1900px] mx-auto animate-fade-in">
+              <V2Scope>
+                <Suspense fallback={<PageLoader />}>
+                  <Outlet />
+                </Suspense>
+              </V2Scope>
             </div>
           )}
         </main>
+
       </div>
     </div>
   );
