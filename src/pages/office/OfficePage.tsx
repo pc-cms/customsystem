@@ -72,8 +72,13 @@ export default function OfficePage() {
       banner={<BalanceBanner />}
     >
       <Suspense fallback={<div className="text-sm text-muted-foreground p-4">Loading…</div>}>
+        {tab === "bank" && <WalletDayGridTab groups={["banks"]} title="Bank" />}
+        {tab === "cashless" && (
+          <WalletDayGridTab groups={["mobile_money", "digital_wallets", "selcom"]} title="Cashless" />
+        )}
         {tab === "day-closings" && <DayClosingsTab />}
         {tab === "jp" && <JpTab />}
+
         {tab === "monthly-report" && <FinancesMonthlyReportPage />}
         {tab === "other-incomes" && <OtherIncomesTab />}
         {tab === "rates" && <RatesTab />}
