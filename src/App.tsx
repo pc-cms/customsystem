@@ -410,7 +410,22 @@ const ProtectedRoutes = () => {
   return (
     <ErrorBoundary>
       <Routes>
+        {/* CONTROL ROOM LAB — isolated design preview, super_admin only, read-only.
+            Rendered outside AppLayout so it never inherits production chrome. */}
+        <Route path="/ui-lab" element={<LabGuard />}>
+          <Route index element={<LabHome />} />
+          <Route path="statistics/live-game" element={<LiveGameLab />} />
+          <Route path="statistics/total" element={<TotalLab />} />
+          <Route path="statistics/miss-chips" element={<MissChipsLab />} />
+          <Route path="dashboard/live" element={<DashboardLiveLab />} />
+          <Route path="dashboard/report" element={<DashboardReportLab />} />
+          <Route path="office/wallets" element={<WalletsLab />} />
+          <Route path="office/day-closings" element={<DayClosingsLab />} />
+          <Route path="office/monthly-report" element={<MonthlyReportLab />} />
+        </Route>
+
         <Route element={<AppLayout />}>
+
           <Route path="/" element={<RoleGuard path="/"><Dashboard /></RoleGuard>} />
           <Route path="/boss-dashboard" element={<RoleGuard path="/boss-dashboard"><ErrorBoundary><BossDashboard /></ErrorBoundary></RoleGuard>} />
 
