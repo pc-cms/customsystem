@@ -1,0 +1,94 @@
+/**
+ * UI V2 Preview — scoped presentation layer.
+ * Every rule is namespaced under `.ui-v2` so the current UI is untouched.
+ * Deleting this file + the `src/v2` folder removes the preview entirely.
+ */
+
+/* ---------- Typography / numerics ---------- */
+.ui-v2 {
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-v2 td,
+.ui-v2 th {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Tables (financial / report / admin) ---------- */
+.ui-v2 table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.ui-v2 thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: hsl(var(--muted));
+  backdrop-filter: blur(2px);
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+}
+
+.ui-v2 tbody tr:hover > td {
+  background: hsl(var(--muted) / 0.35);
+}
+
+.ui-v2 tfoot td,
+.ui-v2 tr[data-total="true"] > td {
+  font-weight: 600;
+  border-top: 1px solid hsl(var(--border));
+  background: hsl(var(--muted) / 0.5);
+}
+
+/* Horizontal scroll discipline: tables never push the page wide */
+.ui-v2 .overflow-x-auto {
+  scrollbar-width: thin;
+}
+
+/* ---------- Numeric inputs normalisation ---------- */
+.ui-v2 input[type="number"],
+.ui-v2 input[inputmode="numeric"],
+.ui-v2 input[inputmode="decimal"] {
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-align: right;
+}
+
+/* Dense in-table inputs stay flush with the cell */
+.ui-v2 td input[type="number"],
+.ui-v2 td input[inputmode="numeric"],
+.ui-v2 td input[inputmode="decimal"] {
+  height: 1.75rem;
+  padding: 0 0.375rem;
+  background: transparent;
+}
+
+/* Remove native spinners inside V2 scope */
+.ui-v2 input[type="number"]::-webkit-outer-spin-button,
+.ui-v2 input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.ui-v2 input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* ---------- PageHeader: no collision at 1280 / 1920 ---------- */
+.ui-v2 .cms-page-header > div:first-child,
+.ui-v2 h1 {
+  min-width: 0;
+}
+
+@media (max-width: 1600px) {
+  .ui-v2 .cms-page-header-row {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+}
+
+/* ---------- Read-only treatment ---------- */
+.ui-v2-readonly [data-v2-blocked="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
