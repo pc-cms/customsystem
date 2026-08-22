@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import { useUiV2Stored, setUiV2 } from "@/v2/ui-version";
 import {
   LayoutDashboard, Users, Landmark, Table2, Receipt, BarChart3,
   ClipboardList, Sun, Moon, Shield, Gamepad2,
@@ -8,7 +9,7 @@ import {
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
   Wallet, DoorOpen, ShieldAlert, Menu, Upload,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
-  RefreshCw, AlertTriangle, User as UserIcon, Rows3, Rows2, Gift, CheckCircle2, Coffee, Megaphone, TrendingUp, ArrowLeftRight, BookOpen,
+  RefreshCw, FlaskConical, AlertTriangle, User as UserIcon, Rows3, Rows2, Gift, CheckCircle2, Coffee, Megaphone, TrendingUp, ArrowLeftRight, BookOpen,
 } from "lucide-react";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { resetPWACache } from "@/lib/pwa-register";
@@ -456,6 +457,8 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
   const { effective: densityEffective, setMode: setDensityMode } = useDensity();
   const toggleDensity = () => setDensityMode(densityEffective === "compact" ? "comfort" : "compact");
   const { displayName, roles, signOut, isManager, managerOverride, activateManagerOverride, deactivateManagerOverride } = useAuth();
+  const uiV2 = useUiV2Stored();
+  const canUiV2 = roles.includes("super_admin");
   const { activeCasino, isSummaryMode } = useCasino();
   // Brand by subdomain first (sync, available before activeCasino loads),
   // fall back to activeCasino.slug. Without this, Pit/Cashier accounts whose
@@ -708,6 +711,22 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
             </TooltipTrigger>
             <TooltipContent side="right">Force update</TooltipContent>
           </Tooltip>
+          {canUiV2 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setUiV2(!uiV2)}
+                  className={cn(
+                    "w-10 h-10 flex items-center justify-center rounded-md transition-colors",
+                    uiV2 ? "bg-primary/20 text-primary border border-primary/40" : "hover:bg-sidebar-accent text-sidebar-foreground",
+                  )}
+                >
+                  <FlaskConical className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">{uiV2 ? "UI V2 Preview: ON" : "UI V2 Preview: OFF"}</TooltipContent>
+            </Tooltip>
+          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="w-10 flex items-center justify-center">
@@ -857,6 +876,18 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
+          {canUiV2 && (
+            <button
+              onClick={() => setUiV2(!uiV2)}
+              title={uiV2 ? "UI V2 Preview: ON (click to disable)" : "UI V2 Preview: OFF (click to enable)"}
+              className={cn(
+                "h-7 flex-1 flex items-center justify-center rounded-md transition-colors",
+                uiV2 ? "bg-primary/20 text-primary border border-primary/40" : "text-sidebar-foreground hover:bg-sidebar-accent",
+              )}
+            >
+              <FlaskConical className="w-3.5 h-3.5" />
+            </button>
+          )}
           <InstallPWAButton iconOnly />
           <LogoutButton
             title="Sign out"
