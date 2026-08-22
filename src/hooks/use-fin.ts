@@ -273,9 +273,11 @@ export const useFinWalletBalances = () => {
       const map = new Map<string, number>();
       // Expenses are stored as POSITIVE amounts — the sign comes from the kind.
       (data || []).forEach((r: any) => {
-        const signed = r.kind === "expense" ? -Number(r.amount) : Number(r.amount);
+        const negative = r.kind === "expense" || r.kind === "adjustment_out";
+        const signed = negative ? -Math.abs(Number(r.amount)) : Number(r.amount);
         map.set(r.wallet_id, (map.get(r.wallet_id) || 0) + signed);
       });
+
       return map;
     },
     enabled: isSummaryMode || !!activeCasinoId,
