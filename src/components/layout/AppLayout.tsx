@@ -12,6 +12,7 @@ import { UnclosedDayBanner } from "@/components/pit/UnclosedDayBanner";
 import { LicenseBanner } from "@/components/box/LicenseBanner";
 
 import { PageSkeleton } from "@/components/ui/skeleton";
+import { V2Scope } from "@/v2/V2Scope";
 
 import { cn } from "@/lib/utils";
 
