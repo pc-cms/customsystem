@@ -34,7 +34,8 @@ Transfer (третья кнопка, перевод между кошелька�
 - `src/hooks/use-wallet-day-grid.ts` — тот же kind в `NEGATIVE_KINDS` (сетки Bank/Cashless).
 - `src/hooks/use-fin.ts` (`walletBalances`) — сумма по кошельку учитывает новые kind со знаком.
 - `src/pages/finances/FinancesDashboardPage.tsx` — `income`/`expense` агрегаты новые kind игнорируют; для истории движений добавляется цветовая раскраска и бейдж.
-- `src/pages/finances/FinancesWalletsPage.tsx` — раскраска строк истории, бейдж `Adj`, новая сводная строка Adjustments в шапке.
+- `src/pages/finances/FinancesWalletsPage.tsx` — удаление секции `Daily audit`, упрощение таблицы Transactions (нет колонки Kind, фильтр IN/OUT, tooltip с kind), раскраска строк истории, бейдж `Adj`, новая сводная строка Adjustments в шапке. Если после удаления Daily audit поле `snap.daily` больше нигде не нужно на странице — соответствующие вычисления тоже убираются.
+
 - Данные (через run_sql, не миграция): прошлые ручные вводы — строки `fin_wallet_tx`, где `ref_table IS NULL AND ref_id IS NULL AND category_id IS NULL AND kind IN ('income','expense')` — переводятся в `adjustment_in` / `adjustment_out`. Реальные расходы (`ref_table = 'expenses'`), коллекции, трансферы и импорт не затрагиваются. Перед UPDATE делается контрольный SELECT с количеством и суммами по казино, чтобы убедиться, что под правило не попало лишнее.
 - Версия в `package.json` поднимается.
 
