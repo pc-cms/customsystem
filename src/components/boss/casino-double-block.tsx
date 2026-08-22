@@ -267,9 +267,11 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
               slots={todaySlots ?? day.slots}
               slotsHint={aceHint}
               slotsSubHint={aceActiveCredits}
+              slotsAvailable={slotsAvailable}
               total={todayTotal ?? day.total}
               accent={accent}
             />
+
           </Panel>
 
           <Panel title="MTD" accent={accent}>
