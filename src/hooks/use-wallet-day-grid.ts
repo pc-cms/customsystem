@@ -52,7 +52,7 @@ type TxRow = {
 };
 
 /** Expenses / collections are stored positive — the sign lives in `kind`. */
-const NEGATIVE_KINDS = new Set(["expense", "manual_expense", "collection"]);
+const NEGATIVE_KINDS = new Set(["expense", "manual_expense", "collection", "adjustment_out"]);
 const signed = (r: { kind: string; amount: number | string }) => {
   const n = Number(r.amount) || 0;
   return NEGATIVE_KINDS.has(r.kind) ? -Math.abs(n) : n;
