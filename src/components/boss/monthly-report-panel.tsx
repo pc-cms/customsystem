@@ -374,19 +374,15 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
       hint: "Cash desk win minus money on the cards (Players Card Balance), closed business days only.",
     },
     {
-      label: "Other incomes", per: summary.other, total: t.other,
-      hint: "Finance → Other Incomes for the month (amount × FX rate), reversed entries excluded.",
-    },
-    {
       label: "Collection", per: summary.collection, total: t.collection,
       hint: "Expenses of the month in categories of the 'Collections' group (voided entries excluded).",
     },
   ];
 
   const expectedHint =
-    `Forecast Result (avg per closed day × ${t.daysInMonth} days) − Estimated Expenses − Extra Expenses − Collection + Other Incomes. ` +
+    `Forecast Result (avg per closed day × ${t.daysInMonth} days) − Estimated Expenses − Extra Expenses − Collection. ` +
     `Based on ${t.daysElapsed} closed day${t.daysElapsed === 1 ? "" : "s"}.`;
-  const balanceHint = "Result + Other Incomes − Estimated Expenses − Extra Expenses − Collection.";
+  const balanceHint = "Result − Estimated Expenses − Extra Expenses − Collection.";
   const extrasHint = "Manual extra expenses for the month, plus Approx Bonus for Managers = 5% of max(0, Result − Estimated Expenses).";
 
 
