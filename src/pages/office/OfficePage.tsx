@@ -15,14 +15,17 @@ const FinancesMonthlyReportPage = lazy(() => import("@/pages/finances/FinancesMo
 // Balance was merged into Wallets (2026-07-20) — legacy `?tab=balance` redirects.
 // Actual / Budget / Difference moved to their own /budget section (2026-08-14).
 const TABS = [
+  { value: "bank", label: "Bank" },
+  { value: "cashless", label: "Cashless" },
   { value: "day-closings", label: "Day Closings" },
   { value: "jp", label: "JP" },
   
   { value: "monthly-report", label: "Monthly Report" },
-  { value: "other-incomes", label: "Other Incomes" },
+  { value: "other-incomes", label: "Transactions" },
   { value: "rates", label: "Rates" },
   { value: "wallets", label: "Wallets" },
 ] as const;
+
 
 type TabValue = (typeof TABS)[number]["value"];
 
