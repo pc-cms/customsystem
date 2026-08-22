@@ -380,9 +380,9 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
   ];
 
   const expectedHint =
-    `Forecast Result (avg per closed day × ${t.daysInMonth} days) − Estimated Expenses − Extra Expenses − Collection + Other Incomes. ` +
+    `Forecast Result (avg per closed day × ${t.daysInMonth} days) − Estimated Expenses − Extra Expenses − Collection. ` +
     `Based on ${t.daysElapsed} closed day${t.daysElapsed === 1 ? "" : "s"}.`;
-  const balanceHint = "Result + Other Incomes − Estimated Expenses − Extra Expenses − Collection.";
+  const balanceHint = "Result − Estimated Expenses − Extra Expenses − Collection.";
   const extrasHint = "Manual extra expenses for the month, plus Approx Bonus for Managers = 5% of max(0, Result − Estimated Expenses).";
 
 
