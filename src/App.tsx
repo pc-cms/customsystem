@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, Outlet, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +20,17 @@ import { useBusinessDayWatcher } from "@/hooks/use-business-day-watcher";
 import { initSyncEngine } from "@/lib/sync-engine";
 import { clearSelectedPlayer } from "@/hooks/use-selected-player";
 import Login from "@/pages/Login";
+// CONTROL ROOM LAB (super_admin preview) — isolated presentation layer.
+import { LabPeriodProvider } from "@/ui-lab/ControlRoomShell";
+const LabHome = lazy(() => import("@/ui-lab/pages/LabHome"));
+const LiveGameLab = lazy(() => import("@/ui-lab/pages/LiveGameLab"));
+const TotalLab = lazy(() => import("@/ui-lab/pages/TotalLab"));
+const MissChipsLab = lazy(() => import("@/ui-lab/pages/MissChipsLab"));
+const DashboardLiveLab = lazy(() => import("@/ui-lab/pages/DashboardLiveLab"));
+const DashboardReportLab = lazy(() => import("@/ui-lab/pages/DashboardReportLab"));
+const WalletsLab = lazy(() => import("@/ui-lab/pages/WalletsLab"));
+const DayClosingsLab = lazy(() => import("@/ui-lab/pages/DayClosingsLab"));
+const MonthlyReportLab = lazy(() => import("@/ui-lab/pages/MonthlyReportLab"));
 const Landing = lazy(() => import("@/pages/Landing"));
 const PosLayout = lazy(() => import("@/pages/pos/PosLayout"));
 const PosLogin = lazy(() => import("@/pages/pos/PosLogin"));
@@ -336,8 +347,26 @@ const getDefaultRoute = (roles: string[]) => {
   return "/";
 };
 
+/**
+ * CONTROL ROOM LAB guard — super_admin only. Everyone else is redirected home.
+ * The lab is a read-only presentation preview; it renders no mutation controls.
+ */
+const LabGuard = () => {
+  const { roles, loading } = useAuth();
+  if (loading) return <FullScreenLoader />;
+  if (!roles.includes("super_admin")) return <Navigate to="/" replace />;
+  return (
+    <LabPeriodProvider>
+      <Suspense fallback={<FullScreenLoader />}>
+        <Outlet />
+      </Suspense>
+    </LabPeriodProvider>
+  );
+};
+
 const ProtectedRoutes = () => {
   const { user, loading } = useAuth();
+
 
 
   // Expose queryClient to auth-context (which lives outside QueryClientProvider
@@ -410,7 +439,22 @@ const ProtectedRoutes = () => {
   return (
     <ErrorBoundary>
       <Routes>
+        {/* CONTROL ROOM LAB — isolated design preview, super_admin only, read-only.
+            Rendered outside AppLayout so it never inherits production chrome. */}
+        <Route path="/ui-lab" element={<LabGuard />}>
+          <Route index element={<LabHome />} />
+          <Route path="statistics/live-game" element={<LiveGameLab />} />
+          <Route path="statistics/total" element={<TotalLab />} />
+          <Route path="statistics/miss-chips" element={<MissChipsLab />} />
+          <Route path="dashboard/live" element={<DashboardLiveLab />} />
+          <Route path="dashboard/report" element={<DashboardReportLab />} />
+          <Route path="office/wallets" element={<WalletsLab />} />
+          <Route path="office/day-closings" element={<DayClosingsLab />} />
+          <Route path="office/monthly-report" element={<MonthlyReportLab />} />
+        </Route>
+
         <Route element={<AppLayout />}>
+
           <Route path="/" element={<RoleGuard path="/"><Dashboard /></RoleGuard>} />
           <Route path="/boss-dashboard" element={<RoleGuard path="/boss-dashboard"><ErrorBoundary><BossDashboard /></ErrorBoundary></RoleGuard>} />
 
