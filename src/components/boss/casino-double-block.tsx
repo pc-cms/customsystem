@@ -163,11 +163,16 @@ interface Props {
 }
 
 export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto" }: Props) {
-  // A FRESH (≤15 min) ACE live feed replaces the displayed slots drop & result
-  // for any casino whose slug matches an ACE location_code. Stale or missing data
-  // falls back to the existing calculation.
+  // A FRESH (≤15 min) ACE live feed provides the displayed slots drop & result.
+  // Result rule (same as Day Closing): Cashdesk Win − Card Balance (active credits).
+  // Without ACE, slots come ONLY from a closed business day (`fin_day_closing`);
+  // an open cage-slots shift is a draft and is never shown.
   const ace = useAceLiveSlotsResult(slug);
-  const useAce = ace.fresh && ace.totalDrop != null && ace.netWin != null;
+  const aceResult =
+    ace.fresh && ace.winCashdesk != null
+      ? ace.winCashdesk - (ace.activeCredits ?? 0)
+      : null;
+  const useAce = ace.fresh && ace.totalDrop != null && aceResult != null;
   const aceHint = useAce
     ? `ACE Live · ${Math.max(0, Math.round((ace.ageMs ?? 0) / 60000))}m ago${ace.periodLabel ? ` · ${ace.periodLabel}` : ""}`
     : null;
@@ -175,14 +180,15 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
     ace.fresh && ace.activeCredits != null
       ? `Active Credits · ${formatMoneyFull(Math.round(ace.activeCredits))}`
       : null;
+  const slotsAvailable = useAce || (day?.slotsAvailable ?? false);
   const todaySlots: CasinoMetric | undefined = day
     ? useAce
       ? {
           ...day.slots,
           drop: ace.totalDrop as number,
-          result: ace.netWin as number,
+          result: aceResult as number,
           hold: (ace.totalDrop as number) > 0
-            ? ((ace.netWin as number) / (ace.totalDrop as number)) * 100
+            ? ((aceResult as number) / (ace.totalDrop as number)) * 100
             : 0,
         }
       : day.slots
@@ -195,17 +201,18 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
       ? {
           ...day.total,
           drop: day.total.drop + (ace.totalDrop as number),
-          result: day.total.result - day.slots.result + (ace.netWin as number),
+          result: day.total.result - day.slots.result + (aceResult as number),
           headCount: day.total.headCount,
           hold:
             day.total.drop + (ace.totalDrop as number) > 0
-              ? ((day.total.result - day.slots.result + (ace.netWin as number)) /
+              ? ((day.total.result - day.slots.result + (aceResult as number)) /
                   (day.total.drop + (ace.totalDrop as number))) *
                 100
               : 0,
         }
       : day.total
     : undefined;
+
 
   const layoutClass =
 
