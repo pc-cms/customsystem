@@ -334,7 +334,8 @@ export default function FinancesWalletsPage() {
   const txRows = useMemo(() => {
     let list = tx as any[];
     if (walletFilter !== "all") list = list.filter((r) => r.wallet_id === walletFilter);
-    if (kindFilter !== "all") list = list.filter((r) => r.kind === kindFilter);
+    if (kindFilter !== "all")
+      list = list.filter((r) => (walletTxIsIn(r) ? "in" : "out") === kindFilter);
     const sorted = [...list];
     sorted.sort((a, b) => {
       if (sort === "amount_desc") return Number(b.amount_tzs) - Number(a.amount_tzs);
@@ -649,62 +650,6 @@ export default function FinancesWalletsPage() {
           </div>
         </PageSection>
       </div>
-
-      {/* DAILY AUDIT */}
-      {!!snap?.daily?.length && (
-        <PageSection title="Daily audit" card={false}>
-          <div className="rounded-md border border-border overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted text-[11px] uppercase tracking-wider">
-                <tr>
-                  <th className="px-3 py-2 text-left">Date</th>
-                  <th className="px-3 py-2 text-right">Live</th>
-                  <th className="px-3 py-2 text-right">Slots</th>
-                  <th className="px-3 py-2 text-right">Other</th>
-                  <th className="px-3 py-2 text-right">JP</th>
-                  <th className="px-3 py-2 text-right">Expenses</th>
-                  <th className="px-3 py-2 text-right">Collections</th>
-                  <th className="px-3 py-2 text-right">Cage exp.</th>
-                  <th className="px-3 py-2 text-right">Net</th>
-                </tr>
-              </thead>
-              <tbody className="font-mono tabular-nums">
-                {snap.daily.map((d) => (
-                  <tr key={d.business_date} className="border-t border-border hover:bg-muted/40">
-                    <td className="px-3 py-1.5 text-left">
-                      {fmtDate(d.business_date)}
-                      {!d.day_closed && <span className="ml-1 text-[10px] text-muted-foreground">(open)</span>}
-                    </td>
-                    <td className="px-3 py-1.5 text-right">{formatNumberSpaces(d.live_game)}</td>
-                    <td className="px-3 py-1.5 text-right">{formatNumberSpaces(d.slots)}</td>
-                    <td className="px-3 py-1.5 text-right">{formatNumberSpaces(d.other)}</td>
-                    <td className="px-3 py-1.5 text-right">{formatNumberSpaces(d.jp || 0)}</td>
-                    <td className="px-3 py-1.5 text-right cms-amount-negative">{formatNumberSpaces(d.expenses)}</td>
-                    <td className="px-3 py-1.5 text-right cms-amount-negative">{formatNumberSpaces(d.collections)}</td>
-                    <td className="px-3 py-1.5 text-right">
-                      {formatNumberSpaces(d.cage_expenses || 0)}
-                      {!!(d.cage_expenses || 0) && (
-                        <span
-                          className={cn("ml-1 text-[10px]", d.cage_posted ? "cms-amount-positive" : "text-muted-foreground")}
-                          title={d.cage_posted ? "Booked on wallet" : "Not booked on a wallet yet"}
-                        >
-                          {d.cage_posted ? "✓" : "·"}
-                        </span>
-                      )}
-                    </td>
-                    <td className={cn("px-3 py-1.5 text-right font-semibold", d.net >= 0 ? "cms-amount-positive" : "cms-amount-negative")}>
-                      {formatNumberSpaces(d.net)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="text-[10px] text-muted-foreground mt-1">
-            Expenses count once the business day is closed (office expenses immediately).
-          </div>
-        </PageSection>
-      )}
 
       {/* WALLETS TABLE */}
       <div id="wallets-table" className="scroll-mt-20" />
@@ -1106,17 +1051,12 @@ export default function FinancesWalletsPage() {
           </Select>
           <Select value={kindFilter} onValueChange={setKindFilter}>
             <SelectTrigger className="h-9 w-[140px]">
-              <SelectValue placeholder="All kinds" />
+              <SelectValue placeholder="All" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All kinds</SelectItem>
-              {Array.from(new Set((tx as any[]).map((r) => r.kind)))
-                .sort()
-                .map((k) => (
-                  <SelectItem key={k} value={k}>
-                    {k}
-                  </SelectItem>
-                ))}
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="in">IN</SelectItem>
+              <SelectItem value="out">OUT</SelectItem>
             </SelectContent>
           </Select>
           <Select value={sort} onValueChange={(v) => setSort(v as any)}>
@@ -1138,8 +1078,7 @@ export default function FinancesWalletsPage() {
               <tr>
                 <th className="px-3 py-2 text-left w-[110px]">Date</th>
                 <th className="px-3 py-2 text-left">Wallet</th>
-                <th className="px-3 py-2 text-left w-[120px]">Kind</th>
-                <th className="px-3 py-2 text-center w-[60px]">Dir</th>
+                <th className="px-3 py-2 text-center w-[70px]">Dir</th>
                 <th className="px-3 py-2 text-right w-[130px]">Amount</th>
                 <th className="px-3 py-2 text-right w-[130px]">TZS</th>
                 <th className="px-3 py-2 text-left">Note</th>
@@ -1149,18 +1088,12 @@ export default function FinancesWalletsPage() {
               {txRows.map((r: any) => {
                 // Direction comes from the kind — expenses are stored as positive amounts.
                 const kind = String(r.kind || "");
-                const isIn =
-                  kind === "expense" || kind === "transfer_out" || kind === "change_out"
-                    ? false
-                    : kind === "income" || kind === "transfer_in" || kind === "change_in"
-                      ? true
-                      : Number(r.amount_tzs) >= 0;
+                const isIn = walletTxIsIn(r);
+                const adj = isWalletAdjustment(kind);
                 return (
                   <tr key={r.id} className="border-t border-border hover:bg-muted/40">
-                    <td className="px-3 py-1.5 font-mono text-xs">{fmtDateOnly(r.business_date)}</td>
-                    <td className="px-3 py-1.5">{r.fin_wallets?.name || "—"}</td>
-                    <td className="px-3 py-1.5 text-xs uppercase text-muted-foreground">
-                      {r.kind}
+                    <td className="px-3 py-1.5 font-mono text-xs whitespace-nowrap">
+                      {fmtDateOnly(r.business_date)}
                       {!r.posted_at && (
                         <span
                           className="ml-1.5 rounded border border-warning/40 px-1 py-0.5 text-[9px] tracking-wider text-warning"
@@ -1170,7 +1103,18 @@ export default function FinancesWalletsPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-1.5 text-center">
+                    <td className="px-3 py-1.5">
+                      {r.fin_wallets?.name || "—"}
+                      {adj && (
+                        <span
+                          className="ml-1.5 rounded border border-border px-1 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground"
+                          title="Manual balance adjustment — not counted as income or expense"
+                        >
+                          Adj
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-1.5 text-center" title={kind.replace(/_/g, " ")}>
                       {isIn ? (
                         <ArrowDownLeft className="w-3.5 h-3.5 inline cms-amount-positive" />
                       ) : (
@@ -1202,7 +1146,7 @@ export default function FinancesWalletsPage() {
               })}
               {!txRows.length && (
                 <tr>
-                  <td colSpan={7} className="text-center text-muted-foreground py-6">
+                  <td colSpan={6} className="text-center text-muted-foreground py-6">
                     No transactions in this period
                   </td>
                 </tr>
