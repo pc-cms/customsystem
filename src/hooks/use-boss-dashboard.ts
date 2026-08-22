@@ -24,8 +24,11 @@ export type CasinoDay = {
   total: CasinoMetric;
   live: CasinoMetric;
   slots: CasinoMetric;
+  /** false while the business day is still open and no ACE feed exists → show `·` */
+  slotsAvailable: boolean;
   mtd: { drop: number; result: number; hold: number };
 };
+
 
 export type TopPlayer = { casinoId: string; playerId: string; name: string; drop: number };
 export type NewPlayer = { casinoId: string; playerId: string; name: string; visits: number };
