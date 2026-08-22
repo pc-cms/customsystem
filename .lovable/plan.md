@@ -18,7 +18,13 @@ Transfer (третья кнопка, перевод между кошелька�
 1. В диалоге Wallet Movement подписи режимов: **Add money (adjustment)** / **Take money (adjustment)**, короткая подсказка «Balance only — not counted as income/expense».
 2. В истории движений кошелька такие строки помечены бейджем **Adj**.
 3. В шапке Wallets появляется строка **Adjustments: +X / −Y** за период — рядом с Money In / Money Out.
-4. Все прошлые ручные Money In/Out автоматически переезжают в эту категорию, поэтому доходы/расходы прошлых месяцев уменьшатся ровно на сумму ручных вводов — это ожидаемо и есть смысл правки.
+
+## Чистка страницы Wallets
+
+- Таблица **Daily audit** (Date / Live / Slots / Other / JP / Expenses / Collections / Cage exp. / Net) убирается со страницы Wallets полностью — она дублирует Office > Day Closings.
+- В таблице **Transactions** колонка **Kind** убирается: остаётся стрелка направления **IN / OUT** (зелёная вниз / красная вверх) и сумма со знаком. Фильтр «All kinds» заменяется на **All / IN / OUT**. Технический тип движения (income, expense, transfer, collection, adjustment) остаётся в подсказке при наведении на стрелку и виден в Note, так что происхождение суммы не теряется. Бейдж PENDING переезжает к дате.
+
+
 
 ## Технические детали
 
