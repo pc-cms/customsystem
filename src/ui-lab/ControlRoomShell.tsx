@@ -112,6 +112,23 @@ export const PeriodControl = () => {
   );
 };
 
+/** Compact month stepper (label + arrows) — local UI state only. */
+export const MonthStepper = () => {
+  const { period, shift, thisMonth } = useLabPeriod();
+  return (
+    <div className="crl-toolbar-side">
+      <div className="crl-seg">
+        <button type="button" className="crl-btn" onClick={() => shift(-1)}>‹</button>
+        <button type="button" className="crl-btn is-active" style={{ minWidth: 132 }}>
+          {MONTH_NAMES[period.month - 1]} {period.year}
+        </button>
+        <button type="button" className="crl-btn" onClick={() => shift(1)}>›</button>
+      </div>
+      <button type="button" className="crl-btn" onClick={thisMonth}>Current</button>
+    </div>
+  );
+};
+
 /* ------------------------------------------------------------------- shell */
 
 const NAV = [

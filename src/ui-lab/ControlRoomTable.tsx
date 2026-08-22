@@ -36,6 +36,8 @@ type Props<T> = {
   columns: CrlColumn<T>[];
   rows: T[];
   rowKey: (row: T, index: number) => string;
+  /** Extra class for a whole row (e.g. group rows). */
+  rowClass?: (row: T) => string | undefined;
   initialSort?: { key: string; dir: "asc" | "desc" };
   density?: CrlDensity;
   /** Render the anchored totals row (sticky at the bottom). */
@@ -59,6 +61,7 @@ export function ControlRoomTable<T>({
   columns,
   rows,
   rowKey,
+  rowClass,
   initialSort,
   density = "compact",
   showTotals = false,
@@ -189,7 +192,7 @@ export function ControlRoomTable<T>({
 
           {!loading &&
             sorted.map((row, i) => (
-              <tr key={rowKey(row, i)}>
+              <tr key={rowKey(row, i)} className={rowClass?.(row) || undefined}>
                 {columns.map((c) => {
                   const cls = [
                     alignClass(c),
