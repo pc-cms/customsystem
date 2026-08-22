@@ -58,6 +58,7 @@ const MetricsGrid = ({
   accent,
   slotsHint,
   slotsSubHint,
+  slotsAvailable = true,
 }: {
   tables: CasinoMetric;
   slots: CasinoMetric;
@@ -65,6 +66,7 @@ const MetricsGrid = ({
   accent: string;
   slotsHint?: string | null;
   slotsSubHint?: string | null;
+  slotsAvailable?: boolean;
 }) => (
   <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-x-4 gap-y-2 items-baseline">
     {/* header row */}
@@ -101,9 +103,10 @@ const MetricsGrid = ({
         </span>
       )}
     </span>
-    <Cell value={formatMoneyFull(slots.drop)} />
-    <Cell value={formatSigned(slots.result)} tone="signed" />
-    <Cell value={`${slots.hold.toFixed(1)}%`} />
+    <Cell value={slotsAvailable ? formatMoneyFull(slots.drop) : "·"} />
+    <Cell value={slotsAvailable ? formatSigned(slots.result) : "·"} tone="signed" />
+    <Cell value={slotsAvailable ? `${slots.hold.toFixed(1)}%` : "·"} />
+
 
 
     {/* divider */}
@@ -160,11 +163,16 @@ interface Props {
 }
 
 export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto" }: Props) {
-  // A FRESH (≤15 min) ACE live feed replaces the displayed slots drop & result
-  // for any casino whose slug matches an ACE location_code. Stale or missing data
-  // falls back to the existing calculation.
+  // A FRESH (≤15 min) ACE live feed provides the displayed slots drop & result.
+  // Result rule (same as Day Closing): Cashdesk Win − Card Balance (active credits).
+  // Without ACE, slots come ONLY from a closed business day (`fin_day_closing`);
+  // an open cage-slots shift is a draft and is never shown.
   const ace = useAceLiveSlotsResult(slug);
-  const useAce = ace.fresh && ace.totalDrop != null && ace.netWin != null;
+  const aceResult =
+    ace.fresh && ace.winCashdesk != null
+      ? ace.winCashdesk - (ace.activeCredits ?? 0)
+      : null;
+  const useAce = ace.fresh && ace.totalDrop != null && aceResult != null;
   const aceHint = useAce
     ? `ACE Live · ${Math.max(0, Math.round((ace.ageMs ?? 0) / 60000))}m ago${ace.periodLabel ? ` · ${ace.periodLabel}` : ""}`
     : null;
@@ -172,14 +180,15 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
     ace.fresh && ace.activeCredits != null
       ? `Active Credits · ${formatMoneyFull(Math.round(ace.activeCredits))}`
       : null;
+  const slotsAvailable = useAce || (day?.slotsAvailable ?? false);
   const todaySlots: CasinoMetric | undefined = day
     ? useAce
       ? {
           ...day.slots,
           drop: ace.totalDrop as number,
-          result: ace.netWin as number,
+          result: aceResult as number,
           hold: (ace.totalDrop as number) > 0
-            ? ((ace.netWin as number) / (ace.totalDrop as number)) * 100
+            ? ((aceResult as number) / (ace.totalDrop as number)) * 100
             : 0,
         }
       : day.slots
@@ -192,17 +201,18 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
       ? {
           ...day.total,
           drop: day.total.drop + (ace.totalDrop as number),
-          result: day.total.result - day.slots.result + (ace.netWin as number),
+          result: day.total.result - day.slots.result + (aceResult as number),
           headCount: day.total.headCount,
           hold:
             day.total.drop + (ace.totalDrop as number) > 0
-              ? ((day.total.result - day.slots.result + (ace.netWin as number)) /
+              ? ((day.total.result - day.slots.result + (aceResult as number)) /
                   (day.total.drop + (ace.totalDrop as number))) *
                 100
               : 0,
         }
       : day.total
     : undefined;
+
 
   const layoutClass =
 
@@ -257,9 +267,11 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
               slots={todaySlots ?? day.slots}
               slotsHint={aceHint}
               slotsSubHint={aceActiveCredits}
+              slotsAvailable={slotsAvailable}
               total={todayTotal ?? day.total}
               accent={accent}
             />
+
           </Panel>
 
           <Panel title="MTD" accent={accent}>
@@ -272,6 +284,7 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
                 hold: day.mtd.hold,
               }}
               slots={{ drop: 0, result: 0, headCount: 0, hold: 0 }}
+              slotsAvailable={false}
               total={{
                 drop: day.mtd.drop,
                 result: day.mtd.result,
@@ -287,9 +300,10 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
       )}
 
       <div className="px-6 py-2 border-t border-white/5 flex items-center justify-between text-[0.55em] uppercase tracking-[0.22em] text-muted-foreground/70">
-        <span>Tables · Reports Daily Balance</span>
-        <span>{useAce ? "Slots · ACE Live" : "Slots · Day Closing / Live"}</span>
+        <span>Tables · Chips Check / Day Closing</span>
+        <span>{useAce ? "Slots · ACE Live" : "Slots · Day Closing only"}</span>
       </div>
+
 
     </section>
   );
