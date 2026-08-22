@@ -20,7 +20,7 @@ const isInteractive = (el: Element | null): HTMLElement | null => {
 };
 
 const blocks = (el: HTMLElement): boolean => {
-  if (el.getAttribute("data-v2-allow") === "true") return true ? false : false;
+  if (el.getAttribute("data-v2-allow") === "true") return false;
   const label = (el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "").trim();
   if (!label) {
     // Icon-only control with no label: block only inside forms/rows (unknown intent is risky)
