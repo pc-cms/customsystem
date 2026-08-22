@@ -62,8 +62,10 @@ export const InlineNumberCell = ({
     <NumberInput
       ref={ref}
       decimals={0}
+      allowNegative={allowNegative}
       value={raw === "" ? null : raw}
       onValueChange={(v) => setRaw(v == null ? "" : String(v))}
+
       onBlur={() => commit(Number(raw) || 0)}
       onKeyDown={(e) => {
         if (e.key === "Enter") { e.preventDefault(); commit(Number(raw) || 0); }
