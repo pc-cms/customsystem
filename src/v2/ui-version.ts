@@ -50,13 +50,16 @@ export const useUiV2Stored = () =>
 
 /** Routes covered by the V2 preview. */
 export const V2_SCOPE_PREFIXES = [
-  "/player-statistics",
+  "/reports",          // sidebar "Statistics" (Live Game, Slots, Total, Groups, Tables, Graphics)
+  "/miss-chips",       // part of the same report experience
+  "/player-statistics", // Player Tracking (kept visually current)
   "/players",
   "/boss-dashboard",
   "/office",
   "/budget",
   "/expenses",
 ];
+
 
 export const isV2ScopedPath = (pathname: string) =>
   V2_SCOPE_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/") || pathname.startsWith(p + "?"));
