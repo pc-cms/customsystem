@@ -374,10 +374,6 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
       hint: "Cash desk win minus money on the cards (Players Card Balance), closed business days only.",
     },
     {
-      label: "Other incomes", per: summary.other, total: t.other,
-      hint: "Finance → Other Incomes for the month (amount × FX rate), reversed entries excluded.",
-    },
-    {
       label: "Collection", per: summary.collection, total: t.collection,
       hint: "Expenses of the month in categories of the 'Collections' group (voided entries excluded).",
     },
