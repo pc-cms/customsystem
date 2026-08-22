@@ -13,12 +13,14 @@ export const InlineNumberCell = ({
   onCommit,
   className,
   placeholder = "—",
+  allowNegative = false,
 }: {
   value: number;
   disabled?: boolean;
   onCommit: (v: number) => void;
   className?: string;
   placeholder?: string;
+  allowNegative?: boolean;
 }) => {
   const [editing, setEditing] = useState(false);
   const [raw, setRaw] = useState(String(value || ""));
@@ -26,6 +28,7 @@ export const InlineNumberCell = ({
 
   useEffect(() => { setRaw(String(value || "")); }, [value]);
   useEffect(() => { if (editing) ref.current?.focus(); }, [editing]);
+
 
   if (disabled) {
     return (
@@ -59,8 +62,10 @@ export const InlineNumberCell = ({
     <NumberInput
       ref={ref}
       decimals={0}
+      allowNegative={allowNegative}
       value={raw === "" ? null : raw}
       onValueChange={(v) => setRaw(v == null ? "" : String(v))}
+
       onBlur={() => commit(Number(raw) || 0)}
       onKeyDown={(e) => {
         if (e.key === "Enter") { e.preventDefault(); commit(Number(raw) || 0); }

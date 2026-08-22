@@ -8,21 +8,26 @@ import { BalanceBanner } from "@/components/office/BalanceBanner";
 import { OfficeShell } from "@/components/office/office-shell";
 
 
+const WalletDayGridTab = lazy(() => import("./WalletDayGridTab"));
 const FinancesWalletsPage = lazy(() => import("@/pages/finances/FinancesWalletsPage"));
 const FinancesMonthlyReportPage = lazy(() => import("@/pages/finances/FinancesMonthlyReportPage"));
+
 
 // Flat, alphabetically sorted top-level tabs — no nested sub-tabs.
 // Balance was merged into Wallets (2026-07-20) — legacy `?tab=balance` redirects.
 // Actual / Budget / Difference moved to their own /budget section (2026-08-14).
 const TABS = [
+  { value: "bank", label: "Bank" },
+  { value: "cashless", label: "Cashless" },
   { value: "day-closings", label: "Day Closings" },
   { value: "jp", label: "JP" },
   
   { value: "monthly-report", label: "Monthly Report" },
-  { value: "other-incomes", label: "Other Incomes" },
+  { value: "other-incomes", label: "Transactions" },
   { value: "rates", label: "Rates" },
   { value: "wallets", label: "Wallets" },
 ] as const;
+
 
 type TabValue = (typeof TABS)[number]["value"];
 
@@ -67,8 +72,13 @@ export default function OfficePage() {
       banner={<BalanceBanner />}
     >
       <Suspense fallback={<div className="text-sm text-muted-foreground p-4">Loading…</div>}>
+        {tab === "bank" && <WalletDayGridTab groups={["banks"]} title="Bank" />}
+        {tab === "cashless" && (
+          <WalletDayGridTab groups={["mobile_money", "digital_wallets", "selcom"]} title="Cashless" />
+        )}
         {tab === "day-closings" && <DayClosingsTab />}
         {tab === "jp" && <JpTab />}
+
         {tab === "monthly-report" && <FinancesMonthlyReportPage />}
         {tab === "other-incomes" && <OtherIncomesTab />}
         {tab === "rates" && <RatesTab />}
