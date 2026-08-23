@@ -4,6 +4,7 @@ import DayClosingsTab from "./DayClosingsTab";
 import OtherIncomesTab from "./OtherIncomesTab";
 import RatesTab from "./RatesTab";
 import JpTab from "./JpTab";
+import TipsBonusTab from "./TipsBonusTab";
 import { BalanceBanner } from "@/components/office/BalanceBanner";
 import { OfficeShell } from "@/components/office/office-shell";
 
@@ -26,6 +27,7 @@ const TABS = [
   { value: "monthly-report", label: "Monthly Report" },
   { value: "other-incomes", label: "Transactions" },
   { value: "rates", label: "Rates" },
+  { value: "tips-bonuses", label: "Tips & Bonuses" },
   { value: "wallets", label: "Wallets" },
 ] as const;
 
@@ -84,6 +86,7 @@ export default function OfficePage() {
         {tab === "monthly-report" && <FinancesMonthlyReportPage />}
         {tab === "other-incomes" && <OtherIncomesTab />}
         {tab === "rates" && <RatesTab />}
+        {tab === "tips-bonuses" && <TipsBonusTab />}
         {tab === "wallets" && <FinancesWalletsPage />}
       </Suspense>
     </OfficeShell>

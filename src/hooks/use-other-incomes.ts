@@ -17,6 +17,7 @@ export type OtherIncomeSource =
   | "owner_topup"
   | "refund"
   | "bonus"
+  | "tips_bonus"
   | "jp"
   | "fee"
   | "other";
@@ -28,6 +29,7 @@ export const ALL_INCOME_SOURCES: { value: OtherIncomeSource; label: string }[] =
   { value: "owner_topup", label: "Owner Top-up" },
   { value: "refund", label: "Refund" },
   { value: "bonus", label: "Bonus" },
+  { value: "tips_bonus", label: "Tips & Bonuses" },
   { value: "jp", label: "JP" },
   { value: "fee", label: "Fee" },
   { value: "other", label: "Other" },
@@ -35,9 +37,12 @@ export const ALL_INCOME_SOURCES: { value: OtherIncomeSource; label: string }[] =
 
 /**
  * Sources selectable on the Other Incomes tab.
- * JP is excluded — it lives on its own JP tab / Day Closings column.
+ * JP and Tips & Bonuses are excluded — they live on their own Office tabs.
+ * `bonus` is legacy: kept for labels of old rows, no longer selectable.
  */
-export const OTHER_INCOME_SOURCES = ALL_INCOME_SOURCES.filter((s) => s.value !== "jp");
+export const OTHER_INCOME_SOURCES = ALL_INCOME_SOURCES.filter(
+  (s) => s.value !== "jp" && s.value !== "tips_bonus" && s.value !== "bonus",
+);
 
 export type OtherIncomeRow = {
   id: string;
