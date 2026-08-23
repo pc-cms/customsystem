@@ -69,7 +69,7 @@ export default function OfficePage() {
       tabs={TABS}
       tab={tab}
       onTabChange={onChange}
-      showPeriod={tab !== "rates"}
+      showPeriod={tab !== "rates" && tab !== "inter-casino"}
       banner={<BalanceBanner />}
     >
       <Suspense fallback={<div className="text-sm text-muted-foreground p-4">Loading…</div>}>
@@ -78,6 +78,7 @@ export default function OfficePage() {
           <WalletDayGridTab groups={["mobile_money", "digital_wallets", "selcom"]} title="Cashless" />
         )}
         {tab === "day-closings" && <DayClosingsTab />}
+        {tab === "inter-casino" && <FinancesInterCasinoPage />}
         {tab === "jp" && <JpTab />}
 
         {tab === "monthly-report" && <FinancesMonthlyReportPage />}
