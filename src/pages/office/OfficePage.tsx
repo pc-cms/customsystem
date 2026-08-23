@@ -21,8 +21,8 @@ const TABS = [
   { value: "bank", label: "Bank" },
   { value: "cashless", label: "Cashless" },
   { value: "day-closings", label: "Day Closings" },
+  { value: "inter-casino", label: "Inter-Casino" },
   { value: "jp", label: "JP" },
-  
   { value: "monthly-report", label: "Monthly Report" },
   { value: "other-incomes", label: "Transactions" },
   { value: "rates", label: "Rates" },
