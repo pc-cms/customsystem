@@ -615,10 +615,7 @@ export default function FinancesWalletsPage() {
               <BreakdownRow label="Actual (Σ wallets · last recorded state)" v={totals.actual} bold signed />
               <BreakdownRow label="= Variance (Actual − Expected)" v={totals.variance} bold signed />
             </div>
-            <div className="border-t border-border">
-              <BreakdownRow label="Adjustments IN (manual, not income)" v={adjustments.in} positive />
-              <BreakdownRow label="Adjustments OUT (manual, not expense)" v={adjustments.out} negative />
-            </div>
+
           </div>
           <div className="text-[10px] text-muted-foreground mt-1">
             USD→TZS rate {formatNumberSpaces(usdRate)} · Period {range.from} → {range.to}
