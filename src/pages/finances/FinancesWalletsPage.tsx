@@ -1162,6 +1162,18 @@ export default function FinancesWalletsPage() {
               <SelectItem value="amount_asc">Amount ↑</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={txLimit} onValueChange={setTxLimit}>
+            <SelectTrigger className="h-9 w-[120px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">Last 10</SelectItem>
+              <SelectItem value="50">Last 50</SelectItem>
+              <SelectItem value="100">Last 100</SelectItem>
+              <SelectItem value="all">All</SelectItem>
+            </SelectContent>
+          </Select>
+
         </div>
 
         <div className="rounded-md border border-border overflow-auto">
