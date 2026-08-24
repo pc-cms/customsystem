@@ -19,6 +19,8 @@ import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories, useArch
 import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
 import { MonthlyReportActions } from "@/components/finances/MonthlyReportActions";
 import { useMonthFinance, useOverrideManagerBonus } from "@/hooks/use-fin-month-finance";
+import { useFinBalanceSnapshot, computeBalanceTotals } from "@/hooks/use-fin-balance";
+
 import { InlineTextCell } from "@/components/finances/InlineTextCell";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
