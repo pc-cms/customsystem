@@ -189,63 +189,53 @@ export default function WalletDayGridTab({
     return [dateCol, ...walletCols, totalCol];
   }, [wallets, cells, startBalances, canEdit, rateOf, period.from]);
 
-  const footerRows = useMemo(
-    () => [
+  const footerRows = useMemo(() => {
+    const sumClass = (v: number) =>
+      v > 0 ? "cms-amount-positive" : v < 0 ? "cms-amount-negative" : "text-muted-foreground/50";
+    const cellSpan = (v: number, rounded = false) => (
+      <span className={`font-mono tabular-nums text-[12px] font-bold ${sumClass(v)}`}>
+        {v ? formatNumberSpaces(rounded ? Math.round(v) : v) : "·"}
+      </span>
+    );
+    return [
       {
         key: "movement",
-        className: "bg-muted/40",
+        className: "bg-muted/50 border-t-2 border-border",
         cell: (col: ColumnDef<Row>) => {
-          if (col.key === "date") return <span className="font-semibold">Month movement</span>;
-          if (col.key === "__total") {
-            const v = days.reduce((s, d) => s + dayTotalTzs(d), 0);
-            return (
-              <span className="font-mono tabular-nums font-semibold">
-                {v ? formatNumberSpaces(Math.round(v)) : "·"}
-              </span>
-            );
-          }
+          if (col.key === "date")
+            return <span className="font-semibold text-xs uppercase">Month movement</span>;
+          if (col.key === "__total")
+            return cellSpan(days.reduce((s, d) => s + dayTotalTzs(d), 0), true);
           const w = wallets.find((x) => x.id === col.key);
           if (!w) return null;
-          const v = walletMonthMovement(w);
-          return (
-            <span className="font-mono tabular-nums font-semibold">
-              {v ? formatNumberSpaces(v) : "·"}
-            </span>
-          );
+          return cellSpan(walletMonthMovement(w));
         },
       },
       {
         key: "end",
-        className: "bg-primary/5",
+        className: "bg-primary/10",
         cell: (col: ColumnDef<Row>) => {
-          if (col.key === "date") return <span className="font-semibold">End of month</span>;
-          if (col.key === "__total") {
-            const v = wallets.reduce(
-              (s, w) =>
-                s +
-                ((startBalances.get(w.id) || 0) + walletMonthMovement(w)) *
-                  rateOf(w.currency, period.to),
-              0,
+          if (col.key === "date")
+            return <span className="font-semibold text-xs uppercase">End of month</span>;
+          if (col.key === "__total")
+            return cellSpan(
+              wallets.reduce(
+                (s, w) =>
+                  s +
+                  ((startBalances.get(w.id) || 0) + walletMonthMovement(w)) *
+                    rateOf(w.currency, period.to),
+                0,
+              ),
+              true,
             );
-            return (
-              <span className="font-mono tabular-nums font-semibold">
-                {v ? formatNumberSpaces(Math.round(v)) : "·"}
-              </span>
-            );
-          }
           const w = wallets.find((x) => x.id === col.key);
           if (!w) return null;
-          const v = (startBalances.get(w.id) || 0) + walletMonthMovement(w);
-          return (
-            <span className="font-mono tabular-nums font-semibold">
-              {v ? formatNumberSpaces(v) : "·"}
-            </span>
-          );
+          return cellSpan((startBalances.get(w.id) || 0) + walletMonthMovement(w));
         },
       },
-    ],
-    [wallets, cells, startBalances, days, rateOf, period.to],
-  );
+    ];
+  }, [wallets, cells, startBalances, days, rateOf, period.to]);
+
 
   if (!isLoading && wallets.length === 0) {
     return (
