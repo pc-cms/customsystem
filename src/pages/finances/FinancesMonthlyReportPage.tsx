@@ -863,7 +863,67 @@ const SummaryBlock = ({
         </div>
 
       </div>
+
+      {/* Manager Bonus override — closed months only, reason mandatory, immutable audit. */}
+      <ResponsiveDialog
+        open={bonusOpen}
+        onOpenChange={(o) => {
+          if (!o) {
+            setBonusOpen(false);
+            setBonusAmount("");
+            setBonusReason("");
+          }
+        }}
+        title="Override Manager Bonus"
+      >
+        <FormGrid>
+          <FormField span={6} label="New Bonus (TZS)" required hint={`current ${fmtT(kpi.manager_bonus)}`}>
+            <NumberInput
+              decimals={2}
+              value={bonusAmount}
+              onValueChange={(v) => setBonusAmount(v == null ? "" : String(v))}
+            />
+          </FormField>
+          <FormField span={6} label="Default at close" >
+            <Input value={fmtT(mf?.manager_bonus_default || 0)} readOnly className="font-mono" />
+          </FormField>
+          <FormField span={12} label="Reason" required>
+            <Input value={bonusReason} onChange={(e) => setBonusReason(e.target.value)} placeholder="Why is the bonus changed?" />
+          </FormField>
+        </FormGrid>
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <span className="text-[12px] text-muted-foreground">
+            The old value, the new value, the reason and the actor are stored permanently. Final Profit never changes —
+            only the amount still available for collection.
+          </span>
+          <Button
+            size="sm"
+            disabled={!casinoId || !bonusReason.trim() || bonusAmount === "" || overrideBonus.isPending}
+            onClick={() =>
+              overrideBonus.mutate(
+                {
+                  casino_id: casinoId as string,
+                  year: mf?.period?.year as number,
+                  month: mf?.period?.month as number,
+                  amount: Number(bonusAmount) || 0,
+                  reason: bonusReason.trim(),
+                },
+                {
+                  onSuccess: () => {
+                    setBonusOpen(false);
+                    setBonusAmount("");
+                    setBonusReason("");
+                  },
+                },
+              )
+            }
+          >
+            Save Override
+          </Button>
+        </div>
+      </ResponsiveDialog>
     </PageSection>
+
   );
 };
 
