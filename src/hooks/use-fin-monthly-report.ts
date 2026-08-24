@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
+import { REAL_INCOME_SOURCES } from "@/hooks/use-other-incomes";
 
 const GROUP_ORDER = ["fixed", "tax", "variable", "salary", "petrol", "additional"] as const;
 const COLLECTIONS_GROUP = "collections";
