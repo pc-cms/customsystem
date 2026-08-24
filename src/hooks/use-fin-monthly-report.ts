@@ -142,13 +142,16 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         .select("tables_result, slots_result, casino_id, business_date")
         .gte("business_date", start)
         .lt("business_date", endExclusive);
-      // Other Incomes — real recorded incomes live in `fin_other_incomes`
-      // (the legacy `fin_incomes` planning table is empty, which showed 0 here).
+      // Other Incomes — money the business actually EARNED.
+      // Only REAL_INCOME_SOURCES count: JP, tips, bonuses, inter-casino
+      // transfers, owner top-ups and investments are plain transactions
+      // (they move wallets) and must never inflate income.
       let incomesQ = (supabase as any)
         .from("fin_other_incomes")
-        .select("amount, fx_rate, currency, casino_id, business_date, reverses_id")
+        .select("amount, fx_rate, currency, casino_id, business_date, reverses_id, source")
         .gte("business_date", start)
         .lt("business_date", endExclusive)
+        .in("source", REAL_INCOME_SOURCES)
         .is("reverses_id", null);
       // USD→TZS rate for the period (correct column = rate_to_tzs, filtered to USD).
       let ratesQ = supabase
