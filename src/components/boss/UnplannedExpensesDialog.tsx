@@ -79,7 +79,7 @@ export const UnplannedExpensesDialog = ({
   };
 
   return (
-    <ResponsiveDialog open={open} onOpenChange={onOpenChange} title="Unplanned Expenses">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange} title="Extra Expenses">
       <FormGrid>
         {casinos.length > 1 && (
           <FormField span={6} label="Casino">
@@ -120,7 +120,7 @@ export const UnplannedExpensesDialog = ({
       <div className="mt-3 flex justify-end">
         <Button size="sm" onClick={submit} disabled={add.isPending}>
           <Plus className="w-4 h-4 mr-1" />
-          {add.isPending ? "Saving…" : "Add Unplanned Expense"}
+          {add.isPending ? "Saving…" : "Add Extra Expense"}
         </Button>
       </div>
 
@@ -182,7 +182,7 @@ export const UnplannedExpensesDialog = ({
                 className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                 aria-label="Reverse"
                 onClick={() => {
-                  if (confirm("Create a reversal for this unplanned expense?")) {
+                  if (confirm("Create a reversal for this extra expense?")) {
                     reverse.mutate({ id: i.id });
                   }
                 }}

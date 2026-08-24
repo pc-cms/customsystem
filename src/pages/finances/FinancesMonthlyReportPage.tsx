@@ -702,15 +702,15 @@ const SummaryBlock = ({
           tone="signed"
           formula={
             closed
-              ? "Final · Total Income − Actual Expenses − Unplanned not in Actual − Liabilities (frozen at close)"
-              : "Forecast · Total Income − Budget − Unplanned − Liabilities − Collections"
+              ? "Final · Total Income − Actual Expenses − Extra Expenses not in Actual − Liabilities (frozen at close)"
+              : "Forecast · Total Income − Budget − Extra Expenses − Liabilities − Collections"
           }
         />
         <KpiCard
           label="Cash Position"
           v={kpi.cash_position}
           tone="signed"
-          formula="Basic Float + Total Income + Office + Investment + Intercompany Cash Effect − Actual Expenses − Paid Unplanned (not in Actual) − Collections − Liability Payments. Deposits have no effect on Cash Position."
+          formula="Basic Float + Total Income + Office + Investment + Intercompany Cash Effect − Actual Expenses − Paid Extra Expenses (not in Actual) − Collections − Liability Payments. Deposits have no effect on Cash Position."
         />
         <KpiCard
           label="Total Money"
@@ -855,8 +855,8 @@ const SummaryBlock = ({
             strong
             tip={
               closed
-                ? "Actual Expenses + Unplanned not already inside Actual + frozen closing Liabilities + Collections. Commissions & Fee are income lines and are never deducted here."
-                : "Budget + all Unplanned + closing Liabilities + Collections. Commissions & Fee are income lines and are never deducted here."
+                ? "Actual Expenses + Extra Expenses not already inside Actual + frozen closing Liabilities + Collections. Commissions & Fee are income lines and are never deducted here."
+                : "Budget + all Extra Expenses + closing Liabilities + Collections. Commissions & Fee are income lines and are never deducted here."
             }
           />
         </div>
