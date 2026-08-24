@@ -1,0 +1,51 @@
+# Tips-расходы, Cashless/Bank и Inter-Casino
+
+## 1. Перенос расходов Tips / Bonus в Tips & Bonuses
+
+Пять записей из расходов переводятся в реестр Tips & Bonuses как выплаты (OUT). Деньги уже списаны — суммы, даты и кошельки не меняются, меняется только категория/направление:
+
+- Arusha 22.08 — Tips recalculation — 50 000 → Tips OUT
+- Mwanza 18.08 — Tips for dealers 16.07-15.08 — 506 000 → Tips OUT
+- Arusha 11.08 — Bonuses for Zuhura — 50 000 → Bonus OUT
+- Arusha 08.08 — Tips for waitress (Amber Restaurant) — 40 000 → Tips OUT
+- Arusha 02.07 — Arusha June Cash Bonuses — 1 850 000 → Bonus OUT
+
+Механика: существующая проводка по кошельку переподвешивается на запись Tips & Bonuses (отрицательная сумма), запись в расходах удаляется. Итог: баланс кошелька без изменений, расходы уменьшаются на эти суммы, в Tips & Bonuses появляются OUT.
+
+## 2. Office → Bank / Cashless: нормальная таблица и цвета
+
+- Убрать «кнопочный» вид ячеек: значение выглядит как обычный текст (моно, выравнивание вправо), редактирование включается по клику, рамка появляется только в режиме ввода.
+- Плотная сетка: компактные строки, единый размер цифр, крупнее шрифт значений, аккуратные тонкие разделители столбцов.
+- Цвета сумм: приход — зелёный (`cms-amount-positive`), расход — красный (`cms-amount-negative`), ноль — точка `·` серым.
+- Строки Start of month / Month movement / End of month визуально отделены, суммы жирные и тоже окрашены по знаку.
+- Автоматические суммы (из других модулей) остаются мелкой подписью под ячейкой, но тоже с цветом по знаку.
+
+## 3. Порядок и состав кошельков
+
+Cashless (в этом порядке):
+
+1. M-Pesa
+2. Tigo Pesa
+3. HaloPesa
+4. Airtel Money
+5. Main Phone
+6. Selcom Float
+7. WeChat
+
+В Bank переносятся Selcom TZS и Selcom USD (после CRDB и NBC). Порядок задаётся через `sort_order` для всех казино (Arusha, Mwanza, Dodoma, Mbeya) одной операцией; Selcom TZS/USD меняют группу на `banks`. Selcom Float остаётся в Cashless.
+
+## 4. Inter-Casino: цвета транзакций
+
+- Суммы: у отправителя красным с минусом, у получателя зелёным с плюсом.
+- Строки таблицы подкрашиваются по статусу (pending — янтарный, accepted — зелёный, rejected — красный, cancelled — серый), бейджи статусов уже есть и остаются.
+- Иконки направления (входящий / исходящий) окрашиваются в тон суммы, шрифт сумм — моно с выравниванием вправо.
+
+## 5. Стрелки Money In / Money Out в Wallets
+
+Проверить кнопки Money In / Money Out на странице Wallets целиком: открытие диалога, выбор кошелька, ввод суммы и купюр, сохранение проводки, знак суммы (+ / −), обновление баланса и появление записи в истории движений. Что не работает — исправляется; если всё работает, отчитаюсь результатом проверки.
+
+## Технические детали
+
+- Данные: `expenses` → `fin_other_incomes` (`source` = `tips` / `bonus`, отрицательная сумма), `fin_wallet_tx.ref_table/ref_id` перевешивается, `fin_wallets.sort_order` / `wallet_group` обновляются.
+- Код: `src/components/finances/InlineNumberCell.tsx`, `src/pages/office/WalletDayGridTab.tsx`, `src/pages/finances/FinancesInterCasinoPage.tsx`, при необходимости `src/components/finances/WalletMovementDialog.tsx`.
+- Версия приложения повышается после реализации.
