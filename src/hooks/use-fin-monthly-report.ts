@@ -411,7 +411,15 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       grand.remain_grand_tzs = grand.plan_month_grand_tzs - grand.actual_grand_tzs;
 
       return {
-        incomes: { live_game: liveGame, slots: slotsIncome, other, total: liveGame + slotsIncome + other },
+        incomes: {
+          live_game: liveGame,
+          slots: slotsIncome,
+          other,
+          tips_bonus: tipsBonus,
+          movements,
+          jp,
+          total: liveGame + slotsIncome + other,
+        },
         groups,
         collections,
         grand,
