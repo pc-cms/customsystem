@@ -274,16 +274,35 @@ export default function FinancesWalletsPage() {
   }, [lastCounts]);
 
   // Grand totals in TZS and USD — Actual (last recorded count), same source as Variance.
+  /** Cash / Mobile / Bank buckets keep native units separated per currency. */
+  const bucketOfKind = (kind?: string | null) => {
+    switch (kind) {
+      case "bank":
+        return "bank" as const;
+      case "mobile_money":
+      case "digital_wallet":
+      case "selcom":
+        return "mobile" as const;
+      default:
+        return "cash" as const;
+    }
+  };
+
   const grandTotals = useMemo(() => {
     const tzs = (snap?.wallets || []).reduce((s, w) => s + Number(w.actual_tzs ?? 0), 0);
     const usd = usdRate > 0 ? tzs / usdRate : 0;
-    // per-currency native totals
+    // per-currency native totals, split into Cash / Mobile / Bank
     const perCcy: Record<string, number> = {};
+    const perCcyBucket: Record<string, { cash: number; mobile: number; bank: number }> = {};
     (snap?.wallets || []).forEach((w) => {
-      perCcy[w.currency] = (perCcy[w.currency] || 0) + Number(w.actual_native ?? 0);
+      const native = Number(w.actual_native ?? 0);
+      perCcy[w.currency] = (perCcy[w.currency] || 0) + native;
+      const b = (perCcyBucket[w.currency] ||= { cash: 0, mobile: 0, bank: 0 });
+      b[bucketOfKind(w.kind)] += native;
     });
-    return { tzs, usd, perCcy };
+    return { tzs, usd, perCcy, perCcyBucket };
   }, [snap, usdRate]);
+
 
 
   const toggleWalletSort = (k: WalletSortKey) => {
