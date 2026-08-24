@@ -101,7 +101,7 @@ export default function OtherIncomesTab() {
 
   const activeWallet = wallets.find((w: any) => w.id === form.wallet_id);
 
-  const openAdd = (source: OtherIncomeSource = "investment") => {
+  const openAdd = (source: OtherIncomeSource = "commission") => {
     setEditId(null);
     setForm({
       business_date: new Date().toISOString().slice(0, 10),
