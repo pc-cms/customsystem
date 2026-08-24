@@ -81,23 +81,25 @@ export const deposits = (i: {
 /**
  * Cash on hand — NOT net worth.
  *
- * Cash Position = Basic Float + Total Income − Deposits + Office + Investment
+ * Cash Position = Basic Float + Total Income + Office + Investment
  *               + Intercompany Cash Effect − Actual Expenses
  *               − Paid Unplanned not represented in Actual Expenses
  *               − Collections − Actual Liability Payments.
+ *
+ * Deposits (Tips & Bonuses, JP, Card Balance, Miss Chips, Miss Cards) have ZERO
+ * effect here: they are neither added nor subtracted. They stay a reported
+ * figure inside Cash Adjustments only.
  *
  * `unplannedPaidCashNotInActual` covers paid Unplanned rows with `expense_id IS NULL`:
  * `fin_unplanned_mark_paid` moves real wallet cash for them while no expense row exists,
  * so they must reduce cash exactly once. Rows linked to an Actual Expense are already
  * inside `expensesActual` and are never subtracted twice.
  *
- * Deposits are subtracted exactly once. Unpaid Unplanned Expenses and
- * outstanding Liabilities are NEVER subtracted.
+ * Unpaid Unplanned Expenses and outstanding Liabilities are NEVER subtracted.
  */
 export const cashPosition = (i: {
   floatCurrent: number;
   totalIncome: number;
-  deposits: number;
   investment: number;
   office: number;
   intercompanyCash: number;
@@ -108,8 +110,7 @@ export const cashPosition = (i: {
   collections: number;
 }) =>
   Number(i.floatCurrent || 0) +
-  Number(i.totalIncome || 0) -
-  Number(i.deposits || 0) +
+  Number(i.totalIncome || 0) +
   Number(i.investment || 0) +
   Number(i.office || 0) +
   Number(i.intercompanyCash || 0) -
@@ -117,6 +118,7 @@ export const cashPosition = (i: {
   Number(i.unplannedPaidCashNotInActual || 0) -
   Number(i.collections || 0) -
   Number(i.liabilityPayments || 0);
+
 
 /**
  * Available for Collection = max(0, Profit − cumulative Collections − approved Manager Bonus).
