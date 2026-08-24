@@ -126,15 +126,27 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       const catsQ = supabase.from("fin_categories").select("*").order("sort_order");
       let budgetQ = supabase.from("fin_budget").select("*").eq("year", year);
       if (!network && casinoId) budgetQ = budgetQ.eq("casino_id", casinoId);
+      // Expenses — SAME rules as the Wallets balance snapshot:
+      // approved, not voided, not a reversal, and either an Office entry or a
+      // cage entry of an already CLOSED business day.
       let expQ = supabase
         .from("expenses")
-        .select("id, business_date, description, amount, currency, amount_tzs, fin_category_id, wallet_id, player_id, player_name, source, casino_id, voided_at, fin_wallets(name), casinos(slug)")
+        .select("id, business_date, description, amount, currency, amount_tzs, fin_category_id, wallet_id, player_id, player_name, source, casino_id, voided_at, approved, reversal_of, fin_wallets(name), casinos(slug)")
         .gte("business_date", start)
         .lt("business_date", endExclusive)
         .not("fin_category_id", "is", null)
         .is("voided_at", null)
+        .is("reversal_of", null)
+        .eq("approved", true)
         .limit(5000);
       if (!network && casinoId) expQ = expQ.eq("casino_id", casinoId);
+
+      // Closed business days — needed to apply the same expense rule as Wallets.
+      let closuresQ = supabase
+        .from("business_day_closures")
+        .select("casino_id, business_date")
+        .gte("business_date", start)
+        .lt("business_date", endExclusive);
 
       // Incomes from fin_day_closing — ONLY closed business days count as income.
       let dayClosingsQ = supabase
@@ -142,17 +154,17 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         .select("tables_result, slots_result, casino_id, business_date")
         .gte("business_date", start)
         .lt("business_date", endExclusive);
-      // Other Incomes — money the business actually EARNED.
-      // Only REAL_INCOME_SOURCES count: JP, tips, bonuses, inter-casino
-      // transfers, owner top-ups and investments are plain transactions
-      // (they move wallets) and must never inflate income.
+      // Other Incomes — fetched in full and classified with the shared dictionary:
+      //   Commissions (other/refund/fee) = real income
+      //   Tips & Bonuses, JP, movements (investment/owner top-up) = reference only
+      //   inter-casino transfers = registry, never here.
       let incomesQ = (supabase as any)
         .from("fin_other_incomes")
-        .select("amount, fx_rate, currency, casino_id, business_date, reverses_id, source")
+        .select("amount, fx_rate, currency, casino_id, business_date, reverses_id, reversed_by_id, source")
         .gte("business_date", start)
         .lt("business_date", endExclusive)
-        .in("source", REAL_INCOME_SOURCES)
-        .is("reverses_id", null);
+        .is("reverses_id", null)
+        .is("reversed_by_id", null);
       // USD→TZS rate for the period (correct column = rate_to_tzs, filtered to USD).
       let ratesQ = supabase
         .from("fin_daily_rates")
