@@ -387,7 +387,7 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
               {[
                 ["Live Game", incomes.live_game],
                 ["Slots", incomes.slots],
-                ["Other", incomes.other],
+                ["Other Incomes", incomes.other],
               ].map(([label, v]) => (
                 <tr key={label as string} className="border-t border-border [&>td]:h-9 [&>td]:px-3">
                   <td className="font-sans font-normal text-muted-foreground text-[12px]">{label}</td>
