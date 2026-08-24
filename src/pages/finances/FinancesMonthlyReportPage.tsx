@@ -854,9 +854,14 @@ const SummaryBlock = ({
             total={cash.basic_float_current}
             tip="Opening Basic Float + Σ signed adjustments = current Basic Float."
           >
-            <DetailRow label="Opening Basic Float" value={cash.basic_float_opening} />
             <DetailRow label="Float Adjustment (±)" value={cash.basic_float_add} />
+            <DetailRow label="Opening Basic Float" value={cash.basic_float_opening} />
           </Section>
+          <Line
+            label="Collections"
+            v={cash.collections_actual}
+            tip="Owner withdrawals already taken out in cash. They reduce Expected Profit, the amount still available for collection and Cash Position."
+          />
           <Section
             id="deposits"
             label="Deposits"
@@ -864,19 +869,15 @@ const SummaryBlock = ({
             signed
             tip="Money physically held in the cage but owed to third parties. Reported only — Deposits have no effect on Cash Position."
           >
-            <DetailRow label="Tips & Bonuses (±)" value={inc.tips_bonus} />
-            <DetailRow label="JP (±)" value={inc.jp} />
             <DetailRow label="Card Balance" value={cash.card_balance} />
-            <DetailRow label="Miss Chips" value={cash.miss_chips} />
+            <DetailRow label="JP (±)" value={inc.jp} />
             <DetailRow label="Miss Cards" value={cash.miss_cards} />
+            <DetailRow label="Miss Chips" value={cash.miss_chips} />
+            <DetailRow label="Tips & Bonuses (±)" value={inc.tips_bonus} />
           </Section>
-          <Line label="Office" v={inc.office} signed tip="Signed office cash movements of the month." />
           <Line label="Investment" v={inc.investment} signed tip="Signed investment cash movements of the month." />
-          <Line
-            label="Collections"
-            v={cash.collections_actual}
-            tip="Owner withdrawals already taken out in cash. They reduce Expected Profit, the amount still available for collection and Cash Position."
-          />
+          <Line label="Office" v={inc.office} signed tip="Signed office cash movements of the month." />
+
           <div className="flex-1" />
         </div>
 
