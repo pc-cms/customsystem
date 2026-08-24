@@ -94,7 +94,7 @@ export type MonthlyReport = {
     commission: number;
     agent_commission: number;
     fee: number;
-    /** Σ commission + agent_commission + fee (+ legacy other/refund). Alias `other`. */
+    /** Σ commission + agent_commission + fee (+ legacy `other`). Alias `other`. */
     commissions: number;
     other: number;
     /** Reference rows — NOT part of Total, shown so the page reconciles with Wallets. */
@@ -212,7 +212,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         .gte("business_date", start)
         .lt("business_date", endExclusive);
       // Other Incomes — fetched in full and classified with the shared dictionary:
-      //   Commissions (other/refund/fee) = real income
+      //   Commissions (other/commission/agent_commission/fee) = real income
       //   Tips & Bonuses, JP, movements (investment/owner top-up) = reference only
       //   inter-casino transfers = registry, never here.
       let incomesQ = (supabase as any)
@@ -322,7 +322,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       const other = sumSources(COMMISSION_SOURCES);
       const commission = sumSources(["commission", "other"]); // legacy `other` folds into Commission
       const agentCommission = sumSources(["agent_commission"]);
-      const fee = sumSources(["fee", "refund"]); // legacy refund kept readable here
+      const fee = sumSources(["fee"]); // `refund` is retired and never counted
       const tipsBonus = sumSources(TIPS_BONUS_SOURCES);
       const movements = sumSources(MOVEMENT_SOURCES);
       const investment = sumSources(["investment"]);
