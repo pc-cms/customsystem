@@ -403,7 +403,7 @@ export default function DayClosingsTab() {
     },
     {
       key: "tables",
-      header: "Tables",
+      header: "Table Result",
       type: "money",
       style: { width: 168 },
       headerClassName: "text-right",
@@ -414,7 +414,7 @@ export default function DayClosingsTab() {
     },
     {
       key: "slots",
-      header: "Slots",
+      header: "Slot Result",
       type: "money",
       style: { width: 168 },
       accessor: (r) => numCell(r, val(r).slots, (n) => setField(r.date, { slots: n }), {
@@ -440,12 +440,12 @@ export default function DayClosingsTab() {
       accessor: (r) => numCell(r, val(r).cards, (n) => setField(r.date, { cards: n }), {
         tone: false,
         allowNegative: true,
-        title: "Client balance held on player cards. Subtracted from the Slots result. Negative values allowed.",
+        title: "Client balance held on player cards. Subtracted from the Slot Result. Negative values allowed.",
       }),
     },
     {
       key: "jp",
-      header: "JP (IN)",
+      header: "JP",
       type: "money",
       style: { width: 150 },
       accessor: (r) => numCell(r, val(r).jp, (n) => setField(r.date, { jp: Math.abs(n) }), {

@@ -559,7 +559,7 @@ const EditReprintShiftPage = () => {
               <Section title="Totals & balance">
                 <div className="grid grid-cols-[1fr,140px] gap-1 items-center text-[11px]">
                   <span className="flex items-center gap-2 flex-wrap">
-                    Tables Result
+                    Table Result
                     <label className="inline-flex items-center gap-1 text-[9px] text-muted-foreground cursor-pointer">
                       <input type="checkbox" className="h-3 w-3" checked={resultAuto}
                         onChange={(e) => { setResultAuto(e.target.checked); if (e.target.checked) setChipsAuto(false); }} />
@@ -859,7 +859,7 @@ const TableChipsFullGrid = ({
         </table>
       </div>
       <div className="text-[10px] text-muted-foreground mt-2">
-        Editing chips OR the Result column auto-recomputes Tables Result and redistributes CLOSE chips of the shift for print. Nothing is saved.
+        Editing chips OR the Result column auto-recomputes Table Result and redistributes CLOSE chips of the shift for print. Nothing is saved.
       </div>
     </div>
   );

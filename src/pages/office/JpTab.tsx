@@ -256,7 +256,7 @@ export default function JpTab() {
       <ResponsiveDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        title={editId ? "Edit JP entry" : mode === "out" ? "JP Payout (OUT)" : "Add JP (IN)"}
+        title={editId ? "Edit JP entry" : mode === "out" ? "JP Payout (OUT)" : "Add JP"}
       >
         <FormGrid>
           <FormField span={6} label="Business Date">
