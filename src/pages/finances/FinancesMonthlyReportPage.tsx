@@ -400,6 +400,18 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
                 <td className="text-right">{fmtT(incomes.total)}</td>
                 <td className={cn("text-right text-muted-foreground font-normal pr-3", USD_COL)}>—</td>
               </tr>
+              {/* Reference rows — wallet movements, NOT income. Shown so this page reconciles with Wallets. */}
+              {[
+                ["Tips & Bonuses (±)", incomes.tips_bonus],
+                ["JP (IN)", incomes.jp],
+                ["Movements (investment / top-up)", incomes.movements],
+              ].map(([label, v]) => (
+                <tr key={label as string} className="border-t border-dashed border-border [&>td]:h-8 [&>td]:px-3">
+                  <td className="font-sans font-normal text-muted-foreground text-[11px]">{label} · ref</td>
+                  <td className="text-right text-[13px] font-normal text-muted-foreground">{fmtT(v as number)}</td>
+                  <td className={cn("text-right text-muted-foreground font-normal pr-3", USD_COL)}>—</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
