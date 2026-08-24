@@ -168,7 +168,7 @@ export default function FinancesWalletsPage() {
   const totals = useMemo(() => computeBalanceTotals(snap), [snap]);
   const usdRate = snap?.rates?.usd_tzs || 2600;
 
-  const [txLimit, setTxLimit] = useState<string>("50");
+  const [txLimit, setTxLimit] = useState<string>("10");
   const { data: tx = [] } = useFinWalletTx({
     from: monthRange.from,
     to: monthRange.to,
