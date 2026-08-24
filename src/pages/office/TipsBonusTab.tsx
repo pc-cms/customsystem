@@ -8,7 +8,7 @@
  * Transactions tab. Built after the JP tab pattern.
  */
 import { useMemo, useState } from "react";
-import { Plus, Minus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Minus, Pencil, Undo2 } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
 import { Button } from "@/components/ui/button";
