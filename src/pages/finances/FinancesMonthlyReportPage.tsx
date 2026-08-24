@@ -19,6 +19,8 @@ import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories, useArch
 import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
 import { MonthlyReportActions } from "@/components/finances/MonthlyReportActions";
 import { useMonthFinance, useOverrideManagerBonus } from "@/hooks/use-fin-month-finance";
+import { useFinBalanceSnapshot, computeBalanceTotals } from "@/hooks/use-fin-balance";
+
 import { InlineTextCell } from "@/components/finances/InlineTextCell";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
@@ -119,6 +121,7 @@ export default function FinancesMonthlyReportPage() {
     month,
   );
   const { data, isLoading } = useMonthlyReport({ year, month, ytd: false, scope: scope || activeCasinoId || "" });
+
 
   const toggle = (id: string) => setExpanded((e) => (e === id ? null : id));
 
@@ -406,7 +409,20 @@ const SummaryBlock = ({
   const closed = mf?.status === "closed";
   const closedAt = mf?.closed_at || null;
 
-  const planRatio = g.plan_month_grand_tzs ? g.actual_grand_tzs / g.plan_month_grand_tzs : null;
+
+  /* Total Money = Wallets · Expected of the same month (single source of truth). */
+  const { period: walletPeriod } = useOfficePeriod();
+  const walletRange = useMemo(() => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const last = new Date(walletPeriod.year, walletPeriod.month, 0).getDate();
+    return {
+      from: `${walletPeriod.year}-${pad(walletPeriod.month)}-01`,
+      to: `${walletPeriod.year}-${pad(walletPeriod.month)}-${pad(last)}`,
+    };
+  }, [walletPeriod.year, walletPeriod.month]);
+  const { data: walletSnap } = useFinBalanceSnapshot(walletRange.from, walletRange.to);
+  const walletTotals = useMemo(() => computeBalanceTotals(walletSnap), [walletSnap]);
+
 
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const toggleSection = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
@@ -641,20 +657,8 @@ const SummaryBlock = ({
   );
 
 
-  const planTone =
-    planRatio == null
-      ? "border-border bg-muted text-muted-foreground"
-      : planRatio > 1.1
-        ? "border-red-500/40 bg-red-500/15 text-red-500"
-        : planRatio > 1
-          ? "border-orange-500/40 bg-orange-500/15 text-orange-500"
-          : "border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400";
 
-  const PlanBadge = () => (
-    <span className={cn("text-[12px] font-semibold px-2 py-0.5 rounded border normal-case tracking-normal", planTone)}>
-      {planRatio == null ? "no plan" : `${Math.round(planRatio * 100)}% of plan`}
-    </span>
-  );
+
 
   return (
     <PageSection
@@ -685,8 +689,8 @@ const SummaryBlock = ({
           label="Budget"
           v={g.plan_month_grand_tzs}
           formula="Planned cost base of the month (Grand TZS = TZS + USD converted)."
-          footer={<PlanBadge />}
         />
+
         <KpiCard
           label="Actual Expenses"
           v={cash.expenses_actual}
@@ -709,10 +713,12 @@ const SummaryBlock = ({
           formula="Basic Float + Total Income + Office + Investment + Intercompany Cash Effect − Actual Expenses − Paid Unplanned (not in Actual) − Collections − Liability Payments. Deposits have no effect on Cash Position."
         />
         <KpiCard
-          label="Basic Float"
-          v={cash.basic_float_current}
-          formula="Opening Basic Float + Σ signed float adjustments of the month."
+          label="Total Money"
+          v={walletTotals.expected}
+          tone="signed"
+          formula="Expected wallet balance of the month (same value as Wallets · Expected)."
         />
+
       </div>
 
       {/* THREE EQUAL SUMMARY CARDS — exactly 5 primary rows each when collapsed */}
@@ -723,10 +729,10 @@ const SummaryBlock = ({
             <span>Month Summary · Income</span>
             <span className="normal-case tracking-normal text-[12px]">TZS</span>
           </div>
-          <Line label="Table Result" v={inc.table_result} signed tip="Σ closed-day table results of the month." />
-          <Line label="Slot Result" v={inc.slot_result} signed tip="Σ closed-day slot results of the month." />
-          <Line label="Bar Income" v={inc.bar_income} tip="POS / bar revenue counted once, in income and in cash." />
           <Line label="Agents" v={inc.agent_commission} signed tip="Agent commission recorded on the income side." />
+          <Line label="Bar Income" v={inc.bar_income} tip="POS / bar revenue counted once, in income and in cash." />
+          <Line label="Slot Result" v={inc.slot_result} signed tip="Σ closed-day slot results of the month." />
+          <Line label="Table Result" v={inc.table_result} signed tip="Σ closed-day table results of the month." />
           <div className="flex-1" />
           <Line
             label="Total Income"
@@ -741,8 +747,8 @@ const SummaryBlock = ({
         <div className={card}>
           <div className={cardHeader}>
             <span>Expenses &amp; Obligations</span>
-            <PlanBadge />
           </div>
+
           <Section
             id="commissions_fee"
             label="Commissions & Fee"
@@ -752,6 +758,46 @@ const SummaryBlock = ({
           >
             <DetailRow label="Commissions" value={inc.commission} />
             <DetailRow label="Fee" value={inc.fee} />
+          </Section>
+          <Section
+            id="liabilities"
+            label="Liabilities"
+            total={cash.liabilities}
+            tone={cash.liabilities > 0 ? "warn" : undefined}
+            tip="Opening + repayable funding (incl. intercompany transfers that must be repaid) + manual liabilities − repayments = closing outstanding. Non-repayable transfers and Add Float never become liabilities."
+          >
+            <DetailRow label="Opening" value={mf?.liabilities?.opening_tzs || 0} />
+            <DetailRow label="New this month" value={mf?.liabilities?.new_tzs || 0} />
+            <DetailRow label="Repaid" value={-(mf?.liabilities?.repaid_tzs || 0)} />
+            <DetailRow label="Closing outstanding" value={mf?.liabilities?.closing_tzs || 0} tone={(mf?.liabilities?.closing_tzs || 0) > 0 ? "warn" : undefined} />
+            {liabilityItems.map((l) => (
+              <DetailRow
+                key={l.id}
+                left={fmtDateOnly(l.business_date)}
+                label={`${l.creditor}${l.description ? ` · ${l.description}` : ""}`}
+                value={l.outstanding_tzs}
+                tag={l.status}
+                tone={l.status === "paid" ? undefined : "warn"}
+              />
+            ))}
+            {liabilityPayments.map((p) => (
+              <DetailRow
+                key={p.id}
+                left={fmtDateOnly(p.business_date)}
+                label={p.note || "Repayment"}
+                value={-p.amount_tzs}
+                tag="paid"
+              />
+            ))}
+            {/* Transfers appear here for context only — cash/accounting logic is unchanged. */}
+            <DetailRow label="Transfers · cash effect" value={cash.intercompany_cash} tag="cash" />
+            <DetailRow label="Transfers · repayable to us" value={cash.intercompany_receivable} tag="receivable" />
+            <DetailRow
+              label="Transfers · repayable by us"
+              value={cash.intercompany_liability}
+              tag="payable"
+              tone={cash.intercompany_liability > 0 ? "warn" : undefined}
+            />
           </Section>
           <Line
             label="Manager Bonus"
@@ -799,46 +845,7 @@ const SummaryBlock = ({
               ))
             )}
           </Section>
-          <Section
-            id="liabilities"
-            label="Liabilities"
-            total={cash.liabilities}
-            tone={cash.liabilities > 0 ? "warn" : undefined}
-            tip="Opening + repayable funding (incl. intercompany transfers that must be repaid) + manual liabilities − repayments = closing outstanding. Non-repayable transfers and Add Float never become liabilities."
-          >
-            <DetailRow label="Opening" value={mf?.liabilities?.opening_tzs || 0} />
-            <DetailRow label="New this month" value={mf?.liabilities?.new_tzs || 0} />
-            <DetailRow label="Repaid" value={-(mf?.liabilities?.repaid_tzs || 0)} />
-            <DetailRow label="Closing outstanding" value={mf?.liabilities?.closing_tzs || 0} tone={(mf?.liabilities?.closing_tzs || 0) > 0 ? "warn" : undefined} />
-            {liabilityItems.map((l) => (
-              <DetailRow
-                key={l.id}
-                left={fmtDateOnly(l.business_date)}
-                label={`${l.creditor}${l.description ? ` · ${l.description}` : ""}`}
-                value={l.outstanding_tzs}
-                tag={l.status}
-                tone={l.status === "paid" ? undefined : "warn"}
-              />
-            ))}
-            {liabilityPayments.map((p) => (
-              <DetailRow
-                key={p.id}
-                left={fmtDateOnly(p.business_date)}
-                label={p.note || "Repayment"}
-                value={-p.amount_tzs}
-                tag="paid"
-              />
-            ))}
-            {/* Transfers appear here for context only — cash/accounting logic is unchanged. */}
-            <DetailRow label="Transfers · cash effect" value={cash.intercompany_cash} tag="cash" />
-            <DetailRow label="Transfers · repayable to us" value={cash.intercompany_receivable} tag="receivable" />
-            <DetailRow
-              label="Transfers · repayable by us"
-              value={cash.intercompany_liability}
-              tag="payable"
-              tone={cash.intercompany_liability > 0 ? "warn" : undefined}
-            />
-          </Section>
+
           <div className="flex-1" />
           <Line
             label="Total Expenses & Obligations"
@@ -863,9 +870,14 @@ const SummaryBlock = ({
             total={cash.basic_float_current}
             tip="Opening Basic Float + Σ signed adjustments = current Basic Float."
           >
-            <DetailRow label="Opening Basic Float" value={cash.basic_float_opening} />
             <DetailRow label="Float Adjustment (±)" value={cash.basic_float_add} />
+            <DetailRow label="Opening Basic Float" value={cash.basic_float_opening} />
           </Section>
+          <Line
+            label="Collections"
+            v={cash.collections_actual}
+            tip="Owner withdrawals already taken out in cash. They reduce Expected Profit, the amount still available for collection and Cash Position."
+          />
           <Section
             id="deposits"
             label="Deposits"
@@ -873,19 +885,15 @@ const SummaryBlock = ({
             signed
             tip="Money physically held in the cage but owed to third parties. Reported only — Deposits have no effect on Cash Position."
           >
-            <DetailRow label="Tips & Bonuses (±)" value={inc.tips_bonus} />
-            <DetailRow label="JP (±)" value={inc.jp} />
             <DetailRow label="Card Balance" value={cash.card_balance} />
-            <DetailRow label="Miss Chips" value={cash.miss_chips} />
+            <DetailRow label="JP (±)" value={inc.jp} />
             <DetailRow label="Miss Cards" value={cash.miss_cards} />
+            <DetailRow label="Miss Chips" value={cash.miss_chips} />
+            <DetailRow label="Tips & Bonuses (±)" value={inc.tips_bonus} />
           </Section>
-          <Line label="Office" v={inc.office} signed tip="Signed office cash movements of the month." />
           <Line label="Investment" v={inc.investment} signed tip="Signed investment cash movements of the month." />
-          <Line
-            label="Collections"
-            v={cash.collections_actual}
-            tip="Owner withdrawals already taken out in cash. They reduce Expected Profit, the amount still available for collection and Cash Position."
-          />
+          <Line label="Office" v={inc.office} signed tip="Signed office cash movements of the month." />
+
           <div className="flex-1" />
         </div>
 
