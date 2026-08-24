@@ -148,20 +148,8 @@ export const totalExpensesAndObligations = (i: {
   Number(i.liabilitiesClosing || 0) +
   Number(i.collections || 0);
 
-/**
- * Net Cash Adjustments = −Deposits + Office + Investment + Intercompany Cash Effect.
- * Basic Float is a standing balance, not an adjustment, and stays out.
- */
-export const netCashAdjustments = (i: {
-  deposits: number;
-  office: number;
-  investment: number;
-  intercompanyCash: number;
-}) =>
-  -Number(i.deposits || 0) +
-  Number(i.office || 0) +
-  Number(i.investment || 0) +
-  Number(i.intercompanyCash || 0);
+
+
 
 
 
