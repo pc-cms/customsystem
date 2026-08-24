@@ -226,17 +226,45 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         .eq("currency", "USD")
         .gte("business_date", start)
         .lt("business_date", endExclusive);
+      // Bar Income — paid POS revenue only (cash / card); comps are not income.
+      let barQ = (supabase as any)
+        .from("pos_orders")
+        .select("total_tzs, business_date, casino_id, voided_at, pos_tabs(payment_mode)")
+        .gte("business_date", start)
+        .lt("business_date", endExclusive)
+        .is("voided_at", null)
+        .limit(20000);
       if (!network && casinoId) {
         dayClosingsQ = dayClosingsQ.eq("casino_id", casinoId);
         incomesQ = incomesQ.eq("casino_id", casinoId);
         ratesQ = ratesQ.eq("casino_id", casinoId);
         closuresQ = closuresQ.eq("casino_id", casinoId);
+        barQ = barQ.eq("casino_id", casinoId);
       }
 
-      const [cats, budgets, expenses, dayClosings, incomes, rates, closures] = await Promise.all([catsQ, budgetQ, expQ, dayClosingsQ, incomesQ, ratesQ, closuresQ]);
+      // Cash adjustments (Basic Float, Miss Chips/Cards, Card Balance, intercompany)
+      // reuse the SAME RPC as Wallets — no competing local logic.
+      const periodEndInclusive = new Date(new Date(endExclusive + "T00:00:00Z").getTime() - 86400000)
+        .toISOString()
+        .slice(0, 10);
+      const snapQ = !network && casinoId
+        ? (supabase as any).rpc("fin_balance_snapshot", {
+            p_casino_id: casinoId,
+            p_period_start: start,
+            p_period_end: periodEndInclusive,
+          })
+        : Promise.resolve({ data: null, error: null });
+
+      const [cats, budgets, expenses, dayClosings, incomes, rates, closures, bar, snapRes] =
+        await Promise.all([catsQ, budgetQ, expQ, dayClosingsQ, incomesQ, ratesQ, closuresQ, barQ, snapQ]);
       if (cats.error) throw cats.error;
       if (budgets.error) throw budgets.error;
       if (expenses.error) throw expenses.error;
+      const snap = ((snapRes as any)?.data || null) as any;
+      const barIncome = ((bar as any)?.data || [])
+        .filter((o: any) => ["cash", "card"].includes(String(o.pos_tabs?.payment_mode || "")))
+        .reduce((s: number, o: any) => s + Number(o.total_tzs || 0), 0);
+
 
       const closedSet = new Set(
         ((closures as any)?.data || []).map((c: any) => `${c.casino_id}|${c.business_date}`),
