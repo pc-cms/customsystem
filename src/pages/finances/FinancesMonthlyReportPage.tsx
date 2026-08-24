@@ -18,7 +18,7 @@ import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories, useArch
 
 import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
 import { MonthlyReportActions } from "@/components/finances/MonthlyReportActions";
-import { useFinMonthFinance } from "@/hooks/use-fin-month-finance";
+import { useMonthFinance } from "@/hooks/use-fin-month-finance";
 import { InlineTextCell } from "@/components/finances/InlineTextCell";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
@@ -104,11 +104,11 @@ export default function FinancesMonthlyReportPage() {
   
   const { data: allCats } = useFinCategories();
 
-  const { data: monthFinance } = useFinMonthFinance({
-    casinoId: isNetwork ? null : scope || activeCasinoId || null,
+  const { data: monthFinance } = useMonthFinance(
+    isNetwork ? null : scope || activeCasinoId || null,
     year,
     month,
-  });
+  );
   const { data, isLoading } = useMonthlyReport({ year, month, ytd: false, scope: scope || activeCasinoId || "" });
 
   const toggle = (id: string) => setExpanded((e) => (e === id ? null : id));
