@@ -227,6 +227,8 @@ Deno.serve(async (req) => {
     _net_win: numbers.net_win,
     _cashdesk_win: numbers.win_cashdesk,
     _client_balance: numbers.cashless_money_difference,
+    // ACE "JP OUT" (slip out) is the day's JP figure shown as JP IN in Closing.
+    _jp_in: numbers.jackpot_slip_out,
   });
 
   if (rpcErr) {
