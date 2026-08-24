@@ -5,7 +5,7 @@ import OtherIncomesTab from "./OtherIncomesTab";
 import RatesTab from "./RatesTab";
 import JpTab from "./JpTab";
 import TipsBonusTab from "./TipsBonusTab";
-import { BalanceBanner } from "@/components/office/BalanceBanner";
+
 import { OfficeShell } from "@/components/office/office-shell";
 
 

@@ -46,6 +46,8 @@ import { fmtDateOnly } from "@/lib/format-date";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import WalletMovementDialog, { type MovementMode } from "@/components/finances/WalletMovementDialog";
 import StaleCountsNotice, { type CountFreshnessRow } from "@/components/office/StaleCountsNotice";
+import { BalanceBanner } from "@/components/office/BalanceBanner";
+
 
 import { dayToRecord } from "@/hooks/use-day-balance-snapshot";
 import { toast } from "sonner";
@@ -567,10 +569,14 @@ export default function FinancesWalletsPage() {
         </div>
       </PageSection>
 
-      {/* COUNT FRESHNESS — Actual is only as fresh as the last count per wallet */}
+      {/* VARIANCE BANNER + COUNT FRESHNESS — shown only here, not on other Office tabs */}
       <PageSection card={false}>
-        <StaleCountsNotice rows={freshness} refDate={refDate} onCountAll={countAllStale} />
+        <div className="space-y-2">
+          <BalanceBanner />
+          <StaleCountsNotice rows={freshness} refDate={refDate} onCountAll={countAllStale} />
+        </div>
       </PageSection>
+
 
 
 
