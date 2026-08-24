@@ -409,8 +409,6 @@ const SummaryBlock = ({
   const closed = mf?.status === "closed";
   const closedAt = mf?.closed_at || null;
 
-  const planRatio = g.plan_month_grand_tzs ? g.actual_grand_tzs / g.plan_month_grand_tzs : null;
-  void planRatio;
 
   /* Total Money = Wallets · Expected of the same month (single source of truth). */
   const { period: walletPeriod } = useOfficePeriod();
