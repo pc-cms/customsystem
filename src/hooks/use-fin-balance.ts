@@ -36,7 +36,20 @@ export type BalanceSnapshot = {
     grand_tzs: number;
     per_wallet: Array<{ wallet_id: string; name: string; currency: string; amount: number }>;
   };
-  incomes: { live_game: number; slots: number; other: number; jp?: number; card_balance: number; missed_chips: number; missed_cards: number };
+  incomes: {
+    live_game: number;
+    slots: number;
+    /** Commissions only: other / refund / fee. */
+    other: number;
+    /** Tips & Bonuses (tips / bonus / legacy tips_bonus) — signed. */
+    tips_bonus?: number;
+    /** Other movements: investment / owner top-up — wallet movement, not income. */
+    movements?: number;
+    jp?: number;
+    card_balance: number;
+    missed_chips: number;
+    missed_cards: number;
+  };
   expenses_total: number;
   collections_total: number;
   transfers_total: number;
