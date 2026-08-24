@@ -452,37 +452,38 @@ const SummaryBlock = ({
   const Line = ({
     label,
     v,
-    hint,
     strong,
     signed,
     sub,
     tip,
+    right,
   }: {
     label: string;
     v: number;
-    hint?: string;
     strong?: boolean;
     signed?: boolean;
     sub?: boolean;
     /** Formula/explanation shown on hover AND keyboard focus. */
     tip?: string;
+    /** Optional trailing control (e.g. Override button). */
+    right?: React.ReactNode;
   }) => {
     const labelNode = (
       <span
         className={cn(
           "truncate leading-snug",
-          strong ? "text-[14px] font-semibold" : sub ? "text-[12px] text-muted-foreground" : "text-[13px]",
+          strong ? "text-[16px] font-semibold" : sub ? "text-[13px] text-muted-foreground" : "text-[14px] font-medium",
+          tip && "decoration-dotted underline-offset-4 underline decoration-muted-foreground/50",
         )}
       >
         {label}
-        {hint ? <span className="ml-1 text-[12px] text-muted-foreground/70">· {hint}</span> : null}
       </span>
     );
     return (
       <div
         className={cn(
           "flex items-center justify-between gap-3 px-3 border-t border-border",
-          strong ? "min-h-[44px] bg-muted/30" : "min-h-[36px]",
+          strong ? "min-h-[44px] bg-muted/30" : "min-h-[40px]",
           sub && "pl-6",
         )}
       >
@@ -498,14 +499,17 @@ const SummaryBlock = ({
         ) : (
           labelNode
         )}
-        <span
-          className={cn(
-            "font-mono tabular-nums whitespace-nowrap",
-            strong ? "text-[17px] font-bold" : sub ? "text-[13px]" : "text-[15px] font-semibold",
-            signed ? cls(v || 0) : undefined,
-          )}
-        >
-          {fmtT(v || 0)}
+        <span className="flex items-center gap-2 shrink-0">
+          {right}
+          <span
+            className={cn(
+              "font-mono tabular-nums whitespace-nowrap",
+              strong ? "text-[17px] font-bold" : sub ? "text-[13px]" : "text-[15px] font-semibold",
+              signed ? cls(v || 0) : undefined,
+            )}
+          >
+            {fmtT(v || 0)}
+          </span>
         </span>
       </div>
     );
@@ -519,6 +523,7 @@ const SummaryBlock = ({
     summary,
     signed,
     tone,
+    tip,
     children,
   }: {
     id: string;
@@ -528,41 +533,60 @@ const SummaryBlock = ({
     signed?: boolean;
     /** `warn` = obligation / unpaid — amber, never red. */
     tone?: "warn";
+    tip?: string;
     children: React.ReactNode;
   }) => {
     const isOpen = !!open[id];
-    return (
-      <div className="border-t border-border">
-        <button
-          type="button"
-          aria-expanded={isOpen}
-          onClick={() => toggleSection(id)}
-          className="w-full min-h-[36px] px-3 flex items-center justify-between gap-3 text-left hover:bg-muted/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-        >
-          <span className="flex items-center gap-1.5 min-w-0">
-            {isOpen ? (
-              <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-            )}
-            <span className="text-[13px] truncate">{label}</span>
-            {summary ? (
-              <span className="text-[12px] text-muted-foreground/80 truncate">· {summary}</span>
-            ) : null}
-          </span>
+    const head = (
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        onClick={() => toggleSection(id)}
+        className="w-full min-h-[40px] px-3 flex items-center justify-between gap-3 text-left hover:bg-muted/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+      >
+        <span className="flex items-center gap-1.5 min-w-0">
+          {isOpen ? (
+            <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+          )}
           <span
             className={cn(
-              "font-mono tabular-nums text-[15px] font-semibold whitespace-nowrap",
-              tone === "warn" ? WARN : signed ? cls(total || 0) : undefined,
+              "text-[14px] font-medium truncate",
+              tip && "decoration-dotted underline-offset-4 underline decoration-muted-foreground/50",
             )}
           >
-            {fmtT(total || 0)}
+            {label}
           </span>
-        </button>
+          {summary ? (
+            <span className="text-[12px] text-muted-foreground/80 truncate">· {summary}</span>
+          ) : null}
+        </span>
+        <span
+          className={cn(
+            "font-mono tabular-nums text-[15px] font-semibold whitespace-nowrap",
+            tone === "warn" ? WARN : signed ? cls(total || 0) : undefined,
+          )}
+        >
+          {fmtT(total || 0)}
+        </span>
+      </button>
+    );
+    return (
+      <div className="border-t border-border">
+        {tip ? (
+          <Tooltip>
+            <TooltipTrigger asChild>{head}</TooltipTrigger>
+            <TooltipContent className="max-w-[320px] text-[12px] leading-snug">{tip}</TooltipContent>
+          </Tooltip>
+        ) : (
+          head
+        )}
         {isOpen && <div className="bg-muted/20 pb-1">{children}</div>}
       </div>
     );
   };
+
 
   const DetailRow = ({
     left,
