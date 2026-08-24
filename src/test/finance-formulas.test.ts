@@ -41,7 +41,7 @@ describe("Cash Position — paid unplanned expenses", () => {
   });
 });
 
-describe("Manager Bonus — always Income − Budget", () => {
+describe("Manager Bonus — Budget while open, Actual Expenses at close", () => {
   const totalIncome = 10_000_000;
   const budget = 6_000_000;
 
@@ -49,13 +49,22 @@ describe("Manager Bonus — always Income − Budget", () => {
     expect(managerBonusForecast({ totalIncome, budget })).toBe(200_000);
   });
 
-  it("closed month uses the SAME Budget base, not Actual Expenses", () => {
-    expect(managerBonusFinal({ totalIncome, budget })).toBe(
-      managerBonusForecast({ totalIncome, budget }),
-    );
+  it("closed month switches the base to Total Actual Expenses", () => {
+    expect(managerBonusFinal({ totalIncome, expensesActual: 5_000_000 })).toBe(250_000);
   });
 
   it("never goes negative", () => {
-    expect(managerBonusFinal({ totalIncome: 1_000, budget: 9_000 })).toBe(0);
+    expect(managerBonusFinal({ totalIncome: 1_000, expensesActual: 9_000 })).toBe(0);
   });
 });
+
+describe("Available for Collection — manager bonus is reserved", () => {
+  it("subtracts the approved bonus from the remaining profit", () => {
+    expect(availableForCollection(1_000_000, 200_000, 100_000)).toBe(700_000);
+  });
+
+  it("never goes negative", () => {
+    expect(availableForCollection(100_000, 200_000, 50_000)).toBe(0);
+  });
+});
+
