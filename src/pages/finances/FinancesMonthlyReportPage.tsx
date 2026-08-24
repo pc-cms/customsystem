@@ -861,7 +861,6 @@ const SummaryBlock = ({
         <div className={card}>
           <div className={cardHeader}>
             <span>Cash Adjustments</span>
-            <span className="normal-case tracking-normal text-[12px]">not income</span>
           </div>
           <Section
             id="float"
