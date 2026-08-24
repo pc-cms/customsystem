@@ -12081,6 +12081,10 @@ export type Database = {
         Args: { _business_date: string; _casino_id: string }
         Returns: number
       }
+      fin_rate_for: {
+        Args: { _business_date: string; _casino_id: string; _currency: string }
+        Returns: number
+      }
       fin_resync_wallet_counts: {
         Args: { p_wallet_id: string }
         Returns: undefined
