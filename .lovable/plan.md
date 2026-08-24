@@ -1,51 +1,57 @@
-# Fix transfers + split Tips / Bonuses
+# Трансферы + разделение Tips / Bonuses
 
-Three separate problems from the report, all confirmed against the database.
+Три проблемы из сообщения, все проверены по базе.
 
-## 1. Transfer error: `record "w" has no field "fx_rate"`
+## 1. Ошибка трансфера: `record "w" has no field "fx_rate"`
 
-Confirmed root cause: the three inter-casino RPCs (`fin_inter_casino_send`, `fin_inter_casino_accept`, `fin_inter_casino_resolve`) read `w.fx_rate` from a `fin_wallets` row, but `fin_wallets` has no `fx_rate` column at all. So every send/accept/reject fails and no transfer is ever written — `fin_inter_casino_transfers` is empty (0 rows).
+Причина подтверждена: три RPC межфилиальных трансферов (`fin_inter_casino_send`, `fin_inter_casino_accept`, `fin_inter_casino_resolve`) читают `w.fx_rate` из строки `fin_wallets`, а в `fin_wallets` вообще нет колонки `fx_rate`. Поэтому падает любая отправка/приём/отмена, и таблица `fin_inter_casino_transfers` пустая (0 строк).
 
-Fix: take the rate from the same source the rest of Finance uses instead of the wallet — `fin_daily_rates` for the transfer's business date and currency, falling back to 1 for TZS. `amount_tzs` = amount × that rate. No schema change, no other logic touched.
+Исправление: брать курс оттуда, откуда его берёт остальная финансовая часть — `fin_daily_rates` по бизнес-дате и валюте, с падением на 1 для TZS. `amount_tzs` = сумма × этот курс. Схема не меняется, остальная логика не трогается.
 
-## 2. The 10M "hanging" in Mwanza
+## 2. Зависшие 10 млн
 
-It is not an inter-casino transfer row (that table is empty). It is a legacy transactions entry:
+Это не межфилиальный трансфер (таблица пустая). Это старая запись из ленты транзакций:
 
-- Arusha, 08/08/2026, source `Inter-Casino Transfer`, +10 000 000 TZS, note "FLOAT (DEBT) Mwanza"
+- Arusha, 08.08.2026, источник `Inter-Casino Transfer`, +10 000 000 TZS, примечание «FLOAT (DEBT) Mwanza»
 
-It only exists on the Arusha side, which is why it looks stuck and why nothing can be accepted or rejected. Deleting works from Office → Transactions while Arusha is the active branch (delete is allowed for manager / finance / super admin) — it fails when Mwanza is active because the row belongs to Arusha.
+Она существует только со стороны Аруши, поэтому выглядит зависшей и её нечем принять или отклонить.
 
-Plan: delete this single legacy row (its mirrored wallet transaction is removed automatically by the existing delete trigger), then the transfer can be re-entered properly through Inter-Casino once fix 1 is in place. Nothing else is touched.
+Что делаем (после исправления №1) — переносим её в правильный интерфейс, парой:
 
-## 3. Tips and Bonuses as two separate types
+1. Удаляем старую одностороннюю запись на 10 млн в Аруше (зеркальная проводка по кошельку снимается существующим триггером удаления).
+2. Создаём нормальный межфилиальный трансфер: **Mwanza → Arusha**, 10 000 000 TZS, бизнес-дата 08.08.2026, примечание «FLOAT (DEBT)». В Мванзе он появится как **Sent (отправленный)**, в Аруше — как **Received (полученный)**: минус на кошельке Мванзы, плюс на кошельке Аруши, статус `accepted`.
+3. Кошельки-источник (Мванза) и получатель (Аруша) подберём по TZS-кассе/сейфу каждого филиала и покажем в описании миграции перед применением — если нужны другие кошельки, скажите какие.
 
-Today everything sits under one source `tips_bonus`. Split it:
+Итог: сумма в Аруше остаётся той же (+10 млн), но теперь у неё есть парная сторона в Мванзе (−10 млн), и запись видна в Inter-Casino с обеих сторон.
 
-- Two sources: `tips` and `bonus` (the legacy `bonus` value is reused).
-- Entry dialog gets a **Type** selector: Tips / Bonus, next to the existing Direction (IN / OUT).
-- Table gets a Type column showing Tips or Bonus plus Collected / Paid out.
-- Tiles become two groups: **Tips** (IN / OUT / Net) and **Bonuses** (IN / OUT / Net), with a combined Net.
-- Optional filter chips (All / Tips / Bonuses) above the table.
+## 3. Tips и Bonuses как два отдельных типа
 
-### Re-tagging existing rows
+Сейчас всё лежит в одном источнике `tips_bonus`. Разделяем:
 
-Rows to move into the new tab (still in Transactions today, source `investment`, notes mention tips):
+- Два источника: `tips` и `bonus` (старое значение `bonus` переиспользуется).
+- В диалоге ввода появляется селектор **Type**: Tips / Bonus — рядом с уже существующим Direction (IN / OUT).
+- В таблице появляется колонка Type: Tips или Bonus, плюс Collected / Paid out.
+- Плитки становятся двумя группами: **Tips** (IN / OUT / Net) и **Bonuses** (IN / OUT / Net), плюс общий Net.
+- Над таблицей — фильтр-чипы: All / Tips / Bonuses.
 
-- Arusha 09/08/2026 · 51 000 · "Dealers tips" → Tips
-- Arusha 02/08/2026 · 2 020 000 · "Tips from July 2026" → Tips
+### Перетегирование существующих записей
 
-Existing `tips_bonus` rows are classified by note:
+Не перенесённые записи (до сих пор в Transactions, источник `investment`, в примечании упоминаются tips):
 
-- → Bonus: "Agent Bonus July" (Arusha, 2 rows)
-- → Tips: all the rest ("Tips", "Tips dealers 15.08.2026", "Tips distributed", "Tips collected on 16.08", "Tips OUT July", "Dealer tips", "Dealers Tips", "Tips dealer", "Halo", "Airtell")
+- Arusha 09.08.2026 · 51 000 · «Dealers tips» → Tips
+- Arusha 02.08.2026 · 2 020 000 · «Tips from July 2026» → Tips
 
-"Halo" and "Airtell" (Mwanza, 06/08) are ambiguous — they default to Tips; say the word if either should be a Bonus. Only the label changes: amounts, dates, wallets and mirrored wallet transactions stay untouched, so no balance moves.
+Существующие `tips_bonus` раскладываем по примечанию:
 
-## Technical notes
+- → Bonus: «Agent Bonus July» (Аруша, 2 записи)
+- → Tips: всё остальное («Tips», «Tips dealers 15.08.2026», «Tips distributed», «Tips collected on 16.08», «Tips OUT July», «Dealer tips», «Dealers Tips», «Tips dealer», «Halo», «Airtell»)
 
-- Migration: extend the `fin_other_incomes.source` CHECK constraint with `tips`, then `UPDATE` the rows per the mapping above; recreate the three inter-casino RPCs without `w.fx_rate`.
-- `src/hooks/use-other-incomes.ts`: add `tips` to the source type and labels; keep `tips` + `bonus` excluded from the Transactions tab list.
-- `src/pages/office/TipsBonusTab.tsx`: Type selector, Type column, per-type tiles, filter chips.
-- One-off data delete for the 10M legacy row.
-- Version bump + build/typecheck; no publish.
+«Halo» и «Airtell» (Мванза, 06.08) неоднозначны — по умолчанию уйдут в Tips; скажите, если одна из них должна быть Bonus. Меняется только метка: суммы, даты, кошельки и зеркальные проводки не трогаем, балансы не двигаются.
+
+## Технические детали
+
+- Миграция: расширить CHECK на `fin_other_incomes.source` значением `tips`, затем `UPDATE` строк по схеме выше; пересоздать три RPC межфилиальных трансферов без `w.fx_rate`.
+- `src/hooks/use-other-incomes.ts`: добавить `tips` в тип источников и подписи; `tips` и `bonus` по-прежнему исключены из списка Transactions.
+- `src/pages/office/TipsBonusTab.tsx`: селектор Type, колонка Type, плитки по типам, фильтр-чипы.
+- Разовые данные: удаление старой записи на 10 млн + создание парного трансфера через ту же логику, что и RPC.
+- Бамп версии, сборка/типчек; публикацию не делаем.
