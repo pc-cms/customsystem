@@ -875,11 +875,6 @@ const SummaryBlock = ({
             <DetailRow label="Float Adjustment (±)" value={cash.basic_float_add} />
             <DetailRow label="Opening Basic Float" value={cash.basic_float_opening} />
           </Section>
-          <Line
-            label="Collections"
-            v={cash.collections_actual}
-            tip="Owner withdrawals already taken out in cash. They reduce Expected Profit, the amount still available for collection and Cash Position."
-          />
           <Section
             id="deposits"
             label="Deposits"
@@ -893,8 +888,14 @@ const SummaryBlock = ({
             <DetailRow label="Miss Chips" value={cash.miss_chips} />
             <DetailRow label="Tips & Bonuses (±)" value={inc.tips_bonus} />
           </Section>
-          <Line label="Investment" v={inc.investment} signed tip="Signed investment cash movements of the month." />
           <Line label="Office" v={inc.office} signed tip="Signed office cash movements of the month." />
+          <Line label="Investment" v={inc.investment} signed tip="Signed investment cash movements of the month." />
+          <Line
+            label="Collections"
+            v={cash.collections_actual}
+            tip="Owner withdrawals already taken out in cash. They reduce Expected Profit, the amount still available for collection and Cash Position."
+          />
+
 
           <div className="flex-1" />
         </div>
