@@ -1007,27 +1007,43 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
       ) : undefined}
       card={false}
     >
-      <div className="rounded-md border border-border overflow-auto bg-card">
-        <table className="w-full text-[13px] border-collapse">
+      <div className="rounded-md border border-border overflow-x-auto bg-card">
+        {/* Category ≈28% on desktop, the remaining width goes to the money columns.
+            min-width keeps numbers readable and turns narrow screens into a scroll. */}
+        <table className="w-full min-w-[1040px] table-fixed text-[14px] border-collapse">
+          <colgroup>
+            <col style={{ width: "28%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "5%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "4%" }} />
+          </colgroup>
           <thead className="bg-muted/40">
-            <tr className="[&>th]:h-8 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[11px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
-              <th rowSpan={2} className="text-left sticky left-0 z-10 bg-muted/40 min-w-[220px] align-bottom">Category</th>
+            <tr className="[&>th]:h-9 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[11px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
+              <th rowSpan={2} className="text-left sticky left-0 z-10 bg-muted/40 align-bottom">Category</th>
               <th colSpan={2} className="text-center border-l border-border">Plan</th>
               <th colSpan={4} className="text-center border-l border-border">Actual</th>
               <th colSpan={4} className="text-center border-l border-border">Remaining</th>
             </tr>
-            <tr className="[&>th]:h-8 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[11px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap border-t border-border">
-              <th className="text-right w-[110px] border-l border-border">TZS</th>
-              <th className={cn("text-right w-[80px]", USD_COL)}>$</th>
-              <th className="text-right w-[110px] border-l border-border">TZS</th>
-              <th className={cn("text-right w-[80px]", USD_COL)}>$</th>
-              <th className="text-right w-[110px]" title="Σ amount_tzs (TZS + USD converted)">Grand TZS</th>
-              <th className="text-right w-[56px]">%</th>
-              <th className="text-right w-[110px] border-l border-border">TZS</th>
-              <th className={cn("text-right w-[80px]", USD_COL)}>$</th>
-              <th className="text-right w-[110px]">Grand TZS</th>
-              <th className="text-right w-[56px] pr-3">%</th>
+            <tr className="[&>th]:h-9 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[11px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap border-t border-border">
+              <th className="text-right border-l border-border">TZS</th>
+              <th className={cn("text-right", USD_COL)}>$</th>
+              <th className="text-right border-l border-border">TZS</th>
+              <th className={cn("text-right", USD_COL)}>$</th>
+              <th className="text-right" title="Σ amount_tzs (TZS + USD converted)">Grand TZS</th>
+              <th className="text-right">%</th>
+              <th className="text-right border-l border-border">TZS</th>
+              <th className={cn("text-right", USD_COL)}>$</th>
+              <th className="text-right">Grand TZS</th>
+              <th className="text-right pr-3">%</th>
             </tr>
+
 
           </thead>
           <tbody>
