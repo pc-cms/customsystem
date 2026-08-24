@@ -537,35 +537,89 @@ export type Database = {
       boss_report_extras: {
         Row: {
           amount: number
+          amount_tzs: number | null
+          business_date: string | null
           casino_id: string
           created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          expense_id: string | null
+          fx_rate: number
           id: string
           label: string
           month: number
+          note: string | null
+          paid: boolean
+          paid_at: string | null
+          paid_business_date: string | null
+          paid_by: string | null
+          reversal_of: string | null
+          reversed_by: string | null
           sort_order: number
           updated_at: string
+          voided_at: string | null
+          voided_by: string | null
+          wallet_id: string | null
+          wallet_tx_id: string | null
           year: number
         }
         Insert: {
           amount?: number
+          amount_tzs?: number | null
+          business_date?: string | null
           casino_id: string
           created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          expense_id?: string | null
+          fx_rate?: number
           id?: string
           label: string
           month: number
+          note?: string | null
+          paid?: boolean
+          paid_at?: string | null
+          paid_business_date?: string | null
+          paid_by?: string | null
+          reversal_of?: string | null
+          reversed_by?: string | null
           sort_order?: number
           updated_at?: string
+          voided_at?: string | null
+          voided_by?: string | null
+          wallet_id?: string | null
+          wallet_tx_id?: string | null
           year: number
         }
         Update: {
           amount?: number
+          amount_tzs?: number | null
+          business_date?: string | null
           casino_id?: string
           created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          expense_id?: string | null
+          fx_rate?: number
           id?: string
           label?: string
           month?: number
+          note?: string | null
+          paid?: boolean
+          paid_at?: string | null
+          paid_business_date?: string | null
+          paid_by?: string | null
+          reversal_of?: string | null
+          reversed_by?: string | null
           sort_order?: number
           updated_at?: string
+          voided_at?: string | null
+          voided_by?: string | null
+          wallet_id?: string | null
+          wallet_tx_id?: string | null
           year?: number
         }
         Relationships: [
@@ -574,6 +628,41 @@ export type Database = {
             columns: ["casino_id"]
             isOneToOne: false
             referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boss_report_extras_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boss_report_extras_reversal_of_fkey"
+            columns: ["reversal_of"]
+            isOneToOne: false
+            referencedRelation: "boss_report_extras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boss_report_extras_reversed_by_fkey"
+            columns: ["reversed_by"]
+            isOneToOne: false
+            referencedRelation: "boss_report_extras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boss_report_extras_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boss_report_extras_wallet_tx_id_fkey"
+            columns: ["wallet_tx_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallet_tx"
             referencedColumns: ["id"]
           },
         ]
@@ -4167,6 +4256,7 @@ export type Database = {
           kind: string
           note: string | null
           out_tx_id: string | null
+          repayable: boolean
           repays_id: string | null
           resolution_note: string | null
           reversal_tx_id: string | null
@@ -4190,6 +4280,7 @@ export type Database = {
           kind?: string
           note?: string | null
           out_tx_id?: string | null
+          repayable?: boolean
           repays_id?: string | null
           resolution_note?: string | null
           reversal_tx_id?: string | null
@@ -4213,6 +4304,7 @@ export type Database = {
           kind?: string
           note?: string | null
           out_tx_id?: string | null
+          repayable?: boolean
           repays_id?: string | null
           resolution_note?: string | null
           reversal_tx_id?: string | null
@@ -4396,6 +4488,204 @@ export type Database = {
           },
         ]
       }
+      fin_liabilities: {
+        Row: {
+          amount: number
+          amount_tzs: number
+          business_date: string
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          creditor: string
+          currency: string
+          description: string | null
+          due_date: string | null
+          fx_rate: number
+          id: string
+          reversal_of: string | null
+          reversed_by: string | null
+          source: string
+          transfer_id: string | null
+          updated_at: string
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          amount: number
+          amount_tzs?: number
+          business_date?: string
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          creditor: string
+          currency?: string
+          description?: string | null
+          due_date?: string | null
+          fx_rate?: number
+          id?: string
+          reversal_of?: string | null
+          reversed_by?: string | null
+          source?: string
+          transfer_id?: string | null
+          updated_at?: string
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          amount?: number
+          amount_tzs?: number
+          business_date?: string
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          creditor?: string
+          currency?: string
+          description?: string | null
+          due_date?: string | null
+          fx_rate?: number
+          id?: string
+          reversal_of?: string | null
+          reversed_by?: string | null
+          source?: string
+          transfer_id?: string | null
+          updated_at?: string
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_liabilities_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_liabilities_reversal_of_fkey"
+            columns: ["reversal_of"]
+            isOneToOne: false
+            referencedRelation: "fin_liabilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_liabilities_reversed_by_fkey"
+            columns: ["reversed_by"]
+            isOneToOne: false
+            referencedRelation: "fin_liabilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_liabilities_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "fin_inter_casino_transfers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_liability_payments: {
+        Row: {
+          amount: number
+          amount_tzs: number
+          business_date: string
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          fx_rate: number
+          id: string
+          liability_id: string
+          note: string | null
+          reversal_of: string | null
+          transfer_id: string | null
+          voided_at: string | null
+          voided_by: string | null
+          wallet_id: string | null
+          wallet_tx_id: string | null
+        }
+        Insert: {
+          amount: number
+          amount_tzs?: number
+          business_date?: string
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          fx_rate?: number
+          id?: string
+          liability_id: string
+          note?: string | null
+          reversal_of?: string | null
+          transfer_id?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          wallet_id?: string | null
+          wallet_tx_id?: string | null
+        }
+        Update: {
+          amount?: number
+          amount_tzs?: number
+          business_date?: string
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          fx_rate?: number
+          id?: string
+          liability_id?: string
+          note?: string | null
+          reversal_of?: string | null
+          transfer_id?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          wallet_id?: string | null
+          wallet_tx_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_liability_payments_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_liability_payments_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "fin_liabilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_liability_payments_reversal_of_fkey"
+            columns: ["reversal_of"]
+            isOneToOne: false
+            referencedRelation: "fin_liability_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_liability_payments_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "fin_inter_casino_transfers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_liability_payments_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_liability_payments_wallet_tx_id_fkey"
+            columns: ["wallet_tx_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallet_tx"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_main_categories: {
         Row: {
           code: string
@@ -4549,6 +4839,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fin_month_closures_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_month_report_snapshots: {
+        Row: {
+          casino_id: string
+          closed_at: string
+          closed_by: string | null
+          created_at: string
+          id: string
+          month: number
+          payload: Json
+          reopened_at: string | null
+          reopened_by: string | null
+          year: number
+        }
+        Insert: {
+          casino_id: string
+          closed_at?: string
+          closed_by?: string | null
+          created_at?: string
+          id?: string
+          month: number
+          payload: Json
+          reopened_at?: string | null
+          reopened_by?: string | null
+          year: number
+        }
+        Update: {
+          casino_id?: string
+          closed_at?: string
+          closed_by?: string | null
+          created_at?: string
+          id?: string
+          month?: number
+          payload?: Json
+          reopened_at?: string | null
+          reopened_by?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_month_report_snapshots_casino_id_fkey"
             columns: ["casino_id"]
             isOneToOne: false
             referencedRelation: "casinos"
@@ -12013,6 +12350,16 @@ export type Database = {
         Returns: undefined
       }
       export_full_schema_ddl: { Args: never; Returns: string }
+      fin_adjust_float: {
+        Args: {
+          p_amount: number
+          p_business_date?: string
+          p_casino_id: string
+          p_note?: string
+          p_wallet_id: string
+        }
+        Returns: string
+      }
       fin_archive_old_audit_log: { Args: never; Returns: number }
       fin_balance_snapshot: {
         Args: {
@@ -12042,6 +12389,15 @@ export type Database = {
           p_year: number
         }
         Returns: string
+      }
+      fin_close_month_report: {
+        Args: {
+          p_casino_id: string
+          p_month: number
+          p_note?: string
+          p_year: number
+        }
+        Returns: Json
       }
       fin_denoms_scale: {
         Args: { p_denoms: Json; p_factor: number }
@@ -12078,6 +12434,36 @@ export type Database = {
             }
             Returns: string
           }
+      fin_liability_add: {
+        Args: {
+          p_amount: number
+          p_business_date: string
+          p_casino_id: string
+          p_creditor: string
+          p_currency?: string
+          p_description?: string
+          p_due_date?: string
+        }
+        Returns: string
+      }
+      fin_liability_movement: {
+        Args: { p_casino_id: string; p_from: string; p_to: string }
+        Returns: Json
+      }
+      fin_liability_outstanding: {
+        Args: { p_asof: string; p_casino_id: string }
+        Returns: number
+      }
+      fin_liability_pay: {
+        Args: {
+          p_amount: number
+          p_business_date: string
+          p_liability_id: string
+          p_note?: string
+          p_wallet_id?: string
+        }
+        Returns: string
+      }
       fin_lock_day_closing: {
         Args: { p_id: string; p_variance_note?: string }
         Returns: undefined
@@ -12097,6 +12483,10 @@ export type Database = {
           p_to_wallet: string
         }
         Returns: string
+      }
+      fin_month_finance: {
+        Args: { p_casino_id: string; p_month: number; p_year: number }
+        Returns: Json
       }
       fin_other_income_replace: {
         Args: {
@@ -12123,6 +12513,27 @@ export type Database = {
         Args: { _business_date: string; _casino_id: string; _currency: string }
         Returns: number
       }
+      fin_record_collection: {
+        Args: {
+          p_amount: number
+          p_business_date?: string
+          p_casino_id: string
+          p_month: number
+          p_note?: string
+          p_wallet_id?: string
+          p_year: number
+        }
+        Returns: string
+      }
+      fin_reopen_month_report: {
+        Args: {
+          p_casino_id: string
+          p_month: number
+          p_reason?: string
+          p_year: number
+        }
+        Returns: undefined
+      }
       fin_resync_wallet_counts: {
         Args: { p_wallet_id: string }
         Returns: undefined
@@ -12141,6 +12552,25 @@ export type Database = {
           p_wallet_id: string
         }
         Returns: Json
+      }
+      fin_unplanned_add: {
+        Args: {
+          p_amount: number
+          p_business_date: string
+          p_casino_id: string
+          p_currency?: string
+          p_description: string
+          p_note?: string
+        }
+        Returns: string
+      }
+      fin_unplanned_mark_paid: {
+        Args: { p_id: string; p_paid_date?: string; p_wallet_id?: string }
+        Returns: undefined
+      }
+      fin_unplanned_reverse: {
+        Args: { p_id: string; p_reason?: string }
+        Returns: string
       }
       fin_wallet_autocount: {
         Args: {

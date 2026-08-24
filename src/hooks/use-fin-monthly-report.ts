@@ -12,7 +12,17 @@ import {
   MOVEMENT_SOURCES,
   FLOAT_SOURCES,
 } from "@/hooks/use-other-incomes";
-import { adaptLiabilities, adaptUnplannedExpenses } from "@/lib/finance-adapters";
+import {
+  fetchMonthFinance,
+  mergeMonthFinance,
+  type MonthFinance,
+} from "@/hooks/use-fin-month-finance";
+import {
+  cashPosition as calcCashPosition,
+  expectedProfit as calcExpectedProfit,
+  forecastCostBase,
+  managerBonusForecast,
+} from "@/lib/finance-formulas";
 
 
 const GROUP_ORDER = ["fixed", "tax", "variable", "salary", "petrol", "additional"] as const;
@@ -122,9 +132,18 @@ export type MonthlyReport = {
     intercompany_receivable: number;
     expenses_actual: number;
     collections_actual: number;
+    /** Closing outstanding liabilities (manual + repayable intercompany). */
     liabilities: number;
+    /** Σ Unplanned Expenses of the month (paid + unpaid). */
     unplanned_expenses: number;
+    unplanned_paid: number;
+    unplanned_unpaid: number;
+    /** Actual liability repayments posted in the month (cash out). */
+    liability_payments: number;
+    available_for_collection: number;
   };
+  /** Month status + the full server-side finance block (single source of truth). */
+  month: MonthFinance | null;
   kpi: {
     total_income: number;
     expected_profit: number;
@@ -259,7 +278,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       // Network scope aggregates the SAME per-casino snapshots (no local formulas).
       const snapQ: Promise<{ data: any }> = network
         ? (async () => {
-            const { data: cs } = await supabase.from("casinos").select("id").eq("is_active", true);
+            const { data: cs } = await (supabase as any).from("casinos").select("id").eq("is_active", true);
             const ids = ((cs || []) as any[]).map((c) => c.id);
             const parts = await Promise.all(ids.map((id) => callSnap(id)));
             const snaps = parts.map((r: any) => r?.data).filter(Boolean);
@@ -293,8 +312,24 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           ? callSnap(casinoId)
           : Promise.resolve({ data: null });
 
-      const [cats, budgets, expenses, dayClosings, incomes, rates, closures, bar, snapRes] =
-        await Promise.all([catsQ, budgetQ, expQ, dayClosingsQ, incomesQ, ratesQ, closuresQ, barQ, snapQ]);
+      // Month finance block (unplanned, liabilities, float, collections, KPIs)
+      // — computed by `fin_month_finance` so the DB owns the formulas.
+      const monthQ: Promise<MonthFinance | null> = network
+        ? (async () => {
+            const { data: cs } = await supabase.from("casinos").select("id");
+            const ids = ((cs || []) as any[]).map((c) => c.id);
+            const parts = await Promise.all(
+              ids.map((id) => fetchMonthFinance(id, year, month).catch(() => null)),
+            );
+            const ok = parts.filter(Boolean) as MonthFinance[];
+            return ok.length ? mergeMonthFinance(ok, year, month) : null;
+          })()
+        : casinoId
+          ? fetchMonthFinance(casinoId, year, month).catch(() => null)
+          : Promise.resolve(null);
+
+      const [cats, budgets, expenses, dayClosings, incomes, rates, closures, bar, snapRes, monthFin] =
+        await Promise.all([catsQ, budgetQ, expQ, dayClosingsQ, incomesQ, ratesQ, closuresQ, barQ, snapQ, monthQ]);
       if (cats.error) throw cats.error;
       if (budgets.error) throw budgets.error;
       if (expenses.error) throw expenses.error;
@@ -542,29 +577,54 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       const icReceivable = Number(snap?.intercompany?.receivable_tzs || 0);
       const expensesActual = grand.actual_grand_tzs;
       const collectionsActual = collections?.totals.actual_grand_tzs ?? 0;
-      const liabilities = adaptLiabilities({ intercompanyLiability: icLiability });
-      const unplanned = adaptUnplannedExpenses();
+      // Obligations come from the DB: closing outstanding liabilities and the
+      // Unplanned Expenses ledger (boss_report_extras). No zero adapters.
+      const mf = monthFin;
+      const liabilities = Number(mf?.liabilities?.closing_tzs || 0);
+      const liabilityPayments = Number(mf?.liabilities?.repaid_tzs || 0);
+      const unplanned = Number(mf?.unplanned?.total || 0);
+      const unplannedPaid = Number(mf?.unplanned?.paid || 0);
+      const unplannedUnpaid = Number(mf?.unplanned?.unpaid || 0);
+      const unplannedPaidCash = Number(mf?.unplanned?.paid_cash_effect || 0);
 
       const commissionsTotal = other;
       const totalIncome = liveGame + slotsIncome + barIncome + commissionsTotal;
       const budget = grand.plan_month_grand_tzs;
-      const expectedProfit = totalIncome - budget - collectionsActual - liabilities - unplanned;
-      const cashPosition =
-        floatCurrent +
-        totalIncome +
-        tipsBonus +
-        jp +
-        investment +
-        office +
-        intercompanyCash +
-        cardBalance +
-        missChips +
-        missCards -
-        expensesActual -
-        collectionsActual -
-        liabilities;
-      // Bonus base = income minus predicted (budgeted) expenses only.
-      const managerBonus = Math.max(0, 0.05 * (totalIncome - budget));
+      const isClosed = mf?.status === "closed";
+      // OPEN: Total Income − (Budget + Unplanned + outstanding Liabilities).
+      // CLOSED: Total Income − Total Actual Expenses − Closing Liabilities (RPC snapshot).
+      const expectedProfit = mf
+        ? Number(mf.profit || 0)
+        : calcExpectedProfit(
+            totalIncome,
+            forecastCostBase({ budget, unplannedTotal: unplanned, liabilitiesClosing: liabilities }),
+          );
+      const cashPosition = mf
+        ? Number(mf.cash_position || 0)
+        : calcCashPosition({
+            floatCurrent,
+            totalIncome,
+            tipsBonus,
+            jp,
+            investment,
+            office,
+            intercompanyCash,
+            cardBalance,
+            missChips,
+            missCards,
+            expensesActual,
+            unplannedPaidCash,
+            liabilityPayments,
+            collections: collectionsActual,
+          });
+      const managerBonus = mf
+        ? Number(mf.manager_bonus || 0)
+        : managerBonusForecast({ totalIncome, budget, unplannedTotal: unplanned });
+      const availableForCollection = mf
+        ? Number(mf.available_for_collection || 0)
+        : Math.max(0, expectedProfit - collectionsActual);
+      void isClosed;
+
 
       return {
         incomes: {
@@ -596,11 +656,16 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           intercompany_cash: intercompanyCash,
           intercompany_liability: icLiability,
           intercompany_receivable: icReceivable,
-          expenses_actual: expensesActual,
-          collections_actual: collectionsActual,
+          expenses_actual: mf ? Number(mf.expenses_actual || 0) : expensesActual,
+          collections_actual: mf ? Number(mf.collections || 0) : collectionsActual,
           liabilities,
           unplanned_expenses: unplanned,
+          unplanned_paid: unplannedPaid,
+          unplanned_unpaid: unplannedUnpaid,
+          liability_payments: liabilityPayments,
+          available_for_collection: availableForCollection,
         },
+        month: mf,
         kpi: {
           total_income: totalIncome,
           expected_profit: expectedProfit,

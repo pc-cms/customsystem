@@ -1,0 +1,12 @@
+GRANT EXECUTE ON FUNCTION public.fin_unplanned_add(uuid, date, text, numeric, text, text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.fin_unplanned_mark_paid(uuid, uuid, date) TO service_role;
+GRANT EXECUTE ON FUNCTION public.fin_unplanned_reverse(uuid, text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.fin_liability_add(uuid, text, numeric, date, text, text, date) TO service_role;
+GRANT EXECUTE ON FUNCTION public.fin_liability_pay(uuid, numeric, date, uuid, text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.fin_liability_movement(uuid, date, date) TO service_role;
+GRANT EXECUTE ON FUNCTION public.fin_liability_outstanding(uuid, date) TO service_role;
+GRANT EXECUTE ON FUNCTION public.fin_adjust_float(uuid, uuid, numeric, date, text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.fin_month_finance(uuid, int, int) TO service_role;
+GRANT EXECUTE ON FUNCTION public.fin_close_month_report(uuid, int, int, text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.fin_reopen_month_report(uuid, int, int, text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.fin_record_collection(uuid, int, int, numeric, uuid, date, text) TO service_role;

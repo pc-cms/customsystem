@@ -1,0 +1,28 @@
+REVOKE ALL ON FUNCTION public.fin_unplanned_mark_paid(uuid, uuid, date) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.fin_unplanned_reverse(uuid, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.fin_liability_add(uuid, text, numeric, date, text, text, date) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.fin_liability_pay(uuid, numeric, date, uuid, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.fin_liability_movement(uuid, date, date) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.fin_liability_outstanding(uuid, date) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.fin_adjust_float(uuid, uuid, numeric, date, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.fin_month_finance(uuid, int, int) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.fin_close_month_report(uuid, int, int, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.fin_reopen_month_report(uuid, int, int, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.fin_record_collection(uuid, int, int, numeric, uuid, date, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.tg_unplanned_normalize() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.tg_unplanned_no_delete() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.tg_liab_normalize() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.tg_ic_transfer_liability() FROM PUBLIC;
+
+GRANT EXECUTE ON FUNCTION public.fin_unplanned_add(uuid, date, text, numeric, text, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.fin_unplanned_mark_paid(uuid, uuid, date) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.fin_unplanned_reverse(uuid, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.fin_liability_add(uuid, text, numeric, date, text, text, date) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.fin_liability_pay(uuid, numeric, date, uuid, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.fin_liability_movement(uuid, date, date) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.fin_liability_outstanding(uuid, date) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.fin_adjust_float(uuid, uuid, numeric, date, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.fin_month_finance(uuid, int, int) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.fin_close_month_report(uuid, int, int, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.fin_reopen_month_report(uuid, int, int, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.fin_record_collection(uuid, int, int, numeric, uuid, date, text) TO authenticated;
