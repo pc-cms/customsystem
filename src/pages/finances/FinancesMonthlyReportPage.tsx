@@ -436,12 +436,6 @@ const SummaryBlock = ({
     liabilitiesClosing: cash.liabilities,
     collections: cash.collections_actual,
   });
-  const netAdjustments = netCashAdjustments({
-    deposits: depositsTotal,
-    office: inc.office,
-    investment: inc.investment,
-    intercompanyCash: cash.intercompany_cash,
-  });
 
 
   const cardHeader =
