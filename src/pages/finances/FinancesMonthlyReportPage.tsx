@@ -123,7 +123,7 @@ export default function FinancesMonthlyReportPage() {
     // Incomes
     ws.getCell("A3").value = "Incomes";
     ws.getCell("A3").font = { bold: true };
-    [["Live Game", data.incomes.live_game], ["Slots", data.incomes.slots], ["Other Incomes", data.incomes.other], ["Total in TZS", data.incomes.total]]
+    [["Live Game", data.incomes.live_game], ["Slots", data.incomes.slots], ["Commissions", data.incomes.other], ["Total in TZS", data.incomes.total]]
       .forEach(([label, v], i) => {
         ws.getCell(`G${4 + i}`).value = label as string;
         ws.getCell(`H${4 + i}`).value = v as number;
@@ -387,7 +387,7 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
               {[
                 ["Live Game", incomes.live_game],
                 ["Slots", incomes.slots],
-                ["Other Incomes", incomes.other],
+                ["Commissions", incomes.other],
               ].map(([label, v]) => (
                 <tr key={label as string} className="border-t border-border [&>td]:h-9 [&>td]:px-3">
                   <td className="font-sans font-normal text-muted-foreground text-[12px]">{label}</td>

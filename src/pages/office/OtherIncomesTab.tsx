@@ -59,7 +59,7 @@ export default function OtherIncomesTab() {
 
   // JP, Tips and Bonuses live on their own Office tabs — keep them out of this list.
   const { data: incomes = [], isLoading } = useOtherIncomes(range.from, range.to, {
-    exclude: ["jp", "tips", "bonus", "tips_bonus"],
+    exclude: ["jp", "tips", "bonus", "tips_bonus", "inter_casino_transfer"],
   });
 
   const { data: wallets = [] } = useFinWallets();
@@ -275,7 +275,7 @@ export default function OtherIncomesTab() {
             <Plus className="w-4 h-4" /> Fee
           </Button>
           <Button onClick={() => openAdd()} size="sm">
-            <Plus className="w-4 h-4" /> Add Income
+            <Plus className="w-4 h-4" /> Add Commission
           </Button>
         </OfficeActions>
       )}
@@ -312,7 +312,7 @@ export default function OtherIncomesTab() {
           ]}
           empty={
             <div className="text-sm text-muted-foreground text-center py-10">
-              No other-income transactions in this period.
+              No commission transactions in this period.
             </div>
           }
         />
@@ -322,7 +322,7 @@ export default function OtherIncomesTab() {
       <ResponsiveDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        title={editId ? "Edit Other Income" : "Add Other Income"}
+        title={editId ? "Edit Commission" : "Add Commission"}
       >
         <FormGrid>
           <FormField span={6} label="Business Date">

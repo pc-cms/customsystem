@@ -58,7 +58,7 @@ export default function DashboardReportLab() {
       mk("tables", "Tables Result", s.tables, s.totals.tables),
       mk("slots", "Slots Result", s.slots, s.totals.slots),
       mk("result", "Result (Live + Slots)", s.result, s.totals.result, true),
-      mk("other", "Other Incomes", s.other, s.totals.other),
+      mk("other", "Commissions", s.other, s.totals.other),
       mk("estimated", "Estimated Expenses", s.estimated, s.totals.estimated),
       mk("extras", "Extra Expenses", s.extrasTotal, s.totals.extras),
       mk("bonus5", "Bonus 5%", s.bonus5, s.totals.bonus5),
