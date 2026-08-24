@@ -250,13 +250,48 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       const periodEndInclusive = new Date(new Date(endExclusive + "T00:00:00Z").getTime() - 86400000)
         .toISOString()
         .slice(0, 10);
-      const snapQ = !network && casinoId
-        ? (supabase as any).rpc("fin_balance_snapshot", {
-            p_casino_id: casinoId,
-            p_period_start: start,
-            p_period_end: periodEndInclusive,
-          })
-        : Promise.resolve({ data: null, error: null });
+      const callSnap = (cid: string) =>
+        (supabase as any).rpc("fin_balance_snapshot", {
+          p_casino_id: cid,
+          p_period_start: start,
+          p_period_end: periodEndInclusive,
+        });
+      // Network scope aggregates the SAME per-casino snapshots (no local formulas).
+      const snapQ: Promise<{ data: any }> = network
+        ? (async () => {
+            const { data: cs } = await supabase.from("casinos").select("id").eq("is_active", true);
+            const ids = ((cs || []) as any[]).map((c) => c.id);
+            const parts = await Promise.all(ids.map((id) => callSnap(id)));
+            const snaps = parts.map((r: any) => r?.data).filter(Boolean);
+            if (!snaps.length) return { data: null };
+            const num = (o: any, path: string[]) =>
+              path.reduce((acc: any, k) => (acc == null ? acc : acc[k]), o);
+            const sum = (path: string[]) =>
+              snaps.reduce((t: number, sn: any) => t + Number(num(sn, path) || 0), 0);
+            return {
+              data: {
+                basic_float: {
+                  opening_tzs: sum(["basic_float", "opening_tzs"]),
+                  add_tzs: sum(["basic_float", "add_tzs"]),
+                  current_tzs: sum(["basic_float", "current_tzs"]),
+                },
+                intercompany: {
+                  liability_tzs: sum(["intercompany", "liability_tzs"]),
+                  receivable_tzs: sum(["intercompany", "receivable_tzs"]),
+                },
+                incomes: {
+                  card_balance: sum(["incomes", "card_balance"]),
+                  missed_chips: sum(["incomes", "missed_chips"]),
+                  missed_cards: sum(["incomes", "missed_cards"]),
+                  bar_income: sum(["incomes", "bar_income"]),
+                },
+                transfers_total: sum(["transfers_total"]),
+              },
+            };
+          })()
+        : casinoId
+          ? callSnap(casinoId)
+          : Promise.resolve({ data: null });
 
       const [cats, budgets, expenses, dayClosings, incomes, rates, closures, bar, snapRes] =
         await Promise.all([catsQ, budgetQ, expQ, dayClosingsQ, incomesQ, ratesQ, closuresQ, barQ, snapQ]);
@@ -273,8 +308,12 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         ((closures as any)?.data || []).map((c: any) => `${c.casino_id}|${c.business_date}`),
       );
 
-      const liveGame = (dayClosings.data || []).reduce((s, r: any) => s + Number(r.tables_result || 0), 0);
-      const slotsIncome = (dayClosings.data || []).reduce((s, r: any) => s + Number(r.slots_result || 0), 0);
+      // Only CLOSED business days propagate to official Table / Slot Result.
+      const closedRows = (dayClosings.data || []).filter((r: any) =>
+        closedSet.has(`${r.casino_id}|${r.business_date}`),
+      );
+      const liveGame = closedRows.reduce((s, r: any) => s + Number(r.tables_result || 0), 0);
+      const slotsIncome = closedRows.reduce((s, r: any) => s + Number(r.slots_result || 0), 0);
       const rateList = ((rates as any)?.data || []).map((r: any) => Number(r.rate_to_tzs || 0)).filter((n: number) => n > 0);
       let avgUsdTzs = rateList.length ? rateList.reduce((s: number, n: number) => s + n, 0) / rateList.length : 0;
       // Fallback: if no USD rate was entered in the selected period, use the
