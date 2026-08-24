@@ -17,6 +17,7 @@ export type OtherIncomeSource =
   | "owner_topup"
   | "refund"
   | "bonus"
+  | "tips"
   | "tips_bonus"
   | "jp"
   | "fee"
@@ -26,10 +27,11 @@ export type OtherIncomeSource =
 export const ALL_INCOME_SOURCES: { value: OtherIncomeSource; label: string }[] = [
   { value: "investment", label: "Investment" },
   { value: "inter_casino_transfer", label: "Inter-Casino Transfer" },
-  { value: "owner_topup", label: "Owner Top-up" },
-  { value: "refund", label: "Refund" },
+  { value: "tips", label: "Tips" },
   { value: "bonus", label: "Bonus" },
   { value: "tips_bonus", label: "Tips & Bonuses" },
+  { value: "owner_topup", label: "Owner Top-up" },
+  { value: "refund", label: "Refund" },
   { value: "jp", label: "JP" },
   { value: "fee", label: "Fee" },
   { value: "other", label: "Other" },
@@ -37,12 +39,13 @@ export const ALL_INCOME_SOURCES: { value: OtherIncomeSource; label: string }[] =
 
 /**
  * Sources selectable on the Other Incomes tab.
- * JP and Tips & Bonuses are excluded — they live on their own Office tabs.
- * `bonus` is legacy: kept for labels of old rows, no longer selectable.
+ * JP, Tips and Bonus live on their own Office tabs.
+ * `tips_bonus` is legacy: kept for labels only, no longer selectable.
  */
 export const OTHER_INCOME_SOURCES = ALL_INCOME_SOURCES.filter(
-  (s) => s.value !== "jp" && s.value !== "tips_bonus" && s.value !== "bonus",
+  (s) => !["jp", "tips", "bonus", "tips_bonus"].includes(s.value),
 );
+
 
 export type OtherIncomeRow = {
   id: string;
