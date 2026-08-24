@@ -93,7 +93,7 @@ export default function OtherIncomesTab() {
     business_date: new Date().toISOString().slice(0, 10),
     wallet_id: "",
     fin_category_id: "",
-    source: "investment",
+    source: "commission",
     currency: "TZS",
     amount: "",
     note: "",
