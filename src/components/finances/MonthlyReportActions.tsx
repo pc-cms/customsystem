@@ -153,7 +153,7 @@ export const MonthlyReportActions = ({
 
       {/* Lists — movement, not only totals */}
       <div className="mt-3 grid grid-cols-1 xl:grid-cols-3 gap-3">
-        <ListCard title="Unplanned Expenses" subtitle={`${fmt(finance?.unplanned?.total || 0)} total`}>
+        <ListCard title="Extra Expenses" subtitle={`${fmt(finance?.unplanned?.total || 0)} total`}>
           {unplanned.length === 0 && <Empty>No unplanned expenses this month.</Empty>}
           {unplanned.map((i) => (
             <Row
@@ -171,7 +171,7 @@ export const MonthlyReportActions = ({
                     )}
                     <MiniButton
                       onClick={() => {
-                        if (window.confirm("Create a storno for this unplanned expense?"))
+                        if (window.confirm("Create a storno for this extra expense?"))
                           reverseUnplanned.mutate({ id: i.id });
                       }}
                     >
@@ -337,7 +337,7 @@ export const MonthlyReportActions = ({
         </div>
       </ResponsiveDialog>
 
-      <ResponsiveDialog open={dlg === "paid"} onOpenChange={(o) => !o && reset()} title="Mark Unplanned Expense Paid">
+      <ResponsiveDialog open={dlg === "paid"} onOpenChange={(o) => !o && reset()} title="Mark Extra Expense Paid">
         <FormGrid>
           {walletSelect}
           <FormField span={6} label="Paid Date">

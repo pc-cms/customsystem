@@ -498,7 +498,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
                           className="h-6 px-2 text-[0.8em]"
                           onClick={() => setUnplannedOpen(true)}
                         >
-                          Unplanned…
+                          Extra Expenses…
                         </Button>
                       )}
                     </span>

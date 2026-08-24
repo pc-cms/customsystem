@@ -702,15 +702,15 @@ const SummaryBlock = ({
           tone="signed"
           formula={
             closed
-              ? "Final · Total Income − Actual Expenses − Unplanned not in Actual − Liabilities (frozen at close)"
-              : "Forecast · Total Income − Budget − Unplanned − Liabilities − Collections"
+              ? "Final · Total Income − Actual Expenses − Extra Expenses not in Actual − Liabilities (frozen at close)"
+              : "Forecast · Total Income − Budget − Extra Expenses − Liabilities − Collections"
           }
         />
         <KpiCard
           label="Cash Position"
           v={kpi.cash_position}
           tone="signed"
-          formula="Basic Float + Total Income + Office + Investment + Intercompany Cash Effect − Actual Expenses − Paid Unplanned (not in Actual) − Collections − Liability Payments. Deposits have no effect on Cash Position."
+          formula="Basic Float + Total Income + Office + Investment + Intercompany Cash Effect − Actual Expenses − Paid Extra Expenses (not in Actual) − Collections − Liability Payments. Deposits have no effect on Cash Position."
         />
         <KpiCard
           label="Total Money"
@@ -729,10 +729,11 @@ const SummaryBlock = ({
             <span>Month Summary · Income</span>
             <span className="normal-case tracking-normal text-[12px]">TZS</span>
           </div>
+          <Line label="Table Result" v={inc.table_result} signed tip="Σ closed-day table results of the month." />
+          <Line label="Slot Result" v={inc.slot_result} signed tip="Σ closed-day slot results of the month." />
           <Line label="Agents" v={inc.agent_commission} signed tip="Agent commission recorded on the income side." />
           <Line label="Bar Income" v={inc.bar_income} tip="POS / bar revenue counted once, in income and in cash." />
-          <Line label="Slot Result" v={inc.slot_result} signed tip="Σ closed-day slot results of the month." />
-          <Line label="Table Result" v={inc.table_result} signed tip="Σ closed-day table results of the month." />
+
           <div className="flex-1" />
           <Line
             label="Total Income"
@@ -758,6 +759,27 @@ const SummaryBlock = ({
           >
             <DetailRow label="Commissions" value={inc.commission} />
             <DetailRow label="Fee" value={inc.fee} />
+          </Section>
+          <Section
+            id="unplanned"
+            label="Extra Expenses"
+            total={cash.unplanned_expenses}
+            tip={`All extra expenses of the month (Manager Bonus excluded) · ${fmtT(cash.unplanned_paid)} paid · ${fmtT(cash.unplanned_unpaid)} unpaid. Expand to see each row.`}
+          >
+            {unplannedItems.length === 0 ? (
+              <div className="px-3 py-2 text-[12px] text-muted-foreground">No extra expenses this month.</div>
+            ) : (
+              unplannedItems.map((i) => (
+                <DetailRow
+                  key={i.id}
+                  left={fmtDateOnly(i.business_date)}
+                  label={i.description || i.label}
+                  value={i.amount_tzs}
+                  tag={i.paid ? "Paid" : "Unpaid"}
+                  tone={i.paid ? undefined : "warn"}
+                />
+              ))
+            )}
           </Section>
           <Section
             id="liabilities"
@@ -824,27 +846,7 @@ const SummaryBlock = ({
                 : "Forecast · max(0, 5% × (Total Income − Budget)). Collections never reduce the bonus."
             }
           />
-          <Section
-            id="unplanned"
-            label="Unplanned Expenses"
-            total={cash.unplanned_expenses}
-            tip={`Unplanned expenses of the month · ${fmtT(cash.unplanned_paid)} paid · ${fmtT(cash.unplanned_unpaid)} unpaid. Expand to see each row.`}
-          >
-            {unplannedItems.length === 0 ? (
-              <div className="px-3 py-2 text-[12px] text-muted-foreground">No unplanned expenses this month.</div>
-            ) : (
-              unplannedItems.map((i) => (
-                <DetailRow
-                  key={i.id}
-                  left={fmtDateOnly(i.business_date)}
-                  label={i.description || i.label}
-                  value={i.amount_tzs}
-                  tag={i.paid ? "Paid" : "Unpaid"}
-                  tone={i.paid ? undefined : "warn"}
-                />
-              ))
-            )}
-          </Section>
+
 
           <div className="flex-1" />
           <Line
@@ -853,8 +855,8 @@ const SummaryBlock = ({
             strong
             tip={
               closed
-                ? "Actual Expenses + Unplanned not already inside Actual + frozen closing Liabilities + Collections. Commissions & Fee are income lines and are never deducted here."
-                : "Budget + all Unplanned + closing Liabilities + Collections. Commissions & Fee are income lines and are never deducted here."
+                ? "Actual Expenses + Extra Expenses not already inside Actual + frozen closing Liabilities + Collections. Commissions & Fee are income lines and are never deducted here."
+                : "Budget + all Extra Expenses + closing Liabilities + Collections. Commissions & Fee are income lines and are never deducted here."
             }
           />
         </div>
@@ -873,11 +875,6 @@ const SummaryBlock = ({
             <DetailRow label="Float Adjustment (±)" value={cash.basic_float_add} />
             <DetailRow label="Opening Basic Float" value={cash.basic_float_opening} />
           </Section>
-          <Line
-            label="Collections"
-            v={cash.collections_actual}
-            tip="Owner withdrawals already taken out in cash. They reduce Expected Profit, the amount still available for collection and Cash Position."
-          />
           <Section
             id="deposits"
             label="Deposits"
@@ -891,8 +888,14 @@ const SummaryBlock = ({
             <DetailRow label="Miss Chips" value={cash.miss_chips} />
             <DetailRow label="Tips & Bonuses (±)" value={inc.tips_bonus} />
           </Section>
-          <Line label="Investment" v={inc.investment} signed tip="Signed investment cash movements of the month." />
           <Line label="Office" v={inc.office} signed tip="Signed office cash movements of the month." />
+          <Line label="Investment" v={inc.investment} signed tip="Signed investment cash movements of the month." />
+          <Line
+            label="Collections"
+            v={cash.collections_actual}
+            tip="Owner withdrawals already taken out in cash. They reduce Expected Profit, the amount still available for collection and Cash Position."
+          />
+
 
           <div className="flex-1" />
         </div>
