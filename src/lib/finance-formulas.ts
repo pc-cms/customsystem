@@ -50,12 +50,14 @@ export const finalProfit = (input: {
   Number(input.unplannedNotInActual || 0) -
   Number(input.liabilitiesClosing || 0);
 
-/** CLOSED month: 5% of (Total Income − Total Actual Expenses) — the frozen snapshot value. */
+/**
+ * CLOSED month bonus uses the SAME rule as an open month — max(0, 5% × (Income − Budget)).
+ * Closing only freezes the value in the snapshot; it never switches the base to Actual Expenses.
+ */
 export const managerBonusFinal = (input: {
   totalIncome: number;
-  expensesActual: number;
-}) =>
-  Math.max(0, 0.05 * (Number(input.totalIncome || 0) - Number(input.expensesActual || 0)));
+  budget: number;
+}) => Math.max(0, 0.05 * (Number(input.totalIncome || 0) - Number(input.budget || 0)));
 
 /**
  * Deposits — money physically held in the cage but owed to third parties.
@@ -78,8 +80,14 @@ export const deposits = (i: {
  * Cash on hand — NOT net worth.
  *
  * Cash Position = Basic Float + Total Income − Deposits + Office + Investment
- *               + Intercompany Cash Effect − Actual Expenses − Collections
- *               − Actual Liability Payments.
+ *               + Intercompany Cash Effect − Actual Expenses
+ *               − Paid Unplanned not represented in Actual Expenses
+ *               − Collections − Actual Liability Payments.
+ *
+ * `unplannedPaidCashNotInActual` covers paid Unplanned rows with `expense_id IS NULL`:
+ * `fin_unplanned_mark_paid` moves real wallet cash for them while no expense row exists,
+ * so they must reduce cash exactly once. Rows linked to an Actual Expense are already
+ * inside `expensesActual` and are never subtracted twice.
  *
  * Deposits are subtracted exactly once. Unpaid Unplanned Expenses and
  * outstanding Liabilities are NEVER subtracted.
@@ -92,6 +100,8 @@ export const cashPosition = (i: {
   office: number;
   intercompanyCash: number;
   expensesActual: number;
+  /** Paid Unplanned rows with expense_id IS NULL (wallet cash already moved). */
+  unplannedPaidCashNotInActual?: number;
   liabilityPayments: number;
   collections: number;
 }) =>
@@ -102,6 +112,7 @@ export const cashPosition = (i: {
   Number(i.office || 0) +
   Number(i.intercompanyCash || 0) -
   Number(i.expensesActual || 0) -
+  Number(i.unplannedPaidCashNotInActual || 0) -
   Number(i.collections || 0) -
   Number(i.liabilityPayments || 0);
 
