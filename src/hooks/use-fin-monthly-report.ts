@@ -10,7 +10,10 @@ import {
   COMMISSION_SOURCES,
   TIPS_BONUS_SOURCES,
   MOVEMENT_SOURCES,
+  FLOAT_SOURCES,
 } from "@/hooks/use-other-incomes";
+import { adaptLiabilities, adaptUnplannedExpenses } from "@/lib/finance-adapters";
+
 
 const GROUP_ORDER = ["fixed", "tax", "variable", "salary", "petrol", "additional"] as const;
 const COLLECTIONS_GROUP = "collections";
