@@ -514,7 +514,6 @@ const SummaryBlock = ({
     id,
     label,
     total,
-    summary,
     signed,
     tone,
     tip,
@@ -523,7 +522,6 @@ const SummaryBlock = ({
     id: string;
     label: string;
     total: number;
-    summary?: string;
     signed?: boolean;
     /** `warn` = obligation / unpaid — amber, never red. */
     tone?: "warn";
