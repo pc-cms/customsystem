@@ -123,7 +123,7 @@ export default function FinancesMonthlyReportPage() {
     // Incomes
     ws.getCell("A3").value = "Incomes";
     ws.getCell("A3").font = { bold: true };
-    [["Live Game", data.incomes.live_game], ["Slots", data.incomes.slots], ["Commissions", data.incomes.other], ["Total in TZS", data.incomes.total]]
+    [["Table Result", data.incomes.table_result], ["Slot Result", data.incomes.slot_result], ["Bar Income", data.incomes.bar_income], ["Commissions", data.incomes.commissions], ["Total in TZS", data.incomes.total]]
       .forEach(([label, v], i) => {
         ws.getCell(`G${4 + i}`).value = label as string;
         ws.getCell(`H${4 + i}`).value = v as number;
