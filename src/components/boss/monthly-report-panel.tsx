@@ -12,6 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useBossMonthlyReport, type CasinoRef } from "@/hooks/use-boss-monthly-report";
 import { useBossReportExtras, useUpsertBossReportExtra, useDeleteBossReportExtra } from "@/hooks/use-boss-report-extras";
+import { UnplannedExpensesDialog } from "@/components/boss/UnplannedExpensesDialog";
 import { formatMoneyFull } from "@/lib/format-money";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
@@ -207,6 +208,15 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const canEdit = roles.includes("super_admin") || roles.includes("finance_manager");
+  // Floor / shift managers record unplanned spend; only finance marks it Paid.
+  const canRecordUnplanned =
+    canEdit ||
+    roles.includes("manager") ||
+    roles.includes("shift_manager") ||
+    roles.includes("general_manager") ||
+    roles.includes("boss");
+  const [unplannedOpen, setUnplannedOpen] = useState(false);
+
 
   const casinoIds = useMemo(() => casinos.map((c) => c.id), [casinos]);
   const reportYear = data?.year ?? year ?? new Date().getFullYear();
@@ -479,7 +489,19 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
               <tr className="border-t-2 border-white/10 bg-white/[0.02]">
                 <td className="px-4 pt-3 pb-1 text-[0.65em] uppercase tracking-widest text-muted-foreground" colSpan={casinos.length + 2 + (canEdit ? 1 : 0)}>
                   <div className="flex items-center justify-between">
-                    <span>Extra Expenses<HintIcon text={extrasHint} /></span>
+                    <span className="flex items-center gap-2">
+                      Extra Expenses<HintIcon text={extrasHint} />
+                      {canRecordUnplanned && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-[0.8em]"
+                          onClick={() => setUnplannedOpen(true)}
+                        >
+                          Unplanned…
+                        </Button>
+                      )}
+                    </span>
                     {canEdit && (
                       <Button variant="ghost" size="sm" className="h-6 px-2 text-[0.8em]" onClick={addRow}>
                         <Plus className="w-3 h-3 mr-1" />
@@ -667,6 +689,18 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
           </table>
         </div>
       </section>
+
+      {canRecordUnplanned && (
+        <UnplannedExpensesDialog
+          open={unplannedOpen}
+          onOpenChange={setUnplannedOpen}
+          casinos={casinos.map((c) => ({ id: c.id, name: c.name }))}
+          year={reportYear}
+          month={reportMonth}
+          canPay={canEdit}
+        />
+      )}
     </div>
   );
+
 }

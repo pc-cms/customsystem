@@ -260,7 +260,7 @@ export default function OtherIncomesTab() {
       {canWrite && (
         <OfficeActions>
           <Button onClick={() => openAdd("add_float")} size="sm" variant="outline">
-            <Plus className="w-4 h-4" /> Add Float
+            <Plus className="w-4 h-4" /> Adjust Float
           </Button>
           <Button onClick={() => openAdd("fee")} size="sm" variant="outline">
             <Plus className="w-4 h-4" /> Fee

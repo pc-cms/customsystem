@@ -164,3 +164,29 @@ no longer available in the UI.
 POS does **not** post to wallets today (no `pos_deposit` wallet transactions),
 so Bar Income is exposed by `fin_balance_snapshot` and counted exactly ONCE in
 Total Income and once in Cash Position / Wallet Expected.
+
+## Unplanned Expenses, Liabilities, Signed Float (2026 delta)
+
+Server-side single source of truth: RPC `fin_month_finance`.
+
+```text
+OPEN month:
+  Expected Profit = Total Income − Budget − Unplanned (all) − Liabilities outstanding
+  Manager Bonus   = max(0, 5% × (Total Income − Budget − Unplanned))
+
+CLOSED month:
+  Final Profit    = Total Income − Total Actual Expenses − Liabilities outstanding
+  Manager Bonus   = max(0, 5% × (Total Income − Total Actual Expenses))
+
+Cash Position = Current Basic Float + Total Income + Tips&Bonuses + JP
+              + Investment + Office + Intercompany cash + Card Balance
+              + Miss Chips + Miss Cards
+              − Actual Expenses − Paid Unplanned − Liability Repayments − Collections
+
+Available for Collection = max(0, Profit − Collections)
+Liabilities: Closing = Opening + New − Repayments (repayment is the only cash effect)
+Basic Float: Current = Opening + Σ signed adjustments (never negative)
+```
+
+Unplanned Expenses live in `boss_report_extras` (entered on Dashboard TV, `Paid`
+flag posts the cash effect). Rows are immutable — reversal only, no delete.

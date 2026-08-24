@@ -362,7 +362,10 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
   const cash = data.cash;
   const kpi = data.kpi;
   const g = data.grand;
+  const closed = data.month?.status === "closed";
+  const closedAt = data.month?.closed_at || null;
   const pctTxt = (n: number, d: number) => (d ? pct(n / d) : "—");
+
 
   const cardHeader =
     "h-8 px-3 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/40 border-b border-border";
@@ -441,8 +444,24 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
   );
 
   return (
-    <PageSection title="Month Summary" card={false}>
+    <PageSection
+      title="Month Summary"
+      card={false}
+      titleRight={
+        <span
+          className={cn(
+            "text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border",
+            closed
+              ? "border-border bg-muted text-muted-foreground"
+              : "border-primary/40 bg-primary/10 text-primary",
+          )}
+        >
+          {closed ? `Closed${closedAt ? ` · ${fmtDateOnly(closedAt)}` : ""}` : "Open"}
+        </span>
+      }
+    >
       {/* DETAIL GROUPS */}
+
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
         {/* A · INCOME */}
         <div className={card}>
@@ -469,14 +488,12 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
           </div>
           <Line label="Budget" hint="plan, Grand TZS" v={g.plan_month_grand_tzs} />
           <Line label="Total Actual Expenses" v={cash.expenses_actual} />
+          <Line label="Unplanned Expenses" hint="total this month" v={cash.unplanned_expenses} />
+          <Line label="· paid" v={cash.unplanned_paid} />
+          <Line label="· unpaid" v={cash.unplanned_unpaid} />
+          <Line label="Liabilities" hint="outstanding, closing" v={cash.liabilities} />
+          <Line label="Liability Repayments" hint="cash out this month" v={cash.liability_payments} />
           <Line label="Collections" hint="cash already withdrawn" v={cash.collections_actual} />
-          <Line label="Liabilities" hint="intercompany outstanding" v={cash.liabilities} />
-          <Line
-            label="Unplanned Expenses"
-            hint="source not defined yet"
-            placeholder={cash.unplanned_expenses ? undefined : "—"}
-            v={cash.unplanned_expenses}
-          />
           <Line label="Remain vs Budget" v={g.remain_grand_tzs} strong signed />
         </div>
 
@@ -487,7 +504,7 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
             <span className="normal-case tracking-normal text-[10px]">not income</span>
           </div>
           <Line label="Opening Basic Float" v={cash.basic_float_opening} />
-          <Line label="Add Float" v={cash.basic_float_add} />
+          <Line label="Float Adjustments (±)" v={cash.basic_float_add} signed />
           <Line label="Current Basic Float" v={cash.basic_float_current} strong />
           <Line label="Tips &amp; Bonuses (±)" v={inc.tips_bonus} signed />
           <Line label="JP (±)" v={inc.jp} signed />
@@ -497,6 +514,7 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
           <Line label="Card Balance adjustment" v={cash.card_balance} signed />
           <Line label="Miss Chips adjustment" v={cash.miss_chips} signed />
           <Line label="Miss Cards adjustment" v={cash.miss_cards} signed />
+          <Line label="Available for Collection" v={cash.available_for_collection} strong />
         </div>
       </div>
 
@@ -509,23 +527,32 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
           formula="Table Result + Slot Result + Bar Income + Commissions"
         />
         <KpiCard
-          label="Expected Profit"
+          label={closed ? "Final Profit" : "Expected Profit"}
           v={kpi.expected_profit}
           tone="signed"
-          formula="Total Income − Budget − Collections − Liabilities − Unplanned"
+          formula={
+            closed
+              ? "Total Income − Total Actual Expenses − Liabilities outstanding"
+              : "Total Income − Budget − Unplanned − Liabilities outstanding"
+          }
         />
         <KpiCard
           label="Cash Position"
           v={kpi.cash_position}
           tone="signed"
-          formula="Current Float + Income ± wallet movements − Expenses − Collections − Liabilities"
+          formula="Float + Income ± wallet movements − Actual Expenses − Paid Unplanned − Liability Repayments − Collections"
         />
         <KpiCard
           label="Manager Bonus"
           v={kpi.manager_bonus}
-          formula="max(0, 5% × (Total Income − Budget))"
+          formula={
+            closed
+              ? "max(0, 5% × (Total Income − Total Actual Expenses))"
+              : "max(0, 5% × (Total Income − Budget − Unplanned))"
+          }
         />
       </div>
+
 
       {data.usd_rate > 0 && (
         <div className="mt-2 text-[10px] text-muted-foreground">
