@@ -1010,7 +1010,7 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
       <div className="rounded-md border border-border overflow-x-auto bg-card">
         {/* Category ≈28% on desktop, the remaining width goes to the money columns.
             min-width keeps numbers readable and turns narrow screens into a scroll. */}
-        <table className="w-full min-w-[1040px] table-fixed text-[14px] border-collapse">
+        <table className="w-full min-w-[1040px] table-fixed text-[14px] border-collapse [&_td.text-right]:text-[15px]">
           <colgroup>
             <col style={{ width: "28%" }} />
             <col style={{ width: "9%" }} />
@@ -1072,7 +1072,7 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
               </tr>
             )}
 
-            <tr className="bg-muted/40 font-semibold border-t-2 border-border [&>td]:h-9 [&>td]:px-2 [&>td]:align-middle">
+            <tr className="bg-muted/40 font-semibold border-t-2 border-border [&>td]:h-10 [&>td]:px-2 [&>td]:align-middle [&>td]:text-[15px]">
               <td className="sticky left-0 z-10 bg-muted/40">Total</td>
               <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(t.plan_month_tzs)}</td>
               <td className={cn("text-right font-mono tabular-nums", USD_COL)}><UsdAmt value={t.plan_month_usd} total /></td>
@@ -1104,12 +1104,12 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, editMode, year, month
     <>
       <tr
         className={cn(
-          "border-t border-border hover:bg-muted/30 cursor-pointer [&>td]:h-8 [&>td]:px-2 [&>td]:align-middle",
+          "border-t border-border hover:bg-muted/30 cursor-pointer [&>td]:h-9 [&>td]:px-2 [&>td]:align-middle",
           expanded && "bg-muted/30",
         )}
         onClick={onToggle}
       >
-        <td className="sticky left-0 z-10 bg-card">
+        <td className="sticky left-0 z-10 bg-card text-[14px]" title={c.name}>
           <div className="flex items-center gap-1 min-w-0">
             {expanded ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
             <div className="flex-1 min-w-0">
