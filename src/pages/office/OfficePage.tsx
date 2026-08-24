@@ -72,7 +72,7 @@ export default function OfficePage() {
       tab={tab}
       onTabChange={onChange}
       showPeriod={tab !== "rates" && tab !== "inter-casino"}
-      banner={<BalanceBanner />}
+      
     >
       <Suspense fallback={<div className="text-sm text-muted-foreground p-4">Loading…</div>}>
         {tab === "bank" && <WalletDayGridTab groups={["banks"]} title="Bank" />}
