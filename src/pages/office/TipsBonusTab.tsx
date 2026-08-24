@@ -267,15 +267,18 @@ export default function TipsBonusTab() {
         </OfficeActions>
       )}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <TotalCard label="Tips IN" value={totals.tips.inSum} />
-        <TotalCard label="Tips OUT" value={totals.tips.outSum} />
-        <TotalCard label="Bonuses IN" value={totals.bonus.inSum} />
-        <TotalCard label="Bonuses OUT" value={totals.bonus.outSum} />
-        <TotalCard label="Tips Net" value={totals.tips.net} />
-        <TotalCard label="Bonuses Net" value={totals.bonus.net} />
-        <TotalCard label="Total Net" value={totals.net} strong />
+      <div className="grid gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-3 gap-3 lg:col-span-3">
+          <TotalCard label="Bonuses IN" value={totals.bonus.inSum} />
+          <TotalCard label="Bonuses OUT" value={totals.bonus.outSum} />
+          <TotalCard label="Bonuses Net" value={totals.bonus.net} />
+          <TotalCard label="Tips IN" value={totals.tips.inSum} />
+          <TotalCard label="Tips OUT" value={totals.tips.outSum} />
+          <TotalCard label="Tips Net" value={totals.tips.net} />
+        </div>
+        <TotalCard label="Total Net" value={totals.net} strong className="lg:h-full lg:flex lg:flex-col lg:justify-center" />
       </div>
+
 
       <div className="flex items-center gap-1.5">
         {FILTERS.map((f) => (
