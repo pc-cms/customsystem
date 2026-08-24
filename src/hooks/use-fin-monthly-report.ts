@@ -297,6 +297,8 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       (expenses.data || []).forEach((e: any) => {
         const cid = e.fin_category_id;
         if (!cid) return;
+        // Same rule as Wallets: cage expenses count only once the day is closed.
+        if (e.source !== "office" && !closedSet.has(`${e.casino_id}|${e.business_date}`)) return;
         const cur = actualMap.get(cid) || { tzs: 0, usd: 0, grand: 0, perCasino: {}, list: [] };
         const amt = Number(e.amount || 0);
         const amtTzs = Number(e.amount_tzs || 0);
