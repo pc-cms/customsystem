@@ -168,7 +168,13 @@ export default function FinancesWalletsPage() {
   const totals = useMemo(() => computeBalanceTotals(snap), [snap]);
   const usdRate = snap?.rates?.usd_tzs || 2600;
 
-  const { data: tx = [] } = useFinWalletTx({ from: monthRange.from, to: monthRange.to });
+  const [txLimit, setTxLimit] = useState<string>("50");
+  const { data: tx = [] } = useFinWalletTx({
+    from: monthRange.from,
+    to: monthRange.to,
+    limit: txLimit === "all" ? null : Number(txLimit),
+  });
+
 
   // per-wallet map for physical-count inline UI.
   // Balance = Actual = last recorded wallet state (manual count, or the state
@@ -274,16 +280,35 @@ export default function FinancesWalletsPage() {
   }, [lastCounts]);
 
   // Grand totals in TZS and USD — Actual (last recorded count), same source as Variance.
+  /** Cash / Mobile / Bank buckets keep native units separated per currency. */
+  const bucketOfKind = (kind?: string | null) => {
+    switch (kind) {
+      case "bank":
+        return "bank" as const;
+      case "mobile_money":
+      case "digital_wallet":
+      case "selcom":
+        return "mobile" as const;
+      default:
+        return "cash" as const;
+    }
+  };
+
   const grandTotals = useMemo(() => {
     const tzs = (snap?.wallets || []).reduce((s, w) => s + Number(w.actual_tzs ?? 0), 0);
     const usd = usdRate > 0 ? tzs / usdRate : 0;
-    // per-currency native totals
+    // per-currency native totals, split into Cash / Mobile / Bank
     const perCcy: Record<string, number> = {};
+    const perCcyBucket: Record<string, { cash: number; mobile: number; bank: number }> = {};
     (snap?.wallets || []).forEach((w) => {
-      perCcy[w.currency] = (perCcy[w.currency] || 0) + Number(w.actual_native ?? 0);
+      const native = Number(w.actual_native ?? 0);
+      perCcy[w.currency] = (perCcy[w.currency] || 0) + native;
+      const b = (perCcyBucket[w.currency] ||= { cash: 0, mobile: 0, bank: 0 });
+      b[bucketOfKind(w.kind)] += native;
     });
-    return { tzs, usd, perCcy };
+    return { tzs, usd, perCcy, perCcyBucket };
   }, [snap, usdRate]);
+
 
 
   const toggleWalletSort = (k: WalletSortKey) => {
@@ -592,11 +617,17 @@ export default function FinancesWalletsPage() {
         </div>
       </PageSection>
 
-      {/* VARIANCE BANNER + COUNT FRESHNESS — shown only here, not on other Office tabs */}
+      {/* CASH SURPLUS/DEFICIT + COUNT FRESHNESS — one responsive row, equal width and height */}
       <PageSection card={false}>
-        <div className="space-y-2">
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-2 items-stretch",
+            freshness.some((r) => r.stale) && "md:grid-cols-2",
+          )}
+        >
           <BalanceBanner />
           <StaleCountsNotice rows={freshness} refDate={refDate} onCountAll={countAllStale} />
+
         </div>
       </PageSection>
 
@@ -629,11 +660,9 @@ export default function FinancesWalletsPage() {
             <BreakdownRow label="− Collections (owner withdrawal)" v={snap?.collections_total || 0} negative />
             {/* Transfers out — cash leaves this casino's wallets, subtracted from Expected */}
             <BreakdownRow label="− Transfers" v={snap?.transfers_total || 0} negative />
-            <div className="border-t-2 border-border">
-              <BreakdownRow label="= Expected" v={totals.expected} bold signed />
-            </div>
-
+            {/* No "= Expected" row here — the Expected tile in Grand Total is the single display. */}
           </div>
+
           <div className="text-[10px] text-muted-foreground mt-1">
             USD→TZS rate {formatNumberSpaces(usdRate)} · Period {range.from} → {range.to}
           </div>
@@ -677,22 +706,39 @@ export default function FinancesWalletsPage() {
             </div>
             <div className="border-t border-border pt-2">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
-                Per currency (native units)
+                Per currency (native units) · Cash / Mobile / Bank
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
-                {CURRENCY_ORDER.filter((c) => grandTotals.perCcy[c]).map((c) => (
-                  <div
-                    key={c}
-                    className="flex items-baseline justify-between rounded border border-border/50 bg-background/50 px-2 py-1"
-                  >
-                    <span className="text-[11px] font-mono text-muted-foreground">{c}</span>
-                    <span className="font-mono tabular-nums text-sm">
-                      {formatNumberSpaces(grandTotals.perCcy[c])}
-                    </span>
-                  </div>
-                ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                {CURRENCY_ORDER.filter((c) => grandTotals.perCcy[c]).map((c) => {
+                  const b = grandTotals.perCcyBucket[c] || { cash: 0, mobile: 0, bank: 0 };
+                  return (
+                    <div key={c} className="rounded border border-border/50 bg-background/50 px-2 py-1.5">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-[11px] font-mono text-muted-foreground">{c}</span>
+                        <span className="font-mono tabular-nums text-sm font-semibold">
+                          {formatNumberSpaces(grandTotals.perCcy[c])}
+                        </span>
+                      </div>
+                      <div className="mt-1 grid grid-cols-3 gap-1 text-[10px]">
+                        {([
+                          ["Cash", b.cash],
+                          ["Mobile", b.mobile],
+                          ["Bank", b.bank],
+                        ] as const).map(([lbl, v]) => (
+                          <div key={lbl} className="flex items-baseline justify-between gap-1">
+                            <span className="uppercase tracking-wider text-muted-foreground">{lbl}</span>
+                            <span className="font-mono tabular-nums">
+                              {v ? formatNumberSpaces(v) : "·"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
+
           </div>
         </PageSection>
       </div>
@@ -1116,6 +1162,18 @@ export default function FinancesWalletsPage() {
               <SelectItem value="amount_asc">Amount ↑</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={txLimit} onValueChange={setTxLimit}>
+            <SelectTrigger className="h-9 w-[120px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">Last 10</SelectItem>
+              <SelectItem value="50">Last 50</SelectItem>
+              <SelectItem value="100">Last 100</SelectItem>
+              <SelectItem value="all">All</SelectItem>
+            </SelectContent>
+          </Select>
+
         </div>
 
         <div className="rounded-md border border-border overflow-auto">

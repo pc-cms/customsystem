@@ -4707,6 +4707,50 @@ export type Database = {
         }
         Relationships: []
       }
+      fin_manager_bonus_overrides: {
+        Row: {
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          month: number
+          new_amount: number
+          old_amount: number
+          reason: string
+          year: number
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          month: number
+          new_amount: number
+          old_amount?: number
+          reason: string
+          year: number
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          month?: number
+          new_amount?: number
+          old_amount?: number
+          reason?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_manager_bonus_overrides_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_money_change: {
         Row: {
           business_date: string
@@ -12511,6 +12555,16 @@ export type Database = {
           p_wallet_id: string
         }
         Returns: string
+      }
+      fin_override_manager_bonus: {
+        Args: {
+          p_amount: number
+          p_casino_id: string
+          p_month: number
+          p_reason: string
+          p_year: number
+        }
+        Returns: Json
       }
       fin_post_cage_expense: { Args: { _expense_id: string }; Returns: boolean }
       fin_post_cage_expenses_for_day: {

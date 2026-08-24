@@ -237,21 +237,31 @@ export const useUpsertFinWallet = () => {
 };
 
 /* =====================  WALLET TX / LEDGER  ===================== */
-export const useFinWalletTx = (opts?: { from?: string; to?: string; walletId?: string }) => {
+export const useFinWalletTx = (opts?: {
+  from?: string;
+  to?: string;
+  walletId?: string;
+  /** null / undefined = All (capped at 5000 so a huge month cannot hang the UI). */
+  limit?: number | null;
+}) => {
   const { activeCasinoId, isSummaryMode } = useCasino();
+  const limit = opts?.limit == null ? 5000 : opts.limit;
   return useQuery({
-    queryKey: ["fin-wallet-tx", isSummaryMode ? "all" : activeCasinoId, opts?.from, opts?.to, opts?.walletId],
+    queryKey: ["fin-wallet-tx", isSummaryMode ? "all" : activeCasinoId, opts?.from, opts?.to, opts?.walletId, limit],
     queryFn: async () => {
       let q = supabase
         .from("fin_wallet_tx")
         .select("*, fin_wallets(name, currency, kind), fin_categories(name, group_name)")
+        // Deterministic newest-first ordering, id breaks ties so paging is stable.
         .order("business_date", { ascending: false })
         .order("created_at", { ascending: false })
-        .limit(500);
+        .order("id", { ascending: false })
+        .limit(limit);
       if (!isSummaryMode && activeCasinoId) q = q.eq("casino_id", activeCasinoId);
       if (opts?.from) q = q.gte("business_date", opts.from);
       if (opts?.to) q = q.lte("business_date", opts.to);
       if (opts?.walletId) q = q.eq("wallet_id", opts.walletId);
+
       const { data, error } = await q;
       if (error) throw error;
       return data;

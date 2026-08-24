@@ -51,13 +51,15 @@ export const finalProfit = (input: {
   Number(input.liabilitiesClosing || 0);
 
 /**
- * CLOSED month bonus uses the SAME rule as an open month — max(0, 5% × (Income − Budget)).
- * Closing only freezes the value in the snapshot; it never switches the base to Actual Expenses.
+ * CLOSED month bonus switches the cost base to what was really spent:
+ * max(0, 5% × (Total Income − Actual Expenses)). It is frozen at close and can
+ * afterwards only be changed through an audited override.
  */
 export const managerBonusFinal = (input: {
   totalIncome: number;
-  budget: number;
-}) => Math.max(0, 0.05 * (Number(input.totalIncome || 0) - Number(input.budget || 0)));
+  expensesActual: number;
+}) => Math.max(0, 0.05 * (Number(input.totalIncome || 0) - Number(input.expensesActual || 0)));
+
 
 /**
  * Deposits — money physically held in the cage but owed to third parties.
@@ -116,9 +118,50 @@ export const cashPosition = (i: {
   Number(i.collections || 0) -
   Number(i.liabilityPayments || 0);
 
-/** Available for Collection = max(0, remaining profit) — collections already netted out. */
-export const availableForCollection = (profit: number, collections = 0) =>
-  Math.max(0, Number(profit || 0) - Number(collections || 0));
+/**
+ * Available for Collection = max(0, Profit − cumulative Collections − approved Manager Bonus).
+ * An overridden bonus only changes what is still collectable, never historical Profit.
+ * NOTE: for an OPEN month collections are already netted inside `profit`, so pass 0 there.
+ */
+export const availableForCollection = (profit: number, collections = 0, managerBonus = 0) =>
+  Math.max(0, Number(profit || 0) - Number(collections || 0) - Number(managerBonus || 0));
+
+/**
+ * Total Expenses & Obligations — the footer total of the Expenses card.
+ * OPEN:   Budget + Unplanned (all) + closing Liabilities + Collections.
+ * CLOSED: Actual Expenses + Unplanned not already in Actual + frozen Liabilities + Collections.
+ * Commissions & Fee are income-side lines and are NEVER deducted here.
+ */
+export const totalExpensesAndObligations = (i: {
+  closed: boolean;
+  budget: number;
+  expensesActual: number;
+  unplannedTotal: number;
+  unplannedNotInActual: number;
+  liabilitiesClosing: number;
+  collections: number;
+}) =>
+  (i.closed ? Number(i.expensesActual || 0) : Number(i.budget || 0)) +
+  (i.closed ? Number(i.unplannedNotInActual || 0) : Number(i.unplannedTotal || 0)) +
+  Number(i.liabilitiesClosing || 0) +
+  Number(i.collections || 0);
+
+/**
+ * Net Cash Adjustments = −Deposits + Office + Investment + Intercompany Cash Effect.
+ * Basic Float is a standing balance, not an adjustment, and stays out.
+ */
+export const netCashAdjustments = (i: {
+  deposits: number;
+  office: number;
+  investment: number;
+  intercompanyCash: number;
+}) =>
+  -Number(i.deposits || 0) +
+  Number(i.office || 0) +
+  Number(i.investment || 0) +
+  Number(i.intercompanyCash || 0);
+
+
 
 
 /** Opening + New − Repayments = Closing. */
