@@ -101,6 +101,10 @@ const eatTime = (ts: string | Date) =>
   });
 
 
+/** Signed amount colour helper (project tokens). */
+const cls = (n: number) =>
+  n > 0 ? "cms-amount-positive" : n < 0 ? "cms-amount-negative" : "text-muted-foreground";
+
 /* ============ Page ============ */
 
 export default function FinancesWalletsPage() {
