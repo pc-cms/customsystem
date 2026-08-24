@@ -24,7 +24,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
 import { NumberInput } from "@/components/ui/number-input";
-import { totalExpensesAndObligations, netCashAdjustments } from "@/lib/finance-formulas";
+import { totalExpensesAndObligations } from "@/lib/finance-formulas";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import { downloadXlsx } from "@/lib/excel-export";
