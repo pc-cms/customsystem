@@ -255,11 +255,8 @@ export default function FinancesMonthlyReportPage() {
   return (
     <PageShell>
       <OfficeActions>
-        {data?.usd_rate ? (
-          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-            USD→TZS @ {formatNumberSpaces(Math.round(data.usd_rate))}
-          </span>
-        ) : null}
+
+
         {isPremier && (
           <Button
             variant={scope === "network" ? "default" : "outline"}
