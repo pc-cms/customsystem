@@ -352,18 +352,6 @@ export default function FinancesWalletsPage() {
     (snap?.incomes?.live_game || 0) + (snap?.incomes?.slots || 0) + (snap?.incomes?.other || 0);
   const expensesTotal = snap?.expenses_total || 0;
 
-  /** Manual balance corrections (Wallets arrows) — outside income / expense. */
-  const adjustments = useMemo(() => {
-    let inTzs = 0;
-    let outTzs = 0;
-    (tx as any[]).forEach((r) => {
-      if (!isWalletAdjustment(r.kind)) return;
-      const v = Math.abs(Number(r.amount_tzs) || 0);
-      if (r.kind === "adjustment_in") inTzs += v;
-      else outTzs += v;
-    });
-    return { in: inTzs, out: outTzs, net: inTzs - outTzs };
-  }, [tx]);
   const varianceTone =
     Math.abs(totals.variance) < 1 ? "neutral" : totals.variance > 0 ? "positive" : "negative";
 
@@ -615,10 +603,7 @@ export default function FinancesWalletsPage() {
               <BreakdownRow label="Actual (Σ wallets · last recorded state)" v={totals.actual} bold signed />
               <BreakdownRow label="= Variance (Actual − Expected)" v={totals.variance} bold signed />
             </div>
-            <div className="border-t border-border">
-              <BreakdownRow label="Adjustments IN (manual, not income)" v={adjustments.in} positive />
-              <BreakdownRow label="Adjustments OUT (manual, not expense)" v={adjustments.out} negative />
-            </div>
+
           </div>
           <div className="text-[10px] text-muted-foreground mt-1">
             USD→TZS rate {formatNumberSpaces(usdRate)} · Period {range.from} → {range.to}
