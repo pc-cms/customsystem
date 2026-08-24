@@ -1,0 +1,37 @@
+# Other Incomes — только реальный доход
+
+## Что такое «Other» сейчас
+
+Строка **Other** в Month Summary = сумма ВСЕХ записей `fin_other_incomes` за месяц, без разбора типа. За август это (по сети):
+
+- Owner Top-up 68 519 000 («Boss Pesa July»)
+- Inter-Casino Transfer 10 000 000 («FLOAT (DEBT) Mwanza»)
+- JP 8 425 981
+- Tips 1 231 974, Bonus 317 430
+- Investment 4 658, Fee −20 302
+- Собственно «Other» −29 826 709
+
+То есть в доход попадали возвратные и служебные движения: переводы между филиалами, чаевые, JP, взносы владельца.
+
+## Правило (после вашего решения)
+
+В доходах остаются только: **Other, Refund, Fee**.
+
+Исключаются из доходов: **JP, Tips, Bonus, Tips & Bonuses (legacy), Inter-Casino Transfer, Owner Top-up, Investment**.
+
+Записи никуда не удаляются — они остаются в своих вкладках (JP, Tips & Bonuses, Inter-Casino, Other Incomes) и продолжают двигать балансы кошельков. Меняется только то, что считается «доходом» в отчётах.
+
+## Где применяется (везде)
+
+1. **Finances → Monthly Report → Month Summary**: строка Other и Total Income считаются по новому правилу; подпись строки уточняется на «Other Incomes».
+2. **Dashboard TV / Boss Monthly Report**: серверный расчёт `other` фильтруется так же (на итоги отчёта он уже не влияет, но цифра станет корректной).
+3. Печатная версия месячного отчёта — та же цифра, отдельной правки не требует.
+
+## Технические детали
+
+- В `src/hooks/use-other-incomes.ts` добавить экспорт `REAL_INCOME_SOURCES = ["other","refund","fee"]` (единый источник правды для UI-расчётов).
+- `src/hooks/use-fin-monthly-report.ts`: в запросе `fin_other_incomes` добавить `.in("source", REAL_INCOME_SOURCES)`; комментарий-шапку обновить.
+- Миграция: пересоздать RPC `boss_monthly_report`, в CTE `other_agg` добавить
+  `AND oi.source IN ('other','refund','fee')`. Остальная логика функции без изменений.
+- Схема БД и данные не меняются, балансы кошельков не затрагиваются.
+- Бамп версии приложения, сборка + типчек. Публикацию не делаем.
