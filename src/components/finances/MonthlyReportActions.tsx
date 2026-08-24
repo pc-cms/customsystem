@@ -1,13 +1,13 @@
 /**
- * Monthly Report actions — the ONLY place where the month lifecycle is driven
- * from the UI: manual liabilities, repayments, signed Basic Float adjustments,
- * Close Month, Record Collection and (super_admin) Reopen.
+ * Monthly Report actions — manual liabilities, repayments, Record Collection
+ * and (super_admin) Reopen. Close Month and the signed Basic Float adjustment
+ * live on the Wallets page and are deliberately NOT duplicated here.
  *
  * Every mutation goes through the canonical RPCs; the DB blocks anything that
  * touches a closed month, so the buttons here only mirror the server rules.
  */
 import { useMemo, useState } from "react";
-import { Lock, LockOpen, Plus, Banknote, HandCoins, Sliders } from "lucide-react";
+import { LockOpen, Plus, Banknote, HandCoins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
@@ -20,8 +20,6 @@ import { useAuth } from "@/lib/auth-context";
 import {
   useAddLiability,
   usePayLiability,
-  useAdjustFloat,
-  useCloseMonthReport,
   useReopenMonthReport,
   useRecordCollection,
   useMarkUnplannedPaid,
@@ -62,21 +60,18 @@ export const MonthlyReportActions = ({
   const closed = finance?.status === "closed";
   const available = Number(finance?.available_for_collection || 0);
   const collected = Number(finance?.collections || 0);
-  const floatCurrent = Number(finance?.float?.current_tzs || 0);
   const liabilities = finance?.liabilities?.items || [];
   const payments = finance?.liabilities?.payments || [];
   const unplanned = finance?.unplanned?.items || [];
 
   const addLiability = useAddLiability();
   const payLiability = usePayLiability();
-  const adjustFloat = useAdjustFloat();
-  const closeMonth = useCloseMonthReport();
   const reopenMonth = useReopenMonthReport();
   const collect = useRecordCollection();
   const markPaid = useMarkUnplannedPaid();
   const reverseUnplanned = useReverseUnplanned();
 
-  const [dlg, setDlg] = useState<null | "liability" | "pay" | "float" | "collect" | "paid">(null);
+  const [dlg, setDlg] = useState<null | "liability" | "pay" | "collect" | "paid">(null);
   const [wallet, setWallet] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(getBusinessDate());
@@ -85,7 +80,6 @@ export const MonthlyReportActions = ({
   const [note, setNote] = useState("");
   const [liabilityId, setLiabilityId] = useState("");
   const [unplannedId, setUnplannedId] = useState("");
-  const [floatDir, setFloatDir] = useState<"increase" | "decrease">("increase");
 
   const reset = () => {
     setDlg(null);
@@ -101,7 +95,6 @@ export const MonthlyReportActions = ({
   const amt = Number(amount) || 0;
   const openLiabilities = liabilities.filter((l) => Number(l.outstanding_tzs || 0) > 0.5 && !l.voided_at);
   const selected = openLiabilities.find((l) => l.id === liabilityId) || null;
-  const floatDelta = floatDir === "decrease" ? -amt : amt;
 
   const walletSelect = (
     <FormField span={6} label="Wallet" required>
@@ -124,7 +117,7 @@ export const MonthlyReportActions = ({
       card={false}
       titleRight={
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          {closed ? "Closed · read-only except Collections" : "Open"}
+          {closed ? "Closed · read-only except Collections" : "Open · Close Month and Adjust Float live in Wallets"}
         </span>
       }
     >
@@ -136,18 +129,6 @@ export const MonthlyReportActions = ({
             </Button>
             <Button size="sm" variant="outline" disabled={!openLiabilities.length} onClick={() => setDlg("pay")}>
               <HandCoins className="w-4 h-4" /> Pay Liability
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setDlg("float")}>
-              <Sliders className="w-4 h-4" /> Adjust Float
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                if (window.confirm("Close the month? Final Profit and Manager Bonus are frozen and inputs are locked."))
-                  closeMonth.mutate({ casino_id: casinoId, year, month });
-              }}
-            >
-              <Lock className="w-4 h-4" /> Close Month
             </Button>
           </>
         )}
@@ -235,7 +216,6 @@ export const MonthlyReportActions = ({
         >
           <Row left="Cumulative" label="Collections this month" value={collected} />
           <Row left="Remaining" label="Available for Collection" value={available} />
-          <Row left="Float" label="Current Basic Float" value={floatCurrent} />
         </ListCard>
       </div>
 
@@ -321,50 +301,6 @@ export const MonthlyReportActions = ({
             }
           >
             Record Repayment
-          </Button>
-        </div>
-      </ResponsiveDialog>
-
-      <ResponsiveDialog open={dlg === "float"} onOpenChange={(o) => !o && reset()} title="Adjust Basic Float">
-        <FormGrid>
-          <FormField span={6} label="Direction" required>
-            <Select value={floatDir} onValueChange={(v) => setFloatDir(v as "increase" | "decrease")}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="increase">Increase (+)</SelectItem>
-                <SelectItem value="decrease">Decrease (−)</SelectItem>
-              </SelectContent>
-            </Select>
-          </FormField>
-          <FormField span={6} label="Amount" required>
-            <NumberInput decimals={2} value={amount} onValueChange={(v) => setAmount(v == null ? "" : String(v))} />
-          </FormField>
-          {walletSelect}
-          <FormField span={6} label="Business Date">
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </FormField>
-          <FormField span={12} label="Note">
-            <Input value={note} onChange={(e) => setNote(e.target.value)} />
-          </FormField>
-        </FormGrid>
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <span className="text-[11px] font-mono">
-            Current {fmt(floatCurrent)} → <b>{fmt(floatCurrent + floatDelta)}</b>
-            {floatCurrent + floatDelta < 0 && (
-              <span className="cms-amount-negative ml-2">Basic Float cannot become negative</span>
-            )}
-          </span>
-          <Button
-            size="sm"
-            disabled={!wallet || amt <= 0 || floatCurrent + floatDelta < 0 || adjustFloat.isPending}
-            onClick={() =>
-              adjustFloat.mutate(
-                { casino_id: casinoId, wallet_id: wallet, amount: floatDelta, business_date: date, note: note.trim() || undefined },
-                { onSuccess: reset },
-              )
-            }
-          >
-            Apply Adjustment
           </Button>
         </div>
       </ResponsiveDialog>
