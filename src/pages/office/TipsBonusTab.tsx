@@ -267,15 +267,18 @@ export default function TipsBonusTab() {
         </OfficeActions>
       )}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <TotalCard label="Tips IN" value={totals.tips.inSum} />
-        <TotalCard label="Tips OUT" value={totals.tips.outSum} />
-        <TotalCard label="Bonuses IN" value={totals.bonus.inSum} />
-        <TotalCard label="Bonuses OUT" value={totals.bonus.outSum} />
-        <TotalCard label="Tips Net" value={totals.tips.net} />
-        <TotalCard label="Bonuses Net" value={totals.bonus.net} />
-        <TotalCard label="Total Net" value={totals.net} strong />
+      <div className="grid gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-3 gap-3 lg:col-span-3">
+          <TotalCard label="Bonuses IN" value={totals.bonus.inSum} />
+          <TotalCard label="Bonuses OUT" value={totals.bonus.outSum} />
+          <TotalCard label="Bonuses Net" value={totals.bonus.net} />
+          <TotalCard label="Tips IN" value={totals.tips.inSum} />
+          <TotalCard label="Tips OUT" value={totals.tips.outSum} />
+          <TotalCard label="Tips Net" value={totals.tips.net} />
+        </div>
+        <TotalCard label="Total Net" value={totals.net} strong className="lg:h-full lg:flex lg:flex-col lg:justify-center" />
       </div>
+
 
       <div className="flex items-center gap-1.5">
         {FILTERS.map((f) => (
@@ -390,13 +393,14 @@ export default function TipsBonusTab() {
   );
 }
 
-const TotalCard = ({ label, value, strong }: { label: string; value: number; strong?: boolean }) => (
-  <div className="rounded-md border border-border bg-card px-3 py-2">
+const TotalCard = ({ label, value, strong, className }: { label: string; value: number; strong?: boolean; className?: string }) => (
+  <div className={cn("rounded-md border border-border bg-card px-3 py-2", strong && "border-primary/40 bg-primary/5", className)}>
     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
     <p
       className={cn(
         "font-mono tabular-nums",
-        strong ? "text-2xl font-bold" : "text-xl",
+        strong ? "text-3xl font-bold" : "text-xl",
+
         value < 0 ? "cms-amount-negative" : value > 0 ? "cms-amount-positive" : "text-muted-foreground",
       )}
     >
