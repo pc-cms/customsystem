@@ -55,9 +55,9 @@ const NAV_ITEMS: NavItem[] = [
 
   // PIT
 
+  { to: "/breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/player-statistics", icon: Users, label: "Player Tracking", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/table-tracker", icon: Target, label: "Table Check", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
-  { to: "/breaklist", icon: ListChecks, label: "Break List", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/tables", icon: Table2, label: "Tables Tracking", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "PIT" },
   { to: "/pitbook", icon: BookOpen, label: "Pit Book", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager"], section: "PIT" },
   { to: "/incidents", icon: AlertTriangle, label: "CCTV Reports", roles: ["super_admin", "manager", "shift_manager", "finance_manager", "surveillance"], section: "PIT" },
