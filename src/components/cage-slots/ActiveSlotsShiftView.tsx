@@ -683,7 +683,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             <p className="font-mono text-base font-bold text-warning tabular-nums">−{formatNumberSpaces(aceFills)}</p>
           </div>
           <div>
-            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Slots Result</p>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Slot Result</p>
             <p className={`font-mono text-base font-bold tabular-nums ${slotsResultDerived < 0 ? "cms-amount-negative" : slotsResultDerived > 0 ? "cms-amount-positive" : ""}`}>
               {slotsResultDerived > 0 ? "+" : ""}{formatNumberSpaces(slotsResultDerived)}
             </p>
@@ -1052,7 +1052,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <h3 className="font-semibold">Approve & Close Slots Shift</h3>
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <Stat label="Count Cash" value={closingCashTzs} />
-                <Stat label="Slots Result" value={slotsResult} signed />
+                <Stat label="Slot Result" value={slotsResult} signed />
                 <Stat label="Balance" value={shiftBalance} signed emphasize />
               </div>
               {needsComment && (

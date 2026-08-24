@@ -362,15 +362,15 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
       hint: "Monthly budget (Finance → Budget), converted to TZS with the exchange rate of the entry date.",
     },
     {
-      label: "Result (Live + Slots)", per: summary.result, total: t.result, strong: true,
-      hint: "Closed business days only: Live Game result + Slots result (Day Closings). Open days are excluded.",
+      label: "Result (Table + Slot)", per: summary.result, total: t.result, strong: true,
+      hint: "Closed business days only: Table Result + Slot Result (Day Closings). Open days are excluded.",
     },
     {
-      label: "Live Game", per: summary.tables, total: t.tables, muted: true,
-      hint: "Day Closings → Tables Result, closed business days only.",
+      label: "Table Result", per: summary.tables, total: t.tables, muted: true,
+      hint: "Day Closings → Table Result, closed business days only.",
     },
     {
-      label: "Slots", per: summary.slots, total: t.slots, muted: true,
+      label: "Slot Result", per: summary.slots, total: t.slots, muted: true,
       hint: "Cash desk win minus money on the cards (Players Card Balance), closed business days only.",
     },
     {

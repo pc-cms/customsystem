@@ -74,7 +74,7 @@ export const COMMISSION_SOURCES: OtherIncomeSource[] = [
   "fee",
   // legacy, readable only
   "other",
-  "refund",
+  // NOTE: `refund` is retired — historical rows stay readable but are NEVER counted.
 ];
 export const TIPS_BONUS_SOURCES: OtherIncomeSource[] = ["tips", "bonus", "tips_bonus"];
 export const MOVEMENT_SOURCES: OtherIncomeSource[] = ["investment", "office", "owner_topup"];
@@ -211,6 +211,12 @@ export const useReverseOtherIncome = () => {
   });
 };
 
+/**
+ * Immutable correction: storno of the original + a new replacement row, in ONE
+ * DB transaction (`fin_other_income_replace`). Also the ONLY way to move a row
+ * between Commissions / Movements / Tips & Gaming Bonus. Mirrored wallet
+ * transactions stay consistent because the trigger negates the storno.
+ */
 export const useUpdateOtherIncome = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -220,47 +226,36 @@ export const useUpdateOtherIncome = () => {
       wallet_id: string;
       fin_category_id?: string | null;
       source: OtherIncomeSource;
-      currency: string;
+      currency?: string;
       amount: number;
       fx_rate?: number;
       note?: string;
     }) => {
-      const { id, ...patch } = input;
-      const { error } = await (supabase as any)
-        .from("fin_other_incomes")
-        .update({
-          business_date: patch.business_date,
-          wallet_id: patch.wallet_id,
-          fin_category_id: patch.fin_category_id || null,
-          source: patch.source,
-          currency: patch.currency,
-          amount: patch.amount,
-          // keep the mirrored wallet transaction in sync when the currency changes
-          fx_rate: patch.fx_rate ?? (patch.currency === "TZS" ? 1 : undefined),
-          note: patch.note || null,
-        })
-        .eq("id", id);
+      if (input.source === "refund") throw new Error("Refund is retired and cannot be used");
+      const { error } = await (supabase as any).rpc("fin_other_income_replace", {
+        p_id: input.id,
+        p_business_date: input.business_date,
+        p_wallet_id: input.wallet_id,
+        p_source: input.source,
+        p_amount: input.amount,
+        p_fin_category_id: input.fin_category_id || null,
+        p_note: input.note || null,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
       invalidateFinance(qc);
-      toast.success("Income updated");
+      toast.success("Correction posted (storno + new entry)");
     },
     onError: (e: any) => toast.error(e.message),
   });
 };
 
+/**
+ * @deprecated Finance history is immutable — there is no hard delete.
+ * Use `useReverseOtherIncome` (storno) or `useUpdateOtherIncome` (correction).
+ */
 export const useDeleteOtherIncome = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("fin_other_incomes").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      invalidateFinance(qc);
-      toast.success("Income deleted");
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
+  const reverse = useReverseOtherIncome();
+  return reverse;
 };

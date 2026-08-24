@@ -556,7 +556,7 @@ export default function FinancesWalletsPage() {
             label="Total Income"
             tone="positive"
             v={incomeTotal}
-            sub={`Live ${formatNumberSpaces(snap?.incomes?.live_game || 0)} · Slots ${formatNumberSpaces(snap?.incomes?.slots || 0)} · Other ${formatNumberSpaces(snap?.incomes?.other || 0)}`}
+            sub={`Table ${formatNumberSpaces(snap?.incomes?.live_game || 0)} · Slot ${formatNumberSpaces(snap?.incomes?.slots || 0)} · Other ${formatNumberSpaces(snap?.incomes?.other || 0)}`}
           />
           <Kpi label="Total Expenses" tone="negative" v={expensesTotal} sub="period · voided excluded" />
           <Kpi

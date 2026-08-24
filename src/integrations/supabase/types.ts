@@ -12098,6 +12098,18 @@ export type Database = {
         }
         Returns: string
       }
+      fin_other_income_replace: {
+        Args: {
+          p_amount: number
+          p_business_date: string
+          p_fin_category_id?: string
+          p_id: string
+          p_note?: string
+          p_source: string
+          p_wallet_id: string
+        }
+        Returns: string
+      }
       fin_post_cage_expense: { Args: { _expense_id: string }; Returns: boolean }
       fin_post_cage_expenses_for_day: {
         Args: { _business_date: string; _casino_id: string }

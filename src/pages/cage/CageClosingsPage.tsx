@@ -108,8 +108,8 @@ const CageClosingsPage = () => {
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-card z-10">
               <tr className="border-b border-border">
-                {["Opened", "Closed", "Cash Result", "Miss", "Tables Result", "Balance", "Notes", ""].map(h => (
-                  <th key={h} className={`px-3 py-2 font-medium text-muted-foreground uppercase ${["Cash Result","Miss","Tables Result","Balance"].includes(h) ? "text-right" : "text-left"}`}>{h}</th>
+                {["Opened", "Closed", "Cash Result", "Miss", "Table Result", "Balance", "Notes", ""].map(h => (
+                  <th key={h} className={`px-3 py-2 font-medium text-muted-foreground uppercase ${["Cash Result","Miss","Table Result","Balance"].includes(h) ? "text-right" : "text-left"}`}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -167,7 +167,7 @@ const CageClosingsPage = () => {
                     </td>
                     <td
                       className={`px-3 py-2 text-right font-mono ${balance === 0 ? "text-muted-foreground" : "cms-amount-negative font-semibold"}`}
-                      title="Cash Desk Result − Tables Result − Miss. Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn"
+                      title="Cash Desk Result − Table Result − Miss. Cash Desk Result = ΔCash + Expenses + Collection − AddFloat + SlotsOut − SlotsIn"
                     >
                       {balance === 0 ? "0" : `${balance > 0 ? "+" : ""}${formatNumberSpaces(balance)}`}
                     </td>

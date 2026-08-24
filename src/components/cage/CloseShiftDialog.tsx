@@ -674,7 +674,7 @@ const CloseShiftDialog = ({
 
       {/* Tables */}
       <section className="cms-panel p-3">
-        <p className="text-xs uppercase text-foreground tracking-wider font-bold mb-2">Tables Result</p>
+        <p className="text-xs uppercase text-foreground tracking-wider font-bold mb-2">Table Result</p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm font-mono">
             <thead className="border-b border-border">
@@ -834,7 +834,7 @@ const CloseShiftDialog = ({
         </div>
         <div className="space-y-1 text-sm font-mono">
           <div className="flex justify-between"><span className="text-muted-foreground">Cash Desk Result</span><span className="text-card-foreground">{cashDeskResult >= 0 ? "+" : ""}{formatNumberSpaces(cashDeskResult)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">− Tables Result</span><span className="text-card-foreground">−({resultTable >= 0 ? "+" : ""}{formatNumberSpaces(resultTable)})</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">− Table Result</span><span className="text-card-foreground">−({resultTable >= 0 ? "+" : ""}{formatNumberSpaces(resultTable)})</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">− Miss Chips</span><span className="text-card-foreground">−({balanceMissTotal >= 0 ? "+" : ""}{formatNumberSpaces(balanceMissTotal)})</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">− Tips</span><span className="text-card-foreground">−{formatNumberSpaces(tipsTotal)}</span></div>
 
@@ -846,7 +846,7 @@ const CloseShiftDialog = ({
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2 pt-3 mt-3 border-t border-border">
-          <KpiTile label="Tables Result" value={resultTable} tone={resultTable >= 0 ? "pos" : "neg"} compact />
+          <KpiTile label="Table Result" value={resultTable} tone={resultTable >= 0 ? "pos" : "neg"} compact />
           <KpiTile label="Shift Balance" value={balance} tone={isBalanced ? "ok" : balance > 0 ? "pos" : "neg"} compact />
           <KpiTile label="Money Result" value={moneyResult} tone={moneyResult >= 0 ? "pos" : "neg"} compact />
         </div>

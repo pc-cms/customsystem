@@ -279,7 +279,7 @@ export function CloseBusinessDayButton({ className }: { className?: string }) {
                 value={clientBalance} onChange={setClientBalance} allowNegative
               />
               <FigureField
-                id="cbd-jp-in" label="JP (IN) — optional" hint="→ Office · Day Closings — JP (income)"
+                id="cbd-jp-in" label="JP — optional" hint="→ Office · Day Closings — JP (income)"
                 value={jpIn} onChange={setJpIn} allowNegative
               />
             </div>

@@ -55,7 +55,7 @@ const CageSlotsHistoryView = () => {
               <DTHeader type="date">Opened</DTHeader>
               <DTHeader type="date">Closed</DTHeader>
               <DTHeader type="money">System</DTHeader>
-              <DTHeader type="money">Slots Result</DTHeader>
+              <DTHeader type="money">Slot Result</DTHeader>
               <DTHeader type="money">Cash Desk</DTHeader>
               <DTHeader type="money">Cards Miss</DTHeader>
               <DTHeader type="money">Cashless IN</DTHeader>

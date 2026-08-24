@@ -656,7 +656,7 @@ const ShiftClosingReport = ({
         </colgroup>
         <tbody>
           <tr>
-            <td className="border border-black bg-gray-200 px-1.5 py-0.5 font-semibold">Tables Result</td>
+            <td className="border border-black bg-gray-200 px-1.5 py-0.5 font-semibold">Table Result</td>
             <td className="border border-black px-1.5 py-0.5 text-right font-bold">
               {totals.result >= 0 ? numAlways(totals.result) : `-${numAlways(Math.abs(totals.result))}`}
             </td>

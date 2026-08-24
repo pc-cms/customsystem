@@ -4,7 +4,7 @@
  * Reversal вместо редактирования.
  */
 import { useMemo, useState } from "react";
-import { Coins, Plus, Undo2, Pencil, Trash2 } from "lucide-react";
+import { Coins, Plus, Undo2, Pencil } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,6 @@ import {
   useAddOtherIncome,
   useReverseOtherIncome,
   useUpdateOtherIncome,
-  useDeleteOtherIncome,
   OTHER_INCOME_SOURCES,
   ALL_INCOME_SOURCES,
   type OtherIncomeRow,
@@ -67,7 +66,6 @@ export default function OtherIncomesTab() {
   const addIncome = useAddOtherIncome();
   const reverse = useReverseOtherIncome();
   const updateIncome = useUpdateOtherIncome();
-  const deleteIncome = useDeleteOtherIncome();
 
   const incomeCats = useMemo(
     () => (categories || []).filter((c: any) => c.is_income),
@@ -249,17 +247,7 @@ export default function OtherIncomesTab() {
             >
               <Undo2 className="w-3.5 h-3.5" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-destructive"
-              onClick={() => {
-                if (confirm("Delete this income permanently?")) deleteIncome.mutate(r.id);
-              }}
-              aria-label="Delete"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
+            
           </div>
         );
       },

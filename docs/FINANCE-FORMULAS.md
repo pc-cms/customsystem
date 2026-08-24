@@ -41,11 +41,11 @@ AND (source = 'office' OR business day is CLOSED)
 
 | Field | Formula |
 |---|---|
-| Tables Result (Live Net Win) | Σ per-table `win` of the day (closing recount driven) |
-| Slots Result | `cash desk win − Δ client balances` |
+| Table Result | Σ per-table `win` of the day (closing recount driven) |
+| Slot Result | `cash desk win − Δ client balances` |
 | Drop (per table) | Σ IN transactions of that table (`type in ('in','buy')`, `cancelled_at IS NULL`) |
 | Drop (total) | Σ peak from `player_day_drop_cache` (see `src/lib/drop-source.ts`) |
-| JP (IN) | ACE `jackpot_slip_out` mapped into JP IN |
+| JP | ACE `jackpot_slip_out` mapped into the JP figure |
 | Miss Chips / Miss Cards | cage delta, reported separately — never folded into Result |
 | Card Balance | manual entry, may be negative |
 | Cashless / Bank | manual entry, decimals allowed |
@@ -57,14 +57,14 @@ Open days show a placeholder only; nothing propagates to reports until closed.
 ## 2. Monthly Report (`use-fin-monthly-report.ts`)
 
 ```text
-Live Game    = Σ fin_day_closing.tables_result  (closed days in period)
+Table Result = Σ fin_day_closing.tables_result  (closed days in period)
 Slots        = Σ fin_day_closing.slots_result   (closed days in period)
 Commissions  = Σ COMMISSION_SOURCES  → TZS
-Total Income = Live Game + Slots + Commissions
+Total Income = Table Result + Slot Result + Bar Income + Commissions
 
 Reference rows (NOT in Total):
   Tips & Bonuses (±) = Σ TIPS_BONUS_SOURCES
-  JP (IN)            = Σ source 'jp'
+  JP                 = Σ source 'jp'
   Movements          = Σ MOVEMENT_SOURCES
 
 Actual (per category) = Σ expenses.amount_tzs under the expense inclusion rule
@@ -78,9 +78,9 @@ Profit                = Total Income − Grand Actual
 ## 3. Wallets / Balance (`fin_balance_snapshot` + `use-fin-balance.ts`)
 
 ```text
-Expected = Live Game + Slots + Commissions
+Expected = Table Result + Slot Result + Bar Income + Commissions
          + Tips & Bonuses (±) + Movements
-         + JP (IN) + Card Balance + Miss Chips + Miss Cards
+         + JP + Card Balance + Miss Chips + Miss Cards
          − Expenses − Collections + Transfers
 
 Actual   = Σ last recorded physical wallet state (latest count per wallet)
@@ -100,9 +100,9 @@ Variance = Actual − Expected        (the gap; a real discrepancy, not a bug)
 
 ```text
 Live Drop        = per-table Drop rule (§1)
-Live Net Win     = Σ tables_result; open days fall back to Chips Check
+Table Result     = Σ tables_result; open days fall back to Chips Check
 Slots Drop       = ACE slots drop
-Slots Active Credits, Slots Net Win, Cashdesk Win, Slots Result = ACE feed
+Slots Active Credits, Slots Net Win (real-time ACE), Cashdesk Win, Slot Result = ACE feed
 MTD Avg          = Σ Net Win of closed days / closed-day count
 Expected Profit  = (MTD Avg × days in month) − Budget − Extras + Incomes
 Manager bonus    = 5% of the qualifying result
@@ -143,3 +143,24 @@ Cashless Balance= manual entry only; derived NET is ignored in CDR
 3. Cage expenses count only after the business day is closed; Office expenses count immediately.
 4. Per-table Drop and Total Drop are computed independently and may differ — by design.
 5. Wallets `Expected` must be fully decomposable into the rows shown in its breakdown.
+
+## Retired categories
+
+`refund` is retired (2026). Historical rows stay readable for audit but are
+excluded from Commissions, Fee, Total Income, Expected Profit, Cash Position,
+Wallet Expected, daily breakdown and dashboards. It cannot be selected for new
+entries and `fin_other_income_replace` rejects it.
+
+## Immutable corrections
+
+Editing / moving a `fin_other_incomes` row (Commissions ↔ Movements ↔ Tips &
+Gaming Bonus) goes through `fin_other_income_replace`: storno of the original
+plus a replacement row in ONE transaction. Wallet mirrors stay consistent
+because the trigger negates storno rows. Amount 0 = storno only. Hard delete is
+no longer available in the UI.
+
+## Bar Income
+
+POS does **not** post to wallets today (no `pos_deposit` wallet transactions),
+so Bar Income is exposed by `fin_balance_snapshot` and counted exactly ONCE in
+Total Income and once in Cash Position / Wallet Expected.

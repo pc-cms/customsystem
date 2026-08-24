@@ -45,7 +45,7 @@ export type BalanceSnapshot = {
     live_game: number;
     /** Slot Result — Cashdesk Win − Δ client balances. */
     slots: number;
-    /** Commissions: commission / agent_commission / fee (+ legacy other, refund). */
+    /** Commissions: commission / agent_commission / fee (+ legacy `other`). */
     other: number;
     /** Tips & Bonuses (tips / gaming bonus / legacy tips_bonus) — signed. */
     tips_bonus?: number;
