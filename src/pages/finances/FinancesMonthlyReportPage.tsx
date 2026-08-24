@@ -673,8 +673,8 @@ const SummaryBlock = ({
           label="Budget"
           v={g.plan_month_grand_tzs}
           formula="Planned cost base of the month (Grand TZS = TZS + USD converted)."
-          footer={<PlanBadge />}
         />
+
         <KpiCard
           label="Actual Expenses"
           v={cash.expenses_actual}
