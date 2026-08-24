@@ -14,53 +14,75 @@ import { toast } from "sonner";
 export type OtherIncomeSource =
   | "investment"
   | "inter_casino_transfer"
+  | "office"
+  /** @deprecated legacy — migrated to `office`, kept readable for audit. */
   | "owner_topup"
+  /** @deprecated legacy — no longer selectable, kept readable for audit. */
   | "refund"
   | "bonus"
   | "tips"
   | "tips_bonus"
   | "jp"
+  | "commission"
+  | "agent_commission"
   | "fee"
+  | "add_float"
   | "other";
 
-/** All known sources, including JP (used for labels of existing rows). */
+/** All known sources, including legacy ones (used for labels of existing rows). */
 export const ALL_INCOME_SOURCES: { value: OtherIncomeSource; label: string }[] = [
   { value: "investment", label: "Investment" },
+  { value: "office", label: "Office" },
+  { value: "commission", label: "Commission" },
+  { value: "agent_commission", label: "Agent Commission" },
+  { value: "fee", label: "Fee" },
+  { value: "add_float", label: "Add Float" },
+  { value: "other", label: "Other" },
   { value: "inter_casino_transfer", label: "Inter-Casino Transfer" },
   { value: "tips", label: "Tips" },
-  { value: "bonus", label: "Bonus" },
+  { value: "bonus", label: "Gaming Bonus" },
   { value: "tips_bonus", label: "Tips & Bonuses" },
-  { value: "owner_topup", label: "Owner Top-up" },
-  { value: "refund", label: "Refund" },
+  { value: "owner_topup", label: "Office (legacy top-up)" },
+  { value: "refund", label: "Refund (legacy)" },
   { value: "jp", label: "JP" },
-  { value: "fee", label: "Fee" },
-  { value: "other", label: "Other" },
 ];
 
 /**
- * Sources selectable on the Other Incomes tab.
- * JP, Tips and Bonus live on their own Office tabs.
- * `tips_bonus` is legacy: kept for labels only, no longer selectable.
+ * Sources selectable when creating a NEW transaction.
+ * JP, Tips and Gaming Bonus live on their own Office tabs.
+ * Legacy `refund`, `owner_topup` and `tips_bonus` stay readable but not selectable.
  */
-export const OTHER_INCOME_SOURCES = ALL_INCOME_SOURCES.filter(
-  (s) => !["jp", "tips", "bonus", "tips_bonus", "inter_casino_transfer"].includes(s.value),
+export const OTHER_INCOME_SOURCES = ALL_INCOME_SOURCES.filter((s) =>
+  ["investment", "office", "commission", "agent_commission", "fee", "add_float", "other"].includes(
+    s.value,
+  ),
 );
 
 /**
  * SINGLE SOURCE OF TRUTH for income classification (shared by every page).
  *
- *   COMMISSIONS      — real income the business earned.
- *   TIPS_BONUS       — tips & bonuses (signed, IN/OUT), never income.
- *   MOVEMENTS        — investment / owner top-up: wallet movement, never income.
- *   JP               — jackpot, reported on its own line.
+ *   COMMISSIONS      — real income the business earned (signed).
+ *   TIPS_BONUS       — tips & gaming bonuses (signed, IN/OUT), never income.
+ *   MOVEMENTS        — investment / office: wallet movement, never income.
+ *   ADD_FLOAT        — approved float top-up: Basic Float only, NOT a movement.
+ *   JP               — jackpot, reported on its own line with its stored sign.
  *   inter_casino_transfer — handled by the transfer registry, never income.
  */
-export const COMMISSION_SOURCES: OtherIncomeSource[] = ["other", "refund", "fee"];
+export const COMMISSION_SOURCES: OtherIncomeSource[] = [
+  "commission",
+  "agent_commission",
+  "fee",
+  // legacy, readable only
+  "other",
+  "refund",
+];
 export const TIPS_BONUS_SOURCES: OtherIncomeSource[] = ["tips", "bonus", "tips_bonus"];
-export const MOVEMENT_SOURCES: OtherIncomeSource[] = ["investment", "owner_topup"];
+export const MOVEMENT_SOURCES: OtherIncomeSource[] = ["investment", "office", "owner_topup"];
+export const FLOAT_SOURCES: OtherIncomeSource[] = ["add_float"];
 
 /** @deprecated use COMMISSION_SOURCES — kept as alias for existing imports. */
 export const REAL_INCOME_SOURCES: OtherIncomeSource[] = COMMISSION_SOURCES;
+
 
 
 

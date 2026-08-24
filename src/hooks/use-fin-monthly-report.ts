@@ -10,7 +10,10 @@ import {
   COMMISSION_SOURCES,
   TIPS_BONUS_SOURCES,
   MOVEMENT_SOURCES,
+  FLOAT_SOURCES,
 } from "@/hooks/use-other-incomes";
+import { adaptLiabilities, adaptUnplannedExpenses } from "@/lib/finance-adapters";
+
 
 const GROUP_ORDER = ["fixed", "tax", "variable", "salary", "petrol", "additional"] as const;
 const COLLECTIONS_GROUP = "collections";
@@ -79,16 +82,56 @@ export type ReportGroup = {
 
 export type MonthlyReport = {
   incomes: {
+    /** Table Result — Σ per-table closing win (closed days). Alias of `table_result`. */
     live_game: number;
+    /** Slot Result — Cashdesk Win − Δ client balances (closed days). Alias of `slot_result`. */
     slots: number;
-    /** Commissions only (other/refund/fee) — part of Total. */
+    table_result: number;
+    slot_result: number;
+    /** Bar Income — paid POS revenue (cash / card), comps excluded. */
+    bar_income: number;
+    /** Commissions split (all signed). */
+    commission: number;
+    agent_commission: number;
+    fee: number;
+    /** Σ commission + agent_commission + fee (+ legacy other/refund). Alias `other`. */
+    commissions: number;
     other: number;
     /** Reference rows — NOT part of Total, shown so the page reconciles with Wallets. */
     tips_bonus: number;
     movements: number;
+    investment: number;
+    office: number;
+    add_float: number;
     jp: number;
     total: number;
   };
+  /** Cash adjustments & obligations — never income, never accounting profit. */
+  cash: {
+    basic_float_opening: number;
+    basic_float_add: number;
+    basic_float_current: number;
+    /** Signed Card Balance adjustment (already normalized by the RPC). */
+    card_balance: number;
+    /** Signed Miss Chips adjustment (already normalized by the RPC). */
+    miss_chips: number;
+    miss_cards: number;
+    /** Signed cash effect of intercompany transfers (− out, + in). */
+    intercompany_cash: number;
+    intercompany_liability: number;
+    intercompany_receivable: number;
+    expenses_actual: number;
+    collections_actual: number;
+    liabilities: number;
+    unplanned_expenses: number;
+  };
+  kpi: {
+    total_income: number;
+    expected_profit: number;
+    cash_position: number;
+    manager_bonus: number;
+  };
+
   groups: ReportGroup[];
   /** Collections & Owner Withdrawals — rendered separately, excluded from grand. */
   collections: ReportGroup | null;
@@ -186,17 +229,45 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         .eq("currency", "USD")
         .gte("business_date", start)
         .lt("business_date", endExclusive);
+      // Bar Income — paid POS revenue only (cash / card); comps are not income.
+      let barQ = (supabase as any)
+        .from("pos_orders")
+        .select("total_tzs, business_date, casino_id, voided_at, pos_tabs(payment_mode)")
+        .gte("business_date", start)
+        .lt("business_date", endExclusive)
+        .is("voided_at", null)
+        .limit(20000);
       if (!network && casinoId) {
         dayClosingsQ = dayClosingsQ.eq("casino_id", casinoId);
         incomesQ = incomesQ.eq("casino_id", casinoId);
         ratesQ = ratesQ.eq("casino_id", casinoId);
         closuresQ = closuresQ.eq("casino_id", casinoId);
+        barQ = barQ.eq("casino_id", casinoId);
       }
 
-      const [cats, budgets, expenses, dayClosings, incomes, rates, closures] = await Promise.all([catsQ, budgetQ, expQ, dayClosingsQ, incomesQ, ratesQ, closuresQ]);
+      // Cash adjustments (Basic Float, Miss Chips/Cards, Card Balance, intercompany)
+      // reuse the SAME RPC as Wallets — no competing local logic.
+      const periodEndInclusive = new Date(new Date(endExclusive + "T00:00:00Z").getTime() - 86400000)
+        .toISOString()
+        .slice(0, 10);
+      const snapQ = !network && casinoId
+        ? (supabase as any).rpc("fin_balance_snapshot", {
+            p_casino_id: casinoId,
+            p_period_start: start,
+            p_period_end: periodEndInclusive,
+          })
+        : Promise.resolve({ data: null, error: null });
+
+      const [cats, budgets, expenses, dayClosings, incomes, rates, closures, bar, snapRes] =
+        await Promise.all([catsQ, budgetQ, expQ, dayClosingsQ, incomesQ, ratesQ, closuresQ, barQ, snapQ]);
       if (cats.error) throw cats.error;
       if (budgets.error) throw budgets.error;
       if (expenses.error) throw expenses.error;
+      const snap = ((snapRes as any)?.data || null) as any;
+      const barIncome = ((bar as any)?.data || [])
+        .filter((o: any) => ["cash", "card"].includes(String(o.pos_tabs?.payment_mode || "")))
+        .reduce((s: number, o: any) => s + Number(o.total_tzs || 0), 0);
+
 
       const closedSet = new Set(
         ((closures as any)?.data || []).map((c: any) => `${c.casino_id}|${c.business_date}`),
@@ -249,9 +320,16 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           .reduce((s: number, r: any) => s + toTzs(r), 0);
 
       const other = sumSources(COMMISSION_SOURCES);
+      const commission = sumSources(["commission", "other"]); // legacy `other` folds into Commission
+      const agentCommission = sumSources(["agent_commission"]);
+      const fee = sumSources(["fee", "refund"]); // legacy refund kept readable here
       const tipsBonus = sumSources(TIPS_BONUS_SOURCES);
       const movements = sumSources(MOVEMENT_SOURCES);
+      const investment = sumSources(["investment"]);
+      const office = sumSources(["office", "owner_topup"]);
+      const addFloat = sumSources(FLOAT_SOURCES);
       const jp = sumSources(["jp"]);
+
 
       // Plan Year: if user entered only ONE month for (cat,currency), multiply by 12;
       // otherwise sum across entered months.
@@ -410,16 +488,87 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       grand.remain_usd = grand.plan_month_usd - grand.actual_usd;
       grand.remain_grand_tzs = grand.plan_month_grand_tzs - grand.actual_grand_tzs;
 
+      // ── Cash adjustments & obligations (single source: fin_balance_snapshot) ──
+      const bf = snap?.basic_float || null;
+      const floatOpening = Number(bf?.opening_tzs || 0);
+      const floatAdd = Number(bf?.add_tzs ?? addFloat);
+      const floatCurrent = Number(bf?.current_tzs ?? floatOpening + floatAdd);
+      const cardBalance = Number(snap?.incomes?.card_balance || 0);
+      const missChips = Number(snap?.incomes?.missed_chips || 0);
+      const missCards = Number(snap?.incomes?.missed_cards || 0);
+      // RPC `transfers_total` is signed as "money that LEFT this casino",
+      // so the cash effect is its negation.
+      const intercompanyCash = -Number(snap?.transfers_total || 0);
+      const icLiability = Number(snap?.intercompany?.liability_tzs || 0);
+      const icReceivable = Number(snap?.intercompany?.receivable_tzs || 0);
+      const expensesActual = grand.actual_grand_tzs;
+      const collectionsActual = collections?.totals.actual_grand_tzs ?? 0;
+      const liabilities = adaptLiabilities({ intercompanyLiability: icLiability });
+      const unplanned = adaptUnplannedExpenses();
+
+      const commissionsTotal = other;
+      const totalIncome = liveGame + slotsIncome + barIncome + commissionsTotal;
+      const budget = grand.plan_month_grand_tzs;
+      const expectedProfit = totalIncome - budget - collectionsActual - liabilities - unplanned;
+      const cashPosition =
+        floatCurrent +
+        totalIncome +
+        tipsBonus +
+        jp +
+        investment +
+        office +
+        intercompanyCash +
+        cardBalance +
+        missChips +
+        missCards -
+        expensesActual -
+        collectionsActual -
+        liabilities;
+      // Bonus base = income minus predicted (budgeted) expenses only.
+      const managerBonus = Math.max(0, 0.05 * (totalIncome - budget));
+
       return {
         incomes: {
           live_game: liveGame,
           slots: slotsIncome,
+          table_result: liveGame,
+          slot_result: slotsIncome,
+          bar_income: barIncome,
+          commission,
+          agent_commission: agentCommission,
+          fee,
+          commissions: commissionsTotal,
           other,
           tips_bonus: tipsBonus,
           movements,
+          investment,
+          office,
+          add_float: floatAdd,
           jp,
-          total: liveGame + slotsIncome + other,
+          total: totalIncome,
         },
+        cash: {
+          basic_float_opening: floatOpening,
+          basic_float_add: floatAdd,
+          basic_float_current: floatCurrent,
+          card_balance: cardBalance,
+          miss_chips: missChips,
+          miss_cards: missCards,
+          intercompany_cash: intercompanyCash,
+          intercompany_liability: icLiability,
+          intercompany_receivable: icReceivable,
+          expenses_actual: expensesActual,
+          collections_actual: collectionsActual,
+          liabilities,
+          unplanned_expenses: unplanned,
+        },
+        kpi: {
+          total_income: totalIncome,
+          expected_profit: expectedProfit,
+          cash_position: cashPosition,
+          manager_bonus: managerBonus,
+        },
+
         groups,
         collections,
         grand,

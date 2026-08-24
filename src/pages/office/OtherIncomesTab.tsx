@@ -93,7 +93,7 @@ export default function OtherIncomesTab() {
     business_date: new Date().toISOString().slice(0, 10),
     wallet_id: "",
     fin_category_id: "",
-    source: "investment",
+    source: "commission",
     currency: "TZS",
     amount: "",
     note: "",
@@ -101,7 +101,7 @@ export default function OtherIncomesTab() {
 
   const activeWallet = wallets.find((w: any) => w.id === form.wallet_id);
 
-  const openAdd = (source: OtherIncomeSource = "investment") => {
+  const openAdd = (source: OtherIncomeSource = "commission") => {
     setEditId(null);
     setForm({
       business_date: new Date().toISOString().slice(0, 10),
@@ -271,14 +271,18 @@ export default function OtherIncomesTab() {
     <PageShell>
       {canWrite && (
         <OfficeActions>
+          <Button onClick={() => openAdd("add_float")} size="sm" variant="outline">
+            <Plus className="w-4 h-4" /> Add Float
+          </Button>
           <Button onClick={() => openAdd("fee")} size="sm" variant="outline">
             <Plus className="w-4 h-4" /> Fee
           </Button>
-          <Button onClick={() => openAdd()} size="sm">
+          <Button onClick={() => openAdd("commission")} size="sm">
             <Plus className="w-4 h-4" /> Add Commission
           </Button>
         </OfficeActions>
       )}
+
 
       <PageSection card={false}>
         <SmartTable

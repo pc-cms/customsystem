@@ -36,15 +36,23 @@ export type BalanceSnapshot = {
     grand_tzs: number;
     per_wallet: Array<{ wallet_id: string; name: string; currency: string; amount: number }>;
   };
+  /** Basic Float — approved opening float + Add Float inside the period. */
+  basic_float?: { opening_tzs: number; add_tzs: number; current_tzs: number };
+  /** Intercompany position as of period end (accepted transfers only). */
+  intercompany?: { liability_tzs: number; receivable_tzs: number };
   incomes: {
+    /** Table Result — Σ per-table closing win of closed days. */
     live_game: number;
+    /** Slot Result — Cashdesk Win − Δ client balances. */
     slots: number;
-    /** Commissions only: other / refund / fee. */
+    /** Commissions: commission / agent_commission / fee (+ legacy other, refund). */
     other: number;
-    /** Tips & Bonuses (tips / bonus / legacy tips_bonus) — signed. */
+    /** Tips & Bonuses (tips / gaming bonus / legacy tips_bonus) — signed. */
     tips_bonus?: number;
-    /** Other movements: investment / owner top-up — wallet movement, not income. */
+    /** Other movements: investment / office — wallet movement, not income. */
     movements?: number;
+    /** Add Float inside the period — Basic Float only, never a movement. */
+    add_float?: number;
     jp?: number;
     card_balance: number;
     missed_chips: number;
@@ -53,6 +61,7 @@ export type BalanceSnapshot = {
   expenses_total: number;
   collections_total: number;
   transfers_total: number;
+
   /** Day-by-day audit rows (only days with movement). */
   daily?: Array<{
     business_date: string;
@@ -62,6 +71,8 @@ export type BalanceSnapshot = {
     other: number;
     tips_bonus?: number;
     movements?: number;
+    add_float?: number;
+
     jp?: number;
     expenses: number;
     collections: number;
@@ -109,6 +120,10 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
     // but they DO move wallet cash, so Expected must contain them.
     (incomes.tips_bonus || 0) +
     (incomes.movements || 0) +
+    // Add Float: approved float top-up — real cash added to wallets, counted ONCE
+    // here (it is deliberately excluded from `movements`).
+    (incomes.add_float || 0) +
+
     (incomes.jp || 0) +
     // Card balance is the per-day difference, summed over the period.
     (incomes.card_balance || 0) +
