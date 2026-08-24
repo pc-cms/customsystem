@@ -37,6 +37,15 @@ const STATUS_STYLE: Record<string, string> = {
   cancelled: "bg-muted text-muted-foreground border-border",
 };
 
+/** Row tint by transfer status. */
+const ROW_STYLE: Record<string, string> = {
+  pending: "bg-amber-500/5 hover:bg-amber-500/10",
+  accepted: "bg-emerald-500/5 hover:bg-emerald-500/10",
+  rejected: "bg-destructive/5 hover:bg-destructive/10",
+  cancelled: "bg-muted/30 text-muted-foreground hover:bg-muted/50",
+};
+
+
 export default function FinancesInterCasinoPage() {
   const { data: wallets = [] } = useFinWallets();
   const { data: rows = [] } = useInterCasinoTransfers();
