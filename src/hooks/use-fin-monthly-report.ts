@@ -317,9 +317,16 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           .reduce((s: number, r: any) => s + toTzs(r), 0);
 
       const other = sumSources(COMMISSION_SOURCES);
+      const commission = sumSources(["commission", "other"]); // legacy `other` folds into Commission
+      const agentCommission = sumSources(["agent_commission"]);
+      const fee = sumSources(["fee", "refund"]); // legacy refund kept readable here
       const tipsBonus = sumSources(TIPS_BONUS_SOURCES);
       const movements = sumSources(MOVEMENT_SOURCES);
+      const investment = sumSources(["investment"]);
+      const office = sumSources(["office", "owner_topup"]);
+      const addFloat = sumSources(FLOAT_SOURCES);
       const jp = sumSources(["jp"]);
+
 
       // Plan Year: if user entered only ONE month for (cat,currency), multiply by 12;
       // otherwise sum across entered months.
