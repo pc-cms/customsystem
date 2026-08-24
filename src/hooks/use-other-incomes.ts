@@ -43,7 +43,7 @@ export const ALL_INCOME_SOURCES: { value: OtherIncomeSource; label: string }[] =
  * `tips_bonus` is legacy: kept for labels only, no longer selectable.
  */
 export const OTHER_INCOME_SOURCES = ALL_INCOME_SOURCES.filter(
-  (s) => !["jp", "tips", "bonus", "tips_bonus"].includes(s.value),
+  (s) => !["jp", "tips", "bonus", "tips_bonus", "inter_casino_transfer"].includes(s.value),
 );
 
 /**
