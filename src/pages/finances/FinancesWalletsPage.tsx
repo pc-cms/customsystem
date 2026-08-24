@@ -135,7 +135,7 @@ export default function FinancesWalletsPage() {
   const { period } = useOfficePeriod();
   const ym = { year: period.year, month: period.month };
   const { data: monthFinance } = useMonthFinance(activeCasinoId, ym.year, ym.month);
-  const monthClosed = monthFinance?.month?.status === "closed";
+  const monthClosed = monthFinance?.status === "closed";
   const floatCurrent = Number(monthFinance?.float?.current_tzs || 0);
   const [walletFilter, setWalletFilter] = useSessionState<string>("wallet", "all");
   const [kindFilter, setKindFilter] = useSessionState<string>("kind", "all");
