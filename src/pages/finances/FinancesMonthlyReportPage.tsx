@@ -761,6 +761,27 @@ const SummaryBlock = ({
             <DetailRow label="Fee" value={inc.fee} />
           </Section>
           <Section
+            id="unplanned"
+            label="Extra Expenses"
+            total={cash.unplanned_expenses}
+            tip={`All extra expenses of the month (Manager Bonus excluded) · ${fmtT(cash.unplanned_paid)} paid · ${fmtT(cash.unplanned_unpaid)} unpaid. Expand to see each row.`}
+          >
+            {unplannedItems.length === 0 ? (
+              <div className="px-3 py-2 text-[12px] text-muted-foreground">No extra expenses this month.</div>
+            ) : (
+              unplannedItems.map((i) => (
+                <DetailRow
+                  key={i.id}
+                  left={fmtDateOnly(i.business_date)}
+                  label={i.description || i.label}
+                  value={i.amount_tzs}
+                  tag={i.paid ? "Paid" : "Unpaid"}
+                  tone={i.paid ? undefined : "warn"}
+                />
+              ))
+            )}
+          </Section>
+          <Section
             id="liabilities"
             label="Liabilities"
             total={cash.liabilities}
@@ -825,27 +846,7 @@ const SummaryBlock = ({
                 : "Forecast · max(0, 5% × (Total Income − Budget)). Collections never reduce the bonus."
             }
           />
-          <Section
-            id="unplanned"
-            label="Unplanned Expenses"
-            total={cash.unplanned_expenses}
-            tip={`Unplanned expenses of the month · ${fmtT(cash.unplanned_paid)} paid · ${fmtT(cash.unplanned_unpaid)} unpaid. Expand to see each row.`}
-          >
-            {unplannedItems.length === 0 ? (
-              <div className="px-3 py-2 text-[12px] text-muted-foreground">No unplanned expenses this month.</div>
-            ) : (
-              unplannedItems.map((i) => (
-                <DetailRow
-                  key={i.id}
-                  left={fmtDateOnly(i.business_date)}
-                  label={i.description || i.label}
-                  value={i.amount_tzs}
-                  tag={i.paid ? "Paid" : "Unpaid"}
-                  tone={i.paid ? undefined : "warn"}
-                />
-              ))
-            )}
-          </Section>
+
 
           <div className="flex-1" />
           <Line
