@@ -654,11 +654,9 @@ export default function FinancesWalletsPage() {
             <BreakdownRow label="− Collections (owner withdrawal)" v={snap?.collections_total || 0} negative />
             {/* Transfers out — cash leaves this casino's wallets, subtracted from Expected */}
             <BreakdownRow label="− Transfers" v={snap?.transfers_total || 0} negative />
-            <div className="border-t-2 border-border">
-              <BreakdownRow label="= Expected" v={totals.expected} bold signed />
-            </div>
-
+            {/* No "= Expected" row here — the Expected tile in Grand Total is the single display. */}
           </div>
+
           <div className="text-[10px] text-muted-foreground mt-1">
             USD→TZS rate {formatNumberSpaces(usdRate)} · Period {range.from} → {range.to}
           </div>
