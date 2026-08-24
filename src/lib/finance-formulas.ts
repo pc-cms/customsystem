@@ -50,61 +50,65 @@ export const finalProfit = (input: {
   Number(input.unplannedNotInActual || 0) -
   Number(input.liabilitiesClosing || 0);
 
-/** CLOSED month: 5% of (Total Income − Total Actual Expenses − Unplanned not in Actual). */
+/** CLOSED month: 5% of (Total Income − Total Actual Expenses) — the frozen snapshot value. */
 export const managerBonusFinal = (input: {
   totalIncome: number;
   expensesActual: number;
-  unplannedNotInActual: number;
 }) =>
-  Math.max(
-    0,
-    0.05 *
-      (Number(input.totalIncome || 0) -
-        Number(input.expensesActual || 0) -
-        Number(input.unplannedNotInActual || 0)),
-  );
+  Math.max(0, 0.05 * (Number(input.totalIncome || 0) - Number(input.expensesActual || 0)));
 
+/**
+ * Deposits — money physically held in the cage but owed to third parties.
+ * Signed/net sum of Tips & Bonuses + JP + Card Balance + Miss Chips + Miss Cards.
+ */
+export const deposits = (i: {
+  tipsBonus: number;
+  jp: number;
+  cardBalance: number;
+  missChips: number;
+  missCards: number;
+}) =>
+  Number(i.tipsBonus || 0) +
+  Number(i.jp || 0) +
+  Number(i.cardBalance || 0) +
+  Number(i.missChips || 0) +
+  Number(i.missCards || 0);
 
 /**
  * Cash on hand — NOT net worth.
- * Unpaid Unplanned Expenses and outstanding Liabilities are NEVER subtracted.
- * `unplannedPaidCash` only carries paid unplanned rows that are not already
- * represented by an expense row (no double counting).
+ *
+ * Cash Position = Basic Float + Total Income − Deposits + Office + Investment
+ *               + Intercompany Cash Effect − Actual Expenses − Collections
+ *               − Actual Liability Payments.
+ *
+ * Deposits are subtracted exactly once. Unpaid Unplanned Expenses and
+ * outstanding Liabilities are NEVER subtracted.
  */
 export const cashPosition = (i: {
   floatCurrent: number;
   totalIncome: number;
-  tipsBonus: number;
-  jp: number;
+  deposits: number;
   investment: number;
   office: number;
   intercompanyCash: number;
-  cardBalance: number;
-  missChips: number;
-  missCards: number;
   expensesActual: number;
-  unplannedPaidCash: number;
   liabilityPayments: number;
   collections: number;
 }) =>
   Number(i.floatCurrent || 0) +
-  Number(i.totalIncome || 0) +
-  Number(i.tipsBonus || 0) +
-  Number(i.jp || 0) +
+  Number(i.totalIncome || 0) -
+  Number(i.deposits || 0) +
   Number(i.investment || 0) +
   Number(i.office || 0) +
-  Number(i.intercompanyCash || 0) +
-  Number(i.cardBalance || 0) +
-  Number(i.missChips || 0) +
-  Number(i.missCards || 0) -
+  Number(i.intercompanyCash || 0) -
   Number(i.expensesActual || 0) -
-  Number(i.unplannedPaidCash || 0) -
-  Number(i.liabilityPayments || 0) -
-  Number(i.collections || 0);
+  Number(i.collections || 0) -
+  Number(i.liabilityPayments || 0);
 
-/** Available for Collection = max(0, profit − cumulative collections). */
-export const availableForCollection = (profit: number, collections: number) =>
+/** Available for Collection = max(0, remaining profit) — collections already netted out. */
+export const availableForCollection = (profit: number, collections = 0) =>
   Math.max(0, Number(profit || 0) - Number(collections || 0));
+
 
 /** Opening + New − Repayments = Closing. */
 export const liabilityClosing = (opening: number, added: number, repaid: number) =>
