@@ -641,20 +641,8 @@ const SummaryBlock = ({
   );
 
 
-  const planTone =
-    planRatio == null
-      ? "border-border bg-muted text-muted-foreground"
-      : planRatio > 1.1
-        ? "border-red-500/40 bg-red-500/15 text-red-500"
-        : planRatio > 1
-          ? "border-orange-500/40 bg-orange-500/15 text-orange-500"
-          : "border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400";
 
-  const PlanBadge = () => (
-    <span className={cn("text-[12px] font-semibold px-2 py-0.5 rounded border normal-case tracking-normal", planTone)}>
-      {planRatio == null ? "no plan" : `${Math.round(planRatio * 100)}% of plan`}
-    </span>
-  );
+
 
   return (
     <PageSection
