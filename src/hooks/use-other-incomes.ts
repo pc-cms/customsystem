@@ -47,11 +47,20 @@ export const OTHER_INCOME_SOURCES = ALL_INCOME_SOURCES.filter(
 );
 
 /**
- * Sources that count as REAL income in reports (money the business earned).
- * Everything else (JP, tips, bonuses, inter-casino transfers, owner top-ups,
- * investments) is just a transaction: it moves wallet balances but is not income.
+ * SINGLE SOURCE OF TRUTH for income classification (shared by every page).
+ *
+ *   COMMISSIONS      — real income the business earned.
+ *   TIPS_BONUS       — tips & bonuses (signed, IN/OUT), never income.
+ *   MOVEMENTS        — investment / owner top-up: wallet movement, never income.
+ *   JP               — jackpot, reported on its own line.
+ *   inter_casino_transfer — handled by the transfer registry, never income.
  */
-export const REAL_INCOME_SOURCES: OtherIncomeSource[] = ["other", "refund", "fee"];
+export const COMMISSION_SOURCES: OtherIncomeSource[] = ["other", "refund", "fee"];
+export const TIPS_BONUS_SOURCES: OtherIncomeSource[] = ["tips", "bonus", "tips_bonus"];
+export const MOVEMENT_SOURCES: OtherIncomeSource[] = ["investment", "owner_topup"];
+
+/** @deprecated use COMMISSION_SOURCES — kept as alias for existing imports. */
+export const REAL_INCOME_SOURCES: OtherIncomeSource[] = COMMISSION_SOURCES;
 
 
 
