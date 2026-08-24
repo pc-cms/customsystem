@@ -697,10 +697,12 @@ const SummaryBlock = ({
           formula="Basic Float + Total Income + Office + Investment + Intercompany Cash Effect − Actual Expenses − Paid Unplanned (not in Actual) − Collections − Liability Payments. Deposits have no effect on Cash Position."
         />
         <KpiCard
-          label="Basic Float"
-          v={cash.basic_float_current}
-          formula="Opening Basic Float + Σ signed float adjustments of the month."
+          label="Total Money"
+          v={walletTotals.expected}
+          tone="signed"
+          formula="Expected wallet balance of the month (same value as Wallets · Expected)."
         />
+
       </div>
 
       {/* THREE EQUAL SUMMARY CARDS — exactly 5 primary rows each when collapsed */}
