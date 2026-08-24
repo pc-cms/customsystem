@@ -713,10 +713,10 @@ const SummaryBlock = ({
             <span>Month Summary · Income</span>
             <span className="normal-case tracking-normal text-[12px]">TZS</span>
           </div>
-          <Line label="Table Result" v={inc.table_result} signed tip="Σ closed-day table results of the month." />
-          <Line label="Slot Result" v={inc.slot_result} signed tip="Σ closed-day slot results of the month." />
-          <Line label="Bar Income" v={inc.bar_income} tip="POS / bar revenue counted once, in income and in cash." />
           <Line label="Agents" v={inc.agent_commission} signed tip="Agent commission recorded on the income side." />
+          <Line label="Bar Income" v={inc.bar_income} tip="POS / bar revenue counted once, in income and in cash." />
+          <Line label="Slot Result" v={inc.slot_result} signed tip="Σ closed-day slot results of the month." />
+          <Line label="Table Result" v={inc.table_result} signed tip="Σ closed-day table results of the month." />
           <div className="flex-1" />
           <Line
             label="Total Income"
@@ -731,8 +731,8 @@ const SummaryBlock = ({
         <div className={card}>
           <div className={cardHeader}>
             <span>Expenses &amp; Obligations</span>
-            <PlanBadge />
           </div>
+
           <Section
             id="commissions_fee"
             label="Commissions & Fee"
