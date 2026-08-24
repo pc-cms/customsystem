@@ -79,16 +79,56 @@ export type ReportGroup = {
 
 export type MonthlyReport = {
   incomes: {
+    /** Table Result — Σ per-table closing win (closed days). Alias of `table_result`. */
     live_game: number;
+    /** Slot Result — Cashdesk Win − Δ client balances (closed days). Alias of `slot_result`. */
     slots: number;
-    /** Commissions only (other/refund/fee) — part of Total. */
+    table_result: number;
+    slot_result: number;
+    /** Bar Income — paid POS revenue (cash / card), comps excluded. */
+    bar_income: number;
+    /** Commissions split (all signed). */
+    commission: number;
+    agent_commission: number;
+    fee: number;
+    /** Σ commission + agent_commission + fee (+ legacy other/refund). Alias `other`. */
+    commissions: number;
     other: number;
     /** Reference rows — NOT part of Total, shown so the page reconciles with Wallets. */
     tips_bonus: number;
     movements: number;
+    investment: number;
+    office: number;
+    add_float: number;
     jp: number;
     total: number;
   };
+  /** Cash adjustments & obligations — never income, never accounting profit. */
+  cash: {
+    basic_float_opening: number;
+    basic_float_add: number;
+    basic_float_current: number;
+    /** Signed Card Balance adjustment (already normalized by the RPC). */
+    card_balance: number;
+    /** Signed Miss Chips adjustment (already normalized by the RPC). */
+    miss_chips: number;
+    miss_cards: number;
+    /** Signed cash effect of intercompany transfers (− out, + in). */
+    intercompany_cash: number;
+    intercompany_liability: number;
+    intercompany_receivable: number;
+    expenses_actual: number;
+    collections_actual: number;
+    liabilities: number;
+    unplanned_expenses: number;
+  };
+  kpi: {
+    total_income: number;
+    expected_profit: number;
+    cash_position: number;
+    manager_bonus: number;
+  };
+
   groups: ReportGroup[];
   /** Collections & Owner Withdrawals — rendered separately, excluded from grand. */
   collections: ReportGroup | null;

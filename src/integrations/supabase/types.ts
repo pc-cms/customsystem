@@ -4164,8 +4164,10 @@ export type Database = {
           from_wallet_id: string
           id: string
           in_tx_id: string | null
+          kind: string
           note: string | null
           out_tx_id: string | null
+          repays_id: string | null
           resolution_note: string | null
           reversal_tx_id: string | null
           status: string
@@ -4185,8 +4187,10 @@ export type Database = {
           from_wallet_id: string
           id?: string
           in_tx_id?: string | null
+          kind?: string
           note?: string | null
           out_tx_id?: string | null
+          repays_id?: string | null
           resolution_note?: string | null
           reversal_tx_id?: string | null
           status?: string
@@ -4206,8 +4210,10 @@ export type Database = {
           from_wallet_id?: string
           id?: string
           in_tx_id?: string | null
+          kind?: string
           note?: string | null
           out_tx_id?: string | null
+          repays_id?: string | null
           resolution_note?: string | null
           reversal_tx_id?: string | null
           status?: string
@@ -4242,6 +4248,13 @@ export type Database = {
             columns: ["out_tx_id"]
             isOneToOne: false
             referencedRelation: "fin_wallet_tx"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_inter_casino_transfers_repays_id_fkey"
+            columns: ["repays_id"]
+            isOneToOne: false
+            referencedRelation: "fin_inter_casino_transfers"
             referencedColumns: ["id"]
           },
           {
@@ -12042,16 +12055,29 @@ export type Database = {
         Args: { _action: string; _reason?: string; _transfer_id: string }
         Returns: undefined
       }
-      fin_inter_casino_send: {
-        Args: {
-          _amount: number
-          _business_date: string
-          _from_wallet_id: string
-          _note?: string
-          _to_casino_id: string
-        }
-        Returns: string
-      }
+      fin_inter_casino_send:
+        | {
+            Args: {
+              _amount: number
+              _business_date: string
+              _from_wallet_id: string
+              _note?: string
+              _to_casino_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _amount: number
+              _business_date: string
+              _from_wallet_id: string
+              _kind?: string
+              _note?: string
+              _repays_id?: string
+              _to_casino_id: string
+            }
+            Returns: string
+          }
       fin_lock_day_closing: {
         Args: { p_id: string; p_variance_note?: string }
         Returns: undefined
