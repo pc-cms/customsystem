@@ -137,6 +137,8 @@ export type MonthlyReport = {
     /** Σ Unplanned Expenses of the month (paid + unpaid). */
     unplanned_expenses: number;
     unplanned_paid: number;
+    /** Unplanned NOT represented inside Actual Expenses — the CLOSED-month deduction. */
+    unplanned_not_in_actual: number;
     unplanned_unpaid: number;
     /** Actual liability repayments posted in the month (cash out). */
     liability_payments: number;
@@ -581,11 +583,12 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       // Unplanned Expenses ledger (boss_report_extras). No zero adapters.
       const mf = monthFin;
       const liabilities = Number(mf?.liabilities?.closing_tzs || 0);
-      const liabilityPayments = Number(mf?.liabilities?.repaid_tzs || 0);
+      const liabilityPayments = Number(mf?.liability_payments_cash ?? mf?.liabilities?.repaid_tzs ?? 0);
       const unplanned = Number(mf?.unplanned?.total || 0);
       const unplannedPaid = Number(mf?.unplanned?.paid || 0);
       const unplannedUnpaid = Number(mf?.unplanned?.unpaid || 0);
       const unplannedPaidCash = Number(mf?.unplanned?.paid_cash_effect || 0);
+      const unplannedNotInActual = Number(mf?.unplanned?.not_in_actual ?? unplanned);
 
       const commissionsTotal = other;
       const totalIncome = liveGame + slotsIncome + barIncome + commissionsTotal;
@@ -661,6 +664,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           liabilities,
           unplanned_expenses: unplanned,
           unplanned_paid: unplannedPaid,
+          unplanned_not_in_actual: unplannedNotInActual,
           unplanned_unpaid: unplannedUnpaid,
           liability_payments: liabilityPayments,
           available_for_collection: availableForCollection,

@@ -28,17 +28,41 @@ export const managerBonusForecast = (input: {
     0.05 * (Number(input.totalIncome || 0) - Number(input.budget || 0) - Number(input.unplannedTotal || 0)),
   );
 
-/** CLOSED month: Total Income − Total Actual Expenses − closing outstanding Liabilities. */
+/**
+ * CLOSED month: Budget is replaced by Total Actual Expenses, but the Unplanned
+ * register NEVER disappears — it is a separate permanent register. Only rows
+ * already linked to an Actual Expense (`expense_id`) drop out of the separate
+ * subtraction, so nothing is counted twice.
+ *
+ * Final Profit = Total Income − Total Actual Expenses
+ *              − Unplanned not represented inside Actual Expenses
+ *              − Closing outstanding Liabilities.
+ */
 export const finalProfit = (input: {
   totalIncome: number;
   expensesActual: number;
+  unplannedNotInActual: number;
   liabilitiesClosing: number;
 }) =>
-  Number(input.totalIncome || 0) - Number(input.expensesActual || 0) - Number(input.liabilitiesClosing || 0);
+  Number(input.totalIncome || 0) -
+  Number(input.expensesActual || 0) -
+  Number(input.unplannedNotInActual || 0) -
+  Number(input.liabilitiesClosing || 0);
 
-/** CLOSED month: 5% of (Total Income − Total Actual Expenses). */
-export const managerBonusFinal = (totalIncome: number, expensesActual: number) =>
-  Math.max(0, 0.05 * (Number(totalIncome || 0) - Number(expensesActual || 0)));
+/** CLOSED month: 5% of (Total Income − Total Actual Expenses − Unplanned not in Actual). */
+export const managerBonusFinal = (input: {
+  totalIncome: number;
+  expensesActual: number;
+  unplannedNotInActual: number;
+}) =>
+  Math.max(
+    0,
+    0.05 *
+      (Number(input.totalIncome || 0) -
+        Number(input.expensesActual || 0) -
+        Number(input.unplannedNotInActual || 0)),
+  );
+
 
 /**
  * Cash on hand — NOT net worth.

@@ -70,6 +70,8 @@ export type MonthFinance = {
     paid: number;
     unpaid: number;
     paid_cash_effect: number;
+    /** Σ rows NOT represented inside Actual Expenses (expense_id IS NULL). */
+    not_in_actual: number;
     items: UnplannedItem[];
   };
   liabilities: {
@@ -80,6 +82,9 @@ export type MonthFinance = {
     items: LiabilityItem[];
     payments: LiabilityPayment[];
   };
+  /** Repayments that moved cash here (transfer-linked ones excluded — already in transfers). */
+  liability_payments_cash: number;
+  liability_payments_total: number;
   float: { opening_tzs: number; add_tzs: number; current_tzs: number };
   profit: number;
   manager_bonus: number;
@@ -98,8 +103,10 @@ const EMPTY_MONTH = (year: number, month: number): MonthFinance => ({
   budget: 0,
   expenses_actual: 0,
   collections: 0,
-  unplanned: { total: 0, paid: 0, unpaid: 0, paid_cash_effect: 0, items: [] },
+  unplanned: { total: 0, paid: 0, unpaid: 0, paid_cash_effect: 0, not_in_actual: 0, items: [] },
   liabilities: { opening_tzs: 0, new_tzs: 0, repaid_tzs: 0, closing_tzs: 0, items: [], payments: [] },
+  liability_payments_cash: 0,
+  liability_payments_total: 0,
   float: { opening_tzs: 0, add_tzs: 0, current_tzs: 0 },
   profit: 0,
   manager_bonus: 0,
@@ -141,6 +148,7 @@ export const mergeMonthFinance = (parts: MonthFinance[], year: number, month: nu
       paid: s((p) => p.unplanned.paid),
       unpaid: s((p) => p.unplanned.unpaid),
       paid_cash_effect: s((p) => p.unplanned.paid_cash_effect),
+      not_in_actual: s((p) => p.unplanned.not_in_actual),
       items: parts.flatMap((p) => p.unplanned.items || []),
     },
     liabilities: {
@@ -151,6 +159,8 @@ export const mergeMonthFinance = (parts: MonthFinance[], year: number, month: nu
       items: parts.flatMap((p) => p.liabilities.items || []),
       payments: parts.flatMap((p) => p.liabilities.payments || []),
     },
+    liability_payments_cash: s((p) => p.liability_payments_cash),
+    liability_payments_total: s((p) => p.liability_payments_total),
     float: {
       opening_tzs: s((p) => p.float.opening_tzs),
       add_tzs: s((p) => p.float.add_tzs),
