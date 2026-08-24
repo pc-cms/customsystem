@@ -514,7 +514,6 @@ const SummaryBlock = ({
     id,
     label,
     total,
-    summary,
     signed,
     tone,
     tip,
@@ -523,7 +522,6 @@ const SummaryBlock = ({
     id: string;
     label: string;
     total: number;
-    summary?: string;
     signed?: boolean;
     /** `warn` = obligation / unpaid — amber, never red. */
     tone?: "warn";
@@ -552,9 +550,6 @@ const SummaryBlock = ({
           >
             {label}
           </span>
-          {summary ? (
-            <span className="text-[12px] text-muted-foreground/80 truncate">· {summary}</span>
-          ) : null}
         </span>
         <span
           className={cn(
@@ -787,7 +782,7 @@ const SummaryBlock = ({
             id="unplanned"
             label="Unplanned Expenses"
             total={cash.unplanned_expenses}
-            summary={`${fmtT(cash.unplanned_paid)} paid · ${fmtT(cash.unplanned_unpaid)} unpaid`}
+            tip={`Unplanned expenses of the month · ${fmtT(cash.unplanned_paid)} paid · ${fmtT(cash.unplanned_unpaid)} unpaid. Expand to see each row.`}
           >
             {unplannedItems.length === 0 ? (
               <div className="px-3 py-2 text-[12px] text-muted-foreground">No unplanned expenses this month.</div>
@@ -861,7 +856,6 @@ const SummaryBlock = ({
         <div className={card}>
           <div className={cardHeader}>
             <span>Cash Adjustments</span>
-            <span className="normal-case tracking-normal text-[12px]">not income</span>
           </div>
           <Section
             id="float"
