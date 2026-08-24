@@ -591,7 +591,7 @@ export default function FinancesWalletsPage() {
             />
             <BreakdownRow label="Live Game" v={snap?.incomes?.live_game || 0} positive />
             <BreakdownRow label="Slots" v={snap?.incomes?.slots || 0} positive />
-            <BreakdownRow label="Other Income" v={snap?.incomes?.other || 0} positive />
+            <BreakdownRow label="Commissions" v={snap?.incomes?.other || 0} positive />
             <BreakdownRow label="JP (IN)" v={snap?.incomes?.jp || 0} positive />
             <BreakdownRow label="Card Balance (Σ daily diff)" v={snap?.incomes?.card_balance || 0} signed />
 

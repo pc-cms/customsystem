@@ -4,7 +4,7 @@
 import { blankTable, createDoc, drawHeader, drawSignatures, savePdf } from "./pdf-blank";
 
 const GROUPS: { title: string; rows: string[] }[] = [
-  { title: "INCOMES", rows: ["Live Game", "Slots", "Poker / Club", "Bar / POS", "Other income"] },
+  { title: "INCOMES", rows: ["Live Game", "Slots", "Poker / Club", "Bar / POS", "Commissions"] },
   { title: "EXPENSES", rows: ["Salary", "Operational", "Utilities", "Extra expenses"] },
   { title: "TRANSFERS", rows: ["Bank in", "Bank out", "Between wallets"] },
   { title: "MONEY", rows: ["Cash TZS", "Cash USD", "Bank", "Cashless"] },

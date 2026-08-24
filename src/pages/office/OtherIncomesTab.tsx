@@ -312,7 +312,7 @@ export default function OtherIncomesTab() {
           ]}
           empty={
             <div className="text-sm text-muted-foreground text-center py-10">
-              No other-income transactions in this period.
+              No commission transactions in this period.
             </div>
           }
         />
@@ -322,7 +322,7 @@ export default function OtherIncomesTab() {
       <ResponsiveDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        title={editId ? "Edit Other Income" : "Add Other Income"}
+        title={editId ? "Edit Commission" : "Add Commission"}
       >
         <FormGrid>
           <FormField span={6} label="Business Date">
