@@ -1,9 +1,11 @@
 /**
  * Office → Tips & Bonuses
- * Ledger of tips and bonuses: collected (IN, positive) and paid out /
- * distributed (OUT, negative). Stored in fin_other_incomes with
- * source = "tips_bonus". Excluded from the Transactions tab.
- * Built after the JP tab pattern.
+ * Ledger of tips and bonuses, split into two separate kinds:
+ *   source = "tips"  → Tips
+ *   source = "bonus" → Bonus
+ * Direction is carried by the sign: collected (IN, positive) and paid out /
+ * distributed (OUT, negative). Stored in fin_other_incomes, excluded from the
+ * Transactions tab. Built after the JP tab pattern.
  */
 import { useMemo, useState } from "react";
 import { Plus, Minus, Pencil, Trash2 } from "lucide-react";
@@ -31,7 +33,13 @@ import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-const TIPS_ONLY = ["tips_bonus", "bonus"] as const;
+/** Sources shown on this tab. `tips_bonus` is legacy (pre-split rows). */
+const TIPS_SOURCES = ["tips", "bonus", "tips_bonus"] as const;
+
+type Kind = "tips" | "bonus";
+type Filter = "all" | Kind;
+
+const kindOf = (r: OtherIncomeRow): Kind => (r.source === "bonus" ? "bonus" : "tips");
 
 export default function TipsBonusTab() {
   const { roles } = useAuth();
@@ -43,28 +51,42 @@ export default function TipsBonusTab() {
   const { period } = useOfficePeriod();
   const range = { from: period.from, to: period.to };
 
-  const { data: rows = [], isLoading } = useOtherIncomes(range.from, range.to, {
-    only: [...TIPS_ONLY] as any,
+  const { data: allRows = [], isLoading } = useOtherIncomes(range.from, range.to, {
+    only: [...TIPS_SOURCES] as any,
   });
   const { data: wallets = [] } = useFinWallets();
   const addIncome = useAddOtherIncome();
   const updateIncome = useUpdateOtherIncome();
   const deleteIncome = useDeleteOtherIncome();
 
+  const [filter, setFilter] = useState<Filter>("all");
+
+  const rows = useMemo(
+    () =>
+      filter === "all"
+        ? (allRows as OtherIncomeRow[])
+        : (allRows as OtherIncomeRow[]).filter((r) => kindOf(r) === filter),
+    [allRows, filter],
+  );
+
+  /** Totals per kind (in TZS) — IN, OUT and net. */
   const totals = useMemo(() => {
-    let inSum = 0;
-    let outSum = 0;
-    (rows as OtherIncomeRow[]).forEach((r) => {
+    const empty = () => ({ inSum: 0, outSum: 0, net: 0 });
+    const acc = { tips: empty(), bonus: empty() };
+    (allRows as OtherIncomeRow[]).forEach((r) => {
       const v = Number(r.amount || 0) * Number(r.fx_rate || 1);
-      if (v >= 0) inSum += v;
-      else outSum += v;
+      const bucket = acc[kindOf(r)];
+      if (v >= 0) bucket.inSum += v;
+      else bucket.outSum += v;
+      bucket.net += v;
     });
-    return { inSum, outSum, net: inSum + outSum };
-  }, [rows]);
+    return { ...acc, net: acc.tips.net + acc.bonus.net };
+  }, [allRows]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [mode, setMode] = useState<"in" | "out">("in");
+  const [kind, setKind] = useState<Kind>("tips");
   const [form, setForm] = useState({
     business_date: new Date().toISOString().slice(0, 10),
     wallet_id: "",
@@ -82,12 +104,13 @@ export default function TipsBonusTab() {
   const openAdd = (m: "in" | "out") => {
     setEditId(null);
     setMode(m);
+    setKind(filter === "bonus" ? "bonus" : "tips");
     setForm({
       business_date: new Date().toISOString().slice(0, 10),
       wallet_id: defaultWalletId,
       currency: "TZS",
       amount: "",
-      note: m === "out" ? "Tips payout" : "Tips",
+      note: "",
     });
     setDialogOpen(true);
   };
@@ -95,6 +118,7 @@ export default function TipsBonusTab() {
   const openEdit = (r: OtherIncomeRow) => {
     setEditId(r.id);
     setMode(Number(r.amount) < 0 ? "out" : "in");
+    setKind(kindOf(r));
     setForm({
       business_date: r.business_date,
       wallet_id: r.wallet_id,
@@ -113,7 +137,7 @@ export default function TipsBonusTab() {
       business_date: form.business_date,
       wallet_id: form.wallet_id,
       fin_category_id: null,
-      source: "tips_bonus" as const,
+      source: kind,
       currency: activeWallet?.currency || form.currency,
       amount: mode === "out" ? -raw : raw,
       note: form.note,
@@ -132,14 +156,34 @@ export default function TipsBonusTab() {
       style: { width: 110 },
     },
     {
-      key: "type",
+      key: "kind",
       header: "Type",
+      accessor: (r) => {
+        const k = kindOf(r);
+        return (
+          <span
+            className={cn(
+              "text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border",
+              k === "bonus"
+                ? "border-amber-500/30 bg-amber-500/10 text-amber-500"
+                : "border-primary/30 bg-primary/10 text-primary",
+            )}
+          >
+            {k === "bonus" ? "Bonus" : "Tips"}
+          </span>
+        );
+      },
+      style: { width: 90 },
+    },
+    {
+      key: "direction",
+      header: "Direction",
       accessor: (r) => (
-        <span className="text-xs uppercase tracking-wider">
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">
           {Number(r.amount) < 0 ? "Paid out" : "Collected"}
         </span>
       ),
-      style: { width: 120 },
+      style: { width: 110 },
     },
     {
       key: "wallet",
@@ -204,6 +248,12 @@ export default function TipsBonusTab() {
     },
   ];
 
+  const FILTERS: { value: Filter; label: string }[] = [
+    { value: "all", label: "All" },
+    { value: "tips", label: "Tips" },
+    { value: "bonus", label: "Bonuses" },
+  ];
+
   return (
     <PageShell>
       {canWrite && (
@@ -217,10 +267,28 @@ export default function TipsBonusTab() {
         </OfficeActions>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <TotalCard label="Collected (IN)" value={totals.inSum} />
-        <TotalCard label="Paid out (OUT)" value={totals.outSum} />
-        <TotalCard label="Net" value={totals.net} strong />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <TotalCard label="Tips IN" value={totals.tips.inSum} />
+        <TotalCard label="Tips OUT" value={totals.tips.outSum} />
+        <TotalCard label="Bonuses IN" value={totals.bonus.inSum} />
+        <TotalCard label="Bonuses OUT" value={totals.bonus.outSum} />
+        <TotalCard label="Tips Net" value={totals.tips.net} />
+        <TotalCard label="Bonuses Net" value={totals.bonus.net} />
+        <TotalCard label="Total Net" value={totals.net} strong />
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        {FILTERS.map((f) => (
+          <Button
+            key={f.value}
+            size="sm"
+            variant={filter === f.value ? "default" : "outline"}
+            className="h-7 px-3 text-xs"
+            onClick={() => setFilter(f.value)}
+          >
+            {f.label}
+          </Button>
+        ))}
       </div>
 
       <PageSection card={false}>
@@ -250,6 +318,18 @@ export default function TipsBonusTab() {
               onChange={(e) => setForm({ ...form, business_date: e.target.value })}
             />
           </FormField>
+          <FormField span={6} label="Type">
+            <Select value={kind} onValueChange={(v) => setKind(v as Kind)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tips">Tips</SelectItem>
+                <SelectItem value="bonus">Bonus</SelectItem>
+              </SelectContent>
+            </Select>
+          </FormField>
+
           <FormField span={6} label="Direction">
             <Select value={mode} onValueChange={(v) => setMode(v as "in" | "out")}>
               <SelectTrigger>
@@ -261,7 +341,6 @@ export default function TipsBonusTab() {
               </SelectContent>
             </Select>
           </FormField>
-
           <FormField span={6} label="Wallet">
             <Select
               value={form.wallet_id}
@@ -282,6 +361,7 @@ export default function TipsBonusTab() {
               </SelectContent>
             </Select>
           </FormField>
+
           <FormField span={6} label={`Amount (${activeWallet?.currency || form.currency})`}>
             <NumberInput
               decimals={2}
@@ -296,7 +376,8 @@ export default function TipsBonusTab() {
             <Textarea value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} rows={2} />
           </FormField>
         </FormGrid>
-        <div className="mt-4 flex justify-end gap-2">
+
+        <div className="flex justify-end gap-2 mt-4">
           <Button variant="outline" onClick={() => setDialogOpen(false)}>
             Cancel
           </Button>
