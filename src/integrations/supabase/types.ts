@@ -12361,6 +12361,14 @@ export type Database = {
         Returns: string
       }
       fin_archive_old_audit_log: { Args: never; Returns: number }
+      fin_assert_date_open: {
+        Args: { p_casino_id: string; p_date: string }
+        Returns: undefined
+      }
+      fin_assert_month_open: {
+        Args: { p_casino_id: string; p_month: number; p_year: number }
+        Returns: undefined
+      }
       fin_balance_snapshot: {
         Args: {
           p_casino_id: string
@@ -12488,6 +12496,10 @@ export type Database = {
         Args: { p_casino_id: string; p_month: number; p_year: number }
         Returns: Json
       }
+      fin_month_report_is_closed: {
+        Args: { p_casino_id: string; p_month: number; p_year: number }
+        Returns: boolean
+      }
       fin_other_income_replace: {
         Args: {
           p_amount: number
@@ -12508,6 +12520,22 @@ export type Database = {
       fin_post_pending_wallet_tx: {
         Args: { _business_date: string; _casino_id: string }
         Returns: number
+      }
+      fin_post_wallet_cash: {
+        Args: {
+          p_amount: number
+          p_business_date: string
+          p_casino_id: string
+          p_currency: string
+          p_fx: number
+          p_note?: string
+          p_out: boolean
+          p_ref_id: string
+          p_ref_table: string
+          p_reversal_of?: string
+          p_wallet_id: string
+        }
+        Returns: string
       }
       fin_rate_for: {
         Args: { _business_date: string; _casino_id: string; _currency: string }
@@ -12566,7 +12594,7 @@ export type Database = {
       }
       fin_unplanned_mark_paid: {
         Args: { p_id: string; p_paid_date?: string; p_wallet_id?: string }
-        Returns: undefined
+        Returns: string
       }
       fin_unplanned_reverse: {
         Args: { p_id: string; p_reason?: string }
