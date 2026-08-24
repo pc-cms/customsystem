@@ -176,12 +176,17 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         dayClosingsQ = dayClosingsQ.eq("casino_id", casinoId);
         incomesQ = incomesQ.eq("casino_id", casinoId);
         ratesQ = ratesQ.eq("casino_id", casinoId);
+        closuresQ = closuresQ.eq("casino_id", casinoId);
       }
 
-      const [cats, budgets, expenses, dayClosings, incomes, rates] = await Promise.all([catsQ, budgetQ, expQ, dayClosingsQ, incomesQ, ratesQ]);
+      const [cats, budgets, expenses, dayClosings, incomes, rates, closures] = await Promise.all([catsQ, budgetQ, expQ, dayClosingsQ, incomesQ, ratesQ, closuresQ]);
       if (cats.error) throw cats.error;
       if (budgets.error) throw budgets.error;
       if (expenses.error) throw expenses.error;
+
+      const closedSet = new Set(
+        ((closures as any)?.data || []).map((c: any) => `${c.casino_id}|${c.business_date}`),
+      );
 
       const liveGame = (dayClosings.data || []).reduce((s, r: any) => s + Number(r.tables_result || 0), 0);
       const slotsIncome = (dayClosings.data || []).reduce((s, r: any) => s + Number(r.slots_result || 0), 0);
