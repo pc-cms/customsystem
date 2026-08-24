@@ -358,152 +358,184 @@ export default function FinancesMonthlyReportPage() {
  * and Result (Profit / Collections / Net Balance). Remain = Plan/Month − Actual everywhere.
  */
 const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report").MonthlyReport }) => {
-  const incomes = data.incomes;
+  const inc = data.incomes;
+  const cash = data.cash;
+  const kpi = data.kpi;
   const g = data.grand;
-  const collectionsTzs = data.collections?.totals.actual_grand_tzs ?? 0;
-  const profit = incomes.total - g.actual_grand_tzs;
-  const netBalance = profit - collectionsTzs;
   const pctTxt = (n: number, d: number) => (d ? pct(n / d) : "—");
 
-  const cardHeader = "h-8 px-3 flex items-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/40 border-b border-border";
-  const card = "rounded-md border-2 border-border bg-card overflow-hidden flex flex-col";
+  const cardHeader =
+    "h-8 px-3 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/40 border-b border-border";
+  const card = "rounded-md border border-border bg-card overflow-hidden flex flex-col";
+
+  /** Dense label/value line used by all three detail cards. */
+  const Line = ({
+    label,
+    v,
+    hint,
+    strong,
+    signed,
+    placeholder,
+  }: {
+    label: string;
+    v?: number;
+    hint?: string;
+    strong?: boolean;
+    signed?: boolean;
+    placeholder?: string;
+  }) => (
+    <div
+      className={cn(
+        "flex items-baseline justify-between gap-3 px-3 border-t border-border",
+        strong ? "h-10 bg-muted/30" : "h-8",
+      )}
+    >
+      <span
+        className={cn(
+          "truncate",
+          strong ? "text-[12px] font-semibold" : "text-[11px] text-muted-foreground",
+        )}
+      >
+        {label}
+        {hint ? <span className="ml-1 text-[10px] text-muted-foreground/70">· {hint}</span> : null}
+      </span>
+      {placeholder ? (
+        <span className="font-mono text-[11px] text-muted-foreground/70 whitespace-nowrap">{placeholder}</span>
+      ) : (
+        <span
+          className={cn(
+            "font-mono tabular-nums whitespace-nowrap",
+            strong ? "text-[15px] font-bold" : "text-[13px] font-semibold",
+            signed ? cls(v || 0) : undefined,
+          )}
+        >
+          {fmtT(v || 0)}
+        </span>
+      )}
+    </div>
+  );
+
+  const KpiCard = ({
+    label,
+    v,
+    formula,
+    tone,
+  }: {
+    label: string;
+    v: number;
+    formula: string;
+    tone?: "neutral" | "signed";
+  }) => (
+    <div className="rounded-md border border-border bg-card px-4 py-3 flex flex-col gap-1" title={formula}>
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div
+        className={cn(
+          "font-mono tabular-nums text-[24px] leading-none font-bold",
+          tone === "signed" ? cls(v) : undefined,
+        )}
+      >
+        {fmtT(v)}
+      </div>
+      <div className="text-[10px] text-muted-foreground/80 leading-snug">{formula}</div>
+    </div>
+  );
 
   return (
     <PageSection title="Month Summary" card={false}>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_1.5fr_0.9fr] gap-3">
-
-        {/* ───── INCOMES ───── */}
+      {/* DETAIL GROUPS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        {/* A · INCOME */}
         <div className={card}>
-          <div className={cardHeader}>Incomes</div>
-          <table className="w-full text-[15px] border-collapse">
-            <thead className="bg-muted/20">
-              <tr className="[&>th]:h-8 [&>th]:px-3 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
-                <th className="text-left">Source</th>
-                <th className="text-right w-[140px]">TZS</th>
-                <th className={cn("text-right w-[100px] pr-3", USD_COL)}>$</th>
-              </tr>
-            </thead>
-            <tbody className="font-mono tabular-nums font-bold">
-              {[
-                ["Live Game", incomes.live_game],
-                ["Slots", incomes.slots],
-                ["Commissions", incomes.other],
-              ].map(([label, v]) => (
-                <tr key={label as string} className="border-t border-border [&>td]:h-9 [&>td]:px-3">
-                  <td className="font-sans font-normal text-muted-foreground text-[12px]">{label}</td>
-                  <td className="text-right">{fmtT(v as number)}</td>
-                  <td className={cn("text-right text-muted-foreground font-normal pr-3", USD_COL)}>—</td>
-                </tr>
-              ))}
-              <tr className="border-t-2 border-border bg-muted/30 [&>td]:h-10 [&>td]:px-3">
-                <td className="font-sans text-[13px]">Total Income</td>
-                <td className="text-right">{fmtT(incomes.total)}</td>
-                <td className={cn("text-right text-muted-foreground font-normal pr-3", USD_COL)}>—</td>
-              </tr>
-              {/* Reference rows — wallet movements, NOT income. Shown so this page reconciles with Wallets. */}
-              {[
-                ["Tips & Bonuses (±)", incomes.tips_bonus],
-                ["JP (IN)", incomes.jp],
-                ["Movements (investment / top-up)", incomes.movements],
-              ].map(([label, v]) => (
-                <tr key={label as string} className="border-t border-dashed border-border [&>td]:h-8 [&>td]:px-3">
-                  <td className="font-sans font-normal text-muted-foreground text-[11px]">{label} · ref</td>
-                  <td className="text-right text-[13px] font-normal text-muted-foreground">{fmtT(v as number)}</td>
-                  <td className={cn("text-right text-muted-foreground font-normal pr-3", USD_COL)}>—</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className={cardHeader}>
+            <span>Income</span>
+            <span className="normal-case tracking-normal text-[10px]">TZS</span>
+          </div>
+          <Line label="Table Result" v={inc.table_result} signed />
+          <Line label="Slot Result" v={inc.slot_result} signed />
+          <Line label="Bar Income" v={inc.bar_income} />
+          <Line label="Commission" v={inc.commission} signed />
+          <Line label="Agent Commission" v={inc.agent_commission} signed />
+          <Line label="Fee" v={inc.fee} signed />
+          <Line label="Total Income" v={kpi.total_income} strong signed />
         </div>
 
-        {/* ───── BUDGET ───── */}
+        {/* B · EXPENSES & OBLIGATIONS */}
         <div className={card}>
-          <div className={cardHeader}>Budget · Plan vs Actual</div>
-          <table className="w-full text-[15px] border-collapse">
-            <thead className="bg-muted/20">
-              <tr className="[&>th]:h-8 [&>th]:px-3 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
-                <th className="text-left w-[90px]">Currency</th>
-                <th className="text-right">Plan</th>
-                <th className="text-right">Actual</th>
-                <th className="text-right border-l border-border">Remain</th>
-                <th className="text-right w-[60px] pr-3">%</th>
-              </tr>
-            </thead>
-            <tbody className="font-mono tabular-nums font-bold">
-              {/* TZS row */}
-              <tr className="border-t border-border [&>td]:h-9 [&>td]:px-3">
-                <td className="font-sans font-normal text-muted-foreground text-[12px]">TZS</td>
-                <td className="text-right">{fmtT(g.plan_month_tzs)}</td>
-                <td className="text-right">{fmtT(g.actual_tzs)}</td>
-                <td className="text-right border-l border-border">{fmtT(g.remain_tzs)}</td>
-                <td className={cn("text-right pr-3 font-normal text-[12px]", pctTone(g.plan_month_tzs ? g.actual_tzs / g.plan_month_tzs : null))}>
-                  {pctTxt(g.actual_tzs, g.plan_month_tzs)}
-                </td>
-              </tr>
-              {/* USD row */}
-              <tr className={cn("border-t border-border [&>td]:h-9 [&>td]:px-3", USD_COL)}>
-                <td className="font-sans font-normal text-muted-foreground text-[12px]">USD</td>
-                <td className="text-right"><UsdAmt value={g.plan_month_usd} total /></td>
-                <td className="text-right"><UsdAmt value={g.actual_usd} total /></td>
-                <td className="text-right border-l border-border"><UsdAmt value={g.remain_usd} total /></td>
-                <td className={cn("text-right pr-3 font-normal text-[12px]", pctTone(g.plan_month_usd ? g.actual_usd / g.plan_month_usd : null))}>
-                  {pctTxt(g.actual_usd, g.plan_month_usd)}
-                </td>
-              </tr>
-              {/* Grand TZS row */}
-              <tr className="border-t-2 border-border bg-muted/30 [&>td]:h-10 [&>td]:px-3">
-                <td className="font-sans text-[13px]">Grand TZS</td>
-                <td className="text-right">{fmtT(g.plan_month_grand_tzs)}</td>
-                <td className="text-right">{fmtT(g.actual_grand_tzs)}</td>
-                <td className={cn("text-right border-l border-border", cls(g.remain_grand_tzs))}>{fmtT(g.remain_grand_tzs)}</td>
-                <td className={cn("text-right pr-3 font-normal text-[12px]", pctTone(g.plan_month_grand_tzs ? g.actual_grand_tzs / g.plan_month_grand_tzs : null))}>
-                  {pctTxt(g.actual_grand_tzs, g.plan_month_grand_tzs)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          {data.usd_rate > 0 && (
-            <div className="mt-auto text-[10px] text-muted-foreground px-3 py-1.5 border-t border-border">
-              Grand TZS uses USD→TZS @ {formatNumberSpaces(Math.round(data.usd_rate))}
-            </div>
-          )}
+          <div className={cardHeader}>
+            <span>Expenses &amp; Obligations</span>
+            <span className="normal-case tracking-normal text-[10px]">
+              {pctTxt(g.actual_grand_tzs, g.plan_month_grand_tzs)} of plan
+            </span>
+          </div>
+          <Line label="Budget" hint="plan, Grand TZS" v={g.plan_month_grand_tzs} />
+          <Line label="Total Actual Expenses" v={cash.expenses_actual} />
+          <Line label="Collections" hint="cash already withdrawn" v={cash.collections_actual} />
+          <Line label="Liabilities" hint="intercompany outstanding" v={cash.liabilities} />
+          <Line
+            label="Unplanned Expenses"
+            hint="source not defined yet"
+            placeholder={cash.unplanned_expenses ? undefined : "—"}
+            v={cash.unplanned_expenses}
+          />
+          <Line label="Remain vs Budget" v={g.remain_grand_tzs} strong signed />
         </div>
 
-        {/* ───── RESULT ───── */}
+        {/* C · CASH ADJUSTMENTS */}
         <div className={card}>
-          <div className={cardHeader}>Result</div>
-          <table className="w-full text-[15px] border-collapse">
-            <tbody className="font-mono tabular-nums font-bold">
-              <tr className="border-t border-border [&>td]:px-3 [&>td]:py-2">
-                <td className="font-sans font-normal text-[13px]">
-                  <div>Profit</div>
-                  <div className="text-[10px] text-muted-foreground font-normal">Income − Actual</div>
-                </td>
-                <td className={cn("text-right pr-3 align-middle", cls(profit))}>{fmtT(profit)}</td>
-              </tr>
-              <tr className="border-t border-border [&>td]:px-3 [&>td]:py-2">
-                <td className="font-sans font-normal text-[13px]">
-                  <div>Collections</div>
-                  <div className="text-[10px] text-muted-foreground font-normal">Owner withdrawals</div>
-                </td>
-                <td className="text-right pr-3 align-middle">{fmtT(collectionsTzs)}</td>
-              </tr>
-              <tr className="border-t-2 border-border bg-muted/30 [&>td]:px-3 [&>td]:py-2.5">
-                <td className="font-sans font-normal text-[13px]">
-                  <div className="font-semibold">Net Balance</div>
-                  <div className="text-[10px] text-muted-foreground font-normal">Profit − Collections</div>
-                </td>
-                <td className={cn("text-right pr-3 align-middle text-[16px]", cls(netBalance))}>{fmtT(netBalance)}</td>
-              </tr>
-
-            </tbody>
-          </table>
+          <div className={cardHeader}>
+            <span>Cash Adjustments</span>
+            <span className="normal-case tracking-normal text-[10px]">not income</span>
+          </div>
+          <Line label="Opening Basic Float" v={cash.basic_float_opening} />
+          <Line label="Add Float" v={cash.basic_float_add} />
+          <Line label="Current Basic Float" v={cash.basic_float_current} strong />
+          <Line label="Tips &amp; Bonuses (±)" v={inc.tips_bonus} signed />
+          <Line label="JP (±)" v={inc.jp} signed />
+          <Line label="Investment" v={inc.investment} signed />
+          <Line label="Office" v={inc.office} signed />
+          <Line label="Intercompany cash effect" v={cash.intercompany_cash} signed />
+          <Line label="Card Balance adjustment" v={cash.card_balance} signed />
+          <Line label="Miss Chips adjustment" v={cash.miss_chips} signed />
+          <Line label="Miss Cards adjustment" v={cash.miss_cards} signed />
         </div>
-
       </div>
+
+      {/* D · KPI */}
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        <KpiCard
+          label="Total Income"
+          v={kpi.total_income}
+          tone="signed"
+          formula="Table Result + Slot Result + Bar Income + Commissions"
+        />
+        <KpiCard
+          label="Expected Profit"
+          v={kpi.expected_profit}
+          tone="signed"
+          formula="Total Income − Budget − Collections − Liabilities − Unplanned"
+        />
+        <KpiCard
+          label="Cash Position"
+          v={kpi.cash_position}
+          tone="signed"
+          formula="Current Float + Income ± wallet movements − Expenses − Collections − Liabilities"
+        />
+        <KpiCard
+          label="Manager Bonus"
+          v={kpi.manager_bonus}
+          formula="max(0, 5% × (Total Income − Budget))"
+        />
+      </div>
+
+      {data.usd_rate > 0 && (
+        <div className="mt-2 text-[10px] text-muted-foreground">
+          Grand TZS uses USD→TZS @ {formatNumberSpaces(Math.round(data.usd_rate))}
+        </div>
+      )}
     </PageSection>
   );
 };
+
 
 type EditCallbacks = {
   editMode: boolean;
