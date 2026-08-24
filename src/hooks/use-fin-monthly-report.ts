@@ -624,6 +624,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
             office,
             intercompanyCash,
             expensesActual,
+            unplannedPaidCashNotInActual: unplannedPaidCash,
             liabilityPayments,
             collections: collectionsActual,
           });
@@ -634,7 +635,6 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         ? Number(mf.available_for_collection || 0)
         : Math.max(0, expectedProfit);
       void isClosed;
-      void unplannedPaidCash;
 
 
 

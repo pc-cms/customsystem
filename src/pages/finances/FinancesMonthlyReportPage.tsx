@@ -581,14 +581,14 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
           label="Cash Position"
           v={kpi.cash_position}
           tone="signed"
-          formula="Basic Float + Income − Deposits + Office + Investment + Transfers − Actual Expenses − Collections − Liability Payments"
+          formula="Basic Float + Income − Deposits + Office + Investment + Transfers − Actual Expenses − Paid Unplanned (not in Actual) − Collections − Liability Payments"
         />
         <KpiCard
           label="Manager Bonus"
           v={kpi.manager_bonus}
           formula={
             closed
-              ? "Final · max(0, 5% × (Total Income − Actual Expenses))"
+              ? "Final (frozen) · max(0, 5% × (Total Income − Budget))"
               : "Forecast · max(0, 5% × (Total Income − Budget))"
           }
         />
