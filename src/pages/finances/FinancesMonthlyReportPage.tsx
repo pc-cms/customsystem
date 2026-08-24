@@ -552,9 +552,6 @@ const SummaryBlock = ({
           >
             {label}
           </span>
-          {summary ? (
-            <span className="text-[12px] text-muted-foreground/80 truncate">· {summary}</span>
-          ) : null}
         </span>
         <span
           className={cn(
