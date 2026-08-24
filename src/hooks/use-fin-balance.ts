@@ -60,6 +60,8 @@ export type BalanceSnapshot = {
     live_game: number;
     slots: number;
     other: number;
+    tips_bonus?: number;
+    movements?: number;
     jp?: number;
     expenses: number;
     collections: number;
