@@ -275,7 +275,7 @@ export default function OtherIncomesTab() {
             <Plus className="w-4 h-4" /> Fee
           </Button>
           <Button onClick={() => openAdd()} size="sm">
-            <Plus className="w-4 h-4" /> Add Income
+            <Plus className="w-4 h-4" /> Add Commission
           </Button>
         </OfficeActions>
       )}
