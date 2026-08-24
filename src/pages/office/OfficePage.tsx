@@ -5,7 +5,7 @@ import OtherIncomesTab from "./OtherIncomesTab";
 import RatesTab from "./RatesTab";
 import JpTab from "./JpTab";
 import TipsBonusTab from "./TipsBonusTab";
-import { BalanceBanner } from "@/components/office/BalanceBanner";
+
 import { OfficeShell } from "@/components/office/office-shell";
 
 
@@ -72,7 +72,7 @@ export default function OfficePage() {
       tab={tab}
       onTabChange={onChange}
       showPeriod={tab !== "rates" && tab !== "inter-casino"}
-      banner={<BalanceBanner />}
+      
     >
       <Suspense fallback={<div className="text-sm text-muted-foreground p-4">Loading…</div>}>
         {tab === "bank" && <WalletDayGridTab groups={["banks"]} title="Bank" />}
