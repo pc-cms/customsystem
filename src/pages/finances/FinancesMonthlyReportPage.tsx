@@ -787,7 +787,7 @@ const SummaryBlock = ({
             id="unplanned"
             label="Unplanned Expenses"
             total={cash.unplanned_expenses}
-            summary={`${fmtT(cash.unplanned_paid)} paid · ${fmtT(cash.unplanned_unpaid)} unpaid`}
+            tip={`Unplanned expenses of the month · ${fmtT(cash.unplanned_paid)} paid · ${fmtT(cash.unplanned_unpaid)} unpaid. Expand to see each row.`}
           >
             {unplannedItems.length === 0 ? (
               <div className="px-3 py-2 text-[12px] text-muted-foreground">No unplanned expenses this month.</div>
