@@ -271,14 +271,18 @@ export default function OtherIncomesTab() {
     <PageShell>
       {canWrite && (
         <OfficeActions>
+          <Button onClick={() => openAdd("add_float")} size="sm" variant="outline">
+            <Plus className="w-4 h-4" /> Add Float
+          </Button>
           <Button onClick={() => openAdd("fee")} size="sm" variant="outline">
             <Plus className="w-4 h-4" /> Fee
           </Button>
-          <Button onClick={() => openAdd()} size="sm">
+          <Button onClick={() => openAdd("commission")} size="sm">
             <Plus className="w-4 h-4" /> Add Commission
           </Button>
         </OfficeActions>
       )}
+
 
       <PageSection card={false}>
         <SmartTable
