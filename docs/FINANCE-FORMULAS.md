@@ -171,22 +171,32 @@ Server-side single source of truth: RPC `fin_month_finance`.
 
 ```text
 OPEN month:
-  Expected Profit = Total Income − Budget − Unplanned (all) − Liabilities outstanding
-  Manager Bonus   = max(0, 5% × (Total Income − Budget − Unplanned))
+  Expected Profit = Total Income − Budget − Unplanned (all)
+                    − Liabilities outstanding − Collections
+  Manager Bonus   = max(0, 5% × (Total Income − Budget))
 
 CLOSED month:
-  Final Profit    = Total Income − Total Actual Expenses − Liabilities outstanding
-  Manager Bonus   = max(0, 5% × (Total Income − Total Actual Expenses))
+  Final Profit    = Total Income − Total Actual Expenses
+                    − Unplanned not in Actual − Liabilities outstanding   (frozen)
+  Manager Bonus   = max(0, 5% × (Total Income − Budget))                  (frozen, same base)
 
-Cash Position = Current Basic Float + Total Income + Tips&Bonuses + JP
-              + Investment + Office + Intercompany cash + Card Balance
-              + Miss Chips + Miss Cards
-              − Actual Expenses − Paid Unplanned − Liability Repayments − Collections
+Deposits = Tips&Bonuses + JP + Card Balance + Miss Chips + Miss Cards
+
+Cash Position = Current Basic Float + Total Income − Deposits
+              + Investment + Office + Intercompany cash
+              − Actual Expenses
+              − Paid Unplanned with expense_id IS NULL   (wallet cash moved, no expense row)
+              − Collections − Manual Liability Repayments
+
+Paid Unplanned linked to an Actual Expense is already inside Actual Expenses and is
+never subtracted twice. Intercompany liability repayments are excluded from the
+liability cash term because transfer cash already captures them.
 
 Available for Collection = max(0, Profit − Collections)
 Liabilities: Closing = Opening + New − Repayments (repayment is the only cash effect)
 Basic Float: Current = Opening + Σ signed adjustments (never negative)
 ```
+
 
 Unplanned Expenses live in `boss_report_extras` (entered on Dashboard TV, `Paid`
 flag posts the cash effect). Rows are immutable — reversal only, no delete.
