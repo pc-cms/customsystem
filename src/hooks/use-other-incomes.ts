@@ -46,6 +46,15 @@ export const OTHER_INCOME_SOURCES = ALL_INCOME_SOURCES.filter(
   (s) => !["jp", "tips", "bonus", "tips_bonus"].includes(s.value),
 );
 
+/**
+ * Sources that count as REAL income in reports (money the business earned).
+ * Everything else (JP, tips, bonuses, inter-casino transfers, owner top-ups,
+ * investments) is just a transaction: it moves wallet balances but is not income.
+ */
+export const REAL_INCOME_SOURCES: OtherIncomeSource[] = ["other", "refund", "fee"];
+
+
+
 
 export type OtherIncomeRow = {
   id: string;
