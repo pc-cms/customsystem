@@ -1,13 +1,13 @@
 import { useState, useMemo, lazy, Suspense } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
-import { useTransactions, useExpenses, usePlayerGroups } from "@/hooks/use-casino-data";
+import { useTransactions, useExpenses } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Button } from "@/components/ui/button";
 import {
-  Table2, Landmark, UsersRound, ArrowUp, ArrowDown, ArrowUpDown,
+  Table2, Landmark, ArrowUp, ArrowDown, ArrowUpDown,
   Coins, Joystick, Printer, Check, BarChart3,
 } from "lucide-react";
 
@@ -213,7 +213,7 @@ const Reports = () => {
           <TabsTrigger value="total" className="gap-1 text-xs"><BarChart3 className="w-3.5 h-3.5" /> Total</TabsTrigger>
           <TabsTrigger value="miss-chips" className="gap-1 text-xs"><Coins className="w-3.5 h-3.5" /> Miss Chips</TabsTrigger>
           
-          <TabsTrigger value="groups" className="gap-1 text-xs"><UsersRound className="w-3.5 h-3.5" /> Groups</TabsTrigger>
+          
           <TabsTrigger value="tables" className="gap-1 text-xs"><Table2 className="w-3.5 h-3.5" /> Tables</TabsTrigger>
         </TabsList>
 
@@ -223,7 +223,7 @@ const Reports = () => {
         <TabsContent value="miss-chips"><MissChips embedded embeddedFrom={from} embeddedTo={to} /></TabsContent>
         {/* Graphics moved to its own page: /reports/graphics */}
 
-        <TabsContent value="groups"><GroupReport from={from} to={to} /></TabsContent>
+        
         <TabsContent value="tables">
           <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>}>
             <TableResultsPage embedded embeddedFrom={from} embeddedTo={to} />
@@ -534,105 +534,6 @@ const DropSlotsCell = ({ value, canEdit, onSave }: { value: number; canEdit: boo
   );
 };
 
-// =================== GROUP REPORT ===================
-const GroupReport = ({ from, to }: { from: string; to: string }) => {
-  const fmt = useFormatMoney();
-  const { casinoId } = useAuth();
-  const { data: groups = [] } = usePlayerGroups();
-  const { data: transactions = [] } = useTransactions();
-  const { data: expenses = [] } = useExpenses();
-
-  const fromIso = useMemo(() => businessDayHourUTC(from, 7), [from]);
-  const toIso = useMemo(() => {
-    const d = new Date(to + "T00:00:00Z");
-    d.setUTCDate(d.getUTCDate() + 1);
-    return businessDayHourUTC(d.toISOString().slice(0, 10), 7);
-  }, [to]);
-
-  // Authoritative per-player peak-NEP for the range — shared with Player tab.
-  const { data: dropByPlayer = {} } = useQuery({
-    queryKey: ["reports-groups-drop-cache", casinoId, from, to],
-    queryFn: async (): Promise<Record<string, number>> => {
-      if (!casinoId || !from || !to) return {};
-      const rows = await fetchPaged<any>((f, t) => supabase
-        .from("player_day_drop_cache")
-        .select("player_id, peak")
-        .eq("casino_id", casinoId)
-        .gte("business_date", from).lte("business_date", to)
-        .range(f, t));
-      const rec: Record<string, number> = {};
-      rows.forEach((r) => {
-        if (!r?.player_id) return;
-        rec[r.player_id] = (rec[r.player_id] || 0) + (Number(r.peak) || 0);
-      });
-      return rec;
-    },
-    enabled: !!casinoId,
-    staleTime: 30_000,
-  });
-
-  const groupData = useMemo(() => {
-    // Business-day scoped (matches Drop from player_day_drop_cache).
-    const filteredTx = transactions.filter((t: any) => {
-      const d = t.business_date || (t.created_at ? t.created_at.split("T")[0] : "");
-      return d >= from && d <= to;
-    });
-    const filteredExp = expenses.filter((e: any) => {
-      const d = e.business_date || (e.created_at ? e.created_at.split("T")[0] : "");
-      return d >= from && d <= to && e.approved;
-    });
-    return groups.map((g: any) => {
-      const memberIds = (g.group_members || [])
-        .filter((m: any) => {
-          const joined = m.joined_at.split("T")[0];
-          const left = m.left_at ? m.left_at.split("T")[0] : "9999-12-31";
-          return joined <= to && left >= from;
-        })
-        .map((m: any) => m.player_id);
-      const gTx = filteredTx.filter(t => memberIds.includes(t.player_id));
-      const gExp = filteredExp.filter((e: any) => e.player_id && memberIds.includes(e.player_id));
-      // Drop = Σ peak-NEP per member (sum of daily peaks across the range).
-      const drop = memberIds.reduce((s: number, pid: string) => s + (dropByPlayer[pid] || 0), 0);
-      const cashout = gTx.filter(t => (t.type === "cashout" || t.type === "out")).reduce((s, t) => s + Number(t.amount), 0);
-      const expTotal = gExp.reduce((s: number, e: any) => s + Number(e.amount), 0);
-      return { id: g.id, name: g.name, members: memberIds.length, drop, cashout, result: cashout - drop, realResult: cashout - drop - expTotal, expTotal };
-    }).filter(g => g.members > 0);
-  }, [groups, transactions, expenses, from, to, dropByPlayer]);
-
-
-  const { sorted, sort, toggle } = useSorted(groupData, { key: "drop", dir: "desc" });
-
-  return (
-    <DataTable>
-      <DTHead>
-        <DTRow>
-          <SortHeader label="Group" k="name" sort={sort} toggle={toggle} type="name" />
-          <SortHeader label="Members" k="members" sort={sort} toggle={toggle} type="int" />
-          <SortHeader label="Drop" k="drop" sort={sort} toggle={toggle} type="money" />
-          <SortHeader label="Cashout" k="cashout" sort={sort} toggle={toggle} type="money" />
-          <SortHeader label="Result" k="result" sort={sort} toggle={toggle} type="money" />
-          <SortHeader label="Expenses" k="expTotal" sort={sort} toggle={toggle} type="money" />
-          <SortHeader label="Real Result" k="realResult" sort={sort} toggle={toggle} type="money" />
-        </DTRow>
-      </DTHead>
-      <DTBody>
-        {sorted.length === 0 ? (
-          <DTRow><DTCell colSpan={7} className="text-center text-muted-foreground py-6">No group data</DTCell></DTRow>
-        ) : sorted.map((g) => (
-          <DTRow key={g.id}>
-            <DTCell type="name" className="font-medium">{g.name}</DTCell>
-            <DTCell type="int" className="text-muted-foreground">{g.members}</DTCell>
-            <DTCell type="money">{fmt(g.drop)}</DTCell>
-            <DTCell type="money">{fmt(g.cashout)}</DTCell>
-            <DTCell type="money"><span className={`font-bold ${signCls(g.result)}`}>{g.result >= 0 ? "+" : ""}{fmt(g.result)}</span></DTCell>
-            <DTCell type="money" className="text-warning">{fmt(g.expTotal)}</DTCell>
-            <DTCell type="money"><span className={`font-bold ${signCls(g.realResult)}`}>{g.realResult >= 0 ? "+" : ""}{fmt(g.realResult)}</span></DTCell>
-          </DTRow>
-        ))}
-      </DTBody>
-    </DataTable>
-  );
-};
 
 // =================== LIVE GAME (daily) REPORT ===================
 const eatBizDate = (iso: string) => {
