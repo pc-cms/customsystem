@@ -78,7 +78,17 @@ export type ReportGroup = {
 };
 
 export type MonthlyReport = {
-  incomes: { live_game: number; slots: number; other: number; total: number };
+  incomes: {
+    live_game: number;
+    slots: number;
+    /** Commissions only (other/refund/fee) — part of Total. */
+    other: number;
+    /** Reference rows — NOT part of Total, shown so the page reconciles with Wallets. */
+    tips_bonus: number;
+    movements: number;
+    jp: number;
+    total: number;
+  };
   groups: ReportGroup[];
   /** Collections & Owner Withdrawals — rendered separately, excluded from grand. */
   collections: ReportGroup | null;
