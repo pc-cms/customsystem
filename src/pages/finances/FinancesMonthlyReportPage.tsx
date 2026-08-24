@@ -743,6 +743,46 @@ const SummaryBlock = ({
             <DetailRow label="Commissions" value={inc.commission} />
             <DetailRow label="Fee" value={inc.fee} />
           </Section>
+          <Section
+            id="liabilities"
+            label="Liabilities"
+            total={cash.liabilities}
+            tone={cash.liabilities > 0 ? "warn" : undefined}
+            tip="Opening + repayable funding (incl. intercompany transfers that must be repaid) + manual liabilities − repayments = closing outstanding. Non-repayable transfers and Add Float never become liabilities."
+          >
+            <DetailRow label="Opening" value={mf?.liabilities?.opening_tzs || 0} />
+            <DetailRow label="New this month" value={mf?.liabilities?.new_tzs || 0} />
+            <DetailRow label="Repaid" value={-(mf?.liabilities?.repaid_tzs || 0)} />
+            <DetailRow label="Closing outstanding" value={mf?.liabilities?.closing_tzs || 0} tone={(mf?.liabilities?.closing_tzs || 0) > 0 ? "warn" : undefined} />
+            {liabilityItems.map((l) => (
+              <DetailRow
+                key={l.id}
+                left={fmtDateOnly(l.business_date)}
+                label={`${l.creditor}${l.description ? ` · ${l.description}` : ""}`}
+                value={l.outstanding_tzs}
+                tag={l.status}
+                tone={l.status === "paid" ? undefined : "warn"}
+              />
+            ))}
+            {liabilityPayments.map((p) => (
+              <DetailRow
+                key={p.id}
+                left={fmtDateOnly(p.business_date)}
+                label={p.note || "Repayment"}
+                value={-p.amount_tzs}
+                tag="paid"
+              />
+            ))}
+            {/* Transfers appear here for context only — cash/accounting logic is unchanged. */}
+            <DetailRow label="Transfers · cash effect" value={cash.intercompany_cash} tag="cash" />
+            <DetailRow label="Transfers · repayable to us" value={cash.intercompany_receivable} tag="receivable" />
+            <DetailRow
+              label="Transfers · repayable by us"
+              value={cash.intercompany_liability}
+              tag="payable"
+              tone={cash.intercompany_liability > 0 ? "warn" : undefined}
+            />
+          </Section>
           <Line
             label="Manager Bonus"
             v={kpi.manager_bonus}
@@ -789,46 +829,7 @@ const SummaryBlock = ({
               ))
             )}
           </Section>
-          <Section
-            id="liabilities"
-            label="Liabilities"
-            total={cash.liabilities}
-            tone={cash.liabilities > 0 ? "warn" : undefined}
-            tip="Opening + repayable funding (incl. intercompany transfers that must be repaid) + manual liabilities − repayments = closing outstanding. Non-repayable transfers and Add Float never become liabilities."
-          >
-            <DetailRow label="Opening" value={mf?.liabilities?.opening_tzs || 0} />
-            <DetailRow label="New this month" value={mf?.liabilities?.new_tzs || 0} />
-            <DetailRow label="Repaid" value={-(mf?.liabilities?.repaid_tzs || 0)} />
-            <DetailRow label="Closing outstanding" value={mf?.liabilities?.closing_tzs || 0} tone={(mf?.liabilities?.closing_tzs || 0) > 0 ? "warn" : undefined} />
-            {liabilityItems.map((l) => (
-              <DetailRow
-                key={l.id}
-                left={fmtDateOnly(l.business_date)}
-                label={`${l.creditor}${l.description ? ` · ${l.description}` : ""}`}
-                value={l.outstanding_tzs}
-                tag={l.status}
-                tone={l.status === "paid" ? undefined : "warn"}
-              />
-            ))}
-            {liabilityPayments.map((p) => (
-              <DetailRow
-                key={p.id}
-                left={fmtDateOnly(p.business_date)}
-                label={p.note || "Repayment"}
-                value={-p.amount_tzs}
-                tag="paid"
-              />
-            ))}
-            {/* Transfers appear here for context only — cash/accounting logic is unchanged. */}
-            <DetailRow label="Transfers · cash effect" value={cash.intercompany_cash} tag="cash" />
-            <DetailRow label="Transfers · repayable to us" value={cash.intercompany_receivable} tag="receivable" />
-            <DetailRow
-              label="Transfers · repayable by us"
-              value={cash.intercompany_liability}
-              tag="payable"
-              tone={cash.intercompany_liability > 0 ? "warn" : undefined}
-            />
-          </Section>
+
           <div className="flex-1" />
           <Line
             label="Total Expenses & Obligations"
