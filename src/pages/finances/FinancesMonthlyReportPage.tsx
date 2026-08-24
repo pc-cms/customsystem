@@ -18,12 +18,18 @@ import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories, useArch
 
 import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
 import { MonthlyReportActions } from "@/components/finances/MonthlyReportActions";
-import { useMonthFinance } from "@/hooks/use-fin-month-finance";
+import { useMonthFinance, useOverrideManagerBonus } from "@/hooks/use-fin-month-finance";
 import { InlineTextCell } from "@/components/finances/InlineTextCell";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { FormGrid, FormField } from "@/components/ui/form-grid";
+import { NumberInput } from "@/components/ui/number-input";
+import { totalExpensesAndObligations, netCashAdjustments } from "@/lib/finance-formulas";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import { downloadXlsx } from "@/lib/excel-export";
 import { cn } from "@/lib/utils";
+
 
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -34,6 +40,9 @@ const fmtT = (n: number) => formatNumberSpaces(n || 0);
 const pct = (n: number) => (Number.isFinite(n) ? `${Math.round(n * 100)}%` : "—");
 
 const cls = (n: number) => (n < 0 ? "cms-amount-negative" : n > 0 ? "cms-amount-positive" : "text-muted-foreground");
+/** Amber = warning / obligation / unpaid. Never red — an obligation is not an error. */
+const WARN = "text-amber-600 dark:text-amber-400";
+
 
 /**
  * Budget heat-map for "% spent" (actual / plan).
@@ -272,7 +281,14 @@ export default function FinancesMonthlyReportPage() {
 
 
       {/* SUMMARY — Incomes + Budget (Plan/Actual/Remain) + Profit & Net Balance, single compact table */}
-      {data && <SummaryBlock data={data} />}
+      {data && (
+        <SummaryBlock
+          data={data}
+          casinoId={isNetwork ? null : scope || activeCasinoId || null}
+          canFinance={canEdit && !isNetwork}
+        />
+      )}
+
 
       {/* GROUPS */}
       {isLoading && <div className="text-sm text-muted-foreground text-center py-6">Loading…</div>}
@@ -373,7 +389,15 @@ export default function FinancesMonthlyReportPage() {
  * Collapsible sections (Unplanned, Liabilities, Deposits) are real buttons,
  * so keyboard focus and Enter/Space work without extra handlers.
  */
-const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report").MonthlyReport }) => {
+const SummaryBlock = ({
+  data,
+  casinoId,
+  canFinance,
+}: {
+  data: import("@/hooks/use-fin-monthly-report").MonthlyReport;
+  casinoId: string | null;
+  canFinance: boolean;
+}) => {
   const inc = data.incomes;
   const cash = data.cash;
   const kpi = data.kpi;
@@ -387,6 +411,13 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const toggleSection = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
 
+  /* Manager Bonus override — closed months only, reason mandatory, fully audited. */
+  const bonusOverride = mf?.manager_bonus_override || null;
+  const overrideBonus = useOverrideManagerBonus();
+  const [bonusOpen, setBonusOpen] = useState(false);
+  const [bonusAmount, setBonusAmount] = useState("");
+  const [bonusReason, setBonusReason] = useState("");
+
   const unplannedItems = (mf?.unplanned?.items || []).filter(
     (i) => !i.voided_at && !i.reversal_of && Number(i.amount_tzs || 0) > 0,
   );
@@ -394,6 +425,24 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
   const liabilityPayments = mf?.liabilities?.payments || [];
 
   const depositsTotal = cash.deposits;
+
+  /** Footer totals — see src/lib/finance-formulas.ts (single source of truth). */
+  const obligationsTotal = totalExpensesAndObligations({
+    closed,
+    budget: g.plan_month_grand_tzs,
+    expensesActual: cash.expenses_actual,
+    unplannedTotal: cash.unplanned_expenses,
+    unplannedNotInActual: cash.unplanned_not_in_actual,
+    liabilitiesClosing: cash.liabilities,
+    collections: cash.collections_actual,
+  });
+  const netAdjustments = netCashAdjustments({
+    deposits: depositsTotal,
+    office: inc.office,
+    investment: inc.investment,
+    intercompanyCash: cash.intercompany_cash,
+  });
+
 
   const cardHeader =
     "h-10 px-3 flex items-center justify-between gap-2 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/40 border-b border-border";
@@ -407,6 +456,7 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
     strong,
     signed,
     sub,
+    tip,
   }: {
     label: string;
     v: number;
@@ -414,14 +464,10 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
     strong?: boolean;
     signed?: boolean;
     sub?: boolean;
-  }) => (
-    <div
-      className={cn(
-        "flex items-center justify-between gap-3 px-3 border-t border-border",
-        strong ? "min-h-[44px] bg-muted/30" : "min-h-[36px]",
-        sub && "pl-6",
-      )}
-    >
+    /** Formula/explanation shown on hover AND keyboard focus. */
+    tip?: string;
+  }) => {
+    const labelNode = (
       <span
         className={cn(
           "truncate leading-snug",
@@ -431,17 +477,39 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
         {label}
         {hint ? <span className="ml-1 text-[12px] text-muted-foreground/70">· {hint}</span> : null}
       </span>
-      <span
+    );
+    return (
+      <div
         className={cn(
-          "font-mono tabular-nums whitespace-nowrap",
-          strong ? "text-[17px] font-bold" : sub ? "text-[13px]" : "text-[15px] font-semibold",
-          signed ? cls(v || 0) : undefined,
+          "flex items-center justify-between gap-3 px-3 border-t border-border",
+          strong ? "min-h-[44px] bg-muted/30" : "min-h-[36px]",
+          sub && "pl-6",
         )}
       >
-        {fmtT(v || 0)}
-      </span>
-    </div>
-  );
+        {tip ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0} className="min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
+                {labelNode}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[320px] text-[12px] leading-snug">{tip}</TooltipContent>
+          </Tooltip>
+        ) : (
+          labelNode
+        )}
+        <span
+          className={cn(
+            "font-mono tabular-nums whitespace-nowrap",
+            strong ? "text-[17px] font-bold" : sub ? "text-[13px]" : "text-[15px] font-semibold",
+            signed ? cls(v || 0) : undefined,
+          )}
+        >
+          {fmtT(v || 0)}
+        </span>
+      </div>
+    );
+  };
 
   /** Collapsible summary row: header button + revealed detail children. */
   const Section = ({
@@ -450,6 +518,7 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
     total,
     summary,
     signed,
+    tone,
     children,
   }: {
     id: string;
@@ -457,6 +526,8 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
     total: number;
     summary?: string;
     signed?: boolean;
+    /** `warn` = obligation / unpaid — amber, never red. */
+    tone?: "warn";
     children: React.ReactNode;
   }) => {
     const isOpen = !!open[id];
@@ -482,7 +553,7 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
           <span
             className={cn(
               "font-mono tabular-nums text-[15px] font-semibold whitespace-nowrap",
-              signed ? cls(total || 0) : undefined,
+              tone === "warn" ? WARN : signed ? cls(total || 0) : undefined,
             )}
           >
             {fmtT(total || 0)}
@@ -493,39 +564,69 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
     );
   };
 
-  const DetailRow = ({ left, label, value, tag }: { left?: string; label: string; value: number; tag?: string }) => (
+  const DetailRow = ({
+    left,
+    label,
+    value,
+    tag,
+    tone,
+  }: {
+    left?: string;
+    label: string;
+    value: number;
+    tag?: string;
+    tone?: "warn";
+  }) => (
     <div className="flex items-center gap-2 px-3 py-1 text-[12px] border-t border-border/40">
       {left ? <span className="w-20 shrink-0 font-mono text-muted-foreground">{left}</span> : null}
       <span className="flex-1 truncate" title={label}>{label}</span>
-      {tag ? <span className="text-[11px] uppercase text-muted-foreground">{tag}</span> : null}
-      <span className="font-mono tabular-nums w-28 text-right">{fmtT(value)}</span>
+      {tag ? (
+        <span className={cn("text-[11px] uppercase", tone === "warn" ? WARN : "text-muted-foreground")}>{tag}</span>
+      ) : null}
+      <span className={cn("font-mono tabular-nums w-28 text-right", tone === "warn" && WARN)}>{fmtT(value)}</span>
     </div>
+
   );
 
+  /**
+   * KPI tile — the formula lives in a tooltip (hover AND keyboard focus),
+   * never as permanent micro-copy under the number.
+   */
   const KpiCard = ({
     label,
     v,
     formula,
     tone,
+    footer,
   }: {
     label: string;
     v: number;
     formula: string;
     tone?: "neutral" | "signed";
+    footer?: React.ReactNode;
   }) => (
-    <div className="rounded-md border border-border bg-card px-4 py-3 flex flex-col gap-1.5 min-h-[112px]" title={formula}>
-      <div className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div
-        className={cn(
-          "font-mono tabular-nums text-[30px] leading-none font-bold",
-          tone === "signed" ? cls(v) : undefined,
-        )}
-      >
-        {fmtT(v)}
-      </div>
-      <div className="text-[12px] text-muted-foreground/90 leading-snug">{formula}</div>
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          tabIndex={0}
+          className="rounded-md border border-border bg-card px-4 py-3 flex flex-col gap-2 min-h-[104px] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <div className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
+          <div
+            className={cn(
+              "font-mono tabular-nums text-[30px] leading-none font-bold",
+              tone === "signed" ? cls(v) : undefined,
+            )}
+          >
+            {fmtT(v)}
+          </div>
+          {footer}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-[320px] text-[12px] leading-snug">{formula}</TooltipContent>
+    </Tooltip>
   );
+
 
   const planTone =
     planRatio == null
@@ -588,10 +689,32 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
           v={kpi.manager_bonus}
           formula={
             closed
-              ? "Final (frozen) · max(0, 5% × (Total Income − Budget))"
-              : "Forecast · max(0, 5% × (Total Income − Budget))"
+              ? `Frozen at close · max(0, 5% × (Total Income − Actual Expenses))${
+                  bonusOverride ? ` · overridden from ${fmtT(bonusOverride.old_amount)}: ${bonusOverride.reason}` : ""
+                }`
+              : "Forecast · max(0, 5% × (Total Income − Budget)). Collections never reduce the bonus."
+          }
+          footer={
+            <div className="flex items-center gap-2 flex-wrap">
+              {bonusOverride ? (
+                <span className="text-[11px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border border-amber-500/40 bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                  Overridden
+                </span>
+              ) : null}
+              {closed && canFinance && casinoId ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 px-2 text-[11px]"
+                  onClick={() => setBonusOpen(true)}
+                >
+                  Override
+                </Button>
+              ) : null}
+            </div>
           }
         />
+
       </div>
 
       {/* THREE EQUAL SUMMARY CARDS */}
@@ -616,10 +739,22 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
             <span>Expenses &amp; Obligations</span>
             <PlanBadge />
           </div>
-          <Line label="Budget" hint="plan, Grand TZS" v={g.plan_month_grand_tzs} />
-          <Line label="Actual Expenses" v={cash.expenses_actual} />
-          <Line label="Commissions" v={inc.commission} signed />
-          <Line label="Fee" v={inc.fee} signed />
+          <Line label="Budget" hint="plan, Grand TZS" v={g.plan_month_grand_tzs} tip="Planned cost base of the month (Grand TZS)." />
+          <Line
+            label="Actual Expenses"
+            v={cash.expenses_actual}
+            tip="Σ approved expenses actually booked in the month."
+          />
+          <Section
+            id="commissions_fee"
+            label="Commissions & Fee"
+            total={inc.commission + inc.fee}
+            signed
+            summary="income side · never deducted here"
+          >
+            <DetailRow label="Commissions" value={inc.commission} />
+            <DetailRow label="Fee" value={inc.fee} />
+          </Section>
           <Section
             id="unplanned"
             label="Unplanned Expenses"
@@ -636,6 +771,7 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
                   label={i.description || i.label}
                   value={i.amount_tzs}
                   tag={i.paid ? "Paid" : "Unpaid"}
+                  tone={i.paid ? undefined : "warn"}
                 />
               ))
             )}
@@ -644,6 +780,7 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
             id="liabilities"
             label="Liabilities"
             total={cash.liabilities}
+            tone={cash.liabilities > 0 ? "warn" : undefined}
             summary={`${fmtT(mf?.liabilities?.repaid_tzs || 0)} repaid`}
           >
             <DetailRow label="Opening" value={mf?.liabilities?.opening_tzs || 0} />
@@ -657,6 +794,7 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
                 label={`${l.creditor}${l.description ? ` · ${l.description}` : ""}`}
                 value={l.outstanding_tzs}
                 tag={l.status}
+                tone={l.status === "paid" ? undefined : "warn"}
               />
             ))}
             {liabilityPayments.map((p) => (
@@ -670,6 +808,17 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
             ))}
           </Section>
           <Line label="Collections" hint="cash already withdrawn" v={cash.collections_actual} />
+          <div className="flex-1" />
+          <Line
+            label="Total Expenses & Obligations"
+            v={obligationsTotal}
+            strong
+            tip={
+              closed
+                ? "Actual Expenses + Unplanned not already inside Actual + frozen closing Liabilities + Collections. Commissions & Fee are income lines and are never deducted here."
+                : "Budget + all Unplanned + closing Liabilities + Collections. Commissions & Fee are income lines and are never deducted here."
+            }
+          />
         </div>
 
         {/* C · CASH ADJUSTMENTS */}
@@ -703,7 +852,16 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
           <Line label="Office" v={inc.office} signed />
           <Line label="Investment" v={inc.investment} signed />
           <Line label="Transfers" hint="intercompany cash effect" v={cash.intercompany_cash} signed />
+          <div className="flex-1" />
+          <Line
+            label="Net Cash Adjustments"
+            v={netAdjustments}
+            strong
+            signed
+            tip="− Deposits + Office + Investment + Intercompany Cash Effect. Deposits are money held for third parties, so they reduce cash. Basic Float is a standing balance and is excluded."
+          />
         </div>
+
       </div>
     </PageSection>
   );

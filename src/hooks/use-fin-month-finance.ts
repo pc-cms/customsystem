@@ -87,11 +87,25 @@ export type MonthFinance = {
   liability_payments_total: number;
   float: { opening_tzs: number; add_tzs: number; current_tzs: number };
   profit: number;
+  /** Approved bonus — the default, or the audited override when one exists. */
   manager_bonus: number;
+  /** Lifecycle default: OPEN → 5% × (Income − Budget); CLOSED → 5% × (Income − Actual Expenses). */
+  manager_bonus_default?: number;
+  manager_bonus_override?: {
+    id: string;
+    old_amount: number;
+    new_amount: number;
+    reason: string;
+    created_by: string | null;
+    created_at: string;
+  } | null;
+  /** Σ Tips & Bonuses + JP + Card Balance + Miss Chips + Miss Cards. */
+  deposits?: number;
   cash_position: number;
   available_for_collection: number;
   snapshot: Record<string, unknown> | null;
 };
+
 
 const EMPTY_MONTH = (year: number, month: number): MonthFinance => ({
   period: { start: "", end: "", year, month },
@@ -110,10 +124,14 @@ const EMPTY_MONTH = (year: number, month: number): MonthFinance => ({
   float: { opening_tzs: 0, add_tzs: 0, current_tzs: 0 },
   profit: 0,
   manager_bonus: 0,
+  manager_bonus_default: 0,
+  manager_bonus_override: null,
+  deposits: 0,
   cash_position: 0,
   available_for_collection: 0,
   snapshot: null,
 });
+
 
 export const fetchMonthFinance = async (
   casinoId: string,
@@ -168,8 +186,11 @@ export const mergeMonthFinance = (parts: MonthFinance[], year: number, month: nu
     },
     profit: s((p) => p.profit),
     manager_bonus: s((p) => p.manager_bonus),
+    manager_bonus_default: s((p) => p.manager_bonus_default || 0),
+    deposits: s((p) => p.deposits || 0),
     cash_position: s((p) => p.cash_position),
     available_for_collection: s((p) => p.available_for_collection),
+
     snapshot: null,
   };
 };
@@ -353,4 +374,18 @@ export const useRecordCollection = () =>
         p_note: i.note || null,
       }),
     "Collection recorded",
+  );
+
+/* ── Manager Bonus override (closed months only, immutable audit) ── */
+export const useOverrideManagerBonus = () =>
+  useFinMutation<{ casino_id: string; year: number; month: number; amount: number; reason: string }>(
+    (i) =>
+      rpc("fin_override_manager_bonus", {
+        p_casino_id: i.casino_id,
+        p_year: i.year,
+        p_month: i.month,
+        p_amount: i.amount,
+        p_reason: i.reason,
+      }),
+    "Manager Bonus overridden",
   );
