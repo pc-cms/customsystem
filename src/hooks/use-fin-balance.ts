@@ -36,7 +36,20 @@ export type BalanceSnapshot = {
     grand_tzs: number;
     per_wallet: Array<{ wallet_id: string; name: string; currency: string; amount: number }>;
   };
-  incomes: { live_game: number; slots: number; other: number; jp?: number; card_balance: number; missed_chips: number; missed_cards: number };
+  incomes: {
+    live_game: number;
+    slots: number;
+    /** Commissions only: other / refund / fee. */
+    other: number;
+    /** Tips & Bonuses (tips / bonus / legacy tips_bonus) — signed. */
+    tips_bonus?: number;
+    /** Other movements: investment / owner top-up — wallet movement, not income. */
+    movements?: number;
+    jp?: number;
+    card_balance: number;
+    missed_chips: number;
+    missed_cards: number;
+  };
   expenses_total: number;
   collections_total: number;
   transfers_total: number;
@@ -47,6 +60,8 @@ export type BalanceSnapshot = {
     live_game: number;
     slots: number;
     other: number;
+    tips_bonus?: number;
+    movements?: number;
     jp?: number;
     expenses: number;
     collections: number;
@@ -90,6 +105,10 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
     (incomes.live_game || 0) +
     (incomes.slots || 0) +
     (incomes.other || 0) +
+    // Tips & Bonuses and other movements (investment / owner top-up) are NOT income,
+    // but they DO move wallet cash, so Expected must contain them.
+    (incomes.tips_bonus || 0) +
+    (incomes.movements || 0) +
     (incomes.jp || 0) +
     // Card balance is the per-day difference, summed over the period.
     (incomes.card_balance || 0) +

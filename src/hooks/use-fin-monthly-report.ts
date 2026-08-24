@@ -6,7 +6,11 @@ import { useQuery } from "@tanstack/react-query";
 import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
-import { REAL_INCOME_SOURCES } from "@/hooks/use-other-incomes";
+import {
+  COMMISSION_SOURCES,
+  TIPS_BONUS_SOURCES,
+  MOVEMENT_SOURCES,
+} from "@/hooks/use-other-incomes";
 
 const GROUP_ORDER = ["fixed", "tax", "variable", "salary", "petrol", "additional"] as const;
 const COLLECTIONS_GROUP = "collections";
@@ -74,7 +78,17 @@ export type ReportGroup = {
 };
 
 export type MonthlyReport = {
-  incomes: { live_game: number; slots: number; other: number; total: number };
+  incomes: {
+    live_game: number;
+    slots: number;
+    /** Commissions only (other/refund/fee) — part of Total. */
+    other: number;
+    /** Reference rows — NOT part of Total, shown so the page reconciles with Wallets. */
+    tips_bonus: number;
+    movements: number;
+    jp: number;
+    total: number;
+  };
   groups: ReportGroup[];
   /** Collections & Owner Withdrawals — rendered separately, excluded from grand. */
   collections: ReportGroup | null;
@@ -126,15 +140,27 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       const catsQ = supabase.from("fin_categories").select("*").order("sort_order");
       let budgetQ = supabase.from("fin_budget").select("*").eq("year", year);
       if (!network && casinoId) budgetQ = budgetQ.eq("casino_id", casinoId);
+      // Expenses — SAME rules as the Wallets balance snapshot:
+      // approved, not voided, not a reversal, and either an Office entry or a
+      // cage entry of an already CLOSED business day.
       let expQ = supabase
         .from("expenses")
-        .select("id, business_date, description, amount, currency, amount_tzs, fin_category_id, wallet_id, player_id, player_name, source, casino_id, voided_at, fin_wallets(name), casinos(slug)")
+        .select("id, business_date, description, amount, currency, amount_tzs, fin_category_id, wallet_id, player_id, player_name, source, casino_id, voided_at, approved, reversal_of, fin_wallets(name), casinos(slug)")
         .gte("business_date", start)
         .lt("business_date", endExclusive)
         .not("fin_category_id", "is", null)
         .is("voided_at", null)
+        .is("reversal_of", null)
+        .eq("approved", true)
         .limit(5000);
       if (!network && casinoId) expQ = expQ.eq("casino_id", casinoId);
+
+      // Closed business days — needed to apply the same expense rule as Wallets.
+      let closuresQ = supabase
+        .from("business_day_closures")
+        .select("casino_id, business_date")
+        .gte("business_date", start)
+        .lt("business_date", endExclusive);
 
       // Incomes from fin_day_closing — ONLY closed business days count as income.
       let dayClosingsQ = supabase
@@ -142,17 +168,17 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         .select("tables_result, slots_result, casino_id, business_date")
         .gte("business_date", start)
         .lt("business_date", endExclusive);
-      // Other Incomes — money the business actually EARNED.
-      // Only REAL_INCOME_SOURCES count: JP, tips, bonuses, inter-casino
-      // transfers, owner top-ups and investments are plain transactions
-      // (they move wallets) and must never inflate income.
+      // Other Incomes — fetched in full and classified with the shared dictionary:
+      //   Commissions (other/refund/fee) = real income
+      //   Tips & Bonuses, JP, movements (investment/owner top-up) = reference only
+      //   inter-casino transfers = registry, never here.
       let incomesQ = (supabase as any)
         .from("fin_other_incomes")
-        .select("amount, fx_rate, currency, casino_id, business_date, reverses_id, source")
+        .select("amount, fx_rate, currency, casino_id, business_date, reverses_id, reversed_by_id, source")
         .gte("business_date", start)
         .lt("business_date", endExclusive)
-        .in("source", REAL_INCOME_SOURCES)
-        .is("reverses_id", null);
+        .is("reverses_id", null)
+        .is("reversed_by_id", null);
       // USD→TZS rate for the period (correct column = rate_to_tzs, filtered to USD).
       let ratesQ = supabase
         .from("fin_daily_rates")
@@ -164,12 +190,17 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         dayClosingsQ = dayClosingsQ.eq("casino_id", casinoId);
         incomesQ = incomesQ.eq("casino_id", casinoId);
         ratesQ = ratesQ.eq("casino_id", casinoId);
+        closuresQ = closuresQ.eq("casino_id", casinoId);
       }
 
-      const [cats, budgets, expenses, dayClosings, incomes, rates] = await Promise.all([catsQ, budgetQ, expQ, dayClosingsQ, incomesQ, ratesQ]);
+      const [cats, budgets, expenses, dayClosings, incomes, rates, closures] = await Promise.all([catsQ, budgetQ, expQ, dayClosingsQ, incomesQ, ratesQ, closuresQ]);
       if (cats.error) throw cats.error;
       if (budgets.error) throw budgets.error;
       if (expenses.error) throw expenses.error;
+
+      const closedSet = new Set(
+        ((closures as any)?.data || []).map((c: any) => `${c.casino_id}|${c.business_date}`),
+      );
 
       const liveGame = (dayClosings.data || []).reduce((s, r: any) => s + Number(r.tables_result || 0), 0);
       const slotsIncome = (dayClosings.data || []).reduce((s, r: any) => s + Number(r.slots_result || 0), 0);
@@ -205,13 +236,22 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           if (fb2Rate > 0) avgUsdTzs = fb2Rate;
         }
       }
-      const other = ((incomes as any)?.data || []).reduce((s: number, r: any) => {
+      const toTzs = (r: any) => {
         const amt = Number(r.amount || 0);
         const fx = Number(r.fx_rate || 0);
-        if (fx > 0) return s + amt * fx;
-        if (r.currency === "USD") return s + (avgUsdTzs ? amt * avgUsdTzs : 0);
-        return s + amt; // TZS
-      }, 0);
+        if (fx > 0) return amt * fx;
+        if (r.currency === "USD") return avgUsdTzs ? amt * avgUsdTzs : 0;
+        return amt; // TZS
+      };
+      const sumSources = (list: string[]) =>
+        ((incomes as any)?.data || [])
+          .filter((r: any) => list.includes(String(r.source || "")))
+          .reduce((s: number, r: any) => s + toTzs(r), 0);
+
+      const other = sumSources(COMMISSION_SOURCES);
+      const tipsBonus = sumSources(TIPS_BONUS_SOURCES);
+      const movements = sumSources(MOVEMENT_SOURCES);
+      const jp = sumSources(["jp"]);
 
       // Plan Year: if user entered only ONE month for (cat,currency), multiply by 12;
       // otherwise sum across entered months.
@@ -257,6 +297,8 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       (expenses.data || []).forEach((e: any) => {
         const cid = e.fin_category_id;
         if (!cid) return;
+        // Same rule as Wallets: cage expenses count only once the day is closed.
+        if (e.source !== "office" && !closedSet.has(`${e.casino_id}|${e.business_date}`)) return;
         const cur = actualMap.get(cid) || { tzs: 0, usd: 0, grand: 0, perCasino: {}, list: [] };
         const amt = Number(e.amount || 0);
         const amtTzs = Number(e.amount_tzs || 0);
@@ -369,7 +411,15 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       grand.remain_grand_tzs = grand.plan_month_grand_tzs - grand.actual_grand_tzs;
 
       return {
-        incomes: { live_game: liveGame, slots: slotsIncome, other, total: liveGame + slotsIncome + other },
+        incomes: {
+          live_game: liveGame,
+          slots: slotsIncome,
+          other,
+          tips_bonus: tipsBonus,
+          movements,
+          jp,
+          total: liveGame + slotsIncome + other,
+        },
         groups,
         collections,
         grand,
