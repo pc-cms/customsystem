@@ -44,11 +44,12 @@ export const InlineNumberCell = ({
         type="button"
         onClick={(e) => { e.stopPropagation(); setEditing(true); }}
         className={cn(
-          "font-mono tabular-nums hover:bg-primary/10 rounded px-1 -mx-1 transition-colors w-full text-right",
+          "font-mono tabular-nums w-full text-right bg-transparent border-0 px-0 cursor-text",
+          "hover:underline decoration-dotted decoration-muted-foreground/60 underline-offset-4",
           className,
         )}
       >
-        {value ? formatNumberSpaces(value) : <span className="text-muted-foreground/60">{placeholder}</span>}
+        {value ? formatNumberSpaces(value) : <span className="text-muted-foreground/50">{placeholder}</span>}
       </button>
     );
   }
@@ -72,7 +73,11 @@ export const InlineNumberCell = ({
         if (e.key === "Escape") { setEditing(false); setRaw(String(value || "")); }
       }}
       onClick={(e) => e.stopPropagation()}
-      className={cn("no-spin w-full bg-background border border-primary rounded px-1 py-0 font-mono text-[11px] text-right", className)}
+      className={cn(
+        "no-spin w-full h-6 bg-background border-b border-primary rounded-none px-0 py-0 font-mono text-[12px] tabular-nums text-right focus-visible:ring-0",
+        className,
+      )}
     />
   );
 };
+
