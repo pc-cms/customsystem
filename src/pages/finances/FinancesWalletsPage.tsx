@@ -611,11 +611,17 @@ export default function FinancesWalletsPage() {
         </div>
       </PageSection>
 
-      {/* VARIANCE BANNER + COUNT FRESHNESS — shown only here, not on other Office tabs */}
+      {/* CASH SURPLUS/DEFICIT + COUNT FRESHNESS — one responsive row, equal width and height */}
       <PageSection card={false}>
-        <div className="space-y-2">
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-2 items-stretch",
+            freshness.some((r) => r.stale) && "md:grid-cols-2",
+          )}
+        >
           <BalanceBanner />
           <StaleCountsNotice rows={freshness} refDate={refDate} onCountAll={countAllStale} />
+
         </div>
       </PageSection>
 
