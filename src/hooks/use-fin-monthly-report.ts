@@ -488,16 +488,87 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       grand.remain_usd = grand.plan_month_usd - grand.actual_usd;
       grand.remain_grand_tzs = grand.plan_month_grand_tzs - grand.actual_grand_tzs;
 
+      // ── Cash adjustments & obligations (single source: fin_balance_snapshot) ──
+      const bf = snap?.basic_float || null;
+      const floatOpening = Number(bf?.opening_tzs || 0);
+      const floatAdd = Number(bf?.add_tzs ?? addFloat);
+      const floatCurrent = Number(bf?.current_tzs ?? floatOpening + floatAdd);
+      const cardBalance = Number(snap?.incomes?.card_balance || 0);
+      const missChips = Number(snap?.incomes?.missed_chips || 0);
+      const missCards = Number(snap?.incomes?.missed_cards || 0);
+      // RPC `transfers_total` is signed as "money that LEFT this casino",
+      // so the cash effect is its negation.
+      const intercompanyCash = -Number(snap?.transfers_total || 0);
+      const icLiability = Number(snap?.intercompany?.liability_tzs || 0);
+      const icReceivable = Number(snap?.intercompany?.receivable_tzs || 0);
+      const expensesActual = grand.actual_grand_tzs;
+      const collectionsActual = collections?.totals.actual_grand_tzs ?? 0;
+      const liabilities = adaptLiabilities({ intercompanyLiability: icLiability });
+      const unplanned = adaptUnplannedExpenses();
+
+      const commissionsTotal = other;
+      const totalIncome = liveGame + slotsIncome + barIncome + commissionsTotal;
+      const budget = grand.plan_month_grand_tzs;
+      const expectedProfit = totalIncome - budget - collectionsActual - liabilities - unplanned;
+      const cashPosition =
+        floatCurrent +
+        totalIncome +
+        tipsBonus +
+        jp +
+        investment +
+        office +
+        intercompanyCash +
+        cardBalance +
+        missChips +
+        missCards -
+        expensesActual -
+        collectionsActual -
+        liabilities;
+      // Bonus base = income minus predicted (budgeted) expenses only.
+      const managerBonus = Math.max(0, 0.05 * (totalIncome - budget));
+
       return {
         incomes: {
           live_game: liveGame,
           slots: slotsIncome,
+          table_result: liveGame,
+          slot_result: slotsIncome,
+          bar_income: barIncome,
+          commission,
+          agent_commission: agentCommission,
+          fee,
+          commissions: commissionsTotal,
           other,
           tips_bonus: tipsBonus,
           movements,
+          investment,
+          office,
+          add_float: floatAdd,
           jp,
-          total: liveGame + slotsIncome + other,
+          total: totalIncome,
         },
+        cash: {
+          basic_float_opening: floatOpening,
+          basic_float_add: floatAdd,
+          basic_float_current: floatCurrent,
+          card_balance: cardBalance,
+          miss_chips: missChips,
+          miss_cards: missCards,
+          intercompany_cash: intercompanyCash,
+          intercompany_liability: icLiability,
+          intercompany_receivable: icReceivable,
+          expenses_actual: expensesActual,
+          collections_actual: collectionsActual,
+          liabilities,
+          unplanned_expenses: unplanned,
+        },
+        kpi: {
+          total_income: totalIncome,
+          expected_profit: expectedProfit,
+          cash_position: cashPosition,
+          manager_bonus: managerBonus,
+        },
+
         groups,
         collections,
         grand,
