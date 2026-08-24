@@ -222,13 +222,22 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           if (fb2Rate > 0) avgUsdTzs = fb2Rate;
         }
       }
-      const other = ((incomes as any)?.data || []).reduce((s: number, r: any) => {
+      const toTzs = (r: any) => {
         const amt = Number(r.amount || 0);
         const fx = Number(r.fx_rate || 0);
-        if (fx > 0) return s + amt * fx;
-        if (r.currency === "USD") return s + (avgUsdTzs ? amt * avgUsdTzs : 0);
-        return s + amt; // TZS
-      }, 0);
+        if (fx > 0) return amt * fx;
+        if (r.currency === "USD") return avgUsdTzs ? amt * avgUsdTzs : 0;
+        return amt; // TZS
+      };
+      const sumSources = (list: string[]) =>
+        ((incomes as any)?.data || [])
+          .filter((r: any) => list.includes(String(r.source || "")))
+          .reduce((s: number, r: any) => s + toTzs(r), 0);
+
+      const other = sumSources(COMMISSION_SOURCES);
+      const tipsBonus = sumSources(TIPS_BONUS_SOURCES);
+      const movements = sumSources(MOVEMENT_SOURCES);
+      const jp = sumSources(["jp"]);
 
       // Plan Year: if user entered only ONE month for (cat,currency), multiply by 12;
       // otherwise sum across entered months.
