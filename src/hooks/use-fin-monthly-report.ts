@@ -19,6 +19,7 @@ import {
 } from "@/hooks/use-fin-month-finance";
 import {
   cashPosition as calcCashPosition,
+  deposits as calcDeposits,
   expectedProfit as calcExpectedProfit,
   forecastCostBase,
   managerBonusForecast,
@@ -142,6 +143,8 @@ export type MonthlyReport = {
     unplanned_unpaid: number;
     /** Actual liability repayments posted in the month (cash out). */
     liability_payments: number;
+    /** Deposits = Tips & Bonuses + JP + Card Balance + Miss Chips + Miss Cards (signed). */
+    deposits: number;
     available_for_collection: number;
   };
   /** Month status + the full server-side finance block (single source of truth). */
@@ -673,6 +676,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           unplanned_not_in_actual: unplannedNotInActual,
           unplanned_unpaid: unplannedUnpaid,
           liability_payments: liabilityPayments,
+          deposits: depositsTotal,
           available_for_collection: availableForCollection,
         },
         month: mf,
