@@ -12,6 +12,7 @@ import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatNumberSpaces } from "@/lib/currency";
 import { useRunCloseMonth } from "@/hooks/use-fin-month-closures";
+import { useCloseMonthReport } from "@/hooks/use-fin-month-finance";
 import type { WalletBalanceRow } from "@/hooks/use-fin-balance";
 import { cn } from "@/lib/utils";
 
@@ -22,15 +23,24 @@ export function CloseMonthWizard({
   onOpenChange,
   wallets,
   usdTzs,
+  casinoId,
+  year: yearProp,
+  month: monthProp,
+  status,
 }: {
   open: boolean;
   onOpenChange: (b: boolean) => void;
   wallets: WalletBalanceRow[];
   usdTzs: number;
+  /** Canonical report close (`fin_close_month_report`) runs for this casino/month. */
+  casinoId?: string | null;
+  year?: number;
+  month?: number;
+  status?: "open" | "closed";
 }) {
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1; // month being closed = current
+  const year = yearProp ?? now.getFullYear();
+  const month = monthProp ?? now.getMonth() + 1;
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [note, setNote] = useState("");
@@ -110,6 +120,7 @@ export function CloseMonthWizard({
 
 
   const run = useRunCloseMonth();
+  const closeReport = useCloseMonthReport();
 
   const totalCollectionTzs = collection.reduce(
     (s, r) => s + (r.currency === "USD" ? r.amount * usdTzs : r.amount),
@@ -136,6 +147,8 @@ export function CloseMonthWizard({
       })),
       note,
     });
+    // Canonical report snapshot — freezes Final Profit / Manager Bonus.
+    if (casinoId) await closeReport.mutateAsync({ casino_id: casinoId, year, month, note });
     onOpenChange(false);
     resetAll();
   };
@@ -147,7 +160,7 @@ export function CloseMonthWizard({
         if (!b) resetAll();
         onOpenChange(b);
       }}
-      title={`Close Month · ${year}-${String(month).padStart(2, "0")}`}
+      title={`Close Month · ${year}-${String(month).padStart(2, "0")} · ${status === "closed" ? "Closed" : "Open"}`}
     >
       {/* Steps header */}
       <div className="flex items-center gap-2 mb-4">

@@ -20,6 +20,7 @@ import {
   ChevronRight,
   ChevronDown,
   CalendarCheck,
+  Sliders,
 } from "lucide-react";
 
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -37,6 +38,7 @@ import { useFinWallets, useUpsertFinWallet, useFinWalletTx } from "@/hooks/use-f
 import { useFinBalanceSnapshot, computeBalanceTotals } from "@/hooks/use-fin-balance";
 import { fmtDate } from "@/lib/format-date";
 import { CloseMonthWizard } from "@/pages/office/CloseMonthWizard";
+import { useAdjustFloat, useMonthFinance } from "@/hooks/use-fin-month-finance";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useCasino } from "@/lib/casino-context";
@@ -99,6 +101,10 @@ const eatTime = (ts: string | Date) =>
   });
 
 
+/** Signed amount colour helper (project tokens). */
+const cls = (n: number) =>
+  n > 0 ? "cms-amount-positive" : n < 0 ? "cms-amount-negative" : "text-muted-foreground";
+
 /* ============ Page ============ */
 
 export default function FinancesWalletsPage() {
@@ -111,6 +117,13 @@ export default function FinancesWalletsPage() {
   );
   const { data: wallets = [] } = useFinWallets();
   const upsert = useUpsertFinWallet();
+  /* Signed Basic Float adjustment lives ONLY here (not in Monthly Report). */
+  const adjustFloat = useAdjustFloat();
+  const [floatOpen, setFloatOpen] = useState(false);
+  const [floatDir, setFloatDir] = useState<"increase" | "decrease">("increase");
+  const [floatAmt, setFloatAmt] = useState(0);
+  const [floatWallet, setFloatWallet] = useState<string>("");
+  const [floatNote, setFloatNote] = useState("");
   /**
    * Physical counts always belong to the business day being closed (yesterday):
    * on 05/08 the counted day is 04/08 (it rolled over at 07:00 EAT).
@@ -121,6 +134,9 @@ export default function FinancesWalletsPage() {
   const now = new Date();
   const { period } = useOfficePeriod();
   const ym = { year: period.year, month: period.month };
+  const { data: monthFinance } = useMonthFinance(activeCasinoId, ym.year, ym.month);
+  const monthClosed = monthFinance?.status === "closed";
+  const floatCurrent = Number(monthFinance?.float?.current_tzs || 0);
   const [walletFilter, setWalletFilter] = useSessionState<string>("wallet", "all");
   const [kindFilter, setKindFilter] = useSessionState<string>("kind", "all");
   const [sort, setSort] = useSessionState<"date_desc" | "date_asc" | "amount_desc" | "amount_asc">(
@@ -543,8 +559,15 @@ export default function FinancesWalletsPage() {
           <Plus className="w-4 h-4" /> Add Wallet
         </Button>
         {canCloseMonth && (
+          <Button variant="outline" size="sm" className="h-9" onClick={() => setFloatOpen(true)}>
+            <Sliders className="w-4 h-4" /> Adjust Float
+          </Button>
+        )}
+        {canCloseMonth && (
           <Button variant="outline" size="sm" className="h-9" onClick={() => setCloseOpen(true)}>
-            <CalendarCheck className="w-4 h-4" /> Close Month
+            <CalendarCheck className="w-4 h-4" />
+            Close Month · {ym.year}-{String(ym.month).padStart(2, "0")} ·{" "}
+            {monthClosed ? "Closed" : "Open"}
           </Button>
         )}
       </OfficeActions>
@@ -589,12 +612,12 @@ export default function FinancesWalletsPage() {
               v={snap?.starting_float?.grand_tzs || 0}
               positive
             />
+            <BreakdownRow label="Add Float" v={snap?.incomes?.add_float || 0} signed />
             <BreakdownRow label="Table Result" v={snap?.incomes?.live_game || 0} positive />
             <BreakdownRow label="Slot Result" v={snap?.incomes?.slots || 0} positive />
             <BreakdownRow label="Commissions" v={snap?.incomes?.other || 0} signed />
             <BreakdownRow label="Tips & Bonuses (±)" v={snap?.incomes?.tips_bonus || 0} signed />
             <BreakdownRow label="Other movements (investment / office)" v={snap?.incomes?.movements || 0} signed />
-            <BreakdownRow label="Add Float" v={snap?.incomes?.add_float || 0} signed />
             <BreakdownRow label="JP (±)" v={snap?.incomes?.jp || 0} signed />
 
             <BreakdownRow label="Card Balance (Σ daily diff)" v={snap?.incomes?.card_balance || 0} signed />
@@ -609,10 +632,6 @@ export default function FinancesWalletsPage() {
             <div className="border-t-2 border-border">
               <BreakdownRow label="= Expected" v={totals.expected} bold signed />
             </div>
-            <div className="border-t border-border">
-              <BreakdownRow label="Actual (Σ wallets · last recorded state)" v={totals.actual} bold signed />
-              <BreakdownRow label="= Variance (Actual − Expected)" v={totals.variance} bold signed />
-            </div>
 
           </div>
           <div className="text-[10px] text-muted-foreground mt-1">
@@ -623,6 +642,20 @@ export default function FinancesWalletsPage() {
         <PageSection title="Grand Total (Wallets)" card={false}>
           <div className="rounded-md border border-border bg-card p-4 space-y-3">
             <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-md border border-border bg-background p-3">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Expected</div>
+                <div className={cn("font-mono tabular-nums text-2xl font-semibold mt-1", cls(totals.expected))}>
+                  {formatNumberSpaces(totals.expected)}
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">Breakdown total (TZS)</div>
+              </div>
+              <div className="rounded-md border border-border bg-background p-3">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Actual</div>
+                <div className={cn("font-mono tabular-nums text-2xl font-semibold mt-1", cls(totals.actual))}>
+                  {formatNumberSpaces(totals.actual)}
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">Σ wallets · last recorded state</div>
+              </div>
               <div className="rounded-md border border-border bg-background p-3">
                 <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Grand TZS</div>
                 <div className="font-mono tabular-nums text-2xl font-semibold mt-1">
@@ -1347,11 +1380,84 @@ export default function FinancesWalletsPage() {
       />
 
       {canCloseMonth && (
+        <ResponsiveDialog
+          open={floatOpen}
+          onOpenChange={setFloatOpen}
+          title="Adjust Basic Float"
+          description="Signed adjustment. Cash is posted to the selected wallet."
+        >
+          <div className="space-y-3">
+            <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-[13px] flex items-center justify-between">
+              <span className="text-muted-foreground">Current → Resulting</span>
+              <span className="font-mono tabular-nums">
+                {formatNumberSpaces(floatCurrent)} →{" "}
+                <b className={cls(floatCurrent + (floatDir === "decrease" ? -floatAmt : floatAmt))}>
+                  {formatNumberSpaces(floatCurrent + (floatDir === "decrease" ? -floatAmt : floatAmt))}
+                </b>
+              </span>
+            </div>
+            <FormGrid>
+              <FormField label="Direction">
+                <Select value={floatDir} onValueChange={(v) => setFloatDir(v as any)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="increase">Increase (+)</SelectItem>
+                    <SelectItem value="decrease">Decrease (−)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormField>
+              <FormField label="Amount (TZS)">
+                <NumberInput value={floatAmt} onValueChange={setFloatAmt} />
+              </FormField>
+              <FormField label="Wallet">
+                <Select value={floatWallet} onValueChange={setFloatWallet}>
+                  <SelectTrigger><SelectValue placeholder="Select wallet" /></SelectTrigger>
+                  <SelectContent>
+                    {wallets.map((w: any) => (
+                      <SelectItem key={w.id} value={w.id}>
+                        {w.name} · {w.currency}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+              <FormField label="Note">
+                <Input value={floatNote} onChange={(e) => setFloatNote(e.target.value)} />
+              </FormField>
+            </FormGrid>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setFloatOpen(false)}>Cancel</Button>
+              <Button
+                disabled={!activeCasinoId || !floatWallet || !floatAmt || adjustFloat.isPending}
+                onClick={async () => {
+                  await adjustFloat.mutateAsync({
+                    casino_id: activeCasinoId as string,
+                    wallet_id: floatWallet,
+                    amount: floatDir === "decrease" ? -floatAmt : floatAmt,
+                    note: floatNote || undefined,
+                  });
+                  setFloatOpen(false);
+                  setFloatAmt(0);
+                  setFloatNote("");
+                }}
+              >
+                Apply
+              </Button>
+            </div>
+          </div>
+        </ResponsiveDialog>
+      )}
+
+      {canCloseMonth && (
         <CloseMonthWizard
           open={closeOpen}
           onOpenChange={setCloseOpen}
           wallets={(snap?.wallets || []) as any}
           usdTzs={usdRate}
+          casinoId={activeCasinoId}
+          year={ym.year}
+          month={ym.month}
+          status={monthClosed ? "closed" : "open"}
         />
       )}
     </PageShell>

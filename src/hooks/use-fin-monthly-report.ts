@@ -19,6 +19,7 @@ import {
 } from "@/hooks/use-fin-month-finance";
 import {
   cashPosition as calcCashPosition,
+  deposits as calcDeposits,
   expectedProfit as calcExpectedProfit,
   forecastCostBase,
   managerBonusForecast,
@@ -142,6 +143,8 @@ export type MonthlyReport = {
     unplanned_unpaid: number;
     /** Actual liability repayments posted in the month (cash out). */
     liability_payments: number;
+    /** Deposits = Tips & Bonuses + JP + Card Balance + Miss Chips + Miss Cards (signed). */
+    deposits: number;
     available_for_collection: number;
   };
   /** Month status + the full server-side finance block (single source of truth). */
@@ -594,39 +597,45 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       const totalIncome = liveGame + slotsIncome + barIncome + commissionsTotal;
       const budget = grand.plan_month_grand_tzs;
       const isClosed = mf?.status === "closed";
-      // OPEN: Total Income − (Budget + Unplanned + outstanding Liabilities).
-      // CLOSED: Total Income − Total Actual Expenses − Closing Liabilities (RPC snapshot).
+      /** Deposits — cage money owed to third parties (subtracted once from Cash Position). */
+      const depositsTotal = calcDeposits({
+        tipsBonus,
+        jp,
+        cardBalance,
+        missChips,
+        missCards,
+      });
+      // OPEN: Total Income − Budget − Unplanned − Liabilities − Collections.
+      // CLOSED: frozen Final Profit from the RPC snapshot (collections never rewrite it).
       const expectedProfit = mf
         ? Number(mf.profit || 0)
         : calcExpectedProfit(
             totalIncome,
             forecastCostBase({ budget, unplannedTotal: unplanned, liabilitiesClosing: liabilities }),
+            collectionsActual,
           );
       const cashPosition = mf
         ? Number(mf.cash_position || 0)
         : calcCashPosition({
             floatCurrent,
             totalIncome,
-            tipsBonus,
-            jp,
+            deposits: depositsTotal,
             investment,
             office,
             intercompanyCash,
-            cardBalance,
-            missChips,
-            missCards,
             expensesActual,
-            unplannedPaidCash,
             liabilityPayments,
             collections: collectionsActual,
           });
       const managerBonus = mf
         ? Number(mf.manager_bonus || 0)
-        : managerBonusForecast({ totalIncome, budget, unplannedTotal: unplanned });
+        : managerBonusForecast({ totalIncome, budget });
       const availableForCollection = mf
         ? Number(mf.available_for_collection || 0)
-        : Math.max(0, expectedProfit - collectionsActual);
+        : Math.max(0, expectedProfit);
       void isClosed;
+      void unplannedPaidCash;
+
 
 
       return {
@@ -667,6 +676,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           unplanned_not_in_actual: unplannedNotInActual,
           unplanned_unpaid: unplannedUnpaid,
           liability_payments: liabilityPayments,
+          deposits: depositsTotal,
           available_for_collection: availableForCollection,
         },
         month: mf,

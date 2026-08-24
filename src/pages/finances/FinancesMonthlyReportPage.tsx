@@ -255,11 +255,8 @@ export default function FinancesMonthlyReportPage() {
   return (
     <PageShell>
       <OfficeActions>
-        {data?.usd_rate ? (
-          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-            USD→TZS @ {formatNumberSpaces(Math.round(data.usd_rate))}
-          </span>
-        ) : null}
+
+
         {isPremier && (
           <Button
             variant={scope === "network" ? "default" : "outline"}
@@ -371,67 +368,137 @@ export default function FinancesMonthlyReportPage() {
 
 
 /**
- * Summary block — one compact table combining Incomes, Budget (Plan / Actual / Remain)
- * and Result (Profit / Collections / Net Balance). Remain = Plan/Month − Actual everywhere.
+ * Summary header — KPI tiles first, then three equal-width cards:
+ * Month Summary / Income · Expenses & Obligations · Cash Adjustments.
+ * Collapsible sections (Unplanned, Liabilities, Deposits) are real buttons,
+ * so keyboard focus and Enter/Space work without extra handlers.
  */
 const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report").MonthlyReport }) => {
   const inc = data.incomes;
   const cash = data.cash;
   const kpi = data.kpi;
   const g = data.grand;
-  const closed = data.month?.status === "closed";
-  const closedAt = data.month?.closed_at || null;
-  const pctTxt = (n: number, d: number) => (d ? pct(n / d) : "—");
+  const mf = data.month;
+  const closed = mf?.status === "closed";
+  const closedAt = mf?.closed_at || null;
 
+  const planRatio = g.plan_month_grand_tzs ? g.actual_grand_tzs / g.plan_month_grand_tzs : null;
+
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const toggleSection = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
+
+  const unplannedItems = (mf?.unplanned?.items || []).filter(
+    (i) => !i.voided_at && !i.reversal_of && Number(i.amount_tzs || 0) > 0,
+  );
+  const liabilityItems = (mf?.liabilities?.items || []).filter((l) => !l.voided_at);
+  const liabilityPayments = mf?.liabilities?.payments || [];
+
+  const depositsTotal = cash.deposits;
 
   const cardHeader =
-    "h-8 px-3 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/40 border-b border-border";
+    "h-10 px-3 flex items-center justify-between gap-2 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/40 border-b border-border";
   const card = "rounded-md border border-border bg-card overflow-hidden flex flex-col";
 
-  /** Dense label/value line used by all three detail cards. */
+  /** Readable label/value line used by all three cards. */
   const Line = ({
     label,
     v,
     hint,
     strong,
     signed,
-    placeholder,
+    sub,
   }: {
     label: string;
-    v?: number;
+    v: number;
     hint?: string;
     strong?: boolean;
     signed?: boolean;
-    placeholder?: string;
+    sub?: boolean;
   }) => (
     <div
       className={cn(
-        "flex items-baseline justify-between gap-3 px-3 border-t border-border",
-        strong ? "h-10 bg-muted/30" : "h-8",
+        "flex items-center justify-between gap-3 px-3 border-t border-border",
+        strong ? "min-h-[44px] bg-muted/30" : "min-h-[36px]",
+        sub && "pl-6",
       )}
     >
       <span
         className={cn(
-          "truncate",
-          strong ? "text-[12px] font-semibold" : "text-[11px] text-muted-foreground",
+          "truncate leading-snug",
+          strong ? "text-[14px] font-semibold" : sub ? "text-[12px] text-muted-foreground" : "text-[13px]",
         )}
       >
         {label}
-        {hint ? <span className="ml-1 text-[10px] text-muted-foreground/70">· {hint}</span> : null}
+        {hint ? <span className="ml-1 text-[12px] text-muted-foreground/70">· {hint}</span> : null}
       </span>
-      {placeholder ? (
-        <span className="font-mono text-[11px] text-muted-foreground/70 whitespace-nowrap">{placeholder}</span>
-      ) : (
-        <span
-          className={cn(
-            "font-mono tabular-nums whitespace-nowrap",
-            strong ? "text-[15px] font-bold" : "text-[13px] font-semibold",
-            signed ? cls(v || 0) : undefined,
-          )}
+      <span
+        className={cn(
+          "font-mono tabular-nums whitespace-nowrap",
+          strong ? "text-[17px] font-bold" : sub ? "text-[13px]" : "text-[15px] font-semibold",
+          signed ? cls(v || 0) : undefined,
+        )}
+      >
+        {fmtT(v || 0)}
+      </span>
+    </div>
+  );
+
+  /** Collapsible summary row: header button + revealed detail children. */
+  const Section = ({
+    id,
+    label,
+    total,
+    summary,
+    signed,
+    children,
+  }: {
+    id: string;
+    label: string;
+    total: number;
+    summary?: string;
+    signed?: boolean;
+    children: React.ReactNode;
+  }) => {
+    const isOpen = !!open[id];
+    return (
+      <div className="border-t border-border">
+        <button
+          type="button"
+          aria-expanded={isOpen}
+          onClick={() => toggleSection(id)}
+          className="w-full min-h-[36px] px-3 flex items-center justify-between gap-3 text-left hover:bg-muted/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
         >
-          {fmtT(v || 0)}
-        </span>
-      )}
+          <span className="flex items-center gap-1.5 min-w-0">
+            {isOpen ? (
+              <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+            )}
+            <span className="text-[13px] truncate">{label}</span>
+            {summary ? (
+              <span className="text-[12px] text-muted-foreground/80 truncate">· {summary}</span>
+            ) : null}
+          </span>
+          <span
+            className={cn(
+              "font-mono tabular-nums text-[15px] font-semibold whitespace-nowrap",
+              signed ? cls(total || 0) : undefined,
+            )}
+          >
+            {fmtT(total || 0)}
+          </span>
+        </button>
+        {isOpen && <div className="bg-muted/20 pb-1">{children}</div>}
+      </div>
+    );
+  };
+
+  const DetailRow = ({ left, label, value, tag }: { left?: string; label: string; value: number; tag?: string }) => (
+    <div className="flex items-center gap-2 px-3 py-1 text-[12px] border-t border-border/40">
+      {left ? <span className="w-20 shrink-0 font-mono text-muted-foreground">{left}</span> : null}
+      <span className="flex-1 truncate" title={label}>{label}</span>
+      {tag ? <span className="text-[11px] uppercase text-muted-foreground">{tag}</span> : null}
+      <span className="font-mono tabular-nums w-28 text-right">{fmtT(value)}</span>
     </div>
   );
 
@@ -446,18 +513,33 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
     formula: string;
     tone?: "neutral" | "signed";
   }) => (
-    <div className="rounded-md border border-border bg-card px-4 py-3 flex flex-col gap-1" title={formula}>
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
+    <div className="rounded-md border border-border bg-card px-4 py-3 flex flex-col gap-1.5 min-h-[112px]" title={formula}>
+      <div className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
       <div
         className={cn(
-          "font-mono tabular-nums text-[24px] leading-none font-bold",
+          "font-mono tabular-nums text-[30px] leading-none font-bold",
           tone === "signed" ? cls(v) : undefined,
         )}
       >
         {fmtT(v)}
       </div>
-      <div className="text-[10px] text-muted-foreground/80 leading-snug">{formula}</div>
+      <div className="text-[12px] text-muted-foreground/90 leading-snug">{formula}</div>
     </div>
+  );
+
+  const planTone =
+    planRatio == null
+      ? "border-border bg-muted text-muted-foreground"
+      : planRatio > 1.1
+        ? "border-red-500/40 bg-red-500/15 text-red-500"
+        : planRatio > 1
+          ? "border-orange-500/40 bg-orange-500/15 text-orange-500"
+          : "border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400";
+
+  const PlanBadge = () => (
+    <span className={cn("text-[12px] font-semibold px-2 py-0.5 rounded border normal-case tracking-normal", planTone)}>
+      {planRatio == null ? "no plan" : `${Math.round(planRatio * 100)}% of plan`}
+    </span>
   );
 
   return (
@@ -467,7 +549,7 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
       titleRight={
         <span
           className={cn(
-            "text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border",
+            "text-[12px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded border",
             closed
               ? "border-border bg-muted text-muted-foreground"
               : "border-primary/40 bg-primary/10 text-primary",
@@ -477,66 +559,8 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
         </span>
       }
     >
-      {/* DETAIL GROUPS */}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-        {/* A · INCOME */}
-        <div className={card}>
-          <div className={cardHeader}>
-            <span>Income</span>
-            <span className="normal-case tracking-normal text-[10px]">TZS</span>
-          </div>
-          <Line label="Table Result" v={inc.table_result} signed />
-          <Line label="Slot Result" v={inc.slot_result} signed />
-          <Line label="Bar Income" v={inc.bar_income} />
-          <Line label="Commission" v={inc.commission} signed />
-          <Line label="Agent Commission" v={inc.agent_commission} signed />
-          <Line label="Fee" v={inc.fee} signed />
-          <Line label="Total Income" v={kpi.total_income} strong signed />
-        </div>
-
-        {/* B · EXPENSES & OBLIGATIONS */}
-        <div className={card}>
-          <div className={cardHeader}>
-            <span>Expenses &amp; Obligations</span>
-            <span className="normal-case tracking-normal text-[10px]">
-              {pctTxt(g.actual_grand_tzs, g.plan_month_grand_tzs)} of plan
-            </span>
-          </div>
-          <Line label="Budget" hint="plan, Grand TZS" v={g.plan_month_grand_tzs} />
-          <Line label="Total Actual Expenses" v={cash.expenses_actual} />
-          <Line label="Unplanned Expenses" hint="total this month" v={cash.unplanned_expenses} />
-          <Line label="· paid" v={cash.unplanned_paid} />
-          <Line label="· unpaid" v={cash.unplanned_unpaid} />
-          <Line label="Liabilities" hint="outstanding, closing" v={cash.liabilities} />
-          <Line label="Liability Repayments" hint="cash out this month" v={cash.liability_payments} />
-          <Line label="Collections" hint="cash already withdrawn" v={cash.collections_actual} />
-          <Line label="Remain vs Budget" v={g.remain_grand_tzs} strong signed />
-        </div>
-
-        {/* C · CASH ADJUSTMENTS */}
-        <div className={card}>
-          <div className={cardHeader}>
-            <span>Cash Adjustments</span>
-            <span className="normal-case tracking-normal text-[10px]">not income</span>
-          </div>
-          <Line label="Opening Basic Float" v={cash.basic_float_opening} />
-          <Line label="Float Adjustments (±)" v={cash.basic_float_add} signed />
-          <Line label="Current Basic Float" v={cash.basic_float_current} strong />
-          <Line label="Tips &amp; Bonuses (±)" v={inc.tips_bonus} signed />
-          <Line label="JP (±)" v={inc.jp} signed />
-          <Line label="Investment" v={inc.investment} signed />
-          <Line label="Office" v={inc.office} signed />
-          <Line label="Intercompany cash effect" v={cash.intercompany_cash} signed />
-          <Line label="Card Balance adjustment" v={cash.card_balance} signed />
-          <Line label="Miss Chips adjustment" v={cash.miss_chips} signed />
-          <Line label="Miss Cards adjustment" v={cash.miss_cards} signed />
-          <Line label="Available for Collection" v={cash.available_for_collection} strong />
-        </div>
-      </div>
-
-      {/* D · KPI */}
-      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      {/* KPI TILES */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         <KpiCard
           label="Total Income"
           v={kpi.total_income}
@@ -549,33 +573,138 @@ const SummaryBlock = ({ data }: { data: import("@/hooks/use-fin-monthly-report")
           tone="signed"
           formula={
             closed
-              ? "Total Income − Total Actual Expenses − Liabilities outstanding"
-              : "Total Income − Budget − Unplanned − Liabilities outstanding"
+              ? "Final · Total Income − Actual Expenses − Unplanned not in Actual − Liabilities (frozen at close)"
+              : "Forecast · Total Income − Budget − Unplanned − Liabilities − Collections"
           }
         />
         <KpiCard
           label="Cash Position"
           v={kpi.cash_position}
           tone="signed"
-          formula="Float + Income ± wallet movements − Actual Expenses − Paid Unplanned − Liability Repayments − Collections"
+          formula="Basic Float + Income − Deposits + Office + Investment + Transfers − Actual Expenses − Collections − Liability Payments"
         />
         <KpiCard
           label="Manager Bonus"
           v={kpi.manager_bonus}
           formula={
             closed
-              ? "max(0, 5% × (Total Income − Total Actual Expenses))"
-              : "max(0, 5% × (Total Income − Budget − Unplanned))"
+              ? "Final · max(0, 5% × (Total Income − Actual Expenses))"
+              : "Forecast · max(0, 5% × (Total Income − Budget))"
           }
         />
       </div>
 
-
-      {data.usd_rate > 0 && (
-        <div className="mt-2 text-[10px] text-muted-foreground">
-          Grand TZS uses USD→TZS @ {formatNumberSpaces(Math.round(data.usd_rate))}
+      {/* THREE EQUAL SUMMARY CARDS */}
+      <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-stretch">
+        {/* A · MONTH SUMMARY / INCOME */}
+        <div className={card}>
+          <div className={cardHeader}>
+            <span>Month Summary · Income</span>
+            <span className="normal-case tracking-normal text-[12px]">TZS</span>
+          </div>
+          <Line label="Table Result" v={inc.table_result} signed />
+          <Line label="Slot Result" v={inc.slot_result} signed />
+          <Line label="Bar Income" v={inc.bar_income} />
+          <Line label="Agents" v={inc.agent_commission} signed />
+          <div className="flex-1" />
+          <Line label="Total Income" v={kpi.total_income} strong signed />
         </div>
-      )}
+
+        {/* B · EXPENSES & OBLIGATIONS */}
+        <div className={card}>
+          <div className={cardHeader}>
+            <span>Expenses &amp; Obligations</span>
+            <PlanBadge />
+          </div>
+          <Line label="Budget" hint="plan, Grand TZS" v={g.plan_month_grand_tzs} />
+          <Line label="Actual Expenses" v={cash.expenses_actual} />
+          <Line label="Commissions" v={inc.commission} signed />
+          <Line label="Fee" v={inc.fee} signed />
+          <Section
+            id="unplanned"
+            label="Unplanned Expenses"
+            total={cash.unplanned_expenses}
+            summary={`${fmtT(cash.unplanned_paid)} paid · ${fmtT(cash.unplanned_unpaid)} unpaid`}
+          >
+            {unplannedItems.length === 0 ? (
+              <div className="px-3 py-2 text-[12px] text-muted-foreground">No unplanned expenses this month.</div>
+            ) : (
+              unplannedItems.map((i) => (
+                <DetailRow
+                  key={i.id}
+                  left={fmtDateOnly(i.business_date)}
+                  label={i.description || i.label}
+                  value={i.amount_tzs}
+                  tag={i.paid ? "Paid" : "Unpaid"}
+                />
+              ))
+            )}
+          </Section>
+          <Section
+            id="liabilities"
+            label="Liabilities"
+            total={cash.liabilities}
+            summary={`${fmtT(mf?.liabilities?.repaid_tzs || 0)} repaid`}
+          >
+            <DetailRow label="Opening" value={mf?.liabilities?.opening_tzs || 0} />
+            <DetailRow label="New this month" value={mf?.liabilities?.new_tzs || 0} />
+            <DetailRow label="Repaid" value={-(mf?.liabilities?.repaid_tzs || 0)} />
+            <DetailRow label="Closing outstanding" value={mf?.liabilities?.closing_tzs || 0} />
+            {liabilityItems.map((l) => (
+              <DetailRow
+                key={l.id}
+                left={fmtDateOnly(l.business_date)}
+                label={`${l.creditor}${l.description ? ` · ${l.description}` : ""}`}
+                value={l.outstanding_tzs}
+                tag={l.status}
+              />
+            ))}
+            {liabilityPayments.map((p) => (
+              <DetailRow
+                key={p.id}
+                left={fmtDateOnly(p.business_date)}
+                label={p.note || "Repayment"}
+                value={-p.amount_tzs}
+                tag="paid"
+              />
+            ))}
+          </Section>
+          <Line label="Collections" hint="cash already withdrawn" v={cash.collections_actual} />
+        </div>
+
+        {/* C · CASH ADJUSTMENTS */}
+        <div className={card}>
+          <div className={cardHeader}>
+            <span>Cash Adjustments</span>
+            <span className="normal-case tracking-normal text-[12px]">not income</span>
+          </div>
+          <Section
+            id="float"
+            label="Basic Float"
+            total={cash.basic_float_current}
+            summary={`incl. ${fmtT(cash.basic_float_add)} adjustment`}
+          >
+            <DetailRow label="Opening Basic Float" value={cash.basic_float_opening} />
+            <DetailRow label="Float Adjustment (±)" value={cash.basic_float_add} />
+          </Section>
+          <Section
+            id="deposits"
+            label="Deposits"
+            total={depositsTotal}
+            signed
+            summary="held for third parties"
+          >
+            <DetailRow label="Tips & Bonuses (±)" value={inc.tips_bonus} />
+            <DetailRow label="JP (±)" value={inc.jp} />
+            <DetailRow label="Card Balance" value={cash.card_balance} />
+            <DetailRow label="Miss Chips" value={cash.miss_chips} />
+            <DetailRow label="Miss Cards" value={cash.miss_cards} />
+          </Section>
+          <Line label="Office" v={inc.office} signed />
+          <Line label="Investment" v={inc.investment} signed />
+          <Line label="Transfers" hint="intercompany cash effect" v={cash.intercompany_cash} signed />
+        </div>
+      </div>
     </PageSection>
   );
 };
