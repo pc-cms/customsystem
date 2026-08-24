@@ -120,6 +120,16 @@ export default function FinancesMonthlyReportPage() {
   );
   const { data, isLoading } = useMonthlyReport({ year, month, ytd: false, scope: scope || activeCasinoId || "" });
 
+  /* Total Money = Wallets · Expected for the same month (single source of truth). */
+  const walletRange = useMemo(() => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const last = new Date(year, month, 0).getDate();
+    return { from: `${year}-${pad(month)}-01`, to: `${year}-${pad(month)}-${pad(last)}` };
+  }, [year, month]);
+  const { data: walletSnap } = useFinBalanceSnapshot(walletRange.from, walletRange.to);
+  const walletTotals = useMemo(() => computeBalanceTotals(walletSnap), [walletSnap]);
+
+
   const toggle = (id: string) => setExpanded((e) => (e === id ? null : id));
 
   const exportXlsx = async () => {
