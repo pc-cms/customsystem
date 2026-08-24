@@ -168,7 +168,7 @@ export default function FinancesWalletsPage() {
   const totals = useMemo(() => computeBalanceTotals(snap), [snap]);
   const usdRate = snap?.rates?.usd_tzs || 2600;
 
-  const [txLimit, setTxLimit] = useState<string>("50");
+  const [txLimit, setTxLimit] = useState<string>("10");
   const { data: tx = [] } = useFinWalletTx({
     from: monthRange.from,
     to: monthRange.to,
@@ -705,7 +705,7 @@ export default function FinancesWalletsPage() {
               </div>
             </div>
             <div className="border-t border-border pt-2">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1.5">
                 Per currency (native units) · Cash / Mobile / Bank
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
@@ -714,12 +714,12 @@ export default function FinancesWalletsPage() {
                   return (
                     <div key={c} className="rounded border border-border/50 bg-background/50 px-2 py-1.5">
                       <div className="flex items-baseline justify-between">
-                        <span className="text-[11px] font-mono text-muted-foreground">{c}</span>
-                        <span className="font-mono tabular-nums text-sm font-semibold">
+                        <span className="text-xs font-mono text-muted-foreground">{c}</span>
+                        <span className="font-mono tabular-nums text-base font-semibold">
                           {formatNumberSpaces(grandTotals.perCcy[c])}
                         </span>
                       </div>
-                      <div className="mt-1 grid grid-cols-3 gap-1 text-[10px]">
+                      <div className="mt-1 grid grid-cols-3 gap-2 text-xs">
                         {([
                           ["Cash", b.cash],
                           ["Mobile", b.mobile],
@@ -727,12 +727,13 @@ export default function FinancesWalletsPage() {
                         ] as const).map(([lbl, v]) => (
                           <div key={lbl} className="flex items-baseline justify-between gap-1">
                             <span className="uppercase tracking-wider text-muted-foreground">{lbl}</span>
-                            <span className="font-mono tabular-nums">
+                            <span className="font-mono tabular-nums text-sm">
                               {v ? formatNumberSpaces(v) : "·"}
                             </span>
                           </div>
                         ))}
                       </div>
+
                     </div>
                   );
                 })}
