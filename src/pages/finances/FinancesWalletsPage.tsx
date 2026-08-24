@@ -706,39 +706,41 @@ export default function FinancesWalletsPage() {
             </div>
             <div className="border-t border-border pt-2">
               <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1.5">
-                Per currency (native units) · Cash / Mobile / Bank
+                Per currency (native units)
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
                 {CURRENCY_ORDER.filter((c) => grandTotals.perCcy[c]).map((c) => {
                   const b = grandTotals.perCcyBucket[c] || { cash: 0, mobile: 0, bank: 0 };
+                  const buckets: [string, number][] =
+                    c === "TZS"
+                      ? [["Cash", b.cash], ["Mobile", b.mobile], ["Bank", b.bank]]
+                      : c === "USD"
+                        ? [["Cash", b.cash], ["Bank", b.bank]]
+                        : [["Cash", b.cash]];
                   return (
-                    <div key={c} className="rounded border border-border/50 bg-background/50 px-2 py-1.5">
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-xs font-mono text-muted-foreground">{c}</span>
-                        <span className="font-mono tabular-nums text-base font-semibold">
+                    <div key={c} className="rounded-md border border-border/60 bg-background/50 px-3 py-2">
+                      <div className="flex items-baseline justify-between gap-3 pb-1.5 border-b border-border/50">
+                        <span className="text-xs font-semibold tracking-wider text-muted-foreground">{c}</span>
+                        <span className="font-mono tabular-nums text-base font-semibold whitespace-nowrap">
                           {formatNumberSpaces(grandTotals.perCcy[c])}
                         </span>
                       </div>
-                      <div className="mt-1 grid grid-cols-3 gap-2 text-xs">
-                        {([
-                          ["Cash", b.cash],
-                          ["Mobile", b.mobile],
-                          ["Bank", b.bank],
-                        ] as const).map(([lbl, v]) => (
-                          <div key={lbl} className="flex items-baseline justify-between gap-1">
-                            <span className="uppercase tracking-wider text-muted-foreground">{lbl}</span>
-                            <span className="font-mono tabular-nums text-sm">
+                      <dl className="mt-1.5 space-y-0.5">
+                        {buckets.map(([lbl, v]) => (
+                          <div key={lbl} className="flex items-baseline justify-between gap-3">
+                            <dt className="text-xs uppercase tracking-wider text-muted-foreground">{lbl}</dt>
+                            <dd className="font-mono tabular-nums text-sm whitespace-nowrap">
                               {v ? formatNumberSpaces(v) : "·"}
-                            </span>
+                            </dd>
                           </div>
                         ))}
-                      </div>
-
+                      </dl>
                     </div>
                   );
                 })}
               </div>
             </div>
+
 
           </div>
         </PageSection>
