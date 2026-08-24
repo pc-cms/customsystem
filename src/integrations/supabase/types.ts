@@ -11530,6 +11530,7 @@ export type Database = {
           _casino_id: string
           _client_balance: number
           _drop_slots: number
+          _jp_in?: number
           _net_win: number
         }
         Returns: Json

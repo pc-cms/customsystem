@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.ace_apply_closed_report(uuid, date, numeric, numeric, numeric, numeric, numeric) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.ace_apply_closed_report(uuid, date, numeric, numeric, numeric, numeric, numeric) TO service_role;
