@@ -37,6 +37,15 @@ const STATUS_STYLE: Record<string, string> = {
   cancelled: "bg-muted text-muted-foreground border-border",
 };
 
+/** Row tint by transfer status. */
+const ROW_STYLE: Record<string, string> = {
+  pending: "bg-amber-500/5 hover:bg-amber-500/10",
+  accepted: "bg-emerald-500/5 hover:bg-emerald-500/10",
+  rejected: "bg-destructive/5 hover:bg-destructive/10",
+  cancelled: "bg-muted/30 text-muted-foreground hover:bg-muted/50",
+};
+
+
 export default function FinancesInterCasinoPage() {
   const { data: wallets = [] } = useFinWallets();
   const { data: rows = [] } = useInterCasinoTransfers();
@@ -135,7 +144,10 @@ export default function FinancesInterCasinoPage() {
                   {(rows as InterCasinoTransfer[]).map((r) => {
                     const isOut = r.from_casino_id === activeCasinoId;
                     return (
-                      <tr key={r.id} className="border-t border-border hover:bg-muted/40">
+                      <tr
+                        key={r.id}
+                        className={`border-t border-border ${ROW_STYLE[r.status] || "hover:bg-muted/40"}`}
+                      >
                         <td className="px-3 py-1.5 font-mono text-xs">{fmtDate(r.business_date)}</td>
                         <td className="px-3 py-1.5 text-xs">
                           {r.from_casino?.name} · <span className="text-muted-foreground">{r.from_wallet?.name}</span>
@@ -146,23 +158,24 @@ export default function FinancesInterCasinoPage() {
                         </td>
                         <td className="px-3 py-1.5 text-center">
                           {isOut || isSummaryMode ? (
-                            <span className="inline-flex items-center gap-1 text-cms-amount-negative">
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-cms-amount-negative">
                               <ArrowUpRight className="w-3.5 h-3.5" /> OUT
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-cms-amount-positive">
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-cms-amount-positive">
                               <ArrowDownLeft className="w-3.5 h-3.5" /> IN
                             </span>
                           )}
                         </td>
                         <td
-                          className={`px-3 py-1.5 text-right font-mono ${
+                          className={`px-3 py-1.5 text-right font-mono tabular-nums font-semibold ${
                             isOut ? "text-cms-amount-negative" : "text-cms-amount-positive"
                           }`}
                         >
                           {isOut ? "−" : "+"}
                           {formatNumberSpaces(Number(r.amount))} {r.currency}
                         </td>
+
                         <td className="px-3 py-1.5 text-center">
                           <Badge variant="outline" className={STATUS_STYLE[r.status]}>
                             {r.status}

@@ -103,22 +103,25 @@ export default function WalletDayGridTab({
       style: { width: 130, minWidth: 130 },
     };
 
+    const amountClass = (v: number) =>
+      v > 0 ? "cms-amount-positive" : v < 0 ? "cms-amount-negative" : "text-muted-foreground/50";
+
     const walletCols: ColumnDef<Row>[] = wallets.map((w) => ({
       key: w.id,
       header: (
         <div className="text-right leading-tight">
-          <div className="truncate">{w.name}</div>
-          <div className="text-[10px] text-muted-foreground">{w.currency}</div>
+          <div className="truncate text-[11px] font-semibold">{w.name}</div>
+          <div className="text-[10px] font-normal text-muted-foreground">{w.currency}</div>
         </div>
       ),
       headerClassName: "text-right",
-      cellClassName: "text-right",
+      cellClassName: "text-right border-l border-border/40 py-1",
       style: { minWidth: 116 },
       accessor: (r) => {
         if (r.kind === "start") {
           const v = startBalances.get(w.id) || 0;
           return (
-            <span className="font-mono tabular-nums font-semibold">
+            <span className={`font-mono tabular-nums text-[12px] font-semibold ${amountClass(v)}`}>
               {v ? formatNumberSpaces(v) : "·"}
             </span>
           );
@@ -126,18 +129,18 @@ export default function WalletDayGridTab({
         const c = cellOf(w.id, r.date!);
         const auto = c.total - c.manual;
         return (
-          <div className="flex flex-col items-end">
+          <div className="flex flex-col items-end leading-tight">
             <InlineNumberCell
-              value={c.manual}
+              value={c.total}
               allowNegative
               disabled={!canEdit}
               placeholder="·"
-              className={c.manual < 0 ? "cms-amount-negative" : undefined}
+              className={`text-[12px] ${amountClass(c.total)}`}
               onCommit={(v) =>
                 setAmount.mutate({
                   wallet: w,
                   date: r.date!,
-                  amount: v,
+                  amount: v - auto,
                   existingId: c.manualId,
                   fxRate: rateOf(w.currency, r.date!) || 1,
                 })
@@ -145,8 +148,10 @@ export default function WalletDayGridTab({
             />
             {auto !== 0 && (
               <span
-                className="text-[10px] text-muted-foreground font-mono tabular-nums"
-                title="Posted by other modules (expenses, transfers, collections)"
+                className={`text-[9px] font-mono tabular-nums ${
+                  auto < 0 ? "cms-amount-negative" : "cms-amount-positive"
+                } opacity-70`}
+                title="Part of this cell posted by other modules (day closing, expenses, transfers, Money In / Out)"
               >
                 {formatNumberSpaces(auto)}
               </span>
@@ -158,9 +163,9 @@ export default function WalletDayGridTab({
 
     const totalCol: ColumnDef<Row> = {
       key: "__total",
-      header: <div className="text-right">Total TZS</div>,
+      header: <div className="text-right text-[11px] font-semibold">Total TZS</div>,
       headerClassName: "text-right",
-      cellClassName: "text-right",
+      cellClassName: "text-right border-l border-border bg-muted/20",
       style: { minWidth: 130 },
       accessor: (r) => {
         const v =
@@ -172,7 +177,7 @@ export default function WalletDayGridTab({
             : dayTotalTzs(r.date!);
         return (
           <span
-            className={`font-mono tabular-nums font-semibold ${v < 0 ? "cms-amount-negative" : ""}`}
+            className={`font-mono tabular-nums text-[12px] font-semibold ${amountClass(Math.round(v))}`}
           >
             {v ? formatNumberSpaces(Math.round(v)) : "·"}
           </span>
@@ -180,66 +185,57 @@ export default function WalletDayGridTab({
       },
     };
 
+
     return [dateCol, ...walletCols, totalCol];
   }, [wallets, cells, startBalances, canEdit, rateOf, period.from]);
 
-  const footerRows = useMemo(
-    () => [
+  const footerRows = useMemo(() => {
+    const sumClass = (v: number) =>
+      v > 0 ? "cms-amount-positive" : v < 0 ? "cms-amount-negative" : "text-muted-foreground/50";
+    const cellSpan = (v: number, rounded = false) => (
+      <span className={`font-mono tabular-nums text-[12px] font-bold ${sumClass(v)}`}>
+        {v ? formatNumberSpaces(rounded ? Math.round(v) : v) : "·"}
+      </span>
+    );
+    return [
       {
         key: "movement",
-        className: "bg-muted/40",
+        className: "bg-muted/50 border-t-2 border-border",
         cell: (col: ColumnDef<Row>) => {
-          if (col.key === "date") return <span className="font-semibold">Month movement</span>;
-          if (col.key === "__total") {
-            const v = days.reduce((s, d) => s + dayTotalTzs(d), 0);
-            return (
-              <span className="font-mono tabular-nums font-semibold">
-                {v ? formatNumberSpaces(Math.round(v)) : "·"}
-              </span>
-            );
-          }
+          if (col.key === "date")
+            return <span className="font-semibold text-xs uppercase">Month movement</span>;
+          if (col.key === "__total")
+            return cellSpan(days.reduce((s, d) => s + dayTotalTzs(d), 0), true);
           const w = wallets.find((x) => x.id === col.key);
           if (!w) return null;
-          const v = walletMonthMovement(w);
-          return (
-            <span className="font-mono tabular-nums font-semibold">
-              {v ? formatNumberSpaces(v) : "·"}
-            </span>
-          );
+          return cellSpan(walletMonthMovement(w));
         },
       },
       {
         key: "end",
-        className: "bg-primary/5",
+        className: "bg-primary/10",
         cell: (col: ColumnDef<Row>) => {
-          if (col.key === "date") return <span className="font-semibold">End of month</span>;
-          if (col.key === "__total") {
-            const v = wallets.reduce(
-              (s, w) =>
-                s +
-                ((startBalances.get(w.id) || 0) + walletMonthMovement(w)) *
-                  rateOf(w.currency, period.to),
-              0,
+          if (col.key === "date")
+            return <span className="font-semibold text-xs uppercase">End of month</span>;
+          if (col.key === "__total")
+            return cellSpan(
+              wallets.reduce(
+                (s, w) =>
+                  s +
+                  ((startBalances.get(w.id) || 0) + walletMonthMovement(w)) *
+                    rateOf(w.currency, period.to),
+                0,
+              ),
+              true,
             );
-            return (
-              <span className="font-mono tabular-nums font-semibold">
-                {v ? formatNumberSpaces(Math.round(v)) : "·"}
-              </span>
-            );
-          }
           const w = wallets.find((x) => x.id === col.key);
           if (!w) return null;
-          const v = (startBalances.get(w.id) || 0) + walletMonthMovement(w);
-          return (
-            <span className="font-mono tabular-nums font-semibold">
-              {v ? formatNumberSpaces(v) : "·"}
-            </span>
-          );
+          return cellSpan((startBalances.get(w.id) || 0) + walletMonthMovement(w));
         },
       },
-    ],
-    [wallets, cells, startBalances, days, rateOf, period.to],
-  );
+    ];
+  }, [wallets, cells, startBalances, days, rateOf, period.to]);
+
 
   if (!isLoading && wallets.length === 0) {
     return (

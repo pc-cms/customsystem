@@ -97,9 +97,12 @@ export const useWalletDayGrid = (opts: { from: string; to: string; groups: Walle
       .filter((w) => w.is_active !== false && set.has(groupOfWallet(w)))
       .sort(
         (a, b) =>
-          a.name.localeCompare(b.name) || a.currency.localeCompare(b.currency),
+          (a.sort_order ?? 999) - (b.sort_order ?? 999) ||
+          a.name.localeCompare(b.name) ||
+          a.currency.localeCompare(b.currency),
       );
   }, [walletsQ.data, groups]);
+
 
   const walletIds = useMemo(() => wallets.map((w) => w.id).sort(), [wallets]);
 
