@@ -700,22 +700,39 @@ export default function FinancesWalletsPage() {
             </div>
             <div className="border-t border-border pt-2">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
-                Per currency (native units)
+                Per currency (native units) · Cash / Mobile / Bank
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
-                {CURRENCY_ORDER.filter((c) => grandTotals.perCcy[c]).map((c) => (
-                  <div
-                    key={c}
-                    className="flex items-baseline justify-between rounded border border-border/50 bg-background/50 px-2 py-1"
-                  >
-                    <span className="text-[11px] font-mono text-muted-foreground">{c}</span>
-                    <span className="font-mono tabular-nums text-sm">
-                      {formatNumberSpaces(grandTotals.perCcy[c])}
-                    </span>
-                  </div>
-                ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                {CURRENCY_ORDER.filter((c) => grandTotals.perCcy[c]).map((c) => {
+                  const b = grandTotals.perCcyBucket[c] || { cash: 0, mobile: 0, bank: 0 };
+                  return (
+                    <div key={c} className="rounded border border-border/50 bg-background/50 px-2 py-1.5">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-[11px] font-mono text-muted-foreground">{c}</span>
+                        <span className="font-mono tabular-nums text-sm font-semibold">
+                          {formatNumberSpaces(grandTotals.perCcy[c])}
+                        </span>
+                      </div>
+                      <div className="mt-1 grid grid-cols-3 gap-1 text-[10px]">
+                        {([
+                          ["Cash", b.cash],
+                          ["Mobile", b.mobile],
+                          ["Bank", b.bank],
+                        ] as const).map(([lbl, v]) => (
+                          <div key={lbl} className="flex items-baseline justify-between gap-1">
+                            <span className="uppercase tracking-wider text-muted-foreground">{lbl}</span>
+                            <span className="font-mono tabular-nums">
+                              {v ? formatNumberSpaces(v) : "·"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
+
           </div>
         </PageSection>
       </div>
