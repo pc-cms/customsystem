@@ -619,7 +619,6 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         : calcCashPosition({
             floatCurrent,
             totalIncome,
-            deposits: depositsTotal,
             investment,
             office,
             intercompanyCash,
