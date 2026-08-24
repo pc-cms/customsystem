@@ -168,7 +168,13 @@ export default function FinancesWalletsPage() {
   const totals = useMemo(() => computeBalanceTotals(snap), [snap]);
   const usdRate = snap?.rates?.usd_tzs || 2600;
 
-  const { data: tx = [] } = useFinWalletTx({ from: monthRange.from, to: monthRange.to });
+  const [txLimit, setTxLimit] = useState<string>("50");
+  const { data: tx = [] } = useFinWalletTx({
+    from: monthRange.from,
+    to: monthRange.to,
+    limit: txLimit === "all" ? null : Number(txLimit),
+  });
+
 
   // per-wallet map for physical-count inline UI.
   // Balance = Actual = last recorded wallet state (manual count, or the state
