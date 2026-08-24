@@ -105,6 +105,10 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
     (incomes.live_game || 0) +
     (incomes.slots || 0) +
     (incomes.other || 0) +
+    // Tips & Bonuses and other movements (investment / owner top-up) are NOT income,
+    // but they DO move wallet cash, so Expected must contain them.
+    (incomes.tips_bonus || 0) +
+    (incomes.movements || 0) +
     (incomes.jp || 0) +
     // Card balance is the per-day difference, summed over the period.
     (incomes.card_balance || 0) +
