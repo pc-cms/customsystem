@@ -23,7 +23,7 @@ import {
   useOtherIncomes,
   useAddOtherIncome,
   useUpdateOtherIncome,
-  useDeleteOtherIncome,
+  useReverseOtherIncome,
   type OtherIncomeRow,
 } from "@/hooks/use-other-incomes";
 import { formatNumberSpaces } from "@/lib/currency";
@@ -50,7 +50,7 @@ export default function JpTab() {
   const { data: wallets = [] } = useFinWallets();
   const addIncome = useAddOtherIncome();
   const updateIncome = useUpdateOtherIncome();
-  const deleteIncome = useDeleteOtherIncome();
+  const reverseIncome = useReverseOtherIncome();
 
   const totals = useMemo(() => {
     let inSum = 0;
@@ -207,11 +207,11 @@ export default function JpTab() {
               size="icon"
               className="h-7 w-7 text-destructive"
               onClick={() => {
-                if (confirm("Delete this JP entry permanently?")) deleteIncome.mutate(r.id);
+                if (confirm("Reverse this JP entry? A storno row will be created.")) reverseIncome.mutate(r);
               }}
-              aria-label="Delete"
+              aria-label="Reverse"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Undo2 className="w-3.5 h-3.5" />
             </Button>
           </div>
         );

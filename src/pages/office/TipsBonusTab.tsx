@@ -24,7 +24,7 @@ import {
   useOtherIncomes,
   useAddOtherIncome,
   useUpdateOtherIncome,
-  useDeleteOtherIncome,
+  useReverseOtherIncome,
   type OtherIncomeRow,
 } from "@/hooks/use-other-incomes";
 import { formatNumberSpaces } from "@/lib/currency";
@@ -57,7 +57,7 @@ export default function TipsBonusTab() {
   const { data: wallets = [] } = useFinWallets();
   const addIncome = useAddOtherIncome();
   const updateIncome = useUpdateOtherIncome();
-  const deleteIncome = useDeleteOtherIncome();
+  const reverseIncome = useReverseOtherIncome();
 
   const [filter, setFilter] = useState<Filter>("all");
 
@@ -235,11 +235,11 @@ export default function TipsBonusTab() {
               size="icon"
               className="h-7 w-7 text-destructive"
               onClick={() => {
-                if (confirm("Delete this Tips / Bonus entry permanently?")) deleteIncome.mutate(r.id);
+                if (confirm("Reverse this Tips / Bonus entry? A storno row will be created.")) reverseIncome.mutate(r);
               }}
-              aria-label="Delete"
+              aria-label="Reverse"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Undo2 className="w-3.5 h-3.5" />
             </Button>
           </div>
         );
