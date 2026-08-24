@@ -13,20 +13,21 @@ export const forecastCostBase = (input: {
   liabilitiesClosing: number;
 }) => Number(input.budget || 0) + Number(input.unplannedTotal || 0) + Number(input.liabilitiesClosing || 0);
 
-/** OPEN month: Total Income − Forecast Cost Base. Collections never rewrite it. */
-export const expectedProfit = (totalIncome: number, costBase: number) =>
-  Number(totalIncome || 0) - Number(costBase || 0);
+/**
+ * OPEN month Expected Profit =
+ *   Total Income − Budget − Unplanned − Liabilities − Collections.
+ * Collections reduce the REMAINING expected profit of an open month.
+ * A CLOSED month keeps its frozen Final Profit — later collections never rewrite it.
+ */
+export const expectedProfit = (totalIncome: number, costBase: number, collections = 0) =>
+  Number(totalIncome || 0) - Number(costBase || 0) - Number(collections || 0);
 
-/** OPEN month bonus base excludes Collections, Float, Tips/Bonuses, JP, transfers, liabilities. */
+/** Manager Bonus (forecast) = max(0, 5% × (Total Income − Budget)). Unplanned/Liabilities never net it. */
 export const managerBonusForecast = (input: {
   totalIncome: number;
   budget: number;
-  unplannedTotal: number;
-}) =>
-  Math.max(
-    0,
-    0.05 * (Number(input.totalIncome || 0) - Number(input.budget || 0) - Number(input.unplannedTotal || 0)),
-  );
+}) => Math.max(0, 0.05 * (Number(input.totalIncome || 0) - Number(input.budget || 0)));
+
 
 /**
  * CLOSED month: Budget is replaced by Total Actual Expenses, but the Unplanned
