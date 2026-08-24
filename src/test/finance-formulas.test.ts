@@ -9,7 +9,6 @@ import {
 const base = {
   floatCurrent: 1_000_000,
   totalIncome: 5_000_000,
-  deposits: 200_000,
   investment: 0,
   office: 0,
   intercompanyCash: 0,
@@ -18,12 +17,24 @@ const base = {
   collections: 0,
 };
 
+describe("Cash Position — deposits have zero effect", () => {
+  it("ignores deposits entirely (neither added nor subtracted)", () => {
+    // Deposits are no longer an input at all — the figure is purely cash flow.
+    expect(cashPosition(base)).toBe(1_000_000 + 5_000_000 - 1_500_000);
+  });
+
+  it("matches the audited Mwanza Aug 2026 shift of +6 842 238 TZS", () => {
+    const oldWithDeposits = cashPosition(base) - 6_842_238;
+    expect(cashPosition(base) - oldWithDeposits).toBe(6_842_238);
+  });
+});
+
 describe("Cash Position — paid unplanned expenses", () => {
   it("subtracts a paid unplanned row that is NOT represented in Actual Expenses exactly once", () => {
     const without = cashPosition(base);
     const with300k = cashPosition({ ...base, unplannedPaidCashNotInActual: 300_000 });
     expect(without - with300k).toBe(300_000);
-    expect(with300k).toBe(1_000_000 + 5_000_000 - 200_000 - 1_500_000 - 300_000);
+    expect(with300k).toBe(1_000_000 + 5_000_000 - 1_500_000 - 300_000);
   });
 
   it("does not double count a paid unplanned row linked to an Actual Expense", () => {

@@ -24,7 +24,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
 import { NumberInput } from "@/components/ui/number-input";
-import { totalExpensesAndObligations, netCashAdjustments } from "@/lib/finance-formulas";
+import { totalExpensesAndObligations } from "@/lib/finance-formulas";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import { downloadXlsx } from "@/lib/excel-export";
@@ -436,12 +436,6 @@ const SummaryBlock = ({
     liabilitiesClosing: cash.liabilities,
     collections: cash.collections_actual,
   });
-  const netAdjustments = netCashAdjustments({
-    deposits: depositsTotal,
-    office: inc.office,
-    investment: inc.investment,
-    intercompanyCash: cash.intercompany_cash,
-  });
 
 
   const cardHeader =
@@ -452,37 +446,38 @@ const SummaryBlock = ({
   const Line = ({
     label,
     v,
-    hint,
     strong,
     signed,
     sub,
     tip,
+    right,
   }: {
     label: string;
     v: number;
-    hint?: string;
     strong?: boolean;
     signed?: boolean;
     sub?: boolean;
     /** Formula/explanation shown on hover AND keyboard focus. */
     tip?: string;
+    /** Optional trailing control (e.g. Override button). */
+    right?: React.ReactNode;
   }) => {
     const labelNode = (
       <span
         className={cn(
           "truncate leading-snug",
-          strong ? "text-[14px] font-semibold" : sub ? "text-[12px] text-muted-foreground" : "text-[13px]",
+          strong ? "text-[16px] font-semibold" : sub ? "text-[13px] text-muted-foreground" : "text-[14px] font-medium",
+          tip && "decoration-dotted underline-offset-4 underline decoration-muted-foreground/50",
         )}
       >
         {label}
-        {hint ? <span className="ml-1 text-[12px] text-muted-foreground/70">· {hint}</span> : null}
       </span>
     );
     return (
       <div
         className={cn(
           "flex items-center justify-between gap-3 px-3 border-t border-border",
-          strong ? "min-h-[44px] bg-muted/30" : "min-h-[36px]",
+          strong ? "min-h-[44px] bg-muted/30" : "min-h-[40px]",
           sub && "pl-6",
         )}
       >
@@ -498,14 +493,17 @@ const SummaryBlock = ({
         ) : (
           labelNode
         )}
-        <span
-          className={cn(
-            "font-mono tabular-nums whitespace-nowrap",
-            strong ? "text-[17px] font-bold" : sub ? "text-[13px]" : "text-[15px] font-semibold",
-            signed ? cls(v || 0) : undefined,
-          )}
-        >
-          {fmtT(v || 0)}
+        <span className="flex items-center gap-2 shrink-0">
+          {right}
+          <span
+            className={cn(
+              "font-mono tabular-nums whitespace-nowrap",
+              strong ? "text-[17px] font-bold" : sub ? "text-[13px]" : "text-[15px] font-semibold",
+              signed ? cls(v || 0) : undefined,
+            )}
+          >
+            {fmtT(v || 0)}
+          </span>
         </span>
       </div>
     );
@@ -519,6 +517,7 @@ const SummaryBlock = ({
     summary,
     signed,
     tone,
+    tip,
     children,
   }: {
     id: string;
@@ -528,41 +527,60 @@ const SummaryBlock = ({
     signed?: boolean;
     /** `warn` = obligation / unpaid — amber, never red. */
     tone?: "warn";
+    tip?: string;
     children: React.ReactNode;
   }) => {
     const isOpen = !!open[id];
-    return (
-      <div className="border-t border-border">
-        <button
-          type="button"
-          aria-expanded={isOpen}
-          onClick={() => toggleSection(id)}
-          className="w-full min-h-[36px] px-3 flex items-center justify-between gap-3 text-left hover:bg-muted/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-        >
-          <span className="flex items-center gap-1.5 min-w-0">
-            {isOpen ? (
-              <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-            )}
-            <span className="text-[13px] truncate">{label}</span>
-            {summary ? (
-              <span className="text-[12px] text-muted-foreground/80 truncate">· {summary}</span>
-            ) : null}
-          </span>
+    const head = (
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        onClick={() => toggleSection(id)}
+        className="w-full min-h-[40px] px-3 flex items-center justify-between gap-3 text-left hover:bg-muted/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+      >
+        <span className="flex items-center gap-1.5 min-w-0">
+          {isOpen ? (
+            <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+          )}
           <span
             className={cn(
-              "font-mono tabular-nums text-[15px] font-semibold whitespace-nowrap",
-              tone === "warn" ? WARN : signed ? cls(total || 0) : undefined,
+              "text-[14px] font-medium truncate",
+              tip && "decoration-dotted underline-offset-4 underline decoration-muted-foreground/50",
             )}
           >
-            {fmtT(total || 0)}
+            {label}
           </span>
-        </button>
+          {summary ? (
+            <span className="text-[12px] text-muted-foreground/80 truncate">· {summary}</span>
+          ) : null}
+        </span>
+        <span
+          className={cn(
+            "font-mono tabular-nums text-[15px] font-semibold whitespace-nowrap",
+            tone === "warn" ? WARN : signed ? cls(total || 0) : undefined,
+          )}
+        >
+          {fmtT(total || 0)}
+        </span>
+      </button>
+    );
+    return (
+      <div className="border-t border-border">
+        {tip ? (
+          <Tooltip>
+            <TooltipTrigger asChild>{head}</TooltipTrigger>
+            <TooltipContent className="max-w-[320px] text-[12px] leading-snug">{tip}</TooltipContent>
+          </Tooltip>
+        ) : (
+          head
+        )}
         {isOpen && <div className="bg-muted/20 pb-1">{children}</div>}
       </div>
     );
   };
+
 
   const DetailRow = ({
     left,
@@ -660,13 +678,24 @@ const SummaryBlock = ({
         </span>
       }
     >
-      {/* KPI TILES */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      {/* KPI TILES — fixed logical order: Income → Budget → Actual → Profit → Cash → Float */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 items-stretch">
         <KpiCard
           label="Total Income"
           v={kpi.total_income}
           tone="signed"
           formula="Table Result + Slot Result + Bar Income + Commissions"
+        />
+        <KpiCard
+          label="Budget"
+          v={g.plan_month_grand_tzs}
+          formula="Planned cost base of the month (Grand TZS = TZS + USD converted)."
+          footer={<PlanBadge />}
+        />
+        <KpiCard
+          label="Actual Expenses"
+          v={cash.expenses_actual}
+          formula="Σ approved expenses actually booked in the month (Grand TZS)."
         />
         <KpiCard
           label={closed ? "Final Profit" : "Expected Profit"}
@@ -682,42 +711,16 @@ const SummaryBlock = ({
           label="Cash Position"
           v={kpi.cash_position}
           tone="signed"
-          formula="Basic Float + Income − Deposits + Office + Investment + Transfers − Actual Expenses − Paid Unplanned (not in Actual) − Collections − Liability Payments"
+          formula="Basic Float + Total Income + Office + Investment + Intercompany Cash Effect − Actual Expenses − Paid Unplanned (not in Actual) − Collections − Liability Payments. Deposits have no effect on Cash Position."
         />
         <KpiCard
-          label="Manager Bonus"
-          v={kpi.manager_bonus}
-          formula={
-            closed
-              ? `Frozen at close · max(0, 5% × (Total Income − Actual Expenses))${
-                  bonusOverride ? ` · overridden from ${fmtT(bonusOverride.old_amount)}: ${bonusOverride.reason}` : ""
-                }`
-              : "Forecast · max(0, 5% × (Total Income − Budget)). Collections never reduce the bonus."
-          }
-          footer={
-            <div className="flex items-center gap-2 flex-wrap">
-              {bonusOverride ? (
-                <span className="text-[11px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border border-amber-500/40 bg-amber-500/15 text-amber-600 dark:text-amber-400">
-                  Overridden
-                </span>
-              ) : null}
-              {closed && canFinance && casinoId ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-6 px-2 text-[11px]"
-                  onClick={() => setBonusOpen(true)}
-                >
-                  Override
-                </Button>
-              ) : null}
-            </div>
-          }
+          label="Basic Float"
+          v={cash.basic_float_current}
+          formula="Opening Basic Float + Σ signed float adjustments of the month."
         />
-
       </div>
 
-      {/* THREE EQUAL SUMMARY CARDS */}
+      {/* THREE EQUAL SUMMARY CARDS — exactly 5 primary rows each when collapsed */}
       <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-stretch">
         {/* A · MONTH SUMMARY / INCOME */}
         <div className={card}>
@@ -725,12 +728,18 @@ const SummaryBlock = ({
             <span>Month Summary · Income</span>
             <span className="normal-case tracking-normal text-[12px]">TZS</span>
           </div>
-          <Line label="Table Result" v={inc.table_result} signed />
-          <Line label="Slot Result" v={inc.slot_result} signed />
-          <Line label="Bar Income" v={inc.bar_income} />
-          <Line label="Agents" v={inc.agent_commission} signed />
+          <Line label="Table Result" v={inc.table_result} signed tip="Σ closed-day table results of the month." />
+          <Line label="Slot Result" v={inc.slot_result} signed tip="Σ closed-day slot results of the month." />
+          <Line label="Bar Income" v={inc.bar_income} tip="POS / bar revenue counted once, in income and in cash." />
+          <Line label="Agents" v={inc.agent_commission} signed tip="Agent commission recorded on the income side." />
           <div className="flex-1" />
-          <Line label="Total Income" v={kpi.total_income} strong signed />
+          <Line
+            label="Total Income"
+            v={kpi.total_income}
+            strong
+            signed
+            tip="Table Result + Slot Result + Bar Income + Commissions."
+          />
         </div>
 
         {/* B · EXPENSES & OBLIGATIONS */}
@@ -739,22 +748,41 @@ const SummaryBlock = ({
             <span>Expenses &amp; Obligations</span>
             <PlanBadge />
           </div>
-          <Line label="Budget" hint="plan, Grand TZS" v={g.plan_month_grand_tzs} tip="Planned cost base of the month (Grand TZS)." />
-          <Line
-            label="Actual Expenses"
-            v={cash.expenses_actual}
-            tip="Σ approved expenses actually booked in the month."
-          />
           <Section
             id="commissions_fee"
             label="Commissions & Fee"
             total={inc.commission + inc.fee}
             signed
-            summary="income side · never deducted here"
+            tip="Commissions and Fee are income-side lines shown here for completeness; they are never deducted from this card's total."
           >
             <DetailRow label="Commissions" value={inc.commission} />
             <DetailRow label="Fee" value={inc.fee} />
           </Section>
+          <Line
+            label="Manager Bonus"
+            v={kpi.manager_bonus}
+            right={
+              <div className="flex items-center gap-2">
+                {bonusOverride ? (
+                  <span className={cn("text-[11px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border border-amber-500/40 bg-amber-500/15", WARN)}>
+                    Overridden
+                  </span>
+                ) : null}
+                {closed && canFinance && casinoId ? (
+                  <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" onClick={() => setBonusOpen(true)}>
+                    Override
+                  </Button>
+                ) : null}
+              </div>
+            }
+            tip={
+              closed
+                ? `Frozen at close · max(0, 5% × (Total Income − Actual Expenses))${
+                    bonusOverride ? ` · overridden from ${fmtT(bonusOverride.old_amount)}: ${bonusOverride.reason}` : ""
+                  }`
+                : "Forecast · max(0, 5% × (Total Income − Budget)). Collections never reduce the bonus."
+            }
+          />
           <Section
             id="unplanned"
             label="Unplanned Expenses"
@@ -781,12 +809,12 @@ const SummaryBlock = ({
             label="Liabilities"
             total={cash.liabilities}
             tone={cash.liabilities > 0 ? "warn" : undefined}
-            summary={`${fmtT(mf?.liabilities?.repaid_tzs || 0)} repaid`}
+            tip="Opening + repayable funding (incl. intercompany transfers that must be repaid) + manual liabilities − repayments = closing outstanding. Non-repayable transfers and Add Float never become liabilities."
           >
             <DetailRow label="Opening" value={mf?.liabilities?.opening_tzs || 0} />
             <DetailRow label="New this month" value={mf?.liabilities?.new_tzs || 0} />
             <DetailRow label="Repaid" value={-(mf?.liabilities?.repaid_tzs || 0)} />
-            <DetailRow label="Closing outstanding" value={mf?.liabilities?.closing_tzs || 0} />
+            <DetailRow label="Closing outstanding" value={mf?.liabilities?.closing_tzs || 0} tone={(mf?.liabilities?.closing_tzs || 0) > 0 ? "warn" : undefined} />
             {liabilityItems.map((l) => (
               <DetailRow
                 key={l.id}
@@ -806,8 +834,16 @@ const SummaryBlock = ({
                 tag="paid"
               />
             ))}
+            {/* Transfers appear here for context only — cash/accounting logic is unchanged. */}
+            <DetailRow label="Transfers · cash effect" value={cash.intercompany_cash} tag="cash" />
+            <DetailRow label="Transfers · repayable to us" value={cash.intercompany_receivable} tag="receivable" />
+            <DetailRow
+              label="Transfers · repayable by us"
+              value={cash.intercompany_liability}
+              tag="payable"
+              tone={cash.intercompany_liability > 0 ? "warn" : undefined}
+            />
           </Section>
-          <Line label="Collections" hint="cash already withdrawn" v={cash.collections_actual} />
           <div className="flex-1" />
           <Line
             label="Total Expenses & Obligations"
@@ -831,7 +867,7 @@ const SummaryBlock = ({
             id="float"
             label="Basic Float"
             total={cash.basic_float_current}
-            summary={`incl. ${fmtT(cash.basic_float_add)} adjustment`}
+            tip="Opening Basic Float + Σ signed adjustments = current Basic Float."
           >
             <DetailRow label="Opening Basic Float" value={cash.basic_float_opening} />
             <DetailRow label="Float Adjustment (±)" value={cash.basic_float_add} />
@@ -841,7 +877,7 @@ const SummaryBlock = ({
             label="Deposits"
             total={depositsTotal}
             signed
-            summary="held for third parties"
+            tip="Money physically held in the cage but owed to third parties. Reported only — Deposits have no effect on Cash Position."
           >
             <DetailRow label="Tips & Bonuses (±)" value={inc.tips_bonus} />
             <DetailRow label="JP (±)" value={inc.jp} />
@@ -849,20 +885,18 @@ const SummaryBlock = ({
             <DetailRow label="Miss Chips" value={cash.miss_chips} />
             <DetailRow label="Miss Cards" value={cash.miss_cards} />
           </Section>
-          <Line label="Office" v={inc.office} signed />
-          <Line label="Investment" v={inc.investment} signed />
-          <Line label="Transfers" hint="intercompany cash effect" v={cash.intercompany_cash} signed />
-          <div className="flex-1" />
+          <Line label="Office" v={inc.office} signed tip="Signed office cash movements of the month." />
+          <Line label="Investment" v={inc.investment} signed tip="Signed investment cash movements of the month." />
           <Line
-            label="Net Cash Adjustments"
-            v={netAdjustments}
-            strong
-            signed
-            tip="− Deposits + Office + Investment + Intercompany Cash Effect. Deposits are money held for third parties, so they reduce cash. Basic Float is a standing balance and is excluded."
+            label="Collections"
+            v={cash.collections_actual}
+            tip="Owner withdrawals already taken out in cash. They reduce Expected Profit, the amount still available for collection and Cash Position."
           />
+          <div className="flex-1" />
         </div>
 
       </div>
+
 
       {/* Manager Bonus override — closed months only, reason mandatory, immutable audit. */}
       <ResponsiveDialog
@@ -973,27 +1007,43 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
       ) : undefined}
       card={false}
     >
-      <div className="rounded-md border border-border overflow-auto bg-card">
-        <table className="w-full text-[13px] border-collapse">
+      <div className="rounded-md border border-border overflow-x-auto bg-card">
+        {/* Category ≈28% on desktop, the remaining width goes to the money columns.
+            min-width keeps numbers readable and turns narrow screens into a scroll. */}
+        <table className="w-full min-w-[1040px] table-fixed text-[14px] border-collapse [&_td.text-right]:text-[15px]">
+          <colgroup>
+            <col style={{ width: "28%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "5%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "4%" }} />
+          </colgroup>
           <thead className="bg-muted/40">
-            <tr className="[&>th]:h-8 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[11px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
-              <th rowSpan={2} className="text-left sticky left-0 z-10 bg-muted/40 min-w-[220px] align-bottom">Category</th>
+            <tr className="[&>th]:h-9 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[11px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
+              <th rowSpan={2} className="text-left sticky left-0 z-10 bg-muted/40 align-bottom">Category</th>
               <th colSpan={2} className="text-center border-l border-border">Plan</th>
               <th colSpan={4} className="text-center border-l border-border">Actual</th>
               <th colSpan={4} className="text-center border-l border-border">Remaining</th>
             </tr>
-            <tr className="[&>th]:h-8 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[11px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap border-t border-border">
-              <th className="text-right w-[110px] border-l border-border">TZS</th>
-              <th className={cn("text-right w-[80px]", USD_COL)}>$</th>
-              <th className="text-right w-[110px] border-l border-border">TZS</th>
-              <th className={cn("text-right w-[80px]", USD_COL)}>$</th>
-              <th className="text-right w-[110px]" title="Σ amount_tzs (TZS + USD converted)">Grand TZS</th>
-              <th className="text-right w-[56px]">%</th>
-              <th className="text-right w-[110px] border-l border-border">TZS</th>
-              <th className={cn("text-right w-[80px]", USD_COL)}>$</th>
-              <th className="text-right w-[110px]">Grand TZS</th>
-              <th className="text-right w-[56px] pr-3">%</th>
+            <tr className="[&>th]:h-9 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[11px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap border-t border-border">
+              <th className="text-right border-l border-border">TZS</th>
+              <th className={cn("text-right", USD_COL)}>$</th>
+              <th className="text-right border-l border-border">TZS</th>
+              <th className={cn("text-right", USD_COL)}>$</th>
+              <th className="text-right" title="Σ amount_tzs (TZS + USD converted)">Grand TZS</th>
+              <th className="text-right">%</th>
+              <th className="text-right border-l border-border">TZS</th>
+              <th className={cn("text-right", USD_COL)}>$</th>
+              <th className="text-right">Grand TZS</th>
+              <th className="text-right pr-3">%</th>
             </tr>
+
 
           </thead>
           <tbody>
@@ -1022,7 +1072,7 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
               </tr>
             )}
 
-            <tr className="bg-muted/40 font-semibold border-t-2 border-border [&>td]:h-9 [&>td]:px-2 [&>td]:align-middle">
+            <tr className="bg-muted/40 font-semibold border-t-2 border-border [&>td]:h-10 [&>td]:px-2 [&>td]:align-middle [&>td]:text-[15px]">
               <td className="sticky left-0 z-10 bg-muted/40">Total</td>
               <td className="text-right font-mono tabular-nums border-l border-border">{fmtT(t.plan_month_tzs)}</td>
               <td className={cn("text-right font-mono tabular-nums", USD_COL)}><UsdAmt value={t.plan_month_usd} total /></td>
@@ -1054,12 +1104,12 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, editMode, year, month
     <>
       <tr
         className={cn(
-          "border-t border-border hover:bg-muted/30 cursor-pointer [&>td]:h-8 [&>td]:px-2 [&>td]:align-middle",
+          "border-t border-border hover:bg-muted/30 cursor-pointer [&>td]:h-9 [&>td]:px-2 [&>td]:align-middle",
           expanded && "bg-muted/30",
         )}
         onClick={onToggle}
       >
-        <td className="sticky left-0 z-10 bg-card">
+        <td className="sticky left-0 z-10 bg-card text-[14px]" title={c.name}>
           <div className="flex items-center gap-1 min-w-0">
             {expanded ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
             <div className="flex-1 min-w-0">

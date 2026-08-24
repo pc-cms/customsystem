@@ -181,8 +181,9 @@ CLOSED month:
   Manager Bonus   = max(0, 5% × (Total Income − Budget))                  (frozen, same base)
 
 Deposits = Tips&Bonuses + JP + Card Balance + Miss Chips + Miss Cards
+  (reported figure only — ZERO effect on Cash Position: neither added nor subtracted)
 
-Cash Position = Current Basic Float + Total Income − Deposits
+Cash Position = Current Basic Float + Total Income
               + Investment + Office + Intercompany cash
               − Actual Expenses
               − Paid Unplanned with expense_id IS NULL   (wallet cash moved, no expense row)
