@@ -59,26 +59,18 @@ interface Casino {
 interface Props {
   casinos: Casino[];
   days: CasinoDay[];
+  /** Sum of the DISPLAYED casino card Today totals — never recomputed here. */
+  today: CompanyToday;
   /** Returns the accent color (hsl string) for a casino. */
   accentFor: (slug: string | null, idx: number) => string;
 }
 
-export function CompanyTotalPanel({ casinos, days, accentFor }: Props) {
+export function CompanyTotalPanel({ casinos, days, today, accentFor }: Props) {
   const dayMap = Object.fromEntries(days.map((d) => [d.casinoId, d]));
 
-  // Today aggregate
-  const today = days.reduce(
-    (acc, d) => {
-      acc.drop += d.total.drop;
-      acc.result += d.total.result;
-      acc.headCount += d.total.headCount;
-      return acc;
-    },
-    { drop: 0, result: 0, headCount: 0 },
-  );
-  const todayHold = today.drop > 0 ? (today.result / today.drop) * 100 : 0;
+  const todayHold = today.hold;
 
-  // MTD aggregate
+  // MTD aggregate — unchanged closed/frozen-data logic
   const mtd = days.reduce(
     (acc, d) => {
       acc.drop += d.mtd.drop;
@@ -88,6 +80,7 @@ export function CompanyTotalPanel({ casinos, days, accentFor }: Props) {
     { drop: 0, result: 0 },
   );
   const mtdHold = mtd.drop > 0 ? (mtd.result / mtd.drop) * 100 : 0;
+
 
   const dropSegments: ShareSegment[] = casinos.map((c, i) => ({
     id: c.id,
