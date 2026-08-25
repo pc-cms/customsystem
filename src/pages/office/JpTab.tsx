@@ -52,10 +52,15 @@ export default function JpTab() {
   const updateIncome = useUpdateOtherIncome();
   const reverseIncome = useReverseOtherIncome();
 
+  /** A row is "live" only if it is not a storno and has not been cancelled. */
+  const isCancelled = (r: OtherIncomeRow) => !!r.reversed_by_id;
+  const isStorno = (r: OtherIncomeRow) => !!r.reverses_id;
+
   const totals = useMemo(() => {
     let inSum = 0;
     let outSum = 0;
     (rows as OtherIncomeRow[]).forEach((r) => {
+      if (r.reverses_id || r.reversed_by_id) return; // cancelled pair nets to zero
       const v = Number(r.amount || 0) * Number(r.fx_rate || 1);
       if (v >= 0) inSum += v;
       else outSum += v;
@@ -136,9 +141,16 @@ export default function JpTab() {
       key: "type",
       header: "Type",
       accessor: (r) => (
-        <span className="text-xs uppercase tracking-wider">
-          {Number(r.amount) < 0 ? "Payout" : "Contribution"}
-        </span>
+        <div className="flex flex-col leading-tight">
+          <span className="text-xs uppercase tracking-wider">
+            {isStorno(r) ? "Storno" : Number(r.amount) < 0 ? "Payout" : "Contribution"}
+          </span>
+          {(isStorno(r) || isCancelled(r)) && (
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              {isCancelled(r) ? "cancelled" : "not counted"}
+            </span>
+          )}
+        </div>
       ),
       style: { width: 130 },
     },
@@ -173,8 +185,18 @@ export default function JpTab() {
       type: "money",
       accessor: (r) => {
         const v = Number(r.amount);
+        const dead = isStorno(r) || isCancelled(r);
         return (
-          <span className={cn("font-mono tabular-nums", v < 0 ? "cms-amount-negative" : "cms-amount-positive")}>
+          <span
+            className={cn(
+              "font-mono tabular-nums",
+              dead
+                ? "line-through text-muted-foreground"
+                : v < 0
+                  ? "cms-amount-negative"
+                  : "cms-amount-positive",
+            )}
+          >
             {v < 0 ? "−" : ""}
             {formatNumberSpaces(Math.abs(v))}
           </span>
@@ -197,6 +219,7 @@ export default function JpTab() {
       type: "actions",
       accessor: (r) => {
         if (!canWrite) return null;
+        if (isStorno(r) || isCancelled(r)) return null;
         return (
           <div className="flex items-center gap-0.5">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)} aria-label="Edit">
@@ -207,9 +230,14 @@ export default function JpTab() {
               size="icon"
               className="h-7 w-7 text-destructive"
               onClick={() => {
-                if (confirm("Reverse this JP entry? A storno row will be created.")) reverseIncome.mutate(r);
+                if (
+                  confirm(
+                    "Cancel this JP entry? A storno row is created and the entry stops counting in JP and Day Closings.",
+                  )
+                )
+                  reverseIncome.mutate(r);
               }}
-              aria-label="Reverse"
+              aria-label="Cancel entry"
             >
               <Undo2 className="w-3.5 h-3.5" />
             </Button>
