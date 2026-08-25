@@ -62,7 +62,7 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
   //   Slots           → ONLY closed days: cashdesk_win − players_card_balance.
   //                     While the day is open (and no fresh ACE feed) slots show `·`
   //                     — an open cage-slots shift is a draft, not a result.
-  const [dailyTodayRes, dailyMtdRes, hcRes, closingsRes, snapRes] = await Promise.all([
+  const [dailyTodayRes, dailyMtdRes, hcRes, closingsRes, snapRes, slotShiftsRes] = await Promise.all([
     (supabase as any).rpc("compute_daily_diff", {
       _casino_id: casinoId, _from: businessDate, _to: businessDate,
     }),
@@ -77,12 +77,21 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
       .is("checked_out_at", null),
     supabase
       .from("fin_day_closing")
-      .select("business_date, tables_result, slots_result, cashdesk_win, players_card_balance, drop_slots")
+      .select("business_date, tables_result, slots_result, net_win, cashdesk_win, players_card_balance, drop_slots")
       .eq("casino_id", casinoId)
       .gte("business_date", mStart)
       .lte("business_date", businessDate),
     (supabase as any).rpc("chip_snapshots_latest", { _casino_id: casinoId, _date: businessDate }),
+    // Statistics fallback for monthly Slots Drop when Day Closing has no ACE figure.
+    supabase
+      .from("cage_slots_shifts")
+      .select("business_date, manual_drop_slots")
+      .eq("casino_id", casinoId)
+      .eq("status", "closed")
+      .gte("business_date", mStart)
+      .lte("business_date", businessDate),
   ]);
+
 
   const headCount = hcRes.count ?? 0;
 
