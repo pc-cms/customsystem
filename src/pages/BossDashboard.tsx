@@ -290,7 +290,10 @@ export default function BossDashboard() {
             <span className={`text-[0.7em] tracking-[0.3em] uppercase text-muted-foreground whitespace-nowrap ${liveTv ? "" : "mt-1"}`}>
               Dashboard TV · {blockOrient === "report"
                 ? `Company Report · ${MONTH_LABELS[reportYM.m - 1]} ${reportYM.y}`
-                : `Live Overview · ${dateLabel}`}
+                : periodView === "today"
+                ? `Live Overview · Today · ${dateLabel}`
+                : `Live Overview · Monthly · ${liveMonthLabel}`}
+
             </span>
           </div>
         </div>
