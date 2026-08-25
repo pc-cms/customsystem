@@ -12129,14 +12129,14 @@ export type Database = {
           }
         | {
             Args: {
-              _business_date: string
+              _business_date?: string
               _cashdesk_win: number
               _casino_id: string
               _client_balance: number
               _drop_slots: number
-              _jp_in: number
+              _jp_in?: number
               _net_win: number
-              _notes: string
+              _notes?: string
             }
             Returns: Json
           }
