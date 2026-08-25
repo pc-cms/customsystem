@@ -125,9 +125,11 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
     (incomes.add_float || 0) +
 
     (incomes.jp || 0) +
-    // Card balance is the per-day difference, summed over the period.
-    (incomes.card_balance || 0) +
+    // Card Balance is NOT added here: player card money is already inside
+    // Win Cash Desk (slots_result). It is subtracted only for display in
+    // Boss Dashboard / Monthly Report (shown as deposits).
     (incomes.missed_chips || 0) +
+
     (incomes.missed_cards || 0) -
     (s.expenses_total || 0) -
     (s.collections_total || 0) -
