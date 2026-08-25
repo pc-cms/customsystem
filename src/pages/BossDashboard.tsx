@@ -250,6 +250,10 @@ export default function BossDashboard() {
   const dateLabel = new Date(businessDate).toLocaleDateString("en-GB", {
     weekday: "short", day: "2-digit", month: "short", year: "numeric",
   });
+  const nowDate = new Date(businessDate);
+  const liveMonthLabel = `${MONTH_LABELS[nowDate.getMonth()]} ${nowDate.getFullYear()}`;
+
+
 
   const gridRows = casinos.length > 2 ? 2 : 1;
   const liveGridStyle: React.CSSProperties = liveTv
