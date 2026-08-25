@@ -41,7 +41,9 @@ export default function DayClosingsLab() {
         cashdesk_win: Number(r.cashdesk_win || 0),
         players_card_balance: Number(r.players_card_balance || 0),
         net_win: Number(r.net_win || 0),
-        slots_result: Number(r.cashdesk_win ?? r.slots_result ?? 0) - Number(r.players_card_balance || 0),
+        // Slots Result = stored system result (Net Win). Card Balance stays separate.
+        slots_result: Number(r.slots_result ?? r.net_win ?? 0),
+
       })),
     [data],
   );
