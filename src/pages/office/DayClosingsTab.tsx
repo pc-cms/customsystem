@@ -88,7 +88,7 @@ function useMonthAggregates(year: number, month: number) {
           .lt("opened_at", endIso),
         supabase
           .from("cage_slots_shifts")
-          .select("business_date, system_shift_result, cards_miss")
+          .select("business_date, cards_miss")
           .eq("casino_id", activeCasinoId)
           .gte("business_date", startDate)
           .lte("business_date", endDateIncl),
@@ -108,8 +108,9 @@ function useMonthAggregates(year: number, month: number) {
         g.missChips += Number(r.miss_total || 0);
       });
       (slots.data || []).forEach((r: any) => {
+        // Slot shift results are deliberately NOT aggregated here: they must
+        // never prefill Day Closings slot fields. Only Miss Cards is displayed.
         const g = get(r.business_date);
-        g.slots += Number(r.system_shift_result || 0);
         g.missCards += Number(r.cards_miss || 0);
       });
       return map;
