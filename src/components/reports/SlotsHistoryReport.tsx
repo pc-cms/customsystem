@@ -208,9 +208,11 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
    */
   const updateClosingField = useMutation({
     mutationFn: async ({ date, field, value }: { date: string; field: "net_win" | "cashdesk_win"; value: number }) => {
-      // Canonical rule: slots_result always mirrors cashdesk_win.
+      // Canonical rule: Slots Result = system result (net_win).
+      // CashDesk Win is a separate metric and never touches slots_result.
       const patch: Record<string, unknown> = { casino_id: casinoId, business_date: date, [field]: value };
-      if (field === "cashdesk_win") patch.slots_result = value;
+      if (field === "net_win") patch.slots_result = value;
+
       const { error } = await supabase
         .from("fin_day_closing")
         .upsert(patch as any, { onConflict: "casino_id,business_date" });

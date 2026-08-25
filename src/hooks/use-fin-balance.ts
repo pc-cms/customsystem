@@ -125,10 +125,13 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
     (incomes.add_float || 0) +
 
     (incomes.jp || 0) +
-    // Card Balance = client money physically held in the cage. Slots Result is
-    // canonically CashDesk Win (card money is NOT subtracted from it), so the
+    // Card Balance = client money physically held in the cage. It is never part
+    // of the Slots/System Result (which is Net Win) nor of CashDesk Win, so the
     // held cash is missing from Expected and must be added here exactly ONCE.
+    // Verified empirically (Aug): with Card the variance is Mbeya +540 / Mwanza
+    // +2 890; without it Mbeya +20 940 / Mwanza −39 846.
     (incomes.card_balance || 0) +
+
     (incomes.missed_chips || 0) +
 
     (incomes.missed_cards || 0) -
