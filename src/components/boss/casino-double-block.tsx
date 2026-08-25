@@ -40,8 +40,9 @@ const Cell = ({
       : "text-foreground";
   const sizeClass =
     size === "xl"
-      ? "text-[clamp(17px,1.28vw,42px)] leading-none font-bold"
-      : "text-[clamp(10px,0.62vw,20px)] leading-none font-medium text-foreground/75";
+      ? "text-[clamp(24px,2.05vw,64px)] leading-none font-bold"
+      : "text-[clamp(14px,1.05vw,34px)] leading-none font-semibold text-foreground/80";
+
   return (
     <span
       className={`font-mono tabular-nums tracking-tight text-right whitespace-nowrap min-w-0 ${sizeClass} ${color}`}
