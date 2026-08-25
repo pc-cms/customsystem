@@ -1,22 +1,23 @@
 /**
  * CasinoDoubleBlock — per-casino card showing TODAY and MTD side-by-side.
  *
- * Each panel = a 3×3 grid: rows Tables / Slots / TOTAL × cols Drop / Result / Hold%.
- * The TOTAL row is the headline (huge numbers, glowing). Six headline figures
- * per casino (3 Today + 3 MTD) with tables/slots breakdown right above them.
+ * Each panel = a grid: rows Tables / Slots / TOTAL × cols Drop / Result / Hold%.
+ * The TOTAL row is the headline (big numbers, glowing).
+ *
+ * All money/percent values are strictly single-line (`whitespace-nowrap`) and
+ * sized with viewport `clamp()` so 4K scales up without ever wrapping digits.
+ *
+ * Displayed "Today" metrics are computed OUTSIDE this component
+ * (`deriveDisplayedToday`) so the Company Total sums exactly what is rendered.
  */
 import { formatMoneyFull } from "@/lib/format-money";
 import type { CasinoDay, CasinoMetric } from "@/hooks/use-boss-dashboard";
-import { useAceLiveSlotsResult } from "@/hooks/use-ace-finance";
-
+import type { DisplayedToday } from "@/lib/boss-display-metrics";
 
 const formatSigned = (n: number) => {
   const s = formatMoneyFull(Math.abs(Math.round(n)));
   return (n < 0 ? "-" : n > 0 ? "+" : "") + s;
 };
-
-const signedColor = (n: number) =>
-  n > 0 ? "text-emerald-400" : n < 0 ? "text-rose-400" : "text-foreground/80";
 
 const Cell = ({
   value,
@@ -39,17 +40,23 @@ const Cell = ({
       : "text-foreground";
   const sizeClass =
     size === "xl"
-      ? "text-[2.2em] leading-none font-bold"
-      : "text-[0.95em] leading-none font-medium text-foreground/75";
+      ? "text-[clamp(17px,1.28vw,42px)] leading-none font-bold"
+      : "text-[clamp(10px,0.62vw,20px)] leading-none font-medium text-foreground/75";
   return (
     <span
-      className={`font-mono tabular-nums tracking-tight text-right ${sizeClass} ${color}`}
+      className={`font-mono tabular-nums tracking-tight text-right whitespace-nowrap min-w-0 ${sizeClass} ${color}`}
       style={size === "xl" && accent ? { textShadow: `0 0 22px ${accent}55` } : undefined}
     >
       {value}
     </span>
   );
 };
+
+const HeadLabel = ({ children }: { children: React.ReactNode }) => (
+  <span className="text-[clamp(8px,0.42vw,13px)] uppercase tracking-[0.2em] text-muted-foreground/70 font-semibold text-right whitespace-nowrap">
+    {children}
+  </span>
+);
 
 const MetricsGrid = ({
   tables,
@@ -68,21 +75,15 @@ const MetricsGrid = ({
   slotsSubHint?: string | null;
   slotsAvailable?: boolean;
 }) => (
-  <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-x-4 gap-y-2 items-baseline">
+  <div className="grid grid-cols-[minmax(0,auto)_minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,0.55fr)] gap-x-[clamp(6px,0.7vw,20px)] gap-y-[clamp(2px,0.28vh,8px)] items-baseline">
     {/* header row */}
     <span />
-    <span className="text-[0.58em] uppercase tracking-[0.24em] text-muted-foreground/70 font-semibold text-right">
-      Drop
-    </span>
-    <span className="text-[0.58em] uppercase tracking-[0.24em] text-muted-foreground/70 font-semibold text-right">
-      Result
-    </span>
-    <span className="text-[0.58em] uppercase tracking-[0.24em] text-muted-foreground/70 font-semibold text-right">
-      Hold %
-    </span>
+    <HeadLabel>Drop</HeadLabel>
+    <HeadLabel>Result</HeadLabel>
+    <HeadLabel>Hold %</HeadLabel>
 
     {/* Tables */}
-    <span className="text-[0.68em] uppercase tracking-[0.2em] text-muted-foreground font-semibold">
+    <span className="text-[clamp(9px,0.5vw,16px)] uppercase tracking-[0.18em] text-muted-foreground font-semibold whitespace-nowrap">
       Tables
     </span>
     <Cell value={formatMoneyFull(tables.drop)} />
@@ -90,31 +91,26 @@ const MetricsGrid = ({
     <Cell value={`${tables.hold.toFixed(1)}%`} />
 
     {/* Slots */}
-    <span className="text-[0.68em] uppercase tracking-[0.2em] text-muted-foreground font-semibold">
+    <span className="text-[clamp(9px,0.5vw,16px)] uppercase tracking-[0.18em] text-muted-foreground font-semibold whitespace-nowrap min-w-0">
       Slots
-      {slotsHint && (
-        <span className="block text-[0.72em] normal-case tracking-normal text-muted-foreground/60 font-normal">
-          {slotsHint}
-        </span>
-      )}
-      {slotsSubHint && (
-        <span className="block text-[0.72em] normal-case tracking-normal text-muted-foreground/60 font-normal">
-          {slotsSubHint}
-        </span>
-      )}
     </span>
     <Cell value={slotsAvailable ? formatMoneyFull(slots.drop) : "·"} />
     <Cell value={slotsAvailable ? formatSigned(slots.result) : "·"} tone="signed" />
     <Cell value={slotsAvailable ? `${slots.hold.toFixed(1)}%` : "·"} />
 
-
+    {/* ACE hints — compact single line, never widen the card */}
+    {(slotsHint || slotsSubHint) && (
+      <span className="col-span-4 text-[clamp(8px,0.4vw,12px)] text-muted-foreground/60 truncate">
+        {[slotsHint, slotsSubHint].filter(Boolean).join(" · ")}
+      </span>
+    )}
 
     {/* divider */}
-    <span className="col-span-4 h-px bg-white/10 my-1" />
+    <span className="col-span-4 h-px bg-white/10 my-[clamp(1px,0.2vh,6px)]" />
 
     {/* TOTAL — headline row */}
     <span
-      className="text-[0.7em] uppercase tracking-[0.24em] font-extrabold"
+      className="text-[clamp(9px,0.5vw,16px)] uppercase tracking-[0.2em] font-extrabold whitespace-nowrap"
       style={{ color: accent }}
     >
       Total
@@ -127,28 +123,19 @@ const MetricsGrid = ({
 
 const Panel = ({
   title,
-  subtitle,
   accent,
   children,
 }: {
   title: string;
-  subtitle?: string;
   accent: string;
   children: React.ReactNode;
 }) => (
-  <div className="flex-1 min-w-0 flex flex-col gap-4 p-5">
-    <div className="flex items-baseline justify-between">
-      <div
-        className="text-[0.78em] font-extrabold tracking-[0.28em] uppercase"
-        style={{ color: accent }}
-      >
-        {title}
-      </div>
-      {subtitle && (
-        <div className="text-[0.6em] uppercase tracking-[0.22em] text-muted-foreground">
-          {subtitle}
-        </div>
-      )}
+  <div className="flex-1 min-w-0 flex flex-col gap-[clamp(4px,0.6vh,14px)] px-[clamp(8px,0.7vw,22px)] py-[clamp(6px,0.8vh,18px)]">
+    <div
+      className="text-[clamp(9px,0.5vw,16px)] font-extrabold tracking-[0.26em] uppercase"
+      style={{ color: accent }}
+    >
+      {title}
     </div>
     {children}
   </div>
@@ -159,64 +146,13 @@ interface Props {
   slug: string | null;
   accent: string;
   day: CasinoDay | undefined;
+  /** Displayed Today metrics (ACE override already applied upstream). */
+  displayed: DisplayedToday | null;
   orientation?: "auto" | "cols" | "rows";
 }
 
-export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto" }: Props) {
-  // A FRESH (≤15 min) ACE live feed provides the displayed slots drop & result.
-  // Result rule (same as Day Closing): Cashdesk Win − Card Balance (active credits).
-  // Without ACE, slots come ONLY from a closed business day (`fin_day_closing`);
-  // an open cage-slots shift is a draft and is never shown.
-  const ace = useAceLiveSlotsResult(slug);
-  const aceResult =
-    ace.fresh && ace.winCashdesk != null
-      ? ace.winCashdesk - (ace.activeCredits ?? 0)
-      : null;
-  const useAce = ace.fresh && ace.totalDrop != null && aceResult != null;
-  const aceHint = useAce
-    ? `ACE Live · ${Math.max(0, Math.round((ace.ageMs ?? 0) / 60000))}m ago${ace.periodLabel ? ` · ${ace.periodLabel}` : ""}`
-    : null;
-  const aceActiveCredits =
-    ace.fresh && ace.activeCredits != null
-      ? `Active Credits · ${formatMoneyFull(Math.round(ace.activeCredits))}`
-      : null;
-  const slotsAvailable = useAce || (day?.slotsAvailable ?? false);
-  const todaySlots: CasinoMetric | undefined = day
-    ? useAce
-      ? {
-          ...day.slots,
-          drop: ace.totalDrop as number,
-          result: aceResult as number,
-          hold: (ace.totalDrop as number) > 0
-            ? ((aceResult as number) / (ace.totalDrop as number)) * 100
-            : 0,
-        }
-      : day.slots
-    : undefined;
-
-  // Total headline must also reflect ACE slots drop/result, replacing the old
-  // slots figure (which was either zero drop or cage slots result).
-  const todayTotal: CasinoMetric | undefined = day
-    ? useAce
-      ? {
-          ...day.total,
-          drop: day.total.drop + (ace.totalDrop as number),
-          result: day.total.result - day.slots.result + (aceResult as number),
-          headCount: day.total.headCount,
-          hold:
-            day.total.drop + (ace.totalDrop as number) > 0
-              ? ((day.total.result - day.slots.result + (aceResult as number)) /
-                  (day.total.drop + (ace.totalDrop as number))) *
-                100
-              : 0,
-        }
-      : day.total
-    : undefined;
-
-
+export function CasinoDoubleBlock({ name, slug, accent, day, displayed, orientation = "auto" }: Props) {
   const layoutClass =
-
-
     orientation === "cols"
       ? "flex flex-row divide-y-0 divide-x divide-white/5"
       : orientation === "rows"
@@ -225,57 +161,55 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
 
   return (
     <section
-      className="relative rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent overflow-hidden"
+      className="relative flex flex-col min-h-0 min-w-0 rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent overflow-hidden"
       style={{ boxShadow: `inset 0 1px 0 0 ${accent}22, 0 0 40px -20px ${accent}` }}
     >
       <header
-        className="flex items-center justify-between px-6 py-4"
+        className="flex items-center justify-between gap-3 px-[clamp(8px,0.8vw,24px)] py-[clamp(4px,0.6vh,14px)]"
         style={{ background: `linear-gradient(90deg, ${accent}22 0%, transparent 60%)` }}
       >
-        <div className="flex items-center gap-4 min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
           <span
-            className="inline-block w-3 h-3 rounded-full shrink-0"
+            className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
             style={{ background: accent, boxShadow: `0 0 20px ${accent}` }}
           />
           <h2
-            className="text-[1.4em] font-extrabold tracking-[0.22em] uppercase truncate"
+            className="text-[clamp(13px,0.85vw,28px)] font-extrabold tracking-[0.2em] uppercase truncate"
             style={{ color: accent }}
           >
             {name}
           </h2>
           {slug && (
-            <span className="text-[0.65em] uppercase tracking-widest text-muted-foreground">
+            <span className="text-[clamp(8px,0.4vw,13px)] uppercase tracking-widest text-muted-foreground truncate">
               {slug}
             </span>
           )}
         </div>
         {day && (
-          <div className="flex items-center gap-3 text-[0.62em] uppercase tracking-[0.22em] text-muted-foreground">
+          <div className="flex items-center gap-2 text-[clamp(8px,0.42vw,13px)] uppercase tracking-[0.2em] text-muted-foreground whitespace-nowrap">
             <span>Head</span>
-            <span className="font-mono font-bold text-foreground text-[1.4em]">
+            <span className="font-mono font-bold text-foreground text-[clamp(12px,0.72vw,24px)]">
               {day.total.headCount}
             </span>
           </div>
         )}
       </header>
 
-      {day ? (
-        <div className={layoutClass}>
+      {day && displayed ? (
+        <div className={`${layoutClass} flex-1 min-h-0`}>
           <Panel title="Today" accent={accent}>
             <MetricsGrid
-              tables={day.live}
-              slots={todaySlots ?? day.slots}
-              slotsHint={aceHint}
-              slotsSubHint={aceActiveCredits}
-              slotsAvailable={slotsAvailable}
-              total={todayTotal ?? day.total}
+              tables={displayed.tables}
+              slots={displayed.slots}
+              slotsHint={displayed.aceHint}
+              slotsSubHint={displayed.aceCreditsHint}
+              slotsAvailable={displayed.slotsAvailable}
+              total={displayed.total}
               accent={accent}
             />
-
           </Panel>
 
           <Panel title="MTD" accent={accent}>
-
             <MetricsGrid
               tables={{
                 drop: day.mtd.drop,
@@ -296,15 +230,15 @@ export function CasinoDoubleBlock({ name, slug, accent, day, orientation = "auto
           </Panel>
         </div>
       ) : (
-        <div className="py-16 text-center text-muted-foreground">Loading…</div>
+        <div className="flex-1 py-10 text-center text-muted-foreground">Loading…</div>
       )}
 
-      <div className="px-6 py-2 border-t border-white/5 flex items-center justify-between text-[0.55em] uppercase tracking-[0.22em] text-muted-foreground/70">
-        <span>Tables · Chips Check / Day Closing</span>
-        <span>{useAce ? "Slots · ACE Live" : "Slots · Day Closing only"}</span>
+      <div className="px-[clamp(8px,0.8vw,24px)] py-[clamp(2px,0.3vh,8px)] border-t border-white/5 flex items-center justify-between gap-3 text-[clamp(7px,0.38vw,12px)] uppercase tracking-[0.2em] text-muted-foreground/70 whitespace-nowrap overflow-hidden">
+        <span className="truncate">Tables · Chips Check / Day Closing</span>
+        <span className="truncate">
+          {displayed?.usesAce ? "Slots · ACE Live" : "Slots · Day Closing only"}
+        </span>
       </div>
-
-
     </section>
   );
 }
