@@ -56,6 +56,19 @@ export default function JpTab() {
   const isCancelled = (r: OtherIncomeRow) => !!r.reversed_by_id;
   const isStorno = (r: OtherIncomeRow) => !!r.reverses_id;
 
+  /** Audit rows (storno + the entries they cancel) are hidden by default. */
+  const [showVoided, setShowVoided] = useState(false);
+
+  const allRows = rows as OtherIncomeRow[];
+  const voidedCount = useMemo(
+    () => allRows.filter((r) => isStorno(r) || isCancelled(r)).length,
+    [allRows],
+  );
+  const visibleRows = useMemo(
+    () => (showVoided ? allRows : allRows.filter((r) => !isStorno(r) && !isCancelled(r))),
+    [allRows, showVoided],
+  );
+
   const totals = useMemo(() => {
     let inSum = 0;
     let outSum = 0;
@@ -67,6 +80,7 @@ export default function JpTab() {
     });
     return { inSum, outSum, net: inSum + outSum };
   }, [rows]);
+
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -268,8 +282,15 @@ export default function JpTab() {
       </div>
 
       <PageSection card={false}>
+        {voidedCount > 0 && (
+          <div className="flex justify-end mb-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowVoided((v) => !v)}>
+              {showVoided ? "Hide" : "Show"} cancelled &amp; storno ({voidedCount})
+            </Button>
+          </div>
+        )}
         <SmartTable
-          data={rows}
+          data={visibleRows}
           columns={columns}
           rowKey={(r) => r.id}
           loading={isLoading}
@@ -280,6 +301,7 @@ export default function JpTab() {
           }
         />
       </PageSection>
+
 
       <ResponsiveDialog
         open={dialogOpen}
