@@ -1,17 +1,16 @@
 /**
- * Manager / Finance Manager edit of an existing expense.
+ * Finance Manager edit of an existing expense.
  *
  * Single mutation that patches `expenses` directly — relies on existing RLS
  * (manager/finance_manager/super_admin can UPDATE any row in their casino) and
  * the DB trigger `expenses_set_amount_tzs` that recomputes `amount_tzs` from
  * `amount + currency + business_date` via `fin_daily_rates`.
  *
- * Writes a structured audit row via logAction.
+ * Audit is written authoritatively by the database trigger.
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { logAction } from "@/lib/logging";
 import { toast } from "sonner";
 
 export type EditExpensePatch = {
@@ -23,7 +22,7 @@ export type EditExpensePatch = {
   description?: string;
   player_id?: string | null;
   player_name?: string;
-  /** Snapshot of pre-edit values for audit log. */
+  /** Retained for edit-form compatibility; database audit captures the full row. */
   before?: Record<string, any>;
 };
 
@@ -33,10 +32,9 @@ export const useEditExpense = () => {
   return useMutation({
     mutationFn: async (patch: EditExpensePatch) => {
       const allowed =
-        roles.includes("manager") ||
         roles.includes("finance_manager") ||
         roles.includes("super_admin");
-      if (!allowed) throw new Error("Manager role required");
+      if (!allowed) throw new Error("Finance Manager role required");
       if (!casinoId) throw new Error("No casino");
 
       const update: Record<string, any> = {};
@@ -55,12 +53,6 @@ export const useEditExpense = () => {
         .update(update)
         .eq("id", patch.id);
       if (error) throw error;
-
-      await logAction(casinoId, "expense", "EXPENSE_EDITED", {
-        expense_id: patch.id,
-        before: patch.before ?? null,
-        after: update,
-      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["expenses"] });
