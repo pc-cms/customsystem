@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { deriveDisplayedToday, sumDisplayedToday, type AceLiveSlots } from "@/lib/boss-display-metrics";
+import {
+  deriveDisplayedToday,
+  deriveDisplayedMonthly,
+  sumDisplayedToday,
+  type AceLiveSlots,
+} from "@/lib/boss-display-metrics";
 import type { CasinoDay } from "@/hooks/use-boss-dashboard";
 
 const day = (over: Partial<CasinoDay> = {}): CasinoDay => ({
@@ -9,8 +14,11 @@ const day = (over: Partial<CasinoDay> = {}): CasinoDay => ({
   slotsAvailable: true,
   total: { drop: 110_000_000, result: 21_000_000, headCount: 42, hold: 19.09 },
   mtd: { drop: 0, result: 0, hold: 0 },
+  mtdTables: { drop: 900_000_000, result: 150_000_000, headCount: 0, hold: 16.67 },
+  mtdSlots: { drop: 300_000_000, result: -20_000_000, headCount: 0, hold: -6.67 },
   ...over,
 });
+
 
 const ace = (over: Partial<AceLiveSlots> = {}): AceLiveSlots => ({
   fresh: true,
@@ -49,5 +57,31 @@ describe("sumDisplayedToday", () => {
     expect(sum.result).toBe(25_000_000 + 21_000_000);
     expect(sum.headCount).toBe(84);
     expect(sum.hold).toBeCloseTo((46_000_000 / 270_000_000) * 100, 6);
+  });
+});
+
+describe("deriveDisplayedMonthly", () => {
+  it("splits Tables / Slots and totals them (Statistics sources)", () => {
+    const d = deriveDisplayedMonthly(day())!;
+    expect(d.tables.drop).toBe(900_000_000);
+    expect(d.slots.result).toBe(-20_000_000);
+    expect(d.total.drop).toBe(1_200_000_000);
+    expect(d.total.result).toBe(130_000_000);
+    expect(d.total.hold).toBeCloseTo((130 / 1200) * 100, 6);
+    expect(d.slotsAvailable).toBe(true);
+    expect(d.usesAce).toBe(false);
+  });
+
+  it("marks slots unavailable when Statistics has no monthly slots data", () => {
+    const zero = { drop: 0, result: 0, headCount: 0, hold: 0 };
+    expect(deriveDisplayedMonthly(day({ mtdSlots: zero }))!.slotsAvailable).toBe(false);
+  });
+
+  it("company monthly total = sum of displayed monthly cards", () => {
+    const a = deriveDisplayedMonthly(day());
+    const b = deriveDisplayedMonthly(day({ casinoId: "c2" }));
+    const sum = sumDisplayedToday([a, b]);
+    expect(sum.drop).toBe(2_400_000_000);
+    expect(sum.result).toBe(260_000_000);
   });
 });

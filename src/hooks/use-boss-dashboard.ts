@@ -27,7 +27,17 @@ export type CasinoDay = {
   /** false while the business day is still open and no ACE feed exists → show `·` */
   slotsAvailable: boolean;
   mtd: { drop: number; result: number; hold: number };
+  /**
+   * Monthly (MTD) split — SAME sources as Analytics → Statistics (Total Report):
+   *   Tables Drop   → player_day_drop_cache.peak (via `compute_daily_diff`)
+   *   Tables Result → fin_day_closing.tables_result (+ today's live figure)
+   *   Slots Drop    → fin_day_closing.drop_slots, fallback cage_slots_shifts.manual_drop_slots
+   *   Slots Result  → fin_day_closing.net_win
+   */
+  mtdTables: CasinoMetric;
+  mtdSlots: CasinoMetric;
 };
+
 
 
 export type TopPlayer = { casinoId: string; playerId: string; name: string; drop: number };
@@ -52,7 +62,7 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
   //   Slots           → ONLY closed days: cashdesk_win − players_card_balance.
   //                     While the day is open (and no fresh ACE feed) slots show `·`
   //                     — an open cage-slots shift is a draft, not a result.
-  const [dailyTodayRes, dailyMtdRes, hcRes, closingsRes, snapRes] = await Promise.all([
+  const [dailyTodayRes, dailyMtdRes, hcRes, closingsRes, snapRes, slotShiftsRes] = await Promise.all([
     (supabase as any).rpc("compute_daily_diff", {
       _casino_id: casinoId, _from: businessDate, _to: businessDate,
     }),
@@ -67,12 +77,21 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
       .is("checked_out_at", null),
     supabase
       .from("fin_day_closing")
-      .select("business_date, tables_result, slots_result, cashdesk_win, players_card_balance, drop_slots")
+      .select("business_date, tables_result, slots_result, net_win, cashdesk_win, players_card_balance, drop_slots")
       .eq("casino_id", casinoId)
       .gte("business_date", mStart)
       .lte("business_date", businessDate),
     (supabase as any).rpc("chip_snapshots_latest", { _casino_id: casinoId, _date: businessDate }),
+    // Statistics fallback for monthly Slots Drop when Day Closing has no ACE figure.
+    supabase
+      .from("cage_slots_shifts")
+      .select("business_date, manual_drop_slots")
+      .eq("casino_id", casinoId)
+      .eq("status", "closed")
+      .gte("business_date", mStart)
+      .lte("business_date", businessDate),
   ]);
+
 
   const headCount = hcRes.count ?? 0;
 
@@ -112,6 +131,35 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
     .reduce((s, r) => s + Number(r.tables_result || 0) + closingSlots(r), 0);
   const mtdResult = mtdClosed + totalResult;
 
+  // ---- Monthly split, sourced exactly like Analytics → Statistics ----------
+  // Slots Drop  : fin_day_closing.drop_slots wins; else cage_slots_shifts.manual_drop_slots
+  // Slots Result: fin_day_closing.net_win
+  const shiftDropByDate = new Map<string, number>();
+  for (const s of ((slotShiftsRes as any).data || []) as any[]) {
+    shiftDropByDate.set(
+      s.business_date,
+      (shiftDropByDate.get(s.business_date) || 0) + Number(s.manual_drop_slots || 0),
+    );
+  }
+  let mtdSlotsDrop = 0;
+  let mtdSlotsResult = 0;
+  const closingDates = new Set<string>();
+  for (const c of closings) {
+    closingDates.add(c.business_date);
+    const aceDrop = Number(c.drop_slots || 0);
+    mtdSlotsDrop += aceDrop !== 0 ? aceDrop : shiftDropByDate.get(c.business_date) || 0;
+    mtdSlotsResult += Number(c.net_win || 0);
+  }
+  for (const [d, v] of shiftDropByDate) if (!closingDates.has(d)) mtdSlotsDrop += v;
+
+  // Tables monthly: drop from the drop cache, result from Day Closings
+  // (today's still-open day contributes the live chips-check figure).
+  const mtdTablesDrop = mtdDrop;
+  const mtdTablesResult =
+    closings
+      .filter((r) => r.business_date !== businessDate)
+      .reduce((s, r) => s + Number(r.tables_result || 0), 0) + liveResult;
+
   return {
     casinoId,
     total: { drop: totalDrop, result: totalResult, headCount, hold: hold(totalDrop, totalResult) },
@@ -119,9 +167,22 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
     slots: { drop: slotsDrop, result: slotsResult, headCount: 0, hold: hold(slotsDrop, slotsResult) },
     slotsAvailable,
     mtd: { drop: mtdDrop, result: mtdResult, hold: hold(mtdDrop, mtdResult) },
+    mtdTables: {
+      drop: mtdTablesDrop,
+      result: mtdTablesResult,
+      headCount: 0,
+      hold: hold(mtdTablesDrop, mtdTablesResult),
+    },
+    mtdSlots: {
+      drop: mtdSlotsDrop,
+      result: mtdSlotsResult,
+      headCount: 0,
+      hold: hold(mtdSlotsDrop, mtdSlotsResult),
+    },
   };
 
 }
+
 
 
 export function useBossCasinoDays(casinoIds: string[]) {

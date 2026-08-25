@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { formatMoneyFull } from "@/lib/format-money";
 import { getBusinessDate } from "@/lib/business-day";
-import { Monitor, LayoutGrid, Users, UserPlus, Tv, Maximize2, Minimize2, Type, Rows3, Columns3, FileBarChart2, LayoutDashboard, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { Monitor, LayoutGrid, Users, UserPlus, Tv, Maximize2, Minimize2, Type, FileBarChart2, LayoutDashboard, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import premierClubLogo from "/premier-club-logo.svg";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -30,12 +30,13 @@ import { CasinoDoubleBlock } from "@/components/boss/casino-double-block";
 import { CompanyTotalPanel } from "@/components/boss/company-total-panel";
 import { MonthlyReportPanel } from "@/components/boss/monthly-report-panel";
 import { useAceLiveSlotsResultMany } from "@/hooks/use-ace-finance";
-import { deriveDisplayedToday, sumDisplayedToday } from "@/lib/boss-display-metrics";
+import { deriveDisplayedToday, deriveDisplayedMonthly, sumDisplayedToday } from "@/lib/boss-display-metrics";
 
 
 type Resolution = "fhd" | "uhd";
 type FontPreset = "s" | "m" | "l" | "xl";
 type BlockOrient = "auto" | "cols" | "rows" | "report";
+type PeriodView = "today" | "monthly";
 
 const LS_CASINOS = "boss-tv:casinos";
 const LS_RES = "boss-tv:resolution";
@@ -43,6 +44,8 @@ const LS_TV = "boss-tv:tv-mode";
 const LS_FONT = "boss-tv:font-preset";
 const LS_ORIENT = "boss-tv:block-orient";
 const LS_MONTH = "boss-tv:report-month";
+const LS_PERIOD = "boss-tv:period-view";
+
 
 const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -105,7 +108,11 @@ export default function BossDashboard() {
   const [blockOrient, setBlockOrient] = useState<BlockOrient>(
     () => (localStorage.getItem(LS_ORIENT) as BlockOrient) || "auto",
   );
+  const [periodView, setPeriodView] = useState<PeriodView>(
+    () => (localStorage.getItem(LS_PERIOD) as PeriodView) || "today",
+  );
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() => !!document.fullscreenElement);
+
   const [reportYM, setReportYM] = useState<{ y: number; m: number }>(() => {
     try {
       const raw = localStorage.getItem(LS_MONTH);
@@ -138,6 +145,8 @@ export default function BossDashboard() {
   useEffect(() => { localStorage.setItem(LS_FONT, fontPreset); }, [fontPreset]);
   useEffect(() => { localStorage.setItem(LS_ORIENT, blockOrient); }, [blockOrient]);
   useEffect(() => { localStorage.setItem(LS_MONTH, JSON.stringify(reportYM)); }, [reportYM]);
+  useEffect(() => { localStorage.setItem(LS_PERIOD, periodView); }, [periodView]);
+
 
 
   useEffect(() => {
@@ -196,6 +205,18 @@ export default function BossDashboard() {
     [casinos, displayedMap],
   );
 
+  // Monthly (MTD) metrics — sourced like Analytics → Statistics, no ACE override.
+  const monthlyMap = useMemo(() => {
+    const m: Record<string, ReturnType<typeof deriveDisplayedMonthly>> = {};
+    for (const c of casinos) m[c.id] = deriveDisplayedMonthly(dayMap[c.id]);
+    return m;
+  }, [casinos, dayMap]);
+  const companyMonthly = useMemo(
+    () => sumDisplayedToday(casinos.map((c) => monthlyMap[c.id])),
+    [casinos, monthlyMap],
+  );
+
+
   const isReport = blockOrient === "report";
   const liveTv = tvMode && !isReport;
 
@@ -229,6 +250,10 @@ export default function BossDashboard() {
   const dateLabel = new Date(businessDate).toLocaleDateString("en-GB", {
     weekday: "short", day: "2-digit", month: "short", year: "numeric",
   });
+  const nowDate = new Date(businessDate);
+  const liveMonthLabel = `${MONTH_LABELS[nowDate.getMonth()]} ${nowDate.getFullYear()}`;
+
+
 
   const gridRows = casinos.length > 2 ? 2 : 1;
   const liveGridStyle: React.CSSProperties = liveTv
@@ -265,7 +290,10 @@ export default function BossDashboard() {
             <span className={`text-[0.7em] tracking-[0.3em] uppercase text-muted-foreground whitespace-nowrap ${liveTv ? "" : "mt-1"}`}>
               Dashboard TV · {blockOrient === "report"
                 ? `Company Report · ${MONTH_LABELS[reportYM.m - 1]} ${reportYM.y}`
-                : `Live Overview · ${dateLabel}`}
+                : periodView === "today"
+                ? `Live Overview · Today · ${dateLabel}`
+                : `Live Overview · Monthly · ${liveMonthLabel}`}
+
             </span>
           </div>
         </div>
@@ -290,6 +318,23 @@ export default function BossDashboard() {
               <FileBarChart2 className="w-3.5 h-3.5" /> Report
             </button>
           </div>
+
+          {/* Period switcher — Live view only (Monthly = current month MTD) */}
+          {blockOrient !== "report" && (
+            <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Period">
+              {(["today", "monthly"] as PeriodView[]).map((p) => (
+                <button
+                  key={p}
+                  className={`px-3 py-1.5 text-xs rounded-sm font-semibold capitalize ${periodView === p ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                  onClick={() => setPeriodView(p)}
+                >
+                  {p === "today" ? "Today" : "Monthly"}
+                </button>
+              ))}
+            </div>
+          )}
+
+
 
           {/* Month picker (report only) */}
           {blockOrient === "report" && (
@@ -338,25 +383,8 @@ export default function BossDashboard() {
             </PopoverContent>
           </Popover>
 
-          {/* Layout (only meaningful in Live view) */}
-          {blockOrient !== "report" && (
-            <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Layout: auto / columns / rows">
-              <button
-                className={`px-2 py-1 text-xs rounded-sm ${blockOrient === "auto" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-                onClick={() => setBlockOrient("auto")}
-              >Auto</button>
-              <button
-                className={`px-2 py-1 rounded-sm inline-flex items-center ${blockOrient === "cols" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-                onClick={() => setBlockOrient("cols")}
-                title="Columns (MTD | Today)"
-              ><Columns3 className="w-3.5 h-3.5" /></button>
-              <button
-                className={`px-2 py-1 rounded-sm inline-flex items-center ${blockOrient === "rows" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-                onClick={() => setBlockOrient("rows")}
-                title="Rows (MTD / Today)"
-              ><Rows3 className="w-3.5 h-3.5" /></button>
-            </div>
-          )}
+          {/* Layout split (Today | MTD) removed — one period per card now. */}
+
 
           {/* Font size */}
           <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Font size preset">
@@ -430,8 +458,11 @@ export default function BossDashboard() {
                   slug={c.slug}
                   accent={accentFor(c.slug, i)}
                   day={dayMap[c.id]}
-                  displayed={displayedMap[c.id] ?? null}
-                  orientation={blockOrient as "auto" | "cols" | "rows"}
+                  displayed={
+                    (periodView === "today" ? displayedMap[c.id] : monthlyMap[c.id]) ?? null
+                  }
+                  period={periodView}
+                  periodLabel={liveMonthLabel}
                 />
               ))}
             </div>
@@ -439,9 +470,18 @@ export default function BossDashboard() {
             {/* Company Total */}
             {casinos.length > 0 && (
               <div className="mt-6">
-                <CompanyTotalPanel casinos={casinos} days={days} today={companyToday} accentFor={accentFor} />
+                <CompanyTotalPanel
+                  casinos={casinos}
+                  days={days}
+                  today={companyToday}
+                  monthly={companyMonthly}
+                  period={periodView}
+                  periodLabel={liveMonthLabel}
+                  accentFor={accentFor}
+                />
               </div>
             )}
+
           </>
         )}
 
