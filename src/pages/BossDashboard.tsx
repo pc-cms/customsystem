@@ -248,19 +248,19 @@ export default function BossDashboard() {
      <div ref={chromeRef}>
 
       {/* Header — brand + title only */}
-      <header className={`flex items-center justify-between gap-6 ${outerPad} pb-2`}>
-        <div className="flex items-center gap-4 min-w-0">
+      <header className={`flex items-center justify-between gap-6 ${outerPad} ${liveTv ? "pb-1" : "pb-2"}`}>
+        <div className={`flex items-center min-w-0 ${liveTv ? "gap-3" : "gap-4"}`}>
           <div
-            className="relative flex items-center justify-center w-14 h-14 rounded-full border border-white/10 overflow-hidden bg-white/5"
+            className={`relative flex items-center justify-center rounded-full border border-white/10 overflow-hidden bg-white/5 ${liveTv ? "w-9 h-9" : "w-14 h-14"}`}
             style={{ boxShadow: "0 0 30px hsl(var(--primary) / 0.35)" }}
           >
-            <img src={premierClubLogo} alt="Premier Club" className="w-11 h-11 object-contain" />
+            <img src={premierClubLogo} alt="Premier Club" className={liveTv ? "w-7 h-7 object-contain" : "w-11 h-11 object-contain"} />
           </div>
-          <div className="flex flex-col min-w-0">
-            <h1 className="text-[1.5em] font-extrabold tracking-[0.28em] uppercase leading-none truncate">
+          <div className={liveTv ? "flex items-baseline gap-4 min-w-0" : "flex flex-col min-w-0"}>
+            <h1 className="text-[1.35em] font-extrabold tracking-[0.28em] uppercase leading-none truncate">
               Premier Casino
             </h1>
-            <span className="text-[0.7em] tracking-[0.32em] uppercase text-muted-foreground mt-1">
+            <span className={`text-[0.7em] tracking-[0.3em] uppercase text-muted-foreground whitespace-nowrap ${liveTv ? "" : "mt-1"}`}>
               Dashboard TV · {blockOrient === "report"
                 ? `Company Report · ${MONTH_LABELS[reportYM.m - 1]} ${reportYM.y}`
                 : `Live Overview · ${dateLabel}`}
@@ -270,8 +270,9 @@ export default function BossDashboard() {
       </header>
 
       {/* Unified control bar — view, month, casinos, layout, size, TV, fullscreen */}
-      <div className={`${tvMode ? "px-[5vw]" : "px-8"} pb-4`}>
-        <div className="rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm px-3 py-2 flex items-center gap-2 flex-wrap">
+      <div className={`${sidePad} ${liveTv ? "pb-2" : "pb-4"}`}>
+        <div className={`rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm flex items-center gap-2 ${liveTv ? "px-2 py-1 flex-nowrap overflow-x-auto" : "px-3 py-2 flex-wrap"}`}>
+
           {/* View switcher — Live vs Report */}
           <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Switch view">
             <button
