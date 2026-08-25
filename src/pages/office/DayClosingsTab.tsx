@@ -168,7 +168,15 @@ export default function DayClosingsTab() {
    * previous period) live on the JP tab and must never distort the day figure.
    */
   const jpPositive = useMemo(
-    () => (incomes as any[]).filter((r) => r.source === "jp" && Number(r.amount || 0) > 0),
+    () =>
+      (incomes as any[]).filter(
+        (r) =>
+          r.source === "jp" &&
+          Number(r.amount || 0) > 0 &&
+          // storno rows and the rows they cancel must never inflate the day figure
+          !r.reverses_id &&
+          !r.reversed_by_id,
+      ),
     [incomes],
   );
 
