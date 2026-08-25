@@ -259,10 +259,14 @@ export const useMarkUnplannedPaid = () =>
     "Marked as paid",
   );
 
-export const useReverseUnplanned = () =>
-  useFinMutation<{ id: string; reason?: string }>(
-    (i) => rpc("fin_unplanned_reverse", { p_id: i.id, p_reason: i.reason || null }),
-    "Unplanned expense reversed",
+/**
+ * Hard delete — finance manager / super_admin only. Refunds the wallet when the
+ * expense was already paid and writes the change to `fin_audit_log`.
+ */
+export const useDeleteUnplanned = () =>
+  useFinMutation<{ id: string }>(
+    (i) => rpc("fin_unplanned_delete", { p_id: i.id }),
+    "Extra expense deleted",
   );
 
 /* ── Liabilities ── */
