@@ -164,7 +164,7 @@ export default function FinancesBankImportPage() {
             </Select>
           </div>
           <div className="min-w-[260px]">
-            <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">Statement file (CSV / XLSX)</div>
+            <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">Statement file (CSV / XLSX / XLS)</div>
             <Input
               type="file"
               accept=".csv,.txt,.xlsx,.xlsm,.xls"

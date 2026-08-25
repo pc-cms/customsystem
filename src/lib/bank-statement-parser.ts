@@ -5,8 +5,9 @@
  * The parsed rows are handed to `fin_bank_import_create_batch` which is the
  * only authoritative writer (matching, duplicate detection, staging).
  *
- * Supported: .csv / .txt (delimiter auto-detect: , ; \t |) and .xlsx / .xls
- * (via exceljs). PDF is intentionally NOT supported — we do not fake OCR.
+ * Supported: .csv / .txt (delimiter auto-detect: , ; \t |), modern .xlsx / .xlsm
+ * (via exceljs), and legacy binary .xls (via xlsx). PDF is intentionally NOT
+ * supported — we do not fake OCR.
  */
 
 export interface ParsedStatementRow {
@@ -136,7 +137,17 @@ function splitCsv(text: string): string[][] {
 async function readXlsx(file: File): Promise<unknown[][]> {
   const ExcelJS = await import("exceljs");
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(await file.arrayBuffer());
+  try {
+    await wb.xlsx.load(await file.arrayBuffer());
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e ?? "");
+    if (/end of central directory|zip file|corrupted zip/i.test(msg)) {
+      throw new UnsupportedStatementFile(
+        "This is not a valid XLSX workbook. If it is an old .xls bank statement, keep the .xls extension and upload it again; otherwise export the statement as CSV/XLSX from the bank.",
+      );
+    }
+    throw e;
+  }
   const ws = wb.worksheets[0];
   if (!ws) throw new UnsupportedStatementFile("Workbook has no sheets");
   const out: unknown[][] = [];
@@ -155,6 +166,25 @@ async function readXlsx(file: File): Promise<unknown[][]> {
     out.push(vals);
   });
   return out;
+}
+
+async function readLegacyXls(file: File): Promise<unknown[][]> {
+  try {
+    const XLSX = await import("xlsx");
+    const wb = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true });
+    const sheetName = wb.SheetNames[0];
+    if (!sheetName) throw new UnsupportedStatementFile("Workbook has no sheets");
+    return XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[sheetName], {
+      header: 1,
+      blankrows: false,
+      defval: null,
+    });
+  } catch (e) {
+    if (e instanceof UnsupportedStatementFile) throw e;
+    throw new UnsupportedStatementFile(
+      "Could not read this XLS file. Please export the bank statement as CSV or XLSX and upload it again.",
+    );
+  }
 }
 
 function buildFromMatrix(matrix: unknown[][]): ParsedStatement {
@@ -246,11 +276,14 @@ export async function parseStatementFile(file: File): Promise<ParsedStatement> {
   if (name.endsWith(".csv") || name.endsWith(".txt")) {
     return buildFromMatrix(splitCsv(await file.text()));
   }
-  if (name.endsWith(".xlsx") || name.endsWith(".xlsm") || name.endsWith(".xls")) {
+  if (name.endsWith(".xlsx") || name.endsWith(".xlsm")) {
     return buildFromMatrix(await readXlsx(file));
   }
+  if (name.endsWith(".xls")) {
+    return buildFromMatrix(await readLegacyXls(file));
+  }
   throw new UnsupportedStatementFile(
-    `Unsupported file type "${name.split(".").pop()}". Supported: CSV and XLSX. PDF statements must be exported to CSV/XLSX by the bank first.`,
+    `Unsupported file type "${name.split(".").pop()}". Supported: CSV, XLSX, and XLS. PDF statements must be exported to CSV/XLSX by the bank first.`,
   );
 }
 
