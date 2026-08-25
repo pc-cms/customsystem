@@ -78,10 +78,10 @@ Profit                = Total Income − Grand Actual
 ## 3. Wallets / Balance (`fin_balance_snapshot` + `use-fin-balance.ts`)
 
 ```text
-Expected = Table Result + CashDesk Win + Bar Income + Commissions
-         + Tips & Bonuses (±) + Movements
+Expected = Starting Float + Table Result + CashDesk Win + Commissions
+         + Tips & Bonuses (±) + Movements + Add Float
          + JP + Card Balance + Miss Chips + Miss Cards
-         − Expenses − Collections + Transfers
+         − Expenses − Collections − Transfers
 
 Actual   = Σ last recorded physical wallet state (latest count per wallet)
 Variance = Actual − Expected        (the gap; a real discrepancy, not a bug)
@@ -175,7 +175,7 @@ no longer available in the UI.
 
 POS does **not** post to wallets today (no `pos_deposit` wallet transactions),
 so Bar Income is exposed by `fin_balance_snapshot` and counted exactly ONCE in
-Total Income and once in Cash Position / Wallet Expected.
+Total Income and Cash Position. It is NOT included in Wallet Expected.
 
 ## Unplanned Expenses, Liabilities, Signed Float (2026 delta)
 
