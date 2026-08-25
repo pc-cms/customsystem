@@ -645,13 +645,14 @@ export default function FinancesWalletsPage() {
             />
             <BreakdownRow label="Add Float" v={snap?.incomes?.add_float || 0} signed />
             <BreakdownRow label="Table Result" v={snap?.incomes?.live_game || 0} positive />
-            <BreakdownRow label="Slot Result" v={snap?.incomes?.slots || 0} positive />
+            <BreakdownRow label="CashDesk Win (slots cash)" v={snap?.incomes?.slots || 0} positive />
             <BreakdownRow label="Commissions" v={snap?.incomes?.other || 0} signed />
             <BreakdownRow label="Tips & Bonuses (±)" v={snap?.incomes?.tips_bonus || 0} signed />
             <BreakdownRow label="Other movements (investment / office)" v={snap?.incomes?.movements || 0} signed />
             <BreakdownRow label="JP (±)" v={snap?.incomes?.jp || 0} signed />
 
-            <BreakdownRow label="Card Balance (reference · already in Slot Result)" v={snap?.incomes?.card_balance || 0} signed muted />
+            <BreakdownRow label="Card Balance (cash held in cage)" v={snap?.incomes?.card_balance || 0} signed />
+
 
             <BreakdownRow label="Missed Chips (±)" v={snap?.incomes?.missed_chips || 0} signed />
             <BreakdownRow label="Missed Cards (±)" v={snap?.incomes?.missed_cards || 0} signed />
