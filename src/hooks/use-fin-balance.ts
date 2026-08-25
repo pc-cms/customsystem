@@ -125,12 +125,14 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
     (incomes.add_float || 0) +
 
     (incomes.jp || 0) +
-    // Card Balance is NOT added here: player card money is already inside
-    // Win Cash Desk (slots_result). It is subtracted only for display in
-    // Boss Dashboard / Monthly Report (shown as deposits).
+    // Card Balance = client money physically held in the cage. Slots Result is
+    // canonically CashDesk Win (card money is NOT subtracted from it), so the
+    // held cash is missing from Expected and must be added here exactly ONCE.
+    (incomes.card_balance || 0) +
     (incomes.missed_chips || 0) +
 
     (incomes.missed_cards || 0) -
+
     (s.expenses_total || 0) -
     (s.collections_total || 0) -
     (s.transfers_total || 0);

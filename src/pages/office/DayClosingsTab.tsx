@@ -88,7 +88,7 @@ function useMonthAggregates(year: number, month: number) {
           .lt("opened_at", endIso),
         supabase
           .from("cage_slots_shifts")
-          .select("business_date, system_shift_result, cards_miss")
+          .select("business_date, cards_miss")
           .eq("casino_id", activeCasinoId)
           .gte("business_date", startDate)
           .lte("business_date", endDateIncl),
@@ -108,8 +108,9 @@ function useMonthAggregates(year: number, month: number) {
         g.missChips += Number(r.miss_total || 0);
       });
       (slots.data || []).forEach((r: any) => {
+        // Slot shift results are deliberately NOT aggregated here: they must
+        // never prefill Day Closings slot fields. Only Miss Cards is displayed.
         const g = get(r.business_date);
-        g.slots += Number(r.system_shift_result || 0);
         g.missCards += Number(r.cards_miss || 0);
       });
       return map;
@@ -214,7 +215,7 @@ export default function DayClosingsTab() {
       jpRow: jpRowByDate.get(date) || null,
       jpRowsCount: jpPositive.filter((r) => r.business_date === date).length,
       closedByManager: closureMap?.has(date) ? !!closureMap.get(date) : null,
-      hadActivity: agg.tables !== 0 || agg.slots !== 0 || agg.missChips !== 0 || agg.missCards !== 0,
+      hadActivity: agg.tables !== 0 || agg.missChips !== 0 || agg.missCards !== 0,
     };
   }), [dates, byDate, aggMap, jpByDate, jpRowByDate, jpPositive, closureMap]);
 
@@ -235,9 +236,11 @@ export default function DayClosingsTab() {
   const val = (r: Row) => {
     const d = drafts[r.date] || {};
     const tables = d.tables ?? (r.existing?.tables_result != null ? Number(r.existing.tables_result) : r.agg.tables);
+    // Slot fields NEVER prefill from a cage/slot cashier shift (open or closed).
+    // Only ACE Collector or an explicit manual entry may populate them.
     const slots = d.slots ?? (r.existing?.slots_result != null
       ? Number(r.existing.slots_result)
-      : (r.existing?.cashdesk_win != null ? Number(r.existing.cashdesk_win) : r.agg.slots));
+      : Number(r.existing?.cashdesk_win ?? 0));
 
     const drop = d.drop ?? Number(r.existing?.drop_slots ?? 0);
     const cash = d.cash ?? Number(r.existing?.cashdesk_win ?? 0);
@@ -256,12 +259,14 @@ export default function DayClosingsTab() {
     !isOpenDay(r) && (!isLocked(r) || (!!isManager && !!unlocked[r.date]));
   const varianceOf = (r: Row) => {
     const v = val(r);
-    return { dT: Math.abs(v.tables - r.agg.tables), dS: Math.abs(v.slots - r.agg.slots) };
+    // Slot figures have no shift-derived reference — only Table Result is compared.
+    return { dT: Math.abs(v.tables - r.agg.tables), dS: 0 };
   };
   const needsNote = (r: Row) => {
     const { dT, dS } = varianceOf(r);
     return dT > 1 || dS > 1;
   };
+
 
   const [varianceRow, setVarianceRow] = useState<Row | null>(null);
   const [varianceNote, setVarianceNote] = useState("");
@@ -357,7 +362,7 @@ export default function DayClosingsTab() {
     let cardsFound = false;
     rows.forEach((r) => {
       t.tables += Number(r.existing?.tables_result ?? r.agg.tables ?? 0);
-      t.slots += Number(r.existing?.slots_result ?? r.agg.slots ?? 0);
+      t.slots += Number(r.existing?.slots_result ?? 0);
       t.drop += Number(r.existing?.drop_slots ?? 0);
       t.cash += Number(r.existing?.cashdesk_win ?? 0);
       t.missChips += Number(r.agg.missChips ?? 0);
@@ -426,8 +431,8 @@ export default function DayClosingsTab() {
       type: "money",
       style: { width: 168 },
       accessor: (r) => numCell(r, val(r).slots, (n) => setField(r.date, { slots: n }), {
-        placeholder: r.agg.slots,
-        title: `Cash Desk Win from Close Day. Editable manually.`,
+        placeholder: 0,
+        title: `Slot Result = CashDesk Win. Filled by ACE Collector or entered manually. Never taken from a slot cashier shift.`,
       }),
     },
     {
@@ -448,7 +453,7 @@ export default function DayClosingsTab() {
       accessor: (r) => numCell(r, val(r).cards, (n) => setField(r.date, { cards: n }), {
         tone: false,
         allowNegative: true,
-        title: "Client balance held on player cards. Subtracted from the Slot Result. Negative values allowed.",
+        title: "Client balance held on player cards. Kept separate — never subtracted from the Slot Result. Negative values allowed.",
       }),
     },
     {
@@ -542,7 +547,7 @@ export default function DayClosingsTab() {
       case "date": return <span className="text-[10px] font-semibold uppercase tracking-wider">Totals · {MONTH_NAMES[month - 1]}</span>;
       case "status": return null;
       case "tables": return <Money v={totals.tables} />;
-      case "slots": return <Money v={totals.slots - totals.cards} />;
+      case "slots": return <Money v={totals.slots} />;
       case "drop": return <span className="font-mono text-[12px] text-muted-foreground">{formatNumberSpaces(totals.drop)}</span>;
       case "cards": return <span className={cn("font-mono text-[12px]", totals.cards ? "cms-amount-negative" : "text-muted-foreground")}>{totals.cards ? `${totals.cards > 0 ? "− " : "+ "}${formatNumberSpaces(Math.abs(totals.cards))}` : "0"}</span>;
       case "jp": return <Money v={totals.jp} />;
