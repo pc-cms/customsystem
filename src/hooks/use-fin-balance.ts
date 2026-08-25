@@ -117,7 +117,9 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
   const expected =
     (s.starting_float?.grand_tzs || 0) +
     (incomes.live_game || 0) +
+    // Slots cash = CashDesk Win from Day Closings (never Slots Result / Net Win).
     (incomes.slots || 0) +
+
     (incomes.other || 0) +
     // Tips & Bonuses and other movements (investment / owner top-up) are NOT income,
     // but they DO move wallet cash, so Expected must contain them.
