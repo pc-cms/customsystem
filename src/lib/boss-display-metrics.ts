@@ -94,6 +94,28 @@ export function deriveDisplayedToday(
   };
 }
 
+/**
+ * Monthly (MTD) displayed metrics — Tables / Slots / TOTAL.
+ * Sources come straight from `CasinoDay.mtdTables` / `mtdSlots`, which mirror
+ * Analytics → Statistics (Total Report) 1:1. No ACE live override here.
+ */
+export function deriveDisplayedMonthly(day: CasinoDay | undefined): DisplayedToday | null {
+  if (!day) return null;
+  const tables = day.mtdTables;
+  const slots = day.mtdSlots;
+  const drop = tables.drop + slots.drop;
+  const result = tables.result + slots.result;
+  return {
+    tables,
+    slots,
+    total: { drop, result, headCount: 0, hold: hold(drop, result) },
+    slotsAvailable: slots.drop !== 0 || slots.result !== 0,
+    usesAce: false,
+    aceHint: null,
+    aceCreditsHint: null,
+  };
+}
+
 export interface CompanyToday {
   drop: number;
   result: number;
@@ -115,3 +137,4 @@ export function sumDisplayedToday(items: (DisplayedToday | null | undefined)[]):
   );
   return { ...acc, hold: hold(acc.drop, acc.result) };
 }
+
