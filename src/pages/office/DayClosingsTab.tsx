@@ -214,7 +214,7 @@ export default function DayClosingsTab() {
       jpRow: jpRowByDate.get(date) || null,
       jpRowsCount: jpPositive.filter((r) => r.business_date === date).length,
       closedByManager: closureMap?.has(date) ? !!closureMap.get(date) : null,
-      hadActivity: agg.tables !== 0 || agg.slots !== 0 || agg.missChips !== 0 || agg.missCards !== 0,
+      hadActivity: agg.tables !== 0 || agg.missChips !== 0 || agg.missCards !== 0,
     };
   }), [dates, byDate, aggMap, jpByDate, jpRowByDate, jpPositive, closureMap]);
 
@@ -361,7 +361,7 @@ export default function DayClosingsTab() {
     let cardsFound = false;
     rows.forEach((r) => {
       t.tables += Number(r.existing?.tables_result ?? r.agg.tables ?? 0);
-      t.slots += Number(r.existing?.slots_result ?? r.agg.slots ?? 0);
+      t.slots += Number(r.existing?.slots_result ?? 0);
       t.drop += Number(r.existing?.drop_slots ?? 0);
       t.cash += Number(r.existing?.cashdesk_win ?? 0);
       t.missChips += Number(r.agg.missChips ?? 0);
@@ -430,8 +430,8 @@ export default function DayClosingsTab() {
       type: "money",
       style: { width: 168 },
       accessor: (r) => numCell(r, val(r).slots, (n) => setField(r.date, { slots: n }), {
-        placeholder: r.agg.slots,
-        title: `Cash Desk Win from Close Day. Editable manually.`,
+        placeholder: 0,
+        title: `Slot Result = CashDesk Win. Filled by ACE Collector or entered manually. Never taken from a slot cashier shift.`,
       }),
     },
     {
@@ -452,7 +452,7 @@ export default function DayClosingsTab() {
       accessor: (r) => numCell(r, val(r).cards, (n) => setField(r.date, { cards: n }), {
         tone: false,
         allowNegative: true,
-        title: "Client balance held on player cards. Subtracted from the Slot Result. Negative values allowed.",
+        title: "Client balance held on player cards. Kept separate — never subtracted from the Slot Result. Negative values allowed.",
       }),
     },
     {
@@ -546,7 +546,7 @@ export default function DayClosingsTab() {
       case "date": return <span className="text-[10px] font-semibold uppercase tracking-wider">Totals · {MONTH_NAMES[month - 1]}</span>;
       case "status": return null;
       case "tables": return <Money v={totals.tables} />;
-      case "slots": return <Money v={totals.slots - totals.cards} />;
+      case "slots": return <Money v={totals.slots} />;
       case "drop": return <span className="font-mono text-[12px] text-muted-foreground">{formatNumberSpaces(totals.drop)}</span>;
       case "cards": return <span className={cn("font-mono text-[12px]", totals.cards ? "cms-amount-negative" : "text-muted-foreground")}>{totals.cards ? `${totals.cards > 0 ? "− " : "+ "}${formatNumberSpaces(Math.abs(totals.cards))}` : "0"}</span>;
       case "jp": return <Money v={totals.jp} />;
