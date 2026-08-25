@@ -185,8 +185,18 @@ export default function JpTab() {
       type: "money",
       accessor: (r) => {
         const v = Number(r.amount);
+        const dead = isStorno(r) || isCancelled(r);
         return (
-          <span className={cn("font-mono tabular-nums", v < 0 ? "cms-amount-negative" : "cms-amount-positive")}>
+          <span
+            className={cn(
+              "font-mono tabular-nums",
+              dead
+                ? "line-through text-muted-foreground"
+                : v < 0
+                  ? "cms-amount-negative"
+                  : "cms-amount-positive",
+            )}
+          >
             {v < 0 ? "−" : ""}
             {formatNumberSpaces(Math.abs(v))}
           </span>
