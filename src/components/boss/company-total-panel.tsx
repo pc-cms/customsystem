@@ -2,9 +2,15 @@
  * CompanyTotalPanel — bottom-of-page aggregate across all selected casinos.
  * Shows Today + MTD side-by-side and two 100 %-stacked share bars
  * (MTD Drop / MTD Result) broken down by casino.
+ *
+ * Today aggregates are passed in as the EXACT sum of the displayed casino card
+ * totals (`sumDisplayedToday`) — never recomputed here, so the panel always
+ * matches the cards (including the ACE live slots override).
+ * MTD keeps the existing closed/frozen-data logic.
  */
 import { formatMoneyFull } from "@/lib/format-money";
 import type { CasinoDay } from "@/hooks/use-boss-dashboard";
+import type { CompanyToday } from "@/lib/boss-display-metrics";
 import { StackedShareBar, type ShareSegment } from "./stacked-share-bar";
 
 const formatSigned = (n: number) => {
@@ -31,17 +37,18 @@ const Kpi = ({
       : "text-foreground";
   return (
     <div className="flex flex-col gap-1 min-w-0">
-      <span className="text-[0.62em] uppercase tracking-[0.24em] text-muted-foreground/80 font-semibold">
+      <span className="text-[clamp(8px,0.42vw,13px)] uppercase tracking-[0.24em] text-muted-foreground/80 font-semibold whitespace-nowrap">
         {label}
       </span>
       <span
-        className={`font-mono font-bold tabular-nums tracking-tight text-[2.8em] leading-none ${color}`}
+        className={`font-mono font-bold tabular-nums tracking-tight whitespace-nowrap text-[clamp(18px,1.5vw,50px)] leading-none ${color}`}
       >
         {value}
       </span>
     </div>
   );
 };
+
 
 interface Casino {
   id: string;
@@ -52,26 +59,18 @@ interface Casino {
 interface Props {
   casinos: Casino[];
   days: CasinoDay[];
+  /** Sum of the DISPLAYED casino card Today totals — never recomputed here. */
+  today: CompanyToday;
   /** Returns the accent color (hsl string) for a casino. */
   accentFor: (slug: string | null, idx: number) => string;
 }
 
-export function CompanyTotalPanel({ casinos, days, accentFor }: Props) {
+export function CompanyTotalPanel({ casinos, days, today, accentFor }: Props) {
   const dayMap = Object.fromEntries(days.map((d) => [d.casinoId, d]));
 
-  // Today aggregate
-  const today = days.reduce(
-    (acc, d) => {
-      acc.drop += d.total.drop;
-      acc.result += d.total.result;
-      acc.headCount += d.total.headCount;
-      return acc;
-    },
-    { drop: 0, result: 0, headCount: 0 },
-  );
-  const todayHold = today.drop > 0 ? (today.result / today.drop) * 100 : 0;
+  const todayHold = today.hold;
 
-  // MTD aggregate
+  // MTD aggregate — unchanged closed/frozen-data logic
   const mtd = days.reduce(
     (acc, d) => {
       acc.drop += d.mtd.drop;
@@ -81,6 +80,7 @@ export function CompanyTotalPanel({ casinos, days, accentFor }: Props) {
     { drop: 0, result: 0 },
   );
   const mtdHold = mtd.drop > 0 ? (mtd.result / mtd.drop) * 100 : 0;
+
 
   const dropSegments: ShareSegment[] = casinos.map((c, i) => ({
     id: c.id,

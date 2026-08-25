@@ -10,7 +10,7 @@
  * Auto-refreshes every 10s. Deep dark stage, glowing accents, huge numerals.
  * Boss dashboard is strictly current business day (no date picker).
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
@@ -29,6 +29,8 @@ import {
 import { CasinoDoubleBlock } from "@/components/boss/casino-double-block";
 import { CompanyTotalPanel } from "@/components/boss/company-total-panel";
 import { MonthlyReportPanel } from "@/components/boss/monthly-report-panel";
+import { useAceLiveSlotsResultMany } from "@/hooks/use-ace-finance";
+import { deriveDisplayedToday, sumDisplayedToday } from "@/lib/boss-display-metrics";
 
 
 type Resolution = "fhd" | "uhd";
@@ -179,41 +181,88 @@ export default function BossDashboard() {
     return m;
   }, [topPlayers]);
 
-  const resScale = resolution === "uhd" ? 1.7 : 1;
-  const tvBoost = tvMode ? 1.25 : 1;
-  const baseFont = 16 * resScale * FONT_PRESETS[fontPreset].mult * tvBoost;
+  // Displayed Today metrics — single source of truth shared by the cards and
+  // the Company Total panel (ACE live override applied exactly once).
+  const aceMap = useAceLiveSlotsResultMany(casinos.map((c) => c.slug));
+  const displayedMap = useMemo(() => {
+    const m: Record<string, ReturnType<typeof deriveDisplayedToday>> = {};
+    for (const c of casinos) {
+      m[c.id] = deriveDisplayedToday(dayMap[c.id], c.slug ? aceMap[c.slug] : null);
+    }
+    return m;
+  }, [casinos, dayMap, aceMap]);
+  const companyToday = useMemo(
+    () => sumDisplayedToday(casinos.map((c) => displayedMap[c.id])),
+    [casinos, displayedMap],
+  );
 
-  const outerPad = tvMode ? "px-[5vw] py-[3vh]" : "px-8 pt-6 pb-4";
-  const mainPad = tvMode ? "px-[5vw] pb-[4vh]" : "px-8 pb-8";
+  const isReport = blockOrient === "report";
+  const liveTv = tvMode && !isReport;
+
+  // Typography: TV live view uses viewport-responsive sizing (clamp/vw) so 4K
+  // scales naturally without multiplying the root font by a big factor.
+  const densityMult = FONT_PRESETS[fontPreset].mult;
+  const resNudge = resolution === "uhd" ? 1.06 : 1;
+  const rootFontSize = liveTv
+    ? `clamp(${(11 * densityMult * resNudge).toFixed(1)}px, ${(0.68 * densityMult * resNudge).toFixed(2)}vw, ${(30 * densityMult * resNudge).toFixed(0)}px)`
+    : `${16 * (resolution === "uhd" ? 1.35 : 1) * densityMult}px`;
+
+  // Safe padding only — no max-width containers, no 5vw side gutters.
+  const sidePad = tvMode ? "px-[clamp(12px,0.9vw,32px)]" : "px-8";
+  const outerPad = tvMode ? `${sidePad} pt-[clamp(6px,0.8vh,18px)]` : "px-8 pt-6 pb-4";
+  const mainPad = tvMode ? `${sidePad} pb-[clamp(10px,1vh,28px)]` : "px-8 pb-8";
+
+  // Measure the header + control bar so the casino grid can fill exactly the
+  // remaining first-screen height (4 cards = strict 2×2, no cropping).
+  const chromeRef = useRef<HTMLDivElement | null>(null);
+  const [chromeH, setChromeH] = useState(0);
+  useEffect(() => {
+    const el = chromeRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setChromeH(el.offsetHeight));
+    ro.observe(el);
+    setChromeH(el.offsetHeight);
+    return () => ro.disconnect();
+  }, []);
 
   const businessDate = getBusinessDate();
   const dateLabel = new Date(businessDate).toLocaleDateString("en-GB", {
     weekday: "short", day: "2-digit", month: "short", year: "numeric",
   });
 
+  const gridRows = casinos.length > 2 ? 2 : 1;
+  const liveGridStyle: React.CSSProperties = liveTv
+    ? {
+        minHeight: `calc(100dvh - ${chromeH}px - 24px)`,
+        gridTemplateRows: `repeat(${gridRows}, minmax(0, 1fr))`,
+      }
+    : {};
+
   return (
     <div
-      className="min-h-screen w-full text-foreground"
+      className="min-h-[100dvh] w-full text-foreground"
       style={{
-        fontSize: `${baseFont}px`,
+        fontSize: rootFontSize,
         background:
           "radial-gradient(1200px 800px at 20% -10%, hsl(240 40% 12% / 0.9), transparent 60%), radial-gradient(1000px 600px at 90% 110%, hsl(280 40% 10% / 0.8), transparent 60%), hsl(240 20% 5%)",
       }}
     >
+     <div ref={chromeRef}>
+
       {/* Header — brand + title only */}
-      <header className={`flex items-center justify-between gap-6 ${outerPad} pb-2`}>
-        <div className="flex items-center gap-4 min-w-0">
+      <header className={`flex items-center justify-between gap-6 ${outerPad} ${liveTv ? "pb-1" : "pb-2"}`}>
+        <div className={`flex items-center min-w-0 ${liveTv ? "gap-3" : "gap-4"}`}>
           <div
-            className="relative flex items-center justify-center w-14 h-14 rounded-full border border-white/10 overflow-hidden bg-white/5"
+            className={`relative flex items-center justify-center rounded-full border border-white/10 overflow-hidden bg-white/5 ${liveTv ? "w-9 h-9" : "w-14 h-14"}`}
             style={{ boxShadow: "0 0 30px hsl(var(--primary) / 0.35)" }}
           >
-            <img src={premierClubLogo} alt="Premier Club" className="w-11 h-11 object-contain" />
+            <img src={premierClubLogo} alt="Premier Club" className={liveTv ? "w-7 h-7 object-contain" : "w-11 h-11 object-contain"} />
           </div>
-          <div className="flex flex-col min-w-0">
-            <h1 className="text-[1.5em] font-extrabold tracking-[0.28em] uppercase leading-none truncate">
+          <div className={liveTv ? "flex items-baseline gap-4 min-w-0" : "flex flex-col min-w-0"}>
+            <h1 className="text-[1.35em] font-extrabold tracking-[0.28em] uppercase leading-none truncate">
               Premier Casino
             </h1>
-            <span className="text-[0.7em] tracking-[0.32em] uppercase text-muted-foreground mt-1">
+            <span className={`text-[0.7em] tracking-[0.3em] uppercase text-muted-foreground whitespace-nowrap ${liveTv ? "" : "mt-1"}`}>
               Dashboard TV · {blockOrient === "report"
                 ? `Company Report · ${MONTH_LABELS[reportYM.m - 1]} ${reportYM.y}`
                 : `Live Overview · ${dateLabel}`}
@@ -223,8 +272,9 @@ export default function BossDashboard() {
       </header>
 
       {/* Unified control bar — view, month, casinos, layout, size, TV, fullscreen */}
-      <div className={`${tvMode ? "px-[5vw]" : "px-8"} pb-4`}>
-        <div className="rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm px-3 py-2 flex items-center gap-2 flex-wrap">
+      <div className={`${sidePad} ${liveTv ? "pb-2" : "pb-4"}`}>
+        <div className={`rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm flex items-center gap-2 ${liveTv ? "px-2 py-1 flex-nowrap overflow-x-auto" : "px-3 py-2 flex-wrap"}`}>
+
           {/* View switcher — Live vs Report */}
           <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Switch view">
             <button
@@ -360,6 +410,7 @@ export default function BossDashboard() {
           </div>
         </div>
       </div>
+     </div>
 
       {/* Casino double-blocks (or Monthly Report) */}
       <main className={mainPad}>
@@ -368,7 +419,10 @@ export default function BossDashboard() {
         ) : (
 
           <>
-            <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
+            <div
+              className={`grid gap-[clamp(8px,0.7vw,20px)] grid-cols-1 ${casinos.length > 1 ? "xl:grid-cols-2" : ""}`}
+              style={liveGridStyle}
+            >
               {casinos.map((c, i) => (
                 <CasinoDoubleBlock
                   key={c.id}
@@ -376,6 +430,7 @@ export default function BossDashboard() {
                   slug={c.slug}
                   accent={accentFor(c.slug, i)}
                   day={dayMap[c.id]}
+                  displayed={displayedMap[c.id] ?? null}
                   orientation={blockOrient as "auto" | "cols" | "rows"}
                 />
               ))}
@@ -384,7 +439,7 @@ export default function BossDashboard() {
             {/* Company Total */}
             {casinos.length > 0 && (
               <div className="mt-6">
-                <CompanyTotalPanel casinos={casinos} days={days} accentFor={accentFor} />
+                <CompanyTotalPanel casinos={casinos} days={days} today={companyToday} accentFor={accentFor} />
               </div>
             )}
           </>

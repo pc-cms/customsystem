@@ -2,8 +2,9 @@
  * Read helpers for ACE finance snapshots pushed by the local ACE collector
  * (edge function `ace-finance-ingest`). Read-only — writes are server-side.
  */
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { AceLiveSlots } from "@/lib/boss-display-metrics";
 
 export interface AceFinanceSnapshot {
   id: string;
@@ -144,3 +145,49 @@ export function useAceJackpotSlipOutByDate(
   });
 }
 
+
+/**
+ * Batched live ACE slots feed for several locations at once.
+ * Returns a map location_code → gated live figures, so the Boss Dashboard can
+ * derive the SAME displayed metrics for cards and for the company total.
+ */
+export function useAceLiveSlotsResultMany(locationCodes: (string | null)[]) {
+  const codes = locationCodes.filter(Boolean) as string[];
+  const results = useQueries({
+    queries: codes.map((code) => ({
+      queryKey: ["ace-finance-live", code],
+      queryFn: async (): Promise<AceFinanceSnapshot | null> => {
+        const { data, error } = await supabase
+          .from("ace_finance_snapshots" as any)
+          .select("*")
+          .eq("location_code", code)
+          .eq("period_id", 0)
+          .maybeSingle();
+        if (error) throw error;
+        return (data ?? null) as unknown as AceFinanceSnapshot | null;
+      },
+      staleTime: 10_000,
+      refetchInterval: 10_000,
+      refetchIntervalInBackground: false,
+    })),
+  });
+
+  const map: Record<string, AceLiveSlots> = {};
+  codes.forEach((code, i) => {
+    const data = results[i]?.data ?? null;
+    const receivedAt = data?.received_at ? new Date(data.received_at).getTime() : null;
+    const ageMs = receivedAt ? Date.now() - receivedAt : null;
+    const fresh = ageMs != null && ageMs >= 0 && ageMs <= ACE_LIVE_MAX_AGE_MS;
+    map[code] = {
+      fresh,
+      totalDrop: fresh ? Number(data?.total_drop ?? 0) : null,
+      winCashdesk:
+        fresh && (data as any)?.win_cashdesk != null ? Number((data as any).win_cashdesk) : null,
+      activeCredits:
+        fresh && data?.active_credits != null ? Number(data.active_credits) : null,
+      ageMs,
+      periodLabel: data?.period_label ?? null,
+    };
+  });
+  return map;
+}
