@@ -211,6 +211,55 @@ export const useReverseOtherIncome = () => {
   });
 };
 
+/** JP-only hard delete. The database removes the selected entry and any linked legacy storno pair atomically. */
+export const useDeleteJpEntry = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).rpc("fin_jp_delete_entry", { p_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateFinance(qc);
+      toast.success("JP entry deleted");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+};
+
+/** JP-only direct edit. Unlike general finance corrections, this does not create a storno row. */
+export const useUpdateJpEntry = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      id: string;
+      business_date: string;
+      wallet_id: string;
+      currency: string;
+      amount: number;
+      note?: string;
+    }) => {
+      const { error } = await (supabase as any)
+        .from("fin_other_incomes")
+        .update({
+          business_date: input.business_date,
+          wallet_id: input.wallet_id,
+          currency: input.currency,
+          amount: input.amount,
+          note: input.note || null,
+        })
+        .eq("id", input.id)
+        .eq("source", "jp");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateFinance(qc);
+      toast.success("JP entry updated");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+};
+
 /**
  * Immutable correction: storno of the original + a new replacement row, in ONE
  * DB transaction (`fin_other_income_replace`). Also the ONLY way to move a row
