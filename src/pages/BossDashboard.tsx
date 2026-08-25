@@ -30,12 +30,13 @@ import { CasinoDoubleBlock } from "@/components/boss/casino-double-block";
 import { CompanyTotalPanel } from "@/components/boss/company-total-panel";
 import { MonthlyReportPanel } from "@/components/boss/monthly-report-panel";
 import { useAceLiveSlotsResultMany } from "@/hooks/use-ace-finance";
-import { deriveDisplayedToday, sumDisplayedToday } from "@/lib/boss-display-metrics";
+import { deriveDisplayedToday, deriveDisplayedMonthly, sumDisplayedToday } from "@/lib/boss-display-metrics";
 
 
 type Resolution = "fhd" | "uhd";
 type FontPreset = "s" | "m" | "l" | "xl";
 type BlockOrient = "auto" | "cols" | "rows" | "report";
+type PeriodView = "today" | "monthly";
 
 const LS_CASINOS = "boss-tv:casinos";
 const LS_RES = "boss-tv:resolution";
@@ -43,6 +44,8 @@ const LS_TV = "boss-tv:tv-mode";
 const LS_FONT = "boss-tv:font-preset";
 const LS_ORIENT = "boss-tv:block-orient";
 const LS_MONTH = "boss-tv:report-month";
+const LS_PERIOD = "boss-tv:period-view";
+
 
 const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
