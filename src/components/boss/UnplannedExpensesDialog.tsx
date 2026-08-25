@@ -1,12 +1,13 @@
 /**
  * Unplanned Expenses — Dashboard TV entry point (Floor Manager and above).
  *
- * Rows are immutable: they can be marked Paid (which is what reduces Cash
- * Position) or reversed with a storno row, never deleted. All arithmetic lives
+ * Rows can be marked Paid (which is what reduces Cash
+ * Position). Finance manager / super_admin may delete them outright; every
+ * change is written to the finance audit log. All arithmetic lives
  * in `fin_month_finance`; this dialog only records intent.
  */
 import { useMemo, useState } from "react";
-import { Plus, Undo2, Wallet } from "lucide-react";
+import { Plus, Trash2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
@@ -18,7 +19,7 @@ import {
   useMonthFinance,
   useAddUnplanned,
   useMarkUnplannedPaid,
-  useReverseUnplanned,
+  useDeleteUnplanned,
 } from "@/hooks/use-fin-month-finance";
 import { getBusinessDate } from "@/lib/business-day";
 import { formatNumberSpaces } from "@/lib/currency";
@@ -53,7 +54,7 @@ export const UnplannedExpensesDialog = ({
   const { data: wallets = [] } = useFinWallets();
   const add = useAddUnplanned();
   const markPaid = useMarkUnplannedPaid();
-  const reverse = useReverseUnplanned();
+  const removeItem = useDeleteUnplanned();
 
   const items = useMemo(
     () => (month_?.unplanned.items || []).filter((i) => !i.voided_at),
@@ -180,14 +181,14 @@ export const UnplannedExpensesDialog = ({
                 variant="ghost"
                 size="sm"
                 className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                aria-label="Reverse"
+                aria-label="Delete"
                 onClick={() => {
-                  if (confirm("Create a reversal for this extra expense?")) {
-                    reverse.mutate({ id: i.id });
+                  if (confirm("Delete this extra expense? This is logged in the finance audit log.")) {
+                    removeItem.mutate({ id: i.id });
                   }
                 }}
               >
-                <Undo2 className="w-3 h-3" />
+                <Trash2 className="w-3 h-3" />
               </Button>
             )}
           </div>
