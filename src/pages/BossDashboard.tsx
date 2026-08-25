@@ -108,7 +108,11 @@ export default function BossDashboard() {
   const [blockOrient, setBlockOrient] = useState<BlockOrient>(
     () => (localStorage.getItem(LS_ORIENT) as BlockOrient) || "auto",
   );
+  const [periodView, setPeriodView] = useState<PeriodView>(
+    () => (localStorage.getItem(LS_PERIOD) as PeriodView) || "today",
+  );
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() => !!document.fullscreenElement);
+
   const [reportYM, setReportYM] = useState<{ y: number; m: number }>(() => {
     try {
       const raw = localStorage.getItem(LS_MONTH);
