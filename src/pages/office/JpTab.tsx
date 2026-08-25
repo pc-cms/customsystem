@@ -219,6 +219,7 @@ export default function JpTab() {
       type: "actions",
       accessor: (r) => {
         if (!canWrite) return null;
+        if (isStorno(r) || isCancelled(r)) return null;
         return (
           <div className="flex items-center gap-0.5">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)} aria-label="Edit">
@@ -229,9 +230,14 @@ export default function JpTab() {
               size="icon"
               className="h-7 w-7 text-destructive"
               onClick={() => {
-                if (confirm("Reverse this JP entry? A storno row will be created.")) reverseIncome.mutate(r);
+                if (
+                  confirm(
+                    "Cancel this JP entry? A storno row is created and the entry stops counting in JP and Day Closings.",
+                  )
+                )
+                  reverseIncome.mutate(r);
               }}
-              aria-label="Reverse"
+              aria-label="Cancel entry"
             >
               <Undo2 className="w-3.5 h-3.5" />
             </Button>
