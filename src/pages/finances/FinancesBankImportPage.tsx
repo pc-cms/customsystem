@@ -207,9 +207,7 @@ export default function FinancesBankImportPage() {
             </tr>
           </FinTHead>
           <FinTBody>
-            {batches.length === 0 && (
-              <FinTR><FinTD colSpan={8}><FinEmpty>No imports yet</FinEmpty></FinTD></FinTR>
-            )}
+            {batches.length === 0 && <FinEmpty colSpan={8} msg="No imports yet" />}
             {batches.map((b) => (
               <FinTR
                 key={b.id}
@@ -250,7 +248,7 @@ export default function FinancesBankImportPage() {
       {batch && (
         <PageSection
           title={`3. Review — ${batch.filename}`}
-          action={
+          titleRight={
             <Button
               size="sm"
               disabled={confirmBatch.isPending}
@@ -303,9 +301,7 @@ export default function FinancesBankImportPage() {
               </tr>
             </FinTHead>
             <FinTBody>
-              {rows.length === 0 && (
-                <FinTR><FinTD colSpan={11}><FinEmpty>No rows</FinEmpty></FinTD></FinTR>
-              )}
+              {rows.length === 0 && <FinEmpty colSpan={11} msg="No rows" />}
               {rows.map((r) => {
                 const locked = r.status === "confirmed" || r.status === "ignored";
                 return (
