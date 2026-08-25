@@ -408,6 +408,7 @@ export default function BossDashboard() {
           </div>
         </div>
       </div>
+     </div>
 
       {/* Casino double-blocks (or Monthly Report) */}
       <main className={mainPad}>
@@ -416,7 +417,10 @@ export default function BossDashboard() {
         ) : (
 
           <>
-            <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
+            <div
+              className={`grid gap-[clamp(8px,0.7vw,20px)] grid-cols-1 ${casinos.length > 1 ? "xl:grid-cols-2" : ""}`}
+              style={liveGridStyle}
+            >
               {casinos.map((c, i) => (
                 <CasinoDoubleBlock
                   key={c.id}
@@ -424,6 +428,7 @@ export default function BossDashboard() {
                   slug={c.slug}
                   accent={accentFor(c.slug, i)}
                   day={dayMap[c.id]}
+                  displayed={displayedMap[c.id] ?? null}
                   orientation={blockOrient as "auto" | "cols" | "rows"}
                 />
               ))}
@@ -432,9 +437,12 @@ export default function BossDashboard() {
             {/* Company Total */}
             {casinos.length > 0 && (
               <div className="mt-6">
-                <CompanyTotalPanel casinos={casinos} days={days} accentFor={accentFor} />
+                <CompanyTotalPanel casinos={casinos} days={days} today={companyToday} accentFor={accentFor} />
               </div>
             )}
+          </>
+        )}
+
           </>
         )}
 
