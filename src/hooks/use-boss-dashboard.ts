@@ -27,7 +27,17 @@ export type CasinoDay = {
   /** false while the business day is still open and no ACE feed exists → show `·` */
   slotsAvailable: boolean;
   mtd: { drop: number; result: number; hold: number };
+  /**
+   * Monthly (MTD) split — SAME sources as Analytics → Statistics (Total Report):
+   *   Tables Drop   → player_day_drop_cache.peak (via `compute_daily_diff`)
+   *   Tables Result → fin_day_closing.tables_result (+ today's live figure)
+   *   Slots Drop    → fin_day_closing.drop_slots, fallback cage_slots_shifts.manual_drop_slots
+   *   Slots Result  → fin_day_closing.net_win
+   */
+  mtdTables: CasinoMetric;
+  mtdSlots: CasinoMetric;
 };
+
 
 
 export type TopPlayer = { casinoId: string; playerId: string; name: string; drop: number };
