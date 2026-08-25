@@ -43,8 +43,11 @@ export type BalanceSnapshot = {
   incomes: {
     /** Table Result — Σ per-table closing win of closed days. */
     live_game: number;
-    /** Slot Result — Cashdesk Win − Δ client balances. */
+    /** Slots CASH for wallet reconciliation — Σ fin_day_closing.cashdesk_win. */
     slots: number;
+    /** Gaming SYSTEM result (Net Win) — P&L/statistics only, NOT in Expected. */
+    slots_system?: number;
+
     /** Commissions: commission / agent_commission / fee (+ legacy `other`). */
     other: number;
     /** Tips & Bonuses (tips / gaming bonus / legacy tips_bonus) — signed. */
@@ -114,7 +117,9 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
   const expected =
     (s.starting_float?.grand_tzs || 0) +
     (incomes.live_game || 0) +
+    // Slots cash = CashDesk Win from Day Closings (never Slots Result / Net Win).
     (incomes.slots || 0) +
+
     (incomes.other || 0) +
     // Tips & Bonuses and other movements (investment / owner top-up) are NOT income,
     // but they DO move wallet cash, so Expected must contain them.
@@ -125,11 +130,10 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
     (incomes.add_float || 0) +
 
     (incomes.jp || 0) +
-    // Card Balance = client money physically held in the cage. It is never part
-    // of the Slots/System Result (which is Net Win) nor of CashDesk Win, so the
-    // held cash is missing from Expected and must be added here exactly ONCE.
-    // Verified empirically (Aug): with Card the variance is Mbeya +540 / Mwanza
-    // +2 890; without it Mbeya +20 940 / Mwanza −39 846.
+    // Card Balance = client money physically held in the cage. It is not part of
+    // CashDesk Win, so it is added here exactly ONCE.
+    // Verified (Aug, cashdesk-based): with Card Mbeya −1 460; without it +18 940.
+
     (incomes.card_balance || 0) +
 
     (incomes.missed_chips || 0) +
