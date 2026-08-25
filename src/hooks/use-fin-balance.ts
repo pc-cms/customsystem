@@ -43,8 +43,11 @@ export type BalanceSnapshot = {
   incomes: {
     /** Table Result — Σ per-table closing win of closed days. */
     live_game: number;
-    /** Slot Result — Cashdesk Win − Δ client balances. */
+    /** Slots CASH for wallet reconciliation — Σ fin_day_closing.cashdesk_win. */
     slots: number;
+    /** Gaming SYSTEM result (Net Win) — P&L/statistics only, NOT in Expected. */
+    slots_system?: number;
+
     /** Commissions: commission / agent_commission / fee (+ legacy `other`). */
     other: number;
     /** Tips & Bonuses (tips / gaming bonus / legacy tips_bonus) — signed. */
