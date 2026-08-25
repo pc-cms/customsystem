@@ -78,19 +78,22 @@ Profit                = Total Income − Grand Actual
 ## 3. Wallets / Balance (`fin_balance_snapshot` + `use-fin-balance.ts`)
 
 ```text
-Expected = Table Result + Slot Result + Bar Income + Commissions
+Expected = Table Result + CashDesk Win + Bar Income + Commissions
          + Tips & Bonuses (±) + Movements
-         + JP + Miss Chips + Miss Cards
+         + JP + Card Balance + Miss Chips + Miss Cards
          − Expenses − Collections + Transfers
 
 Actual   = Σ last recorded physical wallet state (latest count per wallet)
 Variance = Actual − Expected        (the gap; a real discrepancy, not a bug)
 ```
 
-- **Card Balance is NOT part of Expected.** Player card money is already inside
-  Win Cash Desk (`slots_result`) written to Day Closings. It is subtracted only
-  for display in Boss Dashboard / Monthly Report (shown as deposits). In Wallets
-  it is a reference figure only.
+- **Slots cash in Expected = `fin_day_closing.cashdesk_win` (CashDesk Win)**,
+  never `slots_result` / Net Win. Slots Result / Net Win is the gaming SYSTEM
+  result and is used for P&L and statistics only. Allowed sources of CashDesk
+  Win: ACE Collector or manual Day Closing input — never a cashier slot shift.
+- **Card Balance is added to Expected exactly once.** It is client money
+  physically held in the cage and is not contained in CashDesk Win.
+
 - **JP** is counted once, from `fin_other_incomes.source = 'jp'` (contributions
   positive, payouts negative, storno excluded). JP cash is physically held in a
   wallet and is not part of `slots_result`; JP payouts are never also booked as
