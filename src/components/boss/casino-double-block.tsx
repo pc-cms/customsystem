@@ -54,7 +54,7 @@ const Cell = ({
 };
 
 const HeadLabel = ({ children }: { children: React.ReactNode }) => (
-  <span className="text-[clamp(8px,0.42vw,13px)] uppercase tracking-[0.2em] text-muted-foreground/70 font-semibold text-right whitespace-nowrap">
+  <span className="text-[clamp(9px,0.55vw,17px)] uppercase tracking-[0.2em] text-muted-foreground/70 font-semibold text-right whitespace-nowrap">
     {children}
   </span>
 );
@@ -76,7 +76,7 @@ const MetricsGrid = ({
   slotsSubHint?: string | null;
   slotsAvailable?: boolean;
 }) => (
-  <div className="grid grid-cols-[minmax(0,auto)_minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,0.55fr)] gap-x-[clamp(6px,0.7vw,20px)] gap-y-[clamp(2px,0.28vh,8px)] items-baseline">
+  <div className="grid grid-cols-[minmax(0,auto)_minmax(0,1.35fr)_minmax(0,1.35fr)_minmax(0,0.5fr)] gap-x-[clamp(10px,1.1vw,34px)] gap-y-[clamp(6px,0.8vh,20px)] items-baseline">
     {/* header row */}
     <span />
     <HeadLabel>Drop</HeadLabel>
@@ -84,7 +84,7 @@ const MetricsGrid = ({
     <HeadLabel>Hold %</HeadLabel>
 
     {/* Tables */}
-    <span className="text-[clamp(9px,0.5vw,16px)] uppercase tracking-[0.18em] text-muted-foreground font-semibold whitespace-nowrap">
+    <span className="text-[clamp(11px,0.72vw,22px)] uppercase tracking-[0.18em] text-muted-foreground font-semibold whitespace-nowrap">
       Tables
     </span>
     <Cell value={formatMoneyFull(tables.drop)} />
@@ -92,7 +92,7 @@ const MetricsGrid = ({
     <Cell value={`${tables.hold.toFixed(1)}%`} />
 
     {/* Slots */}
-    <span className="text-[clamp(9px,0.5vw,16px)] uppercase tracking-[0.18em] text-muted-foreground font-semibold whitespace-nowrap min-w-0">
+    <span className="text-[clamp(11px,0.72vw,22px)] uppercase tracking-[0.18em] text-muted-foreground font-semibold whitespace-nowrap min-w-0">
       Slots
     </span>
     <Cell value={slotsAvailable ? formatMoneyFull(slots.drop) : "·"} />
@@ -101,17 +101,17 @@ const MetricsGrid = ({
 
     {/* ACE hints — compact single line, never widen the card */}
     {(slotsHint || slotsSubHint) && (
-      <span className="col-span-4 text-[clamp(8px,0.4vw,12px)] text-muted-foreground/60 truncate">
+      <span className="col-span-4 text-[clamp(8px,0.42vw,13px)] text-muted-foreground/60 truncate">
         {[slotsHint, slotsSubHint].filter(Boolean).join(" · ")}
       </span>
     )}
 
     {/* divider */}
-    <span className="col-span-4 h-px bg-white/10 my-[clamp(1px,0.2vh,6px)]" />
+    <span className="col-span-4 h-px bg-white/10 my-[clamp(2px,0.4vh,10px)]" />
 
     {/* TOTAL — headline row */}
     <span
-      className="text-[clamp(9px,0.5vw,16px)] uppercase tracking-[0.2em] font-extrabold whitespace-nowrap"
+      className="text-[clamp(11px,0.72vw,22px)] uppercase tracking-[0.2em] font-extrabold whitespace-nowrap"
       style={{ color: accent }}
     >
       Total
@@ -121,6 +121,7 @@ const MetricsGrid = ({
     <Cell value={`${total.hold.toFixed(1)}%`} size="xl" accent={accent} />
   </div>
 );
+
 
 const Panel = ({
   title,
