@@ -59,3 +59,29 @@ describe("sumDisplayedToday", () => {
     expect(sum.hold).toBeCloseTo((46_000_000 / 270_000_000) * 100, 6);
   });
 });
+
+describe("deriveDisplayedMonthly", () => {
+  it("splits Tables / Slots and totals them (Statistics sources)", () => {
+    const d = deriveDisplayedMonthly(day())!;
+    expect(d.tables.drop).toBe(900_000_000);
+    expect(d.slots.result).toBe(-20_000_000);
+    expect(d.total.drop).toBe(1_200_000_000);
+    expect(d.total.result).toBe(130_000_000);
+    expect(d.total.hold).toBeCloseTo((130 / 1200) * 100, 6);
+    expect(d.slotsAvailable).toBe(true);
+    expect(d.usesAce).toBe(false);
+  });
+
+  it("marks slots unavailable when Statistics has no monthly slots data", () => {
+    const zero = { drop: 0, result: 0, headCount: 0, hold: 0 };
+    expect(deriveDisplayedMonthly(day({ mtdSlots: zero }))!.slotsAvailable).toBe(false);
+  });
+
+  it("company monthly total = sum of displayed monthly cards", () => {
+    const a = deriveDisplayedMonthly(day());
+    const b = deriveDisplayedMonthly(day({ casinoId: "c2" }));
+    const sum = sumDisplayedToday([a, b]);
+    expect(sum.drop).toBe(2_400_000_000);
+    expect(sum.result).toBe(260_000_000);
+  });
+});
