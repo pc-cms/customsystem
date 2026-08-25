@@ -3619,6 +3619,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           attachment_url: string | null
+          bank_statement_row_id: string | null
           business_date: string | null
           cage_slots_shift_id: string | null
           cage_type: string
@@ -3653,6 +3654,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           attachment_url?: string | null
+          bank_statement_row_id?: string | null
           business_date?: string | null
           cage_slots_shift_id?: string | null
           cage_type?: string
@@ -3687,6 +3689,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           attachment_url?: string | null
+          bank_statement_row_id?: string | null
           business_date?: string | null
           cage_slots_shift_id?: string | null
           cage_type?: string
@@ -3715,6 +3718,13 @@ export type Database = {
           wallet_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_bank_statement_row_id_fkey"
+            columns: ["bank_statement_row_id"]
+            isOneToOne: false
+            referencedRelation: "fin_bank_statement_rows"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_cage_slots_shift_id_fkey"
             columns: ["cage_slots_shift_id"]
@@ -3837,6 +3847,244 @@ export type Database = {
           meta?: Json | null
         }
         Relationships: []
+      }
+      fin_bank_statement_batches: {
+        Row: {
+          casino_id: string
+          closing_balance: number | null
+          confirmed_at: string | null
+          created_at: string
+          currency: string
+          file_hash: string | null
+          filename: string
+          id: string
+          opening_balance: number | null
+          period_from: string | null
+          period_to: string | null
+          row_count: number
+          status: string
+          total_credit: number
+          total_debit: number
+          updated_at: string
+          uploaded_by: string | null
+          wallet_id: string
+        }
+        Insert: {
+          casino_id: string
+          closing_balance?: number | null
+          confirmed_at?: string | null
+          created_at?: string
+          currency?: string
+          file_hash?: string | null
+          filename?: string
+          id?: string
+          opening_balance?: number | null
+          period_from?: string | null
+          period_to?: string | null
+          row_count?: number
+          status?: string
+          total_credit?: number
+          total_debit?: number
+          updated_at?: string
+          uploaded_by?: string | null
+          wallet_id: string
+        }
+        Update: {
+          casino_id?: string
+          closing_balance?: number | null
+          confirmed_at?: string | null
+          created_at?: string
+          currency?: string
+          file_hash?: string | null
+          filename?: string
+          id?: string
+          opening_balance?: number | null
+          period_from?: string | null
+          period_to?: string | null
+          row_count?: number
+          status?: string
+          total_credit?: number
+          total_debit?: number
+          updated_at?: string
+          uploaded_by?: string | null
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_bank_statement_batches_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_statement_batches_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_bank_statement_rows: {
+        Row: {
+          batch_id: string
+          casino_id: string
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          credit: number
+          currency: string
+          debit: number
+          description: string
+          duplicate_of: string | null
+          error_text: string | null
+          expense_id: string | null
+          fin_category_id: string | null
+          fingerprint: string
+          id: string
+          is_duplicate: boolean
+          matched_expense_id: string | null
+          matched_wallet_tx_id: string | null
+          note: string | null
+          proposed_category_code: string | null
+          proposed_kind: string
+          reference: string | null
+          row_index: number
+          signed_amount: number
+          status: string
+          tx_date: string
+          updated_at: string
+          wallet_id: string
+          wallet_tx_id: string | null
+        }
+        Insert: {
+          batch_id: string
+          casino_id: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          credit?: number
+          currency?: string
+          debit?: number
+          description?: string
+          duplicate_of?: string | null
+          error_text?: string | null
+          expense_id?: string | null
+          fin_category_id?: string | null
+          fingerprint: string
+          id?: string
+          is_duplicate?: boolean
+          matched_expense_id?: string | null
+          matched_wallet_tx_id?: string | null
+          note?: string | null
+          proposed_category_code?: string | null
+          proposed_kind?: string
+          reference?: string | null
+          row_index: number
+          signed_amount?: number
+          status?: string
+          tx_date: string
+          updated_at?: string
+          wallet_id: string
+          wallet_tx_id?: string | null
+        }
+        Update: {
+          batch_id?: string
+          casino_id?: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          credit?: number
+          currency?: string
+          debit?: number
+          description?: string
+          duplicate_of?: string | null
+          error_text?: string | null
+          expense_id?: string | null
+          fin_category_id?: string | null
+          fingerprint?: string
+          id?: string
+          is_duplicate?: boolean
+          matched_expense_id?: string | null
+          matched_wallet_tx_id?: string | null
+          note?: string | null
+          proposed_category_code?: string | null
+          proposed_kind?: string
+          reference?: string | null
+          row_index?: number
+          signed_amount?: number
+          status?: string
+          tx_date?: string
+          updated_at?: string
+          wallet_id?: string
+          wallet_tx_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_bank_statement_rows_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "fin_bank_statement_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_statement_rows_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_statement_rows_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "fin_bank_statement_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_statement_rows_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_statement_rows_fin_category_id_fkey"
+            columns: ["fin_category_id"]
+            isOneToOne: false
+            referencedRelation: "fin_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_statement_rows_matched_expense_id_fkey"
+            columns: ["matched_expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_statement_rows_matched_wallet_tx_id_fkey"
+            columns: ["matched_wallet_tx_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallet_tx"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_statement_rows_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_statement_rows_wallet_tx_id_fkey"
+            columns: ["wallet_tx_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallet_tx"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fin_budget: {
         Row: {
@@ -12420,6 +12668,60 @@ export type Database = {
           p_period_start: string
         }
         Returns: Json
+      }
+      fin_bank_import_confirm_batch: {
+        Args: { p_batch_id: string }
+        Returns: Json
+      }
+      fin_bank_import_confirm_row: { Args: { p_row_id: string }; Returns: Json }
+      fin_bank_import_create_batch: {
+        Args: {
+          p_casino_id: string
+          p_closing?: number
+          p_file_hash: string
+          p_filename: string
+          p_opening?: number
+          p_rows: Json
+          p_wallet_id: string
+        }
+        Returns: string
+      }
+      fin_bank_import_delete_batch: {
+        Args: { p_batch_id: string }
+        Returns: undefined
+      }
+      fin_bank_import_guard: {
+        Args: { _casino_id: string }
+        Returns: undefined
+      }
+      fin_bank_import_ignore_row: {
+        Args: { p_note?: string; p_row_id: string }
+        Returns: undefined
+      }
+      fin_bank_import_update_row: {
+        Args: {
+          p_description?: string
+          p_fin_category_id?: string
+          p_proposed_kind?: string
+          p_row_id: string
+        }
+        Returns: undefined
+      }
+      fin_bank_recompute_batch_status: {
+        Args: { _batch_id: string }
+        Returns: undefined
+      }
+      fin_bank_row_fingerprint: {
+        Args: {
+          _currency: string
+          _description: string
+          _occurrence: number
+          _reference: string
+          _signed: number
+          _tx_date: string
+          _wallet_id: string
+        }
+        Returns: string
       }
       fin_budget_set_annual: {
         Args: {
