@@ -56,6 +56,19 @@ export default function JpTab() {
   const isCancelled = (r: OtherIncomeRow) => !!r.reversed_by_id;
   const isStorno = (r: OtherIncomeRow) => !!r.reverses_id;
 
+  /** Audit rows (storno + the entries they cancel) are hidden by default. */
+  const [showVoided, setShowVoided] = useState(false);
+
+  const allRows = rows as OtherIncomeRow[];
+  const voidedCount = useMemo(
+    () => allRows.filter((r) => isStorno(r) || isCancelled(r)).length,
+    [allRows],
+  );
+  const visibleRows = useMemo(
+    () => (showVoided ? allRows : allRows.filter((r) => !isStorno(r) && !isCancelled(r))),
+    [allRows, showVoided],
+  );
+
   const totals = useMemo(() => {
     let inSum = 0;
     let outSum = 0;
@@ -67,6 +80,7 @@ export default function JpTab() {
     });
     return { inSum, outSum, net: inSum + outSum };
   }, [rows]);
+
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
