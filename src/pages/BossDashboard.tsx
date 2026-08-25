@@ -383,25 +383,8 @@ export default function BossDashboard() {
             </PopoverContent>
           </Popover>
 
-          {/* Layout (only meaningful in Live view) */}
-          {blockOrient !== "report" && (
-            <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Layout: auto / columns / rows">
-              <button
-                className={`px-2 py-1 text-xs rounded-sm ${blockOrient === "auto" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-                onClick={() => setBlockOrient("auto")}
-              >Auto</button>
-              <button
-                className={`px-2 py-1 rounded-sm inline-flex items-center ${blockOrient === "cols" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-                onClick={() => setBlockOrient("cols")}
-                title="Columns (MTD | Today)"
-              ><Columns3 className="w-3.5 h-3.5" /></button>
-              <button
-                className={`px-2 py-1 rounded-sm inline-flex items-center ${blockOrient === "rows" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-                onClick={() => setBlockOrient("rows")}
-                title="Rows (MTD / Today)"
-              ><Rows3 className="w-3.5 h-3.5" /></button>
-            </div>
-          )}
+          {/* Layout split (Today | MTD) removed — one period per card now. */}
+
 
           {/* Font size */}
           <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Font size preset">
