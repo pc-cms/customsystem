@@ -179,27 +179,74 @@ export default function BossDashboard() {
     return m;
   }, [topPlayers]);
 
-  const resScale = resolution === "uhd" ? 1.7 : 1;
-  const tvBoost = tvMode ? 1.25 : 1;
-  const baseFont = 16 * resScale * FONT_PRESETS[fontPreset].mult * tvBoost;
+  // Displayed Today metrics — single source of truth shared by the cards and
+  // the Company Total panel (ACE live override applied exactly once).
+  const aceMap = useAceLiveSlotsResultMany(casinos.map((c) => c.slug));
+  const displayedMap = useMemo(() => {
+    const m: Record<string, ReturnType<typeof deriveDisplayedToday>> = {};
+    for (const c of casinos) {
+      m[c.id] = deriveDisplayedToday(dayMap[c.id], c.slug ? aceMap[c.slug] : null);
+    }
+    return m;
+  }, [casinos, dayMap, aceMap]);
+  const companyToday = useMemo(
+    () => sumDisplayedToday(casinos.map((c) => displayedMap[c.id])),
+    [casinos, displayedMap],
+  );
 
-  const outerPad = tvMode ? "px-[5vw] py-[3vh]" : "px-8 pt-6 pb-4";
-  const mainPad = tvMode ? "px-[5vw] pb-[4vh]" : "px-8 pb-8";
+  const isReport = blockOrient === "report";
+  const liveTv = tvMode && !isReport;
+
+  // Typography: TV live view uses viewport-responsive sizing (clamp/vw) so 4K
+  // scales naturally without multiplying the root font by a big factor.
+  const densityMult = FONT_PRESETS[fontPreset].mult;
+  const resNudge = resolution === "uhd" ? 1.06 : 1;
+  const rootFontSize = liveTv
+    ? `clamp(${(11 * densityMult * resNudge).toFixed(1)}px, ${(0.68 * densityMult * resNudge).toFixed(2)}vw, ${(30 * densityMult * resNudge).toFixed(0)}px)`
+    : `${16 * (resolution === "uhd" ? 1.35 : 1) * densityMult}px`;
+
+  // Safe padding only — no max-width containers, no 5vw side gutters.
+  const sidePad = tvMode ? "px-[clamp(12px,0.9vw,32px)]" : "px-8";
+  const outerPad = tvMode ? `${sidePad} pt-[clamp(6px,0.8vh,18px)]` : "px-8 pt-6 pb-4";
+  const mainPad = tvMode ? `${sidePad} pb-[clamp(10px,1vh,28px)]` : "px-8 pb-8";
+
+  // Measure the header + control bar so the casino grid can fill exactly the
+  // remaining first-screen height (4 cards = strict 2×2, no cropping).
+  const chromeRef = useRef<HTMLDivElement | null>(null);
+  const [chromeH, setChromeH] = useState(0);
+  useEffect(() => {
+    const el = chromeRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setChromeH(el.offsetHeight));
+    ro.observe(el);
+    setChromeH(el.offsetHeight);
+    return () => ro.disconnect();
+  }, []);
 
   const businessDate = getBusinessDate();
   const dateLabel = new Date(businessDate).toLocaleDateString("en-GB", {
     weekday: "short", day: "2-digit", month: "short", year: "numeric",
   });
 
+  const gridRows = casinos.length > 2 ? 2 : 1;
+  const liveGridStyle: React.CSSProperties = liveTv
+    ? {
+        minHeight: `calc(100dvh - ${chromeH}px - 24px)`,
+        gridTemplateRows: `repeat(${gridRows}, minmax(0, 1fr))`,
+      }
+    : {};
+
   return (
     <div
-      className="min-h-screen w-full text-foreground"
+      className="min-h-[100dvh] w-full text-foreground"
       style={{
-        fontSize: `${baseFont}px`,
+        fontSize: rootFontSize,
         background:
           "radial-gradient(1200px 800px at 20% -10%, hsl(240 40% 12% / 0.9), transparent 60%), radial-gradient(1000px 600px at 90% 110%, hsl(280 40% 10% / 0.8), transparent 60%), hsl(240 20% 5%)",
       }}
     >
+     <div ref={chromeRef}>
+
       {/* Header — brand + title only */}
       <header className={`flex items-center justify-between gap-6 ${outerPad} pb-2`}>
         <div className="flex items-center gap-4 min-w-0">
