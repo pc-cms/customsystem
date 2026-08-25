@@ -1,39 +1,34 @@
-# Wallets Variance (Arusha, TZS) — из чего состоит минус
+# Card (Credit) Balance — знак учтён по-разному в Day Closings и в Wallets/Daily Balance
 
-## Что показывают данные сейчас
+## Что подтверждено данными и кодом
 
-Период: 01/08 – 25/08, Arusha, Grand TZS.
+В `fin_day_closing` карточный баланс игроков хранится в `players_card_balance` и записывается со знаком «плюс», как его вводят в Day Closings.
 
-| Дата снимка | Expected | Actual (физ. пересчёты) | Variance |
-|---|---|---|---|
-| 23/08 | 130 267 847 | 138 898 175 | +8 630 328 |
-| 24/08 | 135 632 717 | 129 591 175 | −6 041 542 |
-| 25/08 (сейчас) | 135 632 717 | 134 669 175 | **−963 542** |
+Дальше он используется в трёх местах — и не одинаково:
 
-Формула: `Variance = Actual − Expected`, где
-`Expected = Starting Float + Live + Slots + Other + Tips&Bonus + Movements + Add Float + JP + Card Balance + Miss Chips + Miss Cards − Expenses − Collections − Transfers`.
+| Место | Как считает | Файл/функция |
+|---|---|---|
+| Day Closings (экран, тотал Slots) | `Slots − Cards` — **вычитает** | `src/pages/office/DayClosingsTab.tsx` (подсказка в колонке: "Subtracted from the Slot Result") |
+| Boss Dashboard / Monthly Report | `cashdesk_win − n` — **вычитает** | `use-boss-dashboard.ts`, `use-boss-monthly-report.ts` |
+| Wallets Expected / Daily Balance | `+ card_balance` поверх `slots_result` — **прибавляет** | RPC `fin_balance_snapshot` (`incomes.card_balance`, поле `net`), `computeBalanceTotals` в `src/hooks/use-fin-balance.ts` |
 
-Expected за 24/08 и 25/08 одинаков (135 632 717) — 25-е ещё не закрыто, доходы за него не заведены. Значит вся разница между «вчерашним» и «сегодняшним» минусом — это **только новые физические пересчёты**: Actual вырос на **+5 078 000** (129 591 175 → 134 669 175), и минус сократился ровно на эту сумму.
+При этом `slots_result` в `fin_day_closing` — это сырой cash desk win без вычета карт (Arusha: `slots_result` = `cashdesk_win` = 80 537 944 за август). Значит в Expected карточные деньги учтены со знаком «+» поверх результата, где они ещё не вычтены, — то есть **на 2× по модулю мимо** логики Day Closings.
 
-Компоненты Expected за месяц: Starting Float 25 000 000, Live 85 672 500, Slots 80 537 944, Other 76 286, Tips&Bonus 448 430, JP 2 976 014, Card Balance 134 162, Miss Chips 629 500, Miss Cards 55 000, минус Expenses 63 897 119, минус Collections 6 000 000, минус Transfers −10 000 000 (входящий трансфер увеличивает Expected).
+Суммы за август (MTD, `players_card_balance`): Arusha +134 162, Dodoma +101 460, Mbeya +20 400, Mwanza −42 736.
 
-## Где сидит расхождение по кошелькам (Actual − Ledger, TZS)
+Отдельно: у Mwanza `slots_result` (240 485 049) не равен `cashdesk_win` (190 532 799), у Dodoma и Mbeya тоже небольшие расхождения. Значит семантика `slots_result` по казино не одинакова — это надо проверить до правки формулы, иначе одна из площадок поедет.
 
-Самые крупные и самые «старые»:
+## Что делаем
 
-- Cash TZS +42 832 429 (пересчёт 25/08 08:23)
-- NBC TZS +26 034 599 (25/08 08:24)
-- Cash USD +22 885 200 (25/08 08:17)
-- CRDB TZS +16 375 627 — последний пересчёт **19/08**
-- CRDB USD +8 579 194 — последний пересчёт **16/08**
-- NBC USD +2 477 800 — последний пересчёт **16/08**
-- Airtel Money +5 093 309, Tigo Pesa +1 860 125, M-Pesa +441 611, Safe Live/Slots по +1 000 000
+1. **Проверка семантики.** Пройти по каждому казино и сверить, что записано в `slots_result` (сырой cash desk win или уже за вычетом карт), сопоставив с `cashdesk_win` и `players_card_balance` по дням. Зафиксировать единое правило: `slots_result` = cash desk win, карты хранятся отдельно.
+2. **Единый знак.** Привести `fin_balance_snapshot` к правилу Day Closings: карточный баланс **вычитается** из результата слотов (`slots − card_balance`), а не прибавляется. Поправить и `incomes.card_balance`, и строку `net` в дневном массиве.
+3. **Клиентская формула.** В `computeBalanceTotals` (`src/hooks/use-fin-balance.ts`) заменить `+ incomes.card_balance` на `− incomes.card_balance`, чтобы Expected и Variance в Wallets считались по тому же правилу.
+4. **Подписи в UI.** В Wallets/Daily Balance колонку карт показывать со знаком «−», как в Day Closings, чтобы визуально не читалось как доход.
+5. **Проверка после правки.** Пересчитать Variance по Arusha за 01–25/08 и убедиться, что сдвиг равен ровно 2 × 134 162 = 268 324; сверить Mwanza, Dodoma, Mbeya.
+6. **Документация.** Обновить `docs/FINANCE-FORMULAS.md`: Card Balance вычитается везде, единый источник — `fin_day_closing.players_card_balance`.
 
-## Расследование (следующий шаг, только чтение)
+## Технические детали
 
-1. Свести Expected по дням 01/08–24/08 и найти дни, где Variance скачет больше, чем сумма новых пересчётов — это дни с пропущенным или задвоенным доходом/расходом.
-2. Проверить банковские кошельки без свежего пересчёта (CRDB TZS/USD, NBC USD) — их Actual заморожен на 16–19/08, поэтому месячный минус частично «бумажный».
-3. Проверить трансфер −10 000 000 (Transfers) и Collections 6 000 000 на двойной учёт в Expected и в движениях кошельков.
-4. Сверить Cash TZS: 25/08 записан пересчёт 21 579 000 при Expected 27 135 000 (разрыв 5 556 000) — уточнить, был ли это пересчёт «на 24/08» или уже на текущий день.
-
-По результатам — отдельный план на исправления в коде/данных, если найдётся системная причина.
+- Миграция: `CREATE OR REPLACE FUNCTION fin_balance_snapshot(...)` — меняются только знак `v_card_balance` в блоке `incomes` и слагаемое `card_balance` в поле `net` дневного массива. Структура и остальные слагаемые не трогаются.
+- Клиент: одна строка в `computeBalanceTotals` + подпись колонки.
+- Исторические данные не переписываются — расчёт производный, пересчитается сам.
