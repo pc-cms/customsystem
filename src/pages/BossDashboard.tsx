@@ -445,9 +445,6 @@ export default function BossDashboard() {
           </>
         )}
 
-          </>
-        )}
-
         {blockOrient !== "report" && <>
         {/* Top players per casino */}
         <section className="mt-8">
