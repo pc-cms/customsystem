@@ -131,6 +131,35 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
     .reduce((s, r) => s + Number(r.tables_result || 0) + closingSlots(r), 0);
   const mtdResult = mtdClosed + totalResult;
 
+  // ---- Monthly split, sourced exactly like Analytics → Statistics ----------
+  // Slots Drop  : fin_day_closing.drop_slots wins; else cage_slots_shifts.manual_drop_slots
+  // Slots Result: fin_day_closing.net_win
+  const shiftDropByDate = new Map<string, number>();
+  for (const s of ((slotShiftsRes as any).data || []) as any[]) {
+    shiftDropByDate.set(
+      s.business_date,
+      (shiftDropByDate.get(s.business_date) || 0) + Number(s.manual_drop_slots || 0),
+    );
+  }
+  let mtdSlotsDrop = 0;
+  let mtdSlotsResult = 0;
+  const closingDates = new Set<string>();
+  for (const c of closings) {
+    closingDates.add(c.business_date);
+    const aceDrop = Number(c.drop_slots || 0);
+    mtdSlotsDrop += aceDrop !== 0 ? aceDrop : shiftDropByDate.get(c.business_date) || 0;
+    mtdSlotsResult += Number(c.net_win || 0);
+  }
+  for (const [d, v] of shiftDropByDate) if (!closingDates.has(d)) mtdSlotsDrop += v;
+
+  // Tables monthly: drop from the drop cache, result from Day Closings
+  // (today's still-open day contributes the live chips-check figure).
+  const mtdTablesDrop = mtdDrop;
+  const mtdTablesResult =
+    closings
+      .filter((r) => r.business_date !== businessDate)
+      .reduce((s, r) => s + Number(r.tables_result || 0), 0) + liveResult;
+
   return {
     casinoId,
     total: { drop: totalDrop, result: totalResult, headCount, hold: hold(totalDrop, totalResult) },
@@ -138,9 +167,22 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
     slots: { drop: slotsDrop, result: slotsResult, headCount: 0, hold: hold(slotsDrop, slotsResult) },
     slotsAvailable,
     mtd: { drop: mtdDrop, result: mtdResult, hold: hold(mtdDrop, mtdResult) },
+    mtdTables: {
+      drop: mtdTablesDrop,
+      result: mtdTablesResult,
+      headCount: 0,
+      hold: hold(mtdTablesDrop, mtdTablesResult),
+    },
+    mtdSlots: {
+      drop: mtdSlotsDrop,
+      result: mtdSlotsResult,
+      headCount: 0,
+      hold: hold(mtdSlotsDrop, mtdSlotsResult),
+    },
   };
 
 }
+
 
 
 export function useBossCasinoDays(casinoIds: string[]) {
