@@ -319,6 +319,23 @@ export default function BossDashboard() {
             </button>
           </div>
 
+          {/* Period switcher — Live view only (Monthly = current month MTD) */}
+          {blockOrient !== "report" && (
+            <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Period">
+              {(["today", "monthly"] as PeriodView[]).map((p) => (
+                <button
+                  key={p}
+                  className={`px-3 py-1.5 text-xs rounded-sm font-semibold capitalize ${periodView === p ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                  onClick={() => setPeriodView(p)}
+                >
+                  {p === "today" ? "Today" : "Monthly"}
+                </button>
+              ))}
+            </div>
+          )}
+
+
+
           {/* Month picker (report only) */}
           {blockOrient === "report" && (
             <div className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-black/30 px-1 py-0.5">
