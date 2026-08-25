@@ -458,8 +458,11 @@ export default function BossDashboard() {
                   slug={c.slug}
                   accent={accentFor(c.slug, i)}
                   day={dayMap[c.id]}
-                  displayed={displayedMap[c.id] ?? null}
-                  orientation={blockOrient as "auto" | "cols" | "rows"}
+                  displayed={
+                    (periodView === "today" ? displayedMap[c.id] : monthlyMap[c.id]) ?? null
+                  }
+                  period={periodView}
+                  periodLabel={liveMonthLabel}
                 />
               ))}
             </div>
@@ -467,9 +470,18 @@ export default function BossDashboard() {
             {/* Company Total */}
             {casinos.length > 0 && (
               <div className="mt-6">
-                <CompanyTotalPanel casinos={casinos} days={days} today={companyToday} accentFor={accentFor} />
+                <CompanyTotalPanel
+                  casinos={casinos}
+                  days={days}
+                  today={companyToday}
+                  monthly={companyMonthly}
+                  period={periodView}
+                  periodLabel={liveMonthLabel}
+                  accentFor={accentFor}
+                />
               </div>
             )}
+
           </>
         )}
 
