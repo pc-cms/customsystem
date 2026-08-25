@@ -213,3 +213,31 @@ Basic Float: Current = Opening + Σ signed adjustments (never negative)
 
 Unplanned Expenses live in `boss_report_extras` (entered on Dashboard TV, `Paid`
 flag posts the cash effect). Rows are immutable — reversal only, no delete.
+
+## Bank Statement Import (Office → Import Statement)
+
+Staging only — no parallel ledger. Tables `fin_bank_statement_batches` /
+`fin_bank_statement_rows`; every write goes through
+`fin_bank_import_*` RPCs (DB authoritative, idempotent).
+
+```
+Batch:  in_review → partially_confirmed → confirmed        (or abandoned)
+Row:    pending | matched | duplicate → confirmed | ignored | error
+```
+
+Confirm semantics (`Confirm import` ≠ `Approve expense`):
+- MATCHED row  → reconciled only. No new expense, no new `fin_wallet_tx`.
+- Unmatched DEBIT → normal Office `expenses` row with
+  `bank_statement_row_id` set, `approved = false`, **no wallet posting**.
+  It shows up in the standard Expenses Approvals queue; the usual approval
+  posts `fin_wallet_tx` (trigger `trg_expenses_office_after_approve`).
+- Unmatched CREDIT → never becomes an expense; match or classify manually.
+
+Legacy behaviour is untouched: office expenses created anywhere else still
+auto-approve and post immediately (`bank_statement_row_id IS NULL`).
+
+Duplicate fingerprint = md5(wallet + tx_date + reference + description +
+signed amount + currency + occurrence index). A partial unique index enforces
+one *confirmed* row per (wallet, fingerprint).
+
+Wallet Expected formula is unchanged (CashDesk Win from Day Closings).
