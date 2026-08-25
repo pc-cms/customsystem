@@ -141,9 +141,16 @@ export default function JpTab() {
       key: "type",
       header: "Type",
       accessor: (r) => (
-        <span className="text-xs uppercase tracking-wider">
-          {Number(r.amount) < 0 ? "Payout" : "Contribution"}
-        </span>
+        <div className="flex flex-col leading-tight">
+          <span className="text-xs uppercase tracking-wider">
+            {isStorno(r) ? "Storno" : Number(r.amount) < 0 ? "Payout" : "Contribution"}
+          </span>
+          {(isStorno(r) || isCancelled(r)) && (
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              {isCancelled(r) ? "cancelled" : "not counted"}
+            </span>
+          )}
+        </div>
       ),
       style: { width: 130 },
     },
