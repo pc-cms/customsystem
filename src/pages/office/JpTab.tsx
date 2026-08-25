@@ -52,10 +52,15 @@ export default function JpTab() {
   const updateIncome = useUpdateOtherIncome();
   const reverseIncome = useReverseOtherIncome();
 
+  /** A row is "live" only if it is not a storno and has not been cancelled. */
+  const isCancelled = (r: OtherIncomeRow) => !!r.reversed_by_id;
+  const isStorno = (r: OtherIncomeRow) => !!r.reverses_id;
+
   const totals = useMemo(() => {
     let inSum = 0;
     let outSum = 0;
     (rows as OtherIncomeRow[]).forEach((r) => {
+      if (r.reverses_id || r.reversed_by_id) return; // cancelled pair nets to zero
       const v = Number(r.amount || 0) * Number(r.fx_rate || 1);
       if (v >= 0) inSum += v;
       else outSum += v;
