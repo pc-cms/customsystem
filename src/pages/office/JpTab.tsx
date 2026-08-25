@@ -282,8 +282,15 @@ export default function JpTab() {
       </div>
 
       <PageSection card={false}>
+        {voidedCount > 0 && (
+          <div className="flex justify-end mb-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowVoided((v) => !v)}>
+              {showVoided ? "Hide" : "Show"} cancelled &amp; storno ({voidedCount})
+            </Button>
+          </div>
+        )}
         <SmartTable
-          data={rows}
+          data={visibleRows}
           columns={columns}
           rowKey={(r) => r.id}
           loading={isLoading}
@@ -294,6 +301,7 @@ export default function JpTab() {
           }
         />
       </PageSection>
+
 
       <ResponsiveDialog
         open={dialogOpen}
