@@ -12847,6 +12847,7 @@ export type Database = {
         Args: { p_casino_id: string; p_month: number; p_year: number }
         Returns: boolean
       }
+      fin_other_income_delete: { Args: { p_id: string }; Returns: undefined }
       fin_other_income_replace: {
         Args: {
           p_amount: number
@@ -12858,6 +12859,18 @@ export type Database = {
           p_wallet_id: string
         }
         Returns: string
+      }
+      fin_other_income_update: {
+        Args: {
+          p_amount: number
+          p_business_date: string
+          p_fin_category_id?: string
+          p_id: string
+          p_note?: string
+          p_source: string
+          p_wallet_id: string
+        }
+        Returns: undefined
       }
       fin_override_manager_bonus: {
         Args: {
@@ -12949,6 +12962,7 @@ export type Database = {
         }
         Returns: string
       }
+      fin_unplanned_delete: { Args: { p_id: string }; Returns: undefined }
       fin_unplanned_mark_paid: {
         Args: { p_id: string; p_paid_date?: string; p_wallet_id?: string }
         Returns: string
