@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.fin_jp_delete_entry(uuid) FROM anon;
