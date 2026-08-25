@@ -10,7 +10,7 @@
  * Auto-refreshes every 10s. Deep dark stage, glowing accents, huge numerals.
  * Boss dashboard is strictly current business day (no date picker).
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
@@ -29,6 +29,8 @@ import {
 import { CasinoDoubleBlock } from "@/components/boss/casino-double-block";
 import { CompanyTotalPanel } from "@/components/boss/company-total-panel";
 import { MonthlyReportPanel } from "@/components/boss/monthly-report-panel";
+import { useAceLiveSlotsResultMany } from "@/hooks/use-ace-finance";
+import { deriveDisplayedToday, sumDisplayedToday } from "@/lib/boss-display-metrics";
 
 
 type Resolution = "fhd" | "uhd";
