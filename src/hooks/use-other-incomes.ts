@@ -261,10 +261,10 @@ export const useUpdateJpEntry = () => {
 };
 
 /**
- * Immutable correction: storno of the original + a new replacement row, in ONE
- * DB transaction (`fin_other_income_replace`). Also the ONLY way to move a row
- * between Commissions / Movements / Tips & Gaming Bonus. Mirrored wallet
- * transactions stay consistent because the trigger negates the storno.
+ * Direct edit — no storno. Finance manager / super_admin only (enforced by the
+ * `fin_other_income_update` RPC). Every change is written to `fin_audit_log`
+ * by the `tg_fin_audit` trigger, and the mirrored wallet transaction is kept
+ * in sync by the existing mirror trigger.
  */
 export const useUpdateOtherIncome = () => {
   const qc = useQueryClient();
@@ -281,7 +281,7 @@ export const useUpdateOtherIncome = () => {
       note?: string;
     }) => {
       if (input.source === "refund") throw new Error("Refund is retired and cannot be used");
-      const { error } = await (supabase as any).rpc("fin_other_income_replace", {
+      const { error } = await (supabase as any).rpc("fin_other_income_update", {
         p_id: input.id,
         p_business_date: input.business_date,
         p_wallet_id: input.wallet_id,
@@ -294,17 +294,30 @@ export const useUpdateOtherIncome = () => {
     },
     onSuccess: () => {
       invalidateFinance(qc);
-      toast.success("Correction posted (storno + new entry)");
+      toast.success("Entry updated");
     },
     onError: (e: any) => toast.error(e.message),
   });
 };
 
 /**
- * @deprecated Finance history is immutable — there is no hard delete.
- * Use `useReverseOtherIncome` (storno) or `useUpdateOtherIncome` (correction).
+ * Hard delete — finance manager / super_admin only. Removes the entry, any
+ * legacy storno pair and the mirrored wallet transaction; logged in
+ * `fin_audit_log`.
  */
 export const useDeleteOtherIncome = () => {
-  const reverse = useReverseOtherIncome();
-  return reverse;
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: string | { id: string }) => {
+      const id = typeof input === "string" ? input : input.id;
+      const { error } = await (supabase as any).rpc("fin_other_income_delete", { p_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateFinance(qc);
+      toast.success("Entry deleted");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
 };
+

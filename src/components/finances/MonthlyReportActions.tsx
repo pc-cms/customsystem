@@ -23,7 +23,7 @@ import {
   useReopenMonthReport,
   useRecordCollection,
   useMarkUnplannedPaid,
-  useReverseUnplanned,
+  useDeleteUnplanned,
   type MonthFinance,
 } from "@/hooks/use-fin-month-finance";
 import { formatNumberSpaces } from "@/lib/currency";
@@ -69,7 +69,7 @@ export const MonthlyReportActions = ({
   const reopenMonth = useReopenMonthReport();
   const collect = useRecordCollection();
   const markPaid = useMarkUnplannedPaid();
-  const reverseUnplanned = useReverseUnplanned();
+  const deleteUnplanned = useDeleteUnplanned();
 
   const [dlg, setDlg] = useState<null | "liability" | "pay" | "collect" | "paid">(null);
   const [wallet, setWallet] = useState("");
@@ -171,11 +171,11 @@ export const MonthlyReportActions = ({
                     )}
                     <MiniButton
                       onClick={() => {
-                        if (window.confirm("Create a storno for this extra expense?"))
-                          reverseUnplanned.mutate({ id: i.id });
+                        if (window.confirm("Delete this extra expense? This is logged in the finance audit log."))
+                          deleteUnplanned.mutate({ id: i.id });
                       }}
                     >
-                      Storno
+                      Delete
                     </MiniButton>
                   </>
                 ) : null

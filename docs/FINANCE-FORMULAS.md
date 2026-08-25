@@ -151,7 +151,7 @@ Cashless Balance= manual entry only; derived NET is ignored in CDR
 ## 7. Invariants
 
 1. Tips, Bonuses, JP and Transfers never appear inside Commissions or income totals.
-2. Storno pairs (original + reversal) net to zero on every page.
+2. Legacy storno pairs (original + reversal) net to zero on every page. New storno rows are no longer created.
 3. Cage expenses count only after the business day is closed; Office expenses count immediately.
 4. Per-table Drop and Total Drop are computed independently and may differ — by design.
 5. Wallets `Expected` must be fully decomposable into the rows shown in its breakdown.
@@ -163,13 +163,20 @@ excluded from Commissions, Fee, Total Income, Expected Profit, Cash Position,
 Wallet Expected, daily breakdown and dashboards. It cannot be selected for new
 entries and `fin_other_income_replace` rejects it.
 
-## Immutable corrections
+## Corrections (STORNO retired, 2026)
 
 Editing / moving a `fin_other_incomes` row (Commissions ↔ Movements ↔ Tips &
-Gaming Bonus) goes through `fin_other_income_replace`: storno of the original
-plus a replacement row in ONE transaction. Wallet mirrors stay consistent
-because the trigger negates storno rows. Amount 0 = storno only. Hard delete is
-no longer available in the UI.
+Gaming Bonus) is a DIRECT update via `fin_other_income_update`; removing one is
+a hard delete via `fin_other_income_delete` (JP: `fin_jp_delete_entry`). Extra
+Expenses are deleted via `fin_unplanned_delete`, which refunds the wallet when
+the row was already paid.
+
+Both RPCs are restricted to `super_admin` / `can_finance()`, respect casino
+scope and refuse closed months. Every insert, update and delete on
+`fin_other_incomes` and `boss_report_extras` is recorded in `fin_audit_log`
+(trigger `tg_fin_audit`) with actor and before/after JSON. Wallet mirrors stay
+consistent through the existing mirror triggers. Deleting either side of a
+legacy storno pair removes the whole pair.
 
 ## Bar Income
 

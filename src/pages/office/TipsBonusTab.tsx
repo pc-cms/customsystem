@@ -8,7 +8,7 @@
  * Transactions tab. Built after the JP tab pattern.
  */
 import { useMemo, useState } from "react";
-import { Plus, Minus, Pencil, Undo2 } from "lucide-react";
+import { Plus, Minus, Pencil, Trash2 } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ import {
   useOtherIncomes,
   useAddOtherIncome,
   useUpdateOtherIncome,
-  useReverseOtherIncome,
+  useDeleteOtherIncome,
   type OtherIncomeRow,
 } from "@/hooks/use-other-incomes";
 import { formatNumberSpaces } from "@/lib/currency";
@@ -57,7 +57,7 @@ export default function TipsBonusTab() {
   const { data: wallets = [] } = useFinWallets();
   const addIncome = useAddOtherIncome();
   const updateIncome = useUpdateOtherIncome();
-  const reverseIncome = useReverseOtherIncome();
+  const deleteIncome = useDeleteOtherIncome();
 
   const [filter, setFilter] = useState<Filter>("all");
 
@@ -235,11 +235,11 @@ export default function TipsBonusTab() {
               size="icon"
               className="h-7 w-7 text-destructive"
               onClick={() => {
-                if (confirm("Reverse this Tips / Bonus entry? A storno row will be created.")) reverseIncome.mutate(r);
+                if (confirm("Delete this Tips / Bonus entry? This is logged in the finance audit log.")) deleteIncome.mutate(r.id);
               }}
-              aria-label="Reverse"
+              aria-label="Delete"
             >
-              <Undo2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-3.5 h-3.5" />
             </Button>
           </div>
         );

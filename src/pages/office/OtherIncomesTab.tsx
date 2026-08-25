@@ -4,7 +4,7 @@
  * Reversal вместо редактирования.
  */
 import { useMemo, useState } from "react";
-import { Coins, Plus, Undo2, Pencil } from "lucide-react";
+import { Coins, Plus, Trash2, Pencil } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ import { useFinWallets, useFinCategories } from "@/hooks/use-fin";
 import {
   useOtherIncomes,
   useAddOtherIncome,
-  useReverseOtherIncome,
+  useDeleteOtherIncome,
   useUpdateOtherIncome,
   OTHER_INCOME_SOURCES,
   ALL_INCOME_SOURCES,
@@ -64,7 +64,7 @@ export default function OtherIncomesTab() {
   const { data: wallets = [] } = useFinWallets();
   const { data: categories = [] } = useFinCategories();
   const addIncome = useAddOtherIncome();
-  const reverse = useReverseOtherIncome();
+  const deleteIncome = useDeleteOtherIncome();
   const updateIncome = useUpdateOtherIncome();
 
   const incomeCats = useMemo(
@@ -223,7 +223,6 @@ export default function OtherIncomesTab() {
       header: "",
       type: "actions",
       accessor: (r) => {
-        if (r.reverses_id || r.reversed_by_id) return null;
         if (!canWrite) return null;
         return (
           <div className="flex items-center gap-0.5">
@@ -241,11 +240,11 @@ export default function OtherIncomesTab() {
               size="icon"
               className="h-7 w-7"
               onClick={() => {
-                if (confirm("Create a reversal for this income?")) reverse.mutate(r);
+                if (confirm("Delete this entry? This is logged in the finance audit log.")) deleteIncome.mutate(r.id);
               }}
-              aria-label="Reverse"
+              aria-label="Delete"
             >
-              <Undo2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-3.5 h-3.5" />
             </Button>
             
           </div>
