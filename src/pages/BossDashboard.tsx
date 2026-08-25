@@ -205,6 +205,18 @@ export default function BossDashboard() {
     [casinos, displayedMap],
   );
 
+  // Monthly (MTD) metrics — sourced like Analytics → Statistics, no ACE override.
+  const monthlyMap = useMemo(() => {
+    const m: Record<string, ReturnType<typeof deriveDisplayedMonthly>> = {};
+    for (const c of casinos) m[c.id] = deriveDisplayedMonthly(dayMap[c.id]);
+    return m;
+  }, [casinos, dayMap]);
+  const companyMonthly = useMemo(
+    () => sumDisplayedToday(casinos.map((c) => monthlyMap[c.id])),
+    [casinos, monthlyMap],
+  );
+
+
   const isReport = blockOrient === "report";
   const liveTv = tvMode && !isReport;
 
