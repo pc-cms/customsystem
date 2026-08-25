@@ -235,9 +235,11 @@ export default function DayClosingsTab() {
   const val = (r: Row) => {
     const d = drafts[r.date] || {};
     const tables = d.tables ?? (r.existing?.tables_result != null ? Number(r.existing.tables_result) : r.agg.tables);
+    // Slot fields NEVER prefill from a cage/slot cashier shift (open or closed).
+    // Only ACE Collector or an explicit manual entry may populate them.
     const slots = d.slots ?? (r.existing?.slots_result != null
       ? Number(r.existing.slots_result)
-      : (r.existing?.cashdesk_win != null ? Number(r.existing.cashdesk_win) : r.agg.slots));
+      : Number(r.existing?.cashdesk_win ?? 0));
 
     const drop = d.drop ?? Number(r.existing?.drop_slots ?? 0);
     const cash = d.cash ?? Number(r.existing?.cashdesk_win ?? 0);
@@ -256,12 +258,14 @@ export default function DayClosingsTab() {
     !isOpenDay(r) && (!isLocked(r) || (!!isManager && !!unlocked[r.date]));
   const varianceOf = (r: Row) => {
     const v = val(r);
-    return { dT: Math.abs(v.tables - r.agg.tables), dS: Math.abs(v.slots - r.agg.slots) };
+    // Slot figures have no shift-derived reference — only Table Result is compared.
+    return { dT: Math.abs(v.tables - r.agg.tables), dS: 0 };
   };
   const needsNote = (r: Row) => {
     const { dT, dS } = varianceOf(r);
     return dT > 1 || dS > 1;
   };
+
 
   const [varianceRow, setVarianceRow] = useState<Row | null>(null);
   const [varianceNote, setVarianceNote] = useState("");
