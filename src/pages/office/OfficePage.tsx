@@ -13,6 +13,7 @@ const WalletDayGridTab = lazy(() => import("./WalletDayGridTab"));
 const FinancesWalletsPage = lazy(() => import("@/pages/finances/FinancesWalletsPage"));
 const FinancesMonthlyReportPage = lazy(() => import("@/pages/finances/FinancesMonthlyReportPage"));
 const FinancesInterCasinoPage = lazy(() => import("@/pages/finances/FinancesInterCasinoPage"));
+const FinancesBankImportPage = lazy(() => import("@/pages/finances/FinancesBankImportPage"));
 
 
 // Flat, alphabetically sorted top-level tabs — no nested sub-tabs.
@@ -22,6 +23,7 @@ const TABS = [
   { value: "bank", label: "Bank" },
   { value: "cashless", label: "Cashless" },
   { value: "day-closings", label: "Day Closings" },
+  { value: "import-statement", label: "Import Statement" },
   { value: "inter-casino", label: "Inter-Casino" },
   { value: "jp", label: "JP" },
   { value: "monthly-report", label: "Monthly Report" },
@@ -71,7 +73,7 @@ export default function OfficePage() {
       tabs={TABS}
       tab={tab}
       onTabChange={onChange}
-      showPeriod={tab !== "rates" && tab !== "inter-casino"}
+      showPeriod={tab !== "rates" && tab !== "inter-casino" && tab !== "import-statement"}
       
     >
       <Suspense fallback={<div className="text-sm text-muted-foreground p-4">Loading…</div>}>
@@ -80,6 +82,7 @@ export default function OfficePage() {
           <WalletDayGridTab groups={["mobile_money", "digital_wallets", "selcom"]} title="Cashless" />
         )}
         {tab === "day-closings" && <DayClosingsTab />}
+        {tab === "import-statement" && <FinancesBankImportPage />}
         {tab === "inter-casino" && <FinancesInterCasinoPage />}
         {tab === "jp" && <JpTab />}
 
