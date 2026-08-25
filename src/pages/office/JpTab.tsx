@@ -5,7 +5,7 @@
  * Day Closings "JP (IN)" column writes. Excluded from Other Incomes.
  */
 import { useMemo, useState } from "react";
-import { Trophy, Plus, Minus, Pencil, Undo2 } from "lucide-react";
+import { Trophy, Plus, Minus, Pencil, Trash2 } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,8 @@ import { useFinWallets } from "@/hooks/use-fin";
 import {
   useOtherIncomes,
   useAddOtherIncome,
-  useUpdateOtherIncome,
-  useReverseOtherIncome,
+  useUpdateJpEntry,
+  useDeleteJpEntry,
   type OtherIncomeRow,
 } from "@/hooks/use-other-incomes";
 import { formatNumberSpaces } from "@/lib/currency";
@@ -49,25 +49,14 @@ export default function JpTab() {
   });
   const { data: wallets = [] } = useFinWallets();
   const addIncome = useAddOtherIncome();
-  const updateIncome = useUpdateOtherIncome();
-  const reverseIncome = useReverseOtherIncome();
+  const updateIncome = useUpdateJpEntry();
+  const deleteIncome = useDeleteJpEntry();
 
   /** A row is "live" only if it is not a storno and has not been cancelled. */
   const isCancelled = (r: OtherIncomeRow) => !!r.reversed_by_id;
   const isStorno = (r: OtherIncomeRow) => !!r.reverses_id;
 
-  /** Audit rows (storno + the entries they cancel) are hidden by default. */
-  const [showVoided, setShowVoided] = useState(false);
-
   const allRows = rows as OtherIncomeRow[];
-  const voidedCount = useMemo(
-    () => allRows.filter((r) => isStorno(r) || isCancelled(r)).length,
-    [allRows],
-  );
-  const visibleRows = useMemo(
-    () => (showVoided ? allRows : allRows.filter((r) => !isStorno(r) && !isCancelled(r))),
-    [allRows, showVoided],
-  );
 
   const totals = useMemo(() => {
     let inSum = 0;
@@ -233,27 +222,25 @@ export default function JpTab() {
       type: "actions",
       accessor: (r) => {
         if (!canWrite) return null;
-        if (isStorno(r) || isCancelled(r)) return null;
         return (
           <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)} aria-label="Edit">
-              <Pencil className="w-3.5 h-3.5" />
-            </Button>
+            {!isStorno(r) && !isCancelled(r) && (
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)} aria-label="Edit">
+                <Pencil className="w-3.5 h-3.5" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
               className="h-7 w-7 text-destructive"
               onClick={() => {
-                if (
-                  confirm(
-                    "Cancel this JP entry? A storno row is created and the entry stops counting in JP and Day Closings.",
-                  )
-                )
-                  reverseIncome.mutate(r);
+                if (confirm("Delete this JP entry permanently? This will also remove its linked wallet transaction."))
+                  deleteIncome.mutate(r.id);
               }}
-              aria-label="Cancel entry"
+              disabled={deleteIncome.isPending}
+              aria-label="Delete entry"
             >
-              <Undo2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-3.5 h-3.5" />
             </Button>
           </div>
         );
@@ -282,15 +269,8 @@ export default function JpTab() {
       </div>
 
       <PageSection card={false}>
-        {voidedCount > 0 && (
-          <div className="flex justify-end mb-2">
-            <Button variant="ghost" size="sm" onClick={() => setShowVoided((v) => !v)}>
-              {showVoided ? "Hide" : "Show"} cancelled &amp; storno ({voidedCount})
-            </Button>
-          </div>
-        )}
         <SmartTable
-          data={visibleRows}
+          data={allRows}
           columns={columns}
           rowKey={(r) => r.id}
           loading={isLoading}

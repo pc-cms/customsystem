@@ -12788,6 +12788,7 @@ export type Database = {
             }
             Returns: string
           }
+      fin_jp_delete_entry: { Args: { p_id: string }; Returns: undefined }
       fin_liability_add: {
         Args: {
           p_amount: number
