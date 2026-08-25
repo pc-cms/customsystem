@@ -238,9 +238,9 @@ export default function DayClosingsTab() {
     const tables = d.tables ?? (r.existing?.tables_result != null ? Number(r.existing.tables_result) : r.agg.tables);
     // Slot fields NEVER prefill from a cage/slot cashier shift (open or closed).
     // Only ACE Collector or an explicit manual entry may populate them.
-    const slots = d.slots ?? (r.existing?.slots_result != null
-      ? Number(r.existing.slots_result)
-      : Number(r.existing?.cashdesk_win ?? 0));
+    // Slot Result = system result (net_win); CashDesk Win stays a separate metric.
+    const slots = d.slots ?? Number(r.existing?.slots_result ?? r.existing?.net_win ?? 0);
+
 
     const drop = d.drop ?? Number(r.existing?.drop_slots ?? 0);
     const cash = d.cash ?? Number(r.existing?.cashdesk_win ?? 0);
@@ -308,11 +308,14 @@ export default function DayClosingsTab() {
         id: r.existing?.id,
         business_date: r.date,
         tables_result: v.tables,
+        // System / Slots Result = manual system result (also stored in net_win).
         slots_result: v.slots,
-        drop_slots: v.drop,
         net_win: v.slots,
-        cashdesk_win: v.slots,
+        drop_slots: v.drop,
+        // CashDesk Win — separate cashier-system metric, never the Slots Result.
+        cashdesk_win: v.cash,
         players_card_balance: v.cards,
+
         notes: finalComment || null,
       });
 
@@ -432,7 +435,17 @@ export default function DayClosingsTab() {
       style: { width: 168 },
       accessor: (r) => numCell(r, val(r).slots, (n) => setField(r.date, { slots: n }), {
         placeholder: 0,
-        title: `Slot Result = CashDesk Win. Filled by ACE Collector or entered manually. Never taken from a slot cashier shift.`,
+        title: `Slot Result = gaming system result (Net Win). Filled by ACE Collector or entered manually. Never taken from a slot cashier shift.`,
+      }),
+    },
+    {
+      key: "cash",
+      header: "CashDesk Win",
+      type: "money",
+      style: { width: 168 },
+      accessor: (r) => numCell(r, val(r).cash, (n) => setField(r.date, { cash: n }), {
+        placeholder: 0,
+        title: "CashDesk Win — separate ACE/system metric. Never used as the Slot Result and never taken from a cashier shift.",
       }),
     },
     {
@@ -445,6 +458,7 @@ export default function DayClosingsTab() {
         title: "Slot Drop from Close Day. Editable manually.",
       }),
     },
+
     {
       key: "cards",
       header: "Card Balance",
@@ -548,6 +562,8 @@ export default function DayClosingsTab() {
       case "status": return null;
       case "tables": return <Money v={totals.tables} />;
       case "slots": return <Money v={totals.slots} />;
+      case "cash": return <Money v={totals.cash} />;
+
       case "drop": return <span className="font-mono text-[12px] text-muted-foreground">{formatNumberSpaces(totals.drop)}</span>;
       case "cards": return <span className={cn("font-mono text-[12px]", totals.cards ? "cms-amount-negative" : "text-muted-foreground")}>{totals.cards ? `${totals.cards > 0 ? "− " : "+ "}${formatNumberSpaces(Math.abs(totals.cards))}` : "0"}</span>;
       case "jp": return <Money v={totals.jp} />;
