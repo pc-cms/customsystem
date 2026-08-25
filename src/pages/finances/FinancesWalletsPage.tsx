@@ -651,7 +651,7 @@ export default function FinancesWalletsPage() {
             <BreakdownRow label="Other movements (investment / office)" v={snap?.incomes?.movements || 0} signed />
             <BreakdownRow label="JP (±)" v={snap?.incomes?.jp || 0} signed />
 
-            <BreakdownRow label="Card Balance (Σ daily diff)" v={snap?.incomes?.card_balance || 0} signed />
+            <BreakdownRow label="Card Balance (reference · already in Slot Result)" v={snap?.incomes?.card_balance || 0} signed muted />
 
             <BreakdownRow label="Missed Chips (±)" v={snap?.incomes?.missed_chips || 0} signed />
             <BreakdownRow label="Missed Cards (±)" v={snap?.incomes?.missed_cards || 0} signed />

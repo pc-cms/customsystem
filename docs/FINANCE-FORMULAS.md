@@ -80,18 +80,27 @@ Profit                = Total Income − Grand Actual
 ```text
 Expected = Table Result + Slot Result + Bar Income + Commissions
          + Tips & Bonuses (±) + Movements
-         + JP + Card Balance + Miss Chips + Miss Cards
+         + JP + Miss Chips + Miss Cards
          − Expenses − Collections + Transfers
 
 Actual   = Σ last recorded physical wallet state (latest count per wallet)
 Variance = Actual − Expected        (the gap; a real discrepancy, not a bug)
 ```
 
+- **Card Balance is NOT part of Expected.** Player card money is already inside
+  Win Cash Desk (`slots_result`) written to Day Closings. It is subtracted only
+  for display in Boss Dashboard / Monthly Report (shown as deposits). In Wallets
+  it is a reference figure only.
+- **JP** is counted once, from `fin_other_incomes.source = 'jp'` (contributions
+  positive, payouts negative, storno excluded). JP cash is physically held in a
+  wallet and is not part of `slots_result`; JP payouts are never also booked as
+  expenses.
 - **Transfers** come from the inter-casino transfer registry: `−` at the
   sender, `+` at the receiver (paired rows).
 - Chips: a negative chip delta means **more cash** on hand (inverted sign).
 - Manual In/Out are **Adjustments**: they move wallet cash but are neither
   income nor expense.
+
 - Cash Deficit banner lives inside Wallets, right above Stale counts.
 
 ---
