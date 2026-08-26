@@ -68,7 +68,9 @@ export default function FinancesDayClosingPage() {
   const slotsValue = parseAmountInput(slots);
   const diffTables = tablesValue - (snap?.tables ?? 0);
   const diffSlots = slotsValue - (snap?.slots ?? 0);
-  const needsVariance = !!snap && (Math.abs(diffTables) > 1 || Math.abs(diffSlots) > 1);
+  // Slots are NOT reconciled against cashier slot shifts — ACE / manual entry is the
+  // source of truth and is isolated from the cage shift cycle. Only Tables blocks the lock.
+  const needsVariance = !!snap && Math.abs(diffTables) > 1;
   const noteValid = varianceNote.trim().length >= 3;
 
   const addLine = () => {
@@ -144,36 +146,40 @@ export default function FinancesDayClosingPage() {
             )}
           </div>
 
-          <div>Slots</div>
+          <div>Slots <span className="text-[10px] text-muted-foreground">(info only)</span></div>
           <div className={cn("text-right font-mono", amountToneClass(slotsValue))}>{formatNumberSpaces(slotsValue)}</div>
           <div className="text-right font-mono">
             {snap ? formatNumberSpaces(snap.slots) : "—"}
             {snap && (
-              <span className={`ml-2 ${Math.abs(diffSlots) > 1 ? "cms-amount-negative font-semibold" : "text-muted-foreground"}`}>
+              <span className="ml-2 text-muted-foreground">
                 ({diffSlots > 0 ? "+" : ""}{formatNumberSpaces(diffSlots)})
               </span>
             )}
           </div>
         </div>
 
+        <div className="mt-2 text-[11px] text-muted-foreground">
+          Slots is not reconciled against cashier slot shifts — ACE / manual entry is the source of truth.
+        </div>
+
         {needsVariance && (
           <div className="mt-3 p-3 rounded-md border border-destructive/40 bg-destructive/5">
             <div className="flex items-center gap-2 text-xs text-destructive font-medium mb-2">
               <AlertTriangle className="w-3.5 h-3.5" />
-              Variance vs Cage — reconciliation comment required (min 3 chars)
+              Tables variance vs Cage — reconciliation comment required (min 3 chars)
             </div>
             <Textarea
               value={varianceNote}
               disabled={locked}
               onChange={(e) => setVarianceNote(e.target.value)}
-              placeholder="Explain the discrepancy (e.g. late-night cash adjustment, miscount on slots…)"
+              placeholder="Explain the Tables discrepancy (e.g. late-night cash adjustment, chip miscount…)"
               rows={2}
             />
           </div>
         )}
         {!needsVariance && snap && (
           <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Matches Cage closure
+            <CheckCircle2 className="w-3.5 h-3.5" /> Tables match Cage closure
           </div>
         )}
       </PageSection>
