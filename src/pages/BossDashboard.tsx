@@ -236,6 +236,25 @@ export default function BossDashboard() {
   );
 
 
+  // View model for the Live styles — one shared source of truth.
+  const tvCasinos: TvCasino[] = useMemo(
+    () =>
+      casinos.map((c, i) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        accent: tvAccentFor(c.slug, i),
+        displayed: (periodView === "today" ? displayedMap[c.id] : monthlyMap[c.id]) ?? null,
+        top: (topByCasino[c.id] || []).map((t) => ({
+          playerId: t.playerId,
+          name: t.name,
+          drop: t.drop,
+          casinoId: t.casinoId,
+        })),
+      })),
+    [casinos, displayedMap, monthlyMap, periodView, topByCasino],
+  );
+
   const isReport = blockOrient === "report";
   const liveTv = tvMode && !isReport;
 
@@ -287,8 +306,10 @@ export default function BossDashboard() {
       className="min-h-[100dvh] w-full text-foreground"
       style={{
         fontSize: rootFontSize,
-        background:
-          "radial-gradient(1200px 800px at 20% -10%, hsl(240 40% 12% / 0.9), transparent 60%), radial-gradient(1000px 600px at 90% 110%, hsl(280 40% 10% / 0.8), transparent 60%), hsl(240 20% 5%)",
+        background: isReport
+          ? "radial-gradient(1200px 800px at 20% -10%, hsl(240 40% 12% / 0.9), transparent 60%), radial-gradient(1000px 600px at 90% 110%, hsl(280 40% 10% / 0.8), transparent 60%), hsl(240 20% 5%)"
+          : STAGE_BACKGROUND[tvStyle],
+        fontFamily: isReport ? undefined : "'IBM Plex Sans', system-ui, sans-serif",
       }}
     >
      <div ref={chromeRef}>
@@ -459,125 +480,20 @@ export default function BossDashboard() {
       </div>
      </div>
 
-      {/* Casino double-blocks (or Monthly Report) */}
-      <main className={mainPad}>
-        {blockOrient === "report" ? (
+      {/* Live stage (styled) or Company Report */}
+      <main className={mainPad} style={isReport ? undefined : { height: `calc(100dvh - ${chromeH}px - 12px)` }}>
+        {isReport ? (
           <MonthlyReportPanel casinos={casinos} accentFor={accentFor} year={reportYM.y} month={reportYM.m} />
         ) : (
-
-          <>
-            <div
-              className={`grid gap-[clamp(8px,0.7vw,20px)] grid-cols-1 ${casinos.length > 1 ? "xl:grid-cols-2" : ""}`}
-              style={liveGridStyle}
-            >
-              {casinos.map((c, i) => (
-                <CasinoDoubleBlock
-                  key={c.id}
-                  name={c.name}
-                  slug={c.slug}
-                  accent={accentFor(c.slug, i)}
-                  day={dayMap[c.id]}
-                  displayed={
-                    (periodView === "today" ? displayedMap[c.id] : monthlyMap[c.id]) ?? null
-                  }
-                  period={periodView}
-                  periodLabel={liveMonthLabel}
-                />
-              ))}
-            </div>
-
-            {/* Company Total */}
-            {casinos.length > 0 && (
-              <div className="mt-6">
-                <CompanyTotalPanel
-                  casinos={casinos}
-                  days={days}
-                  today={companyToday}
-                  monthly={companyMonthly}
-                  period={periodView}
-                  periodLabel={liveMonthLabel}
-                  accentFor={accentFor}
-                />
-              </div>
-            )}
-
-          </>
+          <LiveStage
+            style={tvStyle}
+            casinos={tvCasinos}
+            company={periodView === "today" ? companyToday : companyMonthly}
+            newPlayersCount={newPlayers.length}
+            period={periodView}
+            periodLabel={liveMonthLabel}
+          />
         )}
-
-        {blockOrient !== "report" && <>
-        {/* Top players per casino */}
-        <section className="mt-8">
-          <h3 className="text-[0.82em] uppercase tracking-[0.24em] font-bold text-muted-foreground mb-3 inline-flex items-center gap-2">
-            <Users className="w-4 h-4" /> Top 5 by Drop · today
-          </h3>
-          <div
-            className="grid gap-4"
-            style={{ gridTemplateColumns: `repeat(${Math.max(1, casinos.length)}, minmax(0, 1fr))` }}
-          >
-            {casinos.map((c, i) => {
-              const accent = accentFor(c.slug, i);
-              const rows = topByCasino[c.id] || [];
-              return (
-                <div key={c.id} className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
-                  <header className="px-5 py-3 border-b border-white/5" style={{ background: `linear-gradient(90deg, ${accent}18, transparent)` }}>
-                    <span className="text-[0.85em] font-bold uppercase tracking-widest" style={{ color: accent }}>{c.name}</span>
-                  </header>
-                  {rows.length === 0 ? (
-                    <div className="px-5 py-6 text-center text-muted-foreground text-sm">—</div>
-                  ) : (
-                    <ol className="divide-y divide-white/5">
-                      {rows.map((r, ri) => (
-                        <li key={r.playerId} className="flex items-center justify-between px-5 py-3">
-                          <span className="inline-flex items-center gap-3 min-w-0">
-                            <span className="w-6 h-6 rounded-full inline-flex items-center justify-center text-xs font-bold" style={{ background: `${accent}22`, color: accent }}>
-                              {ri + 1}
-                            </span>
-                            <span className="truncate font-medium">{r.name}</span>
-                          </span>
-                          <span className="font-mono font-bold tabular-nums text-[1.2em]" style={{ textShadow: `0 0 18px ${accent}55` }}>
-                            {formatMoneyFull(r.drop)}
-                          </span>
-                        </li>
-                      ))}
-                    </ol>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* New players — cross-casino */}
-        <section className="mt-8">
-          <h3 className="text-[0.82em] uppercase tracking-[0.24em] font-bold text-muted-foreground mb-3 inline-flex items-center gap-2">
-            <UserPlus className="w-4 h-4" /> New Players · today <span className="text-[0.8em] normal-case text-muted-foreground/70">(≤ 3 visits total)</span>
-          </h3>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            {newPlayers.length === 0 ? (
-              <div className="text-center text-muted-foreground text-sm py-4">No new players yet</div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {newPlayers.map((p) => {
-                  const c = casinos.find((x) => x.id === p.casinoId);
-                  const accent = accentFor(c?.slug ?? null, casinos.findIndex((x) => x.id === p.casinoId));
-                  return (
-                    <div
-                      key={`${p.casinoId}:${p.playerId}`}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/10 pl-1 pr-3 py-1 text-sm"
-                      style={{ background: `${accent}12` }}
-                    >
-                      <span className="inline-block w-2 h-2 rounded-full" style={{ background: accent }} />
-                      <span className="font-medium">{p.name}</span>
-                      <span className="text-[0.72em] text-muted-foreground uppercase tracking-wider">{c?.name}</span>
-                      <span className="text-[0.72em] font-mono text-muted-foreground">v{p.visits}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </section>
-        </>}
       </main>
     </div>
   );
