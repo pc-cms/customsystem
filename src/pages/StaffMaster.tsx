@@ -789,8 +789,8 @@ const ImportPreviewTable = ({ rows }: { rows: ParsedStaffRow[] }) => {
         <tbody>
           {rows.map((r, i) => (
             <tr key={i} className="hover:bg-muted/30 group">
-              <td className="px-2 h-7 sticky left-0 bg-background group-hover:bg-muted/30 font-mono text-muted-foreground border-b border-border" style={{ minWidth: 40 }}>{i + 1}</td>
-              <td className="px-2 h-7 sticky bg-background group-hover:bg-muted/30 font-medium border-r border-b border-border whitespace-nowrap" style={{ left: 40, minWidth: 200 }}>{r.full_name}</td>
+              <td className="px-2 h-7 sticky left-0 bg-background group-hover:bg-muted font-mono text-muted-foreground border-b border-border" style={{ minWidth: 40 }}>{i + 1}</td>
+              <td className="px-2 h-7 sticky bg-background group-hover:bg-muted font-medium border-r border-b border-border whitespace-nowrap" style={{ left: 40, minWidth: 200 }}>{r.full_name}</td>
               <td className="px-2 border-b border-border">{r.department || dot}</td>
               <td className="px-2 border-b border-border whitespace-nowrap">{r.position || dot}</td>
               <td className="px-2 border-b border-border">{r.contract_type || dot}</td>
