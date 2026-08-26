@@ -18,7 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { getBusinessDate } from "@/lib/business-day";
-import { Monitor, LayoutGrid, Palette, Tv, Maximize2, Minimize2, Type, FileBarChart2, LayoutDashboard, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { Monitor, LayoutGrid, Palette, Tv, Maximize2, Minimize2, Type, FileBarChart2, LayoutDashboard, ChevronLeft, ChevronRight, Calendar, Settings } from "lucide-react";
 import premierClubLogo from "/premier-club-logo.svg";
 import "@fontsource/ibm-plex-sans/400.css";
 import "@fontsource/ibm-plex-sans/600.css";
@@ -43,6 +43,7 @@ import {
   tvAccentFor,
   type TvStyleId,
 } from "@/components/boss/tv/tokens";
+import { tvDensityVars } from "@/components/boss/tv/density";
 import type { TvCasino } from "@/components/boss/tv/types";
 import { MonthlyReportPanel } from "@/components/boss/monthly-report-panel";
 import { useAceLiveSlotsResultMany } from "@/hooks/use-ace-finance";
@@ -132,6 +133,7 @@ export default function BossDashboard() {
     () => (localStorage.getItem(LS_STYLE) as TvStyleId) || DEFAULT_TV_STYLE,
   );
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() => !!document.fullscreenElement);
+  const [dockOpen, setDockOpen] = useState(false);
 
   const [reportYM, setReportYM] = useState<{ y: number; m: number }>(() => {
     try {
@@ -260,20 +262,23 @@ export default function BossDashboard() {
   const isReport = blockOrient === "report";
   const liveTv = tvMode && !isReport;
 
-  // Typography: TV live view uses viewport-responsive sizing (clamp/vw) so 4K
-  // scales naturally without multiplying the root font by a big factor.
+  // Typography: in TV live mode every primitive reads the shared density scale
+  // (`tvDensityVars`), so S/M/L/XL really changes the rendered size. Outside TV
+  // mode the classic root font-size multiplier is kept.
   const densityMult = FONT_PRESETS[fontPreset].mult;
   const resNudge = resolution === "uhd" ? 1.06 : 1;
-  const rootFontSize = liveTv
-    ? `clamp(${(11 * densityMult * resNudge).toFixed(1)}px, ${(0.68 * densityMult * resNudge).toFixed(2)}vw, ${(30 * densityMult * resNudge).toFixed(0)}px)`
-    : `${16 * (resolution === "uhd" ? 1.35 : 1) * densityMult}px`;
+  const rootFontSize = liveTv ? "16px" : `${16 * (resolution === "uhd" ? 1.35 : 1) * densityMult}px`;
+  const densityVars = liveTv ? tvDensityVars(fontPreset, resNudge) : undefined;
 
   // Safe padding only — no max-width containers, no 5vw side gutters.
-  const sidePad = tvMode ? "px-[clamp(12px,0.9vw,32px)]" : "px-8";
+  const sidePad = tvMode ? "px-[clamp(12px,0.9vw,18px)]" : "px-8";
   const outerPad = tvMode ? `${sidePad} pt-[clamp(6px,0.8vh,18px)]` : "px-8 pt-6 pb-4";
-  const mainPad = tvMode
-    ? `${sidePad} pb-[clamp(10px,1vh,28px)] ${liveTv ? "pt-[clamp(8px,1vh,24px)]" : ""}`
+  const mainPad = liveTv
+    ? "px-[clamp(12px,0.8vw,18px)] py-[clamp(10px,0.8vh,16px)]"
+    : tvMode
+    ? `${sidePad} pb-[clamp(10px,1vh,28px)]`
     : "px-8 pb-8";
+
 
 
   // Measure the header + control bar so the casino grid can fill exactly the
@@ -289,6 +294,14 @@ export default function BossDashboard() {
     return () => ro.disconnect();
   }, []);
 
+  // TV mode is a real viewport layer: no page scrolling behind it.
+  useEffect(() => {
+    if (!liveTv) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [liveTv]);
+
   const clock = useEatClock();
   const businessDate = getBusinessDate();
   const dateLabel = new Date(businessDate).toLocaleDateString("en-GB", {
@@ -300,17 +313,184 @@ export default function BossDashboard() {
 
 
 
+  const controlsPanel = (
+          <div className={`rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm flex items-center gap-2 ${liveTv ? "px-2 py-1 flex-nowrap overflow-x-auto bg-black/80 shadow-2xl" : "px-3 py-2 flex-wrap"}`}>
+
+
+            {/* View switcher — Live vs Report */}
+            <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Switch view">
+              <button
+                className={`px-3 py-1.5 text-xs rounded-sm inline-flex items-center gap-1.5 font-semibold ${blockOrient !== "report" ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                onClick={() => setBlockOrient((prev) => (prev === "report" ? "auto" : prev))}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" /> Live
+              </button>
+              <button
+                className={`px-3 py-1.5 text-xs rounded-sm inline-flex items-center gap-1.5 font-semibold ${blockOrient === "report" ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                onClick={() => setBlockOrient("report" as BlockOrient)}
+              >
+                <FileBarChart2 className="w-3.5 h-3.5" /> Report
+              </button>
+            </div>
+
+            {/* Period switcher — Live view only (Monthly = current month MTD) */}
+            {blockOrient !== "report" && (
+              <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Period">
+                {(["today", "monthly"] as PeriodView[]).map((p) => (
+                  <button
+                    key={p}
+                    className={`px-3 py-1.5 text-xs rounded-sm font-semibold capitalize ${periodView === p ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                    onClick={() => setPeriodView(p)}
+                  >
+                    {p === "today" ? "Today" : "Monthly"}
+                  </button>
+                ))}
+              </div>
+            )}
+
+
+
+            {/* Month picker (report only) */}
+            {blockOrient === "report" && (
+              <div className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-black/30 px-1 py-0.5">
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => shiftMonth(-1)} aria-label="Previous month">
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <div className="px-2 py-0.5 font-semibold tabular-nums min-w-[110px] text-center text-xs">
+                  {MONTH_LABELS[reportYM.m - 1]} {reportYM.y}
+                </div>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => shiftMonth(1)} aria-label="Next month">
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={thisMonth}>
+                  <Calendar className="w-3.5 h-3.5 mr-1" /> This month
+                </Button>
+              </div>
+            )}
+
+            {/* Visual style (Live only) */}
+            {blockOrient !== "report" && (
+              <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Visual style">
+                <span className="px-2 py-1 text-muted-foreground inline-flex items-center">
+                  <Palette className="w-3.5 h-3.5" />
+                </span>
+                {TV_STYLES.map((st) => (
+                  <button
+                    key={st.id}
+                    type="button"
+                    aria-pressed={tvStyle === st.id}
+                    className={`px-2.5 py-1 text-xs rounded-sm font-semibold whitespace-nowrap ${tvStyle === st.id ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                    onClick={() => setTvStyle(st.id)}
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Casinos */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 border-white/10 bg-black/30 h-8">
+                  <LayoutGrid className="w-4 h-4" /> {selectedIds.length}/{accessibleCasinos.length} casinos
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-64">
+                <div className="flex flex-col gap-2">
+                  {accessibleCasinos.map((c) => {
+                    const checked = selectedIds.includes(c.id);
+                    return (
+                      <label key={c.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(v) =>
+                            setSelectedIds((prev) =>
+                              v ? [...prev, c.id] : prev.filter((x) => x !== c.id),
+                            )
+                          }
+                        />
+                        <span>{c.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Layout split (Today | MTD) removed — one period per card now. */}
+
+
+            {/* Font size */}
+            <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Font size preset">
+              <span className="px-2 py-1 text-muted-foreground inline-flex items-center"><Type className="w-3.5 h-3.5" /></span>
+              {(Object.keys(FONT_PRESETS) as FontPreset[]).map((p) => (
+                <button
+                  key={p}
+                  className={`px-2 py-1 text-xs rounded-sm font-bold ${fontPreset === p ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                  onClick={() => setFontPreset(p)}
+                >
+                  {FONT_PRESETS[p].label}
+                </button>
+              ))}
+            </div>
+
+            {/* Resolution */}
+            <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5">
+              <button
+                className={`px-3 py-1 text-xs rounded-sm inline-flex items-center gap-1.5 ${resolution === "fhd" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                onClick={() => setResolution("fhd")}
+              >
+                <Monitor className="w-3.5 h-3.5" /> FHD
+              </button>
+              <button
+                className={`px-3 py-1 text-xs rounded-sm inline-flex items-center gap-1.5 ${resolution === "uhd" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                onClick={() => setResolution("uhd")}
+              >
+                <Monitor className="w-3.5 h-3.5" /> 4K
+              </button>
+            </div>
+
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                variant={tvMode ? "default" : "outline"}
+                size="sm"
+                className={`gap-2 h-8 ${tvMode ? "" : "border-white/10 bg-black/30"}`}
+                onClick={() => setTvMode((v) => !v)}
+                title="Toggle TV mode (T) — overscan-safe padding & big text"
+              >
+                <Tv className="w-4 h-4" /> TV
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 border-white/10 bg-black/30 h-8"
+                onClick={toggleFullscreen}
+                title="Fullscreen (F)"
+              >
+                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </Button>
+            </div>
+          </div>
+  );
+
   return (
     <div
-      className="min-h-[100dvh] w-full text-foreground"
+      data-tv-viewport={liveTv ? "true" : undefined}
+      className={
+        liveTv
+          ? "fixed inset-0 z-[70] w-screen h-[100dvh] max-w-none m-0 overflow-hidden text-foreground"
+          : "min-h-[100dvh] w-full text-foreground"
+      }
       style={{
         fontSize: rootFontSize,
+        ...(densityVars ?? {}),
         background: isReport
           ? "radial-gradient(1200px 800px at 20% -10%, hsl(240 40% 12% / 0.9), transparent 60%), radial-gradient(1000px 600px at 90% 110%, hsl(280 40% 10% / 0.8), transparent 60%), hsl(240 20% 5%)"
           : STAGE_BACKGROUND[tvStyle],
         fontFamily: isReport ? undefined : "'IBM Plex Sans', system-ui, sans-serif",
       }}
     >
+
      <div ref={chromeRef}>
 
       {/* Header — brand + title only (hidden in TV mode: each stage owns its own header) */}
@@ -352,178 +532,42 @@ export default function BossDashboard() {
       </header>
       )}
 
-      {/* Unified control bar — view, month, casinos, layout, size, TV, fullscreen.
-          In TV mode it becomes a small overlay dock that only appears on
-          hover/keyboard focus, so it never occupies a content row. */}
-      <div
-        className={
-          liveTv
-            ? "fixed bottom-3 left-1/2 -translate-x-1/2 z-50 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200 max-w-[96vw]"
-            : `${sidePad} pb-4`
-        }
-      >
-        <div className={`rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm flex items-center gap-2 ${liveTv ? "px-2 py-1 flex-nowrap overflow-x-auto bg-black/80 shadow-2xl" : "px-3 py-2 flex-wrap"}`}>
-
-
-          {/* View switcher — Live vs Report */}
-          <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Switch view">
+      {liveTv ? (
+        <Popover open={dockOpen} onOpenChange={setDockOpen}>
+          <PopoverTrigger asChild>
             <button
-              className={`px-3 py-1.5 text-xs rounded-sm inline-flex items-center gap-1.5 font-semibold ${blockOrient !== "report" ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-              onClick={() => setBlockOrient((prev) => (prev === "report" ? "auto" : prev))}
+              type="button"
+              aria-label="Dashboard TV controls"
+              className="fixed bottom-3 right-3 z-[80] rounded-full border border-white/15 bg-black/70 backdrop-blur-sm p-2 text-white/60 hover:text-white hover:bg-black/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 transition-colors"
             >
-              <LayoutDashboard className="w-3.5 h-3.5" /> Live
+              <Settings className="w-4 h-4" />
             </button>
-            <button
-              className={`px-3 py-1.5 text-xs rounded-sm inline-flex items-center gap-1.5 font-semibold ${blockOrient === "report" ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-              onClick={() => setBlockOrient("report" as BlockOrient)}
-            >
-              <FileBarChart2 className="w-3.5 h-3.5" /> Report
-            </button>
-          </div>
-
-          {/* Period switcher — Live view only (Monthly = current month MTD) */}
-          {blockOrient !== "report" && (
-            <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Period">
-              {(["today", "monthly"] as PeriodView[]).map((p) => (
-                <button
-                  key={p}
-                  className={`px-3 py-1.5 text-xs rounded-sm font-semibold capitalize ${periodView === p ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-                  onClick={() => setPeriodView(p)}
-                >
-                  {p === "today" ? "Today" : "Monthly"}
-                </button>
-              ))}
-            </div>
-          )}
-
-
-
-          {/* Month picker (report only) */}
-          {blockOrient === "report" && (
-            <div className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-black/30 px-1 py-0.5">
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => shiftMonth(-1)} aria-label="Previous month">
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <div className="px-2 py-0.5 font-semibold tabular-nums min-w-[110px] text-center text-xs">
-                {MONTH_LABELS[reportYM.m - 1]} {reportYM.y}
-              </div>
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => shiftMonth(1)} aria-label="Next month">
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={thisMonth}>
-                <Calendar className="w-3.5 h-3.5 mr-1" /> This month
-              </Button>
-            </div>
-          )}
-
-          {/* Visual style (Live only) */}
-          {blockOrient !== "report" && (
-            <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Visual style">
-              <span className="px-2 py-1 text-muted-foreground inline-flex items-center">
-                <Palette className="w-3.5 h-3.5" />
-              </span>
-              {TV_STYLES.map((st) => (
-                <button
-                  key={st.id}
-                  type="button"
-                  aria-pressed={tvStyle === st.id}
-                  className={`px-2.5 py-1 text-xs rounded-sm font-semibold whitespace-nowrap ${tvStyle === st.id ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-                  onClick={() => setTvStyle(st.id)}
-                >
-                  {st.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Casinos */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2 border-white/10 bg-black/30 h-8">
-                <LayoutGrid className="w-4 h-4" /> {selectedIds.length}/{accessibleCasinos.length} casinos
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-64">
-              <div className="flex flex-col gap-2">
-                {accessibleCasinos.map((c) => {
-                  const checked = selectedIds.includes(c.id);
-                  return (
-                    <label key={c.id} className="flex items-center gap-2 cursor-pointer text-sm">
-                      <Checkbox
-                        checked={checked}
-                        onCheckedChange={(v) =>
-                          setSelectedIds((prev) =>
-                            v ? [...prev, c.id] : prev.filter((x) => x !== c.id),
-                          )
-                        }
-                      />
-                      <span>{c.name}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          {/* Layout split (Today | MTD) removed — one period per card now. */}
-
-
-          {/* Font size */}
-          <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Font size preset">
-            <span className="px-2 py-1 text-muted-foreground inline-flex items-center"><Type className="w-3.5 h-3.5" /></span>
-            {(Object.keys(FONT_PRESETS) as FontPreset[]).map((p) => (
-              <button
-                key={p}
-                className={`px-2 py-1 text-xs rounded-sm font-bold ${fontPreset === p ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-                onClick={() => setFontPreset(p)}
-              >
-                {FONT_PRESETS[p].label}
-              </button>
-            ))}
-          </div>
-
-          {/* Resolution */}
-          <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5">
-            <button
-              className={`px-3 py-1 text-xs rounded-sm inline-flex items-center gap-1.5 ${resolution === "fhd" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-              onClick={() => setResolution("fhd")}
-            >
-              <Monitor className="w-3.5 h-3.5" /> FHD
-            </button>
-            <button
-              className={`px-3 py-1 text-xs rounded-sm inline-flex items-center gap-1.5 ${resolution === "uhd" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-              onClick={() => setResolution("uhd")}
-            >
-              <Monitor className="w-3.5 h-3.5" /> 4K
-            </button>
-          </div>
-
-          <div className="ml-auto flex items-center gap-2">
-            <Button
-              variant={tvMode ? "default" : "outline"}
-              size="sm"
-              className={`gap-2 h-8 ${tvMode ? "" : "border-white/10 bg-black/30"}`}
-              onClick={() => setTvMode((v) => !v)}
-              title="Toggle TV mode (T) — overscan-safe padding & big text"
-            >
-              <Tv className="w-4 h-4" /> TV
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 border-white/10 bg-black/30 h-8"
-              onClick={toggleFullscreen}
-              title="Fullscreen (F)"
-            >
-              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            </Button>
-          </div>
-        </div>
-      </div>
+          </PopoverTrigger>
+          <PopoverContent
+            side="top"
+            align="end"
+            className="z-[90] w-auto max-w-[92vw] p-2 bg-black/90 border-white/10"
+          >
+            {controlsPanel}
+          </PopoverContent>
+        </Popover>
+      ) : (
+        <div className={`${sidePad} pb-4`}>{controlsPanel}</div>
+      )}
      </div>
 
       {/* Live stage (styled) or Company Report */}
-      <main className={mainPad} style={isReport ? undefined : { height: `calc(100dvh - ${chromeH}px - 12px)` }}>
+      <main
+        className={`${mainPad} min-h-0`}
+        style={
+          isReport
+            ? undefined
+            : liveTv
+            ? { height: "100dvh" }
+            : { height: `calc(100dvh - ${chromeH}px - 12px)` }
+        }
+      >
+
         {isReport ? (
           <MonthlyReportPanel casinos={casinos} accentFor={accentFor} year={reportYM.y} month={reportYM.m} />
         ) : (

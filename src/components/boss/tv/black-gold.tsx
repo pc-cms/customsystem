@@ -3,7 +3,7 @@
  * Narrow brand header with compact company KPIs, ONE large comparison table
  * (each casino = a horizontal group of Tables / Slots / Total rows) and a
  * single horizontal Top Players leaderboard at the bottom.
- * No 2×2 cards, no per-casino top lists.
+ * Fills the full TV viewport; rows stretch to consume the available height.
  */
 import { PREMIER } from "./tokens";
 import {
@@ -21,11 +21,14 @@ import type { TvStageProps } from "./types";
 import type { CasinoMetric } from "@/hooks/use-boss-dashboard";
 
 const COLS =
-  "grid grid-cols-[minmax(0,1.15fr)_minmax(0,0.6fr)_minmax(0,1.25fr)_minmax(0,1.25fr)_minmax(0,0.55fr)] gap-x-[clamp(6px,0.7vw,22px)] items-center min-w-0";
+  "grid grid-cols-[minmax(0,0.62fr)_minmax(0,0.5fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,0.5fr)] gap-x-[calc(var(--tv-gap,10px)*1.2)] items-center min-w-0";
 
 function Head({ children }: { children: React.ReactNode }) {
   return (
-    <span className="block min-w-0 overflow-hidden text-[clamp(8px,0.46vw,14px)] uppercase tracking-[0.24em] text-white/45 font-semibold text-right whitespace-nowrap">
+    <span
+      className="block min-w-0 overflow-hidden uppercase tracking-[0.24em] text-white/50 font-semibold text-right whitespace-nowrap"
+      style={{ fontSize: "var(--tv-label, 12px)" }}
+    >
       {children}
     </span>
   );
@@ -52,24 +55,29 @@ function Line({
 }) {
   const result = resultAvailable ? metric.result : null;
   const holdOk = dropAvailable && resultAvailable && metric.drop > 0;
+  const cell = "flex items-center justify-end h-full px-[calc(var(--tv-gap,10px)*0.4)] min-w-0";
   return (
     <>
       <span
-        className={`min-w-0 overflow-hidden truncate text-[clamp(9px,0.56vw,17px)] uppercase tracking-[0.18em] px-[clamp(4px,0.4vw,12px)] py-[clamp(2px,0.34vh,9px)] ${
+        className={`flex items-center h-full min-w-0 overflow-hidden truncate uppercase tracking-[0.18em] px-[calc(var(--tv-gap,10px)*0.6)] ${
           strong ? "font-extrabold" : "font-semibold"
         }`}
-        style={{ background: fill, color: labelColor ?? "rgba(255,255,255,0.6)" }}
+        style={{
+          background: fill,
+          color: labelColor ?? "rgba(255,255,255,0.66)",
+          fontSize: `calc(var(--tv-label,12px) * ${strong ? 1.2 : 1.05})`,
+        }}
       >
         {label}
       </span>
-      <span className="px-[clamp(2px,0.2vw,6px)] py-[clamp(2px,0.34vh,9px)] min-w-0" style={{ background: fill }}>
-        <Num text={dropAvailable ? fmtMoney(metric.drop) : DASH} size={size} />
+      <span className={cell} style={{ background: fill }}>
+        <Num text={dropAvailable ? fmtMoney(metric.drop) : DASH} size={size} className="w-full" />
       </span>
-      <span className="px-[clamp(2px,0.2vw,6px)] py-[clamp(2px,0.34vh,9px)] min-w-0" style={{ background: fill }}>
-        <Num text={fmtSigned(result)} color={signColor(result)} size={size} />
+      <span className={cell} style={{ background: fill }}>
+        <Num text={fmtSigned(result)} color={signColor(result)} size={size} className="w-full" />
       </span>
-      <span className="px-[clamp(2px,0.2vw,6px)] py-[clamp(2px,0.34vh,9px)] min-w-0" style={{ background: fill }}>
-        <Num text={holdOk ? fmtPct(metric.hold) : DASH} size={size} />
+      <span className={cell} style={{ background: fill }}>
+        <Num text={holdOk ? fmtPct(metric.hold) : DASH} size={size} className="w-full" />
       </span>
     </>
   );
@@ -79,42 +87,42 @@ export function BlackGoldStage({ casinos, company, newPlayersCount, period, peri
   const allPlayers = casinos.flatMap((c) => c.top);
 
   return (
-    <div data-tv-style="black-gold" className="h-full min-h-0 flex flex-col gap-[clamp(6px,0.7vh,16px)]">
+    <div data-tv-style="black-gold" className="h-full min-h-0 flex flex-col gap-[calc(var(--tv-gap,10px)*0.8)]">
       {/* Brand strip + compact company KPIs */}
       <div
-        className="rounded-xl border px-[clamp(10px,1vw,30px)] py-[clamp(5px,0.7vh,16px)] shrink-0"
+        className="rounded-xl border px-[calc(var(--tv-gap,10px)*1.4)] py-[calc(var(--tv-gap,10px)*0.6)] shrink-0"
         style={{ borderColor: `${PREMIER.softGold}33`, background: "rgba(255,255,255,0.035)" }}
       >
         <TvBrandHeader
           period={period}
           periodLabel={periodLabel}
           right={
-            <div className="grid grid-cols-5 gap-[clamp(6px,0.8vw,26px)] min-w-0">
-              <Kpi label="Total Drop" value={fmtMoney(company.drop)} color={PREMIER.champagne} size="md" align="right" />
+            <div className="grid grid-cols-5 gap-[calc(var(--tv-gap,10px)*1.6)] min-w-0">
+              <Kpi label="Total Drop" value={fmtMoney(company.drop)} color={PREMIER.champagne} size="lg" align="right" />
               <Kpi
                 label="Total Result"
                 value={fmtSigned(company.result)}
                 color={signColor(company.result) ?? PREMIER.champagne}
-                size="md"
+                size="lg"
                 align="right"
               />
               <Kpi
                 label="Hold"
                 value={company.drop > 0 ? fmtPct(company.hold) : DASH}
                 color={PREMIER.softGold}
-                size="md"
+                size="lg"
                 align="right"
               />
               <Kpi
                 label="Head Count"
                 value={period === "today" ? String(company.headCount) : DASH}
-                size="md"
+                size="lg"
                 align="right"
               />
               <Kpi
                 label="New Players"
                 value={period === "today" ? String(newPlayersCount) : DASH}
-                size="md"
+                size="lg"
                 align="right"
               />
             </div>
@@ -129,10 +137,13 @@ export function BlackGoldStage({ casinos, company, newPlayersCount, period, peri
         style={{ borderColor: `${PREMIER.softGold}2E`, background: "rgba(255,255,255,0.022)" }}
       >
         <div
-          className={`${COLS} px-[clamp(8px,0.8vw,24px)] py-[clamp(3px,0.42vh,10px)] border-b shrink-0`}
+          className={`${COLS} px-[var(--tv-gap,10px)] py-[calc(var(--tv-gap,10px)*0.35)] border-b shrink-0`}
           style={{ borderColor: `${PREMIER.softGold}26`, background: "rgba(0,0,0,0.35)" }}
         >
-          <span className="text-[clamp(8px,0.46vw,14px)] uppercase tracking-[0.26em] text-white/45 font-semibold">
+          <span
+            className="uppercase tracking-[0.26em] text-white/50 font-semibold"
+            style={{ fontSize: "var(--tv-label, 12px)" }}
+          >
             Casino
           </span>
           <span />
@@ -148,31 +159,34 @@ export function BlackGoldStage({ casinos, company, newPlayersCount, period, peri
               <div
                 key={c.id}
                 data-tv-casino-group={c.id}
-                className={`${COLS} items-stretch px-[clamp(8px,0.8vw,24px)] py-[clamp(2px,0.4vh,10px)] border-b last:border-b-0 min-w-0`}
+                className={`${COLS} items-stretch px-[var(--tv-gap,10px)] py-[calc(var(--tv-gap,10px)*0.3)] gap-y-[calc(var(--tv-gap,10px)*0.25)] border-b last:border-b-0 min-w-0 min-h-0`}
                 style={{ borderColor: "rgba(255,255,255,0.07)", gridTemplateRows: "repeat(3, minmax(0,1fr))" }}
               >
-                <div className="row-span-3 flex flex-col justify-center gap-[0.25em] min-w-0 overflow-hidden pr-[clamp(6px,0.6vw,18px)]">
+                <div className="row-span-3 flex flex-col justify-center gap-[0.25em] min-w-0 overflow-hidden pr-[var(--tv-gap,10px)]">
                   <h2
-                    className="truncate text-[clamp(13px,1vw,34px)] font-extrabold uppercase tracking-[0.18em]"
-                    style={{ color: c.accent }}
+                    className="truncate font-extrabold uppercase tracking-[0.16em] leading-none"
+                    style={{ color: c.accent, fontSize: "var(--tv-city, 26px)" }}
                   >
                     {c.name}
                   </h2>
-                  <span className="text-[clamp(8px,0.42vw,13px)] uppercase tracking-[0.2em] text-white/40 whitespace-nowrap">
+                  <span
+                    className="uppercase tracking-[0.2em] text-white/45 whitespace-nowrap"
+                    style={{ fontSize: "var(--tv-city-head, 13px)" }}
+                  >
                     Head {period === "today" ? d?.total.headCount ?? 0 : DASH}
                   </span>
                 </div>
 
                 {d ? (
                   <>
-                    <Line label="Tables" metric={d.tables} size="sm" fill="rgba(255,255,255,0.04)" />
+                    <Line label="Tables" metric={d.tables} size="sm" fill="rgba(255,255,255,0.045)" />
                     <Line
                       label="Slots"
                       metric={d.slots}
                       dropAvailable={d.slotsDropAvailable}
                       resultAvailable={d.slotsResultAvailable}
                       size="sm"
-                      fill="rgba(255,255,255,0.015)"
+                      fill="rgba(255,255,255,0.02)"
                     />
                     <Line
                       label="Total"
@@ -180,7 +194,7 @@ export function BlackGoldStage({ casinos, company, newPlayersCount, period, peri
                       size="md"
                       strong
                       labelColor={PREMIER.softGold}
-                      fill={`${PREMIER.softGold}1A`}
+                      fill={`${PREMIER.softGold}1F`}
                     />
                   </>
                 ) : (
@@ -192,8 +206,11 @@ export function BlackGoldStage({ casinos, company, newPlayersCount, period, peri
         </div>
       </section>
 
-      {/* Single leaderboard */}
-      <div className="shrink-0">
+      {/* Single leaderboard — reserved band, always fully visible */}
+      <div
+        className="shrink-0"
+        style={{ height: "calc(var(--tv-u, 1px) * 140)", minHeight: "110px" }}
+      >
         <TopPlayersStrip players={allPlayers} casinos={casinos} limit={8} />
       </div>
     </div>
