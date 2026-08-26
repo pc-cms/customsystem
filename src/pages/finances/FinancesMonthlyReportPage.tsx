@@ -1206,18 +1206,32 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, editMode, year, month
                         </td>
                         <td className="text-right font-mono tabular-nums">{formatNumberSpaces(e.amount_tzs)}</td>
                         {editMode && (
-                          <td className="pr-2 text-right" onClick={(ev) => ev.stopPropagation()}>
+                          <td className="pr-2 text-right whitespace-nowrap" onClick={(ev) => ev.stopPropagation()}>
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-6 w-6"
                               onClick={() => onEditExpense(e)}
                               aria-label="Edit expense"
+                              title="Edit expense"
                             >
                               <Pencil className="w-3 h-3" />
                             </Button>
+                            {onDeleteExpense && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                onClick={() => onDeleteExpense(e)}
+                                aria-label="Delete expense"
+                                title="Delete expense"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
                           </td>
                         )}
+
                       </tr>
                     ))}
                     <tr className="border-t-2 border-border bg-muted/30 font-semibold [&>td]:h-7 [&>td]:px-2">
