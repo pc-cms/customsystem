@@ -49,6 +49,25 @@ export interface DisplayedToday {
 
 const hold = (drop: number, result: number) => (drop > 0 ? (result / drop) * 100 : 0);
 
+/**
+ * Displayed Slots Result of a CLOSED Day Closing row.
+ * Owner-approved source: cashdesk_win − players_card_balance (NOT net_win).
+ */
+export function closedDaySlotsResult(row: {
+  cashdesk_win?: number | string | null;
+  players_card_balance?: number | string | null;
+}): number {
+  return Number(row.cashdesk_win || 0) - Number(row.players_card_balance || 0);
+}
+
+/** Σ over closed Day Closings for the month. */
+export function sumClosedSlotsResult(
+  rows: { cashdesk_win?: number | string | null; players_card_balance?: number | string | null }[],
+): number {
+  return rows.reduce((s, r) => s + closedDaySlotsResult(r), 0);
+}
+
+
 const moneyHint = (n: number) =>
   Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
