@@ -11,6 +11,7 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getBusinessDate } from "@/lib/business-day";
+import { closedDaySlotsResult } from "@/lib/boss-display-metrics";
 
 export type CasinoMetric = {
   drop: number;
@@ -106,8 +107,7 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
 
   // Result of a CLOSED day (approved source):
   //   tables_result + (cashdesk_win − players_card_balance).
-  const closedSlotsResult = (r: any) =>
-    Number(r.cashdesk_win || 0) - Number(r.players_card_balance || 0);
+  const closedSlotsResult = (r: any) => closedDaySlotsResult(r);
   const closedDayResult = (r: any) =>
     Number(r.tables_result || 0) + closedSlotsResult(r);
 
