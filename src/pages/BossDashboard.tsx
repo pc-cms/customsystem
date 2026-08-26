@@ -260,20 +260,23 @@ export default function BossDashboard() {
   const isReport = blockOrient === "report";
   const liveTv = tvMode && !isReport;
 
-  // Typography: TV live view uses viewport-responsive sizing (clamp/vw) so 4K
-  // scales naturally without multiplying the root font by a big factor.
+  // Typography: in TV live mode every primitive reads the shared density scale
+  // (`tvDensityVars`), so S/M/L/XL really changes the rendered size. Outside TV
+  // mode the classic root font-size multiplier is kept.
   const densityMult = FONT_PRESETS[fontPreset].mult;
   const resNudge = resolution === "uhd" ? 1.06 : 1;
-  const rootFontSize = liveTv
-    ? `clamp(${(11 * densityMult * resNudge).toFixed(1)}px, ${(0.68 * densityMult * resNudge).toFixed(2)}vw, ${(30 * densityMult * resNudge).toFixed(0)}px)`
-    : `${16 * (resolution === "uhd" ? 1.35 : 1) * densityMult}px`;
+  const rootFontSize = liveTv ? "16px" : `${16 * (resolution === "uhd" ? 1.35 : 1) * densityMult}px`;
+  const densityVars = liveTv ? tvDensityVars(fontPreset, resNudge) : undefined;
 
   // Safe padding only — no max-width containers, no 5vw side gutters.
-  const sidePad = tvMode ? "px-[clamp(12px,0.9vw,32px)]" : "px-8";
+  const sidePad = tvMode ? "px-[clamp(12px,0.9vw,18px)]" : "px-8";
   const outerPad = tvMode ? `${sidePad} pt-[clamp(6px,0.8vh,18px)]` : "px-8 pt-6 pb-4";
-  const mainPad = tvMode
-    ? `${sidePad} pb-[clamp(10px,1vh,28px)] ${liveTv ? "pt-[clamp(8px,1vh,24px)]" : ""}`
+  const mainPad = liveTv
+    ? "px-[clamp(12px,0.8vw,18px)] py-[clamp(10px,0.8vh,16px)]"
+    : tvMode
+    ? `${sidePad} pb-[clamp(10px,1vh,28px)]`
     : "px-8 pb-8";
+
 
 
   // Measure the header + control bar so the casino grid can fill exactly the
