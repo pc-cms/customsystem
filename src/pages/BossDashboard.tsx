@@ -14,7 +14,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
-import { formatMoneyFull } from "@/lib/format-money";
 import { getBusinessDate } from "@/lib/business-day";
 import { Monitor, LayoutGrid, Palette, Tv, Maximize2, Minimize2, Type, FileBarChart2, LayoutDashboard, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import premierClubLogo from "/premier-club-logo.svg";
@@ -284,6 +283,7 @@ export default function BossDashboard() {
     return () => ro.disconnect();
   }, []);
 
+  const clock = useEatClock();
   const businessDate = getBusinessDate();
   const dateLabel = new Date(businessDate).toLocaleDateString("en-GB", {
     weekday: "short", day: "2-digit", month: "short", year: "numeric",
@@ -337,6 +337,17 @@ export default function BossDashboard() {
             </span>
           </div>
         </div>
+        {!isReport && (
+          <div className="flex items-baseline gap-[clamp(8px,0.9vw,26px)] whitespace-nowrap">
+            <span className="text-[clamp(11px,0.7vw,22px)] uppercase tracking-[0.22em] text-white/60 font-semibold">
+              {clock.date}
+            </span>
+            <span className="font-mono tabular-nums font-bold text-[clamp(20px,1.6vw,50px)] leading-none text-[#F2E3C4]">
+              {clock.time}
+            </span>
+            <span className="text-[clamp(9px,0.5vw,15px)] uppercase tracking-[0.28em] text-white/40">EAT</span>
+          </div>
+        )}
       </header>
 
       {/* Unified control bar — view, month, casinos, layout, size, TV, fullscreen */}
@@ -391,6 +402,26 @@ export default function BossDashboard() {
               <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={thisMonth}>
                 <Calendar className="w-3.5 h-3.5 mr-1" /> This month
               </Button>
+            </div>
+          )}
+
+          {/* Visual style (Live only) */}
+          {blockOrient !== "report" && (
+            <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Visual style">
+              <span className="px-2 py-1 text-muted-foreground inline-flex items-center">
+                <Palette className="w-3.5 h-3.5" />
+              </span>
+              {TV_STYLES.map((st) => (
+                <button
+                  key={st.id}
+                  type="button"
+                  aria-pressed={tvStyle === st.id}
+                  className={`px-2.5 py-1 text-xs rounded-sm font-semibold whitespace-nowrap ${tvStyle === st.id ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                  onClick={() => setTvStyle(st.id)}
+                >
+                  {st.label}
+                </button>
+              ))}
             </div>
           )}
 
