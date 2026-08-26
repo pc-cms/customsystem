@@ -547,7 +547,17 @@ export default function BossDashboard() {
      </div>
 
       {/* Live stage (styled) or Company Report */}
-      <main className={mainPad} style={isReport ? undefined : { height: `calc(100dvh - ${chromeH}px - 12px)` }}>
+      <main
+        className={`${mainPad} min-h-0`}
+        style={
+          isReport
+            ? undefined
+            : liveTv
+            ? { height: "100dvh" }
+            : { height: `calc(100dvh - ${chromeH}px - 12px)` }
+        }
+      >
+
         {isReport ? (
           <MonthlyReportPanel casinos={casinos} accentFor={accentFor} year={reportYM.y} month={reportYM.m} />
         ) : (
