@@ -16,8 +16,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { formatMoneyFull } from "@/lib/format-money";
 import { getBusinessDate } from "@/lib/business-day";
-import { Monitor, LayoutGrid, Users, UserPlus, Tv, Maximize2, Minimize2, Type, FileBarChart2, LayoutDashboard, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { Monitor, LayoutGrid, Palette, Tv, Maximize2, Minimize2, Type, FileBarChart2, LayoutDashboard, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import premierClubLogo from "/premier-club-logo.svg";
+import "@fontsource/ibm-plex-sans/400.css";
+import "@fontsource/ibm-plex-sans/600.css";
+import "@fontsource/ibm-plex-sans/700.css";
+import "@fontsource/ibm-plex-mono/500.css";
+import "@fontsource/ibm-plex-mono/600.css";
+import "@fontsource/ibm-plex-mono/700.css";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,8 +32,16 @@ import {
   useBossTopPlayers,
   useBossNewPlayers,
 } from "@/hooks/use-boss-dashboard";
-import { CasinoDoubleBlock } from "@/components/boss/casino-double-block";
-import { CompanyTotalPanel } from "@/components/boss/company-total-panel";
+import { LiveStage } from "@/components/boss/tv/live-stage";
+import { useEatClock } from "@/components/boss/tv/primitives";
+import {
+  DEFAULT_TV_STYLE,
+  STAGE_BACKGROUND,
+  TV_STYLES,
+  tvAccentFor,
+  type TvStyleId,
+} from "@/components/boss/tv/tokens";
+import type { TvCasino } from "@/components/boss/tv/types";
 import { MonthlyReportPanel } from "@/components/boss/monthly-report-panel";
 import { useAceLiveSlotsResultMany } from "@/hooks/use-ace-finance";
 import { deriveDisplayedToday, deriveDisplayedMonthly, sumDisplayedToday } from "@/lib/boss-display-metrics";
@@ -45,6 +59,7 @@ const LS_FONT = "boss-tv:font-preset";
 const LS_ORIENT = "boss-tv:block-orient";
 const LS_MONTH = "boss-tv:report-month";
 const LS_PERIOD = "boss-tv:period-view";
+const LS_STYLE = "boss-tv:style";
 
 
 const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -111,6 +126,9 @@ export default function BossDashboard() {
   const [periodView, setPeriodView] = useState<PeriodView>(
     () => (localStorage.getItem(LS_PERIOD) as PeriodView) || "today",
   );
+  const [tvStyle, setTvStyle] = useState<TvStyleId>(
+    () => (localStorage.getItem(LS_STYLE) as TvStyleId) || DEFAULT_TV_STYLE,
+  );
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() => !!document.fullscreenElement);
 
   const [reportYM, setReportYM] = useState<{ y: number; m: number }>(() => {
@@ -146,6 +164,7 @@ export default function BossDashboard() {
   useEffect(() => { localStorage.setItem(LS_ORIENT, blockOrient); }, [blockOrient]);
   useEffect(() => { localStorage.setItem(LS_MONTH, JSON.stringify(reportYM)); }, [reportYM]);
   useEffect(() => { localStorage.setItem(LS_PERIOD, periodView); }, [periodView]);
+  useEffect(() => { localStorage.setItem(LS_STYLE, tvStyle); }, [tvStyle]);
 
 
 
