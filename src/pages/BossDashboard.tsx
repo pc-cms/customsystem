@@ -271,7 +271,10 @@ export default function BossDashboard() {
   // Safe padding only — no max-width containers, no 5vw side gutters.
   const sidePad = tvMode ? "px-[clamp(12px,0.9vw,32px)]" : "px-8";
   const outerPad = tvMode ? `${sidePad} pt-[clamp(6px,0.8vh,18px)]` : "px-8 pt-6 pb-4";
-  const mainPad = tvMode ? `${sidePad} pb-[clamp(10px,1vh,28px)]` : "px-8 pb-8";
+  const mainPad = tvMode
+    ? `${sidePad} pb-[clamp(10px,1vh,28px)] ${liveTv ? "pt-[clamp(8px,1vh,24px)]" : ""}`
+    : "px-8 pb-8";
+
 
   // Measure the header + control bar so the casino grid can fill exactly the
   // remaining first-screen height (4 cards = strict 2×2, no cropping).
