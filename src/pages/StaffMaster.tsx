@@ -570,14 +570,14 @@ const EmployeeRow = ({ e, idx, canEdit, deleting, onPatch, onPatchName, onPatchP
 
   return (
     <tr className="hover:bg-muted/30 group">
-      <td className={`${td} sticky left-0 z-10 ${ROW_BG} group-hover:bg-muted/30`} style={{ minWidth: STICKY.photo.w, width: STICKY.photo.w }}>
+      <td className={`${td} sticky left-0 z-10 ${ROW_BG} group-hover:bg-muted`} style={{ minWidth: STICKY.photo.w, width: STICKY.photo.w }}>
         <PhotoBadge employee={e} canEdit={canEdit} />
       </td>
-      <td className={`${td} sticky z-10 ${ROW_BG} group-hover:bg-muted/30 ${calc} font-mono text-center`} style={{ left: STICKY.sn.left, minWidth: STICKY.sn.w, width: STICKY.sn.w }}>{idx}</td>
-      <td className={`${td} sticky z-10 ${ROW_BG} group-hover:bg-muted/30 border-l border-border font-medium`} style={{ left: STICKY.first.left, minWidth: STICKY.first.w, width: STICKY.first.w }}>
+      <td className={`${td} sticky z-10 ${ROW_BG} group-hover:bg-muted ${calc} font-mono text-center`} style={{ left: STICKY.sn.left, minWidth: STICKY.sn.w, width: STICKY.sn.w }}>{idx}</td>
+      <td className={`${td} sticky z-10 ${ROW_BG} group-hover:bg-muted border-l border-border font-medium`} style={{ left: STICKY.first.left, minWidth: STICKY.first.w, width: STICKY.first.w }}>
         <EditableCell type="text" value={first} readOnly={ro} onSave={(v) => onPatchName(e, v ?? "", null)} />
       </td>
-      <td className={`${td} sticky z-10 ${ROW_BG} group-hover:bg-muted/30 border-r border-border font-medium`} style={{ left: STICKY.last.left, minWidth: STICKY.last.w, width: STICKY.last.w }}>
+      <td className={`${td} sticky z-10 ${ROW_BG} group-hover:bg-muted border-r border-border font-medium`} style={{ left: STICKY.last.left, minWidth: STICKY.last.w, width: STICKY.last.w }}>
         <EditableCell type="text" value={last} readOnly={ro} onSave={(v) => onPatchName(e, null, v ?? "")} />
       </td>
       <td className={`${td} ${calc} font-mono text-right px-2`}>{signedDays(remain)}</td>
@@ -683,13 +683,13 @@ const NewEmployeeRow = ({ casinoId, onSave }: {
 
   return (
     <tr className="bg-primary/5" id="staff-master-new-row">
-      <td className={`${td} sticky left-0 z-10`} style={{ minWidth: STICKY.photo.w, width: STICKY.photo.w, background: "hsl(var(--primary) / 0.05)" }}>
+      <td className={`${td} sticky left-0 z-10`} style={{ minWidth: STICKY.photo.w, width: STICKY.photo.w, background: "color-mix(in srgb, hsl(var(--primary)) 5%, hsl(var(--background)))" }}>
         <Plus className="w-3.5 h-3.5 text-muted-foreground mx-auto" />
       </td>
-      <td className={`${td} sticky z-10`} style={{ left: STICKY.sn.left, minWidth: STICKY.sn.w, width: STICKY.sn.w, background: "hsl(var(--primary) / 0.05)" }}>
+      <td className={`${td} sticky z-10`} style={{ left: STICKY.sn.left, minWidth: STICKY.sn.w, width: STICKY.sn.w, background: "color-mix(in srgb, hsl(var(--primary)) 5%, hsl(var(--background)))" }}>
         <span className="text-muted-foreground text-[10px]">new</span>
       </td>
-      <td className={`${td} sticky z-10 border-l border-border`} style={{ left: STICKY.first.left, minWidth: STICKY.first.w, width: STICKY.first.w, background: "hsl(var(--primary) / 0.05)" }}>
+      <td className={`${td} sticky z-10 border-l border-border`} style={{ left: STICKY.first.left, minWidth: STICKY.first.w, width: STICKY.first.w, background: "color-mix(in srgb, hsl(var(--primary)) 5%, hsl(var(--background)))" }}>
         <input
           autoFocus={false}
           data-new-employee-first
@@ -702,7 +702,7 @@ const NewEmployeeRow = ({ casinoId, onSave }: {
         />
       </td>
 
-      <td className={`${td} sticky z-10 border-r border-border`} style={{ left: STICKY.last.left, minWidth: STICKY.last.w, width: STICKY.last.w, background: "hsl(var(--primary) / 0.05)" }}>
+      <td className={`${td} sticky z-10 border-r border-border`} style={{ left: STICKY.last.left, minWidth: STICKY.last.w, width: STICKY.last.w, background: "color-mix(in srgb, hsl(var(--primary)) 5%, hsl(var(--background)))" }}>
         <input
           placeholder="Last name"
           value={v.last}
