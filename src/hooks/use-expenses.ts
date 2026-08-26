@@ -215,6 +215,8 @@ export const useApproveExpense = () => {
       const isRoleManager =
         roles.includes("manager") ||
         roles.includes("shift_manager") ||
+        roles.includes("general_manager") ||
+        roles.includes("finance_manager") ||
         roles.includes("super_admin");
 
       if (isRoleManager) {
