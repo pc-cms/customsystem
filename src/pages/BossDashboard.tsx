@@ -347,10 +347,20 @@ export default function BossDashboard() {
           </div>
         )}
       </header>
+      )}
 
-      {/* Unified control bar — view, month, casinos, layout, size, TV, fullscreen */}
-      <div className={`${sidePad} ${liveTv ? "pb-2" : "pb-4"}`}>
-        <div className={`rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm flex items-center gap-2 ${liveTv ? "px-2 py-1 flex-nowrap overflow-x-auto" : "px-3 py-2 flex-wrap"}`}>
+      {/* Unified control bar — view, month, casinos, layout, size, TV, fullscreen.
+          In TV mode it becomes a small overlay dock that only appears on
+          hover/keyboard focus, so it never occupies a content row. */}
+      <div
+        className={
+          liveTv
+            ? "fixed bottom-3 left-1/2 -translate-x-1/2 z-50 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200 max-w-[96vw]"
+            : `${sidePad} pb-4`
+        }
+      >
+        <div className={`rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm flex items-center gap-2 ${liveTv ? "px-2 py-1 flex-nowrap overflow-x-auto bg-black/80 shadow-2xl" : "px-3 py-2 flex-wrap"}`}>
+
 
           {/* View switcher — Live vs Report */}
           <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Switch view">
