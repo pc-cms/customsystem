@@ -218,11 +218,10 @@ export const useApproveExpense = () => {
         roles.includes("super_admin");
 
       if (isRoleManager) {
-        const { error } = await supabase.from("expenses").update({
-          approved: true,
-          approved_by: user.id,
-          approved_at: new Date().toISOString(),
-        }).eq("id", id);
+        const { error } = await (supabase as any).rpc("approve_expense_as_manager", {
+          p_expense_id: id,
+          p_manager_id: user.id,
+        });
         if (error) throw error;
       } else if (managerOverride.active && managerOverride.managerId) {
         const { error } = await (supabase as any).rpc("approve_expense_as_manager", {
@@ -233,11 +232,6 @@ export const useApproveExpense = () => {
       } else {
         throw new Error("Manager access required to approve expenses");
       }
-      await logAction(casinoId!, "expense", "EXPENSE_APPROVED", {
-        expense_id: id,
-        via_override: !isRoleManager,
-        manager_id: isRoleManager ? user.id : managerOverride.managerId,
-      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["expenses"] });
