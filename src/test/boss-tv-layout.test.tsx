@@ -17,8 +17,10 @@ describe("autoNumSize", () => {
   });
 
   it("steps down for long TZS values", () => {
-    expect(autoNumSize("xl", fmtMoney(1_250_000_000))).toBe("lg"); // 13 chars → 2 steps? see below
+    expect(autoNumSize("xl", fmtMoney(1_250_000))).toBe("lg"); // 9 + 1 chars → 1 step
+    expect(autoNumSize("xl", fmtMoney(1_250_000_000))).toBe("md"); // 13 chars → 2 steps
   });
+
 
   it("never goes below the smallest step", () => {
     expect(autoNumSize("xs", "−123 456 789 012")).toBe("xs");
