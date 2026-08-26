@@ -97,9 +97,12 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
   const closings = (closingsRes.data || []) as any[];
   const todayClosing = closings.find((r) => r.business_date === businessDate);
 
-  // Slots result for a CLOSED day: Cashdesk Win − Players Card Balance
-  const closingSlots = (r: any) =>
-    Number(r.cashdesk_win ?? r.slots_result ?? 0) - Number(r.players_card_balance || 0);
+  // Result of a CLOSED day (approved source):
+  //   tables_result + net_win. `cashdesk_win` / `players_card_balance` are
+  //   wallet-side figures and never feed a Dashboard TV result.
+  const closedDayResult = (r: any) =>
+    Number(r.tables_result || 0) + Number(r.net_win || 0);
+
 
   // Live tables result from the latest chip count per table (same as casino dashboards)
   const snapResult = ((snapRes.data || []) as any[]).reduce((acc, r) => {
