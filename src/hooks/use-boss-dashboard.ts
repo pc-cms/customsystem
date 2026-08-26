@@ -36,6 +36,13 @@ export type CasinoDay = {
    */
   mtdTables: CasinoMetric;
   mtdSlots: CasinoMetric;
+  /**
+   * true when at least one monthly slots SOURCE record exists (a closed
+   * Day Closing or a closed cage-slots shift). A legit closed 0 is DATA →
+   * render 0 / 0.0%; no source at all → render `—`.
+   */
+  mtdSlotsAvailable: boolean;
+
 };
 
 
@@ -97,9 +104,12 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
   const closings = (closingsRes.data || []) as any[];
   const todayClosing = closings.find((r) => r.business_date === businessDate);
 
-  // Slots result for a CLOSED day: Cashdesk Win − Players Card Balance
-  const closingSlots = (r: any) =>
-    Number(r.cashdesk_win ?? r.slots_result ?? 0) - Number(r.players_card_balance || 0);
+  // Result of a CLOSED day (approved source):
+  //   tables_result + net_win. `cashdesk_win` / `players_card_balance` are
+  //   wallet-side figures and never feed a Dashboard TV result.
+  const closedDayResult = (r: any) =>
+    Number(r.tables_result || 0) + Number(r.net_win || 0);
+
 
   // Live tables result from the latest chip count per table (same as casino dashboards)
   const snapResult = ((snapRes.data || []) as any[]).reduce((acc, r) => {
@@ -126,7 +136,8 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
   // MTD result: closed days from Day Closing + today's live figure when not closed yet
   const mtdClosed = closings
     .filter((r) => r.business_date !== businessDate)
-    .reduce((s, r) => s + Number(r.tables_result || 0) + closingSlots(r), 0);
+    .reduce((s, r) => s + closedDayResult(r), 0);
+
   const mtdResult = mtdClosed + totalResult;
 
   // ---- Monthly split, sourced exactly like Analytics → Statistics ----------
@@ -149,6 +160,9 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
     mtdSlotsResult += Number(c.net_win || 0);
   }
   for (const [d, v] of shiftDropByDate) if (!closingDates.has(d)) mtdSlotsDrop += v;
+  // Availability = EXISTENCE of a source record, never "value is non-zero".
+  const mtdSlotsAvailable = closings.length > 0 || shiftDropByDate.size > 0;
+
 
   // Tables monthly: drop from the drop cache, result from Day Closings
   // (today's still-open day contributes the live chips-check figure).
@@ -177,7 +191,9 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
       headCount: 0,
       hold: hold(mtdSlotsDrop, mtdSlotsResult),
     },
+    mtdSlotsAvailable,
   };
+
 
 }
 
