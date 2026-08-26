@@ -24,12 +24,14 @@ function HeroStat({
   color,
   size = "lg",
   wide,
+  scale = 1,
 }: {
   label: string;
   value: string;
   color?: string;
   size?: "md" | "lg" | "xl";
   wide?: boolean;
+  scale?: number;
 }) {
   return (
     <div
@@ -44,7 +46,7 @@ function HeroStat({
       >
         {label}
       </span>
-      <Num text={value} color={color} size={size} className="w-full" />
+      <Num text={value} color={color} size={size} scale={scale} className="w-full" />
     </div>
   );
 }
@@ -80,25 +82,29 @@ export function RedGoldStage({ casinos, company, newPlayersCount, period, period
             value={fmtSigned(company.result)}
             color={signColor(company.result) ?? PREMIER.champagne}
             size="xl"
+            scale={1.45}
             wide
           />
-          <HeroStat label="Total Drop" value={fmtMoney(company.drop)} color={PREMIER.champagne} size="lg" wide />
+          <HeroStat label="Total Drop" value={fmtMoney(company.drop)} color={PREMIER.champagne} size="lg" scale={1.3} wide />
           <HeroStat
             label="Hold"
             value={company.drop > 0 ? fmtPct(company.hold) : DASH}
             color={PREMIER.softGold}
             size="lg"
+            scale={1.25}
           />
           <div className="grid grid-rows-2 gap-[calc(var(--tv-gap,10px)*0.5)] min-h-0 min-w-0">
             <HeroStat
               label="Head Count"
               value={period === "today" ? String(company.headCount) : DASH}
               size="md"
+              scale={1.2}
             />
             <HeroStat
               label="New Players"
               value={period === "today" ? String(newPlayersCount) : DASH}
               size="md"
+              scale={1.2}
             />
           </div>
         </section>
@@ -132,7 +138,7 @@ export function RedGoldStage({ casinos, company, newPlayersCount, period, period
                   >
                     {i + 1}
                   </span>
-                  <div className="flex flex-col justify-center min-w-0 max-w-[7em]">
+                  <div className="flex flex-col justify-center min-w-0 max-w-[9.5em]">
                     <h2
                       className="truncate font-extrabold uppercase tracking-[0.14em] leading-none"
                       style={{ color: c.accent, fontSize: "var(--tv-city, 26px)" }}

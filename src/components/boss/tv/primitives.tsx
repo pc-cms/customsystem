@@ -133,6 +133,7 @@ export function Num({
   glow,
   className = "",
   autoFit = true,
+  scale = 1,
 }: {
   text: string;
   color?: string;
@@ -140,9 +141,12 @@ export function Num({
   glow?: string;
   className?: string;
   autoFit?: boolean;
+  /** Extra multiplier on top of the density step (hero tiles). */
+  scale?: number;
 }) {
   const step = autoFit ? autoNumSize(size, text) : size;
   const { ref, factor } = useFitFactor(text);
+  const mult = factor * scale;
   return (
     <span
       ref={ref}
@@ -150,9 +154,9 @@ export function Num({
       style={{
         color,
         fontSize:
-          factor === 1
+          mult === 1
             ? NUM_SIZE_VAR[step]
-            : `calc(${NUM_SIZE_VAR[step]} * ${factor.toFixed(3)})`,
+            : `calc(${NUM_SIZE_VAR[step]} * ${mult.toFixed(3)})`,
         textShadow: glow ? `0 0 22px ${glow}55` : undefined,
       }}
       data-num-size={step}
