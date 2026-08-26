@@ -430,12 +430,12 @@ export default function DayClosingsTab() {
     },
     {
       key: "slots",
-      header: "Slot Result",
+      header: "Net Win",
       type: "money",
       style: { width: 168 },
       accessor: (r) => numCell(r, val(r).slots, (n) => setField(r.date, { slots: n }), {
         placeholder: 0,
-        title: `Slot Result = gaming system result (Net Win). Filled by ACE Collector or entered manually. Never taken from a slot cashier shift.`,
+        title: `Net Win — slots gaming SYSTEM result (ACE Collector or manual). Goes to Statistics and P&L only. Never part of Wallet Expected, never taken from a cashier shift.`,
       }),
     },
     {
@@ -445,8 +445,9 @@ export default function DayClosingsTab() {
       style: { width: 168 },
       accessor: (r) => numCell(r, val(r).cash, (n) => setField(r.date, { cash: n }), {
         placeholder: 0,
-        title: "CashDesk Win — separate ACE/system metric. Never used as the Slot Result and never taken from a cashier shift.",
+        title: "CashDesk Win — physical slots cash desk win. The ONLY slots figure that flows into Wallets / Expected. Never equal to Net Win, never taken from a cashier shift.",
       }),
+
     },
     {
       key: "drop",
