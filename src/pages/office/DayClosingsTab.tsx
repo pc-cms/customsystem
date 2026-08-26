@@ -312,7 +312,7 @@ export default function DayClosingsTab() {
         slots_result: v.slots,
         net_win: v.slots,
         drop_slots: v.drop,
-        // CashDesk Win — separate cashier-system metric, never the Slots Result.
+        // CashDesk Win — physical slots cash, the only slots figure in Wallet Expected.
         cashdesk_win: v.cash,
         players_card_balance: v.cards,
 
@@ -430,12 +430,12 @@ export default function DayClosingsTab() {
     },
     {
       key: "slots",
-      header: "Slot Result",
+      header: "Net Win",
       type: "money",
       style: { width: 168 },
       accessor: (r) => numCell(r, val(r).slots, (n) => setField(r.date, { slots: n }), {
         placeholder: 0,
-        title: `Slot Result = gaming system result (Net Win). Filled by ACE Collector or entered manually. Never taken from a slot cashier shift.`,
+        title: `Net Win — slots gaming SYSTEM result (ACE Collector or manual). Goes to Statistics and P&L only. Never part of Wallet Expected, never taken from a cashier shift.`,
       }),
     },
     {
@@ -445,8 +445,9 @@ export default function DayClosingsTab() {
       style: { width: 168 },
       accessor: (r) => numCell(r, val(r).cash, (n) => setField(r.date, { cash: n }), {
         placeholder: 0,
-        title: "CashDesk Win — separate ACE/system metric. Never used as the Slot Result and never taken from a cashier shift.",
+        title: "CashDesk Win — physical slots cash desk win. The ONLY slots figure that flows into Wallets / Expected. Never equal to Net Win, never taken from a cashier shift.",
       }),
+
     },
     {
       key: "drop",
@@ -467,7 +468,7 @@ export default function DayClosingsTab() {
       accessor: (r) => numCell(r, val(r).cards, (n) => setField(r.date, { cards: n }), {
         tone: false,
         allowNegative: true,
-        title: "Client balance held on player cards. Kept separate — never subtracted from the Slot Result. Negative values allowed.",
+        title: "Client balance held on player cards. Separate figure — added to Wallet Expected exactly once, never subtracted from Net Win. Negative values allowed.",
       }),
     },
     {

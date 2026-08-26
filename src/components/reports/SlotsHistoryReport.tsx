@@ -260,7 +260,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
             <DTHeader type="time">Closed</DTHeader>
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("drop")}>Drop{sortArrow("drop")}</DTHeader>
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("netWin")}>Net Win{sortArrow("netWin")}</DTHeader>
-            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("cdr")}>Cashdesk{sortArrow("cdr")}</DTHeader>
+            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("cdr")} title="CashDesk Win — physical slots cash from Close Day. Flows into Wallets / Expected.">CashDesk Win{sortArrow("cdr")}</DTHeader>
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("clientBalance")}>Client Balance{sortArrow("clientBalance")}</DTHeader>
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("miss")}>Card Miss{sortArrow("miss")}</DTHeader>
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("balance")}>Balance{sortArrow("balance")}</DTHeader>

@@ -42,12 +42,15 @@ AND (source = 'office' OR business day is CLOSED)
 | Field | Formula |
 |---|---|
 | Table Result | Σ per-table `win` of the day (closing recount driven) |
-| Slot Result | `cash desk win − Δ client balances` |
+| **Net Win** (`net_win` = `slots_result`) | slots gaming SYSTEM result — ACE Collector or manual. Feeds Statistics / P&L / Monthly Report ONLY. Never in Wallet Expected. Never taken from a cashier shift. |
+| **CashDesk Win** (`cashdesk_win`) | physical slots cash desk win. The ONLY slots figure that flows into Wallets / Expected. |
 | Drop (per table) | Σ IN transactions of that table (`type in ('in','buy')`, `cancelled_at IS NULL`) |
 | Drop (total) | Σ peak from `player_day_drop_cache` (see `src/lib/drop-source.ts`) |
 | JP | ACE `jackpot_slip_out` mapped into the JP figure |
 | Miss Chips / Miss Cards | cage delta, reported separately — never folded into Result |
-| Card Balance | manual entry, may be negative |
+| Card Balance | manual entry, may be negative; added to Wallet Expected exactly once, never subtracted from Net Win |
+| Cashless / Bank | manual entry, decimals allowed |
+
 | Cashless / Bank | manual entry, decimals allowed |
 
 Open days show a placeholder only; nothing propagates to reports until closed.
@@ -140,11 +143,17 @@ Charts          = 20-minute buckets sourced from Chips Check
 
 ```text
 Drop            = coin in / bill in per machine
-Net Win         = Drop − payouts − JP contribution
-Cashdesk Win    = cage-side slots win
-Slot Result     = Cashdesk Win − client balances
+Net Win         = slots system result, from Day Closings (`net_win`) — Statistics / P&L
+CashDesk Win    = physical slots cash desk win, from Day Closings (`cashdesk_win`) — Wallets / Expected
+Client Balance  = manual card balance of the day (separate figure)
 Cashless Balance= manual entry only; derived NET is ignored in CDR
 ```
+
+Only these two slots figures exist. There is no third derived "Slot Result"
+column anywhere in the UI: Net Win goes to reports, CashDesk Win goes to
+wallets.
+
+
 
 ---
 
