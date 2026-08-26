@@ -271,7 +271,10 @@ export default function BossDashboard() {
   // Safe padding only — no max-width containers, no 5vw side gutters.
   const sidePad = tvMode ? "px-[clamp(12px,0.9vw,32px)]" : "px-8";
   const outerPad = tvMode ? `${sidePad} pt-[clamp(6px,0.8vh,18px)]` : "px-8 pt-6 pb-4";
-  const mainPad = tvMode ? `${sidePad} pb-[clamp(10px,1vh,28px)]` : "px-8 pb-8";
+  const mainPad = tvMode
+    ? `${sidePad} pb-[clamp(10px,1vh,28px)] ${liveTv ? "pt-[clamp(8px,1vh,24px)]" : ""}`
+    : "px-8 pb-8";
+
 
   // Measure the header + control bar so the casino grid can fill exactly the
   // remaining first-screen height (4 cards = strict 2×2, no cropping).
@@ -310,8 +313,10 @@ export default function BossDashboard() {
     >
      <div ref={chromeRef}>
 
-      {/* Header — brand + title only */}
+      {/* Header — brand + title only (hidden in TV mode: each stage owns its own header) */}
+      {!liveTv && (
       <header className={`flex items-center justify-between gap-6 ${outerPad} ${liveTv ? "pb-1" : "pb-2"}`}>
+
         <div className={`flex items-center min-w-0 ${liveTv ? "gap-3" : "gap-4"}`}>
           <div
             className={`relative flex items-center justify-center rounded-full border border-white/10 overflow-hidden bg-white/5 ${liveTv ? "w-9 h-9" : "w-14 h-14"}`}
@@ -345,10 +350,20 @@ export default function BossDashboard() {
           </div>
         )}
       </header>
+      )}
 
-      {/* Unified control bar — view, month, casinos, layout, size, TV, fullscreen */}
-      <div className={`${sidePad} ${liveTv ? "pb-2" : "pb-4"}`}>
-        <div className={`rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm flex items-center gap-2 ${liveTv ? "px-2 py-1 flex-nowrap overflow-x-auto" : "px-3 py-2 flex-wrap"}`}>
+      {/* Unified control bar — view, month, casinos, layout, size, TV, fullscreen.
+          In TV mode it becomes a small overlay dock that only appears on
+          hover/keyboard focus, so it never occupies a content row. */}
+      <div
+        className={
+          liveTv
+            ? "fixed bottom-3 left-1/2 -translate-x-1/2 z-50 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200 max-w-[96vw]"
+            : `${sidePad} pb-4`
+        }
+      >
+        <div className={`rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm flex items-center gap-2 ${liveTv ? "px-2 py-1 flex-nowrap overflow-x-auto bg-black/80 shadow-2xl" : "px-3 py-2 flex-wrap"}`}>
+
 
           {/* View switcher — Live vs Report */}
           <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Switch view">
