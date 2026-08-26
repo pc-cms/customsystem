@@ -129,7 +129,8 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
   // MTD result: closed days from Day Closing + today's live figure when not closed yet
   const mtdClosed = closings
     .filter((r) => r.business_date !== businessDate)
-    .reduce((s, r) => s + Number(r.tables_result || 0) + closingSlots(r), 0);
+    .reduce((s, r) => s + closedDayResult(r), 0);
+
   const mtdResult = mtdClosed + totalResult;
 
   // ---- Monthly split, sourced exactly like Analytics → Statistics ----------
