@@ -3,11 +3,14 @@
  * Every style composes these; no style re-implements number formatting,
  * availability ("—") handling or column alignment.
  *
- * Numbers are auto-fitting: the rendered font step is reduced according to the
- * length of the formatted string, so 9–12 digit TZS values, negative values and
- * >100% percentages never overlap their neighbouring column.
+ * Sizing rules:
+ *  - All typography reads the density scale (see `./density`), so S/M/L/XL is
+ *    a real, working control.
+ *  - Numbers fit by MEASURED container width (ResizeObserver), not by string
+ *    length. A 9–12 digit TZS value keeps its nominal size whenever the column
+ *    is wide enough; nothing is ever clipped or ellipsised.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { formatMoneyFull } from "@/lib/format-money";
 import { NEGATIVE, POSITIVE } from "./tokens";
 import type { CasinoMetric } from "@/hooks/use-boss-dashboard";
@@ -32,35 +35,72 @@ export const signColor = (n: number | null | undefined) =>
   n == null ? undefined : n < 0 ? NEGATIVE : n > 0 ? POSITIVE : undefined;
 
 /* ------------------------------------------------------------------ */
-/* Numeric auto-fit                                                     */
+/* Numeric sizing                                                       */
 /* ------------------------------------------------------------------ */
 
 export const NUM_SIZE_ORDER = ["xs", "sm", "md", "lg", "xl"] as const;
 export type NumSize = (typeof NUM_SIZE_ORDER)[number];
 
-/** Length at which a value still renders at its nominal size. */
-export const NUM_COMFORT_LEN = 9;
-
 /**
- * Pick the rendered size step for a formatted numeric string.
- * Values longer than `NUM_COMFORT_LEN` step down one level per 3 extra chars
- * (max 3 steps) so nothing is ever clipped or truncated with an ellipsis.
+ * Length at which the (very soft) fallback shrink starts. 9–12 digit TZS
+ * values such as "1 250 000 000" (13 chars) or "−123 456 789" stay at their
+ * nominal size; only genuinely extreme strings step down, and never more than
+ * one step — the real fitting is measurement based (`useFitFactor`).
  */
+export const NUM_COMFORT_LEN = 16;
+
 export function autoNumSize(size: NumSize, text: string): NumSize {
   const len = (text ?? "").length;
   if (len <= NUM_COMFORT_LEN) return size;
-  const steps = Math.min(3, Math.ceil((len - NUM_COMFORT_LEN) / 3));
-  const idx = Math.max(0, NUM_SIZE_ORDER.indexOf(size) - steps);
+  const idx = Math.max(0, NUM_SIZE_ORDER.indexOf(size) - 1);
   return NUM_SIZE_ORDER[idx];
 }
 
-const NUM_SIZE_CLASS: Record<NumSize, string> = {
-  xs: "text-[clamp(10px,0.56vw,18px)]",
-  sm: "text-[clamp(12px,0.72vw,23px)]",
-  md: "text-[clamp(14px,0.92vw,29px)]",
-  lg: "text-[clamp(17px,1.25vw,39px)]",
-  xl: "text-[clamp(21px,1.7vw,52px)]",
+const NUM_SIZE_VAR: Record<NumSize, string> = {
+  xs: "var(--tv-num-xs, 14px)",
+  sm: "var(--tv-num-sm, 18px)",
+  md: "var(--tv-num-md, 22px)",
+  lg: "var(--tv-num-lg, 26px)",
+  xl: "var(--tv-num-xl, 32px)",
 };
+
+const MIN_FIT = 0.62;
+
+/**
+ * Measure the container and return a font-size factor <= 1 that makes the
+ * value fit exactly. In environments without layout (jsdom) it stays 1.
+ */
+function useFitFactor(text: string) {
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const [factor, setFactor] = useState(1);
+  const factorRef = useRef(1);
+  factorRef.current = factor;
+
+  const measure = () => {
+    const el = ref.current;
+    if (!el) return;
+    const avail = el.clientWidth;
+    const need = el.scrollWidth;
+    if (!avail || !need) return;
+    const naturalNeed = need / (factorRef.current || 1);
+    const next =
+      naturalNeed > avail ? Math.max(MIN_FIT, (avail / naturalNeed) * 0.99) : 1;
+    if (Math.abs(next - factorRef.current) > 0.012) setFactor(next);
+  };
+
+  useLayoutEffect(measure);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text]);
+
+  return { ref, factor };
+}
 
 /** EAT (Africa/Dar_es_Salaam) live clock, ticking every second. */
 export function useEatClock() {
@@ -85,7 +125,7 @@ export function useEatClock() {
   return { time, date };
 }
 
-/** Fixed-width, tabular, auto-fitting, never-wrapping number cell. */
+/** Fixed-width, tabular, width-fitting, never-wrapping number cell. */
 export function Num({
   text,
   color,
@@ -102,10 +142,19 @@ export function Num({
   autoFit?: boolean;
 }) {
   const step = autoFit ? autoNumSize(size, text) : size;
+  const { ref, factor } = useFitFactor(text);
   return (
     <span
-      className={`block min-w-0 overflow-hidden font-mono tabular-nums tracking-tight text-right whitespace-nowrap leading-none font-semibold ${NUM_SIZE_CLASS[step]} ${className}`}
-      style={{ color, textShadow: glow ? `0 0 22px ${glow}55` : undefined }}
+      ref={ref}
+      className={`block min-w-0 overflow-hidden font-mono tabular-nums tracking-tight text-right whitespace-nowrap leading-none font-semibold ${className}`}
+      style={{
+        color,
+        fontSize:
+          factor === 1
+            ? NUM_SIZE_VAR[step]
+            : `calc(${NUM_SIZE_VAR[step]} * ${factor.toFixed(3)})`,
+        textShadow: glow ? `0 0 22px ${glow}55` : undefined,
+      }}
       data-num-size={step}
       title={text}
     >
@@ -116,7 +165,10 @@ export function Num({
 
 export function ColHead({ children }: { children: React.ReactNode }) {
   return (
-    <span className="block min-w-0 overflow-hidden text-[clamp(8px,0.46vw,14px)] uppercase tracking-[0.2em] text-white/50 font-semibold text-right whitespace-nowrap">
+    <span
+      className="block min-w-0 overflow-hidden uppercase tracking-[0.2em] text-white/55 font-semibold text-right whitespace-nowrap"
+      style={{ fontSize: "var(--tv-label, 12px)" }}
+    >
       {children}
     </span>
   );
@@ -133,10 +185,13 @@ export function RowLabel({
 }) {
   return (
     <span
-      className={`truncate min-w-0 text-[clamp(9px,0.58vw,17px)] uppercase tracking-[0.16em] ${
+      className={`truncate min-w-0 uppercase tracking-[0.16em] ${
         strong ? "font-extrabold" : "font-semibold"
       }`}
-      style={{ color: color ?? "rgba(255,255,255,0.62)" }}
+      style={{
+        color: color ?? "rgba(255,255,255,0.66)",
+        fontSize: `calc(var(--tv-label, 12px) * ${strong ? 1.18 : 1.05})`,
+      }}
     >
       {children}
     </span>
@@ -145,7 +200,7 @@ export function RowLabel({
 
 /** Grid template shared by every metrics block: Label | Drop | Result | Hold. */
 export const METRIC_GRID =
-  "grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.35fr)_minmax(0,1.35fr)_minmax(0,0.62fr)] gap-x-[clamp(6px,0.7vw,22px)] items-baseline min-w-0";
+  "grid grid-cols-[minmax(0,0.75fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_minmax(0,0.6fr)] gap-x-[calc(var(--tv-gap,10px)*1.4)] items-center min-w-0";
 
 export function MetricRow({
   label,
@@ -176,7 +231,7 @@ export function MetricRow({
   const holdOk = dropAvailable && resultAvailable && metric.drop > 0;
   return (
     <div
-      className={`${METRIC_GRID} col-span-4 rounded-md px-[clamp(4px,0.35vw,12px)] py-[clamp(2px,0.36vh,10px)]`}
+      className={`${METRIC_GRID} col-span-4 h-full rounded-md px-[calc(var(--tv-gap,10px)*0.6)] py-[var(--tv-row-pad,8px)]`}
       style={{ background: fill }}
       data-metric-row={label.toLowerCase()}
     >
@@ -208,8 +263,8 @@ export function MetricsBlock({
   displayed,
   accent,
   fills,
-  size = "md",
-  totalSize = "lg",
+  size = "sm",
+  totalSize = "md",
 }: {
   displayed: DisplayedToday;
   accent: string;
@@ -218,7 +273,10 @@ export function MetricsBlock({
   totalSize?: NumSize;
 }) {
   return (
-    <div className={`${METRIC_GRID} gap-y-[clamp(2px,0.3vh,9px)]`}>
+    <div
+      className={`${METRIC_GRID} h-full gap-y-[calc(var(--tv-gap,10px)*0.35)]`}
+      style={{ gridTemplateRows: "auto repeat(3, minmax(0,1fr))" }}
+    >
       <span />
       <ColHead>Drop</ColHead>
       <ColHead>Result</ColHead>
@@ -259,7 +317,7 @@ export function Kpi({
   value,
   color,
   accent,
-  size = "md",
+  size = "lg",
   align = "left",
 }: {
   label: string;
@@ -271,7 +329,10 @@ export function Kpi({
 }) {
   return (
     <div className={`flex flex-col gap-[0.2em] min-w-0 overflow-hidden ${align === "right" ? "items-end" : ""}`}>
-      <span className="block min-w-0 overflow-hidden text-[clamp(8px,0.46vw,14px)] uppercase tracking-[0.24em] text-white/50 font-semibold whitespace-nowrap">
+      <span
+        className="block min-w-0 overflow-hidden uppercase tracking-[0.24em] text-white/55 font-semibold whitespace-nowrap"
+        style={{ fontSize: "var(--tv-label, 12px)" }}
+      >
         {label}
       </span>
       <Num text={value} color={color} size={size} glow={accent} className="w-full" />
