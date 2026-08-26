@@ -10,7 +10,8 @@
  *  - Slots Drop    : fresh ACE (<= 15 min) total_drop; else the closed day's
  *                    fin_day_closing.drop_slots; else unavailable ("—").
  *  - Slots Result  : fresh ACE net_win − active_credits; else the closed day's
- *                    fin_day_closing.net_win; else unavailable ("—").
+ *                    fin_day_closing.cashdesk_win − players_card_balance;
+ *                    else unavailable ("—").
  *  - Total         : STRICTLY displayed Tables + displayed Slots (a missing
  *                    slots source contributes nothing — never double-counted).
  *  - Hold %        : Result / Drop × 100, only when Drop > 0.
@@ -69,7 +70,8 @@ export function deriveDisplayedToday(
 
   // Slots drop: ACE first, then the closed day's figure, else unavailable.
   const slotsDrop = aceDrop != null ? aceDrop : day.slotsAvailable ? day.slots.drop : null;
-  // Slots result: ACE net_win − credits first, then the closed day's net_win.
+  // Slots result: ACE net_win − credits first, then the closed day's
+  // cashdesk_win − players_card_balance.
   const slotsResult =
     aceResult != null ? aceResult : day.slotsAvailable ? day.slots.result : null;
 
@@ -116,7 +118,7 @@ export function deriveDisplayedToday(
 /**
  * Monthly (MTD) displayed metrics — Tables / Slots / TOTAL.
  * Sources: `CasinoDay.mtdTables` / `mtdSlots` (closed Day Closing figures,
- * slots result = net_win). No ACE live override for MTD.
+ * slots result = Σ(cashdesk_win − players_card_balance)). No ACE override for MTD.
  */
 export function deriveDisplayedMonthly(day: CasinoDay | undefined): DisplayedToday | null {
   if (!day) return null;
