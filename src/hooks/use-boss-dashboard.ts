@@ -36,6 +36,13 @@ export type CasinoDay = {
    */
   mtdTables: CasinoMetric;
   mtdSlots: CasinoMetric;
+  /**
+   * true when at least one monthly slots SOURCE record exists (a closed
+   * Day Closing or a closed cage-slots shift). A legit closed 0 is DATA →
+   * render 0 / 0.0%; no source at all → render `—`.
+   */
+  mtdSlotsAvailable: boolean;
+
 };
 
 
