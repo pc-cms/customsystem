@@ -191,7 +191,9 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
       headCount: 0,
       hold: hold(mtdSlotsDrop, mtdSlotsResult),
     },
+    mtdSlotsAvailable,
   };
+
 
 }
 
