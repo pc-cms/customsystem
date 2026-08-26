@@ -468,7 +468,7 @@ export default function DayClosingsTab() {
       accessor: (r) => numCell(r, val(r).cards, (n) => setField(r.date, { cards: n }), {
         tone: false,
         allowNegative: true,
-        title: "Client balance held on player cards. Kept separate — never subtracted from the Slot Result. Negative values allowed.",
+        title: "Client balance held on player cards. Separate figure — added to Wallet Expected exactly once, never subtracted from Net Win. Negative values allowed.",
       }),
     },
     {
