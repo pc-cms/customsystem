@@ -3,6 +3,8 @@ import {
   deriveDisplayedToday,
   deriveDisplayedMonthly,
   sumDisplayedToday,
+  closedDaySlotsResult,
+  sumClosedSlotsResult,
   type AceLiveSlots,
 } from "@/lib/boss-display-metrics";
 import type { CasinoDay } from "@/hooks/use-boss-dashboard";
@@ -128,5 +130,38 @@ describe("deriveDisplayedMonthly", () => {
     const sum = sumDisplayedToday([a, b]);
     expect(sum.drop).toBe(2_400_000_000);
     expect(sum.result).toBe(260_000_000);
+  });
+});
+
+describe("closed-day slots result (cashdesk_win − players_card_balance)", () => {
+  it("uses cashdesk_win minus players_card_balance, never net_win", () => {
+    expect(
+      closedDaySlotsResult({ cashdesk_win: 12_000_000, players_card_balance: 2_000_000 } as any),
+    ).toBe(10_000_000);
+  });
+
+  it("supports a negative result and null fields", () => {
+    expect(closedDaySlotsResult({ cashdesk_win: 1_000, players_card_balance: 4_000 })).toBe(-3_000);
+    expect(closedDaySlotsResult({})).toBe(0);
+    expect(closedDaySlotsResult({ cashdesk_win: null, players_card_balance: null })).toBe(0);
+  });
+
+  it("MTD sums the formula over several closed days", () => {
+    const rows = [
+      { cashdesk_win: 10_000_000, players_card_balance: 1_000_000 },
+      { cashdesk_win: 5_000_000, players_card_balance: 7_000_000 },
+      { cashdesk_win: 0, players_card_balance: 0 },
+    ];
+    expect(sumClosedSlotsResult(rows)).toBe(7_000_000);
+  });
+
+  it("a closed zero day is data (0), not missing", () => {
+    const d = deriveDisplayedToday(
+      day({ slots: { drop: 0, result: 0, headCount: 0, hold: 0 }, slotsAvailable: true }),
+      null,
+    )!;
+    expect(d.slotsResultAvailable).toBe(true);
+    expect(d.slots.result).toBe(0);
+    expect(d.slots.hold).toBe(0);
   });
 });

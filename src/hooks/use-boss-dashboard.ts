@@ -11,6 +11,7 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getBusinessDate } from "@/lib/business-day";
+import { closedDaySlotsResult } from "@/lib/boss-display-metrics";
 
 export type CasinoMetric = {
   drop: number;
@@ -32,7 +33,7 @@ export type CasinoDay = {
    *   Tables Drop   → player_day_drop_cache.peak (via `compute_daily_diff`)
    *   Tables Result → fin_day_closing.tables_result (+ today's live figure)
    *   Slots Drop    → fin_day_closing.drop_slots, fallback cage_slots_shifts.manual_drop_slots
-   *   Slots Result  → fin_day_closing.net_win
+   *   Slots Result  → fin_day_closing.cashdesk_win − players_card_balance
    */
   mtdTables: CasinoMetric;
   mtdSlots: CasinoMetric;
@@ -62,7 +63,7 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
   //   Drop            → RPC `compute_daily_diff` (Σ player_day_drop_cache.peak)
   //   Tables (open)   → Chips Check: latest chip-count snapshots per table
   //   Tables (closed) → `fin_day_closing.tables_result`
-  //   Slots           → ONLY closed days: fin_day_closing.net_win (system result).
+  //   Slots           → ONLY closed days: cashdesk_win − players_card_balance.
   //                     While the day is open (and no fresh ACE feed) slots show `·`
   //                     — an open cage-slots shift is a draft, not a result.
   const [dailyTodayRes, dailyMtdRes, hcRes, closingsRes, snapRes, slotShiftsRes] = await Promise.all([
@@ -105,10 +106,10 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
   const todayClosing = closings.find((r) => r.business_date === businessDate);
 
   // Result of a CLOSED day (approved source):
-  //   tables_result + net_win. `cashdesk_win` / `players_card_balance` are
-  //   wallet-side figures and never feed a Dashboard TV result.
+  //   tables_result + (cashdesk_win − players_card_balance).
+  const closedSlotsResult = (r: any) => closedDaySlotsResult(r);
   const closedDayResult = (r: any) =>
-    Number(r.tables_result || 0) + Number(r.net_win || 0);
+    Number(r.tables_result || 0) + closedSlotsResult(r);
 
 
   // Live tables result from the latest chip count per table (same as casino dashboards)
@@ -123,9 +124,8 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
 
   const slotsAvailable = !!todayClosing;
   const slotsDrop = todayClosing ? Number(todayClosing.drop_slots || 0) : 0;
-  // Displayed Slots Result for a CLOSED day = fin_day_closing.net_win
-  // (system result). `cashdesk_win` is physical cash and feeds wallets only.
-  const slotsResult = todayClosing ? Number(todayClosing.net_win || 0) : 0;
+  // Displayed Slots Result for a CLOSED day = cashdesk_win − players_card_balance.
+  const slotsResult = todayClosing ? closedSlotsResult(todayClosing) : 0;
 
   const totalDrop = liveDrop + slotsDrop;
   const totalResult = liveResult + slotsResult;
@@ -142,7 +142,7 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
 
   // ---- Monthly split, sourced exactly like Analytics → Statistics ----------
   // Slots Drop  : fin_day_closing.drop_slots wins; else cage_slots_shifts.manual_drop_slots
-  // Slots Result: fin_day_closing.net_win
+  // Slots Result: cashdesk_win − players_card_balance
   const shiftDropByDate = new Map<string, number>();
   for (const s of ((slotShiftsRes as any).data || []) as any[]) {
     shiftDropByDate.set(
@@ -157,7 +157,7 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
     closingDates.add(c.business_date);
     const aceDrop = Number(c.drop_slots || 0);
     mtdSlotsDrop += aceDrop !== 0 ? aceDrop : shiftDropByDate.get(c.business_date) || 0;
-    mtdSlotsResult += Number(c.net_win || 0);
+    mtdSlotsResult += closedSlotsResult(c);
   }
   for (const [d, v] of shiftDropByDate) if (!closingDates.has(d)) mtdSlotsDrop += v;
   // Availability = EXISTENCE of a source record, never "value is non-zero".
