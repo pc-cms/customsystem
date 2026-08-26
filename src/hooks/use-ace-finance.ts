@@ -181,6 +181,7 @@ export function useAceLiveSlotsResultMany(locationCodes: (string | null)[]) {
     map[code] = {
       fresh,
       totalDrop: fresh ? Number(data?.total_drop ?? 0) : null,
+      netWin: fresh && data?.net_win != null ? Number(data.net_win) : null,
       winCashdesk:
         fresh && (data as any)?.win_cashdesk != null ? Number((data as any).win_cashdesk) : null,
       activeCredits:

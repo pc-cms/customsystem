@@ -48,10 +48,6 @@ const monthStart = (): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 };
 
-// Slots rule for Boss Dashboard: per closed slot shift, effective result =
-// system_shift_result − SLOTS_SHIFT_ADJUSTMENT (1,000,000). Sum across shifts.
-const SLOTS_SHIFT_ADJUSTMENT = 1_000_000;
-
 async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<CasinoDay> {
   const mStart = monthStart();
 
@@ -59,7 +55,7 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
   //   Drop            → RPC `compute_daily_diff` (Σ player_day_drop_cache.peak)
   //   Tables (open)   → Chips Check: latest chip-count snapshots per table
   //   Tables (closed) → `fin_day_closing.tables_result`
-  //   Slots           → ONLY closed days: cashdesk_win − players_card_balance.
+  //   Slots           → ONLY closed days: fin_day_closing.net_win (system result).
   //                     While the day is open (and no fresh ACE feed) slots show `·`
   //                     — an open cage-slots shift is a draft, not a result.
   const [dailyTodayRes, dailyMtdRes, hcRes, closingsRes, snapRes, slotShiftsRes] = await Promise.all([
@@ -117,7 +113,9 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
 
   const slotsAvailable = !!todayClosing;
   const slotsDrop = todayClosing ? Number(todayClosing.drop_slots || 0) : 0;
-  const slotsResult = todayClosing ? closingSlots(todayClosing) : 0;
+  // Displayed Slots Result for a CLOSED day = fin_day_closing.net_win
+  // (system result). `cashdesk_win` is physical cash and feeds wallets only.
+  const slotsResult = todayClosing ? Number(todayClosing.net_win || 0) : 0;
 
   const totalDrop = liveDrop + slotsDrop;
   const totalResult = liveResult + slotsResult;
