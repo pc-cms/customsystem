@@ -465,15 +465,22 @@ export default function BossDashboard() {
 
   return (
     <div
-      className="min-h-[100dvh] w-full text-foreground"
+      data-tv-viewport={liveTv ? "true" : undefined}
+      className={
+        liveTv
+          ? "fixed inset-0 z-[70] w-screen h-[100dvh] max-w-none m-0 overflow-hidden text-foreground"
+          : "min-h-[100dvh] w-full text-foreground"
+      }
       style={{
         fontSize: rootFontSize,
+        ...(densityVars ?? {}),
         background: isReport
           ? "radial-gradient(1200px 800px at 20% -10%, hsl(240 40% 12% / 0.9), transparent 60%), radial-gradient(1000px 600px at 90% 110%, hsl(280 40% 10% / 0.8), transparent 60%), hsl(240 20% 5%)"
           : STAGE_BACKGROUND[tvStyle],
         fontFamily: isReport ? undefined : "'IBM Plex Sans', system-ui, sans-serif",
       }}
     >
+
      <div ref={chromeRef}>
 
       {/* Header — brand + title only (hidden in TV mode: each stage owns its own header) */}
