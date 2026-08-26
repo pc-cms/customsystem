@@ -1,14 +1,12 @@
 /**
  * Style B — Red Gold: performance / ranking screen.
- * Left: large company performance hero. Centre: vertical ranking of casinos by
- * Total Result, each rank row still showing Tables / Slots / Total with
- * Drop / Result / Hold. Right: one narrow shared Top Players column.
+ * Left: dense company performance hero (2×3 KPI grid). Centre: vertical
+ * ranking of casinos by Total Result, each rank row showing Tables / Slots /
+ * Total with Drop / Result / Hold. Right: one shared Top Players column.
  */
 import { PREMIER } from "./tokens";
 import {
-  ColHead,
-  MetricRow,
-  METRIC_GRID,
+  MetricsBlock,
   Num,
   fmtMoney,
   fmtSigned,
@@ -25,15 +23,25 @@ function HeroStat({
   value,
   color,
   size = "lg",
+  wide,
 }: {
   label: string;
   value: string;
   color?: string;
   size?: "md" | "lg" | "xl";
+  wide?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-[0.15em] min-w-0 overflow-hidden">
-      <span className="text-[clamp(8px,0.44vw,14px)] uppercase tracking-[0.26em] text-white/55 font-semibold whitespace-nowrap">
+    <div
+      className={`flex flex-col justify-center gap-[0.2em] min-w-0 overflow-hidden rounded-lg px-[calc(var(--tv-gap,10px)*0.9)] py-[calc(var(--tv-gap,10px)*0.6)] ${
+        wide ? "col-span-2" : ""
+      }`}
+      style={{ background: "rgba(255,255,255,0.045)" }}
+    >
+      <span
+        className="uppercase tracking-[0.26em] text-white/60 font-semibold whitespace-nowrap"
+        style={{ fontSize: "var(--tv-label, 12px)" }}
+      >
         {label}
       </span>
       <Num text={value} color={color} size={size} className="w-full" />
@@ -48,20 +56,21 @@ export function RedGoldStage({ casinos, company, newPlayersCount, period, period
   const allPlayers = casinos.flatMap((c) => c.top);
 
   return (
-    <div data-tv-style="red-gold" className="h-full min-h-0 flex flex-col gap-[clamp(6px,0.7vh,16px)]">
+    <div data-tv-style="red-gold" className="h-full min-h-0 flex flex-col gap-[calc(var(--tv-gap,10px)*0.8)]">
       <TvBrandHeader
         period={period}
         periodLabel={periodLabel}
         accent={PREMIER.champagne}
-        className="shrink-0 px-[clamp(4px,0.4vw,14px)]"
+        className="shrink-0 px-[calc(var(--tv-gap,10px)*0.5)]"
       />
 
-      <div className="flex-1 min-h-0 grid gap-[clamp(6px,0.7vw,20px)] grid-cols-[minmax(0,0.85fr)_minmax(0,2.3fr)_minmax(0,0.85fr)]">
-        {/* Company performance hero */}
+      <div className="flex-1 min-h-0 grid gap-[var(--tv-gap,10px)] grid-cols-[minmax(0,0.9fr)_minmax(0,2.4fr)_minmax(0,0.9fr)]">
+        {/* Company performance hero — dense 2×3 KPI grid */}
         <section
           data-tv-board="company-hero"
-          className="rounded-2xl border flex flex-col justify-between gap-[clamp(4px,0.6vh,16px)] px-[clamp(10px,0.9vw,28px)] py-[clamp(8px,1vh,24px)] min-h-0 min-w-0 overflow-hidden"
+          className="rounded-2xl border grid grid-cols-2 gap-[calc(var(--tv-gap,10px)*0.7)] px-[var(--tv-gap,10px)] py-[var(--tv-gap,10px)] min-h-0 min-w-0 overflow-hidden"
           style={{
+            gridTemplateRows: "repeat(3, minmax(0,1fr))",
             borderColor: `${PREMIER.softGold}59`,
             background: `linear-gradient(160deg, ${PREMIER.darkRed}59, rgba(12,4,6,0.92) 70%)`,
           }}
@@ -71,15 +80,16 @@ export function RedGoldStage({ casinos, company, newPlayersCount, period, period
             value={fmtSigned(company.result)}
             color={signColor(company.result) ?? PREMIER.champagne}
             size="xl"
+            wide
           />
-          <HeroStat label="Total Drop" value={fmtMoney(company.drop)} color={PREMIER.champagne} size="lg" />
+          <HeroStat label="Total Drop" value={fmtMoney(company.drop)} color={PREMIER.champagne} size="lg" wide />
           <HeroStat
             label="Hold"
             value={company.drop > 0 ? fmtPct(company.hold) : DASH}
             color={PREMIER.softGold}
             size="lg"
           />
-          <div className="grid grid-cols-2 gap-[clamp(6px,0.6vw,18px)] min-w-0">
+          <div className="grid grid-rows-2 gap-[calc(var(--tv-gap,10px)*0.5)] min-h-0 min-w-0">
             <HeroStat
               label="Head Count"
               value={period === "today" ? String(company.headCount) : DASH}
@@ -96,7 +106,7 @@ export function RedGoldStage({ casinos, company, newPlayersCount, period, period
         {/* Ranking */}
         <section
           data-tv-board="ranking"
-          className="grid gap-[clamp(5px,0.55vh,14px)] min-h-0 min-w-0"
+          className="grid gap-[calc(var(--tv-gap,10px)*0.7)] min-h-0 min-w-0"
           style={{ gridAutoRows: "minmax(0,1fr)" }}
         >
           {ranked.map((c, i) => {
@@ -105,65 +115,53 @@ export function RedGoldStage({ casinos, company, newPlayersCount, period, period
               <article
                 key={c.id}
                 data-tv-rank={i + 1}
-                className="rounded-xl border grid grid-cols-[auto_minmax(0,1fr)] items-center gap-[clamp(6px,0.7vw,20px)] px-[clamp(8px,0.8vw,24px)] py-[clamp(3px,0.45vh,12px)] min-h-0 min-w-0 overflow-hidden"
+                className="rounded-xl border grid grid-cols-[auto_minmax(0,1fr)] items-stretch gap-[var(--tv-gap,10px)] px-[calc(var(--tv-gap,10px)*1.2)] py-[calc(var(--tv-gap,10px)*0.55)] min-h-0 min-w-0 overflow-hidden"
                 style={{
                   borderColor: `${PREMIER.softGold}33`,
                   background: `linear-gradient(100deg, ${PREMIER.darkRed}2E, rgba(10,6,7,0.85) 55%)`,
                 }}
               >
-                <div className="flex items-center gap-[clamp(6px,0.6vw,16px)] min-w-0">
+                <div className="flex items-center gap-[var(--tv-gap,10px)] min-w-0">
                   <span
-                    className="w-[1.9em] h-[1.9em] shrink-0 rounded-md inline-flex items-center justify-center text-[clamp(12px,0.8vw,26px)] font-extrabold tabular-nums"
-                    style={{ background: `${PREMIER.softGold}26`, color: PREMIER.softGold }}
+                    className="w-[1.8em] h-[1.8em] shrink-0 rounded-md inline-flex items-center justify-center font-extrabold tabular-nums"
+                    style={{
+                      background: `${PREMIER.softGold}26`,
+                      color: PREMIER.softGold,
+                      fontSize: "calc(var(--tv-city,26px) * 0.7)",
+                    }}
                   >
                     {i + 1}
                   </span>
-                  <div className="flex flex-col min-w-0 max-w-[9em]">
+                  <div className="flex flex-col justify-center min-w-0 max-w-[7em]">
                     <h2
-                      className="truncate text-[clamp(12px,0.88vw,30px)] font-extrabold uppercase tracking-[0.16em]"
-                      style={{ color: c.accent }}
+                      className="truncate font-extrabold uppercase tracking-[0.14em] leading-none"
+                      style={{ color: c.accent, fontSize: "var(--tv-city, 26px)" }}
                     >
                       {c.name}
                     </h2>
-                    <span className="text-[clamp(8px,0.4vw,12px)] uppercase tracking-[0.2em] text-white/40 whitespace-nowrap">
+                    <span
+                      className="uppercase tracking-[0.2em] text-white/45 whitespace-nowrap mt-[0.3em]"
+                      style={{ fontSize: "var(--tv-city-head, 13px)" }}
+                    >
                       Head {period === "today" ? d?.total.headCount ?? 0 : DASH}
                     </span>
                   </div>
                 </div>
 
                 {d ? (
-                  <div className={`${METRIC_GRID} gap-y-[clamp(1px,0.2vh,6px)]`}>
-                    <span />
-                    <ColHead>Drop</ColHead>
-                    <ColHead>Result</ColHead>
-                    <ColHead>Hold</ColHead>
-                    <MetricRow
-                      label="Tables"
-                      metric={d.tables}
-                      size="sm"
-                      fill={`${PREMIER.champagne}0F`}
-                      marker={PREMIER.champagne}
-                    />
-                    <MetricRow
-                      label="Slots"
-                      metric={d.slots}
-                      dropAvailable={d.slotsDropAvailable}
-                      resultAvailable={d.slotsResultAvailable}
-                      size="sm"
-                      fill={`${PREMIER.lightRed}1F`}
-                      marker={PREMIER.lightRed}
-                    />
-                    <MetricRow
-                      label="Total"
-                      metric={d.total}
-                      size="md"
-                      strong
-                      labelColor={PREMIER.softGold}
-                      fill={`${PREMIER.softGold}1F`}
-                    />
-                  </div>
+                  <MetricsBlock
+                    displayed={d}
+                    accent={PREMIER.softGold}
+                    fills={{
+                      tables: `${PREMIER.champagne}12`,
+                      slots: `${PREMIER.lightRed}1F`,
+                      total: `${PREMIER.softGold}24`,
+                    }}
+                    size="sm"
+                    totalSize="md"
+                  />
                 ) : (
-                  <div className="text-center text-white/35">{DASH}</div>
+                  <div className="grid place-items-center text-white/35">{DASH}</div>
                 )}
               </article>
             );
