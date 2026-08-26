@@ -122,7 +122,10 @@ export function deriveDisplayedMonthly(day: CasinoDay | undefined): DisplayedTod
   if (!day) return null;
   const tables = day.mtdTables;
   const slots = day.mtdSlots;
-  const available = slots.drop !== 0 || slots.result !== 0;
+  // Availability = a monthly slots SOURCE record exists (closed Day Closing /
+  // closed cage-slots shift). A closed 0 is DATA → 0 and 0.0%; no source → `—`.
+  const available = day.mtdSlotsAvailable;
+
   const drop = tables.drop + slots.drop;
   const result = tables.result + slots.result;
   return {
