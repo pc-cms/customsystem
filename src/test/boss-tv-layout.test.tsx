@@ -178,7 +178,7 @@ describe("LiveStage layouts", () => {
       expect(n.className).toContain("overflow-hidden");
       expect(n.className).toContain("text-right");
       expect(n.className).toContain("tabular-nums");
-      expect(n.style.fontSize).toContain("--tv-num-");
+      expect(n.getAttribute("style") ?? "").toContain("--tv-num-");
       // never truncated with an ellipsis
       expect(n.className).not.toContain("truncate");
     });
