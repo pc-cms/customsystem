@@ -160,6 +160,9 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
     mtdSlotsResult += Number(c.net_win || 0);
   }
   for (const [d, v] of shiftDropByDate) if (!closingDates.has(d)) mtdSlotsDrop += v;
+  // Availability = EXISTENCE of a source record, never "value is non-zero".
+  const mtdSlotsAvailable = closings.length > 0 || shiftDropByDate.size > 0;
+
 
   // Tables monthly: drop from the drop cache, result from Day Closings
   // (today's still-open day contributes the live chips-check figure).
