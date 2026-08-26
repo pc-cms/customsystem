@@ -17,6 +17,7 @@ const day = (over: Partial<CasinoDay> = {}): CasinoDay => ({
   mtd: { drop: 0, result: 0, hold: 0 },
   mtdTables: { drop: 900_000_000, result: 150_000_000, headCount: 0, hold: 16.67 },
   mtdSlots: { drop: 300_000_000, result: -20_000_000, headCount: 0, hold: -6.67 },
+  mtdSlotsAvailable: true,
   ...over,
 });
 
@@ -105,7 +106,20 @@ describe("deriveDisplayedMonthly", () => {
 
   it("marks slots unavailable when Statistics has no monthly slots data", () => {
     const zero = { drop: 0, result: 0, headCount: 0, hold: 0 };
-    expect(deriveDisplayedMonthly(day({ mtdSlots: zero }))!.slotsAvailable).toBe(false);
+    expect(
+      deriveDisplayedMonthly(day({ mtdSlots: zero, mtdSlotsAvailable: false }))!.slotsAvailable,
+    ).toBe(false);
+  });
+
+  it("treats a CLOSED zero as data (0 and 0.0%), not as unavailable", () => {
+    const zero = { drop: 0, result: 0, headCount: 0, hold: 0 };
+    const d = deriveDisplayedMonthly(day({ mtdSlots: zero, mtdSlotsAvailable: true }))!;
+    expect(d.slotsAvailable).toBe(true);
+    expect(d.slotsDropAvailable).toBe(true);
+    expect(d.slotsResultAvailable).toBe(true);
+    expect(d.slots.drop).toBe(0);
+    expect(d.slots.result).toBe(0);
+    expect(d.slots.hold).toBe(0);
   });
 
   it("company monthly total = sum of displayed monthly cards", () => {
