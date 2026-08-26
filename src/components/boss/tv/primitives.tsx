@@ -156,6 +156,7 @@ export function Num({
         textShadow: glow ? `0 0 22px ${glow}55` : undefined,
       }}
       data-num-size={step}
+      data-num-var={NUM_SIZE_VAR[step]}
       title={text}
     >
       {text}
