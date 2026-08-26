@@ -17,7 +17,7 @@ describe("autoNumSize", () => {
   });
 
   it("steps down for long TZS values", () => {
-    expect(autoNumSize("xl", fmtMoney(1_250_000))).toBe("lg"); // 9 + 1 chars → 1 step
+    expect(autoNumSize("xl", fmtMoney(12_500_000))).toBe("lg"); // 10 chars → 1 step
     expect(autoNumSize("xl", fmtMoney(1_250_000_000))).toBe("md"); // 13 chars → 2 steps
   });
 
