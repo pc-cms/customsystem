@@ -17,8 +17,8 @@ const day = (over: Partial<CasinoDay> = {}): CasinoDay => ({
   mtd: { drop: 0, result: 0, hold: 0 },
   mtdTables: { drop: 900_000_000, result: 150_000_000, headCount: 0, hold: 16.67 },
   mtdSlots: { drop: 300_000_000, result: -20_000_000, headCount: 0, hold: -6.67 },
-  mtdSlotsAvailable: true,
   ...over,
+  mtdSlotsAvailable: over.mtdSlotsAvailable ?? true,
 });
 
 const ace = (over: Partial<AceLiveSlots> = {}): AceLiveSlots => ({
