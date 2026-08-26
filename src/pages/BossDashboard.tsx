@@ -18,7 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { getBusinessDate } from "@/lib/business-day";
-import { Monitor, LayoutGrid, Palette, Tv, Maximize2, Minimize2, Type, FileBarChart2, LayoutDashboard, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { Monitor, LayoutGrid, Palette, Tv, Maximize2, Minimize2, Type, FileBarChart2, LayoutDashboard, ChevronLeft, ChevronRight, Calendar, Settings } from "lucide-react";
 import premierClubLogo from "/premier-club-logo.svg";
 import "@fontsource/ibm-plex-sans/400.css";
 import "@fontsource/ibm-plex-sans/600.css";
@@ -43,6 +43,7 @@ import {
   tvAccentFor,
   type TvStyleId,
 } from "@/components/boss/tv/tokens";
+import { tvDensityVars } from "@/components/boss/tv/density";
 import type { TvCasino } from "@/components/boss/tv/types";
 import { MonthlyReportPanel } from "@/components/boss/monthly-report-panel";
 import { useAceLiveSlotsResultMany } from "@/hooks/use-ace-finance";
@@ -132,6 +133,7 @@ export default function BossDashboard() {
     () => (localStorage.getItem(LS_STYLE) as TvStyleId) || DEFAULT_TV_STYLE,
   );
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() => !!document.fullscreenElement);
+  const [dockOpen, setDockOpen] = useState(false);
 
   const [reportYM, setReportYM] = useState<{ y: number; m: number }>(() => {
     try {
@@ -291,6 +293,14 @@ export default function BossDashboard() {
     setChromeH(el.offsetHeight);
     return () => ro.disconnect();
   }, []);
+
+  // TV mode is a real viewport layer: no page scrolling behind it.
+  useEffect(() => {
+    if (!liveTv) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [liveTv]);
 
   const clock = useEatClock();
   const businessDate = getBusinessDate();
