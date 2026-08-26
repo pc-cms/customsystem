@@ -312,7 +312,7 @@ export default function DayClosingsTab() {
         slots_result: v.slots,
         net_win: v.slots,
         drop_slots: v.drop,
-        // CashDesk Win — separate cashier-system metric, never the Slots Result.
+        // CashDesk Win — physical slots cash, the only slots figure in Wallet Expected.
         cashdesk_win: v.cash,
         players_card_balance: v.cards,
 
