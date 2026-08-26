@@ -1,15 +1,18 @@
 /**
- * BossDashboard — million-dollar TV overview of multiple casinos.
+ * BossDashboard — Dashboard TV overview of multiple casinos.
  *
- * Layout: each casino renders as a double block (TODAY | MTD).
- * Landscape TV = two panels side-by-side; portrait = stacked.
- * A COMPANY TOTAL panel at the bottom aggregates all selected casinos
- * plus two 100 %-stacked share bars (MTD Drop / MTD Result) by casino.
+ * Two modes:
+ *  - Live: one of three Premier style-driven layouts (Black Gold, Red Gold,
+ *    Dark Gold) rendered by `LiveStage`. The chosen style persists in
+ *    localStorage; all styles share the same metric sources
+ *    (`deriveDisplayedToday` / `deriveDisplayedMonthly`) and Company Total is
+ *    always the exact sum of the displayed casino cards.
+ *  - Company Report: unchanged monthly report with its month picker.
  *
  * Two resolution presets: FHD (1x) and 4K (2x) — scales via base font size.
- * Auto-refreshes every 10s. Deep dark stage, glowing accents, huge numerals.
- * Boss dashboard is strictly current business day (no date picker).
+ * Auto-refreshes every 10s. Live is strictly the current business day.
  */
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
