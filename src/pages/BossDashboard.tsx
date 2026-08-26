@@ -310,8 +310,10 @@ export default function BossDashboard() {
     >
      <div ref={chromeRef}>
 
-      {/* Header — brand + title only */}
+      {/* Header — brand + title only (hidden in TV mode: each stage owns its own header) */}
+      {!liveTv && (
       <header className={`flex items-center justify-between gap-6 ${outerPad} ${liveTv ? "pb-1" : "pb-2"}`}>
+
         <div className={`flex items-center min-w-0 ${liveTv ? "gap-3" : "gap-4"}`}>
           <div
             className={`relative flex items-center justify-center rounded-full border border-white/10 overflow-hidden bg-white/5 ${liveTv ? "w-9 h-9" : "w-14 h-14"}`}
