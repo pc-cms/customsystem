@@ -293,13 +293,6 @@ export default function BossDashboard() {
 
 
 
-  const gridRows = casinos.length > 2 ? 2 : 1;
-  const liveGridStyle: React.CSSProperties = liveTv
-    ? {
-        minHeight: `calc(100dvh - ${chromeH}px - 24px)`,
-        gridTemplateRows: `repeat(${gridRows}, minmax(0, 1fr))`,
-      }
-    : {};
 
   return (
     <div
