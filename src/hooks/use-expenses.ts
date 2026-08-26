@@ -335,8 +335,13 @@ export const useCancelExpenseAsManager = () => {
       qc.invalidateQueries({ queryKey: ["expenses"] });
       qc.invalidateQueries({ queryKey: ["expenses-slots"] });
       qc.invalidateQueries({ queryKey: ["fin-monthly"] });
-      toast.success("Expense cancelled");
+      qc.invalidateQueries({ queryKey: ["fin-monthly-report"] });
+      qc.invalidateQueries({ queryKey: ["fin-wallets"] });
+      qc.invalidateQueries({ queryKey: ["wallets"] });
+      qc.invalidateQueries({ queryKey: ["fin-balance"] });
+      toast.success("Expense deleted");
     },
+
     onError: (e: any) => toast.error(e?.message || "Failed to cancel"),
   });
 };

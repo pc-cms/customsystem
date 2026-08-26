@@ -13,6 +13,7 @@ import { useMonthlyReport, type ReportCategory, type ReportGroup, type ReportExp
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
 import { useModuleWrite } from "@/hooks/use-module-permissions";
+import { useCancelExpenseAsManager } from "@/hooks/use-expenses";
 import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories, useArchiveFinCategory, useCreateFinCategory, useRenameFinGroup } from "@/hooks/use-fin";
 
 
@@ -98,12 +99,15 @@ export default function FinancesMonthlyReportPage() {
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editRow, setEditRow] = useState<EditableExpense | null>(null);
+  const [delRow, setDelRow] = useState<ReportExpense | null>(null);
+  const cancelExpense = useCancelExpenseAsManager();
 
 
   const { roles } = useAuth();
   const canWriteBudget = useModuleWrite("finance_budget");
   const canEdit = roles.includes("super_admin") || roles.includes("finance_manager") || canWriteBudget;
   const isNetwork = scope === "network";
+  const canDelete = roles.includes("super_admin") || roles.includes("finance_manager");
   const editMode = canEdit && !isNetwork;
 
   const upsertBudget = useUpsertFinBudgetCell();
@@ -327,6 +331,7 @@ export default function FinancesMonthlyReportPage() {
             player_name: e.player_name,
             source: e.source,
           })}
+          onDeleteExpense={canDelete ? ((e) => setDelRow(e)) : undefined}
         />
       ))}
 
@@ -362,6 +367,7 @@ export default function FinancesMonthlyReportPage() {
             player_name: e.player_name,
             source: e.source,
           })}
+          onDeleteExpense={canDelete ? ((e) => setDelRow(e)) : undefined}
         />
       )}
 
@@ -375,6 +381,40 @@ export default function FinancesMonthlyReportPage() {
           canFinance={canEdit}
         />
       )}
+
+      <ResponsiveDialog
+        open={!!delRow}
+        onOpenChange={(o) => { if (!o) setDelRow(null); }}
+        title="Delete expense"
+        description="This permanently removes the record from Expenses, the Monthly Report and wallet balances. The action is written to the audit log."
+      >
+        {delRow && (
+          <div className="space-y-3">
+            <div className="rounded-md border border-border p-3 text-[12px] space-y-1">
+              <div className="flex justify-between gap-4"><span className="text-muted-foreground">Date</span><span className="font-mono">{fmtDateOnly(delRow.business_date)}</span></div>
+              <div className="flex justify-between gap-4"><span className="text-muted-foreground">Description</span><span className="text-right">{delRow.description || "—"}</span></div>
+              <div className="flex justify-between gap-4"><span className="text-muted-foreground">Wallet</span><span>{delRow.wallet_name || "—"}</span></div>
+              <div className="flex justify-between gap-4"><span className="text-muted-foreground">Amount</span><span className="font-mono">{formatNumberSpaces(delRow.amount)} {delRow.currency || "TZS"}</span></div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setDelRow(null)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                disabled={cancelExpense.isPending}
+                onClick={() => {
+                  const r = delRow;
+                  cancelExpense.mutate(
+                    { id: r.id, amount: r.amount, category: r.fin_category_id || "", approved: true, reason: "Deleted from Monthly Report" },
+                    { onSuccess: () => setDelRow(null) },
+                  );
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        )}
+      </ResponsiveDialog>
 
       <EditExpenseDialog
         open={!!editRow}
@@ -976,6 +1016,7 @@ type EditCallbacks = {
   onRenameCategory: (catId: string, newName: string) => void;
   onArchiveCategory: (catId: string) => void;
   onEditExpense: (e: ReportExpense) => void;
+  onDeleteExpense?: (e: ReportExpense) => void;
   onAddCategory: (name: string) => void;
   onRenameGroup: (newName: string) => void;
 };
@@ -1099,7 +1140,7 @@ const GroupTable = ({ group, expandedId, onToggle, isNetwork, ...edit }: {
 };
 
 
-const Row = ({ c, expanded, onToggle, isNetwork, colCount, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onArchiveCategory, onEditExpense }: {
+const Row = ({ c, expanded, onToggle, isNetwork, colCount, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onArchiveCategory, onEditExpense, onDeleteExpense }: {
   c: ReportCategory; expanded: boolean; onToggle: () => void; isNetwork: boolean; colCount: number;
 } & EditCallbacks) => {
   const spent = c.plan_month_grand_tzs ? c.actual_grand_tzs / c.plan_month_grand_tzs : null;
@@ -1190,7 +1231,7 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, editMode, year, month
                       <th className="text-left w-[140px]">Wallet</th>
                       <th className="text-right w-[120px]">Amount</th>
                       <th className="text-right w-[120px]">TZS</th>
-                      {editMode && <th className="w-[40px]"></th>}
+                      {editMode && <th className="w-[72px]"></th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -1206,18 +1247,32 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, editMode, year, month
                         </td>
                         <td className="text-right font-mono tabular-nums">{formatNumberSpaces(e.amount_tzs)}</td>
                         {editMode && (
-                          <td className="pr-2 text-right" onClick={(ev) => ev.stopPropagation()}>
+                          <td className="pr-2 text-right whitespace-nowrap" onClick={(ev) => ev.stopPropagation()}>
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-6 w-6"
                               onClick={() => onEditExpense(e)}
                               aria-label="Edit expense"
+                              title="Edit expense"
                             >
                               <Pencil className="w-3 h-3" />
                             </Button>
+                            {onDeleteExpense && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                onClick={() => onDeleteExpense(e)}
+                                aria-label="Delete expense"
+                                title="Delete expense"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
                           </td>
                         )}
+
                       </tr>
                     ))}
                     <tr className="border-t-2 border-border bg-muted/30 font-semibold [&>td]:h-7 [&>td]:px-2">
