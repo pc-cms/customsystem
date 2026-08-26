@@ -1,23 +1,30 @@
 /**
- * Single source of truth for the DISPLAYED "Today" metrics of the Boss
- * Dashboard TV.
+ * Single source of truth for the DISPLAYED metrics of the Dashboard TV
+ * (Live view). Every visual style and the Company Total consume THIS module —
+ * never their own formula.
  *
- * Business rules are unchanged — this only removes the duplicated ACE override
- * formula that previously lived inside `CasinoDoubleBlock` while
- * `CompanyTotalPanel` summed the raw (non-overridden) figures, producing a
- * company total that did not match the sum of the visible cards.
+ * TODAY
+ *  - Tables Drop   : compute_daily_diff (drop cache) — always available.
+ *  - Tables Result : Chips Check live result while the day is open,
+ *                    fin_day_closing.tables_result once the day is closed.
+ *  - Slots Drop    : fresh ACE (<= 15 min) total_drop; else the closed day's
+ *                    fin_day_closing.drop_slots; else unavailable ("—").
+ *  - Slots Result  : fresh ACE net_win − active_credits; else the closed day's
+ *                    fin_day_closing.net_win; else unavailable ("—").
+ *  - Total         : STRICTLY displayed Tables + displayed Slots (a missing
+ *                    slots source contributes nothing — never double-counted).
+ *  - Hold %        : Result / Drop × 100, only when Drop > 0.
  *
- * Rules (unchanged):
- *  - A FRESH (≤15 min) ACE live feed provides the displayed slots drop/result.
- *    Slots result = win_cashdesk − active_credits.
- *  - Without a fresh ACE feed, slots come ONLY from a closed business day.
- *  - Total = tables (live/closed) + displayed slots.
+ * MONTHLY (MTD) — closed Day Closing figures only, no ACE override.
  */
 import type { CasinoDay, CasinoMetric } from "@/hooks/use-boss-dashboard";
 
 export interface AceLiveSlots {
   fresh: boolean;
   totalDrop: number | null;
+  /** System result from the gaming system — the Slots Result source. */
+  netWin: number | null;
+  /** Physical cash figure — used by wallets, NEVER by the dashboard result. */
   winCashdesk: number | null;
   activeCredits: number | null;
   ageMs: number | null;
@@ -28,6 +35,11 @@ export interface DisplayedToday {
   tables: CasinoMetric;
   slots: CasinoMetric;
   total: CasinoMetric;
+  /** false → render "—" for the slots drop cell. */
+  slotsDropAvailable: boolean;
+  /** false → render "—" for the slots result / hold cells. */
+  slotsResultAvailable: boolean;
+  /** Convenience: at least one slots figure exists. */
   slotsAvailable: boolean;
   usesAce: boolean;
   aceHint: string | null;
@@ -41,7 +53,7 @@ const moneyHint = (n: number) =>
 
 /**
  * Derive the metrics actually rendered on a casino card for "Today".
- * Pure function — unit-testable, shared by the card and the company total.
+ * Pure function — unit-testable, shared by every style and the company total.
  */
 export function deriveDisplayedToday(
   day: CasinoDay | undefined,
@@ -49,25 +61,30 @@ export function deriveDisplayedToday(
 ): DisplayedToday | null {
   if (!day) return null;
 
+  const aceFresh = !!ace?.fresh;
   const aceResult =
-    ace?.fresh && ace.winCashdesk != null ? ace.winCashdesk - (ace.activeCredits ?? 0) : null;
-  const usesAce = !!ace?.fresh && ace.totalDrop != null && aceResult != null;
+    aceFresh && ace!.netWin != null ? ace!.netWin - (ace!.activeCredits ?? 0) : null;
+  const aceDrop = aceFresh && ace!.totalDrop != null ? ace!.totalDrop : null;
+  const usesAce = aceResult != null || aceDrop != null;
 
-  const slots: CasinoMetric = usesAce
-    ? {
-        ...day.slots,
-        drop: ace!.totalDrop as number,
-        result: aceResult as number,
-        hold: hold(ace!.totalDrop as number, aceResult as number),
-      }
-    : day.slots;
+  // Slots drop: ACE first, then the closed day's figure, else unavailable.
+  const slotsDrop = aceDrop != null ? aceDrop : day.slotsAvailable ? day.slots.drop : null;
+  // Slots result: ACE net_win − credits first, then the closed day's net_win.
+  const slotsResult =
+    aceResult != null ? aceResult : day.slotsAvailable ? day.slots.result : null;
+
+  const slots: CasinoMetric = {
+    drop: slotsDrop ?? 0,
+    result: slotsResult ?? 0,
+    headCount: 0,
+    hold: hold(slotsDrop ?? 0, slotsResult ?? 0),
+  };
 
   const tables = day.live;
 
-  const totalDrop = usesAce ? day.total.drop + slots.drop : day.total.drop;
-  const totalResult = usesAce
-    ? day.total.result - day.slots.result + slots.result
-    : day.total.result;
+  // Total = displayed Tables + displayed Slots. Nothing else, ever.
+  const totalDrop = tables.drop + (slotsDrop ?? 0);
+  const totalResult = tables.result + (slotsResult ?? 0);
 
   const total: CasinoMetric = {
     drop: totalDrop,
@@ -80,7 +97,9 @@ export function deriveDisplayedToday(
     tables,
     slots,
     total,
-    slotsAvailable: usesAce || day.slotsAvailable,
+    slotsDropAvailable: slotsDrop != null,
+    slotsResultAvailable: slotsResult != null,
+    slotsAvailable: slotsDrop != null || slotsResult != null,
     usesAce,
     aceHint: usesAce
       ? `ACE Live · ${Math.max(0, Math.round((ace?.ageMs ?? 0) / 60000))}m${
@@ -88,7 +107,7 @@ export function deriveDisplayedToday(
         }`
       : null,
     aceCreditsHint:
-      ace?.fresh && ace.activeCredits != null
+      aceFresh && ace?.activeCredits != null
         ? `Credits ${moneyHint(ace.activeCredits)}`
         : null,
   };
@@ -96,20 +115,23 @@ export function deriveDisplayedToday(
 
 /**
  * Monthly (MTD) displayed metrics — Tables / Slots / TOTAL.
- * Sources come straight from `CasinoDay.mtdTables` / `mtdSlots`, which mirror
- * Analytics → Statistics (Total Report) 1:1. No ACE live override here.
+ * Sources: `CasinoDay.mtdTables` / `mtdSlots` (closed Day Closing figures,
+ * slots result = net_win). No ACE live override for MTD.
  */
 export function deriveDisplayedMonthly(day: CasinoDay | undefined): DisplayedToday | null {
   if (!day) return null;
   const tables = day.mtdTables;
   const slots = day.mtdSlots;
+  const available = slots.drop !== 0 || slots.result !== 0;
   const drop = tables.drop + slots.drop;
   const result = tables.result + slots.result;
   return {
     tables,
     slots,
     total: { drop, result, headCount: 0, hold: hold(drop, result) },
-    slotsAvailable: slots.drop !== 0 || slots.result !== 0,
+    slotsDropAvailable: available,
+    slotsResultAvailable: available,
+    slotsAvailable: available,
     usesAce: false,
     aceHint: null,
     aceCreditsHint: null,
@@ -123,7 +145,7 @@ export interface CompanyToday {
   hold: number;
 }
 
-/** Company Total Today = exact sum of the DISPLAYED casino card totals. */
+/** Company Total = exact sum of the DISPLAYED casino card totals. */
 export function sumDisplayedToday(items: (DisplayedToday | null | undefined)[]): CompanyToday {
   const acc = items.reduce(
     (a, d) => {
@@ -137,4 +159,3 @@ export function sumDisplayedToday(items: (DisplayedToday | null | undefined)[]):
   );
   return { ...acc, hold: hold(acc.drop, acc.result) };
 }
-
