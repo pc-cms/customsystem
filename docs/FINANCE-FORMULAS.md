@@ -143,11 +143,17 @@ Charts          = 20-minute buckets sourced from Chips Check
 
 ```text
 Drop            = coin in / bill in per machine
-Net Win         = Drop − payouts − JP contribution
-Cashdesk Win    = cage-side slots win
-Slot Result     = Cashdesk Win − client balances
+Net Win         = slots system result, from Day Closings (`net_win`) — Statistics / P&L
+CashDesk Win    = physical slots cash desk win, from Day Closings (`cashdesk_win`) — Wallets / Expected
+Client Balance  = manual card balance of the day (separate figure)
 Cashless Balance= manual entry only; derived NET is ignored in CDR
 ```
+
+Only these two slots figures exist. There is no third derived "Slot Result"
+column anywhere in the UI: Net Win goes to reports, CashDesk Win goes to
+wallets.
+
+
 
 ---
 
