@@ -68,7 +68,9 @@ export default function FinancesDayClosingPage() {
   const slotsValue = parseAmountInput(slots);
   const diffTables = tablesValue - (snap?.tables ?? 0);
   const diffSlots = slotsValue - (snap?.slots ?? 0);
-  const needsVariance = !!snap && (Math.abs(diffTables) > 1 || Math.abs(diffSlots) > 1);
+  // Slots are NOT reconciled against cashier slot shifts — ACE / manual entry is the
+  // source of truth and is isolated from the cage shift cycle. Only Tables blocks the lock.
+  const needsVariance = !!snap && Math.abs(diffTables) > 1;
   const noteValid = varianceNote.trim().length >= 3;
 
   const addLine = () => {
