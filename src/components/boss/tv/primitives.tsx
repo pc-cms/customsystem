@@ -2,6 +2,10 @@
  * Dashboard TV — shared presentational primitives.
  * Every style composes these; no style re-implements number formatting,
  * availability ("—") handling or column alignment.
+ *
+ * Numbers are auto-fitting: the rendered font step is reduced according to the
+ * length of the formatted string, so 9–12 digit TZS values, negative values and
+ * >100% percentages never overlap their neighbouring column.
  */
 import { useEffect, useState } from "react";
 import { formatMoneyFull } from "@/lib/format-money";
@@ -27,6 +31,37 @@ export const fmtPct = (n: number | null | undefined) =>
 export const signColor = (n: number | null | undefined) =>
   n == null ? undefined : n < 0 ? NEGATIVE : n > 0 ? POSITIVE : undefined;
 
+/* ------------------------------------------------------------------ */
+/* Numeric auto-fit                                                     */
+/* ------------------------------------------------------------------ */
+
+export const NUM_SIZE_ORDER = ["xs", "sm", "md", "lg", "xl"] as const;
+export type NumSize = (typeof NUM_SIZE_ORDER)[number];
+
+/** Length at which a value still renders at its nominal size. */
+export const NUM_COMFORT_LEN = 9;
+
+/**
+ * Pick the rendered size step for a formatted numeric string.
+ * Values longer than `NUM_COMFORT_LEN` step down one level per 3 extra chars
+ * (max 3 steps) so nothing is ever clipped or truncated with an ellipsis.
+ */
+export function autoNumSize(size: NumSize, text: string): NumSize {
+  const len = (text ?? "").length;
+  if (len <= NUM_COMFORT_LEN) return size;
+  const steps = Math.min(3, Math.ceil((len - NUM_COMFORT_LEN) / 3));
+  const idx = Math.max(0, NUM_SIZE_ORDER.indexOf(size) - steps);
+  return NUM_SIZE_ORDER[idx];
+}
+
+const NUM_SIZE_CLASS: Record<NumSize, string> = {
+  xs: "text-[clamp(10px,0.56vw,18px)]",
+  sm: "text-[clamp(12px,0.72vw,23px)]",
+  md: "text-[clamp(14px,0.92vw,29px)]",
+  lg: "text-[clamp(17px,1.25vw,39px)]",
+  xl: "text-[clamp(21px,1.7vw,52px)]",
+};
+
 /** EAT (Africa/Dar_es_Salaam) live clock, ticking every second. */
 export function useEatClock() {
   const [now, setNow] = useState(() => new Date());
@@ -50,31 +85,29 @@ export function useEatClock() {
   return { time, date };
 }
 
-/** Fixed-width, tabular, never-wrapping number cell. */
+/** Fixed-width, tabular, auto-fitting, never-wrapping number cell. */
 export function Num({
   text,
   color,
   size = "md",
   glow,
   className = "",
+  autoFit = true,
 }: {
   text: string;
   color?: string;
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: NumSize;
   glow?: string;
   className?: string;
+  autoFit?: boolean;
 }) {
-  const sizes: Record<string, string> = {
-    xs: "text-[clamp(11px,0.62vw,20px)]",
-    sm: "text-[clamp(13px,0.82vw,26px)]",
-    md: "text-[clamp(15px,1vw,32px)]",
-    lg: "text-[clamp(20px,1.55vw,48px)]",
-    xl: "text-[clamp(26px,2.2vw,68px)]",
-  };
+  const step = autoFit ? autoNumSize(size, text) : size;
   return (
     <span
-      className={`font-mono tabular-nums tracking-tight text-right whitespace-nowrap leading-none font-semibold ${sizes[size]} ${className}`}
-      style={{ color, textShadow: glow ? `0 0 24px ${glow}66` : undefined }}
+      className={`block min-w-0 overflow-hidden font-mono tabular-nums tracking-tight text-right whitespace-nowrap leading-none font-semibold ${NUM_SIZE_CLASS[step]} ${className}`}
+      style={{ color, textShadow: glow ? `0 0 22px ${glow}55` : undefined }}
+      data-num-size={step}
+      title={text}
     >
       {text}
     </span>
@@ -83,7 +116,7 @@ export function Num({
 
 export function ColHead({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-[clamp(9px,0.5vw,15px)] uppercase tracking-[0.22em] text-white/45 font-semibold text-right whitespace-nowrap">
+    <span className="block min-w-0 overflow-hidden text-[clamp(8px,0.46vw,14px)] uppercase tracking-[0.2em] text-white/50 font-semibold text-right whitespace-nowrap">
       {children}
     </span>
   );
@@ -100,7 +133,7 @@ export function RowLabel({
 }) {
   return (
     <span
-      className={`text-[clamp(10px,0.64vw,19px)] uppercase tracking-[0.18em] whitespace-nowrap ${
+      className={`truncate min-w-0 text-[clamp(9px,0.58vw,17px)] uppercase tracking-[0.16em] ${
         strong ? "font-extrabold" : "font-semibold"
       }`}
       style={{ color: color ?? "rgba(255,255,255,0.62)" }}
@@ -112,7 +145,7 @@ export function RowLabel({
 
 /** Grid template shared by every metrics block: Label | Drop | Result | Hold. */
 export const METRIC_GRID =
-  "grid grid-cols-[minmax(0,auto)_minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,0.52fr)] gap-x-[clamp(8px,0.9vw,28px)] items-baseline";
+  "grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.35fr)_minmax(0,1.35fr)_minmax(0,0.62fr)] gap-x-[clamp(6px,0.7vw,22px)] items-baseline min-w-0";
 
 export function MetricRow({
   label,
@@ -130,7 +163,7 @@ export function MetricRow({
   metric: CasinoMetric;
   dropAvailable?: boolean;
   resultAvailable?: boolean;
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: NumSize;
   accent?: string;
   labelColor?: string;
   strong?: boolean;
@@ -143,10 +176,11 @@ export function MetricRow({
   const holdOk = dropAvailable && resultAvailable && metric.drop > 0;
   return (
     <div
-      className={`${METRIC_GRID} col-span-4 rounded-md px-[clamp(4px,0.35vw,12px)] py-[clamp(3px,0.42vh,11px)]`}
+      className={`${METRIC_GRID} col-span-4 rounded-md px-[clamp(4px,0.35vw,12px)] py-[clamp(2px,0.36vh,10px)]`}
       style={{ background: fill }}
+      data-metric-row={label.toLowerCase()}
     >
-      <span className="inline-flex items-center gap-2 min-w-0">
+      <span className="inline-flex items-center gap-2 min-w-0 overflow-hidden">
         {marker && (
           <span
             className="inline-block w-[0.5em] h-[0.5em] rounded-[2px] shrink-0"
@@ -180,11 +214,11 @@ export function MetricsBlock({
   displayed: DisplayedToday;
   accent: string;
   fills?: { tables?: string; slots?: string; total?: string };
-  size?: "xs" | "sm" | "md" | "lg";
-  totalSize?: "md" | "lg" | "xl";
+  size?: NumSize;
+  totalSize?: NumSize;
 }) {
   return (
-    <div className={`${METRIC_GRID} gap-y-[clamp(2px,0.35vh,10px)]`}>
+    <div className={`${METRIC_GRID} gap-y-[clamp(2px,0.3vh,9px)]`}>
       <span />
       <ColHead>Drop</ColHead>
       <ColHead>Result</ColHead>
@@ -225,19 +259,19 @@ export function Kpi({
   value,
   color,
   accent,
-  size = "lg",
+  size = "md",
   align = "left",
 }: {
   label: string;
   value: string;
   color?: string;
   accent?: string;
-  size?: "md" | "lg" | "xl";
+  size?: NumSize;
   align?: "left" | "right";
 }) {
   return (
-    <div className={`flex flex-col gap-[0.25em] min-w-0 ${align === "right" ? "items-end" : ""}`}>
-      <span className="text-[clamp(9px,0.5vw,15px)] uppercase tracking-[0.26em] text-white/50 font-semibold whitespace-nowrap">
+    <div className={`flex flex-col gap-[0.2em] min-w-0 overflow-hidden ${align === "right" ? "items-end" : ""}`}>
+      <span className="block min-w-0 overflow-hidden text-[clamp(8px,0.46vw,14px)] uppercase tracking-[0.24em] text-white/50 font-semibold whitespace-nowrap">
         {label}
       </span>
       <Num text={value} color={color} size={size} glow={accent} className="w-full" />
