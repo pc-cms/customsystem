@@ -300,6 +300,166 @@ export default function BossDashboard() {
 
 
 
+  const controlsPanel = (
+          <div className={`rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm flex items-center gap-2 ${liveTv ? "px-2 py-1 flex-nowrap overflow-x-auto bg-black/80 shadow-2xl" : "px-3 py-2 flex-wrap"}`}>
+
+
+            {/* View switcher — Live vs Report */}
+            <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Switch view">
+              <button
+                className={`px-3 py-1.5 text-xs rounded-sm inline-flex items-center gap-1.5 font-semibold ${blockOrient !== "report" ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                onClick={() => setBlockOrient((prev) => (prev === "report" ? "auto" : prev))}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" /> Live
+              </button>
+              <button
+                className={`px-3 py-1.5 text-xs rounded-sm inline-flex items-center gap-1.5 font-semibold ${blockOrient === "report" ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                onClick={() => setBlockOrient("report" as BlockOrient)}
+              >
+                <FileBarChart2 className="w-3.5 h-3.5" /> Report
+              </button>
+            </div>
+
+            {/* Period switcher — Live view only (Monthly = current month MTD) */}
+            {blockOrient !== "report" && (
+              <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Period">
+                {(["today", "monthly"] as PeriodView[]).map((p) => (
+                  <button
+                    key={p}
+                    className={`px-3 py-1.5 text-xs rounded-sm font-semibold capitalize ${periodView === p ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                    onClick={() => setPeriodView(p)}
+                  >
+                    {p === "today" ? "Today" : "Monthly"}
+                  </button>
+                ))}
+              </div>
+            )}
+
+
+
+            {/* Month picker (report only) */}
+            {blockOrient === "report" && (
+              <div className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-black/30 px-1 py-0.5">
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => shiftMonth(-1)} aria-label="Previous month">
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <div className="px-2 py-0.5 font-semibold tabular-nums min-w-[110px] text-center text-xs">
+                  {MONTH_LABELS[reportYM.m - 1]} {reportYM.y}
+                </div>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => shiftMonth(1)} aria-label="Next month">
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={thisMonth}>
+                  <Calendar className="w-3.5 h-3.5 mr-1" /> This month
+                </Button>
+              </div>
+            )}
+
+            {/* Visual style (Live only) */}
+            {blockOrient !== "report" && (
+              <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Visual style">
+                <span className="px-2 py-1 text-muted-foreground inline-flex items-center">
+                  <Palette className="w-3.5 h-3.5" />
+                </span>
+                {TV_STYLES.map((st) => (
+                  <button
+                    key={st.id}
+                    type="button"
+                    aria-pressed={tvStyle === st.id}
+                    className={`px-2.5 py-1 text-xs rounded-sm font-semibold whitespace-nowrap ${tvStyle === st.id ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                    onClick={() => setTvStyle(st.id)}
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Casinos */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 border-white/10 bg-black/30 h-8">
+                  <LayoutGrid className="w-4 h-4" /> {selectedIds.length}/{accessibleCasinos.length} casinos
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-64">
+                <div className="flex flex-col gap-2">
+                  {accessibleCasinos.map((c) => {
+                    const checked = selectedIds.includes(c.id);
+                    return (
+                      <label key={c.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(v) =>
+                            setSelectedIds((prev) =>
+                              v ? [...prev, c.id] : prev.filter((x) => x !== c.id),
+                            )
+                          }
+                        />
+                        <span>{c.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Layout split (Today | MTD) removed — one period per card now. */}
+
+
+            {/* Font size */}
+            <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Font size preset">
+              <span className="px-2 py-1 text-muted-foreground inline-flex items-center"><Type className="w-3.5 h-3.5" /></span>
+              {(Object.keys(FONT_PRESETS) as FontPreset[]).map((p) => (
+                <button
+                  key={p}
+                  className={`px-2 py-1 text-xs rounded-sm font-bold ${fontPreset === p ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                  onClick={() => setFontPreset(p)}
+                >
+                  {FONT_PRESETS[p].label}
+                </button>
+              ))}
+            </div>
+
+            {/* Resolution */}
+            <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5">
+              <button
+                className={`px-3 py-1 text-xs rounded-sm inline-flex items-center gap-1.5 ${resolution === "fhd" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                onClick={() => setResolution("fhd")}
+              >
+                <Monitor className="w-3.5 h-3.5" /> FHD
+              </button>
+              <button
+                className={`px-3 py-1 text-xs rounded-sm inline-flex items-center gap-1.5 ${resolution === "uhd" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                onClick={() => setResolution("uhd")}
+              >
+                <Monitor className="w-3.5 h-3.5" /> 4K
+              </button>
+            </div>
+
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                variant={tvMode ? "default" : "outline"}
+                size="sm"
+                className={`gap-2 h-8 ${tvMode ? "" : "border-white/10 bg-black/30"}`}
+                onClick={() => setTvMode((v) => !v)}
+                title="Toggle TV mode (T) — overscan-safe padding & big text"
+              >
+                <Tv className="w-4 h-4" /> TV
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 border-white/10 bg-black/30 h-8"
+                onClick={toggleFullscreen}
+                title="Fullscreen (F)"
+              >
+                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </Button>
+            </div>
+          </div>
+  );
+
   return (
     <div
       className="min-h-[100dvh] w-full text-foreground"
@@ -352,174 +512,28 @@ export default function BossDashboard() {
       </header>
       )}
 
-      {/* Unified control bar — view, month, casinos, layout, size, TV, fullscreen.
-          In TV mode it becomes a small overlay dock that only appears on
-          hover/keyboard focus, so it never occupies a content row. */}
-      <div
-        className={
-          liveTv
-            ? "fixed bottom-3 left-1/2 -translate-x-1/2 z-50 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200 max-w-[96vw]"
-            : `${sidePad} pb-4`
-        }
-      >
-        <div className={`rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm flex items-center gap-2 ${liveTv ? "px-2 py-1 flex-nowrap overflow-x-auto bg-black/80 shadow-2xl" : "px-3 py-2 flex-wrap"}`}>
-
-
-          {/* View switcher — Live vs Report */}
-          <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Switch view">
+      {liveTv ? (
+        <Popover open={dockOpen} onOpenChange={setDockOpen}>
+          <PopoverTrigger asChild>
             <button
-              className={`px-3 py-1.5 text-xs rounded-sm inline-flex items-center gap-1.5 font-semibold ${blockOrient !== "report" ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-              onClick={() => setBlockOrient((prev) => (prev === "report" ? "auto" : prev))}
+              type="button"
+              aria-label="Dashboard TV controls"
+              className="fixed bottom-3 right-3 z-[80] rounded-full border border-white/15 bg-black/70 backdrop-blur-sm p-2 text-white/60 hover:text-white hover:bg-black/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 transition-colors"
             >
-              <LayoutDashboard className="w-3.5 h-3.5" /> Live
+              <Settings className="w-4 h-4" />
             </button>
-            <button
-              className={`px-3 py-1.5 text-xs rounded-sm inline-flex items-center gap-1.5 font-semibold ${blockOrient === "report" ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-              onClick={() => setBlockOrient("report" as BlockOrient)}
-            >
-              <FileBarChart2 className="w-3.5 h-3.5" /> Report
-            </button>
-          </div>
-
-          {/* Period switcher — Live view only (Monthly = current month MTD) */}
-          {blockOrient !== "report" && (
-            <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Period">
-              {(["today", "monthly"] as PeriodView[]).map((p) => (
-                <button
-                  key={p}
-                  className={`px-3 py-1.5 text-xs rounded-sm font-semibold capitalize ${periodView === p ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-                  onClick={() => setPeriodView(p)}
-                >
-                  {p === "today" ? "Today" : "Monthly"}
-                </button>
-              ))}
-            </div>
-          )}
-
-
-
-          {/* Month picker (report only) */}
-          {blockOrient === "report" && (
-            <div className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-black/30 px-1 py-0.5">
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => shiftMonth(-1)} aria-label="Previous month">
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <div className="px-2 py-0.5 font-semibold tabular-nums min-w-[110px] text-center text-xs">
-                {MONTH_LABELS[reportYM.m - 1]} {reportYM.y}
-              </div>
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => shiftMonth(1)} aria-label="Next month">
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={thisMonth}>
-                <Calendar className="w-3.5 h-3.5 mr-1" /> This month
-              </Button>
-            </div>
-          )}
-
-          {/* Visual style (Live only) */}
-          {blockOrient !== "report" && (
-            <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Visual style">
-              <span className="px-2 py-1 text-muted-foreground inline-flex items-center">
-                <Palette className="w-3.5 h-3.5" />
-              </span>
-              {TV_STYLES.map((st) => (
-                <button
-                  key={st.id}
-                  type="button"
-                  aria-pressed={tvStyle === st.id}
-                  className={`px-2.5 py-1 text-xs rounded-sm font-semibold whitespace-nowrap ${tvStyle === st.id ? "bg-primary/25 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-                  onClick={() => setTvStyle(st.id)}
-                >
-                  {st.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Casinos */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2 border-white/10 bg-black/30 h-8">
-                <LayoutGrid className="w-4 h-4" /> {selectedIds.length}/{accessibleCasinos.length} casinos
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-64">
-              <div className="flex flex-col gap-2">
-                {accessibleCasinos.map((c) => {
-                  const checked = selectedIds.includes(c.id);
-                  return (
-                    <label key={c.id} className="flex items-center gap-2 cursor-pointer text-sm">
-                      <Checkbox
-                        checked={checked}
-                        onCheckedChange={(v) =>
-                          setSelectedIds((prev) =>
-                            v ? [...prev, c.id] : prev.filter((x) => x !== c.id),
-                          )
-                        }
-                      />
-                      <span>{c.name}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          {/* Layout split (Today | MTD) removed — one period per card now. */}
-
-
-          {/* Font size */}
-          <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5" title="Font size preset">
-            <span className="px-2 py-1 text-muted-foreground inline-flex items-center"><Type className="w-3.5 h-3.5" /></span>
-            {(Object.keys(FONT_PRESETS) as FontPreset[]).map((p) => (
-              <button
-                key={p}
-                className={`px-2 py-1 text-xs rounded-sm font-bold ${fontPreset === p ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-                onClick={() => setFontPreset(p)}
-              >
-                {FONT_PRESETS[p].label}
-              </button>
-            ))}
-          </div>
-
-          {/* Resolution */}
-          <div className="inline-flex rounded-md border border-white/10 bg-black/30 p-0.5">
-            <button
-              className={`px-3 py-1 text-xs rounded-sm inline-flex items-center gap-1.5 ${resolution === "fhd" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-              onClick={() => setResolution("fhd")}
-            >
-              <Monitor className="w-3.5 h-3.5" /> FHD
-            </button>
-            <button
-              className={`px-3 py-1 text-xs rounded-sm inline-flex items-center gap-1.5 ${resolution === "uhd" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
-              onClick={() => setResolution("uhd")}
-            >
-              <Monitor className="w-3.5 h-3.5" /> 4K
-            </button>
-          </div>
-
-          <div className="ml-auto flex items-center gap-2">
-            <Button
-              variant={tvMode ? "default" : "outline"}
-              size="sm"
-              className={`gap-2 h-8 ${tvMode ? "" : "border-white/10 bg-black/30"}`}
-              onClick={() => setTvMode((v) => !v)}
-              title="Toggle TV mode (T) — overscan-safe padding & big text"
-            >
-              <Tv className="w-4 h-4" /> TV
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 border-white/10 bg-black/30 h-8"
-              onClick={toggleFullscreen}
-              title="Fullscreen (F)"
-            >
-              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            </Button>
-          </div>
-        </div>
-      </div>
+          </PopoverTrigger>
+          <PopoverContent
+            side="top"
+            align="end"
+            className="z-[90] w-auto max-w-[92vw] p-2 bg-black/90 border-white/10"
+          >
+            {controlsPanel}
+          </PopoverContent>
+        </Popover>
+      ) : (
+        <div className={`${sidePad} pb-4`}>{controlsPanel}</div>
+      )}
      </div>
 
       {/* Live stage (styled) or Company Report */}
