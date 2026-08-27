@@ -488,7 +488,9 @@ export default function DayClosingsTab() {
       header: "JP",
       type: "money",
       style: { width: 150 },
+      sortValue: (r) => val(r).jp,
       accessor: (r) => numCell(r, val(r).jp, (n) => setField(r.date, { jp: Math.abs(n) }), {
+
         allowNegative: false,
         placeholder: aceJpSlipOut?.get(r.date) ?? 0,
         title:
