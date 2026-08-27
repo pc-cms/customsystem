@@ -172,6 +172,14 @@ export default function WalletDayGridTab({
       headerClassName: "text-right",
       cellClassName: "text-right border-l border-border bg-muted/20",
       style: { minWidth: 130 },
+      sortValue: (r) =>
+        r.kind === "start"
+          ? wallets.reduce(
+              (s, w) => s + (startBalances.get(w.id) || 0) * rateOf(w.currency, period.from),
+              0,
+            )
+          : dayTotalTzs(r.date!),
+
       accessor: (r) => {
         const v =
           r.kind === "start"
