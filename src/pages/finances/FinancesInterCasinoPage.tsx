@@ -6,6 +6,7 @@ import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -62,6 +63,7 @@ export default function FinancesInterCasinoPage() {
     to_casino_id: "",
     amount: 0,
     note: "",
+    repayable: true,
   });
   const [acceptWallet, setAcceptWallet] = useState<Record<string, string>>({});
 
@@ -86,6 +88,7 @@ export default function FinancesInterCasinoPage() {
         amount: Math.abs(form.amount),
         business_date: form.business_date,
         note: form.note,
+        repayable: form.repayable,
       },
       {
         onSuccess: () => {
