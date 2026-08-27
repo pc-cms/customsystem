@@ -74,9 +74,11 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   }, [snapshots]);
   const openTables = useMemo(
     // Club Poker tables use a different settlement flow (no chip baseline / no snapshot count) — exclude from Chip Count grid.
-    () => tables.filter(t => (t.status === "open" || tablesWithSnap.has(t.id)) && t.game !== "Club Poker"),
-    [tables, tablesWithSnap]
+    // On past business days the live `status` flag no longer applies: show only tables with a snapshot for that date.
+    () => tables.filter(t => ((date === today && t.status === "open") || tablesWithSnap.has(t.id)) && t.game !== "Club Poker"),
+    [tables, tablesWithSnap, date, today]
   );
+
 
   const visibleCasinoDenoms = useVisibleChipDenoms();
   const visibleSet = useMemo(() => new Set(visibleCasinoDenoms), [visibleCasinoDenoms]);
