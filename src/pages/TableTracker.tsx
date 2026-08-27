@@ -113,9 +113,12 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
 
   // Include closed tables that still have tracker data for the selected date,
   // so a stool closed mid-shift doesn't disappear from Numbers/Final view.
+  // On past business days the live `status` flag is not applicable — the day is
+  // over and every table is closed, so only tracker data decides visibility.
   const tablesWithData = useMemo(() => new Set(trackerData.map(t => t.table_id)), [trackerData]);
-  const openTables = tables.filter(t => t.status === "open" || tablesWithData.has(t.id));
   const isToday = date === today;
+  const openTables = tables.filter(t => (isToday && t.status === "open") || tablesWithData.has(t.id));
+
   const currentSlot = useMemo(() => getCurrentSlot(), []);
   const readOnly = !isToday && !isManager;
 

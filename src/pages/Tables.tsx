@@ -376,7 +376,12 @@ const Tables = () => {
 
   const renderTableCard = (table: typeof tables[0]) => {
     const r = tableStats[table.id] || { result: 0 };
-    const isOpen = table.status === "open";
+    // `gaming_tables.status` is a LIVE flag — it has no per-date history.
+    // When browsing a past business day the day is already finished, so every
+    // table must render as Closed instead of today's status.
+    const isHistorical = effectiveDate !== businessDay;
+    const displayStatus = isHistorical ? "closed" : table.status;
+    const isOpen = displayStatus === "open";
     const hasTableResult = table.closing_result !== null;
     const seated = seatedByTable[table.id] || [];
 
@@ -407,8 +412,8 @@ const Tables = () => {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Badge variant={isOpen ? "default" : "secondary"} className="text-[10px] uppercase">{table.status}</Badge>
-            {!isOpen && (
+            <Badge variant={isOpen ? "default" : "secondary"} className="text-[10px] uppercase">{displayStatus}</Badge>
+            {!isOpen && !isHistorical && (
               <Button
                 size="sm"
                 variant="outline"
@@ -421,6 +426,7 @@ const Tables = () => {
             )}
           </div>
         </div>
+
 
         {/* Seated players: photo + name + avg bet */}
         {seated.length > 0 && (
