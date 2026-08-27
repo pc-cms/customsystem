@@ -53,10 +53,16 @@ def collect_live(client: AceClient):
     return parse_consolidation(html, 0, label)
 
 
-def latest_closed_period(client: AceClient) -> tuple[int, str] | None:
+def latest_closed_periods(client: AceClient, count: int = 1) -> list[tuple[int, str]]:
+    """The most recent closed ACE periods (newest first).
+
+    More than one is sent so a day missed because of a collector/network outage
+    is healed on the next successful run: the API skips identical resends and
+    re-applies anything whose figures changed (late JP slip, corrected drop).
+    """
     periods = parse_periods(client.report_page_html())
     closed = [(pid, label) for pid, label in periods if pid != 0]
-    return closed[0] if closed else None
+    return closed[: max(1, count)]
 
 
 def run_live(client, api, cfg, logger, dry_run: bool) -> bool:
@@ -73,26 +79,40 @@ def run_live(client, api, cfg, logger, dry_run: bool) -> bool:
 
 
 def run_closing(client, api, cfg, logger, dry_run: bool) -> bool:
-    found = latest_closed_period(client)
+    found = latest_closed_periods(client, cfg.backfill_periods)
     if not found:
         logger.warning("No closed ACE period available — skipping closing send")
         return False
-    period_id, label = found
-    html = client.consolidation_html(period_id)
-    report = parse_consolidation(html, period_id, label)
-    business_date = business_date_from_label(report.period_label)
-    if not business_date:
-        logger.error("Cannot parse business_date from ACE period label %r — skipping", report.period_label)
-        return False
-    payload = report.as_payload(cfg.location_code)
-    payload["business_date"] = business_date
-    payload["closed_at_local"] = report.period_label
-    logger.info(
-        "[%s] CLOSED period_id=%s business_date=%s active_credits=%s label=%r",
-        cfg.location_code, period_id, business_date, report.active_credits, report.period_label,
-    )
-    api.send(payload, dry_run=dry_run)
-    return True
+
+    sent = 0
+    errors: list[str] = []
+    for period_id, label in found:
+        try:
+            html = client.consolidation_html(period_id)
+            report = parse_consolidation(html, period_id, label)
+            business_date = business_date_from_label(report.period_label)
+            if not business_date:
+                logger.error(
+                    "Cannot parse business_date from ACE period label %r — skipping", report.period_label
+                )
+                continue
+            payload = report.as_payload(cfg.location_code)
+            payload["business_date"] = business_date
+            payload["closed_at_local"] = report.period_label
+            logger.info(
+                "[%s] CLOSED period_id=%s business_date=%s jp_out=%s drop=%s active_credits=%s label=%r",
+                cfg.location_code, period_id, business_date, report.jackpot_slip_out,
+                report.total_drop, report.active_credits, report.period_label,
+            )
+            api.send(payload, dry_run=dry_run)
+            sent += 1
+        except Exception as exc:  # noqa: BLE001 — one bad period must not block the others
+            errors.append(f"period {period_id}: {exc}")
+            logger.error("CLOSED send failed for period_id=%s: %s", period_id, exc)
+
+    if errors and sent == 0:
+        raise ApiError("; ".join(errors))
+    return sent > 0
 
 
 def main(argv: list[str] | None = None) -> int:
