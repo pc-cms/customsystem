@@ -470,17 +470,16 @@ const SummaryBlock = ({
   const liabilityPayments = mf?.liabilities?.payments || [];
 
   const depositsTotal = cash.deposits;
+  const investmentItems = cash.investment_items || [];
+  const collectionCats = (data.collections?.categories || []).filter((c) => Number(c.actual_grand_tzs || 0) !== 0);
 
-  /** Footer totals — see src/lib/finance-formulas.ts (single source of truth). */
-  const obligationsTotal = totalExpensesAndObligations({
-    closed,
-    budget: g.plan_month_grand_tzs,
-    expensesActual: cash.expenses_actual,
-    unplannedTotal: cash.unplanned_expenses,
-    unplannedNotInActual: cash.unplanned_not_in_actual,
-    liabilitiesClosing: cash.liabilities,
-    collections: cash.collections_actual,
-  });
+  /** Pending Est Expenses = Budget − Paid Expenses (negative = overspent). */
+  const pendingEstExpenses = g.plan_month_grand_tzs - cash.expenses_actual;
+  /** Current Cash Balance = Total In − Paid Expense − Deposits − Investment − Collection. */
+  const currentCashBalance =
+    kpi.total_income - cash.expenses_actual - cash.deposits - cash.investment - cash.collections_actual;
+
+
 
 
   const cardHeader =
