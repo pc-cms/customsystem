@@ -556,6 +556,19 @@ export default function FinancesWalletsPage() {
   return (
     <PageShell>
       <OfficeActions>
+        {!!pendingInboxes.length && (
+          <Button
+            variant="default"
+            size="sm"
+            className="h-9"
+            onClick={() => {
+              setInboxDate(pendingInboxes[0].business_date);
+              setInboxOpen(true);
+            }}
+          >
+            <Inbox className="w-4 h-4" /> Closing Inbox · {pendingInboxes.length} pending
+          </Button>
+        )}
         <Button
           variant="secondary"
           size="sm"
@@ -568,6 +581,7 @@ export default function FinancesWalletsPage() {
         >
           <ArrowDownLeft className="w-4 h-4" /> Money In
         </Button>
+
         <Button
           variant="secondary"
           size="sm"
