@@ -248,18 +248,19 @@ const ActiveShiftView = ({ shift, players, tables }: {
         }
         date
       >
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setTipsKind("tips_live")}
+          className="gap-1.5 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25"
+        >
+          <Gift className="w-3.5 h-3.5" /> Tips
+        </Button>
         {/* Hidden by request — kept in code for future re-enable.
-            Buttons: Tips Live / Tips Poker / Tips Floor / Promo IN / Issue Ticket */}
+            Buttons: Tips Poker / Tips Floor / Promo IN / Issue Ticket */}
         {false && (
           <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setTipsKind("tips_live")}
-              className="gap-1.5 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25"
-            >
-              <Gift className="w-3.5 h-3.5" /> Tips Live
-            </Button>
+
             <Button
               variant="outline"
               size="sm"

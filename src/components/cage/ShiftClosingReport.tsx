@@ -21,6 +21,8 @@ import type { Tables } from "@/integrations/supabase/types";
 
 import { fetchTotalDrop } from "@/lib/drop-source";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
+import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
+
 
 interface Props {
   shift: Tables<"shifts">;
@@ -346,12 +348,16 @@ const ShiftClosingReport = ({
   // Cash flow opener (per currency cash + mobile from opening_float)
   const openerCash = (openingFloat?.cash || {}) as Record<string, Record<string | number, number>>;
   const openerMobile = (openingFloat?.mobile || {}) as Record<string, number>;
-  const openerBank = (openingFloat?.bank || {}) as { tzs?: number; usd?: number };
+  const openerBank = (openingFloat?.bank || {}) as { tzs?: number; usd?: number; channels?: Record<string, { in?: number; out?: number; final?: number }> };
 
   // Closer from closingCount snapshot
   const closerCash = (closingCount?.cash || {}) as Record<string, Record<string | number, number>>;
   const closerMobile = (closingCount?.mobile || {}) as Record<string, number>;
-  const closerBank = (closingCount?.bank || {}) as { tzs?: number; usd?: number };
+  const closerBank = (closingCount?.bank || {}) as { tzs?: number; usd?: number; channels?: Record<string, { in?: number; out?: number; final?: number }> };
+  /** Explicit bank channels exist only for closings captured after the CRDB/NBC rollout. */
+  const hasBankChannels = !!(openerBank.channels || closerBank.channels);
+  const bankFinal = (b: typeof openerBank, key: string) => Number(b.channels?.[key]?.final || 0);
+
 
   const cashCurrencyTotal = (cash: Record<string | number, number> | undefined) =>
     cash ? Object.entries(cash).reduce((s, [d, q]) => s + Number(d) * (Number(q) || 0), 0) : 0;
@@ -508,11 +514,26 @@ const ShiftClosingReport = ({
               </tr>
             );
           })}
-          <tr>
-            <td className="border border-black px-1.5 py-0.5">Other in TZS</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{openerOtherTzs ? numAlways(openerOtherTzs) : "—"}</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{closerOtherTzs ? numAlways(closerOtherTzs) : "—"}</td>
-          </tr>
+          {hasBankChannels ? (
+            BANK_CHANNELS.map(ch => {
+              const o = bankFinal(openerBank, ch.key);
+              const c = bankFinal(closerBank, ch.key);
+              return (
+                <tr key={ch.key}>
+                  <td className="border border-black px-1.5 py-0.5">{`Bank ${ch.bank} ${ch.currency}`}</td>
+                  <td className="border border-black px-1.5 py-0.5 text-right">{o ? numAlways(o) : "—"}</td>
+                  <td className="border border-black px-1.5 py-0.5 text-right">{c ? numAlways(c) : "—"}</td>
+                </tr>
+              );
+            })
+          ) : (
+            <tr>
+              <td className="border border-black px-1.5 py-0.5">Other in TZS</td>
+              <td className="border border-black px-1.5 py-0.5 text-right">{openerOtherTzs ? numAlways(openerOtherTzs) : "—"}</td>
+              <td className="border border-black px-1.5 py-0.5 text-right">{closerOtherTzs ? numAlways(closerOtherTzs) : "—"}</td>
+            </tr>
+          )}
+
           <tr className="bg-gray-100 font-semibold">
             <td className="border border-black px-1.5 py-0.5">Total Cash (TZS)</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(openerCashTzs + openerOtherTzs)}</td>
@@ -667,19 +688,7 @@ const ShiftClosingReport = ({
           <tr>
             <td className="border border-black px-1.5 py-0.5">Cash Flow FILL</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{num(effCashFlowTransfers.addFloat)}</td>
-            <td className="border border-black px-1.5 py-0.5">Tips Day</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{num(effTipsByShift.day)}</td>
-          </tr>
-          <tr>
-            <td className="border border-black px-1.5 py-0.5">Cash Flow CREDIT</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{num(effCashFlowTransfers.slotsOut)}</td>
-            <td className="border border-black px-1.5 py-0.5">Tips Night</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{num(effTipsByShift.night)}</td>
-          </tr>
-          <tr>
-            <td className="border border-black px-1.5 py-0.5">Cash Desk Chips FILL</td>
-            <td className="border border-black px-1.5 py-0.5 text-right"></td>
-            <td className="border border-black px-1.5 py-0.5">− Tips (this shift)</td>
+            <td className="border border-black px-1.5 py-0.5">Tips</td>
             <td className="border border-black px-1.5 py-0.5 text-right">
               {(() => {
                 const v = tipsTotal ?? (effTipsByShift.day + effTipsByShift.night);
@@ -687,23 +696,24 @@ const ShiftClosingReport = ({
               })()}
             </td>
           </tr>
+          <tr>
+            <td className="border border-black px-1.5 py-0.5">Cash Flow CREDIT</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{num(effCashFlowTransfers.slotsOut)}</td>
+            <td className="border border-black px-1.5 py-0.5"></td>
+            <td className="border border-black px-1.5 py-0.5 text-right"></td>
+          </tr>
+          <tr>
+            <td className="border border-black px-1.5 py-0.5">Cash Desk Chips FILL</td>
+            <td className="border border-black px-1.5 py-0.5 text-right"></td>
+            <td className="border border-black px-1.5 py-0.5"></td>
+            <td className="border border-black px-1.5 py-0.5 text-right"></td>
+          </tr>
+
           {(() => {
-            const PROV_ROWS: Array<{ key: string; label: string }> = [
-              { key: "MPESA",   label: "M Pesa" },
-              { key: "TIGO",    label: "T Pesa" },
-              { key: "HALOTEL", label: "H Pesa" },
-              { key: "AIRTEL",  label: "Airtel Money" },
-            ];
             type LeftRow = { label: string; val: string; bold?: boolean };
+            // Per-provider detail lives in the "Cash Less Shift Transactions"
+            // table above — keep only the NET line here to avoid duplication.
             const leftRows: LeftRow[] = [];
-            PROV_ROWS.forEach(p => {
-              const v = Number(effCashlessIO.inByProv[p.key] || 0);
-              if (v > 0) leftRows.push({ label: `+ Cashless IN · ${p.label}`, val: numAlways(v) });
-            });
-            PROV_ROWS.forEach(p => {
-              const v = Number(effCashlessIO.outByProv[p.key] || 0);
-              if (v > 0) leftRows.push({ label: `− Cashless OUT · ${p.label}`, val: `-${numAlways(v)}` });
-            });
             const inS = Object.values(effCashlessIO.inByProv).reduce((s, x) => s + Number(x || 0), 0);
             const outS = Object.values(effCashlessIO.outByProv).reduce((s, x) => s + Number(x || 0), 0);
             const net = inS - outS;
@@ -712,6 +722,7 @@ const ShiftClosingReport = ({
               val: net === 0 ? "" : (net > 0 ? "+" : "−") + numAlways(Math.abs(net)),
               bold: true,
             });
+
             // If there were no cashless movements at all, keep the single NET row
             // as a placeholder so the report still shows the line.
             const missVal = (() => {
