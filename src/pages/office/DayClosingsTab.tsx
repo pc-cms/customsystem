@@ -437,6 +437,8 @@ export default function DayClosingsTab() {
       header: "Net Win",
       type: "money",
       style: { width: 168 },
+      sortValue: (r) => val(r).slots,
+
       accessor: (r) => numCell(r, val(r).slots, (n) => setField(r.date, { slots: n }), {
         placeholder: 0,
         title: `Net Win — slots gaming SYSTEM result (ACE Collector or manual). Goes to Statistics and P&L only. Never part of Wallet Expected, never taken from a cashier shift.`,
