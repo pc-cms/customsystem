@@ -79,53 +79,53 @@ export default function RatesTab() {
         })}
       </div>
 
-      <PageSection bodyClassName="p-0 overflow-hidden">
-        <div className="max-h-[65vh] overflow-auto">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 z-10 bg-muted text-[11px] uppercase tracking-wider text-muted-foreground">
-              <tr>
-                <th className="text-left px-3 py-2 w-36">Date</th>
-                {CURRENCIES.map((c) => (
-                  <th key={c} className="text-right px-3 py-2 w-44">
-                    {c} → TZS
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {dates.map((date) => (
-                <tr
-                  key={date}
-                  className={cn(
-                    "border-t border-border transition-colors hover:bg-muted/40",
-                    date === today
-                      ? "bg-primary/5 border-l-2 border-l-primary"
-                      : "odd:bg-muted/10",
-                  )}
-                >
-                  <td className="px-3 py-1.5 font-mono text-xs whitespace-nowrap">
-                    {fmtDate(date)}
-                    {date === today && (
+      <PageSection bodyClassName="p-0">
+        <div className="overflow-x-auto">
+          <SmartTable<{ date: string }>
+            data={dates.map((date) => ({ date }))}
+            rowKey={(r) => r.date}
+            scroll={false}
+            stickyHeader
+            virtualize={false}
+            bare
+            rowClassName={(r) =>
+              r.date === today ? "bg-primary/5 border-l-2 border-l-primary" : undefined
+            }
+            columns={[
+              {
+                key: "date",
+                header: "Date",
+                type: "date",
+                style: { width: 150 },
+                sortValue: (r) => r.date,
+                accessor: (r) => (
+                  <span className="font-mono text-xs whitespace-nowrap">
+                    {fmtDate(r.date)}
+                    {r.date === today && (
                       <span className="ml-2 text-[10px] uppercase tracking-wider text-primary">today</span>
                     )}
-                  </td>
-                  {CURRENCIES.map((c) => (
-                    <RateCell
-                      key={c}
-                      date={date}
-                      currency={c}
-                      value={byKey.get(`${date}|${c}`) ?? null}
-                    />
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </span>
+                ),
+              },
+              ...CURRENCIES.map((c) => ({
+                key: c,
+                header: `${c} → TZS`,
+                type: "money" as const,
+                headerClassName: "text-right",
+                cellClassName: "text-right",
+                sortValue: (r: { date: string }) => byKey.get(`${r.date}|${c}`) ?? null,
+                accessor: (r: { date: string }) => (
+                  <RateCell date={r.date} currency={c} value={byKey.get(`${r.date}|${c}`) ?? null} />
+                ),
+              })),
+            ]}
+          />
         </div>
       </PageSection>
     </PageShell>
   );
 }
+
 
 function RateCell({
   date,
