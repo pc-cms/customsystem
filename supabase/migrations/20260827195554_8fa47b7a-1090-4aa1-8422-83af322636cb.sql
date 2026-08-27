@@ -1,0 +1,12 @@
+REVOKE ALL ON FUNCTION public.closing_inbox_get(uuid,date) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.closing_inbox_pending(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.closing_inbox_set_correction(uuid,integer,numeric,text) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.closing_inbox_set_wallet(uuid,uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.closing_inbox_post_all(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.closing_inbox_build(uuid,date) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.closing_inbox_map_wallet(uuid,text,text,text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.closing_inbox_get(uuid,date) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.closing_inbox_pending(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.closing_inbox_set_correction(uuid,integer,numeric,text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.closing_inbox_set_wallet(uuid,uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.closing_inbox_post_all(uuid) TO authenticated;

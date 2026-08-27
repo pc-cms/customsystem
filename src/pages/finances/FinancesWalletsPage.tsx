@@ -21,6 +21,7 @@ import {
   ChevronDown,
   CalendarCheck,
   Sliders,
+  Inbox,
 } from "lucide-react";
 
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -47,6 +48,8 @@ import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import WalletMovementDialog, { type MovementMode } from "@/components/finances/WalletMovementDialog";
+import ClosingInboxDialog from "@/components/finances/ClosingInboxDialog";
+import { useClosingInboxPending } from "@/hooks/use-closing-inbox";
 import StaleCountsNotice, { type CountFreshnessRow } from "@/components/office/StaleCountsNotice";
 import { BalanceBanner } from "@/components/office/BalanceBanner";
 
@@ -399,10 +402,16 @@ export default function FinancesWalletsPage() {
     Math.abs(totals.variance) < 1 ? "neutral" : totals.variance > 0 ? "positive" : "negative";
 
 
+  /* ===== closing wallet inbox (money handover after Day Closing) ===== */
+  const { data: pendingInboxes = [] } = useClosingInboxPending();
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const [inboxDate, setInboxDate] = useState<string | null>(null);
+
   /* ===== wallet movement (transactional cash in/out/transfer) ===== */
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveMode, setMoveMode] = useState<MovementMode>("in");
   const [moveWalletId, setMoveWalletId] = useState<string | undefined>(undefined);
+
 
   /* ===== wallet CRUD dialog ===== */
   const [walletOpen, setWalletOpen] = useState(false);
@@ -556,6 +565,19 @@ export default function FinancesWalletsPage() {
   return (
     <PageShell>
       <OfficeActions>
+        {!!pendingInboxes.length && (
+          <Button
+            variant="default"
+            size="sm"
+            className="h-9"
+            onClick={() => {
+              setInboxDate(pendingInboxes[0].business_date);
+              setInboxOpen(true);
+            }}
+          >
+            <Inbox className="w-4 h-4" /> Closing Inbox · {pendingInboxes.length} pending
+          </Button>
+        )}
         <Button
           variant="secondary"
           size="sm"
@@ -568,6 +590,7 @@ export default function FinancesWalletsPage() {
         >
           <ArrowDownLeft className="w-4 h-4" /> Money In
         </Button>
+
         <Button
           variant="secondary"
           size="sm"
@@ -1429,6 +1452,8 @@ export default function FinancesWalletsPage() {
           </Button>
         </div>
       </ResponsiveDialog>
+
+      <ClosingInboxDialog open={inboxOpen} onOpenChange={setInboxOpen} businessDate={inboxDate} />
 
       <WalletMovementDialog
         open={moveOpen}
