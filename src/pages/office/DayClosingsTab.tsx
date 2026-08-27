@@ -475,7 +475,9 @@ export default function DayClosingsTab() {
       header: "Card Balance",
       type: "money",
       style: { width: 150 },
+      sortValue: (r) => val(r).cards,
       accessor: (r) => numCell(r, val(r).cards, (n) => setField(r.date, { cards: n }), {
+
         tone: false,
         allowNegative: true,
         title: "Client balance held on player cards. Separate figure — added to Wallet Expected exactly once, never subtracted from Net Win. Negative values allowed.",
