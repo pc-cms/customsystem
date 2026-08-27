@@ -162,7 +162,7 @@ export default function FinancesAliasesPage() {
             </div>
           )}
         </div>
-        <div className="rounded-md border border-border overflow-auto max-h-[70vh]">
+        <div className="rounded-md border border-border overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-muted sticky top-0">
               <tr>

@@ -106,7 +106,7 @@ export default function FinancesAuditLogPage() {
         <div className="flex justify-end mb-2">
           <Button size="sm" variant="ghost" onClick={reset} className="h-7 text-xs">Reset</Button>
         </div>
-        <div className="rounded-md border border-border overflow-auto max-h-[70vh]">
+        <div className="rounded-md border border-border overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-muted sticky top-0">
               <tr>

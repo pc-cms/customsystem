@@ -344,7 +344,7 @@ export default function FinancesBudgetVsActualPage() {
             ⚠ No USD rate set for today — Grand TZS columns ignore USD amounts.
           </div>
         )}
-        <div className="rounded-md border border-border overflow-auto max-h-[78vh] bg-card">
+        <div className="rounded-md border border-border overflow-x-auto bg-card">
           <table className="text-xs border-separate border-spacing-0" style={{ minWidth: 2400 }}>
             <thead className="sticky top-0 z-[2]">
               <tr className="bg-muted">
@@ -399,7 +399,7 @@ export default function FinancesBudgetVsActualPage() {
               {drill?.ccy ? ` · ${drill.ccy}` : ""}
             </DialogTitle>
           </DialogHeader>
-          <div className="rounded-md border border-border overflow-auto max-h-[60vh]">
+          <div className="rounded-md border border-border overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="bg-muted sticky top-0">
                 <tr>
