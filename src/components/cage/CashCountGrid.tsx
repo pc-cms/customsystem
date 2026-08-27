@@ -133,7 +133,6 @@ const CashCountGrid = ({
 }) => {
   const banksTzsTotal = (banks.tzs || 0) + (banks.usd || 0) * (rates?.["USD"] || 0);
 
-  const mdRow = "flex items-center gap-2";
   const bankNetTzs = BANK_CHANNELS.reduce((s, ch) => {
     const e = banks.channels?.[ch.key];
     const net = Number(e?.in || 0) - Number(e?.out || 0);
@@ -145,7 +144,10 @@ const CashCountGrid = ({
   const mdInput = "no-spin font-mono text-sm h-8 w-24 flex-1 min-w-0 rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary";
   const bankInput = "no-spin font-mono text-xs h-7 w-full min-w-0 rounded border border-border bg-background px-1.5 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary";
 
+  const sectionCls = "rounded-xl border border-border bg-background/40 p-3 flex flex-col";
+  const titleCls = "text-xs font-bold text-foreground uppercase tracking-[0.22em] mb-2";
   const stackCls = "flex flex-col gap-3";
+
 
   const showCashlessIn = !!onCashlessInChange && !!cashlessIn;
   const showCashlessOut = !!onCashlessOutChange && !!cashlessOut;
