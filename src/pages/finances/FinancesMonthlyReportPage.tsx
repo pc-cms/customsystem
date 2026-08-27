@@ -882,18 +882,8 @@ const SummaryBlock = ({
             }
           />
 
-
           <div className="flex-1" />
-          <Line
-            label="Total Expenses & Obligations"
-            v={obligationsTotal}
-            strong
-            tip={
-              closed
-                ? "Actual Expenses + Extra Expenses not already inside Actual + frozen closing Liabilities + Collections. Commissions & Fee are income lines and are never deducted here."
-                : "Budget + all Extra Expenses + closing Liabilities + Collections. Commissions & Fee are income lines and are never deducted here."
-            }
-          />
+
         </div>
 
         {/* C · CASH ADJUSTMENTS */}
