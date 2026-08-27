@@ -257,10 +257,26 @@ Deno.serve(async (req) => {
   }
 
   const appliedAt = new Date().toISOString();
+
+  // Two ACE periods mapping to the same business date silently overwrite each
+  // other's Drop / JP. Record it so the mismatch is visible instead of lost.
+  const { data: dupes } = await admin
+    .from("ace_finance_snapshots")
+    .select("period_id")
+    .eq("location_code", location_code)
+    .eq("business_date", business_date)
+    .neq("period_id", period_id)
+    .limit(3);
+  const dupNote = dupes && dupes.length
+    ? `duplicate_business_date:${dupes.map((d) => d.period_id).join(",")}`
+    : null;
+  if (dupNote) console.warn("ace-finance-ingest:", location_code, business_date, dupNote);
+
   await admin
     .from("ace_finance_snapshots")
-    .update({ apply_status: "applied", apply_error: null, closing_applied_at: appliedAt })
+    .update({ apply_status: "applied", apply_error: dupNote, closing_applied_at: appliedAt })
     .eq("id", data.id);
+
 
   return json({
     ok: true,
