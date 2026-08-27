@@ -408,6 +408,8 @@ export default function DayClosingsTab() {
       header: "Date",
       type: "date",
       style: { width: 100 },
+      sortValue: (r) => r.date,
+
       accessor: (r) => <span className="font-mono text-[11px] whitespace-nowrap">{fmtDate(r.date)}</span>,
     },
     {
