@@ -580,7 +580,7 @@ export default function DayClosingsTab() {
 
 
       <PageSection bodyClassName="p-0">
-        <div className="max-h-[70vh] overflow-auto">
+        <div className="overflow-x-auto">
           <SmartTable<Row>
             data={rows}
             columns={columns}
