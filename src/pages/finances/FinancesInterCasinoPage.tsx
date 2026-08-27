@@ -180,7 +180,13 @@ export default function FinancesInterCasinoPage() {
                           <Badge variant="outline" className={STATUS_STYLE[r.status]}>
                             {r.status}
                           </Badge>
+                          {(r as any).repayable ? (
+                            <Badge variant="outline" className="ml-1 border-amber-500/40 text-amber-600">
+                              DEBT
+                            </Badge>
+                          ) : null}
                         </td>
+
                         <td className="px-3 py-1.5 text-xs text-muted-foreground">
                           {r.note}
                           {r.resolution_note ? ` · ${r.resolution_note}` : ""}
