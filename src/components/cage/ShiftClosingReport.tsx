@@ -346,12 +346,16 @@ const ShiftClosingReport = ({
   // Cash flow opener (per currency cash + mobile from opening_float)
   const openerCash = (openingFloat?.cash || {}) as Record<string, Record<string | number, number>>;
   const openerMobile = (openingFloat?.mobile || {}) as Record<string, number>;
-  const openerBank = (openingFloat?.bank || {}) as { tzs?: number; usd?: number };
+  const openerBank = (openingFloat?.bank || {}) as { tzs?: number; usd?: number; channels?: Record<string, { in?: number; out?: number; final?: number }> };
 
   // Closer from closingCount snapshot
   const closerCash = (closingCount?.cash || {}) as Record<string, Record<string | number, number>>;
   const closerMobile = (closingCount?.mobile || {}) as Record<string, number>;
-  const closerBank = (closingCount?.bank || {}) as { tzs?: number; usd?: number };
+  const closerBank = (closingCount?.bank || {}) as { tzs?: number; usd?: number; channels?: Record<string, { in?: number; out?: number; final?: number }> };
+  /** Explicit bank channels exist only for closings captured after the CRDB/NBC rollout. */
+  const hasBankChannels = !!(openerBank.channels || closerBank.channels);
+  const bankFinal = (b: typeof openerBank, key: string) => Number(b.channels?.[key]?.final || 0);
+
 
   const cashCurrencyTotal = (cash: Record<string | number, number> | undefined) =>
     cash ? Object.entries(cash).reduce((s, [d, q]) => s + Number(d) * (Number(q) || 0), 0) : 0;
