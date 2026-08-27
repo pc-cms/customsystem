@@ -341,6 +341,19 @@ export default function FinancesInterCasinoPage() {
               onValueChange={(v) => setForm({ ...form, amount: v ?? 0 })}
             />
           </FormField>
+          <FormField span={12} label="Repayable (creates a debt at the receiver)">
+            <div className="flex h-9 items-center gap-2">
+              <Switch
+                checked={form.repayable}
+                onCheckedChange={(v) => setForm({ ...form, repayable: v })}
+              />
+              <span className="text-xs text-muted-foreground">
+                {form.repayable
+                  ? "The receiving casino books this as a liability to be repaid."
+                  : "Plain funding — no liability is created."}
+              </span>
+            </div>
+          </FormField>
           <FormField span={12} label="Note">
             <Input
               value={form.note}
@@ -348,6 +361,7 @@ export default function FinancesInterCasinoPage() {
               placeholder="Reason / reference"
             />
           </FormField>
+
         </FormGrid>
         <p className="mt-2 text-xs text-muted-foreground">
           The receiving casino confirms this transfer and picks the wallet — only wallets in the same currency can be
