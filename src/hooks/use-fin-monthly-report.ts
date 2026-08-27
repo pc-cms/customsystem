@@ -146,6 +146,8 @@ export type MonthlyReport = {
     /** Deposits = Tips & Bonuses + JP + Card Balance + Miss Chips + Miss Cards (signed). */
     deposits: number;
     available_for_collection: number;
+    /** Individual investment movements of the month (for the expandable section). */
+    investment_items: Array<{ id: string; business_date: string; label: string; amount_tzs: number }>;
   };
   /** Month status + the full server-side finance block (single source of truth). */
   month: MonthFinance | null;
