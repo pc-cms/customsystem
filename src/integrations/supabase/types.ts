@@ -2854,11 +2854,15 @@ export type Database = {
           currency: string
           denomination: number | null
           final_amount: number | null
+          final_balance: number | null
           id: string
           inbox_id: string
           label: string
+          opening_balance: number | null
           orig_amount: number
           orig_count: number | null
+          orig_in: number
+          orig_out: number
           posted_tx_id: string | null
           section: string
           source_kind: string
@@ -2880,11 +2884,15 @@ export type Database = {
           currency?: string
           denomination?: number | null
           final_amount?: number | null
+          final_balance?: number | null
           id?: string
           inbox_id: string
           label: string
+          opening_balance?: number | null
           orig_amount?: number
           orig_count?: number | null
+          orig_in?: number
+          orig_out?: number
           posted_tx_id?: string | null
           section: string
           source_kind: string
@@ -2906,11 +2914,15 @@ export type Database = {
           currency?: string
           denomination?: number | null
           final_amount?: number | null
+          final_balance?: number | null
           id?: string
           inbox_id?: string
           label?: string
+          opening_balance?: number | null
           orig_amount?: number
           orig_count?: number | null
+          orig_in?: number
+          orig_out?: number
           posted_tx_id?: string | null
           section?: string
           source_kind?: string
