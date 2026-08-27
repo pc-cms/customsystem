@@ -260,7 +260,7 @@ export default function WalletMovementDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Wallet Movement"
-      description="Balance adjustment in / out or a transfer — not counted as income or expense"
+      description="Add / Take money corrects the Actual balance only (like a recount). Transfer moves money between wallets."
       size="table"
     >
       <div className="space-y-4">
