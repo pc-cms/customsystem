@@ -1,42 +1,44 @@
-# ShiftClosingReport — банки по каналам и чистка дублей
+# ShiftClosingReport (Live) — банки, дубли, Tips + кнопка Tips в кассе
 
 ## 1. Банки отдельными строками (вместо «Other in TZS»)
 
-Сейчас в блоке Cash Flow (Opener / Closer) банки сворачиваются в одну строку `Other in TZS`
-(`openerOtherTzs` / `closerOtherTzs` = legacy `bank.tzs` + `bank.usd × курс`).
+В блоке Cash Flow (Opener / Closer) банки сейчас сворачиваются в одну строку `Other in TZS`
+(`bank.tzs` + `bank.usd × курс`).
 
-Станет: в этом же блоке после строк валют печатаются четыре строки по каналам —
-`Bank CRDB TZS`, `Bank CRDB USD`, `Bank NBC TZS`, `Bank NBC USD`, с закрывающим остатком
-(`channels[key].final`) в колонках Opener и Closer. Значения USD показываются в USD,
-а в общий Total идут пересчитанными в TZS по курсу смены (как сейчас).
+Станет: после строк валют печатаются четыре строки по каналам — `Bank CRDB TZS`,
+`Bank CRDB USD`, `Bank NBC TZS`, `Bank NBC USD` с закрывающим остатком (`channels[key].final`)
+в колонках Opener и Closer; USD показывается в USD, а в Total идёт пересчитанным в TZS
+по курсу смены.
 
-Правила:
-- Если в снапшоте есть `bank.channels` — печатаются 4 канальные строки.
-- Если снапшот старый (только `bank.tzs` / `bank.usd`, без каналов) — печатается прежняя
-  строка `Other in TZS`, чтобы перепечатка старых смен не сломалась.
-- Итоги `Total Cash (TZS)` и `Total` не меняются по сумме — только детализация строк.
+- Есть `bank.channels` → печатаются 4 канальные строки.
+- Старый снапшот без каналов → остаётся прежняя строка `Other in TZS` (перепечатка не ломается).
+- Суммы `Total Cash (TZS)` и `Total` не меняются — меняется только детализация.
 
 ## 2. Дубли в сводной панели
 
-**Cashless.** Провайдерские строки `+ Cashless IN · M Pesa`, `+ Cashless IN · Airtel Money`,
-`− Cashless OUT · …` повторяют таблицу «Cash Less Shift Transactions», которая уже печатается
-выше с колонками Deposit / Withdraw / NET / End Day. В сводной панели остаётся одна итоговая
-строка `NET Cashless`, построчная детализация убирается.
+**Cashless.** Строки `+ Cashless IN · M Pesa`, `+ Cashless IN · Airtel Money`,
+`− Cashless OUT · …` дублируют таблицу «Cash Less Shift Transactions» выше (там уже есть
+Deposit / Withdraw / NET / End Day). В сводной панели остаётся одна строка `NET Cashless`.
 
-**Tips.** Сейчас всегда печатаются три строки: `Tips Day`, `Tips Night`, `− Tips (this shift)`.
-Останется: строка `− Tips (this shift)` печатается всегда (она участвует в Shift Balance),
-а `Tips Day` / `Tips Night` печатаются только если значение ненулевое. При одной смене
-получится ровно одна строка Tips вместо трёх.
+**Tips.** Вместо трёх строк (`Tips Day`, `Tips Night`, `− Tips (this shift)`) в Live-отчёте
+печатается одна строка `Tips` — сумма чаевых смены, со знаком минус (она вычитается из
+Shift Balance и далее переносится в колонку TIPS). Разбивка Day/Night в Live убирается;
+в Slots (Tips CD Day / Night) всё остаётся как есть.
 
-Освободившиеся ячейки правой/левой колонки таблицы 4×N заполняются оставшимися строками
-(`Cash Desk Chips CREDIT`, `Miss Chips`) — сетка выравнивается автоматически по числу строк.
+## 3. Кнопка Tips в кассе Live Game
+
+В `ActiveShiftView` блок кнопок Tips Live / Tips Poker / Tips Floor / Promo IN / Issue Ticket
+сейчас отключён (`{false && …}`). Возвращается одна кнопка `Tips` (иконка Gift), открывающая
+существующий `TipsDialog` с kind `tips_live`. Остальные кнопки (Tips Poker, Tips Floor,
+Promo IN, Issue Ticket) остаются скрытыми.
 
 ## Технические детали
 
 - `src/components/cage/ShiftClosingReport.tsx`
-  - Cash Flow: рендер строк банков по `BANK_CHANNELS` из `@/components/cage/CageHelpers`,
+  - Cash Flow: рендер строк по `BANK_CHANNELS` из `@/components/cage/CageHelpers`,
     чтение `openingFloat.bank.channels` / `closingCount.bank.channels`, fallback на legacy.
-  - Сводная панель: `leftRows` = только `NET Cashless`; блок Tips — условный рендер
-    нулевых `Tips Day` / `Tips Night`.
-- Расчёты балансов, `bankTotalTzs`, Closing Inbox и БД не трогаются — правка только печатная.
+  - Сводная панель: `leftRows` = только `NET Cashless`; блок Tips → одна строка `Tips`
+    со значением `tipsTotal ?? (day + night)`.
+- `src/components/cage/ActiveShiftView.tsx`: кнопка `Tips` выводится вне блока `{false && …}`.
+- Логика балансов, `TipsDialog`, Closing Inbox и БД не меняются — правки только UI/печать.
 - Bump версии в `package.json` (сейчас 1.3.683).
