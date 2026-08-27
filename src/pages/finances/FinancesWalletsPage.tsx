@@ -399,10 +399,16 @@ export default function FinancesWalletsPage() {
     Math.abs(totals.variance) < 1 ? "neutral" : totals.variance > 0 ? "positive" : "negative";
 
 
+  /* ===== closing wallet inbox (money handover after Day Closing) ===== */
+  const { data: pendingInboxes = [] } = useClosingInboxPending();
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const [inboxDate, setInboxDate] = useState<string | null>(null);
+
   /* ===== wallet movement (transactional cash in/out/transfer) ===== */
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveMode, setMoveMode] = useState<MovementMode>("in");
   const [moveWalletId, setMoveWalletId] = useState<string | undefined>(undefined);
+
 
   /* ===== wallet CRUD dialog ===== */
   const [walletOpen, setWalletOpen] = useState(false);
