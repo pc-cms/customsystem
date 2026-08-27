@@ -770,13 +770,7 @@ const SummaryBlock = ({
           <Line label="Bar Income" v={inc.bar_income} tip="POS / bar revenue counted once, in income and in cash." />
 
           <div className="flex-1" />
-          <Line
-            label="Total Income"
-            v={kpi.total_income}
-            strong
-            signed
-            tip="Table Result + Slot Result + Bar Income + Commissions."
-          />
+
         </div>
 
         {/* B · EXPENSES & OBLIGATIONS */}
