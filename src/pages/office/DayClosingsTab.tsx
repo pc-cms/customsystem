@@ -462,7 +462,9 @@ export default function DayClosingsTab() {
       header: "Slot Drop",
       type: "money",
       style: { width: 168 },
+      sortValue: (r) => val(r).drop,
       accessor: (r) => numCell(r, val(r).drop, (n) => setField(r.date, { drop: n }), {
+
         tone: false,
         title: "Slot Drop from Close Day. Editable manually.",
       }),
