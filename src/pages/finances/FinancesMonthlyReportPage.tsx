@@ -703,8 +703,8 @@ const SummaryBlock = ({
         </span>
       }
     >
-      {/* KPI TILES — Income → Budget → Paid → Pending → Profit → Cash Position → Cash Balance */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7 gap-3 items-stretch">
+      {/* KPI TILES — Income → Budget → Paid → Pending → Profit → Cash Balance */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3 items-stretch">
         <KpiCard
           label="Total Income"
           v={kpi.total_income}
@@ -737,12 +737,6 @@ const SummaryBlock = ({
               ? "Final · Total Income − Actual Expenses − Extra Expenses not in Actual − Liabilities (frozen at close)"
               : "Forecast · Total Income − Budget − Extra Expenses − Liabilities − Collections"
           }
-        />
-        <KpiCard
-          label="Cash Position"
-          v={kpi.cash_position}
-          tone="signed"
-          formula="Basic Float + Total Income + Office + Investment + Intercompany Cash Effect − Actual Expenses − Paid Extra Expenses (not in Actual) − Collections − Liability Payments. Deposits have no effect on Cash Position."
         />
         <KpiCard
           label="Current Cash Balance"
