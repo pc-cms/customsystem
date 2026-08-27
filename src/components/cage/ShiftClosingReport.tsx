@@ -708,22 +708,10 @@ const ShiftClosingReport = ({
           </tr>
 
           {(() => {
-            const PROV_ROWS: Array<{ key: string; label: string }> = [
-              { key: "MPESA",   label: "M Pesa" },
-              { key: "TIGO",    label: "T Pesa" },
-              { key: "HALOTEL", label: "H Pesa" },
-              { key: "AIRTEL",  label: "Airtel Money" },
-            ];
             type LeftRow = { label: string; val: string; bold?: boolean };
+            // Per-provider detail lives in the "Cash Less Shift Transactions"
+            // table above — keep only the NET line here to avoid duplication.
             const leftRows: LeftRow[] = [];
-            PROV_ROWS.forEach(p => {
-              const v = Number(effCashlessIO.inByProv[p.key] || 0);
-              if (v > 0) leftRows.push({ label: `+ Cashless IN · ${p.label}`, val: numAlways(v) });
-            });
-            PROV_ROWS.forEach(p => {
-              const v = Number(effCashlessIO.outByProv[p.key] || 0);
-              if (v > 0) leftRows.push({ label: `− Cashless OUT · ${p.label}`, val: `-${numAlways(v)}` });
-            });
             const inS = Object.values(effCashlessIO.inByProv).reduce((s, x) => s + Number(x || 0), 0);
             const outS = Object.values(effCashlessIO.outByProv).reduce((s, x) => s + Number(x || 0), 0);
             const net = inS - outS;
@@ -732,6 +720,7 @@ const ShiftClosingReport = ({
               val: net === 0 ? "" : (net > 0 ? "+" : "−") + numAlways(Math.abs(net)),
               bold: true,
             });
+
             // If there were no cashless movements at all, keep the single NET row
             // as a placeholder so the report still shows the line.
             const missVal = (() => {
