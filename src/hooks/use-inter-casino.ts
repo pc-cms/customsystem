@@ -73,6 +73,8 @@ export const useSendInterCasino = () => {
       amount: number;
       business_date: string;
       note?: string;
+      /** true → receiver books a debt (default); false → plain funding with no liability. */
+      repayable?: boolean;
     }) => {
       const { data, error } = await (supabase as any).rpc("fin_inter_casino_send", {
         _from_wallet_id: input.from_wallet_id,
@@ -80,7 +82,9 @@ export const useSendInterCasino = () => {
         _amount: input.amount,
         _business_date: input.business_date,
         _note: input.note ?? null,
+        _repayable: input.repayable ?? true,
       });
+
       if (error) throw error;
       return data as string;
     },
