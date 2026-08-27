@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { NumberInput } from "@/components/ui/number-input";
+import { SmartTable } from "@/components/ui/smart-table";
+
 import { useFinDailyRates, useUpsertFinDailyRate, useEnsureDailyRates } from "@/hooks/use-fin-daily-rates";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
