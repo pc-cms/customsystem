@@ -24,8 +24,10 @@ import LockableSection from "@/components/cage/LockableSection";
 import {
   MOBILE_PROVIDERS, emptyMobile, emptyBanks, mobileTotal, bankTotalTzs,
   chipSum, emptyCash, calcCashTotalTzs,
+  BANK_CHANNELS, emptyBankChannels, withDerivedBankTotals,
   type MobileProviders, type Banks,
 } from "@/components/cage/CageHelpers";
+
 import type { Tables } from "@/integrations/supabase/types";
 
 const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
@@ -316,17 +318,35 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
             </LockableSection>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-            <LockableSection title="Bank TZS" locked={locks.bankTzs} onToggleLock={() => toggleLock("bankTzs")}>
-              <NumberInput value={bankBalance.tzs || ""} onChange={v => setBankBalance(b => ({ ...b, tzs: Number(v) || 0 }))} className="no-spin h-7 w-full text-right text-xs" placeholder="0" />
-            </LockableSection>
-            <LockableSection title="Bank USD" locked={locks.bankUsd} onToggleLock={() => toggleLock("bankUsd")}>
-              <NumberInput value={bankBalance.usd || ""} onChange={v => setBankBalance(b => ({ ...b, usd: Number(v) || 0 }))} className="no-spin h-7 w-full text-right text-xs" placeholder="0" />
-              {bankBalance.usd > 0 && rates?.["USD"] ? (
-                <p className="text-[9px] font-mono text-muted-foreground">= TZS {formatNumberSpaces(bankBalance.usd * (rates["USD"] || 0))}</p>
-              ) : null}
-            </LockableSection>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            {BANK_CHANNELS.map(ch => {
+              const e = bankBalance.channels?.[ch.key] || { in: 0, out: 0, final: 0 };
+              return (
+                <LockableSection
+                  key={ch.key}
+                  title={`${ch.bank} ${ch.currency}`}
+                  locked={ch.currency === "USD" ? locks.bankUsd : locks.bankTzs}
+                  onToggleLock={() => toggleLock(ch.currency === "USD" ? "bankUsd" : "bankTzs")}
+                >
+                  <NumberInput
+                    value={e.final || ""}
+                    onChange={v => setBankBalance(b => withDerivedBankTotals({
+                      ...b,
+                      channels: { ...emptyBankChannels(), ...(b.channels || {}), [ch.key]: { ...e, final: Number(v) || 0 } },
+                    }))}
+                    className="no-spin h-7 w-full text-right text-xs"
+                    placeholder="0"
+                  />
+                </LockableSection>
+              );
+            })}
           </div>
+          {bankBalance.usd > 0 && rates?.["USD"] ? (
+            <p className="text-[9px] font-mono text-muted-foreground text-right">
+              USD balance = TZS {formatNumberSpaces(bankBalance.usd * (rates["USD"] || 0))}
+            </p>
+          ) : null}
+
 
           <div className="cms-panel px-3 py-2 space-y-2">
             <div className="grid grid-cols-2 gap-3">
