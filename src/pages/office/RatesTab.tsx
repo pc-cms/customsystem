@@ -161,22 +161,21 @@ function RateCell({
   };
 
   return (
-    <td className="px-3 py-1.5 text-right">
-      <NumberInput
-        decimals={0}
-        value={display}
-        placeholder={value == null ? "·" : ""}
-        onValueChange={(v) => setDraft(v == null ? "" : String(v))}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-        }}
-        className={cn(
-          "text-right font-mono tabular-nums h-8 bg-transparent border-transparent hover:border-border focus:border-primary",
-          value == null && "text-muted-foreground",
-          draft !== "" && "ring-1 ring-primary/40 border-primary/40",
-        )}
-      />
-    </td>
+    <NumberInput
+      decimals={0}
+      value={display}
+      placeholder={value == null ? "·" : ""}
+      onValueChange={(v) => setDraft(v == null ? "" : String(v))}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+      }}
+      className={cn(
+        "text-right font-mono tabular-nums h-8 bg-transparent border-transparent hover:border-border focus:border-primary",
+        value == null && "text-muted-foreground",
+        draft !== "" && "ring-1 ring-primary/40 border-primary/40",
+      )}
+    />
   );
 }
+
