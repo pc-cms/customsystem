@@ -2797,6 +2797,153 @@ export type Database = {
         }
         Relationships: []
       }
+      closing_wallet_inbox: {
+        Row: {
+          business_date: string
+          casino_id: string
+          created_at: string
+          day_closure_id: string | null
+          id: string
+          posted_at: string | null
+          posted_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          business_date: string
+          casino_id: string
+          created_at?: string
+          day_closure_id?: string | null
+          id?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string
+          created_at?: string
+          day_closure_id?: string | null
+          id?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "closing_wallet_inbox_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      closing_wallet_inbox_rows: {
+        Row: {
+          business_date: string
+          casino_id: string
+          corr_delta_amount: number
+          corr_delta_count: number
+          corrected_at: string | null
+          corrected_by: string | null
+          correction_reason: string | null
+          created_at: string
+          currency: string
+          denomination: number | null
+          final_amount: number | null
+          id: string
+          inbox_id: string
+          label: string
+          orig_amount: number
+          orig_count: number | null
+          posted_tx_id: string | null
+          section: string
+          source_kind: string
+          source_ref_id: string | null
+          source_ref_table: string | null
+          updated_at: string
+          wallet_auto: boolean
+          wallet_id: string | null
+        }
+        Insert: {
+          business_date: string
+          casino_id: string
+          corr_delta_amount?: number
+          corr_delta_count?: number
+          corrected_at?: string | null
+          corrected_by?: string | null
+          correction_reason?: string | null
+          created_at?: string
+          currency?: string
+          denomination?: number | null
+          final_amount?: number | null
+          id?: string
+          inbox_id: string
+          label: string
+          orig_amount?: number
+          orig_count?: number | null
+          posted_tx_id?: string | null
+          section: string
+          source_kind: string
+          source_ref_id?: string | null
+          source_ref_table?: string | null
+          updated_at?: string
+          wallet_auto?: boolean
+          wallet_id?: string | null
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string
+          corr_delta_amount?: number
+          corr_delta_count?: number
+          corrected_at?: string | null
+          corrected_by?: string | null
+          correction_reason?: string | null
+          created_at?: string
+          currency?: string
+          denomination?: number | null
+          final_amount?: number | null
+          id?: string
+          inbox_id?: string
+          label?: string
+          orig_amount?: number
+          orig_count?: number | null
+          posted_tx_id?: string | null
+          section?: string
+          source_kind?: string
+          source_ref_id?: string | null
+          source_ref_table?: string | null
+          updated_at?: string
+          wallet_auto?: boolean
+          wallet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "closing_wallet_inbox_rows_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closing_wallet_inbox_rows_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: false
+            referencedRelation: "closing_wallet_inbox"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closing_wallet_inbox_rows_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cloud_clone_reports: {
         Row: {
           checks: Json
@@ -12393,6 +12540,38 @@ export type Database = {
         Returns: Json
       }
       close_open_sessions_5am: { Args: never; Returns: Json }
+      closing_inbox_build: {
+        Args: { _business_date: string; _casino_id: string }
+        Returns: string
+      }
+      closing_inbox_get: {
+        Args: { _business_date?: string; _casino_id: string }
+        Returns: Json
+      }
+      closing_inbox_map_wallet: {
+        Args: {
+          _casino_id: string
+          _currency: string
+          _label: string
+          _source_kind: string
+        }
+        Returns: string
+      }
+      closing_inbox_pending: { Args: { _casino_id: string }; Returns: Json }
+      closing_inbox_post_all: { Args: { _inbox_id: string }; Returns: Json }
+      closing_inbox_set_correction: {
+        Args: {
+          _delta_amount: number
+          _delta_count: number
+          _reason: string
+          _row_id: string
+        }
+        Returns: Json
+      }
+      closing_inbox_set_wallet: {
+        Args: { _row_id: string; _wallet_id: string }
+        Returns: Json
+      }
       club_buy_lottery_ticket: {
         Args: {
           p_casino_id: string
