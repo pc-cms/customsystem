@@ -12788,6 +12788,19 @@ export type Database = {
             }
             Returns: string
           }
+        | {
+            Args: {
+              _amount: number
+              _business_date: string
+              _from_wallet_id: string
+              _kind?: string
+              _note?: string
+              _repayable?: boolean
+              _repays_id?: string
+              _to_casino_id: string
+            }
+            Returns: string
+          }
       fin_jp_delete_entry: { Args: { p_id: string }; Returns: undefined }
       fin_liability_add: {
         Args: {
