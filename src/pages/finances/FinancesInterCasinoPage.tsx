@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
-import { Building2, Plus, ArrowDownLeft, ArrowUpRight, Check, X } from "lucide-react";
+import { Plus, ArrowDownLeft, ArrowUpRight, Check, X } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,18 +100,15 @@ export default function FinancesInterCasinoPage() {
 
   return (
     <PageShell>
-      <PageHeader
-        icon={Building2}
-        title="Inter-Casino"
-        subtitle="Paired transfers — money leaves one casino (−) and is confirmed on the other (+)"
-      >
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <FinanceCasinoSwitcher allowNetwork={true} />
         {!isSummaryMode && (
           <Button onClick={() => setOpen(true)}>
             <Plus className="w-4 h-4" /> New Transfer
           </Button>
         )}
-      </PageHeader>
+      </div>
+
 
       <PageSection card={false}>
         <Tabs defaultValue="all">

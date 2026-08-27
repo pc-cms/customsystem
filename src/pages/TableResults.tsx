@@ -654,7 +654,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
       {/* Excel-style horizontal report */}
       {!isLoading && buckets.length > 0 && (
         <Card className="p-0 overflow-hidden">
-          <div className="overflow-auto max-h-[calc(100vh-220px)] [container-type:inline-size] relative">
+          <div className="overflow-x-auto [container-type:inline-size] relative">
             <table className="w-full caption-bottom text-xs [&_th]:h-8 [&_th]:px-1.5 [&_td]:p-1.5 [&_thead_th]:sticky">
               {/* Group headers */}
               <TableHeader>

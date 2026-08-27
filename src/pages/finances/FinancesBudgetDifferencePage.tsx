@@ -92,7 +92,7 @@ export default function FinancesBudgetDifferencePage() {
       <PageSection card={false}>
         <div
           ref={scrollRef}
-          className="rounded-md border border-border overflow-auto max-h-[75vh] bg-card"
+          className="rounded-md border border-border overflow-x-auto bg-card"
           style={{ scrollSnapType: "x mandatory", scrollPaddingLeft: catW }}
         >
           <table className="text-[11px] border-separate border-spacing-0" style={{ minWidth: minW }}>

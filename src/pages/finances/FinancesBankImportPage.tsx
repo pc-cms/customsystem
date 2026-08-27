@@ -13,10 +13,9 @@
  */
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Upload, Loader2, Trash2, CheckCircle2, Link2, AlertTriangle, FileSpreadsheet, Ban } from "lucide-react";
+import { Upload, Loader2, Trash2, CheckCircle2, Link2, AlertTriangle, Ban } from "lucide-react";
 
 import { PageShell, PageSection } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -147,10 +146,8 @@ export default function FinancesBankImportPage() {
 
   return (
     <PageShell>
-      <PageHeader title="Import Statement" subtitle="Bank statement import & reconciliation" icon={FileSpreadsheet} />
-
       {/* Step 1–2: wallet + file */}
-      <PageSection title="1. Bank account & file">
+      <PageSection>
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-[220px]">
             <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">Bank wallet</div>
@@ -192,7 +189,7 @@ export default function FinancesBankImportPage() {
       </PageSection>
 
       {/* Batch list */}
-      <PageSection title="2. Import batches">
+      <PageSection>
         <FinTable>
           <FinTHead>
             <tr>
@@ -247,7 +244,7 @@ export default function FinancesBankImportPage() {
       {/* Review */}
       {batch && (
         <PageSection
-          title={`3. Review — ${batch.filename}`}
+          title={batch.filename}
           titleRight={
             <Button
               size="sm"

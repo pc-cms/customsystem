@@ -408,6 +408,8 @@ export default function DayClosingsTab() {
       header: "Date",
       type: "date",
       style: { width: 100 },
+      sortValue: (r) => r.date,
+
       accessor: (r) => <span className="font-mono text-[11px] whitespace-nowrap">{fmtDate(r.date)}</span>,
     },
     {
@@ -422,6 +424,8 @@ export default function DayClosingsTab() {
       header: "Table Result",
       type: "money",
       style: { width: 168 },
+      sortValue: (r) => val(r).tables,
+
       headerClassName: "text-right",
       accessor: (r) => numCell(r, val(r).tables, (n) => setField(r.date, { tables: n }), {
         placeholder: r.agg.tables,
@@ -433,6 +437,8 @@ export default function DayClosingsTab() {
       header: "Net Win",
       type: "money",
       style: { width: 168 },
+      sortValue: (r) => val(r).slots,
+
       accessor: (r) => numCell(r, val(r).slots, (n) => setField(r.date, { slots: n }), {
         placeholder: 0,
         title: `Net Win — slots gaming SYSTEM result (ACE Collector or manual). Goes to Statistics and P&L only. Never part of Wallet Expected, never taken from a cashier shift.`,
@@ -443,6 +449,8 @@ export default function DayClosingsTab() {
       header: "CashDesk Win",
       type: "money",
       style: { width: 168 },
+      sortValue: (r) => val(r).cash,
+
       accessor: (r) => numCell(r, val(r).cash, (n) => setField(r.date, { cash: n }), {
         placeholder: 0,
         title: "CashDesk Win — physical slots cash desk win. The ONLY slots figure that flows into Wallets / Expected. Never equal to Net Win, never taken from a cashier shift.",
@@ -454,7 +462,9 @@ export default function DayClosingsTab() {
       header: "Slot Drop",
       type: "money",
       style: { width: 168 },
+      sortValue: (r) => val(r).drop,
       accessor: (r) => numCell(r, val(r).drop, (n) => setField(r.date, { drop: n }), {
+
         tone: false,
         title: "Slot Drop from Close Day. Editable manually.",
       }),
@@ -465,7 +475,9 @@ export default function DayClosingsTab() {
       header: "Card Balance",
       type: "money",
       style: { width: 150 },
+      sortValue: (r) => val(r).cards,
       accessor: (r) => numCell(r, val(r).cards, (n) => setField(r.date, { cards: n }), {
+
         tone: false,
         allowNegative: true,
         title: "Client balance held on player cards. Separate figure — added to Wallet Expected exactly once, never subtracted from Net Win. Negative values allowed.",
@@ -476,7 +488,9 @@ export default function DayClosingsTab() {
       header: "JP",
       type: "money",
       style: { width: 150 },
+      sortValue: (r) => val(r).jp,
       accessor: (r) => numCell(r, val(r).jp, (n) => setField(r.date, { jp: Math.abs(n) }), {
+
         allowNegative: false,
         placeholder: aceJpSlipOut?.get(r.date) ?? 0,
         title:
@@ -580,7 +594,7 @@ export default function DayClosingsTab() {
 
 
       <PageSection bodyClassName="p-0">
-        <div className="max-h-[70vh] overflow-auto">
+        <div className="overflow-x-auto">
           <SmartTable<Row>
             data={rows}
             columns={columns}

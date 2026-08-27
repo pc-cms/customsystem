@@ -100,8 +100,10 @@ export default function WalletDayGridTab({
         ) : (
           <span className="font-mono tabular-nums">{fmtDateOnly(r.date!)}</span>
         ),
+      sortValue: (r) => r.date ?? "",
       style: { width: 130, minWidth: 130 },
     };
+
 
     const amountClass = (v: number) =>
       v > 0 ? "cms-amount-positive" : v < 0 ? "cms-amount-negative" : "text-muted-foreground/50";
@@ -117,7 +119,10 @@ export default function WalletDayGridTab({
       headerClassName: "text-right",
       cellClassName: "text-right border-l border-border/40 py-1",
       style: { minWidth: 116 },
+      sortValue: (r) =>
+        r.kind === "start" ? startBalances.get(w.id) || 0 : cellOf(w.id, r.date!).total,
       accessor: (r) => {
+
         if (r.kind === "start") {
           const v = startBalances.get(w.id) || 0;
           return (
@@ -167,6 +172,14 @@ export default function WalletDayGridTab({
       headerClassName: "text-right",
       cellClassName: "text-right border-l border-border bg-muted/20",
       style: { minWidth: 130 },
+      sortValue: (r) =>
+        r.kind === "start"
+          ? wallets.reduce(
+              (s, w) => s + (startBalances.get(w.id) || 0) * rateOf(w.currency, period.from),
+              0,
+            )
+          : dayTotalTzs(r.date!),
+
       accessor: (r) => {
         const v =
           r.kind === "start"
@@ -250,13 +263,12 @@ export default function WalletDayGridTab({
   return (
     <Card>
       <CardContent className="p-0">
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-          <div className="text-sm font-semibold">{title} · daily movements</div>
-          {monthClosed && (
-            <span className="text-xs text-muted-foreground">Month closed — read only</span>
-          )}
-        </div>
-        <div className="overflow-auto max-h-[70vh]">
+        {monthClosed && (
+          <div className="px-4 py-1.5 border-b border-border text-xs text-muted-foreground">
+            Month closed — read only
+          </div>
+        )}
+        <div className="overflow-x-auto">
           <SmartTable
             data={rows}
             columns={columns}
@@ -274,4 +286,5 @@ export default function WalletDayGridTab({
       </CardContent>
     </Card>
   );
+
 }

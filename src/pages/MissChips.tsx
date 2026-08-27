@@ -122,26 +122,52 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
 
   // Period nav handled by DateRangePresets below.
 
+  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "date", dir: "desc" });
+  const toggleSort = (key: string) =>
+    setSort((s) => ({ key, dir: s.key === key && s.dir === "desc" ? "asc" : "desc" }));
+  const sortArrow = (key: string) => (sort.key === key ? (sort.dir === "desc" ? " ↓" : " ↑") : "");
+
+  const sortedRows = useMemo(() => {
+    const valOf = (r: ShiftMissRow) =>
+      sort.key === "date" ? r.business_date : sort.key === "total" ? r.total_tzs : r.by_denom[Number(sort.key)] ?? 0;
+    const arr = [...dailyRows].sort((a, b) => {
+      const va = valOf(a);
+      const vb = valOf(b);
+      if (typeof va === "number" && typeof vb === "number") return va - vb;
+      return String(va).localeCompare(String(vb));
+    });
+    return sort.dir === "desc" ? arr.reverse() : arr;
+  }, [dailyRows, sort]);
+
   const totalCols = DENOMS_DESC.length + 2;
 
+
   const Body = (
-    <PageSection
-      title={embedded ? undefined : `Daily breakdown (${dailyRows.length})`}
-      titleRight={embedded ? undefined : <MoneyToggle />}
-      card={false}
-    >
-        <DataTable maxHeight={embedded ? "60vh" : "calc(100vh - 230px)"}>
+    <PageSection titleRight={embedded ? undefined : <MoneyToggle />} card={false}>
+        <DataTable>
           <DTHead className="[&_th]:bg-muted">
             <DTRow>
-              <DTHeader type="date">Date</DTHeader>
+              <DTHeader type="date">
+                <button type="button" className="hover:text-foreground" onClick={() => toggleSort("date")}>
+                  Date{sortArrow("date")}
+                </button>
+              </DTHeader>
               {DENOMS_DESC.map((d) => (
                 <DTHeader key={d} type="int">
-                  <div className="flex justify-center"><ChipToken denom={d} /></div>
+                  <button type="button" className="flex w-full justify-center" onClick={() => toggleSort(String(d))}>
+                    <ChipToken denom={d} />
+                    <span className="text-[10px]">{sortArrow(String(d))}</span>
+                  </button>
                 </DTHeader>
               ))}
-              <DTHeader type="money">Total TZS</DTHeader>
+              <DTHeader type="money">
+                <button type="button" className="hover:text-foreground" onClick={() => toggleSort("total")}>
+                  Total TZS{sortArrow("total")}
+                </button>
+              </DTHeader>
             </DTRow>
           </DTHead>
+
           <DTBody>
             {isLoading && (
               <DTRow>
@@ -155,7 +181,7 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
                 </DTCell>
               </DTRow>
             )}
-            {dailyRows.map((r) => (
+            {sortedRows.map((r) => (
               <DTRow key={r.business_date}>
                 <DTCell type="date">{fmtDateOnly(r.business_date)}</DTCell>
                 {DENOMS_DESC.map((d) => {
