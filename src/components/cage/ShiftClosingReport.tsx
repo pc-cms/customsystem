@@ -512,11 +512,26 @@ const ShiftClosingReport = ({
               </tr>
             );
           })}
-          <tr>
-            <td className="border border-black px-1.5 py-0.5">Other in TZS</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{openerOtherTzs ? numAlways(openerOtherTzs) : "—"}</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{closerOtherTzs ? numAlways(closerOtherTzs) : "—"}</td>
-          </tr>
+          {hasBankChannels ? (
+            BANK_CHANNELS.map(ch => {
+              const o = bankFinal(openerBank, ch.key);
+              const c = bankFinal(closerBank, ch.key);
+              return (
+                <tr key={ch.key}>
+                  <td className="border border-black px-1.5 py-0.5">{`Bank ${ch.bank} ${ch.currency}`}</td>
+                  <td className="border border-black px-1.5 py-0.5 text-right">{o ? numAlways(o) : "—"}</td>
+                  <td className="border border-black px-1.5 py-0.5 text-right">{c ? numAlways(c) : "—"}</td>
+                </tr>
+              );
+            })
+          ) : (
+            <tr>
+              <td className="border border-black px-1.5 py-0.5">Other in TZS</td>
+              <td className="border border-black px-1.5 py-0.5 text-right">{openerOtherTzs ? numAlways(openerOtherTzs) : "—"}</td>
+              <td className="border border-black px-1.5 py-0.5 text-right">{closerOtherTzs ? numAlways(closerOtherTzs) : "—"}</td>
+            </tr>
+          )}
+
           <tr className="bg-gray-100 font-semibold">
             <td className="border border-black px-1.5 py-0.5">Total Cash (TZS)</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{numAlways(openerCashTzs + openerOtherTzs)}</td>
