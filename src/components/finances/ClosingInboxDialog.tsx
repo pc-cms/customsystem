@@ -278,16 +278,69 @@ function SectionTable({
 
       {groups.others.length > 0 && (
         <div>
-          <div className="text-xs font-semibold mb-1">Mobile money / Bank</div>
+          <div className="text-xs font-semibold mb-1">Mobile money / Bank · daily NET is posted</div>
           <table className="w-full text-xs">
-            {head}
-            <tbody>{groups.others.map((r) => line(r, `${r.label} (${r.currency})`))}</tbody>
+            <thead>
+              <tr className="text-[11px] uppercase text-muted-foreground border-b">
+                <th className="text-left font-medium py-1 pr-2">Source</th>
+                <th className="text-right font-medium py-1 pr-2">In</th>
+                <th className="text-right font-medium py-1 pr-2">Out</th>
+                <th className="text-right font-medium py-1 pr-2">Net to post</th>
+                <th className="text-right font-medium py-1 pr-2">Correction</th>
+                <th className="text-right font-medium py-1 pr-2">Final to post</th>
+                <th className="text-right font-medium py-1 pr-2">Final (check)</th>
+                <th className="text-left font-medium py-1 pr-2">Destination wallet</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {groups.others.map((r) => (
+                <tr key={r.id} className="border-b border-border/40">
+                  <td className="py-1 pr-2">{r.label} ({r.currency})</td>
+                  <td className="py-1 pr-2 text-right font-mono tabular-nums">{r.orig_in ? amt(r.orig_in) : "·"}</td>
+                  <td className="py-1 pr-2 text-right font-mono tabular-nums">{r.orig_out ? amt(r.orig_out) : "·"}</td>
+                  <td className={cn(
+                    "py-1 pr-2 text-right font-mono tabular-nums",
+                    Number(r.orig_amount) < 0 && "cms-amount-negative",
+                  )}>{signed(r.orig_amount)}</td>
+                  <td
+                    className={cn(
+                      "py-1 pr-2 text-right font-mono tabular-nums",
+                      r.corr_delta_amount < 0 && "cms-amount-negative",
+                      r.corr_delta_amount > 0 && "cms-amount-positive",
+                    )}
+                    title={r.correction_reason || undefined}
+                  >
+                    {signed(r.corr_delta_amount)}
+                  </td>
+                  <td className={cn(
+                    "py-1 pr-2 text-right font-mono tabular-nums font-medium",
+                    Number(r.final_amount) < 0 && "cms-amount-negative",
+                  )}>{signed(r.final_amount)}</td>
+                  <td className="py-1 pr-2 text-right font-mono tabular-nums text-muted-foreground">
+                    {r.final_balance != null ? amt(r.final_balance) : "·"}
+                  </td>
+                  <td className="py-1 pr-2 min-w-[150px]">{walletCell(r)}</td>
+                  <td className="py-1 text-right">
+                    {!posted && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onCorrect(r)}>
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
           </table>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Final (check) is the closing balance from the cashdesk — reference only, never posted to wallets.
+          </p>
         </div>
       )}
     </div>
   );
 }
+
 
 export default function ClosingInboxDialog({
   open,
