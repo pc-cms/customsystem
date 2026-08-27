@@ -689,6 +689,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           liability_payments: liabilityPayments,
           deposits: depositsTotal,
           available_for_collection: availableForCollection,
+          investment_items: investmentItems,
         },
         month: mf,
         kpi: {
