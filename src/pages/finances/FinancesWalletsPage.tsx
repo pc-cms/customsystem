@@ -659,7 +659,7 @@ export default function FinancesWalletsPage() {
 
       {/* BREAKDOWN + GRAND TOTAL */}
       <div id="wallets-breakdown" className="grid grid-cols-1 lg:grid-cols-2 gap-4 scroll-mt-20">
-        <PageSection title="Breakdown (Expected)" card={false}>
+        <PageSection card={false}>
           <div className="rounded-md border border-border bg-card">
             <BreakdownRow
               label="Opening Basic Float (start of period)"
@@ -692,7 +692,7 @@ export default function FinancesWalletsPage() {
           </div>
         </PageSection>
 
-        <PageSection title="Grand Total (Wallets)" card={false}>
+        <PageSection card={false}>
           <div className="rounded-md border border-border bg-card p-4 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-md border border-border bg-background p-3">
@@ -772,7 +772,7 @@ export default function FinancesWalletsPage() {
 
       {/* WALLETS TABLE */}
       <div id="wallets-table" className="scroll-mt-20" />
-      <PageSection title="Wallets" card={false}>
+      <PageSection card={false}>
         <div className="flex items-center justify-end gap-2 mb-2">
           <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
             <input
@@ -1153,7 +1153,7 @@ export default function FinancesWalletsPage() {
       </PageSection>
 
       {/* TRANSACTIONS */}
-      <PageSection title={`Transactions · ${txRows.length}`} card={false}>
+      <PageSection card={false}>
         <div className="flex flex-wrap items-center gap-2 mb-2">
           <Select value={walletFilter} onValueChange={setWalletFilter}>
             <SelectTrigger className="h-9 w-[180px]">
