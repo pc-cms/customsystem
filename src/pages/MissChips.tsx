@@ -122,7 +122,25 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
 
   // Period nav handled by DateRangePresets below.
 
+  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "date", dir: "desc" });
+  const toggleSort = (key: string) =>
+    setSort((s) => ({ key, dir: s.key === key && s.dir === "desc" ? "asc" : "desc" }));
+  const sortArrow = (key: string) => (sort.key === key ? (sort.dir === "desc" ? " ↓" : " ↑") : "");
+
+  const sortedRows = useMemo(() => {
+    const valOf = (r: ShiftMissRow) =>
+      sort.key === "date" ? r.business_date : sort.key === "total" ? r.total_tzs : r.by_denom[Number(sort.key)] ?? 0;
+    const arr = [...dailyRows].sort((a, b) => {
+      const va = valOf(a);
+      const vb = valOf(b);
+      if (typeof va === "number" && typeof vb === "number") return va - vb;
+      return String(va).localeCompare(String(vb));
+    });
+    return sort.dir === "desc" ? arr.reverse() : arr;
+  }, [dailyRows, sort]);
+
   const totalCols = DENOMS_DESC.length + 2;
+
 
   const Body = (
     <PageSection titleRight={embedded ? undefined : <MoneyToggle />} card={false}>
