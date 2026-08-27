@@ -376,13 +376,20 @@ export default function WalletMovementDialog({
         />
 
         {mode === "transfer" ? (
-          <div className="rounded-md border border-border bg-card p-3 flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Moves</span>
-            <span className="font-mono tabular-nums text-lg font-semibold">
-              {formatNumberSpaces(amount)} {currency}
-            </span>
+          <div className="rounded-md border border-border bg-card p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Moves</span>
+              <span className="font-mono tabular-nums text-lg font-semibold">
+                {formatNumberSpaces(amount)} {currency}
+              </span>
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              Actual only — source −{formatNumberSpaces(amount)}, destination +{formatNumberSpaces(amount)}.
+              Same as two physical recounts. Expected stays unchanged on both wallets.
+            </div>
           </div>
         ) : (
+
           <div className="rounded-md border border-border bg-card p-3 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Actual now</span>
