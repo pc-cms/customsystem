@@ -369,20 +369,41 @@ export default function WalletMovementDialog({
           rows={2}
         />
 
-        <div className="rounded-md border border-border bg-card p-3 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">
-            {mode === "in" ? "Wallet increases by" : mode === "out" ? "Wallet decreases by" : "Moves"}
-          </span>
-          <span
-            className={cn(
-              "font-mono tabular-nums text-lg font-semibold",
-              mode === "in" ? "cms-amount-positive" : mode === "out" ? "cms-amount-negative" : "",
-            )}
-          >
-            {mode === "out" ? "−" : mode === "in" ? "+" : ""}
-            {formatNumberSpaces(amount)} {currency}
-          </span>
-        </div>
+        {mode === "transfer" ? (
+          <div className="rounded-md border border-border bg-card p-3 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Moves</span>
+            <span className="font-mono tabular-nums text-lg font-semibold">
+              {formatNumberSpaces(amount)} {currency}
+            </span>
+          </div>
+        ) : (
+          <div className="rounded-md border border-border bg-card p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Actual now</span>
+              <span className="font-mono tabular-nums text-sm">
+                {actualNow == null ? "—" : `${formatNumberSpaces(actualNow)} ${currency}`}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">
+                Actual becomes ({mode === "in" ? "+" : "−"}
+                {formatNumberSpaces(amount)})
+              </span>
+              <span
+                className={cn(
+                  "font-mono tabular-nums text-lg font-semibold",
+                  mode === "in" ? "cms-amount-positive" : "cms-amount-negative",
+                )}
+              >
+                {resultingActual == null ? "—" : `${formatNumberSpaces(resultingActual)} ${currency}`}
+              </span>
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              Affects Actual only — same as a physical recount. Not income, not expense, Expected stays unchanged.
+            </div>
+          </div>
+        )}
+
 
         <ResponsiveDialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
