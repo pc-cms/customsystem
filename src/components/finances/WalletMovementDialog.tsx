@@ -145,6 +145,21 @@ export default function WalletMovementDialog({
   const resultingActual =
     actualNow == null ? null : mode === "out" ? actualNow - amount : actualNow + amount;
 
+  /** Last physical Actual of a wallet (snapshot, else starting float). */
+  const fetchActual = async (w: { id: string; starting_float_amount?: number | null }) => {
+    const { data } = await supabase
+      .from("cash_count_snapshots")
+      .select("physical_total")
+      .eq("wallet_id", w.id)
+      .order("business_date", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return data?.physical_total != null
+      ? Number(data.physical_total)
+      : Number(w.starting_float_amount || 0);
+  };
+
   const save = async () => {
     if (!user || !activeCasinoId) return toast.error("Not authorised");
     if (!wallet) return toast.error("Select a wallet");
@@ -160,10 +175,24 @@ export default function WalletMovementDialog({
     const baseNote = [note.trim(), breakdown].filter(Boolean).join(" · ");
     setSaving(true);
     try {
+      let rate = fxRate;
+      if (currency !== "TZS" && currency !== "USD") {
+        const { data: rateRow } = await supabase
+          .from("fin_daily_rates")
+          .select("rate_to_tzs")
+          .eq("casino_id", activeCasinoId)
+          .eq("currency", currency)
+          .lte("business_date", date)
+          .order("business_date", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        rate = Number(rateRow?.rate_to_tzs || 1);
+      }
+
       const common = {
         casino_id: activeCasinoId,
         currency,
-        fx_rate: fxRate,
+        fx_rate: rate,
         business_date: date,
         created_by: user.id,
         denominations: denomJson,
@@ -171,80 +200,56 @@ export default function WalletMovementDialog({
         posted_at: new Date().toISOString(),
       };
 
-      if (mode !== "transfer") {
-        // Actual-only correction: exactly like a physical recount.
-        if (actualNow == null) return toast.error("Loading wallet balance, try again");
-        const next = mode === "out" ? actualNow - amount : actualNow + amount;
-        if (next < 0) {
-          toast.error("Resulting balance cannot be negative");
-          return;
-        }
-        let rate = fxRate;
-        if (currency !== "TZS" && currency !== "USD") {
-          const { data: rateRow } = await supabase
-            .from("fin_daily_rates")
-            .select("rate_to_tzs")
-            .eq("casino_id", activeCasinoId)
-            .eq("currency", currency)
-            .lte("business_date", date)
-            .order("business_date", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          rate = Number(rateRow?.rate_to_tzs || 1);
-        }
-        const label = `${mode === "in" ? "Add money" : "Take money"} · ${formatNumberSpaces(amount)} ${currency}`;
+      /** Actual-only recount + audit row (never touches Expected). */
+      const applyActual = async (
+        w: { id: string; name: string; starting_float_amount?: number | null },
+        delta: number,
+        label: string,
+      ) => {
+        const current = await fetchActual(w);
+        const next = current + delta;
+        if (next < 0) throw new Error(`Resulting balance of ${w.name} cannot be negative`);
+        const fullNote = [label, baseNote].filter(Boolean).join(" · ");
         const { error: rpcError } = await (supabase as any).rpc("fin_save_wallet_count", {
-          p_wallet_id: wallet.id,
+          p_wallet_id: w.id,
           p_counted: next,
           p_denominations: {},
-          p_note: [label, baseNote].filter(Boolean).join(" · "),
+          p_note: fullNote,
           p_business_date: date,
           p_fx_rate: rate,
         });
         if (rpcError) throw rpcError;
-
-        // Audit-only row: 'adjustment' is excluded from the Expected ledger.
         const { error: auditError } = await supabase.from("fin_wallet_tx").insert([
           {
             ...common,
-            fx_rate: rate,
-            wallet_id: wallet.id,
+            wallet_id: w.id,
             kind: "adjustment",
-            amount: mode === "out" ? -amount : amount,
-            amount_tzs: (mode === "out" ? -amount : amount) * rate,
-            note: [label, baseNote].filter(Boolean).join(" · "),
+            amount: delta,
+            amount_tzs: delta * rate,
+            note: fullNote,
           },
         ] as any);
         if (auditError) throw auditError;
+        return next;
+      };
 
+      if (mode !== "transfer") {
+        // Actual-only correction: exactly like a physical recount.
+        if (actualNow == null) return toast.error("Loading wallet balance, try again");
+        const label = `${mode === "in" ? "Add money" : "Take money"} · ${formatNumberSpaces(amount)} ${currency}`;
+        const next = await applyActual(wallet, mode === "out" ? -amount : amount, label);
         toast.success(`Actual · ${wallet.name} → ${formatNumberSpaces(next)} ${currency}`);
         invalidateFinance(qc);
         onOpenChange(false);
         return;
       }
 
+      // Transfer inside the casino = two Actual recounts, no ledger movement,
+      // so Expected stays untouched on both sides.
       const label = `Transfer ${wallet.name} → ${toWallet!.name}`;
-      const rows: any[] = [
-        {
-          ...common,
-          wallet_id: wallet.id,
-          kind: "transfer_out",
-          amount: -amount,
-          amount_tzs: -amount * fxRate,
-          note: [label, baseNote].filter(Boolean).join(" · "),
-        },
-        {
-          ...common,
-          wallet_id: toWallet!.id,
-          kind: "transfer_in",
-          amount,
-          amount_tzs: amount * fxRate,
-          note: [label, baseNote].filter(Boolean).join(" · "),
-        },
-      ];
-      const { error } = await supabase.from("fin_wallet_tx").insert(rows as any);
-      if (error) throw error;
-      toast.success(`Transferred ${formatNumberSpaces(amount)} ${currency}`);
+      await applyActual(wallet, -amount, label);
+      await applyActual(toWallet!, amount, label);
+      toast.success(`Transferred ${formatNumberSpaces(amount)} ${currency} (Actual only)`);
       invalidateFinance(qc);
       onOpenChange(false);
     } catch (e: any) {
@@ -253,6 +258,7 @@ export default function WalletMovementDialog({
       setSaving(false);
     }
   };
+
 
 
   return (
