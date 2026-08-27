@@ -125,23 +125,31 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
   const totalCols = DENOMS_DESC.length + 2;
 
   const Body = (
-    <PageSection
-      title={embedded ? undefined : `Daily breakdown (${dailyRows.length})`}
-      titleRight={embedded ? undefined : <MoneyToggle />}
-      card={false}
-    >
-        <DataTable maxHeight={embedded ? "60vh" : "calc(100vh - 230px)"}>
+    <PageSection titleRight={embedded ? undefined : <MoneyToggle />} card={false}>
+        <DataTable>
           <DTHead className="[&_th]:bg-muted">
             <DTRow>
-              <DTHeader type="date">Date</DTHeader>
+              <DTHeader type="date">
+                <button type="button" className="hover:text-foreground" onClick={() => toggleSort("date")}>
+                  Date{sortArrow("date")}
+                </button>
+              </DTHeader>
               {DENOMS_DESC.map((d) => (
                 <DTHeader key={d} type="int">
-                  <div className="flex justify-center"><ChipToken denom={d} /></div>
+                  <button type="button" className="flex w-full justify-center" onClick={() => toggleSort(String(d))}>
+                    <ChipToken denom={d} />
+                    <span className="text-[10px]">{sortArrow(String(d))}</span>
+                  </button>
                 </DTHeader>
               ))}
-              <DTHeader type="money">Total TZS</DTHeader>
+              <DTHeader type="money">
+                <button type="button" className="hover:text-foreground" onClick={() => toggleSort("total")}>
+                  Total TZS{sortArrow("total")}
+                </button>
+              </DTHeader>
             </DTRow>
           </DTHead>
+
           <DTBody>
             {isLoading && (
               <DTRow>
