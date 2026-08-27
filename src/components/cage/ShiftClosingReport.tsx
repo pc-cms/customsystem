@@ -21,6 +21,8 @@ import type { Tables } from "@/integrations/supabase/types";
 
 import { fetchTotalDrop } from "@/lib/drop-source";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
+import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
+
 
 interface Props {
   shift: Tables<"shifts">;
