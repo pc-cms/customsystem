@@ -21,6 +21,7 @@ import {
   ChevronDown,
   CalendarCheck,
   Sliders,
+  Inbox,
 } from "lucide-react";
 
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -47,6 +48,8 @@ import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import WalletMovementDialog, { type MovementMode } from "@/components/finances/WalletMovementDialog";
+import ClosingInboxDialog from "@/components/finances/ClosingInboxDialog";
+import { useClosingInboxPending } from "@/hooks/use-closing-inbox";
 import StaleCountsNotice, { type CountFreshnessRow } from "@/components/office/StaleCountsNotice";
 import { BalanceBanner } from "@/components/office/BalanceBanner";
 
@@ -1449,6 +1452,8 @@ export default function FinancesWalletsPage() {
           </Button>
         </div>
       </ResponsiveDialog>
+
+      <ClosingInboxDialog open={inboxOpen} onOpenChange={setInboxOpen} businessDate={inboxDate} />
 
       <WalletMovementDialog
         open={moveOpen}
