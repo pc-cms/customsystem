@@ -13,9 +13,9 @@ Total Income · Budget · Actual Expenses · Expected/Final Profit · Cash Posit
 3. **Paid Expenses** — переименование текущей «Actual Expenses» (`cash.expenses_actual`). Tooltip: «Σ approved expenses actually paid in the month (Grand TZS)».
 4. **Pending Est Expenses** — новая плитка: `Budget − Paid Expenses` (`g.plan_month_grand_tzs − cash.expenses_actual`). Tooltip: «Remaining planned cost base: Budget − Paid Expenses». Если значение уходит в минус (перерасход) — показываем со знаком через `cls()`.
 5. **Current Profit** — переименование «Expected Profit». Для открытого месяца — `Current Profit`, для закрытого оставляем `Final Profit` (формула `kpi.expected_profit` не меняется).
-6. **Current Cash Balance** — новая плитка по формуле пользователя:
-   `kpi.total_income − cash.expenses_actual − cash.deposits − cash.investment − cash.collections_actual`
-   Tooltip: «Total Income − Paid Expenses − Deposits − Investment − Collection». Отображается со знаком (зелёный/красный через `cls()`).
+6. **Current Cash Balance** — новая плитка, формула строго как задано:
+   **TOTAL IN − PAID EXPENSE − DEPOSITS − INVESTMENT − COLLECTION**, где TOTAL IN = плитка Total Income (`kpi.total_income`), PAID EXPENSE = `cash.expenses_actual`, DEPOSITS = `cash.deposits`, INVESTMENT = `cash.investment`, COLLECTION = `cash.collections_actual`.
+   Tooltip: «Total In − Paid Expense − Deposits − Investment − Collection». Отображается со знаком (зелёный/красный через `cls()`).
 7. **Total Money** — плитка **удаляется** вместе с её загрузкой: убираем `useOfficePeriod`, `useFinBalanceSnapshot`, `computeBalanceTotals` и неиспользуемый более код `walletTotals`.
 
 ## Важное уточнение
