@@ -119,7 +119,10 @@ export default function WalletDayGridTab({
       headerClassName: "text-right",
       cellClassName: "text-right border-l border-border/40 py-1",
       style: { minWidth: 116 },
+      sortValue: (r) =>
+        r.kind === "start" ? startBalances.get(w.id) || 0 : cellOf(w.id, r.date!).total,
       accessor: (r) => {
+
         if (r.kind === "start") {
           const v = startBalances.get(w.id) || 0;
           return (
