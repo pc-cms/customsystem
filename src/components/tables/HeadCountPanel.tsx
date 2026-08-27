@@ -43,10 +43,13 @@ export const HeadCountPanel = ({ date }: HeadCountPanelProps) => {
   const batch = useBatchSetTableHeadCount();
 
   const tablesWithData = useMemo(() => new Set(rows.map((r: any) => r.table_id)), [rows]);
+  // For past business days the live `status` flag is meaningless — show only the
+  // tables that actually have data recorded for that date.
   const openTables = useMemo(
-    () => tables.filter((t: any) => t.status === "open" || tablesWithData.has(t.id)),
-    [tables, tablesWithData],
+    () => tables.filter((t: any) => (date === today && t.status === "open") || tablesWithData.has(t.id)),
+    [tables, tablesWithData, date, today],
   );
+
 
   const [slot, setSlot] = useState<string>(() => getCurrentHourSlot());
   const [draft, setDraft] = useState<Record<string, string>>({});
