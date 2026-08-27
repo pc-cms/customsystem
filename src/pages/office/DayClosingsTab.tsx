@@ -449,6 +449,8 @@ export default function DayClosingsTab() {
       header: "CashDesk Win",
       type: "money",
       style: { width: 168 },
+      sortValue: (r) => val(r).cash,
+
       accessor: (r) => numCell(r, val(r).cash, (n) => setField(r.date, { cash: n }), {
         placeholder: 0,
         title: "CashDesk Win — physical slots cash desk win. The ONLY slots figure that flows into Wallets / Expected. Never equal to Net Win, never taken from a cashier shift.",
