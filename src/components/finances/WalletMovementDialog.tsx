@@ -6,10 +6,10 @@
  * income, NOT an expense and they never move Expected. A `kind = 'adjustment'`
  * row is written purely for audit (excluded from the Expected ledger sum).
  *
- * Transfer really moves money between wallets, so it stays a ledger movement:
- *   Transfer is also Actual-only: two recounts (source −, destination +).
- *   transfer_out  → −amount (stored NEGATIVE)
+ * Transfer (inside the casino) works the same way: two Actual recounts
+ * (source −amount, destination +amount). Expected is never touched.
  */
+
 
 import { invalidateFinance } from "@/lib/fin-invalidate";
 import { useEffect, useMemo, useState } from "react";
