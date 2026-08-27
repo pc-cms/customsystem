@@ -21,14 +21,28 @@ Total Income · Budget · Actual Expenses · Expected/Final Profit · Cash Posit
 ## Важное уточнение
 Плитка **Cash Position** (Basic Float + Income + Office + Investment + Intercompany − …) **остаётся без изменений** — она отражает полную кассовую позицию с Basic Float, а новая «Current Cash Balance» — упрощённый операционный остаток по формуле пользователя. Итого будет 7 плиток.
 
+## Изменения в сводных карточках (Summary cards)
+
+**Карточка A · Month Summary / Income:**
+- Убираем нижнюю итоговую строку **«Total Income»** (строки 778–784) — значение уже есть в плитке Total Income.
+
+**Карточка B · Expenses & Obligations:**
+- Убираем нижнюю итоговую строку **«Total Expenses & Obligations»** (строки 892–901) вместе с вычислением `obligationsTotal` и импортом `totalExpensesAndObligations` (больше нигде в файле не используется — проверено, строки 30, 486, 894).
+
+**Карточка C · Cash Adjustments:**
+- Убираем строку **«Office»** (строка 931).
+- **Investment** (строка 932): строка `Line` → раскрывающаяся секция `Section` со стрелкой-шевроном, как Basic Float/Deposits. Детали: каждая запись `fin_other_incomes` с `source = 'investment'` за месяц (дата, описание, сумма в TZS). Для этого в `use-fin-monthly-report.ts` в запрос `fin_other_incomes` (строка 244) добавляются поля `id, label` и в результат кладётся массив `cash.investment_items`.
+- **Collections** (строки 933–937): строка `Line` → раскрывающаяся секция `Section`. Детали: разбивка по категориям группы `collections` из уже загруженного `data.collections.categories` (название категории + actual Grand TZS). Новых запросов не требуется.
+- Итоги обеих секций и тултипы формул сохраняются без изменений — меняется только способ отображения (стрелка + раскрытие).
+
 ## Технические детали
-- Файл: `src/pages/finances/FinancesMonthlyReportPage.tsx`, блок `SummaryBlock` (строки ~720–762).
-- Все поля уже есть в `use-fin-monthly-report.ts`: `cash.expenses_actual`, `cash.deposits` (строка 678), `cash.investment` (654), `cash.collections_actual` (671), `kpi.total_income`, `g.plan_month_grand_tzs` — новых запросов к БД не требуется.
-- Сетка: `xl:grid-cols-6` → `xl:grid-cols-7` неудобна для 7 плиток; используем адаптивную сетку `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7`, чтобы плитки заполняли строку без пустот.
-- Формулы в tooltip обновляются под новые названия; порядок плиток фиксированный, как сейчас.
-- UI остаётся только на английском; числа через `fmtT` с пробелом-разделителем.
+- Файлы: `src/pages/finances/FinancesMonthlyReportPage.tsx` (блок `SummaryBlock`), `src/hooks/use-fin-monthly-report.ts` (поля `id, label` в select и `cash.investment_items` в результате; тип `MonthlyReport.cash` дополняется).
+- Все поля плиток уже есть в `use-fin-monthly-report.ts`: `cash.expenses_actual`, `cash.deposits` (678), `cash.investment` (654), `cash.collections_actual` (671), `kpi.total_income`, `g.plan_month_grand_tzs`.
+- Сетка плиток: `xl:grid-cols-6` → адаптивная `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7` (7 плиток без пустот).
+- Правила «ровно 5 строк на карточку» больше нет — убираемые строки просто удаляются, `flex-1` спейсеры сохраняют выравнивание.
+- UI только на английском; числа через `fmtT`; даты `fmtDateOnly` (DD/MM/YYYY).
 
 ## Проверка
-- `bunx vitest run` (существующие тесты не должны пострадать).
+- `bunx vitest run` — существующие тесты зелёные.
 - Сборка без ошибок (`/tmp/observability/build-errors.log`).
-- Визуальная проверка страницы Monthly Report на открытом и закрытом месяце: 7 плиток, Pending = Budget − Paid, Current Cash Balance совпадает с ручным расчётом по строкам карточек.
+- Визуальная проверка Monthly Report (открытый и закрытый месяц): 7 плиток, Pending = Budget − Paid, Current Cash Balance сходится с ручным расчётом; Office/Total Income/Total Expenses & Obligations отсутствуют; Investment и Collections раскрываются стрелкой и показывают строки деталей.
