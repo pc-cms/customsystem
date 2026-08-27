@@ -101,7 +101,10 @@ function CorrectionDialog({
           </div>
         ) : (
           <div>
-            <div className="text-xs text-muted-foreground mb-1">Amount delta</div>
+            <div className="text-xs text-muted-foreground mb-1">
+              Net delta — applies to the amount posted (IN − OUT). The closing balance
+              {row.final_balance != null ? ` (${amt(row.final_balance)})` : ""} stays unchanged as control figure.
+            </div>
             <NumberInput
               decimals={2}
               allowNegative
@@ -110,6 +113,7 @@ function CorrectionDialog({
             />
           </div>
         )}
+
 
         <div>
           <div className="text-xs text-muted-foreground mb-1">Reason (required)</div>
