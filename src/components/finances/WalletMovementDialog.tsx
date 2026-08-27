@@ -1,14 +1,16 @@
 /**
- * Wallet Movement — transactional cash in / out / transfer.
+ * Wallet Movement — Add money / Take money / Transfer.
  *
- * Instead of overwriting a wallet balance with a physical count, money is
- * booked as a movement: what came in, what went out, in which denominations.
- * Ledger sign convention (fin_balance_snapshot):
- *   income        → +amount
- *   expense       → −amount (stored positive)
+ * Add money / Take money are ACTUAL-only corrections: they behave exactly like
+ * a physical recount (Actual 100 000 + 10 → Actual 100 010). They are NOT an
+ * income, NOT an expense and they never move Expected. A `kind = 'adjustment'`
+ * row is written purely for audit (excluded from the Expected ledger sum).
+ *
+ * Transfer really moves money between wallets, so it stays a ledger movement:
  *   transfer_in   → +amount (stored positive)
  *   transfer_out  → −amount (stored NEGATIVE)
  */
+
 import { invalidateFinance } from "@/lib/fin-invalidate";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight } from "lucide-react";
