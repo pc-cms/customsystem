@@ -100,8 +100,10 @@ export default function WalletDayGridTab({
         ) : (
           <span className="font-mono tabular-nums">{fmtDateOnly(r.date!)}</span>
         ),
+      sortValue: (r) => r.date ?? "",
       style: { width: 130, minWidth: 130 },
     };
+
 
     const amountClass = (v: number) =>
       v > 0 ? "cms-amount-positive" : v < 0 ? "cms-amount-negative" : "text-muted-foreground/50";
