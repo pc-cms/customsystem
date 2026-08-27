@@ -450,18 +450,7 @@ const SummaryBlock = ({
   const closedAt = mf?.closed_at || null;
 
 
-  /* Total Money = Wallets · Expected of the same month (single source of truth). */
-  const { period: walletPeriod } = useOfficePeriod();
-  const walletRange = useMemo(() => {
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const last = new Date(walletPeriod.year, walletPeriod.month, 0).getDate();
-    return {
-      from: `${walletPeriod.year}-${pad(walletPeriod.month)}-01`,
-      to: `${walletPeriod.year}-${pad(walletPeriod.month)}-${pad(last)}`,
-    };
-  }, [walletPeriod.year, walletPeriod.month]);
-  const { data: walletSnap } = useFinBalanceSnapshot(walletRange.from, walletRange.to);
-  const walletTotals = useMemo(() => computeBalanceTotals(walletSnap), [walletSnap]);
+
 
 
   const [open, setOpen] = useState<Record<string, boolean>>({});
