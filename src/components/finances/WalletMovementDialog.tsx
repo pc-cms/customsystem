@@ -7,7 +7,7 @@
  * row is written purely for audit (excluded from the Expected ledger sum).
  *
  * Transfer really moves money between wallets, so it stays a ledger movement:
- *   transfer_in   → +amount (stored positive)
+ *   Transfer is also Actual-only: two recounts (source −, destination +).
  *   transfer_out  → −amount (stored NEGATIVE)
  */
 
