@@ -143,16 +143,31 @@ Deno.serve(async (req) => {
   const touchKey = () =>
     admin.from("ace_ingest_keys").update({ last_seen_at: new Date().toISOString() }).eq("id", cred.id);
 
-  // --- immutability guard for closed reports -----------------------------
+  // --- idempotency guard for closed reports ------------------------------
+  // Only an *identical* resend is skipped. ACE frequently republishes a closed
+  // period after the JP slip / drop is finalised, so any changed figure must be
+  // re-applied, otherwise Day Closing keeps the first (incomplete) numbers.
   if (isClosed) {
     const { data: existing } = await admin
       .from("ace_finance_snapshots")
-      .select("id, business_date, apply_status, closing_applied_at")
+      .select(
+        "id, business_date, apply_status, closing_applied_at, total_drop, net_win, win_cashdesk, cashless_money_difference, jackpot_slip_out, active_credits",
+      )
       .eq("location_code", location_code)
       .eq("period_id", period_id)
       .maybeSingle();
 
-    if (existing && existing.apply_status === "applied") {
+    const same = (a: unknown, b: number | null) =>
+      (a === null || a === undefined ? null : Number(a)) === (b === null ? null : Number(b));
+
+    const unchanged =
+      !!existing &&
+      existing.apply_status === "applied" &&
+      String(existing.business_date ?? "") === String(business_date ?? "") &&
+      NUMERIC_FIELDS.every((f) => same((existing as Record<string, unknown>)[f], numbers[f])) &&
+      same(existing.active_credits, active_credits);
+
+    if (unchanged) {
       await touchKey();
       return json({
         ok: true,
@@ -165,6 +180,7 @@ Deno.serve(async (req) => {
       });
     }
   }
+
 
   // --- upsert -------------------------------------------------------------
   const row: Record<string, unknown> = {
