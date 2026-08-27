@@ -1,14 +1,16 @@
 /**
- * Wallet Movement — transactional cash in / out / transfer.
+ * Wallet Movement — Add money / Take money / Transfer.
  *
- * Instead of overwriting a wallet balance with a physical count, money is
- * booked as a movement: what came in, what went out, in which denominations.
- * Ledger sign convention (fin_balance_snapshot):
- *   income        → +amount
- *   expense       → −amount (stored positive)
+ * Add money / Take money are ACTUAL-only corrections: they behave exactly like
+ * a physical recount (Actual 100 000 + 10 → Actual 100 010). They are NOT an
+ * income, NOT an expense and they never move Expected. A `kind = 'adjustment'`
+ * row is written purely for audit (excluded from the Expected ledger sum).
+ *
+ * Transfer really moves money between wallets, so it stays a ledger movement:
  *   transfer_in   → +amount (stored positive)
  *   transfer_out  → −amount (stored NEGATIVE)
  */
+
 import { invalidateFinance } from "@/lib/fin-invalidate";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight } from "lucide-react";
@@ -108,7 +110,40 @@ export default function WalletMovementDialog({
     [wallets, walletId, currency],
   );
 
-  const fxRate = currency === "USD" ? usdRate : currency === "TZS" ? 1 : 1;
+  const fxRate = currency === "USD" ? usdRate : 1;
+
+  /**
+   * Current Actual of the selected wallet — the same figure `fin_save_wallet_count`
+   * uses as the previous count (last snapshot, else the wallet starting float).
+   */
+  const [actualNow, setActualNow] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setActualNow(null);
+    if (!open || !wallet) return;
+    (async () => {
+      const { data } = await supabase
+        .from("cash_count_snapshots")
+        .select("physical_total")
+        .eq("wallet_id", wallet.id)
+        .order("business_date", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      setActualNow(
+        data?.physical_total != null
+          ? Number(data.physical_total)
+          : Number(wallet.starting_float_amount || 0),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, wallet?.id]);
+
+  const resultingActual =
+    actualNow == null ? null : mode === "out" ? actualNow - amount : actualNow + amount;
 
   const save = async () => {
     if (!user || !activeCasinoId) return toast.error("Not authorised");
@@ -135,72 +170,97 @@ export default function WalletMovementDialog({
         // Manual wallet movements post immediately (no Pending until day close)
         posted_at: new Date().toISOString(),
       };
-      let rows: any[] = [];
-      if (mode === "in") {
-        rows = [
+
+      if (mode !== "transfer") {
+        // Actual-only correction: exactly like a physical recount.
+        if (actualNow == null) return toast.error("Loading wallet balance, try again");
+        const next = mode === "out" ? actualNow - amount : actualNow + amount;
+        if (next < 0) {
+          toast.error("Resulting balance cannot be negative");
+          return;
+        }
+        let rate = fxRate;
+        if (currency !== "TZS" && currency !== "USD") {
+          const { data: rateRow } = await supabase
+            .from("fin_daily_rates")
+            .select("rate_to_tzs")
+            .eq("casino_id", activeCasinoId)
+            .eq("currency", currency)
+            .lte("business_date", date)
+            .order("business_date", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          rate = Number(rateRow?.rate_to_tzs || 1);
+        }
+        const label = `${mode === "in" ? "Add money" : "Take money"} · ${formatNumberSpaces(amount)} ${currency}`;
+        const { error: rpcError } = await (supabase as any).rpc("fin_save_wallet_count", {
+          p_wallet_id: wallet.id,
+          p_counted: next,
+          p_denominations: {},
+          p_note: [label, baseNote].filter(Boolean).join(" · "),
+          p_business_date: date,
+          p_fx_rate: rate,
+        });
+        if (rpcError) throw rpcError;
+
+        // Audit-only row: 'adjustment' is excluded from the Expected ledger.
+        const { error: auditError } = await supabase.from("fin_wallet_tx").insert([
           {
             ...common,
+            fx_rate: rate,
             wallet_id: wallet.id,
-            kind: "adjustment_in",
-            amount,
-            amount_tzs: amount * fxRate,
-            note: baseNote || `Money in · ${wallet.name}`,
-          },
-        ];
-      } else if (mode === "out") {
-        rows = [
-          {
-            ...common,
-            wallet_id: wallet.id,
-            kind: "adjustment_out",
-            amount,
-            amount_tzs: amount * fxRate,
-            note: baseNote || `Money out · ${wallet.name}`,
-          },
-        ];
-      } else {
-        const label = `Transfer ${wallet.name} → ${toWallet!.name}`;
-        rows = [
-          {
-            ...common,
-            wallet_id: wallet.id,
-            kind: "transfer_out",
-            amount: -amount,
-            amount_tzs: -amount * fxRate,
+            kind: "adjustment",
+            amount: mode === "out" ? -amount : amount,
+            amount_tzs: (mode === "out" ? -amount : amount) * rate,
             note: [label, baseNote].filter(Boolean).join(" · "),
           },
-          {
-            ...common,
-            wallet_id: toWallet!.id,
-            kind: "transfer_in",
-            amount,
-            amount_tzs: amount * fxRate,
-            note: [label, baseNote].filter(Boolean).join(" · "),
-          },
-        ];
+        ] as any);
+        if (auditError) throw auditError;
+
+        toast.success(`Actual · ${wallet.name} → ${formatNumberSpaces(next)} ${currency}`);
+        invalidateFinance(qc);
+        onOpenChange(false);
+        return;
       }
+
+      const label = `Transfer ${wallet.name} → ${toWallet!.name}`;
+      const rows: any[] = [
+        {
+          ...common,
+          wallet_id: wallet.id,
+          kind: "transfer_out",
+          amount: -amount,
+          amount_tzs: -amount * fxRate,
+          note: [label, baseNote].filter(Boolean).join(" · "),
+        },
+        {
+          ...common,
+          wallet_id: toWallet!.id,
+          kind: "transfer_in",
+          amount,
+          amount_tzs: amount * fxRate,
+          note: [label, baseNote].filter(Boolean).join(" · "),
+        },
+      ];
       const { error } = await supabase.from("fin_wallet_tx").insert(rows as any);
       if (error) throw error;
-      toast.success(
-        mode === "transfer"
-          ? `Transferred ${formatNumberSpaces(amount)} ${currency}`
-          : `${mode === "in" ? "Received" : "Paid out"} ${formatNumberSpaces(amount)} ${currency}`,
-      );
+      toast.success(`Transferred ${formatNumberSpaces(amount)} ${currency}`);
       invalidateFinance(qc);
       onOpenChange(false);
     } catch (e: any) {
-      toast.error(e.message);
+      toast.error(e?.message || e?.details || "Could not save movement");
     } finally {
       setSaving(false);
     }
   };
+
 
   return (
     <ResponsiveDialog
       open={open}
       onOpenChange={onOpenChange}
       title="Wallet Movement"
-      description="Balance adjustment in / out or a transfer — not counted as income or expense"
+      description="Add / Take money corrects the Actual balance only (like a recount). Transfer moves money between wallets."
       size="table"
     >
       <div className="space-y-4">
@@ -309,20 +369,41 @@ export default function WalletMovementDialog({
           rows={2}
         />
 
-        <div className="rounded-md border border-border bg-card p-3 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">
-            {mode === "in" ? "Wallet increases by" : mode === "out" ? "Wallet decreases by" : "Moves"}
-          </span>
-          <span
-            className={cn(
-              "font-mono tabular-nums text-lg font-semibold",
-              mode === "in" ? "cms-amount-positive" : mode === "out" ? "cms-amount-negative" : "",
-            )}
-          >
-            {mode === "out" ? "−" : mode === "in" ? "+" : ""}
-            {formatNumberSpaces(amount)} {currency}
-          </span>
-        </div>
+        {mode === "transfer" ? (
+          <div className="rounded-md border border-border bg-card p-3 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Moves</span>
+            <span className="font-mono tabular-nums text-lg font-semibold">
+              {formatNumberSpaces(amount)} {currency}
+            </span>
+          </div>
+        ) : (
+          <div className="rounded-md border border-border bg-card p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Actual now</span>
+              <span className="font-mono tabular-nums text-sm">
+                {actualNow == null ? "—" : `${formatNumberSpaces(actualNow)} ${currency}`}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">
+                Actual becomes ({mode === "in" ? "+" : "−"}
+                {formatNumberSpaces(amount)})
+              </span>
+              <span
+                className={cn(
+                  "font-mono tabular-nums text-lg font-semibold",
+                  mode === "in" ? "cms-amount-positive" : "cms-amount-negative",
+                )}
+              >
+                {resultingActual == null ? "—" : `${formatNumberSpaces(resultingActual)} ${currency}`}
+              </span>
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              Affects Actual only — same as a physical recount. Not income, not expense, Expected stays unchanged.
+            </div>
+          </div>
+        )}
+
 
         <ResponsiveDialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

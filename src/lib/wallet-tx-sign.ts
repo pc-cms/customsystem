@@ -10,14 +10,14 @@ export const WALLET_TX_NEGATIVE_KINDS = new Set([
   "expense",
   "manual_expense",
   "collection",
-  "adjustment_out",
 ]);
 
 /**
- * Manual balance corrections booked from the Wallets arrows.
- * They move the wallet balance but are NOT income / expense.
+ * Manual Actual corrections booked from the Wallets "Add money / Take money"
+ * buttons. They are stored as signed `adjustment` rows: they move the physical
+ * (Actual) balance only and are NOT income / expense, and never touch Expected.
  */
-export const WALLET_TX_ADJUSTMENT_KINDS = new Set(["adjustment_in", "adjustment_out"]);
+export const WALLET_TX_ADJUSTMENT_KINDS = new Set(["adjustment"]);
 
 export const isWalletAdjustment = (kind?: string | null) =>
   WALLET_TX_ADJUSTMENT_KINDS.has(String(kind));
@@ -27,10 +27,11 @@ export const walletTxIsIn = (row: { kind?: string | null; amount_tzs?: number | 
   const kind = String(row.kind || "");
   if (WALLET_TX_NEGATIVE_KINDS.has(kind) || kind === "transfer_out" || kind === "change_out")
     return false;
-  if (kind === "adjustment_in" || kind === "income" || kind === "transfer_in" || kind === "change_in")
+  if (kind === "income" || kind === "transfer_in" || kind === "change_in")
     return true;
   return Number(row.amount_tzs ?? row.amount ?? 0) >= 0;
 };
+
 
 
 export interface WalletTxLike {
