@@ -250,13 +250,12 @@ export default function WalletDayGridTab({
   return (
     <Card>
       <CardContent className="p-0">
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-          <div className="text-sm font-semibold">{title} · daily movements</div>
-          {monthClosed && (
-            <span className="text-xs text-muted-foreground">Month closed — read only</span>
-          )}
-        </div>
-        <div className="overflow-auto max-h-[70vh]">
+        {monthClosed && (
+          <div className="px-4 py-1.5 border-b border-border text-xs text-muted-foreground">
+            Month closed — read only
+          </div>
+        )}
+        <div className="overflow-x-auto">
           <SmartTable
             data={rows}
             columns={columns}
@@ -274,4 +273,5 @@ export default function WalletDayGridTab({
       </CardContent>
     </Card>
   );
+
 }
