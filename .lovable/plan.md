@@ -1,7 +1,7 @@
-# Monthly Report — обновление KPI-плиток
+# Monthly Report — обновление KPI-плиток и карточек сводки
 
 ## Цель
-Переработать ряд из 6 KPI-плиток на странице **Finances → Monthly Report** (`src/pages/finances/FinancesMonthlyReportPage.tsx`, компонент `SummaryBlock`). Логика расчётов базы данных не меняется — используются уже существующие поля отчёта.
+Переработать блок `SummaryBlock` на странице **Finances → Monthly Report** (`src/pages/finances/FinancesMonthlyReportPage.tsx`): ряд KPI-плиток и три сводные карточки. Логика БД не меняется — используются существующие данные отчёта, добавляется одна детализация в хук.
 
 ## Текущий набор плиток
 Total Income · Budget · Actual Expenses · Expected/Final Profit · Cash Position · Total Money
