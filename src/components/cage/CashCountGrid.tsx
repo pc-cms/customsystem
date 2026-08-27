@@ -1,9 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { NumberInput } from "@/components/ui/number-input";
 import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import ChipDenomInput from "@/components/ChipDenomInput";
 import CashDenomInput from "./CashDenomInput";
-import { MOBILE_PROVIDERS, mobileTotal, type MobileProviders, type Banks } from "./CageHelpers";
+import {
+  MOBILE_PROVIDERS, mobileTotal, BANK_CHANNELS, emptyBankChannels,
+  withDerivedBankTotals, type MobileProviders, type Banks,
+} from "./CageHelpers";
+
 
 /** Render one Cashless / Mobile Money provider block (IN, OUT, or Balance).
  *  Suggestion from /cashless transactions is *prefilled* into the cell itself
