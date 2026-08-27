@@ -475,7 +475,7 @@ const SummaryBlock = ({
   const pendingEstExpenses = g.plan_month_grand_tzs - cash.expenses_actual;
   /** Current Cash Balance = Total In − Paid Expense − Deposits − Investment − Collection. */
   const currentCashBalance =
-    kpi.total_income - cash.expenses_actual - cash.deposits - cash.investment - cash.collections_actual;
+    kpi.total_income - cash.expenses_actual - cash.deposits - inc.investment - cash.collections_actual;
 
 
 
