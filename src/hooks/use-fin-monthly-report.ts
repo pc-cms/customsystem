@@ -146,6 +146,8 @@ export type MonthlyReport = {
     /** Deposits = Tips & Bonuses + JP + Card Balance + Miss Chips + Miss Cards (signed). */
     deposits: number;
     available_for_collection: number;
+    /** Individual investment movements of the month (for the expandable section). */
+    investment_items: Array<{ id: string; business_date: string; label: string; amount_tzs: number }>;
   };
   /** Month status + the full server-side finance block (single source of truth). */
   month: MonthFinance | null;
@@ -241,7 +243,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       //   inter-casino transfers = registry, never here.
       let incomesQ = (supabase as any)
         .from("fin_other_incomes")
-        .select("amount, fx_rate, currency, casino_id, business_date, reverses_id, reversed_by_id, source")
+        .select("id, label, amount, fx_rate, currency, casino_id, business_date, reverses_id, reversed_by_id, source")
         .gte("business_date", start)
         .lt("business_date", endExclusive)
         .is("reverses_id", null)
@@ -405,6 +407,16 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       const tipsBonus = sumSources(TIPS_BONUS_SOURCES);
       const movements = sumSources(MOVEMENT_SOURCES);
       const investment = sumSources(["investment"]);
+      // Detail rows behind the expandable "Investment" section.
+      const investmentItems = ((incomes as any)?.data || [])
+        .filter((r: any) => String(r.source || "") === "investment")
+        .map((r: any) => ({
+          id: String(r.id),
+          business_date: String(r.business_date),
+          label: String(r.label || "Investment"),
+          amount_tzs: toTzs(r),
+        }))
+        .sort((a: any, b: any) => a.business_date.localeCompare(b.business_date));
       const office = sumSources(["office", "owner_topup"]);
       const addFloat = sumSources(FLOAT_SOURCES);
       const jp = sumSources(["jp"]);
@@ -677,6 +689,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           liability_payments: liabilityPayments,
           deposits: depositsTotal,
           available_for_collection: availableForCollection,
+          investment_items: investmentItems,
         },
         month: mf,
         kpi: {

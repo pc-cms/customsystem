@@ -20,14 +20,12 @@ import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories, useArch
 import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
 import { MonthlyReportActions } from "@/components/finances/MonthlyReportActions";
 import { useMonthFinance, useOverrideManagerBonus } from "@/hooks/use-fin-month-finance";
-import { useFinBalanceSnapshot, computeBalanceTotals } from "@/hooks/use-fin-balance";
 
 import { InlineTextCell } from "@/components/finances/InlineTextCell";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
 import { NumberInput } from "@/components/ui/number-input";
-import { totalExpensesAndObligations } from "@/lib/finance-formulas";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import { downloadXlsx } from "@/lib/excel-export";
@@ -450,18 +448,7 @@ const SummaryBlock = ({
   const closedAt = mf?.closed_at || null;
 
 
-  /* Total Money = Wallets · Expected of the same month (single source of truth). */
-  const { period: walletPeriod } = useOfficePeriod();
-  const walletRange = useMemo(() => {
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const last = new Date(walletPeriod.year, walletPeriod.month, 0).getDate();
-    return {
-      from: `${walletPeriod.year}-${pad(walletPeriod.month)}-01`,
-      to: `${walletPeriod.year}-${pad(walletPeriod.month)}-${pad(last)}`,
-    };
-  }, [walletPeriod.year, walletPeriod.month]);
-  const { data: walletSnap } = useFinBalanceSnapshot(walletRange.from, walletRange.to);
-  const walletTotals = useMemo(() => computeBalanceTotals(walletSnap), [walletSnap]);
+
 
 
   const [open, setOpen] = useState<Record<string, boolean>>({});
@@ -481,17 +468,16 @@ const SummaryBlock = ({
   const liabilityPayments = mf?.liabilities?.payments || [];
 
   const depositsTotal = cash.deposits;
+  const investmentItems = cash.investment_items || [];
+  const collectionCats = (data.collections?.categories || []).filter((c) => Number(c.actual_grand_tzs || 0) !== 0);
 
-  /** Footer totals — see src/lib/finance-formulas.ts (single source of truth). */
-  const obligationsTotal = totalExpensesAndObligations({
-    closed,
-    budget: g.plan_month_grand_tzs,
-    expensesActual: cash.expenses_actual,
-    unplannedTotal: cash.unplanned_expenses,
-    unplannedNotInActual: cash.unplanned_not_in_actual,
-    liabilitiesClosing: cash.liabilities,
-    collections: cash.collections_actual,
-  });
+  /** Pending Est Expenses = Budget − Paid Expenses (negative = overspent). */
+  const pendingEstExpenses = g.plan_month_grand_tzs - cash.expenses_actual;
+  /** Current Cash Balance = Total In − Paid Expense − Deposits − Investment − Collection. */
+  const currentCashBalance =
+    kpi.total_income - cash.expenses_actual - cash.deposits - inc.investment - cash.collections_actual;
+
+
 
 
   const cardHeader =
@@ -717,8 +703,8 @@ const SummaryBlock = ({
         </span>
       }
     >
-      {/* KPI TILES — fixed logical order: Income → Budget → Actual → Profit → Cash → Float */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 items-stretch">
+      {/* KPI TILES — Income → Budget → Paid → Pending → Profit → Cash Position → Cash Balance */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7 gap-3 items-stretch">
         <KpiCard
           label="Total Income"
           v={kpi.total_income}
@@ -732,12 +718,18 @@ const SummaryBlock = ({
         />
 
         <KpiCard
-          label="Actual Expenses"
+          label="Paid Expenses"
           v={cash.expenses_actual}
-          formula="Σ approved expenses actually booked in the month (Grand TZS)."
+          formula="Σ approved expenses actually paid in the month (Grand TZS)."
         />
         <KpiCard
-          label={closed ? "Final Profit" : "Expected Profit"}
+          label="Pending Est Expenses"
+          v={pendingEstExpenses}
+          tone="signed"
+          formula="Remaining planned cost base: Budget − Paid Expenses. Negative means the budget is already overspent."
+        />
+        <KpiCard
+          label={closed ? "Final Profit" : "Current Profit"}
           v={kpi.expected_profit}
           tone="signed"
           formula={
@@ -753,13 +745,14 @@ const SummaryBlock = ({
           formula="Basic Float + Total Income + Office + Investment + Intercompany Cash Effect − Actual Expenses − Paid Extra Expenses (not in Actual) − Collections − Liability Payments. Deposits have no effect on Cash Position."
         />
         <KpiCard
-          label="Total Money"
-          v={walletTotals.expected}
+          label="Current Cash Balance"
+          v={currentCashBalance}
           tone="signed"
-          formula="Expected wallet balance of the month (same value as Wallets · Expected)."
+          formula="Total In − Paid Expense − Deposits − Investment − Collection."
         />
 
       </div>
+
 
       {/* THREE EQUAL SUMMARY CARDS — exactly 5 primary rows each when collapsed */}
       <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-stretch">
@@ -775,13 +768,7 @@ const SummaryBlock = ({
           <Line label="Bar Income" v={inc.bar_income} tip="POS / bar revenue counted once, in income and in cash." />
 
           <div className="flex-1" />
-          <Line
-            label="Total Income"
-            v={kpi.total_income}
-            strong
-            signed
-            tip="Table Result + Slot Result + Bar Income + Commissions."
-          />
+
         </div>
 
         {/* B · EXPENSES & OBLIGATIONS */}
@@ -887,18 +874,8 @@ const SummaryBlock = ({
             }
           />
 
-
           <div className="flex-1" />
-          <Line
-            label="Total Expenses & Obligations"
-            v={obligationsTotal}
-            strong
-            tip={
-              closed
-                ? "Actual Expenses + Extra Expenses not already inside Actual + frozen closing Liabilities + Collections. Commissions & Fee are income lines and are never deducted here."
-                : "Budget + all Extra Expenses + closing Liabilities + Collections. Commissions & Fee are income lines and are never deducted here."
-            }
-          />
+
         </div>
 
         {/* C · CASH ADJUSTMENTS */}
@@ -928,13 +905,36 @@ const SummaryBlock = ({
             <DetailRow label="Miss Chips" value={cash.miss_chips} />
             <DetailRow label="Tips & Bonuses (±)" value={inc.tips_bonus} />
           </Section>
-          <Line label="Office" v={inc.office} signed tip="Signed office cash movements of the month." />
-          <Line label="Investment" v={inc.investment} signed tip="Signed investment cash movements of the month." />
-          <Line
+          <Section
+            id="investment"
+            label="Investment"
+            total={inc.investment}
+            signed
+            tip="Signed investment cash movements of the month. Expand to see each entry."
+          >
+            {investmentItems.length === 0 ? (
+              <div className="px-3 py-2 text-[12px] text-muted-foreground">No investment movements this month.</div>
+            ) : (
+              investmentItems.map((i) => (
+                <DetailRow key={i.id} left={fmtDateOnly(i.business_date)} label={i.label} value={i.amount_tzs} />
+              ))
+            )}
+          </Section>
+          <Section
+            id="collections"
             label="Collections"
-            v={cash.collections_actual}
-            tip="Owner withdrawals already taken out in cash. They reduce Expected Profit, the amount still available for collection and Cash Position."
-          />
+            total={cash.collections_actual}
+            tip="Owner withdrawals already taken out in cash. They reduce Expected Profit, the amount still available for collection and Cash Position. Expand to see the breakdown by category."
+          >
+            {collectionCats.length === 0 ? (
+              <div className="px-3 py-2 text-[12px] text-muted-foreground">No collections this month.</div>
+            ) : (
+              collectionCats.map((c) => (
+                <DetailRow key={c.id} label={c.name} value={c.actual_grand_tzs} />
+              ))
+            )}
+          </Section>
+
 
 
           <div className="flex-1" />

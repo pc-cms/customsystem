@@ -6,6 +6,7 @@ import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -62,6 +63,7 @@ export default function FinancesInterCasinoPage() {
     to_casino_id: "",
     amount: 0,
     note: "",
+    repayable: true,
   });
   const [acceptWallet, setAcceptWallet] = useState<Record<string, string>>({});
 
@@ -86,6 +88,7 @@ export default function FinancesInterCasinoPage() {
         amount: Math.abs(form.amount),
         business_date: form.business_date,
         note: form.note,
+        repayable: form.repayable,
       },
       {
         onSuccess: () => {
@@ -180,7 +183,13 @@ export default function FinancesInterCasinoPage() {
                           <Badge variant="outline" className={STATUS_STYLE[r.status]}>
                             {r.status}
                           </Badge>
+                          {(r as any).repayable ? (
+                            <Badge variant="outline" className="ml-1 border-amber-500/40 text-amber-600">
+                              DEBT
+                            </Badge>
+                          ) : null}
                         </td>
+
                         <td className="px-3 py-1.5 text-xs text-muted-foreground">
                           {r.note}
                           {r.resolution_note ? ` · ${r.resolution_note}` : ""}
@@ -341,6 +350,19 @@ export default function FinancesInterCasinoPage() {
               onValueChange={(v) => setForm({ ...form, amount: v ?? 0 })}
             />
           </FormField>
+          <FormField span={12} label="Repayable (creates a debt at the receiver)">
+            <div className="flex h-9 items-center gap-2">
+              <Switch
+                checked={form.repayable}
+                onCheckedChange={(v) => setForm({ ...form, repayable: v })}
+              />
+              <span className="text-xs text-muted-foreground">
+                {form.repayable
+                  ? "The receiving casino books this as a liability to be repaid."
+                  : "Plain funding — no liability is created."}
+              </span>
+            </div>
+          </FormField>
           <FormField span={12} label="Note">
             <Input
               value={form.note}
@@ -348,6 +370,7 @@ export default function FinancesInterCasinoPage() {
               placeholder="Reason / reference"
             />
           </FormField>
+
         </FormGrid>
         <p className="mt-2 text-xs text-muted-foreground">
           The receiving casino confirms this transfer and picks the wallet — only wallets in the same currency can be
