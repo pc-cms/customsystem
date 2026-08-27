@@ -424,6 +424,8 @@ export default function DayClosingsTab() {
       header: "Table Result",
       type: "money",
       style: { width: 168 },
+      sortValue: (r) => val(r).tables,
+
       headerClassName: "text-right",
       accessor: (r) => numCell(r, val(r).tables, (n) => setField(r.date, { tables: n }), {
         placeholder: r.agg.tables,
