@@ -923,13 +923,36 @@ const SummaryBlock = ({
             <DetailRow label="Miss Chips" value={cash.miss_chips} />
             <DetailRow label="Tips & Bonuses (±)" value={inc.tips_bonus} />
           </Section>
-          <Line label="Office" v={inc.office} signed tip="Signed office cash movements of the month." />
-          <Line label="Investment" v={inc.investment} signed tip="Signed investment cash movements of the month." />
-          <Line
+          <Section
+            id="investment"
+            label="Investment"
+            total={inc.investment}
+            signed
+            tip="Signed investment cash movements of the month. Expand to see each entry."
+          >
+            {investmentItems.length === 0 ? (
+              <div className="px-3 py-2 text-[12px] text-muted-foreground">No investment movements this month.</div>
+            ) : (
+              investmentItems.map((i) => (
+                <DetailRow key={i.id} left={fmtDateOnly(i.business_date)} label={i.label} value={i.amount_tzs} />
+              ))
+            )}
+          </Section>
+          <Section
+            id="collections"
             label="Collections"
-            v={cash.collections_actual}
-            tip="Owner withdrawals already taken out in cash. They reduce Expected Profit, the amount still available for collection and Cash Position."
-          />
+            total={cash.collections_actual}
+            tip="Owner withdrawals already taken out in cash. They reduce Expected Profit, the amount still available for collection and Cash Position. Expand to see the breakdown by category."
+          >
+            {collectionCats.length === 0 ? (
+              <div className="px-3 py-2 text-[12px] text-muted-foreground">No collections this month.</div>
+            ) : (
+              collectionCats.map((c) => (
+                <DetailRow key={c.id} label={c.name} value={c.actual_grand_tzs} />
+              ))
+            )}
+          </Section>
+
 
 
           <div className="flex-1" />
