@@ -686,19 +686,7 @@ const ShiftClosingReport = ({
           <tr>
             <td className="border border-black px-1.5 py-0.5">Cash Flow FILL</td>
             <td className="border border-black px-1.5 py-0.5 text-right">{num(effCashFlowTransfers.addFloat)}</td>
-            <td className="border border-black px-1.5 py-0.5">Tips Day</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{num(effTipsByShift.day)}</td>
-          </tr>
-          <tr>
-            <td className="border border-black px-1.5 py-0.5">Cash Flow CREDIT</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{num(effCashFlowTransfers.slotsOut)}</td>
-            <td className="border border-black px-1.5 py-0.5">Tips Night</td>
-            <td className="border border-black px-1.5 py-0.5 text-right">{num(effTipsByShift.night)}</td>
-          </tr>
-          <tr>
-            <td className="border border-black px-1.5 py-0.5">Cash Desk Chips FILL</td>
-            <td className="border border-black px-1.5 py-0.5 text-right"></td>
-            <td className="border border-black px-1.5 py-0.5">− Tips (this shift)</td>
+            <td className="border border-black px-1.5 py-0.5">Tips</td>
             <td className="border border-black px-1.5 py-0.5 text-right">
               {(() => {
                 const v = tipsTotal ?? (effTipsByShift.day + effTipsByShift.night);
@@ -706,6 +694,19 @@ const ShiftClosingReport = ({
               })()}
             </td>
           </tr>
+          <tr>
+            <td className="border border-black px-1.5 py-0.5">Cash Flow CREDIT</td>
+            <td className="border border-black px-1.5 py-0.5 text-right">{num(effCashFlowTransfers.slotsOut)}</td>
+            <td className="border border-black px-1.5 py-0.5"></td>
+            <td className="border border-black px-1.5 py-0.5 text-right"></td>
+          </tr>
+          <tr>
+            <td className="border border-black px-1.5 py-0.5">Cash Desk Chips FILL</td>
+            <td className="border border-black px-1.5 py-0.5 text-right"></td>
+            <td className="border border-black px-1.5 py-0.5"></td>
+            <td className="border border-black px-1.5 py-0.5 text-right"></td>
+          </tr>
+
           {(() => {
             const PROV_ROWS: Array<{ key: string; label: string }> = [
               { key: "MPESA",   label: "M Pesa" },
