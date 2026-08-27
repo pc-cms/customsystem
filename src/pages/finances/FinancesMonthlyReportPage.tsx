@@ -717,8 +717,8 @@ const SummaryBlock = ({
         </span>
       }
     >
-      {/* KPI TILES — fixed logical order: Income → Budget → Actual → Profit → Cash → Float */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 items-stretch">
+      {/* KPI TILES — Income → Budget → Paid → Pending → Profit → Cash Position → Cash Balance */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7 gap-3 items-stretch">
         <KpiCard
           label="Total Income"
           v={kpi.total_income}
@@ -732,12 +732,18 @@ const SummaryBlock = ({
         />
 
         <KpiCard
-          label="Actual Expenses"
+          label="Paid Expenses"
           v={cash.expenses_actual}
-          formula="Σ approved expenses actually booked in the month (Grand TZS)."
+          formula="Σ approved expenses actually paid in the month (Grand TZS)."
         />
         <KpiCard
-          label={closed ? "Final Profit" : "Expected Profit"}
+          label="Pending Est Expenses"
+          v={pendingEstExpenses}
+          tone="signed"
+          formula="Remaining planned cost base: Budget − Paid Expenses. Negative means the budget is already overspent."
+        />
+        <KpiCard
+          label={closed ? "Final Profit" : "Current Profit"}
           v={kpi.expected_profit}
           tone="signed"
           formula={
@@ -753,13 +759,14 @@ const SummaryBlock = ({
           formula="Basic Float + Total Income + Office + Investment + Intercompany Cash Effect − Actual Expenses − Paid Extra Expenses (not in Actual) − Collections − Liability Payments. Deposits have no effect on Cash Position."
         />
         <KpiCard
-          label="Total Money"
-          v={walletTotals.expected}
+          label="Current Cash Balance"
+          v={currentCashBalance}
           tone="signed"
-          formula="Expected wallet balance of the month (same value as Wallets · Expected)."
+          formula="Total In − Paid Expense − Deposits − Investment − Collection."
         />
 
       </div>
+
 
       {/* THREE EQUAL SUMMARY CARDS — exactly 5 primary rows each when collapsed */}
       <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-stretch">
