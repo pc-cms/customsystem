@@ -19,8 +19,16 @@ export type ClosingInboxRow = {
   currency: string;
   denomination: number | null;
   orig_count: number | null;
+  /** Cash: denomination × count. Bank/Mobile: daily NET (IN − OUT) — this is what gets posted. */
   orig_amount: number;
+  /** Bank/Mobile daily movement. */
+  orig_in?: number;
+  orig_out?: number;
+  /** Closing balance from the cashdesk — control/reference only, never posted. */
+  final_balance?: number | null;
+  opening_balance?: number | null;
   corr_delta_count: number;
+
   corr_delta_amount: number;
   correction_reason: string | null;
   corrected_at: string | null;
