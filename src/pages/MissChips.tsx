@@ -181,7 +181,7 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
                 </DTCell>
               </DTRow>
             )}
-            {dailyRows.map((r) => (
+            {sortedRows.map((r) => (
               <DTRow key={r.business_date}>
                 <DTCell type="date">{fmtDateOnly(r.business_date)}</DTCell>
                 {DENOMS_DESC.map((d) => {
