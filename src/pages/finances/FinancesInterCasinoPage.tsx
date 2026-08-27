@@ -101,18 +101,15 @@ export default function FinancesInterCasinoPage() {
 
   return (
     <PageShell>
-      <PageHeader
-        icon={Building2}
-        title="Inter-Casino"
-        subtitle="Paired transfers — money leaves one casino (−) and is confirmed on the other (+)"
-      >
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <FinanceCasinoSwitcher allowNetwork={true} />
         {!isSummaryMode && (
           <Button onClick={() => setOpen(true)}>
             <Plus className="w-4 h-4" /> New Transfer
           </Button>
         )}
-      </PageHeader>
+      </div>
+
 
       <PageSection card={false}>
         <Tabs defaultValue="all">
