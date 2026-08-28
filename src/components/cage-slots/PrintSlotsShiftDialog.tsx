@@ -195,10 +195,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       return { tzs, usd, totalTzs, channels };
     };
     const openerBank = readBank((openingCheck?.denominations as any)?.bank);
-    // Closing banks live on the shift itself once submitted; fall back to the last check.
-    const closerBank = readBank(
-      (shift as any).closing_denominations?.bank ?? (closingCheck?.denominations as any)?.bank,
-    );
+    const closerBank = readBank((closingCheck?.denominations as any)?.bank);
 
     const collectProviderSnap = (raw: any): Record<string, number> => {
       const out: Record<string, number> = { MPESA: 0, TIGO: 0, HALOTEL: 0, AIRTEL: 0 };
