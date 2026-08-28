@@ -4,7 +4,7 @@
  * Top 8 players column on the right. Strict Label | Drop | Result | Hold
  * columns; the three metric rows stretch over the full card height.
  */
-import { PREMIER, SURFACE } from "./tokens";
+import { SURFACE } from "./tokens";
 import {
   MetricsBlock,
   Kpi,
