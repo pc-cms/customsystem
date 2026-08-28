@@ -148,6 +148,7 @@ export function RedGoldStage({ casinos, company, newPlayersCount, period, period
                   >
                     {i + 1}
                   </span>
+                  <CityMark slug={c.slug} accent={c.accent} />
                   <div className="flex flex-col justify-center min-w-0 max-w-[9.5em]">
                     <h2
                       className="truncate font-extrabold uppercase tracking-[0.14em] leading-none"
@@ -166,6 +167,7 @@ export function RedGoldStage({ casinos, company, newPlayersCount, period, period
 
                 {d ? (
                   <MetricsBlock
+
                     displayed={d}
                     accent={PREMIER.softGold}
                     fills={{
