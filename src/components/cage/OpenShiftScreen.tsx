@@ -24,7 +24,7 @@ import LockableSection from "@/components/cage/LockableSection";
 import {
   MOBILE_PROVIDERS, emptyMobile, emptyBanks, mobileTotal, bankTotalTzs,
   chipSum, emptyCash, calcCashTotalTzs,
-  BANK_CHANNELS, emptyBankChannels, withDerivedBankTotals,
+  type Banks,
   type MobileProviders, type Banks,
 } from "@/components/cage/CageHelpers";
 
