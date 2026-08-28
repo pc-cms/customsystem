@@ -93,7 +93,7 @@ const NAV_ITEMS: NavItem[] = [
 
   // RECEPTION — alphabetical
   { to: "/blacklist", icon: ShieldAlert, label: "Blacklist", roles: ["super_admin", "manager", "shift_manager", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "RECEPTION" },
-  { to: "/guests", icon: UserCheck, label: "Guests", roles: ["super_admin", "manager", "shift_manager", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "RECEPTION" },
+  { to: "/guests", icon: UserCheck, label: "Guests", roles: ["super_admin", "manager", "shift_manager", "reception", "finance_manager", "surveillance", "account_manager" as AppRole, "cashier_slots"], section: "RECEPTION" },
   { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "shift_manager", "reception", "finance_manager"], section: "RECEPTION" },
 
 
