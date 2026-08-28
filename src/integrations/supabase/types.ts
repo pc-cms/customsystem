@@ -13151,42 +13151,19 @@ export type Database = {
         Args: { _action: string; _reason?: string; _transfer_id: string }
         Returns: undefined
       }
-      fin_inter_casino_send:
-        | {
-            Args: {
-              _amount: number
-              _business_date: string
-              _from_wallet_id: string
-              _note?: string
-              _to_casino_id: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              _amount: number
-              _business_date: string
-              _from_wallet_id: string
-              _kind?: string
-              _note?: string
-              _repays_id?: string
-              _to_casino_id: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              _amount: number
-              _business_date: string
-              _from_wallet_id: string
-              _kind?: string
-              _note?: string
-              _repayable?: boolean
-              _repays_id?: string
-              _to_casino_id: string
-            }
-            Returns: string
-          }
+      fin_inter_casino_send: {
+        Args: {
+          _amount: number
+          _business_date: string
+          _from_wallet_id: string
+          _kind?: string
+          _note?: string
+          _repayable?: boolean
+          _repays_id?: string
+          _to_casino_id: string
+        }
+        Returns: string
+      }
       fin_jp_delete_entry: { Args: { p_id: string }; Returns: undefined }
       fin_liability_add: {
         Args: {
