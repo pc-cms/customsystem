@@ -24,12 +24,16 @@ export const TV_STYLES: { id: TvStyleId; label: string }[] = [
 
 export const DEFAULT_TV_STYLE: TvStyleId = "black-gold";
 
-/** City accents — fixed brand mapping. */
+/**
+ * City accents — fixed brand mapping.
+ * Used ONLY for city identity (name, thin frame, pictogram) — never to
+ * recolour metrics.
+ */
 export const CITY_ACCENTS: Record<string, string> = {
-  arusha: PREMIER.darkRed,
-  dodoma: PREMIER.softGold,
-  mbeya: PREMIER.darkGold,
-  mwanza: PREMIER.lightBlue,
+  arusha: "#C86F3D",
+  mwanza: "#3A8FB7",
+  dodoma: "#C6923E",
+  mbeya: "#3D956B",
 };
 
 const FALLBACK_ACCENTS = [
@@ -44,6 +48,7 @@ export const tvAccentFor = (slug: string | null | undefined, idx = 0) => {
   if (key && CITY_ACCENTS[key]) return CITY_ACCENTS[key];
   return FALLBACK_ACCENTS[idx % FALLBACK_ACCENTS.length];
 };
+
 
 /** Page-level backdrop per style. */
 export const STAGE_BACKGROUND: Record<TvStyleId, string> = {
