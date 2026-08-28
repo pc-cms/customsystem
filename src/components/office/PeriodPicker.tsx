@@ -146,6 +146,18 @@ export function PeriodPicker({
       >
         <ChevronRight className="w-4 h-4" />
       </Button>
+
+      {!isCurrentMonth && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 px-2 text-xs"
+          onClick={() => onChange(currentMonthPeriod())}
+        >
+          This month
+        </Button>
+      )}
     </div>
   );
 }
+
