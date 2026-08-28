@@ -46,8 +46,8 @@ export function TopPlayersOverall({
         <div className="flex-1 grid place-items-center text-white/40">—</div>
       ) : (
         <ol
-          className="flex-1 min-h-0 grid px-[var(--tv-gap,10px)] py-[calc(var(--tv-gap,10px)*0.35)]"
-          style={{ gridTemplateRows: `repeat(${rows.length}, minmax(0,1fr))` }}
+          className="flex-1 min-h-0 grid content-start px-[var(--tv-gap,10px)] py-[calc(var(--tv-gap,10px)*0.35)]"
+          style={{ gridTemplateRows: `repeat(${limit}, minmax(0,1fr))` }}
         >
           {rows.map((r, i) => (
             <li
@@ -127,7 +127,7 @@ export function TopPlayersStrip({
           <ol
             className="flex-1 min-w-0 grid divide-x h-full"
             style={{
-              gridTemplateColumns: `repeat(${rows.length}, minmax(0,1fr))`,
+              gridTemplateColumns: `repeat(${limit}, minmax(0,1fr))`,
               borderColor: "rgba(255,255,255,0.06)",
             }}
           >
