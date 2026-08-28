@@ -166,18 +166,8 @@ export function RedGoldStage({ casinos, company, newPlayersCount, period, period
                 </div>
 
                 {d ? (
-                  <MetricsBlock
+                  <MetricsBlock displayed={d} accent={PREMIER.softGold} size="sm" totalSize="md" />
 
-                    displayed={d}
-                    accent={PREMIER.softGold}
-                    fills={{
-                      tables: `${PREMIER.champagne}12`,
-                      slots: `${PREMIER.lightRed}1F`,
-                      total: `${PREMIER.softGold}24`,
-                    }}
-                    size="sm"
-                    totalSize="md"
-                  />
                 ) : (
                   <div className="grid place-items-center text-white/35">{DASH}</div>
                 )}
