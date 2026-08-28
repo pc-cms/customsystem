@@ -32,7 +32,8 @@ const NUM = (label: string, value: number, onChange: (n: number) => void, suffix
 export default function PayrollSettingsPage() {
   const { roles } = useAuth();
   const { activeCasinoId } = useCasino();
-  const isSuper = roles.includes("super_admin");
+  // Mirrors DB policy payroll_settings_write_hr_finance / paye_brackets_write_hr_finance.
+  const isSuper = roles.some(r => ["super_admin", "finance_manager", "hr"].includes(r));
   const qc = useQueryClient();
 
   const { data: settings } = useLatestPayrollSettings();
