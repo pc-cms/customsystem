@@ -7,12 +7,18 @@ export API.
 
 ## Contract
 
-`POST <FINANCE_HUB_WEBHOOK_URL>` (production: `https://amaell-finance-hub.lovable.app/api/integrations/cms/webhook`)
+`POST <FINANCE_HUB_WEBHOOK_URL>` (production: `https://amaell-finance-hub.lovable.app/api/public/cms/webhook`)
 
 ```
-Authorization: Bearer <shared finance-export token>
 Content-Type: application/json
+X-Finance-Timestamp: <unix seconds>
+X-Finance-Signature: <hex hmac-sha256 of `${timestamp}.${raw_body}`>
 ```
+
+The HMAC key is the UTF-8 bytes of the lowercase hex SHA-256 of the shared
+export token — i.e. exactly the `token_sha256` string already stored in
+`finance_hub_api_clients`. The CMS therefore needs **no plaintext token and no
+second secret**, and sends no `Authorization` header.
 
 Body (unknown fields are omitted, never `null`-padded):
 
@@ -40,8 +46,8 @@ Body (unknown fields are omitted, never `null`-padded):
 ## Architecture
 
 ```text
-DB write  ──trigger──▶  finance_hub_notify_outbox  ──cron 1 min──▶  finance-hub-notify  ──POST──▶  Finance Hub
- (user tx)   fail-open      (coalesced, no money)      edge fn        3 s timeout
+DB write ──trigger──▶ finance_hub_notify_outbox ──┬─ pg_net kick (async, ≤1 per 3 s) ─┬─▶ finance-hub-notify ──POST──▶ Finance Hub
+ (user tx)  fail-open     (coalesced, no money)     └─ cron every 1 min (safety net) ──┘      edge fn, 8 s timeout
 ```
 
 - `tg_finance_hub_notify(event, feed)` — generic AFTER trigger. Wrapped in an
@@ -50,8 +56,13 @@ DB write  ──trigger──▶  finance_hub_notify_outbox  ──cron 1 min─
   means a burst of 500 writes collapses into a single pending row.
 - Recursion guard: the trigger ignores its own table and honours
   `SET LOCAL app.finance_hub_notify_off = '1'` for bulk/import jobs.
-- Delivery happens entirely outside the user transaction (cron → edge function),
-  with a 3 s timeout and no in-transaction retries. Failed rows are retried by
+- After enqueueing, the trigger calls `finance_hub_notify_kick()`, which uses
+  `pg_net` to fire-and-forget an invocation of the dispatcher. `pg_net` only
+  queues the HTTP call, so the casino transaction never waits on Finance Hub.
+  A single-row throttle table plus `pg_try_advisory_xact_lock` caps kicks at one
+  per 3 seconds, so write bursts cannot storm the edge function.
+- Delivery happens entirely outside the user transaction (pg_net / cron → edge
+  function), with an 8 s timeout and no in-transaction retries. Failed rows are retried by
   later cron runs (max 5 attempts, 24 h window).
 - `finance_hub_notify_gc()` prunes sent rows after 7 days.
 - On-prem/offline sites simply queue nothing extra; the normal sync/export path
@@ -61,11 +72,15 @@ DB write  ──trigger──▶  finance_hub_notify_outbox  ──cron 1 min─
 
 | Secret | Purpose |
 | --- | --- |
-| `FINANCE_HUB_WEBHOOK_URL` | Destination endpoint. |
-| `FINANCE_HUB_EXPORT_TOKEN` | Plaintext of the **same** shared finance-export token whose SHA-256 lives in `finance_hub_api_clients`. Required because the DB only stores the hash. |
+| `FINANCE_HUB_WEBHOOK_URL` | Destination endpoint. Optional — defaults to the production `/api/public/cms/webhook` route. |
 
-If either secret is missing the notifier logs a warning and no-ops — CMS
-operations are unaffected.
+No outbound token secret is needed: the signing key is read server-side (service
+role) from the active `finance_hub_api_clients.token_sha256` row and is never
+logged or returned. If no active client exists the notifier logs a warning and
+no-ops — CMS operations are unaffected.
+
+**Latency:** typically **1–5 seconds** end-to-end (pg_net kick, throttled to one
+every 3 s), with the 1-minute cron as the worst-case fallback and retry path.
 
 ## Manual run
 
