@@ -180,13 +180,12 @@ const CashCountGrid = ({
 
           <section className={sectionCls}>
             <p className={titleCls}>Banks</p>
-            <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-x-2 gap-y-1 items-center">
+            <div className="grid grid-cols-[auto_1fr_1fr] gap-x-2 gap-y-1 items-center">
               <span />
               <span className="text-[9px] uppercase tracking-wider text-muted-foreground text-right">In</span>
               <span className="text-[9px] uppercase tracking-wider text-muted-foreground text-right">Out</span>
-              <span className="text-[9px] uppercase tracking-wider text-muted-foreground text-right">Balance</span>
               {BANK_CHANNELS.map(ch => {
-                const e = banks.channels?.[ch.key] || { in: 0, out: 0, final: 0 };
+                const e = banks.channels?.[ch.key] || { in: 0, out: 0 };
                 const patch = (p: Partial<typeof e>) =>
                   onBanksChange(withDerivedBankTotals({
                     ...banks,
@@ -197,26 +196,22 @@ const CashCountGrid = ({
                     <span className={mdChip}>{ch.bank} {ch.currency}</span>
                     <NumberInput value={e.in || ""} onChange={v => patch({ in: Number(v) || 0 })} className={bankInput} placeholder="0" />
                     <NumberInput value={e.out || ""} onChange={v => patch({ out: Number(v) || 0 })} className={bankInput} placeholder="0" />
-                    <NumberInput value={e.final || ""} onChange={v => patch({ final: Number(v) || 0 })} className={bankInput} placeholder="0" />
                   </Fragment>
                 );
               })}
             </div>
             <div className="pt-2 mt-2 border-t border-border space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Net today (IN − OUT)</span>
-                <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">TZS {formatNumberSpaces(bankNetTzs)}</span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">USD in TZS</span>
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">USD net in TZS</span>
                 <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">TZS {formatNumberSpaces((banks.usd || 0) * (rates?.["USD"] || 0))}</span>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Balance total</span>
-                <span className="font-mono text-sm font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(banksTzsTotal)}</span>
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Net today (IN − OUT)</span>
+                <span className="font-mono text-sm font-bold text-card-foreground whitespace-nowrap">TZS {formatNumberSpaces(bankNetTzs)}</span>
               </div>
             </div>
           </section>
+
 
         </div>
 
