@@ -7,6 +7,7 @@
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
+import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
 
 const CURRENCIES = ["TZS", "USD", "EUR", "GBP", "KES"] as const;
 const PROVIDERS: Array<{ key: string; label: string }> = [
