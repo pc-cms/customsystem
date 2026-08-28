@@ -240,7 +240,6 @@ export function MetricRow({
   dropAvailable = true,
   resultAvailable = true,
   size = "md",
-  accent,
   labelColor,
   strong,
   fill,
@@ -251,7 +250,6 @@ export function MetricRow({
   dropAvailable?: boolean;
   resultAvailable?: boolean;
   size?: NumSize;
-  accent?: string;
   labelColor?: string;
   strong?: boolean;
   /** Row background fill — visually separates Tables vs Slots vs Total. */
@@ -278,14 +276,16 @@ export function MetricRow({
           {label}
         </RowLabel>
       </span>
-      <Num text={dropAvailable ? fmtMoney(metric.drop) : DASH} size={size} glow={strong ? accent : undefined} />
+      {/* Drop and Hold: one unified ivory across every city. */}
+      <Num text={dropAvailable ? fmtMoney(metric.drop) : DASH} size={size} color={IVORY} />
+      {/* Result: the only metric with semantic intensity. */}
       <Num
         text={fmtSigned(result)}
-        color={signColor(result)}
+        color={resultColor(result)}
+        glow={resultGlow(result)}
         size={size}
-        glow={strong ? accent : undefined}
       />
-      <Num text={holdOk ? fmtPct(metric.hold) : DASH} size={size} glow={strong ? accent : undefined} />
+      <Num text={holdOk ? fmtPct(metric.hold) : DASH} size={size} color={IVORY} />
     </div>
   );
 }
@@ -299,6 +299,7 @@ export function MetricsBlock({
   totalSize = "md",
 }: {
   displayed: DisplayedToday;
+  /** City accent — used only for the small leading marker. */
   accent: string;
   fills?: { tables?: string; slots?: string; total?: string };
   size?: NumSize;
@@ -318,7 +319,7 @@ export function MetricsBlock({
         label="Tables"
         metric={displayed.tables}
         size={size}
-        fill={fills?.tables ?? "rgba(255,255,255,0.05)"}
+        fill={fills?.tables ?? ROW_FILL.tables}
         marker={accent}
       />
       <MetricRow
@@ -327,7 +328,7 @@ export function MetricsBlock({
         dropAvailable={displayed.slotsDropAvailable}
         resultAvailable={displayed.slotsResultAvailable}
         size={size}
-        fill={fills?.slots ?? "rgba(255,255,255,0.015)"}
+        fill={fills?.slots ?? ROW_FILL.slots}
         marker={`${accent}66`}
       />
       <MetricRow
@@ -335,13 +336,13 @@ export function MetricsBlock({
         metric={displayed.total}
         size={totalSize}
         strong
-        accent={accent}
-        labelColor={accent}
-        fill={fills?.total ?? `${accent}14`}
+        labelColor={PREMIER.softGold}
+        fill={fills?.total ?? ROW_FILL.total}
       />
     </div>
   );
 }
+
 
 /** Company KPI tile — used by the totals strips/heroes. */
 export function Kpi({
