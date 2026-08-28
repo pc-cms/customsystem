@@ -81,7 +81,7 @@ export function DarkGoldStage({ casinos, company, newPlayersCount, period, perio
           {casinos.map((c) => (
             <article
               key={c.id}
-              className="rounded-xl border grid grid-cols-[minmax(0,0.62fr)_minmax(0,4fr)] items-stretch gap-[var(--tv-gap,10px)] px-[calc(var(--tv-gap,10px)*1.2)] py-[calc(var(--tv-gap,10px)*0.55)] min-h-0 min-w-0 overflow-hidden"
+              className="rounded-xl border grid grid-cols-[minmax(0,0.95fr)_minmax(0,4fr)] items-stretch gap-[var(--tv-gap,10px)] px-[calc(var(--tv-gap,10px)*1.2)] py-[calc(var(--tv-gap,10px)*0.55)] min-h-0 min-w-0 overflow-hidden"
               style={{
                 borderColor: `${c.accent}3D`,
                 background: "rgba(255,255,255,0.03)",

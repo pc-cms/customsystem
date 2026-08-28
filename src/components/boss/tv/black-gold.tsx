@@ -25,7 +25,7 @@ import type { TvStageProps } from "./types";
 import type { CasinoMetric } from "@/hooks/use-boss-dashboard";
 
 const COLS =
-  "grid grid-cols-[minmax(0,0.62fr)_minmax(0,0.5fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,0.5fr)] gap-x-[calc(var(--tv-gap,10px)*1.2)] items-center min-w-0";
+  "grid grid-cols-[minmax(0,0.95fr)_minmax(0,0.5fr)_minmax(0,1.25fr)_minmax(0,1.25fr)_minmax(0,0.5fr)] gap-x-[calc(var(--tv-gap,10px)*1.2)] items-center min-w-0";
 
 function Head({ children }: { children: React.ReactNode }) {
   return (
