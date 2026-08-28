@@ -358,17 +358,67 @@ export function Kpi({
   color?: string;
   accent?: string;
   size?: NumSize;
-  align?: "left" | "right";
+  align?: "left" | "right" | "center";
 }) {
+  const centered = align === "center";
   return (
-    <div className={`flex flex-col gap-[0.2em] min-w-0 overflow-hidden ${align === "right" ? "items-end" : ""}`}>
+    <div
+      className={`flex flex-col min-w-0 overflow-hidden ${
+        centered ? "items-center gap-[0.42em]" : align === "right" ? "items-end gap-[0.2em]" : "gap-[0.2em]"
+      }`}
+    >
       <span
-        className="block min-w-0 overflow-hidden uppercase tracking-[0.24em] text-white/55 font-semibold whitespace-nowrap"
-        style={{ fontSize: "var(--tv-label, 12px)" }}
+        className={`block min-w-0 overflow-hidden uppercase font-semibold whitespace-nowrap ${
+          centered ? "tracking-[0.3em] text-white/50 text-center" : "tracking-[0.24em] text-white/55"
+        }`}
+        style={{ fontSize: centered ? "calc(var(--tv-label, 12px) * 0.92)" : "var(--tv-label, 12px)" }}
       >
         {label}
       </span>
-      <Num text={value} color={color} size={size} glow={accent} className="w-full" />
+      <Num
+        text={value}
+        color={color}
+        size={size}
+        glow={accent}
+        align={centered ? "center" : "right"}
+        className="w-full"
+      />
     </div>
   );
 }
+
+/**
+ * Global header KPI row — equal-width columns, centered label over value,
+ * thin Premier Gold separators between the columns.
+ */
+export function KpiRow({ children }: { children: React.ReactNode[] }) {
+  const items = children.filter(Boolean);
+  return (
+    <div
+      data-tv-kpi-row
+      className="grid min-w-0 items-center"
+      style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0,1fr))` }}
+    >
+      {items.map((child, i) => (
+        <div
+          key={i}
+          className="relative min-w-0 px-[calc(var(--tv-gap,10px)*0.8)] flex items-center justify-center"
+        >
+          {child}
+          {i < items.length - 1 && (
+            <span
+              aria-hidden="true"
+              className="absolute right-0 top-1/2 -translate-y-1/2 w-px"
+              style={{
+                height: "58%",
+                background: `linear-gradient(180deg, transparent, ${PREMIER.softGold}59 22%, ${PREMIER.softGold}59 78%, transparent)`,
+                opacity: 0.55,
+              }}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
