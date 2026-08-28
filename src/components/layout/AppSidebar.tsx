@@ -106,7 +106,9 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/payroll", icon: Wallet, label: "Payroll", roles: ["super_admin", "hr", "finance_manager"], section: "HR" },
   { to: "/payroll/dashboard", icon: Wallet, label: "Payroll · Dashboard", roles: ["super_admin", "hr", "finance_manager"], section: "HR" },
   { to: "/payroll/bank-export", icon: Wallet, label: "Payroll · Bank Export", roles: ["super_admin", "finance_manager"], section: "HR" },
+  { to: "/payroll/loans", icon: Wallet, label: "Payroll · Loans", roles: ["super_admin", "finance_manager", "hr"], section: "HR" },
   { to: "/payroll/settings", icon: Wallet, label: "Payroll · Settings", roles: ["super_admin", "finance_manager", "hr"], section: "HR" },
+
 
 
 

@@ -158,6 +158,8 @@ const PayrollPeriodPage = lazy(() => import("@/pages/payroll/PayrollPeriodPage")
 const PayrollDashboardPage = lazy(() => import("@/pages/payroll/PayrollDashboardPage"));
 const PayrollSettingsPage = lazy(() => import("@/pages/payroll/PayrollSettingsPage"));
 const PayrollBankExportPage = lazy(() => import("@/pages/payroll/PayrollBankExportPage"));
+const StaffLoansPage = lazy(() => import("@/pages/payroll/StaffLoansPage"));
+
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const ClubLayout = lazy(() => import("@/pages/club/ClubLayout"));
 const ClubLanding = lazy(() => import("@/pages/club/ClubLanding"));
