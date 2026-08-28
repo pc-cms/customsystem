@@ -5767,6 +5767,48 @@ export type Database = {
         }
         Relationships: []
       }
+      finance_hub_notify_outbox: {
+        Row: {
+          attempts: number
+          created_at: string
+          dispatched_at: string | null
+          event: string
+          feed: string
+          id: string
+          last_error: string | null
+          occurred_at: string
+          source_id: string | null
+          source_table: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          dispatched_at?: string | null
+          event: string
+          feed: string
+          id?: string
+          last_error?: string | null
+          occurred_at?: string
+          source_id?: string | null
+          source_table?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          dispatched_at?: string | null
+          event?: string
+          feed?: string
+          id?: string
+          last_error?: string | null
+          occurred_at?: string
+          source_id?: string | null
+          source_table?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       fleet_bulk_operations: {
         Row: {
           completed_at: string | null
@@ -13362,6 +13404,33 @@ export type Database = {
           p_to?: string
         }
         Returns: Json
+      }
+      finance_hub_notify_claim: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          dispatched_at: string | null
+          event: string
+          feed: string
+          id: string
+          last_error: string | null
+          occurred_at: string
+          source_id: string | null
+          source_table: string | null
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "finance_hub_notify_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      finance_hub_notify_gc: { Args: never; Returns: undefined }
+      finance_hub_notify_mark: {
+        Args: { p_error?: string; p_id: string; p_ok: boolean }
+        Returns: undefined
       }
       finance_hub_performance: {
         Args: {
