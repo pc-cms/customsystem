@@ -183,10 +183,16 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
     const closingCheck = [...checks].reverse().find((c: any) => !(c.denominations as any)?.is_opening) || null;
 
     const readBank = (raw: any) => {
-      const tzs = Number(raw?.tzs || 0);
-      const usd = Number(raw?.usd || 0);
+      const channels = raw?.channels && typeof raw.channels === "object" ? raw.channels : null;
+      // Prefer per-channel closing balances (CRDB/NBC × TZS/USD); legacy rows keep tzs/usd.
+      const tzs = channels
+        ? Number(channels.CRDB_TZS?.final || 0) + Number(channels.NBC_TZS?.final || 0)
+        : Number(raw?.tzs || 0);
+      const usd = channels
+        ? Number(channels.CRDB_USD?.final || 0) + Number(channels.NBC_USD?.final || 0)
+        : Number(raw?.usd || 0);
       const totalTzs = tzs + usd * Number(rateMap.USD || 0);
-      return { tzs, usd, totalTzs };
+      return { tzs, usd, totalTzs, channels };
     };
     const openerBank = readBank((openingCheck?.denominations as any)?.bank);
     const closerBank = readBank((closingCheck?.denominations as any)?.bank);
@@ -280,6 +286,8 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       closerBankTzs: closerBank.tzs,
       closerBankUsd: closerBank.usd,
       closerBankTotalTzs: closerBank.totalTzs,
+      openerBankChannels: openerBank.channels,
+      closerBankChannels: closerBank.channels,
       openerCashlessByProvider,
       closerCashlessByProvider,
       openerCashlessTotalTzs,

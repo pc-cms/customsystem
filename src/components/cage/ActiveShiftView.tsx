@@ -47,7 +47,7 @@ import CashCheckNewGrid from "@/components/cage/CashCheckNewGrid";
 import { setDirty, clearDirty } from "@/lib/dirty-guard";
 
 import {
-  MOBILE_PROVIDERS, emptyMobile, emptyBanks, mobileTotal, bankTotalTzs,
+  MOBILE_PROVIDERS, emptyMobile, emptyBanks, mobileTotal, bankTotalTzs, BANK_CHANNELS,
   chipSum, emptyCash, calcCashTotalTzs,
   type MobileProviders, type Banks,
 } from "@/components/cage/CageHelpers";
@@ -839,7 +839,20 @@ const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRate
     () => chipSum(chipCounts) + calcCashTotalTzs(cash, exchangeRates) + bankTotalTzs(bankBal, exchangeRates) + cashlessInTzs - cashlessOutTzs,
     [chipCounts, cash, bankBal, exchangeRates, cashlessInTzs, cashlessOutTzs],
   );
-  const difference = totalTzs - expectedBalance;
+  // Counted includes the bank CLOSING balances, and the opening float already
+  // carries the bank balance at shift start — so Expected must move by the
+  // bank NET (IN − OUT) of the day, otherwise banks read as a false variance.
+  const bankNetTzs = useMemo(
+    () => BANK_CHANNELS.reduce((s, ch) => {
+      const e = bankBal.channels?.[ch.key];
+      const net = Number(e?.in || 0) - Number(e?.out || 0);
+      return s + net * (ch.currency === "TZS" ? 1 : Number(exchangeRates["USD"] || 0));
+    }, 0),
+    [bankBal, exchangeRates],
+  );
+  const expectedWithBank = expectedBalance + bankNetTzs;
+  const difference = totalTzs - expectedWithBank;
+
   const [showDiff, setShowDiff] = useState(false);
   useEffect(() => { setShowDiff(false); }, [chipCounts, cash, bankBal, mobileBal, cashlessIn, cashlessOut]);
 
@@ -897,7 +910,9 @@ const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRate
           bank: bankBal, mobile: mobileBal,
           cashless_in: cashlessInTzs,
           cashless_out: cashlessOutTzs,
-          expected: expectedBalance,
+          expected: expectedWithBank,
+          expected_shift: expectedBalance,
+          bank_net_tzs: bankNetTzs,
           counted: totalTzs,
           difference,
           balanced: difference === 0,
@@ -977,17 +992,17 @@ const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRate
             0,
           );
           const cellsExpected = chipsExp + cashExp + expected.unallocatedChipsTzs;
-          const gap = Math.round(cellsExpected - expectedBalance);
+          const gap = Math.round(cellsExpected - expectedWithBank);
           if (gap === 0) return null;
           return (
             <div className="mt-2 text-[11px] text-warning px-2 py-1 rounded bg-warning/10 border border-warning/30 font-mono">
-              Cells expected {formatCurrency(cellsExpected)} ≠ shift Expected {formatCurrency(expectedBalance)} · gap {gap > 0 ? "+" : ""}{formatCurrency(gap)} (closed-table settlements, bank & mobile are not counted per denomination)
+              Cells expected {formatCurrency(cellsExpected)} ≠ shift Expected {formatCurrency(expectedWithBank)} · gap {gap > 0 ? "+" : ""}{formatCurrency(gap)} (closed-table settlements, bank & mobile are not counted per denomination)
             </div>
           );
         })()}
 
         <div className="grid grid-cols-3 gap-2 pt-3 mt-3 border-t border-border">
-          <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Expected</p><p className="font-mono text-xl font-bold text-card-foreground">{formatCurrency(expectedBalance)}</p></div>
+          <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Expected</p><p className="font-mono text-xl font-bold text-card-foreground">{formatCurrency(expectedWithBank)}</p>{bankNetTzs !== 0 && (<p className="text-[10px] text-muted-foreground font-mono">incl. bank net {formatCurrency(bankNetTzs)}</p>)}</div>
           <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Counted</p><p className="font-mono text-xl font-bold text-card-foreground">{formatCurrency(totalTzs)}</p></div>
           <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Diff</p><p className={`font-mono text-xl font-bold ${diffCls}`}>{diffLabel}</p></div>
         </div>

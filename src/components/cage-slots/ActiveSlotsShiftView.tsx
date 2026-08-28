@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
 import {
-  emptyBanks, emptyMobile, mobileTotal, bankTotalTzs,
+  emptyBanks, emptyMobile, mobileTotal, bankTotalTzs, BANK_CHANNELS,
   MOBILE_PROVIDERS,
   type Banks, type MobileProviders,
 } from "@/components/cage/CageHelpers";
@@ -262,6 +262,16 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const mobileMoneyTzs = cashlessInManualTzs - cashlessOutManualTzs;
   const closingCashTzs = closingTzsTotal + closingFxTzs
     + bankTotalTzs(closingBanks, rateMap) + mobileMoneyTzs;
+  /** Bank movement of the day (IN − OUT) across channels — the figure posted to wallets. */
+  const bankNetTzs = useMemo(
+    () => BANK_CHANNELS.reduce((s, ch) => {
+      const e = closingBanks.channels?.[ch.key];
+      const net = Number(e?.in || 0) - Number(e?.out || 0);
+      return s + net * (ch.currency === "TZS" ? 1 : Number(rateMap["USD"] || 0));
+    }, 0),
+    [closingBanks, rateMap],
+  );
+
 
   const openingCardsCount = Number(cards?.opening_card_count || 0);
   const systemResult = Number(systemResultInput) || Number(shift.system_shift_result || 0);
@@ -504,7 +514,11 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <BigTile label="Mobile Money" value={mobileMoneyTzs} signed />
               <BigTile label="Total Closing Cash" value={closingCashTzs} emphasize />
             </div>
+            <p className="mt-2 text-[10px] text-muted-foreground font-mono">
+              Banks · net today (IN − OUT) {formatNumberSpaces(bankNetTzs)} · balance {formatNumberSpaces(bankTotalTzs(closingBanks, rateMap))} — balance is included in Total Closing Cash
+            </p>
           </PageSection>
+
 
           {/* Shift Result — single row, no duplicates, no formulas in headings */}
           <PageSection title="Shift Result">
