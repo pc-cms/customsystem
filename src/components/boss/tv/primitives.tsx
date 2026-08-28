@@ -12,11 +12,14 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { formatMoneyFull } from "@/lib/format-money";
-import { NEGATIVE, POSITIVE } from "./tokens";
+import { NEGATIVE, POSITIVE, PREMIER, resultTone } from "./tokens";
 import type { CasinoMetric } from "@/hooks/use-boss-dashboard";
 import type { DisplayedToday } from "@/lib/boss-display-metrics";
 
 export const DASH = "—";
+
+/** Unified warm-white / ivory used by every non-result value. */
+export const IVORY = PREMIER.champagne;
 
 export const fmtMoney = (n: number | null | undefined) =>
   n == null ? DASH : formatMoneyFull(Math.round(n));
@@ -33,6 +36,13 @@ export const fmtPct = (n: number | null | undefined) =>
 
 export const signColor = (n: number | null | undefined) =>
   n == null ? undefined : n < 0 ? NEGATIVE : n > 0 ? POSITIVE : undefined;
+
+/** Result colour by magnitude — identical rules everywhere on the screen. */
+export const resultColor = (n: number | null | undefined) =>
+  resultTone(n).color ?? IVORY;
+
+export const resultGlow = (n: number | null | undefined) => resultTone(n).glow;
+
 
 /* ------------------------------------------------------------------ */
 /* Numeric sizing                                                       */
@@ -134,6 +144,7 @@ export function Num({
   className = "",
   autoFit = true,
   scale = 1,
+  align = "right",
 }: {
   text: string;
   color?: string;
@@ -143,6 +154,7 @@ export function Num({
   autoFit?: boolean;
   /** Extra multiplier on top of the density step (hero tiles). */
   scale?: number;
+  align?: "right" | "center";
 }) {
   const step = autoFit ? autoNumSize(size, text) : size;
   const { ref, factor } = useFitFactor(text);
@@ -150,14 +162,17 @@ export function Num({
   return (
     <span
       ref={ref}
-      className={`block min-w-0 overflow-hidden font-mono tabular-nums tracking-tight text-right whitespace-nowrap leading-none font-semibold ${className}`}
+      className={`block min-w-0 overflow-hidden font-mono tabular-nums tracking-tight whitespace-nowrap leading-none font-semibold ${
+        align === "center" ? "text-center" : "text-right"
+      } ${className}`}
       style={{
         color,
         fontSize:
           mult === 1
             ? NUM_SIZE_VAR[step]
             : `calc(${NUM_SIZE_VAR[step]} * ${mult.toFixed(3)})`,
-        textShadow: glow ? `0 0 22px ${glow}55` : undefined,
+        // Restrained premium glow — only ever used at the strongest result step.
+        textShadow: glow ? `0 0 16px ${glow}47` : undefined,
       }}
       data-num-size={step}
       data-num-var={NUM_SIZE_VAR[step]}
@@ -167,6 +182,7 @@ export function Num({
     </span>
   );
 }
+
 
 export function ColHead({ children }: { children: React.ReactNode }) {
   return (
@@ -203,6 +219,17 @@ export function RowLabel({
   );
 }
 
+/** Muted-gold hairline used between metric columns and rows. */
+export const HAIRLINE = `${PREMIER.darkGold}33`;
+
+/** Neutral, city-independent row fills — identical for every casino. */
+export const ROW_FILL = {
+  tables: "rgba(255,255,255,0.045)",
+  slots: "rgba(255,255,255,0.018)",
+  total: `${PREMIER.softGold}1A`,
+} as const;
+
+
 /** Grid template shared by every metrics block: Label | Drop | Result | Hold. */
 export const METRIC_GRID =
   "grid grid-cols-[minmax(0,0.75fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_minmax(0,0.6fr)] gap-x-[calc(var(--tv-gap,10px)*1.4)] items-center min-w-0";
@@ -213,7 +240,6 @@ export function MetricRow({
   dropAvailable = true,
   resultAvailable = true,
   size = "md",
-  accent,
   labelColor,
   strong,
   fill,
@@ -224,7 +250,6 @@ export function MetricRow({
   dropAvailable?: boolean;
   resultAvailable?: boolean;
   size?: NumSize;
-  accent?: string;
   labelColor?: string;
   strong?: boolean;
   /** Row background fill — visually separates Tables vs Slots vs Total. */
@@ -251,14 +276,16 @@ export function MetricRow({
           {label}
         </RowLabel>
       </span>
-      <Num text={dropAvailable ? fmtMoney(metric.drop) : DASH} size={size} glow={strong ? accent : undefined} />
+      {/* Drop and Hold: one unified ivory across every city. */}
+      <Num text={dropAvailable ? fmtMoney(metric.drop) : DASH} size={size} color={IVORY} />
+      {/* Result: the only metric with semantic intensity. */}
       <Num
         text={fmtSigned(result)}
-        color={signColor(result)}
+        color={resultColor(result)}
+        glow={resultGlow(result)}
         size={size}
-        glow={strong ? accent : undefined}
       />
-      <Num text={holdOk ? fmtPct(metric.hold) : DASH} size={size} glow={strong ? accent : undefined} />
+      <Num text={holdOk ? fmtPct(metric.hold) : DASH} size={size} color={IVORY} />
     </div>
   );
 }
@@ -272,6 +299,7 @@ export function MetricsBlock({
   totalSize = "md",
 }: {
   displayed: DisplayedToday;
+  /** City accent — used only for the small leading marker. */
   accent: string;
   fills?: { tables?: string; slots?: string; total?: string };
   size?: NumSize;
@@ -291,7 +319,7 @@ export function MetricsBlock({
         label="Tables"
         metric={displayed.tables}
         size={size}
-        fill={fills?.tables ?? "rgba(255,255,255,0.05)"}
+        fill={fills?.tables ?? ROW_FILL.tables}
         marker={accent}
       />
       <MetricRow
@@ -300,7 +328,7 @@ export function MetricsBlock({
         dropAvailable={displayed.slotsDropAvailable}
         resultAvailable={displayed.slotsResultAvailable}
         size={size}
-        fill={fills?.slots ?? "rgba(255,255,255,0.015)"}
+        fill={fills?.slots ?? ROW_FILL.slots}
         marker={`${accent}66`}
       />
       <MetricRow
@@ -308,13 +336,13 @@ export function MetricsBlock({
         metric={displayed.total}
         size={totalSize}
         strong
-        accent={accent}
-        labelColor={accent}
-        fill={fills?.total ?? `${accent}14`}
+        labelColor={PREMIER.softGold}
+        fill={fills?.total ?? ROW_FILL.total}
       />
     </div>
   );
 }
+
 
 /** Company KPI tile — used by the totals strips/heroes. */
 export function Kpi({
@@ -330,17 +358,67 @@ export function Kpi({
   color?: string;
   accent?: string;
   size?: NumSize;
-  align?: "left" | "right";
+  align?: "left" | "right" | "center";
 }) {
+  const centered = align === "center";
   return (
-    <div className={`flex flex-col gap-[0.2em] min-w-0 overflow-hidden ${align === "right" ? "items-end" : ""}`}>
+    <div
+      className={`flex flex-col min-w-0 overflow-hidden ${
+        centered ? "items-center gap-[0.42em]" : align === "right" ? "items-end gap-[0.2em]" : "gap-[0.2em]"
+      }`}
+    >
       <span
-        className="block min-w-0 overflow-hidden uppercase tracking-[0.24em] text-white/55 font-semibold whitespace-nowrap"
-        style={{ fontSize: "var(--tv-label, 12px)" }}
+        className={`block min-w-0 overflow-hidden uppercase font-semibold whitespace-nowrap ${
+          centered ? "tracking-[0.3em] text-white/50 text-center" : "tracking-[0.24em] text-white/55"
+        }`}
+        style={{ fontSize: centered ? "calc(var(--tv-label, 12px) * 0.92)" : "var(--tv-label, 12px)" }}
       >
         {label}
       </span>
-      <Num text={value} color={color} size={size} glow={accent} className="w-full" />
+      <Num
+        text={value}
+        color={color}
+        size={size}
+        glow={accent}
+        align={centered ? "center" : "right"}
+        className="w-full"
+      />
     </div>
   );
 }
+
+/**
+ * Global header KPI row — equal-width columns, centered label over value,
+ * thin Premier Gold separators between the columns.
+ */
+export function KpiRow({ children }: { children: React.ReactNode[] }) {
+  const items = children.filter(Boolean);
+  return (
+    <div
+      data-tv-kpi-row
+      className="grid min-w-0 items-center"
+      style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0,1fr))` }}
+    >
+      {items.map((child, i) => (
+        <div
+          key={i}
+          className="relative min-w-0 px-[calc(var(--tv-gap,10px)*0.8)] flex items-center justify-center"
+        >
+          {child}
+          {i < items.length - 1 && (
+            <span
+              aria-hidden="true"
+              className="absolute right-0 top-1/2 -translate-y-1/2 w-px"
+              style={{
+                height: "58%",
+                background: `linear-gradient(180deg, transparent, ${PREMIER.softGold}59 22%, ${PREMIER.softGold}59 78%, transparent)`,
+                opacity: 0.55,
+              }}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+

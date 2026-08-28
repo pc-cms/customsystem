@@ -8,12 +8,15 @@ import { PREMIER } from "./tokens";
 import {
   MetricsBlock,
   Num,
+  IVORY,
   fmtMoney,
   fmtSigned,
   fmtPct,
-  signColor,
+  resultColor,
+  resultGlow,
   DASH,
 } from "./primitives";
+import { CityMark } from "./city-marks";
 import { TvBrandHeader } from "./tv-header";
 import { TopPlayersOverall } from "./top-players";
 import type { TvStageProps } from "./types";
@@ -22,6 +25,7 @@ function HeroStat({
   label,
   value,
   color,
+  glow,
   size = "lg",
   wide,
   scale = 1,
@@ -29,27 +33,29 @@ function HeroStat({
   label: string;
   value: string;
   color?: string;
+  glow?: string;
   size?: "md" | "lg" | "xl";
   wide?: boolean;
   scale?: number;
 }) {
   return (
     <div
-      className={`flex flex-col justify-center gap-[0.2em] min-w-0 overflow-hidden rounded-lg px-[calc(var(--tv-gap,10px)*0.9)] py-[calc(var(--tv-gap,10px)*0.6)] ${
+      className={`flex flex-col items-center justify-center gap-[0.42em] min-w-0 overflow-hidden rounded-lg px-[calc(var(--tv-gap,10px)*0.9)] py-[calc(var(--tv-gap,10px)*0.6)] ${
         wide ? "col-span-2" : ""
       }`}
       style={{ background: "rgba(255,255,255,0.045)" }}
     >
       <span
-        className="uppercase tracking-[0.26em] text-white/60 font-semibold whitespace-nowrap"
-        style={{ fontSize: "var(--tv-label, 12px)" }}
+        className="uppercase tracking-[0.3em] text-white/50 font-semibold whitespace-nowrap text-center"
+        style={{ fontSize: "calc(var(--tv-label, 12px) * 0.92)" }}
       >
         {label}
       </span>
-      <Num text={value} color={color} size={size} scale={scale} className="w-full" />
+      <Num text={value} color={color} glow={glow} size={size} scale={scale} align="center" className="w-full" />
     </div>
   );
 }
+
 
 export function RedGoldStage({ casinos, company, newPlayersCount, period, periodLabel }: TvStageProps) {
   const ranked = [...casinos].sort(
@@ -80,16 +86,17 @@ export function RedGoldStage({ casinos, company, newPlayersCount, period, period
           <HeroStat
             label="Total Result"
             value={fmtSigned(company.result)}
-            color={signColor(company.result) ?? PREMIER.champagne}
+            color={resultColor(company.result)}
+            glow={resultGlow(company.result)}
             size="xl"
             scale={1.45}
             wide
           />
-          <HeroStat label="Total Drop" value={fmtMoney(company.drop)} color={PREMIER.champagne} size="lg" scale={1.3} wide />
+          <HeroStat label="Total Drop" value={fmtMoney(company.drop)} color={IVORY} size="lg" scale={1.3} wide />
           <HeroStat
             label="Hold"
             value={company.drop > 0 ? fmtPct(company.hold) : DASH}
-            color={PREMIER.softGold}
+            color={IVORY}
             size="lg"
             scale={1.25}
           />
@@ -97,16 +104,19 @@ export function RedGoldStage({ casinos, company, newPlayersCount, period, period
             <HeroStat
               label="Head Count"
               value={period === "today" ? String(company.headCount) : DASH}
+              color={IVORY}
               size="md"
               scale={1.2}
             />
             <HeroStat
               label="New Players"
               value={period === "today" ? String(newPlayersCount) : DASH}
+              color={IVORY}
               size="md"
               scale={1.2}
             />
           </div>
+
         </section>
 
         {/* Ranking */}
@@ -138,6 +148,7 @@ export function RedGoldStage({ casinos, company, newPlayersCount, period, period
                   >
                     {i + 1}
                   </span>
+                  <CityMark slug={c.slug} accent={c.accent} />
                   <div className="flex flex-col justify-center min-w-0 max-w-[9.5em]">
                     <h2
                       className="truncate font-extrabold uppercase tracking-[0.14em] leading-none"
@@ -155,17 +166,8 @@ export function RedGoldStage({ casinos, company, newPlayersCount, period, period
                 </div>
 
                 {d ? (
-                  <MetricsBlock
-                    displayed={d}
-                    accent={PREMIER.softGold}
-                    fills={{
-                      tables: `${PREMIER.champagne}12`,
-                      slots: `${PREMIER.lightRed}1F`,
-                      total: `${PREMIER.softGold}24`,
-                    }}
-                    size="sm"
-                    totalSize="md"
-                  />
+                  <MetricsBlock displayed={d} accent={PREMIER.softGold} size="sm" totalSize="md" />
+
                 ) : (
                   <div className="grid place-items-center text-white/35">{DASH}</div>
                 )}

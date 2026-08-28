@@ -9,12 +9,16 @@ import { PREMIER } from "./tokens";
 import {
   Num,
   Kpi,
+  KpiRow,
+  IVORY,
   fmtMoney,
   fmtSigned,
   fmtPct,
-  signColor,
+  resultColor,
+  resultGlow,
   DASH,
 } from "./primitives";
+import { CityMark } from "./city-marks";
 import { TvBrandHeader } from "./tv-header";
 import { TopPlayersStrip } from "./top-players";
 import type { TvStageProps } from "./types";
@@ -26,7 +30,7 @@ const COLS =
 function Head({ children }: { children: React.ReactNode }) {
   return (
     <span
-      className="block min-w-0 overflow-hidden uppercase tracking-[0.24em] text-white/50 font-semibold text-right whitespace-nowrap"
+      className="block min-w-0 overflow-hidden uppercase tracking-[0.2em] text-white/55 font-semibold text-right whitespace-nowrap"
       style={{ fontSize: "var(--tv-label, 12px)" }}
     >
       {children}
@@ -59,29 +63,36 @@ function Line({
   return (
     <>
       <span
-        className={`flex items-center h-full min-w-0 overflow-hidden truncate uppercase tracking-[0.18em] px-[calc(var(--tv-gap,10px)*0.6)] ${
+        className={`flex items-center h-full min-w-0 overflow-hidden truncate uppercase tracking-[0.16em] px-[calc(var(--tv-gap,10px)*0.6)] ${
           strong ? "font-extrabold" : "font-semibold"
         }`}
         style={{
           background: fill,
           color: labelColor ?? "rgba(255,255,255,0.66)",
-          fontSize: `calc(var(--tv-label,12px) * ${strong ? 1.2 : 1.05})`,
+          fontSize: `calc(var(--tv-label,12px) * ${strong ? 1.18 : 1.05})`,
         }}
       >
         {label}
       </span>
       <span className={cell} style={{ background: fill }}>
-        <Num text={dropAvailable ? fmtMoney(metric.drop) : DASH} size={size} className="w-full" />
+        <Num text={dropAvailable ? fmtMoney(metric.drop) : DASH} size={size} color={IVORY} className="w-full" />
       </span>
       <span className={cell} style={{ background: fill }}>
-        <Num text={fmtSigned(result)} color={signColor(result)} size={size} className="w-full" />
+        <Num
+          text={fmtSigned(result)}
+          color={resultColor(result)}
+          glow={resultGlow(result)}
+          size={size}
+          className="w-full"
+        />
       </span>
       <span className={cell} style={{ background: fill }}>
-        <Num text={holdOk ? fmtPct(metric.hold) : DASH} size={size} className="w-full" />
+        <Num text={holdOk ? fmtPct(metric.hold) : DASH} size={size} color={IVORY} className="w-full" />
       </span>
     </>
   );
 }
+
 
 export function BlackGoldStage({ casinos, company, newPlayersCount, period, periodLabel }: TvStageProps) {
   const allPlayers = casinos.flatMap((c) => c.top);
@@ -97,36 +108,40 @@ export function BlackGoldStage({ casinos, company, newPlayersCount, period, peri
           period={period}
           periodLabel={periodLabel}
           right={
-            <div className="grid grid-cols-5 gap-[calc(var(--tv-gap,10px)*1.6)] min-w-0">
-              <Kpi label="Total Drop" value={fmtMoney(company.drop)} color={PREMIER.champagne} size="lg" align="right" />
+            <KpiRow>
+              <Kpi label="Total Drop" value={fmtMoney(company.drop)} color={IVORY} size="lg" align="center" />
               <Kpi
                 label="Total Result"
                 value={fmtSigned(company.result)}
-                color={signColor(company.result) ?? PREMIER.champagne}
+                color={resultColor(company.result)}
+                accent={resultGlow(company.result)}
                 size="lg"
-                align="right"
+                align="center"
               />
               <Kpi
                 label="Hold"
                 value={company.drop > 0 ? fmtPct(company.hold) : DASH}
-                color={PREMIER.softGold}
+                color={IVORY}
                 size="lg"
-                align="right"
+                align="center"
               />
               <Kpi
                 label="Head Count"
                 value={period === "today" ? String(company.headCount) : DASH}
+                color={IVORY}
                 size="lg"
-                align="right"
+                align="center"
               />
               <Kpi
                 label="New Players"
                 value={period === "today" ? String(newPlayersCount) : DASH}
+                color={IVORY}
                 size="lg"
-                align="right"
+                align="center"
               />
-            </div>
+            </KpiRow>
           }
+
         />
       </div>
 
@@ -162,20 +177,27 @@ export function BlackGoldStage({ casinos, company, newPlayersCount, period, peri
                 className={`${COLS} items-stretch px-[var(--tv-gap,10px)] py-[calc(var(--tv-gap,10px)*0.3)] gap-y-[calc(var(--tv-gap,10px)*0.25)] border-b last:border-b-0 min-w-0 min-h-0`}
                 style={{ borderColor: "rgba(255,255,255,0.07)", gridTemplateRows: "repeat(3, minmax(0,1fr))" }}
               >
-                <div className="row-span-3 flex flex-col justify-center gap-[0.25em] min-w-0 overflow-hidden pr-[var(--tv-gap,10px)]">
-                  <h2
-                    className="truncate font-extrabold uppercase tracking-[0.16em] leading-none"
-                    style={{ color: c.accent, fontSize: "var(--tv-city, 26px)" }}
-                  >
-                    {c.name}
-                  </h2>
-                  <span
-                    className="uppercase tracking-[0.2em] text-white/45 whitespace-nowrap"
-                    style={{ fontSize: "var(--tv-city-head, 13px)" }}
-                  >
-                    Head {period === "today" ? d?.total.headCount ?? 0 : DASH}
-                  </span>
+                <div
+                  className="row-span-3 flex items-center gap-[calc(var(--tv-gap,10px)*0.8)] min-w-0 overflow-hidden pr-[var(--tv-gap,10px)] border-l-2 pl-[calc(var(--tv-gap,10px)*0.7)]"
+                  style={{ borderColor: `${c.accent}59` }}
+                >
+                  <CityMark slug={c.slug} accent={c.accent} />
+                  <div className="flex flex-col justify-center gap-[0.25em] min-w-0 overflow-hidden">
+                    <h2
+                      className="truncate font-extrabold uppercase tracking-[0.16em] leading-none"
+                      style={{ color: c.accent, fontSize: "var(--tv-city, 26px)" }}
+                    >
+                      {c.name}
+                    </h2>
+                    <span
+                      className="uppercase tracking-[0.2em] text-white/45 whitespace-nowrap"
+                      style={{ fontSize: "var(--tv-city-head, 13px)" }}
+                    >
+                      Head {period === "today" ? d?.total.headCount ?? 0 : DASH}
+                    </span>
+                  </div>
                 </div>
+
 
                 {d ? (
                   <>

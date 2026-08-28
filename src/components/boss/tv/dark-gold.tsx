@@ -4,16 +4,20 @@
  * Top 8 players column on the right. Strict Label | Drop | Result | Hold
  * columns; the three metric rows stretch over the full card height.
  */
-import { PREMIER, SURFACE } from "./tokens";
+import { SURFACE } from "./tokens";
 import {
   MetricsBlock,
   Kpi,
+  KpiRow,
+  IVORY,
   fmtMoney,
   fmtSigned,
   fmtPct,
-  signColor,
+  resultColor,
+  resultGlow,
   DASH,
 } from "./primitives";
+import { CityMark } from "./city-marks";
 import { TvBrandHeader } from "./tv-header";
 import { TopPlayersOverall } from "./top-players";
 import type { TvStageProps } from "./types";
@@ -29,25 +33,43 @@ export function DarkGoldStage({ casinos, company, newPlayersCount, period, perio
       {/* Compact company summary */}
       <section
         data-tv-board="company-summary"
-        className="rounded-xl border grid grid-cols-5 gap-[calc(var(--tv-gap,10px)*1.6)] px-[calc(var(--tv-gap,10px)*1.6)] py-[calc(var(--tv-gap,10px)*0.6)] shrink-0"
+        className="rounded-xl border px-[calc(var(--tv-gap,10px)*1.2)] py-[calc(var(--tv-gap,10px)*0.6)] shrink-0"
         style={{ borderColor: s.border, background: "rgba(255,255,255,0.035)" }}
       >
-        <Kpi label="Total Drop" value={fmtMoney(company.drop)} color={PREMIER.champagne} size="lg" />
-        <Kpi
-          label="Total Result"
-          value={fmtSigned(company.result)}
-          color={signColor(company.result) ?? PREMIER.champagne}
-          size="lg"
-        />
-        <Kpi
-          label="Hold"
-          value={company.drop > 0 ? fmtPct(company.hold) : DASH}
-          color={PREMIER.softGold}
-          size="lg"
-        />
-        <Kpi label="Head Count" value={period === "today" ? String(company.headCount) : DASH} size="lg" />
-        <Kpi label="New Players" value={period === "today" ? String(newPlayersCount) : DASH} size="lg" />
+        <KpiRow>
+          <Kpi label="Total Drop" value={fmtMoney(company.drop)} color={IVORY} size="lg" align="center" />
+          <Kpi
+            label="Total Result"
+            value={fmtSigned(company.result)}
+            color={resultColor(company.result)}
+            accent={resultGlow(company.result)}
+            size="lg"
+            align="center"
+          />
+          <Kpi
+            label="Hold"
+            value={company.drop > 0 ? fmtPct(company.hold) : DASH}
+            color={IVORY}
+            size="lg"
+            align="center"
+          />
+          <Kpi
+            label="Head Count"
+            value={period === "today" ? String(company.headCount) : DASH}
+            color={IVORY}
+            size="lg"
+            align="center"
+          />
+          <Kpi
+            label="New Players"
+            value={period === "today" ? String(newPlayersCount) : DASH}
+            color={IVORY}
+            size="lg"
+            align="center"
+          />
+        </KpiRow>
       </section>
+
 
       <div className="flex-1 min-h-0 grid gap-[var(--tv-gap,10px)] grid-cols-1 xl:grid-cols-[minmax(0,2.5fr)_minmax(0,1fr)]">
         {/* Casino matrix */}
@@ -65,33 +87,27 @@ export function DarkGoldStage({ casinos, company, newPlayersCount, period, perio
                 background: "rgba(255,255,255,0.03)",
               }}
             >
-              <div className="flex flex-col justify-center gap-[0.25em] min-w-0 overflow-hidden">
-                <h2
-                  className="truncate font-extrabold uppercase tracking-[0.16em] leading-none"
-                  style={{ color: c.accent, fontSize: "var(--tv-city, 26px)" }}
-                >
-                  {c.name}
-                </h2>
-                <span
-                  className="uppercase tracking-[0.2em] text-white/45 whitespace-nowrap"
-                  style={{ fontSize: "var(--tv-city-head, 13px)" }}
-                >
-                  Head {period === "today" ? c.displayed?.total.headCount ?? 0 : DASH}
-                </span>
+              <div className="flex items-center gap-[calc(var(--tv-gap,10px)*0.8)] min-w-0 overflow-hidden">
+                <CityMark slug={c.slug} accent={c.accent} />
+                <div className="flex flex-col justify-center gap-[0.25em] min-w-0 overflow-hidden">
+                  <h2
+                    className="truncate font-extrabold uppercase tracking-[0.16em] leading-none"
+                    style={{ color: c.accent, fontSize: "var(--tv-city, 26px)" }}
+                  >
+                    {c.name}
+                  </h2>
+                  <span
+                    className="uppercase tracking-[0.2em] text-white/45 whitespace-nowrap"
+                    style={{ fontSize: "var(--tv-city-head, 13px)" }}
+                  >
+                    Head {period === "today" ? c.displayed?.total.headCount ?? 0 : DASH}
+                  </span>
+                </div>
               </div>
               {c.displayed ? (
-                <MetricsBlock
-                  displayed={c.displayed}
-                  accent={c.accent}
-                  fills={{
-                    tables: "rgba(255,255,255,0.05)",
-                    slots: "rgba(255,255,255,0.018)",
-                    total: `${c.accent}1F`,
-                  }}
-                  size="sm"
-                  totalSize="md"
-                />
+                <MetricsBlock displayed={c.displayed} accent={c.accent} size="sm" totalSize="md" />
               ) : (
+
                 <div className="grid place-items-center text-white/35">{DASH}</div>
               )}
             </article>
