@@ -131,7 +131,8 @@ const CashCountGrid = ({
   /** Hide the Mobile Money block (e.g. Cage Slots derives it from Cashless IN/OUT). */
   hideMobile?: boolean;
 }) => {
-  const banksTzsTotal = (banks.tzs || 0) + (banks.usd || 0) * (rates?.["USD"] || 0);
+
+
 
   const bankNetTzs = BANK_CHANNELS.reduce((s, ch) => {
     const e = banks.channels?.[ch.key];
