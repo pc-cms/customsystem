@@ -3585,6 +3585,7 @@ export type Database = {
           source_table: string | null
           staff_rules_acknowledged: boolean
           tax_id: string | null
+          termination_date: string | null
           uniform_issued: boolean
           updated_at: string
         }
@@ -3629,6 +3630,7 @@ export type Database = {
           source_table?: string | null
           staff_rules_acknowledged?: boolean
           tax_id?: string | null
+          termination_date?: string | null
           uniform_issued?: boolean
           updated_at?: string
         }
@@ -3673,6 +3675,7 @@ export type Database = {
           source_table?: string | null
           staff_rules_acknowledged?: boolean
           tax_id?: string | null
+          termination_date?: string | null
           uniform_issued?: boolean
           updated_at?: string
         }
@@ -7094,7 +7097,9 @@ export type Database = {
           gross_salary: number
           hrs_worked_on_holiday: number
           id: string
+          loan_installment: number
           missing_days: number
+          net_clamped: boolean
           net_salary: number
           night_allowance: number
           night_allowance_hours: number
@@ -7104,8 +7109,12 @@ export type Database = {
           off_days: number
           off_days_hours: number
           off_days_total: number
+          overtime_amount: number
+          overtime_hours: number
           paye: number
           period_id: string
+          prorata_days: number
+          prorata_factor: number
           public_holiday_earned: number
           public_holiday_worked: number
           salary_advances: number
@@ -7133,7 +7142,9 @@ export type Database = {
           gross_salary?: number
           hrs_worked_on_holiday?: number
           id?: string
+          loan_installment?: number
           missing_days?: number
+          net_clamped?: boolean
           net_salary?: number
           night_allowance?: number
           night_allowance_hours?: number
@@ -7143,8 +7154,12 @@ export type Database = {
           off_days?: number
           off_days_hours?: number
           off_days_total?: number
+          overtime_amount?: number
+          overtime_hours?: number
           paye?: number
           period_id: string
+          prorata_days?: number
+          prorata_factor?: number
           public_holiday_earned?: number
           public_holiday_worked?: number
           salary_advances?: number
@@ -7172,7 +7187,9 @@ export type Database = {
           gross_salary?: number
           hrs_worked_on_holiday?: number
           id?: string
+          loan_installment?: number
           missing_days?: number
+          net_clamped?: boolean
           net_salary?: number
           night_allowance?: number
           night_allowance_hours?: number
@@ -7182,8 +7199,12 @@ export type Database = {
           off_days?: number
           off_days_hours?: number
           off_days_total?: number
+          overtime_amount?: number
+          overtime_hours?: number
           paye?: number
           period_id?: string
+          prorata_days?: number
+          prorata_factor?: number
           public_holiday_earned?: number
           public_holiday_worked?: number
           salary_advances?: number
@@ -7359,6 +7380,9 @@ export type Database = {
           nssf_employee_pct: number
           nssf_employer_pct: number
           off_day_multiplier: number
+          overtime_enabled: boolean
+          overtime_multiplier: number
+          prorata_enabled: boolean
           sdl_pct: number
           wcf_pct: number
           working_days: number
@@ -7376,6 +7400,9 @@ export type Database = {
           nssf_employee_pct?: number
           nssf_employer_pct?: number
           off_day_multiplier?: number
+          overtime_enabled?: boolean
+          overtime_multiplier?: number
+          prorata_enabled?: boolean
           sdl_pct?: number
           wcf_pct?: number
           working_days?: number
@@ -7393,6 +7420,9 @@ export type Database = {
           nssf_employee_pct?: number
           nssf_employer_pct?: number
           off_day_multiplier?: number
+          overtime_enabled?: boolean
+          overtime_multiplier?: number
+          prorata_enabled?: boolean
           sdl_pct?: number
           wcf_pct?: number
           working_days?: number
@@ -10754,6 +10784,108 @@ export type Database = {
           },
         ]
       }
+      staff_loan_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          loan_id: string
+          period_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          loan_id: string
+          period_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          loan_id?: string
+          period_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_loan_payments_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "staff_loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_loan_payments_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_loans: {
+        Row: {
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          kind: string
+          monthly_installment: number
+          note: string | null
+          principal: number
+          start_month: number
+          start_year: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          kind?: string
+          monthly_installment?: number
+          note?: string | null
+          principal?: number
+          start_month: number
+          start_year: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          kind?: string
+          monthly_installment?: number
+          note?: string | null
+          principal?: number
+          start_month?: number
+          start_year?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_loans_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_loans_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_rota: {
         Row: {
           casino_id: string
@@ -13459,6 +13591,16 @@ export type Database = {
         Returns: string
       }
       payroll_mark_paid: { Args: { _period_id: string }; Returns: undefined }
+      payroll_period_checklist: {
+        Args: { _period_id: string }
+        Returns: {
+          employee_id: string
+          entry_id: string
+          full_name: string
+          issue: string
+          severity: string
+        }[]
+      }
       payroll_refresh_period: { Args: { _period_id: string }; Returns: Json }
       payroll_revert_to_draft: {
         Args: { _period_id: string; _reason?: string }

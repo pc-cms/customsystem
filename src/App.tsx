@@ -158,6 +158,8 @@ const PayrollPeriodPage = lazy(() => import("@/pages/payroll/PayrollPeriodPage")
 const PayrollDashboardPage = lazy(() => import("@/pages/payroll/PayrollDashboardPage"));
 const PayrollSettingsPage = lazy(() => import("@/pages/payroll/PayrollSettingsPage"));
 const PayrollBankExportPage = lazy(() => import("@/pages/payroll/PayrollBankExportPage"));
+const StaffLoansPage = lazy(() => import("@/pages/payroll/StaffLoansPage"));
+
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const ClubLayout = lazy(() => import("@/pages/club/ClubLayout"));
 const ClubLanding = lazy(() => import("@/pages/club/ClubLanding"));
@@ -570,6 +572,8 @@ const ProtectedRoutes = () => {
           <Route path="/payroll/dashboard" element={<RoleGuard path="/payroll/dashboard"><ErrorBoundary><PayrollDashboardPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/payroll/settings" element={<RoleGuard path="/payroll/settings"><ErrorBoundary><PayrollSettingsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/payroll/bank-export" element={<RoleGuard path="/payroll/bank-export"><ErrorBoundary><PayrollBankExportPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/payroll/loans" element={<RoleGuard path="/payroll/loans"><ErrorBoundary><StaffLoansPage /></ErrorBoundary></RoleGuard>} />
+
           <Route path="/payroll/:id" element={<RoleGuard path="/payroll/:id"><ErrorBoundary><PayrollPeriodPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/marketing" element={<Navigate to="/marketing/campaigns" replace />} />
           <Route path="/marketing/campaigns" element={<RoleGuard path="/marketing/campaigns"><ErrorBoundary><MarketingCampaigns /></ErrorBoundary></RoleGuard>} />
