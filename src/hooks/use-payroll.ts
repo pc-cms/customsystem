@@ -26,6 +26,8 @@ export interface Employee {
   onboarding_date: string | null;
   contract_start: string | null;
   contract_end: string | null;
+  termination_date: string | null;
+
   dealer_category: "dealer" | "inspector" | "trainee" | null;
   is_pit_boss: boolean;
   source_table: "staff_members" | "dealers" | null;
@@ -96,7 +98,9 @@ export const useUpsertEmployee = () => {
       let employeeId = emp.id as string | undefined;
       const extended = {
         contract_type: emp.contract_type ?? null,
+        termination_date: emp.termination_date ?? null,
         birthday: emp.birthday ?? null,
+
         phone: emp.phone ?? null,
         job_description: emp.job_description ?? null,
         general_details: emp.general_details ?? null,
