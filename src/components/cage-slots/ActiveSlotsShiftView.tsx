@@ -515,7 +515,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <BigTile label="Total Closing Cash" value={closingCashTzs} emphasize />
             </div>
             <p className="mt-2 text-[10px] text-muted-foreground font-mono">
-              Banks · net today (IN − OUT) {formatNumberSpaces(bankNetTzs)} · balance {formatNumberSpaces(bankTotalTzs(closingBanks, rateMap))} — balance is included in Total Closing Cash
+              Banks · net today (IN − OUT) {formatNumberSpaces(bankNetTzs)} — included in Total Closing Cash
             </p>
           </PageSection>
 

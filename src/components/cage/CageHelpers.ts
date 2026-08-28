@@ -17,35 +17,37 @@ export const BANK_CHANNELS = [
   { key: "NBC_USD", bank: "NBC", currency: "USD" },
 ] as const;
 
-export type BankChannelEntry = { in: number; out: number; final: number };
+export type BankChannelEntry = { in: number; out: number; final?: number };
 export type BankChannels = Record<string, BankChannelEntry>;
 
 /**
  * `tzs` / `usd` stay for backward compatibility (legacy generic balances and
- * every downstream report). For new closings they are DERIVED from the sum of
- * the per-channel closing balances; `channels` carries bank identity + daily
- * IN/OUT movement.
+ * every downstream report). For new closings they are DERIVED from the daily
+ * NET (IN − OUT) per channel — banks are captured as movement only, there is
+ * no closing balance entry any more. `final` is kept optional so historical
+ * records still read correctly.
  */
 export type Banks = { tzs: number; usd: number; channels?: BankChannels };
 
 export const emptyBankChannels = (): BankChannels =>
-  Object.fromEntries(BANK_CHANNELS.map(c => [c.key, { in: 0, out: 0, final: 0 }]));
+  Object.fromEntries(BANK_CHANNELS.map(c => [c.key, { in: 0, out: 0 }]));
 
 export const emptyMobile = (): MobileProviders => Object.fromEntries(MOBILE_PROVIDERS.map(p => [p, 0]));
 export const emptyBanks = (): Banks => ({ tzs: 0, usd: 0, channels: emptyBankChannels() });
 
-/** Recompute the legacy tzs/usd totals from the per-channel closing balances. */
+/** Recompute the legacy tzs/usd totals from the per-channel daily NET. */
 export const withDerivedBankTotals = (b: Banks): Banks => {
   if (!b.channels) return b;
   const sum = (cur: string) =>
     BANK_CHANNELS.filter(c => c.currency === cur)
-      .reduce((s, c) => s + Number(b.channels?.[c.key]?.final || 0), 0);
+      .reduce((s, c) => s + (Number(b.channels?.[c.key]?.in || 0) - Number(b.channels?.[c.key]?.out || 0)), 0);
   return { ...b, tzs: sum("TZS"), usd: sum("USD") };
 };
 
 /** Daily NET (IN − OUT) per channel — this is what the Closing Inbox posts. */
 export const bankChannelNet = (b: Banks, key: string) =>
   Number(b.channels?.[key]?.in || 0) - Number(b.channels?.[key]?.out || 0);
+
 
 export const mobileTotal = (m: MobileProviders) => Object.values(m).reduce((s, v) => s + (v || 0), 0);
 export const bankTotalTzs = (b: Banks, rates: Record<string, number>) => (b.tzs || 0) + (b.usd || 0) * (rates["USD"] || 0);

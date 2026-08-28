@@ -356,7 +356,13 @@ const ShiftClosingReport = ({
   const closerBank = (closingCount?.bank || {}) as { tzs?: number; usd?: number; channels?: Record<string, { in?: number; out?: number; final?: number }> };
   /** Explicit bank channels exist only for closings captured after the CRDB/NBC rollout. */
   const hasBankChannels = !!(openerBank.channels || closerBank.channels);
-  const bankFinal = (b: typeof openerBank, key: string) => Number(b.channels?.[key]?.final || 0);
+  /** Banks are movement-only: NET (IN − OUT). Legacy rows fall back to the old closing balance. */
+  const bankFinal = (b: typeof openerBank, key: string) => {
+    const e = b.channels?.[key];
+    if (!e) return 0;
+    const hasMovement = Number(e.in || 0) !== 0 || Number(e.out || 0) !== 0;
+    return hasMovement ? Number(e.in || 0) - Number(e.out || 0) : Number(e.final || 0);
+  };
 
 
   const cashCurrencyTotal = (cash: Record<string | number, number> | undefined) =>
