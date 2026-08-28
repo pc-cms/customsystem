@@ -4,7 +4,7 @@
  * with their pay multiplier. Right-side columns aggregate totals.
  */
 import { useMemo, useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, Sparkles, Trash2 } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Download, Sparkles, Trash2 } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,8 @@ import {
   type MonthlyAttendanceRow,
 } from "@/hooks/use-attendance-monthly";
 import { buildDisplayNames, splitFullName } from "@/lib/display-name";
+import { useCasino } from "@/lib/casino-context";
+import { downloadXlsx } from "@/lib/excel-export";
 
 const DEPT_ORDER = ["Pit", "Floor", "Security", "Office"] as const;
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -34,6 +36,7 @@ const monthFirst = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).p
 
 const AttendanceMonthly = () => {
   const { roles } = useAuth();
+  const { activeCasino } = useCasino();
   const canEdit = roles.includes("hr") || roles.includes("manager") || roles.includes("shift_manager") || roles.includes("super_admin") || roles.includes("finance_manager");
 
   const [cursor, setCursor] = useState<Date>(() => {
@@ -112,6 +115,43 @@ const AttendanceMonthly = () => {
   }, [employees]);
 
 
+  const handleExportExcel = async () => {
+    const casinoName = activeCasino?.name || "Casino";
+    const monthTitle = `${MONTHS[cursor.getMonth()]} ${cursor.getFullYear()}`;
+    const out: (string | number | null)[][] = [];
+    out.push([`${casinoName} — Monthly Attendance — ${monthTitle}`]);
+    out.push([]);
+    out.push([
+      "Department", "Employee",
+      ...days.map(d => String(d)),
+      "Days", "Hours", "Leave", "Hol H", "OT H",
+    ]);
+    for (const dept of [...DEPT_ORDER, "Other"]) {
+      const list = grouped[dept] || [];
+      if (!list.length) continue;
+      for (const e of list) {
+        const t = totalsByEmployee.get(e.meta.employee_id) || { hours: 0, dWorked: 0, leave: 0, holH: 0, otH: 0 };
+        out.push([
+          dept,
+          displayName(e),
+          ...days.map(d => {
+            const r = e.byDay.get(d);
+            if (!r) return null;
+            const code = (r.raw_value || "").toUpperCase();
+            if (r.effective_hours > 0) return r.effective_hours;
+            return code || null;
+          }),
+          t.dWorked, t.hours, t.leave, t.holH, t.otH,
+        ]);
+      }
+    }
+    const fileMonth = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
+    await downloadXlsx(
+      `Attendance_${casinoName.replace(/\s+/g, "_")}_${fileMonth}.xlsx`,
+      [{ name: "Attendance", rows: out }],
+    );
+  };
+
   return (
     <PageShell>
       <PageHeader
@@ -128,6 +168,9 @@ const AttendanceMonthly = () => {
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
+        <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={employees.length === 0}>
+          <Download className="w-4 h-4 mr-1" /> Export to Excel
+        </Button>
         {canEdit && (
           <Button variant="outline" size="sm" onClick={() => setHolidayOpen(true)}>
             <Sparkles className="w-4 h-4 mr-1" /> Mark Holiday

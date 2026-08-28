@@ -188,10 +188,14 @@ const PayrollPeriodPage = () => {
   );
 };
 
+const READONLY_FIELDS = [
+  ["worked_days", "Wkd Days"],
+  ["worked_hours", "Wkd Hrs"],
+] as const;
+
 const NUMERIC_INPUT_FIELDS = [
   ["public_holiday_worked", "PH Worked"],
   ["hrs_worked_on_holiday", "Hrs Hol"],
-  ["night_days", "Night Days"],
   ["off_days_hours", "OD Hrs"],
   ["missing_days", "Missing"],
   ["cash_shortage", "Cash Short"],
@@ -242,7 +246,7 @@ const EntriesGrid = ({ entries, canEdit, period }: { entries: PayrollEntry[]; ca
     update.mutate({ id, [field]: val } as any);
   };
 
-  const colCount = 3 + NUMERIC_INPUT_FIELDS.length + 5; // employee + basic + inputs + 4 calc + net + slip
+  const colCount = 3 + READONLY_FIELDS.length + NUMERIC_INPUT_FIELDS.length + 5; // employee + basic + inputs + 4 calc + net + slip
 
   return (
     <div className="space-y-3">
@@ -265,6 +269,7 @@ const EntriesGrid = ({ entries, canEdit, period }: { entries: PayrollEntry[]; ca
           <DTRow>
             <DTHeader>Employee</DTHeader>
             <DTHeader align="right">Basic</DTHeader>
+            {READONLY_FIELDS.map(([k, l]) => <DTHeader key={k} align="right">{l}</DTHeader>)}
             {NUMERIC_INPUT_FIELDS.map(([k, l]) => <DTHeader key={k} align="right">{l}</DTHeader>)}
             <DTHeader align="right">Gross</DTHeader>
             <DTHeader align="right">PAYE</DTHeader>
@@ -282,6 +287,9 @@ const EntriesGrid = ({ entries, canEdit, period }: { entries: PayrollEntry[]; ca
             <DTRow key={e.id}>
               <DTCell className="font-medium">{e.snapshot_full_name}</DTCell>
               <DTCell numeric>{fmt(e.snapshot_basic_salary)}</DTCell>
+              {READONLY_FIELDS.map(([k]) => (
+                <DTCell key={k} numeric className="text-muted-foreground">{fmt(Number(e[k as keyof PayrollEntry] ?? 0))}</DTCell>
+              ))}
               {NUMERIC_INPUT_FIELDS.map(([k]) => {
                 const cur = draft[e.id]?.[k as keyof PayrollEntry] ?? (e[k as keyof PayrollEntry] as number);
                 return (
@@ -313,6 +321,7 @@ const EntriesGrid = ({ entries, canEdit, period }: { entries: PayrollEntry[]; ca
             <DTRow className="bg-muted/40 font-semibold border-t-2 border-border">
               <DTCell>TOTAL</DTCell>
               <DTCell numeric>{fmt(totals.basic)}</DTCell>
+              {READONLY_FIELDS.map(([k]) => <DTCell key={k} />)}
               {NUMERIC_INPUT_FIELDS.map(([k]) => <DTCell key={k} />)}
               <DTCell numeric>{fmt(totals.gross)}</DTCell>
               <DTCell numeric>{fmt(totals.paye)}</DTCell>

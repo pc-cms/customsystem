@@ -50,8 +50,6 @@ export default function PayrollSettingsPage() {
       casino_id: activeCasinoId,
       effective_from: new Date().toISOString().slice(0, 10),
       hours_per_month: s.hours_per_month,
-      night_hours_per_day: s.night_hours_per_day,
-      night_rate_pct: s.night_rate_pct,
       gepf_pct: s.gepf_pct,
       nssf_employee_pct: s.nssf_employee_pct,
       nssf_employer_pct: s.nssf_employer_pct,
@@ -94,8 +92,6 @@ export default function PayrollSettingsPage() {
       <PageSection card title="Calculation Rates">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {NUM("Hours per Month",    s.hours_per_month,    v => setS({ ...s, hours_per_month: v }),    "h",  !isSuper)}
-          {NUM("Night Hours / Day",  s.night_hours_per_day,v => setS({ ...s, night_hours_per_day: v }),"h",  !isSuper)}
-          {NUM("Night Rate",         s.night_rate_pct,     v => setS({ ...s, night_rate_pct: v }),     "%",  !isSuper)}
           {NUM("Off-Day Multiplier", s.off_day_multiplier, v => setS({ ...s, off_day_multiplier: v }), "×",  !isSuper)}
           {NUM("Working Days",       s.working_days,       v => setS({ ...s, working_days: v }),       "d",  !isSuper)}
           {NUM("GEPF",               s.gepf_pct,           v => setS({ ...s, gepf_pct: v }),           "%",  !isSuper)}
