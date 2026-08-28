@@ -504,7 +504,11 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <BigTile label="Mobile Money" value={mobileMoneyTzs} signed />
               <BigTile label="Total Closing Cash" value={closingCashTzs} emphasize />
             </div>
+            <p className="mt-2 text-[10px] text-muted-foreground font-mono">
+              Banks · net today (IN − OUT) {formatNumberSpaces(bankNetTzs)} · balance {formatNumberSpaces(bankTotalTzs(closingBanks, rateMap))} — balance is included in Total Closing Cash
+            </p>
           </PageSection>
+
 
           {/* Shift Result — single row, no duplicates, no formulas in headings */}
           <PageSection title="Shift Result">
