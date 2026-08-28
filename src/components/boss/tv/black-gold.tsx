@@ -9,12 +9,16 @@ import { PREMIER } from "./tokens";
 import {
   Num,
   Kpi,
+  KpiRow,
+  IVORY,
   fmtMoney,
   fmtSigned,
   fmtPct,
-  signColor,
+  resultColor,
+  resultGlow,
   DASH,
 } from "./primitives";
+import { CityMark } from "./city-marks";
 import { TvBrandHeader } from "./tv-header";
 import { TopPlayersStrip } from "./top-players";
 import type { TvStageProps } from "./types";
@@ -26,7 +30,7 @@ const COLS =
 function Head({ children }: { children: React.ReactNode }) {
   return (
     <span
-      className="block min-w-0 overflow-hidden uppercase tracking-[0.24em] text-white/50 font-semibold text-right whitespace-nowrap"
+      className="block min-w-0 overflow-hidden uppercase tracking-[0.2em] text-white/55 font-semibold text-right whitespace-nowrap"
       style={{ fontSize: "var(--tv-label, 12px)" }}
     >
       {children}
@@ -59,29 +63,36 @@ function Line({
   return (
     <>
       <span
-        className={`flex items-center h-full min-w-0 overflow-hidden truncate uppercase tracking-[0.18em] px-[calc(var(--tv-gap,10px)*0.6)] ${
+        className={`flex items-center h-full min-w-0 overflow-hidden truncate uppercase tracking-[0.16em] px-[calc(var(--tv-gap,10px)*0.6)] ${
           strong ? "font-extrabold" : "font-semibold"
         }`}
         style={{
           background: fill,
           color: labelColor ?? "rgba(255,255,255,0.66)",
-          fontSize: `calc(var(--tv-label,12px) * ${strong ? 1.2 : 1.05})`,
+          fontSize: `calc(var(--tv-label,12px) * ${strong ? 1.18 : 1.05})`,
         }}
       >
         {label}
       </span>
       <span className={cell} style={{ background: fill }}>
-        <Num text={dropAvailable ? fmtMoney(metric.drop) : DASH} size={size} className="w-full" />
+        <Num text={dropAvailable ? fmtMoney(metric.drop) : DASH} size={size} color={IVORY} className="w-full" />
       </span>
       <span className={cell} style={{ background: fill }}>
-        <Num text={fmtSigned(result)} color={signColor(result)} size={size} className="w-full" />
+        <Num
+          text={fmtSigned(result)}
+          color={resultColor(result)}
+          glow={resultGlow(result)}
+          size={size}
+          className="w-full"
+        />
       </span>
       <span className={cell} style={{ background: fill }}>
-        <Num text={holdOk ? fmtPct(metric.hold) : DASH} size={size} className="w-full" />
+        <Num text={holdOk ? fmtPct(metric.hold) : DASH} size={size} color={IVORY} className="w-full" />
       </span>
     </>
   );
 }
+
 
 export function BlackGoldStage({ casinos, company, newPlayersCount, period, periodLabel }: TvStageProps) {
   const allPlayers = casinos.flatMap((c) => c.top);
