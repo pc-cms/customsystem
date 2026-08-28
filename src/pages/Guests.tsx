@@ -278,21 +278,25 @@ const Guests = () => {
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.isCandidate ? "·" : formatTime(r.entryAt)}</td>
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.isCandidate ? "·" : formatTime(r.exitAt)}</td>
       <td className="px-1 py-1.5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 text-xs gap-1"
-          title="Edit player in Reception"
-          onClick={() => navigate(`/reception?edit=${r.playerId}`)}
-        >
-          <Pencil className="w-3 h-3" /> Edit
-        </Button>
+        {viewOnly ? (
+          <span className="text-muted-foreground text-[10px]">·</span>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs gap-1"
+            title="Edit player in Reception"
+            onClick={() => navigate(`/reception?edit=${r.playerId}`)}
+          >
+            <Pencil className="w-3 h-3" /> Edit
+          </Button>
+        )}
         {r.isCandidate && canCheckIn && (
           <Button variant="default" size="sm" className="h-7 ml-1 text-xs gap-1" onClick={() => checkIn.mutate(r.playerId)} disabled={checkIn.isPending}>
             <LogIn className="w-3 h-3" /> Check In
           </Button>
         )}
-        {!r.isCandidate && r.isInside && r.category !== "casino" && (
+        {!r.isCandidate && r.isInside && r.category !== "casino" && !viewOnly && (
           <Button variant="outline" size="sm" className="h-7 ml-1 text-xs gap-1" onClick={() => confirmExit.mutate(r.id)} disabled={confirmExit.isPending}>
             <LogOut className="w-3 h-3" /> Check Out
           </Button>
