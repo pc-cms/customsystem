@@ -13462,6 +13462,14 @@ export type Database = {
         Args: { _period_id: string; _reason: string }
         Returns: undefined
       }
+      payroll_update_period_meta: {
+        Args: {
+          _branch_label?: string
+          _payment_description?: string
+          _period_id: string
+        }
+        Returns: undefined
+      }
       peer_apply_change: {
         Args: {
           p_changed_at: string
