@@ -7119,6 +7119,8 @@ export type Database = {
           taxable_pay: number
           updated_at: string
           wcf_amount: number
+          worked_days: number
+          worked_hours: number
         }
         Insert: {
           cash_shortage?: number
@@ -7156,6 +7158,8 @@ export type Database = {
           taxable_pay?: number
           updated_at?: string
           wcf_amount?: number
+          worked_days?: number
+          worked_hours?: number
         }
         Update: {
           cash_shortage?: number
@@ -7193,6 +7197,8 @@ export type Database = {
           taxable_pay?: number
           updated_at?: string
           wcf_amount?: number
+          worked_days?: number
+          worked_hours?: number
         }
         Relationships: [
           {
