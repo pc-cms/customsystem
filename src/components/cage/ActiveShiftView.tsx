@@ -839,7 +839,20 @@ const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRate
     () => chipSum(chipCounts) + calcCashTotalTzs(cash, exchangeRates) + bankTotalTzs(bankBal, exchangeRates) + cashlessInTzs - cashlessOutTzs,
     [chipCounts, cash, bankBal, exchangeRates, cashlessInTzs, cashlessOutTzs],
   );
-  const difference = totalTzs - expectedBalance;
+  // Counted includes the bank CLOSING balances, and the opening float already
+  // carries the bank balance at shift start — so Expected must move by the
+  // bank NET (IN − OUT) of the day, otherwise banks read as a false variance.
+  const bankNetTzs = useMemo(
+    () => BANK_CHANNELS.reduce((s, ch) => {
+      const e = bankBal.channels?.[ch.key];
+      const net = Number(e?.in || 0) - Number(e?.out || 0);
+      return s + net * (ch.currency === "TZS" ? 1 : Number(exchangeRates["USD"] || 0));
+    }, 0),
+    [bankBal, exchangeRates],
+  );
+  const expectedWithBank = expectedBalance + bankNetTzs;
+  const difference = totalTzs - expectedWithBank;
+
   const [showDiff, setShowDiff] = useState(false);
   useEffect(() => { setShowDiff(false); }, [chipCounts, cash, bankBal, mobileBal, cashlessIn, cashlessOut]);
 
