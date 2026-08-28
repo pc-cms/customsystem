@@ -83,6 +83,7 @@ const PayrollPeriodPage = () => {
       <Tabs defaultValue="entries">
         <TabsList>
           <TabsTrigger value="entries">Employee Payroll</TabsTrigger>
+          <TabsTrigger value="checklist">Checklist</TabsTrigger>
           <TabsTrigger value="taxes">Taxes</TabsTrigger>
           <TabsTrigger value="slips">Salary Slips</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
@@ -98,6 +99,10 @@ const PayrollPeriodPage = () => {
           </PageSection>
         </TabsContent>
 
+        <TabsContent value="checklist">
+          <ChecklistPanel periodId={period.id} />
+        </TabsContent>
+
         <TabsContent value="taxes">
           <TaxesPanel entries={entries} />
         </TabsContent>
@@ -110,6 +115,7 @@ const PayrollPeriodPage = () => {
           <AuditPanel periodId={period.id} />
         </TabsContent>
       </Tabs>
+
 
       {/* APPROVAL & EXPORT BAR */}
       <PageSection card title="Workflow">
