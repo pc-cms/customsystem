@@ -5767,6 +5767,21 @@ export type Database = {
         }
         Relationships: []
       }
+      finance_hub_notify_kick: {
+        Row: {
+          id: boolean
+          last_kick_at: string
+        }
+        Insert: {
+          id?: boolean
+          last_kick_at?: string
+        }
+        Update: {
+          id?: boolean
+          last_kick_at?: string
+        }
+        Relationships: []
+      }
       finance_hub_notify_outbox: {
         Row: {
           attempts: number
@@ -13428,6 +13443,7 @@ export type Database = {
         }
       }
       finance_hub_notify_gc: { Args: never; Returns: undefined }
+      finance_hub_notify_kick: { Args: never; Returns: undefined }
       finance_hub_notify_mark: {
         Args: { p_error?: string; p_id: string; p_ok: boolean }
         Returns: undefined
