@@ -57,7 +57,11 @@ export default function PayrollSettingsPage() {
       sdl_pct: s.sdl_pct,
       working_days: s.working_days,
       off_day_multiplier: s.off_day_multiplier,
+      overtime_enabled: !!s.overtime_enabled,
+      overtime_multiplier: s.overtime_multiplier ?? 1.5,
+      prorata_enabled: s.prorata_enabled !== false,
       default_payment_description: s.default_payment_description ?? null,
+
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Settings saved (effective today)");

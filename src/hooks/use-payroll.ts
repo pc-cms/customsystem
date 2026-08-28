@@ -578,7 +578,11 @@ export interface PayrollSettings {
   sdl_pct: number;
   working_days: number;
   off_day_multiplier: number;
+  overtime_enabled: boolean;
+  overtime_multiplier: number;
+  prorata_enabled: boolean;
   default_payment_description: string | null;
+
 }
 
 export const useLatestPayrollSettings = () => {
