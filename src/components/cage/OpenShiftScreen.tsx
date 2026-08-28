@@ -24,8 +24,8 @@ import LockableSection from "@/components/cage/LockableSection";
 import {
   MOBILE_PROVIDERS, emptyMobile, emptyBanks, mobileTotal, bankTotalTzs,
   chipSum, emptyCash, calcCashTotalTzs,
-  type Banks,
   type MobileProviders, type Banks,
+
 } from "@/components/cage/CageHelpers";
 
 import type { Tables } from "@/integrations/supabase/types";
