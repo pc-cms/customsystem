@@ -86,16 +86,17 @@ export function RedGoldStage({ casinos, company, newPlayersCount, period, period
           <HeroStat
             label="Total Result"
             value={fmtSigned(company.result)}
-            color={signColor(company.result) ?? PREMIER.champagne}
+            color={resultColor(company.result)}
+            glow={resultGlow(company.result)}
             size="xl"
             scale={1.45}
             wide
           />
-          <HeroStat label="Total Drop" value={fmtMoney(company.drop)} color={PREMIER.champagne} size="lg" scale={1.3} wide />
+          <HeroStat label="Total Drop" value={fmtMoney(company.drop)} color={IVORY} size="lg" scale={1.3} wide />
           <HeroStat
             label="Hold"
             value={company.drop > 0 ? fmtPct(company.hold) : DASH}
-            color={PREMIER.softGold}
+            color={IVORY}
             size="lg"
             scale={1.25}
           />
@@ -103,16 +104,19 @@ export function RedGoldStage({ casinos, company, newPlayersCount, period, period
             <HeroStat
               label="Head Count"
               value={period === "today" ? String(company.headCount) : DASH}
+              color={IVORY}
               size="md"
               scale={1.2}
             />
             <HeroStat
               label="New Players"
               value={period === "today" ? String(newPlayersCount) : DASH}
+              color={IVORY}
               size="md"
               scale={1.2}
             />
           </div>
+
         </section>
 
         {/* Ranking */}
