@@ -144,6 +144,7 @@ export function Num({
   className = "",
   autoFit = true,
   scale = 1,
+  align = "right",
 }: {
   text: string;
   color?: string;
@@ -153,6 +154,7 @@ export function Num({
   autoFit?: boolean;
   /** Extra multiplier on top of the density step (hero tiles). */
   scale?: number;
+  align?: "right" | "center";
 }) {
   const step = autoFit ? autoNumSize(size, text) : size;
   const { ref, factor } = useFitFactor(text);
@@ -160,14 +162,17 @@ export function Num({
   return (
     <span
       ref={ref}
-      className={`block min-w-0 overflow-hidden font-mono tabular-nums tracking-tight text-right whitespace-nowrap leading-none font-semibold ${className}`}
+      className={`block min-w-0 overflow-hidden font-mono tabular-nums tracking-tight whitespace-nowrap leading-none font-semibold ${
+        align === "center" ? "text-center" : "text-right"
+      } ${className}`}
       style={{
         color,
         fontSize:
           mult === 1
             ? NUM_SIZE_VAR[step]
             : `calc(${NUM_SIZE_VAR[step]} * ${mult.toFixed(3)})`,
-        textShadow: glow ? `0 0 22px ${glow}55` : undefined,
+        // Restrained premium glow — only ever used at the strongest result step.
+        textShadow: glow ? `0 0 16px ${glow}47` : undefined,
       }}
       data-num-size={step}
       data-num-var={NUM_SIZE_VAR[step]}
@@ -177,6 +182,7 @@ export function Num({
     </span>
   );
 }
+
 
 export function ColHead({ children }: { children: React.ReactNode }) {
   return (
