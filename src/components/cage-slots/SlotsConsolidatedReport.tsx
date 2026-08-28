@@ -34,6 +34,9 @@ export type SlotsConsolidatedProps = {
   closerBankTzs?: number;
   closerBankUsd?: number;
   closerBankTotalTzs?: number;
+  /** Per-channel closing balances (CRDB/NBC × TZS/USD). When present they replace the generic bank rows. */
+  openerBankChannels?: Record<string, { final?: number }> | null;
+  closerBankChannels?: Record<string, { final?: number }> | null;
   openerCashlessByProvider: Record<string, number>;   // {MPESA, TIGO, HALOTEL, AIRTEL}
   closerCashlessByProvider: Record<string, number>;
   openerCashlessTotalTzs: number;
@@ -83,6 +86,7 @@ const SlotsConsolidatedReport = ({
   openerByCurrency, closerByCurrency, openerCashTotalTzs, closerCashTotalTzs,
   openerBankTzs = 0, openerBankUsd = 0, openerBankTotalTzs = 0,
   closerBankTzs = 0, closerBankUsd = 0, closerBankTotalTzs = 0,
+  openerBankChannels = null, closerBankChannels = null,
   openerCashlessByProvider, closerCashlessByProvider, openerCashlessTotalTzs, closerCashlessTotalTzs,
   cashFlowFill, cashFlowCredit, cashDeskCardsFill, cashDeskCardsCredit,
   missCards, casinoExpenses, tipsCollection, tipsCollectionDay = 0, tipsCollectionEvening = 0, aceBalance,
@@ -95,6 +99,16 @@ const SlotsConsolidatedReport = ({
   const providerWithdrawTotal = Object.values(cashlessWithdrawByProvider).reduce((s, v) => s + Number(v || 0), 0);
   const depositTotal = providerDepositTotal || Number(cashlessDepositTotalTzs || 0);
   const withdrawTotal = providerWithdrawTotal || Number(cashlessWithdrawTotalTzs || 0);
+  const hasChannels = !!(openerBankChannels || closerBankChannels);
+  const bankRows = (ch: Record<string, { final?: number }> | null, legacyTzs: number, legacyUsd: number) =>
+    hasChannels
+      ? BANK_CHANNELS.map(c => (
+          <Row key={c.key} label={`Bank ${c.bank} ${c.currency}`} value={Number(ch?.[c.key]?.final || 0)} />
+        ))
+      : [
+          <Row key="tzs" label="Bank TZS" value={legacyTzs} />,
+          <Row key="usd" label="Bank USD" value={legacyUsd} />,
+        ];
   const openerTotal = openerCashTotalTzs + openerBankTotalTzs;
   const closerTotal = closerCashTotalTzs + closerBankTotalTzs;
 
@@ -146,8 +160,7 @@ const SlotsConsolidatedReport = ({
             {CURRENCIES.map(c => <Row key={c} label={c} value={Number(openerByCurrency[c] || 0)} />)}
             <Row label="Other in TZS" value={Number(openerByCurrency.OTHER_TZS || 0)} />
             <Row label="Total Cash" value={openerCashTotalTzs} bold />
-            <Row label="Bank TZS" value={openerBankTzs} />
-            <Row label="Bank USD" value={openerBankUsd} />
+            {bankRows(openerBankChannels, openerBankTzs, openerBankUsd)}
             <Row label="Total Bank (TZS)" value={openerBankTotalTzs} bold />
           </tbody>
           <tfoot>
@@ -168,8 +181,7 @@ const SlotsConsolidatedReport = ({
             {CURRENCIES.map(c => <Row key={c} label={c} value={Number(closerByCurrency[c] || 0)} />)}
             <Row label="Other in TZS" value={Number(closerByCurrency.OTHER_TZS || 0)} />
             <Row label="Total Cash" value={closerCashTotalTzs} bold />
-            <Row label="Bank TZS" value={closerBankTzs} />
-            <Row label="Bank USD" value={closerBankUsd} />
+            {bankRows(closerBankChannels, closerBankTzs, closerBankUsd)}
             <Row label="Total Bank (TZS)" value={closerBankTotalTzs} bold />
           </tbody>
           <tfoot>
