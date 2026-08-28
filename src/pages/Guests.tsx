@@ -36,7 +36,11 @@ const formatTime = (iso?: string | null) => {
 
 const Guests = () => {
   const { casinoId, user, roles } = useAuth();
-  const canCheckIn = roles.some(r => ["reception", "pit", "manager", "super_admin"].includes(r));
+  // Slots cashier sees the floor read-only: no check-in / check-out / edit.
+  const viewOnly =
+    roles.includes("cashier_slots") &&
+    !roles.some(r => ["reception", "pit", "manager", "shift_manager", "super_admin"].includes(r));
+  const canCheckIn = !viewOnly && roles.some(r => ["reception", "pit", "manager", "super_admin"].includes(r));
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
