@@ -17,7 +17,7 @@ import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_COLORS } from "@/lib/shift-colors";
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-const EDIT_ROLES = ["super_admin", "boss", "general_manager", "manager", "shift_manager", "hr"];
+const EDIT_ROLES = ["super_admin", "boss", "general_manager", "manager", "shift_manager"];
 
 export default function ManagementSchedulePage({ mode }: { mode: "rota" | "attendance" }) {
   const { roles } = useAuth();

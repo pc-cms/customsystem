@@ -185,18 +185,18 @@ const ATTENDANCE_SUBITEMS: VirtualSub[] = [
   { to: "/attendance/floor", icon: Building2, label: "Floor", matchPath: "/attendance/floor" },
   { to: "/attendance/security", icon: Shield, label: "Security", matchPath: "/attendance/security" },
   { to: "/attendance/office", icon: Briefcase, label: "Office", matchPath: "/attendance/office" },
-  // Management attendance: floor manager level and above only (Pit must not see it).
+  // Management attendance: floor manager level and above only (Pit and HR must not see it).
   { to: "/attendance/management", icon: UserCheck, label: "Management", matchPath: "/attendance/management",
-    roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "hr", "surveillance"] },
+    roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "surveillance"] },
 ];
 const ROTA_SUBITEMS: VirtualSub[] = [
   { to: "/rota/live", icon: Gamepad2, label: "Live", matchPath: "/rota/live" },
   { to: "/rota/floor", icon: Building2, label: "Floor", matchPath: "/rota/floor" },
   { to: "/rota/security", icon: Shield, label: "Security", matchPath: "/rota/security" },
   { to: "/rota/office", icon: Briefcase, label: "Office", matchPath: "/rota/office" },
-  // Management rota: floor manager level and above only (Pit must not see it).
+  // Management rota: floor manager level and above only (Pit and HR must not see it).
   { to: "/rota/management", icon: UserCheck, label: "Management", matchPath: "/rota/management",
-    roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "hr", "surveillance"] },
+    roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "surveillance"] },
 ];
 
 const BREAKLIST_PATH = "/breaklist";
