@@ -326,6 +326,12 @@ export interface PayrollEntry {
   missing_days: number;
   gepf_loan: number;
   // computed
+  overtime_hours: number;
+  overtime_amount: number;
+  prorata_factor: number;
+  prorata_days: number;
+  loan_installment: number;
+  net_clamped: boolean;
   public_holiday_earned: number;
   night_allowance_hours: number;
   night_allowance: number;
@@ -341,6 +347,101 @@ export interface PayrollEntry {
   wcf_amount: number;
   sdl_amount: number;
 }
+
+// ============= PRE-CLOSE CHECKLIST =============
+export interface PayrollChecklistRow {
+  entry_id: string;
+  employee_id: string;
+  full_name: string;
+  severity: "error" | "warning";
+  issue: string;
+}
+
+export const usePayrollChecklist = (periodId: string | undefined) =>
+  useQuery({
+    queryKey: ["payroll_checklist", periodId],
+    queryFn: async (): Promise<PayrollChecklistRow[]> => {
+      const { data, error } = await supabase.rpc("payroll_period_checklist" as any, { _period_id: periodId! });
+      if (error) throw error;
+      return ((data as unknown) as PayrollChecklistRow[]) || [];
+    },
+    enabled: !!periodId,
+  });
+
+// ============= STAFF LOANS / ADVANCES =============
+export interface StaffLoan {
+  id: string;
+  casino_id: string;
+  employee_id: string;
+  kind: string;
+  principal: number;
+  monthly_installment: number;
+  start_year: number;
+  start_month: number;
+  status: string;
+  note: string | null;
+  repaid?: number;
+}
+
+export const useStaffLoans = () => {
+  const { activeCasinoId } = useCasino();
+  return useQuery({
+    queryKey: ["staff_loans", activeCasinoId],
+    queryFn: async (): Promise<StaffLoan[]> => {
+      const { data, error } = await supabase
+        .from("staff_loans" as any)
+        .select("*, staff_loan_payments(amount)")
+        .eq("casino_id", activeCasinoId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return ((data as any[]) || []).map(l => ({
+        ...l,
+        repaid: (l.staff_loan_payments || []).reduce((s: number, p: any) => s + Number(p.amount || 0), 0),
+      })) as StaffLoan[];
+    },
+    enabled: !!activeCasinoId,
+  });
+};
+
+export const useSaveStaffLoan = () => {
+  const qc = useQueryClient();
+  const { activeCasinoId } = useCasino();
+  return useMutation({
+    mutationFn: async (input: Partial<StaffLoan>) => {
+      const payload: any = {
+        casino_id: activeCasinoId,
+        employee_id: input.employee_id,
+        kind: input.kind ?? "loan",
+        principal: input.principal ?? 0,
+        monthly_installment: input.monthly_installment ?? 0,
+        start_year: input.start_year,
+        start_month: input.start_month,
+        status: input.status ?? "active",
+        note: input.note ?? null,
+      };
+      const q = input.id
+        ? supabase.from("staff_loans" as any).update(payload).eq("id", input.id)
+        : supabase.from("staff_loans" as any).insert(payload);
+      const { error } = await q;
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["staff_loans"] }); toast.success("Loan saved"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+};
+
+export const useDeleteStaffLoan = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("staff_loans" as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["staff_loans"] }); toast.success("Loan deleted"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+};
+
 
 export const usePayrollEntries = (periodId: string | undefined) =>
   useQuery({
