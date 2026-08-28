@@ -103,12 +103,30 @@ export default function PayrollSettingsPage() {
           {NUM("NSSF Employer",      s.nssf_employer_pct,  v => setS({ ...s, nssf_employer_pct: v }),  "%",  !isSuper)}
           {NUM("SDL",                s.sdl_pct,            v => setS({ ...s, sdl_pct: v }),            "%",  !isSuper)}
           {NUM("WCF",                s.wcf_pct,            v => setS({ ...s, wcf_pct: v }),            "%",  !isSuper)}
+          {NUM("Overtime Multiplier", s.overtime_multiplier ?? 1.5, v => setS({ ...s, overtime_multiplier: v }), "×", !isSuper || !s.overtime_enabled)}
+          <div className="space-y-1">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Overtime Pay</Label>
+            <label className="flex items-center gap-2 h-10 text-sm">
+              <Switch checked={!!s.overtime_enabled} disabled={!isSuper}
+                onCheckedChange={v => setS({ ...s, overtime_enabled: v })} />
+              <span className="text-muted-foreground">Pay hours above monthly norm</span>
+            </label>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Pro-Rata</Label>
+            <label className="flex items-center gap-2 h-10 text-sm">
+              <Switch checked={s.prorata_enabled !== false} disabled={!isSuper}
+                onCheckedChange={v => setS({ ...s, prorata_enabled: v })} />
+              <span className="text-muted-foreground">Joiners / leavers by days</span>
+            </label>
+          </div>
           <div className="space-y-1 col-span-2">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">Default Payment Description</Label>
             <Input value={s.default_payment_description ?? ""} disabled={!isSuper}
               onChange={e => setS({ ...s, default_payment_description: e.target.value })}
               placeholder="e.g. SALARY {MONTH} {YEAR}" />
           </div>
+
         </div>
       </PageSection>
 
