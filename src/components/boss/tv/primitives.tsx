@@ -12,11 +12,14 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { formatMoneyFull } from "@/lib/format-money";
-import { NEGATIVE, POSITIVE } from "./tokens";
+import { NEGATIVE, POSITIVE, PREMIER, resultTone } from "./tokens";
 import type { CasinoMetric } from "@/hooks/use-boss-dashboard";
 import type { DisplayedToday } from "@/lib/boss-display-metrics";
 
 export const DASH = "—";
+
+/** Unified warm-white / ivory used by every non-result value. */
+export const IVORY = PREMIER.champagne;
 
 export const fmtMoney = (n: number | null | undefined) =>
   n == null ? DASH : formatMoneyFull(Math.round(n));
@@ -33,6 +36,13 @@ export const fmtPct = (n: number | null | undefined) =>
 
 export const signColor = (n: number | null | undefined) =>
   n == null ? undefined : n < 0 ? NEGATIVE : n > 0 ? POSITIVE : undefined;
+
+/** Result colour by magnitude — identical rules everywhere on the screen. */
+export const resultColor = (n: number | null | undefined) =>
+  resultTone(n).color ?? IVORY;
+
+export const resultGlow = (n: number | null | undefined) => resultTone(n).glow;
+
 
 /* ------------------------------------------------------------------ */
 /* Numeric sizing                                                       */
