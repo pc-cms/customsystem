@@ -108,36 +108,40 @@ export function BlackGoldStage({ casinos, company, newPlayersCount, period, peri
           period={period}
           periodLabel={periodLabel}
           right={
-            <div className="grid grid-cols-5 gap-[calc(var(--tv-gap,10px)*1.6)] min-w-0">
-              <Kpi label="Total Drop" value={fmtMoney(company.drop)} color={PREMIER.champagne} size="lg" align="right" />
+            <KpiRow>
+              <Kpi label="Total Drop" value={fmtMoney(company.drop)} color={IVORY} size="lg" align="center" />
               <Kpi
                 label="Total Result"
                 value={fmtSigned(company.result)}
-                color={signColor(company.result) ?? PREMIER.champagne}
+                color={resultColor(company.result)}
+                accent={resultGlow(company.result)}
                 size="lg"
-                align="right"
+                align="center"
               />
               <Kpi
                 label="Hold"
                 value={company.drop > 0 ? fmtPct(company.hold) : DASH}
-                color={PREMIER.softGold}
+                color={IVORY}
                 size="lg"
-                align="right"
+                align="center"
               />
               <Kpi
                 label="Head Count"
                 value={period === "today" ? String(company.headCount) : DASH}
+                color={IVORY}
                 size="lg"
-                align="right"
+                align="center"
               />
               <Kpi
                 label="New Players"
                 value={period === "today" ? String(newPlayersCount) : DASH}
+                color={IVORY}
                 size="lg"
-                align="right"
+                align="center"
               />
-            </div>
+            </KpiRow>
           }
+
         />
       </div>
 
