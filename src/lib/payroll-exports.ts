@@ -127,8 +127,10 @@ export const exportSalarySlipsPrint = (entries: PayrollEntry[], period: PayrollP
         <tr><td>Employee</td><td><b>${e.snapshot_full_name}</b></td></tr>
         <tr><td>Position</td><td>${e.snapshot_position}</td></tr>
         <tr><td>Basic Salary</td><td>${fmt(e.snapshot_basic_salary)}</td></tr>
+        ${Number(e.prorata_factor ?? 1) < 1 ? `<tr><td>Pro-rata (paid days)</td><td>${e.prorata_days}</td></tr>` : ""}
         <tr><td>Public Holiday Earned</td><td>${fmt(e.public_holiday_earned)}</td></tr>
         <tr><td>Off Days Total</td><td>${fmt(e.off_days_total)}</td></tr>
+        ${Number(e.overtime_amount ?? 0) > 0 ? `<tr><td>Overtime (${e.overtime_hours} h)</td><td>${fmt(e.overtime_amount)}</td></tr>` : ""}
         <tr><th>Gross Salary</th><th>${fmt(e.gross_salary)}</th></tr>
         <tr><td>GEPF 10%</td><td>(${fmt(e.gepf_employee)})</td></tr>
         <tr><td>NSSF 10%</td><td>(${fmt(e.nssf_employee)})</td></tr>
@@ -137,7 +139,9 @@ export const exportSalarySlipsPrint = (entries: PayrollEntry[], period: PayrollP
         <tr><td>Cash Shortage</td><td>(${fmt(e.cash_shortage)})</td></tr>
         <tr><td>Missing Days</td><td>(${fmt(e.deductions_missing_days)})</td></tr>
         <tr><td>GEPF Loan</td><td>(${fmt(e.gepf_loan)})</td></tr>
+        ${Number(e.loan_installment ?? 0) > 0 ? `<tr><td>Loan Installment</td><td>(${fmt(e.loan_installment)})</td></tr>` : ""}
         <tr><th>NET SALARY PAYABLE</th><th>${fmt(e.net_salary)}</th></tr>
+
       </tbody></table>
     </div>`).join("");
   const w = window.open("", "_blank");
