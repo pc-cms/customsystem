@@ -51,10 +51,17 @@ export function PeriodPicker({
     onChange(monthPeriod(d.getFullYear(), d.getMonth() + 1));
   };
 
+  const nowRef = new Date();
+  const isCurrentMonth =
+    value.mode === "month" &&
+    value.year === nowRef.getFullYear() &&
+    value.month === nowRef.getMonth() + 1;
+
   const label =
     value.mode === "custom"
       ? `${fmtDateOnly(value.from)} — ${fmtDateOnly(value.to)}`
       : `${MONTH_NAMES[value.month - 1]} ${value.year}`;
+
 
   return (
     <div className="flex items-center gap-1">
@@ -146,6 +153,18 @@ export function PeriodPicker({
       >
         <ChevronRight className="w-4 h-4" />
       </Button>
+
+      {!isCurrentMonth && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 px-2 text-xs"
+          onClick={() => onChange(currentMonthPeriod())}
+        >
+          This month
+        </Button>
+      )}
     </div>
   );
 }
+

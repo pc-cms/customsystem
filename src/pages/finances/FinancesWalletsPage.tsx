@@ -154,15 +154,19 @@ export default function FinancesWalletsPage() {
   const [includeInactive, setIncludeInactive] = useSessionState<boolean>("walletInactive", false);
   const [closeOpen, setCloseOpen] = useState(false);
 
-  // Whole page is scoped to a single calendar month.
+  // Page is scoped to the toolbar period (calendar month, or an explicit custom range).
   const range = useMemo(() => {
+    if (period.mode === "custom" && period.from && period.to) {
+      return { from: period.from, to: period.to };
+    }
     const pad = (n: number) => String(n).padStart(2, "0");
     const last = new Date(ym.year, ym.month, 0).getDate();
     return {
       from: `${ym.year}-${pad(ym.month)}-01`,
       to: `${ym.year}-${pad(ym.month)}-${pad(last)}`,
     };
-  }, [ym]);
+  }, [ym, period.mode, period.from, period.to]);
+
   const monthRange = range;
   
 
