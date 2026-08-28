@@ -53,3 +53,7 @@ verify_jwt = false
 # finance-hub-export: token auth in code (SHA-256 vs finance_hub_api_clients).
 [functions.finance-hub-export]
 verify_jwt = false
+
+# finance-hub-notify: internal outbound notifier (cron-driven, no browser callers).
+[functions.finance-hub-notify]
+verify_jwt = false
