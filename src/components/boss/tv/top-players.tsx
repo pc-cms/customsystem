@@ -127,7 +127,7 @@ export function TopPlayersStrip({
           <ol
             className="flex-1 min-w-0 grid divide-x h-full"
             style={{
-              gridTemplateColumns: `repeat(${rows.length}, minmax(0,1fr))`,
+              gridTemplateColumns: `repeat(${limit}, minmax(0,1fr))`,
               borderColor: "rgba(255,255,255,0.06)",
             }}
           >
