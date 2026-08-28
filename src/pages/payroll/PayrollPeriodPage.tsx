@@ -191,7 +191,11 @@ const PayrollPeriodPage = () => {
 const READONLY_FIELDS = [
   ["worked_days", "Wkd Days"],
   ["worked_hours", "Wkd Hrs"],
+  ["overtime_hours", "OT Hrs"],
+  ["prorata_days", "Paid Days"],
+  ["loan_installment", "Loan Inst."],
 ] as const;
+
 
 const NUMERIC_INPUT_FIELDS = [
   ["public_holiday_worked", "PH Worked"],
