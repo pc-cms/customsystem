@@ -36,8 +36,8 @@ export type SlotsConsolidatedProps = {
   closerBankUsd?: number;
   closerBankTotalTzs?: number;
   /** Per-channel closing balances (CRDB/NBC × TZS/USD). When present they replace the generic bank rows. */
-  openerBankChannels?: Record<string, { final?: number }> | null;
-  closerBankChannels?: Record<string, { final?: number }> | null;
+  openerBankChannels?: Record<string, { in?: number; out?: number; final?: number }> | null;
+  closerBankChannels?: Record<string, { in?: number; out?: number; final?: number }> | null;
   openerCashlessByProvider: Record<string, number>;   // {MPESA, TIGO, HALOTEL, AIRTEL}
   closerCashlessByProvider: Record<string, number>;
   openerCashlessTotalTzs: number;
@@ -101,10 +101,16 @@ const SlotsConsolidatedReport = ({
   const depositTotal = providerDepositTotal || Number(cashlessDepositTotalTzs || 0);
   const withdrawTotal = providerWithdrawTotal || Number(cashlessWithdrawTotalTzs || 0);
   const hasChannels = !!(openerBankChannels || closerBankChannels);
-  const bankRows = (ch: Record<string, { final?: number }> | null, legacyTzs: number, legacyUsd: number) =>
+  /** Banks are movement-only: NET (IN − OUT); legacy rows keep the old closing balance. */
+  const chanValue = (e?: { in?: number; out?: number; final?: number }) => {
+    if (!e) return 0;
+    const hasMovement = Number(e.in || 0) !== 0 || Number(e.out || 0) !== 0;
+    return hasMovement ? Number(e.in || 0) - Number(e.out || 0) : Number(e.final || 0);
+  };
+  const bankRows = (ch: Record<string, { in?: number; out?: number; final?: number }> | null, legacyTzs: number, legacyUsd: number) =>
     hasChannels
       ? BANK_CHANNELS.map(c => (
-          <Row key={c.key} label={`Bank ${c.bank} ${c.currency}`} value={Number(ch?.[c.key]?.final || 0)} />
+          <Row key={c.key} label={`Bank ${c.bank} ${c.currency}`} value={chanValue(ch?.[c.key])} />
         ))
       : [
           <Row key="tzs" label="Bank TZS" value={legacyTzs} />,

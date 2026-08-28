@@ -185,11 +185,16 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
     const readBank = (raw: any) => {
       const channels = raw?.channels && typeof raw.channels === "object" ? raw.channels : null;
       // Prefer per-channel closing balances (CRDB/NBC × TZS/USD); legacy rows keep tzs/usd.
+      const chanValue = (e: any) => {
+        if (!e) return 0;
+        const hasMovement = Number(e.in || 0) !== 0 || Number(e.out || 0) !== 0;
+        return hasMovement ? Number(e.in || 0) - Number(e.out || 0) : Number(e.final || 0);
+      };
       const tzs = channels
-        ? Number(channels.CRDB_TZS?.final || 0) + Number(channels.NBC_TZS?.final || 0)
+        ? chanValue(channels.CRDB_TZS) + chanValue(channels.NBC_TZS)
         : Number(raw?.tzs || 0);
       const usd = channels
-        ? Number(channels.CRDB_USD?.final || 0) + Number(channels.NBC_USD?.final || 0)
+        ? chanValue(channels.CRDB_USD) + chanValue(channels.NBC_USD)
         : Number(raw?.usd || 0);
       const totalTzs = tzs + usd * Number(rateMap.USD || 0);
       return { tzs, usd, totalTzs, channels };
