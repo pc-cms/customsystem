@@ -177,20 +177,27 @@ export function BlackGoldStage({ casinos, company, newPlayersCount, period, peri
                 className={`${COLS} items-stretch px-[var(--tv-gap,10px)] py-[calc(var(--tv-gap,10px)*0.3)] gap-y-[calc(var(--tv-gap,10px)*0.25)] border-b last:border-b-0 min-w-0 min-h-0`}
                 style={{ borderColor: "rgba(255,255,255,0.07)", gridTemplateRows: "repeat(3, minmax(0,1fr))" }}
               >
-                <div className="row-span-3 flex flex-col justify-center gap-[0.25em] min-w-0 overflow-hidden pr-[var(--tv-gap,10px)]">
-                  <h2
-                    className="truncate font-extrabold uppercase tracking-[0.16em] leading-none"
-                    style={{ color: c.accent, fontSize: "var(--tv-city, 26px)" }}
-                  >
-                    {c.name}
-                  </h2>
-                  <span
-                    className="uppercase tracking-[0.2em] text-white/45 whitespace-nowrap"
-                    style={{ fontSize: "var(--tv-city-head, 13px)" }}
-                  >
-                    Head {period === "today" ? d?.total.headCount ?? 0 : DASH}
-                  </span>
+                <div
+                  className="row-span-3 flex items-center gap-[calc(var(--tv-gap,10px)*0.8)] min-w-0 overflow-hidden pr-[var(--tv-gap,10px)] border-l-2 pl-[calc(var(--tv-gap,10px)*0.7)]"
+                  style={{ borderColor: `${c.accent}59` }}
+                >
+                  <CityMark slug={c.slug} accent={c.accent} />
+                  <div className="flex flex-col justify-center gap-[0.25em] min-w-0 overflow-hidden">
+                    <h2
+                      className="truncate font-extrabold uppercase tracking-[0.16em] leading-none"
+                      style={{ color: c.accent, fontSize: "var(--tv-city, 26px)" }}
+                    >
+                      {c.name}
+                    </h2>
+                    <span
+                      className="uppercase tracking-[0.2em] text-white/45 whitespace-nowrap"
+                      style={{ fontSize: "var(--tv-city-head, 13px)" }}
+                    >
+                      Head {period === "today" ? d?.total.headCount ?? 0 : DASH}
+                    </span>
+                  </div>
                 </div>
+
 
                 {d ? (
                   <>
