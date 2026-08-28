@@ -14,7 +14,7 @@ import { useAuth } from "@/lib/auth-context";
 import {
   usePayrollPeriod, usePayrollEntries, useUpdatePayrollEntry,
   useApproveHR, useApproveManager, useMarkPaid, useRevertToDraft, useUnlockPeriod,
-  usePayrollAuditLog, useEmployees,
+  usePayrollAuditLog, useEmployees, usePayrollChecklist,
   PERIOD_STATUS_LABEL,
   type PayrollEntry,
 } from "@/hooks/use-payroll";
@@ -374,6 +374,50 @@ const TaxesPanel = ({ entries }: { entries: PayrollEntry[] }) => {
     </PageSection>
   );
 };
+
+const ChecklistPanel = ({ periodId }: { periodId: string }) => {
+  const { data: rows = [], isLoading } = usePayrollChecklist(periodId);
+  const errors = rows.filter(r => r.severity === "error");
+  const warnings = rows.filter(r => r.severity === "warning");
+
+  return (
+    <PageSection card={false}>
+      <div className="flex gap-3 mb-3">
+        <div className="rounded-md border border-border bg-card px-4 py-2">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">Errors</div>
+          <div className={`text-2xl font-bold font-mono ${errors.length ? "text-destructive" : "text-emerald-600"}`}>{errors.length}</div>
+        </div>
+        <div className="rounded-md border border-border bg-card px-4 py-2">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">Warnings</div>
+          <div className="text-2xl font-bold font-mono text-amber-600">{warnings.length}</div>
+        </div>
+      </div>
+      <DataTable>
+        <DTHead>
+          <DTRow>
+            <DTHeader>Severity</DTHeader>
+            <DTHeader>Employee</DTHeader>
+            <DTHeader>Issue</DTHeader>
+          </DTRow>
+        </DTHead>
+        <DTBody>
+          {isLoading && <DTRow><DTCell colSpan={3} className="py-6 text-center text-muted-foreground">Loading…</DTCell></DTRow>}
+          {!isLoading && rows.length === 0 && (
+            <DTRow><DTCell colSpan={3} className="py-8 text-center text-emerald-600">All checks passed — period is ready to close</DTCell></DTRow>
+          )}
+          {[...errors, ...warnings].map((r, i) => (
+            <DTRow key={`${r.entry_id}-${i}`}>
+              <DTCell className={r.severity === "error" ? "text-destructive font-semibold uppercase text-xs" : "text-amber-600 uppercase text-xs"}>{r.severity}</DTCell>
+              <DTCell className="font-medium">{r.full_name}</DTCell>
+              <DTCell>{r.issue}</DTCell>
+            </DTRow>
+          ))}
+        </DTBody>
+      </DataTable>
+    </PageSection>
+  );
+};
+
 
 const SlipsPanel = ({ entries, period, periodLabel }: { entries: PayrollEntry[]; period: any; periodLabel: string }) => (
   <PageSection card={false}>
