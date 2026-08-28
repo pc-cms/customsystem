@@ -87,33 +87,27 @@ export function DarkGoldStage({ casinos, company, newPlayersCount, period, perio
                 background: "rgba(255,255,255,0.03)",
               }}
             >
-              <div className="flex flex-col justify-center gap-[0.25em] min-w-0 overflow-hidden">
-                <h2
-                  className="truncate font-extrabold uppercase tracking-[0.16em] leading-none"
-                  style={{ color: c.accent, fontSize: "var(--tv-city, 26px)" }}
-                >
-                  {c.name}
-                </h2>
-                <span
-                  className="uppercase tracking-[0.2em] text-white/45 whitespace-nowrap"
-                  style={{ fontSize: "var(--tv-city-head, 13px)" }}
-                >
-                  Head {period === "today" ? c.displayed?.total.headCount ?? 0 : DASH}
-                </span>
+              <div className="flex items-center gap-[calc(var(--tv-gap,10px)*0.8)] min-w-0 overflow-hidden">
+                <CityMark slug={c.slug} accent={c.accent} />
+                <div className="flex flex-col justify-center gap-[0.25em] min-w-0 overflow-hidden">
+                  <h2
+                    className="truncate font-extrabold uppercase tracking-[0.16em] leading-none"
+                    style={{ color: c.accent, fontSize: "var(--tv-city, 26px)" }}
+                  >
+                    {c.name}
+                  </h2>
+                  <span
+                    className="uppercase tracking-[0.2em] text-white/45 whitespace-nowrap"
+                    style={{ fontSize: "var(--tv-city-head, 13px)" }}
+                  >
+                    Head {period === "today" ? c.displayed?.total.headCount ?? 0 : DASH}
+                  </span>
+                </div>
               </div>
               {c.displayed ? (
-                <MetricsBlock
-                  displayed={c.displayed}
-                  accent={c.accent}
-                  fills={{
-                    tables: "rgba(255,255,255,0.05)",
-                    slots: "rgba(255,255,255,0.018)",
-                    total: `${c.accent}1F`,
-                  }}
-                  size="sm"
-                  totalSize="md"
-                />
+                <MetricsBlock displayed={c.displayed} accent={c.accent} size="sm" totalSize="md" />
               ) : (
+
                 <div className="grid place-items-center text-white/35">{DASH}</div>
               )}
             </article>
