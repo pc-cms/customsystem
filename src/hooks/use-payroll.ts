@@ -392,12 +392,17 @@ export const useRevertToDraft    = rpcMutation("payroll_revert_to_draft",  "Reve
 export const useUnlockPeriod     = rpcMutation("payroll_unlock_period",    "Period unlocked",   true);
 
 // ============= UPDATE PERIOD METADATA (payment description, branch label) =============
+// Direct table writes on payroll_periods are super_admin-only (status/approval guard),
+// so metadata edits go through a definer RPC that HR / Finance / Manager may call.
 export const useUpdatePeriodMeta = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { id: string; payment_description?: string | null; branch_label?: string | null }) => {
-      const { id, ...patch } = input;
-      const { error } = await supabase.from("payroll_periods").update(patch).eq("id", id);
+      const { error } = await supabase.rpc("payroll_update_period_meta" as any, {
+        _period_id: input.id,
+        _payment_description: input.payment_description ?? null,
+        _branch_label: input.branch_label ?? null,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
