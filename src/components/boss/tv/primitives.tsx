@@ -219,6 +219,17 @@ export function RowLabel({
   );
 }
 
+/** Muted-gold hairline used between metric columns and rows. */
+export const HAIRLINE = `${PREMIER.darkGold}33`;
+
+/** Neutral, city-independent row fills — identical for every casino. */
+export const ROW_FILL = {
+  tables: "rgba(255,255,255,0.045)",
+  slots: "rgba(255,255,255,0.018)",
+  total: `${PREMIER.softGold}1A`,
+} as const;
+
+
 /** Grid template shared by every metrics block: Label | Drop | Result | Hold. */
 export const METRIC_GRID =
   "grid grid-cols-[minmax(0,0.75fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_minmax(0,0.6fr)] gap-x-[calc(var(--tv-gap,10px)*1.4)] items-center min-w-0";
