@@ -24,7 +24,7 @@
 
 ## Техническая часть
 
-- Миграция: добавить в `payroll_entries` колонки `worked_days INT` и `worked_hours NUMERIC` (по умолчанию 0); переписать `payroll_refresh_period` так, чтобы из `get_monthly_attendance` агрегировались holiday hours/days, missing days, worked days/hours и off days/hours. Триггер `compute_payroll_entry` не меняем — формулы нетто остаются прежними (off_days_hours уже участвует в gross).
-- Фронт: `src/pages/payroll/PayrollPeriodPage.tsx` — две новые колонки; `src/integrations/supabase/types.ts` обновится автоматически после миграции.
-- Экспорт: `src/pages/AttendanceMonthly.tsx` — кнопка в шапке, генерация через уже установленный `xlsx` (данные берутся из уже загруженного `rows`, дополнительных запросов нет).
+- Миграция: добавить в `payroll_entries` колонки `worked_days INT` и `worked_hours NUMERIC` (default 0); переписать `payroll_refresh_period` — агрегировать из `get_monthly_attendance` holiday hours/days, missing days, worked days/hours, off days/hours. В `compute_payroll_entry` убрать блок ночной надбавки (`night_allowance*` пишутся нулями, из `gross` исключаются). Старые колонки `night_days`/`night_allowance*` остаются в таблице как исторические, но не заполняются и не показываются.
+- Фронт: `src/pages/payroll/PayrollPeriodPage.tsx` — убрать колонки Night, добавить Worked days / Worked hours; `src/pages/payroll/PayrollSettingsPage.tsx` — убрать поля ночной ставки; `src/lib/payroll-exports.ts` — убрать ночную надбавку из выгрузок.
+- Экспорт: `src/pages/AttendanceMonthly.tsx` — кнопка в шапке, генерация через существующий `src/lib/excel-export.ts` / `xlsx`, данные берутся из уже загруженного `rows` (доп. запросов нет).
 - Версия приложения: 1.3.689.
