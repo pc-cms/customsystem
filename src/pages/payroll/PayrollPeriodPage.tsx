@@ -188,10 +188,14 @@ const PayrollPeriodPage = () => {
   );
 };
 
+const READONLY_FIELDS = [
+  ["worked_days", "Wkd Days"],
+  ["worked_hours", "Wkd Hrs"],
+] as const;
+
 const NUMERIC_INPUT_FIELDS = [
   ["public_holiday_worked", "PH Worked"],
   ["hrs_worked_on_holiday", "Hrs Hol"],
-  ["night_days", "Night Days"],
   ["off_days_hours", "OD Hrs"],
   ["missing_days", "Missing"],
   ["cash_shortage", "Cash Short"],
