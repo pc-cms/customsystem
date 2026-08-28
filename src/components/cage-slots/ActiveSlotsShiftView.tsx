@@ -262,6 +262,16 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const mobileMoneyTzs = cashlessInManualTzs - cashlessOutManualTzs;
   const closingCashTzs = closingTzsTotal + closingFxTzs
     + bankTotalTzs(closingBanks, rateMap) + mobileMoneyTzs;
+  /** Bank movement of the day (IN − OUT) across channels — the figure posted to wallets. */
+  const bankNetTzs = useMemo(
+    () => BANK_CHANNELS.reduce((s, ch) => {
+      const e = closingBanks.channels?.[ch.key];
+      const net = Number(e?.in || 0) - Number(e?.out || 0);
+      return s + net * (ch.currency === "TZS" ? 1 : Number(rateMap["USD"] || 0));
+    }, 0),
+    [closingBanks, rateMap],
+  );
+
 
   const openingCardsCount = Number(cards?.opening_card_count || 0);
   const systemResult = Number(systemResultInput) || Number(shift.system_shift_result || 0);
