@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
 import {
-  emptyBanks, emptyMobile, mobileTotal, bankTotalTzs,
+  emptyBanks, emptyMobile, mobileTotal, bankTotalTzs, BANK_CHANNELS,
   MOBILE_PROVIDERS,
   type Banks, type MobileProviders,
 } from "@/components/cage/CageHelpers";
