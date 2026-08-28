@@ -26,7 +26,7 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const DEFAULT_WEBHOOK_URL = "https://amaell-finance-hub.lovable.app/api/public/cms/webhook";
 const WEBHOOK_URL = Deno.env.get("FINANCE_HUB_WEBHOOK_URL") || DEFAULT_WEBHOOK_URL;
 
-const TIMEOUT_MS = 3000;
+const TIMEOUT_MS = 8000;
 const BATCH = 20;
 
 const json = (body: unknown, status = 200) =>
