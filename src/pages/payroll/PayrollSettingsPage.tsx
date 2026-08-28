@@ -1,6 +1,6 @@
 /**
  * Payroll Settings page — calculation rates and PAYE brackets.
- * Read-only display for everyone, edit-only for super_admin.
+ * Read-only display for everyone; HR, Finance Manager and super_admin can edit.
  */
 import { Settings, Save, Plus, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
