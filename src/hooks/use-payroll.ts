@@ -313,7 +313,8 @@ export interface PayrollEntry {
   snapshot_branch_code: string;
   public_holiday_worked: number;
   hrs_worked_on_holiday: number;
-  night_days: number;
+  worked_days: number;
+  worked_hours: number;
   off_days: number;
   off_days_hours: number;
   cash_shortage: number;
@@ -355,7 +356,7 @@ export const useUpdatePayrollEntry = () => {
       const { id, ...patch } = input;
       // strip computed fields
       const editable: any = {};
-      const allowed = ["public_holiday_worked","hrs_worked_on_holiday","night_days","off_days","off_days_hours",
+      const allowed = ["public_holiday_worked","hrs_worked_on_holiday","off_days","off_days_hours",
                        "cash_shortage","salary_advances","missing_days","gepf_loan"];
       for (const k of allowed) if (k in patch) editable[k] = (patch as any)[k];
       const { error } = await supabase.from("payroll_entries").update(editable).eq("id", id);

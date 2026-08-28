@@ -128,7 +128,6 @@ export const exportSalarySlipsPrint = (entries: PayrollEntry[], period: PayrollP
         <tr><td>Position</td><td>${e.snapshot_position}</td></tr>
         <tr><td>Basic Salary</td><td>${fmt(e.snapshot_basic_salary)}</td></tr>
         <tr><td>Public Holiday Earned</td><td>${fmt(e.public_holiday_earned)}</td></tr>
-        <tr><td>Night Allowance</td><td>${fmt(e.night_allowance)}</td></tr>
         <tr><td>Off Days Total</td><td>${fmt(e.off_days_total)}</td></tr>
         <tr><th>Gross Salary</th><th>${fmt(e.gross_salary)}</th></tr>
         <tr><td>GEPF 10%</td><td>(${fmt(e.gepf_employee)})</td></tr>
