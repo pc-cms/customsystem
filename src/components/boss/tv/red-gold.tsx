@@ -8,12 +8,15 @@ import { PREMIER } from "./tokens";
 import {
   MetricsBlock,
   Num,
+  IVORY,
   fmtMoney,
   fmtSigned,
   fmtPct,
-  signColor,
+  resultColor,
+  resultGlow,
   DASH,
 } from "./primitives";
+import { CityMark } from "./city-marks";
 import { TvBrandHeader } from "./tv-header";
 import { TopPlayersOverall } from "./top-players";
 import type { TvStageProps } from "./types";
@@ -22,6 +25,7 @@ function HeroStat({
   label,
   value,
   color,
+  glow,
   size = "lg",
   wide,
   scale = 1,
@@ -29,27 +33,29 @@ function HeroStat({
   label: string;
   value: string;
   color?: string;
+  glow?: string;
   size?: "md" | "lg" | "xl";
   wide?: boolean;
   scale?: number;
 }) {
   return (
     <div
-      className={`flex flex-col justify-center gap-[0.2em] min-w-0 overflow-hidden rounded-lg px-[calc(var(--tv-gap,10px)*0.9)] py-[calc(var(--tv-gap,10px)*0.6)] ${
+      className={`flex flex-col items-center justify-center gap-[0.42em] min-w-0 overflow-hidden rounded-lg px-[calc(var(--tv-gap,10px)*0.9)] py-[calc(var(--tv-gap,10px)*0.6)] ${
         wide ? "col-span-2" : ""
       }`}
       style={{ background: "rgba(255,255,255,0.045)" }}
     >
       <span
-        className="uppercase tracking-[0.26em] text-white/60 font-semibold whitespace-nowrap"
-        style={{ fontSize: "var(--tv-label, 12px)" }}
+        className="uppercase tracking-[0.3em] text-white/50 font-semibold whitespace-nowrap text-center"
+        style={{ fontSize: "calc(var(--tv-label, 12px) * 0.92)" }}
       >
         {label}
       </span>
-      <Num text={value} color={color} size={size} scale={scale} className="w-full" />
+      <Num text={value} color={color} glow={glow} size={size} scale={scale} align="center" className="w-full" />
     </div>
   );
 }
+
 
 export function RedGoldStage({ casinos, company, newPlayersCount, period, periodLabel }: TvStageProps) {
   const ranked = [...casinos].sort(
