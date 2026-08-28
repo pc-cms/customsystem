@@ -78,3 +78,35 @@ export const SURFACE: Record<TvStyleId, { background: string; border: string; sh
 
 export const POSITIVE = "#7BE3A2";
 export const NEGATIVE = "#FF7A85";
+
+/* ------------------------------------------------------------------ */
+/* Result colour intensity — presentation only.                        */
+/* Same green/red family for every city; brightness follows magnitude,  */
+/* never the casino. No legend is ever rendered on screen.              */
+/* ------------------------------------------------------------------ */
+
+/** Absolute TZS thresholds, symmetric for positive and negative results. */
+export const RESULT_STEPS = [5_000_000, 10_000_000, 20_000_000] as const;
+
+const POSITIVE_SCALE = ["#4E9E72", "#5FBF89", "#76DDA0", "#8CF7B4"] as const;
+const NEGATIVE_SCALE = ["#B9646C", "#DC7480", "#F4818C", "#FF97A0"] as const;
+
+export interface ResultTone {
+  color: string | undefined;
+  /** Very restrained text glow, only at the strongest step. */
+  glow: string | undefined;
+}
+
+const NEUTRAL_TONE: ResultTone = { color: undefined, glow: undefined };
+
+export function resultTone(n: number | null | undefined): ResultTone {
+  if (n == null) return NEUTRAL_TONE;
+  const v = Math.round(n);
+  if (v === 0) return NEUTRAL_TONE;
+  const abs = Math.abs(v);
+  const step =
+    abs < RESULT_STEPS[0] ? 0 : abs < RESULT_STEPS[1] ? 1 : abs < RESULT_STEPS[2] ? 2 : 3;
+  const color = (v > 0 ? POSITIVE_SCALE : NEGATIVE_SCALE)[step];
+  return { color, glow: step === 3 ? color : undefined };
+}
+
