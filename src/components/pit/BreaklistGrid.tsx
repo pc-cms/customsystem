@@ -183,7 +183,7 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
   const shiftEndHour = casino?.shift_end ? parseInt(casino.shift_end.split(":")[0]) : 6;
   const { data: effectiveBusinessDate } = useEffectiveBusinessDate();
   const isToday = !!effectiveBusinessDate && date === effectiveBusinessDate;
-  const pastLock = isToday && isAfterBreaklistLock(casino?.breaklist_lock || "06:30");
+  const pastLock = isToday && isAfterBreaklistLock(casino?.breaklist_lock || "06:30", liveStartHour);
   // Editable if it's today AND not past lock time (or if manager / pit operator).
   // Pit role is the on-duty operator and must be able to prepare the breaklist
   // ahead of the 18:00 shift start, so they bypass the morning-lock window.

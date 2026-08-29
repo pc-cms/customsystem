@@ -4,22 +4,18 @@ import { ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { useGamingTables, useTableHeadCount, useBatchSetTableHeadCount } from "@/hooks/use-casino-data";
 import { nowEAT, getBusinessDate } from "@/lib/business-day";
 import { useAuth } from "@/lib/auth-context";
+import { headCountSlots } from "@/lib/live-hours";
+import { useLiveStart } from "@/hooks/use-live-start";
 
-// 19:00 → 05:00 hourly slots (matches TableTracker SLOTS)
-const SLOTS = (() => {
-  const s: string[] = [];
-  for (let h = 19; h <= 29; h++) s.push(`${String(h % 24).padStart(2, "0")}:00`);
-  return s;
-})();
+// Hourly slots run from the effective LIVE START through 05:00.
 
-const getCurrentHourSlot = (): string => {
+const getCurrentHourSlot = (slots: string[], startHour: number): string => {
   const now = nowEAT();
   const h = now.getHours();
-  // Map current real hour to nearest valid slot
-  if (h >= 19 && h <= 23) return `${String(h).padStart(2, "0")}:00`;
+  if (h >= startHour && h <= 23) return `${String(h).padStart(2, "0")}:00`;
   if (h >= 0 && h <= 4) return `${String(h).padStart(2, "0")}:00`;
   if (h === 5 || h === 6 || h === 7) return "05:00";
-  return SLOTS[0];
+  return slots[0];
 };
 
 const clamp99 = (s: string): string => {
@@ -51,7 +47,9 @@ export const HeadCountPanel = ({ date }: HeadCountPanelProps) => {
   );
 
 
-  const [slot, setSlot] = useState<string>(() => getCurrentHourSlot());
+  const { startHour: liveStartHour } = useLiveStart(date);
+  const SLOTS = useMemo(() => headCountSlots(liveStartHour), [liveStartHour]);
+  const [slot, setSlot] = useState<string>(() => getCurrentHourSlot(SLOTS, liveStartHour));
   const [draft, setDraft] = useState<Record<string, string>>({});
 
   // Reset draft when slot / date / row set changes — show saved values.

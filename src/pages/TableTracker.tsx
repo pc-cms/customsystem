@@ -25,23 +25,16 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Target, Lock, Hash, Coins } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { ChipCountPanel } from "@/components/tables/ChipCountPanel";
+import { trackerSlots } from "@/lib/live-hours";
+import { useLiveStart } from "@/hooks/use-live-start";
+import LiveStartControl from "@/components/pit/LiveStartControl";
 
 import { TableAnalyticsChart } from "@/components/tables/TableAnalyticsChart";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-// 19:00 → 06:00, 1-hour intervals
-const generateSlots = () => {
-  const slots: string[] = [];
-  for (let h = 19; h <= 30; h++) { // 30 = 06:00 next day (Final)
-    const hour = h % 24;
-    slots.push(`${String(hour).padStart(2, "0")}:00`);
-  }
-  return slots;
-};
-
-const SLOTS = generateSlots();
+// Hourly columns run from the effective LIVE START through 06:00 (Final).
 
 const getCurrentSlot = () => {
   const now = nowEAT();
@@ -59,6 +52,8 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const { isManager, casinoId } = useAuth();
   const { data: tables = [] } = useGamingTables();
   const { data: trackerData = [] } = useTableTracker(date);
+  const { startHour: liveStartHour } = useLiveStart(date);
+  const SLOTS = useMemo(() => trackerSlots(liveStartHour), [liveStartHour]);
   
   const setValue = useSetTableTrackerValue();
 
