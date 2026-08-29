@@ -8,7 +8,6 @@ import { PlayCircle, Clock, Pencil } from "lucide-react";
 import { LIVE_START_OPTIONS, startLabel } from "@/lib/live-hours";
 import { useLiveStart, useStartLive, useCorrectLiveStart } from "@/hooks/use-live-start";
 import { useAuth } from "@/lib/auth-context";
-import { getBusinessDate } from "@/lib/business-day";
 import { fmtDate } from "@/lib/format-date";
 
 /**
@@ -27,8 +26,6 @@ export function LiveStartControl({ date }: { date?: string }) {
   const [time, setTime] = useState<string>(startLabel(live.effective));
   const [reason, setReason] = useState("");
 
-  // Only the current business day can be started/corrected.
-  const isCurrentDay = live.businessDate === (date || live.businessDate) && live.businessDate === (getBusinessDate() || live.businessDate);
   const canEdit = isManager;
 
   const openStartDialog = () => {
