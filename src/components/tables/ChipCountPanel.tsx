@@ -53,6 +53,8 @@ interface ChipCountPanelProps {
  */
 export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const { isManager } = useAuth();
+  const { startHour: liveStartHour } = useLiveStart(date);
+
   const today = getBusinessDate();
   const readOnly = date !== today && !isManager;
 
