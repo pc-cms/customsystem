@@ -60,9 +60,13 @@ describe("wallet tx sign helper", () => {
     expect(hits).toEqual([]);
   });
 
-  it("canonical kind list stays a superset of what the helper classifies", () => {
-    for (const k of WALLET_TX_NEGATIVE_KINDS) {
-      expect(CANONICAL_KINDS as readonly string[]).toContain(k as string);
+  it("canonical kinds cover the writable set and exclude legacy in/out kinds", () => {
+    // Only these kinds may ever be written; `manual_expense` / `collection`
+    // are historical read-only kinds and are intentionally not writable.
+    expect(CANONICAL_KINDS).toContain("adjustment");
+    expect(CANONICAL_KINDS).toContain("expense");
+    for (const k of FORBIDDEN_KINDS) {
+      expect(CANONICAL_KINDS as readonly string[]).not.toContain(k);
     }
   });
 });
