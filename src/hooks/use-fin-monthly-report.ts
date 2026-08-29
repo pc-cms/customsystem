@@ -243,7 +243,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       //   inter-casino transfers = registry, never here.
       let incomesQ = (supabase as any)
         .from("fin_other_incomes")
-        .select("id, label, amount, fx_rate, currency, casino_id, business_date, reverses_id, reversed_by_id, source")
+        .select("id, note, amount, fx_rate, currency, casino_id, business_date, reverses_id, reversed_by_id, source")
         .gte("business_date", start)
         .lt("business_date", endExclusive)
         .is("reverses_id", null)
@@ -413,7 +413,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         .map((r: any) => ({
           id: String(r.id),
           business_date: String(r.business_date),
-          label: String(r.label || "Investment"),
+          label: String(r.note || "Investment"),
           amount_tzs: toTzs(r),
         }))
         .sort((a: any, b: any) => a.business_date.localeCompare(b.business_date));

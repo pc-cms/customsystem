@@ -169,14 +169,16 @@ describe("LiveStage layouts", () => {
     }
   });
 
-  it("numeric cells clip safely, stay right aligned and use the density vars", () => {
+  it("numeric cells clip safely, stay explicitly aligned and use the density vars", () => {
     const r = renderStyle("dark-gold");
     const nums = r.container.querySelectorAll<HTMLElement>("[data-num-size]");
     expect(nums.length).toBeGreaterThan(0);
     nums.forEach((n) => {
       expect(n.className).toContain("min-w-0");
       expect(n.className).toContain("overflow-hidden");
-      expect(n.className).toContain("text-right");
+      // Dashboard TV redesign centres numeric cells; either explicit
+      // alignment is acceptable, unaligned is not.
+      expect(/text-(right|center)/.test(n.className)).toBe(true);
       expect(n.className).toContain("tabular-nums");
       expect(n.getAttribute("data-num-var") ?? "").toContain("--tv-num-");
       // never truncated with an ellipsis
