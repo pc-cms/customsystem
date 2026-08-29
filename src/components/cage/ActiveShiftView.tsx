@@ -42,6 +42,7 @@ import { useCashChecksByBusinessDate } from "@/hooks/use-cash-checks-by-date";
 import { useAuth } from "@/lib/auth-context";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { bankNetTzs, cageVariance } from "@/lib/cage-reconciliation";
 import { useExpectedCheckState } from "@/hooks/use-expected-check-state";
 import CashCheckNewGrid from "@/components/cage/CashCheckNewGrid";
 import { setDirty, clearDirty } from "@/lib/dirty-guard";
@@ -839,19 +840,16 @@ const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRate
     () => chipSum(chipCounts) + calcCashTotalTzs(cash, exchangeRates) + bankTotalTzs(bankBal, exchangeRates) + cashlessInTzs - cashlessOutTzs,
     [chipCounts, cash, bankBal, exchangeRates, cashlessInTzs, cashlessOutTzs],
   );
-  // Counted includes the bank CLOSING balances, and the opening float already
-  // carries the bank balance at shift start — so Expected must move by the
-  // bank NET (IN − OUT) of the day, otherwise banks read as a false variance.
-  const bankNetTzs = useMemo(
-    () => BANK_CHANNELS.reduce((s, ch) => {
-      const e = bankBal.channels?.[ch.key];
-      const net = Number(e?.in || 0) - Number(e?.out || 0);
-      return s + net * (ch.currency === "TZS" ? 1 : Number(exchangeRates["USD"] || 0));
-    }, 0),
+  // Banks are MOVEMENT ONLY (IN − OUT). Their NET is part of what the cage
+  // holds (counted side) and must NEVER be added to Expected — otherwise
+  // handing physical cash to CRDB/NBC shows a false shortage.
+  // Canonical formula lives in `@/lib/cage-reconciliation`.
+  const bankNet = useMemo(
+    () => bankNetTzs(bankBal, exchangeRates),
     [bankBal, exchangeRates],
   );
-  const expectedWithBank = expectedBalance + bankNetTzs;
-  const difference = totalTzs - expectedWithBank;
+  const expectedWithBank = expectedBalance;
+  const difference = cageVariance(totalTzs, expectedBalance);
 
   const [showDiff, setShowDiff] = useState(false);
   useEffect(() => { setShowDiff(false); }, [chipCounts, cash, bankBal, mobileBal, cashlessIn, cashlessOut]);
@@ -912,7 +910,7 @@ const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRate
           cashless_out: cashlessOutTzs,
           expected: expectedWithBank,
           expected_shift: expectedBalance,
-          bank_net_tzs: bankNetTzs,
+          bank_net_tzs: bankNet,
           counted: totalTzs,
           difference,
           balanced: difference === 0,
@@ -1002,7 +1000,7 @@ const CashCheckForm = ({ expectedBalance, shift, shiftTransactions, exchangeRate
         })()}
 
         <div className="grid grid-cols-3 gap-2 pt-3 mt-3 border-t border-border">
-          <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Expected</p><p className="font-mono text-xl font-bold text-card-foreground">{formatCurrency(expectedWithBank)}</p>{bankNetTzs !== 0 && (<p className="text-[10px] text-muted-foreground font-mono">incl. bank net {formatCurrency(bankNetTzs)}</p>)}</div>
+          <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Expected</p><p className="font-mono text-xl font-bold text-card-foreground">{formatCurrency(expectedWithBank)}</p>{bankNet !== 0 && (<p className="text-[10px] text-muted-foreground font-mono">incl. bank net {formatCurrency(bankNet)} in Counted</p>)}</div>
           <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Counted</p><p className="font-mono text-xl font-bold text-card-foreground">{formatCurrency(totalTzs)}</p></div>
           <div className="text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Diff</p><p className={`font-mono text-xl font-bold ${diffCls}`}>{diffLabel}</p></div>
         </div>
