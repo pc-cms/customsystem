@@ -209,6 +209,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
               <Coins className="h-4 w-4" /> Chips
             </Button>
           </div>
+          <LiveStartControl date={date === today ? undefined : date} />
           {isManager ? (
             <DateNavigator
               value={date}
@@ -231,13 +232,16 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
       )}
 
       {embedded && (
-        <div className="mb-2 inline-flex rounded-md border border-border overflow-hidden h-8">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+        <LiveStartControl date={date === today ? undefined : date} />
+        <div className="inline-flex rounded-md border border-border overflow-hidden h-8">
           <Button type="button" variant={mode === "numbers" ? "default" : "ghost"} size="sm" onClick={() => setMode("numbers")} className="rounded-none gap-1.5 h-8 px-3">
             <Hash className="h-3.5 w-3.5" /> Numbers
           </Button>
           <Button type="button" variant={mode === "chips" ? "default" : "ghost"} size="sm" onClick={() => setMode("chips")} className="rounded-none gap-1.5 h-8 px-3">
             <Coins className="h-3.5 w-3.5" /> Chips
           </Button>
+        </div>
         </div>
       )}
 
