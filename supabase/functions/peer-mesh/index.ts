@@ -12,6 +12,7 @@
  */
 // @ts-nocheck
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolvePullLimit, capChangesByBytes } from "./pull-limits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -226,7 +227,7 @@ Deno.serve(async (req: Request) => {
 
     if (sub === "/pull") {
       const sinceId = Number(body.since_id ?? 0) || 0;
-      const limit = Math.min(Number(body.limit ?? 500) || 500, 2000);
+      const limit = resolvePullLimit(body.limit);
       const { data: rows, error } = await admin
         .from("sync_outbox")
         .select("id, casino_id, table_name, op, pk, payload, changed_at, origin_node_id")
@@ -235,7 +236,9 @@ Deno.serve(async (req: Request) => {
         .order("id", { ascending: true })
         .limit(limit);
       if (error) return json(500, { error: error.message });
-      const changes = (rows ?? []).map((r) => ({ ...r, table: r.table_name }));
+      const all = (rows ?? []).map((r) => ({ ...r, table: r.table_name }));
+      // Byte guard: never serialize an oversized page (OOM/502 protection).
+      const changes = capChangesByBytes(all);
       const next = changes.length ? changes[changes.length - 1].id : sinceId;
       await admin.from("peer_links").update({ last_seen_at: new Date().toISOString() }).eq("id", peer.id);
       return json(200, { changes, next_since_id: next });
