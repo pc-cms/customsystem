@@ -6477,6 +6477,7 @@ export type Database = {
           event_type: string
           id: string
           reason: string | null
+          seq: number
         }
         Insert: {
           business_date: string
@@ -6487,6 +6488,7 @@ export type Database = {
           event_type: string
           id?: string
           reason?: string | null
+          seq?: number
         }
         Update: {
           business_date?: string
@@ -6497,6 +6499,7 @@ export type Database = {
           event_type?: string
           id?: string
           reason?: string | null
+          seq?: number
         }
         Relationships: [
           {
@@ -13622,6 +13625,7 @@ export type Database = {
           event_type: string
           id: string
           reason: string | null
+          seq: number
         }
         SetofOptions: {
           from: "*"
@@ -13646,6 +13650,7 @@ export type Database = {
           event_type: string
           id: string
           reason: string | null
+          seq: number
         }
         SetofOptions: {
           from: "*"
