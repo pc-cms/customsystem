@@ -23,7 +23,7 @@ import { useAuth } from "@/lib/auth-context";
  *  - m 11–49     → slot HH:00   (FALLBACK).      Writes ONLY if slot is empty
  *                                                (first late check fills the missed slot).
  *  Otherwise null (no auto-write). */
-const slotForChipCount = (now: Date): { slot: string; onlyIfEmpty: boolean } | null => {
+const slotForChipCount = (now: Date, liveStartHour = 19): { slot: string; onlyIfEmpty: boolean } | null => {
   const h = now.getHours();
   const m = now.getMinutes();
   // Final-count override: anything from 04:50 up to (but not including) 08:00 → Final 05:00
@@ -35,11 +35,13 @@ const slotForChipCount = (now: Date): { slot: string; onlyIfEmpty: boolean } | n
   if (m >= 50) targetH = (h + 1) % 24;
   else if (m <= 10) targetH = h;
   else { targetH = h; onlyIfEmpty = true; } // m 11–49 fallback
-  // Allowed slots: 19..23 and 00..04 (05:00 handled by the Final-window branch above)
-  const allowed = (targetH >= 19 && targetH <= 23) || (targetH >= 0 && targetH <= 4);
+  // Allowed slots: effective LIVE START..23 and 00..04 (05:00 handled by the Final-window branch above)
+  const allowed = (targetH >= liveStartHour && targetH <= 23) || (targetH >= 0 && targetH <= 4);
   if (!allowed) return null;
   return { slot: `${String(targetH).padStart(2, "0")}:00`, onlyIfEmpty };
 };
+
+import { useLiveStart } from "@/hooks/use-live-start";
 
 interface ChipCountPanelProps {
   date: string;
@@ -215,7 +217,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
 
     // Auto-write per-table row result into Number Count tracker for the rounded slot.
     // On-time (:50–:10) always writes; fallback (:11–:49) writes only if slot is empty.
-    const target = slotForChipCount(nowEAT());
+    const target = slotForChipCount(nowEAT(), liveStartHour);
     if (target) {
       const { slot, onlyIfEmpty } = target;
       const entries: Array<{ table_id: string; time_slot: string; value: number }> = [];
