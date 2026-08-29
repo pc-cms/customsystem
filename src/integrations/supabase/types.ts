@@ -6467,6 +6467,50 @@ export type Database = {
           },
         ]
       }
+      live_operation_start_events: {
+        Row: {
+          business_date: string
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          effective_start_time: string
+          event_type: string
+          id: string
+          reason: string | null
+          seq: number
+        }
+        Insert: {
+          business_date: string
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          effective_start_time: string
+          event_type: string
+          id?: string
+          reason?: string | null
+          seq?: number
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          effective_start_time?: string
+          event_type?: string
+          id?: string
+          reason?: string | null
+          seq?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_operation_start_events_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lotteries: {
         Row: {
           casino_id: string
@@ -13489,6 +13533,10 @@ export type Database = {
         Args: { _casino_id: string }
         Returns: string
       }
+      get_effective_live_start: {
+        Args: { _business_date: string; _casino_id: string }
+        Returns: string
+      }
       get_effective_shift_settings: {
         Args: { _casino_id: string }
         Returns: {
@@ -13565,6 +13613,53 @@ export type Database = {
         Returns: Json
       }
       list_open_cycles_for_day: { Args: { _casino_id: string }; Returns: Json }
+      live_ops_allowed_now: { Args: { _casino_id: string }; Returns: boolean }
+      live_start_begin: {
+        Args: { _business_date: string; _casino_id: string; _time: string }
+        Returns: {
+          business_date: string
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          effective_start_time: string
+          event_type: string
+          id: string
+          reason: string | null
+          seq: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "live_operation_start_events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      live_start_correct: {
+        Args: {
+          _business_date: string
+          _casino_id: string
+          _reason: string
+          _time: string
+        }
+        Returns: {
+          business_date: string
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          effective_start_time: string
+          event_type: string
+          id: string
+          reason: string | null
+          seq: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "live_operation_start_events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      live_start_time_valid: { Args: { _t: string }; Returns: boolean }
       local_servers_overview: {
         Args: never
         Returns: {

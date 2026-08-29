@@ -61,7 +61,7 @@ export function timeToMinutes(time: string): number {
  * The lock time is always relative to the "next morning" (e.g., 06:30 means
  * the breaklist locks at 06:30 the morning after the shift started).
  */
-export function isAfterBreaklistLock(lockTime = "06:30"): boolean {
+export function isAfterBreaklistLock(lockTime = "06:30", liveStartHour = 18): boolean {
   const now = nowEAT();
   const h = now.getHours();
   const m = now.getMinutes();
@@ -72,7 +72,7 @@ export function isAfterBreaklistLock(lockTime = "06:30"): boolean {
   // If current time is between lockTime and shift start (~18:00), we're past the lock
   if (lockMinutes < 720) {
     // e.g., lock at 05:30 → locked if time is >= 05:30 AND < 18:00
-    return currentMinutes >= lockMinutes && h < 18;
+    return currentMinutes >= lockMinutes && h < liveStartHour;
   }
   return false;
 }

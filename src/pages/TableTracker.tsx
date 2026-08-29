@@ -25,23 +25,16 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Target, Lock, Hash, Coins } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { ChipCountPanel } from "@/components/tables/ChipCountPanel";
+import { trackerSlots } from "@/lib/live-hours";
+import { useLiveStart } from "@/hooks/use-live-start";
+import LiveStartControl from "@/components/pit/LiveStartControl";
 
 import { TableAnalyticsChart } from "@/components/tables/TableAnalyticsChart";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-// 19:00 → 06:00, 1-hour intervals
-const generateSlots = () => {
-  const slots: string[] = [];
-  for (let h = 19; h <= 30; h++) { // 30 = 06:00 next day (Final)
-    const hour = h % 24;
-    slots.push(`${String(hour).padStart(2, "0")}:00`);
-  }
-  return slots;
-};
-
-const SLOTS = generateSlots();
+// Hourly columns run from the effective LIVE START through 06:00 (Final).
 
 const getCurrentSlot = () => {
   const now = nowEAT();
@@ -59,6 +52,8 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
   const { isManager, casinoId } = useAuth();
   const { data: tables = [] } = useGamingTables();
   const { data: trackerData = [] } = useTableTracker(date);
+  const { startHour: liveStartHour } = useLiveStart(date);
+  const SLOTS = useMemo(() => trackerSlots(liveStartHour), [liveStartHour]);
   
   const setValue = useSetTableTrackerValue();
 
@@ -214,6 +209,7 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
               <Coins className="h-4 w-4" /> Chips
             </Button>
           </div>
+          <LiveStartControl date={date === today ? undefined : date} />
           {isManager ? (
             <DateNavigator
               value={date}
@@ -236,13 +232,16 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
       )}
 
       {embedded && (
-        <div className="mb-2 inline-flex rounded-md border border-border overflow-hidden h-8">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+        <LiveStartControl date={date === today ? undefined : date} />
+        <div className="inline-flex rounded-md border border-border overflow-hidden h-8">
           <Button type="button" variant={mode === "numbers" ? "default" : "ghost"} size="sm" onClick={() => setMode("numbers")} className="rounded-none gap-1.5 h-8 px-3">
             <Hash className="h-3.5 w-3.5" /> Numbers
           </Button>
           <Button type="button" variant={mode === "chips" ? "default" : "ghost"} size="sm" onClick={() => setMode("chips")} className="rounded-none gap-1.5 h-8 px-3">
             <Coins className="h-3.5 w-3.5" /> Chips
           </Button>
+        </div>
         </div>
       )}
 

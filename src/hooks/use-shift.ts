@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { logAction } from "@/lib/logging";
 import { toast } from "sonner";
 import { offlineMutation } from "@/lib/offline-mutation";
+import { useLiveStart } from "@/hooks/use-live-start";
 
 // ============ LAST CLOSED SHIFT (for carrying over rates) ============
 export const useLastClosedShift = () => {
@@ -54,12 +55,14 @@ export const useActiveShift = () => {
 export const useOpenShift = () => {
   const qc = useQueryClient();
   const { casinoId, user } = useAuth();
+  const live = useLiveStart();
   return useMutation({
     mutationFn: async (input: {
       exchange_rates: Record<string, number>;
       opening_float: Record<string, any>;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
+      if (!live.allowedNow) throw new Error(`Live operations available from ${live.label}`);
       // Pre-attempt audit trail: records the user even if RLS blocks the INSERT.
       await logAction(casinoId, "system", "SHIFT_OPEN_ATTEMPT", {
         opening_total: Number((input.opening_float as any)?.totals?.total_tzs) || 0,

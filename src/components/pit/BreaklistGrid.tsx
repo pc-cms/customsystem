@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { ALL_ROLES, ROLE_COLORS, TABLE_ROLES } from "@/lib/currency";
 import { getTableCellClasses } from "@/lib/table-colors";
 import { isAfterBreaklistLock, nowEAT } from "@/lib/business-day";
+import { breaklistSlots, isInLiveHours } from "@/lib/live-hours";
+import { useLiveStart } from "@/hooks/use-live-start";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,19 +47,8 @@ export interface BreaklistGridRef {
   scrollBy: (direction: -1 | 1) => void;
 }
 
-// 18:00 → 05:40, 20-minute intervals (shift ends 06:00)
-const generateTimeSlots = () => {
-  const slots: string[] = [];
-  for (let h = 18; h <= 29; h++) { // 29 = 05:xx next day
-    for (let m = 0; m < 60; m += 20) {
-      const hour = h % 24;
-      slots.push(`${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
-    }
-  }
-  return slots;
-};
-
-const TIME_SLOTS = generateTimeSlots();
+// Time slots are generated from the casino/business-day effective LIVE START
+// (see src/lib/live-hours.ts) through 05:40 next day.
 
 // Get current active slot
 const getCurrentSlot = () => {
@@ -67,11 +58,7 @@ const getCurrentSlot = () => {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 };
 
-// Check if a slot is within working hours (18-07, matches business-day rollover)
-const isInWorkingHours = (slot: string) => {
-  const h = parseInt(slot.split(":")[0]);
-  return h >= 18 || h < 7;
-};
+
 
 // Map a stored role to the per-table exclusivity slot.
 // Three independent slots per table: Dealer (D), Inspector (I, ends with 'i'), Chipper (C, ends with 'c').
@@ -190,10 +177,13 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
   };
 
   const [currentSlot, setCurrentSlot] = useState(getCurrentSlot);
+  const { startHour: liveStartHour } = useLiveStart(date);
+  const TIME_SLOTS = useMemo(() => breaklistSlots(liveStartHour), [liveStartHour]);
+  const isInWorkingHours = useCallback((slot: string) => isInLiveHours(slot, liveStartHour), [liveStartHour]);
   const shiftEndHour = casino?.shift_end ? parseInt(casino.shift_end.split(":")[0]) : 6;
   const { data: effectiveBusinessDate } = useEffectiveBusinessDate();
   const isToday = !!effectiveBusinessDate && date === effectiveBusinessDate;
-  const pastLock = isToday && isAfterBreaklistLock(casino?.breaklist_lock || "06:30");
+  const pastLock = isToday && isAfterBreaklistLock(casino?.breaklist_lock || "06:30", liveStartHour);
   // Editable if it's today AND not past lock time (or if manager / pit operator).
   // Pit role is the on-duty operator and must be able to prepare the breaklist
   // ahead of the 18:00 shift start, so they bypass the morning-lock window.

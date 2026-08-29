@@ -6,6 +6,7 @@ import { useCasino } from "@/lib/casino-context";
 import { logAction } from "@/lib/logging";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
+import { useLiveStart } from "@/hooks/use-live-start";
 
 // ============ CHIP BASELINE ============
 export const useChipBaseline = () => {
@@ -237,9 +238,11 @@ export const useCancelPendingSchedule = () => {
 export const useOpenTable = () => {
   const qc = useQueryClient();
   const { activeCasinoId: casinoId } = useCasino();
+  const live = useLiveStart();
   return useMutation({
     mutationFn: async (tableId: string) => {
       if (!casinoId) throw new Error("No casino");
+      if (!live.allowedNow) throw new Error(`Live operations available from ${live.label}`);
       const { error } = await supabase
         .from("gaming_tables")
         .update({ status: "open" as any, closing_chips: null, closing_result: null })
@@ -258,9 +261,11 @@ export const useOpenTable = () => {
 export const useOpenAllTables = () => {
   const qc = useQueryClient();
   const { activeCasinoId: casinoId } = useCasino();
+  const live = useLiveStart();
   return useMutation({
     mutationFn: async (tableIds: string[]) => {
       if (!casinoId) throw new Error("No casino");
+      if (!live.allowedNow) throw new Error(`Live operations available from ${live.label}`);
       for (const id of tableIds) {
         const { error } = await supabase
           .from("gaming_tables")
@@ -386,9 +391,11 @@ export const useSetSingleTableResult = () => {
 export const useReopenSingleTable = () => {
   const qc = useQueryClient();
   const { activeCasinoId: casinoId } = useCasino();
+  const live = useLiveStart();
   return useMutation({
     mutationFn: async (tableId: string) => {
       if (!casinoId) throw new Error("No casino");
+      if (!live.allowedNow) throw new Error(`Live operations available from ${live.label}`);
       const res = await offlineMutation({
         table: "gaming_tables",
         operation: "update",
