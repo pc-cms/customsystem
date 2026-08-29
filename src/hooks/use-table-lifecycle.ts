@@ -391,6 +391,7 @@ export const useSetSingleTableResult = () => {
 export const useReopenSingleTable = () => {
   const qc = useQueryClient();
   const { activeCasinoId: casinoId } = useCasino();
+  const live = useLiveStart();
   return useMutation({
     mutationFn: async (tableId: string) => {
       if (!casinoId) throw new Error("No casino");
@@ -424,7 +425,6 @@ export const useCloseAllTables = () => {
   return useMutation({
     mutationFn: async (tableIds: string[]) => {
       if (!casinoId) throw new Error("No casino");
-      if (!live.allowedNow) throw new Error(`Live operations available from ${live.label}`);
       if (tableIds.length === 0) return { offline: false };
 
       // Online: single batched UPDATE.
