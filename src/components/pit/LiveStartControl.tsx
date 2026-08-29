@@ -9,7 +9,7 @@ import { LIVE_START_OPTIONS, startLabel } from "@/lib/live-hours";
 import { useLiveStart, useStartLive, useCorrectLiveStart } from "@/hooks/use-live-start";
 import { useAuth } from "@/lib/auth-context";
 import { getBusinessDate } from "@/lib/business-day";
-import { fmtDate } from "@/lib/date-format";
+import { fmtDate } from "@/lib/format-date";
 
 /**
  * Single manager action that sets the LIVE START for the current casino/business day.
