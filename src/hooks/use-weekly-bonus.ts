@@ -28,6 +28,8 @@ export interface BonusEntry {
   week_start: string;
   extra_override: number | null;
   bonus_points: number;
+  /** Multiplier applied to (hours + extra + bonus). 1.00 – 2.00, default 1.00 */
+  coefficient: number;
 }
 
 export interface BonusPool {
@@ -52,7 +54,11 @@ export const useWeeklyBonusEntries = (weekStart: string) => {
         .eq("casino_id", casinoId)
         .eq("week_start", weekStart);
       if (error) throw error;
-      return ((data ?? []) as any[]).map((r) => ({ ...r, dealer_id: r.employee_id })) as unknown as BonusEntry[];
+      return ((data ?? []) as any[]).map((r) => ({
+        ...r,
+        dealer_id: r.employee_id,
+        coefficient: r.coefficient == null ? 1 : Number(r.coefficient),
+      })) as unknown as BonusEntry[];
     },
     enabled: !!casinoId,
   });
@@ -81,7 +87,7 @@ export const useUpsertBonusEntry = () => {
   const qc = useQueryClient();
   const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
-    mutationFn: async (input: { dealer_id: string; week_start: string; extra_override?: number | null; bonus_points?: number }) => {
+    mutationFn: async (input: { dealer_id: string; week_start: string; extra_override?: number | null; bonus_points?: number; coefficient?: number }) => {
       if (!casinoId) throw new Error("No casino");
       const { error } = await supabase
         .from("weekly_bonus_entries" as any)
@@ -92,6 +98,7 @@ export const useUpsertBonusEntry = () => {
             week_start: input.week_start,
             extra_override: input.extra_override ?? null,
             bonus_points: input.bonus_points ?? 0,
+            coefficient: input.coefficient ?? 1,
           } as any,
           { onConflict: "casino_id,employee_id,week_start" },
         );
@@ -109,6 +116,7 @@ export const useUpsertBonusEntry = () => {
         week_start: input.week_start,
         extra_override: input.extra_override ?? null,
         bonus_points: input.bonus_points ?? 0,
+        coefficient: input.coefficient ?? 1,
       };
       if (idx >= 0) list[idx] = { ...list[idx], ...patched };
       else list.push(patched);
