@@ -179,8 +179,14 @@ const AttendanceMonthly = () => {
             label="Import from Excel"
             disabled={employees.length === 0}
             onApply={async (rows) => {
+              const deptById = new Map(employees.map((e) => [e.meta.employee_id, e.meta.department]));
               for (const r of rows) {
-                await setCode.mutateAsync({ employee_id: r.id, date: r.date, value: r.value } as any);
+                await setCode.mutateAsync({
+                  employee_id: r.id,
+                  date: r.date,
+                  department: deptById.get(r.id) || "Floor",
+                  value: r.value,
+                });
               }
             }}
           />
