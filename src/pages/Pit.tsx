@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useRef, useEffect, Suspense } fr
 import { useSessionState } from "@/hooks/use-session-state";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { useSearchParams } from "react-router-dom";
+import AttendanceImportDialog from "@/components/attendance/AttendanceImportDialog";
 import { useDealers, useCreateDealer, useUpdateDealer, useDeleteDealer, usePitRotaRange, useSetPitRota, useDeletePitRota, useSetDealerAttendance, useDealerAttendanceRange } from "@/hooks/use-casino-data";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
@@ -1271,9 +1272,25 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
     </>
   );
 
+  const importPeople = [...activeDealers, ...pitBosses].map((d: any) => ({ id: d.id, name: d.name }));
+
   return (
     <>
       <div className="print-title hidden">{`Live Game Attendance — ${month}`}</div>
+      {!readOnly && (
+        <div className="flex justify-end mb-2 no-print">
+          <AttendanceImportDialog
+            people={importPeople}
+            month={month}
+            label="Import Attendance"
+            onApply={async (rows) => {
+              for (const r of rows) {
+                await setAttendanceRaw.mutateAsync({ dealer_id: r.id, date: r.date, value: r.value } as any);
+              }
+            }}
+          />
+        </div>
+      )}
       <div className="cms-panel overflow-hidden print-target">
       <table className="w-full border-collapse table-fixed">
         <thead>

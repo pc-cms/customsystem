@@ -20,6 +20,7 @@ import {
 import { buildDisplayNames, splitFullName } from "@/lib/display-name";
 import { useCasino } from "@/lib/casino-context";
 import { downloadXlsx } from "@/lib/excel-export";
+import AttendanceImportDialog from "@/components/attendance/AttendanceImportDialog";
 
 const DEPT_ORDER = ["Pit", "Floor", "Security", "Office"] as const;
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -171,6 +172,19 @@ const AttendanceMonthly = () => {
         <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={employees.length === 0}>
           <Download className="w-4 h-4 mr-1" /> Export to Excel
         </Button>
+        {canEdit && (
+          <AttendanceImportDialog
+            people={employees.map((e) => ({ id: e.meta.employee_id, name: e.meta.full_name }))}
+            month={monthStr.slice(0, 7)}
+            label="Import from Excel"
+            disabled={employees.length === 0}
+            onApply={async (rows) => {
+              for (const r of rows) {
+                await setCode.mutateAsync({ employee_id: r.id, date: r.date, value: r.value } as any);
+              }
+            }}
+          />
+        )}
         {canEdit && (
           <Button variant="outline" size="sm" onClick={() => setHolidayOpen(true)}>
             <Sparkles className="w-4 h-4 mr-1" /> Mark Holiday
