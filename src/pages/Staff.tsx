@@ -5,6 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import AttendanceImportDialog from "@/components/attendance/AttendanceImportDialog";
 import { UserPlus, ChevronLeft, ChevronRight, ArrowUpDown, Printer, Building2, Lock } from "lucide-react";
 import { getBusinessDate } from "@/lib/business-day";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -1131,6 +1132,20 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
             </button>
           );
         })}
+        {!readOnly && (
+          <div className="ml-auto">
+            <AttendanceImportDialog
+              people={activeStaff.map((s: any) => ({ id: s.id, name: s.full_name || s.name }))}
+              month={month}
+              label="Import Attendance"
+              onApply={async (rows) => {
+                for (const r of rows) {
+                  await setAttendanceRaw.mutateAsync({ staff_id: r.id, date: r.date, value: r.value } as any);
+                }
+              }}
+            />
+          </div>
+        )}
       </div>
       <div className="cms-panel overflow-hidden print-target">
         {/* Print header for attendance */}

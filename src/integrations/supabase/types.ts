@@ -12156,6 +12156,7 @@ export type Database = {
         Row: {
           bonus_points: number
           casino_id: string
+          coefficient: number
           created_at: string
           employee_id: string
           extra_override: number | null
@@ -12166,6 +12167,7 @@ export type Database = {
         Insert: {
           bonus_points?: number
           casino_id: string
+          coefficient?: number
           created_at?: string
           employee_id: string
           extra_override?: number | null
@@ -12176,6 +12178,7 @@ export type Database = {
         Update: {
           bonus_points?: number
           casino_id?: string
+          coefficient?: number
           created_at?: string
           employee_id?: string
           extra_override?: number | null
