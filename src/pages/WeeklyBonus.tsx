@@ -42,6 +42,15 @@ import { parseAttValue as parseValue, normalizeAttInput as normalizeAttRaw } fro
 const normalizeAttInput = (raw: string): string | null => normalizeAttRaw(raw);
 
 
+/** Coefficient is clamped to the DB range 1.00 – 2.00. */
+const clampCoef = (raw: string | number): number => {
+  const n = typeof raw === "number" ? raw : parseFloat(String(raw).replace(",", "."));
+  if (isNaN(n)) return 1;
+  return Math.min(2, Math.max(1, Math.round(n * 100) / 100));
+};
+
+const fmtPts = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+
 const fmtMoney = (n: number) =>
   new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(Math.round(n)).replace(/,/g, " ");
 
@@ -89,13 +98,15 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
   // before the input blurs and the server round-trip completes.
   const [extraDraft, setExtraDraft] = useState<Record<string, string>>({});
   const [bonusDraft, setBonusDraft] = useState<Record<string, string>>({});
+  // Category coefficient (1.00 – 2.00) — multiplies (hours + extra + bonus).
+  const [coefDraft, setCoefDraft] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setPoolInput(pool?.pool_amount ? String(pool.pool_amount) : "");
     setCalculated(!!pool?.is_calculated);
   }, [pool?.pool_amount, pool?.is_calculated, weekStart]);
 
-  useEffect(() => { setAttDraft({}); setExtraDraft({}); setBonusDraft({}); }, [weekStart]);
+  useEffect(() => { setAttDraft({}); setExtraDraft({}); setBonusDraft({}); setCoefDraft({}); }, [weekStart]);
 
   // Cashier's editable bill counts for payout preparation. Resets on recompute.
   const [payoutOverride, setPayoutOverride] = useState<Record<number, number> | null>(null);
@@ -108,8 +119,12 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
     attendance.forEach((a: any) => attMap.set(`${a.dealer_id}|${a.date}`, a.value));
     const rotaMap = new Map<string, string>();
     rota.forEach((r: any) => rotaMap.set(`${r.dealer_id}|${r.date}`, r.shift));
-    const entryMap = new Map<string, { extra_override: number | null; bonus_points: number }>();
-    entries.forEach((e: any) => entryMap.set(e.dealer_id, { extra_override: e.extra_override, bonus_points: e.bonus_points }));
+    const entryMap = new Map<string, { extra_override: number | null; bonus_points: number; coefficient: number }>();
+    entries.forEach((e: any) => entryMap.set(e.dealer_id, {
+      extra_override: e.extra_override,
+      bonus_points: e.bonus_points,
+      coefficient: e.coefficient == null ? 1 : Number(e.coefficient),
+    }));
 
     const out = activeDealers.map((d) => {
       let hours = 0;
@@ -126,6 +141,7 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
       const entry = entryMap.get(d.id);
       const storedExtra = entry?.extra_override ?? extraComputed;
       const storedBonus = entry?.bonus_points ?? 0;
+      const storedCoef = entry?.coefficient ?? 1;
       const eDraft = extraDraft[d.id];
       const bDraft = bonusDraft[d.id];
       const extra = eDraft !== undefined
@@ -134,9 +150,12 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
       const bonusPts = bDraft !== undefined
         ? (bDraft.trim() === "" ? 0 : (parseInt(bDraft, 10) || 0))
         : storedBonus;
-      const points = hours + extra + bonusPts;
+      const cDraft = coefDraft[d.id];
+      const coef = cDraft !== undefined ? clampCoef(cDraft) : storedCoef;
+      const basePoints = hours + extra + bonusPts;
+      const points = Math.round(basePoints * coef * 10) / 10;
       const cat = d.is_pit_boss ? "pit_boss" : (d.category || "dealer");
-      return { dealer: d, cells, hours, extraComputed, extra, bonusPts, storedExtra, storedBonus, points, cat };
+      return { dealer: d, cells, hours, extraComputed, extra, bonusPts, coef, storedExtra, storedBonus, storedCoef, basePoints, points, cat };
     });
 
     return out.sort((a, b) => {
@@ -144,9 +163,9 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
       if (c !== 0) return c;
       return a.dealer.name.localeCompare(b.dealer.name);
     });
-  }, [dealers, attendance, rota, entries, days, attDraft, extraDraft, bonusDraft]);
+  }, [dealers, attendance, rota, entries, days, attDraft, extraDraft, bonusDraft, coefDraft]);
 
-  const totalPoints = rows.reduce((s, r) => s + r.points, 0);
+  const totalPoints = Math.round(rows.reduce((s, r) => s + r.points, 0) * 10) / 10;
   const poolAmount = calculated ? (parseInt(poolInput.replace(/\s/g, ""), 10) || 0) : 0;
   const valuePerPoint = totalPoints > 0 && poolAmount > 0 ? poolAmount / totalPoints : 0;
   const roundedBonus = (pts: number) => Math.round((pts * valuePerPoint) / 1000) * 1000;
@@ -203,8 +222,8 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
   const isThisWeek = weekStart === getWeekStartSunday(new Date());
 
   // Columns:
-  // # | Cat | Name | 7 days | Hours | Extra | Bonus | Pts | Bonus TZS | SIGN | 4 denoms = 19
-  const TOTAL_COLS = 1 + 1 + 1 + 7 + 1 + 1 + 1 + 1 + 1 + 1 + DENOMS.length;
+  // # | Cat | Name | 7 days | Hours | Extra | Bonus | Coef | Pts | Bonus TZS | SIGN | 4 denoms = 20
+  const TOTAL_COLS = 1 + 1 + 1 + 7 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + DENOMS.length;
   const COLS_BEFORE_BONUS_TZS = 1 + 1 + 1 + 7 + 1 + 1 + 1 + 1; // 13
 
   return (
@@ -267,7 +286,7 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
           <div className="ml-auto flex items-center gap-8 font-mono text-white">
             <div>
               <div className="text-[11px] uppercase opacity-90">Total Points</div>
-              <div className="text-2xl font-bold leading-tight">{totalPoints}</div>
+              <div className="text-2xl font-bold leading-tight">{fmtPts(totalPoints)}</div>
             </div>
             <div>
               <div className="text-[11px] uppercase opacity-90">Per Point</div>
@@ -312,6 +331,7 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
                 <th className="h-9 w-14 text-center font-semibold">Hours</th>
                 <th className="h-9 w-16 text-center font-semibold no-print">Extra</th>
                 <th className="h-9 w-16 text-center font-semibold no-print">Bonus</th>
+                <th className="h-9 w-16 text-center font-semibold no-print" title="Category coefficient 1.00 – 2.00, multiplies points">Coef</th>
                 <th className="h-9 w-14 text-center font-semibold no-print">Pts</th>
                 <th className="h-9 w-48 min-w-[192px] text-right px-2 font-semibold">Bonus TZS</th>
                 <th className="h-9 w-32 text-center font-semibold wb-sign-cell">SIGN</th>
@@ -416,6 +436,7 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
                             week_start: weekStart,
                             extra_override: next,
                             bonus_points: r.bonusPts,
+                            coefficient: r.coef,
                           }).then(() => {
                             setExtraDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
                           }).catch((error) => toast.error(error?.message || "Could not save extra points"));
@@ -448,6 +469,7 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
                             week_start: weekStart,
                             extra_override: r.extra,
                             bonus_points: next,
+                            coefficient: r.coef,
                           }).then(() => {
                             setBonusDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
                           }).catch((error) => toast.error(error?.message || "Could not save bonus points"));
@@ -457,8 +479,41 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
                     </td>
 
 
-                    <td className="px-2 py-1 text-center font-mono font-bold text-[11px] no-print">
-                      {r.points || ""}
+                    <td className="px-1 py-1 text-center no-print">
+                      <Input
+                        type="text" inputMode="decimal"
+                        className="w-14 h-7 text-center font-mono mx-auto px-1 text-xs"
+                        value={coefDraft[r.dealer.id] ?? r.storedCoef.toFixed(2)}
+                        disabled={locked}
+                        title="1.00 – 2.00"
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/[^0-9.,]/g, "");
+                          setCoefDraft((d) => ({ ...d, [r.dealer.id]: v }));
+                          setCalculated(false);
+                        }}
+                        onBlur={() => {
+                          const raw = coefDraft[r.dealer.id];
+                          if (raw === undefined) return;
+                          const next = clampCoef(raw);
+                          if (next === r.storedCoef) {
+                            setCoefDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                            return;
+                          }
+                          void upsertEntry.mutateAsync({
+                            dealer_id: r.dealer.id,
+                            week_start: weekStart,
+                            extra_override: r.extra,
+                            bonus_points: r.bonusPts,
+                            coefficient: next,
+                          }).then(() => {
+                            setCoefDraft((d) => { const n = { ...d }; delete n[r.dealer.id]; return n; });
+                          }).catch((error) => toast.error(error?.message || "Could not save coefficient"));
+                        }}
+                        onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                      />
+                    </td>
+                    <td className="px-2 py-1 text-center font-mono font-bold text-[11px] no-print" title={`${r.basePoints} × ${r.coef.toFixed(2)}`}>
+                      {r.points ? fmtPts(r.points) : ""}
                     </td>
                     <td className="px-2 py-1 text-right font-mono font-semibold text-sm">
                       {bonus > 0 ? fmtMoney(bonus) : <span className="text-muted-foreground">—</span>}
@@ -484,6 +539,7 @@ export default function WeeklyBonus({ belowHeader }: { belowHeader?: ReactNode }
                   <td className="px-2 py-2 text-center font-mono font-bold text-primary text-sm">
                     {rows.reduce((s, r) => s + r.hours, 0)}
                   </td>
+                  <td className="no-print" />
                   <td className="no-print" />
                   <td className="no-print" />
                   <td className="no-print" />
