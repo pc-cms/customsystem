@@ -66,7 +66,7 @@ class Config:
             location_code=os.environ.get("LOCATION_CODE", "arusha").strip().lower(),
             timezone=os.environ.get("ACE_TZ", DEFAULT_TZ),
             closing_window_start=int(os.environ.get("CLOSING_WINDOW_START", "7")),
-            closing_window_end=int(os.environ.get("CLOSING_WINDOW_END", "12")),
+            closing_window_end=int(os.environ.get("CLOSING_WINDOW_END", "18")),
             backfill_periods=max(1, int(os.environ.get("ACE_BACKFILL_PERIODS", "3"))),
             http_timeout=int(os.environ.get("HTTP_TIMEOUT", "60")),
         )
