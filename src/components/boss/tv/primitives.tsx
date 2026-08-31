@@ -244,6 +244,8 @@ export function MetricRow({
   strong,
   fill,
   marker,
+  badge,
+  badgeTitle,
 }: {
   label: string;
   metric: CasinoMetric;
@@ -256,7 +258,12 @@ export function MetricRow({
   fill?: string;
   /** Small leading marker color. */
   marker?: string;
+  /** Small pill after the label, e.g. "LIVE" for a fresh ACE feed. */
+  badge?: string | null;
+  /** Tooltip for the badge (period label / feed age). */
+  badgeTitle?: string | null;
 }) {
+
   const result = resultAvailable ? metric.result : null;
   const holdOk = dropAvailable && resultAvailable && metric.drop > 0;
   return (
@@ -275,7 +282,21 @@ export function MetricRow({
         <RowLabel color={labelColor} strong={strong}>
           {label}
         </RowLabel>
+        {badge && (
+          <span
+            title={badgeTitle ?? undefined}
+            className="shrink-0 rounded-[3px] px-[0.35em] py-[0.05em] text-[0.5em] font-semibold tracking-[0.12em] leading-none"
+            style={{
+              color: PREMIER.softGold,
+              border: `1px solid ${PREMIER.softGold}55`,
+              background: `${PREMIER.softGold}14`,
+            }}
+          >
+            {badge}
+          </span>
+        )}
       </span>
+
       {/* Drop and Hold: one unified ivory across every city. */}
       <Num text={dropAvailable ? fmtMoney(metric.drop) : DASH} size={size} color={IVORY} />
       {/* Result: the only metric with semantic intensity. */}
@@ -330,7 +351,10 @@ export function MetricsBlock({
         size={size}
         fill={fills?.slots ?? ROW_FILL.slots}
         marker={`${accent}66`}
+        badge={displayed.usesAce ? "LIVE" : null}
+        badgeTitle={displayed.aceHint}
       />
+
       <MetricRow
         label="Total"
         metric={displayed.total}
