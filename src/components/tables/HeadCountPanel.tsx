@@ -47,10 +47,20 @@ export const HeadCountPanel = ({ date }: HeadCountPanelProps) => {
   );
 
 
-  const { startHour: liveStartHour } = useLiveStart(date);
+  const { startHour: liveStartHour, isLoading: liveStartLoading } = useLiveStart(date);
   const SLOTS = useMemo(() => headCountSlots(liveStartHour), [liveStartHour]);
   const [slot, setSlot] = useState<string>(() => getCurrentHourSlot(SLOTS, liveStartHour));
+  // The first render happens before the real LIVE START is known (fallback 18:00).
+  // Once it loads, re-align the slot to the current hour — unless the user has
+  // already navigated manually.
+  const [slotTouched, setSlotTouched] = useState(false);
+  useEffect(() => {
+    if (liveStartLoading || slotTouched) return;
+    setSlot(getCurrentHourSlot(SLOTS, liveStartHour));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveStartLoading, liveStartHour, date]);
   const [draft, setDraft] = useState<Record<string, string>>({});
+
 
   // Reset draft when slot / date / row set changes — show saved values.
   useEffect(() => {
