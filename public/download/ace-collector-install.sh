@@ -9,6 +9,13 @@
 # Existing machine (upgrade code/deps/cron, keep config + ACE session):
 #   curl -fsSL https://casinosystem.app/download/ace-collector-install.sh | sudo bash -s -- --update
 #
+# Additional named instance on the SAME server (multi-casino box):
+#   curl -fsSL .../ace-collector-install.sh | sudo bash -s -- --token <token> --instance=mwanza
+#   curl -fsSL .../ace-collector-install.sh | sudo bash -s -- --update --instance=mwanza
+#
+# Named instances never touch the default/legacy files (/etc/ace-collector.env,
+# /opt/ace-collector/.ace-session.json, /etc/cron.d/ace-collector).
+#
 # The token is generated in Casino System (Admin → Servers & Peers → ACE Collector).
 # Re-running with --token on an already-configured machine is SAFE: the existing
 # /etc/ace-collector.env and /opt/ace-collector/.ace-session.json are preserved
@@ -32,17 +39,27 @@ fail() { echo -e "${RED}[fail]${NC} $*" >&2; exit 1; }
 [[ $EUID -eq 0 ]] || fail "Run with sudo."
 
 TOKEN=""
+INSTANCE=""
 UPDATE_MODE=0
 FORCE_REPROVISION=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --token) TOKEN="${2:-}"; shift 2 ;;
     --token=*) TOKEN="${1#*=}"; shift ;;
+    --instance) INSTANCE="${2:-}"; shift 2 ;;
+    --instance=*) INSTANCE="${1#*=}"; shift ;;
     --update|-u) UPDATE_MODE=1; shift ;;
     --force-reprovision) FORCE_REPROVISION=1; shift ;;
     *) shift ;;
   esac
 done
+
+INSTANCE="$(echo "$INSTANCE" | tr '[:upper:]' '[:lower:]' | tr -d ' ')"
+if [[ -n "$INSTANCE" ]]; then
+  [[ "$INSTANCE" =~ ^[a-z0-9][a-z0-9_-]*$ ]] || fail "Invalid --instance slug: ${INSTANCE}"
+  ENV_FILE="/etc/ace-collector-${INSTANCE}.env"
+  SESSION_FILE="${APP_DIR}/.ace-session-${INSTANCE}.json"
+fi
 
 EXISTING=0
 [[ -f "$ENV_FILE" && -d "$APP_DIR" ]] && EXISTING=1
@@ -84,6 +101,12 @@ if [[ "$UPDATE_MODE" == "1" ]]; then
   if [[ -n "$TOKEN" ]]; then
     warn "Existing installation detected — ignoring --token and updating in place."
     warn "Use --force-reprovision to re-issue credentials for this machine."
+  fi
+  if [[ -n "$INSTANCE" ]]; then
+    [[ -f "$SRC/instance.sh" ]] || fail "Package has no instance.sh — cannot update named instance."
+    log "Updating instance '${INSTANCE}' in place (config and ACE session preserved)..."
+    bash "$SRC/instance.sh" --slug "$INSTANCE" --update
+    exit 0
   fi
   [[ -f "$SRC/update.sh" ]] || fail "Package has no update.sh — cannot update safely."
   log "Updating in place (config and ACE session preserved)..."
@@ -132,6 +155,10 @@ unset RESP
 
 ok "Casino: ${CASINO_NAME} (${LOCATION})"
 
+if [[ -n "$INSTANCE" && "$LOCATION" != "$INSTANCE" ]]; then
+  fail "Token belongs to location '${LOCATION}' but --instance is '${INSTANCE}'. Aborting to avoid mixing casino data."
+fi
+
 # ── local ACE settings ─────────────────────────────────────────────────────
 echo
 echo -e "${CYAN}--- Local ACE server ---${NC}"
@@ -148,6 +175,20 @@ ACE_PASS=""
 while [[ -z "$ACE_PASS" ]]; do
   read -r -s -p "ACE password (hidden): " ACE_PASS </dev/tty; echo
 done
+
+# ── named instance: isolated env/session/cron/logs ──────────────────
+if [[ -n "$INSTANCE" ]]; then
+  [[ -f "$SRC/instance.sh" ]] || fail "Package has no instance.sh — cannot install named instance."
+  NONINTERACTIVE=1 \
+  ACE_URL="$ACE_URL" ACE_USER="$ACE_USER" ACE_PASS="$ACE_PASS" \
+  API_URL="$API_URL" ACE_KEY="$ACE_KEY" LOCATION="$LOCATION" \
+    bash "$SRC/instance.sh" --slug "$INSTANCE"
+  unset ACE_KEY ACE_PASS
+  echo
+  ok "ACE Collector instance '${INSTANCE}' installed for ${CASINO_NAME}."
+  echo "  Update: curl -fsSL https://casinosystem.app/download/ace-collector-install.sh | sudo bash -s -- --update --instance=${INSTANCE}"
+  exit 0
+fi
 
 # ── run the fresh installer noninteractively ───────────────────────────────
 NONINTERACTIVE=1 \

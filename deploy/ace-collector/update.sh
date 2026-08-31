@@ -59,7 +59,7 @@ if command -v rsync >/dev/null 2>&1; then
     --exclude 'venv/' \
     --exclude '__pycache__/' \
     --exclude '*.pyc' \
-    --exclude '.ace-session.json' \
+    --exclude '.ace-session*.json' \
     --exclude '*.env' \
     --exclude '.env' \
     "$SRC_DIR"/ "$APP_DIR"/
@@ -68,7 +68,7 @@ else
       -path './venv' -prune -o \
       -name '__pycache__' -prune -o \
       -name '*.pyc' -prune -o \
-      -name '.ace-session.json' -prune -o \
+      -name '.ace-session*.json' -prune -o \
       -name '*.env' -prune -o \
       -name '.env' -prune -o \
       -type f -print0 ) |
@@ -172,8 +172,8 @@ cat > "$CRON_FILE" <<EOF
 # ACE Collector — every minute (session is cached & reused) + once after reboot
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-* * * * * ${SVC_USER} /usr/bin/flock -n /run/lock/ace-collector.lock ${APP_DIR}/run.sh >> ${LOG_DIR}/collector.log 2>&1
-@reboot ${SVC_USER} sleep 30 && /usr/bin/flock -n /run/lock/ace-collector.lock ${APP_DIR}/run.sh >> ${LOG_DIR}/collector.log 2>&1
+* * * * * ${SVC_USER} /usr/bin/flock -n /run/lock/ace-collector.lock ${APP_DIR}/run.sh >/dev/null 2>&1
+@reboot ${SVC_USER} sleep 30 && /usr/bin/flock -n /run/lock/ace-collector.lock ${APP_DIR}/run.sh >/dev/null 2>&1
 EOF
 chmod 0644 "$CRON_FILE"
 if [[ "$SKIP_CRON_RESTART" != "1" ]]; then
