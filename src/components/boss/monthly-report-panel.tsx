@@ -381,7 +381,8 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
     },
     {
       label: "Slot Result", per: summary.slots, total: t.slots, muted: true,
-      hint: "Cash desk win minus money on the cards (Players Card Balance), closed business days only.",
+      hint: "Closed Day Closings only · Σ per day (CashDesk Win − Card Balance). Same figure as Dashboard TV → Monthly.",
+
     },
     {
       label: "Collection", per: summary.collection, total: t.collection,

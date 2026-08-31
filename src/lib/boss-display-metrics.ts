@@ -136,9 +136,11 @@ export function deriveDisplayedToday(
 
 /**
  * Monthly (MTD) displayed metrics — Tables / Slots / TOTAL.
- * Sources: `CasinoDay.mtdTables` / `mtdSlots` (closed Day Closing figures,
- * slots result = Σ(cashdesk_win − players_card_balance)). No ACE override for MTD.
+ * CANON (identical to the Company Report): CLOSED Day Closings only, the open
+ * business day never contributes. Tables = Σ tables_result, Slots = Σ per day
+ * (cashdesk_win − players_card_balance). No ACE override for MTD.
  */
+
 export function deriveDisplayedMonthly(day: CasinoDay | undefined): DisplayedToday | null {
   if (!day) return null;
   const tables = day.mtdTables;
@@ -157,8 +159,10 @@ export function deriveDisplayedMonthly(day: CasinoDay | undefined): DisplayedTod
     slotsResultAvailable: available,
     slotsAvailable: available,
     usesAce: false,
-    aceHint: null,
+    aceHint:
+      "Closed Day Closings only · Slots = Σ per day (CashDesk Win − Card Balance). Open day excluded.",
     aceCreditsHint: null,
+
   };
 }
 
