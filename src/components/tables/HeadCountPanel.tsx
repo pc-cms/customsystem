@@ -74,8 +74,9 @@ export const HeadCountPanel = ({ date }: HeadCountPanelProps) => {
   }, [slot, date, rows.length, openTables.length]);
 
   const slotIdx = SLOTS.indexOf(slot);
-  const goPrev = () => slotIdx > 0 && setSlot(SLOTS[slotIdx - 1]);
-  const goNext = () => slotIdx < SLOTS.length - 1 && setSlot(SLOTS[slotIdx + 1]);
+  const goPrev = () => { if (slotIdx > 0) { setSlotTouched(true); setSlot(SLOTS[slotIdx - 1]); } };
+  const goNext = () => { if (slotIdx < SLOTS.length - 1) { setSlotTouched(true); setSlot(SLOTS[slotIdx + 1]); } };
+
 
   const total = useMemo(
     () => Object.values(draft).reduce((s, v) => s + (v === "" ? 0 : Number(v) || 0), 0),
