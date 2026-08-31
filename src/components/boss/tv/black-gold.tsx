@@ -79,7 +79,21 @@ function Line({
         }}
       >
         {label}
+        {badge && (
+          <span
+            title={badgeTitle ?? undefined}
+            className="ml-[0.5em] shrink-0 rounded-[3px] px-[0.35em] py-[0.05em] text-[0.62em] font-semibold tracking-[0.12em] leading-none"
+            style={{
+              color: "rgba(230,200,130,0.92)",
+              border: "1px solid rgba(230,200,130,0.4)",
+              background: "rgba(230,200,130,0.10)",
+            }}
+          >
+            {badge}
+          </span>
+        )}
       </span>
+
       <span className={cell} style={{ background: fill }}>
         <Num text={dropAvailable ? fmtMoney(metric.drop) : DASH} size={size} color={IVORY} className="w-full" />
       </span>
