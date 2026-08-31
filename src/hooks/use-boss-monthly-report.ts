@@ -141,9 +141,12 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
       for (const p of payload.per_casino || []) {
         const id = p.casino_id;
         tables[id] = Number(p.tables || 0);
-        // Slots result for the Boss view = cash desk win minus money still on player cards.
+        // CANON: Slot Result = Σ per closed day (CashDesk Win − Card Balance),
+        // computed server-side. `players_cards` is the monthly sum, shown for
+        // reference only — never subtracted again here.
         playersCards[id] = Number(p.players_cards || 0);
-        slots[id] = Number(p.slots || 0) - playersCards[id];
+        slots[id] = Number(p.slots || 0);
+
         other[id] = Number(p.other || 0);
         collection[id] = Number(p.collection || 0);
         estimated[id] = Number(p.estimated || 0);
