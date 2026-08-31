@@ -216,8 +216,8 @@ export function BlackGoldStage({ casinos, company, newPlayersCount, period, peri
                       resultAvailable={d.slotsResultAvailable}
                       size="sm"
                       fill="rgba(255,255,255,0.02)"
-                      badge={d.usesAce ? "LIVE" : null}
-                      badgeTitle={d.aceHint}
+                      title={d.aceHint}
+
                     />
 
                     <Line
