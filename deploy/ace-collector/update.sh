@@ -172,8 +172,8 @@ cat > "$CRON_FILE" <<EOF
 # ACE Collector — every minute (session is cached & reused) + once after reboot
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-* * * * * ${SVC_USER} /usr/bin/flock -n /run/lock/ace-collector.lock ${APP_DIR}/run.sh >> ${LOG_DIR}/collector.log 2>&1
-@reboot ${SVC_USER} sleep 30 && /usr/bin/flock -n /run/lock/ace-collector.lock ${APP_DIR}/run.sh >> ${LOG_DIR}/collector.log 2>&1
+* * * * * ${SVC_USER} /usr/bin/flock -n /run/lock/ace-collector.lock ${APP_DIR}/run.sh >/dev/null 2>&1
+@reboot ${SVC_USER} sleep 30 && /usr/bin/flock -n /run/lock/ace-collector.lock ${APP_DIR}/run.sh >/dev/null 2>&1
 EOF
 chmod 0644 "$CRON_FILE"
 if [[ "$SKIP_CRON_RESTART" != "1" ]]; then
