@@ -33,7 +33,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-type SortKey = "business_date" | "drop" | "netWin" | "cdr" | "clientBalance" | "miss" | "balance";
+type SortKey = "business_date" | "drop" | "netWin" | "cdr" | "cardBalance" | "miss" | "balance";
 type SortDir = "asc" | "desc";
 
 const eatTime = (iso: string) =>
