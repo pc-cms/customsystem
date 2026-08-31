@@ -47,8 +47,7 @@ function Line({
   fill,
   labelColor,
   strong,
-  badge,
-  badgeTitle,
+  title,
 }: {
   label: string;
   metric: CasinoMetric;
@@ -58,9 +57,8 @@ function Line({
   fill: string;
   labelColor?: string;
   strong?: boolean;
-  /** Small pill after the label, e.g. "LIVE" for a fresh ACE feed. */
-  badge?: string | null;
-  badgeTitle?: string | null;
+  /** Hover tooltip for the row (e.g. ACE feed freshness). */
+  title?: string | null;
 }) {
 
   const result = resultAvailable ? metric.result : null;
@@ -69,6 +67,7 @@ function Line({
   return (
     <>
       <span
+        title={title ?? undefined}
         className={`flex items-center h-full min-w-0 overflow-hidden truncate uppercase tracking-[0.16em] px-[calc(var(--tv-gap,10px)*0.6)] ${
           strong ? "font-extrabold" : "font-semibold"
         }`}
@@ -79,20 +78,8 @@ function Line({
         }}
       >
         {label}
-        {badge && (
-          <span
-            title={badgeTitle ?? undefined}
-            className="ml-[0.5em] shrink-0 rounded-[3px] px-[0.35em] py-[0.05em] text-[0.62em] font-semibold tracking-[0.12em] leading-none"
-            style={{
-              color: "rgba(230,200,130,0.92)",
-              border: "1px solid rgba(230,200,130,0.4)",
-              background: "rgba(230,200,130,0.10)",
-            }}
-          >
-            {badge}
-          </span>
-        )}
       </span>
+
 
       <span className={cell} style={{ background: fill }}>
         <Num text={dropAvailable ? fmtMoney(metric.drop) : DASH} size={size} color={IVORY} className="w-full" />
@@ -229,8 +216,8 @@ export function BlackGoldStage({ casinos, company, newPlayersCount, period, peri
                       resultAvailable={d.slotsResultAvailable}
                       size="sm"
                       fill="rgba(255,255,255,0.02)"
-                      badge={d.usesAce ? "LIVE" : null}
-                      badgeTitle={d.aceHint}
+                      title={d.aceHint}
+
                     />
 
                     <Line
