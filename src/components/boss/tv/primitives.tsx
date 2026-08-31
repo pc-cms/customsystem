@@ -282,7 +282,21 @@ export function MetricRow({
         <RowLabel color={labelColor} strong={strong}>
           {label}
         </RowLabel>
+        {badge && (
+          <span
+            title={badgeTitle ?? undefined}
+            className="shrink-0 rounded-[3px] px-[0.35em] py-[0.05em] text-[0.5em] font-semibold tracking-[0.12em] leading-none"
+            style={{
+              color: PREMIER.softGold,
+              border: `1px solid ${PREMIER.softGold}55`,
+              background: `${PREMIER.softGold}14`,
+            }}
+          >
+            {badge}
+          </span>
+        )}
       </span>
+
       {/* Drop and Hold: one unified ivory across every city. */}
       <Num text={dropAvailable ? fmtMoney(metric.drop) : DASH} size={size} color={IVORY} />
       {/* Result: the only metric with semantic intensity. */}
