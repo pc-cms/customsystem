@@ -47,6 +47,8 @@ function Line({
   fill,
   labelColor,
   strong,
+  badge,
+  badgeTitle,
 }: {
   label: string;
   metric: CasinoMetric;
@@ -56,7 +58,11 @@ function Line({
   fill: string;
   labelColor?: string;
   strong?: boolean;
+  /** Small pill after the label, e.g. "LIVE" for a fresh ACE feed. */
+  badge?: string | null;
+  badgeTitle?: string | null;
 }) {
+
   const result = resultAvailable ? metric.result : null;
   const holdOk = dropAvailable && resultAvailable && metric.drop > 0;
   const cell = "flex items-center justify-end h-full px-[calc(var(--tv-gap,10px)*0.4)] min-w-0";
