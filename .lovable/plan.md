@@ -38,22 +38,47 @@
 
 Дополнительно найден дефект данных: в `ace_finance_snapshots` есть дубль Arusha за 20.08.2026 (две записи, 81 835 090 и 78 167 894) — влияет на режим Today.
 
-## Где «правильно»
+## Согласованные решения (по вашим ответам)
 
-Обе цифры верны в своих терминах, но они не должны называться одинаково:
-- **Report = P&L (Net Win)** — источник истины для прибыли, бюджета и бонусов. Это то, по чему считаются деньги месяца.
-- **Live TV = операционная картина «прямо сейчас»**, включая ещё не закрытый день и физическую кассу слотов.
+1. База слотов за месяц — **Net Win** (`slots_result`), а не `cashdesk_win`.
+2. Card Balance вычитается **каждый день**, со знаком (минус — уменьшает, плюс — увеличивает).
+3. Открытый (незакрытый) день в TV Monthly **не учитывается** — как в Monthly Report.
+4. Формулы фиксируются в документации и в подсказках (i) на обоих экранах.
+5. Дубли ACE-снапшотов чистятся, ставится защита от повторов.
 
-## Что предлагается сделать
+## Единая каноническая формула месяца
 
-1. Привести месячные слоты к одной канонической формуле: TV Monthly переводится на `slots_result` (Net Win) − Card Balance, как в Report, чтобы строка «SLOTS RESULT» означала одно и то же везде.
-2. Согласовать Card Balance: единое правило — вычитать последний Card Balance месяца один раз (как в Report), а не каждый день.
-3. Подписать открытый день: в TV Monthly добавить пометку, что текущий незакрытый день входит в Tables по Chips Check, а в слотах не участвует.
-4. Вынести обе формулы в `docs/FINANCE-FORMULAS.md` и в подсказки (i) на обоих экранах, чтобы источник каждой строки читался прямо в интерфейсе.
-5. Убрать дубликат ACE-снапшота Arusha 20.08 и добавить уникальный индекс `(casino_id, business_date)` в `ace_finance_snapshots`, чтобы дубли не появлялись снова.
+```text
+Monthly (обе страницы, только закрытые дни):
+  Table Result = Σ fin_day_closing.tables_result
+  Slot Result  = Σ по каждому дню (slots_result − players_card_balance)   // знак учитывается
+  Result       = Table Result + Slot Result
+```
+
+## Что изменится по экранам
+
+**Dashboard TV → Monthly**
+- Slots Result переходит с `cashdesk_win` на `slots_result` (Net Win).
+- Tables Result перестаёт подмешивать живой Chips Check текущего дня — только закрытые дни.
+- Tables Drop перестаёт брать открытый день из drop-кэша — считается по закрытым дням.
+- Режим **Today** не меняется вообще: там по-прежнему живой ACE и живой Chips Check.
+
+**Report (Company Report)**
+- Slot Result: вместо одного вычитания последнего Card Balance месяца — вычитание по каждому дню (`Σ (slots_result − players_card_balance)`) внутри RPC `boss_monthly_report`.
+- Остальные строки (Collection, Estimated, Extras, Bonus 5%, Expected Profit, Balance) не трогаем.
+
+## Как будет выглядеть финал
+
+- Строки Table Result / Slot Result / Result в Monthly Report и в TV Monthly дают **одинаковые цифры** по каждому казино.
+- Единственная оставшаяся разница между экранами — Drop и Hold, которых в Report просто нет.
+- Под каждой строкой в подсказке (i) написано, откуда цифра: «Closed Day Closings only · Net Win − Card Balance».
+- Пример по августу после правки: Arusha Slot Result станет одинаковым в обоих местах (сейчас 89 608 350 против 89 065 506).
 
 ## Технические детали
-- `src/hooks/use-boss-monthly-report.ts:141-151` — вычитание Card Balance один раз.
-- `src/lib/boss-display-metrics.ts:56-68` (`closedDaySlotsResult`) — `cashdesk_win − players_card_balance`; сюда вносится канон.
-- `src/hooks/use-boss-dashboard.ts:134-173` — месячная агрегация TV.
-- RPC `boss_monthly_report` — гейт по `business_day_closures`.
+- `src/lib/boss-display-metrics.ts:56-68` — `closedDaySlotsResult` переводится на `slots_result − players_card_balance`, тесты в `src/test/boss-display-metrics.test.ts` обновляются.
+- `src/hooks/use-boss-dashboard.ts:134-173` — MTD Tables считается только по закрытым дням (без live-снапшота и без открытого дня в drop-кэше).
+- Миграция RPC `boss_monthly_report` — per-day вычитание Card Balance вместо `cards_last`.
+- `src/hooks/use-boss-monthly-report.ts:141-151` — убрать клиентское вычитание, брать готовую сумму из RPC.
+- Чистка дубля `ace_finance_snapshots` (Arusha 20.08) + уникальный индекс `(casino_id, business_date)`.
+- Обновление `docs/FINANCE-FORMULAS.md` §2 и §4.
+
