@@ -83,9 +83,40 @@ ok "Application code updated"
 # ── 4. config & session preserved ──────────────────────────────────────────
 chown root:"$SVC_USER" "$ENV_FILE"
 chmod 0640 "$ENV_FILE"
-ENV_SUM_AFTER="$(sha256sum "$ENV_FILE" | awk '{print $1}')"
-[[ "$ENV_SUM_BEFORE" == "$ENV_SUM_AFTER" ]] || fail "Configuration file changed unexpectedly — aborting."
-ok "Existing configuration preserved: ${ENV_FILE}"
+
+# Non-destructive config migration: secrets & routing are NEVER touched,
+# only operational tuning keys are aligned with the proven Arusha behavior.
+env_get() { sed -n "s/^$1=//p" "$ENV_FILE" | tail -n1; }
+SECRETS_BEFORE="$(for k in ACE_BASE_URL ACE_USERNAME ACE_PASSWORD CASINO_API_URL ACE_INGEST_KEY LOCATION_CODE; do printf '%s=%s\n' "$k" "$(env_get "$k")"; done | sha256sum | awk '{print $1}')"
+
+MIGRATED=0
+cp -a "$ENV_FILE" "${ENV_FILE}.bak"
+
+CWE="$(env_get CLOSING_WINDOW_END)"
+if [[ -z "$CWE" ]]; then
+  printf 'CLOSING_WINDOW_END=18\n' >> "$ENV_FILE"; MIGRATED=1
+elif [[ "$CWE" =~ ^[0-9]+$ && "$CWE" -lt 18 ]]; then
+  sed -i 's/^CLOSING_WINDOW_END=.*/CLOSING_WINDOW_END=18/' "$ENV_FILE"; MIGRATED=1
+fi
+
+if [[ -z "$(env_get ACE_BACKFILL_PERIODS)" ]]; then
+  printf 'ACE_BACKFILL_PERIODS=3\n' >> "$ENV_FILE"; MIGRATED=1
+fi
+
+SECRETS_AFTER="$(for k in ACE_BASE_URL ACE_USERNAME ACE_PASSWORD CASINO_API_URL ACE_INGEST_KEY LOCATION_CODE; do printf '%s=%s\n' "$k" "$(env_get "$k")"; done | sha256sum | awk '{print $1}')"
+if [[ "$SECRETS_BEFORE" != "$SECRETS_AFTER" ]]; then
+  mv -f "${ENV_FILE}.bak" "$ENV_FILE"
+  fail "Configuration secrets changed unexpectedly — restored backup and aborted."
+fi
+chown root:"$SVC_USER" "$ENV_FILE"; chmod 0640 "$ENV_FILE"
+rm -f "${ENV_FILE}.bak"
+
+if [[ "$MIGRATED" == "1" ]]; then
+  ok "Configuration preserved (credentials untouched); tuning keys aligned"
+else
+  ok "Existing configuration preserved: ${ENV_FILE}"
+fi
+
 
 if [[ ! -f "$SESSION_FILE" ]]; then
   : > "$SESSION_FILE"
