@@ -267,7 +267,13 @@ export const AttendanceImportDialog = ({ people, month, onApply, disabled, label
           </DialogHeader>
 
           <div className="space-y-3 text-sm">
+            {nameColLabel && (
+              <div className="text-[11px] text-muted-foreground">
+                Name column: <span className="font-mono">{nameColLabel}</span>
+              </div>
+            )}
             <div className="flex gap-6 font-mono">
+
               <div>
                 <div className="text-[11px] uppercase text-muted-foreground">Values</div>
                 <div className="text-xl font-bold">{rows.length}</div>
