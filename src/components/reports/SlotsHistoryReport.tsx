@@ -1,17 +1,16 @@
 /**
  * SlotsHistoryReport — read-only Slots cage shift history over an arbitrary
  * business-day range. Columns mirror the Live Game report layout:
- * Business Day / Closed / Drop / Net Win / Cashdesk / Client Balance /
+ * Business Day / Closed / Drop / Net Win / Cashdesk / Card Balance /
  * Card Miss / Balance / Print — with a TOTAL row at the bottom.
  *
- * Drop, Net Win and Client Balance are manual entries on the slots shift
- * (`manual_drop_slots`, `manual_slots_result`, `manual_slots_deposits`),
- * editable inline by managers/finance.
+ * Drop falls back to the manual cage entry (`manual_drop_slots`) when the day
+ * closing has no figure.
  *
- * Cashdesk comes from the day closing (`fin_day_closing.cashdesk_win`, the
- * CashDesk Win entered in Close Day) whenever the day is closed; otherwise it
- * falls back to the shift's computed cash desk result.
-
+ * Net Win, Cashdesk and Card Balance come from the day closing
+ * (`fin_day_closing.net_win` / `cashdesk_win` / `players_card_balance`, entered
+ * in Close Day). When a figure is missing it can be backfilled inline, which
+ * writes into the day closing row — never into the cashier shift.
  */
 import { useMemo, useState } from "react";
 import { Printer, Check } from "lucide-react";
@@ -34,7 +33,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-type SortKey = "business_date" | "drop" | "netWin" | "cdr" | "clientBalance" | "miss" | "balance";
+type SortKey = "business_date" | "drop" | "netWin" | "cdr" | "cardBalance" | "miss" | "balance";
 type SortDir = "asc" | "desc";
 
 const eatTime = (iso: string) =>
@@ -82,14 +81,14 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
   const canEdit = roles.includes("super_admin") || roles.includes("manager") ||
                   roles.includes("shift_manager") || roles.includes("finance_manager");
 
-  // Cashdesk source of truth: the CashDesk Win entered in Close Day.
+  // Source of truth for Net Win / CashDesk Win / Card Balance: Close Day.
   const { data: closings = [] } = useQuery({
     queryKey: ["slots-report-day-closings", casinoId, from, to],
     queryFn: async () => {
       if (!casinoId || !from || !to) return [];
       const { data, error } = await supabase
         .from("fin_day_closing")
-        .select("business_date, cashdesk_win, net_win, drop_slots")
+        .select("business_date, cashdesk_win, net_win, drop_slots, players_card_balance")
         .eq("casino_id", casinoId)
         .gte("business_date", from)
         .lte("business_date", to);
@@ -101,12 +100,13 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
 
   /** business_date -> Close Day figures. Presence of the row locks the cells. */
   const closingByDate = useMemo(() => {
-    const m = new Map<string, { cashdesk: number; netWin: number; drop: number }>();
+    const m = new Map<string, { cashdesk: number; netWin: number; drop: number; cardBalance: number }>();
     (closings as any[]).forEach((r) => {
       m.set(r.business_date, {
         cashdesk: Number(r.cashdesk_win || 0),
         netWin: Number(r.net_win || 0),
         drop: Number(r.drop_slots || 0),
+        cardBalance: Number(r.players_card_balance || 0),
       });
     });
     return m;
@@ -128,19 +128,21 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
     const c = closingByDate.get(s.business_date);
     const netWin = c ? c.netWin : 0;
     const cdr = c ? c.cashdesk : 0;
+    const cardBalance = c ? c.cardBalance : 0;
     return {
       s,
       // Drop: ACE Collector / Close Day figure wins over the manual cage entry.
       drop: c && c.drop !== 0 ? c.drop : Number(s.manual_drop_slots || 0),
       dropLocked: !!c && c.drop !== 0,
-      // Net Win / Cashdesk come ONLY from Close Day. No fallback to shift figures.
+      // Net Win / Cashdesk / Card Balance come ONLY from Close Day.
       netWin,
       cdr,
+      cardBalance,
       // A figure entered at Close Day is read-only; a zero (day closed without
       // figures, or no closing at all) can still be filled in manually.
       netWinLocked: netWin !== 0,
       cdrLocked: cdr !== 0,
-      clientBalance: Number(s.manual_slots_deposits || 0),
+      cardBalanceLocked: cardBalance !== 0,
       miss: Number(s.cards_miss || 0),
       balance: Number(s.balance || 0),
     };
@@ -152,10 +154,10 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
       drop: a.drop + r.drop,
       netWin: a.netWin + r.netWin,
       cdr: a.cdr + r.cdr,
-      clientBalance: a.clientBalance + r.clientBalance,
+      cardBalance: a.cardBalance + r.cardBalance,
       miss: a.miss + r.miss,
       balance: a.balance + r.balance,
-    }), { drop: 0, netWin: 0, cdr: 0, clientBalance: 0, miss: 0, balance: 0 });
+    }), { drop: 0, netWin: 0, cdr: 0, cardBalance: 0, miss: 0, balance: 0 });
     return {
       ...t,
       shifts: rows.length,
@@ -207,7 +209,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
    * Once a Close Day row exists the cells become read-only.
    */
   const updateClosingField = useMutation({
-    mutationFn: async ({ date, field, value }: { date: string; field: "net_win" | "cashdesk_win"; value: number }) => {
+    mutationFn: async ({ date, field, value }: { date: string; field: "net_win" | "cashdesk_win" | "players_card_balance"; value: number }) => {
       // Canonical rule: Slots Result = system result (net_win).
       // CashDesk Win is a separate metric and never touches slots_result.
       const patch: Record<string, unknown> = { casino_id: casinoId, business_date: date, [field]: value };
@@ -261,7 +263,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("drop")}>Drop{sortArrow("drop")}</DTHeader>
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("netWin")}>Net Win{sortArrow("netWin")}</DTHeader>
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("cdr")} title="CashDesk Win — physical slots cash from Close Day. Flows into Wallets / Expected.">CashDesk Win{sortArrow("cdr")}</DTHeader>
-            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("clientBalance")}>Client Balance{sortArrow("clientBalance")}</DTHeader>
+            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("cardBalance")} title="Card Balance — client money held on player cards, from Close Day.">Card Balance{sortArrow("cardBalance")}</DTHeader>
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("miss")}>Card Miss{sortArrow("miss")}</DTHeader>
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("balance")}>Balance{sortArrow("balance")}</DTHeader>
             <DTHeader type="actions" />
@@ -274,7 +276,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
           {!isLoading && sorted.length === 0 && (
             <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-4">No closed slots shifts in range</DTCell></DTRow>
           )}
-          {sorted.map(({ s, drop, dropLocked, netWin, cdr, clientBalance, miss, balance, netWinLocked, cdrLocked }) => {
+          {sorted.map(({ s, drop, dropLocked, netWin, cdr, cardBalance, miss, balance, netWinLocked, cdrLocked, cardBalanceLocked }) => {
             return (
               <DTRow key={s.id}>
                   <DTCell type="date">{fmtDate(s.business_date)}</DTCell>
@@ -300,10 +302,10 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
                       onSave={(v) => updateClosingField.mutate({ date: s.business_date, field: "cashdesk_win", value: v })}
                     />
                   </DTCell>
-                  <DTCell type="money">
+                  <DTCell type="money" title={cardBalanceLocked ? "From Close Day" : undefined}>
                     <EditableMoney
-                      value={clientBalance} canEdit={canEdit} mode={mode}
-                      onSave={(v) => updateField.mutate({ id: s.id, field: "manual_slots_deposits", value: v })}
+                      value={cardBalance} canEdit={canEdit && !cardBalanceLocked} mode={mode}
+                      onSave={(v) => updateClosingField.mutate({ date: s.business_date, field: "players_card_balance", value: v })}
                     />
                   </DTCell>
                   <DTCell type="money">
@@ -326,7 +328,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
               <DTCell type="money"><MoneyCell value={totals.drop} mode={mode} /></DTCell>
               <DTCell type="money"><MoneyCell value={totals.netWin} mode={mode} signed /></DTCell>
               <DTCell type="money"><MoneyCell value={totals.cdr} mode={mode} signed /></DTCell>
-              <DTCell type="money"><MoneyCell value={totals.clientBalance} mode={mode} /></DTCell>
+              <DTCell type="money"><MoneyCell value={totals.cardBalance} mode={mode} signed /></DTCell>
               <DTCell type="money"><MoneyCell value={totals.miss} mode={mode} signed /></DTCell>
               <DTCell type="money"><MoneyCell value={totals.balance} mode={mode} signed /></DTCell>
               <DTCell type="actions" />
