@@ -140,28 +140,49 @@ export const AttendanceImportDialog = ({ people, month, onApply, disabled, label
         });
       }
 
+      // Locate the name column from the header row when possible — the Monthly
+      // Attendance export writes "Department" first and "Employee" second, so
+      // taking the first non-numeric cell would match the department instead.
+      const NAME_HEADERS = ["employee", "name", "dealer", "staff", "person", "full name"];
+      let headerNameCol = -1;
+      if (headerRow >= 0) {
+        grid[headerRow].forEach((c, ci) => {
+          if (headerNameCol < 0 && NAME_HEADERS.includes(norm(c))) headerNameCol = ci;
+        });
+      }
+
+      const SKIP_LABELS = /^(department|employee|name|dealer|staff|total|totals|pit|floor|security|office|reception|bar|hr|it|cleaner|driver|waiter|hostess|bartender|cashier)$/i;
+
       const parsed: ParsedAttRow[] = [];
       const missing: string[] = [];
       const [y, m] = month.split("-").map(Number);
 
       grid.forEach((r, ri) => {
         if (ri <= headerRow) return;
-        // Name cell = first non-numeric, non-empty cell.
+        // Name cell: the header column when known, otherwise the first
+        // non-numeric cell that actually matches a known person.
         let nameCol = -1;
-        for (let c = 0; c < r.length; c++) {
-          const v = (r[c] || "").trim();
-          if (!v) continue;
-          if (/^[0-9.]+$/.test(v)) continue;
-          nameCol = c;
-          break;
+        let person: ImportPerson | null = null;
+        if (headerNameCol >= 0 && (r[headerNameCol] || "").trim()) {
+          nameCol = headerNameCol;
+          person = matchPerson(r[headerNameCol]);
+        } else {
+          for (let c = 0; c < r.length; c++) {
+            const v = (r[c] || "").trim();
+            if (!v) continue;
+            if (/^[0-9.]+$/.test(v)) continue;
+            if (nameCol < 0) nameCol = c; // remember the first candidate for the error label
+            const hit = matchPerson(v);
+            if (hit) { nameCol = c; person = hit; break; }
+          }
         }
         if (nameCol < 0) return;
-        const person = matchPerson(r[nameCol]);
         if (!person) {
-          const label = r[nameCol].trim();
-          if (label && label.length > 1 && !/^(department|employee|name|total|totals)$/i.test(label)) missing.push(label);
+          const label = (r[nameCol] || "").trim();
+          if (label && label.length > 1 && !SKIP_LABELS.test(label)) missing.push(label);
           return;
         }
+
         for (let c = 0; c < r.length; c++) {
           const day = dayByCol.size ? dayByCol.get(c) : (c > nameCol ? c - nameCol : undefined);
           if (!day || day < 1 || day > daysInMonth) continue;
