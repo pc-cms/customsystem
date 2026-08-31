@@ -40,7 +40,7 @@
 
 ## Согласованные решения (по вашим ответам)
 
-1. База слотов за месяц — **Net Win** (`slots_result`), а не `cashdesk_win`.
+1. База слотов за месяц — **CashDesk Win** (`cashdesk_win`) везде.
 2. Card Balance вычитается **каждый день**, со знаком (минус — уменьшает, плюс — увеличивает).
 3. Открытый (незакрытый) день в TV Monthly **не учитывается** — как в Monthly Report.
 4. Формулы фиксируются в документации и в подсказках (i) на обоих экранах.
@@ -51,31 +51,32 @@
 ```text
 Monthly (обе страницы, только закрытые дни):
   Table Result = Σ fin_day_closing.tables_result
-  Slot Result  = Σ по каждому дню (slots_result − players_card_balance)   // знак учитывается
+  Slot Result  = Σ по каждому дню (cashdesk_win − players_card_balance)   // знак учитывается
   Result       = Table Result + Slot Result
 ```
 
 ## Что изменится по экранам
 
 **Dashboard TV → Monthly**
-- Slots Result переходит с `cashdesk_win` на `slots_result` (Net Win).
+- Формула слотов не меняется (уже `cashdesk_win − players_card_balance` по дням).
 - Tables Result перестаёт подмешивать живой Chips Check текущего дня — только закрытые дни.
 - Tables Drop перестаёт брать открытый день из drop-кэша — считается по закрытым дням.
 - Режим **Today** не меняется вообще: там по-прежнему живой ACE и живой Chips Check.
 
 **Report (Company Report)**
-- Slot Result: вместо одного вычитания последнего Card Balance месяца — вычитание по каждому дню (`Σ (slots_result − players_card_balance)`) внутри RPC `boss_monthly_report`.
-- Остальные строки (Collection, Estimated, Extras, Bonus 5%, Expected Profit, Balance) не трогаем.
+- Slot Result: вместо `Σ slots_result` минус один последний Card Balance месяца — `Σ по каждому дню (cashdesk_win − players_card_balance)` внутри RPC `boss_monthly_report`.
+- Остальные строки (Collection, Estimated, Extras, Bonus 5%, Expected Profit, Balance) не трогаем; они пересчитаются от нового Result автоматически.
 
 ## Как будет выглядеть финал
 
 - Строки Table Result / Slot Result / Result в Monthly Report и в TV Monthly дают **одинаковые цифры** по каждому казино.
 - Единственная оставшаяся разница между экранами — Drop и Hold, которых в Report просто нет.
-- Под каждой строкой в подсказке (i) написано, откуда цифра: «Closed Day Closings only · Net Win − Card Balance».
-- Пример по августу после правки: Arusha Slot Result станет одинаковым в обоих местах (сейчас 89 608 350 против 89 065 506).
+- Под каждой строкой в подсказке (i) написано, откуда цифра: «Closed Day Closings only · CashDesk Win − Card Balance».
+- Пример по августу: Arusha Slot Result станет 89 065 506 в обоих местах (сейчас в Report 89 608 350).
 
 ## Технические детали
-- `src/lib/boss-display-metrics.ts:56-68` — `closedDaySlotsResult` переводится на `slots_result − players_card_balance`, тесты в `src/test/boss-display-metrics.test.ts` обновляются.
+- `src/lib/boss-display-metrics.ts:56-68` — `closedDaySlotsResult` остаётся каноном (`cashdesk_win − players_card_balance`).
+
 - `src/hooks/use-boss-dashboard.ts:134-173` — MTD Tables считается только по закрытым дням (без live-снапшота и без открытого дня в drop-кэше).
 - Миграция RPC `boss_monthly_report` — per-day вычитание Card Balance вместо `cards_last`.
 - `src/hooks/use-boss-monthly-report.ts:141-151` — убрать клиентское вычитание, брать готовую сумму из RPC.
