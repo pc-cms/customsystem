@@ -79,6 +79,23 @@ Remain                = Plan Month − Actual
 Profit                = Total Income − Grand Actual
 ```
 
+### 2b. Company Report / Dashboard TV Monthly — CANON (one formula, both screens)
+
+`boss_monthly_report` (Company Report) and `deriveDisplayedMonthly` (Dashboard
+TV → Monthly) use the SAME monthly formula. Only CLOSED business days count;
+the open business day never contributes to any monthly figure.
+
+```text
+Table Result = Σ fin_day_closing.tables_result                  (closed days)
+Slot Result  = Σ per day (cashdesk_win − players_card_balance)  (closed days, signed)
+Result       = Table Result + Slot Result
+Tables Drop  = Σ player_day_drop_cache.peak, restricted to those closed days        (TV only)
+Slots Drop   = fin_day_closing.drop_slots, else cage_slots_shifts.manual_drop_slots (TV only)
+```
+
+Card Balance is subtracted EVERY day with its own sign (a negative balance
+increases the result) — never once per month.
+
 ---
 
 ## 3. Wallets / Balance (`fin_balance_snapshot` + `use-fin-balance.ts`)
