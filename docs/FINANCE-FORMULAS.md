@@ -62,6 +62,26 @@ Open days show a placeholder only; nothing propagates to reports until closed.
 ```text
 Table Result = Σ fin_day_closing.tables_result  (closed days in period)
 Slots        = Σ fin_day_closing.slots_result   (closed days in period)
+```
+
+### 2b. Company Report / Dashboard TV Monthly — CANON (single formula)
+
+Both screens (`boss_monthly_report` RPC and `deriveDisplayedMonthly`) use the
+SAME monthly formula. Only CLOSED business days count; the open day never
+contributes to any monthly figure.
+
+```text
+Table Result = Σ fin_day_closing.tables_result                       (closed days)
+Slot Result  = Σ per day (cashdesk_win − players_card_balance)       (closed days, signed)
+Result       = Table Result + Slot Result
+Tables Drop  = Σ player_day_drop_cache.peak, restricted to those closed days   (TV only)
+Slots Drop   = fin_day_closing.drop_slots, else cage_slots_shifts.manual_drop_slots (TV only)
+```
+
+Card Balance is subtracted EVERY day with its own sign (a negative balance
+increases the result). It is never subtracted once per month.
+
+
 Commissions  = Σ COMMISSION_SOURCES  → TZS
 Total Income = Table Result + Slot Result + Bar Income + Commissions
 
