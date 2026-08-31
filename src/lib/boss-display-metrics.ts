@@ -157,8 +157,10 @@ export function deriveDisplayedMonthly(day: CasinoDay | undefined): DisplayedTod
     slotsResultAvailable: available,
     slotsAvailable: available,
     usesAce: false,
-    aceHint: null,
+    aceHint:
+      "Closed Day Closings only · Slots = Σ per day (CashDesk Win − Card Balance). Open day excluded.",
     aceCreditsHint: null,
+
   };
 }
 
