@@ -81,14 +81,14 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
   const canEdit = roles.includes("super_admin") || roles.includes("manager") ||
                   roles.includes("shift_manager") || roles.includes("finance_manager");
 
-  // Cashdesk source of truth: the CashDesk Win entered in Close Day.
+  // Source of truth for Net Win / CashDesk Win / Card Balance: Close Day.
   const { data: closings = [] } = useQuery({
     queryKey: ["slots-report-day-closings", casinoId, from, to],
     queryFn: async () => {
       if (!casinoId || !from || !to) return [];
       const { data, error } = await supabase
         .from("fin_day_closing")
-        .select("business_date, cashdesk_win, net_win, drop_slots")
+        .select("business_date, cashdesk_win, net_win, drop_slots, players_card_balance")
         .eq("casino_id", casinoId)
         .gte("business_date", from)
         .lte("business_date", to);
@@ -100,12 +100,13 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
 
   /** business_date -> Close Day figures. Presence of the row locks the cells. */
   const closingByDate = useMemo(() => {
-    const m = new Map<string, { cashdesk: number; netWin: number; drop: number }>();
+    const m = new Map<string, { cashdesk: number; netWin: number; drop: number; cardBalance: number }>();
     (closings as any[]).forEach((r) => {
       m.set(r.business_date, {
         cashdesk: Number(r.cashdesk_win || 0),
         netWin: Number(r.net_win || 0),
         drop: Number(r.drop_slots || 0),
+        cardBalance: Number(r.players_card_balance || 0),
       });
     });
     return m;
@@ -127,19 +128,21 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
     const c = closingByDate.get(s.business_date);
     const netWin = c ? c.netWin : 0;
     const cdr = c ? c.cashdesk : 0;
+    const cardBalance = c ? c.cardBalance : 0;
     return {
       s,
       // Drop: ACE Collector / Close Day figure wins over the manual cage entry.
       drop: c && c.drop !== 0 ? c.drop : Number(s.manual_drop_slots || 0),
       dropLocked: !!c && c.drop !== 0,
-      // Net Win / Cashdesk come ONLY from Close Day. No fallback to shift figures.
+      // Net Win / Cashdesk / Card Balance come ONLY from Close Day.
       netWin,
       cdr,
+      cardBalance,
       // A figure entered at Close Day is read-only; a zero (day closed without
       // figures, or no closing at all) can still be filled in manually.
       netWinLocked: netWin !== 0,
       cdrLocked: cdr !== 0,
-      clientBalance: Number(s.manual_slots_deposits || 0),
+      cardBalanceLocked: cardBalance !== 0,
       miss: Number(s.cards_miss || 0),
       balance: Number(s.balance || 0),
     };
