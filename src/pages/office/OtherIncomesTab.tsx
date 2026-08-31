@@ -258,14 +258,8 @@ export default function OtherIncomesTab() {
     <PageShell>
       {canWrite && (
         <OfficeActions>
-          <Button onClick={() => openAdd("add_float")} size="sm" variant="outline">
-            <Plus className="w-4 h-4" /> Adjust Float
-          </Button>
-          <Button onClick={() => openAdd("fee")} size="sm" variant="outline">
-            <Plus className="w-4 h-4" /> Fee
-          </Button>
-          <Button onClick={() => openAdd("commission")} size="sm">
-            <Plus className="w-4 h-4" /> Add Commission
+          <Button onClick={() => openAdd()} size="sm">
+            <Plus className="w-4 h-4" /> Add Transaction
           </Button>
         </OfficeActions>
       )}
@@ -313,7 +307,7 @@ export default function OtherIncomesTab() {
       <ResponsiveDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        title={editId ? "Edit Commission" : "Add Commission"}
+        title={editId ? "Edit Transaction" : "Add Transaction"}
       >
         <FormGrid>
           <FormField span={6} label="Business Date">
