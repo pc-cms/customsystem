@@ -276,7 +276,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
           {!isLoading && sorted.length === 0 && (
             <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-4">No closed slots shifts in range</DTCell></DTRow>
           )}
-          {sorted.map(({ s, drop, dropLocked, netWin, cdr, clientBalance, miss, balance, netWinLocked, cdrLocked }) => {
+          {sorted.map(({ s, drop, dropLocked, netWin, cdr, cardBalance, miss, balance, netWinLocked, cdrLocked, cardBalanceLocked }) => {
             return (
               <DTRow key={s.id}>
                   <DTCell type="date">{fmtDate(s.business_date)}</DTCell>
