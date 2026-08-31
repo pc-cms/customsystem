@@ -1,17 +1,16 @@
 /**
  * SlotsHistoryReport — read-only Slots cage shift history over an arbitrary
  * business-day range. Columns mirror the Live Game report layout:
- * Business Day / Closed / Drop / Net Win / Cashdesk / Client Balance /
+ * Business Day / Closed / Drop / Net Win / Cashdesk / Card Balance /
  * Card Miss / Balance / Print — with a TOTAL row at the bottom.
  *
- * Drop, Net Win and Client Balance are manual entries on the slots shift
- * (`manual_drop_slots`, `manual_slots_result`, `manual_slots_deposits`),
- * editable inline by managers/finance.
+ * Drop falls back to the manual cage entry (`manual_drop_slots`) when the day
+ * closing has no figure.
  *
- * Cashdesk comes from the day closing (`fin_day_closing.cashdesk_win`, the
- * CashDesk Win entered in Close Day) whenever the day is closed; otherwise it
- * falls back to the shift's computed cash desk result.
-
+ * Net Win, Cashdesk and Card Balance come from the day closing
+ * (`fin_day_closing.net_win` / `cashdesk_win` / `players_card_balance`, entered
+ * in Close Day). When a figure is missing it can be backfilled inline, which
+ * writes into the day closing row — never into the cashier shift.
  */
 import { useMemo, useState } from "react";
 import { Printer, Check } from "lucide-react";
