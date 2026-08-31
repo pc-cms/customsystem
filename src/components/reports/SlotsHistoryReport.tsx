@@ -154,10 +154,10 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
       drop: a.drop + r.drop,
       netWin: a.netWin + r.netWin,
       cdr: a.cdr + r.cdr,
-      clientBalance: a.clientBalance + r.clientBalance,
+      cardBalance: a.cardBalance + r.cardBalance,
       miss: a.miss + r.miss,
       balance: a.balance + r.balance,
-    }), { drop: 0, netWin: 0, cdr: 0, clientBalance: 0, miss: 0, balance: 0 });
+    }), { drop: 0, netWin: 0, cdr: 0, cardBalance: 0, miss: 0, balance: 0 });
     return {
       ...t,
       shifts: rows.length,
