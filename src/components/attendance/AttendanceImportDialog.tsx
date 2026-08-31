@@ -204,6 +204,12 @@ export const AttendanceImportDialog = ({ people, month, onApply, disabled, label
 
       setRows(parsed);
       setUnmatched(Array.from(new Set(missing)).slice(0, 20));
+      setNameColLabel(
+        headerNameCol >= 0
+          ? (grid[headerRow]?.[headerNameCol] || `column ${headerNameCol + 1}`)
+          : "auto-detected",
+      );
+
       setOpen(true);
       if (!parsed.length) toast.error("No attendance values recognised in this file");
     } catch (e: any) {
