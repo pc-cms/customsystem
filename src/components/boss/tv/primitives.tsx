@@ -337,8 +337,8 @@ export function MetricsBlock({
         size={size}
         fill={fills?.slots ?? ROW_FILL.slots}
         marker={`${accent}66`}
-        badge={displayed.usesAce ? "LIVE" : null}
-        badgeTitle={displayed.aceHint}
+        title={displayed.aceHint}
+
       />
 
       <MetricRow
