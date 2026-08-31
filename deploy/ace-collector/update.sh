@@ -59,7 +59,7 @@ if command -v rsync >/dev/null 2>&1; then
     --exclude 'venv/' \
     --exclude '__pycache__/' \
     --exclude '*.pyc' \
-    --exclude '.ace-session.json' \
+    --exclude '.ace-session*.json' \
     --exclude '*.env' \
     --exclude '.env' \
     "$SRC_DIR"/ "$APP_DIR"/
@@ -68,7 +68,7 @@ else
       -path './venv' -prune -o \
       -name '__pycache__' -prune -o \
       -name '*.pyc' -prune -o \
-      -name '.ace-session.json' -prune -o \
+      -name '.ace-session*.json' -prune -o \
       -name '*.env' -prune -o \
       -name '.env' -prune -o \
       -type f -print0 ) |
