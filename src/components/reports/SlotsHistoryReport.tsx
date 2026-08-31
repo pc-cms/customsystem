@@ -328,7 +328,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
               <DTCell type="money"><MoneyCell value={totals.drop} mode={mode} /></DTCell>
               <DTCell type="money"><MoneyCell value={totals.netWin} mode={mode} signed /></DTCell>
               <DTCell type="money"><MoneyCell value={totals.cdr} mode={mode} signed /></DTCell>
-              <DTCell type="money"><MoneyCell value={totals.clientBalance} mode={mode} /></DTCell>
+              <DTCell type="money"><MoneyCell value={totals.cardBalance} mode={mode} signed /></DTCell>
               <DTCell type="money"><MoneyCell value={totals.miss} mode={mode} signed /></DTCell>
               <DTCell type="money"><MoneyCell value={totals.balance} mode={mode} signed /></DTCell>
               <DTCell type="actions" />
