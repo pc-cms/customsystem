@@ -209,7 +209,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
    * Once a Close Day row exists the cells become read-only.
    */
   const updateClosingField = useMutation({
-    mutationFn: async ({ date, field, value }: { date: string; field: "net_win" | "cashdesk_win"; value: number }) => {
+    mutationFn: async ({ date, field, value }: { date: string; field: "net_win" | "cashdesk_win" | "players_card_balance"; value: number }) => {
       // Canonical rule: Slots Result = system result (net_win).
       // CashDesk Win is a separate metric and never touches slots_result.
       const patch: Record<string, unknown> = { casino_id: casinoId, business_date: date, [field]: value };
