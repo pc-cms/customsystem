@@ -79,6 +79,8 @@ export const AttendanceImportDialog = ({ people, month, onApply, disabled, label
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<ParsedAttRow[]>([]);
   const [unmatched, setUnmatched] = useState<string[]>([]);
+  const [nameColLabel, setNameColLabel] = useState<string>("");
+
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
