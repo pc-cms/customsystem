@@ -244,6 +244,8 @@ export function MetricRow({
   strong,
   fill,
   marker,
+  badge,
+  badgeTitle,
 }: {
   label: string;
   metric: CasinoMetric;
@@ -256,7 +258,12 @@ export function MetricRow({
   fill?: string;
   /** Small leading marker color. */
   marker?: string;
+  /** Small pill after the label, e.g. "LIVE" for a fresh ACE feed. */
+  badge?: string | null;
+  /** Tooltip for the badge (period label / feed age). */
+  badgeTitle?: string | null;
 }) {
+
   const result = resultAvailable ? metric.result : null;
   const holdOk = dropAvailable && resultAvailable && metric.drop > 0;
   return (
