@@ -275,7 +275,7 @@ export function CloseBusinessDayButton({ className }: { className?: string }) {
                 value={cashDeskWin} onChange={setCashDeskWin} allowNegative
               />
               <FigureField
-                id="cbd-client-balance" label="Client Balance" hint="→ Slots — Client Balance · Day Closing"
+                id="cbd-client-balance" label="Card Balance" hint="→ Slots — Card Balance · Day Closing"
                 value={clientBalance} onChange={setClientBalance} allowNegative
               />
               <FigureField
