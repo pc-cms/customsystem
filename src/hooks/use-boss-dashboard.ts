@@ -132,17 +132,12 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
   const hold = (d: number, r: number) => (d > 0 ? (r / d) * 100 : 0);
 
   const mtdRows = (dailyMtdRes.data || []) as any[];
-  const mtdDrop = mtdRows.reduce((s, r) => s + Number(r.drop_r || 0), 0);
-  // MTD result: closed days from Day Closing + today's live figure when not closed yet
-  const mtdClosed = closings
-    .filter((r) => r.business_date !== businessDate)
-    .reduce((s, r) => s + closedDayResult(r), 0);
 
-  const mtdResult = mtdClosed + totalResult;
-
-  // ---- Monthly split, sourced exactly like Analytics → Statistics ----------
-  // Slots Drop  : fin_day_closing.drop_slots wins; else cage_slots_shifts.manual_drop_slots
-  // Slots Result: cashdesk_win − players_card_balance
+  // ---- Monthly (MTD) — CLOSED Day Closings ONLY, exactly like the Company
+  // Report. The still-open business day never contributes to any MTD figure.
+  //   Table Result = Σ fin_day_closing.tables_result
+  //   Slot Result  = Σ per day (cashdesk_win − players_card_balance)   [signed]
+  //   Tables Drop  = Σ drop cache, restricted to those closed days
   const shiftDropByDate = new Map<string, number>();
   for (const s of ((slotShiftsRes as any).data || []) as any[]) {
     shiftDropByDate.set(
@@ -152,25 +147,26 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
   }
   let mtdSlotsDrop = 0;
   let mtdSlotsResult = 0;
+  let mtdTablesResult = 0;
   const closingDates = new Set<string>();
   for (const c of closings) {
     closingDates.add(c.business_date);
     const aceDrop = Number(c.drop_slots || 0);
     mtdSlotsDrop += aceDrop !== 0 ? aceDrop : shiftDropByDate.get(c.business_date) || 0;
     mtdSlotsResult += closedSlotsResult(c);
+    mtdTablesResult += Number(c.tables_result || 0);
   }
   for (const [d, v] of shiftDropByDate) if (!closingDates.has(d)) mtdSlotsDrop += v;
   // Availability = EXISTENCE of a source record, never "value is non-zero".
   const mtdSlotsAvailable = closings.length > 0 || shiftDropByDate.size > 0;
 
+  const mtdTablesDrop = mtdRows
+    .filter((r) => closingDates.has(String(r.business_date)))
+    .reduce((s, r) => s + Number(r.drop_r || 0), 0);
 
-  // Tables monthly: drop from the drop cache, result from Day Closings
-  // (today's still-open day contributes the live chips-check figure).
-  const mtdTablesDrop = mtdDrop;
-  const mtdTablesResult =
-    closings
-      .filter((r) => r.business_date !== businessDate)
-      .reduce((s, r) => s + Number(r.tables_result || 0), 0) + liveResult;
+  const mtdDrop = mtdTablesDrop + mtdSlotsDrop;
+  const mtdResult = mtdTablesResult + mtdSlotsResult;
+
 
   return {
     casinoId,
