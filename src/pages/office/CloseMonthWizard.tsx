@@ -1,8 +1,9 @@
 /**
- * CloseMonthWizard — 3-step monthly reset (super_admin only).
- * Step 1: Collection per wallet (how much cash is withdrawn from the safe)
- * Step 2: New Starting Float per wallet (usually 0)
- * Step 3: Confirm & Lock
+ * CloseMonthWizard — monthly reset (super_admin only).
+ * Step: Collection per wallet (how much cash is withdrawn from the safe)
+ * Step: New Starting Float per wallet (SKIPPED when the next month is already
+ *       opened/closed — its starting float is then owned by Open Month)
+ * Step: Confirm & Lock
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
@@ -11,10 +12,12 @@ import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatNumberSpaces } from "@/lib/currency";
-import { useRunCloseMonth } from "@/hooks/use-fin-month-closures";
+import { useRunCloseMonth, useMonthClosures } from "@/hooks/use-fin-month-closures";
+import { useMonthOpenings, monthStatusOf } from "@/hooks/use-fin-month-opening";
 import { useCloseMonthReport } from "@/hooks/use-fin-month-finance";
 import type { WalletBalanceRow } from "@/hooks/use-fin-balance";
 import { cn } from "@/lib/utils";
+
 
 type Row = { wallet_id: string; name: string; currency: string; amount: number };
 
@@ -42,8 +45,23 @@ export function CloseMonthWizard({
   const year = yearProp ?? now.getFullYear();
   const month = monthProp ?? now.getMonth() + 1;
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  // Next month owns its own starting float once it was opened (Open Month).
+  // In that case the float step is skipped entirely so we never overwrite it.
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const { data: openings = [] } = useMonthOpenings();
+  const { data: closures = [] } = useMonthClosures();
+  const nextStatus = monthStatusOf(openings, closures, nextYear, nextMonth);
+  const skipFloat = nextStatus !== "not_opened";
+  const steps = useMemo(
+    () => (skipFloat ? (["collection", "confirm"] as const) : (["collection", "float", "confirm"] as const)),
+    [skipFloat],
+  );
+
+  const [stepIdx, setStepIdx] = useState(0);
+  const current = steps[Math.min(stepIdx, steps.length - 1)];
   const [note, setNote] = useState("");
+
 
   const initialCollection: Row[] = useMemo(
     () =>
@@ -97,7 +115,7 @@ export function CloseMonthWizard({
 
   // sync when wallets change / dialog opens fresh
   const resetAll = () => {
-    setStep(1);
+    setStepIdx(0);
     setNote("");
     dirtyRef.current = false;
     setCollection(
@@ -140,11 +158,15 @@ export function CloseMonthWizard({
         currency: r.currency,
         amount: r.amount,
       })),
-      new_float_details: newFloat.map((r) => ({
-        wallet_id: r.wallet_id,
-        currency: r.currency,
-        amount: r.amount,
-      })),
+      // Skipped when the next month already has its own opening float.
+      new_float_details: skipFloat
+        ? []
+        : newFloat.map((r) => ({
+            wallet_id: r.wallet_id,
+            currency: r.currency,
+            amount: r.amount,
+          })),
+
       note,
     });
     // Canonical report snapshot — freezes Final Profit / Manager Bonus.
@@ -164,22 +186,33 @@ export function CloseMonthWizard({
     >
       {/* Steps header */}
       <div className="flex items-center gap-2 mb-4">
-        {[1, 2, 3].map((s) => (
+        {steps.map((s, i) => (
           <div
             key={s}
             className={cn(
               "flex-1 h-1.5 rounded",
-              step >= s ? "bg-primary" : "bg-muted",
+              i <= stepIdx ? "bg-primary" : "bg-muted",
             )}
           />
         ))}
       </div>
       <div className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
-        Step {step} of 3 —{" "}
-        {step === 1 ? "Collection" : step === 2 ? "New Starting Float" : "Confirm & Lock"}
+        Step {stepIdx + 1} of {steps.length} —{" "}
+        {current === "collection"
+          ? "Collection"
+          : current === "float"
+            ? "New Starting Float"
+            : "Confirm & Lock"}
       </div>
+      {skipFloat && (
+        <div className="mb-3 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          Next month is already {nextStatus === "closed" ? "closed" : "opened"} — starting float
+          kept as entered in Open Month.
+        </div>
+      )}
 
-      {step === 1 && (
+
+      {current === "collection" && (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
             Confirm how much cash is withdrawn from each wallet (collection).
@@ -189,17 +222,18 @@ export function CloseMonthWizard({
         </div>
       )}
 
-      {step === 2 && (
+      {current === "float" && (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
-            Enter new Starting Float for each wallet (usually 0).
+            Enter new Starting Float for each wallet (usually 0). You can skip this and enter it
+            later with Open Month.
           </p>
           <WalletAmountList rows={newFloat} onChange={(next) => { markDirty(); setNewFloat(next); }} />
           <TotalRow label="Total New Float (TZS)" value={totalFloatTzs} />
         </div>
       )}
 
-      {step === 3 && (
+      {current === "confirm" && (
         <div className="space-y-3">
           <div className="rounded-md border border-border p-3 bg-muted/20 text-xs space-y-1">
             <div className="flex justify-between">
@@ -218,14 +252,16 @@ export function CloseMonthWizard({
                 {formatNumberSpaces(totalCollectionTzs)} TZS
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground uppercase tracking-wider">
-                New Float Total
-              </span>
-              <span className="font-mono tabular-nums">
-                {formatNumberSpaces(totalFloatTzs)} TZS
-              </span>
-            </div>
+            {!skipFloat && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground uppercase tracking-wider">
+                  New Float Total
+                </span>
+                <span className="font-mono tabular-nums">
+                  {formatNumberSpaces(totalFloatTzs)} TZS
+                </span>
+              </div>
+            )}
           </div>
           <div>
             <label className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -234,7 +270,9 @@ export function CloseMonthWizard({
             <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
           <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-400">
-            After confirming, the month is locked and Starting Float updates apply to next month.
+            {skipFloat
+              ? "After confirming, the month is locked. Next month's starting float is left untouched."
+              : "After confirming, the month is locked and Starting Float updates apply to next month."}
           </div>
         </div>
       )}
@@ -242,18 +280,33 @@ export function CloseMonthWizard({
       <div className="mt-4 flex justify-between gap-2">
         <Button
           variant="outline"
-          onClick={() => (step > 1 ? setStep((step - 1) as any) : onOpenChange(false))}
+          onClick={() => (stepIdx > 0 ? setStepIdx(stepIdx - 1) : onOpenChange(false))}
         >
-          {step > 1 ? "Back" : "Cancel"}
+          {stepIdx > 0 ? "Back" : "Cancel"}
         </Button>
-        {step < 3 ? (
-          <Button onClick={() => setStep((step + 1) as any)}>Next</Button>
-        ) : (
-          <Button onClick={submit} disabled={run.isPending}>
-            {run.isPending ? "Closing…" : "Confirm & Lock"}
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {current === "float" && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                markDirty();
+                setNewFloat((rows) => rows.map((r) => ({ ...r, amount: 0 })));
+                setStepIdx(stepIdx + 1);
+              }}
+            >
+              Skip
+            </Button>
+          )}
+          {current !== "confirm" ? (
+            <Button onClick={() => setStepIdx(stepIdx + 1)}>Next</Button>
+          ) : (
+            <Button onClick={submit} disabled={run.isPending}>
+              {run.isPending ? "Closing…" : "Confirm & Lock"}
+            </Button>
+          )}
+        </div>
       </div>
+
     </ResponsiveDialog>
   );
 }
