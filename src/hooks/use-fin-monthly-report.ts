@@ -226,7 +226,10 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
   const casinoId = network ? null : (scope || activeCasinoId);
 
   return useQuery<MonthlyReport>({
-    queryKey: ["fin-monthly-report", year, month, ytd, network ? "net" : casinoId],
+    // Keep the stable prefix for existing invalidations, while versioning the
+    // transformed payload so persisted pre-detail reports cannot hide the
+    // signed Office → Collections rows after an app update.
+    queryKey: ["fin-monthly-report", "v2-collection-details", year, month, ytd, network ? "net" : casinoId],
     enabled: network || !!casinoId,
     queryFn: async () => {
       const { start, endExclusive, monthsCount } = monthRangeISO(year, month, ytd);
