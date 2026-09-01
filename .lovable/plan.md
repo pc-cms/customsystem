@@ -1,47 +1,63 @@
-# Fix: Open Month wipes the previous month's Starting Float
+# Открытие месяца стирает Starting Float прошлого месяца — исправление
 
-## What is actually wrong (verified)
+## В чём проблема (проверено по данным)
 
-Starting Float is stored as a single "current" value per wallet (`fin_wallets.starting_float_amount` + `starting_float_date`). There is no per-month history.
+Стартовый флот хранится одним «текущим» значением на кошелёк (`fin_wallets.starting_float_amount` + `starting_float_date`). Истории по месяцам нет.
 
-When September was opened for Mbeya, `fin_open_month` overwrote every Mbeya wallet:
+Когда в Мбее открыли сентябрь, `fin_open_month` перезаписал все 20 кошельков:
 
-| Wallet | Now | Float date |
+| Кошелёк | Сейчас | Дата флота |
 |---|---|---|
 | Main Phone | 25 000 533 TZS | 01/09/2026 |
-| All other 19 wallets | 0 | 01/09/2026 |
+| Остальные 19 кошельков | 0 | 01/09/2026 |
 
-The Balance snapshot (`fin_balance_snapshot`) reads Starting Float straight from `fin_wallets` with **no period filter at all**. So August now uses September's float:
+При этом расчёт баланса (`fin_balance_snapshot`) берёт Starting Float прямо из `fin_wallets` **без фильтра по периоду**. Поэтому август теперь считается с сентябрьским флотом:
 
-- August's own float was overwritten to 0 on every wallet;
-- the whole September float sits on one wallet (Main Phone) and is added to August's Expected too;
-- Expected for August shifted, Actual (August physical counts) did not → the minus.
+- собственный августовский флот обнулён на всех кошельках;
+- весь сентябрьский флот сидит на одном кошельке (Main Phone) и добавляется и в Expected августа;
+- Expected за август сдвинулся, Actual (физические счёты августа) — нет → отсюда минус.
 
-Arusha (float 01/08, 25 000 000) and Mwanza (float 01/08, 4 190 744) are still intact, but they will get the exact same damage the moment September is opened there. Dodoma has no float set at all.
+Аруша (флот 01/08, 25 000 000) и Мванза (флот 01/08, 4 190 744) пока целы, но получат ровно ту же поломку, как только там откроют сентябрь. У Додомы флот не задан вовсе.
 
-## What we change
+## Что делаем
 
-1. **Per-month float history.** New table `fin_wallet_float_history` (casino, wallet, effective_date = 1st of the opened month, amount, currency, source, created_by). `fin_open_month` writes one row per wallet instead of only overwriting the live value (it still updates `fin_wallets` so current-month views keep working).
+1. **История флота по месяцам.** Новая таблица `fin_wallet_float_history` (казино, кошелёк, `effective_date` = 1-е число открываемого месяца, сумма, валюта, источник, автор). `fin_open_month` пишет строку на каждый кошелёк, а не только перезаписывает текущее значение (`fin_wallets` продолжает обновляться, чтобы текущие экраны работали как раньше).
 
-2. **Period-aware Starting Float in the balance snapshot.** `fin_balance_snapshot` picks, per wallet, the latest history row with `effective_date <= p_period_start`; falls back to `fin_wallets` when there is no history. Opening a new month can no longer touch a previous month's Expected/Variance.
+2. **Starting Float с учётом периода.** `fin_balance_snapshot` берёт по каждому кошельку последнюю строку истории с `effective_date <= p_period_start`; если истории нет — fallback на `fin_wallets`. Открытие нового месяца больше не может изменить Expected/Variance прошлого месяца.
 
-3. **Backfill history from today's data** so nothing changes for currently correct months: Arusha 01/08, Mwanza 01/08, Mbeya 01/09.
+3. **Бэкфилл истории из текущих данных**, чтобы корректные месяцы не поехали: Аруша 01/08, Мванза 01/08, Мбея 01/09.
 
-4. **Restore Mbeya's August float** as a history row dated 01/08/2026 (see question below). After that, August Mbeya Expected/Variance returns to the pre-September numbers and September keeps its own 25 000 533.
+4. **Перенос сентябрьского флота Мбеи с Main Phone на фактические кошельки.** Вместо одной суммы на Main Phone флот на 01/09/2026 раскладывается по реальным остаткам, которые были внесены при открытии месяца (`month_open` counts):
 
-5. **Guard in the Open Month wizard**: it already prefills wallets, but it will show a warning line "This sets the float for <Month> only; previous months are unaffected" so the ritual is unambiguous.
+| Кошелёк | Сумма |
+|---|---|
+| Cash TZS | 24 418 000 |
+| Safe Live | 1 000 000 |
+| Safe Slots | 1 000 000 |
+| HaloPesa | 578 000 |
+| Airtel Money | 285 910 |
+| M-Pesa | 95 643 |
+| Tigo Pesa | 88 000 |
+| Cash USD | 40 USD |
+| Main Phone | 0 |
 
-## Not touched
+Сумма по TZS = 27 465 553 плюс 40 USD, тогда как на Main Phone сейчас стоит 25 000 533 — то есть общий флот сентября изменится на фактические остатки кошельков. Это именно то, что просили: флот = фактические деньги в кошельках на начало месяца.
 
-Day Closings, cashier shifts, expenses, incomes, JP, inter-casino, wallet counts (`cash_count_snapshots`) — none of them change. Only how Starting Float is stored and read per accounting month.
+5. **Восстановление августовского флота Мбеи** строкой истории с датой 01/08/2026 (см. вопрос ниже). После этого август по Мбее вернётся к досентябрьским Expected/Variance, а сентябрь останется со своим флотом.
 
-## Open question
+6. **Подсказка в Open Month Wizard**: строка-предупреждение «This sets the float for <Month> only; previous months are unaffected», чтобы ритуал был однозначным.
 
-Mbeya's August float was overwritten and is not recoverable from the audit log (no `fin_wallets` audit rows exist). Please confirm the August 2026 Mbeya Starting Float — either a single total (like the September 25 000 533 on Main Phone) or the per-wallet breakdown. Without it I will restore August as 0 float, which is likely not what you want.
+## Что не трогаем
 
-## Technical detail
+Day Closings, кассовые смены, расходы, доходы, JP, инter-casino переводы, физические счёты (`cash_count_snapshots`) — ничего не меняется. Меняется только способ хранения и чтения Starting Float по учётному месяцу.
 
-- Migration: create `fin_wallet_float_history` with GRANTs (authenticated read, service_role all) + RLS scoped by `has_casino_scope` / `can_finance` / `super_admin`; unique on (wallet_id, effective_date).
-- `fin_open_month`: insert history rows for every entry of `p_float_details` (upsert on conflict).
-- `fin_balance_snapshot`: replace the `SELECT ... FROM fin_wallets` starting-float block with a `DISTINCT ON (wallet_id)` lookup over the history table filtered by `effective_date <= p_period_start`, `LEFT JOIN fin_wallets` for name/currency, fallback to `fin_wallets.starting_float_amount` when the wallet has no history.
-- Data fix: history rows for Arusha/Mwanza (01/08), Mbeya (01/09) + Mbeya 01/08 restore row.
+## Открытый вопрос
+
+Августовский флот Мбеи затёрт и не восстанавливается из аудита (записей по `fin_wallets` в `fin_audit_log` нет). Подтвердите, пожалуйста, Starting Float Мбеи за август 2026 — одной суммой или разбивкой по кошелькам. Без этого август восстановится с нулевым флотом, что вряд ли верно.
+
+## Технические детали
+
+- Миграция: `fin_wallet_float_history` с GRANT (SELECT/INSERT authenticated, ALL service_role) и RLS по `has_casino_scope` / `can_finance` / `super_admin`; уникальность по (wallet_id, effective_date).
+- `fin_open_month`: upsert строк истории по каждому элементу `p_float_details`.
+- `fin_balance_snapshot`: блок расчёта starting float заменяется на `DISTINCT ON (wallet_id)` по истории с `effective_date <= p_period_start` + `LEFT JOIN fin_wallets` за именем/валютой и fallback на `fin_wallets.starting_float_amount`.
+- Правка данных: строки истории для Аруши/Мванзы (01/08), Мбеи (01/09 — уже по фактическим кошелькам), плюс восстановительная строка Мбеи на 01/08; `fin_wallets` Мбеи переписывается с Main Phone на фактические кошельки.
