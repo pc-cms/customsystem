@@ -305,22 +305,24 @@ def resolve_history(client: AceClient, from_date: str, to_date: str, logger,
 
 
 def probe_day(api, cfg, bdate: str, report) -> str:
-    """Ask the API what WOULD/DID happen for a day (dry-run aware caller)."""
+    """Read-only: ask the API what WOULD happen for a day. Writes nothing."""
     payload = report.as_payload(cfg.location_code)
     payload["business_date"] = bdate
     payload["closed_at_local"] = report.period_label
     payload["mode"] = HISTORY_MODE
+    payload["probe"] = True
     body = api.send(payload) or {}
     return body.get("status", "unknown")
 
 
-def run_history_scan(client, cfg, logger, from_date: str, to_date: str) -> int:
+def run_history_scan(client, api, cfg, logger, from_date: str, to_date: str) -> int:
     """Read-only inventory of the closed periods available for a backfill."""
     selected, unparsed, dup_stats, available = resolve_history(
         client, from_date, to_date, logger, cfg.location_code
     )
     counts = dup_stats["counts"]
     logger.info("HISTORY-SCAN location=%s", cfg.location_code)
+
     logger.info("HISTORY-SCAN window=%s..%s", from_date, to_date)
     logger.info("HISTORY-SCAN closed_periods_available=%d", available)
     logger.info("HISTORY-SCAN days_selected=%d", counts["selected"])
