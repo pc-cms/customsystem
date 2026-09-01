@@ -153,10 +153,12 @@ Deno.serve(async (req) => {
   // --- history_missing_only ----------------------------------------------
   // SAFE historical Slot Statistics backfill, allowed ONLY for business dates
   // 2026-01-01..2026-07-31 (August 2026 and later are never touched).
-  //   * day already in Statistics (closed/approved cage slot shift OR a
-  //     fin_day_closing row) => only drop_slots may be filled when empty;
-  //   * day completely absent  => a fin_day_closing row is created from the
-  //     five ACE stats.
+  //   * fin_day_closing row exists => only the ACE-stat fields that are still
+  //     NULL/0 (drop_slots, net_win, slots_result, cashdesk_win,
+  //     players_card_balance) are filled; nonzero values are never overwritten;
+  //   * no fin_day_closing row (even when a closed cage slot shift exists) =>
+  //     the row is created from the five ACE stats.
+  // Card Miss / Balance / Closed / Print stay shift-driven and untouched.
   // No ace_finance_snapshots row is written in this mode (that table is unique
   // per casino+day and drives Day Closing), only the audit log.
   if (isHistoryMissingOnly) {
@@ -176,6 +178,9 @@ Deno.serve(async (req) => {
         _casino_id: cred.casino_id,
         _business_date: business_date,
         _drop_slots: numbers.total_drop,
+        _net_win: numbers.net_win,
+        _cashdesk_win: numbers.win_cashdesk,
+        _client_balance: numbers.cashless_money_difference,
       });
       if (pErr) {
         console.error("ace-finance-ingest: history probe failed", pErr.message);
@@ -184,6 +189,7 @@ Deno.serve(async (req) => {
       const p = (pr ?? {}) as Record<string, unknown>;
       return json({ ok: true, preview: true, business_date, period_id, location_code, ...p });
     }
+
 
     const { data: res, error: fillErr } = await admin.rpc("ace_backfill_history_day", {
       _casino_id: cred.casino_id,

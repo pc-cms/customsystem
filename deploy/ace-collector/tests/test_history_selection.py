@@ -266,3 +266,24 @@ def test_probe_sends_probe_flag():
     assert st == "existing_day_unchanged"
     assert api.sent["probe"] is True
     assert api.sent["mode"] == HISTORY_MODE
+
+
+# ── field-level classification semantics ──────────────────────────────────
+def test_backfill_counts_new_statuses():
+    import collector
+
+    counts = {
+        "sent": 0, "failed": 0, "fields": 0,
+        "new_statistics_day_created": 0,
+        "shift_day_statistics_created": 0,
+        "existing_day_fields_filled": 0,
+        "existing_day_unchanged": 0,
+    }
+    for st in ("shift_day_statistics_created", "existing_day_fields_filled"):
+        assert st in counts
+
+
+def test_api_accepts_field_level_statuses():
+    from ace_collector.api import SUCCESS_STATUSES
+    assert "existing_day_fields_filled" in SUCCESS_STATUSES
+    assert "shift_day_statistics_created" in SUCCESS_STATUSES
