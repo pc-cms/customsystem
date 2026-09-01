@@ -13016,6 +13016,10 @@ export type Database = {
         Args: { _row_id: string; _wallet_id: string }
         Returns: Json
       }
+      closing_inbox_skip: {
+        Args: { _inbox_id: string; _reason?: string }
+        Returns: Json
+      }
       club_buy_lottery_ticket: {
         Args: {
           p_casino_id: string
