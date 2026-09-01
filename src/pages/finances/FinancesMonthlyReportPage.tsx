@@ -219,17 +219,17 @@ export default function FinancesMonthlyReportPage() {
     }
 
     // Collections section (excluded from grand)
-    if (data.collections) {
-      const col = data.collections;
+    for (const extra of [data.collections, data.capex]) {
+      if (!extra) continue;
       ws.mergeCells(`A${r}:${lastCol}${r}`);
       const cc = ws.getCell(`A${r}`);
-      cc.value = col.name;
+      cc.value = extra.name;
       cc.font = { bold: true, size: 12 };
       cc.fill = groupFill as any;
       r++;
       writeHeader();
-      for (const c of col.categories) writeCatRow(c);
-      writeTotalRow(col.totals);
+      for (const c of extra.categories) writeCatRow(c);
+      writeTotalRow(extra.totals);
     }
 
 
@@ -333,11 +333,11 @@ export default function FinancesMonthlyReportPage() {
         />
       ))}
 
-      {/* COLLECTIONS — owner withdrawals, group table below operating groups */}
-      {data?.collections && (
+      {/* COLLECTIONS & CAPEX — below operating groups, excluded from grand */}
+      {[data?.collections, data?.capex].filter(Boolean).map((grp) => (
         <GroupTable
-          key={data.collections.code}
-          group={data.collections}
+          key={grp!.code}
+          group={grp!}
           expandedId={expanded}
           onToggle={toggle}
           isNetwork={isNetwork}
@@ -352,8 +352,8 @@ export default function FinancesMonthlyReportPage() {
             renameCategory.mutate({ id: catId, name: newName })
           }
           onArchiveCategory={(catId) => archiveCategory.mutate(catId)}
-          onAddCategory={(name) => createCategory.mutate({ group_code: data.collections!.code, group_name: data.collections!.name, name, is_income: false })}
-          onRenameGroup={(newName) => renameGroup.mutate({ group_code: data.collections!.code, name: newName })}
+          onAddCategory={(name) => createCategory.mutate({ group_code: grp!.code, group_name: grp!.name, name, is_income: false })}
+          onRenameGroup={(newName) => renameGroup.mutate({ group_code: grp!.code, name: newName })}
           onEditExpense={(e) => setEditRow({
             id: e.id,
             fin_category_id: e.fin_category_id,
@@ -367,7 +367,7 @@ export default function FinancesMonthlyReportPage() {
           })}
           onDeleteExpense={canDelete ? ((e) => setDelRow(e)) : undefined}
         />
-      )}
+      ))}
 
 
       {!isNetwork && (
