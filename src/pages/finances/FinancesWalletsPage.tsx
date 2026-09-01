@@ -646,7 +646,32 @@ export default function FinancesWalletsPage() {
         </div>
       </PageSection>
 
+      {countOutOfPeriod && (
+        <PageSection card={false}>
+          <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            <span>
+              Counting business day {fmtDateOnly(countForDate)} — outside the selected period (
+              {fmtDateOnly(range.from)} — {fmtDateOnly(range.to)}). Expenses and variance of that
+              day belong to its own month.
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              onClick={() =>
+                setPeriod(
+                  monthPeriod(Number(countForDate.slice(0, 4)), Number(countForDate.slice(5, 7))),
+                )
+              }
+            >
+              Switch to that month
+            </Button>
+          </div>
+        </PageSection>
+      )}
+
       {/* CASH SURPLUS/DEFICIT + COUNT FRESHNESS — one responsive row, equal width and height */}
+
       <PageSection card={false}>
         <div
           className={cn(
