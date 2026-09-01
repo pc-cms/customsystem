@@ -5300,6 +5300,56 @@ export type Database = {
           },
         ]
       }
+      fin_month_opening: {
+        Row: {
+          casino_id: string
+          created_at: string
+          id: string
+          month: number
+          note: string | null
+          opened_at: string
+          opened_by: string
+          opening_float_tzs: number
+          updated_at: string
+          wallet_balances: Json
+          year: number
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          id?: string
+          month: number
+          note?: string | null
+          opened_at?: string
+          opened_by: string
+          opening_float_tzs?: number
+          updated_at?: string
+          wallet_balances?: Json
+          year: number
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          id?: string
+          month?: number
+          note?: string | null
+          opened_at?: string
+          opened_by?: string
+          opening_float_tzs?: number
+          updated_at?: string
+          wallet_balances?: Json
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_month_opening_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_month_report_snapshots: {
         Row: {
           casino_id: string
@@ -13094,6 +13144,10 @@ export type Database = {
         Args: { p_casino_id: string; p_month: number; p_year: number }
         Returns: undefined
       }
+      fin_assert_month_started: {
+        Args: { p_casino_id: string; p_date: string }
+        Returns: undefined
+      }
       fin_balance_snapshot: {
         Args: {
           p_casino_id: string
@@ -13266,9 +13320,24 @@ export type Database = {
         Args: { p_casino_id: string; p_month: number; p_year: number }
         Returns: Json
       }
+      fin_month_opening_status: {
+        Args: { p_casino_id: string; p_month: number; p_year: number }
+        Returns: string
+      }
       fin_month_report_is_closed: {
         Args: { p_casino_id: string; p_month: number; p_year: number }
         Returns: boolean
+      }
+      fin_open_month: {
+        Args: {
+          p_casino_id: string
+          p_float_details?: Json
+          p_month: number
+          p_note?: string
+          p_wallet_balances?: Json
+          p_year: number
+        }
+        Returns: string
       }
       fin_other_income_delete: { Args: { p_id: string }; Returns: undefined }
       fin_other_income_replace: {
