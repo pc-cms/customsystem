@@ -131,10 +131,12 @@ export default function FinancesWalletsPage() {
   const [floatWallet, setFloatWallet] = useState<string>("");
   const [floatNote, setFloatNote] = useState("");
   /**
-   * Physical counts always belong to the business day being closed (yesterday):
-   * on 05/08 the counted day is 04/08 (it rolled over at 07:00 EAT).
+   * Physical counts belong to a business day INSIDE the accounting month
+   * selected in the Office header. Default: yesterday's business day when the
+   * header shows the current month, otherwise the last day of that month.
    */
-  const countForDate = dayToRecord();
+  const [countDateInput, setCountDateInput] = useState<string | null>(null);
+
 
 
   const now = new Date();
