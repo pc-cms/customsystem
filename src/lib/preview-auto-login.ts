@@ -1,5 +1,5 @@
 /**
- * preview-auto-login — QA-режим ТОЛЬКО для preview/dev-хостов.
+ * preview-auto-login — QA-режим ТОЛЬКО для локальной/dev/preview-среды.
  *
  * Позволяет автоматически войти под тестовой учёткой, чтобы проверять
  * защищённые экраны (например Office → Import Statement / Rates /
@@ -11,9 +11,10 @@
  *   2. localStorage: cms:preview-autologin = {"email":"...","password":"..."}
  *
  * Жёсткие ограничения:
- *   - работает только на localhost / *.lovable.app / *.lovableproject.com
- *     / id-preview-- хостах или в DEV-сборке;
- *   - на продакшн-доменах (casinosystem.app и др.) полностью отключён;
+ *   - работает только при import.meta.env.DEV или на хостах:
+ *       localhost, 127.*, id-preview--* (Lovable preview);
+ *   - на любом другом домене, включая casinosystem.lovable.app,
+ *     полностью отключён;
  *   - ничего не делает, если сессия уже есть.
  */
 import { supabase } from "@/integrations/supabase/client";
@@ -28,9 +29,7 @@ export function isPreviewSurface(): boolean {
   return (
     host === "localhost" ||
     host.startsWith("127.") ||
-    host.includes("id-preview--") ||
-    host.endsWith(".lovable.app") ||
-    host.endsWith(".lovableproject.com")
+    host.startsWith("id-preview--")
   );
 }
 
