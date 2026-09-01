@@ -1182,8 +1182,12 @@ export default function FinancesWalletsPage() {
                                 rows={2}
                                 className="text-xs"
                               />
-                              <div className="flex justify-end gap-2">
+                              <div className="flex items-center justify-end gap-2">
+                                <span className="mr-auto text-[10px] text-muted-foreground">
+                                  Business day {fmtDateOnly(countForDate)}
+                                </span>
                                 <Button
+
                                   variant="outline"
                                   size="sm"
                                   onClick={() => toggleRow(w.id)}
