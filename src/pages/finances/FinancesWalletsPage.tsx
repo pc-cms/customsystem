@@ -706,25 +706,34 @@ export default function FinancesWalletsPage() {
         </PageSection>
       )}
 
-      {countOutOfPeriod && (
-        <PageSection card={false}>
-          <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-            <span>
-              Counting business day {fmtDateOnly(countForDate)} ({countMonthLabel}). The count is
-              saved into {countMonthLabel} — its own month — while you are viewing{" "}
-              {fmtDateOnly(range.from)} — {fmtDateOnly(range.to)}.
-            </span>
+      {/* Count date — always inside the accounting month selected in the header. */}
+      <PageSection card={false}>
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-card px-3 py-2 text-xs">
+          <span className="text-muted-foreground">Count business day</span>
+          <Input
+            type="date"
+            value={countForDate}
+            min={range.from}
+            max={range.to}
+            onChange={(e) => setCountDateInput(e.target.value || null)}
+            className="h-7 w-[150px] text-xs"
+          />
+          <span className="text-muted-foreground">
+            Saved into {countMonthLabel} · window {fmtDateOnly(range.from)} — {fmtDateOnly(range.to)}
+          </span>
+          {countForDate !== defaultCountDate && (
             <Button
               size="sm"
               variant="outline"
               className="h-7 text-xs"
-              onClick={() => setPeriod(monthPeriod(countYear, countMonth))}
+              onClick={() => setCountDateInput(null)}
             >
-              Switch to {countMonthLabel}
+              Reset to {fmtDateOnly(defaultCountDate)}
             </Button>
-          </div>
-        </PageSection>
-      )}
+          )}
+        </div>
+      </PageSection>
+
 
       {/* CASH SURPLUS/DEFICIT + COUNT FRESHNESS — one responsive row, equal width and height */}
 
