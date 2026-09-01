@@ -673,6 +673,18 @@ export default function FinancesWalletsPage() {
         </div>
       </PageSection>
 
+      {countBlocked && (
+        <PageSection card={false}>
+          <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+            <span>
+              {countMonthStatus === "closed"
+                ? `Month ${countMonthLabel} is closed — physical counts and wallet movements for ${fmtDateOnly(countForDate)} are disabled.`
+                : `Month ${countMonthLabel} is not opened yet — physical counts and wallet movements are disabled until a manager runs Open Month.`}
+            </span>
+          </div>
+        </PageSection>
+      )}
+
       {countOutOfPeriod && (
         <PageSection card={false}>
           <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
