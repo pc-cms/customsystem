@@ -5,6 +5,8 @@ import OtherIncomesTab from "./OtherIncomesTab";
 import RatesTab from "./RatesTab";
 import JpTab from "./JpTab";
 import TipsBonusTab from "./TipsBonusTab";
+import CollectionsTab from "./CollectionsTab";
+
 
 import { OfficeShell } from "@/components/office/office-shell";
 
