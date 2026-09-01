@@ -45,8 +45,23 @@ export function CloseMonthWizard({
   const year = yearProp ?? now.getFullYear();
   const month = monthProp ?? now.getMonth() + 1;
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  // Next month owns its own starting float once it was opened (Open Month).
+  // In that case the float step is skipped entirely so we never overwrite it.
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const { data: openings = [] } = useMonthOpenings();
+  const { data: closures = [] } = useMonthClosures();
+  const nextStatus = monthStatusOf(openings, closures, nextYear, nextMonth);
+  const skipFloat = nextStatus !== "not_opened";
+  const steps = useMemo(
+    () => (skipFloat ? (["collection", "confirm"] as const) : (["collection", "float", "confirm"] as const)),
+    [skipFloat],
+  );
+
+  const [stepIdx, setStepIdx] = useState(0);
+  const current = steps[Math.min(stepIdx, steps.length - 1)];
   const [note, setNote] = useState("");
+
 
   const initialCollection: Row[] = useMemo(
     () =>
