@@ -9,7 +9,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Pencil, Trash2, ArrowLeftRight, Layers } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowLeftRight } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { OfficeHeaderActions, useOfficePeriod } from "@/components/office/office-shell";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 import { defaultPostingDate, isOutsideWindow } from "@/lib/office-posting-date";
 import { toast } from "sonner";
 
-type Filter = "all" | "out" | "in";
+
 
 /** One line of the ledger — either a signed entry of this tab, or a legacy expense row. */
 type Row = {
@@ -132,9 +132,7 @@ export default function CollectionsTab() {
     },
   });
 
-  const [filter, setFilter] = useState<Filter>("all");
   const [walletFilter, setWalletFilter] = useState<string>("all");
-  const [grouped, setGrouped] = useState(false);
 
   const allRows: Row[] = useMemo(() => {
     const entries: Row[] = (allEntries as OtherIncomeRow[])
@@ -172,11 +170,10 @@ export default function CollectionsTab() {
   const rows = useMemo(
     () =>
       allRows.filter((r) => {
-        if (filter !== "all" && (r.amount < 0 ? "out" : "in") !== filter) return false;
         if (walletFilter !== "all" && r.wallet !== walletFilter) return false;
         return true;
       }),
-    [allRows, filter, walletFilter],
+    [allRows, walletFilter],
   );
 
   /** Distinct values for the filter selectors (from the loaded period). */
@@ -188,18 +185,6 @@ export default function CollectionsTab() {
   /** Totals in TZS of the CURRENT selection — collected (OUT), returned (IN), net. */
   const totals = useMemo(() => sumRows(rows), [rows]);
 
-  /** Rows grouped by category, each with its own subtotals. */
-  const byCategory = useMemo(() => {
-    const map = new Map<string, Row[]>();
-    rows.forEach((r) => {
-      const arr = map.get(r.category) || [];
-      arr.push(r);
-      map.set(r.category, arr);
-    });
-    return Array.from(map.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([category, list]) => ({ category, list, totals: sumRows(list) }));
-  }, [rows]);
 
 
 
