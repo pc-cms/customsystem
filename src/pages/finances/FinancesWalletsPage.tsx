@@ -26,7 +26,9 @@ import {
 
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
-import { monthPeriod } from "@/components/office/PeriodPicker";
+import { monthPeriod, MONTH_NAMES } from "@/components/office/PeriodPicker";
+import { useMonthOpenings, monthStatusOf } from "@/hooks/use-fin-month-opening";
+import { useMonthClosures } from "@/hooks/use-fin-month-closures";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -212,6 +214,18 @@ export default function FinancesWalletsPage() {
   
   /** The counted business day belongs to another period than the one shown. */
   const countOutOfPeriod = countForDate < range.from || countForDate > range.to;
+  /**
+   * Month gating: the count is saved into the month of its OWN business date.
+   * Writing is allowed only while that month is opened and not closed —
+   * no automatic carry-over between months.
+   */
+  const { data: monthOpenings = [] } = useMonthOpenings();
+  const { data: monthClosuresList = [] } = useMonthClosures();
+  const countYear = Number(countForDate.slice(0, 4));
+  const countMonth = Number(countForDate.slice(5, 7));
+  const countMonthLabel = `${MONTH_NAMES[countMonth - 1]} ${countYear}`;
+  const countMonthStatus = monthStatusOf(monthOpenings, monthClosuresList, countYear, countMonth);
+  const countBlocked = countMonthStatus !== "open";
   const refDate = countForDate < range.from ? range.from
     : countForDate > range.to ? range.to : countForDate;
   const freshness = useMemo<CountFreshnessRow[]>(() => {
