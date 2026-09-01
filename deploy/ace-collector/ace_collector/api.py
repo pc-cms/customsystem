@@ -18,7 +18,11 @@ SUCCESS_STATUSES = (
     "closing_recorded",
     "already_recorded",
     "history_filled",
+    "new_statistics_day_created",
+    "existing_day_drop_filled",
+    "existing_day_unchanged",
 )
+
 
 
 class ApiError(RuntimeError):
