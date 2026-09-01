@@ -611,6 +611,8 @@ export default function FinancesWalletsPage() {
           variant="secondary"
           size="sm"
           className="h-9"
+          disabled={countBlocked}
+          title={countBlocked ? `Month ${countMonthLabel} is not open for posting` : undefined}
           onClick={() => {
             setMoveWalletId(undefined);
             setMoveMode("in");
@@ -624,6 +626,8 @@ export default function FinancesWalletsPage() {
           variant="secondary"
           size="sm"
           className="h-9"
+          disabled={countBlocked}
+          title={countBlocked ? `Month ${countMonthLabel} is not open for posting` : undefined}
           onClick={() => {
             setMoveWalletId(undefined);
             setMoveMode("out");
@@ -1147,7 +1151,14 @@ export default function FinancesWalletsPage() {
                                 <Button
                                   size="sm"
                                   onClick={() => saveCount(w)}
-                                  disabled={savingId === w.id}
+                                  disabled={savingId === w.id || countBlocked}
+                                  title={
+                                    countBlocked
+                                      ? countMonthStatus === "closed"
+                                        ? `Month ${countMonthLabel} is closed`
+                                        : `Month ${countMonthLabel} is not opened yet — open it first`
+                                      : undefined
+                                  }
                                 >
                                   {savingId === w.id ? "Saving…" : "Save Physical Count"}
                                 </Button>
