@@ -633,6 +633,28 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
           cat.actual_grand_tzs += grandTzs;
           if (r.currency === "USD") cat.actual_usd += amt;
           else cat.actual_tzs += amt;
+          // Surface the Office → Collections entry as a detail row so the
+          // expanded category list always reconciles with the category total.
+          cat.expenses = [
+            ...(cat.expenses || []),
+            {
+              id: String(r.id),
+              business_date: String(r.business_date),
+              description: r.note ? String(r.note) : "Collection entry",
+              amount: amt,
+              currency: String(r.currency || "TZS"),
+              amount_tzs: grandTzs,
+              wallet_id: null,
+              wallet_name: null,
+              fin_category_id: r.fin_category_id ? String(r.fin_category_id) : null,
+              player_id: null,
+              player_name: null,
+              source: "collection",
+              casino_id: String(r.casino_id || ""),
+              casino_slug: null,
+              voided_at: null,
+            },
+          ].sort((x, y) => x.business_date.localeCompare(y.business_date));
           cat.remain_tzs = cat.plan_month_tzs - cat.actual_tzs;
           cat.remain_usd = cat.plan_month_usd - cat.actual_usd;
           cat.remain_grand_tzs = cat.plan_month_grand_tzs - cat.actual_grand_tzs;
