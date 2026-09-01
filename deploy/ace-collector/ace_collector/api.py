@@ -19,7 +19,8 @@ SUCCESS_STATUSES = (
     "already_recorded",
     "history_filled",
     "new_statistics_day_created",
-    "existing_day_drop_filled",
+    "existing_day_fields_filled",
+    "shift_day_statistics_created",
     "existing_day_unchanged",
 )
 

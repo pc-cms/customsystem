@@ -350,8 +350,8 @@ def run_history_scan(client, api, cfg, logger, from_date: str, to_date: str) -> 
     for bdate, pid, label, _report in selected:
         logger.info("HISTORY-SCAN period date=%s period_id=%s label=%r", bdate, pid, label)
     # CMS-side preview: classify every selected day without writing anything.
-    cms = {"new_statistics_day_created": 0, "existing_day_drop_filled": 0,
-           "existing_day_unchanged": 0, "unknown": 0}
+    cms = {"new_statistics_day_created": 0, "shift_day_statistics_created": 0,
+           "existing_day_fields_filled": 0, "existing_day_unchanged": 0, "unknown": 0}
     for bdate, _pid, _label, report in selected:
         try:
             status = probe_day(api, cfg, bdate, report)
@@ -359,11 +359,11 @@ def run_history_scan(client, api, cfg, logger, from_date: str, to_date: str) -> 
             logger.error("HISTORY-SCAN probe failed date=%s: %s", bdate, exc)
             status = "unknown"
         cms[status if status in cms else "unknown"] += 1
-    logger.info("HISTORY-SCAN cms existing_statistics_days=%d completely_missing_days=%d",
-                cms["existing_day_drop_filled"] + cms["existing_day_unchanged"],
-                cms["new_statistics_day_created"])
-    logger.info("HISTORY-SCAN cms drop_fill_days=%d unchanged_existing_days=%d unknown=%d",
-                cms["existing_day_drop_filled"], cms["existing_day_unchanged"], cms["unknown"])
+    logger.info("HISTORY-SCAN cms existing_closing_days=%d fully_complete_days=%d partially_missing_days=%d",
+                cms["existing_day_fields_filled"] + cms["existing_day_unchanged"],
+                cms["existing_day_unchanged"], cms["existing_day_fields_filled"])
+    logger.info("HISTORY-SCAN cms shift_only_days_without_stats=%d completely_missing_days=%d unknown=%d",
+                cms["shift_day_statistics_created"], cms["new_statistics_day_created"], cms["unknown"])
 
     logger.info(
         "HISTORY-SCAN totals selected_days=%d skipped_days=%d special_overrides=%d (nothing was sent)",
@@ -394,7 +394,8 @@ def run_backfill(client, api, cfg, logger, from_date: str, to_date: str, dry_run
     counts = {
         "sent": 0, "failed": 0, "fields": 0,
         "new_statistics_day_created": 0,
-        "existing_day_drop_filled": 0,
+        "shift_day_statistics_created": 0,
+        "existing_day_fields_filled": 0,
         "existing_day_unchanged": 0,
     }
     for idx, (bdate, pid, label, report) in enumerate(selected):
@@ -427,10 +428,11 @@ def run_backfill(client, api, cfg, logger, from_date: str, to_date: str, dry_run
             time.sleep(HISTORY_POST_DELAY_S)
 
     logger.info(
-        "BACKFILL done location=%s sent=%d new_days=%d drop_filled=%d unchanged=%d "
-        "fields_filled=%d failed=%d",
+        "BACKFILL done location=%s sent=%d new_days=%d shift_only_days=%d fields_filled_days=%d "
+        "unchanged=%d fields_filled=%d failed=%d",
         cfg.location_code, counts["sent"], counts["new_statistics_day_created"],
-        counts["existing_day_drop_filled"], counts["existing_day_unchanged"],
+        counts["shift_day_statistics_created"],
+        counts["existing_day_fields_filled"], counts["existing_day_unchanged"],
         counts["fields"], counts["failed"],
     )
     return 1 if counts["failed"] and counts["sent"] == 0 else 0
