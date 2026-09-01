@@ -231,9 +231,8 @@ export default function FinancesWalletsPage() {
    * (`countForDate`), not the calendar day. Counting yesterday's money this
    * morning is the normal flow and must never be reported as stale.
    */
-  
-  /** The counted business day belongs to another period than the one shown. */
-  const countOutOfPeriod = countForDate < range.from || countForDate > range.to;
+
+
   /**
    * Month gating: the count is saved into the month of its OWN business date.
    * Writing is allowed only while that month is opened and not closed —
