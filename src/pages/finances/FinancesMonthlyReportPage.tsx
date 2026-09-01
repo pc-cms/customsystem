@@ -998,8 +998,7 @@ const SummaryBlock = ({
           </Button>
         </div>
       </ResponsiveDialog>
-    </PageSection>
-
+    </>
   );
 };
 
