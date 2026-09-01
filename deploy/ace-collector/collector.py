@@ -482,17 +482,32 @@ def main(argv: list[str] | None = None) -> int:
     if args.history_scan or args.backfill_from:
         raw = args.backfill_from or args.from_date
         from_date = valid_date(raw)
+        to_date = valid_date(args.to_date)
         if not from_date:
             logger.error("A valid --from / --backfill-from date (YYYY-MM-DD) is required, got %r", raw)
+            return 2
+        if not to_date:
+            logger.error("A valid --to YYYY-MM-DD bound is required for history modes, got %r", args.to_date)
+            return 2
+        if to_date < from_date:
+            logger.error("--to (%s) must not be earlier than --from (%s)", to_date, from_date)
+            return 2
+        if from_date < HISTORY_WINDOW_MIN or to_date > HISTORY_WINDOW_MAX:
+            logger.error(
+                "Historical range %s..%s is outside the allowed window %s..%s "
+                "(August 2026 and later must never be touched)",
+                from_date, to_date, HISTORY_WINDOW_MIN, HISTORY_WINDOW_MAX,
+            )
             return 2
         try:
             client.login()
             if args.history_scan and not args.backfill_from:
-                return run_history_scan(client, cfg, logger, from_date)
-            return run_backfill(client, api, cfg, logger, from_date, args.dry_run)
+                return run_history_scan(client, cfg, logger, from_date, to_date)
+            return run_backfill(client, api, cfg, logger, from_date, to_date, args.dry_run)
         except (AceError, ApiError, Exception) as exc:  # noqa: BLE001
             logger.error("History run failed: %s", exc)
             return 1
+
 
 
     do_live = not args.closing_only
