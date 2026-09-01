@@ -11,8 +11,9 @@ Commands:
   --live-only
   --closing-only --force-closing
   --dry-run --force-closing
-  --history-scan --from YYYY-MM-DD      (read-only, posts nothing)
-  --backfill-from YYYY-MM-DD            (posts every closed period >= date)
+  --history-scan --from 2026-01-01 --to 2026-07-31   (read-only, posts nothing)
+  --backfill-from 2026-01-01 --to 2026-07-31         (SAFE Statistics backfill)
+
 """
 from __future__ import annotations
 
