@@ -9,7 +9,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Minus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Minus, Pencil, Trash2, ArrowLeftRight, Layers } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import {
   useDeleteOtherIncome,
   type OtherIncomeRow,
 } from "@/hooks/use-other-incomes";
+import { useEditExpense } from "@/hooks/use-edit-expense";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import { useAuth } from "@/lib/auth-context";
@@ -85,6 +86,7 @@ export default function CollectionsTab() {
   const addIncome = useAddOtherIncome();
   const updateIncome = useUpdateOtherIncome();
   const deleteIncome = useDeleteOtherIncome();
+  const editExpense = useEditExpense();
 
   /** Collections-group categories (Collection, CAPEX, Money Change…). */
   const collectionCats = useMemo(
