@@ -5630,6 +5630,63 @@ export type Database = {
         }
         Relationships: []
       }
+      fin_wallet_float_history: {
+        Row: {
+          amount: number
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          effective_date: string
+          id: string
+          note: string | null
+          source: string
+          updated_at: string
+          wallet_id: string
+        }
+        Insert: {
+          amount?: number
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          effective_date: string
+          id?: string
+          note?: string | null
+          source?: string
+          updated_at?: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          effective_date?: string
+          id?: string
+          note?: string | null
+          source?: string
+          updated_at?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_wallet_float_history_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_wallet_float_history_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_wallet_tx: {
         Row: {
           amount: number
@@ -13548,6 +13605,14 @@ export type Database = {
           p_wallet_id: string
         }
         Returns: undefined
+      }
+      fin_wallet_float_asof: {
+        Args: { p_asof: string; p_casino_id: string }
+        Returns: {
+          amount: number
+          effective_date: string
+          wallet_id: string
+        }[]
       }
       finalize_open_cycles_for_close: {
         Args: { _casino_id: string; _user: string }
