@@ -109,7 +109,12 @@ export default function FinancesInterCasinoPage() {
       <div className="flex flex-wrap items-center justify-end gap-2">
         <FinanceCasinoSwitcher allowNetwork={true} />
         {!isSummaryMode && (
-          <Button onClick={() => setOpen(true)}>
+          <Button
+            onClick={() => {
+              setForm((f) => ({ ...f, business_date: defaultPostingDate(range) }));
+              setOpen(true);
+            }}
+          >
             <Plus className="w-4 h-4" /> New Transfer
           </Button>
         )}
