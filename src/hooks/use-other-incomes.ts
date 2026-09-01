@@ -23,11 +23,13 @@ export type OtherIncomeSource =
   | "tips"
   | "tips_bonus"
   | "jp"
+  | "collection"
   | "commission"
   | "agent_commission"
   | "fee"
   | "add_float"
   | "other";
+
 
 /** All known sources, including legacy ones (used for labels of existing rows). */
 export const ALL_INCOME_SOURCES: { value: OtherIncomeSource; label: string }[] = [
