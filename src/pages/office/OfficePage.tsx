@@ -67,7 +67,7 @@ export default function OfficePage() {
     }
     // Tips & Bonuses moved to Management — old Finance URLs keep working.
     if (raw === "tips-bonuses") {
-      navigate("/tips-and-bonuses", { replace: true });
+      navigate("/tips-and-bonuses?tab=tips", { replace: true });
       return;
     }
     if (raw === "balance" || raw === "money-change") {
