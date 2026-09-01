@@ -256,7 +256,9 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     const amt = Number(row.amount);
     // Collections (owner withdrawal / CAPEX / transfers) may be negative:
     // a returned collection reduces the withdrawn amount.
-    const allowsNegative = finCatById[row.fin_category_id]?.group_code === "collections";
+    const allowsNegative =
+      row.source === "office" && finCatById[row.fin_category_id]?.group_code === "collections";
+
     if (!amt || (!allowsNegative && amt <= 0))
       return toast.error(allowsNegative ? "Amount cannot be 0" : "Amount must be > 0");
 
