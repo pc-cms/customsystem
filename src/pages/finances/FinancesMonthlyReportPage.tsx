@@ -445,7 +445,7 @@ const SummaryBlock = ({
   const g = data.grand;
   const mf = data.month;
   const closed = mf?.status === "closed";
-  const closedAt = mf?.closed_at || null;
+  
 
 
 
@@ -689,22 +689,7 @@ const SummaryBlock = ({
 
 
   return (
-    <PageSection
-      title="Month Summary"
-      card={false}
-      titleRight={
-        <span
-          className={cn(
-            "text-[12px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded border",
-            closed
-              ? "border-border bg-muted text-muted-foreground"
-              : "border-primary/40 bg-primary/10 text-primary",
-          )}
-        >
-          {closed ? `Closed${closedAt ? ` · ${fmtDateOnly(closedAt)}` : ""}` : "Open"}
-        </span>
-      }
-    >
+    <>
       {/* KPI TILES — Income → Budget → Paid → Pending → Profit → Cash Balance */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 items-stretch">
         <KpiCard
@@ -1013,8 +998,7 @@ const SummaryBlock = ({
           </Button>
         </div>
       </ResponsiveDialog>
-    </PageSection>
-
+    </>
   );
 };
 

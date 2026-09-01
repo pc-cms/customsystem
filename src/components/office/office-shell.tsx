@@ -88,7 +88,13 @@ export function OfficeHeaderActions({ children }: { children: ReactNode }) {
     force((n) => n + 1);
   }, []);
   if (!ctx?.headerActionsEl) return null;
-  return createPortal(<div className="flex items-center gap-2 flex-wrap">{children}</div>, ctx.headerActionsEl);
+  // Uniform size: every header action matches the month status badge / dropdown (h-8, text-xs).
+  return createPortal(
+    <div className="flex items-center gap-2 flex-wrap [&_button]:h-8 [&_button]:text-xs [&_button]:whitespace-nowrap">
+      {children}
+    </div>,
+    ctx.headerActionsEl,
+  );
 }
 
 export type ShellTab = { value: string; label: string };
