@@ -76,7 +76,7 @@ export default function JpTab() {
   const [editId, setEditId] = useState<string | null>(null);
   const [mode, setMode] = useState<"in" | "out">("in");
   const [form, setForm] = useState({
-    business_date: new Date().toISOString().slice(0, 10),
+    business_date: defaultPostingDate(range),
     wallet_id: "",
     currency: "TZS",
     amount: "",
