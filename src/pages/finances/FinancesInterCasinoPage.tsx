@@ -58,9 +58,12 @@ export default function FinancesInterCasinoPage() {
   const accept = useAcceptInterCasino();
   const resolve = useResolveInterCasino();
 
+  const { period } = useOfficePeriod();
+  const range = { from: period.from, to: period.to };
+
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
-    business_date: new Date().toISOString().slice(0, 10),
+    business_date: defaultPostingDate(range),
     wallet_id: "",
     to_casino_id: "",
     amount: 0,
