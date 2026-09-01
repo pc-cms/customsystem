@@ -818,7 +818,28 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                   );
                 })}
               </tbody>
+              {sortedExpenses.length > 0 && (
+                <tfoot>
+                  <tr className="border-t-2 border-border bg-muted/30">
+                    <td colSpan={5} className="px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                      Total
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono text-sm font-semibold cms-amount-negative">
+                      <div>{formatNumberSpaces(totalTzs)} TZS</div>
+                      {currencyKeys.length > 1 && (
+                        <div className="text-[10px] text-muted-foreground font-normal">
+                          {currencyKeys
+                            .map((c) => `${c} ${formatNumberSpaces(byCurrency[c])}`)
+                            .join(" · ")}
+                        </div>
+                      )}
+                    </td>
+                    <td colSpan={embedded ? 1 : 2} />
+                  </tr>
+                </tfoot>
+              )}
             </table>
+
           </div>
         );
       })()}
