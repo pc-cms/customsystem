@@ -266,6 +266,7 @@ export default function CollectionsTab() {
       header: "Date",
       type: "date",
       accessor: (r) => <span className="font-mono text-xs">{fmtDateOnly(r.business_date)}</span>,
+      sortValue: (r) => r.business_date,
       style: { width: 110 },
     },
     {
@@ -287,6 +288,7 @@ export default function CollectionsTab() {
           </span>
         );
       },
+      sortValue: (r) => (r.amount < 0 ? "Collected" : "Returned"),
       style: { width: 110 },
     },
     {
@@ -305,6 +307,7 @@ export default function CollectionsTab() {
           )}
         </span>
       ),
+      sortValue: (r) => r.category,
       style: { width: 170 },
     },
     {
@@ -315,6 +318,7 @@ export default function CollectionsTab() {
           {r.wallet} <span className="text-[10px] text-muted-foreground">{r.currency}</span>
         </span>
       ),
+      sortValue: (r) => r.wallet,
     },
     {
       key: "amount",
@@ -331,6 +335,7 @@ export default function CollectionsTab() {
           {formatNumberSpaces(Math.abs(r.amount))}
         </span>
       ),
+      sortValue: (r) => r.amount_tzs,
       style: { width: 140 },
     },
     {
