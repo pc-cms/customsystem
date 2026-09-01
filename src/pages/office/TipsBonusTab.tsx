@@ -1,16 +1,18 @@
 /**
- * Office → Tips & Bonuses
+ * Tips & Bonuses → Tips (ledger)
  * Ledger of tips and bonuses, split into two separate kinds:
  *   source = "tips"  → Tips
  *   source = "bonus" → Bonus
  * Direction is carried by the sign: collected (IN, positive) and paid out /
  * distributed (OUT, negative). Stored in fin_other_incomes, excluded from the
- * Transactions tab. Built after the JP tab pattern.
+ * Transactions tab. Lives on /tips-and-bonuses?tab=tips since 2026-09-01 —
+ * standalone month picker + action row (no Office shell dependency).
  */
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Plus, Minus, Pencil, Trash2 } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
-import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
+import { useOfficePeriod } from "@/components/office/office-shell";
+import { PeriodPicker } from "@/components/office/PeriodPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
@@ -42,14 +44,16 @@ type Filter = "all" | Kind;
 
 const kindOf = (r: OtherIncomeRow): Kind => (r.source === "bonus" ? "bonus" : "tips");
 
-export default function TipsBonusTab() {
+export default function TipsBonusTab({ belowHeader }: { belowHeader?: ReactNode }) {
   const { roles } = useAuth();
   const canWrite =
     roles.includes("super_admin") ||
     roles.includes("finance_manager") ||
     roles.includes("manager");
 
-  const { period } = useOfficePeriod();
+  // Outside the Office shell this falls back to local state — the tab owns
+  // its own PeriodPicker rendered in the header row below.
+  const { period, setPeriod } = useOfficePeriod();
   const range = { from: period.from, to: period.to };
 
   const { data: allRows = [], isLoading } = useOtherIncomes(range.from, range.to, {
@@ -257,16 +261,22 @@ export default function TipsBonusTab() {
 
   return (
     <PageShell>
-      {canWrite && (
-        <OfficeActions>
-          <Button onClick={() => openAdd("out")} size="sm" variant="outline">
-            <Minus className="w-4 h-4" /> Payout (OUT)
-          </Button>
-          <Button onClick={() => openAdd("in")} size="sm">
-            <Plus className="w-4 h-4" /> Add Tips / Bonus
-          </Button>
-        </OfficeActions>
-      )}
+      {/* Header row: tab menu (from TipsAndBonuses) · actions · month picker. */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {belowHeader}
+        <div className="flex-1" />
+        {canWrite && (
+          <>
+            <Button onClick={() => openAdd("out")} size="sm" variant="outline" className="h-8 text-xs">
+              <Minus className="w-4 h-4" /> Payout (OUT)
+            </Button>
+            <Button onClick={() => openAdd("in")} size="sm" className="h-8 text-xs">
+              <Plus className="w-4 h-4" /> Add Tips / Bonus
+            </Button>
+          </>
+        )}
+        <PeriodPicker value={period} onChange={setPeriod} />
+      </div>
 
       <div className="grid gap-3 lg:grid-cols-4">
         <div className="grid grid-cols-3 gap-3 lg:col-span-3">

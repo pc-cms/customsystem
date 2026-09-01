@@ -562,8 +562,9 @@ const ProtectedRoutes = () => {
           <Route path="/hr/warnings" element={<RoleGuard path="/hr/warnings"><ErrorBoundary><HrWarnings /></ErrorBoundary></RoleGuard>} />
 
           <Route path="/reports/miss-chips" element={<Navigate to="/miss-chips" replace />} />
-          <Route path="/reports/poker-tips" element={<Navigate to="/tips-and-bonuses?tab=poker" replace />} />
-          <Route path="/reports/floor-tips" element={<Navigate to="/tips-and-bonuses?tab=floor" replace />} />
+          {/* Legacy report URLs land on the Tips ledger (tabs poker/floor removed 2026-09-01). */}
+          <Route path="/reports/poker-tips" element={<Navigate to="/tips-and-bonuses?tab=tips" replace />} />
+          <Route path="/reports/floor-tips" element={<Navigate to="/tips-and-bonuses?tab=tips" replace />} />
           <Route path="/incidents" element={<RoleGuard path="/incidents"><ErrorBoundary><Incidents /></ErrorBoundary></RoleGuard>} />
           <Route path="/pitbook" element={<RoleGuard path="/pitbook"><ErrorBoundary><PitBook /></ErrorBoundary></RoleGuard>} />
           <Route path="/staff/master" element={<RoleGuard path="/staff/master"><ErrorBoundary><StaffMaster /></ErrorBoundary></RoleGuard>} />
