@@ -165,7 +165,34 @@ export function OfficeShell({
             <div ref={actionsRef} className="flex items-center gap-2" />
           </div>
         </div>
+        {showPeriod && monthStatus === "not_opened" && (
+          <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 flex flex-wrap items-center gap-2">
+            <span>
+              Month {MONTH_NAMES[period.month - 1]} {period.year} is not opened yet — wallet
+              counts, movements and expenses are unavailable for it until a manager confirms
+              Starting Float and opening balances.
+            </span>
+            {canOpenMonth && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 border-amber-500/50"
+                onClick={() => setOpenWizard(true)}
+              >
+                <CalendarPlus className="w-4 h-4" /> Open Month
+              </Button>
+            )}
+          </div>
+        )}
         {children}
+        {period.mode === "month" && (
+          <OpenMonthWizard
+            open={openWizard}
+            onOpenChange={setOpenWizard}
+            year={period.year}
+            month={period.month}
+          />
+        )}
       </div>
     </OfficeShellCtx.Provider>
   );
