@@ -919,7 +919,7 @@ const SummaryBlock = ({
           <Section
             id="collections"
             label="Collections"
-            total={cash.collections_actual - capexTotal}
+            total={data.collections ? data.collections.totals.actual_grand_tzs : cash.collections_actual - capexTotal}
             tip="Owner withdrawals already taken out in cash. They reduce Expected Profit, the amount still available for collection and Cash Position. Expand to see the breakdown by category."
           >
             {collectionCats.length === 0 ? (

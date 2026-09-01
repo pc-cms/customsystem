@@ -269,7 +269,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       //   inter-casino transfers = registry, never here.
       let incomesQ = (supabase as any)
         .from("fin_other_incomes")
-        .select("id, note, amount, fx_rate, currency, casino_id, business_date, reverses_id, reversed_by_id, source")
+        .select("id, note, amount, fx_rate, currency, casino_id, business_date, reverses_id, reversed_by_id, source, fin_category_id")
         .gte("business_date", start)
         .lt("business_date", endExclusive)
         .is("reverses_id", null)
