@@ -5,7 +5,7 @@
  * lets the user jump straight into counting the stale wallets.
  */
 import { useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronRight, ClipboardCheck } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
@@ -28,10 +28,9 @@ export type CountFreshnessRow = {
 type Props = {
   rows: CountFreshnessRow[];
   refDate: string;
-  onCountAll: () => void;
 };
 
-export function StaleCountsNotice({ rows, refDate, onCountAll }: Props) {
+export function StaleCountsNotice({ rows, refDate }: Props) {
   const [open, setOpen] = useState(false);
   const stale = rows.filter((r) => r.stale);
   if (!stale.length) return null;
@@ -58,9 +57,6 @@ export function StaleCountsNotice({ rows, refDate, onCountAll }: Props) {
           >
             {open ? <ChevronDown className="w-3.5 h-3.5 mr-1" /> : <ChevronRight className="w-3.5 h-3.5 mr-1" />}
             Details
-          </Button>
-          <Button size="sm" className="h-7 text-xs" onClick={onCountAll}>
-            <ClipboardCheck className="w-3.5 h-3.5 mr-1" /> Count all
           </Button>
         </div>
       </div>

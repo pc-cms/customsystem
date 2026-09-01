@@ -19,7 +19,7 @@ import {
   ArrowDown,
   ChevronRight,
   ChevronDown,
-  CalendarCheck,
+  ClipboardCheck,
   Sliders,
   Inbox,
 } from "lucide-react";
@@ -41,7 +41,6 @@ import { FormGrid, FormField } from "@/components/ui/form-grid";
 import { useFinWallets, useUpsertFinWallet, useFinWalletTx } from "@/hooks/use-fin";
 import { useFinBalanceSnapshot, computeBalanceTotals } from "@/hooks/use-fin-balance";
 import { fmtDate } from "@/lib/format-date";
-import { CloseMonthWizard } from "@/pages/office/CloseMonthWizard";
 import { useAdjustFloat, useMonthFinance } from "@/hooks/use-fin-month-finance";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -50,7 +49,6 @@ import { useAuth } from "@/lib/auth-context";
 import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
-import WalletMovementDialog, { type MovementMode } from "@/components/finances/WalletMovementDialog";
 import ClosingInboxDialog from "@/components/finances/ClosingInboxDialog";
 import { useClosingInboxPending } from "@/hooks/use-closing-inbox";
 import StaleCountsNotice, { type CountFreshnessRow } from "@/components/office/StaleCountsNotice";
@@ -143,7 +141,6 @@ export default function FinancesWalletsPage() {
   const { period, setPeriod } = useOfficePeriod();
   const ym = { year: period.year, month: period.month };
   const { data: monthFinance } = useMonthFinance(activeCasinoId, ym.year, ym.month);
-  const monthClosed = monthFinance?.status === "closed";
   const floatCurrent = Number(monthFinance?.float?.current_tzs || 0);
   const [walletFilter, setWalletFilter] = useSessionState<string>("wallet", "all");
   const [kindFilter, setKindFilter] = useSessionState<string>("kind", "all");
@@ -158,7 +155,6 @@ export default function FinancesWalletsPage() {
   );
   /** Inactive wallets are hidden by default; legacy wallets stay visible while active. */
   const [includeInactive, setIncludeInactive] = useSessionState<boolean>("walletInactive", false);
-  const [closeOpen, setCloseOpen] = useState(false);
 
   // Page is scoped to the toolbar period (calendar month, or an explicit custom range).
   const range = useMemo(() => {
@@ -452,10 +448,11 @@ export default function FinancesWalletsPage() {
   const [inboxOpen, setInboxOpen] = useState(false);
   const [inboxDate, setInboxDate] = useState<string | null>(null);
 
-  /* ===== wallet movement (transactional cash in/out/transfer) ===== */
-  const [moveOpen, setMoveOpen] = useState(false);
-  const [moveMode, setMoveMode] = useState<MovementMode>("in");
-  const [moveWalletId, setMoveWalletId] = useState<string | undefined>(undefined);
+  /* Money In / Money Out entry points were removed from Wallets (Stage 2A):
+     new movements are initiated through the existing Transactions mechanism.
+     Historical movements stay visible in the transactions log below. */
+
+
 
 
   /* ===== wallet CRUD dialog ===== */
@@ -491,14 +488,20 @@ export default function FinancesWalletsPage() {
 
   const toggleRow = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
 
-  /** Open the count form for every wallet whose last count is older than refDate. */
+  /**
+   * Count All — opens the count form for every wallet whose last count is
+   * older than refDate; when nothing is stale, opens every visible wallet.
+   */
   const countAllStale = () => {
     const stale = freshness.filter((r) => r.stale);
-    if (!stale.length) return;
+    const ids = stale.length
+      ? stale.map((r) => r.wallet_id)
+      : (visibleWallets as any[]).map((w) => w.id);
+    if (!ids.length) return;
     setExpanded((s) => {
       const n = { ...s };
-      stale.forEach((r) => {
-        n[r.wallet_id] = true;
+      ids.forEach((id) => {
+        n[id] = true;
       });
       return n;
     });
@@ -631,35 +634,6 @@ export default function FinancesWalletsPage() {
             <Inbox className="w-4 h-4" /> Closing Inbox · {pendingInboxes.length} pending
           </Button>
         )}
-        <Button
-          variant="secondary"
-          size="sm"
-          className="h-9"
-          disabled={countBlocked}
-          title={countBlocked ? `Month ${countMonthLabel} is not open for posting` : undefined}
-          onClick={() => {
-            setMoveWalletId(undefined);
-            setMoveMode("in");
-            setMoveOpen(true);
-          }}
-        >
-          <ArrowDownLeft className="w-4 h-4" /> Money In
-        </Button>
-
-        <Button
-          variant="secondary"
-          size="sm"
-          className="h-9"
-          disabled={countBlocked}
-          title={countBlocked ? `Month ${countMonthLabel} is not open for posting` : undefined}
-          onClick={() => {
-            setMoveWalletId(undefined);
-            setMoveMode("out");
-            setMoveOpen(true);
-          }}
-        >
-          <ArrowUpRight className="w-4 h-4" /> Money Out
-        </Button>
         <Button size="sm" className="h-9" onClick={openNewWallet}>
           <Plus className="w-4 h-4" /> Add Wallet
         </Button>
@@ -668,18 +642,13 @@ export default function FinancesWalletsPage() {
             <Sliders className="w-4 h-4" /> Adjust Float
           </Button>
         )}
-        {canCloseMonth && (
-          <Button variant="outline" size="sm" className="h-9" onClick={() => setCloseOpen(true)}>
-            <CalendarCheck className="w-4 h-4" />
-            Close Month · {ym.year}-{String(ym.month).padStart(2, "0")} ·{" "}
-            {monthClosed ? "Closed" : "Open"}
-          </Button>
-        )}
+        <Button variant="secondary" size="sm" className="h-9" onClick={countAllStale}>
+          <ClipboardCheck className="w-4 h-4" /> Count All
+        </Button>
       </OfficeActions>
-      {/* KPI STRIP */}
+      {/* KPI STRIP — fixed order: Income · Expenses · Money · Variance */}
       <PageSection card={false}>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Kpi label="Total Wallets" tone="neutral" v={grandTotals.tzs} sub="grand TZS · period end" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-stretch">
           <Kpi
             label="Total Income"
             tone="positive"
@@ -687,6 +656,7 @@ export default function FinancesWalletsPage() {
             sub={`Table ${formatNumberSpaces(snap?.incomes?.live_game || 0)} · CashDesk ${formatNumberSpaces(snap?.incomes?.slots || 0)} · Other ${formatNumberSpaces(snap?.incomes?.other || 0)}`}
           />
           <Kpi label="Total Expenses" tone="negative" v={expensesTotal} sub="period · voided excluded" />
+          <Kpi label="Total Money" tone="neutral" v={grandTotals.tzs} sub="grand TZS · period end" />
           <Kpi
             label="Variance"
             tone={varianceTone as any}
@@ -696,18 +666,6 @@ export default function FinancesWalletsPage() {
           />
         </div>
       </PageSection>
-
-      {countBlocked && (
-        <PageSection card={false}>
-          <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
-            <span>
-              {countMonthStatus === "closed"
-                ? `Month ${countMonthLabel} is closed — physical counts and wallet movements for ${fmtDateOnly(countForDate)} are disabled.`
-                : `Month ${countMonthLabel} is not opened yet — physical counts and wallet movements are disabled until a manager runs Open Month.`}
-            </span>
-          </div>
-        </PageSection>
-      )}
 
       {/* Count date — always inside the accounting month selected in the header. */}
       <PageSection card={false}>
@@ -748,7 +706,7 @@ export default function FinancesWalletsPage() {
           )}
         >
           <BalanceBanner />
-          <StaleCountsNotice rows={freshness} refDate={refDate} onCountAll={countAllStale} />
+          <StaleCountsNotice rows={freshness} refDate={refDate} />
 
         </div>
       </PageSection>
@@ -1026,34 +984,6 @@ export default function FinancesWalletsPage() {
                       </td>
 
                       <td className="text-right pr-3 whitespace-nowrap">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMoveWalletId(w.id);
-                            setMoveMode("in");
-                            setMoveOpen(true);
-                          }}
-                          aria-label="Money in"
-                        >
-                          <ArrowDownLeft className="w-3.5 h-3.5 cms-amount-positive" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMoveWalletId(w.id);
-                            setMoveMode("out");
-                            setMoveOpen(true);
-                          }}
-                          aria-label="Money out"
-                        >
-                          <ArrowUpRight className="w-3.5 h-3.5 cms-amount-negative" />
-                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1599,17 +1529,6 @@ export default function FinancesWalletsPage() {
 
       <ClosingInboxDialog open={inboxOpen} onOpenChange={setInboxOpen} businessDate={inboxDate} />
 
-      <WalletMovementDialog
-        open={moveOpen}
-        onOpenChange={setMoveOpen}
-        wallets={wallets as any[]}
-        defaultWalletId={moveWalletId}
-        defaultMode={moveMode}
-        usdRate={usdRate}
-        {...(canCloseMonth ? {} : { minDate: range.from, maxDate: range.to })}
-        windowFrom={range.from}
-        windowTo={range.to}
-      />
 
       {canCloseMonth && (
         <ResponsiveDialog
@@ -1680,18 +1599,7 @@ export default function FinancesWalletsPage() {
         </ResponsiveDialog>
       )}
 
-      {canCloseMonth && (
-        <CloseMonthWizard
-          open={closeOpen}
-          onOpenChange={setCloseOpen}
-          wallets={(snap?.wallets || []) as any}
-          usdTzs={usdRate}
-          casinoId={activeCasinoId}
-          year={ym.year}
-          month={ym.month}
-          status={monthClosed ? "closed" : "open"}
-        />
-      )}
+      {/* Close Month moved to the shared Finance header (Stage 2A). */}
     </PageShell>
   );
 }
@@ -1727,7 +1635,7 @@ const Kpi = ({
     : "";
   const sign = signed && v > 0 ? "+" : signed && v < 0 ? "−" : "";
   return (
-    <div className={cn("rounded-md border border-border bg-card p-3", TONE[tone])}>
+    <div className={cn("h-full rounded-md border border-border bg-card p-3", TONE[tone])}>
       <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className={cn("font-mono tabular-nums text-lg font-semibold mt-1", color)}>
         {sign}

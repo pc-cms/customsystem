@@ -1,6 +1,7 @@
 /**
  * Compact period selector used by the Office / Budget toolbar.
- * Arrows step month by month; the label opens month / year / custom range.
+ * A single dropdown: the label opens month / year / custom range.
+ * (Prev/next arrows and "This month" removed in Stage 2A, 2026-09-01.)
  */
 import { ChevronLeft, ChevronRight, CalendarRange } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -72,17 +73,6 @@ export function PeriodPicker({
   value: OfficePeriod;
   onChange: (p: OfficePeriod) => void;
 }) {
-  const shift = (delta: number) => {
-    const d = new Date(value.year, value.month - 1 + delta, 1);
-    onChange(monthPeriod(d.getFullYear(), d.getMonth() + 1));
-  };
-
-  const nowRef = new Date();
-  const isCurrentMonth =
-    value.mode === "month" &&
-    value.year === nowRef.getFullYear() &&
-    value.month === nowRef.getMonth() + 1;
-
   const label =
     value.mode === "custom"
       ? `${fmtDateOnly(value.from)} — ${fmtDateOnly(value.to)}`
@@ -90,18 +80,7 @@ export function PeriodPicker({
 
 
   return (
-    <div className="flex items-center gap-1">
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-8 w-8 p-0"
-        onClick={() => shift(-1)}
-        aria-label="Previous month"
-        disabled={value.mode === "custom"}
-      >
-        <ChevronLeft className="w-4 h-4" />
-      </Button>
-
+    <div className="flex items-center gap-1 shrink-0">
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="outline" size="sm" className="h-8 min-w-[170px] justify-center gap-2 text-xs font-medium">
@@ -168,28 +147,6 @@ export function PeriodPicker({
           </div>
         </PopoverContent>
       </Popover>
-
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-8 w-8 p-0"
-        onClick={() => shift(1)}
-        aria-label="Next month"
-        disabled={value.mode === "custom"}
-      >
-        <ChevronRight className="w-4 h-4" />
-      </Button>
-
-      {!isCurrentMonth && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 px-2 text-xs"
-          onClick={() => onChange(currentMonthPeriod())}
-        >
-          This month
-        </Button>
-      )}
     </div>
   );
 }

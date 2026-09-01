@@ -4,7 +4,6 @@ import DayClosingsTab from "./DayClosingsTab";
 import OtherIncomesTab from "./OtherIncomesTab";
 import RatesTab from "./RatesTab";
 import JpTab from "./JpTab";
-import TipsBonusTab from "./TipsBonusTab";
 import CollectionsTab from "./CollectionsTab";
 
 
@@ -18,21 +17,24 @@ const FinancesInterCasinoPage = lazy(() => import("@/pages/finances/FinancesInte
 const FinancesBankImportPage = lazy(() => import("@/pages/finances/FinancesBankImportPage"));
 
 
-// Flat, alphabetically sorted top-level tabs — no nested sub-tabs.
+// Finance top tabs — fixed business order (Stage 2A, 2026-09-01):
+// Day Closings | Bank | Cashless | Jackpots | Transactions | Wallets | Report | Collections
+// Values (routes) are unchanged — only order and display labels.
 // Balance was merged into Wallets (2026-07-20) — legacy `?tab=balance` redirects.
 // Actual / Budget / Difference moved to their own /budget section (2026-08-14).
 // Import Statement / Inter-Casino / Rates moved to the left sidebar (2026-09-01):
 // they stay valid `?tab=` values (routes preserved) but no longer show in the strip.
+// Tips & Bonuses left the Finance strip (2026-09-01) — `?tab=tips-bonuses`
+// redirects to the Management page at /tips-and-bonuses.
 const TABS = [
+  { value: "day-closings", label: "Day Closings" },
   { value: "bank", label: "Bank" },
   { value: "cashless", label: "Cashless" },
-  { value: "collections", label: "Collections" },
-  { value: "day-closings", label: "Day Closings" },
-  { value: "jp", label: "JP" },
-  { value: "monthly-report", label: "Monthly Report" },
+  { value: "jp", label: "Jackpots" },
   { value: "other-incomes", label: "Transactions" },
-  { value: "tips-bonuses", label: "Tips & Bonuses" },
   { value: "wallets", label: "Wallets" },
+  { value: "monthly-report", label: "Report" },
+  { value: "collections", label: "Collections" },
 ] as const;
 
 /** Pages that moved from the tab strip to the left sidebar (under Office). */
@@ -61,6 +63,11 @@ export default function OfficePage() {
   useEffect(() => {
     if (BUDGET_TABS.has(raw)) {
       navigate(`/budget?tab=${raw}`, { replace: true });
+      return;
+    }
+    // Tips & Bonuses moved to Management — old Finance URLs keep working.
+    if (raw === "tips-bonuses") {
+      navigate("/tips-and-bonuses", { replace: true });
       return;
     }
     if (raw === "balance" || raw === "money-change") {
@@ -99,7 +106,6 @@ export default function OfficePage() {
         {tab === "monthly-report" && <FinancesMonthlyReportPage />}
         {tab === "other-incomes" && <OtherIncomesTab />}
         {tab === "rates" && <RatesTab />}
-        {tab === "tips-bonuses" && <TipsBonusTab />}
         {tab === "wallets" && <FinancesWalletsPage />}
       </Suspense>
     </OfficeShell>
