@@ -136,7 +136,7 @@ export function OfficeShell({
               </TabsList>
             </Tabs>
             <div className="flex-1" />
-            {showPeriod && <PeriodPicker value={period} onChange={setPeriod} />}
+            {showPeriod && <PeriodPicker value={period} onChange={changePeriod} />}
             <div ref={actionsRef} className="flex items-center gap-2" />
           </div>
         </div>
