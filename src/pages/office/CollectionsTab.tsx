@@ -32,6 +32,7 @@ import { useEditExpense } from "@/hooks/use-edit-expense";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import { useAuth } from "@/lib/auth-context";
+import { useCasino } from "@/lib/casino-context";
 import { cn } from "@/lib/utils";
 import { defaultPostingDate, isOutsideWindow } from "@/lib/office-posting-date";
 import { toast } from "sonner";
