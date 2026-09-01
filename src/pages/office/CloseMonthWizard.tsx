@@ -115,7 +115,7 @@ export function CloseMonthWizard({
 
   // sync when wallets change / dialog opens fresh
   const resetAll = () => {
-    setStep(1);
+    setStepIdx(0);
     setNote("");
     dirtyRef.current = false;
     setCollection(
