@@ -917,11 +917,60 @@ const DraftRowView = ({
       <td className="px-2 py-1.5">
         <Input placeholder="Description" value={draft.description} onChange={(e) => onChange({ description: e.target.value })} className="h-8 text-xs" />
       </td>
+      <td className="px-2 py-1.5">
+        {isOffice && canBackdate ? (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "h-8 w-full justify-start text-left text-xs font-normal",
+                  isBackdated && "border-amber-500 text-amber-600 dark:text-amber-400",
+                  dateBlocked && "border-destructive text-destructive",
+                )}
+                title={dateBlocked ? "Month is closed" : isBackdated ? `Backdated to ${fmtDateOnly(postingDate)}` : "Posting date"}
+              >
+                <CalendarIcon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                {fmtDateOnly(postingDate)}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={new Date(postingDate + "T00:00:00")}
+                onSelect={(d) => {
+                  if (!d) return;
+                  const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                  if (isMonthClosed(iso)) {
+                    toast.error("This month is already closed");
+                    return;
+                  }
+                  onChange({ business_date: iso });
+                }}
+                disabled={(d) => {
+                  const today = new Date(businessDate + "T00:00:00");
+                  if (d > today) return true;
+                  return isMonthClosed(
+                    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+                  );
+                }}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <span className="text-xs text-muted-foreground font-mono">
+            {isOffice ? fmtDateOnly(postingDate) : "·"}
+          </span>
+        )}
+      </td>
       <td className="px-2 py-1.5 text-center">
         <div className="inline-flex gap-1">
-          <Button size="sm" className="h-8 px-3" onClick={onSubmit} disabled={isPending || shiftMissing} title={shiftMissing ? "No open shift" : undefined}>
+          <Button size="sm" className="h-8 px-3" onClick={onSubmit} disabled={isPending || shiftMissing || dateBlocked} title={dateBlocked ? "Month is closed" : shiftMissing ? "No open shift" : undefined}>
             OK
           </Button>
+
           {canRemove && (
             <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={onRemove}>
               <X className="w-3.5 h-3.5" />
