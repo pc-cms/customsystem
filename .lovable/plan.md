@@ -1,33 +1,43 @@
-# Diagnostic result + recommended next action
+# Finance UI: календарь, размещение кнопок, единый Close Month
 
-## Findings (read-only, nothing changed)
+## 1. Месяц — простой выпадающий список
+`PeriodPicker` перестаёт быть поповером с сеткой месяцев и Custom range. Вместо него — обычный dropdown (Select) со списком месяцев («August 2026», «July 2026» …) за последние 24 месяца плюс ближайшие месяцы вперёд. Custom range убирается; период всегда календарный месяц (расчёты уже работают по from/to месяца, формулы не меняются).
 
-1. **Where "719" comes from**
-   - `package.json` → `"version": "1.3.719"`.
-   - `vite.config.ts:11` → `__APP_VERSION__: JSON.stringify(pkg.version || "1.0.2")`.
-   - `src/components/VersionIndicator.tsx` shows `__APP_VERSION__` (or `runtime-config.json.version` on on-prem).
-   - The version was never bumped after the Stage 1 commits, so **719 is the current source value** — it is not evidence of a stale deploy.
+## 2. Единое место Close Month
+- Кнопки Open Month / Close Month остаются только на вкладке **Report**. На остальных вкладках Finance их в шапке нет.
+- Правая часть шапки: `[кнопки вкладки] [Close Month — только Report] [СТАТУС] [Месяц]`. Дропдаун месяца — крайний правый элемент.
+- Логика открытия/закрытия месяца, права и аудит — без изменений, только место кнопки.
 
-2. **Is production the latest commit? Yes.**
-   Evidence from the live bundle at https://casinosystem.lovable.app:
-   - `/assets/preview-auto-login-BpPPUEnD.js` contains the **fixed** host guard: `e==="localhost"||e.startsWith("127.")||e.startsWith("id-preview--")` with no `.lovable.app` branch → this is commit `6d2df02` (the guard fix), which is newer than Stage 1 `ba43287`.
-   - `/assets/index-B_iRbCUv.js` contains the Stage 1 sidebar list `[{tab:"import-statement"...},{tab:"rates"...},{tab:"inter-casino"...}]` and `new Set(["import-statement","rates","inter-casino"])`.
-   - `/assets/OfficePage-E8XGKsdl.js` tab strip = Bank, Cashless, Collections, Day Closings, JP, Monthly Report, Transactions, Tips & Bonuses, Wallets — no Import Statement / Rates / Inter-Casino; `hideToolbar` present.
-   - Bundle hashes are freshly built and embed `"1.3.719"`.
+## 3. Статус месяца
+Бейдж OPEN / CLOSED / NOT OPENED получает ту же высоту (h-8) и вертикальные отступы, что и кнопка месяца, чтобы визуально стоять в одну линию.
 
-3. **Can the service worker keep an old view? Yes.**
-   - `src/lib/pwa-register.ts`: `vite-plugin-pwa` SW, polls `registration.update()` every 30 min and on focus/visibility/online; on a new build it only fires `pwa:update-available` + a persistent toast — **no auto-reload**. User must press "Update now" (`applyUpdate()`), or Admin → Force Update (`resetPWACache()`).
-   - `src/lib/login-version-check.ts` additionally compares the served `index.html` bundle names on the login screen and hard-resets if stale.
-   - So an already-open/installed client can keep rendering the old chunks until update is applied — this is the most likely reason the screenshots look old.
+## 4. Кнопки вкладок в шапке (слева от статуса)
+- **Report**: XLSX и Close Month слева от статуса.
+- **Transactions**: «Add Transaction» слева от статуса.
+- **Jackpots**: одна универсальная кнопка «Add JP» слева от статуса; выбор IN (Contribution) / OUT (Payout) переносится внутрь диалога переключателем. Данные и расчёты JP не меняются.
 
-4. **Source check (matches production)** — `src/pages/office/OfficePage.tsx`: `TABS` has 9 entries without the three pages; `SIDEBAR_PAGES = ["import-statement","inter-casino","rates"]`; `src/components/layout/AppSidebar.tsx:208-210` renders them as Office sidebar items.
+Для этого в общей шапке появляется второй слот-портал: действия рендерятся в строке шапки перед статусом, а не отдельной второй строкой.
 
-5. **Expected-to-look-old items** — JP rename, Monthly Report rename, Finance header cleanup, Wallets button/card cleanup, Transactions Bonus column, Tips-only changes were **explicitly excluded from Stage 1**. Finance Wallets, Collections and Transactions screenshots showing the old UI is correct behaviour, not a deploy failure.
+## 5. Кнопки под плитками
+- **Collections**: «Return (IN)» и «Add Collection (OUT)» переезжают из шапки под плитки Collected / Returned / Net.
+- **Wallets**: «Closing Inbox», «Add Wallet», «Adjust Float», «Count All» переезжают из шапки под KPI-плитки.
 
-## Recommended next action (not performed)
+## 6. Collections — фильтр категорий
+Так как категория только одна, выпадающий фильтр «All categories» убирается. Фильтры по кошельку и направлению (All / Collected / Returned) остаются.
 
-No redeploy is needed — production already serves `6d2df02`.
+## 7. Wallets — строка Count business day
+Строка делится на две колонки по половине экрана:
+- левая: «Count business day» + поле даты + подпись «Saved into … · window …» + Reset;
+- правая: кнопки действий Wallets (из пункта 5), выровненные вправо.
 
-1. On each affected client: press "Update now" in the update toast, or Admin → Force Update, or open the app with `?sw=off`-style hard reset (`resetPWACache()`), then re-check Office → sidebar.
-2. Optional and low risk: bump `package.json` version (e.g. 1.3.720) on the next change so the visible number distinguishes builds. Purely cosmetic; no logic impact.
-3. No cache/SW code changes recommended — the current manual-update policy is deliberate.
+Поле даты получает корректную ширину/паддинг, чтобы иконка календаря не налезала на границу ячейки.
+
+## Техническая часть
+- `src/components/office/PeriodPicker.tsx` — замена popover на shadcn `Select`; `OfficePeriod` сохраняет форму `{mode:"month", year, month, from, to}`.
+- `src/components/office/office-shell.tsx` — новый портал `OfficeHeaderActions` (внутри правой части строки), проп для показа Open/Close Month только на Report, порядок элементов, размер бейджа статуса.
+- `src/pages/office/OfficePage.tsx` — передаёт в shell признак «вкладка Report» для месячного контроля.
+- `src/pages/finances/FinancesMonthlyReportPage.tsx`, `src/pages/office/OtherIncomesTab.tsx`, `src/pages/office/JpTab.tsx` — перевод действий в `OfficeHeaderActions`; в JpTab объединение двух кнопок в одну с выбором направления в диалоге.
+- `src/pages/office/CollectionsTab.tsx` — кнопки под плитки, удаление фильтра категорий.
+- `src/pages/finances/FinancesWalletsPage.tsx` — кнопки под KPI, двухколоночная строка Count business day, ширина date input.
+
+Расчёты, RPC, схема, права и данные не затрагиваются. После правок — typecheck и production build, версия поднимается до 1.3.722.
