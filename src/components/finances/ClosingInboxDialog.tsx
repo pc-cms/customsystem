@@ -364,7 +364,8 @@ export default function ClosingInboxDialog({
   const inbox = data?.inbox || null;
   const live = rows.filter((r) => r.section === "live");
   const slots = rows.filter((r) => r.section === "slots");
-  const posted = inbox?.status === "posted";
+  // Skipped inboxes are read-only, exactly like posted ones (no buttons, no corrections).
+  const posted = inbox?.status === "posted" || inbox?.status === "skipped";
 
   const unmapped = rows.filter((r) => Number(r.final_amount) !== 0 && !r.wallet_id).length;
   const missingReason = rows.filter(
