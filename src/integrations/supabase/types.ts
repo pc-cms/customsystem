@@ -180,6 +180,53 @@ export type Database = {
           },
         ]
       }
+      ace_history_backfill_log: {
+        Row: {
+          business_date: string
+          casino_id: string | null
+          created_at: string
+          fields_filled: string[]
+          id: string
+          location_code: string
+          payload: Json
+          period_id: number
+          period_label: string | null
+          row_created: boolean
+        }
+        Insert: {
+          business_date: string
+          casino_id?: string | null
+          created_at?: string
+          fields_filled?: string[]
+          id?: string
+          location_code: string
+          payload?: Json
+          period_id: number
+          period_label?: string | null
+          row_created?: boolean
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string | null
+          created_at?: string
+          fields_filled?: string[]
+          id?: string
+          location_code?: string
+          payload?: Json
+          period_id?: number
+          period_label?: string | null
+          row_created?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ace_history_backfill_log_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ace_ingest_keys: {
         Row: {
           casino_id: string | null
@@ -12624,6 +12671,17 @@ export type Database = {
           _client_balance: number
           _drop_slots: number
           _jp_in?: number
+          _net_win: number
+        }
+        Returns: Json
+      }
+      ace_backfill_missing_only: {
+        Args: {
+          _business_date: string
+          _cashdesk_win: number
+          _casino_id: string
+          _client_balance: number
+          _drop_slots: number
           _net_win: number
         }
         Returns: Json
