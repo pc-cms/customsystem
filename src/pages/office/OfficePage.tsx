@@ -91,6 +91,7 @@ export default function OfficePage() {
       onTabChange={onChange}
       showPeriod={!isSidebarPage}
       hideToolbar={isSidebarPage}
+      monthControl={tab === "monthly-report"}
     >
       <Suspense fallback={<div className="text-sm text-muted-foreground p-4">Loading…</div>}>
         {tab === "bank" && <WalletDayGridTab groups={["banks"]} title="Bank" />}

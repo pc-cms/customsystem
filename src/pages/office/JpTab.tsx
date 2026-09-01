@@ -5,9 +5,9 @@
  * Day Closings "JP (IN)" column writes. Excluded from Other Incomes.
  */
 import { useMemo, useState } from "react";
-import { Trophy, Plus, Minus, Pencil, Trash2 } from "lucide-react";
+import { Trophy, Plus, Pencil, Trash2 } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
-import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
+import { OfficeHeaderActions, useOfficePeriod } from "@/components/office/office-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
@@ -253,14 +253,11 @@ export default function JpTab() {
   return (
     <PageShell>
       {canWrite && (
-        <OfficeActions>
-          <Button onClick={() => openAdd("out")} size="sm" variant="outline">
-            <Minus className="w-4 h-4" /> JP Payout
-          </Button>
+        <OfficeHeaderActions>
           <Button onClick={() => openAdd("in")} size="sm">
             <Plus className="w-4 h-4" /> Add JP
           </Button>
-        </OfficeActions>
+        </OfficeHeaderActions>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
