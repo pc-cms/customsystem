@@ -13140,6 +13140,10 @@ export type Database = {
         Args: { p_casino_id: string; p_date: string }
         Returns: undefined
       }
+      fin_assert_month_not_closed: {
+        Args: { p_casino_id: string; p_date: string }
+        Returns: undefined
+      }
       fin_assert_month_open: {
         Args: { p_casino_id: string; p_month: number; p_year: number }
         Returns: undefined

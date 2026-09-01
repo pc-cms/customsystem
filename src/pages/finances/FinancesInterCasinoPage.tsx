@@ -22,6 +22,9 @@ import {
 import { useCasino } from "@/lib/casino-context";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
+import { cn } from "@/lib/utils";
+import { useOfficePeriod } from "@/components/office/office-shell";
+import { defaultPostingDate, isOutsideWindow } from "@/lib/office-posting-date";
 import { toast } from "sonner";
 
 /**
@@ -55,9 +58,12 @@ export default function FinancesInterCasinoPage() {
   const accept = useAcceptInterCasino();
   const resolve = useResolveInterCasino();
 
+  const { period } = useOfficePeriod();
+  const range = { from: period.from, to: period.to };
+
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
-    business_date: new Date().toISOString().slice(0, 10),
+    business_date: defaultPostingDate(range),
     wallet_id: "",
     to_casino_id: "",
     amount: 0,
@@ -103,7 +109,12 @@ export default function FinancesInterCasinoPage() {
       <div className="flex flex-wrap items-center justify-end gap-2">
         <FinanceCasinoSwitcher allowNetwork={true} />
         {!isSummaryMode && (
-          <Button onClick={() => setOpen(true)}>
+          <Button
+            onClick={() => {
+              setForm((f) => ({ ...f, business_date: defaultPostingDate(range) }));
+              setOpen(true);
+            }}
+          >
             <Plus className="w-4 h-4" /> New Transfer
           </Button>
         )}
@@ -305,6 +316,15 @@ export default function FinancesInterCasinoPage() {
               type="date"
               value={form.business_date}
               onChange={(e) => setForm({ ...form, business_date: e.target.value })}
+              className={cn(
+                isOutsideWindow(form.business_date, range) &&
+                  "border-amber-500 text-amber-600 dark:text-amber-400",
+              )}
+              title={
+                isOutsideWindow(form.business_date, range)
+                  ? "Date is outside the selected month window"
+                  : "Posting date"
+              }
             />
           </FormField>
           <FormField span={6} label="From wallet (money leaves)">
