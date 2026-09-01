@@ -1,8 +1,9 @@
 /**
- * CloseMonthWizard — 3-step monthly reset (super_admin only).
- * Step 1: Collection per wallet (how much cash is withdrawn from the safe)
- * Step 2: New Starting Float per wallet (usually 0)
- * Step 3: Confirm & Lock
+ * CloseMonthWizard — monthly reset (super_admin only).
+ * Step: Collection per wallet (how much cash is withdrawn from the safe)
+ * Step: New Starting Float per wallet (SKIPPED when the next month is already
+ *       opened/closed — its starting float is then owned by Open Month)
+ * Step: Confirm & Lock
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
@@ -11,10 +12,12 @@ import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatNumberSpaces } from "@/lib/currency";
-import { useRunCloseMonth } from "@/hooks/use-fin-month-closures";
+import { useRunCloseMonth, useMonthClosures } from "@/hooks/use-fin-month-closures";
+import { useMonthOpenings, monthStatusOf } from "@/hooks/use-fin-month-opening";
 import { useCloseMonthReport } from "@/hooks/use-fin-month-finance";
 import type { WalletBalanceRow } from "@/hooks/use-fin-balance";
 import { cn } from "@/lib/utils";
+
 
 type Row = { wallet_id: string; name: string; currency: string; amount: number };
 
