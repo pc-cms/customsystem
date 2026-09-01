@@ -57,10 +57,11 @@ export default function OtherIncomesTab() {
   const { period } = useOfficePeriod();
   const range = { from: period.from, to: period.to };
 
-  // JP, Tips and Bonuses live on their own Office tabs — keep them out of this list.
+  // JP, Tips, Bonuses and Collections live on their own Office tabs — keep them out of this list.
   const { data: incomes = [], isLoading } = useOtherIncomes(range.from, range.to, {
-    exclude: ["jp", "tips", "bonus", "tips_bonus", "inter_casino_transfer"],
+    exclude: ["jp", "tips", "bonus", "tips_bonus", "collection", "inter_casino_transfer"],
   });
+
 
   const { data: wallets = [] } = useFinWallets();
   const { data: categories = [] } = useFinCategories();
