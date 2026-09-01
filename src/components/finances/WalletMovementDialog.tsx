@@ -57,6 +57,8 @@ export default function WalletMovementDialog({
   usdRate = 2600,
   minDate,
   maxDate,
+  windowFrom,
+  windowTo,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -66,6 +68,9 @@ export default function WalletMovementDialog({
   usdRate?: number;
   minDate?: string;
   maxDate?: string;
+  /** Selected Office month window — used only for a soft warning. */
+  windowFrom?: string;
+  windowTo?: string;
 }) {
   const { user } = useAuth();
   const { activeCasinoId } = useCasino();
@@ -73,6 +78,9 @@ export default function WalletMovementDialog({
 
   const todayEat = new Date(Date.now() + 3 * 3600_000).toISOString().slice(0, 10);
   const clamp = (d: string) => (minDate && d < minDate ? minDate : maxDate && d > maxDate ? maxDate : d);
+  /** Backdating outside the selected month window is allowed but flagged. */
+  const outsideWindow =
+    !!date && !!((windowFrom && date < windowFrom) || (windowTo && date > windowTo));
 
   const [mode, setMode] = useState<MovementMode>(defaultMode);
   const [walletId, setWalletId] = useState<string>(defaultWalletId || "");
@@ -328,7 +336,13 @@ export default function WalletMovementDialog({
           ) : (
             <div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Date</div>
-              <Input type="date" value={date} onChange={(e) => setDate(clamp(e.target.value))} />
+              <Input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(clamp(e.target.value))}
+                className={cn(outsideWindow && "border-amber-500 text-amber-600 dark:text-amber-400")}
+                title={outsideWindow ? "Date is outside the selected month window" : "Posting date"}
+              />
             </div>
           )}
         </div>
@@ -336,7 +350,13 @@ export default function WalletMovementDialog({
         {mode === "transfer" && (
           <div>
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Date</div>
-            <Input type="date" value={date} onChange={(e) => setDate(clamp(e.target.value))} />
+            <Input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(clamp(e.target.value))}
+                className={cn(outsideWindow && "border-amber-500 text-amber-600 dark:text-amber-400")}
+                title={outsideWindow ? "Date is outside the selected month window" : "Posting date"}
+              />
           </div>
         )}
 
