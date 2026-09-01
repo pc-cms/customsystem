@@ -47,6 +47,7 @@ type Ctx = {
   period: OfficePeriod;
   setPeriod: (p: OfficePeriod) => void;
   actionsEl: HTMLDivElement | null;
+  headerActionsEl: HTMLDivElement | null;
 };
 
 const OfficeShellCtx = createContext<Ctx | null>(null);
@@ -73,6 +74,21 @@ export function OfficeActions({ children }: { children: ReactNode }) {
   }, []);
   if (!ctx?.actionsEl) return null;
   return createPortal(<div className="flex items-center gap-2 flex-wrap justify-end">{children}</div>, ctx.actionsEl);
+}
+
+/**
+ * Portals the active tab's action buttons INTO the header row, left of the
+ * month status badge (Stage 2B, 2026-09-01). Use for the primary tab actions;
+ * OfficeActions (second row) stays for overflow/secondary controls.
+ */
+export function OfficeHeaderActions({ children }: { children: ReactNode }) {
+  const ctx = useContext(OfficeShellCtx);
+  const [, force] = useState(0);
+  useEffect(() => {
+    force((n) => n + 1);
+  }, []);
+  if (!ctx?.headerActionsEl) return null;
+  return createPortal(<div className="flex items-center gap-2 flex-wrap">{children}</div>, ctx.headerActionsEl);
 }
 
 export type ShellTab = { value: string; label: string };
