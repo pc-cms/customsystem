@@ -181,7 +181,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
     }), { drop: 0, netWin: 0, cdr: 0, cardBalance: 0, miss: 0, balance: 0 });
     return {
       ...t,
-      shifts: rows.length,
+      shifts: rows.filter((r) => r.hasShift).length,
       avgDrop: rows.length ? t.drop / rows.length : 0,
       hold: t.drop > 0 ? (t.netWin / t.drop) * 100 : null,
     };
