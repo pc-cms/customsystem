@@ -36,7 +36,7 @@ import { EditExpenseDialog, type EditableExpense } from "@/components/expenses/E
 import { Pencil } from "lucide-react";
 
 import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
-import { formatCurrency } from "@/lib/currency";
+import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
 
 type SourceVal = "live_game" | "slots" | "office";
 
@@ -630,7 +630,9 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
               case "source":   return resolveSource(e);
               case "category": return e.category || "";
               case "target":   return e.players ? `${e.players.first_name} ${e.players.last_name}` : (e.player_name || "Casino");
-              case "amount":   return Number(e.amount || 0);
+              // Sort by TZS value so foreign-currency rows compare correctly.
+              case "amount":   return Number(e.amount_tzs ?? e.amount ?? 0);
+
               case "status":   return e.approved ? "approved" : "pending";
             }
           };
@@ -638,6 +640,16 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
           return String(va).localeCompare(String(vb)) * dir;
         });
+        // Totals for the current filter: grand total in TZS + per-currency subtotals.
+        const totalTzs = sortedExpenses.reduce(
+          (s: number, e: any) => s + Number(e.amount_tzs ?? e.amount ?? 0), 0);
+        const byCurrency = sortedExpenses.reduce((m: Record<string, number>, e: any) => {
+          const c = e.currency || "TZS";
+          m[c] = (m[c] || 0) + Number(e.amount || 0);
+          return m;
+        }, {} as Record<string, number>);
+        const currencyKeys = Object.keys(byCurrency);
+
         return (
           <div className="cms-panel overflow-hidden">
             <div className="px-4 py-2 border-b border-border flex items-center justify-between">
@@ -717,8 +729,14 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                         )}
                       </td>
                       <td className="px-3 py-2 text-right font-mono text-sm cms-amount-negative">
-                        {formatCurrency(Number(exp.amount))}
+                        <div>{formatCurrency(Number(exp.amount), exp.currency || "TZS")}</div>
+                        {(exp.currency || "TZS") !== "TZS" && (
+                          <div className="text-[10px] text-muted-foreground font-normal">
+                            ≈ {formatNumberSpaces(Number(exp.amount_tzs ?? 0))} TZS
+                          </div>
+                        )}
                       </td>
+
                       <td className="px-3 py-2 text-xs text-muted-foreground">{exp.description || "—"}</td>
                       <td className="px-3 py-2 text-center">
                         {exp.approved ? (
@@ -800,7 +818,28 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                   );
                 })}
               </tbody>
+              {sortedExpenses.length > 0 && (
+                <tfoot>
+                  <tr className="border-t-2 border-border bg-muted/30">
+                    <td colSpan={5} className="px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                      Total
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono text-sm font-semibold cms-amount-negative">
+                      <div>{formatNumberSpaces(totalTzs)} TZS</div>
+                      {currencyKeys.length > 1 && (
+                        <div className="text-[10px] text-muted-foreground font-normal">
+                          {currencyKeys
+                            .map((c) => `${c} ${formatNumberSpaces(byCurrency[c])}`)
+                            .join(" · ")}
+                        </div>
+                      )}
+                    </td>
+                    <td colSpan={embedded ? 1 : 2} />
+                  </tr>
+                </tfoot>
+              )}
             </table>
+
           </div>
         );
       })()}
