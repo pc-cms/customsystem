@@ -80,9 +80,11 @@ interface DraftRow {
   description: string;
   /** Office source only: wallet the money is taken from (direct debit). */
   wallet_id: string;
+  /** Office source only: posting (business) date — manager+ can backdate. */
+  business_date: string;
 }
 
-const newDraft = (defaultSource: SourceVal): DraftRow => ({
+const newDraft = (defaultSource: SourceVal, date = ""): DraftRow => ({
   uid: Math.random().toString(36).slice(2),
   source: defaultSource,
   target: "",
@@ -91,6 +93,7 @@ const newDraft = (defaultSource: SourceVal): DraftRow => ({
   amount: "",
   description: "",
   wallet_id: "",
+  business_date: date,
 });
 
 
