@@ -303,3 +303,20 @@ It atomically:
 3. writes opening `cash_count_snapshots` (first day of the month, 07:00 EAT).
 
 Nothing carries over between months without this confirmation.
+
+### Backdated posting (JP, Inter-Casino, incomes, tips, wallets)
+
+All Office/Finance entry forms default their posting date to the selected
+header month window (`defaultPostingDate`) and highlight a date outside that
+window in amber. Any past date inside a non-closed month is allowed.
+
+Server guards:
+
+- `fin_assert_month_not_closed(casino, date)` — rejects posting into a closed
+  accounting month.
+- Trigger `fin_other_incomes_month_guard` — covers Commissions, JP and
+  Tips & Bonuses rows (insert and business_date change).
+- Trigger `fin_inter_casino_month_guard` — checks BOTH sender and receiver
+  casinos so a paired transfer never lands in a closed month on either side.
+- `create_office_expense` / `fin_save_wallet_count` keep the stricter
+  `fin_assert_month_started` guard (month must be explicitly opened).
