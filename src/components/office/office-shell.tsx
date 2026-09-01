@@ -29,6 +29,7 @@ import { OpenMonthWizard } from "@/pages/office/OpenMonthWizard";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { CalendarPlus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /** Roles allowed to run the Open Month ritual (mirrors fin_open_month). */
 const OPEN_MONTH_ROLES = ["super_admin", "manager", "general_manager", "finance_manager"];
