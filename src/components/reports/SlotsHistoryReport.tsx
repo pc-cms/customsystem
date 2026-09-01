@@ -295,52 +295,62 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
             <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-4">Loading…</DTCell></DTRow>
           )}
           {!isLoading && sorted.length === 0 && (
-            <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-4">No closed slots shifts in range</DTCell></DTRow>
+            <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-4">No slots data in range</DTCell></DTRow>
           )}
-          {sorted.map(({ s, drop, dropLocked, netWin, cdr, cardBalance, miss, balance, netWinLocked, cdrLocked, cardBalanceLocked }) => {
+          {sorted.map(({ key, date, s, hasShift, drop, dropLocked, netWin, cdr, cardBalance, miss, balance, netWinLocked, cdrLocked, cardBalanceLocked }) => {
             return (
-              <DTRow key={s.id}>
-                  <DTCell type="date">{fmtDate(s.business_date)}</DTCell>
+              <DTRow key={key}>
+                  <DTCell type="date">{fmtDate(date)}</DTCell>
                   <DTCell type="time" className="text-muted-foreground font-mono">
-                    {s.closed_at ? eatTime(s.closed_at) : "·"}
+                    {s?.closed_at ? eatTime(s.closed_at) : "—"}
                   </DTCell>
                   <DTCell type="money" title={dropLocked ? "From Close Day / ACE Collector" : undefined}>
                     <EditableMoney
-                      value={drop} canEdit={canEdit && !dropLocked} mode={mode}
+                      value={drop} canEdit={canEdit && hasShift && !dropLocked} mode={mode}
                       onSave={(v) => updateField.mutate({ id: s.id, field: "manual_drop_slots", value: v })}
                     />
                   </DTCell>
 
                   <DTCell type="money" title={netWinLocked ? "From Close Day" : undefined}>
                     <EditableMoney
-                      value={netWin} canEdit={canEdit && !netWinLocked} mode={mode}
-                      onSave={(v) => updateClosingField.mutate({ date: s.business_date, field: "net_win", value: v })}
+                      value={netWin} canEdit={canEdit && hasShift && !netWinLocked} mode={mode}
+                      onSave={(v) => updateClosingField.mutate({ date, field: "net_win", value: v })}
                     />
                   </DTCell>
                   <DTCell type="money" title={cdrLocked ? "From Close Day" : undefined}>
                     <EditableMoney
-                      value={cdr} canEdit={canEdit && !cdrLocked} mode={mode}
-                      onSave={(v) => updateClosingField.mutate({ date: s.business_date, field: "cashdesk_win", value: v })}
+                      value={cdr} canEdit={canEdit && hasShift && !cdrLocked} mode={mode}
+                      onSave={(v) => updateClosingField.mutate({ date, field: "cashdesk_win", value: v })}
                     />
                   </DTCell>
                   <DTCell type="money" title={cardBalanceLocked ? "From Close Day" : undefined}>
                     <EditableMoney
-                      value={cardBalance} canEdit={canEdit && !cardBalanceLocked} mode={mode}
-                      onSave={(v) => updateClosingField.mutate({ date: s.business_date, field: "players_card_balance", value: v })}
+                      value={cardBalance} canEdit={canEdit && hasShift && !cardBalanceLocked} mode={mode}
+                      onSave={(v) => updateClosingField.mutate({ date, field: "players_card_balance", value: v })}
                     />
                   </DTCell>
+                  {/* Shift-only columns stay blank on Close-Day-only history rows. */}
                   <DTCell type="money">
-                    <MoneyCell value={miss || null} mode={mode} empty="·" className={miss < 0 ? "cms-amount-negative" : ""} />
+                    {hasShift
+                      ? <MoneyCell value={miss || null} mode={mode} empty="·" className={miss < 0 ? "cms-amount-negative" : ""} />
+                      : <span className="text-muted-foreground">—</span>}
                   </DTCell>
-                  <DTCell type="money"><MoneyCell value={balance} mode={mode} signed /></DTCell>
+                  <DTCell type="money">
+                    {hasShift
+                      ? <MoneyCell value={balance} mode={mode} signed />
+                      : <span className="text-muted-foreground">—</span>}
+                  </DTCell>
                   <DTCell type="actions">
-                    <Button variant="ghost" size="sm" onClick={() => setPrintShiftId(s.id)} className="gap-1 h-7">
-                      <Printer className="w-3.5 h-3.5" /> Print
-                    </Button>
+                    {hasShift && (
+                      <Button variant="ghost" size="sm" onClick={() => setPrintShiftId(s.id)} className="gap-1 h-7">
+                        <Printer className="w-3.5 h-3.5" /> Print
+                      </Button>
+                    )}
                   </DTCell>
               </DTRow>
             );
           })}
+
 
           {sorted.length > 0 && (
             <DTRow className="border-t-2 border-primary/40 bg-primary/10 font-bold text-[120%]">
