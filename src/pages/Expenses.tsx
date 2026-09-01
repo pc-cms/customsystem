@@ -254,7 +254,12 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     if (row.source === "office" && !row.wallet_id) return toast.error("Choose wallet");
     if (!row.fin_category_id) return toast.error("Choose category");
     const amt = Number(row.amount);
-    if (!amt || amt <= 0) return toast.error("Amount must be > 0");
+    // Collections (owner withdrawal / CAPEX / transfers) may be negative:
+    // a returned collection reduces the withdrawn amount.
+    const allowsNegative = finCatById[row.fin_category_id]?.group_code === "collections";
+    if (!amt || (!allowsNegative && amt <= 0))
+      return toast.error(allowsNegative ? "Amount cannot be 0" : "Amount must be > 0");
+
 
     // Single unified category list: we drive everything off fin_category_id.
     // The operational `category_code` field stays as a constant 'other'
