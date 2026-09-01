@@ -103,6 +103,9 @@ export default function CollectionsTab() {
   });
 
   const [filter, setFilter] = useState<Filter>("all");
+  const [catFilter, setCatFilter] = useState<string>("all");
+  const [walletFilter, setWalletFilter] = useState<string>("all");
+  const [grouped, setGrouped] = useState(false);
 
   const allRows: Row[] = useMemo(() => {
     const entries: Row[] = (allEntries as OtherIncomeRow[]).map((r) => ({
@@ -118,6 +121,7 @@ export default function CollectionsTab() {
       raw: r,
     }));
     // Expenses are stored positive = money leaving → shown as collected (negative).
+    // A negative expense amount means the cash came back → shown as returned (+).
     const old: Row[] = (legacy as any[]).map((e) => ({
       id: e.id,
       origin: "expense",
@@ -125,28 +129,52 @@ export default function CollectionsTab() {
       category: e.fin_categories?.name || "—",
       wallet: e.fin_wallets?.name || "—",
       currency: e.currency || "TZS",
-      amount: -Math.abs(Number(e.amount || 0)),
-      amount_tzs: -Math.abs(Number(e.amount_tzs ?? e.amount ?? 0)),
+      amount: -Number(e.amount || 0),
+      amount_tzs: -Number(e.amount_tzs ?? e.amount ?? 0),
       note: e.description || "",
+      expense_amount: Number(e.amount || 0),
+      expense_currency: (e.currency || "TZS") as any,
     }));
     return [...entries, ...old].sort((a, b) => b.business_date.localeCompare(a.business_date));
   }, [allEntries, legacy]);
 
-  const rows = useMemo(() => {
-    if (filter === "all") return allRows;
-    return allRows.filter((r) => (r.amount < 0 ? "out" : "in") === filter);
-  }, [allRows, filter]);
+  const rows = useMemo(
+    () =>
+      allRows.filter((r) => {
+        if (filter !== "all" && (r.amount < 0 ? "out" : "in") !== filter) return false;
+        if (catFilter !== "all" && r.category !== catFilter) return false;
+        if (walletFilter !== "all" && r.wallet !== walletFilter) return false;
+        return true;
+      }),
+    [allRows, filter, catFilter, walletFilter],
+  );
 
-  /** Totals in TZS — collected (OUT), returned (IN) and net collected. */
-  const totals = useMemo(() => {
-    let outSum = 0;
-    let inSum = 0;
-    allRows.forEach((r) => {
-      if (r.amount_tzs < 0) outSum += Math.abs(r.amount_tzs);
-      else inSum += r.amount_tzs;
+  /** Distinct values for the filter selectors (from the loaded period). */
+  const catOptions = useMemo(
+    () => Array.from(new Set(allRows.map((r) => r.category))).sort(),
+    [allRows],
+  );
+  const walletOptions = useMemo(
+    () => Array.from(new Set(allRows.map((r) => r.wallet))).sort(),
+    [allRows],
+  );
+
+  /** Totals in TZS of the CURRENT selection — collected (OUT), returned (IN), net. */
+  const totals = useMemo(() => sumRows(rows), [rows]);
+
+  /** Rows grouped by category, each with its own subtotals. */
+  const byCategory = useMemo(() => {
+    const map = new Map<string, Row[]>();
+    rows.forEach((r) => {
+      const arr = map.get(r.category) || [];
+      arr.push(r);
+      map.set(r.category, arr);
     });
-    return { outSum, inSum, net: outSum - inSum };
-  }, [allRows]);
+    return Array.from(map.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([category, list]) => ({ category, list, totals: sumRows(list) }));
+  }, [rows]);
+
 
 
   const [dialogOpen, setDialogOpen] = useState(false);
