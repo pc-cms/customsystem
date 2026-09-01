@@ -215,7 +215,7 @@ export default function CollectionsTab() {
     setDialogOpen(false);
   };
 
-  const columns: ColumnDef<OtherIncomeRow>[] = [
+  const columns: ColumnDef<Row>[] = [
     {
       key: "date",
       header: "Date",
@@ -227,7 +227,7 @@ export default function CollectionsTab() {
       key: "direction",
       header: "Direction",
       accessor: (r) => {
-        const out = Number(r.amount) < 0;
+        const out = r.amount < 0;
         return (
           <span
             className={cn(
@@ -249,18 +249,25 @@ export default function CollectionsTab() {
       header: "Category",
       accessor: (r) => (
         <span className="text-xs uppercase tracking-wider text-muted-foreground">
-          {r.fin_categories?.name || "—"}
+          {r.category}
+          {r.origin === "expense" && (
+            <span
+              className="ml-1.5 rounded border border-border px-1 py-0.5 text-[9px] tracking-wider"
+              title="Booked as an expense in a Collections category — edit it in the Expenses module"
+            >
+              EXP
+            </span>
+          )}
         </span>
       ),
-      style: { width: 140 },
+      style: { width: 170 },
     },
     {
       key: "wallet",
       header: "Wallet",
       accessor: (r) => (
         <span>
-          {r.fin_wallets?.name || "—"}{" "}
-          <span className="text-[10px] text-muted-foreground">{r.currency}</span>
+          {r.wallet} <span className="text-[10px] text-muted-foreground">{r.currency}</span>
         </span>
       ),
     },
@@ -268,24 +275,24 @@ export default function CollectionsTab() {
       key: "amount",
       header: "Amount",
       type: "money",
-      accessor: (r) => {
-        const v = Number(r.amount);
-        return (
-          <span className={cn("font-mono tabular-nums", v < 0 ? "cms-amount-negative" : "cms-amount-positive")}>
-            {v < 0 ? "−" : ""}
-            {formatNumberSpaces(Math.abs(v))}
-          </span>
-        );
-      },
+      accessor: (r) => (
+        <span
+          className={cn(
+            "font-mono tabular-nums",
+            r.amount < 0 ? "cms-amount-negative" : "cms-amount-positive",
+          )}
+        >
+          {r.amount < 0 ? "−" : ""}
+          {formatNumberSpaces(Math.abs(r.amount))}
+        </span>
+      ),
       style: { width: 140 },
     },
     {
       key: "note",
       header: "Note",
       accessor: (r) => (
-        <span className="text-xs text-muted-foreground truncate max-w-[300px] inline-block">
-          {r.note || ""}
-        </span>
+        <span className="text-xs text-muted-foreground truncate max-w-[300px] inline-block">{r.note}</span>
       ),
     },
     {
@@ -293,10 +300,11 @@ export default function CollectionsTab() {
       header: "",
       type: "actions",
       accessor: (r) => {
-        if (!canWrite) return null;
+        if (!canWrite || r.origin !== "entry" || !r.raw) return null;
+        const raw = r.raw;
         return (
           <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)} aria-label="Edit">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(raw)} aria-label="Edit">
               <Pencil className="w-3.5 h-3.5" />
             </Button>
             <Button
@@ -305,7 +313,7 @@ export default function CollectionsTab() {
               className="h-7 w-7 text-destructive"
               onClick={() => {
                 if (confirm("Delete this collection entry? This is logged in the finance audit log."))
-                  deleteIncome.mutate(r.id);
+                  deleteIncome.mutate(raw.id);
               }}
               aria-label="Delete"
             >
@@ -317,6 +325,7 @@ export default function CollectionsTab() {
       style: { width: 90 },
     },
   ];
+
 
   const FILTERS: { value: Filter; label: string }[] = [
     { value: "all", label: "All" },
