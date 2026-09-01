@@ -824,13 +824,17 @@ export default Expenses;
 // Draft row (per-source dynamic categories)
 // ──────────────────────────────────────────────────────────
 const DraftRowView = ({
-  draft, isManagerView, liveShift, slotsShift, wallets, onChange, onRemove, onSubmit, canRemove, isPending,
+  draft, isManagerView, liveShift, slotsShift, wallets, businessDate, canBackdate, isMonthClosed,
+  onChange, onRemove, onSubmit, canRemove, isPending,
 }: {
   draft: DraftRow;
   isManagerView: boolean;
   liveShift: any;
   slotsShift: any;
   wallets: any[];
+  businessDate: string;
+  canBackdate: boolean;
+  isMonthClosed: (iso: string) => boolean;
   onChange: (patch: Partial<DraftRow>) => void;
   onRemove: () => void;
   onSubmit: () => void;
@@ -841,6 +845,10 @@ const DraftRowView = ({
   const shiftMissing =
     (draft.source === "live_game" && !liveShift?.id) ||
     (draft.source === "slots" && !slotsShift?.id);
+  const postingDate = draft.business_date || businessDate;
+  const isBackdated = isOffice && postingDate !== businessDate;
+  const dateBlocked = isOffice && isMonthClosed(postingDate);
+
 
   return (
     <tr className="border-b border-border last:border-0">
