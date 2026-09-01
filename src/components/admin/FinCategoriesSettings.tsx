@@ -15,6 +15,7 @@ const GROUPS = [
   ["petrol", "Petrol Expenses"],
   ["additional", "Additional Expenses"],
   ["income", "Income / Collection / CAPEX / Transfers"],
+  ["collections", "Collections"],
 ];
 
 export const FinCategoriesSettings = () => {
