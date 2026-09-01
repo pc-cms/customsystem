@@ -9,6 +9,7 @@ import { useCreateSlotsExpense, useCancelExpenseAsManager } from "@/hooks/use-ex
 import { useCreateOfficeExpense } from "@/hooks/use-expense-categories";
 import { useFinCategories, useFinWallets } from "@/hooks/use-fin";
 import { useFinDailyRatesForDate } from "@/hooks/use-fin-daily-rates";
+import { useMonthClosures } from "@/hooks/use-fin-month-closures";
 
 import { useActiveShift } from "@/hooks/use-shift";
 import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
@@ -206,7 +207,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     return m;
   }, [allFinCats]);
   const [editingExpense, setEditingExpense] = useState<EditableExpense | null>(null);
-  const [drafts, setDrafts] = useState<DraftRow[]>([newDraft(roleDefaultSource)]);
+  const [drafts, setDrafts] = useState<DraftRow[]>([newDraft(roleDefaultSource, businessDate)]);
 
   // With no casino selected (super_admin / finance on the summary domain) the
   // query stays disabled — TanStack v5 keeps `isLoading` true forever, which
@@ -272,7 +273,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           wallet_id: row.wallet_id,
           currency: cur,
           exchange_rate: rate,
-          business_date: effectiveDate ?? null,
+          business_date: row.business_date || effectiveDate || null,
         });
       } else if (row.source === "slots") {
 
@@ -303,7 +304,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           );
         });
       }
-      setDrafts((d) => [...d.filter((r) => r.uid !== uid), newDraft(row.source)]);
+      setDrafts((d) => [...d.filter((r) => r.uid !== uid), newDraft(row.source, businessDate)]);
     } catch {
       /* toast handled */
     }
@@ -563,7 +564,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
         <div className="cms-panel overflow-visible mb-6">
           <div className="px-4 py-2 border-b border-border flex items-center justify-between">
             <h3 className="text-sm font-semibold text-card-foreground">New entries</h3>
-            <Button size="sm" variant="outline" onClick={() => setDrafts((d) => [...d, newDraft(roleDefaultSource)])} className="h-8 gap-1.5">
+            <Button size="sm" variant="outline" onClick={() => setDrafts((d) => [...d, newDraft(roleDefaultSource, businessDate)])} className="h-8 gap-1.5">
               <Plus className="w-3.5 h-3.5" /> Row
             </Button>
           </div>
@@ -577,6 +578,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                 
                 <th className="text-right px-3 py-2">Amount (TZS)</th>
                 <th className="text-left px-3 py-2">Description</th>
+                <th className="text-left px-3 py-2 w-[130px]">Date</th>
                 <th className="text-center px-3 py-2 w-[140px]">Action</th>
               </tr>
             </thead>
@@ -589,6 +591,12 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                   liveShift={liveShift}
                   slotsShift={slotsShift}
                   wallets={wallets}
+                  businessDate={businessDate}
+                  canBackdate={isManagerView}
+                  isMonthClosed={(iso: string) => {
+                    const d = new Date(iso + "T00:00:00");
+                    return closedMonthKeys.has(`${d.getFullYear()}-${d.getMonth() + 1}`);
+                  }}
 
                   onChange={(patch) => updateDraft(d.uid, patch)}
                   onRemove={() => removeDraft(d.uid)}
@@ -647,6 +655,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                   <th className="text-left px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("target")}>Target / Player{sortArrow("target")}</th>
                   <th className="text-right px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("amount")}>Amount{sortArrow("amount")}</th>
                   <th className="text-left px-3 py-2">Description</th>
+                <th className="text-left px-3 py-2 w-[130px]">Date</th>
                   <th className="text-center px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("status")}>Status{sortArrow("status")}</th>
                   {!embedded && <th className="text-center px-3 py-2">Action</th>}
                 </tr>
