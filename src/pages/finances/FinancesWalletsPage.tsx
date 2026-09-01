@@ -1288,6 +1288,16 @@ export default function FinancesWalletsPage() {
               <SelectItem value="out">OUT</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={effectFilter} onValueChange={setEffectFilter}>
+            <SelectTrigger className="h-9 w-[170px]" title="Which balance the movement moves">
+              <SelectValue placeholder="All effects" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All effects</SelectItem>
+              <SelectItem value="expected">Expected only</SelectItem>
+              <SelectItem value="actual">Actual (ADJ) only</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={sort} onValueChange={(v) => setSort(v as any)}>
             <SelectTrigger className="h-9 w-[180px]">
               <SelectValue />
