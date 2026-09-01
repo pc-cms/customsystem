@@ -12,32 +12,25 @@
 Бейдж OPEN / CLOSED / NOT OPENED получает ту же высоту (h-8) и вертикальные отступы, что и кнопка месяца, чтобы визуально стоять в одну линию.
 
 ## 4. Кнопки вкладок в шапке (слева от статуса)
+В шапке появляется второй слот-портал `OfficeHeaderActions` — действия вкладки рендерятся в строке шапки перед статусом:
 - **Report**: XLSX и Close Month слева от статуса.
 - **Transactions**: «Add Transaction» слева от статуса.
-- **Jackpots**: одна универсальная кнопка «Add JP» слева от статуса; выбор IN (Contribution) / OUT (Payout) переносится внутрь диалога переключателем. Данные и расчёты JP не меняются.
+- **Jackpots**: одна универсальная кнопка «Add JP»; выбор IN (Contribution) / OUT (Payout) переносится внутрь диалога переключателем. Данные и расчёты JP не меняются.
+- **Collections**: одна универсальная кнопка «Add Collection»; выбор Return (IN) / Collected (OUT) — переключателем в диалоге. Расчёты не меняются.
+- **Wallets**: «Closing Inbox», «Add Wallet», «Adjust Float» слева от статуса.
 
-Для этого в общей шапке появляется второй слот-портал: действия рендерятся в строке шапки перед статусом, а не отдельной второй строкой.
-
-## 5. Кнопки под плитками
-- **Collections**: «Return (IN)» и «Add Collection (OUT)» переезжают из шапки под плитки Collected / Returned / Net.
-- **Wallets**: «Closing Inbox», «Add Wallet», «Adjust Float», «Count All» переезжают из шапки под KPI-плитки.
+## 5. Wallets
+- Кнопка **Count All удаляется** полностью (и действие `countAllStale` вместе с ней). Существующие детали Stale Counts и ручной счёт по кошелькам остаются.
+- Строка «Count business day» становится одной строкой на всю ширину: «Count business day» + поле даты + подпись «Saved into … · window …» + Reset. Поле даты получает корректную ширину/паддинг, чтобы иконка календаря не налезала на границу ячейки.
 
 ## 6. Collections — фильтр категорий
-Так как категория только одна, выпадающий фильтр «All categories» убирается. Фильтры по кошельку и направлению (All / Collected / Returned) остаются.
-
-## 7. Wallets — строка Count business day
-Строка делится на две колонки по половине экрана:
-- левая: «Count business day» + поле даты + подпись «Saved into … · window …» + Reset;
-- правая: кнопки действий Wallets (из пункта 5), выровненные вправо.
-
-Поле даты получает корректную ширину/паддинг, чтобы иконка календаря не налезала на границу ячейки.
+Категория только одна — выпадающий фильтр «All categories» убирается. Фильтры по кошельку и направлению (All / Collected / Returned) остаются.
 
 ## Техническая часть
 - `src/components/office/PeriodPicker.tsx` — замена popover на shadcn `Select`; `OfficePeriod` сохраняет форму `{mode:"month", year, month, from, to}`.
-- `src/components/office/office-shell.tsx` — новый портал `OfficeHeaderActions` (внутри правой части строки), проп для показа Open/Close Month только на Report, порядок элементов, размер бейджа статуса.
+- `src/components/office/office-shell.tsx` — новый портал `OfficeHeaderActions` (внутри правой части строки), показ Open/Close Month только на Report, порядок элементов, размер бейджа статуса; старый портал `OfficeActions` сохраняется для вкладок, которым он нужен.
 - `src/pages/office/OfficePage.tsx` — передаёт в shell признак «вкладка Report» для месячного контроля.
-- `src/pages/finances/FinancesMonthlyReportPage.tsx`, `src/pages/office/OtherIncomesTab.tsx`, `src/pages/office/JpTab.tsx` — перевод действий в `OfficeHeaderActions`; в JpTab объединение двух кнопок в одну с выбором направления в диалоге.
-- `src/pages/office/CollectionsTab.tsx` — кнопки под плитки, удаление фильтра категорий.
-- `src/pages/finances/FinancesWalletsPage.tsx` — кнопки под KPI, двухколоночная строка Count business day, ширина date input.
+- `src/pages/finances/FinancesMonthlyReportPage.tsx`, `src/pages/office/OtherIncomesTab.tsx`, `src/pages/office/JpTab.tsx`, `src/pages/office/CollectionsTab.tsx` — перевод действий в `OfficeHeaderActions`; в JpTab и Collections объединение двух кнопок в одну с выбором направления в диалоге.
+- `src/pages/finances/FinancesWalletsPage.tsx` — кнопки в шапку, удаление Count All, однострочный блок Count business day, ширина date input.
 
 Расчёты, RPC, схема, права и данные не затрагиваются. После правок — typecheck и production build, версия поднимается до 1.3.722.
