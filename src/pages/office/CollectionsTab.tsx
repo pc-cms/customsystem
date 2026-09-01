@@ -404,13 +404,6 @@ export default function CollectionsTab() {
     },
   ];
 
-
-  const FILTERS: { value: Filter; label: string }[] = [
-    { value: "all", label: "All" },
-    { value: "out", label: "Collected" },
-    { value: "in", label: "Returned" },
-  ];
-
   const table = (data: Row[]) => (
     <SmartTable
       data={data}
@@ -450,18 +443,6 @@ export default function CollectionsTab() {
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5">
-        {FILTERS.map((f) => (
-          <Button
-            key={f.value}
-            size="sm"
-            variant={filter === f.value ? "default" : "outline"}
-            className="h-7 px-3 text-xs"
-            onClick={() => setFilter(f.value)}
-          >
-            {f.label}
-          </Button>
-        ))}
-
         <Select value={walletFilter} onValueChange={setWalletFilter}>
           <SelectTrigger className="h-7 w-[170px] text-xs">
             <SelectValue placeholder="Wallet" />
@@ -475,40 +456,9 @@ export default function CollectionsTab() {
             ))}
           </SelectContent>
         </Select>
-
-        <Button
-          size="sm"
-          variant={grouped ? "default" : "outline"}
-          className="h-7 px-3 text-xs"
-          onClick={() => setGrouped((g) => !g)}
-          title="Group rows by category with subtotals"
-        >
-          <Layers className="w-3.5 h-3.5" /> {grouped ? "By category" : "Flat"}
-        </Button>
       </div>
 
-      {grouped ? (
-        byCategory.length === 0 ? (
-          <PageSection card={false}>{table([])}</PageSection>
-        ) : (
-          byCategory.map((g) => (
-            <PageSection key={g.category} card={false}>
-              <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1.5">
-                <span className="text-xs font-bold uppercase tracking-wider">{g.category}</span>
-                <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-                  OUT {formatNumberSpaces(g.totals.outSum)} · IN {formatNumberSpaces(g.totals.inSum)} · NET{" "}
-                  <span className={cn(g.totals.net < 0 ? "cms-amount-negative" : "cms-amount-positive")}>
-                    {formatNumberSpaces(g.totals.net)}
-                  </span>
-                </span>
-              </div>
-              {table(g.list)}
-            </PageSection>
-          ))
-        )
-      ) : (
-        <PageSection card={false}>{table(rows)}</PageSection>
-      )}
+      <PageSection card={false}>{table(rows)}</PageSection>
 
 
       <ResponsiveDialog
