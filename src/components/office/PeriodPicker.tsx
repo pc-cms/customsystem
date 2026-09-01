@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { fmtDateOnly } from "@/lib/format-date";
+import { businessDateOf } from "@/lib/business-day";
 
 export type OfficePeriod = {
   mode: "month" | "custom";
@@ -35,9 +36,34 @@ export function currentMonthPeriod(): OfficePeriod {
   return { mode: "month", year, month, ...monthRange(year, month) };
 }
 
+/**
+ * Accounting month = the month of the business day currently being closed.
+ * Closing always happens the next morning, so on 01/09 the accounting month
+ * is still August. Office screens default to this month, never to the raw
+ * calendar month, otherwise the 1st of a month shows an empty period while
+ * yesterday's figures are still being entered.
+ */
+export function accountingMonthPeriod(now: Date = new Date()): OfficePeriod {
+  const today = businessDateOf(now.toISOString());
+  const d = new Date(`${today}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return monthPeriod(d.getUTCFullYear(), d.getUTCMonth() + 1);
+}
+
+/** Month of a YYYY-MM-DD business date. */
+export function monthOfDate(date: string): { year: number; month: number } {
+  return { year: Number(date.slice(0, 4)), month: Number(date.slice(5, 7)) };
+}
+
+export function nextMonthPeriod(year: number, month: number): OfficePeriod {
+  const d = new Date(Date.UTC(year, month, 1));
+  return monthPeriod(d.getUTCFullYear(), d.getUTCMonth() + 1);
+}
+
 export function monthPeriod(year: number, month: number): OfficePeriod {
   return { mode: "month", year, month, ...monthRange(year, month) };
 }
+
 
 export function PeriodPicker({
   value,

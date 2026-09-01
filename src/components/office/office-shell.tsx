@@ -16,8 +16,14 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PeriodPicker, type OfficePeriod, currentMonthPeriod } from "./PeriodPicker";
+import {
+  PeriodPicker,
+  type OfficePeriod,
+  accountingMonthPeriod,
+  nextMonthPeriod,
+} from "./PeriodPicker";
 import { useSessionState } from "@/hooks/use-session-state";
+import { useMonthClosures } from "@/hooks/use-fin-month-closures";
 
 type Ctx = {
   period: OfficePeriod;
@@ -27,13 +33,17 @@ type Ctx = {
 
 const OfficeShellCtx = createContext<Ctx | null>(null);
 
-/** Period of the current Office/Budget section. Falls back to the current month. */
+/**
+ * Period of the current Office/Budget section. Falls back to the accounting
+ * month (the month of the business day being closed), not the calendar month.
+ */
 export function useOfficePeriod() {
   const ctx = useContext(OfficeShellCtx);
-  const [local, setLocal] = useState<OfficePeriod>(() => currentMonthPeriod());
+  const [local, setLocal] = useState<OfficePeriod>(() => accountingMonthPeriod());
   if (ctx) return { period: ctx.period, setPeriod: ctx.setPeriod };
   return { period: local, setPeriod: setLocal };
 }
+
 
 /** Portals tab-specific action buttons into the shared toolbar. */
 export function OfficeActions({ children }: { children: ReactNode }) {
@@ -66,7 +76,10 @@ export function OfficeShell({
   banner?: ReactNode;
   children: ReactNode;
 }) {
-  const [period, setPeriod] = useSessionState<OfficePeriod>(storageKey, currentMonthPeriod());
+  const [period, setPeriod] = useSessionState<OfficePeriod>(storageKey, accountingMonthPeriod());
+  /** True once the user picked a period by hand — auto-defaulting stops then. */
+  const [touched, setTouched] = useSessionState<boolean>(`${storageKey}:touched`, false);
+  const { data: closures = [] } = useMonthClosures();
   const actionsRef = useRef<HTMLDivElement | null>(null);
   const [actionsEl, setActionsEl] = useState<HTMLDivElement | null>(null);
 
@@ -74,7 +87,34 @@ export function OfficeShell({
     setActionsEl(actionsRef.current);
   }, []);
 
-  const value = useMemo<Ctx>(() => ({ period, setPeriod, actionsEl }), [period, setPeriod, actionsEl]);
+  /**
+   * The working month only rolls forward once the previous one is closed via
+   * Close Month. Until then Office stays on the accounting month, so wallets,
+   * variance and expenses keep landing in the month they belong to.
+   */
+  useEffect(() => {
+    if (touched) return;
+    const base = accountingMonthPeriod();
+    const isClosed = (y: number, m: number) =>
+      closures.some((c) => c.year === y && c.month === m);
+    const want = isClosed(base.year, base.month)
+      ? nextMonthPeriod(base.year, base.month)
+      : base;
+    if (period.mode !== "month" || period.year !== want.year || period.month !== want.month) {
+      setPeriod(want);
+    }
+  }, [closures, touched, period, setPeriod]);
+
+  const changePeriod = (p: OfficePeriod) => {
+    setTouched(true);
+    setPeriod(p);
+  };
+
+  const value = useMemo<Ctx>(
+    () => ({ period, setPeriod: changePeriod, actionsEl }),
+    [period, actionsEl],
+  );
+
 
   return (
     <OfficeShellCtx.Provider value={value}>
@@ -96,7 +136,7 @@ export function OfficeShell({
               </TabsList>
             </Tabs>
             <div className="flex-1" />
-            {showPeriod && <PeriodPicker value={period} onChange={setPeriod} />}
+            {showPeriod && <PeriodPicker value={period} onChange={changePeriod} />}
             <div ref={actionsRef} className="flex items-center gap-2" />
           </div>
         </div>
