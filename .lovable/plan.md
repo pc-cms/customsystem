@@ -33,6 +33,6 @@
 - `src/components/office/office-shell.tsx` — новый портал `OfficeHeaderActions` (внутри правой части строки), показ Open/Close Month только на Report, порядок элементов, размер бейджа статуса; старый портал `OfficeActions` сохраняется для вкладок, которым он нужен.
 - `src/pages/office/OfficePage.tsx` — передаёт в shell признак «вкладка Report» для месячного контроля.
 - `src/pages/finances/FinancesMonthlyReportPage.tsx`, `src/pages/office/OtherIncomesTab.tsx`, `src/pages/office/JpTab.tsx`, `src/pages/office/CollectionsTab.tsx` — перевод действий в `OfficeHeaderActions`; в JpTab и Collections объединение двух кнопок в одну с выбором направления в диалоге.
-- `src/pages/finances/FinancesWalletsPage.tsx` — кнопки в шапку, удаление Count All, однострочный блок Count business day, ширина date input.
+- `src/pages/finances/FinancesWalletsPage.tsx` — кнопки в шапку, удаление Count All, удаление баннеров Cash Deficit и Stale Counts (`BalanceBanner`/`StaleCountsNotice` убираются из страницы), однострочный блок Count date, ширина date input.
 
 Расчёты, RPC, схема, права и данные не затрагиваются. После правок — typecheck и production build, версия поднимается до 1.3.722.
