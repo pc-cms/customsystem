@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
-import { Plus, ArrowDownLeft, ArrowUpRight, Check, X } from "lucide-react";
+import { Plus, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Check, X } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,8 @@ import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
+import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
+import { TablePane, ErrorPane } from "@/components/finances/TablePane";
 import { useFinWallets } from "@/hooks/use-fin";
 import {
   useInterCasinoTransfers,
@@ -51,7 +54,7 @@ const ROW_STYLE: Record<string, string> = {
 
 export default function FinancesInterCasinoPage() {
   const { data: wallets = [] } = useFinWallets();
-  const { data: rows = [] } = useInterCasinoTransfers();
+  const { data: rows = [], isLoading, isError, refetch } = useInterCasinoTransfers();
   const { activeCasinoId, isSummaryMode, accessibleCasinos } = useCasino();
 
   const send = useSendInterCasino();
@@ -104,12 +107,231 @@ export default function FinancesInterCasinoPage() {
     );
   };
 
+  // ---------- All transfers table ----------
+  const allColumns: ColumnDef<InterCasinoTransfer>[] = [
+    {
+      key: "date",
+      header: "Date",
+      type: "date",
+      style: { width: 104 },
+      headerClassName: "text-left",
+      cellClassName: "text-left",
+      sortValue: (r) => r.business_date,
+      accessor: (r) => <span className="font-mono text-xs whitespace-nowrap">{fmtDate(r.business_date)}</span>,
+    },
+    {
+      key: "from",
+      header: "From",
+      type: "text",
+      sortValue: (r) => r.from_casino?.name ?? "",
+      accessor: (r) => (
+        <span className="text-xs">
+          {r.from_casino?.name} · <span className="text-muted-foreground">{r.from_wallet?.name}</span>
+        </span>
+      ),
+    },
+    {
+      key: "to",
+      header: "To",
+      type: "text",
+      sortValue: (r) => r.to_casino?.name ?? "",
+      accessor: (r) => (
+        <span className="text-xs">
+          {r.to_casino?.name} · <span className="text-muted-foreground">{r.to_wallet?.name || "—"}</span>
+        </span>
+      ),
+    },
+    {
+      key: "dir",
+      header: "Dir",
+      type: "status",
+      style: { width: 72 },
+      accessor: (r) => {
+        const isOut = r.from_casino_id === activeCasinoId;
+        return isOut || isSummaryMode ? (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-cms-amount-negative">
+            <ArrowUpRight className="w-3.5 h-3.5" /> OUT
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-cms-amount-positive">
+            <ArrowDownLeft className="w-3.5 h-3.5" /> IN
+          </span>
+        );
+      },
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      type: "money",
+      style: { width: 150 },
+      sortValue: (r) => Number(r.amount),
+      accessor: (r) => {
+        const isOut = r.from_casino_id === activeCasinoId;
+        return (
+          <span
+            className={cn(
+              "font-mono tabular-nums font-semibold whitespace-nowrap",
+              isOut ? "text-cms-amount-negative" : "text-cms-amount-positive",
+            )}
+          >
+            {isOut ? "−" : "+"}
+            {formatNumberSpaces(Number(r.amount))} {r.currency}
+          </span>
+        );
+      },
+    },
+    {
+      key: "status",
+      header: "Status",
+      type: "status",
+      style: { width: 140 },
+      sortValue: (r) => r.status,
+      accessor: (r) => (
+        <span className="inline-flex items-center gap-1 whitespace-nowrap">
+          <Badge variant="outline" className={STATUS_STYLE[r.status]}>
+            {r.status}
+          </Badge>
+          {(r as any).repayable ? (
+            <Badge variant="outline" className="border-amber-500/40 text-amber-600">
+              DEBT
+            </Badge>
+          ) : null}
+        </span>
+      ),
+    },
+    {
+      key: "note",
+      header: "Note",
+      type: "text",
+      accessor: (r) => (
+        <span className="block max-w-[320px] truncate text-xs text-muted-foreground" title={r.note || undefined}>
+          {r.note}
+          {r.resolution_note ? ` · ${r.resolution_note}` : ""}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      type: "actions",
+      style: { width: 88 },
+      accessor: (r) =>
+        r.status === "pending" && outgoingPending.some((p) => p.id === r.id) ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7"
+            disabled={resolve.isPending}
+            onClick={() => resolve.mutate({ transfer_id: r.id, action: "cancelled" })}
+          >
+            Cancel
+          </Button>
+        ) : null,
+    },
+  ];
+
+  // ---------- Incoming (to confirm) table ----------
+  const incomingColumns: ColumnDef<InterCasinoTransfer>[] = [
+    {
+      key: "date",
+      header: "Date",
+      type: "date",
+      style: { width: 104 },
+      headerClassName: "text-left",
+      cellClassName: "text-left",
+      sortValue: (r) => r.business_date,
+      accessor: (r) => <span className="font-mono text-xs whitespace-nowrap">{fmtDate(r.business_date)}</span>,
+    },
+    {
+      key: "from",
+      header: "From",
+      type: "text",
+      accessor: (r) => (
+        <div className="text-xs">
+          {r.from_casino?.name} · <span className="text-muted-foreground">{r.from_wallet?.name}</span>
+          {r.note ? <div className="text-muted-foreground">{r.note}</div> : null}
+        </div>
+      ),
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      type: "money",
+      style: { width: 150 },
+      accessor: (r) => (
+        <span className="font-mono tabular-nums text-cms-amount-positive whitespace-nowrap">
+          +{formatNumberSpaces(Number(r.amount))} {r.currency}
+        </span>
+      ),
+    },
+    {
+      key: "wallet",
+      header: "Credit to wallet",
+      type: "text",
+      style: { width: 240 },
+      accessor: (r) => {
+        const options = (wallets as any[]).filter(
+          (w) => w.currency === r.currency && w.casino_id === r.to_casino_id,
+        );
+        return (
+          <Select
+            value={acceptWallet[r.id] || ""}
+            onValueChange={(v) => setAcceptWallet((s) => ({ ...s, [r.id]: v }))}
+          >
+            <SelectTrigger className="h-8 w-56">
+              <SelectValue placeholder={`Wallet (${r.currency})`} />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((w) => (
+                <SelectItem key={w.id} value={w.id}>
+                  {w.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      },
+    },
+    {
+      key: "actions",
+      header: "Action",
+      type: "actions",
+      style: { width: 210 },
+      accessor: (r) => (
+        <span className="whitespace-nowrap">
+          <Button
+            size="sm"
+            className="h-8"
+            disabled={!acceptWallet[r.id] || accept.isPending}
+            onClick={() => accept.mutate({ transfer_id: r.id, to_wallet_id: acceptWallet[r.id] })}
+          >
+            <Check className="w-4 h-4" /> Accept
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="ml-1 h-8"
+            disabled={resolve.isPending}
+            onClick={() => resolve.mutate({ transfer_id: r.id, action: "rejected" })}
+          >
+            <X className="w-4 h-4" /> Reject
+          </Button>
+        </span>
+      ),
+    },
+  ];
+
   return (
     <PageShell>
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      <PageHeader
+        icon={ArrowLeftRight}
+        title="Inter-Casino"
+        subtitle="Paired transfers between casinos · receiver confirms into a same-currency wallet"
+      >
         <FinanceCasinoSwitcher allowNetwork={true} />
         {!isSummaryMode && (
           <Button
+            className="h-9"
             onClick={() => {
               setForm((f) => ({ ...f, business_date: defaultPostingDate(range) }));
               setOpen(true);
@@ -118,8 +340,9 @@ export default function FinancesInterCasinoPage() {
             <Plus className="w-4 h-4" /> New Transfer
           </Button>
         )}
-      </div>
+      </PageHeader>
 
+      {isError && <ErrorPane message="Failed to load inter-casino transfers" onRetry={() => refetch()} />}
 
       <PageSection card={false}>
         <Tabs defaultValue="all">
@@ -136,175 +359,37 @@ export default function FinancesInterCasinoPage() {
           </TabsList>
 
           <TabsContent value="all" className="mt-3">
-            <div className="rounded-md border border-border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted text-xs uppercase">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Date</th>
-                    <th className="px-3 py-2 text-left">From</th>
-                    <th className="px-3 py-2 text-left">To</th>
-                    <th className="px-3 py-2 text-center">Dir</th>
-                    <th className="px-3 py-2 text-right">Amount</th>
-                    <th className="px-3 py-2 text-center">Status</th>
-                    <th className="px-3 py-2 text-left">Note</th>
-                    <th className="px-3 py-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {(rows as InterCasinoTransfer[]).map((r) => {
-                    const isOut = r.from_casino_id === activeCasinoId;
-                    return (
-                      <tr
-                        key={r.id}
-                        className={`border-t border-border ${ROW_STYLE[r.status] || "hover:bg-muted/40"}`}
-                      >
-                        <td className="px-3 py-1.5 font-mono text-xs">{fmtDate(r.business_date)}</td>
-                        <td className="px-3 py-1.5 text-xs">
-                          {r.from_casino?.name} · <span className="text-muted-foreground">{r.from_wallet?.name}</span>
-                        </td>
-                        <td className="px-3 py-1.5 text-xs">
-                          {r.to_casino?.name} ·{" "}
-                          <span className="text-muted-foreground">{r.to_wallet?.name || "—"}</span>
-                        </td>
-                        <td className="px-3 py-1.5 text-center">
-                          {isOut || isSummaryMode ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-cms-amount-negative">
-                              <ArrowUpRight className="w-3.5 h-3.5" /> OUT
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-cms-amount-positive">
-                              <ArrowDownLeft className="w-3.5 h-3.5" /> IN
-                            </span>
-                          )}
-                        </td>
-                        <td
-                          className={`px-3 py-1.5 text-right font-mono tabular-nums font-semibold ${
-                            isOut ? "text-cms-amount-negative" : "text-cms-amount-positive"
-                          }`}
-                        >
-                          {isOut ? "−" : "+"}
-                          {formatNumberSpaces(Number(r.amount))} {r.currency}
-                        </td>
-
-                        <td className="px-3 py-1.5 text-center">
-                          <Badge variant="outline" className={STATUS_STYLE[r.status]}>
-                            {r.status}
-                          </Badge>
-                          {(r as any).repayable ? (
-                            <Badge variant="outline" className="ml-1 border-amber-500/40 text-amber-600">
-                              DEBT
-                            </Badge>
-                          ) : null}
-                        </td>
-
-                        <td className="px-3 py-1.5 text-xs text-muted-foreground">
-                          {r.note}
-                          {r.resolution_note ? ` · ${r.resolution_note}` : ""}
-                        </td>
-                        <td className="px-3 py-1.5 text-right">
-                          {r.status === "pending" && outgoingPending.some((p) => p.id === r.id) && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={resolve.isPending}
-                              onClick={() => resolve.mutate({ transfer_id: r.id, action: "cancelled" })}
-                            >
-                              Cancel
-                            </Button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {!rows.length && (
-                    <tr>
-                      <td colSpan={8} className="text-center text-muted-foreground py-6">
-                        No inter-casino transfers
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <TablePane>
+              {/* Transfer ledger is small (dozens of rows) — no virtualization. */}
+              <SmartTable<InterCasinoTransfer>
+                data={rows as InterCasinoTransfer[]}
+                columns={allColumns}
+                rowKey={(r) => r.id}
+                bare
+                scroll={false}
+                stickyHeader
+                virtualize={false}
+                loading={isLoading}
+                empty="No inter-casino transfers"
+                rowClassName={(r) => ROW_STYLE[r.status] || "hover:bg-muted/40"}
+              />
+            </TablePane>
           </TabsContent>
 
           <TabsContent value="incoming" className="mt-3">
-            <div className="rounded-md border border-border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted text-xs uppercase">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Date</th>
-                    <th className="px-3 py-2 text-left">From</th>
-                    <th className="px-3 py-2 text-right">Amount</th>
-                    <th className="px-3 py-2 text-left">Credit to wallet</th>
-                    <th className="px-3 py-2 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {incoming.map((r) => {
-                    const options = (wallets as any[]).filter(
-                      (w) => w.currency === r.currency && w.casino_id === r.to_casino_id,
-                    );
-                    return (
-                      <tr key={r.id} className="border-t border-border">
-                        <td className="px-3 py-2 font-mono text-xs">{fmtDate(r.business_date)}</td>
-                        <td className="px-3 py-2 text-xs">
-                          {r.from_casino?.name} · <span className="text-muted-foreground">{r.from_wallet?.name}</span>
-                          {r.note ? <div className="text-muted-foreground">{r.note}</div> : null}
-                        </td>
-                        <td className="px-3 py-2 text-right font-mono text-cms-amount-positive">
-                          +{formatNumberSpaces(Number(r.amount))} {r.currency}
-                        </td>
-                        <td className="px-3 py-2">
-                          <Select
-                            value={acceptWallet[r.id] || ""}
-                            onValueChange={(v) => setAcceptWallet((s) => ({ ...s, [r.id]: v }))}
-                          >
-                            <SelectTrigger className="w-56">
-                              <SelectValue placeholder={`Wallet (${r.currency})`} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {options.map((w) => (
-                                <SelectItem key={w.id} value={w.id}>
-                                  {w.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </td>
-                        <td className="px-3 py-2 text-right whitespace-nowrap">
-                          <Button
-                            size="sm"
-                            disabled={!acceptWallet[r.id] || accept.isPending}
-                            onClick={() =>
-                              accept.mutate({ transfer_id: r.id, to_wallet_id: acceptWallet[r.id] })
-                            }
-                          >
-                            <Check className="w-4 h-4" /> Accept
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="ml-1"
-                            disabled={resolve.isPending}
-                            onClick={() => resolve.mutate({ transfer_id: r.id, action: "rejected" })}
-                          >
-                            <X className="w-4 h-4" /> Reject
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {!incoming.length && (
-                    <tr>
-                      <td colSpan={5} className="text-center text-muted-foreground py-6">
-                        Nothing to confirm
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <TablePane>
+              <SmartTable<InterCasinoTransfer>
+                data={incoming}
+                columns={incomingColumns}
+                rowKey={(r) => r.id}
+                bare
+                scroll={false}
+                stickyHeader
+                virtualize={false}
+                loading={isLoading}
+                empty="Nothing to confirm"
+              />
+            </TablePane>
           </TabsContent>
         </Tabs>
       </PageSection>
