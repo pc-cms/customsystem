@@ -243,8 +243,23 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--closing-only", action="store_true", help="send only the closed period")
     ap.add_argument("--force-closing", action="store_true", help="ignore the closing time window")
     ap.add_argument("--dry-run", action="store_true", help="collect and log, do not POST")
+    ap.add_argument("--history-scan", action="store_true",
+                    help="read-only inventory of closed ACE periods (posts nothing)")
+    ap.add_argument("--backfill-from", metavar="YYYY-MM-DD",
+                    help="post every closed period with business_date >= this date")
+    ap.add_argument("--from", dest="from_date", metavar="YYYY-MM-DD",
+                    help="start business date for --history-scan")
     ap.add_argument("--verbose", "-v", action="store_true")
     args = ap.parse_args(argv)
+
+    def valid_date(value: str | None) -> str | None:
+        if not value:
+            return None
+        try:
+            return datetime.strptime(value, "%Y-%m-%d").strftime("%Y-%m-%d")
+        except ValueError:
+            return None
+
 
     logger = setup_logging(args.verbose)
     cfg = Config.load()
