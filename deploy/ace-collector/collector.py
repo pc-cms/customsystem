@@ -133,6 +133,10 @@ HISTORY_MODE = "history_missing_only"
 HISTORY_WINDOW_MIN = "2026-01-01"
 HISTORY_WINDOW_MAX = "2026-07-31"
 
+#: Casinos that must NEVER take part in the historical backfill.
+#: Mbeya opened in August 2026 — it has no real Jan..Jul Statistics.
+HISTORY_EXCLUDED_LOCATIONS = {"mbeya"}
+
 MEANINGFUL_FIELDS = (
     "total_drop",
     "net_win",
@@ -305,22 +309,24 @@ def resolve_history(client: AceClient, from_date: str, to_date: str, logger,
 
 
 def probe_day(api, cfg, bdate: str, report) -> str:
-    """Ask the API what WOULD/DID happen for a day (dry-run aware caller)."""
+    """Read-only: ask the API what WOULD happen for a day. Writes nothing."""
     payload = report.as_payload(cfg.location_code)
     payload["business_date"] = bdate
     payload["closed_at_local"] = report.period_label
     payload["mode"] = HISTORY_MODE
+    payload["probe"] = True
     body = api.send(payload) or {}
     return body.get("status", "unknown")
 
 
-def run_history_scan(client, cfg, logger, from_date: str, to_date: str) -> int:
+def run_history_scan(client, api, cfg, logger, from_date: str, to_date: str) -> int:
     """Read-only inventory of the closed periods available for a backfill."""
     selected, unparsed, dup_stats, available = resolve_history(
         client, from_date, to_date, logger, cfg.location_code
     )
     counts = dup_stats["counts"]
     logger.info("HISTORY-SCAN location=%s", cfg.location_code)
+
     logger.info("HISTORY-SCAN window=%s..%s", from_date, to_date)
     logger.info("HISTORY-SCAN closed_periods_available=%d", available)
     logger.info("HISTORY-SCAN days_selected=%d", counts["selected"])
@@ -343,11 +349,29 @@ def run_history_scan(client, cfg, logger, from_date: str, to_date: str) -> int:
         logger.info("HISTORY-SCAN unparsable period_id=%s label=%r", pid, label)
     for bdate, pid, label, _report in selected:
         logger.info("HISTORY-SCAN period date=%s period_id=%s label=%r", bdate, pid, label)
+    # CMS-side preview: classify every selected day without writing anything.
+    cms = {"new_statistics_day_created": 0, "existing_day_drop_filled": 0,
+           "existing_day_unchanged": 0, "unknown": 0}
+    for bdate, _pid, _label, report in selected:
+        try:
+            status = probe_day(api, cfg, bdate, report)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("HISTORY-SCAN probe failed date=%s: %s", bdate, exc)
+            status = "unknown"
+        cms[status if status in cms else "unknown"] += 1
+    logger.info("HISTORY-SCAN cms existing_statistics_days=%d completely_missing_days=%d",
+                cms["existing_day_drop_filled"] + cms["existing_day_unchanged"],
+                cms["new_statistics_day_created"])
+    logger.info("HISTORY-SCAN cms drop_fill_days=%d unchanged_existing_days=%d unknown=%d",
+                cms["existing_day_drop_filled"], cms["existing_day_unchanged"], cms["unknown"])
+
     logger.info(
-        "HISTORY-SCAN totals selected_days=%d skipped_days=%d (nothing was sent)",
+        "HISTORY-SCAN totals selected_days=%d skipped_days=%d special_overrides=%d (nothing was sent)",
         counts["selected"], counts["ambiguous"] + counts["zero_only"] + counts["unreadable"],
+        counts["overrides"],
     )
     return 0
+
 
 
 def run_backfill(client, api, cfg, logger, from_date: str, to_date: str, dry_run: bool) -> int:
@@ -523,10 +547,16 @@ def main(argv: list[str] | None = None) -> int:
                 from_date, to_date, HISTORY_WINDOW_MIN, HISTORY_WINDOW_MAX,
             )
             return 2
+        if cfg.location_code.strip().lower() in HISTORY_EXCLUDED_LOCATIONS:
+            logger.error(
+                "Historical backfill is not allowed for location %r (casino opened in August 2026)",
+                cfg.location_code,
+            )
+            return 2
         try:
             client.login()
             if args.history_scan and not args.backfill_from:
-                return run_history_scan(client, cfg, logger, from_date, to_date)
+                return run_history_scan(client, api, cfg, logger, from_date, to_date)
             return run_backfill(client, api, cfg, logger, from_date, to_date, args.dry_run)
         except (AceError, ApiError, Exception) as exc:  # noqa: BLE001
             logger.error("History run failed: %s", exc)
