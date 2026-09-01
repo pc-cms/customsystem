@@ -147,6 +147,7 @@ export default function FinancesWalletsPage() {
   const floatCurrent = Number(monthFinance?.float?.current_tzs || 0);
   const [walletFilter, setWalletFilter] = useSessionState<string>("wallet", "all");
   const [kindFilter, setKindFilter] = useSessionState<string>("kind", "all");
+  const [effectFilter, setEffectFilter] = useSessionState<string>("effect", "all");
   const [sort, setSort] = useSessionState<"date_desc" | "date_asc" | "amount_desc" | "amount_asc">(
     "sort",
     "date_desc",
