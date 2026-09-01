@@ -170,6 +170,21 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Read-only preview used by --history-scan: classify the day, write nothing.
+    if (body.probe === true || body.probe === "true") {
+      const { data: pr, error: pErr } = await admin.rpc("ace_history_probe_day", {
+        _casino_id: cred.casino_id,
+        _business_date: business_date,
+        _drop_slots: numbers.total_drop,
+      });
+      if (pErr) {
+        console.error("ace-finance-ingest: history probe failed", pErr.message);
+        return json({ ok: false, status: "history_failed", error: "probe_failed", retryable: true }, 500);
+      }
+      const p = (pr ?? {}) as Record<string, unknown>;
+      return json({ ok: true, preview: true, business_date, period_id, location_code, ...p });
+    }
+
     const { data: res, error: fillErr } = await admin.rpc("ace_backfill_history_day", {
       _casino_id: cred.casino_id,
       _business_date: business_date,
@@ -178,6 +193,7 @@ Deno.serve(async (req) => {
       _cashdesk_win: numbers.win_cashdesk,
       _client_balance: numbers.cashless_money_difference,
     });
+
 
     if (fillErr) {
       console.error("ace-finance-ingest: history backfill failed", fillErr.message);
