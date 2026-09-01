@@ -20,8 +20,10 @@
 - **Wallets**: «Closing Inbox», «Add Wallet», «Adjust Float» слева от статуса.
 
 ## 5. Wallets
-- Кнопка **Count All удаляется** полностью (и действие `countAllStale` вместе с ней). Существующие детали Stale Counts и ручной счёт по кошелькам остаются.
-- Строка «Count business day» становится одной строкой на всю ширину: «Count business day» + поле даты + подпись «Saved into … · window …» + Reset. Поле даты получает корректную ширину/паддинг, чтобы иконка календаря не налезала на границу ячейки.
+- Кнопка **Count All удаляется** полностью (и действие `countAllStale` вместе с ней).
+- Баннер **Cash Deficit удаляется** — он дублирует Variance в плитках.
+- Баннер **Stale Counts удаляется** — информация видна в самих кошельках.
+- Строка «Count business day» становится одной строкой на всю ширину с коротким понятным лейблом **«Count date»** + поле даты + подпись «Saved into … · window …» + Reset. Поле даты получает корректную ширину/паддинг, чтобы иконка календаря не налезала на границу ячейки. Механика сохранения даты счёта не меняется.
 
 ## 6. Collections — фильтр категорий
 Категория только одна — выпадающий фильтр «All categories» убирается. Фильтры по кошельку и направлению (All / Collected / Returned) остаются.
@@ -31,6 +33,6 @@
 - `src/components/office/office-shell.tsx` — новый портал `OfficeHeaderActions` (внутри правой части строки), показ Open/Close Month только на Report, порядок элементов, размер бейджа статуса; старый портал `OfficeActions` сохраняется для вкладок, которым он нужен.
 - `src/pages/office/OfficePage.tsx` — передаёт в shell признак «вкладка Report» для месячного контроля.
 - `src/pages/finances/FinancesMonthlyReportPage.tsx`, `src/pages/office/OtherIncomesTab.tsx`, `src/pages/office/JpTab.tsx`, `src/pages/office/CollectionsTab.tsx` — перевод действий в `OfficeHeaderActions`; в JpTab и Collections объединение двух кнопок в одну с выбором направления в диалоге.
-- `src/pages/finances/FinancesWalletsPage.tsx` — кнопки в шапку, удаление Count All, однострочный блок Count business day, ширина date input.
+- `src/pages/finances/FinancesWalletsPage.tsx` — кнопки в шапку, удаление Count All, удаление баннеров Cash Deficit и Stale Counts (`BalanceBanner`/`StaleCountsNotice` убираются из страницы), однострочный блок Count date, ширина date input.
 
 Расчёты, RPC, схема, права и данные не затрагиваются. После правок — typecheck и production build, версия поднимается до 1.3.722.
