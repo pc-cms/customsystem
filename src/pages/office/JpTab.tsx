@@ -295,6 +295,15 @@ export default function JpTab() {
               type="date"
               value={form.business_date}
               onChange={(e) => setForm({ ...form, business_date: e.target.value })}
+              className={cn(
+                isOutsideWindow(form.business_date, range) &&
+                  "border-amber-500 text-amber-600 dark:text-amber-400",
+              )}
+              title={
+                isOutsideWindow(form.business_date, range)
+                  ? "Date is outside the selected month window"
+                  : "Posting date"
+              }
             />
           </FormField>
           <FormField span={6} label="Direction">
