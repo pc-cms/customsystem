@@ -192,6 +192,7 @@ export type Database = {
           period_id: number
           period_label: string | null
           row_created: boolean
+          status: string | null
         }
         Insert: {
           business_date: string
@@ -204,6 +205,7 @@ export type Database = {
           period_id: number
           period_label?: string | null
           row_created?: boolean
+          status?: string | null
         }
         Update: {
           business_date?: string
@@ -216,6 +218,7 @@ export type Database = {
           period_id?: number
           period_label?: string | null
           row_created?: boolean
+          status?: string | null
         }
         Relationships: [
           {
@@ -12671,6 +12674,17 @@ export type Database = {
           _client_balance: number
           _drop_slots: number
           _jp_in?: number
+          _net_win: number
+        }
+        Returns: Json
+      }
+      ace_backfill_history_day: {
+        Args: {
+          _business_date: string
+          _cashdesk_win: number
+          _casino_id: string
+          _client_balance: number
+          _drop_slots: number
           _net_win: number
         }
         Returns: Json
