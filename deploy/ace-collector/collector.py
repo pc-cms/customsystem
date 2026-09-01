@@ -133,6 +133,10 @@ HISTORY_MODE = "history_missing_only"
 HISTORY_WINDOW_MIN = "2026-01-01"
 HISTORY_WINDOW_MAX = "2026-07-31"
 
+#: Casinos that must NEVER take part in the historical backfill.
+#: Mbeya opened in August 2026 — it has no real Jan..Jul Statistics.
+HISTORY_EXCLUDED_LOCATIONS = {"mbeya"}
+
 MEANINGFUL_FIELDS = (
     "total_drop",
     "net_win",
@@ -543,10 +547,16 @@ def main(argv: list[str] | None = None) -> int:
                 from_date, to_date, HISTORY_WINDOW_MIN, HISTORY_WINDOW_MAX,
             )
             return 2
+        if cfg.location_code.strip().lower() in HISTORY_EXCLUDED_LOCATIONS:
+            logger.error(
+                "Historical backfill is not allowed for location %r (casino opened in August 2026)",
+                cfg.location_code,
+            )
+            return 2
         try:
             client.login()
             if args.history_scan and not args.backfill_from:
-                return run_history_scan(client, cfg, logger, from_date, to_date)
+                return run_history_scan(client, api, cfg, logger, from_date, to_date)
             return run_backfill(client, api, cfg, logger, from_date, to_date, args.dry_run)
         except (AceError, ApiError, Exception) as exc:  # noqa: BLE001
             logger.error("History run failed: %s", exc)
