@@ -16,8 +16,14 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PeriodPicker, type OfficePeriod, currentMonthPeriod } from "./PeriodPicker";
+import {
+  PeriodPicker,
+  type OfficePeriod,
+  accountingMonthPeriod,
+  nextMonthPeriod,
+} from "./PeriodPicker";
 import { useSessionState } from "@/hooks/use-session-state";
+import { useMonthClosures } from "@/hooks/use-fin-month-closures";
 
 type Ctx = {
   period: OfficePeriod;
@@ -27,13 +33,17 @@ type Ctx = {
 
 const OfficeShellCtx = createContext<Ctx | null>(null);
 
-/** Period of the current Office/Budget section. Falls back to the current month. */
+/**
+ * Period of the current Office/Budget section. Falls back to the accounting
+ * month (the month of the business day being closed), not the calendar month.
+ */
 export function useOfficePeriod() {
   const ctx = useContext(OfficeShellCtx);
-  const [local, setLocal] = useState<OfficePeriod>(() => currentMonthPeriod());
+  const [local, setLocal] = useState<OfficePeriod>(() => accountingMonthPeriod());
   if (ctx) return { period: ctx.period, setPeriod: ctx.setPeriod };
   return { period: local, setPeriod: setLocal };
 }
+
 
 /** Portals tab-specific action buttons into the shared toolbar. */
 export function OfficeActions({ children }: { children: ReactNode }) {
