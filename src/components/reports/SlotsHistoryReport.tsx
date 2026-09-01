@@ -74,7 +74,7 @@ const EditableMoney = ({
 };
 
 const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: string; embedded?: boolean }) => {
-  const { data: allShifts = [], isLoading } = useCageSlotsHistory(500);
+  const { data: allShifts = [], isLoading } = useCageSlotsHistory(2000);
   const [mode, MoneyToggle] = useMoneyMode("slots-history-report");
   const { roles, casinoId } = useAuth() as any;
   const qc = useQueryClient();
@@ -91,7 +91,9 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
         .select("business_date, cashdesk_win, net_win, drop_slots, players_card_balance")
         .eq("casino_id", casinoId)
         .gte("business_date", from)
-        .lte("business_date", to);
+        .lte("business_date", to)
+        .order("business_date", { ascending: false })
+        .limit(2000);
       if (error) throw error;
       return data || [];
     },
@@ -124,29 +126,48 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
   
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "business_date", dir: "desc" });
 
-  const rows = useMemo(() => shifts.map((s: any) => {
-    const c = closingByDate.get(s.business_date);
-    const netWin = c ? c.netWin : 0;
-    const cdr = c ? c.cashdesk : 0;
-    const cardBalance = c ? c.cardBalance : 0;
-    return {
-      s,
-      // Drop: ACE Collector / Close Day figure wins over the manual cage entry.
-      drop: c && c.drop !== 0 ? c.drop : Number(s.manual_drop_slots || 0),
-      dropLocked: !!c && c.drop !== 0,
-      // Net Win / Cashdesk / Card Balance come ONLY from Close Day.
-      netWin,
-      cdr,
-      cardBalance,
-      // A figure entered at Close Day is read-only; a zero (day closed without
-      // figures, or no closing at all) can still be filled in manually.
-      netWinLocked: netWin !== 0,
-      cdrLocked: cdr !== 0,
-      cardBalanceLocked: cardBalance !== 0,
-      miss: Number(s.cards_miss || 0),
-      balance: Number(s.balance || 0),
-    };
-  }), [shifts, closingByDate]);
+  /**
+   * Rows = union of business days that have a real closed cashier shift AND
+   * business days that only exist as a Close Day row (historical/ACE-backfilled
+   * days from before the cage module was used). No fake shift is created:
+   * shift-only columns stay blank and read-only on Close-Day-only rows.
+   */
+  const rows = useMemo(() => {
+    const shiftByDate = new Map<string, any>();
+    shifts.forEach((s: any) => {
+      if (!shiftByDate.has(s.business_date)) shiftByDate.set(s.business_date, s);
+    });
+    const dates = new Set<string>([...shiftByDate.keys(), ...closingByDate.keys()]);
+
+    return [...dates].map((date) => {
+      const s = shiftByDate.get(date) || null;
+      const c = closingByDate.get(date);
+      const netWin = c ? c.netWin : 0;
+      const cdr = c ? c.cashdesk : 0;
+      const cardBalance = c ? c.cardBalance : 0;
+      return {
+        key: s ? s.id : `closing-${date}`,
+        date,
+        s,
+        hasShift: !!s,
+        // Drop: ACE Collector / Close Day figure wins over the manual cage entry.
+        drop: c && c.drop !== 0 ? c.drop : Number(s?.manual_drop_slots || 0),
+        dropLocked: !!c && c.drop !== 0,
+        // Net Win / Cashdesk / Card Balance come ONLY from Close Day.
+        netWin,
+        cdr,
+        cardBalance,
+        // A figure entered at Close Day is read-only; a zero (day closed without
+        // figures, or no closing at all) can still be filled in manually.
+        netWinLocked: netWin !== 0,
+        cdrLocked: cdr !== 0,
+        cardBalanceLocked: cardBalance !== 0,
+        miss: Number(s?.cards_miss || 0),
+        balance: Number(s?.balance || 0),
+      };
+    });
+  }, [shifts, closingByDate]);
+
 
 
   const totals = useMemo(() => {
