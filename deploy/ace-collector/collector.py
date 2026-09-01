@@ -443,8 +443,31 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError:
             return None
 
-
     logger = setup_logging(args.verbose)
+
+    # Validate the historical bounds BEFORE anything touches ACE or the config:
+    # a malformed or out-of-window range must never reach the network.
+    if args.history_scan or args.backfill_from:
+        _from = valid_date(args.backfill_from or args.from_date)
+        _to = valid_date(args.to_date)
+        if not _from:
+            logger.error("A valid --from / --backfill-from date (YYYY-MM-DD) is required")
+            return 2
+        if not _to:
+            logger.error("A valid --to YYYY-MM-DD bound is required for history modes")
+            return 2
+        if _to < _from:
+            logger.error("--to (%s) must not be earlier than --from (%s)", _to, _from)
+            return 2
+        if _from < HISTORY_WINDOW_MIN or _to > HISTORY_WINDOW_MAX:
+            logger.error(
+                "Historical range %s..%s is outside the allowed window %s..%s "
+                "(August 2026 and later must never be touched)",
+                _from, _to, HISTORY_WINDOW_MIN, HISTORY_WINDOW_MAX,
+            )
+            return 2
+
+
     cfg = Config.load()
 
     problems = cfg.validate()
