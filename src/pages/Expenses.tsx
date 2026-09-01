@@ -36,7 +36,7 @@ import { EditExpenseDialog, type EditableExpense } from "@/components/expenses/E
 import { Pencil } from "lucide-react";
 
 import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
-import { formatCurrency } from "@/lib/currency";
+import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
 
 type SourceVal = "live_game" | "slots" | "office";
 
