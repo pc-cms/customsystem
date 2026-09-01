@@ -22,6 +22,9 @@ import {
 import { useCasino } from "@/lib/casino-context";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
+import { cn } from "@/lib/utils";
+import { useOfficePeriod } from "@/components/office/office-shell";
+import { defaultPostingDate, isOutsideWindow } from "@/lib/office-posting-date";
 import { toast } from "sonner";
 
 /**
