@@ -219,17 +219,17 @@ export default function FinancesMonthlyReportPage() {
     }
 
     // Collections section (excluded from grand)
-    if (data.collections) {
-      const col = data.collections;
+    for (const extra of [data.collections, data.capex]) {
+      if (!extra) continue;
       ws.mergeCells(`A${r}:${lastCol}${r}`);
       const cc = ws.getCell(`A${r}`);
-      cc.value = col.name;
+      cc.value = extra.name;
       cc.font = { bold: true, size: 12 };
       cc.fill = groupFill as any;
       r++;
       writeHeader();
-      for (const c of col.categories) writeCatRow(c);
-      writeTotalRow(col.totals);
+      for (const c of extra.categories) writeCatRow(c);
+      writeTotalRow(extra.totals);
     }
 
 
@@ -333,11 +333,11 @@ export default function FinancesMonthlyReportPage() {
         />
       ))}
 
-      {/* COLLECTIONS — owner withdrawals, group table below operating groups */}
-      {data?.collections && (
+      {/* COLLECTIONS & CAPEX — below operating groups, excluded from grand */}
+      {[data?.collections, data?.capex].filter(Boolean).map((grp) => (
         <GroupTable
-          key={data.collections.code}
-          group={data.collections}
+          key={grp!.code}
+          group={grp!}
           expandedId={expanded}
           onToggle={toggle}
           isNetwork={isNetwork}
@@ -352,8 +352,8 @@ export default function FinancesMonthlyReportPage() {
             renameCategory.mutate({ id: catId, name: newName })
           }
           onArchiveCategory={(catId) => archiveCategory.mutate(catId)}
-          onAddCategory={(name) => createCategory.mutate({ group_code: data.collections!.code, group_name: data.collections!.name, name, is_income: false })}
-          onRenameGroup={(newName) => renameGroup.mutate({ group_code: data.collections!.code, name: newName })}
+          onAddCategory={(name) => createCategory.mutate({ group_code: grp!.code, group_name: grp!.name, name, is_income: false })}
+          onRenameGroup={(newName) => renameGroup.mutate({ group_code: grp!.code, name: newName })}
           onEditExpense={(e) => setEditRow({
             id: e.id,
             fin_category_id: e.fin_category_id,
@@ -367,7 +367,7 @@ export default function FinancesMonthlyReportPage() {
           })}
           onDeleteExpense={canDelete ? ((e) => setDelRow(e)) : undefined}
         />
-      )}
+      ))}
 
 
       {!isNetwork && (
@@ -470,6 +470,8 @@ const SummaryBlock = ({
   const depositsTotal = cash.deposits;
   const investmentItems = cash.investment_items || [];
   const collectionCats = (data.collections?.categories || []).filter((c) => Number(c.actual_grand_tzs || 0) !== 0);
+  const capexCats = (data.capex?.categories || []).filter((c) => Number(c.actual_grand_tzs || 0) !== 0);
+  const capexTotal = data.capex?.totals.actual_grand_tzs || 0;
 
   /** Pending Est Expenses = Budget − Paid Expenses (negative = overspent). */
   const pendingEstExpenses = g.plan_month_grand_tzs - cash.expenses_actual;
@@ -917,7 +919,7 @@ const SummaryBlock = ({
           <Section
             id="collections"
             label="Collections"
-            total={cash.collections_actual}
+            total={cash.collections_actual - capexTotal}
             tip="Owner withdrawals already taken out in cash. They reduce Expected Profit, the amount still available for collection and Cash Position. Expand to see the breakdown by category."
           >
             {collectionCats.length === 0 ? (
@@ -928,6 +930,22 @@ const SummaryBlock = ({
               ))
             )}
           </Section>
+          {data.capex && (
+            <Section
+              id="capex"
+              label="CAPEX"
+              total={capexTotal}
+              tip="Capital expenditure — a standalone category, separate from Collections. It still reduces Expected Profit and Cash Position."
+            >
+              {capexCats.length === 0 ? (
+                <div className="px-3 py-2 text-[12px] text-muted-foreground">No CAPEX this month.</div>
+              ) : (
+                capexCats.map((c) => (
+                  <DetailRow key={c.id} label={c.name} value={c.actual_grand_tzs} />
+                ))
+              )}
+            </Section>
+          )}
 
 
 

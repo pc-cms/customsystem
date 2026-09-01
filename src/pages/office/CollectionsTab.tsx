@@ -92,13 +92,20 @@ export default function CollectionsTab() {
   const editExpense = useEditExpense();
   const qc = useQueryClient();
 
-  /** Collections-group categories (Collection, CAPEX, Money Change…). */
+  /** Collections-group categories (Collection, Money Change…) — CAPEX lives apart. */
+  const isCapex = (name?: string | null) => (name || "").trim().toUpperCase() === "CAPEX";
   const collectionCats = useMemo(
-    () => (categories as any[]).filter((c) => c.group_code === "collections" && c.is_active),
+    () =>
+      (categories as any[]).filter(
+        (c) => c.group_code === "collections" && c.is_active && !isCapex(c.name),
+      ),
     [categories],
   );
   const collectionCatIds = useMemo(
-    () => (categories as any[]).filter((c) => c.group_code === "collections").map((c) => c.id),
+    () =>
+      (categories as any[])
+        .filter((c) => c.group_code === "collections" && !isCapex(c.name))
+        .map((c) => c.id),
     [categories],
   );
 
@@ -131,7 +138,9 @@ export default function CollectionsTab() {
   const [grouped, setGrouped] = useState(false);
 
   const allRows: Row[] = useMemo(() => {
-    const entries: Row[] = (allEntries as OtherIncomeRow[]).map((r) => ({
+    const entries: Row[] = (allEntries as OtherIncomeRow[])
+      .filter((r) => !isCapex(r.fin_categories?.name))
+      .map((r) => ({
       id: r.id,
       origin: "entry",
       business_date: r.business_date,

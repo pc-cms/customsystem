@@ -91,6 +91,30 @@ export type ReportGroup = {
   };
 };
 
+/** Recompute a group's totals from its category list (used when splitting). */
+const sumCategoryTotals = (list: ReportCategory[]): ReportGroup["totals"] => {
+  const t = list.reduce(
+    (s, c) => ({
+      plan_year_tzs: s.plan_year_tzs + c.plan_year_tzs,
+      plan_year_usd: s.plan_year_usd + c.plan_year_usd,
+      plan_month_tzs: s.plan_month_tzs + c.plan_month_tzs,
+      plan_month_usd: s.plan_month_usd + c.plan_month_usd,
+      plan_month_grand_tzs: s.plan_month_grand_tzs + c.plan_month_grand_tzs,
+      actual_tzs: s.actual_tzs + c.actual_tzs,
+      actual_usd: s.actual_usd + c.actual_usd,
+      actual_grand_tzs: s.actual_grand_tzs + c.actual_grand_tzs,
+      remain_tzs: 0,
+      remain_usd: 0,
+      remain_grand_tzs: 0,
+    }),
+    { plan_year_tzs: 0, plan_year_usd: 0, plan_month_tzs: 0, plan_month_usd: 0, plan_month_grand_tzs: 0, actual_tzs: 0, actual_usd: 0, actual_grand_tzs: 0, remain_tzs: 0, remain_usd: 0, remain_grand_tzs: 0 },
+  );
+  t.remain_tzs = t.plan_month_tzs - t.actual_tzs;
+  t.remain_usd = t.plan_month_usd - t.actual_usd;
+  t.remain_grand_tzs = t.plan_month_grand_tzs - t.actual_grand_tzs;
+  return t;
+};
+
 export type MonthlyReport = {
   incomes: {
     /** Table Result — Σ per-table closing win (closed days). Alias of `table_result`. */
@@ -161,6 +185,8 @@ export type MonthlyReport = {
   groups: ReportGroup[];
   /** Collections & Owner Withdrawals — rendered separately, excluded from grand. */
   collections: ReportGroup | null;
+  /** CAPEX — its own block, excluded from Collections and from grand. */
+  capex: ReportGroup | null;
   grand: {
     plan_month_tzs: number;
     plan_month_usd: number;
@@ -622,6 +648,21 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         collections = { ...collections, categories: cats, totals };
       }
 
+      // CAPEX is a standalone category — pull it out of Collections into its
+      // own block so owner withdrawals and capital expenditure never mix.
+      let capex: ReportGroup | null = null;
+      if (collections) {
+        const isCapexCat = (c: ReportCategory) => c.name.trim().toUpperCase() === "CAPEX";
+        const capexCats = collections.categories.filter(isCapexCat);
+        if (capexCats.length > 0) {
+          const restCats = collections.categories.filter((c) => !isCapexCat(c));
+          capex = { code: "capex", name: "CAPEX", categories: capexCats, totals: sumCategoryTotals(capexCats) };
+          collections = restCats.length > 0
+            ? { ...collections, categories: restCats, totals: sumCategoryTotals(restCats) }
+            : null;
+        }
+      }
+
 
       const grand = groups.reduce(
         (s, g) => ({
@@ -656,11 +697,12 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       const icLiability = Number(snap?.intercompany?.liability_tzs || 0);
       const icReceivable = Number(snap?.intercompany?.receivable_tzs || 0);
       const expensesActual = grand.actual_grand_tzs;
-      // Collections tab entries are already folded into the Collections group
-      // categories above, so the group total is the single source here.
-      const collectionsActual = collections
-        ? collections.totals.actual_grand_tzs
-        : collectionEntriesNet;
+      // Collections tab entries are already folded into the group categories
+      // above; CAPEX keeps the same cash/profit effect, just reported apart.
+      const collectionsActual =
+        collections || capex
+          ? (collections?.totals.actual_grand_tzs || 0) + (capex?.totals.actual_grand_tzs || 0)
+          : collectionEntriesNet;
       // Obligations come from the DB: closing outstanding liabilities and the
       // Unplanned Expenses ledger (boss_report_extras). No zero adapters.
       const mf = monthFin;
@@ -768,6 +810,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
 
         groups,
         collections,
+        capex,
         grand,
         usd_rate: avgUsdTzs,
       };
