@@ -122,6 +122,12 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
   const effectiveDate = businessDate;
+  // Closed months block backdated office postings (server enforces it too).
+  const { data: monthClosures = [] } = useMonthClosures();
+  const closedMonthKeys = useMemo(
+    () => new Set((monthClosures as any[]).map((c) => `${c.year}-${c.month}`)),
+    [monthClosures],
+  );
 
   // Office expenses are debited directly from a wallet (no cage involvement).
   const { data: allWallets = [] } = useFinWallets();
