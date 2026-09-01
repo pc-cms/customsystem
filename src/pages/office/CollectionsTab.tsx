@@ -50,7 +50,22 @@ type Row = {
   amount_tzs: number;
   note: string;
   raw?: OtherIncomeRow;
+  /** Legacy rows only: the stored (signed) expense amount, used to flip direction. */
+  expense_amount?: number;
+  expense_currency?: "TZS" | "USD" | "EUR" | "GBP" | "KES";
 };
+
+/** Collected (OUT), returned (IN) and net collected, in TZS. */
+const sumRows = (list: Row[]) => {
+  let outSum = 0;
+  let inSum = 0;
+  list.forEach((r) => {
+    if (r.amount_tzs < 0) outSum += Math.abs(r.amount_tzs);
+    else inSum += r.amount_tzs;
+  });
+  return { outSum, inSum, net: outSum - inSum };
+};
+
 
 export default function CollectionsTab() {
   const { roles } = useAuth();
