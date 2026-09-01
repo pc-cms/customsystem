@@ -729,8 +729,14 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                         )}
                       </td>
                       <td className="px-3 py-2 text-right font-mono text-sm cms-amount-negative">
-                        {formatCurrency(Number(exp.amount))}
+                        <div>{formatCurrency(Number(exp.amount), exp.currency || "TZS")}</div>
+                        {(exp.currency || "TZS") !== "TZS" && (
+                          <div className="text-[10px] text-muted-foreground font-normal">
+                            ≈ {formatNumberSpaces(Number(exp.amount_tzs ?? 0))} TZS
+                          </div>
+                        )}
                       </td>
+
                       <td className="px-3 py-2 text-xs text-muted-foreground">{exp.description || "—"}</td>
                       <td className="px-3 py-2 text-center">
                         {exp.approved ? (
