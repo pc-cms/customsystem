@@ -135,7 +135,7 @@ export default function FinancesWalletsPage() {
 
 
   const now = new Date();
-  const { period } = useOfficePeriod();
+  const { period, setPeriod } = useOfficePeriod();
   const ym = { year: period.year, month: period.month };
   const { data: monthFinance } = useMonthFinance(activeCasinoId, ym.year, ym.month);
   const monthClosed = monthFinance?.status === "closed";
