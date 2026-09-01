@@ -558,7 +558,70 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       };
 
       const groups: ReportGroup[] = GROUP_ORDER.filter((g) => byGroup.has(g)).map(buildGroup);
-      const collections: ReportGroup | null = byGroup.has(COLLECTIONS_GROUP) ? buildGroup(COLLECTIONS_GROUP) : null;
+
+      // Office → Collections tab entries (fin_other_incomes, source = "collection").
+      // Signed: negative = cash collected (out of the wallet), positive = returned.
+      // They are NOT income — they fold into the Collections categories so the
+      // report breaks the group down per category (Collection / CAPEX / …).
+      const collectionRows = ((incomes as any)?.data || []).filter(
+        (r: any) => String(r.source || "") === "collection",
+      );
+      const collectionEntriesNet = -collectionRows.reduce((s: number, r: any) => s + toTzs(r), 0);
+
+      let collections: ReportGroup | null =
+        byGroup.has(COLLECTIONS_GROUP) || collectionRows.length > 0 ? buildGroup(COLLECTIONS_GROUP) : null;
+
+      if (collections && collectionRows.length > 0) {
+        const cats = [...collections.categories.map((c) => ({ ...c }))];
+        const byId = new Map(cats.map((c) => [c.id, c]));
+        const uncatId = "__collection_uncategorized__";
+        collectionRows.forEach((r: any) => {
+          const amt = -Number(r.amount || 0); // collected (negative entry) → positive collection
+          const grandTzs = -toTzs(r);
+          let cat = r.fin_category_id ? byId.get(String(r.fin_category_id)) : undefined;
+          if (!cat) {
+            cat = byId.get(uncatId);
+            if (!cat) {
+              cat = {
+                id: uncatId,
+                name: "Uncategorized",
+                sort_order: 9999,
+                is_income: false,
+                plan_year_tzs: 0,
+                plan_year_usd: 0,
+                plan_month_tzs: 0,
+                plan_month_usd: 0,
+                plan_month_grand_tzs: 0,
+                actual_tzs: 0,
+                actual_usd: 0,
+                actual_grand_tzs: 0,
+                remain_tzs: 0,
+                remain_usd: 0,
+                remain_grand_tzs: 0,
+                expenses: [],
+              };
+              cats.push(cat);
+              byId.set(uncatId, cat);
+            }
+          }
+          cat.actual_grand_tzs += grandTzs;
+          if (r.currency === "USD") cat.actual_usd += amt;
+          else cat.actual_tzs += amt;
+          cat.remain_tzs = cat.plan_month_tzs - cat.actual_tzs;
+          cat.remain_usd = cat.plan_month_usd - cat.actual_usd;
+          cat.remain_grand_tzs = cat.plan_month_grand_tzs - cat.actual_grand_tzs;
+        });
+        cats.sort((a, b) => a.sort_order - b.sort_order);
+        const totals = { ...collections.totals };
+        totals.actual_grand_tzs = cats.reduce((s, c) => s + c.actual_grand_tzs, 0);
+        totals.actual_tzs = cats.reduce((s, c) => s + c.actual_tzs, 0);
+        totals.actual_usd = cats.reduce((s, c) => s + c.actual_usd, 0);
+        totals.remain_tzs = totals.plan_month_tzs - totals.actual_tzs;
+        totals.remain_usd = totals.plan_month_usd - totals.actual_usd;
+        totals.remain_grand_tzs = totals.plan_month_grand_tzs - totals.actual_grand_tzs;
+        collections = { ...collections, categories: cats, totals };
+      }
+
 
       const grand = groups.reduce(
         (s, g) => ({
