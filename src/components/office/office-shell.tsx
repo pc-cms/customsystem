@@ -135,7 +135,33 @@ export function OfficeShell({
               </TabsList>
             </Tabs>
             <div className="flex-1" />
-            {showPeriod && <PeriodPicker value={period} onChange={changePeriod} />}
+          {showPeriod && <PeriodPicker value={period} onChange={changePeriod} />}
+          {showPeriod && monthStatus && (
+            <span
+              className={cn(
+                "text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border",
+                monthStatus === "open" &&
+                  "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                monthStatus === "closed" &&
+                  "border-border bg-muted text-muted-foreground",
+                monthStatus === "not_opened" &&
+                  "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+              )}
+            >
+              {monthStatus === "not_opened" ? "Not opened" : monthStatus}
+            </span>
+          )}
+          {showPeriod && monthStatus === "not_opened" && canOpenMonth && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 border-amber-500/50 text-amber-700 dark:text-amber-400"
+              onClick={() => setOpenWizard(true)}
+            >
+              <CalendarPlus className="w-4 h-4" />
+              Open Month · {MONTH_NAMES[period.month - 1]} {period.year}
+            </Button>
+          )}
             <div ref={actionsRef} className="flex items-center gap-2" />
           </div>
         </div>
