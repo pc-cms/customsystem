@@ -93,7 +93,7 @@ export default function JpTab() {
     setEditId(null);
     setMode(m);
     setForm({
-      business_date: new Date().toISOString().slice(0, 10),
+      business_date: defaultPostingDate(range),
       wallet_id: defaultWalletId,
       currency: "TZS",
       amount: "",
