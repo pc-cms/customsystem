@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Receipt, CheckCircle, Plus, X, Trash2, Filter, GlassWater, ExternalLink, Printer } from "lucide-react";
+import { Receipt, CheckCircle, Plus, X, Trash2, Filter, GlassWater, ExternalLink, Printer, Calendar as CalendarIcon } from "lucide-react";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { useExpenses, useCreateExpense, useApproveExpense, useDeleteExpense } from "@/hooks/use-casino-data";
 import { useCreateSlotsExpense, useCancelExpenseAsManager } from "@/hooks/use-expenses";
 import { useCreateOfficeExpense } from "@/hooks/use-expense-categories";
 import { useFinCategories, useFinWallets } from "@/hooks/use-fin";
 import { useFinDailyRatesForDate } from "@/hooks/use-fin-daily-rates";
+import { useMonthClosures } from "@/hooks/use-fin-month-closures";
 
 import { useActiveShift } from "@/hooks/use-shift";
 import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
@@ -21,6 +22,9 @@ import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DateRangePresets, type DatePreset } from "@/components/ui/date-range-presets";
 import { fmtDateOnly } from "@/lib/format-date";
@@ -80,9 +84,11 @@ interface DraftRow {
   description: string;
   /** Office source only: wallet the money is taken from (direct debit). */
   wallet_id: string;
+  /** Office source only: posting (business) date — manager+ can backdate. */
+  business_date: string;
 }
 
-const newDraft = (defaultSource: SourceVal): DraftRow => ({
+const newDraft = (defaultSource: SourceVal, date = ""): DraftRow => ({
   uid: Math.random().toString(36).slice(2),
   source: defaultSource,
   target: "",
@@ -91,6 +97,7 @@ const newDraft = (defaultSource: SourceVal): DraftRow => ({
   amount: "",
   description: "",
   wallet_id: "",
+  business_date: date,
 });
 
 
@@ -119,6 +126,12 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
   const effectiveDate = businessDate;
+  // Closed months block backdated office postings (server enforces it too).
+  const { data: monthClosures = [] } = useMonthClosures();
+  const closedMonthKeys = useMemo(
+    () => new Set((monthClosures as any[]).map((c) => `${c.year}-${c.month}`)),
+    [monthClosures],
+  );
 
   // Office expenses are debited directly from a wallet (no cage involvement).
   const { data: allWallets = [] } = useFinWallets();
@@ -197,7 +210,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     return m;
   }, [allFinCats]);
   const [editingExpense, setEditingExpense] = useState<EditableExpense | null>(null);
-  const [drafts, setDrafts] = useState<DraftRow[]>([newDraft(roleDefaultSource)]);
+  const [drafts, setDrafts] = useState<DraftRow[]>([newDraft(roleDefaultSource, businessDate)]);
 
   // With no casino selected (super_admin / finance on the summary domain) the
   // query stays disabled — TanStack v5 keeps `isLoading` true forever, which
@@ -263,7 +276,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           wallet_id: row.wallet_id,
           currency: cur,
           exchange_rate: rate,
-          business_date: effectiveDate ?? null,
+          business_date: row.business_date || effectiveDate || null,
         });
       } else if (row.source === "slots") {
 
@@ -294,7 +307,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           );
         });
       }
-      setDrafts((d) => [...d.filter((r) => r.uid !== uid), newDraft(row.source)]);
+      setDrafts((d) => [...d.filter((r) => r.uid !== uid), newDraft(row.source, businessDate)]);
     } catch {
       /* toast handled */
     }
@@ -554,7 +567,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
         <div className="cms-panel overflow-visible mb-6">
           <div className="px-4 py-2 border-b border-border flex items-center justify-between">
             <h3 className="text-sm font-semibold text-card-foreground">New entries</h3>
-            <Button size="sm" variant="outline" onClick={() => setDrafts((d) => [...d, newDraft(roleDefaultSource)])} className="h-8 gap-1.5">
+            <Button size="sm" variant="outline" onClick={() => setDrafts((d) => [...d, newDraft(roleDefaultSource, businessDate)])} className="h-8 gap-1.5">
               <Plus className="w-3.5 h-3.5" /> Row
             </Button>
           </div>
@@ -568,6 +581,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                 
                 <th className="text-right px-3 py-2">Amount (TZS)</th>
                 <th className="text-left px-3 py-2">Description</th>
+                <th className="text-left px-3 py-2 w-[130px]">Date</th>
                 <th className="text-center px-3 py-2 w-[140px]">Action</th>
               </tr>
             </thead>
@@ -580,6 +594,12 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                   liveShift={liveShift}
                   slotsShift={slotsShift}
                   wallets={wallets}
+                  businessDate={businessDate}
+                  canBackdate={isManagerView}
+                  isMonthClosed={(iso: string) => {
+                    const d = new Date(iso + "T00:00:00");
+                    return closedMonthKeys.has(`${d.getFullYear()}-${d.getMonth() + 1}`);
+                  }}
 
                   onChange={(patch) => updateDraft(d.uid, patch)}
                   onRemove={() => removeDraft(d.uid)}
@@ -807,13 +827,17 @@ export default Expenses;
 // Draft row (per-source dynamic categories)
 // ──────────────────────────────────────────────────────────
 const DraftRowView = ({
-  draft, isManagerView, liveShift, slotsShift, wallets, onChange, onRemove, onSubmit, canRemove, isPending,
+  draft, isManagerView, liveShift, slotsShift, wallets, businessDate, canBackdate, isMonthClosed,
+  onChange, onRemove, onSubmit, canRemove, isPending,
 }: {
   draft: DraftRow;
   isManagerView: boolean;
   liveShift: any;
   slotsShift: any;
   wallets: any[];
+  businessDate: string;
+  canBackdate: boolean;
+  isMonthClosed: (iso: string) => boolean;
   onChange: (patch: Partial<DraftRow>) => void;
   onRemove: () => void;
   onSubmit: () => void;
@@ -824,6 +848,10 @@ const DraftRowView = ({
   const shiftMissing =
     (draft.source === "live_game" && !liveShift?.id) ||
     (draft.source === "slots" && !slotsShift?.id);
+  const postingDate = draft.business_date || businessDate;
+  const isBackdated = isOffice && postingDate !== businessDate;
+  const dateBlocked = isOffice && isMonthClosed(postingDate);
+
 
   return (
     <tr className="border-b border-border last:border-0">
@@ -892,11 +920,60 @@ const DraftRowView = ({
       <td className="px-2 py-1.5">
         <Input placeholder="Description" value={draft.description} onChange={(e) => onChange({ description: e.target.value })} className="h-8 text-xs" />
       </td>
+      <td className="px-2 py-1.5">
+        {isOffice && canBackdate ? (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "h-8 w-full justify-start text-left text-xs font-normal",
+                  isBackdated && "border-amber-500 text-amber-600 dark:text-amber-400",
+                  dateBlocked && "border-destructive text-destructive",
+                )}
+                title={dateBlocked ? "Month is closed" : isBackdated ? `Backdated to ${fmtDateOnly(postingDate)}` : "Posting date"}
+              >
+                <CalendarIcon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                {fmtDateOnly(postingDate)}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={new Date(postingDate + "T00:00:00")}
+                onSelect={(d) => {
+                  if (!d) return;
+                  const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                  if (isMonthClosed(iso)) {
+                    toast.error("This month is already closed");
+                    return;
+                  }
+                  onChange({ business_date: iso });
+                }}
+                disabled={(d) => {
+                  const today = new Date(businessDate + "T00:00:00");
+                  if (d > today) return true;
+                  return isMonthClosed(
+                    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+                  );
+                }}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <span className="text-xs text-muted-foreground font-mono">
+            {isOffice ? fmtDateOnly(postingDate) : "·"}
+          </span>
+        )}
+      </td>
       <td className="px-2 py-1.5 text-center">
         <div className="inline-flex gap-1">
-          <Button size="sm" className="h-8 px-3" onClick={onSubmit} disabled={isPending || shiftMissing} title={shiftMissing ? "No open shift" : undefined}>
+          <Button size="sm" className="h-8 px-3" onClick={onSubmit} disabled={isPending || shiftMissing || dateBlocked} title={dateBlocked ? "Month is closed" : shiftMissing ? "No open shift" : undefined}>
             OK
           </Button>
+
           {canRemove && (
             <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={onRemove}>
               <X className="w-3.5 h-3.5" />
