@@ -74,6 +74,7 @@ export function OfficeShell({
   tab,
   onTabChange,
   showPeriod = true,
+  hideToolbar = false,
   banner,
   children,
 }: {
@@ -82,6 +83,12 @@ export function OfficeShell({
   tab: string;
   onTabChange: (v: string) => void;
   showPeriod?: boolean;
+  /**
+   * Skip the sticky tab-strip toolbar entirely. Used by Office pages that
+   * moved to the left sidebar (Import Statement / Rates / Inter-Casino):
+   * they keep the shared period context but render their own PageHeader.
+   */
+  hideToolbar?: boolean;
   banner?: ReactNode;
   children: ReactNode;
 }) {
@@ -120,6 +127,7 @@ export function OfficeShell({
     <OfficeShellCtx.Provider value={value}>
       <div className="space-y-4">
         {banner}
+        {!hideToolbar && (
         <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-background/95 backdrop-blur border-b border-border">
           <div className="flex items-center gap-3 flex-wrap">
             <Tabs value={tab} onValueChange={onTabChange} className="min-w-0">
@@ -166,6 +174,7 @@ export function OfficeShell({
             <div ref={actionsRef} className="flex items-center gap-2" />
           </div>
         </div>
+        )}
         {showPeriod && monthStatus === "not_opened" && (
           <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 flex flex-wrap items-center gap-2">
             <span>

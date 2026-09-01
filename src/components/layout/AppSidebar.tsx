@@ -201,6 +201,15 @@ const ROTA_SUBITEMS: VirtualSub[] = [
     roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "surveillance"] },
 ];
 
+// Office sub-pages promoted to the left sidebar (moved out of the Office top
+// tab strip, 2026-09-01). Each is a tab-aware link to /office?tab=… so the
+// existing routes keep working and module gating stays identical to Office.
+const OFFICE_SUBITEMS = [
+  { tab: "import-statement", icon: Upload, label: "Import Statement" },
+  { tab: "rates", icon: TrendingUp, label: "Rates" },
+  { tab: "inter-casino", icon: ArrowLeftRight, label: "Inter-Casino" },
+] as const;
+
 const BREAKLIST_PATH = "/breaklist";
 
 // Helper: parse "/path?tab=foo" into { base, tab }
@@ -365,6 +374,54 @@ const SidebarSections = ({
     }
     if (item.to === "__attendance__") return renderVirtualGroup("attendance", item, sectionCtx, ATTENDANCE_SUBITEMS);
     if (item.to === "__rota__") return renderVirtualGroup("rota", item, sectionCtx, ROTA_SUBITEMS);
+    if (item.to === "/office") {
+      // Office keeps its direct link; Import Statement / Rates / Inter-Casino
+      // render as indented sub-links underneath (they left the top tab strip).
+      const subActive =
+        location.pathname.startsWith("/office") &&
+        OFFICE_SUBITEMS.some((s) => s.tab === currentTab);
+      return (
+        <div key={`${sectionCtx}:${item.to}`}>
+          <NavLink
+            to={item.to}
+            onClick={onNavigate}
+            onMouseEnter={() => prefetchRoute("/office")}
+            onFocus={() => prefetchRoute("/office")}
+            onTouchStart={() => prefetchRoute("/office")}
+            className={({ isActive }) => {
+              const active = isActive && !subActive;
+              return `flex items-center gap-3 px-3 h-8 rounded-md text-sm transition-colors ${
+                active ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
+              }`;
+            }}
+          >
+            <item.icon className="w-4 h-4 shrink-0" />
+            <span className="flex-1">{item.label}</span>
+          </NavLink>
+          <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-2">
+            {OFFICE_SUBITEMS.map((sub) => {
+              const active = location.pathname.startsWith("/office") && currentTab === sub.tab;
+              return (
+                <NavLink
+                  key={sub.tab}
+                  to={`/office?tab=${sub.tab}`}
+                  onClick={onNavigate}
+                  onMouseEnter={() => prefetchRoute("/office")}
+                  onFocus={() => prefetchRoute("/office")}
+                  onTouchStart={() => prefetchRoute("/office")}
+                  className={`flex items-center gap-2 px-2 h-7 rounded-md text-xs transition-colors ${
+                    active ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent"
+                  }`}
+                >
+                  <sub.icon className="w-3.5 h-3.5 shrink-0" />
+                  <span>{sub.label}</span>
+                </NavLink>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
     const { base: itemBase, tab: itemTab } = parseItemTo(item.to);
     const isTabAware = itemTab !== null;
     const isTabAwareActive =
