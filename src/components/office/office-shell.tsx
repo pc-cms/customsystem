@@ -20,10 +20,18 @@ import {
   PeriodPicker,
   type OfficePeriod,
   accountingMonthPeriod,
-  nextMonthPeriod,
+  MONTH_NAMES,
 } from "./PeriodPicker";
 import { useSessionState } from "@/hooks/use-session-state";
 import { useMonthClosures } from "@/hooks/use-fin-month-closures";
+import { useMonthOpenings, monthStatusOf } from "@/hooks/use-fin-month-opening";
+import { OpenMonthWizard } from "@/pages/office/OpenMonthWizard";
+import { useAuth } from "@/lib/auth-context";
+import { Button } from "@/components/ui/button";
+import { CalendarPlus } from "lucide-react";
+
+/** Roles allowed to run the Open Month ritual (mirrors fin_open_month). */
+const OPEN_MONTH_ROLES = ["super_admin", "manager", "general_manager", "finance_manager"];
 
 type Ctx = {
   period: OfficePeriod;
@@ -76,10 +84,17 @@ export function OfficeShell({
   banner?: ReactNode;
   children: ReactNode;
 }) {
+  /**
+   * The header month is a fixed working window: it changes ONLY via the
+   * picker, never automatically. First entry defaults to the accounting
+   * month (the month of the business day being closed).
+   */
   const [period, setPeriod] = useSessionState<OfficePeriod>(storageKey, accountingMonthPeriod());
-  /** True once the user picked a period by hand — auto-defaulting stops then. */
-  const [touched, setTouched] = useSessionState<boolean>(`${storageKey}:touched`, false);
   const { data: closures = [] } = useMonthClosures();
+  const { data: openings = [] } = useMonthOpenings();
+  const { roles } = useAuth();
+  const canOpenMonth = roles.some((r) => OPEN_MONTH_ROLES.includes(r));
+  const [openWizard, setOpenWizard] = useState(false);
   const actionsRef = useRef<HTMLDivElement | null>(null);
   const [actionsEl, setActionsEl] = useState<HTMLDivElement | null>(null);
 
@@ -87,26 +102,10 @@ export function OfficeShell({
     setActionsEl(actionsRef.current);
   }, []);
 
-  /**
-   * The working month only rolls forward once the previous one is closed via
-   * Close Month. Until then Office stays on the accounting month, so wallets,
-   * variance and expenses keep landing in the month they belong to.
-   */
-  useEffect(() => {
-    if (touched) return;
-    const base = accountingMonthPeriod();
-    const isClosed = (y: number, m: number) =>
-      closures.some((c) => c.year === y && c.month === m);
-    const want = isClosed(base.year, base.month)
-      ? nextMonthPeriod(base.year, base.month)
-      : base;
-    if (period.mode !== "month" || period.year !== want.year || period.month !== want.month) {
-      setPeriod(want);
-    }
-  }, [closures, touched, period, setPeriod]);
+  const monthStatus =
+    period.mode === "month" ? monthStatusOf(openings, closures, period.year, period.month) : null;
 
   const changePeriod = (p: OfficePeriod) => {
-    setTouched(true);
     setPeriod(p);
   };
 
