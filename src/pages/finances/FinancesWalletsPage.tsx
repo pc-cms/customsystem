@@ -60,7 +60,7 @@ import { BalanceBanner } from "@/components/office/BalanceBanner";
 import { dayToRecord } from "@/hooks/use-day-balance-snapshot";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { walletTxIsIn, isWalletAdjustment } from "@/lib/wallet-tx-sign";
+import { walletTxIsIn, isWalletAdjustment, walletTxEffect } from "@/lib/wallet-tx-sign";
 import {
   WALLET_GROUPS,
   WALLET_GROUP_ORDER,
@@ -425,6 +425,7 @@ export default function FinancesWalletsPage() {
     if (walletFilter !== "all") list = list.filter((r) => r.wallet_id === walletFilter);
     if (kindFilter !== "all")
       list = list.filter((r) => (walletTxIsIn(r) ? "in" : "out") === kindFilter);
+    if (effectFilter !== "all") list = list.filter((r) => walletTxEffect(r.kind) === effectFilter);
     const sorted = [...list];
     sorted.sort((a, b) => {
       if (sort === "amount_desc") return Number(b.amount_tzs) - Number(a.amount_tzs);
@@ -434,7 +435,8 @@ export default function FinancesWalletsPage() {
       return sort === "date_asc" ? da.localeCompare(db) : db.localeCompare(da);
     });
     return sorted;
-  }, [tx, walletFilter, kindFilter, sort]);
+  }, [tx, walletFilter, kindFilter, effectFilter, sort]);
+
 
   const incomeTotal =
     (snap?.incomes?.live_game || 0) + (snap?.incomes?.slots || 0) + (snap?.incomes?.other || 0);
