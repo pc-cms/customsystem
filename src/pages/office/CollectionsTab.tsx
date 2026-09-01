@@ -7,7 +7,7 @@
  * Never income. Nets into the Collections group of the Monthly Report.
  */
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Minus, Pencil, Trash2, ArrowLeftRight, Layers } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -87,6 +87,7 @@ export default function CollectionsTab() {
   const updateIncome = useUpdateOtherIncome();
   const deleteIncome = useDeleteOtherIncome();
   const editExpense = useEditExpense();
+  const qc = useQueryClient();
 
   /** Collections-group categories (Collection, CAPEX, Money Change…). */
   const collectionCats = useMemo(
@@ -370,11 +371,14 @@ export default function CollectionsTab() {
                   )
                 )
                   return;
-                editExpense.mutate({
-                  id: r.id,
-                  amount: -Number(r.expense_amount || 0),
-                  currency: r.expense_currency,
-                });
+                editExpense.mutate(
+                  {
+                    id: r.id,
+                    amount: -Number(r.expense_amount || 0),
+                    currency: r.expense_currency,
+                  },
+                  { onSuccess: () => qc.invalidateQueries({ queryKey: ["collections-expenses"] }) },
+                );
               }}
             >
               <ArrowLeftRight className="w-3.5 h-3.5" />
