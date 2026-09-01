@@ -186,20 +186,31 @@ export function CloseMonthWizard({
     >
       {/* Steps header */}
       <div className="flex items-center gap-2 mb-4">
-        {[1, 2, 3].map((s) => (
+        {steps.map((s, i) => (
           <div
             key={s}
             className={cn(
               "flex-1 h-1.5 rounded",
-              step >= s ? "bg-primary" : "bg-muted",
+              i <= stepIdx ? "bg-primary" : "bg-muted",
             )}
           />
         ))}
       </div>
       <div className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
-        Step {step} of 3 —{" "}
-        {step === 1 ? "Collection" : step === 2 ? "New Starting Float" : "Confirm & Lock"}
+        Step {stepIdx + 1} of {steps.length} —{" "}
+        {current === "collection"
+          ? "Collection"
+          : current === "float"
+            ? "New Starting Float"
+            : "Confirm & Lock"}
       </div>
+      {skipFloat && (
+        <div className="mb-3 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          Next month is already {nextStatus === "closed" ? "closed" : "opened"} — starting float
+          kept as entered in Open Month.
+        </div>
+      )}
+
 
       {step === 1 && (
         <div className="space-y-2">
