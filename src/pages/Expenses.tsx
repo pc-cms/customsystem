@@ -655,7 +655,6 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                   <th className="text-left px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("target")}>Target / Player{sortArrow("target")}</th>
                   <th className="text-right px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("amount")}>Amount{sortArrow("amount")}</th>
                   <th className="text-left px-3 py-2">Description</th>
-                <th className="text-left px-3 py-2 w-[130px]">Date</th>
                   <th className="text-center px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("status")}>Status{sortArrow("status")}</th>
                   {!embedded && <th className="text-center px-3 py-2">Action</th>}
                 </tr>
