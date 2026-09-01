@@ -9,9 +9,9 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Minus, Pencil, Trash2, ArrowLeftRight, Layers } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowLeftRight, Layers } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
-import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
+import { OfficeHeaderActions, useOfficePeriod } from "@/components/office/office-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
@@ -133,7 +133,6 @@ export default function CollectionsTab() {
   });
 
   const [filter, setFilter] = useState<Filter>("all");
-  const [catFilter, setCatFilter] = useState<string>("all");
   const [walletFilter, setWalletFilter] = useState<string>("all");
   const [grouped, setGrouped] = useState(false);
 
@@ -174,18 +173,13 @@ export default function CollectionsTab() {
     () =>
       allRows.filter((r) => {
         if (filter !== "all" && (r.amount < 0 ? "out" : "in") !== filter) return false;
-        if (catFilter !== "all" && r.category !== catFilter) return false;
         if (walletFilter !== "all" && r.wallet !== walletFilter) return false;
         return true;
       }),
-    [allRows, filter, catFilter, walletFilter],
+    [allRows, filter, walletFilter],
   );
 
   /** Distinct values for the filter selectors (from the loaded period). */
-  const catOptions = useMemo(
-    () => Array.from(new Set(allRows.map((r) => r.category))).sort(),
-    [allRows],
-  );
   const walletOptions = useMemo(
     () => Array.from(new Set(allRows.map((r) => r.wallet))).sort(),
     [allRows],
@@ -450,14 +444,11 @@ export default function CollectionsTab() {
   return (
     <PageShell>
       {canWrite && (
-        <OfficeActions>
-          <Button onClick={() => openAdd("in")} size="sm" variant="outline">
-            <Plus className="w-4 h-4" /> Return (IN)
-          </Button>
+        <OfficeHeaderActions>
           <Button onClick={() => openAdd("out")} size="sm">
-            <Minus className="w-4 h-4" /> Add Collection (OUT)
+            <Plus className="w-4 h-4" /> Add Collection
           </Button>
-        </OfficeActions>
+        </OfficeHeaderActions>
       )}
 
       <div className="grid gap-3 lg:grid-cols-4">
@@ -485,20 +476,6 @@ export default function CollectionsTab() {
             {f.label}
           </Button>
         ))}
-
-        <Select value={catFilter} onValueChange={setCatFilter}>
-          <SelectTrigger className="h-7 w-[170px] text-xs">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All categories</SelectItem>
-            {catOptions.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
 
         <Select value={walletFilter} onValueChange={setWalletFilter}>
           <SelectTrigger className="h-7 w-[170px] text-xs">
@@ -552,7 +529,7 @@ export default function CollectionsTab() {
       <ResponsiveDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        title={editId ? "Edit collection" : mode === "out" ? "Add Collection (OUT)" : "Return (IN)"}
+        title={editId ? "Edit collection" : "Add Collection"}
       >
         <FormGrid>
           <FormField span={6} label="Business Date">
