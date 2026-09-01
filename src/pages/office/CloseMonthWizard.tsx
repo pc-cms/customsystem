@@ -158,11 +158,15 @@ export function CloseMonthWizard({
         currency: r.currency,
         amount: r.amount,
       })),
-      new_float_details: newFloat.map((r) => ({
-        wallet_id: r.wallet_id,
-        currency: r.currency,
-        amount: r.amount,
-      })),
+      // Skipped when the next month already has its own opening float.
+      new_float_details: skipFloat
+        ? []
+        : newFloat.map((r) => ({
+            wallet_id: r.wallet_id,
+            currency: r.currency,
+            amount: r.amount,
+          })),
+
       note,
     });
     // Canonical report snapshot — freezes Final Profit / Manager Bonus.
