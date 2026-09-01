@@ -13,7 +13,12 @@ from .config import Config
 
 logger = logging.getLogger("ace-collector")
 
-SUCCESS_STATUSES = ("live_updated", "closing_recorded", "already_recorded")
+SUCCESS_STATUSES = (
+    "live_updated",
+    "closing_recorded",
+    "already_recorded",
+    "history_filled",
+)
 
 
 class ApiError(RuntimeError):
