@@ -1378,6 +1378,24 @@ export default function FinancesWalletsPage() {
                         <ArrowUpRight className="w-3.5 h-3.5 inline cms-amount-negative" />
                       )}
                     </td>
+                    <td className="px-3 py-1.5">
+                      <span
+                        className={cn(
+                          "rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                          adj
+                            ? "border-warning/40 bg-warning/10 text-warning"
+                            : "border-primary/30 bg-primary/10 text-primary",
+                        )}
+                        title={
+                          adj
+                            ? "Manual correction of the physical (Actual) balance — not income or expense"
+                            : "Moves the calculated (Expected) balance"
+                        }
+                      >
+                        {adj ? "Actual" : "Expected"}
+                      </span>
+                    </td>
+
                     <td
                       className={cn(
                         "px-3 py-1.5 text-right font-mono tabular-nums",
