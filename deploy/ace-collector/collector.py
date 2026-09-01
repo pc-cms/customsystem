@@ -425,9 +425,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--history-scan", action="store_true",
                     help="read-only inventory of closed ACE periods (posts nothing)")
     ap.add_argument("--backfill-from", metavar="YYYY-MM-DD",
-                    help="post every closed period with business_date >= this date")
+                    help="post closed periods with business_date >= this date")
     ap.add_argument("--from", dest="from_date", metavar="YYYY-MM-DD",
                     help="start business date for --history-scan")
+    ap.add_argument("--to", dest="to_date", metavar="YYYY-MM-DD",
+                    help="end business date (inclusive) for history modes — REQUIRED")
+
     ap.add_argument("--verbose", "-v", action="store_true")
     args = ap.parse_args(argv)
 
