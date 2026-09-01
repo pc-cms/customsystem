@@ -232,7 +232,8 @@ export default function FinancesWalletsPage() {
     const refMs = new Date(`${refDate}T00:00:00Z`).getTime();
     return (snap?.wallets || []).map((w) => {
       const asof = (w as any).physical_asof as string | null;
-      const cd = asof ? eatDate(asof) : null;
+      // A count belongs to its business day, not to the day it was typed in.
+      const cd = ((w as any).physical_date as string | null) || (asof ? eatDate(asof) : null);
       const days = cd
         ? Math.max(0, Math.round((refMs - new Date(`${cd}T00:00:00Z`).getTime()) / 86400000))
         : null;
@@ -250,6 +251,7 @@ export default function FinancesWalletsPage() {
       };
     });
   }, [snap, refDate]);
+
 
   const freshnessByWallet = useMemo(() => {
     const m = new Map<string, CountFreshnessRow>();
