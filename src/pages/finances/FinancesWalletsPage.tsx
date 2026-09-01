@@ -26,6 +26,7 @@ import {
 
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
+import { monthPeriod } from "@/components/office/PeriodPicker";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
