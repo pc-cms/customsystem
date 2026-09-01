@@ -21,25 +21,29 @@ const FinancesBankImportPage = lazy(() => import("@/pages/finances/FinancesBankI
 // Flat, alphabetically sorted top-level tabs — no nested sub-tabs.
 // Balance was merged into Wallets (2026-07-20) — legacy `?tab=balance` redirects.
 // Actual / Budget / Difference moved to their own /budget section (2026-08-14).
+// Import Statement / Inter-Casino / Rates moved to the left sidebar (2026-09-01):
+// they stay valid `?tab=` values (routes preserved) but no longer show in the strip.
 const TABS = [
   { value: "bank", label: "Bank" },
   { value: "cashless", label: "Cashless" },
   { value: "collections", label: "Collections" },
   { value: "day-closings", label: "Day Closings" },
-  { value: "import-statement", label: "Import Statement" },
-  { value: "inter-casino", label: "Inter-Casino" },
   { value: "jp", label: "JP" },
   { value: "monthly-report", label: "Monthly Report" },
   { value: "other-incomes", label: "Transactions" },
-  { value: "rates", label: "Rates" },
   { value: "tips-bonuses", label: "Tips & Bonuses" },
   { value: "wallets", label: "Wallets" },
 ] as const;
 
+/** Pages that moved from the tab strip to the left sidebar (under Office). */
+const SIDEBAR_PAGES = ["import-statement", "inter-casino", "rates"] as const;
 
-type TabValue = (typeof TABS)[number]["value"];
+type TabValue = (typeof TABS)[number]["value"] | (typeof SIDEBAR_PAGES)[number];
 
 const DEFAULT_TAB: TabValue = "wallets";
+
+const isValidTab = (v: string): v is TabValue =>
+  TABS.some((t) => t.value === v) || (SIDEBAR_PAGES as readonly string[]).includes(v);
 
 /** Tabs that moved to /budget — old links keep working. */
 const BUDGET_TABS = new Set(["actual", "budget", "difference"]);
@@ -49,8 +53,10 @@ export default function OfficePage() {
   const navigate = useNavigate();
   const raw = params.get("tab") || DEFAULT_TAB;
   // Legacy redirect: balance → wallets (merged 2026-07-20)
-  const normalised: TabValue = raw === "balance" || raw === "money-change" ? "wallets" : (raw as TabValue);
-  const tab: TabValue = TABS.some((t) => t.value === normalised) ? normalised : DEFAULT_TAB;
+  const normalised = raw === "balance" || raw === "money-change" ? "wallets" : raw;
+  const tab: TabValue = isValidTab(normalised) ? normalised : DEFAULT_TAB;
+  // Sidebar pages render without the tab strip — they own their PageHeader.
+  const isSidebarPage = (SIDEBAR_PAGES as readonly string[]).includes(tab);
 
   useEffect(() => {
     if (BUDGET_TABS.has(raw)) {
@@ -76,8 +82,8 @@ export default function OfficePage() {
       tabs={TABS}
       tab={tab}
       onTabChange={onChange}
-      showPeriod={tab !== "rates" && tab !== "inter-casino" && tab !== "import-statement"}
-      
+      showPeriod={!isSidebarPage}
+      hideToolbar={isSidebarPage}
     >
       <Suspense fallback={<div className="text-sm text-muted-foreground p-4">Loading…</div>}>
         {tab === "bank" && <WalletDayGridTab groups={["banks"]} title="Bank" />}

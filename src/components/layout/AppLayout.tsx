@@ -35,6 +35,10 @@ const FULL_WIDTH_ROUTES = [
   "/bank-checks",
 ];
 
+// Office sub-pages promoted to the left sidebar render full-bleed as well —
+// dense data surfaces (statement review / rates grid / transfer ledger).
+const OFFICE_FULL_WIDTH_TABS = new Set(["import-statement", "rates", "inter-casino"]);
+
 const STORAGE_KEY = "cms.sidebar.collapsed";
 
 export const AppLayout = () => {
@@ -42,7 +46,12 @@ export const AppLayout = () => {
   // duplicate channels cause double invalidations and waste connections.
   const isMobile = useIsMobile();
   const location = useLocation();
-  const isFullWidth = FULL_WIDTH_ROUTES.some((p) => location.pathname.startsWith(p));
+  const officeTab = location.pathname.startsWith("/office")
+    ? new URLSearchParams(location.search).get("tab")
+    : null;
+  const isFullWidth =
+    FULL_WIDTH_ROUTES.some((p) => location.pathname.startsWith(p)) ||
+    (officeTab !== null && OFFICE_FULL_WIDTH_TABS.has(officeTab));
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;

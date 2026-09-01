@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Minus, TrendingUp } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { NumberInput } from "@/components/ui/number-input";
 import { SmartTable } from "@/components/ui/smart-table";
+import { TablePane, ErrorPane } from "@/components/finances/TablePane";
 
 import { useFinDailyRates, useUpsertFinDailyRate, useEnsureDailyRates } from "@/hooks/use-fin-daily-rates";
 import { formatNumberSpaces } from "@/lib/currency";
@@ -30,7 +32,7 @@ export default function RatesTab() {
   const from = dates[dates.length - 1];
   const to = dates[0];
   const today = dates[0];
-  const { data: rows = [] } = useFinDailyRates(from, to);
+  const { data: rows = [], isLoading, isError, refetch } = useFinDailyRates(from, to);
   const ensure = useEnsureDailyRates();
 
   // Auto-carry today's rate from the most recent prior day so the row is
@@ -48,6 +50,13 @@ export default function RatesTab() {
 
   return (
     <PageShell>
+      <PageHeader
+        icon={TrendingUp}
+        title="Rates"
+        subtitle="Daily exchange rates to TZS · manual entry · last 30 days"
+        date
+      />
+
       {/* Today's rates as headline cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {CURRENCIES.map((c) => {
@@ -62,8 +71,8 @@ export default function RatesTab() {
               <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
                 {c} → TZS
               </div>
-              <div className="font-mono text-xl tabular-nums">
-                {cur == null ? <span className="text-muted-foreground">0</span> : formatNumberSpaces(cur)}
+              <div className={cn("font-mono text-xl tabular-nums", isLoading && "animate-pulse text-muted-foreground")}>
+                {isLoading ? "···" : cur == null ? <span className="text-muted-foreground">0</span> : formatNumberSpaces(cur)}
               </div>
               <div
                 className={cn(
@@ -81,8 +90,11 @@ export default function RatesTab() {
         })}
       </div>
 
-      <PageSection bodyClassName="p-0">
-        <div className="overflow-x-auto">
+      {isError && <ErrorPane message="Failed to load daily rates" onRetry={() => refetch()} />}
+
+      <PageSection card={false}>
+        <TablePane>
+          {/* Fixed 30-day grid — no virtualization needed. */}
           <SmartTable<{ date: string }>
             data={dates.map((date) => ({ date }))}
             rowKey={(r) => r.date}
@@ -90,6 +102,9 @@ export default function RatesTab() {
             stickyHeader
             virtualize={false}
             bare
+            loading={isLoading}
+            loadingRows={10}
+            empty="No rates"
             rowClassName={(r) =>
               r.date === today ? "bg-primary/5 border-l-2 border-l-primary" : undefined
             }
@@ -99,6 +114,8 @@ export default function RatesTab() {
                 header: "Date",
                 type: "date",
                 style: { width: 150 },
+                headerClassName: "text-left",
+                cellClassName: "text-left",
                 sortValue: (r) => r.date,
                 accessor: (r) => (
                   <span className="font-mono text-xs whitespace-nowrap">
@@ -122,7 +139,7 @@ export default function RatesTab() {
               })),
             ]}
           />
-        </div>
+        </TablePane>
       </PageSection>
     </PageShell>
   );
@@ -180,4 +197,3 @@ function RateCell({
     />
   );
 }
-
