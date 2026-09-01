@@ -22,6 +22,18 @@ export const WALLET_TX_ADJUSTMENT_KINDS = new Set(["adjustment"]);
 export const isWalletAdjustment = (kind?: string | null) =>
   WALLET_TX_ADJUSTMENT_KINDS.has(String(kind));
 
+/**
+ * Which balance a movement actually moves.
+ *   "expected" — income / expense / collection / transfers: the calculated balance.
+ *   "actual"   — manual ADJ corrections of the physical (counted) balance.
+ * Variance = Actual − Expected, so a row never moves both.
+ */
+export type WalletTxEffect = "expected" | "actual";
+
+export const walletTxEffect = (kind?: string | null): WalletTxEffect =>
+  isWalletAdjustment(kind) ? "actual" : "expected";
+
+
 /** Direction of a movement for display purposes (true = money in). */
 export const walletTxIsIn = (row: { kind?: string | null; amount_tzs?: number | string | null; amount?: number | string | null }) => {
   const kind = String(row.kind || "");

@@ -60,7 +60,7 @@ import { BalanceBanner } from "@/components/office/BalanceBanner";
 import { dayToRecord } from "@/hooks/use-day-balance-snapshot";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { walletTxIsIn, isWalletAdjustment } from "@/lib/wallet-tx-sign";
+import { walletTxIsIn, isWalletAdjustment, walletTxEffect } from "@/lib/wallet-tx-sign";
 import {
   WALLET_GROUPS,
   WALLET_GROUP_ORDER,
@@ -147,6 +147,7 @@ export default function FinancesWalletsPage() {
   const floatCurrent = Number(monthFinance?.float?.current_tzs || 0);
   const [walletFilter, setWalletFilter] = useSessionState<string>("wallet", "all");
   const [kindFilter, setKindFilter] = useSessionState<string>("kind", "all");
+  const [effectFilter, setEffectFilter] = useSessionState<string>("effect", "all");
   const [sort, setSort] = useSessionState<"date_desc" | "date_asc" | "amount_desc" | "amount_asc">(
     "sort",
     "date_desc",
@@ -425,6 +426,7 @@ export default function FinancesWalletsPage() {
     if (walletFilter !== "all") list = list.filter((r) => r.wallet_id === walletFilter);
     if (kindFilter !== "all")
       list = list.filter((r) => (walletTxIsIn(r) ? "in" : "out") === kindFilter);
+    if (effectFilter !== "all") list = list.filter((r) => walletTxEffect(r.kind) === effectFilter);
     const sorted = [...list];
     sorted.sort((a, b) => {
       if (sort === "amount_desc") return Number(b.amount_tzs) - Number(a.amount_tzs);
@@ -434,7 +436,8 @@ export default function FinancesWalletsPage() {
       return sort === "date_asc" ? da.localeCompare(db) : db.localeCompare(da);
     });
     return sorted;
-  }, [tx, walletFilter, kindFilter, sort]);
+  }, [tx, walletFilter, kindFilter, effectFilter, sort]);
+
 
   const incomeTotal =
     (snap?.incomes?.live_game || 0) + (snap?.incomes?.slots || 0) + (snap?.incomes?.other || 0);
@@ -1285,6 +1288,16 @@ export default function FinancesWalletsPage() {
               <SelectItem value="out">OUT</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={effectFilter} onValueChange={setEffectFilter}>
+            <SelectTrigger className="h-9 w-[170px]" title="Which balance the movement moves">
+              <SelectValue placeholder="All effects" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All effects</SelectItem>
+              <SelectItem value="expected">Expected only</SelectItem>
+              <SelectItem value="actual">Actual (ADJ) only</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={sort} onValueChange={(v) => setSort(v as any)}>
             <SelectTrigger className="h-9 w-[180px]">
               <SelectValue />
@@ -1310,6 +1323,10 @@ export default function FinancesWalletsPage() {
 
         </div>
 
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+          Expected = calculated · Actual = counted / ADJ · Variance = Actual − Expected
+        </p>
+
         <div className="rounded-md border border-border overflow-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted text-xs uppercase">
@@ -1317,11 +1334,13 @@ export default function FinancesWalletsPage() {
                 <th className="px-3 py-2 text-left w-[110px]">Date</th>
                 <th className="px-3 py-2 text-left">Wallet</th>
                 <th className="px-3 py-2 text-center w-[70px]">Dir</th>
+                <th className="px-3 py-2 text-left w-[110px]">Effect</th>
                 <th className="px-3 py-2 text-right w-[130px]">Amount</th>
                 <th className="px-3 py-2 text-right w-[130px]">TZS</th>
                 <th className="px-3 py-2 text-left">Note</th>
               </tr>
             </thead>
+
             <tbody>
               {txRows.map((r: any) => {
                 // Direction comes from the kind — expenses are stored as positive amounts.
@@ -1359,6 +1378,24 @@ export default function FinancesWalletsPage() {
                         <ArrowUpRight className="w-3.5 h-3.5 inline cms-amount-negative" />
                       )}
                     </td>
+                    <td className="px-3 py-1.5">
+                      <span
+                        className={cn(
+                          "rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                          adj
+                            ? "border-warning/40 bg-warning/10 text-warning"
+                            : "border-primary/30 bg-primary/10 text-primary",
+                        )}
+                        title={
+                          adj
+                            ? "Manual correction of the physical (Actual) balance — not income or expense"
+                            : "Moves the calculated (Expected) balance"
+                        }
+                      >
+                        {adj ? "Actual" : "Expected"}
+                      </span>
+                    </td>
+
                     <td
                       className={cn(
                         "px-3 py-1.5 text-right font-mono tabular-nums",
@@ -1384,7 +1421,7 @@ export default function FinancesWalletsPage() {
               })}
               {!txRows.length && (
                 <tr>
-                  <td colSpan={6} className="text-center text-muted-foreground py-6">
+                  <td colSpan={7} className="text-center text-muted-foreground py-6">
                     No transactions in this period
                   </td>
                 </tr>

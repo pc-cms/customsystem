@@ -593,7 +593,11 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       const icLiability = Number(snap?.intercompany?.liability_tzs || 0);
       const icReceivable = Number(snap?.intercompany?.receivable_tzs || 0);
       const expensesActual = grand.actual_grand_tzs;
-      const collectionsActual = collections?.totals.actual_grand_tzs ?? 0;
+      // Office → Collections tab entries (fin_other_incomes, source = "collection").
+      // Signed: negative = cash collected (out of the wallet), positive = returned.
+      // They are NOT income — they only net into the Collections group total.
+      const collectionEntriesNet = -sumSources(["collection"]);
+      const collectionsActual = (collections?.totals.actual_grand_tzs ?? 0) + collectionEntriesNet;
       // Obligations come from the DB: closing outstanding liabilities and the
       // Unplanned Expenses ledger (boss_report_extras). No zero adapters.
       const mf = monthFin;

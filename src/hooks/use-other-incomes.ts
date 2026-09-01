@@ -23,11 +23,13 @@ export type OtherIncomeSource =
   | "tips"
   | "tips_bonus"
   | "jp"
+  | "collection"
   | "commission"
   | "agent_commission"
   | "fee"
   | "add_float"
   | "other";
+
 
 /** All known sources, including legacy ones (used for labels of existing rows). */
 export const ALL_INCOME_SOURCES: { value: OtherIncomeSource; label: string }[] = [
@@ -45,7 +47,9 @@ export const ALL_INCOME_SOURCES: { value: OtherIncomeSource; label: string }[] =
   { value: "owner_topup", label: "Office (legacy top-up)" },
   { value: "refund", label: "Refund (legacy)" },
   { value: "jp", label: "JP" },
+  { value: "collection", label: "Collection" },
 ];
+
 
 /**
  * Sources selectable when creating a NEW transaction.
@@ -79,6 +83,13 @@ export const COMMISSION_SOURCES: OtherIncomeSource[] = [
 export const TIPS_BONUS_SOURCES: OtherIncomeSource[] = ["tips", "bonus", "tips_bonus"];
 export const MOVEMENT_SOURCES: OtherIncomeSource[] = ["investment", "office", "owner_topup"];
 export const FLOAT_SOURCES: OtherIncomeSource[] = ["add_float"];
+/**
+ * COLLECTION — cash collected from the casino (signed, own Office tab).
+ * Never income: a negative amount takes money OUT of the wallet, a positive
+ * amount returns it. Nets into the Collections group of the monthly report.
+ */
+export const COLLECTION_SOURCES: OtherIncomeSource[] = ["collection"];
+
 
 /** @deprecated use COMMISSION_SOURCES — kept as alias for existing imports. */
 export const REAL_INCOME_SOURCES: OtherIncomeSource[] = COMMISSION_SOURCES;

@@ -5,6 +5,8 @@ import OtherIncomesTab from "./OtherIncomesTab";
 import RatesTab from "./RatesTab";
 import JpTab from "./JpTab";
 import TipsBonusTab from "./TipsBonusTab";
+import CollectionsTab from "./CollectionsTab";
+
 
 import { OfficeShell } from "@/components/office/office-shell";
 
@@ -22,6 +24,7 @@ const FinancesBankImportPage = lazy(() => import("@/pages/finances/FinancesBankI
 const TABS = [
   { value: "bank", label: "Bank" },
   { value: "cashless", label: "Cashless" },
+  { value: "collections", label: "Collections" },
   { value: "day-closings", label: "Day Closings" },
   { value: "import-statement", label: "Import Statement" },
   { value: "inter-casino", label: "Inter-Casino" },
@@ -81,6 +84,7 @@ export default function OfficePage() {
         {tab === "cashless" && (
           <WalletDayGridTab groups={["mobile_money", "digital_wallets", "selcom"]} title="Cashless" />
         )}
+        {tab === "collections" && <CollectionsTab />}
         {tab === "day-closings" && <DayClosingsTab />}
         {tab === "import-statement" && <FinancesBankImportPage />}
         {tab === "inter-casino" && <FinancesInterCasinoPage />}

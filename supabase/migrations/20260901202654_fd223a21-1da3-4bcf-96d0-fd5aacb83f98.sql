@@ -1,0 +1,2 @@
+ALTER TABLE public.fin_other_incomes DROP CONSTRAINT IF EXISTS fin_other_incomes_source_check;
+ALTER TABLE public.fin_other_incomes ADD CONSTRAINT fin_other_incomes_source_check CHECK (source = ANY (ARRAY['investment','inter_casino_transfer','owner_topup','office','refund','bonus','tips','tips_bonus','jp','fee','other','commission','agent_commission','add_float','collection']));

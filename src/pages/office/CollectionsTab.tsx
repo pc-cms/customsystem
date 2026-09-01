@@ -1,0 +1,437 @@
+/**
+ * Office → Collections
+ * Ledger of cash collections (money taken out of the casino) and returns.
+ * Stored in fin_other_incomes with source = "collection", signed:
+ *   negative → collected (money OUT of the wallet)
+ *   positive → returned  (money back IN)
+ * Never income. Nets into the Collections group of the Monthly Report.
+ */
+import { useMemo, useState } from "react";
+import { Plus, Minus, Pencil, Trash2 } from "lucide-react";
+import { PageShell, PageSection } from "@/components/layout/PageShell";
+import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { FormGrid, FormField } from "@/components/ui/form-grid";
+import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
+import { useFinWallets, useFinCategories } from "@/hooks/use-fin";
+import {
+  useOtherIncomes,
+  useAddOtherIncome,
+  useUpdateOtherIncome,
+  useDeleteOtherIncome,
+  type OtherIncomeRow,
+} from "@/hooks/use-other-incomes";
+import { formatNumberSpaces } from "@/lib/currency";
+import { fmtDateOnly } from "@/lib/format-date";
+import { useAuth } from "@/lib/auth-context";
+import { cn } from "@/lib/utils";
+import { defaultPostingDate, isOutsideWindow } from "@/lib/office-posting-date";
+import { toast } from "sonner";
+
+type Filter = "all" | "out" | "in";
+
+export default function CollectionsTab() {
+  const { roles } = useAuth();
+  const canWrite =
+    roles.includes("super_admin") ||
+    roles.includes("finance_manager") ||
+    roles.includes("manager");
+
+  const { period } = useOfficePeriod();
+  const range = { from: period.from, to: period.to };
+
+  const { data: allRows = [], isLoading } = useOtherIncomes(range.from, range.to, {
+    only: ["collection"],
+  });
+  const { data: wallets = [] } = useFinWallets();
+  const { data: categories = [] } = useFinCategories();
+  const addIncome = useAddOtherIncome();
+  const updateIncome = useUpdateOtherIncome();
+  const deleteIncome = useDeleteOtherIncome();
+
+  /** Collections-group categories (Collection, CAPEX, Money Change…). */
+  const collectionCats = useMemo(
+    () => (categories as any[]).filter((c) => c.group_code === "collections" && c.is_active),
+    [categories],
+  );
+
+  const [filter, setFilter] = useState<Filter>("all");
+
+  const rows = useMemo(() => {
+    const list = allRows as OtherIncomeRow[];
+    if (filter === "all") return list;
+    return list.filter((r) => (Number(r.amount) < 0 ? "out" : "in") === filter);
+  }, [allRows, filter]);
+
+  /** Totals in TZS — collected (OUT), returned (IN) and net collected. */
+  const totals = useMemo(() => {
+    let outSum = 0;
+    let inSum = 0;
+    (allRows as OtherIncomeRow[]).forEach((r) => {
+      const v = Number(r.amount || 0) * Number(r.fx_rate || 1);
+      if (v < 0) outSum += Math.abs(v);
+      else inSum += v;
+    });
+    return { outSum, inSum, net: outSum - inSum };
+  }, [allRows]);
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [mode, setMode] = useState<"out" | "in">("out");
+  const [form, setForm] = useState({
+    business_date: defaultPostingDate(range),
+    wallet_id: "",
+    fin_category_id: "",
+    currency: "TZS",
+    amount: "",
+    note: "",
+  });
+
+  const activeWallet = (wallets as any[]).find((w) => w.id === form.wallet_id);
+  const defaultWalletId = useMemo(() => {
+    const tzs = (wallets as any[]).filter((x) => (x.currency || "TZS") === "TZS");
+    return (tzs.find((x) => x.kind === "cash") || tzs[0])?.id || "";
+  }, [wallets]);
+  const defaultCategoryId = useMemo(
+    () => collectionCats.find((c) => c.name === "Collection")?.id || collectionCats[0]?.id || "",
+    [collectionCats],
+  );
+
+  const openAdd = (m: "out" | "in") => {
+    setEditId(null);
+    setMode(m);
+    setForm({
+      business_date: defaultPostingDate(range),
+      wallet_id: defaultWalletId,
+      fin_category_id: defaultCategoryId,
+      currency: "TZS",
+      amount: "",
+      note: "",
+    });
+    setDialogOpen(true);
+  };
+
+  const openEdit = (r: OtherIncomeRow) => {
+    setEditId(r.id);
+    setMode(Number(r.amount) < 0 ? "out" : "in");
+    setForm({
+      business_date: r.business_date,
+      wallet_id: r.wallet_id,
+      fin_category_id: r.fin_category_id || "",
+      currency: r.currency,
+      amount: String(Math.abs(Number(r.amount))),
+      note: r.note || "",
+    });
+    setDialogOpen(true);
+  };
+
+  const submit = async () => {
+    if (!form.wallet_id) return toast.error("Select wallet");
+    const raw = Math.abs(Number(form.amount));
+    if (!raw) return toast.error("Amount must not be 0");
+    const payload = {
+      business_date: form.business_date,
+      wallet_id: form.wallet_id,
+      fin_category_id: form.fin_category_id || null,
+      source: "collection" as const,
+      currency: activeWallet?.currency || form.currency,
+      amount: mode === "out" ? -raw : raw,
+      note: form.note,
+    };
+    if (editId) await updateIncome.mutateAsync({ id: editId, ...payload });
+    else await addIncome.mutateAsync(payload);
+    setDialogOpen(false);
+  };
+
+  const columns: ColumnDef<OtherIncomeRow>[] = [
+    {
+      key: "date",
+      header: "Date",
+      type: "date",
+      accessor: (r) => <span className="font-mono text-xs">{fmtDateOnly(r.business_date)}</span>,
+      style: { width: 110 },
+    },
+    {
+      key: "direction",
+      header: "Direction",
+      accessor: (r) => {
+        const out = Number(r.amount) < 0;
+        return (
+          <span
+            className={cn(
+              "text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border",
+              out
+                ? "border-primary/30 bg-primary/10 text-primary"
+                : "border-warning/40 bg-warning/10 text-warning",
+            )}
+            title={out ? "Cash collected — leaves the wallet" : "Cash returned — comes back into the wallet"}
+          >
+            {out ? "Collected" : "Returned"}
+          </span>
+        );
+      },
+      style: { width: 110 },
+    },
+    {
+      key: "category",
+      header: "Category",
+      accessor: (r) => (
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">
+          {r.fin_categories?.name || "—"}
+        </span>
+      ),
+      style: { width: 140 },
+    },
+    {
+      key: "wallet",
+      header: "Wallet",
+      accessor: (r) => (
+        <span>
+          {r.fin_wallets?.name || "—"}{" "}
+          <span className="text-[10px] text-muted-foreground">{r.currency}</span>
+        </span>
+      ),
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      type: "money",
+      accessor: (r) => {
+        const v = Number(r.amount);
+        return (
+          <span className={cn("font-mono tabular-nums", v < 0 ? "cms-amount-negative" : "cms-amount-positive")}>
+            {v < 0 ? "−" : ""}
+            {formatNumberSpaces(Math.abs(v))}
+          </span>
+        );
+      },
+      style: { width: 140 },
+    },
+    {
+      key: "note",
+      header: "Note",
+      accessor: (r) => (
+        <span className="text-xs text-muted-foreground truncate max-w-[300px] inline-block">
+          {r.note || ""}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      type: "actions",
+      accessor: (r) => {
+        if (!canWrite) return null;
+        return (
+          <div className="flex items-center gap-0.5">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)} aria-label="Edit">
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive"
+              onClick={() => {
+                if (confirm("Delete this collection entry? This is logged in the finance audit log."))
+                  deleteIncome.mutate(r.id);
+              }}
+              aria-label="Delete"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        );
+      },
+      style: { width: 90 },
+    },
+  ];
+
+  const FILTERS: { value: Filter; label: string }[] = [
+    { value: "all", label: "All" },
+    { value: "out", label: "Collected" },
+    { value: "in", label: "Returned" },
+  ];
+
+  return (
+    <PageShell>
+      {canWrite && (
+        <OfficeActions>
+          <Button onClick={() => openAdd("in")} size="sm" variant="outline">
+            <Plus className="w-4 h-4" /> Return (IN)
+          </Button>
+          <Button onClick={() => openAdd("out")} size="sm">
+            <Minus className="w-4 h-4" /> Add Collection (OUT)
+          </Button>
+        </OfficeActions>
+      )}
+
+      <div className="grid gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:col-span-3">
+          <TotalCard label="Collected (OUT)" value={totals.outSum} />
+          <TotalCard label="Returned (IN)" value={totals.inSum} />
+        </div>
+        <TotalCard
+          label="Net Collected"
+          value={totals.net}
+          strong
+          className="lg:h-full lg:flex lg:flex-col lg:justify-center"
+        />
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        {FILTERS.map((f) => (
+          <Button
+            key={f.value}
+            size="sm"
+            variant={filter === f.value ? "default" : "outline"}
+            className="h-7 px-3 text-xs"
+            onClick={() => setFilter(f.value)}
+          >
+            {f.label}
+          </Button>
+        ))}
+      </div>
+
+      <PageSection card={false}>
+        <SmartTable
+          data={rows}
+          columns={columns}
+          rowKey={(r) => r.id}
+          loading={isLoading}
+          empty={
+            <div className="text-sm text-muted-foreground text-center py-10">
+              No collections in this period.
+            </div>
+          }
+        />
+      </PageSection>
+
+      <ResponsiveDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        title={editId ? "Edit collection" : mode === "out" ? "Add Collection (OUT)" : "Return (IN)"}
+      >
+        <FormGrid>
+          <FormField span={6} label="Business Date">
+            <Input
+              type="date"
+              value={form.business_date}
+              onChange={(e) => setForm({ ...form, business_date: e.target.value })}
+              className={cn(
+                isOutsideWindow(form.business_date, range) &&
+                  "border-amber-500 text-amber-600 dark:text-amber-400",
+              )}
+              title={
+                isOutsideWindow(form.business_date, range)
+                  ? "Date is outside the selected month window"
+                  : "Posting date"
+              }
+            />
+          </FormField>
+          <FormField span={6} label="Direction">
+            <Select value={mode} onValueChange={(v) => setMode(v as "out" | "in")}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="out">Collected — money out (−)</SelectItem>
+                <SelectItem value="in">Returned — money in (+)</SelectItem>
+              </SelectContent>
+            </Select>
+          </FormField>
+
+          <FormField span={6} label="Category">
+            <Select
+              value={form.fin_category_id}
+              onValueChange={(v) => setForm({ ...form, fin_category_id: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select category…" />
+              </SelectTrigger>
+              <SelectContent>
+                {collectionCats.map((c: any) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+          <FormField span={6} label="Wallet">
+            <Select
+              value={form.wallet_id}
+              onValueChange={(v) => {
+                const w = (wallets as any[]).find((x) => x.id === v);
+                setForm({ ...form, wallet_id: v, currency: w?.currency || form.currency });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select wallet…" />
+              </SelectTrigger>
+              <SelectContent>
+                {(wallets as any[]).map((w) => (
+                  <SelectItem key={w.id} value={w.id}>
+                    {w.name} · {w.currency}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+
+          <FormField span={6} label={`Amount (${activeWallet?.currency || form.currency})`}>
+            <NumberInput
+              decimals={2}
+              value={form.amount}
+              onValueChange={(v) => setForm({ ...form, amount: v == null ? "" : String(v) })}
+              placeholder="0"
+            />
+          </FormField>
+
+          <FormField span={12} label="Note (optional)">
+            <Textarea value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} rows={2} />
+          </FormField>
+        </FormGrid>
+
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={() => setDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={submit} disabled={addIncome.isPending || updateIncome.isPending}>
+            {addIncome.isPending || updateIncome.isPending ? "Saving…" : "Save"}
+          </Button>
+        </div>
+      </ResponsiveDialog>
+    </PageShell>
+  );
+}
+
+const TotalCard = ({
+  label,
+  value,
+  strong,
+  className,
+}: {
+  label: string;
+  value: number;
+  strong?: boolean;
+  className?: string;
+}) => (
+  <div className={cn("rounded-md border border-border bg-card px-3 py-2", strong && "border-primary/40 bg-primary/5", className)}>
+    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+    <p
+      className={cn(
+        "font-mono tabular-nums",
+        strong ? "text-3xl font-bold" : "text-xl",
+        value < 0 ? "cms-amount-negative" : value > 0 ? "cms-amount-positive" : "text-muted-foreground",
+      )}
+    >
+      {value < 0 ? "−" : ""}
+      {formatNumberSpaces(Math.abs(Math.round(value)))}
+    </p>
+  </div>
+);
