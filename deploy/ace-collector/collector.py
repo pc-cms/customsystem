@@ -296,6 +296,23 @@ def main(argv: list[str] | None = None) -> int:
         logger.info("Health check : OK")
         return 0
 
+    # ── historical modes: never touch the LIVE period ──────────────────────
+    if args.history_scan or args.backfill_from:
+        raw = args.backfill_from or args.from_date
+        from_date = valid_date(raw)
+        if not from_date:
+            logger.error("A valid --from / --backfill-from date (YYYY-MM-DD) is required, got %r", raw)
+            return 2
+        try:
+            client.login()
+            if args.history_scan and not args.backfill_from:
+                return run_history_scan(client, cfg, logger, from_date)
+            return run_backfill(client, api, cfg, logger, from_date, args.dry_run)
+        except (AceError, ApiError, Exception) as exc:  # noqa: BLE001
+            logger.error("History run failed: %s", exc)
+            return 1
+
+
     do_live = not args.closing_only
     do_closing = not args.live_only and (args.force_closing or in_closing_window(cfg))
 
