@@ -78,6 +78,8 @@ export default function CollectionsTab() {
 
   const { period } = useOfficePeriod();
   const range = { from: period.from, to: period.to };
+  const { activeCasinoId } = useCasino();
+
 
   const { data: allEntries = [], isLoading } = useOtherIncomes(range.from, range.to, {
     only: ["collection"],
