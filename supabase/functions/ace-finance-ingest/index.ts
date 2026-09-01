@@ -150,6 +150,60 @@ Deno.serve(async (req) => {
   const touchKey = () =>
     admin.from("ace_ingest_keys").update({ last_seen_at: new Date().toISOString() }).eq("id", cred.id);
 
+  // --- history_missing_only ----------------------------------------------
+  // Safe historical backfill: fills ONLY empty (0/NULL) Statistics fields of
+  // fin_day_closing. Never touches JP, tables_result, wallets, cage shifts or
+  // manual figures, and deliberately writes NO ace_finance_snapshots row so a
+  // different ACE period already stored for the same business date is kept
+  // intact (that table is unique per casino+day and triggers day closing).
+  if (isHistoryMissingOnly) {
+    if (!cred.casino_id) {
+      return json({ ok: false, status: "apply_failed", error: "location_not_linked_to_casino" }, 400);
+    }
+
+    const { data: res, error: fillErr } = await admin.rpc("ace_backfill_missing_only", {
+      _casino_id: cred.casino_id,
+      _business_date: business_date,
+      _drop_slots: numbers.total_drop,
+      _net_win: numbers.net_win,
+      _cashdesk_win: numbers.win_cashdesk,
+      _client_balance: numbers.cashless_money_difference,
+    });
+
+    if (fillErr) {
+      console.error("ace-finance-ingest: history backfill failed", fillErr.message);
+      return json({ ok: false, status: "history_failed", error: "backfill_failed", retryable: true }, 500);
+    }
+
+    const result = (res ?? {}) as { created?: boolean; fields_filled?: string[] };
+    const fields = Array.isArray(result.fields_filled) ? result.fields_filled : [];
+
+    await admin.from("ace_history_backfill_log").insert({
+      casino_id: cred.casino_id,
+      location_code,
+      business_date,
+      period_id,
+      period_label,
+      payload: { ...numbers, active_credits },
+      fields_filled: fields,
+      row_created: !!result.created,
+    });
+
+    await touchKey();
+
+    return json({
+      ok: true,
+      status: "history_filled",
+      location_code,
+      period_id,
+      business_date,
+      row_created: !!result.created,
+      fields_filled: fields,
+      filled_count: fields.length,
+    });
+  }
+
+
   // --- idempotency guard for closed reports ------------------------------
   // Only an *identical* resend is skipped. ACE frequently republishes a closed
   // period after the JP slip / drop is finalised, so any changed figure must be
