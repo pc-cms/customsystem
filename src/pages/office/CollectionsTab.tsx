@@ -105,19 +105,21 @@ export default function CollectionsTab() {
   // Historical collections were (and still are) booked as expenses in the
   // Collections categories — show them here read-only so the tab is complete.
   const { data: legacy = [], isLoading: loadingLegacy } = useQuery({
-    queryKey: ["collections-expenses", range.from, range.to, collectionCatIds.length],
-    enabled: collectionCatIds.length > 0,
+    queryKey: ["collections-expenses", activeCasinoId, range.from, range.to, collectionCatIds.length],
+    enabled: !!activeCasinoId && collectionCatIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("expenses")
         .select(
           "id, business_date, amount, amount_tzs, currency, description, fin_category_id, wallet_id, voided_at, fin_categories(name), fin_wallets(name)",
         )
+        .eq("casino_id", activeCasinoId!)
         .in("fin_category_id", collectionCatIds)
         .gte("business_date", range.from)
         .lte("business_date", range.to)
         .is("voided_at", null)
         .order("business_date", { ascending: false });
+
       if (error) throw error;
       return data || [];
     },
