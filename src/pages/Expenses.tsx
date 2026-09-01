@@ -630,7 +630,9 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
               case "source":   return resolveSource(e);
               case "category": return e.category || "";
               case "target":   return e.players ? `${e.players.first_name} ${e.players.last_name}` : (e.player_name || "Casino");
-              case "amount":   return Number(e.amount || 0);
+              // Sort by TZS value so foreign-currency rows compare correctly.
+              case "amount":   return Number(e.amount_tzs ?? e.amount ?? 0);
+
               case "status":   return e.approved ? "approved" : "pending";
             }
           };
