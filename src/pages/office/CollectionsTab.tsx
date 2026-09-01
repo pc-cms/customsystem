@@ -7,9 +7,9 @@
  * Never income. Nets into the Collections group of the Monthly Report.
  */
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Minus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Minus, Pencil, Trash2, ArrowLeftRight, Layers } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import {
   useDeleteOtherIncome,
   type OtherIncomeRow,
 } from "@/hooks/use-other-incomes";
+import { useEditExpense } from "@/hooks/use-edit-expense";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import { useAuth } from "@/lib/auth-context";
@@ -50,7 +51,22 @@ type Row = {
   amount_tzs: number;
   note: string;
   raw?: OtherIncomeRow;
+  /** Legacy rows only: the stored (signed) expense amount, used to flip direction. */
+  expense_amount?: number;
+  expense_currency?: "TZS" | "USD" | "EUR" | "GBP" | "KES";
 };
+
+/** Collected (OUT), returned (IN) and net collected, in TZS. */
+const sumRows = (list: Row[]) => {
+  let outSum = 0;
+  let inSum = 0;
+  list.forEach((r) => {
+    if (r.amount_tzs < 0) outSum += Math.abs(r.amount_tzs);
+    else inSum += r.amount_tzs;
+  });
+  return { outSum, inSum, net: outSum - inSum };
+};
+
 
 export default function CollectionsTab() {
   const { roles } = useAuth();
@@ -70,6 +86,8 @@ export default function CollectionsTab() {
   const addIncome = useAddOtherIncome();
   const updateIncome = useUpdateOtherIncome();
   const deleteIncome = useDeleteOtherIncome();
+  const editExpense = useEditExpense();
+  const qc = useQueryClient();
 
   /** Collections-group categories (Collection, CAPEX, Money Change…). */
   const collectionCats = useMemo(
@@ -103,6 +121,9 @@ export default function CollectionsTab() {
   });
 
   const [filter, setFilter] = useState<Filter>("all");
+  const [catFilter, setCatFilter] = useState<string>("all");
+  const [walletFilter, setWalletFilter] = useState<string>("all");
+  const [grouped, setGrouped] = useState(false);
 
   const allRows: Row[] = useMemo(() => {
     const entries: Row[] = (allEntries as OtherIncomeRow[]).map((r) => ({
@@ -118,6 +139,7 @@ export default function CollectionsTab() {
       raw: r,
     }));
     // Expenses are stored positive = money leaving → shown as collected (negative).
+    // A negative expense amount means the cash came back → shown as returned (+).
     const old: Row[] = (legacy as any[]).map((e) => ({
       id: e.id,
       origin: "expense",
@@ -125,28 +147,52 @@ export default function CollectionsTab() {
       category: e.fin_categories?.name || "—",
       wallet: e.fin_wallets?.name || "—",
       currency: e.currency || "TZS",
-      amount: -Math.abs(Number(e.amount || 0)),
-      amount_tzs: -Math.abs(Number(e.amount_tzs ?? e.amount ?? 0)),
+      amount: -Number(e.amount || 0),
+      amount_tzs: -Number(e.amount_tzs ?? e.amount ?? 0),
       note: e.description || "",
+      expense_amount: Number(e.amount || 0),
+      expense_currency: (e.currency || "TZS") as any,
     }));
     return [...entries, ...old].sort((a, b) => b.business_date.localeCompare(a.business_date));
   }, [allEntries, legacy]);
 
-  const rows = useMemo(() => {
-    if (filter === "all") return allRows;
-    return allRows.filter((r) => (r.amount < 0 ? "out" : "in") === filter);
-  }, [allRows, filter]);
+  const rows = useMemo(
+    () =>
+      allRows.filter((r) => {
+        if (filter !== "all" && (r.amount < 0 ? "out" : "in") !== filter) return false;
+        if (catFilter !== "all" && r.category !== catFilter) return false;
+        if (walletFilter !== "all" && r.wallet !== walletFilter) return false;
+        return true;
+      }),
+    [allRows, filter, catFilter, walletFilter],
+  );
 
-  /** Totals in TZS — collected (OUT), returned (IN) and net collected. */
-  const totals = useMemo(() => {
-    let outSum = 0;
-    let inSum = 0;
-    allRows.forEach((r) => {
-      if (r.amount_tzs < 0) outSum += Math.abs(r.amount_tzs);
-      else inSum += r.amount_tzs;
+  /** Distinct values for the filter selectors (from the loaded period). */
+  const catOptions = useMemo(
+    () => Array.from(new Set(allRows.map((r) => r.category))).sort(),
+    [allRows],
+  );
+  const walletOptions = useMemo(
+    () => Array.from(new Set(allRows.map((r) => r.wallet))).sort(),
+    [allRows],
+  );
+
+  /** Totals in TZS of the CURRENT selection — collected (OUT), returned (IN), net. */
+  const totals = useMemo(() => sumRows(rows), [rows]);
+
+  /** Rows grouped by category, each with its own subtotals. */
+  const byCategory = useMemo(() => {
+    const map = new Map<string, Row[]>();
+    rows.forEach((r) => {
+      const arr = map.get(r.category) || [];
+      arr.push(r);
+      map.set(r.category, arr);
     });
-    return { outSum, inSum, net: outSum - inSum };
-  }, [allRows]);
+    return Array.from(map.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([category, list]) => ({ category, list, totals: sumRows(list) }));
+  }, [rows]);
+
 
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -223,6 +269,7 @@ export default function CollectionsTab() {
       header: "Date",
       type: "date",
       accessor: (r) => <span className="font-mono text-xs">{fmtDateOnly(r.business_date)}</span>,
+      sortValue: (r) => r.business_date,
       style: { width: 110 },
     },
     {
@@ -244,6 +291,7 @@ export default function CollectionsTab() {
           </span>
         );
       },
+      sortValue: (r) => (r.amount < 0 ? "Collected" : "Returned"),
       style: { width: 110 },
     },
     {
@@ -262,6 +310,7 @@ export default function CollectionsTab() {
           )}
         </span>
       ),
+      sortValue: (r) => r.category,
       style: { width: 170 },
     },
     {
@@ -272,6 +321,7 @@ export default function CollectionsTab() {
           {r.wallet} <span className="text-[10px] text-muted-foreground">{r.currency}</span>
         </span>
       ),
+      sortValue: (r) => r.wallet,
     },
     {
       key: "amount",
@@ -288,6 +338,7 @@ export default function CollectionsTab() {
           {formatNumberSpaces(Math.abs(r.amount))}
         </span>
       ),
+      sortValue: (r) => r.amount_tzs,
       style: { width: 140 },
     },
     {
@@ -302,7 +353,39 @@ export default function CollectionsTab() {
       header: "",
       type: "actions",
       accessor: (r) => {
-        if (!canWrite || r.origin !== "entry" || !r.raw) return null;
+        if (!canWrite) return null;
+        if (r.origin === "expense") {
+          const out = r.amount < 0;
+          return (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              title={`Switch direction → ${out ? "Returned (IN)" : "Collected (OUT)"}`}
+              aria-label="Switch direction"
+              disabled={editExpense.isPending}
+              onClick={() => {
+                if (
+                  !confirm(
+                    `Switch this legacy row to ${out ? "Returned (IN)" : "Collected (OUT)"}? Only the direction changes; it is logged in the audit log.`,
+                  )
+                )
+                  return;
+                editExpense.mutate(
+                  {
+                    id: r.id,
+                    amount: -Number(r.expense_amount || 0),
+                    currency: r.expense_currency,
+                  },
+                  { onSuccess: () => qc.invalidateQueries({ queryKey: ["collections-expenses"] }) },
+                );
+              }}
+            >
+              <ArrowLeftRight className="w-3.5 h-3.5" />
+            </Button>
+          );
+        }
+        if (!r.raw) return null;
         const raw = r.raw;
         return (
           <div className="flex items-center gap-0.5">
@@ -335,6 +418,21 @@ export default function CollectionsTab() {
     { value: "in", label: "Returned" },
   ];
 
+  const table = (data: Row[]) => (
+    <SmartTable
+      data={data}
+      columns={columns}
+      rowKey={(r) => r.id}
+      defaultSort={{ key: "date", dir: "desc" }}
+      loading={isLoading || loadingLegacy}
+      empty={
+        <div className="text-sm text-muted-foreground text-center py-10">
+          No collections in this period.
+        </div>
+      }
+    />
+  );
+
   return (
     <PageShell>
       {canWrite && (
@@ -361,7 +459,7 @@ export default function CollectionsTab() {
         />
       </div>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         {FILTERS.map((f) => (
           <Button
             key={f.value}
@@ -373,21 +471,69 @@ export default function CollectionsTab() {
             {f.label}
           </Button>
         ))}
+
+        <Select value={catFilter} onValueChange={setCatFilter}>
+          <SelectTrigger className="h-7 w-[170px] text-xs">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories</SelectItem>
+            {catOptions.map((c) => (
+              <SelectItem key={c} value={c}>
+                {c}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={walletFilter} onValueChange={setWalletFilter}>
+          <SelectTrigger className="h-7 w-[170px] text-xs">
+            <SelectValue placeholder="Wallet" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All wallets</SelectItem>
+            {walletOptions.map((w) => (
+              <SelectItem key={w} value={w}>
+                {w}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Button
+          size="sm"
+          variant={grouped ? "default" : "outline"}
+          className="h-7 px-3 text-xs"
+          onClick={() => setGrouped((g) => !g)}
+          title="Group rows by category with subtotals"
+        >
+          <Layers className="w-3.5 h-3.5" /> {grouped ? "By category" : "Flat"}
+        </Button>
       </div>
 
-      <PageSection card={false}>
-        <SmartTable
-          data={rows}
-          columns={columns}
-          rowKey={(r) => r.id}
-          loading={isLoading || loadingLegacy}
-          empty={
-            <div className="text-sm text-muted-foreground text-center py-10">
-              No collections in this period.
-            </div>
-          }
-        />
-      </PageSection>
+      {grouped ? (
+        byCategory.length === 0 ? (
+          <PageSection card={false}>{table([])}</PageSection>
+        ) : (
+          byCategory.map((g) => (
+            <PageSection key={g.category} card={false}>
+              <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1.5">
+                <span className="text-xs font-bold uppercase tracking-wider">{g.category}</span>
+                <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                  OUT {formatNumberSpaces(g.totals.outSum)} · IN {formatNumberSpaces(g.totals.inSum)} · NET{" "}
+                  <span className={cn(g.totals.net < 0 ? "cms-amount-negative" : "cms-amount-positive")}>
+                    {formatNumberSpaces(g.totals.net)}
+                  </span>
+                </span>
+              </div>
+              {table(g.list)}
+            </PageSection>
+          ))
+        )
+      ) : (
+        <PageSection card={false}>{table(rows)}</PageSection>
+      )}
+
 
       <ResponsiveDialog
         open={dialogOpen}
