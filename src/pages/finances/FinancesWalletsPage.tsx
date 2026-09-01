@@ -19,13 +19,12 @@ import {
   ArrowDown,
   ChevronRight,
   ChevronDown,
-  ClipboardCheck,
   Sliders,
   Inbox,
 } from "lucide-react";
 
 import { PageShell, PageSection } from "@/components/layout/PageShell";
-import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
+import { OfficeHeaderActions, useOfficePeriod } from "@/components/office/office-shell";
 import { monthPeriod, MONTH_NAMES } from "@/components/office/PeriodPicker";
 import { useMonthOpenings, monthStatusOf } from "@/hooks/use-fin-month-opening";
 import { useMonthClosures } from "@/hooks/use-fin-month-closures";
@@ -51,8 +50,7 @@ import { fmtDateOnly } from "@/lib/format-date";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import ClosingInboxDialog from "@/components/finances/ClosingInboxDialog";
 import { useClosingInboxPending } from "@/hooks/use-closing-inbox";
-import StaleCountsNotice, { type CountFreshnessRow } from "@/components/office/StaleCountsNotice";
-import { BalanceBanner } from "@/components/office/BalanceBanner";
+import { type CountFreshnessRow } from "@/components/office/StaleCountsNotice";
 
 
 import { dayToRecord } from "@/hooks/use-day-balance-snapshot";
@@ -488,28 +486,7 @@ export default function FinancesWalletsPage() {
 
   const toggleRow = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
 
-  /**
-   * Count All — opens the count form for every wallet whose last count is
-   * older than refDate; when nothing is stale, opens every visible wallet.
-   */
-  const countAllStale = () => {
-    const stale = freshness.filter((r) => r.stale);
-    const ids = stale.length
-      ? stale.map((r) => r.wallet_id)
-      : (visibleWallets as any[]).map((w) => w.id);
-    if (!ids.length) return;
-    setExpanded((s) => {
-      const n = { ...s };
-      ids.forEach((id) => {
-        n[id] = true;
-      });
-      return n;
-    });
-    setTimeout(
-      () => document.getElementById("wallets-table")?.scrollIntoView({ behavior: "smooth", block: "start" }),
-      50,
-    );
-  };
+
 
 
   const saveCount = async (w: any) => {
