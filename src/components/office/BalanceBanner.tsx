@@ -66,12 +66,12 @@ export function BalanceBanner() {
       <button
         type="button"
         onClick={goToBreakdown}
+        title="Open breakdown"
         className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs border border-border bg-muted/40 hover:bg-muted/60 transition text-muted-foreground"
       >
         <Info className="w-4 h-4 shrink-0" />
         <span className="font-semibold uppercase tracking-wider">{label} not counted yet</span>
         <span>Enter physical counts to see Variance</span>
-        <span className="ml-auto text-[10px] opacity-70">Click for details →</span>
       </button>
     );
   }
@@ -85,6 +85,7 @@ export function BalanceBanner() {
     <button
       type="button"
       onClick={goToBreakdown}
+      title="Open breakdown"
       className={cn(
         "w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs border transition",
         isDeficit
@@ -104,7 +105,6 @@ export function BalanceBanner() {
         {isDeficit ? "−" : "+"}{formatNumberSpaces(abs)} TZS
       </span>
       <span className="opacity-70">· {label}</span>
-      <span className="ml-auto text-[10px] opacity-70">Click for details →</span>
     </button>
   );
 }

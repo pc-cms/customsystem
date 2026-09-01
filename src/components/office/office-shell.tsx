@@ -1,9 +1,13 @@
 /**
  * Unified shell for the Office / Budget sections.
  *
- * Renders ONE sticky toolbar: tabs + period picker + a slot where the active
- * tab can portal its own action buttons. Tabs no longer draw their own header,
- * casino switcher or period controls.
+ * Renders ONE sticky toolbar: tabs on the left, month status + month dropdown
+ * + the single Open/Close Month control on the right (Stage 2A, 2026-09-01).
+ * Tab-specific action buttons portal into a second row below the strip.
+ *
+ * The shared header is the ONLY owner of month management: Open Month and
+ * Close Month live here and nowhere else. It reuses the existing
+ * OpenMonthWizard / CloseMonthWizard flows unchanged (same RPCs, same audit).
  */
 import {
   createContext,
@@ -26,13 +30,18 @@ import { useSessionState } from "@/hooks/use-session-state";
 import { useMonthClosures } from "@/hooks/use-fin-month-closures";
 import { useMonthOpenings, monthStatusOf } from "@/hooks/use-fin-month-opening";
 import { OpenMonthWizard } from "@/pages/office/OpenMonthWizard";
+import { CloseMonthWizard } from "@/pages/office/CloseMonthWizard";
+import { useFinBalanceSnapshot } from "@/hooks/use-fin-balance";
+import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { CalendarPlus } from "lucide-react";
+import { CalendarPlus, CalendarCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** Roles allowed to run the Open Month ritual (mirrors fin_open_month). */
 const OPEN_MONTH_ROLES = ["super_admin", "manager", "general_manager", "finance_manager"];
+/** Roles allowed to run Close Month (same list Wallets used before Stage 2A). */
+const CLOSE_MONTH_ROLES = ["super_admin", "admin", "manager", "general_manager", "finance_manager"];
 
 type Ctx = {
   period: OfficePeriod;
@@ -54,7 +63,7 @@ export function useOfficePeriod() {
 }
 
 
-/** Portals tab-specific action buttons into the shared toolbar. */
+/** Portals tab-specific action buttons into the shared toolbar's actions row. */
 export function OfficeActions({ children }: { children: ReactNode }) {
   const ctx = useContext(OfficeShellCtx);
   const [, force] = useState(0);
@@ -63,10 +72,49 @@ export function OfficeActions({ children }: { children: ReactNode }) {
     force((n) => n + 1);
   }, []);
   if (!ctx?.actionsEl) return null;
-  return createPortal(<div className="flex items-center gap-2">{children}</div>, ctx.actionsEl);
+  return createPortal(<div className="flex items-center gap-2 flex-wrap justify-end">{children}</div>, ctx.actionsEl);
 }
 
 export type ShellTab = { value: string; label: string };
+
+/**
+ * Hosts the existing CloseMonthWizard from the shared header. Mounted only
+ * while the dialog is open, so the balance snapshot is fetched on demand —
+ * exactly the data the Wallets page passed to the wizard before Stage 2A.
+ */
+function CloseMonthHost({
+  open,
+  onOpenChange,
+  year,
+  month,
+  status,
+}: {
+  open: boolean;
+  onOpenChange: (b: boolean) => void;
+  year: number;
+  month: number;
+  status: "open" | "closed";
+}) {
+  const { activeCasinoId } = useCasino();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const last = new Date(year, month, 0).getDate();
+  const from = `${year}-${pad(month)}-01`;
+  const to = `${year}-${pad(month)}-${pad(last)}`;
+  const { data: snap } = useFinBalanceSnapshot(from, to);
+  const usdRate = snap?.rates?.usd_tzs || 2600;
+  return (
+    <CloseMonthWizard
+      open={open}
+      onOpenChange={onOpenChange}
+      wallets={(snap?.wallets || []) as any}
+      usdTzs={usdRate}
+      casinoId={activeCasinoId}
+      year={year}
+      month={month}
+      status={status}
+    />
+  );
+}
 
 export function OfficeShell({
   storageKey,
@@ -102,7 +150,9 @@ export function OfficeShell({
   const { data: openings = [] } = useMonthOpenings();
   const { roles } = useAuth();
   const canOpenMonth = roles.some((r) => OPEN_MONTH_ROLES.includes(r));
+  const canCloseMonth = roles.some((r) => CLOSE_MONTH_ROLES.includes(r));
   const [openWizard, setOpenWizard] = useState(false);
+  const [closeWizard, setCloseWizard] = useState(false);
   const actionsRef = useRef<HTMLDivElement | null>(null);
   const [actionsEl, setActionsEl] = useState<HTMLDivElement | null>(null);
 
@@ -129,14 +179,15 @@ export function OfficeShell({
         {banner}
         {!hideToolbar && (
         <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-background/95 backdrop-blur border-b border-border">
-          <div className="flex items-center gap-3 flex-wrap">
-            <Tabs value={tab} onValueChange={onTabChange} className="min-w-0">
-              <TabsList className="h-9 flex-wrap">
+          {/* Single row: tabs left · [status] [month dropdown] [Open/Close Month] right. */}
+          <div className="flex items-center gap-3 flex-nowrap">
+            <Tabs value={tab} onValueChange={onTabChange} className="min-w-0 overflow-x-auto">
+              <TabsList className="h-9 flex-nowrap">
                 {tabs.map((t) => (
                   <TabsTrigger
                     key={t.value}
                     value={t.value}
-                    className="text-xs data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-md"
+                    className="text-xs whitespace-nowrap data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-md"
                   >
                     {t.label}
                   </TabsTrigger>
@@ -144,54 +195,56 @@ export function OfficeShell({
               </TabsList>
             </Tabs>
             <div className="flex-1" />
-          {showPeriod && <PeriodPicker value={period} onChange={changePeriod} />}
-          {showPeriod && monthStatus && (
-            <span
-              className={cn(
-                "text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border",
-                monthStatus === "open" &&
-                  "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-                monthStatus === "closed" &&
-                  "border-border bg-muted text-muted-foreground",
-                monthStatus === "not_opened" &&
-                  "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
-              )}
-            >
-              {monthStatus === "not_opened" ? "Not opened" : monthStatus}
-            </span>
-          )}
-          {showPeriod && monthStatus === "not_opened" && canOpenMonth && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 border-amber-500/50 text-amber-700 dark:text-amber-400"
-              onClick={() => setOpenWizard(true)}
-            >
-              <CalendarPlus className="w-4 h-4" />
-              Open Month · {MONTH_NAMES[period.month - 1]} {period.year}
-            </Button>
-          )}
-            <div ref={actionsRef} className="flex items-center gap-2" />
-          </div>
-        </div>
-        )}
-        {showPeriod && monthStatus === "not_opened" && (
-          <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 flex flex-wrap items-center gap-2">
-            <span>
-              Month {MONTH_NAMES[period.month - 1]} {period.year} is not opened yet — wallet
-              counts, movements and expenses are unavailable for it until a manager confirms
-              Starting Float and opening balances.
-            </span>
-            {canOpenMonth && (
+            {/* Month status ALWAYS renders before the month dropdown. */}
+            {showPeriod && monthStatus && (
+              <span
+                className={cn(
+                  "shrink-0 text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border whitespace-nowrap",
+                  monthStatus === "open" &&
+                    "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                  monthStatus === "closed" &&
+                    "border-border bg-muted text-muted-foreground",
+                  monthStatus === "not_opened" &&
+                    "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                )}
+              >
+                {monthStatus === "not_opened" ? "NOT OPENED" : monthStatus === "open" ? "OPEN" : "CLOSED"}
+              </span>
+            )}
+            {showPeriod && <PeriodPicker value={period} onChange={changePeriod} />}
+            {/* Single month control — short labels only. */}
+            {showPeriod && monthStatus === "not_opened" && canOpenMonth && (
               <Button
-                size="sm"
                 variant="outline"
-                className="h-7 border-amber-500/50"
+                size="sm"
+                className="h-8 shrink-0 whitespace-nowrap border-amber-500/50 text-amber-700 dark:text-amber-400"
                 onClick={() => setOpenWizard(true)}
               >
-                <CalendarPlus className="w-4 h-4" /> Open Month
+                <CalendarPlus className="w-4 h-4" />
+                Open Month
               </Button>
             )}
+            {showPeriod && (monthStatus === "open" || monthStatus === "closed") && canCloseMonth && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 shrink-0 whitespace-nowrap"
+                onClick={() => setCloseWizard(true)}
+              >
+                <CalendarCheck className="w-4 h-4" />
+                Close Month
+              </Button>
+            )}
+          </div>
+          {/* Tab-specific actions row — hidden when the active tab portals nothing. */}
+          <div ref={actionsRef} className="mt-2 empty:hidden" />
+        </div>
+        )}
+        {/* Single generic month-state message — no action button (the header owns it). */}
+        {showPeriod && monthStatus === "not_opened" && (
+          <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+            {MONTH_NAMES[period.month - 1]} {period.year} is not opened yet — finance postings
+            are disabled until the month is opened.
           </div>
         )}
         {children}
@@ -201,6 +254,15 @@ export function OfficeShell({
             onOpenChange={setOpenWizard}
             year={period.year}
             month={period.month}
+          />
+        )}
+        {period.mode === "month" && closeWizard && (
+          <CloseMonthHost
+            open={closeWizard}
+            onOpenChange={setCloseWizard}
+            year={period.year}
+            month={period.month}
+            status={monthStatus === "closed" ? "closed" : "open"}
           />
         )}
       </div>

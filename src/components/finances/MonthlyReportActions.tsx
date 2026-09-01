@@ -117,7 +117,7 @@ export const MonthlyReportActions = ({
       card={false}
       titleRight={
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          {closed ? "Closed · read-only except Collections" : "Open · Close Month and Adjust Float live in Wallets"}
+          {closed ? "Closed · read-only except Collections" : "Open · Close Month lives in the Finance header · Adjust Float in Wallets"}
         </span>
       }
     >
