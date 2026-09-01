@@ -12767,6 +12767,14 @@ export type Database = {
           token: string
         }[]
       }
+      ace_history_probe_day: {
+        Args: {
+          _business_date: string
+          _casino_id: string
+          _drop_slots: number
+        }
+        Returns: Json
+      }
       ace_is_collector_admin: { Args: never; Returns: boolean }
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
       admin_active_sessions: {
