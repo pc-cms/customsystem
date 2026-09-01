@@ -26,7 +26,9 @@ import {
 
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
-import { monthPeriod } from "@/components/office/PeriodPicker";
+import { monthPeriod, MONTH_NAMES } from "@/components/office/PeriodPicker";
+import { useMonthOpenings, monthStatusOf } from "@/hooks/use-fin-month-opening";
+import { useMonthClosures } from "@/hooks/use-fin-month-closures";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -212,6 +214,18 @@ export default function FinancesWalletsPage() {
   
   /** The counted business day belongs to another period than the one shown. */
   const countOutOfPeriod = countForDate < range.from || countForDate > range.to;
+  /**
+   * Month gating: the count is saved into the month of its OWN business date.
+   * Writing is allowed only while that month is opened and not closed —
+   * no automatic carry-over between months.
+   */
+  const { data: monthOpenings = [] } = useMonthOpenings();
+  const { data: monthClosuresList = [] } = useMonthClosures();
+  const countYear = Number(countForDate.slice(0, 4));
+  const countMonth = Number(countForDate.slice(5, 7));
+  const countMonthLabel = `${MONTH_NAMES[countMonth - 1]} ${countYear}`;
+  const countMonthStatus = monthStatusOf(monthOpenings, monthClosuresList, countYear, countMonth);
+  const countBlocked = countMonthStatus !== "open";
   const refDate = countForDate < range.from ? range.from
     : countForDate > range.to ? range.to : countForDate;
   const freshness = useMemo<CountFreshnessRow[]>(() => {
@@ -502,6 +516,14 @@ export default function FinancesWalletsPage() {
     // A count belongs to the business day it is FOR, chosen above the table.
     // Entering 11/08 figures on 12/08 is the normal flow — the business day is
     // always closed the next morning.
+    if (countBlocked) {
+      toast.error(
+        countMonthStatus === "closed"
+          ? `Month ${countMonthLabel} is closed — posting is not possible.`
+          : `Month ${countMonthLabel} is not opened yet — open it first (Open Month).`,
+      );
+      return;
+    }
     const countDate = countForDate;
     setSavingId(w.id);
     let variance = 0;
@@ -589,6 +611,8 @@ export default function FinancesWalletsPage() {
           variant="secondary"
           size="sm"
           className="h-9"
+          disabled={countBlocked}
+          title={countBlocked ? `Month ${countMonthLabel} is not open for posting` : undefined}
           onClick={() => {
             setMoveWalletId(undefined);
             setMoveMode("in");
@@ -602,6 +626,8 @@ export default function FinancesWalletsPage() {
           variant="secondary"
           size="sm"
           className="h-9"
+          disabled={countBlocked}
+          title={countBlocked ? `Month ${countMonthLabel} is not open for posting` : undefined}
           onClick={() => {
             setMoveWalletId(undefined);
             setMoveMode("out");
@@ -647,25 +673,33 @@ export default function FinancesWalletsPage() {
         </div>
       </PageSection>
 
+      {countBlocked && (
+        <PageSection card={false}>
+          <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+            <span>
+              {countMonthStatus === "closed"
+                ? `Month ${countMonthLabel} is closed — physical counts and wallet movements for ${fmtDateOnly(countForDate)} are disabled.`
+                : `Month ${countMonthLabel} is not opened yet — physical counts and wallet movements are disabled until a manager runs Open Month.`}
+            </span>
+          </div>
+        </PageSection>
+      )}
+
       {countOutOfPeriod && (
         <PageSection card={false}>
           <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
             <span>
-              Counting business day {fmtDateOnly(countForDate)} — outside the selected period (
-              {fmtDateOnly(range.from)} — {fmtDateOnly(range.to)}). Expenses and variance of that
-              day belong to its own month.
+              Counting business day {fmtDateOnly(countForDate)} ({countMonthLabel}). The count is
+              saved into {countMonthLabel} — its own month — while you are viewing{" "}
+              {fmtDateOnly(range.from)} — {fmtDateOnly(range.to)}.
             </span>
             <Button
               size="sm"
               variant="outline"
               className="h-7 text-xs"
-              onClick={() =>
-                setPeriod(
-                  monthPeriod(Number(countForDate.slice(0, 4)), Number(countForDate.slice(5, 7))),
-                )
-              }
+              onClick={() => setPeriod(monthPeriod(countYear, countMonth))}
             >
-              Switch to that month
+              Switch to {countMonthLabel}
             </Button>
           </div>
         </PageSection>
@@ -1129,7 +1163,14 @@ export default function FinancesWalletsPage() {
                                 <Button
                                   size="sm"
                                   onClick={() => saveCount(w)}
-                                  disabled={savingId === w.id}
+                                  disabled={savingId === w.id || countBlocked}
+                                  title={
+                                    countBlocked
+                                      ? countMonthStatus === "closed"
+                                        ? `Month ${countMonthLabel} is closed`
+                                        : `Month ${countMonthLabel} is not opened yet — open it first`
+                                      : undefined
+                                  }
                                 >
                                   {savingId === w.id ? "Saving…" : "Save Physical Count"}
                                 </Button>

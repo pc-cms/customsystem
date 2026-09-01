@@ -20,10 +20,19 @@ import {
   PeriodPicker,
   type OfficePeriod,
   accountingMonthPeriod,
-  nextMonthPeriod,
+  MONTH_NAMES,
 } from "./PeriodPicker";
 import { useSessionState } from "@/hooks/use-session-state";
 import { useMonthClosures } from "@/hooks/use-fin-month-closures";
+import { useMonthOpenings, monthStatusOf } from "@/hooks/use-fin-month-opening";
+import { OpenMonthWizard } from "@/pages/office/OpenMonthWizard";
+import { useAuth } from "@/lib/auth-context";
+import { Button } from "@/components/ui/button";
+import { CalendarPlus } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+/** Roles allowed to run the Open Month ritual (mirrors fin_open_month). */
+const OPEN_MONTH_ROLES = ["super_admin", "manager", "general_manager", "finance_manager"];
 
 type Ctx = {
   period: OfficePeriod;
@@ -76,10 +85,17 @@ export function OfficeShell({
   banner?: ReactNode;
   children: ReactNode;
 }) {
+  /**
+   * The header month is a fixed working window: it changes ONLY via the
+   * picker, never automatically. First entry defaults to the accounting
+   * month (the month of the business day being closed).
+   */
   const [period, setPeriod] = useSessionState<OfficePeriod>(storageKey, accountingMonthPeriod());
-  /** True once the user picked a period by hand — auto-defaulting stops then. */
-  const [touched, setTouched] = useSessionState<boolean>(`${storageKey}:touched`, false);
   const { data: closures = [] } = useMonthClosures();
+  const { data: openings = [] } = useMonthOpenings();
+  const { roles } = useAuth();
+  const canOpenMonth = roles.some((r) => OPEN_MONTH_ROLES.includes(r));
+  const [openWizard, setOpenWizard] = useState(false);
   const actionsRef = useRef<HTMLDivElement | null>(null);
   const [actionsEl, setActionsEl] = useState<HTMLDivElement | null>(null);
 
@@ -87,26 +103,10 @@ export function OfficeShell({
     setActionsEl(actionsRef.current);
   }, []);
 
-  /**
-   * The working month only rolls forward once the previous one is closed via
-   * Close Month. Until then Office stays on the accounting month, so wallets,
-   * variance and expenses keep landing in the month they belong to.
-   */
-  useEffect(() => {
-    if (touched) return;
-    const base = accountingMonthPeriod();
-    const isClosed = (y: number, m: number) =>
-      closures.some((c) => c.year === y && c.month === m);
-    const want = isClosed(base.year, base.month)
-      ? nextMonthPeriod(base.year, base.month)
-      : base;
-    if (period.mode !== "month" || period.year !== want.year || period.month !== want.month) {
-      setPeriod(want);
-    }
-  }, [closures, touched, period, setPeriod]);
+  const monthStatus =
+    period.mode === "month" ? monthStatusOf(openings, closures, period.year, period.month) : null;
 
   const changePeriod = (p: OfficePeriod) => {
-    setTouched(true);
     setPeriod(p);
   };
 
@@ -136,11 +136,64 @@ export function OfficeShell({
               </TabsList>
             </Tabs>
             <div className="flex-1" />
-            {showPeriod && <PeriodPicker value={period} onChange={changePeriod} />}
+          {showPeriod && <PeriodPicker value={period} onChange={changePeriod} />}
+          {showPeriod && monthStatus && (
+            <span
+              className={cn(
+                "text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border",
+                monthStatus === "open" &&
+                  "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                monthStatus === "closed" &&
+                  "border-border bg-muted text-muted-foreground",
+                monthStatus === "not_opened" &&
+                  "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+              )}
+            >
+              {monthStatus === "not_opened" ? "Not opened" : monthStatus}
+            </span>
+          )}
+          {showPeriod && monthStatus === "not_opened" && canOpenMonth && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 border-amber-500/50 text-amber-700 dark:text-amber-400"
+              onClick={() => setOpenWizard(true)}
+            >
+              <CalendarPlus className="w-4 h-4" />
+              Open Month · {MONTH_NAMES[period.month - 1]} {period.year}
+            </Button>
+          )}
             <div ref={actionsRef} className="flex items-center gap-2" />
           </div>
         </div>
+        {showPeriod && monthStatus === "not_opened" && (
+          <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 flex flex-wrap items-center gap-2">
+            <span>
+              Month {MONTH_NAMES[period.month - 1]} {period.year} is not opened yet — wallet
+              counts, movements and expenses are unavailable for it until a manager confirms
+              Starting Float and opening balances.
+            </span>
+            {canOpenMonth && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 border-amber-500/50"
+                onClick={() => setOpenWizard(true)}
+              >
+                <CalendarPlus className="w-4 h-4" /> Open Month
+              </Button>
+            )}
+          </div>
+        )}
         {children}
+        {period.mode === "month" && (
+          <OpenMonthWizard
+            open={openWizard}
+            onOpenChange={setOpenWizard}
+            year={period.year}
+            month={period.month}
+          />
+        )}
       </div>
     </OfficeShellCtx.Provider>
   );

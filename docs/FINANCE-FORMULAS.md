@@ -277,3 +277,29 @@ signed amount + currency + occurrence index). A partial unique index enforces
 one *confirmed* row per (wallet, fingerprint).
 
 Wallet Expected formula is unchanged (CashDesk Win from Day Closings).
+
+## Accounting month window & Open Month ritual
+
+The Office header month is a **fixed working window**: it changes only via the
+picker, never automatically. Every record (expense, wallet count, movement)
+keeps its **own** business date and belongs to that date's calendar month —
+viewing a month never rewrites dates.
+
+Month statuses (precedence: closed > open > not_opened):
+
+- **not_opened** — no `fin_month_opening` record. Server rejects wallet counts
+  (`fin_save_wallet_count`) and office expenses (`create_office_expense`) with
+  "is not opened yet". UI: "Not opened" badge, amber banner, disabled
+  Save/Money In/Money Out.
+- **open** — `fin_month_opening` exists; normal posting.
+- **closed** — `fin_month_closures` row; posting rejected ("is closed").
+
+**Open Month** (`fin_open_month` RPC, roles manager/finance_manager/
+general_manager/super_admin) is a separate, explicit ritual — it does NOT
+require the previous month to be closed and is never triggered by Close Month.
+It atomically:
+1. inserts `fin_month_opening` (float per wallet + opening balances JSONB),
+2. sets `fin_wallets.starting_float_amount/_date` per wallet,
+3. writes opening `cash_count_snapshots` (first day of the month, 07:00 EAT).
+
+Nothing carries over between months without this confirmation.
