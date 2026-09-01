@@ -6,7 +6,7 @@
 import { useMemo, useState } from "react";
 import { Coins, Plus, Trash2, Pencil } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
-import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
+import { OfficeHeaderActions, useOfficePeriod } from "@/components/office/office-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
@@ -259,11 +259,11 @@ export default function OtherIncomesTab() {
   return (
     <PageShell>
       {canWrite && (
-        <OfficeActions>
+        <OfficeHeaderActions>
           <Button onClick={() => openAdd()} size="sm">
             <Plus className="w-4 h-4" /> Add Transaction
           </Button>
-        </OfficeActions>
+        </OfficeHeaderActions>
       )}
 
 

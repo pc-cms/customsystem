@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FileSpreadsheet, ChevronRight, ChevronDown, Download, Pencil, Trash2, Plus } from "lucide-react";
 import { EditExpenseDialog, type EditableExpense } from "@/components/expenses/EditExpenseDialog";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
-import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
+import { OfficeHeaderActions, useOfficePeriod } from "@/components/office/office-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -268,7 +268,7 @@ export default function FinancesMonthlyReportPage() {
 
   return (
     <PageShell>
-      <OfficeActions>
+      <OfficeHeaderActions>
 
 
         {isPremier && (
@@ -282,7 +282,7 @@ export default function FinancesMonthlyReportPage() {
         )}
 
         <Button variant="outline" size="sm" onClick={exportXlsx} disabled={!data}><Download className="w-4 h-4" /> XLSX</Button>
-      </OfficeActions>
+      </OfficeHeaderActions>
 
 
       {/* SUMMARY — Incomes + Budget (Plan/Actual/Remain) + Profit & Net Balance, single compact table */}
