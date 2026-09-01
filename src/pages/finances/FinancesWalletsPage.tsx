@@ -245,8 +245,8 @@ export default function FinancesWalletsPage() {
   const countMonthLabel = `${MONTH_NAMES[countMonth - 1]} ${countYear}`;
   const countMonthStatus = monthStatusOf(monthOpenings, monthClosuresList, countYear, countMonth);
   const countBlocked = countMonthStatus !== "open";
-  const refDate = countForDate < range.from ? range.from
-    : countForDate > range.to ? range.to : countForDate;
+  const refDate = countForDate;
+
   const freshness = useMemo<CountFreshnessRow[]>(() => {
     const refMs = new Date(`${refDate}T00:00:00Z`).getTime();
     return (snap?.wallets || []).map((w) => {
