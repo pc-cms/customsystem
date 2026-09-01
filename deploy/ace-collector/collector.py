@@ -308,7 +308,7 @@ def resolve_history(client: AceClient, from_date: str, to_date: str, logger,
     return selected, unparsed, dup_stats, len(available)
 
 
-def probe_day(api, cfg, bdate: str, report) -> str:
+def probe_day(api, cfg, bdate: str, report):
     """Read-only: ask the API what WOULD happen for a day. Writes nothing."""
     payload = report.as_payload(cfg.location_code)
     payload["business_date"] = bdate
@@ -316,7 +316,7 @@ def probe_day(api, cfg, bdate: str, report) -> str:
     payload["mode"] = HISTORY_MODE
     payload["probe"] = True
     body = api.send(payload) or {}
-    return body.get("status", "unknown")
+    return body.get("status", "unknown"), list(body.get("missing_fields") or [])
 
 
 def run_history_scan(client, api, cfg, logger, from_date: str, to_date: str) -> int:
@@ -352,18 +352,31 @@ def run_history_scan(client, api, cfg, logger, from_date: str, to_date: str) -> 
     # CMS-side preview: classify every selected day without writing anything.
     cms = {"new_statistics_day_created": 0, "shift_day_statistics_created": 0,
            "existing_day_fields_filled": 0, "existing_day_unchanged": 0, "unknown": 0}
+    fields = {"drop_slots": 0, "net_win": 0, "slots_result": 0,
+              "cashdesk_win": 0, "players_card_balance": 0}
     for bdate, _pid, _label, report in selected:
         try:
-            status = probe_day(api, cfg, bdate, report)
+            status, missing = probe_day(api, cfg, bdate, report)
         except Exception as exc:  # noqa: BLE001
             logger.error("HISTORY-SCAN probe failed date=%s: %s", bdate, exc)
-            status = "unknown"
+            status, missing = "unknown", []
         cms[status if status in cms else "unknown"] += 1
+        if status == "existing_day_fields_filled":
+            for f in missing:
+                if f in fields:
+                    fields[f] += 1
+            logger.info("HISTORY-SCAN existing date=%s would_fill=%s", bdate, missing)
     logger.info("HISTORY-SCAN cms existing_closing_days=%d fully_complete_days=%d partially_missing_days=%d",
                 cms["existing_day_fields_filled"] + cms["existing_day_unchanged"],
                 cms["existing_day_unchanged"], cms["existing_day_fields_filled"])
     logger.info("HISTORY-SCAN cms shift_only_days_without_stats=%d completely_missing_days=%d unknown=%d",
                 cms["shift_day_statistics_created"], cms["new_statistics_day_created"], cms["unknown"])
+    logger.info(
+        "HISTORY-SCAN cms existing_day_field_fills drop=%d net_win=%d cashdesk=%d "
+        "slots_result=%d card_balance=%d",
+        fields["drop_slots"], fields["net_win"], fields["cashdesk_win"],
+        fields["slots_result"], fields["players_card_balance"],
+    )
 
     logger.info(
         "HISTORY-SCAN totals selected_days=%d skipped_days=%d special_overrides=%d (nothing was sent)",
