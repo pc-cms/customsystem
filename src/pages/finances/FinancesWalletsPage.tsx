@@ -1323,6 +1323,10 @@ export default function FinancesWalletsPage() {
 
         </div>
 
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+          Expected = calculated · Actual = counted / ADJ · Variance = Actual − Expected
+        </p>
+
         <div className="rounded-md border border-border overflow-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted text-xs uppercase">
@@ -1330,11 +1334,13 @@ export default function FinancesWalletsPage() {
                 <th className="px-3 py-2 text-left w-[110px]">Date</th>
                 <th className="px-3 py-2 text-left">Wallet</th>
                 <th className="px-3 py-2 text-center w-[70px]">Dir</th>
+                <th className="px-3 py-2 text-left w-[110px]">Effect</th>
                 <th className="px-3 py-2 text-right w-[130px]">Amount</th>
                 <th className="px-3 py-2 text-right w-[130px]">TZS</th>
                 <th className="px-3 py-2 text-left">Note</th>
               </tr>
             </thead>
+
             <tbody>
               {txRows.map((r: any) => {
                 // Direction comes from the kind — expenses are stored as positive amounts.
