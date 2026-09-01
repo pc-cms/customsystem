@@ -640,6 +640,16 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
           return String(va).localeCompare(String(vb)) * dir;
         });
+        // Totals for the current filter: grand total in TZS + per-currency subtotals.
+        const totalTzs = sortedExpenses.reduce(
+          (s: number, e: any) => s + Number(e.amount_tzs ?? e.amount ?? 0), 0);
+        const byCurrency = sortedExpenses.reduce((m: Record<string, number>, e: any) => {
+          const c = e.currency || "TZS";
+          m[c] = (m[c] || 0) + Number(e.amount || 0);
+          return m;
+        }, {} as Record<string, number>);
+        const currencyKeys = Object.keys(byCurrency);
+
         return (
           <div className="cms-panel overflow-hidden">
             <div className="px-4 py-2 border-b border-border flex items-center justify-between">
