@@ -10,7 +10,7 @@
  *  - ONE global "Post All" — atomic and idempotent on the server.
  */
 import { useMemo, useState } from "react";
-import { AlertTriangle, Check, Inbox, Pencil } from "lucide-react";
+import { AlertTriangle, Check, Inbox, Pencil, SkipForward } from "lucide-react";
 
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -26,6 +26,7 @@ import { useFinWallets } from "@/hooks/use-fin";
 import {
   useClosingInbox,
   usePostClosingInbox,
+  useSkipClosingInbox,
   useSetInboxCorrection,
   useSetInboxWallet,
   type ClosingInboxRow,
@@ -353,14 +354,18 @@ export default function ClosingInboxDialog({
 }) {
   const { data, isLoading } = useClosingInbox(businessDate ?? null, open);
   const post = usePostClosingInbox();
+  const skip = useSkipClosingInbox();
   const [tab, setTab] = useState<"live" | "slots">("live");
   const [corrRow, setCorrRow] = useState<ClosingInboxRow | null>(null);
+  const [skipOpen, setSkipOpen] = useState(false);
+  const [skipReason, setSkipReason] = useState("");
 
   const rows = data?.rows || [];
   const inbox = data?.inbox || null;
   const live = rows.filter((r) => r.section === "live");
   const slots = rows.filter((r) => r.section === "slots");
-  const posted = inbox?.status === "posted";
+  // Skipped inboxes are read-only, exactly like posted ones (no buttons, no corrections).
+  const posted = inbox?.status === "posted" || inbox?.status === "skipped";
 
   const unmapped = rows.filter((r) => Number(r.final_amount) !== 0 && !r.wallet_id).length;
   const missingReason = rows.filter(
@@ -445,10 +450,62 @@ export default function ClosingInboxDialog({
             Close
           </Button>
           {inbox && !posted && (
+            <Button
+              variant="outline"
+              disabled={skip.isPending}
+              title="Remove from the inbox without posting — use when the money was already posted to wallets manually"
+              onClick={() => setSkipOpen(true)}
+            >
+              <SkipForward className="w-4 h-4" /> Skip
+            </Button>
+          )}
+          {inbox && !posted && (
             <Button disabled={blocked || post.isPending} onClick={() => post.mutate(inbox.id)}>
               <Check className="w-4 h-4" /> Post All
             </Button>
           )}
+        </ResponsiveDialogFooter>
+      </ResponsiveDialog>
+
+      {/* Skip confirmation — no wallet postings are made. */}
+      <ResponsiveDialog
+        open={skipOpen}
+        onOpenChange={setSkipOpen}
+        title="Skip this inbox?"
+        description="Nothing will be posted to wallets. Use this only if the money was already entered manually. The action is recorded in the audit log."
+        size="sm"
+      >
+        <Textarea
+          value={skipReason}
+          onChange={(e) => setSkipReason(e.target.value)}
+          placeholder="Reason (optional), e.g. posted manually to Cash TZS"
+          rows={3}
+        />
+        <ResponsiveDialogFooter>
+          <Button variant="outline" onClick={() => setSkipOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={skip.isPending}
+            onClick={() =>
+              inbox &&
+              skip.mutate(
+                { inboxId: inbox.id, reason: skipReason },
+                {
+                  onSuccess: (res) => {
+                    if (res?.status === "skipped") {
+                      setSkipOpen(false);
+                      setSkipReason("");
+                      onOpenChange(false);
+                    }
+                  },
+                },
+              )
+            }
+          >
+            <SkipForward className="w-4 h-4" /> Skip without posting
+          </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialog>
 

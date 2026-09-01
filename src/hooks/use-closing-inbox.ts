@@ -45,7 +45,7 @@ export type ClosingInbox = {
   id: string;
   casino_id: string;
   business_date: string;
-  status: "ready" | "posted";
+  status: "ready" | "posted" | "skipped";
   day_closure_id: string | null;
   posted_at: string | null;
   posted_by: string | null;
@@ -152,6 +152,34 @@ export function usePostClosingInbox() {
       else if (res?.status === "missing_reason") toast.error("Every correction needs a reason");
       else if (res?.status === "already_posted") toast.info("This inbox was already posted");
       else toast.success(`Posted ${res?.rows ?? 0} row(s) to wallets`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+}
+
+/**
+ * Skip an inbox WITHOUT posting — for cases when the manager already posted
+ * the money to wallets manually. Server-side: marks status='skipped' (audited
+ * via tg_fin_audit), the inbox leaves the pending list. No wallet transactions
+ * are created.
+ */
+export function useSkipClosingInbox() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { inboxId: string; reason?: string }) => {
+      const { data, error } = await supabase.rpc("closing_inbox_skip" as any, {
+        _inbox_id: v.inboxId,
+        _reason: v.reason?.trim() || null,
+      });
+      if (error) throw error;
+      return data as any as { status: string };
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["closing-inbox"] });
+      qc.invalidateQueries({ queryKey: ["closing-inbox-pending"] });
+      if (res?.status === "already_posted") toast.info("This inbox was already posted");
+      else if (res?.status === "already_skipped") toast.info("This inbox was already skipped");
+      else toast.success("Inbox skipped — no wallet postings made");
     },
     onError: (e: any) => toast.error(e.message),
   });
