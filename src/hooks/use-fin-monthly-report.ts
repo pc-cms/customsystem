@@ -119,7 +119,7 @@ export type MonthlyReport = {
   incomes: {
     /** Table Result — Σ per-table closing win (closed days). Alias of `table_result`. */
     live_game: number;
-    /** Slot Result — Cashdesk Win − Δ client balances (closed days). Alias of `slot_result`. */
+    /** Slot Result — Σ cashdesk_win from closed days. Alias of `slot_result`. */
     slots: number;
     table_result: number;
     slot_result: number;
@@ -263,7 +263,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       // Incomes from fin_day_closing — ONLY closed business days count as income.
       let dayClosingsQ = supabase
         .from("fin_day_closing")
-        .select("tables_result, slots_result, casino_id, business_date")
+        .select("tables_result, slots_result, cashdesk_win, casino_id, business_date")
         .gte("business_date", start)
         .lt("business_date", endExclusive);
       // Other Incomes — fetched in full and classified with the shared dictionary:
@@ -384,7 +384,7 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
         closedSet.has(`${r.casino_id}|${r.business_date}`),
       );
       const liveGame = closedRows.reduce((s, r: any) => s + Number(r.tables_result || 0), 0);
-      const slotsIncome = closedRows.reduce((s, r: any) => s + Number(r.slots_result || 0), 0);
+      const slotsIncome = closedRows.reduce((s, r: any) => s + Number(r.cashdesk_win || 0), 0);
       const rateList = ((rates as any)?.data || []).map((r: any) => Number(r.rate_to_tzs || 0)).filter((n: number) => n > 0);
       let avgUsdTzs = rateList.length ? rateList.reduce((s: number, n: number) => s + n, 0) / rateList.length : 0;
       // Fallback: if no USD rate was entered in the selected period, use the
