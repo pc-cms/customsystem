@@ -1535,8 +1535,9 @@ export default function FinancesWalletsPage() {
         defaultWalletId={moveWalletId}
         defaultMode={moveMode}
         usdRate={usdRate}
-        minDate={range.from}
-        maxDate={range.to}
+        {...(canCloseMonth ? {} : { minDate: range.from, maxDate: range.to })}
+        windowFrom={range.from}
+        windowTo={range.to}
       />
 
       {canCloseMonth && (

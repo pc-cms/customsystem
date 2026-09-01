@@ -36,6 +36,7 @@ import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
+import { defaultPostingDate, isOutsideWindow } from "@/lib/office-posting-date";
 import { toast } from "sonner";
 
 const SOURCE_LABEL: Record<OtherIncomeSource, string> = ALL_INCOME_SOURCES.reduce(
@@ -88,7 +89,7 @@ export default function OtherIncomesTab() {
     amount: string;
     note: string;
   }>({
-    business_date: new Date().toISOString().slice(0, 10),
+    business_date: defaultPostingDate(range),
     wallet_id: "",
     fin_category_id: "",
     source: "commission",
@@ -102,7 +103,7 @@ export default function OtherIncomesTab() {
   const openAdd = (source: OtherIncomeSource = "commission") => {
     setEditId(null);
     setForm({
-      business_date: new Date().toISOString().slice(0, 10),
+      business_date: defaultPostingDate(range),
       wallet_id: "",
       fin_category_id: "",
       source,
@@ -315,6 +316,15 @@ export default function OtherIncomesTab() {
               type="date"
               value={form.business_date}
               onChange={(e) => setForm({ ...form, business_date: e.target.value })}
+              className={cn(
+                isOutsideWindow(form.business_date, range) &&
+                  "border-amber-500 text-amber-600 dark:text-amber-400",
+              )}
+              title={
+                isOutsideWindow(form.business_date, range)
+                  ? "Date is outside the selected month window"
+                  : "Posting date"
+              }
             />
           </FormField>
           <FormField span={6} label="Source">

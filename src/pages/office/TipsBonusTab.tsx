@@ -31,6 +31,7 @@ import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
+import { defaultPostingDate, isOutsideWindow } from "@/lib/office-posting-date";
 import { toast } from "sonner";
 
 /** Sources shown on this tab. `tips_bonus` is legacy (pre-split rows). */
@@ -88,7 +89,7 @@ export default function TipsBonusTab() {
   const [mode, setMode] = useState<"in" | "out">("in");
   const [kind, setKind] = useState<Kind>("tips");
   const [form, setForm] = useState({
-    business_date: new Date().toISOString().slice(0, 10),
+    business_date: defaultPostingDate(range),
     wallet_id: "",
     currency: "TZS",
     amount: "",
@@ -106,7 +107,7 @@ export default function TipsBonusTab() {
     setMode(m);
     setKind(filter === "bonus" ? "bonus" : "tips");
     setForm({
-      business_date: new Date().toISOString().slice(0, 10),
+      business_date: defaultPostingDate(range),
       wallet_id: defaultWalletId,
       currency: "TZS",
       amount: "",
@@ -319,6 +320,15 @@ export default function TipsBonusTab() {
               type="date"
               value={form.business_date}
               onChange={(e) => setForm({ ...form, business_date: e.target.value })}
+              className={cn(
+                isOutsideWindow(form.business_date, range) &&
+                  "border-amber-500 text-amber-600 dark:text-amber-400",
+              )}
+              title={
+                isOutsideWindow(form.business_date, range)
+                  ? "Date is outside the selected month window"
+                  : "Posting date"
+              }
             />
           </FormField>
           <FormField span={6} label="Type">
