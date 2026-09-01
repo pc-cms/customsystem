@@ -190,7 +190,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
   const sorted = useMemo(() => {
     const arr = [...rows];
     const get = (r: typeof rows[number]): number | string =>
-      sort.key === "business_date" ? r.s.business_date : (r as any)[sort.key];
+      sort.key === "business_date" ? r.date : (r as any)[sort.key];
     arr.sort((a, b) => {
       const va = get(a); const vb = get(b);
       if (typeof va === "number" && typeof vb === "number") return sort.dir === "asc" ? va - vb : vb - va;
