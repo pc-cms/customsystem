@@ -1421,7 +1421,7 @@ export default function FinancesWalletsPage() {
               })}
               {!txRows.length && (
                 <tr>
-                  <td colSpan={6} className="text-center text-muted-foreground py-6">
+                  <td colSpan={7} className="text-center text-muted-foreground py-6">
                     No transactions in this period
                   </td>
                 </tr>
