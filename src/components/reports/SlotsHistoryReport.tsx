@@ -74,7 +74,7 @@ const EditableMoney = ({
 };
 
 const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: string; embedded?: boolean }) => {
-  const { data: allShifts = [], isLoading } = useCageSlotsHistory(500);
+  const { data: allShifts = [], isLoading } = useCageSlotsHistory(2000);
   const [mode, MoneyToggle] = useMoneyMode("slots-history-report");
   const { roles, casinoId } = useAuth() as any;
   const qc = useQueryClient();
@@ -91,7 +91,9 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
         .select("business_date, cashdesk_win, net_win, drop_slots, players_card_balance")
         .eq("casino_id", casinoId)
         .gte("business_date", from)
-        .lte("business_date", to);
+        .lte("business_date", to)
+        .order("business_date", { ascending: false })
+        .limit(2000);
       if (error) throw error;
       return data || [];
     },
@@ -124,29 +126,48 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
   
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "business_date", dir: "desc" });
 
-  const rows = useMemo(() => shifts.map((s: any) => {
-    const c = closingByDate.get(s.business_date);
-    const netWin = c ? c.netWin : 0;
-    const cdr = c ? c.cashdesk : 0;
-    const cardBalance = c ? c.cardBalance : 0;
-    return {
-      s,
-      // Drop: ACE Collector / Close Day figure wins over the manual cage entry.
-      drop: c && c.drop !== 0 ? c.drop : Number(s.manual_drop_slots || 0),
-      dropLocked: !!c && c.drop !== 0,
-      // Net Win / Cashdesk / Card Balance come ONLY from Close Day.
-      netWin,
-      cdr,
-      cardBalance,
-      // A figure entered at Close Day is read-only; a zero (day closed without
-      // figures, or no closing at all) can still be filled in manually.
-      netWinLocked: netWin !== 0,
-      cdrLocked: cdr !== 0,
-      cardBalanceLocked: cardBalance !== 0,
-      miss: Number(s.cards_miss || 0),
-      balance: Number(s.balance || 0),
-    };
-  }), [shifts, closingByDate]);
+  /**
+   * Rows = union of business days that have a real closed cashier shift AND
+   * business days that only exist as a Close Day row (historical/ACE-backfilled
+   * days from before the cage module was used). No fake shift is created:
+   * shift-only columns stay blank and read-only on Close-Day-only rows.
+   */
+  const rows = useMemo(() => {
+    const shiftByDate = new Map<string, any>();
+    shifts.forEach((s: any) => {
+      if (!shiftByDate.has(s.business_date)) shiftByDate.set(s.business_date, s);
+    });
+    const dates = new Set<string>([...shiftByDate.keys(), ...closingByDate.keys()]);
+
+    return [...dates].map((date) => {
+      const s = shiftByDate.get(date) || null;
+      const c = closingByDate.get(date);
+      const netWin = c ? c.netWin : 0;
+      const cdr = c ? c.cashdesk : 0;
+      const cardBalance = c ? c.cardBalance : 0;
+      return {
+        key: s ? s.id : `closing-${date}`,
+        date,
+        s,
+        hasShift: !!s,
+        // Drop: ACE Collector / Close Day figure wins over the manual cage entry.
+        drop: c && c.drop !== 0 ? c.drop : Number(s?.manual_drop_slots || 0),
+        dropLocked: !!c && c.drop !== 0,
+        // Net Win / Cashdesk / Card Balance come ONLY from Close Day.
+        netWin,
+        cdr,
+        cardBalance,
+        // A figure entered at Close Day is read-only; a zero (day closed without
+        // figures, or no closing at all) can still be filled in manually.
+        netWinLocked: netWin !== 0,
+        cdrLocked: cdr !== 0,
+        cardBalanceLocked: cardBalance !== 0,
+        miss: Number(s?.cards_miss || 0),
+        balance: Number(s?.balance || 0),
+      };
+    });
+  }, [shifts, closingByDate]);
+
 
 
   const totals = useMemo(() => {
@@ -160,7 +181,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
     }), { drop: 0, netWin: 0, cdr: 0, cardBalance: 0, miss: 0, balance: 0 });
     return {
       ...t,
-      shifts: rows.length,
+      shifts: rows.filter((r) => r.hasShift).length,
       avgDrop: rows.length ? t.drop / rows.length : 0,
       hold: t.drop > 0 ? (t.netWin / t.drop) * 100 : null,
     };
@@ -169,7 +190,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
   const sorted = useMemo(() => {
     const arr = [...rows];
     const get = (r: typeof rows[number]): number | string =>
-      sort.key === "business_date" ? r.s.business_date : (r as any)[sort.key];
+      sort.key === "business_date" ? r.date : (r as any)[sort.key];
     arr.sort((a, b) => {
       const va = get(a); const vb = get(b);
       if (typeof va === "number" && typeof vb === "number") return sort.dir === "asc" ? va - vb : vb - va;
@@ -274,52 +295,62 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
             <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-4">Loading…</DTCell></DTRow>
           )}
           {!isLoading && sorted.length === 0 && (
-            <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-4">No closed slots shifts in range</DTCell></DTRow>
+            <DTRow><DTCell colSpan={9} className="text-center text-muted-foreground py-4">No slots data in range</DTCell></DTRow>
           )}
-          {sorted.map(({ s, drop, dropLocked, netWin, cdr, cardBalance, miss, balance, netWinLocked, cdrLocked, cardBalanceLocked }) => {
+          {sorted.map(({ key, date, s, hasShift, drop, dropLocked, netWin, cdr, cardBalance, miss, balance, netWinLocked, cdrLocked, cardBalanceLocked }) => {
             return (
-              <DTRow key={s.id}>
-                  <DTCell type="date">{fmtDate(s.business_date)}</DTCell>
+              <DTRow key={key}>
+                  <DTCell type="date">{fmtDate(date)}</DTCell>
                   <DTCell type="time" className="text-muted-foreground font-mono">
-                    {s.closed_at ? eatTime(s.closed_at) : "·"}
+                    {s?.closed_at ? eatTime(s.closed_at) : "—"}
                   </DTCell>
                   <DTCell type="money" title={dropLocked ? "From Close Day / ACE Collector" : undefined}>
                     <EditableMoney
-                      value={drop} canEdit={canEdit && !dropLocked} mode={mode}
+                      value={drop} canEdit={canEdit && hasShift && !dropLocked} mode={mode}
                       onSave={(v) => updateField.mutate({ id: s.id, field: "manual_drop_slots", value: v })}
                     />
                   </DTCell>
 
                   <DTCell type="money" title={netWinLocked ? "From Close Day" : undefined}>
                     <EditableMoney
-                      value={netWin} canEdit={canEdit && !netWinLocked} mode={mode}
-                      onSave={(v) => updateClosingField.mutate({ date: s.business_date, field: "net_win", value: v })}
+                      value={netWin} canEdit={canEdit && hasShift && !netWinLocked} mode={mode}
+                      onSave={(v) => updateClosingField.mutate({ date, field: "net_win", value: v })}
                     />
                   </DTCell>
                   <DTCell type="money" title={cdrLocked ? "From Close Day" : undefined}>
                     <EditableMoney
-                      value={cdr} canEdit={canEdit && !cdrLocked} mode={mode}
-                      onSave={(v) => updateClosingField.mutate({ date: s.business_date, field: "cashdesk_win", value: v })}
+                      value={cdr} canEdit={canEdit && hasShift && !cdrLocked} mode={mode}
+                      onSave={(v) => updateClosingField.mutate({ date, field: "cashdesk_win", value: v })}
                     />
                   </DTCell>
                   <DTCell type="money" title={cardBalanceLocked ? "From Close Day" : undefined}>
                     <EditableMoney
-                      value={cardBalance} canEdit={canEdit && !cardBalanceLocked} mode={mode}
-                      onSave={(v) => updateClosingField.mutate({ date: s.business_date, field: "players_card_balance", value: v })}
+                      value={cardBalance} canEdit={canEdit && hasShift && !cardBalanceLocked} mode={mode}
+                      onSave={(v) => updateClosingField.mutate({ date, field: "players_card_balance", value: v })}
                     />
                   </DTCell>
+                  {/* Shift-only columns stay blank on Close-Day-only history rows. */}
                   <DTCell type="money">
-                    <MoneyCell value={miss || null} mode={mode} empty="·" className={miss < 0 ? "cms-amount-negative" : ""} />
+                    {hasShift
+                      ? <MoneyCell value={miss || null} mode={mode} empty="·" className={miss < 0 ? "cms-amount-negative" : ""} />
+                      : <span className="text-muted-foreground">—</span>}
                   </DTCell>
-                  <DTCell type="money"><MoneyCell value={balance} mode={mode} signed /></DTCell>
+                  <DTCell type="money">
+                    {hasShift
+                      ? <MoneyCell value={balance} mode={mode} signed />
+                      : <span className="text-muted-foreground">—</span>}
+                  </DTCell>
                   <DTCell type="actions">
-                    <Button variant="ghost" size="sm" onClick={() => setPrintShiftId(s.id)} className="gap-1 h-7">
-                      <Printer className="w-3.5 h-3.5" /> Print
-                    </Button>
+                    {hasShift && (
+                      <Button variant="ghost" size="sm" onClick={() => setPrintShiftId(s.id)} className="gap-1 h-7">
+                        <Printer className="w-3.5 h-3.5" /> Print
+                      </Button>
+                    )}
                   </DTCell>
               </DTRow>
             );
           })}
+
 
           {sorted.length > 0 && (
             <DTRow className="border-t-2 border-primary/40 bg-primary/10 font-bold text-[120%]">
