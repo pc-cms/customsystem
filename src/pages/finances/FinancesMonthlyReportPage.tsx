@@ -445,7 +445,7 @@ const SummaryBlock = ({
   const g = data.grand;
   const mf = data.month;
   const closed = mf?.status === "closed";
-  const closedAt = mf?.closed_at || null;
+  
 
 
 
