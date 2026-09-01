@@ -1,25 +1,25 @@
-# CAPEX как non-operating позиция в Monthly Report
+# Новые банковские счета I&M TZS и I&M USD (Arusha)
 
-CAPEX перестаёт быть частью операционных расходов месяца и переезжает в существующую секцию Collections (список «не операционные движения»), рядом с Collection и Money Change.
+Добавляем два офисных банковских кошелька в филиал Arusha, по образцу существующих CRDB / NBC, с нулевым стартовым остатком.
 
-## Поведение после изменения
+## Что появится
 
-- CAPEX больше не входит в Paid Expenses, Estimated/Pending Expenses, Budget и Grand Total операционных расходов.
-- CAPEX по-прежнему уменьшает Cash Position и Profit — ровно как Collections сегодня.
-- CAPEX отображается строкой в секции Collections (Plan / Actual / Remaining) и в блоке деталей Collections на верхней панели.
-- Правило применяется ко всем месяцам, включая прошлые. Уже закрытые месяцы сохраняют замороженный Final Profit из снапшота и не переписываются.
-- Excel-экспорт отчёта повторяет ту же структуру.
+- **I&M TZS** и **I&M USD** в группе Banks (Arusha), сразу после NBC USD.
+- Оба счёта видны в Office → Wallets, в Wallet Day Grid, в Monthly Report и в балансовом снапшоте — во всех месяцах, включая уже открытый август и сентябрь, так как список кошельков не привязан к месяцу.
+- Стартовый флот = 0. Фактические остатки вносятся вручную через Physical Count в нужном месяце.
+- Касса (Live / Slots закрытие смены, Shift Closing Report) не меняется: I&M не становится каналом IN/OUT для кассира, как об этом договорились.
 
-## Что меняется технически
+## Технические детали
 
-1. База: категория CAPEX (`fin_categories`, сейчас `group_code='additional'`) переносится в `group_code='collections'` с сортировкой после Collection. Существующие расходы не трогаются — они привязаны к категории, а не к группе.
-2. `fin_balance_snapshot`: классификация расходов сейчас делит их по `gcode ILIKE '%collection%'`. После смены группы CAPEX автоматически попадает в `collections_total`, но текущее условие также отделяет Money Change/Transfer в `transfers_total` по имени. Добавляется явное исключение, чтобы CAPEX шёл в `collections_total`, а не в transfers.
-3. `fin_month_finance` изменений не требует: он берёт `expenses_total` и `collections_total` из снапшота, поэтому Profit и Cash Position останутся корректными (CAPEX вычитается один раз, через collections).
-4. `src/hooks/use-fin-monthly-report.ts`: CAPEX попадает в `collections` группу автоматически (группа `collections` уже исключена из `GROUP_ORDER` и `grand`). Проверяется, что `collections_actual` включает CAPEX и что он не задваивается.
-5. `src/pages/finances/FinancesMonthlyReportPage.tsx`: отдельных правок структуры не требуется — CAPEX появится строкой в таблице Collections, в деталях KPI Collections и в Excel-экспорте. Обновляется подпись секции на «Collections & Non-Operating», чтобы название соответствовало содержимому.
-6. `docs/FINANCE-FORMULAS.md`: фиксируется, что CAPEX — non-operating, вне Budget/Expenses, но внутри Collections для Profit и Cash Position.
-7. Регрессионный тест в `src/test/expenses-collections-regression.test.ts` дополняется кейсом: расход CAPEX не увеличивает `grand.actual_grand_tzs`, но увеличивает `cash.collections_actual`.
+Одна миграция (данные + структура не меняются, только новые строки в `fin_wallets`):
+
+- `INSERT INTO public.fin_wallets` для casino Arusha (`48f4404f-…`):
+  - `I&M TZS` — `kind='bank'`, `currency='TZS'`, `wallet_group='banks'`, `canonical_code='BANK_IM_TZS'`, `sort_order=4`, `is_office=false`, `starting_float_amount=0`.
+  - `I&M USD` — то же, `currency='USD'`, `canonical_code='BANK_IM_USD'`, `sort_order=5`.
+- Вставка идемпотентная (`ON CONFLICT (casino_id, name) DO NOTHING`), чтобы повтор не создавал дубли.
+- Записи в `fin_wallet_float_history` не создаются: стартовый остаток нулевой, и resolver корректно трактует отсутствие строки как 0 для любого месяца.
+- Изменений в коде фронтенда не требуется — списки кошельков строятся из `fin_wallets` динамически. Хардкод есть только в кассовых каналах (`src/components/cage/CageHelpers.ts`), а их мы намеренно не трогаем.
 
 ## Проверка
 
-Сравнить Monthly Report по казино за август и сентябрь до/после: Paid Expenses уменьшаются на сумму CAPEX, Collections увеличиваются на ту же сумму, Profit и Cash Position остаются неизменными.
+Открыть Office → Wallets в Arusha, переключиться на август и сентябрь: I&M TZS и I&M USD видны с нулевыми Expected/Actual, Variance не меняется. В остальных филиалах новых счетов нет.
