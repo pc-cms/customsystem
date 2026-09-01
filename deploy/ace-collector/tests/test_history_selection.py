@@ -224,3 +224,45 @@ def test_cli_requires_to_and_refuses_august(monkeypatch):
     assert main(["--history-scan", "--from", "2026-01-01"]) == 2
     assert main(["--history-scan", "--from", "2026-01-01", "--to", "2026-08-05"]) == 2
     assert main(["--backfill-from", "2025-12-01", "--to", "2026-07-31"]) == 2
+
+
+# ── Mbeya is never part of the historical backfill ─────────────────────────
+def test_mbeya_is_excluded_location():
+    from collector import HISTORY_EXCLUDED_LOCATIONS
+    assert "mbeya" in HISTORY_EXCLUDED_LOCATIONS
+
+
+def test_mwanza_feb15_sum_components():
+    a = report(6585, total_drop=40_000_000.0, net_win=-6_000_000.0,
+               win_cashdesk=-6_500_000.0, cashless_money_difference=-1_000.0,
+               jackpot_slip_out=999.0)
+    b = report(6593, total_drop=39_533_010.0, net_win=-6_967_630.0,
+               win_cashdesk=-7_336_779.0, cashless_money_difference=-500.0,
+               jackpot_slip_out=111.0)
+    s = sum_reports([a, b], 6585, "SUM")
+    assert s.total_drop == 79_533_010.0
+    assert s.net_win == -12_967_630.0
+    assert s.win_cashdesk == -13_836_779.0
+    assert s.cashless_money_difference == -1_500.0
+    assert s.jackpot_slip_out == 0.0  # JP is never imported
+
+
+def test_probe_sends_probe_flag():
+    from collector import probe_day
+
+    class Api:
+        def __init__(self):
+            self.sent = None
+
+        def send(self, payload, dry_run=False):
+            self.sent = payload
+            return {"status": "existing_day_unchanged"}
+
+    class Cfg:
+        location_code = "mwanza"
+
+    api = Api()
+    st = probe_day(api, Cfg(), "2026-03-01", report(1, total_drop=5.0, label="l"))
+    assert st == "existing_day_unchanged"
+    assert api.sent["probe"] is True
+    assert api.sent["mode"] == HISTORY_MODE
