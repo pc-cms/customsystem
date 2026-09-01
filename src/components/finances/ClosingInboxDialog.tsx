@@ -10,7 +10,7 @@
  *  - ONE global "Post All" — atomic and idempotent on the server.
  */
 import { useMemo, useState } from "react";
-import { AlertTriangle, Check, Inbox, Pencil } from "lucide-react";
+import { AlertTriangle, Check, Inbox, Pencil, SkipForward } from "lucide-react";
 
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -26,6 +26,7 @@ import { useFinWallets } from "@/hooks/use-fin";
 import {
   useClosingInbox,
   usePostClosingInbox,
+  useSkipClosingInbox,
   useSetInboxCorrection,
   useSetInboxWallet,
   type ClosingInboxRow,
@@ -353,8 +354,11 @@ export default function ClosingInboxDialog({
 }) {
   const { data, isLoading } = useClosingInbox(businessDate ?? null, open);
   const post = usePostClosingInbox();
+  const skip = useSkipClosingInbox();
   const [tab, setTab] = useState<"live" | "slots">("live");
   const [corrRow, setCorrRow] = useState<ClosingInboxRow | null>(null);
+  const [skipOpen, setSkipOpen] = useState(false);
+  const [skipReason, setSkipReason] = useState("");
 
   const rows = data?.rows || [];
   const inbox = data?.inbox || null;
