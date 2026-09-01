@@ -1,11 +1,13 @@
 /**
- * PWAUpdateNotification — full-screen blocking overlay shown when a new
- * version is available. User MUST click "Update now". No auto-reload.
+ * PWAUpdateNotification — non-blocking corner reminder shown when a new
+ * version is available. Never covers the screen, never steals focus, so an
+ * operator can finish typing. Dismiss (X) snoozes it for 30 minutes; a newer
+ * build raises it again immediately.
  *
  * Listens for "pwa:update-available" dispatched from pwa-register.ts.
  */
 import { useEffect, useState } from "react";
-import { RefreshCw, Download, AlertTriangle } from "lucide-react";
+import { RefreshCw, Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { hasDirtyWork, subscribeDirty } from "@/lib/dirty-guard";
@@ -15,12 +17,24 @@ declare const __APP_VERSION__: string | undefined;
 
 type UpdateFn = (reload?: boolean) => Promise<void>;
 
+const SNOOZE_MS = 30 * 60 * 1000;
+const SNOOZE_KEY = "cms.pwaUpdate.snoozeUntil";
+
+const readSnooze = (): number => {
+  try {
+    return Number(sessionStorage.getItem(SNOOZE_KEY) || 0);
+  } catch {
+    return 0;
+  }
+};
+
 export const PWAUpdateNotification = () => {
-  const [visible, setVisible] = useState(false);
-  const [updateFn, setUpdateFn] = useState<UpdateFn | null>(null);
+  const [available, setAvailable] = useState(false);
   const [currentVersion, setCurrentVersion] = useState("");
   const [dirty, setDirtyState] = useState(hasDirtyWork());
   const [busy, setBusy] = useState(false);
+  const [snoozedUntil, setSnoozedUntil] = useState<number>(() => readSnooze());
+  const [, setTick] = useState(0);
 
   useEffect(() => subscribeDirty(() => setDirtyState(hasDirtyWork())), []);
 
@@ -32,16 +46,22 @@ export const PWAUpdateNotification = () => {
     );
   }, []);
 
+  // Re-evaluate every minute so the reminder comes back when snooze expires.
+  useEffect(() => {
+    const t = setInterval(() => setTick((v) => v + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
+
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as { update?: UpdateFn } | undefined;
-      if (detail?.update) {
-        setUpdateFn(() => detail.update as UpdateFn);
-      }
-      // Only raise the dialog when a build is actually waiting to install —
-      // otherwise the button would have nothing to apply.
+      // Only raise the reminder when a build is actually waiting to install.
       void hasPendingUpdate().then((pending) => {
-        if (pending || detail?.update) setVisible(true);
+        if (!pending && !detail?.update) return;
+        // A fresh update event clears any active snooze — this is a newer build.
+        try { sessionStorage.removeItem(SNOOZE_KEY); } catch { /* noop */ }
+        setSnoozedUntil(0);
+        setAvailable(true);
       });
     };
 
@@ -54,74 +74,41 @@ export const PWAUpdateNotification = () => {
     await applyUpdate();
   };
 
+  const dismiss = () => {
+    const until = Date.now() + SNOOZE_MS;
+    try { sessionStorage.setItem(SNOOZE_KEY, String(until)); } catch { /* noop */ }
+    setSnoozedUntil(until);
+  };
 
-  if (!visible) return null;
-
-  // Unsaved input on screen (Chips Check, cash count…) — never block the UI,
-  // show a small corner banner instead so nothing is lost.
-  if (dirty) {
-    return (
-      <div className="fixed bottom-4 right-4 z-[9999] max-w-xs rounded-lg border border-border bg-card shadow-xl p-3 flex items-start gap-3">
-        <Download className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-        <div className="min-w-0">
-          <p className="text-xs font-semibold text-foreground">New version ready</p>
-          <p className="text-[11px] text-muted-foreground mb-2">
-            Finish and save your current entry, then update.
-          </p>
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleUpdate} disabled={busy}>
-            <RefreshCw className={cn("w-3 h-3 mr-1", busy && "animate-spin")} /> {busy ? "Updating…" : "Update now"}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-
+  if (!available) return null;
+  if (snoozedUntil > Date.now()) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-md mx-4 bg-card border border-border rounded-xl shadow-2xl p-6 text-center animate-in zoom-in-95 duration-200">
-        <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-          <Download className="w-7 h-7 text-primary" />
-        </div>
-
-        <h2 className="text-xl font-semibold text-foreground mb-2">
-          New version available
-        </h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          A newer version of Casino System is ready. Click Update now to load it.
-          Your session will be kept.
+    <div className="fixed bottom-4 right-4 z-[9999] max-w-xs rounded-lg border border-border bg-card shadow-xl p-3 flex items-start gap-3 no-print animate-in slide-in-from-bottom-2">
+      <Download className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold text-foreground">New version available</p>
+        <p className="text-[11px] text-muted-foreground mb-2">
+          {dirty
+            ? "Finish and save your current entry, then update."
+            : "Your session is kept. Update when convenient."}
         </p>
-
-        <div className="bg-muted/50 rounded-lg p-3 mb-5 text-left space-y-1">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Current: {currentVersion || "loading…"}</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-primary font-medium">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            <span>New version ready to install</span>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Button
-            onClick={handleUpdate}
-            disabled={busy}
-            className={cn(
-              "w-full h-11 text-base font-semibold",
-              "bg-primary text-primary-foreground hover:bg-primary/90"
-            )}
-          >
-            <RefreshCw className={cn("w-4 h-4 mr-2", busy && "animate-spin")} />
-            {busy ? "Updating…" : "Update now"}
-          </Button>
-
-          <p className="text-[10px] text-muted-foreground mt-1">
-            Skipping the update may cause data-sync errors.
-          </p>
-        </div>
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleUpdate} disabled={busy}>
+          <RefreshCw className={cn("w-3 h-3 mr-1", busy && "animate-spin")} />
+          {busy ? "Updating…" : "Update now"}
+        </Button>
+        {currentVersion && (
+          <p className="text-[10px] text-muted-foreground mt-1.5 font-mono">Current: {currentVersion}</p>
+        )}
       </div>
+      <button
+        type="button"
+        onClick={dismiss}
+        aria-label="Dismiss update reminder"
+        className="text-muted-foreground hover:text-foreground shrink-0"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 };

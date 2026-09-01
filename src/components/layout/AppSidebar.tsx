@@ -101,7 +101,7 @@ const NAV_ITEMS: NavItem[] = [
 
   // HR — Personnel admin (legacy /dealers and /staff/employees superseded by Staff Master)
   { to: "/hr/warnings", icon: AlertTriangle, label: "Warnings", roles: ["super_admin", "hr", "manager", "finance_manager"], section: "HR" },
-  { to: "/staff/master", icon: UserCheck, label: "Staff Master", roles: ["super_admin", "hr", "finance_manager", "manager"], section: "HR" },
+  { to: "/staff/master", icon: UserCheck, label: "Staff Master", roles: ["super_admin", "hr", "finance_manager", "manager", "shift_manager"], section: "HR" },
   { to: "/attendance/monthly", icon: CalendarDays, label: "Attendance (Month)", roles: ["super_admin", "hr", "manager", "finance_manager"], section: "HR" },
   { to: "/payroll", icon: Wallet, label: "Payroll", roles: ["super_admin", "hr", "finance_manager"], section: "HR" },
   { to: "/payroll/dashboard", icon: Wallet, label: "Payroll · Dashboard", roles: ["super_admin", "hr", "finance_manager"], section: "HR" },
