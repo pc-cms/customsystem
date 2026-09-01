@@ -7,6 +7,8 @@
  * Never income. Nets into the Collections group of the Monthly Report.
  */
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Plus, Minus, Pencil, Trash2 } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
@@ -35,6 +37,21 @@ import { toast } from "sonner";
 
 type Filter = "all" | "out" | "in";
 
+/** One line of the ledger — either a signed entry of this tab, or a legacy expense row. */
+type Row = {
+  id: string;
+  origin: "entry" | "expense";
+  business_date: string;
+  category: string;
+  wallet: string;
+  currency: string;
+  /** Signed: negative = collected (money out), positive = returned (money in). */
+  amount: number;
+  amount_tzs: number;
+  note: string;
+  raw?: OtherIncomeRow;
+};
+
 export default function CollectionsTab() {
   const { roles } = useAuth();
   const canWrite =
@@ -45,7 +62,7 @@ export default function CollectionsTab() {
   const { period } = useOfficePeriod();
   const range = { from: period.from, to: period.to };
 
-  const { data: allRows = [], isLoading } = useOtherIncomes(range.from, range.to, {
+  const { data: allEntries = [], isLoading } = useOtherIncomes(range.from, range.to, {
     only: ["collection"],
   });
   const { data: wallets = [] } = useFinWallets();
@@ -59,26 +76,78 @@ export default function CollectionsTab() {
     () => (categories as any[]).filter((c) => c.group_code === "collections" && c.is_active),
     [categories],
   );
+  const collectionCatIds = useMemo(
+    () => (categories as any[]).filter((c) => c.group_code === "collections").map((c) => c.id),
+    [categories],
+  );
+
+  // Historical collections were (and still are) booked as expenses in the
+  // Collections categories — show them here read-only so the tab is complete.
+  const { data: legacy = [], isLoading: loadingLegacy } = useQuery({
+    queryKey: ["collections-expenses", range.from, range.to, collectionCatIds.length],
+    enabled: collectionCatIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("expenses")
+        .select(
+          "id, business_date, amount, amount_tzs, currency, description, fin_category_id, wallet_id, voided_at, fin_categories(name), fin_wallets(name)",
+        )
+        .in("fin_category_id", collectionCatIds)
+        .gte("business_date", range.from)
+        .lte("business_date", range.to)
+        .is("voided_at", null)
+        .order("business_date", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   const [filter, setFilter] = useState<Filter>("all");
 
+  const allRows: Row[] = useMemo(() => {
+    const entries: Row[] = (allEntries as OtherIncomeRow[]).map((r) => ({
+      id: r.id,
+      origin: "entry",
+      business_date: r.business_date,
+      category: r.fin_categories?.name || "Collection",
+      wallet: r.fin_wallets?.name || "—",
+      currency: r.currency,
+      amount: Number(r.amount || 0),
+      amount_tzs: Number(r.amount || 0) * Number(r.fx_rate || 1),
+      note: r.note || "",
+      raw: r,
+    }));
+    // Expenses are stored positive = money leaving → shown as collected (negative).
+    const old: Row[] = (legacy as any[]).map((e) => ({
+      id: e.id,
+      origin: "expense",
+      business_date: e.business_date,
+      category: e.fin_categories?.name || "—",
+      wallet: e.fin_wallets?.name || "—",
+      currency: e.currency || "TZS",
+      amount: -Math.abs(Number(e.amount || 0)),
+      amount_tzs: -Math.abs(Number(e.amount_tzs ?? e.amount ?? 0)),
+      note: e.description || "",
+    }));
+    return [...entries, ...old].sort((a, b) => b.business_date.localeCompare(a.business_date));
+  }, [allEntries, legacy]);
+
   const rows = useMemo(() => {
-    const list = allRows as OtherIncomeRow[];
-    if (filter === "all") return list;
-    return list.filter((r) => (Number(r.amount) < 0 ? "out" : "in") === filter);
+    if (filter === "all") return allRows;
+    return allRows.filter((r) => (r.amount < 0 ? "out" : "in") === filter);
   }, [allRows, filter]);
 
   /** Totals in TZS — collected (OUT), returned (IN) and net collected. */
   const totals = useMemo(() => {
     let outSum = 0;
     let inSum = 0;
-    (allRows as OtherIncomeRow[]).forEach((r) => {
-      const v = Number(r.amount || 0) * Number(r.fx_rate || 1);
-      if (v < 0) outSum += Math.abs(v);
-      else inSum += v;
+    allRows.forEach((r) => {
+      if (r.amount_tzs < 0) outSum += Math.abs(r.amount_tzs);
+      else inSum += r.amount_tzs;
     });
     return { outSum, inSum, net: outSum - inSum };
   }, [allRows]);
+
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -148,7 +217,7 @@ export default function CollectionsTab() {
     setDialogOpen(false);
   };
 
-  const columns: ColumnDef<OtherIncomeRow>[] = [
+  const columns: ColumnDef<Row>[] = [
     {
       key: "date",
       header: "Date",
@@ -160,7 +229,7 @@ export default function CollectionsTab() {
       key: "direction",
       header: "Direction",
       accessor: (r) => {
-        const out = Number(r.amount) < 0;
+        const out = r.amount < 0;
         return (
           <span
             className={cn(
@@ -182,18 +251,25 @@ export default function CollectionsTab() {
       header: "Category",
       accessor: (r) => (
         <span className="text-xs uppercase tracking-wider text-muted-foreground">
-          {r.fin_categories?.name || "—"}
+          {r.category}
+          {r.origin === "expense" && (
+            <span
+              className="ml-1.5 rounded border border-border px-1 py-0.5 text-[9px] tracking-wider"
+              title="Booked as an expense in a Collections category — edit it in the Expenses module"
+            >
+              EXP
+            </span>
+          )}
         </span>
       ),
-      style: { width: 140 },
+      style: { width: 170 },
     },
     {
       key: "wallet",
       header: "Wallet",
       accessor: (r) => (
         <span>
-          {r.fin_wallets?.name || "—"}{" "}
-          <span className="text-[10px] text-muted-foreground">{r.currency}</span>
+          {r.wallet} <span className="text-[10px] text-muted-foreground">{r.currency}</span>
         </span>
       ),
     },
@@ -201,24 +277,24 @@ export default function CollectionsTab() {
       key: "amount",
       header: "Amount",
       type: "money",
-      accessor: (r) => {
-        const v = Number(r.amount);
-        return (
-          <span className={cn("font-mono tabular-nums", v < 0 ? "cms-amount-negative" : "cms-amount-positive")}>
-            {v < 0 ? "−" : ""}
-            {formatNumberSpaces(Math.abs(v))}
-          </span>
-        );
-      },
+      accessor: (r) => (
+        <span
+          className={cn(
+            "font-mono tabular-nums",
+            r.amount < 0 ? "cms-amount-negative" : "cms-amount-positive",
+          )}
+        >
+          {r.amount < 0 ? "−" : ""}
+          {formatNumberSpaces(Math.abs(r.amount))}
+        </span>
+      ),
       style: { width: 140 },
     },
     {
       key: "note",
       header: "Note",
       accessor: (r) => (
-        <span className="text-xs text-muted-foreground truncate max-w-[300px] inline-block">
-          {r.note || ""}
-        </span>
+        <span className="text-xs text-muted-foreground truncate max-w-[300px] inline-block">{r.note}</span>
       ),
     },
     {
@@ -226,10 +302,11 @@ export default function CollectionsTab() {
       header: "",
       type: "actions",
       accessor: (r) => {
-        if (!canWrite) return null;
+        if (!canWrite || r.origin !== "entry" || !r.raw) return null;
+        const raw = r.raw;
         return (
           <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)} aria-label="Edit">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(raw)} aria-label="Edit">
               <Pencil className="w-3.5 h-3.5" />
             </Button>
             <Button
@@ -238,7 +315,7 @@ export default function CollectionsTab() {
               className="h-7 w-7 text-destructive"
               onClick={() => {
                 if (confirm("Delete this collection entry? This is logged in the finance audit log."))
-                  deleteIncome.mutate(r.id);
+                  deleteIncome.mutate(raw.id);
               }}
               aria-label="Delete"
             >
@@ -250,6 +327,7 @@ export default function CollectionsTab() {
       style: { width: 90 },
     },
   ];
+
 
   const FILTERS: { value: Filter; label: string }[] = [
     { value: "all", label: "All" },
@@ -302,7 +380,7 @@ export default function CollectionsTab() {
           data={rows}
           columns={columns}
           rowKey={(r) => r.id}
-          loading={isLoading}
+          loading={isLoading || loadingLegacy}
           empty={
             <div className="text-sm text-muted-foreground text-center py-10">
               No collections in this period.
