@@ -124,9 +124,13 @@ def run_closing(client, api, cfg, logger, dry_run: bool) -> bool:
 
 # ───────────────────────── historical periods ──────────────────────────────
 
-#: Mode flag sent for historical backfills: the API then only fills empty
-#: (0/NULL) Statistics fields and never overwrites CMS values.
+#: Mode flag sent for historical backfills: the API then applies the SAFE
+#: Statistics rules (existing day => drop only, absent day => create row).
 HISTORY_MODE = "history_missing_only"
+
+#: Hard guard rails — this historical operation may NEVER touch August 2026+.
+HISTORY_WINDOW_MIN = "2026-01-01"
+HISTORY_WINDOW_MAX = "2026-07-31"
 
 MEANINGFUL_FIELDS = (
     "total_drop",
@@ -135,6 +139,26 @@ MEANINGFUL_FIELDS = (
     "cashless_money_difference",
     "jackpot_slip_out",
 )
+
+#: Explicit, manually verified historical overrides. Keyed by location_code and
+#: business date. "pick" = use exactly this ACE period; "sum" = component-wise
+#: sum of the listed periods (JP is NEVER imported for summed days).
+#: This is deliberately NOT a generic "sum all duplicates" rule.
+HISTORY_OVERRIDES: dict[str, dict[str, dict]] = {
+    "mwanza": {
+        "2026-02-14": {"mode": "pick", "periods": [6577]},
+        "2026-02-15": {"mode": "sum", "periods": [6585, 6593]},
+        "2026-06-16": {"mode": "pick", "periods": [7587]},
+        "2026-06-24": {"mode": "pick", "periods": [7667]},
+    },
+    "dodoma": {
+        "2026-06-20": {"mode": "pick", "periods": [3921]},
+    },
+}
+
+
+def overrides_for(location_code: str) -> dict[str, dict]:
+    return HISTORY_OVERRIDES.get((location_code or "").strip().lower(), {})
 
 
 def all_closed_periods(client: AceClient) -> list[tuple[int, str]]:
@@ -168,45 +192,95 @@ def choose_candidate(candidates: list[tuple[int, str, object]]):
     return None, "zero_only"
 
 
-def resolve_history(client: AceClient, from_date: str, logger):
-    """Map closed periods to business dates and resolve duplicates SAFELY.
+def sum_reports(reports: list, period_id: int, label: str):
+    """Component-wise sum of several ACE reports. JP is intentionally zeroed."""
+    from ace_collector.parser import FinanceReport
+
+    def s(field: str) -> float:
+        return float(sum(float(getattr(r, field, 0) or 0) for r in reports))
+
+    return FinanceReport(
+        period_id=period_id,
+        period_label=label,
+        total_drop=s("total_drop"),
+        net_win=s("net_win"),
+        win_cashdesk=s("win_cashdesk"),
+        cashless_money_difference=s("cashless_money_difference"),
+        jackpot_slip_out=0.0,
+        active_credits=s("active_credits"),
+    )
+
+
+def resolve_history(client: AceClient, from_date: str, to_date: str, logger,
+                    location_code: str = ""):
+    """Map closed periods to business dates inside [from_date, to_date].
 
     Returns (selected, unparsed, dup_stats, available_count) where
-      selected  = [(business_date, period_id, label, report)] oldest first,
-      unparsed  = periods whose label carries no parsable date,
-      dup_stats = {"dates": [(date, reason, kept, all_pids)], counts...}.
+      selected  = [(business_date, period_id, label, report)] oldest first.
 
     Duplicate business dates are NEVER auto-resolved by period_id: every
     candidate report is parsed and only a single "meaningful" (non-zero)
-    candidate is chosen. Two non-zero candidates => AMBIGUOUS => skipped.
+    candidate is chosen. Two non-zero candidates => AMBIGUOUS => skipped,
+    unless an explicit manual override exists for that location/date.
     """
     available = all_closed_periods(client)
+    labels = {pid: label for pid, label in available}
+    overrides = {d: o for d, o in overrides_for(location_code).items()
+                 if from_date <= d <= to_date}
+    override_pids = {pid for o in overrides.values() for pid in o["periods"]}
+
     unparsed: list[tuple[int, str]] = []
     by_date: dict[str, list[tuple[int, str]]] = {}
 
     for pid, label in available:
+        if pid in override_pids:
+            continue
         bdate = business_date_from_label(label)
         if not bdate:
             unparsed.append((pid, label))
             continue
-        if bdate < from_date:
+        if bdate < from_date or bdate > to_date:
             continue
         by_date.setdefault(bdate, []).append((pid, label))
 
     selected: list[tuple[str, int, str, object]] = []
     dup_details: list[tuple[str, str, int | None, list[int]]] = []
-    counts = {"selected": 0, "ambiguous": 0, "zero_only": 0, "unreadable": 0, "duplicate_dates": 0}
+    override_details: list[tuple[str, str, list[int]]] = []
+    counts = {"selected": 0, "ambiguous": 0, "zero_only": 0, "unreadable": 0,
+              "duplicate_dates": 0, "overrides": 0}
+
+    def read(pid: int, label: str, bdate: str):
+        try:
+            return parse_consolidation(client.consolidation_html(pid), pid, label)
+        except Exception as exc:  # noqa: BLE001 — a bad report must not stop the scan
+            logger.error("HISTORY parse failed date=%s period_id=%s: %s", bdate, pid, exc)
+            return None
+
+    # explicit manual overrides first
+    for bdate, spec in overrides.items():
+        pids = list(spec["periods"])
+        reports = [read(pid, labels.get(pid, ""), bdate) for pid in pids]
+        if any(r is None for r in reports):
+            counts["unreadable"] += 1
+            logger.warning("HISTORY OVERRIDE UNREADABLE date=%s periods=%s", bdate, pids)
+            continue
+        if spec["mode"] == "sum":
+            report = sum_reports(reports, pids[0], f"OVERRIDE SUM {pids}")
+        else:
+            report = reports[0]
+        counts["overrides"] += 1
+        counts["selected"] += 1
+        override_details.append((bdate, spec["mode"], pids))
+        selected.append((bdate, report.period_id, report.period_label, report))
+        logger.info("HISTORY OVERRIDE date=%s mode=%s periods=%s drop=%s net_win=%s cashdesk=%s cashless=%s",
+                    bdate, spec["mode"], pids, report.total_drop, report.net_win,
+                    report.win_cashdesk, report.cashless_money_difference)
 
     for bdate in sorted(by_date):
         entries = by_date[bdate]
-        candidates: list[tuple[int, str, object]] = []
-        for pid, label in entries:
-            try:
-                report = parse_consolidation(client.consolidation_html(pid), pid, label)
-            except Exception as exc:  # noqa: BLE001 — a bad report must not stop the scan
-                logger.error("HISTORY parse failed date=%s period_id=%s: %s", bdate, pid, exc)
-                report = None
-            candidates.append((pid, label, report))
+        candidates: list[tuple[int, str, object]] = [
+            (pid, label, read(pid, label, bdate)) for pid, label in entries
+        ]
 
         chosen, reason = choose_candidate(candidates)
         pids = [pid for pid, _, _ in candidates]
@@ -224,24 +298,40 @@ def resolve_history(client: AceClient, from_date: str, logger):
                 reason.upper(), bdate, pids,
             )
 
-    dup_stats = {"counts": counts, "details": dup_details}
+    selected.sort(key=lambda x: x[0])
+    dup_stats = {"counts": counts, "details": dup_details, "overrides": override_details}
     return selected, unparsed, dup_stats, len(available)
 
 
-def run_history_scan(client, cfg, logger, from_date: str) -> int:
+def probe_day(api, cfg, bdate: str, report) -> str:
+    """Ask the API what WOULD/DID happen for a day (dry-run aware caller)."""
+    payload = report.as_payload(cfg.location_code)
+    payload["business_date"] = bdate
+    payload["closed_at_local"] = report.period_label
+    payload["mode"] = HISTORY_MODE
+    body = api.send(payload) or {}
+    return body.get("status", "unknown")
+
+
+def run_history_scan(client, cfg, logger, from_date: str, to_date: str) -> int:
     """Read-only inventory of the closed periods available for a backfill."""
-    selected, unparsed, dup_stats, available = resolve_history(client, from_date, logger)
+    selected, unparsed, dup_stats, available = resolve_history(
+        client, from_date, to_date, logger, cfg.location_code
+    )
     counts = dup_stats["counts"]
     logger.info("HISTORY-SCAN location=%s", cfg.location_code)
-    logger.info("HISTORY-SCAN from_date=%s", from_date)
+    logger.info("HISTORY-SCAN window=%s..%s", from_date, to_date)
     logger.info("HISTORY-SCAN closed_periods_available=%d", available)
-    logger.info("HISTORY-SCAN periods_selected=%d", counts["selected"])
+    logger.info("HISTORY-SCAN days_selected=%d", counts["selected"])
     logger.info("HISTORY-SCAN earliest_business_date=%s", selected[0][0] if selected else "none")
     logger.info("HISTORY-SCAN latest_business_date=%s", selected[-1][0] if selected else "none")
     logger.info("HISTORY-SCAN duplicate_business_dates=%d", counts["duplicate_dates"])
     logger.info("HISTORY-SCAN duplicates_ambiguous=%d", counts["ambiguous"])
     logger.info("HISTORY-SCAN duplicates_zero_only=%d", counts["zero_only"])
     logger.info("HISTORY-SCAN unreadable_dates=%d", counts["unreadable"])
+    logger.info("HISTORY-SCAN special_overrides=%d", counts["overrides"])
+    for bdate, mode, pids in dup_stats["overrides"]:
+        logger.info("HISTORY-SCAN override date=%s mode=%s periods=%s", bdate, mode, pids)
     for bdate, reason, kept, pids in dup_stats["details"]:
         logger.info(
             "HISTORY-SCAN duplicate date=%s resolution=%s keep_period=%s candidates=%s",
@@ -252,26 +342,40 @@ def run_history_scan(client, cfg, logger, from_date: str) -> int:
         logger.info("HISTORY-SCAN unparsable period_id=%s label=%r", pid, label)
     for bdate, pid, label, _report in selected:
         logger.info("HISTORY-SCAN period date=%s period_id=%s label=%r", bdate, pid, label)
-    logger.info("HISTORY-SCAN done (nothing was sent)")
+    logger.info(
+        "HISTORY-SCAN totals selected_days=%d skipped_days=%d (nothing was sent)",
+        counts["selected"], counts["ambiguous"] + counts["zero_only"] + counts["unreadable"],
+    )
     return 0
 
 
-def run_backfill(client, api, cfg, logger, from_date: str, dry_run: bool) -> int:
+def run_backfill(client, api, cfg, logger, from_date: str, to_date: str, dry_run: bool) -> int:
     """Post every selected closed period in history_missing_only mode."""
-    selected, unparsed, dup_stats, available = resolve_history(client, from_date, logger)
+    selected, unparsed, dup_stats, available = resolve_history(
+        client, from_date, to_date, logger, cfg.location_code
+    )
     dcounts = dup_stats["counts"]
     logger.info(
-        "BACKFILL location=%s from=%s available=%d selected=%d duplicate_dates=%d "
-        "ambiguous=%d zero_only=%d unparsable=%d mode=%s",
-        cfg.location_code, from_date, available, len(selected), dcounts["duplicate_dates"],
-        dcounts["ambiguous"], dcounts["zero_only"], len(unparsed), HISTORY_MODE,
+        "BACKFILL location=%s window=%s..%s available=%d selected=%d duplicate_dates=%d "
+        "ambiguous=%d zero_only=%d overrides=%d unparsable=%d mode=%s",
+        cfg.location_code, from_date, to_date, available, len(selected),
+        dcounts["duplicate_dates"], dcounts["ambiguous"], dcounts["zero_only"],
+        dcounts["overrides"], len(unparsed), HISTORY_MODE,
     )
     if not selected:
-        logger.warning("BACKFILL nothing to send for %s from %s", cfg.location_code, from_date)
+        logger.warning("BACKFILL nothing to send for %s in %s..%s", cfg.location_code, from_date, to_date)
         return 0
 
-    counts = {"sent": 0, "filled": 0, "fields": 0, "failed": 0}
+    counts = {
+        "sent": 0, "failed": 0, "fields": 0,
+        "new_statistics_day_created": 0,
+        "existing_day_drop_filled": 0,
+        "existing_day_unchanged": 0,
+    }
     for idx, (bdate, pid, label, report) in enumerate(selected):
+        if not (HISTORY_WINDOW_MIN <= bdate <= HISTORY_WINDOW_MAX):
+            logger.error("BACKFILL refusing out-of-window date=%s", bdate)
+            continue
         try:
             payload = report.as_payload(cfg.location_code)
             payload["business_date"] = bdate
@@ -284,12 +388,13 @@ def run_backfill(client, api, cfg, logger, from_date: str, dry_run: bool) -> int
             )
             body = api.send(payload, dry_run=dry_run) or {}
             counts["sent"] += 1
-            if body.get("status") == "history_filled":
-                fields = body.get("fields_filled") or []
-                counts["fields"] += len(fields)
-                if fields:
-                    counts["filled"] += 1
-                logger.info("BACKFILL date=%s filled=%s created=%s", bdate, fields, body.get("row_created"))
+            status = body.get("status", "")
+            if status in counts:
+                counts[status] += 1
+            fields = body.get("fields_filled") or []
+            counts["fields"] += len(fields)
+            logger.info("BACKFILL date=%s status=%s filled=%s created=%s",
+                        bdate, status or "?", fields, body.get("row_created"))
         except Exception as exc:  # noqa: BLE001 — one bad period must not stop the rest
             counts["failed"] += 1
             logger.error("BACKFILL failed date=%s period_id=%s: %s", bdate, pid, exc)
@@ -297,10 +402,14 @@ def run_backfill(client, api, cfg, logger, from_date: str, dry_run: bool) -> int
             time.sleep(HISTORY_POST_DELAY_S)
 
     logger.info(
-        "BACKFILL done location=%s sent=%d days_filled=%d fields_filled=%d failed=%d",
-        cfg.location_code, counts["sent"], counts["filled"], counts["fields"], counts["failed"],
+        "BACKFILL done location=%s sent=%d new_days=%d drop_filled=%d unchanged=%d "
+        "fields_filled=%d failed=%d",
+        cfg.location_code, counts["sent"], counts["new_statistics_day_created"],
+        counts["existing_day_drop_filled"], counts["existing_day_unchanged"],
+        counts["fields"], counts["failed"],
     )
     return 1 if counts["failed"] and counts["sent"] == 0 else 0
+
 
 
 
