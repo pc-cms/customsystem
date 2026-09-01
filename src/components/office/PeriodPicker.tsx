@@ -1,12 +1,15 @@
 /**
  * Compact period selector used by the Office / Budget toolbar.
- * A single dropdown: the label opens month / year / custom range.
- * (Prev/next arrows and "This month" removed in Stage 2A, 2026-09-01.)
+ * A plain month dropdown — no popover, no custom range (Stage 2B, 2026-09-01).
  */
-import { ChevronLeft, ChevronRight, CalendarRange } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarRange } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { fmtDateOnly } from "@/lib/format-date";
 import { businessDateOf } from "@/lib/business-day";
 
@@ -65,6 +68,18 @@ export function monthPeriod(year: number, month: number): OfficePeriod {
   return { mode: "month", year, month, ...monthRange(year, month) };
 }
 
+/** 24 months back + 3 months ahead, newest first. */
+const MONTH_OPTIONS: { key: string; year: number; month: number; label: string }[] = (() => {
+  const now = new Date();
+  const out: { key: string; year: number; month: number; label: string }[] = [];
+  for (let i = 3; i >= -24; i--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + i, 1));
+    const year = d.getUTCFullYear();
+    const month = d.getUTCMonth() + 1;
+    out.push({ key: `${year}-${pad(month)}`, year, month, label: `${MONTH_NAMES[month - 1]} ${year}` });
+  }
+  return out;
+})();
 
 export function PeriodPicker({
   value,
@@ -73,81 +88,36 @@ export function PeriodPicker({
   value: OfficePeriod;
   onChange: (p: OfficePeriod) => void;
 }) {
-  const label =
+  const currentKey = `${value.year}-${pad(value.month)}`;
+  const inList = MONTH_OPTIONS.some((o) => o.key === currentKey);
+  // Legacy sessions may hold a custom range — show its label until a month is picked.
+  const fallbackLabel =
     value.mode === "custom"
       ? `${fmtDateOnly(value.from)} — ${fmtDateOnly(value.to)}`
       : `${MONTH_NAMES[value.month - 1]} ${value.year}`;
 
-
   return (
-    <div className="flex items-center gap-1 shrink-0">
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 min-w-[170px] justify-center gap-2 text-xs font-medium">
-            <CalendarRange className="w-3.5 h-3.5 opacity-70" />
-            {label}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="end" className="w-72 p-3 space-y-3">
-          <div className="flex items-center justify-between">
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => onChange(monthPeriod(value.year - 1, value.month))}>
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <span className="text-sm font-semibold tabular-nums">{value.year}</span>
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => onChange(monthPeriod(value.year + 1, value.month))}>
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-3 gap-1">
-            {MONTH_NAMES.map((m, i) => {
-              const active = value.mode === "month" && value.month === i + 1;
-              return (
-                <Button
-                  key={m}
-                  size="sm"
-                  variant={active ? "default" : "ghost"}
-                  className="h-7 text-xs"
-                  onClick={() => onChange(monthPeriod(value.year, i + 1))}
-                >
-                  {m.slice(0, 3)}
-                </Button>
-              );
-            })}
-          </div>
-
-          <div className="pt-2 border-t border-border space-y-2">
-            <div className="text-xs text-muted-foreground">Custom range</div>
-            <div className="flex items-center gap-2">
-              <Input
-                type="date"
-                className="h-8 text-xs"
-                value={value.from}
-                onChange={(e) =>
-                  onChange({ ...value, mode: "custom", from: e.target.value })
-                }
-              />
-              <Input
-                type="date"
-                className="h-8 text-xs"
-                value={value.to}
-                onChange={(e) => onChange({ ...value, mode: "custom", to: e.target.value })}
-              />
-            </div>
-            {value.mode === "custom" && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 w-full text-xs"
-                onClick={() => onChange(monthPeriod(value.year, value.month))}
-              >
-                Back to month
-              </Button>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-    </div>
+    <Select
+      value={value.mode === "month" && inList ? currentKey : ""}
+      onValueChange={(key) => {
+        const opt = MONTH_OPTIONS.find((o) => o.key === key);
+        if (opt) onChange(monthPeriod(opt.year, opt.month));
+      }}
+    >
+      <SelectTrigger className="h-8 w-auto min-w-[150px] shrink-0 gap-2 text-xs font-medium">
+        <CalendarRange className="w-3.5 h-3.5 opacity-70" />
+        <SelectValue placeholder={fallbackLabel} />
+      </SelectTrigger>
+      <SelectContent align="end">
+        {value.mode === "month" && !inList && (
+          <SelectItem value={currentKey}>{fallbackLabel}</SelectItem>
+        )}
+        {MONTH_OPTIONS.map((o) => (
+          <SelectItem key={o.key} value={o.key}>
+            {o.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
-
