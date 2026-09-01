@@ -224,15 +224,27 @@ export function OpenMonthWizard({
       {step === 1 && (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
-            Starting Float the month begins with. Prefilled from the current wallet float — adjust
-            if it changes.
+            Starting Float of {label}. Auto-filled from the last physical wallet counts of the
+            previous month. Change the Total (goes to the main cash wallet) or adjust wallets below.
           </p>
+          <div className="rounded-md border border-primary/40 bg-primary/5 p-3 flex items-center justify-between gap-3">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">
+              Total Starting Float (TZS)
+            </span>
+            <NumberInput
+              decimals={0}
+              className="h-9 w-52 text-right font-mono text-base"
+              value={Math.round(totalFloat)}
+              onValueChange={(v) => setTotalFloat(v ?? 0)}
+            />
+          </div>
           <WalletAmountList
             rows={floatRows}
             onChange={(next) => {
               dirtyRef.current = true;
               setFloatRows(next);
             }}
+
           />
           <TotalRow label="Total Float" value={totalFloat} />
         </div>
