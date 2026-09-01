@@ -7,6 +7,8 @@
  * Never income. Nets into the Collections group of the Monthly Report.
  */
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Plus, Minus, Pencil, Trash2 } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { OfficeActions, useOfficePeriod } from "@/components/office/office-shell";
@@ -378,7 +380,7 @@ export default function CollectionsTab() {
           data={rows}
           columns={columns}
           rowKey={(r) => r.id}
-          loading={isLoading}
+          loading={isLoading || loadingLegacy}
           empty={
             <div className="text-sm text-muted-foreground text-center py-10">
               No collections in this period.
