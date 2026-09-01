@@ -91,17 +91,17 @@ class ParseConsolidationTest(unittest.TestCase):
 
 class BusinessDateTest(unittest.TestCase):
     def test_short_month(self):
-        self.assertEqual(business_date_from_label("18 Aug 2026 10:25"), "2026-08-18")
+        self.assertEqual(business_date_from_label("18 Aug 2026 10:25"), "2026-08-17")  # closed report dated D covers business day D-1
 
     def test_full_month(self):
-        self.assertEqual(business_date_from_label("18 August 2026 10:25"), "2026-08-18")
+        self.assertEqual(business_date_from_label("18 August 2026 10:25"), "2026-08-17")  # closed report dated D covers business day D-1
 
     def test_month_first(self):
-        self.assertEqual(business_date_from_label("August 18, 2026 10:25"), "2026-08-18")
+        self.assertEqual(business_date_from_label("August 18, 2026 10:25"), "2026-08-17")  # closed report dated D covers business day D-1
 
     def test_numeric_formats(self):
-        self.assertEqual(business_date_from_label("2026-08-18 10:25"), "2026-08-18")
-        self.assertEqual(business_date_from_label("18.08.2026 10:25"), "2026-08-18")
+        self.assertEqual(business_date_from_label("2026-08-18 10:25"), "2026-08-17")  # closed report dated D covers business day D-1
+        self.assertEqual(business_date_from_label("18.08.2026 10:25"), "2026-08-17")  # closed report dated D covers business day D-1
 
     def test_empty(self):
         self.assertIsNone(business_date_from_label(""))
