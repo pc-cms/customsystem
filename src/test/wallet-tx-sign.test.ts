@@ -70,3 +70,14 @@ describe("wallet tx sign helper", () => {
     }
   });
 });
+
+describe("walletTxEffect", () => {
+  it("marks adjustments as Actual-only", () => {
+    expect(walletTxEffect("adjustment")).toBe("actual");
+  });
+  it("marks every other kind as Expected", () => {
+    for (const k of ["expense", "manual_expense", "collection", "income", "transfer_in", "transfer_out"]) {
+      expect(walletTxEffect(k)).toBe("expected");
+    }
+  });
+});
