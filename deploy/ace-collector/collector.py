@@ -11,11 +11,14 @@ Commands:
   --live-only
   --closing-only --force-closing
   --dry-run --force-closing
+  --history-scan --from YYYY-MM-DD      (read-only, posts nothing)
+  --backfill-from YYYY-MM-DD            (posts every closed period >= date)
 """
 from __future__ import annotations
 
 import argparse
 import sys
+import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -28,6 +31,10 @@ from ace_collector.parser import (
     parse_consolidation,
     parse_periods,
 )
+
+#: Pause between historical POSTs so a long backfill never hammers the edge fn.
+HISTORY_POST_DELAY_S = 0.2
+
 
 
 def in_closing_window(cfg: Config) -> bool:
