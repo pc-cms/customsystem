@@ -139,6 +139,7 @@ export function OfficeShell({
   onTabChange,
   showPeriod = true,
   hideToolbar = false,
+  monthControl = false,
   banner,
   children,
 }: {
@@ -153,6 +154,11 @@ export function OfficeShell({
    * they keep the shared period context but render their own PageHeader.
    */
   hideToolbar?: boolean;
+  /**
+   * Show the Open/Close Month controls in the header. Only the Report tab
+   * owns month management (Stage 2B, 2026-09-01) — other tabs never render it.
+   */
+  monthControl?: boolean;
   banner?: ReactNode;
   children: ReactNode;
 }) {
@@ -171,9 +177,12 @@ export function OfficeShell({
   const [closeWizard, setCloseWizard] = useState(false);
   const actionsRef = useRef<HTMLDivElement | null>(null);
   const [actionsEl, setActionsEl] = useState<HTMLDivElement | null>(null);
+  const headerActionsRef = useRef<HTMLDivElement | null>(null);
+  const [headerActionsEl, setHeaderActionsEl] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setActionsEl(actionsRef.current);
+    setHeaderActionsEl(headerActionsRef.current);
   }, []);
 
   const monthStatus =
@@ -184,8 +193,8 @@ export function OfficeShell({
   };
 
   const value = useMemo<Ctx>(
-    () => ({ period, setPeriod: changePeriod, actionsEl }),
-    [period, actionsEl],
+    () => ({ period, setPeriod: changePeriod, actionsEl, headerActionsEl }),
+    [period, actionsEl, headerActionsEl],
   );
 
 
@@ -195,7 +204,7 @@ export function OfficeShell({
         {banner}
         {!hideToolbar && (
         <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-background/95 backdrop-blur border-b border-border">
-          {/* Single row: tabs left · [status] [month dropdown] [Open/Close Month] right. */}
+          {/* Single row: tabs left · [tab actions] [Close Month — Report only] [status] [month dropdown] right. */}
           <div className="flex items-center gap-3 flex-nowrap">
             <Tabs value={tab} onValueChange={onTabChange} className="min-w-0 overflow-x-auto">
               <TabsList className="h-9 flex-nowrap">
@@ -211,11 +220,36 @@ export function OfficeShell({
               </TabsList>
             </Tabs>
             <div className="flex-1" />
-            {/* Month status ALWAYS renders before the month dropdown. */}
+            {/* Tab actions portal — renders left of the month controls. */}
+            <div ref={headerActionsRef} className="empty:hidden" />
+            {/* Month control lives ONLY on the Report tab. */}
+            {showPeriod && monthControl && monthStatus === "not_opened" && canOpenMonth && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 shrink-0 whitespace-nowrap border-amber-500/50 text-amber-700 dark:text-amber-400"
+                onClick={() => setOpenWizard(true)}
+              >
+                <CalendarPlus className="w-4 h-4" />
+                Open Month
+              </Button>
+            )}
+            {showPeriod && monthControl && (monthStatus === "open" || monthStatus === "closed") && canCloseMonth && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 shrink-0 whitespace-nowrap"
+                onClick={() => setCloseWizard(true)}
+              >
+                <CalendarCheck className="w-4 h-4" />
+                Close Month
+              </Button>
+            )}
+            {/* Month status badge — same height/rhythm as the month dropdown. */}
             {showPeriod && monthStatus && (
               <span
                 className={cn(
-                  "shrink-0 text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border whitespace-nowrap",
+                  "shrink-0 inline-flex items-center h-8 px-3 text-xs font-semibold uppercase tracking-wider rounded-md border whitespace-nowrap",
                   monthStatus === "open" &&
                     "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
                   monthStatus === "closed" &&
@@ -227,30 +261,8 @@ export function OfficeShell({
                 {monthStatus === "not_opened" ? "NOT OPENED" : monthStatus === "open" ? "OPEN" : "CLOSED"}
               </span>
             )}
+            {/* Month dropdown is ALWAYS the rightmost element. */}
             {showPeriod && <PeriodPicker value={period} onChange={changePeriod} />}
-            {/* Single month control — short labels only. */}
-            {showPeriod && monthStatus === "not_opened" && canOpenMonth && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 shrink-0 whitespace-nowrap border-amber-500/50 text-amber-700 dark:text-amber-400"
-                onClick={() => setOpenWizard(true)}
-              >
-                <CalendarPlus className="w-4 h-4" />
-                Open Month
-              </Button>
-            )}
-            {showPeriod && (monthStatus === "open" || monthStatus === "closed") && canCloseMonth && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 shrink-0 whitespace-nowrap"
-                onClick={() => setCloseWizard(true)}
-              >
-                <CalendarCheck className="w-4 h-4" />
-                Close Month
-              </Button>
-            )}
           </div>
           {/* Tab-specific actions row — hidden when the active tab portals nothing. */}
           <div ref={actionsRef} className="mt-2 empty:hidden" />

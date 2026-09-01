@@ -253,14 +253,11 @@ export default function JpTab() {
   return (
     <PageShell>
       {canWrite && (
-        <OfficeActions>
-          <Button onClick={() => openAdd("out")} size="sm" variant="outline">
-            <Minus className="w-4 h-4" /> JP Payout
-          </Button>
+        <OfficeHeaderActions>
           <Button onClick={() => openAdd("in")} size="sm">
             <Plus className="w-4 h-4" /> Add JP
           </Button>
-        </OfficeActions>
+        </OfficeHeaderActions>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
