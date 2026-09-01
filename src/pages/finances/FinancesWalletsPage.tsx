@@ -131,10 +131,12 @@ export default function FinancesWalletsPage() {
   const [floatWallet, setFloatWallet] = useState<string>("");
   const [floatNote, setFloatNote] = useState("");
   /**
-   * Physical counts always belong to the business day being closed (yesterday):
-   * on 05/08 the counted day is 04/08 (it rolled over at 07:00 EAT).
+   * Physical counts belong to a business day INSIDE the accounting month
+   * selected in the Office header. Default: yesterday's business day when the
+   * header shows the current month, otherwise the last day of that month.
    */
-  const countForDate = dayToRecord();
+  const [countDateInput, setCountDateInput] = useState<string | null>(null);
+
 
 
   const now = new Date();
@@ -171,6 +173,24 @@ export default function FinancesWalletsPage() {
   }, [ym, period.mode, period.from, period.to]);
 
   const monthRange = range;
+
+  /**
+   * The count date always lives INSIDE the selected accounting window.
+   * Default: yesterday's business day when it belongs to the window,
+   * otherwise the closest edge (normally the last day of a past month).
+   */
+  const defaultCountDate = useMemo(() => {
+    const y = dayToRecord();
+    if (y < range.from) return range.from;
+    if (y > range.to) return range.to;
+    return y;
+  }, [range.from, range.to]);
+  const countForDate =
+    countDateInput && countDateInput >= range.from && countDateInput <= range.to
+      ? countDateInput
+      : defaultCountDate;
+
+
   
 
   // Unified snapshot — same source of truth as former Balance tab.
@@ -211,9 +231,8 @@ export default function FinancesWalletsPage() {
    * (`countForDate`), not the calendar day. Counting yesterday's money this
    * morning is the normal flow and must never be reported as stale.
    */
-  
-  /** The counted business day belongs to another period than the one shown. */
-  const countOutOfPeriod = countForDate < range.from || countForDate > range.to;
+
+
   /**
    * Month gating: the count is saved into the month of its OWN business date.
    * Writing is allowed only while that month is opened and not closed —
@@ -226,8 +245,8 @@ export default function FinancesWalletsPage() {
   const countMonthLabel = `${MONTH_NAMES[countMonth - 1]} ${countYear}`;
   const countMonthStatus = monthStatusOf(monthOpenings, monthClosuresList, countYear, countMonth);
   const countBlocked = countMonthStatus !== "open";
-  const refDate = countForDate < range.from ? range.from
-    : countForDate > range.to ? range.to : countForDate;
+  const refDate = countForDate;
+
   const freshness = useMemo<CountFreshnessRow[]>(() => {
     const refMs = new Date(`${refDate}T00:00:00Z`).getTime();
     return (snap?.wallets || []).map((w) => {
@@ -687,25 +706,34 @@ export default function FinancesWalletsPage() {
         </PageSection>
       )}
 
-      {countOutOfPeriod && (
-        <PageSection card={false}>
-          <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-            <span>
-              Counting business day {fmtDateOnly(countForDate)} ({countMonthLabel}). The count is
-              saved into {countMonthLabel} — its own month — while you are viewing{" "}
-              {fmtDateOnly(range.from)} — {fmtDateOnly(range.to)}.
-            </span>
+      {/* Count date — always inside the accounting month selected in the header. */}
+      <PageSection card={false}>
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-card px-3 py-2 text-xs">
+          <span className="text-muted-foreground">Count business day</span>
+          <Input
+            type="date"
+            value={countForDate}
+            min={range.from}
+            max={range.to}
+            onChange={(e) => setCountDateInput(e.target.value || null)}
+            className="h-7 w-[150px] text-xs"
+          />
+          <span className="text-muted-foreground">
+            Saved into {countMonthLabel} · window {fmtDateOnly(range.from)} — {fmtDateOnly(range.to)}
+          </span>
+          {countForDate !== defaultCountDate && (
             <Button
               size="sm"
               variant="outline"
               className="h-7 text-xs"
-              onClick={() => setPeriod(monthPeriod(countYear, countMonth))}
+              onClick={() => setCountDateInput(null)}
             >
-              Switch to {countMonthLabel}
+              Reset to {fmtDateOnly(defaultCountDate)}
             </Button>
-          </div>
-        </PageSection>
-      )}
+          )}
+        </div>
+      </PageSection>
+
 
       {/* CASH SURPLUS/DEFICIT + COUNT FRESHNESS — one responsive row, equal width and height */}
 
@@ -1154,8 +1182,12 @@ export default function FinancesWalletsPage() {
                                 rows={2}
                                 className="text-xs"
                               />
-                              <div className="flex justify-end gap-2">
+                              <div className="flex items-center justify-end gap-2">
+                                <span className="mr-auto text-[10px] text-muted-foreground">
+                                  Business day {fmtDateOnly(countForDate)}
+                                </span>
                                 <Button
+
                                   variant="outline"
                                   size="sm"
                                   onClick={() => toggleRow(w.id)}
