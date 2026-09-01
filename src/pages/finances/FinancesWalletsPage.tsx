@@ -173,6 +173,24 @@ export default function FinancesWalletsPage() {
   }, [ym, period.mode, period.from, period.to]);
 
   const monthRange = range;
+
+  /**
+   * The count date always lives INSIDE the selected accounting window.
+   * Default: yesterday's business day when it belongs to the window,
+   * otherwise the closest edge (normally the last day of a past month).
+   */
+  const defaultCountDate = useMemo(() => {
+    const y = dayToRecord();
+    if (y < range.from) return range.from;
+    if (y > range.to) return range.to;
+    return y;
+  }, [range.from, range.to]);
+  const countForDate =
+    countDateInput && countDateInput >= range.from && countDateInput <= range.to
+      ? countDateInput
+      : defaultCountDate;
+
+
   
 
   // Unified snapshot — same source of truth as former Balance tab.
