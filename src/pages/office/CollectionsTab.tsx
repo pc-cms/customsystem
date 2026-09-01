@@ -350,7 +350,36 @@ export default function CollectionsTab() {
       header: "",
       type: "actions",
       accessor: (r) => {
-        if (!canWrite || r.origin !== "entry" || !r.raw) return null;
+        if (!canWrite) return null;
+        if (r.origin === "expense") {
+          const out = r.amount < 0;
+          return (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              title={`Switch direction → ${out ? "Returned (IN)" : "Collected (OUT)"}`}
+              aria-label="Switch direction"
+              disabled={editExpense.isPending}
+              onClick={() => {
+                if (
+                  !confirm(
+                    `Switch this legacy row to ${out ? "Returned (IN)" : "Collected (OUT)"}? Only the direction changes; it is logged in the audit log.`,
+                  )
+                )
+                  return;
+                editExpense.mutate({
+                  id: r.id,
+                  amount: -Number(r.expense_amount || 0),
+                  currency: r.expense_currency,
+                });
+              }}
+            >
+              <ArrowLeftRight className="w-3.5 h-3.5" />
+            </Button>
+          );
+        }
+        if (!r.raw) return null;
         const raw = r.raw;
         return (
           <div className="flex items-center gap-0.5">
@@ -383,6 +412,21 @@ export default function CollectionsTab() {
     { value: "in", label: "Returned" },
   ];
 
+  const table = (data: Row[]) => (
+    <SmartTable
+      data={data}
+      columns={columns}
+      rowKey={(r) => r.id}
+      defaultSort={{ key: "date", dir: "desc" }}
+      loading={isLoading || loadingLegacy}
+      empty={
+        <div className="text-sm text-muted-foreground text-center py-10">
+          No collections in this period.
+        </div>
+      }
+    />
+  );
+
   return (
     <PageShell>
       {canWrite && (
@@ -409,7 +453,7 @@ export default function CollectionsTab() {
         />
       </div>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         {FILTERS.map((f) => (
           <Button
             key={f.value}
@@ -421,21 +465,69 @@ export default function CollectionsTab() {
             {f.label}
           </Button>
         ))}
+
+        <Select value={catFilter} onValueChange={setCatFilter}>
+          <SelectTrigger className="h-7 w-[170px] text-xs">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories</SelectItem>
+            {catOptions.map((c) => (
+              <SelectItem key={c} value={c}>
+                {c}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={walletFilter} onValueChange={setWalletFilter}>
+          <SelectTrigger className="h-7 w-[170px] text-xs">
+            <SelectValue placeholder="Wallet" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All wallets</SelectItem>
+            {walletOptions.map((w) => (
+              <SelectItem key={w} value={w}>
+                {w}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Button
+          size="sm"
+          variant={grouped ? "default" : "outline"}
+          className="h-7 px-3 text-xs"
+          onClick={() => setGrouped((g) => !g)}
+          title="Group rows by category with subtotals"
+        >
+          <Layers className="w-3.5 h-3.5" /> {grouped ? "By category" : "Flat"}
+        </Button>
       </div>
 
-      <PageSection card={false}>
-        <SmartTable
-          data={rows}
-          columns={columns}
-          rowKey={(r) => r.id}
-          loading={isLoading || loadingLegacy}
-          empty={
-            <div className="text-sm text-muted-foreground text-center py-10">
-              No collections in this period.
-            </div>
-          }
-        />
-      </PageSection>
+      {grouped ? (
+        byCategory.length === 0 ? (
+          <PageSection card={false}>{table([])}</PageSection>
+        ) : (
+          byCategory.map((g) => (
+            <PageSection key={g.category} card={false}>
+              <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1.5">
+                <span className="text-xs font-bold uppercase tracking-wider">{g.category}</span>
+                <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                  OUT {formatNumberSpaces(g.totals.outSum)} · IN {formatNumberSpaces(g.totals.inSum)} · NET{" "}
+                  <span className={cn(g.totals.net < 0 ? "cms-amount-negative" : "cms-amount-positive")}>
+                    {formatNumberSpaces(g.totals.net)}
+                  </span>
+                </span>
+              </div>
+              {table(g.list)}
+            </PageSection>
+          ))
+        )
+      ) : (
+        <PageSection card={false}>{table(rows)}</PageSection>
+      )}
+
 
       <ResponsiveDialog
         open={dialogOpen}
