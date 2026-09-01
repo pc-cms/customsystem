@@ -78,14 +78,14 @@ export default function WalletMovementDialog({
 
   const todayEat = new Date(Date.now() + 3 * 3600_000).toISOString().slice(0, 10);
   const clamp = (d: string) => (minDate && d < minDate ? minDate : maxDate && d > maxDate ? maxDate : d);
-  /** Backdating outside the selected month window is allowed but flagged. */
-  const outsideWindow =
-    !!date && !!((windowFrom && date < windowFrom) || (windowTo && date > windowTo));
 
   const [mode, setMode] = useState<MovementMode>(defaultMode);
   const [walletId, setWalletId] = useState<string>(defaultWalletId || "");
   const [toWalletId, setToWalletId] = useState<string>("");
   const [date, setDate] = useState<string>(clamp(todayEat));
+  /** Backdating outside the selected month window is allowed but flagged. */
+  const outsideWindow =
+    !!date && !!((windowFrom && date < windowFrom) || (windowTo && date > windowTo));
   const [denoms, setDenoms] = useState<Record<number, number>>({});
   const [cents, setCents] = useState(0);
   const [amountInput, setAmountInput] = useState("");
