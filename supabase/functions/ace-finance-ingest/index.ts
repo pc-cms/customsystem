@@ -98,6 +98,13 @@ Deno.serve(async (req) => {
 
   const isClosed = Number.isInteger(period_id) && period_id > 0;
 
+  // Optional explicit mode. Default (empty) keeps the historical behaviour.
+  const mode = typeof body.mode === "string" ? body.mode.trim() : "";
+  if (mode && mode !== "history_missing_only") errors.push("mode");
+  const isHistoryMissingOnly = mode === "history_missing_only";
+  if (isHistoryMissingOnly && !isClosed) errors.push("period_id");
+
+
   const rawBd = typeof body.business_date === "string" ? body.business_date.trim() : "";
   let business_date: string | null = null;
   if (rawBd) {
