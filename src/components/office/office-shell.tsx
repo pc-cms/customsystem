@@ -76,7 +76,10 @@ export function OfficeShell({
   banner?: ReactNode;
   children: ReactNode;
 }) {
-  const [period, setPeriod] = useSessionState<OfficePeriod>(storageKey, currentMonthPeriod());
+  const [period, setPeriod] = useSessionState<OfficePeriod>(storageKey, accountingMonthPeriod());
+  /** True once the user picked a period by hand — auto-defaulting stops then. */
+  const [touched, setTouched] = useSessionState<boolean>(`${storageKey}:touched`, false);
+  const { data: closures = [] } = useMonthClosures();
   const actionsRef = useRef<HTMLDivElement | null>(null);
   const [actionsEl, setActionsEl] = useState<HTMLDivElement | null>(null);
 
@@ -84,7 +87,34 @@ export function OfficeShell({
     setActionsEl(actionsRef.current);
   }, []);
 
-  const value = useMemo<Ctx>(() => ({ period, setPeriod, actionsEl }), [period, setPeriod, actionsEl]);
+  /**
+   * The working month only rolls forward once the previous one is closed via
+   * Close Month. Until then Office stays on the accounting month, so wallets,
+   * variance and expenses keep landing in the month they belong to.
+   */
+  useEffect(() => {
+    if (touched) return;
+    const base = accountingMonthPeriod();
+    const isClosed = (y: number, m: number) =>
+      closures.some((c) => c.year === y && c.month === m);
+    const want = isClosed(base.year, base.month)
+      ? nextMonthPeriod(base.year, base.month)
+      : base;
+    if (period.mode !== "month" || period.year !== want.year || period.month !== want.month) {
+      setPeriod(want);
+    }
+  }, [closures, touched, period, setPeriod]);
+
+  const changePeriod = (p: OfficePeriod) => {
+    setTouched(true);
+    setPeriod(p);
+  };
+
+  const value = useMemo<Ctx>(
+    () => ({ period, setPeriod: changePeriod, actionsEl }),
+    [period, actionsEl],
+  );
+
 
   return (
     <OfficeShellCtx.Provider value={value}>
