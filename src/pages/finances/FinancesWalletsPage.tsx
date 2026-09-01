@@ -211,7 +211,7 @@ export default function FinancesWalletsPage() {
   
   /** The counted business day belongs to another period than the one shown. */
   const countOutOfPeriod = countForDate < range.from || countForDate > range.to;
-  const countForDate = countForDate < range.from ? range.from
+  const refDate = countForDate < range.from ? range.from
     : countForDate > range.to ? range.to : countForDate;
   const freshness = useMemo<CountFreshnessRow[]>(() => {
     const refMs = new Date(`${refDate}T00:00:00Z`).getTime();
