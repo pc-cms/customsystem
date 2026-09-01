@@ -1,13 +1,14 @@
 /**
  * OpenMonthWizard — explicit start of an accounting month (3 steps).
- * Step 1: Starting Float per wallet (prefilled from the wallet's current float)
+ * Step 1: Starting Float — a single Total, with the per-wallet breakdown
+ *         auto-filled from the LAST physical counts of the previous month.
  * Step 2: Opening wallet balances (prefilled from the last physical count)
  * Step 3: Confirm
  *
- * Nothing rolls over automatically: until this is confirmed the month rejects
- * wallet counts, wallet movements and office expenses.
+ * CANON: the float belongs to THIS month only. It is stored per month
+ * (fin_wallet_float_history), so opening a month never changes an earlier one.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,8 @@ import { MONTH_NAMES } from "@/components/office/PeriodPicker";
 import { cn } from "@/lib/utils";
 
 type Row = { wallet_id: string; name: string; currency: string; amount: number };
+
+const pad = (n: number) => String(n).padStart(2, "0");
 
 export function OpenMonthWizard({
   open,
@@ -48,7 +51,36 @@ export function OpenMonthWizard({
   const [note, setNote] = useState("");
   const dirtyRef = useRef(false);
 
-  /* Last physical count per wallet — prefill for opening balances. */
+  const firstDay = `${year}-${pad(month)}-01`;
+  const prevYear = month === 1 ? year - 1 : year;
+  const prevMonth = month === 1 ? 12 : month - 1;
+  const prevFrom = `${prevYear}-${pad(prevMonth)}-01`;
+
+  /* FX rates as of the 1st of the opened month — for the TZS Total. */
+  const { data: rates } = useQuery({
+    queryKey: ["open-month-rates", activeCasinoId, firstDay],
+    enabled: !!activeCasinoId && open,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fin_daily_rates")
+        .select("currency, rate_to_tzs, business_date")
+        .eq("casino_id", activeCasinoId!)
+        .lte("business_date", firstDay)
+        .order("business_date", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      const m = new Map<string, number>([["TZS", 1]]);
+      (data || []).forEach((r: any) => {
+        if (!m.has(r.currency)) m.set(r.currency, Number(r.rate_to_tzs ?? 1));
+      });
+      return m;
+    },
+  });
+
+  const fx = useCallback((cur: string) => rates?.get(cur || "TZS") ?? 1, [rates]);
+
+  /* Last physical count per wallet (any date) — prefill for opening balances. */
   const { data: lastCounts } = useQuery({
     queryKey: ["open-month-last-counts", activeCasinoId],
     enabled: !!activeCasinoId && open,
@@ -69,12 +101,38 @@ export function OpenMonthWizard({
     },
   });
 
+  /* Last physical count per wallet INSIDE the previous month — float prefill. */
+  const { data: prevMonthCounts } = useQuery({
+    queryKey: ["open-month-prev-counts", activeCasinoId, prevFrom],
+    enabled: !!activeCasinoId && open,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cash_count_snapshots")
+        .select("wallet_id, physical_total, business_date, created_at")
+        .eq("casino_id", activeCasinoId!)
+        .gte("business_date", prevFrom)
+        .lt("business_date", firstDay)
+        .order("business_date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      const m = new Map<string, number>();
+      (data || []).forEach((r: any) => {
+        if (!m.has(r.wallet_id)) m.set(r.wallet_id, Number(r.physical_total ?? 0));
+      });
+      return m;
+    },
+  });
+
   const buildFloat = (): Row[] =>
     wallets.map((w) => ({
       wallet_id: w.id,
       name: w.name,
       currency: w.currency || "TZS",
-      amount: Number(w.starting_float_amount ?? 0),
+      // Float = what is actually in the wallets when the month starts:
+      // the last physical count of the previous month, else 0.
+      amount: Number(prevMonthCounts?.get(w.id) ?? 0),
     }));
   const buildBalances = (): Row[] =>
     wallets.map((w) => ({
@@ -93,7 +151,7 @@ export function OpenMonthWizard({
     setFloatRows(buildFloat());
     setBalanceRows(buildBalances());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wallets, lastCounts]);
+  }, [wallets, lastCounts, prevMonthCounts]);
 
   const resetAll = () => {
     setStep(1);
@@ -105,8 +163,26 @@ export function OpenMonthWizard({
 
   const run = useOpenMonth();
 
-  const totalFloat = floatRows.reduce((s, r) => s + r.amount, 0);
-  const totalBalances = balanceRows.reduce((s, r) => s + r.amount, 0);
+  const totalFloat = floatRows.reduce((s, r) => s + r.amount * fx(r.currency), 0);
+  const totalBalances = balanceRows.reduce((s, r) => s + r.amount * fx(r.currency), 0);
+
+  /** Editing the Total puts the difference on the main TZS cash wallet. */
+  const setTotalFloat = (next: number) => {
+    const target =
+      floatRows.find((r) => r.currency === "TZS" && /cash/i.test(r.name)) ||
+      floatRows.find((r) => r.currency === "TZS");
+    if (!target) return;
+    const others = floatRows.reduce(
+      (s, r) => (r.wallet_id === target.wallet_id ? s : s + r.amount * fx(r.currency)),
+      0,
+    );
+    dirtyRef.current = true;
+    setFloatRows(
+      floatRows.map((r) =>
+        r.wallet_id === target.wallet_id ? { ...r, amount: Math.max(0, next - others) } : r,
+      ),
+    );
+  };
 
   const submit = async () => {
     await run.mutateAsync({
@@ -119,6 +195,7 @@ export function OpenMonthWizard({
     onOpenChange(false);
     resetAll();
   };
+
 
   const label = `${MONTH_NAMES[month - 1]} ${year}`;
 
@@ -147,15 +224,27 @@ export function OpenMonthWizard({
       {step === 1 && (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
-            Starting Float the month begins with. Prefilled from the current wallet float — adjust
-            if it changes.
+            Starting Float of {label}. Auto-filled from the last physical wallet counts of the
+            previous month. Change the Total (goes to the main cash wallet) or adjust wallets below.
           </p>
+          <div className="rounded-md border border-primary/40 bg-primary/5 p-3 flex items-center justify-between gap-3">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">
+              Total Starting Float (TZS)
+            </span>
+            <NumberInput
+              decimals={0}
+              className="h-9 w-52 text-right font-mono text-base"
+              value={Math.round(totalFloat)}
+              onValueChange={(v) => setTotalFloat(v ?? 0)}
+            />
+          </div>
           <WalletAmountList
             rows={floatRows}
             onChange={(next) => {
               dirtyRef.current = true;
               setFloatRows(next);
             }}
+
           />
           <TotalRow label="Total Float" value={totalFloat} />
         </div>
