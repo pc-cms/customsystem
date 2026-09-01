@@ -12770,8 +12770,11 @@ export type Database = {
       ace_history_probe_day: {
         Args: {
           _business_date: string
+          _cashdesk_win: number
           _casino_id: string
+          _client_balance: number
           _drop_slots: number
+          _net_win: number
         }
         Returns: Json
       }
