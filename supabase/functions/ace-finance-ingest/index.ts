@@ -151,17 +151,26 @@ Deno.serve(async (req) => {
     admin.from("ace_ingest_keys").update({ last_seen_at: new Date().toISOString() }).eq("id", cred.id);
 
   // --- history_missing_only ----------------------------------------------
-  // Safe historical backfill: fills ONLY empty (0/NULL) Statistics fields of
-  // fin_day_closing. Never touches JP, tables_result, wallets, cage shifts or
-  // manual figures, and deliberately writes NO ace_finance_snapshots row so a
-  // different ACE period already stored for the same business date is kept
-  // intact (that table is unique per casino+day and triggers day closing).
+  // SAFE historical Slot Statistics backfill, allowed ONLY for business dates
+  // 2026-01-01..2026-07-31 (August 2026 and later are never touched).
+  //   * day already in Statistics (closed/approved cage slot shift OR a
+  //     fin_day_closing row) => only drop_slots may be filled when empty;
+  //   * day completely absent  => a fin_day_closing row is created from the
+  //     five ACE stats.
+  // No ace_finance_snapshots row is written in this mode (that table is unique
+  // per casino+day and drives Day Closing), only the audit log.
   if (isHistoryMissingOnly) {
     if (!cred.casino_id) {
       return json({ ok: false, status: "apply_failed", error: "location_not_linked_to_casino" }, 400);
     }
+    if (!business_date || business_date < "2026-01-01" || business_date > "2026-07-31") {
+      return json(
+        { ok: false, status: "history_out_of_window", error: "business_date_outside_2026_01_01__2026_07_31" },
+        400,
+      );
+    }
 
-    const { data: res, error: fillErr } = await admin.rpc("ace_backfill_missing_only", {
+    const { data: res, error: fillErr } = await admin.rpc("ace_backfill_history_day", {
       _casino_id: cred.casino_id,
       _business_date: business_date,
       _drop_slots: numbers.total_drop,
@@ -175,8 +184,15 @@ Deno.serve(async (req) => {
       return json({ ok: false, status: "history_failed", error: "backfill_failed", retryable: true }, 500);
     }
 
-    const result = (res ?? {}) as { created?: boolean; fields_filled?: string[] };
+    const result = (res ?? {}) as {
+      created?: boolean;
+      fields_filled?: string[];
+      status?: string;
+      existing_shift?: boolean;
+      existing_closing?: boolean;
+    };
     const fields = Array.isArray(result.fields_filled) ? result.fields_filled : [];
+    const historyStatus = result.status ?? "existing_day_unchanged";
 
     await admin.from("ace_history_backfill_log").insert({
       casino_id: cred.casino_id,
@@ -187,21 +203,25 @@ Deno.serve(async (req) => {
       payload: { ...numbers, active_credits },
       fields_filled: fields,
       row_created: !!result.created,
+      status: historyStatus,
     });
 
     await touchKey();
 
     return json({
       ok: true,
-      status: "history_filled",
+      status: historyStatus,
       location_code,
       period_id,
       business_date,
       row_created: !!result.created,
+      existing_shift: !!result.existing_shift,
+      existing_closing: !!result.existing_closing,
       fields_filled: fields,
       filled_count: fields.length,
     });
   }
+
 
 
   // --- idempotency guard for closed reports ------------------------------
