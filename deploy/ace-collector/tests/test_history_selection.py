@@ -262,8 +262,9 @@ def test_probe_sends_probe_flag():
         location_code = "mwanza"
 
     api = Api()
-    st = probe_day(api, Cfg(), "2026-03-01", report(1, total_drop=5.0, label="l"))
+    st, missing = probe_day(api, Cfg(), "2026-03-01", report(1, total_drop=5.0, label="l"))
     assert st == "existing_day_unchanged"
+    assert missing == []
     assert api.sent["probe"] is True
     assert api.sent["mode"] == HISTORY_MODE
 
