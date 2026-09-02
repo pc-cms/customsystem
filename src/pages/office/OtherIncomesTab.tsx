@@ -296,7 +296,9 @@ export default function OtherIncomesTab() {
                       )}
                     >
                       {neg ? "−" : "+"}
-                      {formatNumberSpaces(Math.abs(total))}
+                      {formatNumberSpaces(Math.abs(total))}{" "}
+                      <span className="text-[10px] text-muted-foreground">TZS</span>
+
                     </span>
                   );
                 }
