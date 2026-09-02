@@ -311,6 +311,32 @@ export default function TipsBonusTab({ belowHeader }: { belowHeader?: ReactNode 
           columns={columns}
           rowKey={(r) => r.id}
           loading={isLoading}
+          footerRows={[
+            {
+              key: "total",
+              className: "font-bold bg-muted/40 border-t border-border",
+              cell: (col, index) => {
+                if (index === 0) return "Total";
+                if (col.key === "amount") {
+                  const neg = visibleNet < 0;
+                  return (
+                    <span
+                      className={cn(
+                        "font-mono tabular-nums",
+                        neg ? "cms-amount-negative" : "cms-amount-positive",
+                      )}
+                    >
+                      {neg ? "−" : "+"}
+                      {formatNumberSpaces(Math.abs(visibleNet))}{" "}
+                      <span className="text-[10px] text-muted-foreground">TZS</span>
+                    </span>
+                  );
+                }
+                return null;
+              },
+            },
+          ]}
+
           empty={
             <div className="text-sm text-muted-foreground text-center py-10">
               No tips or bonus entries in this period.
