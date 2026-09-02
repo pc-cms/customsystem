@@ -690,9 +690,6 @@ export default function FinancesWalletsPage() {
             <BreakdownRow label="Other movements (investment / office)" v={snap?.incomes?.movements || 0} signed />
             <BreakdownRow label="JP (±)" v={snap?.incomes?.jp || 0} signed />
 
-            <BreakdownRow label="Card Balance (cash held in cage)" v={snap?.incomes?.card_balance || 0} signed />
-
-
             <BreakdownRow label="Missed Chips (±)" v={snap?.incomes?.missed_chips || 0} signed />
             <BreakdownRow label="Missed Cards (±)" v={snap?.incomes?.missed_cards || 0} signed />
             <BreakdownRow label="− Expenses" v={snap?.expenses_total || 0} negative />
