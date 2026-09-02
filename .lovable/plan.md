@@ -1,8 +1,8 @@
-# Убрать Card Balance из Expected (Wallets)
+# Убрать Card Balance из Expected и UI (Wallets)
 
 ## Что меняем
 
-Card Balance (`Σ fin_day_closing.players_card_balance`) перестаёт участвовать в расчёте Expected по кошелькам. Он остаётся видимым как справочная строка, но больше не влияет на Expected и Variance.
+Card Balance (`Σ fin_day_closing.players_card_balance`) перестаёт участвовать в расчёте Expected по кошелькам и больше не отображается в разделе Wallets.
 
 ## Изменения
 
@@ -11,7 +11,8 @@ Card Balance (`Σ fin_day_closing.players_card_balance`) перестаёт уч
    - обновить комментарий канона: Card Balance — справочная величина, в Expected не входит.
 
 2. `src/pages/finances/FinancesWalletsPage.tsx`
-   - строку `Card Balance (cash held in cage)` пометить как информационную (label `Card Balance (info, not in Expected)`), чтобы разбивка сходилась с итогом.
+   - удалить строку разбивки `Card Balance (cash held in cage)`;
+   - убрать импорт/рендер связанных с `card_balance` элементов, если они больше нигде не используются.
 
 3. Тест-регрессия: добавить проверку в `src/test/`, что `computeBalanceTotals` игнорирует `incomes.card_balance`.
 
@@ -19,7 +20,7 @@ Card Balance (`Σ fin_day_closing.players_card_balance`) перестаёт уч
 
 ## Что НЕ трогаем
 
-- RPC `fin_balance_snapshot` — продолжает возвращать `incomes.card_balance` (используется для отображения и Monthly Report).
+- RPC `fin_balance_snapshot` — продолжает возвращать `incomes.card_balance` (используется Monthly Report).
 - Monthly Report: `card_balance` там участвует в Deposits/Cash Position — вне этой задачи.
 - Boss TV / Day Closings / Slots-логика — без изменений.
 - Данные в БД не меняются.
