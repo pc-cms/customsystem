@@ -137,25 +137,57 @@ export const useWalletDayGrid = (opts: { from: string; to: string; groups: Walle
     ...liveQueryOptionsWithFallback(30000),
   });
 
+  /**
+   * Start of month.
+   * Source of truth = the approved Month Opening (`fin_month_opening.wallet_balances`)
+   * of the month `from` belongs to, plus any movement between the 1st and `from`.
+   * When the month was never opened we fall back to the cumulative movements.
+   */
   const startQ = useQuery({
     queryKey: ["fin-wallet-grid-start", activeCasinoId, from, walletIds.join(",")],
     enabled: !!activeCasinoId && walletIds.length > 0,
     queryFn: async () => {
-      const rows = await fetchPaged<{ wallet_id: string; amount: number; kind: string }>((a, b) =>
-        supabase
+      const year = Number(from.slice(0, 4));
+      const month = Number(from.slice(5, 7));
+      const monthStart = `${from.slice(0, 7)}-01`;
+
+      const { data: opening } = await supabase
+        .from("fin_month_opening")
+        .select("wallet_balances")
+        .eq("casino_id", activeCasinoId!)
+        .eq("year", year)
+        .eq("month", month)
+        .maybeSingle();
+
+      const openingMap = new Map<string, number>();
+      const raw = (opening?.wallet_balances as any) ?? null;
+      if (Array.isArray(raw)) {
+        raw.forEach((r: any) => {
+          if (r?.wallet_id) openingMap.set(String(r.wallet_id), Number(r.amount) || 0);
+        });
+      }
+      const hasOpening = openingMap.size > 0;
+
+      const rows = await fetchPaged<{ wallet_id: string; amount: number; kind: string }>((a, b) => {
+        let q = supabase
           .from("fin_wallet_tx")
           .select("wallet_id, amount, kind")
           .eq("casino_id", activeCasinoId!)
           .in("wallet_id", walletIds)
-          .lt("business_date", from)
-          .range(a, b),
-      );
+          .lt("business_date", from);
+        // With an opening snapshot only the movements after the 1st are added on top.
+        if (hasOpening) q = q.gte("business_date", monthStart);
+        return q.range(a, b);
+      });
+
       const map = new Map<string, number>();
+      if (hasOpening) walletIds.forEach((id) => map.set(id, openingMap.get(id) ?? 0));
       rows.forEach((r) => map.set(r.wallet_id, (map.get(r.wallet_id) || 0) + signed(r)));
       return map;
     },
     ...liveQueryOptionsWithFallback(60000),
   });
+
 
   return {
     wallets,
