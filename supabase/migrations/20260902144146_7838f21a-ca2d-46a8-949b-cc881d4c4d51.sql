@@ -1,0 +1,2 @@
+ALTER TABLE public.closing_wallet_inbox DROP CONSTRAINT closing_wallet_inbox_status_chk;
+ALTER TABLE public.closing_wallet_inbox ADD CONSTRAINT closing_wallet_inbox_status_chk CHECK (status = ANY (ARRAY['ready'::text, 'posted'::text, 'skipped'::text]));
