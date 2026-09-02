@@ -952,6 +952,32 @@ export default function FinancesWalletsPage() {
                           className="h-7 w-7"
                           onClick={(e) => {
                             e.stopPropagation();
+                            openMove("in", w.id);
+                          }}
+                          aria-label="Money in"
+                          title="Money in"
+                        >
+                          <ArrowDownLeft className="w-3.5 h-3.5 cms-amount-positive" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openMove("out", w.id);
+                          }}
+                          aria-label="Money out"
+                          title="Money out"
+                        >
+                          <ArrowUpRight className="w-3.5 h-3.5 cms-amount-negative" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setWalletForm(w);
                             setWalletOpen(true);
                           }}
