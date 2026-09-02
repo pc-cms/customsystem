@@ -74,10 +74,17 @@ export default function OtherIncomesTab() {
     [categories],
   );
 
+  /** Footer total in TZS: each row converted by its own fx rate, storno pairs excluded. */
   const total = useMemo(
-    () => incomes.reduce((sum, r) => sum + Number(r.amount || 0), 0),
+    () =>
+      incomes.reduce((sum, r: any) => {
+        if (r.reverses_id || r.reversed_by_id) return sum;
+        const rate = r.currency === "TZS" ? 1 : Number(r.fx_rate || 1);
+        return sum + Number(r.amount || 0) * rate;
+      }, 0),
     [incomes],
   );
+
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
