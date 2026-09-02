@@ -88,6 +88,17 @@ export default function TipsBonusTab({ belowHeader }: { belowHeader?: ReactNode 
     return { ...acc, net: acc.tips.net + acc.bonus.net };
   }, [allRows]);
 
+  /** Net of the CURRENTLY VISIBLE rows (in TZS) — used by the table footer. */
+  const visibleNet = useMemo(
+    () =>
+      (rows as OtherIncomeRow[]).reduce((s, r) => {
+        if (r.reverses_id || r.reversed_by_id) return s;
+        return s + Number(r.amount || 0) * Number(r.fx_rate || 1);
+      }, 0),
+    [rows],
+  );
+
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [mode, setMode] = useState<"in" | "out">("in");
@@ -311,6 +322,32 @@ export default function TipsBonusTab({ belowHeader }: { belowHeader?: ReactNode 
           columns={columns}
           rowKey={(r) => r.id}
           loading={isLoading}
+          footerRows={[
+            {
+              key: "total",
+              className: "font-bold bg-muted/40 border-t border-border",
+              cell: (col, index) => {
+                if (index === 0) return "Total";
+                if (col.key === "amount") {
+                  const neg = visibleNet < 0;
+                  return (
+                    <span
+                      className={cn(
+                        "font-mono tabular-nums",
+                        neg ? "cms-amount-negative" : "cms-amount-positive",
+                      )}
+                    >
+                      {neg ? "−" : "+"}
+                      {formatNumberSpaces(Math.abs(visibleNet))}{" "}
+                      <span className="text-[10px] text-muted-foreground">TZS</span>
+                    </span>
+                  );
+                }
+                return null;
+              },
+            },
+          ]}
+
           empty={
             <div className="text-sm text-muted-foreground text-center py-10">
               No tips or bonus entries in this period.

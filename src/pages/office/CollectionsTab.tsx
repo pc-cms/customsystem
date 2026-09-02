@@ -404,20 +404,50 @@ export default function CollectionsTab() {
     },
   ];
 
-  const table = (data: Row[]) => (
+  const table = (data: Row[]) => {
+    const signedTotal = data.reduce((s, r) => s + Number(r.amount_tzs || 0), 0);
+    return (
     <SmartTable
       data={data}
       columns={columns}
       rowKey={(r) => r.id}
       defaultSort={{ key: "date", dir: "desc" }}
       loading={isLoading || loadingLegacy}
+      footerRows={[
+        {
+          key: "total",
+          className: "font-bold bg-muted/40 border-t border-border",
+          cell: (col, index) => {
+            if (index === 0) return "Total";
+            if (col.key === "amount") {
+              const neg = signedTotal < 0;
+              return (
+                <span
+                  className={cn(
+                    "font-mono tabular-nums",
+                    neg ? "cms-amount-negative" : "cms-amount-positive",
+                  )}
+                >
+                  {neg ? "−" : "+"}
+                  {formatNumberSpaces(Math.abs(signedTotal))}{" "}
+                  <span className="text-[10px] text-muted-foreground">TZS</span>
+                </span>
+              );
+            }
+            return null;
+          },
+        },
+      ]}
+
       empty={
         <div className="text-sm text-muted-foreground text-center py-10">
           No collections in this period.
         </div>
       }
     />
-  );
+    );
+  };
+
 
   return (
     <PageShell>
