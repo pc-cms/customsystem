@@ -81,6 +81,8 @@ const usePendingExpenses = () => {
 };
 
 const ExpensesApprovals = () => {
+  const { roles } = useAuth();
+  const isSuperAdmin = roles.includes("super_admin");
   const { data: rows = [], isLoading } = usePendingExpenses();
   const approve = useApproveExpense();
   const del = useDeleteExpense();
@@ -198,7 +200,7 @@ const ExpensesApprovals = () => {
                           { onSuccess: invalidate },
                         )
                       }
-                      title="Cancel expense"
+                      title={isSuperAdmin ? "Delete expense permanently" : "Cancel expense"}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>

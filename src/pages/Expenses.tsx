@@ -37,6 +37,7 @@ import { Pencil } from "lucide-react";
 
 import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
 import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
+import { hasExpenseManagementAccess, isExpenseSourceLocked } from "@/lib/expense-access";
 
 type SourceVal = "live_game" | "slots" | "office";
 
@@ -111,17 +112,18 @@ interface ExpensesProps {
 }
 
 const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
-  const { isManager, roles, casinoId } = useAuth();
+  const { roles, casinoId, managerOverride } = useAuth();
   const { activeCasino } = useCasino();
   const isCashierLive = roles.includes("cashier") && !roles.includes("cashier_slots");
   const isCashierSlots = roles.includes("cashier_slots") && !roles.includes("cashier");
-  // Managers (and super_admin) see and can create everything.
-  const isManagerView = isManager;
+  // Management roles always win over secondary cashier roles. Super Admin
+  // accounts commonly also carry cashier, pit and reception roles.
+  const isManagerView = hasExpenseManagementAccess(roles, managerOverride.active);
 
   // Default source per role (governs both the filter and new-row defaults).
   const roleDefaultSource: SourceVal = isCashierSlots ? "slots" : "live_game";
   // Cashier roles cannot pick a different source.
-  const sourceLocked = isCashierLive || isCashierSlots;
+  const sourceLocked = isExpenseSourceLocked(roles, managerOverride.active);
 
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
@@ -175,8 +177,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     } else if (sourceLocked && source !== roleDefaultSource) {
       setSource(roleDefaultSource);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [roleDefaultSource, setSource, source, sourceLocked]);
   const [showBarDetails, setShowBarDetails] = useState<boolean>(false);
   const [sort, setSort] = useSessionState<{ key: SortKey; dir: SortDir }>("sort", { key: "date", dir: "desc" });
   const toggleSort = (k: SortKey) =>
@@ -748,10 +749,10 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                       {!embedded && (
                         <td className="px-3 py-2 text-center">
                           <div className="inline-flex gap-1">
-                            {!exp.approved && isManager && (
+                            {!exp.approved && isManagerView && (
                               <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => approve.mutate(exp.id)} disabled={approve.isPending}>Approve</Button>
                             )}
-                            {isManager && exp.category !== "bar_charge" && (
+                            {isManagerView && exp.category !== "bar_charge" && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -771,7 +772,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                                 <Pencil className="w-3.5 h-3.5" />
                               </Button>
                             )}
-                            {isManager ? (
+                            {isManagerView ? (
                               exp.category !== "bar_charge" && (
                                 <Button
                                   variant="ghost"
