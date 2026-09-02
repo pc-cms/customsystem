@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, useCallback } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
-import { UserCheck, Camera, RotateCw, Upload, Trash2, Plus, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { UserCheck, Camera, RotateCw, Upload, Trash2, Plus, ArrowUpDown, ArrowUp, ArrowDown, Undo2 } from "lucide-react";
 import { parseStaffMasterXlsx, type ParsedStaffRow } from "@/lib/staff-master-import";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -15,6 +15,8 @@ import {
   useUpsertEmployee,
   usePatchEmployee,
   useDeleteEmployee,
+  useDeletedEmployees,
+  useRestoreEmployee,
   type Employee,
 } from "@/hooks/use-payroll";
 import { supabase } from "@/integrations/supabase/client";
@@ -267,6 +269,9 @@ const StaffMaster = () => {
   const patch = usePatchEmployee();
   const upsert = useUpsertEmployee();
   const del = useDeleteEmployee();
+  const [showDeleted, setShowDeleted] = useState(false);
+  const { data: deletedEmployees = [] } = useDeletedEmployees(canEdit);
+  const restore = useRestoreEmployee();
   const [reimporting, setReimporting] = useState(false);
   const [importPreview, setImportPreview] = useState<ParsedStaffRow[] | null>(null);
   const [wipeFirst, setWipeFirst] = useState(true);
@@ -438,6 +443,9 @@ const StaffMaster = () => {
             <Button variant="outline" size="sm" onClick={handleReimport} disabled={reimporting}>
               <RotateCw className={`w-4 h-4 mr-1 ${reimporting ? "animate-spin" : ""}`} /> Reimport
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowDeleted(true)}>
+              <Undo2 className="w-4 h-4 mr-1" /> Deleted ({deletedEmployees.length})
+            </Button>
           </>
         )}
 
@@ -515,6 +523,39 @@ const StaffMaster = () => {
           </div>
         )}
       </PageSection>
+
+      {showDeleted && (
+        <Dialog open onOpenChange={() => setShowDeleted(false)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Deleted employees</DialogTitle>
+            </DialogHeader>
+            {deletedEmployees.length === 0 ? (
+              <div className="text-sm text-muted-foreground py-6 text-center">No deleted employees</div>
+            ) : (
+              <div className="max-h-[60vh] overflow-auto divide-y divide-border">
+                {deletedEmployees.map((e) => (
+                  <div key={e.id} className="flex items-center justify-between gap-3 py-2">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate">{e.full_name}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">
+                        {[e.department, e.position].filter(Boolean).join(" · ") || "—"}
+                        {(e as any).deleted_at ? ` · deleted ${new Date((e as any).deleted_at).toLocaleDateString("en-GB")}` : ""}
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" disabled={restore.isPending} onClick={() => restore.mutate(e.id)}>
+                      <Undo2 className="w-3.5 h-3.5 mr-1" /> Restore
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="ghost" size="sm" onClick={() => setShowDeleted(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {importPreview && (
         <Dialog open onOpenChange={() => !importing && setImportPreview(null)}>
