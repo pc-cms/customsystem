@@ -80,3 +80,42 @@ describe("Available for Collection — manager bonus is reserved", () => {
   });
 });
 
+import { computeBalanceTotals } from "@/hooks/use-fin-balance";
+
+describe("computeBalanceTotals — Card Balance is not part of Expected", () => {
+  const baseSnap = {
+    starting_float: { grand_tzs: 10_000_000 },
+    incomes: {
+      live_game: 1_000_000,
+      slots: 2_000_000,
+      other: 0,
+      tips_bonus: 0,
+      movements: 0,
+      add_float: 0,
+      jp: 0,
+      card_balance: 5_000_000,
+      missed_chips: 0,
+      missed_cards: 0,
+    },
+    expenses_total: 500_000,
+    collections_total: 0,
+    transfers_total: 0,
+    wallets: [{ actual_tzs: 12_500_000 }],
+  } as any;
+
+  it("ignores card_balance in Expected", () => {
+    const { expected, actual, variance } = computeBalanceTotals(baseSnap);
+    expect(expected).toBe(10_000_000 + 1_000_000 + 2_000_000 - 500_000);
+    expect(actual).toBe(12_500_000);
+    expect(variance).toBe(actual - expected);
+  });
+
+  it("still works when card_balance is missing", () => {
+    const { expected } = computeBalanceTotals({
+      ...baseSnap,
+      incomes: { ...baseSnap.incomes, card_balance: undefined },
+    });
+    expect(expected).toBe(10_000_000 + 1_000_000 + 2_000_000 - 500_000);
+  });
+});
+
