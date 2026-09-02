@@ -49,6 +49,7 @@ import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import ClosingInboxDialog from "@/components/finances/ClosingInboxDialog";
+import WalletMovementDialog, { type MovementMode } from "@/components/finances/WalletMovementDialog";
 import { useClosingInboxPending } from "@/hooks/use-closing-inbox";
 import { type CountFreshnessRow } from "@/components/office/StaleCountsNotice";
 
@@ -446,9 +447,15 @@ export default function FinancesWalletsPage() {
   const [inboxOpen, setInboxOpen] = useState(false);
   const [inboxDate, setInboxDate] = useState<string | null>(null);
 
-  /* Money In / Money Out entry points were removed from Wallets (Stage 2A):
-     new movements are initiated through the existing Transactions mechanism.
-     Historical movements stay visible in the transactions log below. */
+  /* ===== wallet movement (transactional cash in/out/transfer) ===== */
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [moveMode, setMoveMode] = useState<MovementMode>("in");
+  const [moveWalletId, setMoveWalletId] = useState<string | undefined>(undefined);
+  const openMove = (mode: MovementMode, walletId?: string) => {
+    setMoveWalletId(walletId);
+    setMoveMode(mode);
+    setMoveOpen(true);
+  };
 
 
 
@@ -611,6 +618,26 @@ export default function FinancesWalletsPage() {
             <Inbox className="w-4 h-4" /> Closing Inbox · {pendingInboxes.length} pending
           </Button>
         )}
+        <Button
+          variant="secondary"
+          size="sm"
+          className="h-8"
+          disabled={countBlocked}
+          title={countBlocked ? `Month ${countMonthLabel} is not open for posting` : "Money in"}
+          onClick={() => openMove("in")}
+        >
+          <ArrowDownLeft className="w-4 h-4" /> Money In
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="h-8"
+          disabled={countBlocked}
+          title={countBlocked ? `Month ${countMonthLabel} is not open for posting` : "Money out"}
+          onClick={() => openMove("out")}
+        >
+          <ArrowUpRight className="w-4 h-4" /> Money Out
+        </Button>
         <Button size="sm" className="h-8" onClick={openNewWallet}>
           <Plus className="w-4 h-4" /> Add Wallet
         </Button>
@@ -940,6 +967,32 @@ export default function FinancesWalletsPage() {
                       </td>
 
                       <td className="text-right pr-3 whitespace-nowrap">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openMove("in", w.id);
+                          }}
+                          aria-label="Money in"
+                          title="Money in"
+                        >
+                          <ArrowDownLeft className="w-3.5 h-3.5 cms-amount-positive" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openMove("out", w.id);
+                          }}
+                          aria-label="Money out"
+                          title="Money out"
+                        >
+                          <ArrowUpRight className="w-3.5 h-3.5 cms-amount-negative" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1484,6 +1537,19 @@ export default function FinancesWalletsPage() {
       </ResponsiveDialog>
 
       <ClosingInboxDialog open={inboxOpen} onOpenChange={setInboxOpen} businessDate={inboxDate} />
+
+      <WalletMovementDialog
+        open={moveOpen}
+        onOpenChange={setMoveOpen}
+        wallets={wallets as any[]}
+        defaultWalletId={moveWalletId}
+        defaultMode={moveMode}
+        usdRate={usdRate}
+        {...(canCloseMonth ? {} : { minDate: range.from, maxDate: range.to })}
+        windowFrom={range.from}
+        windowTo={range.to}
+      />
+
 
 
       {canCloseMonth && (
