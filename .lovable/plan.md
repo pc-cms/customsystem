@@ -1,67 +1,38 @@
-# Card Balance в Expected: эффект отключения + разбор формулы
+# Убрать Card Balance из Expected (Wallets)
 
-## 1. Что будет, если убрать Card Balance из Expected
+## Что меняем
 
-Проверено по данным (read-only, ничего не менялось). Expected считается сейчас с Card Balance; ниже — Variance (Actual − Expected) сейчас и без Card Balance.
+Card Balance (`Σ fin_day_closing.players_card_balance`) перестаёт участвовать в расчёте Expected по кошелькам. Он остаётся видимым как справочная строка, но больше не влияет на Expected и Variance.
 
-### Август 2026
+## Изменения
 
-| Филиал | Card Balance | Variance сейчас | Variance без CB |
-|---|---:|---:|---:|
-| Arusha | +166 986 | −8 787 866 | −8 620 880 |
-| Dodoma | −4 173 380 | +1 257 992 | −2 915 388 |
-| Mbeya | +51 690 | 0 | +51 690 |
-| Mwanza | −100 246 | +127 274 000* | +127 173 754* |
+1. `src/hooks/use-fin-balance.ts` (`computeBalanceTotals`)
+   - удалить слагаемое `(incomes.card_balance || 0)` из формулы Expected;
+   - обновить комментарий канона: Card Balance — справочная величина, в Expected не входит.
 
-*Мванза за август: Actual 154 123 891 против Expected 26 849 891 — расхождение не связано с Card Balance (похоже на незакрытый/несведённый месяц, отдельная тема).
+2. `src/pages/finances/FinancesWalletsPage.tsx`
+   - строку `Card Balance (cash held in cage)` пометить как информационную (label `Card Balance (info, not in Expected)`), чтобы разбивка сходилась с итогом.
 
-Итого по августу (без Мванзы): Card Balance = −3 954 704; Variance суммарно сейчас −7 529 874, без CB −11 484 578.
+3. Тест-регрессия: добавить проверку в `src/test/`, что `computeBalanceTotals` игнорирует `incomes.card_balance`.
 
-### Сентябрь 2026 (на 02/09)
+4. Поднять версию `package.json` / `package-lock.json` до 1.3.724 после успешных typecheck/build.
 
-| Филиал | Card Balance | Variance сейчас | Variance без CB |
-|---|---:|---:|---:|
-| Arusha | 0 | −23 170 000 | −23 170 000 |
-| Dodoma | +100 370 | +145 389 | +245 759 |
-| Mbeya | +100 | 0 | +100 |
-| Mwanza | −1 340 | +85 347 | +84 007 |
+## Что НЕ трогаем
 
-Вывод: там, где месяц сведён «в ноль» (Mbeya август и сентябрь), удаление Card Balance ломает сходимость — появляется расхождение ровно на величину CB. Значит Card Balance сейчас стоит правильно: клиентские деньги физически лежат в кассе и попадают в пересчёт, поэтому Expected обязан их содержать. Убирать его не рекомендуется.
+- RPC `fin_balance_snapshot` — продолжает возвращать `incomes.card_balance` (используется для отображения и Monthly Report).
+- Monthly Report: `card_balance` там участвует в Deposits/Cash Position — вне этой задачи.
+- Boss TV / Day Closings / Slots-логика — без изменений.
+- Данные в БД не меняются.
 
-## 2. Полная формула Expected (что и откуда)
+## Ожидаемый эффект (по текущим данным)
 
-Источник: RPC `fin_balance_snapshot(casino, from, to)` + сборка в `src/hooks/use-fin-balance.ts:117-145`.
+| Филиал | Месяц | Variance сейчас | Станет |
+|---|---|---:|---:|
+| Arusha | Авг | −8 787 866 | −8 620 880 |
+| Dodoma | Авг | +1 257 992 | −2 915 388 |
+| Mbeya | Авг | 0 | +51 690 |
+| Dodoma | Сен | +145 389 | +245 759 |
+| Mbeya | Сен | 0 | +100 |
+| Mwanza | Сен | +85 347 | +84 007 |
 
-```text
-Expected =
-  + Starting Float        (basic float на начало периода: fin_month_opening / fin_wallets.starting_float_amount)
-  + Live Game             (Σ fin_day_closing.tables_result — результат столов за закрытые дни)
-  + Slots                 (Σ fin_day_closing.cashdesk_win — физический кэш слот-кассы, НЕ net_win)
-  + Other                 (fin_other_incomes: source='other' — прочие поступления/списания)
-  + Tips & Bonuses        (fin_other_incomes: source in ('tips','bonus') — не доход, но двигают кассу)
-  + Other movements       (fin_wallet_tx: external_income / manual движения вне прочих категорий)
-  + Add Float             (одобренные пополнения флота, считаются один раз)
-  + JP                    (fin_other_incomes: source='jp' — джекпоты, ин/аут)
-  + Card Balance          (Σ fin_day_closing.players_card_balance — деньги игроков в кассе, ровно один раз)
-  + Miss Chips            (недостача/излишек фишек)
-  + Miss Cards            (недостача/излишек карт)
-  − Expenses              (одобренные расходы с привязкой к кошельку)
-  − Collections           (изъятия владельца / CAPEX-выводы)
-  − Transfers             (inter-casino переводы и money change — деньги ушли из филиала)
-
-Actual   = Σ физических пересчётов кошельков (wallets[].actual_tzs); непосчитанный кошелёк = 0
-Variance = Actual − Expected
-```
-
-Важно: `commission` (напр. Додома −4 266 000) приходит внутрь `other`/`movements` в зависимости от источника записи; ADJ-транзакции меняют только Actual и в Expected не входят.
-
-## 3. Что предлагается сделать
-
-Вариант по умолчанию — ничего не менять в расчёте (данные подтверждают корректность Card Balance), а вместо этого:
-
-1. Добавить в Wallets тултип у строки Card Balance: «Σ players_card_balance из Day Closings, входит в Expected один раз».
-2. Разобрать отдельно аномалию Мванзы за август (Actual 154 млн против Expected 26,8 млн) — вероятно, кошельки посчитаны, но месяц не сведён.
-
-Если всё же нужно убрать Card Balance из Expected — это правка одной строки в `src/hooks/use-fin-balance.ts` (и симметрично в RPC/Monthly Report для согласованности), но тогда Mbeya и другие сведённые месяцы перестанут сходиться в ноль.
-
-Скажи, какой из вариантов делаем.
+Деплоя не будет — только preview.
