@@ -49,6 +49,7 @@ import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import ClosingInboxDialog from "@/components/finances/ClosingInboxDialog";
+import WalletMovementDialog, { type MovementMode } from "@/components/finances/WalletMovementDialog";
 import { useClosingInboxPending } from "@/hooks/use-closing-inbox";
 import { type CountFreshnessRow } from "@/components/office/StaleCountsNotice";
 
