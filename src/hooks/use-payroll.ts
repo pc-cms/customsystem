@@ -74,7 +74,7 @@ export const useEmployees = () => {
   return useQuery({
     queryKey: ["employees", activeCasinoId],
     queryFn: async (): Promise<Employee[]> => {
-      let q = supabase.from("employees").select("*, employee_bank_accounts(*)").order("full_name");
+      let q = supabase.from("employees").select("*, employee_bank_accounts(*)").is("deleted_at", null).order("full_name");
       if (activeCasinoId) q = q.eq("casino_id", activeCasinoId);
       const { data, error } = await q;
       if (error) throw error;
@@ -210,7 +210,7 @@ export const usePatchEmployee = () => {
   });
 };
 
-/** Hard-delete an employee. Payroll history stays (employee_id is set NULL). */
+/** Soft-delete an employee. All history is preserved and the record can be restored. */
 export const useDeleteEmployee = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -219,6 +219,42 @@ export const useDeleteEmployee = () => {
       if (error) throw error;
     },
     onSuccess: () => { invalidateEmployeeCaches(qc); toast.success("Employee removed"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+};
+
+/** Employees that were soft-deleted in the active casino. */
+export const useDeletedEmployees = (enabled = true) => {
+  const { activeCasinoId } = useCasino();
+  return useQuery({
+    queryKey: ["employees-deleted", activeCasinoId],
+    queryFn: async (): Promise<Employee[]> => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("*")
+        .eq("casino_id", activeCasinoId!)
+        .not("deleted_at", "is", null)
+        .order("deleted_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as unknown as Employee[];
+    },
+    enabled: enabled && !!activeCasinoId,
+  });
+};
+
+/** Restore a soft-deleted employee. */
+export const useRestoreEmployee = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("hr_restore_employee", { _employee_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateEmployeeCaches(qc);
+      qc.invalidateQueries({ queryKey: ["employees-deleted"] });
+      toast.success("Employee restored");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 };
