@@ -258,7 +258,11 @@ const StaffMaster = () => {
   const { roles } = useAuth();
   const { activeCasinoId } = useCasino();
   const qc = useQueryClient();
-  const canEdit = roles.includes("hr") || roles.includes("manager") || roles.includes("super_admin");
+  const canEdit =
+    roles.includes("hr") ||
+    roles.includes("manager") ||
+    roles.includes("shift_manager") ||
+    roles.includes("super_admin");
   const { data: employees = [], isLoading } = useEmployees();
   const patch = usePatchEmployee();
   const upsert = useUpsertEmployee();
