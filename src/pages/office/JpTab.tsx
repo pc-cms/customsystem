@@ -272,7 +272,33 @@ export default function JpTab() {
           columns={columns}
           rowKey={(r) => r.id}
           loading={isLoading}
+          footerRows={[
+            {
+              key: "total",
+              className: "font-bold bg-muted/40 border-t border-border",
+              cell: (col, index) => {
+                if (index === 0) return "Total";
+                if (col.key === "amount") {
+                  const neg = totals.net < 0;
+                  return (
+                    <span
+                      className={cn(
+                        "font-mono tabular-nums",
+                        neg ? "cms-amount-negative" : "cms-amount-positive",
+                      )}
+                    >
+                      {neg ? "−" : "+"}
+                      {formatNumberSpaces(Math.abs(totals.net))}{" "}
+                      <span className="text-[10px] text-muted-foreground">TZS</span>
+                    </span>
+                  );
+                }
+                return null;
+              },
+            },
+          ]}
           empty={
+
             <div className="text-sm text-muted-foreground text-center py-10">
               No JP entries in this period.
             </div>
