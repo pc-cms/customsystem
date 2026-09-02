@@ -446,9 +446,15 @@ export default function FinancesWalletsPage() {
   const [inboxOpen, setInboxOpen] = useState(false);
   const [inboxDate, setInboxDate] = useState<string | null>(null);
 
-  /* Money In / Money Out entry points were removed from Wallets (Stage 2A):
-     new movements are initiated through the existing Transactions mechanism.
-     Historical movements stay visible in the transactions log below. */
+  /* ===== wallet movement (transactional cash in/out/transfer) ===== */
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [moveMode, setMoveMode] = useState<MovementMode>("in");
+  const [moveWalletId, setMoveWalletId] = useState<string | undefined>(undefined);
+  const openMove = (mode: MovementMode, walletId?: string) => {
+    setMoveWalletId(walletId);
+    setMoveMode(mode);
+    setMoveOpen(true);
+  };
 
 
 
