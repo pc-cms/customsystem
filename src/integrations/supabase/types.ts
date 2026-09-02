@@ -3609,6 +3609,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           dealer_category: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           department: string
           disciplinary_acknowledged: boolean
           employment_date: string | null
@@ -3654,6 +3656,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           dealer_category?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           department?: string
           disciplinary_acknowledged?: boolean
           employment_date?: string | null
@@ -3699,6 +3703,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           dealer_category?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           department?: string
           disciplinary_acknowledged?: boolean
           employment_date?: string | null
@@ -13829,6 +13835,10 @@ export type Database = {
         Returns: boolean
       }
       hr_delete_employee: { Args: { _employee_id: string }; Returns: undefined }
+      hr_restore_employee: {
+        Args: { _employee_id: string }
+        Returns: undefined
+      }
       is_manager_op: { Args: { _uid: string }; Returns: boolean }
       is_promo_chip: { Args: { p_chip_color_id: string }; Returns: boolean }
       is_super_admin: { Args: { _uid: string }; Returns: boolean }
