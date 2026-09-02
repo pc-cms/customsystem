@@ -445,7 +445,9 @@ export default function CollectionsTab() {
         </div>
       }
     />
-  );
+    );
+  };
+
 
   return (
     <PageShell>
