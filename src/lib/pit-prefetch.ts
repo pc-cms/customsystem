@@ -48,7 +48,7 @@ export async function prefetchPitData(qc: QueryClient, casinoId: string) {
         // Phase 3: dealers = employees WHERE department='Pit'
         const { data, error } = await supabase
           .from("employees").select("*")
-          .eq("casino_id", casinoId).eq("department", "Pit").order("full_name");
+          .eq("casino_id", casinoId).is("deleted_at", null).eq("department", "Pit").order("full_name");
         if (error) throw error;
         const raw = data ?? [];
         return disambiguateNames(raw.map(mapEmployeeToDealer), raw);

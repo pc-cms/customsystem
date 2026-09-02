@@ -109,7 +109,7 @@ function modulePrefetchTasks(
           queryFn: async () => {
             const { data, error } = await supabase
               .from("employees").select("*")
-              .eq("casino_id", casinoId).eq("department", "Pit").order("full_name");
+              .eq("casino_id", casinoId).is("deleted_at", null).eq("department", "Pit").order("full_name");
             if (error) throw error;
             const raw = data ?? [];
             return disambiguateNames(raw.map(mapEmployeeToDealer), raw);
@@ -311,7 +311,7 @@ function modulePrefetchTasks(
           queryFn: async () => {
             const { data, error } = await supabase
               .from("employees").select("*")
-              .eq("casino_id", casinoId).neq("department", "Pit")
+              .eq("casino_id", casinoId).is("deleted_at", null).neq("department", "Pit")
               .order("department").order("full_name");
             if (error) throw error;
             return normalizeEmployeesToStaff(data ?? []);

@@ -74,7 +74,7 @@ export const useEmployees = () => {
   return useQuery({
     queryKey: ["employees", activeCasinoId],
     queryFn: async (): Promise<Employee[]> => {
-      let q = supabase.from("employees").select("*, employee_bank_accounts(*)").order("full_name");
+      let q = supabase.from("employees").select("*, employee_bank_accounts(*)").is("deleted_at", null).order("full_name");
       if (activeCasinoId) q = q.eq("casino_id", activeCasinoId);
       const { data, error } = await q;
       if (error) throw error;

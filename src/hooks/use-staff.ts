@@ -221,6 +221,7 @@ export const useStaffMembers = () => {
         .from("employees")
         .select("*")
         .eq("casino_id", casinoId!)
+        .is("deleted_at", null)
         .neq("department", "Pit")
         .order("department")
         .order("full_name");

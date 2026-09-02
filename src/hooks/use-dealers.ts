@@ -133,6 +133,7 @@ export const useDealers = () => {
         .from("employees")
         .select("*")
         .eq("casino_id", casinoId)
+        .is("deleted_at", null)
         .eq("department", "Pit")
         .order("full_name");
       if (error) throw error;
