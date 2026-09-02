@@ -130,11 +130,6 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
     (incomes.add_float || 0) +
 
     (incomes.jp || 0) +
-    // Card Balance = client money physically held in the cage. It is not part of
-    // CashDesk Win, so it is added here exactly ONCE.
-    // Verified (Aug, cashdesk-based): with Card Mbeya −1 460; without it +18 940.
-
-    (incomes.card_balance || 0) +
 
     (incomes.missed_chips || 0) +
 
