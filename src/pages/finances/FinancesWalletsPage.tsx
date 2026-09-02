@@ -1538,6 +1538,19 @@ export default function FinancesWalletsPage() {
 
       <ClosingInboxDialog open={inboxOpen} onOpenChange={setInboxOpen} businessDate={inboxDate} />
 
+      <WalletMovementDialog
+        open={moveOpen}
+        onOpenChange={setMoveOpen}
+        wallets={wallets as any[]}
+        defaultWalletId={moveWalletId}
+        defaultMode={moveMode}
+        usdRate={usdRate}
+        {...(canCloseMonth ? {} : { minDate: range.from, maxDate: range.to })}
+        windowFrom={range.from}
+        windowTo={range.to}
+      />
+
+
 
       {canCloseMonth && (
         <ResponsiveDialog
