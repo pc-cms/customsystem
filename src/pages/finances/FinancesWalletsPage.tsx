@@ -618,26 +618,6 @@ export default function FinancesWalletsPage() {
             <Inbox className="w-4 h-4" /> Closing Inbox · {pendingInboxes.length} pending
           </Button>
         )}
-        <Button
-          variant="secondary"
-          size="sm"
-          className="h-8"
-          disabled={countBlocked}
-          title={countBlocked ? `Month ${countMonthLabel} is not open for posting` : "Money in"}
-          onClick={() => openMove("in")}
-        >
-          <ArrowDownLeft className="w-4 h-4" /> Money In
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          className="h-8"
-          disabled={countBlocked}
-          title={countBlocked ? `Month ${countMonthLabel} is not open for posting` : "Money out"}
-          onClick={() => openMove("out")}
-        >
-          <ArrowUpRight className="w-4 h-4" /> Money Out
-        </Button>
         <Button size="sm" className="h-8" onClick={openNewWallet}>
           <Plus className="w-4 h-4" /> Add Wallet
         </Button>
