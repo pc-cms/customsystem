@@ -88,6 +88,17 @@ export default function TipsBonusTab({ belowHeader }: { belowHeader?: ReactNode 
     return { ...acc, net: acc.tips.net + acc.bonus.net };
   }, [allRows]);
 
+  /** Net of the CURRENTLY VISIBLE rows (in TZS) — used by the table footer. */
+  const visibleNet = useMemo(
+    () =>
+      (rows as OtherIncomeRow[]).reduce((s, r) => {
+        if (r.reverses_id || r.reversed_by_id) return s;
+        return s + Number(r.amount || 0) * Number(r.fx_rate || 1);
+      }, 0),
+    [rows],
+  );
+
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [mode, setMode] = useState<"in" | "out">("in");
