@@ -25,12 +25,11 @@
 
 Итоговое Expected по сумме не меняется — только разложение по строкам становится явным.
 
-### 2. Четыре вкладки
+### 2. Вкладки (новых не создаём)
 
-- **Collections** — только `bucket = collection`; Other Income с source `collection` показывается строкой со знаком «+», а не скрытым вычетом.
-- **CAPEX** (новая) — только `bucket = capex`, тот же вид/форма, что у Collections (ввод с «+» и «−»).
-- **Expenses** — только `bucket = expense` (без изменений по составу).
-- **Transfers** — `bucket = transfer` (Money Change, Inter-Casino Transfer Out) плюс межфилиальные переводы; сюда же остаются комиссии/фии/Add Float, как сейчас.
+- **Collections** — показывает `bucket = collection` И `bucket = capex` в одном списке. У каждой строки бейдж (`Collection` / `CAPEX`), сверху отдельная плитка-итог CAPEX рядом с плиткой Collections, плюс фильтр по бейджу. Other Income с source `collection` показывается строкой со знаком «+», а не скрытым вычетом.
+- **Expenses** — существующая вкладка, состав не меняем, ничего не дублируем. Из выбора категории при создании/редактировании расхода убираем `CAPEX`, `Collection` и `Inter-Casino Transfer` (всё, где `bucket <> 'expense'`), с валидацией на сохранении.
+- **Transfers / Inter-Casino** — `bucket = transfer` (Money Change, Inter-Casino Transfer Out) плюс межфилиальные переводы; комиссии/фии/Add Float остаются как сейчас.
 
 ### 3. Monthly Report
 
@@ -38,7 +37,8 @@ Expected показывает отдельными строками: `− Expens
 
 ### 4. Проверка
 
-Сверить Arusha за август: сумма строк Expected должна дать прежнее значение, а Collections + CAPEX на вкладках — совпасть с соответствующими строками отчёта.
+Сверить Arusha за август: сумма строк Expected должна дать прежнее значение, а Collections и CAPEX на вкладке Collections — совпасть с соответствующими строками отчёта.
+
 
 ## Про период (проверено, менять не нужно)
 
