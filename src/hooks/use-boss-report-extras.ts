@@ -76,8 +76,12 @@ export const useDeleteBossReportExtra = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.rpc("fin_unplanned_delete", { p_id: id });
-      if (error) throw new Error(error.message || "Delete failed");
+      // Unpaid rows: finance may delete directly (allowed by tg_unplanned_no_delete).
+      const { error } = await supabase.from("boss_report_extras").delete().eq("id", id);
+      if (!error) return;
+      // Paid / protected rows: go through the finance function (refunds the wallet).
+      const { error: rpcError } = await supabase.rpc("fin_unplanned_delete", { p_id: id });
+      if (rpcError) throw new Error(rpcError.message || error.message || "Delete failed");
     },
 
     onSuccess: () => {
