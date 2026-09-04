@@ -149,9 +149,21 @@ export default function JpTab() {
       key: "type",
       header: "Type",
       accessor: (r) => (
-        <div className="flex flex-col leading-tight">
-          <span className="text-xs uppercase tracking-wider">
-            {isStorno(r) ? "Storno" : Number(r.amount) < 0 ? "Payout" : "Contribution"}
+        <div
+          className="flex flex-col leading-tight"
+          title={
+            isCorrection(r)
+              ? "Automatic ACE reconciliation: brings the day's JP total to the figure reported by the collector."
+              : undefined
+          }
+        >
+          <span
+            className={cn(
+              "text-xs uppercase tracking-wider",
+              isCorrection(r) && !isStorno(r) && !isCancelled(r) && "text-muted-foreground",
+            )}
+          >
+            {isStorno(r) ? "Storno" : isCorrection(r) ? "Correction" : Number(r.amount) < 0 ? "Payout" : "Contribution"}
           </span>
           {(isStorno(r) || isCancelled(r)) && (
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -165,15 +177,15 @@ export default function JpTab() {
     {
       key: "origin",
       header: "Entered in",
-      accessor: (r) => (
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          {String(r.note || "").includes("Day Closings")
-            ? "Day Closings"
-            : String(r.note || "").includes("Close Day")
-              ? "Close Day"
-              : "JP tab"}
-        </span>
-      ),
+      accessor: (r) => {
+        const note = String(r.note || "");
+        const fromAce = note.includes("ACE") || note.includes("Close Day") || note.includes("Day Closings");
+        return (
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            {fromAce ? "ACE" : "Manual"}
+          </span>
+        );
+      },
       style: { width: 120 },
     },
     {
