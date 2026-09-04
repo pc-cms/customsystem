@@ -673,6 +673,8 @@ export default function FinancesWalletsPage() {
             <BreakdownRow label="− Expenses" v={snap?.expenses_total || 0} negative />
             {/* Owner withdrawal — cash physically leaves the casino, subtracted from Expected */}
             <BreakdownRow label="− Collections (owner withdrawal)" v={snap?.collections_total || 0} negative />
+            {/* CAPEX — capital spend, shown separately but still leaves the wallets */}
+            <BreakdownRow label="− CAPEX" v={snap?.capex_total || 0} negative />
             {/* Transfers out — cash leaves this casino's wallets, subtracted from Expected */}
             <BreakdownRow label="− Transfers" v={snap?.transfers_total || 0} negative />
             {/* No "= Expected" row here — the Expected tile in Grand Total is the single display. */}

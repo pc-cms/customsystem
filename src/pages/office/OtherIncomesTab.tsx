@@ -69,8 +69,13 @@ export default function OtherIncomesTab() {
   const deleteIncome = useDeleteOtherIncome();
   const updateIncome = useUpdateOtherIncome();
 
+  // Transactions hold real incomes only — Collection / CAPEX / Transfer categories
+  // are entered on the Collections tab and in Inter-Casino, never here.
   const incomeCats = useMemo(
-    () => (categories || []).filter((c: any) => c.is_income),
+    () =>
+      (categories || []).filter(
+        (c: any) => c.is_income && (c.bucket || "expense") === "expense",
+      ),
     [categories],
   );
 

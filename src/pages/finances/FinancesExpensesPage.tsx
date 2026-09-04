@@ -327,7 +327,7 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
             <Select value={form.fin_category_id} onValueChange={(v) => setForm({ ...form, fin_category_id: v })}>
               <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
               <SelectContent className="max-h-80">
-                {categories.filter((c: any) => !c.is_income).map((c: any) => (
+                {categories.filter((c: any) => !c.is_income && (c.bucket || "expense") === "expense").map((c: any) => (
                   <SelectItem key={c.id} value={c.id}>{c.group_name} · {c.name}</SelectItem>
                 ))}
               </SelectContent>
