@@ -4369,6 +4369,7 @@ export type Database = {
       }
       fin_categories: {
         Row: {
+          bucket: string
           created_at: string
           group_code: string
           group_name: string
@@ -4381,6 +4382,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bucket?: string
           created_at?: string
           group_code: string
           group_name: string
@@ -4393,6 +4395,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bucket?: string
           created_at?: string
           group_code?: string
           group_name?: string

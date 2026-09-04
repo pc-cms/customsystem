@@ -45,6 +45,8 @@ type Row = {
   origin: "entry" | "expense";
   business_date: string;
   category: string;
+  /** Explicit classification from fin_categories.bucket. */
+  bucket: "collection" | "capex";
   wallet: string;
   currency: string;
   /** Signed: negative = collected (money out), positive = returned (money in). */
@@ -92,19 +94,27 @@ export default function CollectionsTab() {
   const editExpense = useEditExpense();
   const qc = useQueryClient();
 
-  /** Collections-group categories (Collection, Money Change…) — CAPEX lives apart. */
-  const isCapex = (name?: string | null) => (name || "").trim().toUpperCase() === "CAPEX";
+  /**
+   * Collections tab shows BOTH buckets: `collection` and `capex`.
+   * Classification comes from fin_categories.bucket — never from the name.
+   */
+  const bucketOf = (name?: string | null): "collection" | "capex" => {
+    const cat = (categories as any[]).find(
+      (c) => (c.name || "").trim().toUpperCase() === (name || "").trim().toUpperCase(),
+    );
+    return cat?.bucket === "capex" ? "capex" : "collection";
+  };
   const collectionCats = useMemo(
     () =>
       (categories as any[]).filter(
-        (c) => c.group_code === "collections" && c.is_active && !isCapex(c.name),
+        (c) => c.is_active && (c.bucket === "collection" || c.bucket === "capex"),
       ),
     [categories],
   );
   const collectionCatIds = useMemo(
     () =>
       (categories as any[])
-        .filter((c) => c.group_code === "collections" && !isCapex(c.name))
+        .filter((c) => c.bucket === "collection" || c.bucket === "capex")
         .map((c) => c.id),
     [categories],
   );
@@ -133,15 +143,15 @@ export default function CollectionsTab() {
   });
 
   const [walletFilter, setWalletFilter] = useState<string>("all");
+  const [bucketFilter, setBucketFilter] = useState<"all" | "collection" | "capex">("all");
 
   const allRows: Row[] = useMemo(() => {
-    const entries: Row[] = (allEntries as OtherIncomeRow[])
-      .filter((r) => !isCapex(r.fin_categories?.name))
-      .map((r) => ({
+    const entries: Row[] = (allEntries as OtherIncomeRow[]).map((r) => ({
       id: r.id,
       origin: "entry",
       business_date: r.business_date,
       category: r.fin_categories?.name || "Collection",
+      bucket: bucketOf(r.fin_categories?.name),
       wallet: r.fin_wallets?.name || "—",
       currency: r.currency,
       amount: Number(r.amount || 0),
@@ -156,6 +166,7 @@ export default function CollectionsTab() {
       origin: "expense",
       business_date: e.business_date,
       category: e.fin_categories?.name || "—",
+      bucket: bucketOf(e.fin_categories?.name),
       wallet: e.fin_wallets?.name || "—",
       currency: e.currency || "TZS",
       amount: -Number(e.amount || 0),
@@ -165,15 +176,16 @@ export default function CollectionsTab() {
       expense_currency: (e.currency || "TZS") as any,
     }));
     return [...entries, ...old].sort((a, b) => b.business_date.localeCompare(a.business_date));
-  }, [allEntries, legacy]);
+  }, [allEntries, legacy, categories]);
 
   const rows = useMemo(
     () =>
       allRows.filter((r) => {
         if (walletFilter !== "all" && r.wallet !== walletFilter) return false;
+        if (bucketFilter !== "all" && r.bucket !== bucketFilter) return false;
         return true;
       }),
-    [allRows, walletFilter],
+    [allRows, walletFilter, bucketFilter],
   );
 
   /** Distinct values for the filter selectors (from the loaded period). */
@@ -184,6 +196,15 @@ export default function CollectionsTab() {
 
   /** Totals in TZS of the CURRENT selection — collected (OUT), returned (IN), net. */
   const totals = useMemo(() => sumRows(rows), [rows]);
+
+  /** CAPEX total of the period (net, TZS) — shown as its own tile. */
+  const capexTotal = useMemo(
+    () =>
+      allRows
+        .filter((r) => r.bucket === "capex")
+        .reduce((s, r) => s + Math.abs(Number(r.amount_tzs || 0)) * (r.amount_tzs < 0 ? 1 : -1), 0),
+    [allRows],
+  );
 
 
 
@@ -286,6 +307,25 @@ export default function CollectionsTab() {
       },
       sortValue: (r) => (r.amount < 0 ? "Collected" : "Returned"),
       style: { width: 110 },
+    },
+    {
+      key: "type",
+      header: "Type",
+      accessor: (r) => (
+        <span
+          className={cn(
+            "text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border",
+            r.bucket === "capex"
+              ? "border-accent/40 bg-accent/10 text-accent-foreground"
+              : "border-border bg-muted/40 text-muted-foreground",
+          )}
+          title={r.bucket === "capex" ? "Capital expenditure" : "Owner collection"}
+        >
+          {r.bucket === "capex" ? "CAPEX" : "Collection"}
+        </span>
+      ),
+      sortValue: (r) => r.bucket,
+      style: { width: 100 },
     },
     {
       key: "category",
@@ -460,9 +500,10 @@ export default function CollectionsTab() {
       )}
 
       <div className="grid gap-3 lg:grid-cols-4">
-        <div className="grid grid-cols-2 gap-3 lg:col-span-3">
+        <div className="grid grid-cols-3 gap-3 lg:col-span-3">
           <TotalCard label="Collected (OUT)" value={totals.outSum} />
           <TotalCard label="Returned (IN)" value={totals.inSum} />
+          <TotalCard label="CAPEX" value={capexTotal} />
         </div>
         <TotalCard
           label="Net Collected"
@@ -473,6 +514,16 @@ export default function CollectionsTab() {
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5">
+        <Select value={bucketFilter} onValueChange={(v) => setBucketFilter(v as any)}>
+          <SelectTrigger className="h-7 w-[150px] text-xs">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All types</SelectItem>
+            <SelectItem value="collection">Collection</SelectItem>
+            <SelectItem value="capex">CAPEX</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={walletFilter} onValueChange={setWalletFilter}>
           <SelectTrigger className="h-7 w-[170px] text-xs">
             <SelectValue placeholder="Wallet" />
@@ -487,6 +538,7 @@ export default function CollectionsTab() {
           </SelectContent>
         </Select>
       </div>
+
 
       <PageSection card={false}>{table(rows)}</PageSection>
 

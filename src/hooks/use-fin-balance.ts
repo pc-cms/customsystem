@@ -63,6 +63,8 @@ export type BalanceSnapshot = {
   };
   expenses_total: number;
   collections_total: number;
+  /** CAPEX — separate line, still cash leaving the casino (was inside collections). */
+  capex_total?: number;
   transfers_total: number;
 
   /** Day-by-day audit rows (only days with movement). */
@@ -79,6 +81,7 @@ export type BalanceSnapshot = {
     jp?: number;
     expenses: number;
     collections: number;
+    capex?: number;
     /** Approved cage (Live/Slots) expenses of that day. */
     cage_expenses?: number;
     /** True when every cage expense of that day is already booked on a wallet. */
@@ -137,6 +140,7 @@ export const computeBalanceTotals = (s: BalanceSnapshot | undefined) => {
 
     (s.expenses_total || 0) -
     (s.collections_total || 0) -
+    (s.capex_total || 0) -
     (s.transfers_total || 0);
   // Actual = physical counts ONLY. Wallets that were never counted contribute 0 —
   // the book/ledger replay is never used as a fallback.
