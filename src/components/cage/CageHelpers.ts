@@ -15,6 +15,8 @@ export const BANK_CHANNELS = [
   { key: "CRDB_USD", bank: "CRDB", currency: "USD" },
   { key: "NBC_TZS", bank: "NBC", currency: "TZS" },
   { key: "NBC_USD", bank: "NBC", currency: "USD" },
+  { key: "SELCOM_TZS", bank: "Selcom", currency: "TZS" },
+  { key: "SELCOM_USD", bank: "Selcom", currency: "USD" },
 ] as const;
 
 export type BankChannelEntry = { in: number; out: number; final?: number };
