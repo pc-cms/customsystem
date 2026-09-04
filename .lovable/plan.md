@@ -1,54 +1,52 @@
-# Arusha, август — Expected должен совпадать с тем, что видно во вкладках
+# Office: явные бакеты категорий и вкладка CAPEX
 
-## Проверка сделана, расхождение найдено
+## Что сейчас (проверено)
 
-Формула Expected считает верно, но её строки собраны не из тех же наборов, что показывают вкладки. Отсюда ощущение «в списке одно, в Expected другое».
+- В `fin_categories` группа `collections` содержит 4 категории: `Collection`, `CAPEX`, `Money Change`, `Inter-Casino Transfer Out` (неактивна).
+- Классификация делается текстовым сравнением в двух местах:
+  - в БД-функции `fin_balance_snapshot` — через `ILIKE '%collection%'`, `ILIKE '%transfer%'`, `ILIKE '%money change%'`;
+  - на фронте в `CollectionsTab.tsx` — через `isCapex(name) === 'CAPEX'`.
+- Из-за этого CAPEX вычитается внутри `collections_total` в Expected, но не виден ни в Collections, ни в Expenses.
+- Вкладки Office сейчас: Day Closings, Bank, Cashless, JP, Transactions, Wallets, Report, Collections, Other Incomes, Rates, Inter-Casino, Import Statement.
 
-### Collections
+## Что сделаем
 
-| Что | TZS |
-|---|---:|
-| Expenses категории Collection (3 шт.) | 32 700 000 |
-| Expenses категории CAPEX (8 шт.) | 5 269 736 |
-| − Other Income источника collection (5 шт.) | −2 792 818 |
-| **Collections в Expected** | **35 176 918** |
+### 1. Одно явное поле классификации в БД
 
-Вкладка Office → Collections показывает только первую и третью строки — CAPEX из неё исключён явно. Поэтому вкладка показывает 29 907 182, а Expected вычитает 35 176 918.
+Добавить в `fin_categories` колонку `bucket text` со значениями `expense | collection | capex | transfer` (по умолчанию `expense`).
 
-CAPEX при этом не дублируется: из `expenses_total` он исключён. Но он не виден ни в Collections, ни в Expenses — «невидимая» строка на 5 269 736.
+Проставить: `Collection → collection`, `CAPEX → capex`, `Money Change → transfer`, `Inter-Casino Transfer Out → transfer`, всё остальное → `expense`.
 
-### Прочие расхождения того же рода
+`fin_balance_snapshot` переписать на чтение `bucket` вместо `ILIKE`, и вернуть отдельно:
+- `expenses_total` (bucket = expense)
+- `collections_total` (bucket = collection, минус Other Income с source `collection`)
+- `capex_total` (bucket = capex) — отдельной строкой
+- `transfers_total` (bucket = transfer + принятые межфилиальные переводы)
 
-- Money Change и Transfer внутри группы collections уходят не в Collections, а в Transfers. В августе таких записей нет, но правило действует и будет расходиться на других периодах.
-- Other Income источника collection вычитается внутри Collections, а не показывается как приход.
+Итоговое Expected по сумме не меняется — только разложение по строкам становится явным.
 
-## Правило, которое закрепляем
+### 2. Четыре вкладки
 
-Каждая строка Expected должна быть кликабельным набором записей, и сумма набора обязана совпадать со строкой Expected до копейки. Никаких скрытых включений и никаких исключений «по имени категории», о которых не знает вкладка.
+- **Collections** — только `bucket = collection`; Other Income с source `collection` показывается строкой со знаком «+», а не скрытым вычетом.
+- **CAPEX** (новая) — только `bucket = capex`, тот же вид/форма, что у Collections (ввод с «+» и «−»).
+- **Expenses** — только `bucket = expense` (без изменений по составу).
+- **Transfers** — `bucket = transfer` (Money Change, Inter-Casino Transfer Out) плюс межфилиальные переводы; сюда же остаются комиссии/фии/Add Float, как сейчас.
 
-## Что делаем (только Arusha, потом распространим)
+### 3. Monthly Report
 
-1. **Собрать один источник истины для классификации.** Вынести правила «что есть Collection / CAPEX / Transfer / Expense» в одно место и использовать его и в `fin_balance_snapshot`, и во вкладках, вместо текущего сопоставления по `ILIKE '%collection%'` в SQL и отдельного `isCapex` в интерфейсе.
-2. **Развести CAPEX в отдельную строку Expected.** CAPEX перестаёт молча сидеть внутри Collections и получает собственную строку, как уже сделано в Monthly Report. Сумма Expected при этом не меняется.
-3. **Добавить вкладку/фильтр CAPEX** в Office, чтобы эти 8 записей были видны и редактируемы.
-4. **Показать Other Income источника collection** внутри вкладки Collections как приходы со знаком плюс, а не как скрытый вычет.
-5. **Сделать каждую строку Expected раскрываемой**: клик по строке открывает список именно тех записей, которые в неё вошли, с итогом.
-6. **Проверить сходимость**: для Arusha за август каждая строка Expected = сумме записей своей вкладки.
+Expected показывает отдельными строками: `− Expenses`, `− Collections`, `− CAPEX`, `± Transfers`. Строки раскрываемые — по клику список записей, из которых сложилась сумма (дата, категория, описание, сумма).
 
-## Что НЕ меняется
+### 4. Проверка
 
-- Сама формула Expected и итоговое значение 49 172 991.
-- Классификация уже внесённых записей.
-- Другие филиалы — Dodoma, Mwanza, Mbeya не трогаем.
-- Ledger кошельков по-прежнему не влияет на Expected.
+Сверить Arusha за август: сумма строк Expected должна дать прежнее значение, а Collections + CAPEX на вкладках — совпасть с соответствующими строками отчёта.
 
-## Канон (подтверждено, не меняем)
+## Про период (проверено, менять не нужно)
 
-- Actual всегда берётся на момент «сейчас» — последний физический пересчёт кошелька, даже если он датирован позже конца периода. Expected обрезан концом периода. Это правильное поведение, менять его нельзя.
+В `fin_balance_snapshot` физический пересчёт кошелька (`cash_count_snapshots`) уже отбирается строго внутри окна периода (`business_date BETWEEN p_period_start AND p_period_end`), без переноса между месяцами, а стартовый флоат берётся на первый день окна. То есть правка кошелька 15 сентября с датой в августе меняет Actual только в августе и не влияет на сентябрь, и наоборот. Это поведение сохраняем как есть.
 
-## Остаётся открытым (обсудим отдельно, в этот объём не входит)
+## Технические детали
 
-
-- Две записи Other Income «Remaining balance» (241 847 TZS и 560,33 USD) выглядят как остатки кошельков, записанные доходом.
-- «From Last Month» 7 503 000 — возможный дубль Opening Float.
-- Транзитные расчёты Dodoma внутри Other Income Arusha.
+- Миграция: `ALTER TABLE public.fin_categories ADD COLUMN bucket text NOT NULL DEFAULT 'expense'` + CHECK на список значений + UPDATE существующих строк.
+- `CREATE OR REPLACE FUNCTION public.fin_balance_snapshot(...)` — замена трёх `FILTER (... ILIKE ...)` на `FILTER (WHERE fc.bucket = ...)`, добавление `capex_total` в возвращаемый JSON и в дневную разбивку `daily`.
+- Фронт: новый `src/pages/office/CapexTab.tsx` (копия CollectionsTab с фильтром по bucket), регистрация вкладки в `OfficePage.tsx`, удаление хардкода `isCapex` из `CollectionsTab.tsx`, раскрываемые строки в Monthly Report.
+- Область: только Office/Finance; формула Expected по сумме не меняется; история Money In/Out не переклассифицируется.
