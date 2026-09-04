@@ -56,19 +56,23 @@ export default function JpTab() {
   /** A row is "live" only if it is not a storno and has not been cancelled. */
   const isCancelled = (r: OtherIncomeRow) => !!r.reversed_by_id;
   const isStorno = (r: OtherIncomeRow) => !!r.reverses_id;
+  /** Automatic ACE reconciliation delta — not a real jackpot payout. */
+  const isCorrection = (r: OtherIncomeRow) => String(r.note || "").includes("ACE correction");
 
   const allRows = rows as OtherIncomeRow[];
 
   const totals = useMemo(() => {
     let inSum = 0;
     let outSum = 0;
+    let corrSum = 0;
     (rows as OtherIncomeRow[]).forEach((r) => {
       if (r.reverses_id || r.reversed_by_id) return; // cancelled pair nets to zero
       const v = Number(r.amount || 0) * Number(r.fx_rate || 1);
-      if (v >= 0) inSum += v;
+      if (isCorrection(r)) corrSum += v;
+      else if (v >= 0) inSum += v;
       else outSum += v;
     });
-    return { inSum, outSum, net: inSum + outSum };
+    return { inSum, outSum, corrSum, net: inSum + outSum + corrSum };
   }, [rows]);
 
 
