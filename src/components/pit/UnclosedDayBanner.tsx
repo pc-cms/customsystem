@@ -19,7 +19,7 @@ export function UnclosedDayBanner() {
         Business day {fmtDateOnly(businessDate)} is not closed
       </span>
       <span className="text-muted-foreground hidden sm:inline">
-        Close it now so figures and statistics are recorded for the right day.
+        It will close automatically when the ACE report arrives.
       </span>
       <div className="ml-auto flex items-center gap-2">
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={snooze} title="Remind me in 30 minutes">
