@@ -56,19 +56,23 @@ export default function JpTab() {
   /** A row is "live" only if it is not a storno and has not been cancelled. */
   const isCancelled = (r: OtherIncomeRow) => !!r.reversed_by_id;
   const isStorno = (r: OtherIncomeRow) => !!r.reverses_id;
+  /** Automatic ACE reconciliation delta — not a real jackpot payout. */
+  const isCorrection = (r: OtherIncomeRow) => String(r.note || "").includes("ACE correction");
 
   const allRows = rows as OtherIncomeRow[];
 
   const totals = useMemo(() => {
     let inSum = 0;
     let outSum = 0;
+    let corrSum = 0;
     (rows as OtherIncomeRow[]).forEach((r) => {
       if (r.reverses_id || r.reversed_by_id) return; // cancelled pair nets to zero
       const v = Number(r.amount || 0) * Number(r.fx_rate || 1);
-      if (v >= 0) inSum += v;
+      if (isCorrection(r)) corrSum += v;
+      else if (v >= 0) inSum += v;
       else outSum += v;
     });
-    return { inSum, outSum, net: inSum + outSum };
+    return { inSum, outSum, corrSum, net: inSum + outSum + corrSum };
   }, [rows]);
 
 
@@ -145,9 +149,21 @@ export default function JpTab() {
       key: "type",
       header: "Type",
       accessor: (r) => (
-        <div className="flex flex-col leading-tight">
-          <span className="text-xs uppercase tracking-wider">
-            {isStorno(r) ? "Storno" : Number(r.amount) < 0 ? "Payout" : "Contribution"}
+        <div
+          className="flex flex-col leading-tight"
+          title={
+            isCorrection(r)
+              ? "Automatic ACE reconciliation: brings the day's JP total to the figure reported by the collector."
+              : undefined
+          }
+        >
+          <span
+            className={cn(
+              "text-xs uppercase tracking-wider",
+              isCorrection(r) && !isStorno(r) && !isCancelled(r) && "text-muted-foreground",
+            )}
+          >
+            {isStorno(r) ? "Storno" : isCorrection(r) ? "Correction" : Number(r.amount) < 0 ? "Payout" : "Contribution"}
           </span>
           {(isStorno(r) || isCancelled(r)) && (
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -161,15 +177,15 @@ export default function JpTab() {
     {
       key: "origin",
       header: "Entered in",
-      accessor: (r) => (
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          {String(r.note || "").includes("Day Closings")
-            ? "Day Closings"
-            : String(r.note || "").includes("Close Day")
-              ? "Close Day"
-              : "JP tab"}
-        </span>
-      ),
+      accessor: (r) => {
+        const note = String(r.note || "");
+        const fromAce = note.includes("ACE") || note.includes("Close Day") || note.includes("Day Closings");
+        return (
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            {fromAce ? "ACE" : "Manual"}
+          </span>
+        );
+      },
       style: { width: 120 },
     },
     {
@@ -260,9 +276,10 @@ export default function JpTab() {
         </OfficeHeaderActions>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <TotalCard label="Contributions (IN)" value={totals.inSum} />
         <TotalCard label="Payouts (OUT)" value={totals.outSum} />
+        <TotalCard label="Corrections" value={totals.corrSum} />
         <TotalCard label="Net" value={totals.net} strong />
       </div>
 

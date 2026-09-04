@@ -16,7 +16,7 @@ import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
 import { Play, Lock, LayoutGrid } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { CloseBusinessDayButton } from "@/components/pit/CloseBusinessDayButton";
+// Close Day button removed: ACE collector writes day figures, the day closes automatically.
 
 
 import { liveTableResult, buildLatestTableSnapshot } from "@/lib/table-live-result";
@@ -494,7 +494,6 @@ const Tables = () => {
           </Badge>
         )}
 
-        <CloseBusinessDayButton />
       </PageHeader>
 
       <>

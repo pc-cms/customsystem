@@ -22,7 +22,7 @@ import { HourlyCheckBanner } from "@/components/cage/HourlyCheckBanner";
 import { useNavigate } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { CloseBusinessDayButton } from "@/components/pit/CloseBusinessDayButton";
+// Close Day button removed: ACE collector writes day figures, the day closes automatically.
 import TransfersForm from "@/components/cage/TransfersForm";
 import CanceledTxPanel from "@/components/cage/CanceledTxPanel";
 import { useCageTransfers } from "@/hooks/use-cage-transfers";
@@ -289,7 +289,6 @@ const ActiveShiftView = ({ shift, players, tables }: {
         <Button variant="outline" size="sm" onClick={() => setShowCloseTables(true)} className="gap-1.5">
           <Package className="w-3.5 h-3.5" /> Close Tables
         </Button>
-        <CloseBusinessDayButton />
         <Button variant="destructive" size="sm" onClick={() => navigate("/cage/close-shift")} className="gap-1.5">
           <Square className="w-3.5 h-3.5" /> Close Shift
         </Button>
