@@ -129,10 +129,10 @@ export default function FinancesWalletsPage() {
   const [floatNote, setFloatNote] = useState("");
   /**
    * Physical counts belong to a business day INSIDE the accounting month
-   * selected in the Office header. Default: yesterday's business day when the
-   * header shows the current month, otherwise the last day of that month.
+   * selected in the Office header: yesterday's business day when the header
+   * shows the current month, otherwise the last day of that month.
    */
-  const [countDateInput, setCountDateInput] = useState<string | null>(null);
+
 
 
 
