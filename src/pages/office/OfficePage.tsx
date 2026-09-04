@@ -28,6 +28,7 @@ const FinancesBankImportPage = lazy(() => import("@/pages/finances/FinancesBankI
 // redirects to the Management page at /tips-and-bonuses.
 const TABS = [
   { value: "day-closings", label: "Day Closings" },
+  { value: "expenses", label: "Expenses" },
   { value: "bank", label: "Bank" },
   { value: "cashless", label: "Cashless" },
   { value: "jp", label: "Jackpots" },
