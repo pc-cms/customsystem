@@ -190,12 +190,11 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
         const hasMovement = Number(e.in || 0) !== 0 || Number(e.out || 0) !== 0;
         return hasMovement ? Number(e.in || 0) - Number(e.out || 0) : Number(e.final || 0);
       };
-      const tzs = channels
-        ? chanValue(channels.CRDB_TZS) + chanValue(channels.NBC_TZS)
-        : Number(raw?.tzs || 0);
-      const usd = channels
-        ? chanValue(channels.CRDB_USD) + chanValue(channels.NBC_USD)
-        : Number(raw?.usd || 0);
+      const sumCur = (cur: string) =>
+        BANK_CHANNELS.filter(c => c.currency === cur)
+          .reduce((s, c) => s + chanValue(channels?.[c.key]), 0);
+      const tzs = channels ? sumCur("TZS") : Number(raw?.tzs || 0);
+      const usd = channels ? sumCur("USD") : Number(raw?.usd || 0);
       const totalTzs = tzs + usd * Number(rateMap.USD || 0);
       return { tzs, usd, totalTzs, channels };
     };
