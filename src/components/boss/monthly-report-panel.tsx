@@ -290,7 +290,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
       try {
         await Promise.all(rows.map((r) => del.mutateAsync(r.id)));
       } catch (e) {
-        toast({ title: "Delete failed", description: String(e), variant: "destructive" });
+        toast({ title: "Delete failed", description: (e as Error)?.message || String(e), variant: "destructive" });
       }
     },
     [extrasRaw, del, toast]
