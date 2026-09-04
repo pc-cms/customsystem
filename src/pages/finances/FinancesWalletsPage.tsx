@@ -181,10 +181,8 @@ export default function FinancesWalletsPage() {
     if (y > range.to) return range.to;
     return y;
   }, [range.from, range.to]);
-  const countForDate =
-    countDateInput && countDateInput >= range.from && countDateInput <= range.to
-      ? countDateInput
-      : defaultCountDate;
+  // Count date is fixed automatically — no manual selection in the UI.
+  const countForDate = defaultCountDate;
 
 
   
