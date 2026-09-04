@@ -48,5 +48,5 @@ Expected показывает отдельными строками: `− Expens
 
 - Миграция: `ALTER TABLE public.fin_categories ADD COLUMN bucket text NOT NULL DEFAULT 'expense'` + CHECK на список значений + UPDATE существующих строк.
 - `CREATE OR REPLACE FUNCTION public.fin_balance_snapshot(...)` — замена трёх `FILTER (... ILIKE ...)` на `FILTER (WHERE fc.bucket = ...)`, добавление `capex_total` в возвращаемый JSON и в дневную разбивку `daily`.
-- Фронт: новый `src/pages/office/CapexTab.tsx` (копия CollectionsTab с фильтром по bucket), регистрация вкладки в `OfficePage.tsx`, удаление хардкода `isCapex` из `CollectionsTab.tsx`, раскрываемые строки в Monthly Report.
+- Фронт: `CollectionsTab.tsx` — убрать хардкод `isCapex`, показывать оба бакета с бейджами и отдельной плиткой CAPEX; в форме расходов фильтровать список категорий по `bucket = 'expense'`; раскрываемые строки в Monthly Report. Новых вкладок и файлов-копий не создаём.
 - Область: только Office/Finance; формула Expected по сумме не меняется; история Money In/Out не переклассифицируется.
