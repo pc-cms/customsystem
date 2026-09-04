@@ -129,10 +129,10 @@ export default function FinancesWalletsPage() {
   const [floatNote, setFloatNote] = useState("");
   /**
    * Physical counts belong to a business day INSIDE the accounting month
-   * selected in the Office header. Default: yesterday's business day when the
-   * header shows the current month, otherwise the last day of that month.
+   * selected in the Office header: yesterday's business day when the header
+   * shows the current month, otherwise the last day of that month.
    */
-  const [countDateInput, setCountDateInput] = useState<string | null>(null);
+
 
 
 
@@ -181,10 +181,8 @@ export default function FinancesWalletsPage() {
     if (y > range.to) return range.to;
     return y;
   }, [range.from, range.to]);
-  const countForDate =
-    countDateInput && countDateInput >= range.from && countDateInput <= range.to
-      ? countDateInput
-      : defaultCountDate;
+  // Count date is fixed automatically — no manual selection in the UI.
+  const countForDate = defaultCountDate;
 
 
   
@@ -648,33 +646,6 @@ export default function FinancesWalletsPage() {
         </div>
       </PageSection>
 
-      {/* Count date — always inside the accounting month selected in the header. */}
-      <PageSection card={false}>
-        <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-card px-3 py-2 text-xs">
-          <span className="text-muted-foreground">Count date</span>
-          <Input
-            type="date"
-            value={countForDate}
-            min={range.from}
-            max={range.to}
-            onChange={(e) => setCountDateInput(e.target.value || null)}
-            className="h-7 w-auto min-w-[140px] pr-2 text-xs"
-          />
-          <span className="text-muted-foreground">
-            Saved into {countMonthLabel} · window {fmtDateOnly(range.from)} — {fmtDateOnly(range.to)}
-          </span>
-          {countForDate !== defaultCountDate && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs"
-              onClick={() => setCountDateInput(null)}
-            >
-              Reset to {fmtDateOnly(defaultCountDate)}
-            </Button>
-          )}
-        </div>
-      </PageSection>
 
 
 
