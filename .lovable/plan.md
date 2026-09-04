@@ -25,12 +25,11 @@
 
 Итоговое Expected по сумме не меняется — только разложение по строкам становится явным.
 
-### 2. Четыре вкладки
+### 2. Вкладки (новых не создаём)
 
-- **Collections** — только `bucket = collection`; Other Income с source `collection` показывается строкой со знаком «+», а не скрытым вычетом.
-- **CAPEX** (новая) — только `bucket = capex`, тот же вид/форма, что у Collections (ввод с «+» и «−»).
-- **Expenses** — только `bucket = expense` (без изменений по составу).
-- **Transfers** — `bucket = transfer` (Money Change, Inter-Casino Transfer Out) плюс межфилиальные переводы; сюда же остаются комиссии/фии/Add Float, как сейчас.
+- **Collections** — показывает `bucket = collection` И `bucket = capex` в одном списке. У каждой строки бейдж (`Collection` / `CAPEX`), сверху отдельная плитка-итог CAPEX рядом с плиткой Collections, плюс фильтр по бейджу. Other Income с source `collection` показывается строкой со знаком «+», а не скрытым вычетом.
+- **Expenses** — существующая вкладка, состав не меняем, ничего не дублируем. Из выбора категории при создании/редактировании расхода убираем `CAPEX`, `Collection` и `Inter-Casino Transfer` (всё, где `bucket <> 'expense'`), с валидацией на сохранении.
+- **Transfers / Inter-Casino** — `bucket = transfer` (Money Change, Inter-Casino Transfer Out) плюс межфилиальные переводы; комиссии/фии/Add Float остаются как сейчас.
 
 ### 3. Monthly Report
 
@@ -38,7 +37,8 @@ Expected показывает отдельными строками: `− Expens
 
 ### 4. Проверка
 
-Сверить Arusha за август: сумма строк Expected должна дать прежнее значение, а Collections + CAPEX на вкладках — совпасть с соответствующими строками отчёта.
+Сверить Arusha за август: сумма строк Expected должна дать прежнее значение, а Collections и CAPEX на вкладке Collections — совпасть с соответствующими строками отчёта.
+
 
 ## Про период (проверено, менять не нужно)
 
@@ -48,5 +48,5 @@ Expected показывает отдельными строками: `− Expens
 
 - Миграция: `ALTER TABLE public.fin_categories ADD COLUMN bucket text NOT NULL DEFAULT 'expense'` + CHECK на список значений + UPDATE существующих строк.
 - `CREATE OR REPLACE FUNCTION public.fin_balance_snapshot(...)` — замена трёх `FILTER (... ILIKE ...)` на `FILTER (WHERE fc.bucket = ...)`, добавление `capex_total` в возвращаемый JSON и в дневную разбивку `daily`.
-- Фронт: новый `src/pages/office/CapexTab.tsx` (копия CollectionsTab с фильтром по bucket), регистрация вкладки в `OfficePage.tsx`, удаление хардкода `isCapex` из `CollectionsTab.tsx`, раскрываемые строки в Monthly Report.
+- Фронт: `CollectionsTab.tsx` — убрать хардкод `isCapex`, показывать оба бакета с бейджами и отдельной плиткой CAPEX; в форме расходов фильтровать список категорий по `bucket = 'expense'`; раскрываемые строки в Monthly Report. Новых вкладок и файлов-копий не создаём.
 - Область: только Office/Finance; формула Expected по сумме не меняется; история Money In/Out не переклассифицируется.
