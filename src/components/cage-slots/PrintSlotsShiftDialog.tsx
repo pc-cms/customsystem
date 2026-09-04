@@ -15,6 +15,7 @@ import PrintPortal from "@/components/cage/PrintPortal";
 import SlotsConsolidatedReport from "./SlotsConsolidatedReport";
 import { useCasino } from "@/lib/casino-context";
 import { tipsBucketOf } from "@/lib/slots-tips-bucket";
+import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
 
 interface Props {
   open: boolean;
