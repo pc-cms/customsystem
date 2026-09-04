@@ -15,6 +15,7 @@ const FinancesWalletsPage = lazy(() => import("@/pages/finances/FinancesWalletsP
 const FinancesMonthlyReportPage = lazy(() => import("@/pages/finances/FinancesMonthlyReportPage"));
 const FinancesInterCasinoPage = lazy(() => import("@/pages/finances/FinancesInterCasinoPage"));
 const FinancesBankImportPage = lazy(() => import("@/pages/finances/FinancesBankImportPage"));
+const FinancesExpensesPage = lazy(() => import("@/pages/finances/FinancesExpensesPage"));
 
 
 // Finance top tabs — fixed business order (Stage 2A, 2026-09-01):
@@ -101,6 +102,7 @@ export default function OfficePage() {
         )}
         {tab === "collections" && <CollectionsTab />}
         {tab === "day-closings" && <DayClosingsTab />}
+        {tab === "expenses" && <FinancesExpensesPage />}
         {tab === "import-statement" && <FinancesBankImportPage />}
         {tab === "inter-casino" && <FinancesInterCasinoPage />}
         {tab === "jp" && <JpTab />}
