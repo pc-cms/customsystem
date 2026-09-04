@@ -1,6 +1,6 @@
 import { AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CloseBusinessDayButton } from "@/components/pit/CloseBusinessDayButton";
+// Close Day button removed: the day closes automatically; the banner is informational.
 import { useUnclosedDayReminder } from "@/hooks/use-unclosed-day-reminder";
 import { fmtDateOnly } from "@/lib/format-date";
 
@@ -22,7 +22,6 @@ export function UnclosedDayBanner() {
         Close it now so figures and statistics are recorded for the right day.
       </span>
       <div className="ml-auto flex items-center gap-2">
-        <CloseBusinessDayButton />
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={snooze} title="Remind me in 30 minutes">
           <X className="h-4 w-4" />
         </Button>
