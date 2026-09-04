@@ -76,9 +76,10 @@ export const useDeleteBossReportExtra = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("boss_report_extras").delete().eq("id", id);
-      if (error) throw error;
+      const { error } = await supabase.rpc("fin_unplanned_delete", { p_id: id });
+      if (error) throw new Error(error.message || "Delete failed");
     },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["boss-report-extras"] });
       queryClient.invalidateQueries({ queryKey: ["boss-monthly-report"] });
