@@ -29,8 +29,8 @@
 
 - **Collections** — показывает `bucket = collection` И `bucket = capex` в одном списке. У каждой строки бейдж (`Collection` / `CAPEX`), сверху отдельная плитка-итог CAPEX рядом с плиткой Collections, плюс фильтр по бейджу. Other Income с source `collection` показывается строкой со знаком «+», а не скрытым вычетом.
 - **Expenses** — добавляем кнопку/вкладку `Expenses` в строке вкладок Office сразу после `Day Closings`; она открывает уже существующий экран `FinancesExpensesPage` (новый интерфейс не рисуем, ничего не дублируем). Из выбора категории при создании/редактировании расхода убираем `CAPEX`, `Collection` и `Inter-Casino Transfer` (всё, где `bucket <> 'expense'`), с валидацией на сохранении.
-- **Transactions** (`?tab=other-incomes`, `OtherIncomesTab`) — это Other Incomes: комиссии/fees, Movements (investment / owner top-up / office), Add Float, Collection-приходы и прочие ручные приходы/списания по `fin_other_incomes`. Состав не меняем.
-- **Transfers / Inter-Casino** — `bucket = transfer` (Money Change, Inter-Casino Transfer Out) плюс межфилиальные переводы.
+- **Transactions** (`?tab=other-incomes`, `OtherIncomesTab`) — оставляем только настоящие приходы/списания: комиссии/fees, Movements (investment / owner top-up / office), Add Float, JP. Из выпадающего списка убираем группу `Income / Collection / CAPEX / Transfers` (Tables Income, Slots Income, External Income, Owner Injection, Bank Loan, Inter-Casino Transfer In и т.д.) — Collection-приходы вводятся только на вкладке Collections, переводы — в Inter-Casino. Существующие исторические записи с `source = 'collection'` остаются в базе и продолжают учитываться в Collections, но новые через Transactions не создаются.
+- **Inter-Casino / Transfers** — отдельный пункт левого меню (не вкладка Office): `bucket = transfer` (Money Change, Inter-Casino Transfer Out) плюс межфилиальные переводы.
 
 ### 3. Monthly Report
 
