@@ -256,6 +256,315 @@ const Expenses = ({
     setSearch("");
   };
 
+  const columns: ColumnDef<any>[] = useMemo(
+    () => [
+      {
+        key: "date",
+        header: "Date",
+        type: "date",
+        sortValue: (r) => r.business_date || r.created_at,
+        accessor: (r) => (
+          <span className="font-mono text-xs text-muted-foreground">
+            {fmtDateOnly(r.business_date || r.created_at)}
+          </span>
+        ),
+      },
+      {
+        key: "time",
+        header: "Time",
+        accessor: (r) => (
+          <span className="font-mono text-xs text-muted-foreground">
+            {new Date(r.created_at).toLocaleTimeString("en-GB", {
+              timeZone: "Africa/Dar_es_Salaam",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+        ),
+      },
+      {
+        key: "source",
+        header: sourceLocked ? (
+          <span className="text-[10px] uppercase tracking-wider">Source</span>
+        ) : (
+          <Select value={source} onValueChange={(v) => setSource(v as ExpenseSourceFilter)}>
+            <SelectTrigger
+              className={cn(
+                "h-7 text-xs w-full bg-transparent border-0 px-0 shadow-none",
+                source !== "all" && "ring-1 ring-primary",
+              )}
+            >
+              <SelectValue placeholder="Source" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All sources</SelectItem>
+              <SelectItem value="live_game">Live Game</SelectItem>
+              <SelectItem value="slots">Slots</SelectItem>
+              <SelectItem value="office">Office</SelectItem>
+            </SelectContent>
+          </Select>
+        ),
+        accessor: (r) => {
+          const src = resolveSource(r);
+          return (
+            <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${SRC_COLORS[src]}`}>
+              {SRC_LABEL[src]}
+            </span>
+          );
+        },
+      },
+      {
+        key: "category",
+        header: (
+          <div className="flex items-center gap-1">
+            <CategoryCombobox
+              size="sm"
+              value={finCategoryFilter}
+              onChange={setFinCategoryFilter}
+              placeholder="Category"
+              className={cn(
+                "h-7 text-xs bg-transparent border-0 px-0 shadow-none flex-1",
+                finCategoryFilter && "ring-1 ring-primary",
+              )}
+            />
+            {finCategoryFilter && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0"
+                onClick={() => setFinCategoryFilter("")}
+                title="Clear category"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+        ),
+        accessor: (r) => (
+          <span
+            className="text-[11px] truncate max-w-[200px] inline-block"
+            title={r.fin_category_id ? (finCatById[r.fin_category_id]?.name || "—") : "Unassigned"}
+          >
+            {r.fin_category_id ? (
+              finCatById[r.fin_category_id]?.name || "—"
+            ) : (
+              <span className="text-amber-600 dark:text-amber-400 italic">Unassigned</span>
+            )}
+          </span>
+        ),
+      },
+      {
+        key: "target",
+        header: (
+          <Select value={target} onValueChange={(v) => setTarget(v as ExpenseTarget)}>
+            <SelectTrigger
+              className={cn(
+                "h-7 text-xs w-full bg-transparent border-0 px-0 shadow-none",
+                target !== "all" && "ring-1 ring-primary",
+              )}
+            >
+              <SelectValue placeholder="Target / Player" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All targets</SelectItem>
+              <SelectItem value="casino">Casino</SelectItem>
+              <SelectItem value="player">Player</SelectItem>
+            </SelectContent>
+          </Select>
+        ),
+        accessor: (r) => {
+          const playerName = r.players
+            ? `${r.players.first_name} ${r.players.last_name}`
+            : r.player_name || "Casino";
+          return r.player_id ? (
+            <Link
+              to={`/players/${r.player_id}`}
+              className="text-primary hover:underline inline-flex items-center gap-1 text-sm"
+            >
+              {playerName}
+              <ExternalLink className="w-3 h-3 opacity-60" />
+            </Link>
+          ) : (
+            <span className="text-muted-foreground text-sm">{playerName}</span>
+          );
+        },
+      },
+      {
+        key: "amount",
+        header: "Amount",
+        type: "money",
+        sortValue: (r) => Number(r.amount_tzs ?? r.amount ?? 0),
+        accessor: (r) => (
+          <div className="text-right">
+            <div className="font-mono text-sm cms-amount-negative">
+              {formatCurrency(Number(r.amount), r.currency || "TZS")}
+            </div>
+            {(r.currency || "TZS") !== "TZS" && (
+              <div className="text-[10px] text-muted-foreground font-normal">
+                ≈ {formatNumberSpaces(Number(r.amount_tzs ?? 0))} TZS
+              </div>
+            )}
+          </div>
+        ),
+      },
+      {
+        key: "description",
+        header: (
+          <Input
+            placeholder="Search…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className={cn(
+              "h-7 text-xs bg-transparent border-0 px-0 shadow-none placeholder:text-muted-foreground/70",
+              search && "ring-1 ring-primary",
+            )}
+          />
+        ),
+        accessor: (r) => <span className="text-xs text-muted-foreground">{r.description || "—"}</span>,
+      },
+      {
+        key: "status",
+        header: (
+          <Select value={status} onValueChange={(v) => setStatus(v as ExpenseStatus)}>
+            <SelectTrigger
+              className={cn(
+                "h-7 text-xs w-full bg-transparent border-0 px-0 shadow-none",
+                status !== "all" && "ring-1 ring-primary",
+              )}
+            >
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+            </SelectContent>
+          </Select>
+        ),
+        accessor: (r) =>
+          r.approved ? (
+            <span className="cms-status-active text-xs">
+              <CheckCircle className="w-3 h-3 inline mr-0.5" /> Approved
+            </span>
+          ) : (
+            <Badge variant="secondary" className="text-[10px]">Pending</Badge>
+          ),
+      },
+      ...(!embedded
+        ? [
+            {
+              key: "actions",
+              header: "",
+              type: "actions" as const,
+              accessor: (r: any) => {
+                const src = resolveSource(r);
+                return (
+                  <div className="inline-flex gap-1 justify-end">
+                    {!r.approved && isManagerView && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => approve.mutate(r.id)}
+                        disabled={approve.isPending}
+                      >
+                        Approve
+                      </Button>
+                    )}
+                    {isManagerView && r.category !== "bar_charge" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() =>
+                          setEditingExpense({
+                            id: r.id,
+                            fin_category_id: r.fin_category_id,
+                            amount: Number(r.amount),
+                            currency: r.currency || "TZS",
+                            description: r.description,
+                            player_id: r.player_id,
+                            player_name: r.player_name,
+                            source: src,
+                          })
+                        }
+                        title="Edit expense (manager)"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                    {isManagerView ? (
+                      r.category !== "bar_charge" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            const label = r.approved ? "approved expense" : "expense";
+                            const reason = window.prompt(
+                              `Cancel this ${label} of ${formatCurrency(Number(r.amount))}?\nEnter a reason (logged to audit):`,
+                              "",
+                            );
+                            if (reason === null) return;
+                            cancelAsManager.mutate({
+                              id: r.id,
+                              amount: Number(r.amount),
+                              category: r.category,
+                              approved: !!r.approved,
+                              reason: reason.trim(),
+                            });
+                          }}
+                          disabled={cancelAsManager.isPending}
+                          title={r.approved ? "Cancel approved expense (audited)" : "Cancel expense"}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )
+                    ) : (
+                      !r.approved &&
+                      r.category !== "bar_charge" &&
+                      src !== "office" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() =>
+                            del.mutate({ id: r.id, amount: Number(r.amount), category: r.category })
+                          }
+                          title="Cancel expense"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )
+                    )}
+                  </div>
+                );
+              },
+            },
+          ]
+        : []),
+    ],
+    [
+      sourceLocked,
+      source,
+      finCategoryFilter,
+      target,
+      status,
+      search,
+      finCatById,
+      isManagerView,
+      embedded,
+      approve.isPending,
+      cancelAsManager.isPending,
+      setEditingExpense,
+      approve.mutate,
+      cancelAsManager.mutate,
+      del.mutate,
+    ],
+  );
+
+
   const updateDraft = (uid: string, patch: Partial<DraftRow>) =>
     setDrafts((d) => d.map((r) => (r.uid === uid ? { ...r, ...patch } : r)));
 
