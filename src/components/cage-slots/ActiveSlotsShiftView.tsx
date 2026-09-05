@@ -135,6 +135,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [taxableWinnings, setTaxableWinnings] = useState<string>(String((shift as any).taxable_winnings ?? 0));
   const [jackpotCount, setJackpotCount] = useState<string>(String((shift as any).jackpot_count ?? 0));
   const [adjustmentRef, setAdjustmentRef] = useState<string>((shift as any).adjustment_ref || "");
+  const [signCashier, setSignCashier] = useState<string>((shift as any).cashier_name || "");
+  const [signManager, setSignManager] = useState<string>((shift as any).manager_name || "");
 
   // Dirty refs — block DB→state re-hydration while the cashier has unsaved
   // edits in a provider block. Cleared after a successful onBlur save.
@@ -413,6 +415,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         taxable_winnings: Number(taxableWinnings) || 0,
         jackpot_count: Number(jackpotCount) || 0,
         adjustment_ref: adjustmentRef.trim() || null,
+        cashier_name: signCashier.trim() || null,
+        manager_name: signManager.trim() || null,
       } as any)
       .eq("id", shift.id);
     setSystem.mutate({ shift_id: shift.id, system_shift_result: Number(systemResultInput) || 0 });
@@ -1040,6 +1044,13 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                   <Input value={adjustmentRef} onChange={e => setAdjustmentRef(e.target.value)} placeholder="—" className="h-8" />
                 </div>
               </div>
+              <SignatorySelects
+                casinoId={(shift as any).casino_id}
+                cashier={signCashier}
+                manager={signManager}
+                onCashierChange={setSignCashier}
+                onManagerChange={setSignManager}
+              />
             </div>
 
             {cashierNote && (
