@@ -11,7 +11,7 @@ import { CURRENCIES, CASH_DENOMS, formatNumberSpaces } from "@/lib/currency";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
 import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
 import {
-  A4_CLASS, A4_STYLE, Card, CardTable, PageFooter, ReportHeader, Signatures, buildReportId, num, signed,
+  A4_LAND_CLASS, A4_LAND_HOST_CLASS, A4_LAND_STYLE, Card, CardTable, PageFooter, ReportHeader, Signatures, buildReportId, num, signed,
 } from "./report-v2/primitives";
 
 export type TotalClosingReportV2Props = {
@@ -198,7 +198,8 @@ const TotalClosingReportV2 = ({
   const totalMoney = totalCash + bankTotalTzs + liveCashlessNet + slotsCashlessNet;
 
   return (
-    <div className={`${A4_CLASS} bg-white text-black p-2 flex flex-col`} style={A4_STYLE}>
+    <div className={A4_LAND_HOST_CLASS}>
+      <div className={`${A4_LAND_CLASS} bg-white text-black p-2`} style={A4_LAND_STYLE}>
       <style>{PRINT_REPORT_ACCENTS_CSS}</style>
 
       <ReportHeader
@@ -236,6 +237,7 @@ const TotalClosingReportV2 = ({
         />
       </Card>
 
+      <div className="rv2-2col">
       <Card title="Closing Cash by Currency and Denomination">
         <CardTable
           cols={[
@@ -265,8 +267,10 @@ const TotalClosingReportV2 = ({
           footer={{ acc: "Total", cur: "", inn: "", out: "", close: "", rate: "", tzs: num(bankTotalTzs) }}
         />
       </Card>
+      </div>
 
       <Card title="Total Closing Control">
+
         <CardTable
           cols={[
             { key: "cash", label: "Closing Cash", align: "right" },
@@ -287,6 +291,7 @@ const TotalClosingReportV2 = ({
 
       <Signatures left="Slots Cashier / Live Cashier" right="Closing Manager" leftName={signCashiers} rightName={signManager} />
       <PageFooter casinoName={casinoName} page={4} total={4} />
+      </div>
     </div>
   );
 };
