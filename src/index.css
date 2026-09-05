@@ -667,7 +667,20 @@
   flex-direction: column;
 }
 
+.rv2-land {
+  width: 281mm;
+  min-height: 194mm;
+}
+
 @media print {
+  @page rv2land { size: A4 landscape; margin: 8mm; }
+  .rv2-land {
+    width: 281mm !important;
+    height: 194mm !important;
+    min-height: 194mm !important;
+    max-height: 194mm !important;
+    page: rv2land;
+  }
   .rv2-page {
     height: 281mm;
     min-height: 281mm;
