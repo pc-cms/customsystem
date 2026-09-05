@@ -7,14 +7,17 @@
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
 
+/** Class carrying the print page geometry (see `.rv2-page` in index.css). */
+export const A4_CLASS = "rv2-page";
+
 export const A4_STYLE: React.CSSProperties = {
   width: "194mm",
-  minHeight: "281mm",
   boxSizing: "border-box",
   fontFamily: "Arial, Helvetica, sans-serif",
   fontSize: "10.5px",
   lineHeight: 1.3,
 };
+
 
 export const num = (v: number | null | undefined) => formatNumberSpaces(Math.round(Number(v || 0)));
 
@@ -84,7 +87,7 @@ export const Card = ({
   children,
   className = "",
 }: { title?: string; children: React.ReactNode; className?: string }) => (
-  <div className={`border border-black mb-1.5 ${className}`}>
+  <div className={`rv2-card border border-black mb-1.5 ${className}`}>
     {title ? (
       <div className="bg-gray-200 border-b border-black px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide">
         {title}
