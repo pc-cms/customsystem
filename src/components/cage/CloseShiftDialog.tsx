@@ -72,6 +72,8 @@ const CloseShiftDialog = ({
   // sessionStorage persistence — survives page refresh while shift is being closed.
   const storageKey = `cms.close-shift.${shift?.id || "none"}`;
   const [adjustmentRef, setAdjustmentRef] = useState<string>((shift as any)?.adjustment_ref || "");
+  const [signCashier, setSignCashier] = useState<string>((shift as any)?.cashier_name || "");
+  const [signManager, setSignManager] = useState<string>((shift as any)?.manager_name || "");
   const persisted = useMemo(() => {
     try {
       const raw = sessionStorage.getItem(storageKey);

@@ -46,6 +46,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import CashCheckViewerDialog from "@/components/cage/CashCheckViewerDialog";
 import { computeSlotsShiftBalance } from "@/lib/cage-balance";
 import { supabase } from "@/integrations/supabase/client";
+import SignatorySelects from "@/components/cage/report-v2/SignatorySelects";
 
 type Shift = Tables<"cage_slots_shifts">;
 
