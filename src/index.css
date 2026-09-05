@@ -669,6 +669,13 @@
 
 /* Landscape report: rendered wide on screen, rotated onto a portrait sheet
  * when printed (named @page sizes are unreliable in mixed-orientation jobs). */
+.rv2-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  align-items: start;
+}
+
 .rv2-land-host {
   width: 281mm;
   box-sizing: border-box;
