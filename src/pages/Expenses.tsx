@@ -39,7 +39,7 @@ import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
 import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
 import { hasExpenseManagementAccess, isExpenseSourceLocked } from "@/lib/expense-access";
 import { defaultPostingDate } from "@/lib/office-posting-date";
-import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
+import { SmartTable, type ColumnDef, type SortState } from "@/components/ui/smart-table";
 
 type SourceVal = "live_game" | "slots" | "office";
 
