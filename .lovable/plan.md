@@ -43,7 +43,7 @@
 - Новые компоненты: `src/components/cage-slots/SlotsClosingReportV2.tsx`, `src/components/cage/LiveClosingReportV2.tsx`, `src/components/cage/ChipsMovementReportV2.tsx`, `src/components/cage/TotalClosingReportV2.tsx` — чистая презентация, A4 portrait 194×281 мм, печать через существующий `PrintPortal`.
 - Общие примитивы карточек/таблиц выносим в `src/components/cage/report-v2/` (шапка отчёта, карточка-таблица, строка итога, блок подписей), чтобы 4 страницы были единообразны.
 - Переключатель макета: настройка филиала `report_layout` (`legacy` | `v2`) в `casino_settings`; кнопки печати в `CloseShiftDialog`, `PrintSlotsShiftDialog`, `ReprintShiftDialog`, `EditReprintShiftPage` выбирают компонент по ней.
-- Миграции БД: колонка `turnover` в трекере столов; колонки `taxable_winnings`, `jackpot_count`, `adjustment_ref` в `cage_slots_shifts`; `adjustment_ref` в `shifts`; ставка налога в настройках филиала (по умолчанию 15%).
+- Миграции БД: колонки `taxable_winnings`, `jackpot_count`, `adjustment_ref` в `cage_slots_shifts`; `adjustment_ref` в `shifts`; ставка налога в настройках филиала (по умолчанию 15%). Turnover/Drop по столу — без миграций, существующий источник.
 - Формат чисел — пробел как разделитель разрядов, даты `DD/MM/YYYY`, весь текст отчётов на английском.
 - Существующие расчёты Shift Balance, Result, Drop не трогаем — только новое отображение и новые вводимые поля.
 - Поднять версию в `package.json`.
