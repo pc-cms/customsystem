@@ -1,0 +1,1 @@
+ALTER TABLE public.shifts ADD COLUMN IF NOT EXISTS cashier_name text, ADD COLUMN IF NOT EXISTS manager_name text; ALTER TABLE public.cage_slots_shifts ADD COLUMN IF NOT EXISTS cashier_name text, ADD COLUMN IF NOT EXISTS manager_name text;
