@@ -120,14 +120,8 @@ export default function WalletMovementDialog({
 
   const fxRate = currency === "USD" ? usdRate : 1;
 
-  /**
-   * Current Actual of the selected wallet — the same figure `fin_save_wallet_count`
-   * uses as the previous count (last snapshot, else the wallet starting float).
-   */
   const [actualNow, setActualNow] = useState<number | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-  const [actualNow, setActualNow] = useState<number | null>(null);
+
 
   /**
    * Actual of a wallet as of the selected business date =
