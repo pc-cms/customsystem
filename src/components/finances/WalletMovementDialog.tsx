@@ -124,53 +124,22 @@ export default function WalletMovementDialog({
 
 
   /**
-   * Actual of a wallet as of the selected business date =
-   * last REAL physical count (movement rows excluded) + every wallet movement
-   * recorded after that count. Same formula as `fin_balance_snapshot`, so a
-   * later backdated recount automatically re-applies the movements on top.
+   * Actual comes from the SAME source as the Wallets table — RPC
+   * `fin_balance_snapshot`. No local re-derivation, so the dialog can never
+   * disagree with the balance shown in the grid.
    */
-  const fetchActual = async (w: { id: string; starting_float_amount?: number | null }) => {
-    const { data: countRow } = await supabase
-      .from("cash_count_snapshots")
-      .select("physical_total, business_date, created_at")
-      .eq("wallet_id", w.id)
-      .lte("business_date", date)
-      .not("note", "ilike", "Add money%")
-      .not("note", "ilike", "Take money%")
-      .not("note", "ilike", "Transfer %")
-      .order("business_date", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const base =
-      countRow?.physical_total != null
-        ? Number(countRow.physical_total)
-        : Number(w.starting_float_amount || 0);
-
-    const { data: adjRows } = await supabase
-      .from("fin_wallet_tx")
-      .select("amount, business_date, created_at")
-      .eq("wallet_id", w.id)
-      .eq("kind", "adjustment")
-      .eq("ref_table", "wallet_movement")
-      .lte("business_date", date);
-
-    const countDate = countRow?.business_date || null;
-    const countCreatedAt = countRow?.created_at || null;
-    const delta = (adjRows || [])
-      .filter((r: any) => {
-        if (!countDate || !countCreatedAt) return true;
-        // A movement counts only if it was recorded AFTER the last real count
-        // (a later-entered recount already includes everything before it).
-        return r.created_at > countCreatedAt && r.business_date >= countDate;
-      })
-      .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-
-
-    return base + delta;
-
+  const fetchActual = async (w: { id: string }) => {
+    const monthStart = `${date.slice(0, 7)}-01`;
+    const { data, error } = await (supabase as any).rpc("fin_balance_snapshot", {
+      p_casino_id: activeCasinoId,
+      p_period_start: monthStart,
+      p_period_end: date,
+    });
+    if (error) return 0;
+    const row = (data?.wallets || []).find((r: any) => r.wallet_id === w.id);
+    return Number(row?.actual_native ?? 0);
   };
+
 
   useEffect(() => {
     let cancelled = false;
