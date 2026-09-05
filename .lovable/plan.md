@@ -13,6 +13,7 @@
 
 **Live Game (стр. 2)**
 - Таблица столов: Opening / Fill / Credit / Closing / Drop / Result и строка Total — есть.
+- TURNOVER = наш Drop по столу (сумма кэш-ин/кэш-аут транзакций с выбранным столом) — берём из существующего источника, ручной ввод не нужен.
 - Cash Flow Opening и Closing рядом двумя блоками, Cashless, Tables Result, Fill, Credit, Expenses, Tips, Chip Difference, Total Money, Shift Balance — есть.
 
 **Chips Movement (стр. 3)**
@@ -22,7 +23,6 @@
 
 | Поле | Где | Как реализуем |
 |---|---|---|
-| TURNOVER по столу | Live, таблица столов | Новая колонка ввода в закрытии смены Live, вручную по каждому столу, итог считается |
 | TAXABLE WINNINGS PAID | Slots, Closing Record | Ручной ввод суммы при закрытии смены слотов |
 | JACKPOT COUNT | Slots, Closing Record | Ручной ввод количества |
 | WINNINGS TAX 15% | Slots, Closing Record | Считается автоматически = 15% от Taxable Winnings Paid, ставка хранится в настройках филиала |
@@ -43,7 +43,7 @@
 - Новые компоненты: `src/components/cage-slots/SlotsClosingReportV2.tsx`, `src/components/cage/LiveClosingReportV2.tsx`, `src/components/cage/ChipsMovementReportV2.tsx`, `src/components/cage/TotalClosingReportV2.tsx` — чистая презентация, A4 portrait 194×281 мм, печать через существующий `PrintPortal`.
 - Общие примитивы карточек/таблиц выносим в `src/components/cage/report-v2/` (шапка отчёта, карточка-таблица, строка итога, блок подписей), чтобы 4 страницы были единообразны.
 - Переключатель макета: настройка филиала `report_layout` (`legacy` | `v2`) в `casino_settings`; кнопки печати в `CloseShiftDialog`, `PrintSlotsShiftDialog`, `ReprintShiftDialog`, `EditReprintShiftPage` выбирают компонент по ней.
-- Миграции БД: колонка `turnover` в трекере столов; колонки `taxable_winnings`, `jackpot_count`, `adjustment_ref` в `cage_slots_shifts`; `adjustment_ref` в `shifts`; ставка налога в настройках филиала (по умолчанию 15%).
+- Миграции БД: колонки `taxable_winnings`, `jackpot_count`, `adjustment_ref` в `cage_slots_shifts`; `adjustment_ref` в `shifts`; ставка налога в настройках филиала (по умолчанию 15%). Turnover/Drop по столу — без миграций, существующий источник.
 - Формат чисел — пробел как разделитель разрядов, даты `DD/MM/YYYY`, весь текст отчётов на английском.
 - Существующие расчёты Shift Balance, Result, Drop не трогаем — только новое отображение и новые вводимые поля.
 - Поднять версию в `package.json`.
