@@ -228,7 +228,12 @@ export default function WalletMovementDialog({
         posted_at: new Date().toISOString(),
       };
 
-      /** Actual-only recount + audit row (never touches Expected). */
+      /**
+       * Actual-only movement. It writes ONE signed audit row
+       * (`kind = 'adjustment'`, `ref_table = 'wallet_movement'`) and never a
+       * frozen physical count, so the wallet always recalculates as
+       * "last real count + movements after it".
+       */
       const applyActual = async (
         w: { id: string; name: string; starting_float_amount?: number | null },
         delta: number,
@@ -238,26 +243,19 @@ export default function WalletMovementDialog({
         const next = current + delta;
         if (next < 0) throw new Error(`Resulting balance of ${w.name} cannot be negative`);
         const fullNote = [label, baseNote].filter(Boolean).join(" · ");
-        const { error: rpcError } = await (supabase as any).rpc("fin_save_wallet_count", {
-          p_wallet_id: w.id,
-          p_counted: next,
-          p_denominations: {},
-          p_note: fullNote,
-          p_business_date: date,
-          p_fx_rate: rate,
-        });
-        if (rpcError) throw rpcError;
         const { error: auditError } = await supabase.from("fin_wallet_tx").insert([
           {
             ...common,
             wallet_id: w.id,
             kind: "adjustment",
+            ref_table: "wallet_movement",
             amount: delta,
             amount_tzs: delta * rate,
             note: fullNote,
           },
         ] as any);
         if (auditError) throw auditError;
+
         return next;
       };
 
