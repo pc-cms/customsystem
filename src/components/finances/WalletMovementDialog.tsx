@@ -134,6 +134,7 @@ export default function WalletMovementDialog({
         .from("cash_count_snapshots")
         .select("physical_total")
         .eq("wallet_id", wallet.id)
+        .lte("business_date", date)
         .order("business_date", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
         .limit(1)
@@ -148,17 +149,22 @@ export default function WalletMovementDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, wallet?.id]);
+  }, [open, wallet?.id, date]);
 
   const resultingActual =
     actualNow == null ? null : mode === "out" ? actualNow - amount : actualNow + amount;
 
-  /** Last physical Actual of a wallet (snapshot, else starting float). */
+  /**
+   * Last physical Actual of a wallet as of the selected business date
+   * (snapshot, else starting float). Later-dated counts must never be used as
+   * the base of a backdated Add/Take money.
+   */
   const fetchActual = async (w: { id: string; starting_float_amount?: number | null }) => {
     const { data } = await supabase
       .from("cash_count_snapshots")
       .select("physical_total")
       .eq("wallet_id", w.id)
+      .lte("business_date", date)
       .order("business_date", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
       .limit(1)
@@ -167,6 +173,7 @@ export default function WalletMovementDialog({
       ? Number(data.physical_total)
       : Number(w.starting_float_amount || 0);
   };
+
 
   const save = async () => {
     if (!user || !activeCasinoId) return toast.error("Not authorised");
