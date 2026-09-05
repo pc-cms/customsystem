@@ -14,8 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Printer, X } from "lucide-react";
 import { CHIP_DENOMS } from "@/lib/currency";
 import { computeMissByDenom } from "@/components/cage/CageHelpers";
-import ShiftClosingReport from "@/components/cage/ShiftClosingReport";
-import ChipMovementReport from "@/components/cage/ChipMovementReport";
+import { LiveClosingReport as ShiftClosingReport, ChipsMovementReport as ChipMovementReport } from "@/components/cage/report-v2/layout";
 import PrintPortal from "@/components/cage/PrintPortal";
 import type { Tables } from "@/integrations/supabase/types";
 

@@ -19,8 +19,7 @@ import { CHIP_DENOMS, CURRENCIES, formatNumberSpaces, formatChipLabel } from "@/
 import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { computeMissByDenom } from "@/components/cage/CageHelpers";
 import { computeShiftBalance } from "@/lib/cage-balance";
-import ShiftClosingReport from "@/components/cage/ShiftClosingReport";
-import ChipMovementReport from "@/components/cage/ChipMovementReport";
+import { LiveClosingReport as ShiftClosingReport, ChipsMovementReport as ChipMovementReport } from "@/components/cage/report-v2/layout";
 import PrintPortal from "@/components/cage/PrintPortal";
 import { printLiveGameReport } from "@/components/cage/printLiveGameReport";
 import { fetchTotalDrop } from "@/lib/drop-source";

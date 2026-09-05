@@ -2,12 +2,12 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, CheckCircle2, ShieldAlert, Lock, ArrowLeft, Printer } from "lucide-react";
-import ShiftClosingReport from "@/components/cage/ShiftClosingReport";
-import ChipMovementReport from "@/components/cage/ChipMovementReport";
+import { LiveClosingReport as ShiftClosingReport, ChipsMovementReport as ChipMovementReport } from "@/components/cage/report-v2/layout";
 import PrintPortal from "@/components/cage/PrintPortal";
 import { CHIP_DENOMS, formatCurrency, formatChipLabel, formatNumberSpaces, formatCashDenomLabel, CURRENCIES, CASH_DENOMS, CURRENCY_SYMBOLS } from "@/lib/currency";
 import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import ChipToken from "@/components/ChipToken";
+import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { cashSum } from "@/components/cage/CashDenomInput";
 import CashCountGrid from "@/components/cage/CashCountGrid";
@@ -71,6 +71,7 @@ const CloseShiftDialog = ({
 }: CloseShiftDialogProps) => {
   // sessionStorage persistence — survives page refresh while shift is being closed.
   const storageKey = `cms.close-shift.${shift?.id || "none"}`;
+  const [adjustmentRef, setAdjustmentRef] = useState<string>((shift as any)?.adjustment_ref || "");
   const persisted = useMemo(() => {
     try {
       const raw = sessionStorage.getItem(storageKey);
@@ -288,6 +289,11 @@ const CloseShiftDialog = ({
     }
 
     try { sessionStorage.removeItem(storageKey); } catch { /* ignore */ }
+
+    // Adjustment / Incident reference is printed in the Closing Record block.
+    if (shift?.id) {
+      supabase.from("shifts").update({ adjustment_ref: adjustmentRef.trim() || null } as any).eq("id", shift.id).then(() => {});
+    }
 
     onConfirm({
       closingCount: {
@@ -851,6 +857,12 @@ const CloseShiftDialog = ({
           <KpiTile label="Money Result" value={moneyResult} tone={moneyResult >= 0 ? "pos" : "neg"} compact />
         </div>
       </section>
+
+      {/* Adjustment / Incident reference — printed in the Closing Record */}
+      <div>
+        <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Adjustment / Incident Ref</p>
+        <Input value={adjustmentRef} onChange={e => setAdjustmentRef(e.target.value)} placeholder="—" className="h-8" />
+      </div>
 
       {/* Notes */}
       <div>

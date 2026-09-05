@@ -13,6 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Printer, X } from "lucide-react";
 import PrintPortal from "@/components/cage/PrintPortal";
 import SlotsConsolidatedReport from "./SlotsConsolidatedReport";
+import SlotsClosingReportV2 from "./SlotsClosingReportV2";
+import TotalClosingReportV2 from "@/components/cage/TotalClosingReportV2";
+import { useReportLayout } from "@/components/cage/report-v2/layout";
 import { useCasino } from "@/lib/casino-context";
 import { tipsBucketOf } from "@/lib/slots-tips-bucket";
 import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
@@ -57,6 +60,7 @@ const ensureSlotsPortraitPrintStyle = () => {
 
 const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
   const { activeCasino } = useCasino();
+  const layout = useReportLayout(activeCasino?.id);
 
   const printSlotsReport = () => {
     const source = document.querySelector<HTMLElement>(".slots-print-area");
@@ -323,6 +327,17 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       manualInputAtCloseByProvider: hasKeys((closingCheck?.denominations as any)?.cashless_final_providers)
         ? collectProviderSnap((closingCheck?.denominations as any).cashless_final_providers)
         : null,
+      // ---- V2 layout extras (ignored by the legacy report) ----
+      rates: rateMap,
+      shiftId: shift.id,
+      reportStatus: String(shift.status || "").toUpperCase() === "closed".toUpperCase() ? "CLOSED — APPROVED" : "DRAFT — GBT APPROVAL PENDING",
+      taxableWinnings: Number((shift as any).taxable_winnings || 0),
+      jackpotCount: Number((shift as any).jackpot_count || 0),
+      winningsTaxRate: Number((activeCasino as any)?.winnings_tax_rate ?? 0.15),
+      adjustmentRef: (shift as any).adjustment_ref || null,
+      cardsFill: 0,
+      cardsCredit: 0,
+      closingCardValue: Number(cards?.closing_card_count || 0) * cardDepositTzs,
     };
   }, [data, activeCasino]);
 
@@ -351,13 +366,40 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
           <>
             <div className="border border-border rounded-md overflow-auto bg-white print:hidden max-h-[55vh]">
               <div className="origin-top-left scale-[0.5] w-[200%]">
-                <SlotsConsolidatedReport {...props} />
+                {layout === "v2" ? (
+                  <>
+                    <SlotsClosingReportV2 {...(props as any)} />
+                    {activeCasino?.id ? (
+                      <TotalClosingReportV2
+                        casinoId={activeCasino.id}
+                        casinoName={activeCasino?.name}
+                        businessDate={props.businessDate}
+                      />
+                    ) : null}
+                  </>
+                ) : (
+                  <SlotsConsolidatedReport {...props} />
+                )}
               </div>
             </div>
 
             <PrintPortal>
               <div className="slots-print-area hidden print:block">
-                <SlotsConsolidatedReport {...props} />
+                {layout === "v2" ? (
+                  <>
+                    <SlotsClosingReportV2 {...(props as any)} />
+                    <div style={{ pageBreakBefore: "always" }} />
+                    {activeCasino?.id ? (
+                      <TotalClosingReportV2
+                        casinoId={activeCasino.id}
+                        casinoName={activeCasino?.name}
+                        businessDate={props.businessDate}
+                      />
+                    ) : null}
+                  </>
+                ) : (
+                  <SlotsConsolidatedReport {...props} />
+                )}
               </div>
             </PrintPortal>
 

@@ -1337,6 +1337,7 @@ export type Database = {
         Row: {
           ace_fills: number
           actual_cage_result: number | null
+          adjustment_ref: string | null
           balance: number | null
           business_date: string
           cards_miss: number | null
@@ -1354,6 +1355,7 @@ export type Database = {
           created_at: string
           difference_amount: number | null
           id: string
+          jackpot_count: number
           manager_comment: string | null
           manual_drop_slots: number
           manual_slots_deposits: number
@@ -1368,11 +1370,13 @@ export type Database = {
           status: Database["public"]["Enums"]["cage_slots_status"]
           submitted_at: string | null
           system_shift_result: number | null
+          taxable_winnings: number
           updated_at: string
         }
         Insert: {
           ace_fills?: number
           actual_cage_result?: number | null
+          adjustment_ref?: string | null
           balance?: number | null
           business_date: string
           cards_miss?: number | null
@@ -1390,6 +1394,7 @@ export type Database = {
           created_at?: string
           difference_amount?: number | null
           id?: string
+          jackpot_count?: number
           manager_comment?: string | null
           manual_drop_slots?: number
           manual_slots_deposits?: number
@@ -1404,11 +1409,13 @@ export type Database = {
           status?: Database["public"]["Enums"]["cage_slots_status"]
           submitted_at?: string | null
           system_shift_result?: number | null
+          taxable_winnings?: number
           updated_at?: string
         }
         Update: {
           ace_fills?: number
           actual_cage_result?: number | null
+          adjustment_ref?: string | null
           balance?: number | null
           business_date?: string
           cards_miss?: number | null
@@ -1426,6 +1433,7 @@ export type Database = {
           created_at?: string
           difference_amount?: number | null
           id?: string
+          jackpot_count?: number
           manager_comment?: string | null
           manual_drop_slots?: number
           manual_slots_deposits?: number
@@ -1440,6 +1448,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["cage_slots_status"]
           submitted_at?: string | null
           system_shift_result?: number | null
+          taxable_winnings?: number
           updated_at?: string
         }
         Relationships: [
@@ -2223,6 +2232,7 @@ export type Database = {
           pwa_display: string | null
           pwa_icon_192_url: string | null
           pwa_icon_512_url: string | null
+          report_layout: string
           shift_end: string
           shift_end_pending: string | null
           shift_end_pending_from: string | null
@@ -2237,6 +2247,7 @@ export type Database = {
           verification_bonus_amount: number
           verification_bonus_funding_pool: string
           verification_bonus_lifetime_days: number
+          winnings_tax_rate: number
         }
         Insert: {
           apple_touch_icon_url?: string | null
@@ -2265,6 +2276,7 @@ export type Database = {
           pwa_display?: string | null
           pwa_icon_192_url?: string | null
           pwa_icon_512_url?: string | null
+          report_layout?: string
           shift_end?: string
           shift_end_pending?: string | null
           shift_end_pending_from?: string | null
@@ -2279,6 +2291,7 @@ export type Database = {
           verification_bonus_amount?: number
           verification_bonus_funding_pool?: string
           verification_bonus_lifetime_days?: number
+          winnings_tax_rate?: number
         }
         Update: {
           apple_touch_icon_url?: string | null
@@ -2307,6 +2320,7 @@ export type Database = {
           pwa_display?: string | null
           pwa_icon_192_url?: string | null
           pwa_icon_512_url?: string | null
+          report_layout?: string
           shift_end?: string
           shift_end_pending?: string | null
           shift_end_pending_from?: string | null
@@ -2321,6 +2335,7 @@ export type Database = {
           verification_bonus_amount?: number
           verification_bonus_funding_pool?: string
           verification_bonus_lifetime_days?: number
+          winnings_tax_rate?: number
         }
         Relationships: []
       }
@@ -10738,6 +10753,7 @@ export type Database = {
       }
       shifts: {
         Row: {
+          adjustment_ref: string | null
           balance: number | null
           cash_desk_result: number | null
           cash_flow_delta: number | null
@@ -10762,6 +10778,7 @@ export type Database = {
           tables_result: number | null
         }
         Insert: {
+          adjustment_ref?: string | null
           balance?: number | null
           cash_desk_result?: number | null
           cash_flow_delta?: number | null
@@ -10786,6 +10803,7 @@ export type Database = {
           tables_result?: number | null
         }
         Update: {
+          adjustment_ref?: string | null
           balance?: number | null
           cash_desk_result?: number | null
           cash_flow_delta?: number | null

@@ -131,6 +131,10 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
     { ...emptyMobile(), ...((shift as any).cashless_final_providers || {}) },
   );
   const [cashierNote, setCashierNote] = useState<string>(shift.cashier_note || "");
+  // Closing Record fields printed on the new closing report layout
+  const [taxableWinnings, setTaxableWinnings] = useState<string>(String((shift as any).taxable_winnings ?? 0));
+  const [jackpotCount, setJackpotCount] = useState<string>(String((shift as any).jackpot_count ?? 0));
+  const [adjustmentRef, setAdjustmentRef] = useState<string>((shift as any).adjustment_ref || "");
 
   // Dirty refs — block DB→state re-hydration while the cashier has unsaved
   // edits in a provider block. Cleared after a successful onBlur save.
@@ -406,6 +410,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
       .update({
         cashless_final: cashlessFinal,
         cashless_final_providers: cashlessFinalProviders,
+        taxable_winnings: Number(taxableWinnings) || 0,
+        jackpot_count: Number(jackpotCount) || 0,
+        adjustment_ref: adjustmentRef.trim() || null,
       } as any)
       .eq("id", shift.id);
     setSystem.mutate({ shift_id: shift.id, system_shift_result: Number(systemResultInput) || 0 });
@@ -1014,6 +1021,24 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
               <div className="rounded-md border border-border p-2">
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cards Open · Close</p>
                 <p className="font-mono whitespace-nowrap">{cards?.opening_card_count ?? 0} · {closingCards}</p>
+              </div>
+            </div>
+
+            <div className="rounded-md border border-border p-3 space-y-2">
+              <p className="text-[10px] uppercase text-muted-foreground tracking-[0.16em] font-bold">Closing Record</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div>
+                  <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Taxable Winnings Paid</p>
+                  <Input inputMode="numeric" value={taxableWinnings} onChange={e => setTaxableWinnings(e.target.value.replace(/[^0-9.-]/g, ""))} className="font-mono h-8" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Jackpot Count</p>
+                  <Input inputMode="numeric" value={jackpotCount} onChange={e => setJackpotCount(e.target.value.replace(/[^0-9]/g, ""))} className="font-mono h-8" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Adjustment / Incident Ref</p>
+                  <Input value={adjustmentRef} onChange={e => setAdjustmentRef(e.target.value)} placeholder="—" className="h-8" />
+                </div>
               </div>
             </div>
 
