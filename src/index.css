@@ -691,3 +691,211 @@
     page-break-inside: avoid;
   }
 }
+
+/* ── Closing Report V2 — "Clear Cards" visual style ───────────── */
+.rv2-page {
+  color: #111;
+  background: #ffffff;
+}
+
+.rv2-page,
+.rv2-page * {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.rv2-card {
+  border: 1px solid #b9b9b9;
+  border-radius: 6px;
+  background: #ffffff;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+/* Header card */
+.rv2-head {
+  padding: 6px 8px 7px;
+}
+.rv2-head-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.rv2-title {
+  font-size: 16.5px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+.rv2-head-id {
+  text-align: right;
+  text-transform: uppercase;
+}
+.rv2-head-id-main { font-size: 9px; font-weight: 700; }
+.rv2-head-id-sub { font-size: 7px; color: #555; letter-spacing: 0.02em; }
+
+.rv2-head-meta {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid #ddd;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.rv2-meta { padding: 0 8px; }
+.rv2-meta + .rv2-meta { border-left: 1px solid #e3e3e3; }
+.rv2-meta:first-child { padding-left: 0; }
+.rv2-meta-label {
+  font-size: 7.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+}
+.rv2-meta-value { font-size: 11px; font-weight: 700; }
+.rv2-head-shift {
+  margin-top: 4px;
+  font-size: 8.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #555;
+}
+
+/* Section caption */
+.rv2-card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ededed;
+  border-bottom: 1px solid #cfcfcf;
+  padding: 3px 8px;
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.rv2-accent {
+  display: inline-block;
+  width: 3px;
+  height: 11px;
+  border-radius: 2px;
+  background: #222;
+}
+
+/* Tables */
+.rv2-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.rv2-table th {
+  background: #f5f5f5;
+  border-bottom: 1px solid #cfcfcf;
+  padding: 3px 8px;
+  font-size: 8.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #333;
+}
+.rv2-table td {
+  padding: 3px 8px;
+  border-bottom: 1px solid #eaeaea;
+  font-size: 10.5px;
+}
+.rv2-table th + th,
+.rv2-table td + td { border-left: 1px solid #eaeaea; }
+.rv2-table tbody tr:last-child td { border-bottom: 0; }
+.rv2-table tfoot td {
+  background: #ececec;
+  border-top: 1px solid #9a9a9a;
+  border-bottom: 0;
+  font-weight: 800;
+}
+.rv2-table .rv2-l { text-align: left; }
+.rv2-table .rv2-c { text-align: center; }
+.rv2-table .rv2-r { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.rv2-table tfoot .rv2-r { font-weight: 800; }
+.rv2-empty { color: #888; padding-top: 8px; padding-bottom: 8px; }
+
+/* KPI tiles */
+.rv2-kpis {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.rv2-kpi {
+  margin-bottom: 0;
+  padding: 4px 6px 6px;
+  text-align: center;
+}
+.rv2-kpi-label {
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #555;
+}
+.rv2-kpi-value {
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.rv2-kpi-strong { font-size: 15px; }
+
+/* Signatures */
+.rv2-signs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+.rv2-sign {
+  margin-bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 6px 8px 7px;
+}
+.rv2-sign-who { flex: 1 1 auto; }
+.rv2-sign-role {
+  font-size: 8.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #555;
+}
+.rv2-sign-name { font-size: 11px; font-weight: 700; margin-top: 2px; }
+.rv2-sign-line {
+  flex: 0 0 46%;
+  border-left: 1px solid #e3e3e3;
+  padding-left: 10px;
+}
+.rv2-sign-line span {
+  display: block;
+  margin-top: 16px;
+  border-top: 1px solid #8a8a8a;
+  padding-top: 2px;
+  text-align: center;
+  font-size: 7.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #777;
+}
+
+/* Footer */
+.rv2-footer {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid #d5d5d5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #777;
+}
+.rv2-footer-name { font-weight: 800; color: #444; }
+
