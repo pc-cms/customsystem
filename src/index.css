@@ -665,6 +665,11 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  /* Absolute font lock: browser/user base font size must not resize the sheet */
+  font-size: 10.5px;
+  line-height: 1.3;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 /* Two-column block: single column on the portrait sheet. */
@@ -676,20 +681,49 @@
 }
 
 @media print {
+  /* Dedicated portrait sheet — the global @page above is landscape (rota grids) */
+  @page rv2portrait {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  html:has(.rv2-page),
+  body:has(.rv2-page),
+  .cms-print-root:has(.rv2-page),
+  .slots-print-area:has(.rv2-page) {
+    page: rv2portrait;
+  }
+  /* Absolute positioning breaks page fragmentation for the V2 sheets */
+  .cms-print-root:has(.rv2-page),
+  .slots-print-area:has(.rv2-page) {
+    position: static !important;
+    display: block !important;
+  }
 
   .rv2-page {
-    height: 281mm;
-    min-height: 281mm;
-    max-height: 281mm;
+    page: rv2portrait;
+    height: 277mm;
+    min-height: 277mm;
+    max-height: 277mm;
     overflow: hidden;
     break-after: page;
     page-break-after: always;
     break-inside: avoid;
     page-break-inside: avoid;
+    font-size: 10.5px !important;
+    line-height: 1.3 !important;
+    zoom: 1 !important;
   }
   .rv2-page:last-child {
     break-after: auto;
     page-break-after: auto;
+  }
+  /* Explicit forced break marker between logical sheets */
+  .rv2-break {
+    display: block;
+    height: 0;
+    break-after: page;
+    page-break-after: always;
   }
   .rv2-card,
   .rv2-page table,
@@ -700,6 +734,7 @@
     page-break-inside: avoid;
   }
 }
+
 
 /* ── Closing Report V2 — "Clear Cards" visual style ───────────── */
 .rv2-page {
