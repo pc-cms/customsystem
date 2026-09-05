@@ -294,7 +294,11 @@ const CloseShiftDialog = ({
 
     // Adjustment / Incident reference is printed in the Closing Record block.
     if (shift?.id) {
-      supabase.from("shifts").update({ adjustment_ref: adjustmentRef.trim() || null } as any).eq("id", shift.id).then(() => {});
+      supabase.from("shifts").update({
+        adjustment_ref: adjustmentRef.trim() || null,
+        cashier_name: signCashier.trim() || null,
+        manager_name: signManager.trim() || null,
+      } as any).eq("id", shift.id).then(() => {});
     }
 
     onConfirm({
@@ -865,6 +869,15 @@ const CloseShiftDialog = ({
         <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Adjustment / Incident Ref</p>
         <Input value={adjustmentRef} onChange={e => setAdjustmentRef(e.target.value)} placeholder="—" className="h-8" />
       </div>
+
+      {/* Signature lines printed on the closing report */}
+      <SignatorySelects
+        casinoId={(shift as any)?.casino_id}
+        cashier={signCashier}
+        manager={signManager}
+        onCashierChange={setSignCashier}
+        onManagerChange={setSignManager}
+      />
 
       {/* Notes */}
       <div>
