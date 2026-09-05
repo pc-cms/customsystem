@@ -194,10 +194,8 @@ const Expenses = ({
     }
   }, [roleDefaultSource, setSource, source, sourceLocked]);
   const [showBarDetails, setShowBarDetails] = useState<boolean>(false);
-  const [sort, setSort] = useSessionState<{ key: SortKey; dir: SortDir }>("sort", { key: "date", dir: "desc" });
-  const toggleSort = (k: SortKey) =>
-    setSort(s => (s.key === k ? { key: k, dir: s.dir === "asc" ? "desc" : "asc" } : { key: k, dir: "desc" }));
-  const sortArrow = (k: SortKey) => sort.key === k ? (sort.dir === "asc" ? " ↑" : " ↓") : "";
+  const [sort, setSort] = useSessionState<import("@/components/ui/smart-table").SortState | null>("expensesSort", { key: "date", dir: "desc" });
+
 
   const isSingleDay = selectedFrom === selectedTo;
   const { data: liveShift } = useActiveShift();
