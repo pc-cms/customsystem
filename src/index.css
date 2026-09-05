@@ -926,3 +926,13 @@
 }
 .rv2-table td.rv2-strong { font-weight: 800; }
 .rv2-table td.rv2-hl { background: #ececec; }
+
+/* Dense table mode — keeps a report page inside 281mm when a card carries
+   an unusually long row list (e.g. every denomination of every currency). */
+.rv2-dense .rv2-table th,
+.rv2-dense .rv2-table td {
+  padding-top: 0.5px;
+  padding-bottom: 0.5px;
+  font-size: 9.5px;
+}
+.rv2-dense .rv2-table th { font-size: 8px; }
