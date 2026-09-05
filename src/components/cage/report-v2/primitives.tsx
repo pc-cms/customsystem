@@ -10,10 +10,6 @@ import { fmtDate } from "@/lib/format-date";
 /** Class carrying the print page geometry (see `.rv2-page` in index.css). */
 export const A4_CLASS = "rv2-page";
 
-/** Landscape variant (A4 landscape, 281mm content width). */
-export const A4_LAND_HOST_CLASS = "rv2-page rv2-land-host";
-export const A4_LAND_CLASS = "rv2-land";
-
 export const A4_STYLE: React.CSSProperties = {
   width: "194mm",
   boxSizing: "border-box",
@@ -22,16 +18,6 @@ export const A4_STYLE: React.CSSProperties = {
   lineHeight: 1.3,
 };
 
-
-export const A4_LAND_STYLE: React.CSSProperties = {
-  ...({
-    width: "281mm",
-    boxSizing: "border-box",
-    fontFamily: "Arial, Helvetica, sans-serif",
-    fontSize: "10.5px",
-    lineHeight: 1.3,
-  } as React.CSSProperties),
-};
 
 export const num = (v: number | null | undefined) => formatNumberSpaces(Math.round(Number(v || 0)));
 
