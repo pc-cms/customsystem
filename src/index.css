@@ -667,49 +667,16 @@
   flex-direction: column;
 }
 
-/* Landscape report: rendered wide on screen, rotated onto a portrait sheet
- * when printed (named @page sizes are unreliable in mixed-orientation jobs). */
+/* Two-column block: single column on the portrait sheet. */
 .rv2-2col {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 6px;
   align-items: start;
 }
 
-.rv2-land-host {
-  width: 281mm;
-  box-sizing: border-box;
-}
-.rv2-land {
-  width: 281mm;
-  min-height: 194mm;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  background: #ffffff;
-}
-
 @media print {
-  .rv2-land-host {
-    position: relative;
-    width: 194mm !important;
-    height: 281mm !important;
-    min-height: 281mm !important;
-    max-height: 281mm !important;
-    padding: 0 !important;
-    overflow: hidden;
-  }
-  .rv2-land {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 281mm !important;
-    height: 194mm !important;
-    max-height: 194mm !important;
-    overflow: hidden;
-    transform: translateX(194mm) rotate(90deg);
-    transform-origin: 0 0;
-  }
+
   .rv2-page {
     height: 281mm;
     min-height: 281mm;

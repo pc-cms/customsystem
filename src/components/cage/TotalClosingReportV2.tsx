@@ -198,9 +198,9 @@ const TotalClosingReportV2 = ({
   const totalMoney = totalCash + bankTotalTzs + liveCashlessNet + slotsCashlessNet;
 
   return (
-    <div className={A4_LAND_HOST_CLASS}>
-      <div className={`${A4_LAND_CLASS} bg-white text-black p-2`} style={A4_LAND_STYLE}>
+    <div className={`${A4_CLASS} bg-white text-black p-2 flex flex-col`} style={A4_STYLE}>
       <style>{PRINT_REPORT_ACCENTS_CSS}</style>
+
 
       <ReportHeader
         title="Total Closing Cash Desk Report"
@@ -291,9 +291,9 @@ const TotalClosingReportV2 = ({
 
       <Signatures left="Slots Cashier / Live Cashier" right="Closing Manager" leftName={signCashiers} rightName={signManager} />
       <PageFooter casinoName={casinoName} page={4} total={4} />
-      </div>
     </div>
   );
+
 };
 
 export default TotalClosingReportV2;
