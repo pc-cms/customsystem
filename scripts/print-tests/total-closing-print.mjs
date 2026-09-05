@@ -10,7 +10,16 @@
  */
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { existsSync } from "node:fs";
 import { chromium } from "playwright";
+
+/** Fall back to the sandbox-installed Chromium when the bundled build is absent. */
+const CHROMIUM_FALLBACKS = [
+  "/opt/ms-playwright/chromium-1194/chrome-linux/chrome",
+  "/usr/bin/chromium",
+  "/usr/bin/google-chrome",
+];
+const executablePath = CHROMIUM_FALLBACKS.find((p) => existsSync(p));
 
 const OUT_DIR = resolve(process.argv[2] || "/mnt/documents/print-tests");
 const EXPECTED_PAGES = 4;
@@ -87,7 +96,7 @@ const inspectPdf = (buf) => {
 
 const run = async () => {
   mkdirSync(OUT_DIR, { recursive: true });
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(executablePath ? { executablePath } : {});
   const results = [];
   let failed = 0;
 
