@@ -679,6 +679,8 @@
     height: 194mm !important;
     min-height: 194mm !important;
     max-height: 194mm !important;
+    /* Chromium drops the named-page size when the box also clips overflow. */
+    overflow: visible !important;
     page: rv2land;
   }
   .rv2-page {
