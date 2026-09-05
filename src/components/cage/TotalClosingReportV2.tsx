@@ -267,9 +267,10 @@ const TotalClosingReportV2 = ({
           footer={{ acc: "Total", cur: "", inn: "", out: "", close: "", rate: "", tzs: num(bankTotalTzs) }}
         />
       </Card>
+      </div>
 
-      <div>
-      <Card title="Bank accounts placeholder">
+      <Card title="Total Closing Control">
+
         <CardTable
           cols={[
             { key: "cash", label: "Closing Cash", align: "right" },
