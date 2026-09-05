@@ -683,9 +683,9 @@
 @media print {
 
   .rv2-page {
-    height: 281mm;
-    min-height: 281mm;
-    max-height: 281mm;
+    height: 277mm;
+    min-height: 277mm;
+    max-height: 277mm;
     overflow: hidden;
     break-after: page;
     page-break-after: always;
