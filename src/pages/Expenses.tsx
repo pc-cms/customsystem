@@ -38,6 +38,7 @@ import { Pencil } from "lucide-react";
 import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
 import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
 import { hasExpenseManagementAccess, isExpenseSourceLocked } from "@/lib/expense-access";
+import { defaultPostingDate } from "@/lib/office-posting-date";
 
 type SourceVal = "live_game" | "slots" | "office";
 
@@ -109,9 +110,19 @@ interface ExpensesProps {
   /** When true, render without page header, without "New entries" form,
    *  and hide row Approve/Cancel actions (used inside Reports tab). */
   embedded?: boolean;
+  /** Office tab: keep the full cashier interface, but let the shared Office
+   *  month selector own the visible date range. */
+  officeEmbedded?: boolean;
+  periodFrom?: string;
+  periodTo?: string;
 }
 
-const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
+const Expenses = ({
+  embedded = false,
+  officeEmbedded = false,
+  periodFrom,
+  periodTo,
+}: ExpensesProps = {}) => {
   const { roles, casinoId, managerOverride } = useAuth();
   const { activeCasino } = useCasino();
   const isCashierLive = roles.includes("cashier") && !roles.includes("cashier_slots");
@@ -156,6 +167,11 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     sourceLocked ? roleDefaultSource : "all",
   );
   const [search, setSearch] = useSessionState<string>("search", "");
+  const selectedFrom = officeEmbedded && periodFrom ? periodFrom : from;
+  const selectedTo = officeEmbedded && periodTo ? periodTo : to;
+  const draftDefaultDate = officeEmbedded && periodFrom && periodTo
+    ? defaultPostingDate({ from: periodFrom, to: periodTo })
+    : businessDate;
 
   // Snap stale persisted date range forward after a business-day rollover so
   // newly-created expenses always show up on first paint.
@@ -184,7 +200,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     setSort(s => (s.key === k ? { key: k, dir: s.dir === "asc" ? "desc" : "asc" } : { key: k, dir: "desc" }));
   const sortArrow = (k: SortKey) => sort.key === k ? (sort.dir === "asc" ? " ↑" : " ↓") : "";
 
-  const isSingleDay = from === to;
+  const isSingleDay = selectedFrom === selectedTo;
   const { data: liveShift } = useActiveShift();
   const { data: slotsShift } = useActiveCageSlotsShift();
 
@@ -192,9 +208,9 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   // When locked to live/slots/office → fetch only that source via DB filter.
   const querySource: "all" | SourceVal = source;
   const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(
-    isSingleDay ? from : undefined,
+    isSingleDay ? selectedFrom : undefined,
     "live_game", // ignored when options.source is set
-    isSingleDay ? undefined : { from, to },
+    isSingleDay ? undefined : { from: selectedFrom, to: selectedTo },
     { source: querySource },
   );
 
@@ -211,7 +227,9 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     return m;
   }, [allFinCats]);
   const [editingExpense, setEditingExpense] = useState<EditableExpense | null>(null);
-  const [drafts, setDrafts] = useState<DraftRow[]>([newDraft(roleDefaultSource, businessDate)]);
+  const [drafts, setDrafts] = useState<DraftRow[]>([
+    newDraft(officeEmbedded ? "office" : roleDefaultSource, draftDefaultDate),
+  ]);
 
   // With no casino selected (super_admin / finance on the summary domain) the
   // query stays disabled — TanStack v5 keeps `isLoading` true forever, which
@@ -315,7 +333,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           );
         });
       }
-      setDrafts((d) => [...d.filter((r) => r.uid !== uid), newDraft(row.source, businessDate)]);
+      setDrafts((d) => [...d.filter((r) => r.uid !== uid), newDraft(row.source, draftDefaultDate)]);
     } catch {
       /* toast handled */
     }
@@ -324,7 +342,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   if (!casinoId) {
     return (
       <div className="space-y-6">
-        {!embedded && (
+        {!embedded && !officeEmbedded && (
           <PageHeader icon={Receipt} title="Expenses" subtitle="No casino selected" />
         )}
         <div className="cms-panel p-8 text-center text-sm text-muted-foreground">
@@ -337,7 +355,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <PageHeader icon={Receipt} title="Expenses" subtitle="Loading…" />
+        {!officeEmbedded && <PageHeader icon={Receipt} title="Expenses" subtitle="Loading…" />}
         <CardSkeleton count={3} />
         <TableSkeleton rows={5} cols={6} />
       </div>
@@ -346,7 +364,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
 
   return (
     <div>
-      {!embedded && (
+      {!embedded && !officeEmbedded && (
         <PageHeader
           icon={Receipt}
           title="Expenses"
@@ -421,16 +439,18 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           <Filter className="w-3.5 h-3.5 text-muted-foreground" />
           <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Filters</h3>
           <div className="ml-auto flex items-center gap-1 flex-wrap">
-            <DateRangePresets
-              preset={datePreset}
-              from={from}
-              to={to}
-              onChange={({ preset, from: f, to: t }) => {
-                setDatePreset(preset);
-                setFrom(f);
-                setTo(t);
-              }}
-            />
+            {!officeEmbedded && (
+              <DateRangePresets
+                preset={datePreset}
+                from={from}
+                to={to}
+                onChange={({ preset, from: f, to: t }) => {
+                  setDatePreset(preset);
+                  setFrom(f);
+                  setTo(t);
+                }}
+              />
+            )}
             <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={resetFilters}>
               Reset
             </Button>
@@ -575,7 +595,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
         <div className="cms-panel overflow-visible mb-6">
           <div className="px-4 py-2 border-b border-border flex items-center justify-between">
             <h3 className="text-sm font-semibold text-card-foreground">New entries</h3>
-            <Button size="sm" variant="outline" onClick={() => setDrafts((d) => [...d, newDraft(roleDefaultSource, businessDate)])} className="h-8 gap-1.5">
+            <Button size="sm" variant="outline" onClick={() => setDrafts((d) => [...d, newDraft(officeEmbedded ? "office" : roleDefaultSource, draftDefaultDate)])} className="h-8 gap-1.5">
               <Plus className="w-3.5 h-3.5" /> Row
             </Button>
           </div>
@@ -627,7 +647,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           const dir = sort.dir === "asc" ? 1 : -1;
           const get = (e: any): string | number => {
             switch (sort.key) {
-              case "date":     return e.created_at;
+              case "date":     return e.business_date || e.created_at;
               case "source":   return resolveSource(e);
               case "category": return e.category || "";
               case "target":   return e.players ? `${e.players.first_name} ${e.players.last_name}` : (e.player_name || "Casino");
@@ -694,7 +714,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                   return (
                     <tr key={exp.id} className="border-b border-border last:border-0">
                       <td className="px-3 py-2 text-xs font-mono text-muted-foreground">
-                        {fmtDateOnly(exp.created_at)}
+                        {fmtDateOnly(exp.business_date || exp.created_at)}
                       </td>
                       <td className="px-3 py-2 text-xs font-mono text-muted-foreground">
                         {new Date(exp.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
