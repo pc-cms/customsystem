@@ -237,8 +237,9 @@ const TotalClosingReportV2 = ({
         />
       </Card>
 
-      <div className="rv2-2col">
+      <div className={`rv2-2col${denomRows.length + bankRows.length > 32 ? " rv2-dense" : ""}`}>
       <Card title="Closing Cash by Currency and Denomination">
+
         <CardTable
           cols={[
             { key: "cur", label: "Currency", width: "20%" },
