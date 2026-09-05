@@ -13,6 +13,7 @@
 
 **Live Game (стр. 2)**
 - Таблица столов: Opening / Fill / Credit / Closing / Drop / Result и строка Total — есть.
+- TURNOVER = наш Drop по столу (сумма кэш-ин/кэш-аут транзакций с выбранным столом) — берём из существующего источника, ручной ввод не нужен.
 - Cash Flow Opening и Closing рядом двумя блоками, Cashless, Tables Result, Fill, Credit, Expenses, Tips, Chip Difference, Total Money, Shift Balance — есть.
 
 **Chips Movement (стр. 3)**
