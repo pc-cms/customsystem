@@ -687,6 +687,19 @@
     margin: 8mm;
   }
 
+  html:has(.rv2-page),
+  body:has(.rv2-page),
+  .cms-print-root:has(.rv2-page),
+  .slots-print-area:has(.rv2-page) {
+    page: rv2portrait;
+  }
+  /* Absolute positioning breaks page fragmentation for the V2 sheets */
+  .cms-print-root:has(.rv2-page),
+  .slots-print-area:has(.rv2-page) {
+    position: static !important;
+    display: block !important;
+  }
+
   .rv2-page {
     page: rv2portrait;
     height: 277mm;
