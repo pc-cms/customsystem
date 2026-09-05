@@ -899,3 +899,21 @@
 }
 .rv2-footer-name { font-weight: 800; color: #444; }
 
+
+/* Summary rows inside report cards */
+.rv2-sumtable td { background: #fafafa; }
+.rv2-sumtable tr:first-child td { border-top: 1px solid #cfcfcf; }
+.rv2-sum-label {
+  text-transform: uppercase;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #444;
+}
+.rv2-sumtable tr.rv2-sum-strong td {
+  background: #ececec;
+  font-weight: 800;
+  border-top: 1px solid #9a9a9a;
+}
+.rv2-table td.rv2-strong { font-weight: 800; }
+.rv2-table td.rv2-hl { background: #ececec; }
