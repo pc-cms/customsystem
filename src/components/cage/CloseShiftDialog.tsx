@@ -70,6 +70,7 @@ const CloseShiftDialog = ({
 }: CloseShiftDialogProps) => {
   // sessionStorage persistence — survives page refresh while shift is being closed.
   const storageKey = `cms.close-shift.${shift?.id || "none"}`;
+  const [adjustmentRef, setAdjustmentRef] = useState<string>((shift as any)?.adjustment_ref || "");
   const persisted = useMemo(() => {
     try {
       const raw = sessionStorage.getItem(storageKey);
@@ -287,6 +288,11 @@ const CloseShiftDialog = ({
     }
 
     try { sessionStorage.removeItem(storageKey); } catch { /* ignore */ }
+
+    // Adjustment / Incident reference is printed in the Closing Record block.
+    if (shift?.id) {
+      supabase.from("shifts").update({ adjustment_ref: adjustmentRef.trim() || null } as any).eq("id", shift.id).then(() => {});
+    }
 
     onConfirm({
       closingCount: {
@@ -850,6 +856,12 @@ const CloseShiftDialog = ({
           <KpiTile label="Money Result" value={moneyResult} tone={moneyResult >= 0 ? "pos" : "neg"} compact />
         </div>
       </section>
+
+      {/* Adjustment / Incident reference — printed in the Closing Record */}
+      <div>
+        <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Adjustment / Incident Ref</p>
+        <Input value={adjustmentRef} onChange={e => setAdjustmentRef(e.target.value)} placeholder="—" className="h-8" />
+      </div>
 
       {/* Notes */}
       <div>
