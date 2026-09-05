@@ -2,7 +2,7 @@
  * Shared building blocks for the "Style A — Clear Cards" printable cash desk
  * reports (Slots / Live Game / Chips Movement / Total Closing).
  *
- * Pure presentation. A4 portrait, 194mm content width, print-safe borders.
+ * Pure presentation. A4 portrait, 194mm content width, print-safe styling.
  */
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
@@ -56,28 +56,30 @@ export const ReportHeader = ({
   generatedAt?: string;
   shiftLabel?: string | null;
 }) => (
-  <div className="mb-2">
-    <div className="flex items-end justify-between border-b-2 border-black pb-1">
-      <div className="text-[16px] font-bold uppercase tracking-wide">{title}</div>
-      <div className="text-right text-[9px] uppercase">
-        <div>Report ID: {reportId}</div>
-        <div>Internal Controls: {status}</div>
+  <div className="rv2-card rv2-head mb-2">
+    <div className="rv2-head-top">
+      <div className="rv2-title">{title}</div>
+      <div className="rv2-head-id">
+        <div className="rv2-head-id-main">Report ID: {reportId}</div>
+        <div className="rv2-head-id-sub">Internal Controls: {status}</div>
       </div>
     </div>
-    <div className="mt-1 grid grid-cols-4 gap-2 text-[9.5px]">
+    <div className="rv2-head-meta">
       <Meta label="Business Date" value={fmtDate(businessDate)} />
       <Meta label="Cashier" value={cashier || "—"} />
       <Meta label="Closing Manager" value={manager || "—"} />
       <Meta label="Generated" value={generatedAt || `${fmtDate(new Date().toISOString().slice(0, 10))} EAT`} />
     </div>
-    {shiftLabel ? <div className="mt-1 text-[9.5px] uppercase font-semibold">Shift: {shiftLabel}</div> : null}
+    {shiftLabel ? (
+      <div className="rv2-head-shift">Shift: {shiftLabel}</div>
+    ) : null}
   </div>
 );
 
 const Meta = ({ label, value }: { label: string; value: string }) => (
-  <div className="border border-black px-1.5 py-0.5">
-    <div className="text-[8px] uppercase tracking-wide text-gray-600">{label}</div>
-    <div className="font-semibold">{value}</div>
+  <div className="rv2-meta">
+    <div className="rv2-meta-label">{label}</div>
+    <div className="rv2-meta-value">{value}</div>
   </div>
 );
 
@@ -87,11 +89,9 @@ export const Card = ({
   children,
   className = "",
 }: { title?: string; children: React.ReactNode; className?: string }) => (
-  <div className={`rv2-card border border-black mb-1.5 ${className}`}>
+  <div className={`rv2-card ${className}`}>
     {title ? (
-      <div className="bg-gray-200 border-b border-black px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide">
-        {title}
-      </div>
+      <div className="rv2-card-title"><span className="rv2-accent" />{title}</div>
     ) : null}
     {children}
   </div>
@@ -99,7 +99,10 @@ export const Card = ({
 
 export type Col = { key: string; label: string; align?: "left" | "right" | "center"; width?: string };
 
-/** Simple bordered data table used by every card. */
+const alignClass = (a?: Col["align"]) =>
+  a === "right" ? "rv2-r" : a === "center" ? "rv2-c" : "rv2-l";
+
+/** Simple data table used by every card. */
 export const CardTable = ({
   cols,
   rows,
@@ -109,21 +112,14 @@ export const CardTable = ({
   rows: Array<Record<string, React.ReactNode>>;
   footer?: Record<string, React.ReactNode> | null;
 }) => (
-  <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
+  <table className="rv2-table" style={{ tableLayout: "fixed" }}>
     <colgroup>
       {cols.map(c => <col key={c.key} style={c.width ? { width: c.width } : undefined} />)}
     </colgroup>
     <thead>
-      <tr className="bg-gray-100">
+      <tr>
         {cols.map(c => (
-          <th
-            key={c.key}
-            className={`border border-black px-1.5 py-0.5 text-[8.5px] uppercase tracking-wide font-bold ${
-              c.align === "right" ? "text-right" : c.align === "center" ? "text-center" : "text-left"
-            }`}
-          >
-            {c.label}
-          </th>
+          <th key={c.key} className={alignClass(c.align)}>{c.label}</th>
         ))}
       </tr>
     </thead>
@@ -131,33 +127,19 @@ export const CardTable = ({
       {rows.map((r, i) => (
         <tr key={i}>
           {cols.map(c => (
-            <td
-              key={c.key}
-              className={`border border-black px-1.5 py-0.5 ${
-                c.align === "right" ? "text-right font-mono tabular-nums" : c.align === "center" ? "text-center" : "text-left"
-              }`}
-            >
-              {r[c.key] ?? ""}
-            </td>
+            <td key={c.key} className={alignClass(c.align)}>{r[c.key] ?? ""}</td>
           ))}
         </tr>
       ))}
       {!rows.length && (
-        <tr><td colSpan={cols.length} className="border border-black px-1.5 py-2 text-center text-gray-500">No data</td></tr>
+        <tr><td colSpan={cols.length} className="rv2-c rv2-empty">No data</td></tr>
       )}
     </tbody>
     {footer ? (
       <tfoot>
-        <tr className="bg-gray-200 font-bold">
+        <tr>
           {cols.map(c => (
-            <td
-              key={c.key}
-              className={`border border-black px-1.5 py-0.5 ${
-                c.align === "right" ? "text-right font-mono tabular-nums" : c.align === "center" ? "text-center" : "text-left"
-              }`}
-            >
-              {footer[c.key] ?? ""}
-            </td>
+            <td key={c.key} className={alignClass(c.align)}>{footer[c.key] ?? ""}</td>
           ))}
         </tr>
       </tfoot>
@@ -165,33 +147,18 @@ export const CardTable = ({
   </table>
 );
 
-/** Horizontal KPI strip — the wide "cards" row of the layout. */
+/** Horizontal KPI strip — the row of separate rounded tiles. */
 export const KpiStrip = ({
   items,
 }: { items: Array<{ label: string; value: React.ReactNode; strong?: boolean }> }) => (
-  <table className="rv2-card w-full border-collapse mb-1.5" style={{ tableLayout: "fixed" }}>
-    <thead>
-      <tr className="bg-gray-100">
-        {items.map(i => (
-          <th key={i.label} className="border border-black px-1.5 py-0.5 text-[8.5px] uppercase tracking-wide font-bold text-center">
-            {i.label}
-          </th>
-        ))}
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        {items.map(i => (
-          <td
-            key={i.label}
-            className={`border border-black px-1.5 py-1 text-center font-mono tabular-nums ${i.strong ? "font-bold text-[12px] bg-gray-50" : "font-semibold"}`}
-          >
-            {i.value}
-          </td>
-        ))}
-      </tr>
-    </tbody>
-  </table>
+  <div className="rv2-kpis" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+    {items.map(i => (
+      <div key={i.label} className="rv2-card rv2-kpi">
+        <div className="rv2-kpi-label">{i.label}</div>
+        <div className={`rv2-kpi-value${i.strong ? " rv2-kpi-strong" : ""}`}>{i.value}</div>
+      </div>
+    ))}
+  </div>
 );
 
 export const Signatures = ({
@@ -200,20 +167,22 @@ export const Signatures = ({
   leftName,
   rightName,
 }: { left: string; right: string; leftName?: string | null; rightName?: string | null }) => (
-  <div className="rv2-card grid grid-cols-2 gap-8 mt-6">
+  <div className="rv2-signs">
     {[{ t: left, n: leftName }, { t: right, n: rightName }].map((s, i) => (
-      <div key={i} className="text-[9.5px]">
-        <div className="uppercase font-bold tracking-wide">{s.t}</div>
-        <div className="mt-0.5">{s.n || "—"}</div>
-        <div className="mt-6 border-t border-black pt-0.5 text-center text-[8.5px] uppercase tracking-wide">Signature</div>
+      <div key={i} className="rv2-card rv2-sign">
+        <div className="rv2-sign-who">
+          <div className="rv2-sign-role">{s.t}</div>
+          <div className="rv2-sign-name">{s.n || "—"}</div>
+        </div>
+        <div className="rv2-sign-line"><span>Signature</span></div>
       </div>
     ))}
   </div>
 );
 
 export const PageFooter = ({ casinoName, page, total }: { casinoName: string; page: number; total: number }) => (
-  <div className="mt-auto pt-3 flex items-center justify-between text-[8.5px] uppercase tracking-wide border-t border-black">
-    <span className="font-bold">{casinoName}</span>
+  <div className="rv2-footer">
+    <span className="rv2-footer-name">{casinoName}</span>
     <span>Closing Report · Style A</span>
     <span>Page {page} of {total}</span>
   </div>
