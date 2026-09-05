@@ -12,7 +12,7 @@ import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
 import type { Tables } from "@/integrations/supabase/types";
 import {
-  A4_STYLE, Card, KpiStrip, PageFooter, ReportHeader, Signatures, buildReportId, num, signed,
+  A4_CLASS, A4_STYLE, Card, KpiStrip, PageFooter, ReportHeader, Signatures, buildReportId, num, signed,
 } from "./report-v2/primitives";
 
 export type ChipsMovementReportV2Props = {
@@ -89,7 +89,7 @@ const ChipsMovementReportV2 = ({
   ];
 
   return (
-    <div className="bg-white text-black p-2 flex flex-col" style={A4_STYLE}>
+    <div className={`${A4_CLASS} bg-white text-black p-2 flex flex-col`} style={A4_STYLE}>
       <style>{PRINT_REPORT_ACCENTS_CSS}</style>
 
       <ReportHeader

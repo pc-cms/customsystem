@@ -64,7 +64,20 @@ export const printLiveGameReport = () => {
         page-break-after: auto !important;
         break-after: auto !important;
       }
+      .rv2-page {
+        page: portrait !important;
+        width: 194mm !important;
+        height: 281mm !important;
+        max-height: 281mm !important;
+        overflow: hidden !important;
+        break-after: page !important;
+        page-break-after: always !important;
+        break-inside: avoid !important;
+      }
+      .rv2-page:last-child { break-after: auto !important; page-break-after: auto !important; }
+      .rv2-card, .rv2-page table, .rv2-page tr { break-inside: avoid !important; page-break-inside: avoid !important; }
     }
+
   </style></head><body><div class="live-game-print-area cms-print-root">${source.innerHTML}</div></body></html>`);
   doc.close();
   const cleanup = () => {
