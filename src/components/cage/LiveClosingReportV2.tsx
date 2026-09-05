@@ -45,6 +45,8 @@ const LiveClosingReportV2 = ({
   adjustmentRef,
 }: LiveClosingReportV2Props) => {
   const { casinoId } = useAuth();
+  const signCashier = cashierName || (shift as any)?.cashier_name || undefined;
+  const signManager = managerName || (shift as any)?.manager_name || undefined;
   const { rows, cashlessIO } = useLiveShiftReportData({
     casinoId, shiftId: shift?.id, businessDate, tables,
   });
@@ -114,8 +116,8 @@ const LiveClosingReportV2 = ({
         reportId={buildReportId("LCD", businessDate, shift?.id)}
         status={reportStatus}
         businessDate={businessDate}
-        cashier={cashierName}
-        manager={managerName}
+        cashier={signCashier}
+        manager={signManager}
       />
 
       <Card title="Gaming Tables">
@@ -220,7 +222,7 @@ const LiveClosingReportV2 = ({
         />
       </Card>
 
-      <Signatures left="Closing Cashier" right="Closing Manager" leftName={cashierName} rightName={managerName} />
+      <Signatures left="Closing Cashier" right="Closing Manager" leftName={signCashier} rightName={signManager} />
       <PageFooter casinoName={casinoName} page={2} total={4} />
     </div>
   );

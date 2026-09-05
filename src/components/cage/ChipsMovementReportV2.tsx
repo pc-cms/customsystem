@@ -37,6 +37,8 @@ const ChipsMovementReportV2 = ({
   fillByDenomOverride, creditByDenomOverride,
 }: ChipsMovementReportV2Props) => {
   const denoms = useVisibleChipDenoms();
+  const signCashier = cashierName || (shift as any)?.cashier_name || undefined;
+  const signManager = managerName || (shift as any)?.manager_name || undefined;
   const [fillByDenom, setFillByDenom] = useState<Record<number, number>>({});
   const [creditByDenom, setCreditByDenom] = useState<Record<number, number>>({});
 
@@ -95,8 +97,8 @@ const ChipsMovementReportV2 = ({
         reportId={buildReportId("CHM", businessDate, shift?.id)}
         status={reportStatus}
         businessDate={businessDate}
-        cashier={cashierName}
-        manager={managerName}
+        cashier={signCashier}
+        manager={signManager}
       />
 
       <KpiStrip
@@ -160,7 +162,7 @@ const ChipsMovementReportV2 = ({
         </table>
       </Card>
 
-      <Signatures left="Closing Cashier" right="Closing Manager" leftName={cashierName} rightName={managerName} />
+      <Signatures left="Closing Cashier" right="Closing Manager" leftName={signCashier} rightName={signManager} />
       <PageFooter casinoName={casinoName} page={3} total={4} />
     </div>
   );
