@@ -112,29 +112,29 @@ const ChipsMovementReportV2 = ({
       />
 
       <Card title="Quantity per Denomination">
-        <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
+        <table className="rv2-table" style={{ tableLayout: "fixed" }}>
           <thead>
-            <tr className="bg-gray-100">
-              <th className="border border-black px-1.5 py-0.5 text-left text-[8.5px] uppercase font-bold" style={{ width: "26%" }}>Block</th>
+            <tr>
+              <th className="rv2-l" style={{ width: "26%" }}>Block</th>
               {denoms.map(d => (
-                <th key={d} className="border border-black px-1 py-0.5 text-right text-[8.5px] font-bold">{formatNumberSpaces(d)}</th>
+                <th key={d} className="rv2-r">{formatNumberSpaces(d)}</th>
               ))}
-              <th className="border border-black px-1.5 py-0.5 text-right text-[8.5px] uppercase font-bold" style={{ width: "16%" }}>Value TZS</th>
+              <th className="rv2-r" style={{ width: "16%" }}>Value TZS</th>
             </tr>
           </thead>
           <tbody>
             {blocks.map(b => (
               <tr key={b.label}>
-                <td className="border border-black px-1.5 py-0.5 font-semibold">{b.label}</td>
+                <td className="rv2-l rv2-sum-label">{b.label}</td>
                 {denoms.map(d => {
                   const q = Number(b.map?.[d] || 0);
                   return (
-                    <td key={d} className="border border-black px-1 py-0.5 text-right font-mono tabular-nums">
+                    <td key={d} className="rv2-r">
                       {q === 0 ? "·" : b.sign ? signed(q) : formatNumberSpaces(q)}
                     </td>
                   );
                 })}
-                <td className="border border-black px-1.5 py-0.5 text-right font-mono tabular-nums font-bold">
+                <td className="rv2-r rv2-strong">
                   {b.sign ? signed(b.total) : num(b.total)}
                 </td>
               </tr>
@@ -144,23 +144,24 @@ const ChipsMovementReportV2 = ({
       </Card>
 
       <Card title="Chips Control">
-        <table className="w-full border-collapse">
+        <table className="rv2-table rv2-sumtable">
           <tbody>
             <tr>
-              <td className="border border-black px-1.5 py-0.5 uppercase text-[8.5px]">Opening + Fill − Credit</td>
-              <td className="border border-black px-1.5 py-0.5 text-right font-mono tabular-nums">
+              <td className="rv2-l rv2-sum-label">Opening + Fill − Credit</td>
+              <td className="rv2-r">
                 {num(totals.opening + totals.diff + totals.fill - totals.credit)}
               </td>
-              <td className="border border-black px-1.5 py-0.5 uppercase text-[8.5px]">Closing Counted</td>
-              <td className="border border-black px-1.5 py-0.5 text-right font-mono tabular-nums">{num(totals.closing)}</td>
-              <td className="border border-black bg-gray-200 px-1.5 py-0.5 uppercase text-[8.5px] font-bold">Difference</td>
-              <td className="border border-black bg-gray-200 px-1.5 py-0.5 text-right font-mono tabular-nums font-bold">
+              <td className="rv2-l rv2-sum-label">Closing Counted</td>
+              <td className="rv2-r">{num(totals.closing)}</td>
+              <td className="rv2-l rv2-sum-label rv2-hl">Difference</td>
+              <td className="rv2-r rv2-hl rv2-strong">
                 {signed(totals.closing - (totals.opening + totals.diff + totals.fill - totals.credit))}
               </td>
             </tr>
           </tbody>
         </table>
       </Card>
+
 
       <Signatures left="Closing Cashier" right="Closing Manager" leftName={signCashier} rightName={signManager} />
       <PageFooter casinoName={casinoName} page={3} total={4} />

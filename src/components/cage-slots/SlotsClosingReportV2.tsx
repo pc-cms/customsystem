@@ -137,7 +137,7 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
             rows={cashRows(openerByCurrency)}
             footer={null}
           />
-          <table className="w-full border-collapse">
+          <table className="rv2-table rv2-sumtable">
             <tbody>
               <SumRow label="Total Cash" value={num(openerCashTotalTzs)} />
               <SumRow label="Bank" value={num(openerBankTotalTzs)} />
@@ -152,7 +152,7 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
             rows={cashRows(closerByCurrency)}
             footer={null}
           />
-          <table className="w-full border-collapse">
+          <table className="rv2-table rv2-sumtable">
             <tbody>
               <SumRow label="Total Cash" value={num(closerCashTotalTzs)} />
               <SumRow label="Bank" value={num(closerBankTotalTzs)} />
@@ -250,9 +250,9 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
 };
 
 const SumRow = ({ label, value, strong }: { label: string; value: string; strong?: boolean }) => (
-  <tr className={strong ? "bg-gray-200 font-bold" : "bg-gray-50"}>
-    <td className="border border-black px-1.5 py-0.5 uppercase text-[8.5px] tracking-wide">{label}</td>
-    <td className="border border-black px-1.5 py-0.5 text-right font-mono tabular-nums">{value}</td>
+  <tr className={strong ? "rv2-sum-strong" : ""}>
+    <td className="rv2-l rv2-sum-label">{label}</td>
+    <td className="rv2-r">{value}</td>
   </tr>
 );
 
