@@ -148,17 +148,23 @@ export default function WalletMovementDialog({
         ? Number(countRow.physical_total)
         : Number(w.starting_float_amount || 0);
 
-    let q = supabase
+    const { data: adjRows } = await supabase
       .from("fin_wallet_tx")
       .select("amount, business_date, created_at")
       .eq("wallet_id", w.id)
       .eq("kind", "adjustment")
       .eq("ref_table", "wallet_movement")
       .lte("business_date", date);
-    if (countRow?.created_at) q = q.gt("created_at", countRow.created_at);
-    const { data: adjRows } = await q;
 
-    const delta = (adjRows || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+    const countDate = countRow?.business_date || null;
+    const countCreatedAt = countRow?.created_at || null;
+    const delta = (adjRows || [])
+      .filter((r: any) => {
+        if (!countDate) return true;
+        if (r.business_date > countDate) return true;
+        return r.business_date === countDate && !!countCreatedAt && r.created_at > countCreatedAt;
+      })
+      .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
 
     return base + delta;
 
