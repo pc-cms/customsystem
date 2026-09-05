@@ -160,11 +160,13 @@ export default function WalletMovementDialog({
     const countCreatedAt = countRow?.created_at || null;
     const delta = (adjRows || [])
       .filter((r: any) => {
-        if (!countDate) return true;
-        if (r.business_date > countDate) return true;
-        return r.business_date === countDate && !!countCreatedAt && r.created_at > countCreatedAt;
+        if (!countDate || !countCreatedAt) return true;
+        // A movement counts only if it was recorded AFTER the last real count
+        // (a later-entered recount already includes everything before it).
+        return r.created_at > countCreatedAt && r.business_date >= countDate;
       })
       .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+
 
     return base + delta;
 
