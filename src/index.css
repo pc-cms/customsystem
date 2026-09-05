@@ -681,8 +681,14 @@
 }
 
 @media print {
+  /* Dedicated portrait sheet — the global @page above is landscape (rota grids) */
+  @page rv2portrait {
+    size: A4 portrait;
+    margin: 8mm;
+  }
 
   .rv2-page {
+    page: rv2portrait;
     height: 277mm;
     min-height: 277mm;
     max-height: 277mm;
