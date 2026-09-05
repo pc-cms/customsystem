@@ -127,52 +127,71 @@ export default function WalletMovementDialog({
   const [actualNow, setActualNow] = useState<number | null>(null);
   useEffect(() => {
     let cancelled = false;
+  const [actualNow, setActualNow] = useState<number | null>(null);
+
+  /**
+   * Actual of a wallet as of the selected business date =
+   * last REAL physical count (movement rows excluded) + every wallet movement
+   * recorded after that count. Same formula as `fin_balance_snapshot`, so a
+   * later backdated recount automatically re-applies the movements on top.
+   */
+  const fetchActual = async (w: { id: string; starting_float_amount?: number | null }) => {
+    const { data: countRow } = await supabase
+      .from("cash_count_snapshots")
+      .select("physical_total, business_date, created_at")
+      .eq("wallet_id", w.id)
+      .lte("business_date", date)
+      .not("note", "ilike", "Add money%")
+      .not("note", "ilike", "Take money%")
+      .not("note", "ilike", "Transfer %")
+      .order("business_date", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const base =
+      countRow?.physical_total != null
+        ? Number(countRow.physical_total)
+        : Number(w.starting_float_amount || 0);
+
+    let q = supabase
+      .from("fin_wallet_tx")
+      .select("amount, business_date, created_at")
+      .eq("wallet_id", w.id)
+      .eq("kind", "adjustment")
+      .eq("ref_table", "wallet_movement")
+      .lte("business_date", date);
+    if (countRow?.business_date) q = q.gte("business_date", countRow.business_date);
+    const { data: adjRows } = await q;
+
+    const delta = (adjRows || [])
+      .filter((r: any) => {
+        if (!countRow?.business_date) return true;
+        if (r.business_date > countRow.business_date) return true;
+        return r.business_date === countRow.business_date && r.created_at > countRow.created_at;
+      })
+      .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+
+    return base + delta;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
     setActualNow(null);
     if (!open || !wallet) return;
     (async () => {
-      const { data } = await supabase
-        .from("cash_count_snapshots")
-        .select("physical_total")
-        .eq("wallet_id", wallet.id)
-        .lte("business_date", date)
-        .order("business_date", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (cancelled) return;
-      setActualNow(
-        data?.physical_total != null
-          ? Number(data.physical_total)
-          : Number(wallet.starting_float_amount || 0),
-      );
+      const v = await fetchActual(wallet);
+      if (!cancelled) setActualNow(v);
     })();
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, wallet?.id, date]);
 
   const resultingActual =
     actualNow == null ? null : mode === "out" ? actualNow - amount : actualNow + amount;
 
-  /**
-   * Last physical Actual of a wallet as of the selected business date
-   * (snapshot, else starting float). Later-dated counts must never be used as
-   * the base of a backdated Add/Take money.
-   */
-  const fetchActual = async (w: { id: string; starting_float_amount?: number | null }) => {
-    const { data } = await supabase
-      .from("cash_count_snapshots")
-      .select("physical_total")
-      .eq("wallet_id", w.id)
-      .lte("business_date", date)
-      .order("business_date", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    return data?.physical_total != null
-      ? Number(data.physical_total)
-      : Number(w.starting_float_amount || 0);
-  };
 
 
   const save = async () => {
