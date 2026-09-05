@@ -247,14 +247,20 @@ const Expenses = ({
   const analytics = useExpenseAnalytics(expenses as any, filters);
 
   const resetFilters = () => {
-    setFrom(businessDate);
-    setTo(businessDate);
+    if (!officeEmbedded) {
+      setFrom(businessDate);
+      setTo(businessDate);
+      setDatePreset("day");
+    } else {
+      setDatePreset("month");
+    }
     setFinCategoryFilter("");
     setTarget("all");
     setStatus("all");
     setSource(sourceLocked ? roleDefaultSource : "all");
     setSearch("");
   };
+
 
   const columns: ColumnDef<any>[] = useMemo(
     () => [
