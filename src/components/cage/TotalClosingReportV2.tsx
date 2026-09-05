@@ -237,6 +237,7 @@ const TotalClosingReportV2 = ({
         />
       </Card>
 
+      <div className="rv2-2col">
       <Card title="Closing Cash by Currency and Denomination">
         <CardTable
           cols={[
@@ -267,7 +268,8 @@ const TotalClosingReportV2 = ({
         />
       </Card>
 
-      <Card title="Total Closing Control">
+      <div>
+      <Card title="Bank accounts placeholder">
         <CardTable
           cols={[
             { key: "cash", label: "Closing Cash", align: "right" },
