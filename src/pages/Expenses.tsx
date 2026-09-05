@@ -647,7 +647,7 @@ const Expenses = ({
           const dir = sort.dir === "asc" ? 1 : -1;
           const get = (e: any): string | number => {
             switch (sort.key) {
-              case "date":     return e.created_at;
+              case "date":     return e.business_date || e.created_at;
               case "source":   return resolveSource(e);
               case "category": return e.category || "";
               case "target":   return e.players ? `${e.players.first_name} ${e.players.last_name}` : (e.player_name || "Casino");
@@ -714,7 +714,7 @@ const Expenses = ({
                   return (
                     <tr key={exp.id} className="border-b border-border last:border-0">
                       <td className="px-3 py-2 text-xs font-mono text-muted-foreground">
-                        {fmtDateOnly(exp.created_at)}
+                        {fmtDateOnly(exp.business_date || exp.created_at)}
                       </td>
                       <td className="px-3 py-2 text-xs font-mono text-muted-foreground">
                         {new Date(exp.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}

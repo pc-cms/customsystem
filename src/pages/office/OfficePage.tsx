@@ -23,7 +23,14 @@ const FinancesBankImportPage = lazy(() => import("@/pages/finances/FinancesBankI
  */
 function ExpensesEmbedded() {
   const { period } = useOfficePeriod();
-  return <Expenses officeEmbedded periodFrom={period.from} periodTo={period.to} />;
+  return (
+    <Expenses
+      key={`${period.from}:${period.to}`}
+      officeEmbedded
+      periodFrom={period.from}
+      periodTo={period.to}
+    />
+  );
 }
 
 
