@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Receipt, CheckCircle, Plus, X, Trash2, Filter, GlassWater, ExternalLink, Printer, Calendar as CalendarIcon } from "lucide-react";
+import { Receipt, CheckCircle, Plus, X, Trash2, GlassWater, ExternalLink, Printer, Calendar as CalendarIcon } from "lucide-react";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { useExpenses, useCreateExpense, useApproveExpense, useDeleteExpense } from "@/hooks/use-casino-data";
 import { useCreateSlotsExpense, useCancelExpenseAsManager } from "@/hooks/use-expenses";
@@ -39,6 +39,7 @@ import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
 import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
 import { hasExpenseManagementAccess, isExpenseSourceLocked } from "@/lib/expense-access";
 import { defaultPostingDate } from "@/lib/office-posting-date";
+import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
 
 type SourceVal = "live_game" | "slots" | "office";
 
