@@ -17,7 +17,7 @@ import ChipsMovementReportV2 from "@/components/cage/ChipsMovementReportV2";
 
 export type ReportLayout = "legacy" | "v2";
 
-export const useReportLayout = (casinoIdOverride?: string | null): ReportLayout => {
+const useCasinoReportMeta = (casinoIdOverride?: string | null) => {
   const { casinoId } = useAuth();
   const id = casinoIdOverride ?? casinoId;
   const { data } = useQuery({
@@ -25,24 +25,30 @@ export const useReportLayout = (casinoIdOverride?: string | null): ReportLayout 
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const { data } = await supabase.from("casinos").select("report_layout").eq("id", id as string).maybeSingle();
-      return (data as any)?.report_layout === "v2" ? "v2" : "legacy";
+      const { data } = await supabase.from("casinos").select("report_layout, name").eq("id", id as string).maybeSingle();
+      return {
+        layout: ((data as any)?.report_layout === "v2" ? "v2" : "legacy") as ReportLayout,
+        name: ((data as any)?.name as string | null) || null,
+      };
     },
   });
-  return (data as ReportLayout) || "legacy";
+  return { layout: (data?.layout as ReportLayout) || "legacy", name: data?.name || null };
 };
+
+export const useReportLayout = (casinoIdOverride?: string | null): ReportLayout =>
+  useCasinoReportMeta(casinoIdOverride).layout;
 
 type LegacyLiveProps = React.ComponentProps<typeof ShiftClosingReport>;
 type LegacyChipsProps = React.ComponentProps<typeof ChipMovementReport>;
 
 export const LiveClosingReport = (props: LegacyLiveProps) => {
-  const layout = useReportLayout();
-  if (layout === "v2") return <LiveClosingReportV2 {...(props as any)} />;
+  const { layout, name } = useCasinoReportMeta();
+  if (layout === "v2") return <LiveClosingReportV2 {...({ casinoName: name || undefined, ...(props as any) } as any)} />;
   return <ShiftClosingReport {...props} />;
 };
 
 export const ChipsMovementReport = (props: LegacyChipsProps) => {
-  const layout = useReportLayout();
-  if (layout === "v2") return <ChipsMovementReportV2 {...(props as any)} />;
+  const { layout, name } = useCasinoReportMeta();
+  if (layout === "v2") return <ChipsMovementReportV2 {...({ casinoName: name || undefined, ...(props as any) } as any)} />;
   return <ChipMovementReport {...props} />;
 };
