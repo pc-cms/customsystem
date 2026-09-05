@@ -5,7 +5,7 @@
  * History list (per-row Print button) so managers/super admins can print any
  * closed slots shift.
  */
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -19,6 +19,7 @@ import { useReportLayout } from "@/components/cage/report-v2/layout";
 import { useCasino } from "@/lib/casino-context";
 import { tipsBucketOf } from "@/lib/slots-tips-bucket";
 import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
+import SignatorySelects from "@/components/cage/report-v2/SignatorySelects";
 
 interface Props {
   open: boolean;
@@ -335,11 +336,29 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       jackpotCount: Number((shift as any).jackpot_count || 0),
       winningsTaxRate: Number((activeCasino as any)?.winnings_tax_rate ?? 0.15),
       adjustmentRef: (shift as any).adjustment_ref || null,
+      cashierName: (shift as any).cashier_name || null,
+      managerName: (shift as any).manager_name || null,
       cardsFill: 0,
       cardsCredit: 0,
       closingCardValue: Number(cards?.closing_card_count || 0) * cardDepositTzs,
     };
   }, [data, activeCasino]);
+
+  const [signCashier, setSignCashier] = useState<string>("");
+  const [signManager, setSignManager] = useState<string>("");
+  useEffect(() => {
+    if (!props) return;
+    setSignCashier(String((props as any).cashierName || ""));
+    setSignManager(String((props as any).managerName || ""));
+  }, [props?.shiftId]);
+
+  const saveSignatories = async (cashier: string, manager: string) => {
+    if (!props?.shiftId) return;
+    await supabase.from("cage_slots_shifts").update({
+      cashier_name: cashier.trim() || null,
+      manager_name: manager.trim() || null,
+    } as any).eq("id", props.shiftId);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -364,16 +383,27 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
           <div className="text-center text-muted-foreground py-10 text-sm">Loading…</div>
         ) : (
           <>
+            {layout === "v2" ? (
+              <SignatorySelects
+                casinoId={activeCasino?.id}
+                cashier={signCashier}
+                manager={signManager}
+                onCashierChange={v => { setSignCashier(v); void saveSignatories(v, signManager); }}
+                onManagerChange={v => { setSignManager(v); void saveSignatories(signCashier, v); }}
+              />
+            ) : null}
+
             <div className="border border-border rounded-md overflow-auto bg-white print:hidden max-h-[55vh]">
               <div className="origin-top-left scale-[0.5] w-[200%]">
                 {layout === "v2" ? (
                   <>
-                    <SlotsClosingReportV2 {...(props as any)} />
+                    <SlotsClosingReportV2 {...(props as any)} cashierName={signCashier || null} managerName={signManager || null} />
                     {activeCasino?.id ? (
                       <TotalClosingReportV2
                         casinoId={activeCasino.id}
                         casinoName={activeCasino?.name}
                         businessDate={props.businessDate}
+                        managerName={signManager || undefined}
                       />
                     ) : null}
                   </>
@@ -387,13 +417,14 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
               <div className="slots-print-area hidden print:block">
                 {layout === "v2" ? (
                   <>
-                    <SlotsClosingReportV2 {...(props as any)} />
+                    <SlotsClosingReportV2 {...(props as any)} cashierName={signCashier || null} managerName={signManager || null} />
                     <div style={{ pageBreakBefore: "always" }} />
                     {activeCasino?.id ? (
                       <TotalClosingReportV2
                         casinoId={activeCasino.id}
                         casinoName={activeCasino?.name}
                         businessDate={props.businessDate}
+                        managerName={signManager || undefined}
                       />
                     ) : null}
                   </>

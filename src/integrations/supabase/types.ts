@@ -1343,6 +1343,7 @@ export type Database = {
           cards_miss: number | null
           cash_desk_result: number | null
           cashier_id: string
+          cashier_name: string | null
           cashier_note: string | null
           cashless_final: number
           cashless_final_providers: Json
@@ -1357,6 +1358,7 @@ export type Database = {
           id: string
           jackpot_count: number
           manager_comment: string | null
+          manager_name: string | null
           manual_drop_slots: number
           manual_slots_deposits: number
           manual_slots_result: number
@@ -1382,6 +1384,7 @@ export type Database = {
           cards_miss?: number | null
           cash_desk_result?: number | null
           cashier_id: string
+          cashier_name?: string | null
           cashier_note?: string | null
           cashless_final?: number
           cashless_final_providers?: Json
@@ -1396,6 +1399,7 @@ export type Database = {
           id?: string
           jackpot_count?: number
           manager_comment?: string | null
+          manager_name?: string | null
           manual_drop_slots?: number
           manual_slots_deposits?: number
           manual_slots_result?: number
@@ -1421,6 +1425,7 @@ export type Database = {
           cards_miss?: number | null
           cash_desk_result?: number | null
           cashier_id?: string
+          cashier_name?: string | null
           cashier_note?: string | null
           cashless_final?: number
           cashless_final_providers?: Json
@@ -1435,6 +1440,7 @@ export type Database = {
           id?: string
           jackpot_count?: number
           manager_comment?: string | null
+          manager_name?: string | null
           manual_drop_slots?: number
           manual_slots_deposits?: number
           manual_slots_result?: number
@@ -10758,6 +10764,7 @@ export type Database = {
           cash_desk_result: number | null
           cash_flow_delta: number | null
           cash_result: number | null
+          cashier_name: string | null
           cashless_in_providers: Json
           cashless_out_providers: Json
           casino_id: string
@@ -10768,6 +10775,7 @@ export type Database = {
           created_at: string
           exchange_rates: Json
           id: string
+          manager_name: string | null
           miss_total: number | null
           notes: string | null
           opened_at: string
@@ -10783,6 +10791,7 @@ export type Database = {
           cash_desk_result?: number | null
           cash_flow_delta?: number | null
           cash_result?: number | null
+          cashier_name?: string | null
           cashless_in_providers?: Json
           cashless_out_providers?: Json
           casino_id: string
@@ -10793,6 +10802,7 @@ export type Database = {
           created_at?: string
           exchange_rates?: Json
           id?: string
+          manager_name?: string | null
           miss_total?: number | null
           notes?: string | null
           opened_at?: string
@@ -10808,6 +10818,7 @@ export type Database = {
           cash_desk_result?: number | null
           cash_flow_delta?: number | null
           cash_result?: number | null
+          cashier_name?: string | null
           cashless_in_providers?: Json
           cashless_out_providers?: Json
           casino_id?: string
@@ -10818,6 +10829,7 @@ export type Database = {
           created_at?: string
           exchange_rates?: Json
           id?: string
+          manager_name?: string | null
           miss_total?: number | null
           notes?: string | null
           opened_at?: string

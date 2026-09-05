@@ -16,6 +16,7 @@ import { CHIP_DENOMS } from "@/lib/currency";
 import { computeMissByDenom } from "@/components/cage/CageHelpers";
 import { LiveClosingReport as ShiftClosingReport, ChipsMovementReport as ChipMovementReport } from "@/components/cage/report-v2/layout";
 import PrintPortal from "@/components/cage/PrintPortal";
+import SignatorySelects from "@/components/cage/report-v2/SignatorySelects";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
@@ -97,6 +98,20 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => {
   const missTotal = Number(shift?.miss_total ?? -snapshotMiss);
   const rates = (shift?.exchange_rates || {}) as Record<string, number>;
 
+  const [signCashier, setSignCashier] = useState<string>("");
+  const [signManager, setSignManager] = useState<string>("");
+  useEffect(() => {
+    setSignCashier(String((shift as any)?.cashier_name || ""));
+    setSignManager(String((shift as any)?.manager_name || ""));
+  }, [shift?.id]);
+  const saveSignatories = async (cashier: string, manager: string) => {
+    if (!shift?.id) return;
+    await supabase.from("shifts").update({
+      cashier_name: cashier.trim() || null,
+      manager_name: manager.trim() || null,
+    } as any).eq("id", shift.id);
+  };
+
   // Add a body class while open so global @media print rules can target it.
   useEffect(() => {
     if (!open) return;
@@ -117,6 +132,14 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => {
           <>
             {/* On-screen preview only — print is handled by PrintPortal below
                 so the printed output escapes the dialog's transform/clip. */}
+            <SignatorySelects
+              casinoId={casinoId}
+              cashier={signCashier}
+              manager={signManager}
+              onCashierChange={v => { setSignCashier(v); void saveSignatories(v, signManager); }}
+              onManagerChange={v => { setSignManager(v); void saveSignatories(signCashier, v); }}
+            />
+
             <div className="border border-border rounded-md overflow-auto bg-white text-black print:hidden max-h-[55vh]">
               <div className="origin-top-left scale-[0.5] w-[200%]">
                 <ShiftClosingReport
@@ -130,6 +153,8 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => {
                   resultTable={resultTable}
                   balance={balance}
                   businessDate={businessDate}
+                  cashierName={signCashier || undefined}
+                  managerName={signManager || undefined}
                 />
                 <ChipMovementReport
                   shift={shift}
@@ -137,6 +162,8 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => {
                   closingChips={chipCounts}
                   missPerDenom={missPerDenom}
                   businessDate={businessDate}
+                  cashierName={signCashier || undefined}
+                  managerName={signManager || undefined}
                 />
               </div>
             </div>
@@ -154,6 +181,8 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => {
                   resultTable={resultTable}
                   balance={balance}
                   businessDate={businessDate}
+                  cashierName={signCashier || undefined}
+                  managerName={signManager || undefined}
                 />
                 <ChipMovementReport
                   shift={shift}
@@ -161,6 +190,8 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => {
                   closingChips={chipCounts}
                   missPerDenom={missPerDenom}
                   businessDate={businessDate}
+                  cashierName={signCashier || undefined}
+                  managerName={signManager || undefined}
                 />
               </div>
             </PrintPortal>

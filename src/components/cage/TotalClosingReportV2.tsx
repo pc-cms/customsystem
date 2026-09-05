@@ -185,6 +185,15 @@ const TotalClosingReportV2 = ({
     return s + chanValue((liveBankChannels as any)?.[b.key]) * rate;
   }, 0);
 
+  const signManager = managerName
+    || liveShifts.map((x: any) => x.manager_name).find(Boolean)
+    || slotsShifts.map((x: any) => x.manager_name).find(Boolean)
+    || undefined;
+  const signCashiers = Array.from(new Set([
+    ...slotsShifts.map((x: any) => x.cashier_name).filter(Boolean),
+    ...liveShifts.map((x: any) => x.cashier_name).filter(Boolean),
+  ])).join(" / ") || "—";
+
   const totalCash = liveClosingCash + slotsClosingCash;
   const totalMoney = totalCash + bankTotalTzs + liveCashlessNet + slotsCashlessNet;
 
@@ -198,7 +207,7 @@ const TotalClosingReportV2 = ({
         status={reportStatus}
         businessDate={businessDate}
         cashier="Both cash desks"
-        manager={managerName}
+        manager={signManager}
       />
 
       <Card title="Cash Desks Summary">
@@ -276,7 +285,7 @@ const TotalClosingReportV2 = ({
         />
       </Card>
 
-      <Signatures left="Slots Cashier / Live Cashier" right="Closing Manager" leftName="—" rightName={managerName} />
+      <Signatures left="Slots Cashier / Live Cashier" right="Closing Manager" leftName={signCashiers} rightName={signManager} />
       <PageFooter casinoName={casinoName} page={4} total={4} />
     </div>
   );

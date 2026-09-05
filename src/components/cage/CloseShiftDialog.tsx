@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, CheckCircle2, ShieldAlert, Lock, ArrowLeft, Printer } from "lucide-react";
 import { LiveClosingReport as ShiftClosingReport, ChipsMovementReport as ChipMovementReport } from "@/components/cage/report-v2/layout";
 import PrintPortal from "@/components/cage/PrintPortal";
+import SignatorySelects from "@/components/cage/report-v2/SignatorySelects";
 import { CHIP_DENOMS, formatCurrency, formatChipLabel, formatNumberSpaces, formatCashDenomLabel, CURRENCIES, CASH_DENOMS, CURRENCY_SYMBOLS } from "@/lib/currency";
 import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import ChipToken from "@/components/ChipToken";
@@ -72,6 +73,8 @@ const CloseShiftDialog = ({
   // sessionStorage persistence — survives page refresh while shift is being closed.
   const storageKey = `cms.close-shift.${shift?.id || "none"}`;
   const [adjustmentRef, setAdjustmentRef] = useState<string>((shift as any)?.adjustment_ref || "");
+  const [signCashier, setSignCashier] = useState<string>((shift as any)?.cashier_name || "");
+  const [signManager, setSignManager] = useState<string>((shift as any)?.manager_name || "");
   const persisted = useMemo(() => {
     try {
       const raw = sessionStorage.getItem(storageKey);
@@ -292,7 +295,11 @@ const CloseShiftDialog = ({
 
     // Adjustment / Incident reference is printed in the Closing Record block.
     if (shift?.id) {
-      supabase.from("shifts").update({ adjustment_ref: adjustmentRef.trim() || null } as any).eq("id", shift.id).then(() => {});
+      supabase.from("shifts").update({
+        adjustment_ref: adjustmentRef.trim() || null,
+        cashier_name: signCashier.trim() || null,
+        manager_name: signManager.trim() || null,
+      } as any).eq("id", shift.id).then(() => {});
     }
 
     onConfirm({
@@ -632,6 +639,8 @@ const CloseShiftDialog = ({
                     AIRTEL:  Number((cashlessOut as any)?.AirTel || 0),
                   },
                 }}
+                cashierName={signCashier || undefined}
+                managerName={signManager || undefined}
               />
               <ChipMovementReport
                 shift={shift}
@@ -639,6 +648,8 @@ const CloseShiftDialog = ({
                 closingChips={chipCounts}
                 missPerDenom={missPerDenom}
                 businessDate={businessDate}
+                cashierName={signCashier || undefined}
+                managerName={signManager || undefined}
               />
             </div>
           </PrintPortal>
@@ -863,6 +874,15 @@ const CloseShiftDialog = ({
         <p className="text-[10px] font-medium text-muted-foreground uppercase mb-1">Adjustment / Incident Ref</p>
         <Input value={adjustmentRef} onChange={e => setAdjustmentRef(e.target.value)} placeholder="—" className="h-8" />
       </div>
+
+      {/* Signature lines printed on the closing report */}
+      <SignatorySelects
+        casinoId={(shift as any)?.casino_id}
+        cashier={signCashier}
+        manager={signManager}
+        onCashierChange={setSignCashier}
+        onManagerChange={setSignManager}
+      />
 
       {/* Notes */}
       <div>
