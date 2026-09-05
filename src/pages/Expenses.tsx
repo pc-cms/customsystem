@@ -852,229 +852,95 @@ const Expenses = ({
         </div>
       )}
 
-      {/* History — sortable */}
+      {/* History — SmartTable with inline filters */}
       {(() => {
-        const sortedExpenses = [...analytics.filtered].sort((a: any, b: any) => {
-          const dir = sort.dir === "asc" ? 1 : -1;
-          const get = (e: any): string | number => {
-            switch (sort.key) {
-              case "date":     return e.business_date || e.created_at;
-              case "source":   return resolveSource(e);
-              case "category": return e.category || "";
-              case "target":   return e.players ? `${e.players.first_name} ${e.players.last_name}` : (e.player_name || "Casino");
-              // Sort by TZS value so foreign-currency rows compare correctly.
-              case "amount":   return Number(e.amount_tzs ?? e.amount ?? 0);
-
-              case "status":   return e.approved ? "approved" : "pending";
-            }
-          };
-          const va = get(a); const vb = get(b);
-          if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
-          return String(va).localeCompare(String(vb)) * dir;
-        });
-        // Totals for the current filter: grand total in TZS + per-currency subtotals.
-        const totalTzs = sortedExpenses.reduce(
-          (s: number, e: any) => s + Number(e.amount_tzs ?? e.amount ?? 0), 0);
-        const byCurrency = sortedExpenses.reduce((m: Record<string, number>, e: any) => {
-          const c = e.currency || "TZS";
-          m[c] = (m[c] || 0) + Number(e.amount || 0);
-          return m;
-        }, {} as Record<string, number>);
+        const totalTzs = analytics.filtered.reduce(
+          (s: number, e: any) => s + Number(e.amount_tzs ?? e.amount ?? 0),
+          0,
+        );
+        const byCurrency = analytics.filtered.reduce(
+          (m: Record<string, number>, e: any) => {
+            const c = e.currency || "TZS";
+            m[c] = (m[c] || 0) + Number(e.amount || 0);
+            return m;
+          },
+          {} as Record<string, number>,
+        );
         const currencyKeys = Object.keys(byCurrency);
 
         return (
           <div className="cms-panel overflow-hidden">
-            <div className="px-4 py-2 border-b border-border flex items-center justify-between">
+            <div className="px-4 py-2 border-b border-border flex items-center gap-2 flex-wrap">
               <h3 className="text-sm font-semibold text-card-foreground">
-                History · {sortedExpenses.length} {sortedExpenses.length === 1 ? "record" : "records"}
+                History · {analytics.filtered.length} {analytics.filtered.length === 1 ? "record" : "records"}
               </h3>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 gap-1.5"
-                onClick={() => window.print()}
-                title="Print current view"
-              >
-                <Printer className="w-3.5 h-3.5" /> Print
-              </Button>
+              <div className="ml-auto flex items-center gap-2">
+                {!officeEmbedded && (
+                  <DateRangePresets
+                    preset={datePreset}
+                    from={from}
+                    to={to}
+                    onChange={({ preset: p, from: f, to: t }) => {
+                      setDatePreset(p);
+                      setFrom(f);
+                      setTo(t);
+                    }}
+                  />
+                )}
+                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={resetFilters}>
+                  Reset
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1.5"
+                  onClick={() => window.print()}
+                  title="Print current view"
+                >
+                  <Printer className="w-3.5 h-3.5" /> Print
+                </Button>
+              </div>
             </div>
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
-
-                  <th className="text-left px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("date")}>Date{sortArrow("date")}</th>
-                  <th className="text-left px-3 py-2">Time</th>
-                  <th className="text-left px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("source")}>Source{sortArrow("source")}</th>
-                  <th className="text-left px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("category")}>Category{sortArrow("category")}</th>
-                  <th className="text-left px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("target")}>Target / Player{sortArrow("target")}</th>
-                  <th className="text-right px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("amount")}>Amount{sortArrow("amount")}</th>
-                  <th className="text-left px-3 py-2">Description</th>
-                  <th className="text-center px-3 py-2 cursor-pointer select-none" onClick={() => toggleSort("status")}>Status{sortArrow("status")}</th>
-                  {!embedded && <th className="text-center px-3 py-2">Action</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {sortedExpenses.length === 0 ? (
-                  <tr><td colSpan={embedded ? 8 : 9} className="text-center text-muted-foreground text-sm py-8">No expenses match the filters</td></tr>
-                ) : sortedExpenses.map((exp: any) => {
-                  const playerName = exp.players
-                    ? `${exp.players.first_name} ${exp.players.last_name}`
-                    : exp.player_name || "Casino";
-                  const src = resolveSource(exp);
-                  const catLabel = exp.category_code || exp.category;
-                  return (
-                    <tr key={exp.id} className="border-b border-border last:border-0">
-                      <td className="px-3 py-2 text-xs font-mono text-muted-foreground">
-                        {fmtDateOnly(exp.business_date || exp.created_at)}
-                      </td>
-                      <td className="px-3 py-2 text-xs font-mono text-muted-foreground">
-                        {new Date(exp.created_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" })}
-                      </td>
-                      <td className="px-3 py-2">
-                        <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${SRC_COLORS[src]}`}>
-                          {SRC_LABEL[src]}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2">
-                        <span
-                          className="text-[11px] truncate max-w-[200px] inline-block"
-                          title={exp.fin_category_id ? (finCatById[exp.fin_category_id]?.name || "—") : "Unassigned"}
-                        >
-                          {exp.fin_category_id
-                            ? (finCatById[exp.fin_category_id]?.name || "—")
-                            : <span className="text-amber-600 dark:text-amber-400 italic">Unassigned</span>}
-                        </span>
-                      </td>
-
-
-                      <td className="px-3 py-2 text-sm">
-                        {exp.player_id ? (
-                          <Link
-                            to={`/players/${exp.player_id}`}
-                            className="text-primary hover:underline inline-flex items-center gap-1"
-                          >
-                            {playerName}
-                            <ExternalLink className="w-3 h-3 opacity-60" />
-                          </Link>
-                        ) : (
-                          <span className="text-muted-foreground">{playerName}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono text-sm cms-amount-negative">
-                        <div>{formatCurrency(Number(exp.amount), exp.currency || "TZS")}</div>
-                        {(exp.currency || "TZS") !== "TZS" && (
-                          <div className="text-[10px] text-muted-foreground font-normal">
-                            ≈ {formatNumberSpaces(Number(exp.amount_tzs ?? 0))} TZS
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="px-3 py-2 text-xs text-muted-foreground">{exp.description || "—"}</td>
-                      <td className="px-3 py-2 text-center">
-                        {exp.approved ? (
-                          <span className="cms-status-active text-xs"><CheckCircle className="w-3 h-3 inline mr-0.5" /> Approved</span>
-                        ) : (
-                          <Badge variant="secondary" className="text-[10px]">Pending</Badge>
-                        )}
-                      </td>
-                      {!embedded && (
-                        <td className="px-3 py-2 text-center">
-                          <div className="inline-flex gap-1">
-                            {!exp.approved && isManagerView && (
-                              <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => approve.mutate(exp.id)} disabled={approve.isPending}>Approve</Button>
-                            )}
-                            {isManagerView && exp.category !== "bar_charge" && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0"
-                                onClick={() => setEditingExpense({
-                                  id: exp.id,
-                                  fin_category_id: exp.fin_category_id,
-                                  amount: Number(exp.amount),
-                                  currency: exp.currency || "TZS",
-                                  description: exp.description,
-                                  player_id: exp.player_id,
-                                  player_name: exp.player_name,
-                                  source: src,
-                                })}
-                                title="Edit expense (manager)"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </Button>
-                            )}
-                            {isManagerView ? (
-                              exp.category !== "bar_charge" && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => {
-                                    const label = exp.approved ? "approved expense" : "expense";
-                                    const reason = window.prompt(
-                                      `Cancel this ${label} of ${formatCurrency(Number(exp.amount))}?\nEnter a reason (logged to audit):`,
-                                      "",
-                                    );
-                                    if (reason === null) return;
-                                    cancelAsManager.mutate({
-                                      id: exp.id,
-                                      amount: Number(exp.amount),
-                                      category: exp.category,
-                                      approved: !!exp.approved,
-                                      reason: reason.trim(),
-                                    });
-                                  }}
-                                  disabled={cancelAsManager.isPending}
-                                  title={exp.approved ? "Cancel approved expense (audited)" : "Cancel expense"}
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
-                              )
-                            ) : (
-                              !exp.approved && exp.category !== "bar_charge" && src !== "office" && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => del.mutate({ id: exp.id, amount: Number(exp.amount), category: exp.category })}
-                                  title="Cancel expense"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
-                              )
-                            )}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-              {sortedExpenses.length > 0 && (
-                <tfoot>
-                  <tr className="border-t-2 border-border bg-muted/30">
-                    <td colSpan={5} className="px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground">
-                      Total
-                    </td>
-                    <td className="px-3 py-2 text-right font-mono text-sm font-semibold cms-amount-negative">
-                      <div>{formatNumberSpaces(totalTzs)} TZS</div>
-                      {currencyKeys.length > 1 && (
-                        <div className="text-[10px] text-muted-foreground font-normal">
-                          {currencyKeys
-                            .map((c) => `${c} ${formatNumberSpaces(byCurrency[c])}`)
-                            .join(" · ")}
+            <SmartTable
+              data={analytics.filtered as any[]}
+              columns={columns}
+              rowKey={(r) => r.id}
+              sort={sort}
+              onSortChange={setSort}
+              footerRows={[
+                {
+                  key: "total",
+                  className: "font-bold border-t-2 border-border bg-muted/30",
+                  cell: (col, index) => {
+                    if (index === 0) return <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</span>;
+                    if (col.key === "amount") {
+                      return (
+                        <div className="text-right font-mono text-sm font-semibold cms-amount-negative">
+                          <div>{formatNumberSpaces(totalTzs)} TZS</div>
+                          {currencyKeys.length > 1 && (
+                            <div className="text-[10px] text-muted-foreground font-normal">
+                              {currencyKeys
+                                .map((c) => `${c} ${formatNumberSpaces(byCurrency[c])}`)
+                                .join(" · ")}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </td>
-                    <td colSpan={embedded ? 1 : 2} />
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-
+                      );
+                    }
+                    return null;
+                  },
+                },
+              ]}
+              empty={
+                <div className="text-sm text-muted-foreground text-center py-8">
+                  No expenses match the filters
+                </div>
+              }
+            />
           </div>
         );
       })()}
+
 
       {/* Print view — current filtered expenses */}
       <PrintPortal>
