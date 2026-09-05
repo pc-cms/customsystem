@@ -11,7 +11,7 @@ import { CURRENCIES, CASH_DENOMS, formatNumberSpaces } from "@/lib/currency";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
 import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
 import {
-  A4_STYLE, Card, CardTable, PageFooter, ReportHeader, Signatures, buildReportId, num, signed,
+  A4_CLASS, A4_STYLE, Card, CardTable, PageFooter, ReportHeader, Signatures, buildReportId, num, signed,
 } from "./report-v2/primitives";
 
 export type TotalClosingReportV2Props = {
@@ -198,7 +198,7 @@ const TotalClosingReportV2 = ({
   const totalMoney = totalCash + bankTotalTzs + liveCashlessNet + slotsCashlessNet;
 
   return (
-    <div className="bg-white text-black p-2 flex flex-col" style={A4_STYLE}>
+    <div className={`${A4_CLASS} bg-white text-black p-2 flex flex-col`} style={A4_STYLE}>
       <style>{PRINT_REPORT_ACCENTS_CSS}</style>
 
       <ReportHeader

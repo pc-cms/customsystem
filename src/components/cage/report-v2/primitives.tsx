@@ -169,7 +169,7 @@ export const CardTable = ({
 export const KpiStrip = ({
   items,
 }: { items: Array<{ label: string; value: React.ReactNode; strong?: boolean }> }) => (
-  <table className="w-full border-collapse mb-1.5" style={{ tableLayout: "fixed" }}>
+  <table className="rv2-card w-full border-collapse mb-1.5" style={{ tableLayout: "fixed" }}>
     <thead>
       <tr className="bg-gray-100">
         {items.map(i => (
@@ -200,7 +200,7 @@ export const Signatures = ({
   leftName,
   rightName,
 }: { left: string; right: string; leftName?: string | null; rightName?: string | null }) => (
-  <div className="grid grid-cols-2 gap-8 mt-6">
+  <div className="rv2-card grid grid-cols-2 gap-8 mt-6">
     {[{ t: left, n: leftName }, { t: right, n: rightName }].map((s, i) => (
       <div key={i} className="text-[9.5px]">
         <div className="uppercase font-bold tracking-wide">{s.t}</div>
