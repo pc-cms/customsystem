@@ -11,7 +11,8 @@ import { fmtDate } from "@/lib/format-date";
 export const A4_CLASS = "rv2-page";
 
 /** Landscape variant (A4 landscape, 281mm content width). */
-export const A4_LAND_CLASS = "rv2-page rv2-land";
+export const A4_LAND_HOST_CLASS = "rv2-page rv2-land-host";
+export const A4_LAND_CLASS = "rv2-land";
 
 export const A4_STYLE: React.CSSProperties = {
   width: "194mm",

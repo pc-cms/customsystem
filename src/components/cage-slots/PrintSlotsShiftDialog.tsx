@@ -51,7 +51,7 @@ const ensureSlotsPortraitPrintStyle = () => {
   styleEl.setAttribute("data-slots-print", "1");
   styleEl.textContent = `
     @media print {
-      @page { size: 210mm 297mm !important; margin: 8mm !important; } @page rv2land { size: 297mm 210mm !important; margin: 8mm !important; }
+      @page { size: 210mm 297mm !important; margin: 8mm !important; }
       .slots-print-area { width: auto !important; min-height: 0 !important; }
     }
   `;
@@ -91,7 +91,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       return;
     }
     doc.open();
-    doc.write(`<!doctype html><html><head><base href="${baseHref}">${styles}<style>@media print { @page { size: 210mm 297mm !important; margin: 8mm !important; } @page rv2land { size: 297mm 210mm !important; margin: 8mm !important; } html, body { margin: 0 !important; background: white !important; } body, body * { visibility: visible !important; } .slots-print-area { display: block !important; width: auto !important; min-height: 0 !important; page: auto !important; page-break-after: auto !important; break-after: auto !important; } .rv2-page { width: 194mm !important; height: 281mm !important; max-height: 281mm !important; overflow: hidden !important; break-after: page !important; page-break-after: always !important; break-inside: avoid !important; } .rv2-land { width: 281mm !important; height: 194mm !important; max-height: 194mm !important; overflow: visible !important; page: rv2land !important; } .rv2-page:last-child { break-after: auto !important; page-break-after: auto !important; } .rv2-card, .rv2-page table, .rv2-page tr { break-inside: avoid !important; page-break-inside: avoid !important; } } html, body { margin: 0; background: white; }</style></head><body><div class="slots-print-area cms-print-root">${source.innerHTML}</div></body></html>`);
+    doc.write(`<!doctype html><html><head><base href="${baseHref}">${styles}<style>@media print { @page { size: 210mm 297mm !important; margin: 8mm !important; } html, body { margin: 0 !important; background: white !important; } body, body * { visibility: visible !important; } .slots-print-area { display: block !important; width: auto !important; min-height: 0 !important; page: auto !important; page-break-after: auto !important; break-after: auto !important; } .rv2-page { width: 194mm !important; height: 281mm !important; max-height: 281mm !important; overflow: hidden !important; break-after: page !important; page-break-after: always !important; break-inside: avoid !important; } .rv2-land-host { position: relative !important; width: 194mm !important; height: 281mm !important; max-height: 281mm !important; padding: 0 !important; overflow: hidden !important; } .rv2-land { position: absolute !important; top: 0 !important; left: 0 !important; width: 281mm !important; height: 194mm !important; max-height: 194mm !important; overflow: hidden !important; transform: translateX(194mm) rotate(90deg) !important; transform-origin: 0 0 !important; } .rv2-page:last-child { break-after: auto !important; page-break-after: auto !important; } .rv2-card, .rv2-page table, .rv2-page tr { break-inside: avoid !important; page-break-inside: avoid !important; } } html, body { margin: 0; background: white; }</style></head><body><div class="slots-print-area cms-print-root">${source.innerHTML}</div></body></html>`);
     doc.close();
     const cleanup = () => {
       setTimeout(() => {
