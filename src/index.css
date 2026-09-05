@@ -656,3 +656,38 @@
     break-after: page;
   }
 }
+
+
+/* ── Closing Report V2 (Style A) page geometry ────────────────── */
+.rv2-page {
+  width: 194mm;
+  min-height: 281mm;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+@media print {
+  .rv2-page {
+    height: 281mm;
+    min-height: 281mm;
+    max-height: 281mm;
+    overflow: hidden;
+    break-after: page;
+    page-break-after: always;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .rv2-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+  .rv2-card,
+  .rv2-page table,
+  .rv2-page thead,
+  .rv2-page tfoot,
+  .rv2-page tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

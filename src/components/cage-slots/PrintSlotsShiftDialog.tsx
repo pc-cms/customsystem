@@ -52,7 +52,7 @@ const ensureSlotsPortraitPrintStyle = () => {
   styleEl.textContent = `
     @media print {
       @page { size: 210mm 297mm !important; margin: 8mm !important; }
-      .slots-print-area { width: 194mm !important; min-height: 281mm !important; }
+      .slots-print-area { width: 194mm !important; min-height: 0 !important; }
     }
   `;
   if (!existing) document.head.appendChild(styleEl);
@@ -91,7 +91,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       return;
     }
     doc.open();
-    doc.write(`<!doctype html><html><head><base href="${baseHref}">${styles}<style>@media print { @page { size: 210mm 297mm !important; margin: 8mm !important; } html, body { margin: 0 !important; background: white !important; } body, body * { visibility: visible !important; } .slots-print-area { display: block !important; width: 194mm !important; min-height: 281mm !important; page: auto !important; page-break-after: auto !important; break-after: auto !important; } } html, body { margin: 0; background: white; }</style></head><body><div class="slots-print-area cms-print-root">${source.innerHTML}</div></body></html>`);
+    doc.write(`<!doctype html><html><head><base href="${baseHref}">${styles}<style>@media print { @page { size: 210mm 297mm !important; margin: 8mm !important; } html, body { margin: 0 !important; background: white !important; } body, body * { visibility: visible !important; } .slots-print-area { display: block !important; width: 194mm !important; min-height: 0 !important; page: auto !important; page-break-after: auto !important; break-after: auto !important; } } html, body { margin: 0; background: white; }</style></head><body><div class="slots-print-area cms-print-root">${source.innerHTML}</div></body></html>`);
     doc.close();
     const cleanup = () => {
       setTimeout(() => {
@@ -418,7 +418,6 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
                 {layout === "v2" ? (
                   <>
                     <SlotsClosingReportV2 {...(props as any)} cashierName={signCashier || null} managerName={signManager || null} />
-                    <div style={{ pageBreakBefore: "always" }} />
                     {activeCasino?.id ? (
                       <TotalClosingReportV2
                         casinoId={activeCasino.id}
