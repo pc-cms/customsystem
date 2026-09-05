@@ -23,7 +23,6 @@
 
 | Поле | Где | Как реализуем |
 |---|---|---|
-| TURNOVER по столу | Live, таблица столов | Новая колонка ввода в закрытии смены Live, вручную по каждому столу, итог считается |
 | TAXABLE WINNINGS PAID | Slots, Closing Record | Ручной ввод суммы при закрытии смены слотов |
 | JACKPOT COUNT | Slots, Closing Record | Ручной ввод количества |
 | WINNINGS TAX 15% | Slots, Closing Record | Считается автоматически = 15% от Taxable Winnings Paid, ставка хранится в настройках филиала |
