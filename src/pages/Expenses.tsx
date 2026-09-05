@@ -104,8 +104,6 @@ const newDraft = (defaultSource: SourceVal, date = ""): DraftRow => ({
 });
 
 
-type SortKey = "date" | "source" | "category" | "target" | "amount" | "status";
-type SortDir = "asc" | "desc";
 
 interface ExpensesProps {
   /** When true, render without page header, without "New entries" form,
