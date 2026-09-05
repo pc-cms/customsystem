@@ -11,6 +11,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, LayoutGrid, Coins, Palette, ShieldCheck, Settings2, Banknote, Wallet, HandCoins, Gauge } from "lucide-react";
 import { TimeSettingsPanel } from "@/components/admin/TimeSettingsPanel";
+import { ClosingReportSettingsPanel } from "@/components/admin/ClosingReportSettingsPanel";
 import TableManagement from "@/components/admin/TableManagement";
 import FloatManagement from "@/components/admin/FloatManagement";
 import ChipColorSettings from "@/components/admin/ChipColorSettings";
@@ -72,6 +73,7 @@ export const CasinoSettingsPage = () => {
       <TabsContent value="time">
         <div className="space-y-4">
           <TimeSettingsPanel />
+          <ClosingReportSettingsPanel />
           <div className="max-w-lg"><ResyncDataCard /></div>
         </div>
       </TabsContent>
