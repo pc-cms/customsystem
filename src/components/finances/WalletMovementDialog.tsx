@@ -155,18 +155,13 @@ export default function WalletMovementDialog({
       .eq("kind", "adjustment")
       .eq("ref_table", "wallet_movement")
       .lte("business_date", date);
-    if (countRow?.business_date) q = q.gte("business_date", countRow.business_date);
+    if (countRow?.created_at) q = q.gt("created_at", countRow.created_at);
     const { data: adjRows } = await q;
 
-    const delta = (adjRows || [])
-      .filter((r: any) => {
-        if (!countRow?.business_date) return true;
-        if (r.business_date > countRow.business_date) return true;
-        return r.business_date === countRow.business_date && r.created_at > countRow.created_at;
-      })
-      .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+    const delta = (adjRows || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
 
     return base + delta;
+
   };
 
   useEffect(() => {
