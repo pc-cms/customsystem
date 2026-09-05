@@ -194,7 +194,8 @@ const Expenses = ({
     }
   }, [roleDefaultSource, setSource, source, sourceLocked]);
   const [showBarDetails, setShowBarDetails] = useState<boolean>(false);
-  const [sort, setSort] = useSessionState<import("@/components/ui/smart-table").SortState | null>("expensesSort", { key: "date", dir: "desc" });
+  const [sort, setSort] = useSessionState<SortState | null>("expensesSort", { key: "date", dir: "desc" });
+
 
 
   const isSingleDay = selectedFrom === selectedTo;
