@@ -639,6 +639,8 @@ const CloseShiftDialog = ({
                     AIRTEL:  Number((cashlessOut as any)?.AirTel || 0),
                   },
                 }}
+                cashierName={signCashier || undefined}
+                managerName={signManager || undefined}
               />
               <ChipMovementReport
                 shift={shift}
@@ -646,6 +648,8 @@ const CloseShiftDialog = ({
                 closingChips={chipCounts}
                 missPerDenom={missPerDenom}
                 businessDate={businessDate}
+                cashierName={signCashier || undefined}
+                managerName={signManager || undefined}
               />
             </div>
           </PrintPortal>
