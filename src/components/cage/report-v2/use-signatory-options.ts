@@ -17,16 +17,21 @@ export const useCashierOptions = (casinoId?: string | null) =>
     queryFn: async () => {
       const { data, error } = await supabase
         .from("employees")
-        .select("id, full_name, department, termination_date, deleted_at")
+        .select("id, full_name, department, position, termination_date, deleted_at")
         .eq("casino_id", casinoId as string)
         .is("deleted_at", null)
         .is("termination_date", null)
         .order("full_name");
       if (error) throw error;
+      const isCashier = (v?: string | null) => {
+        const s = String(v || "").toLowerCase();
+        return s.includes("cash") || s.includes("cage") || s.includes("teller");
+      };
       return (data || [])
-        .filter(e => String(e.department || "").toLowerCase().includes("cash"))
+        .filter(e => isCashier(e.department) || isCashier((e as any).position))
         .map(e => String(e.full_name || "").trim())
         .filter(Boolean);
+
     },
   });
 
