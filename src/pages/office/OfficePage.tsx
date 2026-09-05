@@ -5,6 +5,7 @@ import OtherIncomesTab from "./OtherIncomesTab";
 import RatesTab from "./RatesTab";
 import JpTab from "./JpTab";
 import CollectionsTab from "./CollectionsTab";
+import Expenses from "@/pages/Expenses";
 
 
 import { OfficeShell, useOfficePeriod } from "@/components/office/office-shell";
@@ -15,7 +16,6 @@ const FinancesWalletsPage = lazy(() => import("@/pages/finances/FinancesWalletsP
 const FinancesMonthlyReportPage = lazy(() => import("@/pages/finances/FinancesMonthlyReportPage"));
 const FinancesInterCasinoPage = lazy(() => import("@/pages/finances/FinancesInterCasinoPage"));
 const FinancesBankImportPage = lazy(() => import("@/pages/finances/FinancesBankImportPage"));
-const FinancesExpensesPage = lazy(() => import("@/pages/finances/FinancesExpensesPage"));
 
 /**
  * Expenses embedded in Office: follows the shared month selector instead of
@@ -23,7 +23,7 @@ const FinancesExpensesPage = lazy(() => import("@/pages/finances/FinancesExpense
  */
 function ExpensesEmbedded() {
   const { period } = useOfficePeriod();
-  return <FinancesExpensesPage embedded embeddedFrom={period.from} embeddedTo={period.to} />;
+  return <Expenses officeEmbedded periodFrom={period.from} periodTo={period.to} />;
 }
 
 
