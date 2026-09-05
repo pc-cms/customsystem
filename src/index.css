@@ -709,12 +709,12 @@
   border-radius: 6px;
   background: #ffffff;
   overflow: hidden;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
 /* Header card */
 .rv2-head {
-  padding: 6px 8px 7px;
+  padding: 5px 8px 6px;
 }
 .rv2-head-top {
   display: flex;
@@ -723,7 +723,7 @@
   gap: 12px;
 }
 .rv2-title {
-  font-size: 16.5px;
+  font-size: 15.5px;
   font-weight: 800;
   letter-spacing: 0.01em;
   text-transform: uppercase;
@@ -736,8 +736,8 @@
 .rv2-head-id-sub { font-size: 7px; color: #555; letter-spacing: 0.02em; }
 
 .rv2-head-meta {
-  margin-top: 5px;
-  padding-top: 5px;
+  margin-top: 4px;
+  padding-top: 4px;
   border-top: 1px solid #ddd;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -791,7 +791,7 @@
 .rv2-table th {
   background: #f5f5f5;
   border-bottom: 1px solid #cfcfcf;
-  padding: 3px 8px;
+  padding: 2px 8px;
   font-size: 8.5px;
   font-weight: 800;
   text-transform: uppercase;
@@ -799,7 +799,7 @@
   color: #333;
 }
 .rv2-table td {
-  padding: 3px 8px;
+  padding: 2px 8px;
   border-bottom: 1px solid #eaeaea;
   font-size: 10.5px;
 }
@@ -821,12 +821,12 @@
 /* KPI tiles */
 .rv2-kpis {
   display: grid;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 5px;
+  margin-bottom: 5px;
 }
 .rv2-kpi {
   margin-bottom: 0;
-  padding: 4px 6px 6px;
+  padding: 3px 6px 4px;
   text-align: center;
 }
 .rv2-kpi-label {
@@ -837,26 +837,26 @@
   color: #555;
 }
 .rv2-kpi-value {
-  margin-top: 2px;
-  font-size: 14px;
+  margin-top: 1px;
+  font-size: 13px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
-.rv2-kpi-strong { font-size: 15px; }
+.rv2-kpi-strong { font-size: 14px; }
 
 /* Signatures */
 .rv2-signs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 .rv2-sign {
   margin-bottom: 0;
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  padding: 6px 8px 7px;
+  padding: 5px 8px 6px;
 }
 .rv2-sign-who { flex: 1 1 auto; }
 .rv2-sign-role {
@@ -874,7 +874,7 @@
 }
 .rv2-sign-line span {
   display: block;
-  margin-top: 16px;
+  margin-top: 13px;
   border-top: 1px solid #8a8a8a;
   padding-top: 2px;
   text-align: center;
@@ -887,7 +887,7 @@
 /* Footer */
 .rv2-footer {
   margin-top: auto;
-  padding-top: 8px;
+  padding-top: 6px;
   border-top: 1px solid #d5d5d5;
   display: flex;
   align-items: center;
