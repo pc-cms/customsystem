@@ -149,7 +149,22 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
 
   return (
     <Shell>
-      {!embedded && (
+      {embedded ? (
+        <div className="flex items-center gap-3 mb-3 flex-wrap">
+          <span className="text-xs text-muted-foreground">
+            {visible.length} of {rows.length} records
+          </span>
+          <label className="text-xs flex items-center gap-1.5">
+            <input type="checkbox" checked={showVoided} onChange={(e) => setShowVoided(e.target.checked)} /> Show voided
+          </label>
+          <div className="flex-1" />
+          {canManage && (
+            <Button size="sm" className="h-8 text-xs" onClick={() => setOpen(true)}>
+              <Plus className="w-4 h-4" /> New Expense
+            </Button>
+          )}
+        </div>
+      ) : (
         <PageHeader
           icon={Receipt}
           title="Monthly Expenses"

@@ -7,7 +7,7 @@ import JpTab from "./JpTab";
 import CollectionsTab from "./CollectionsTab";
 
 
-import { OfficeShell } from "@/components/office/office-shell";
+import { OfficeShell, useOfficePeriod } from "@/components/office/office-shell";
 
 
 const WalletDayGridTab = lazy(() => import("./WalletDayGridTab"));
@@ -16,6 +16,15 @@ const FinancesMonthlyReportPage = lazy(() => import("@/pages/finances/FinancesMo
 const FinancesInterCasinoPage = lazy(() => import("@/pages/finances/FinancesInterCasinoPage"));
 const FinancesBankImportPage = lazy(() => import("@/pages/finances/FinancesBankImportPage"));
 const FinancesExpensesPage = lazy(() => import("@/pages/finances/FinancesExpensesPage"));
+
+/**
+ * Expenses embedded in Office: follows the shared month selector instead of
+ * its own date presets (QA finding 2026-09-05).
+ */
+function ExpensesEmbedded() {
+  const { period } = useOfficePeriod();
+  return <FinancesExpensesPage embedded embeddedFrom={period.from} embeddedTo={period.to} />;
+}
 
 
 // Finance top tabs — fixed business order (Stage 2A, 2026-09-01):
@@ -102,7 +111,7 @@ export default function OfficePage() {
         )}
         {tab === "collections" && <CollectionsTab />}
         {tab === "day-closings" && <DayClosingsTab />}
-        {tab === "expenses" && <FinancesExpensesPage />}
+        {tab === "expenses" && <ExpensesEmbedded />}
         {tab === "import-statement" && <FinancesBankImportPage />}
         {tab === "inter-casino" && <FinancesInterCasinoPage />}
         {tab === "jp" && <JpTab />}
