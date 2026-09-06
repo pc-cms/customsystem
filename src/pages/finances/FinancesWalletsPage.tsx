@@ -45,7 +45,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
-import { formatNumberSpaces, CASH_DENOMS, allDenoms} from "@/lib/currency";
+import { formatNumberSpaces, formatAmount, CASH_DENOMS, allDenoms } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import ClosingInboxDialog from "@/components/finances/ClosingInboxDialog";
@@ -743,7 +743,7 @@ export default function FinancesWalletsPage() {
                       <div className="flex items-baseline justify-between gap-3 pb-1.5 border-b border-border/50">
                         <span className="text-xs font-semibold tracking-wider text-muted-foreground">{c}</span>
                         <span className="font-mono tabular-nums text-base font-semibold whitespace-nowrap">
-                          {formatNumberSpaces(grandTotals.perCcy[c])}
+                          {formatAmount(grandTotals.perCcy[c], c)}
                         </span>
                       </div>
                       <dl className="mt-1.5 space-y-0.5">
@@ -751,7 +751,7 @@ export default function FinancesWalletsPage() {
                           <div key={lbl} className="flex items-baseline justify-between gap-3">
                             <dt className="text-xs uppercase tracking-wider text-muted-foreground">{lbl}</dt>
                             <dd className="font-mono tabular-nums text-sm whitespace-nowrap">
-                              {v ? formatNumberSpaces(v) : "·"}
+                              {v ? formatAmount(v, c) : "·"}
                             </dd>
                           </div>
                         ))}
@@ -878,7 +878,7 @@ export default function FinancesWalletsPage() {
                       <td className="font-mono">{w.currency}</td>
                       <td className="text-right font-mono tabular-nums text-xs">
                         {w.starting_float_amount
-                          ? `${formatNumberSpaces(Number(w.starting_float_amount))} ${w.currency}`
+                          ? `${formatAmount(Number(w.starting_float_amount), w.currency)} ${w.currency}`
                           : `0 ${w.currency}`}
                         {w.starting_float_date && (
                           <div className="text-[10px] text-muted-foreground">
@@ -889,7 +889,7 @@ export default function FinancesWalletsPage() {
                       <td className="text-right font-mono tabular-nums">
                         {led.counted ? (
                           <>
-                            {formatNumberSpaces(led.native)}{" "}
+                            {formatAmount(led.native, w.currency)}{" "}
                             <span className="text-[10px] text-muted-foreground">{w.currency}</span>
                           </>
                         ) : (
@@ -1040,7 +1040,7 @@ export default function FinancesWalletsPage() {
                                     Last count ({w.currency})
                                   </span>
                                   <span className="font-mono tabular-nums">
-                                    {led.counted ? formatNumberSpaces(led.native) : "0"}
+                                    {led.counted ? formatAmount(led.native, w.currency) : "0"}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -1052,7 +1052,7 @@ export default function FinancesWalletsPage() {
                                 <div className="flex items-center justify-between text-xs">
                                   <span className="text-muted-foreground">Counted</span>
                                   <span className="font-mono tabular-nums">
-                                    {formatNumberSpaces(counted)} {w.currency}
+                                    {formatAmount(counted, w.currency)} {w.currency}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between text-sm font-semibold pt-1 border-t border-border">
@@ -1068,7 +1068,7 @@ export default function FinancesWalletsPage() {
                                     )}
                                   >
                                     {variance > 0 ? "+" : ""}
-                                    {formatNumberSpaces(variance)}
+                                    {formatAmount(variance, w.currency)}
                                   </span>
                                 </div>
                               </div>
@@ -1132,7 +1132,7 @@ export default function FinancesWalletsPage() {
                   </td>
                   <td className="px-3 py-2 text-right font-mono tabular-nums text-xs text-muted-foreground">
                     {CURRENCY_ORDER.filter((c) => grandTotals.perCcy[c])
-                      .map((c) => `${formatNumberSpaces(grandTotals.perCcy[c])} ${c}`)
+                      .map((c) => `${formatAmount(grandTotals.perCcy[c], c)} ${c}`)
                       .join(" · ")}
                   </td>
                   <td className="px-3 py-2 text-right font-mono tabular-nums font-semibold">
@@ -1298,7 +1298,7 @@ export default function FinancesWalletsPage() {
                         isIn ? "cms-amount-positive" : "cms-amount-negative",
                       )}
                     >
-                      {isIn ? "" : "−"}{formatNumberSpaces(Math.abs(Number(r.amount)))}{" "}
+                      {isIn ? "" : "−"}{formatAmount(Math.abs(Number(r.amount)), r.currency)}{" "}
                       <span className="text-[10px] text-muted-foreground">{r.currency}</span>
                     </td>
                     <td
