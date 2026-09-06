@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CURRENCIES, CASH_DENOMS, formatNumberSpaces, allDenoms} from "@/lib/currency";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
-import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
+import { useReportWallets, withExtraKeys } from "./report-v2/wallet-rows";
 import {
   A4_CLASS, A4_STYLE, Card, CardTable, PageFooter, ReportHeader, Signatures, buildReportId, num, signed,
 } from "./report-v2/primitives";
@@ -39,10 +39,11 @@ const TotalClosingReportV2 = ({
     queryKey: ["total-closing-v2", casinoId, businessDate],
     enabled: !!casinoId && !!businessDate,
     queryFn: async () => {
-      const fromUtc = `${businessDate}T02:00:00Z`;
+      // Business day rollover is 07:00 EAT = 04:00 UTC.
+      const fromUtc = `${businessDate}T04:00:00Z`;
       const nx = new Date(`${businessDate}T00:00:00Z`);
       nx.setUTCDate(nx.getUTCDate() + 1);
-      const toUtc = `${nx.toISOString().slice(0, 10)}T02:00:00Z`;
+      const toUtc = `${nx.toISOString().slice(0, 10)}T04:00:00Z`;
 
       const [liveR, slotsR] = await Promise.all([
         supabase.from("shifts").select("*").eq("casino_id", casinoId)
@@ -82,6 +83,7 @@ const TotalClosingReportV2 = ({
     },
   });
 
+  const wallets = useReportWallets(casinoId);
   const liveShifts = (data?.liveShifts || []) as any[];
   const slotsShifts = (data?.slotsShifts || []) as any[];
   const rates: Record<string, number> = { TZS: 1 };
@@ -119,7 +121,8 @@ const TotalClosingReportV2 = ({
   });
   const slotsClosingCash = toTzs(slotsCashByCur);
   const slotsOpeningCash = toTzs(slotsOpenCashByCur);
-  const slotsResult = slotsShifts.reduce((s, x) => s + Number(x.slots_result ?? x.system_shift_result ?? 0), 0);
+  // Canon: slots result is slots_result (net win) — never system_shift_result.
+  const slotsResult = slotsShifts.reduce((s, x) => s + Number(x.slots_result || 0), 0);
   const slotsBalance = slotsShifts.reduce((s, x) => s + Number(x.balance || 0), 0);
   const slotsExpenses = (data?.slotsExpenses || []).filter((e: any) => e.approved).reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
 
@@ -165,13 +168,17 @@ const TotalClosingReportV2 = ({
   });
 
   /* ---------- Bank accounts ---------- */
-  const bankRows = BANK_CHANNELS.map(b => {
+  const bankDefs = withExtraKeys(wallets.banks, liveBankChannels as any)
+    .filter(b => chanValue((liveBankChannels as any)?.[b.key]));
+  const bankCurrencyOf = (key: string) => (key.endsWith("_USD") ? "USD" : key.endsWith("_EUR") ? "EUR" : "TZS");
+  const bankRows = bankDefs.map(b => {
     const e = (liveBankChannels as any)?.[b.key];
-    const rate = b.currency === "TZS" ? 1 : Number(rates[b.currency] || 0);
+    const cur = bankCurrencyOf(b.key);
+    const rate = cur === "TZS" ? 1 : Number(rates[cur] || 0);
     const closing = chanValue(e);
     return {
-      acc: `${b.bank} ${b.currency}`,
-      cur: b.currency,
+      acc: b.label,
+      cur,
       inn: num(Number(e?.in || 0)),
       out: num(Number(e?.out || 0)),
       close: num(closing),
@@ -179,9 +186,9 @@ const TotalClosingReportV2 = ({
       tzs: num(closing * rate),
     };
   });
-  const bankTotalTzs = bankRows.reduce((s, r, i) => {
-    const b = BANK_CHANNELS[i];
-    const rate = b.currency === "TZS" ? 1 : Number(rates[b.currency] || 0);
+  const bankTotalTzs = bankDefs.reduce((s, b) => {
+    const cur = bankCurrencyOf(b.key);
+    const rate = cur === "TZS" ? 1 : Number(rates[cur] || 0);
     return s + chanValue((liveBankChannels as any)?.[b.key]) * rate;
   }, 0);
 
@@ -207,7 +214,7 @@ const TotalClosingReportV2 = ({
         reportId={buildReportId("TCD", businessDate, casinoId)}
         status={reportStatus}
         businessDate={businessDate}
-        cashier="Both cash desks"
+        cashier={openNote ? `Both cash desks · ${openNote}` : "Both cash desks"}
         manager={signManager}
       />
 
