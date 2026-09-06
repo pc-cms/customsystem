@@ -31,10 +31,14 @@ export const useEditExpense = () => {
   const { casinoId, roles } = useAuth();
   return useMutation({
     mutationFn: async (patch: EditExpensePatch) => {
-      const allowed =
+      const isFinance =
         roles.includes("finance_manager") ||
         roles.includes("super_admin");
-      if (!allowed) throw new Error("Finance Manager role required");
+      const isManager =
+        roles.includes("manager") ||
+        roles.includes("shift_manager") ||
+        roles.includes("general_manager");
+      if (!isFinance && !isManager) throw new Error("Manager or Finance Manager role required");
       if (!casinoId) throw new Error("No casino");
 
       const update: Record<string, any> = {};
@@ -48,12 +52,24 @@ export const useEditExpense = () => {
 
       if (Object.keys(update).length === 0) return;
 
+      if (!isFinance) {
+        // Managers edit through the audited RPC: current business day only,
+        // and the expense loses its approval so finance re-approves it.
+        const { error } = await (supabase as any).rpc("edit_expense_as_manager", {
+          p_expense_id: patch.id,
+          p_patch: update,
+        });
+        if (error) throw error;
+        return;
+      }
+
       const { error } = await (supabase as any)
         .from("expenses")
         .update(update)
         .eq("id", patch.id);
       if (error) throw error;
     },
+
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["expenses"] });
       qc.invalidateQueries({ queryKey: ["expenses-slots"] });
