@@ -89,7 +89,10 @@ const ChipsMovementReportV2 = ({
   ];
 
   return (
-    <div className={`${A4_CLASS} bg-white text-black p-2 flex flex-col`} style={A4_STYLE}>
+    <div
+      className={`${A4_CLASS} rv2-page-land bg-white text-black p-2 flex flex-col`}
+      style={{ ...A4_STYLE, width: "281mm" }}
+    >
       <style>{PRINT_REPORT_ACCENTS_CSS}</style>
 
       <ReportHeader
@@ -112,14 +115,14 @@ const ChipsMovementReportV2 = ({
       />
 
       <Card title="Quantity per Denomination">
-        <table className="rv2-table" style={{ tableLayout: "fixed" }}>
+        <table className="rv2-table" style={{ tableLayout: "auto", width: "100%" }}>
           <thead>
             <tr>
-              <th className="rv2-l" style={{ width: "26%" }}>Block</th>
+              <th className="rv2-l">Block</th>
               {denoms.map(d => (
                 <th key={d} className="rv2-r">{formatNumberSpaces(d)}</th>
               ))}
-              <th className="rv2-r" style={{ width: "16%" }}>Value TZS</th>
+              <th className="rv2-r" style={{ width: "12%" }}>Value TZS</th>
             </tr>
           </thead>
           <tbody>
