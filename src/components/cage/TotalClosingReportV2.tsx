@@ -54,7 +54,7 @@ const TotalClosingReportV2 = ({
       const liveShifts = liveR.data || [];
       const slotsShifts = slotsR.data || [];
 
-      const [liveExpR, slotsExpR, invR, ratesR, cashlessR] = await Promise.all([
+      const [liveExpR, slotsExpR, invR, ratesR, slotsCountsR, cashlessR] = await Promise.all([
         liveShifts.length
           ? supabase.from("expenses").select("amount, approved, shift_id").in("shift_id", liveShifts.map(s => s.id))
           : Promise.resolve({ data: [] as any[] } as any),
@@ -67,6 +67,10 @@ const TotalClosingReportV2 = ({
         slotsShifts.length
           ? supabase.from("cage_slots_exchange_rates").select("*").in("cage_slots_shift_id", slotsShifts.map(s => s.id))
           : Promise.resolve({ data: [] as any[] } as any),
+        slotsShifts.length
+          ? supabase.from("cage_slots_cash_counts").select("cage_slots_shift_id, denominations, created_at")
+              .in("cage_slots_shift_id", slotsShifts.map(s => s.id)).order("created_at")
+          : Promise.resolve({ data: [] as any[] } as any),
         supabase.from("cashless_transactions").select("direction, amount, cage_type, created_at")
           .eq("casino_id", casinoId).gte("created_at", fromUtc).lt("created_at", toUtc),
       ]);
@@ -78,6 +82,7 @@ const TotalClosingReportV2 = ({
         slotsExpenses: slotsExpR.data || [],
         inventory: invR.data || [],
         slotsRates: ratesR.data || [],
+        slotsCounts: slotsCountsR.data || [],
         cashless: cashlessR.data || [],
       };
     },
@@ -104,6 +109,31 @@ const TotalClosingReportV2 = ({
   const liveClosingCash = toTzs(liveCashByCur);
   const liveOpeningCash = toTzs(liveOpenCashByCur);
   const liveBankChannels = (liveCloser as any)?.bank?.channels || {};
+  // Slots cash desk records its own bank movements in the closing check.
+  const slotsBankChannels: Record<string, any> = {};
+  const slotsClosingChecks = new Map<string, any>();
+  ((data?.slotsCounts || []) as any[]).forEach(r => {
+    if (r?.denominations?.is_opening) return;
+    slotsClosingChecks.set(r.cage_slots_shift_id, r);
+  });
+  slotsClosingChecks.forEach(r => {
+    const ch = r?.denominations?.bank?.channels || {};
+    Object.entries(ch).forEach(([k, v]: [string, any]) => {
+      const acc = (slotsBankChannels[k] ||= { in: 0, out: 0, final: 0 });
+      acc.in += Number(v?.in || 0);
+      acc.out += Number(v?.out || 0);
+      acc.final += Number(v?.final || 0);
+    });
+  });
+  const bankChannels: Record<string, any> = {};
+  [liveBankChannels, slotsBankChannels].forEach(src => {
+    Object.entries(src || {}).forEach(([k, v]: [string, any]) => {
+      const acc = (bankChannels[k] ||= { in: 0, out: 0, final: 0 });
+      acc.in += Number(v?.in || 0);
+      acc.out += Number(v?.out || 0);
+      acc.final += Number(v?.final || 0);
+    });
+  });
   const liveClosingBank = Number((liveCloser as any)?.bank?.tzs || 0) + Number((liveCloser as any)?.bank?.usd || 0) * Number(rates.USD || 0);
   const liveResult = liveShifts.reduce((s, x) => s + Number(x.tables_result || 0), 0);
   const liveBalance = liveShifts.reduce((s, x) => s + Number(x.balance || 0), 0);
@@ -120,6 +150,10 @@ const TotalClosingReportV2 = ({
       .reduce((s, r) => s + Number(r.denomination || 0) * Number(r.quantity || 0), 0);
   });
   const slotsClosingCash = toTzs(slotsCashByCur);
+  const slotsClosingBank = Object.entries(slotsBankChannels).reduce((s2, [k, v]) => {
+    const cur = k.endsWith("_USD") ? "USD" : k.endsWith("_EUR") ? "EUR" : "TZS";
+    return s2 + chanValue(v) * (cur === "TZS" ? 1 : Number(rates[cur] || 0));
+  }, 0);
   const slotsOpeningCash = toTzs(slotsOpenCashByCur);
   // Canon: slots result is slots_result (net win) — never system_shift_result.
   const slotsResult = slotsShifts.reduce((s, x) => s + Number(x.slots_result || 0), 0);
@@ -135,7 +169,7 @@ const TotalClosingReportV2 = ({
   const slotsCashlessNet = netFor("slots");
 
   const liveTotalMoney = liveClosingCash + liveClosingBank + liveCashlessNet;
-  const slotsTotalMoney = slotsClosingCash + slotsCashlessNet;
+  const slotsTotalMoney = slotsClosingCash + slotsClosingBank + slotsCashlessNet;
 
   /* ---------- Denomination breakdown ---------- */
   const denomRows: Array<Record<string, React.ReactNode>> = [];
@@ -168,11 +202,11 @@ const TotalClosingReportV2 = ({
   });
 
   /* ---------- Bank accounts ---------- */
-  const bankDefs = withExtraKeys(wallets.banks, liveBankChannels as any)
-    .filter(b => chanValue((liveBankChannels as any)?.[b.key]));
+  const bankDefs = withExtraKeys(wallets.banks, bankChannels)
+    .filter(b => chanValue(bankChannels[b.key]));
   const bankCurrencyOf = (key: string) => (key.endsWith("_USD") ? "USD" : key.endsWith("_EUR") ? "EUR" : "TZS");
   const bankRows = bankDefs.map(b => {
-    const e = (liveBankChannels as any)?.[b.key];
+    const e = bankChannels[b.key];
     const cur = bankCurrencyOf(b.key);
     const rate = cur === "TZS" ? 1 : Number(rates[cur] || 0);
     const closing = chanValue(e);
@@ -189,7 +223,7 @@ const TotalClosingReportV2 = ({
   const bankTotalTzs = bankDefs.reduce((s, b) => {
     const cur = bankCurrencyOf(b.key);
     const rate = cur === "TZS" ? 1 : Number(rates[cur] || 0);
-    return s + chanValue((liveBankChannels as any)?.[b.key]) * rate;
+    return s + chanValue(bankChannels[b.key]) * rate;
   }, 0);
 
   const signManager = managerName
@@ -229,7 +263,7 @@ const TotalClosingReportV2 = ({
           rows={[
             { k: "Opening Cash", live: num(liveOpeningCash), slots: num(slotsOpeningCash), total: num(liveOpeningCash + slotsOpeningCash) },
             { k: "Closing Cash", live: num(liveClosingCash), slots: num(slotsClosingCash), total: num(totalCash) },
-            { k: "Closing Bank", live: num(liveClosingBank), slots: "—", total: num(liveClosingBank) },
+            { k: "Closing Bank", live: num(liveClosingBank), slots: num(slotsClosingBank), total: num(liveClosingBank + slotsClosingBank) },
             { k: "Cashless Net", live: signed(liveCashlessNet), slots: signed(slotsCashlessNet), total: signed(liveCashlessNet + slotsCashlessNet) },
             { k: "Tables / System Result", live: signed(liveResult), slots: signed(slotsResult), total: signed(liveResult + slotsResult) },
             { k: "Expenses", live: num(liveExpenses), slots: num(slotsExpenses), total: num(liveExpenses + slotsExpenses) },
