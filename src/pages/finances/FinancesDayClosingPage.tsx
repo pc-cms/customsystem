@@ -12,7 +12,7 @@ import {
   useFinDayClosing, useDayClosingList, useUpsertDayClosing, useLockDayClosing,
   useShiftsTablesResultForDate, useFinWallets, useBusinessDayClosureSnapshot,
 } from "@/hooks/use-fin";
-import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
+import { formatNumberSpaces, CASH_DENOMS, allDenoms} from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import { cn } from "@/lib/utils";

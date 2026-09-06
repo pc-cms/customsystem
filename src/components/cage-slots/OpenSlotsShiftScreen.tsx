@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import {
   CURRENCIES, FOREIGN_CURRENCIES, CASH_DENOMS,
-  DEFAULT_EXCHANGE_RATES, formatNumberSpaces, formatCurrency,
+  DEFAULT_EXCHANGE_RATES, formatNumberSpaces, formatCurrency, allDenoms,
 } from "@/lib/currency";
 import { useOpenSlotsShift, useCageSlotsSettings, useLastClosedSlotsCards, type SlotsShiftType } from "@/hooks/use-cage-slots";
 import { useLastClosedShift } from "@/hooks/use-shift";

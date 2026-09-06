@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { useFinWallets, useFinWalletBalances } from "@/hooks/use-fin";
-import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
+import { formatNumberSpaces, CASH_DENOMS, allDenoms} from "@/lib/currency";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";

@@ -11,7 +11,7 @@ import { CSSProperties } from "react";
 import { NumberInput } from "@/components/ui/number-input";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import {
-  CURRENCIES, CASH_DENOMS, formatNumberSpaces, formatChipLabel, CURRENCY_SYMBOLS,
+  CURRENCIES, CASH_DENOMS, formatNumberSpaces, formatChipLabel, CURRENCY_SYMBOLS, allDenoms,
 } from "@/lib/currency";
 import {
   useChipColors, resolveChipColor, useVisibleChipDenoms,

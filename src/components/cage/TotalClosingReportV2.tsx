@@ -7,7 +7,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { CURRENCIES, CASH_DENOMS, formatNumberSpaces } from "@/lib/currency";
+import { CURRENCIES, CASH_DENOMS, formatNumberSpaces, allDenoms} from "@/lib/currency";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
 import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
 import {

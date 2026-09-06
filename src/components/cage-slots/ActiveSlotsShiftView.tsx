@@ -29,7 +29,7 @@ import {
 } from "@/components/cage/CageHelpers";
 import {
   CURRENCIES, FOREIGN_CURRENCIES, CASH_DENOMS,
-  formatNumberSpaces, formatCurrency,
+  formatNumberSpaces, formatCurrency, allDenoms,
 } from "@/lib/currency";
 import { fmtDateTime } from "@/lib/format-date";
 import {
