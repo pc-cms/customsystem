@@ -29,7 +29,7 @@ import {
 } from "@/components/cage/CageHelpers";
 import {
   CURRENCIES, FOREIGN_CURRENCIES, CASH_DENOMS,
-  formatNumberSpaces, formatCurrency,
+  formatNumberSpaces, formatCurrency, allDenoms,
 } from "@/lib/currency";
 import { fmtDateTime } from "@/lib/format-date";
 import {
@@ -821,7 +821,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                     onCashChange={(cur, next) => {
                       const prev = closingCash[cur] || {};
                       setClosingCash(c => ({ ...c, [cur]: next }));
-                      const denoms = CASH_DENOMS[cur] || [];
+                      const denoms = allDenoms(cur);
                       for (const d of denoms) {
                         if ((next[d] || 0) !== (prev[d] || 0)) {
                           persistClosingCash(cur, d, next[d] || 0);

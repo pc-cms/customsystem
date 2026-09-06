@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { formatCashDenomLabel, CURRENCY_SYMBOLS, formatNumberSpaces } from "@/lib/currency";
+import { formatCashDenomLabel, CURRENCY_SYMBOLS, formatNumberSpaces, formatNumberSpacesDecimals, COIN_DENOMS } from "@/lib/currency";
 import { NumberInput } from "@/components/ui/number-input";
 
 const cashSum = (cash: Record<number, number>) =>
@@ -29,22 +29,37 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
 }) => {
   const refs = useRef<Record<number, HTMLInputElement | null>>({});
   const showCents = typeof cents === "number" && !!onCentsChange;
+  // Coin denominations of the currency (empty for TZS) — counted below the notes.
+  const coins = (COIN_DENOMS[currency] || []).filter((c) => !denoms.includes(c));
   const total = cashSum(values) + (showCents ? (cents || 0) / 100 : 0);
   const t = SIZES[size];
 
   const fmtTotal = (n: number) => {
+    if (coins.length > 0) return formatNumberSpacesDecimals(n, 2);
     if (!showCents) return formatNumberSpaces(n);
     const int = Math.trunc(n);
     const frac = Math.round((n - int) * 100);
     return `${formatNumberSpaces(int)}.${String(frac).padStart(2, "0")}`;
   };
 
+  const allRows = [...denoms, ...coins];
+
+
   return (
     <div className="flex flex-col">
       <div className={t.gap}>
-      {denoms.map((d, idx) => (
+      {allRows.map((d, idx) => (
         <div key={d} className={`flex items-center ${t.row}`}>
-          <span className={`cms-chip bg-muted text-foreground shrink-0 justify-center ${t.chip}`}>
+          {coins.length > 0 && idx === denoms.length && (
+            <span className="sr-only">Coins</span>
+          )}
+          <span
+            className={`cms-chip shrink-0 justify-center ${t.chip} ${
+              idx >= denoms.length
+                ? "bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-200"
+                : "bg-muted text-foreground"
+            }`}
+          >
             {formatCashDenomLabel(d, currency)}
           </span>
           <NumberInput
@@ -56,7 +71,7 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
             onKeyDown={e => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                const next = denoms[idx + 1];
+                const next = allRows[idx + 1];
                 if (next !== undefined) refs.current[next]?.focus();
                 else onSubmit?.();
               }
@@ -65,6 +80,7 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
           />
         </div>
       ))}
+
       {showCents && (
         <div className={`flex items-center ${t.row}`}>
           <span className={`cms-chip bg-muted text-foreground shrink-0 justify-center ${t.chip}`}>

@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import {
   CURRENCIES, FOREIGN_CURRENCIES, CASH_DENOMS,
-  DEFAULT_EXCHANGE_RATES, formatNumberSpaces, formatCurrency,
+  DEFAULT_EXCHANGE_RATES, formatNumberSpaces, formatCurrency, allDenoms,
 } from "@/lib/currency";
 import { useOpenSlotsShift, useCageSlotsSettings, useLastClosedSlotsCards, type SlotsShiftType } from "@/hooks/use-cage-slots";
 import { useLastClosedShift } from "@/hooks/use-shift";
@@ -85,7 +85,7 @@ const OpenSlotsShiftScreen = () => {
     }
     const flatCash: { currency: string; denomination: number; quantity: number }[] = [];
     for (const c of CURRENCIES) {
-      const denoms = CASH_DENOMS[c] || [];
+      const denoms = allDenoms(c);
       for (const d of denoms) {
         const q = Number((openingCash[c] || {})[d] || 0);
         if (q > 0) flatCash.push({ currency: c, denomination: d, quantity: q });

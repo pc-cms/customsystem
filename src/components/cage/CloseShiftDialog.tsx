@@ -5,7 +5,7 @@ import { AlertTriangle, CheckCircle2, ShieldAlert, Lock, ArrowLeft, Printer } fr
 import { LiveClosingReport as ShiftClosingReport, ChipsMovementReport as ChipMovementReport } from "@/components/cage/report-v2/layout";
 import PrintPortal from "@/components/cage/PrintPortal";
 import SignatorySelects from "@/components/cage/report-v2/SignatorySelects";
-import { CHIP_DENOMS, formatCurrency, formatChipLabel, formatNumberSpaces, formatCashDenomLabel, CURRENCIES, CASH_DENOMS, CURRENCY_SYMBOLS } from "@/lib/currency";
+import { CHIP_DENOMS, formatCurrency, formatChipLabel, formatNumberSpaces, formatCashDenomLabel, CURRENCIES, CASH_DENOMS, CURRENCY_SYMBOLS, allDenoms} from "@/lib/currency";
 import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import ChipToken from "@/components/ChipToken";
 import { Input } from "@/components/ui/input";
@@ -356,7 +356,7 @@ const CloseShiftDialog = ({
   );
   const cashByCurrencyDenoms = useMemo(
     () => CURRENCIES.map(cur => {
-      const denoms = (CASH_DENOMS[cur] || []).filter(d => (cashCounts[cur]?.[d] || 0) > 0);
+      const denoms = allDenoms(cur).filter(d => (cashCounts[cur]?.[d] || 0) > 0);
       const total = cashSum(cashCounts[cur] || {});
       return { cur, denoms, total };
     }).filter(x => x.total > 0),

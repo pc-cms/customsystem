@@ -5,7 +5,7 @@
  */
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import ChipToken from "@/components/ChipToken";
-import { CURRENCIES, CASH_DENOMS, CHIP_DENOMS, formatCurrency, formatNumberSpaces, formatCashDenomLabel, CURRENCY_SYMBOLS } from "@/lib/currency";
+import { CURRENCIES, CASH_DENOMS, CHIP_DENOMS, formatCurrency, formatNumberSpaces, formatCashDenomLabel, CURRENCY_SYMBOLS, allDenoms} from "@/lib/currency";
 import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { MOBILE_PROVIDERS } from "@/components/cage/CageHelpers";
 import type { Tables } from "@/integrations/supabase/types";
@@ -401,7 +401,7 @@ const CashCheckViewerDialog = ({
               </Section>
             )}
             <Section title="TZS Cash" isEmpty={sumValue(cash["TZS"] || {}) === 0}>
-              <CashView values={cash["TZS"] || {}} denoms={CASH_DENOMS["TZS"] || []} currency="TZS" />
+              <CashView values={cash["TZS"] || {}} denoms={allDenoms("TZS")} currency="TZS" />
             </Section>
           </div>
 
@@ -409,7 +409,7 @@ const CashCheckViewerDialog = ({
           <div className="grid gap-4 content-start">
             {CURRENCIES.filter(c => c !== "TZS").map(cur => (
               <Section key={cur} title={`${cur} Cash`} isEmpty={sumValue(cash[cur] || {}) === 0}>
-                <CashView values={cash[cur] || {}} denoms={CASH_DENOMS[cur] || []} currency={cur} />
+                <CashView values={cash[cur] || {}} denoms={allDenoms(cur)} currency={cur} />
               </Section>
             ))}
           </div>

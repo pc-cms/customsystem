@@ -34,8 +34,32 @@ export const CASH_DENOMS: Record<string, number[]> = {
   KES: [1000, 500, 200, 100, 50],
 };
 
+// Coin denominations per currency. Counted separately from banknotes but stored
+// in the same denomination map (fractional keys such as "0.5" are supported by
+// the `_sum_denoms` DB helper, which casts keys to numeric).
+export const COIN_DENOMS: Record<string, number[]> = {
+  TZS: [],
+  USD: [1, 0.5, 0.25, 0.1, 0.05],
+  EUR: [2, 1, 0.5, 0.2, 0.1],
+  GBP: [2, 1, 0.5, 0.2, 0.1],
+  KES: [40, 20, 10, 5, 1],
+};
+
+/** Notes + coins for a currency, notes first (used by read-only views/reports). */
+export const allDenoms = (currency: string): number[] => [
+  ...(CASH_DENOMS[currency] || []),
+  ...(COIN_DENOMS[currency] || []),
+];
+
+/** True when the currency is counted with fractional (coin) precision. */
+export const hasCoins = (currency: string): boolean => (COIN_DENOMS[currency] || []).length > 0;
+
+/** Decimal places used for amounts in this currency (TZS = whole numbers). */
+export const currencyDecimals = (currency: string): number => (currency === "TZS" ? 0 : 2);
+
 // Non-TZS currencies (for exchange rate inputs)
 export const FOREIGN_CURRENCIES = CURRENCIES.filter(c => c !== "TZS");
+
 
 export const CHIP_DENOMS = [10_000_000, 5_000_000, 1_000_000, 500_000, 100_000, 50_000, 25_000, 10_000, 5_000, 2_000, 1_000, 500] as const;
 
@@ -62,9 +86,11 @@ export const formatChipLabel = (value: number): string => {
 
 // Format a cash denomination label. TZS uses K/M (chip-style); other
 // currencies show the bare number with space-separated thousands (e.g. "1 000").
+// Coin denominations below 1 keep their decimals ("0.50", "0.05").
 // Currency symbol is NOT included — the section total below shows the currency.
 export const formatCashDenomLabel = (denom: number, currency: string): string => {
   if (currency === "TZS") return formatChipLabel(denom);
+  if (!Number.isInteger(denom)) return denom.toFixed(2);
   return formatNumberSpaces(denom);
 };
 
@@ -77,11 +103,25 @@ export const formatNumberSpaces = (num: number): string => {
   return isNeg ? `-${str}` : str;
 };
 
+// Space-separated thousands with a fixed number of decimals ("1 250.50").
+export const formatNumberSpacesDecimals = (num: number, decimals = 2): string => {
+  if (!Number.isFinite(num)) return "0";
+  const isNeg = num < 0;
+  const fixed = Math.abs(num).toFixed(decimals);
+  const [int, frac] = fixed.split(".");
+  const str = int.replace(/\B(?=(\d{3})+(?!\d))/g, " ") + (frac ? `.${frac}` : "");
+  return isNeg ? `-${str}` : str;
+};
+
+/** Currency-aware amount: TZS whole, foreign currencies with 2 decimals. */
+export const formatAmount = (num: number, currency: string = "TZS"): string =>
+  currency === "TZS" ? formatNumberSpaces(num) : formatNumberSpacesDecimals(num, 2);
+
 export const formatCurrency = (amount: number, currency: string = "TZS"): string => {
   // Hide the default TZS prefix to save horizontal space; show symbol only for foreign currencies.
   if (currency === "TZS") return formatNumberSpaces(amount);
   const sym = CURRENCY_SYMBOLS[currency] || currency;
-  return `${sym} ${formatNumberSpaces(amount)}`;
+  return `${sym} ${formatNumberSpacesDecimals(amount, 2)}`;
 };
 
 // Compact number for narrow screens: 1 250 000 -> "1.25M", 12 500 -> "12.5K"

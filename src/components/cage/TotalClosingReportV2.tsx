@@ -7,7 +7,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { CURRENCIES, CASH_DENOMS, formatNumberSpaces } from "@/lib/currency";
+import { CURRENCIES, CASH_DENOMS, formatNumberSpaces, allDenoms} from "@/lib/currency";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
 import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
 import {
@@ -137,7 +137,7 @@ const TotalClosingReportV2 = ({
   /* ---------- Denomination breakdown ---------- */
   const denomRows: Array<Record<string, React.ReactNode>> = [];
   CURRENCIES.forEach(c => {
-    const denoms = (CASH_DENOMS as any)[c] as number[] | undefined;
+    const denoms = allDenoms(c) as number[] | undefined;
     let curLiveTzs = 0, curSlotsTzs = 0;
     (denoms || []).forEach(d => {
       const liveQty = Number(((liveCloser as any)?.cash?.[c] || {})[d] || 0);

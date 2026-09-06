@@ -11,7 +11,7 @@ import { CSSProperties } from "react";
 import { NumberInput } from "@/components/ui/number-input";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import {
-  CURRENCIES, CASH_DENOMS, formatNumberSpaces, formatChipLabel, CURRENCY_SYMBOLS,
+  CURRENCIES, CASH_DENOMS, formatNumberSpaces, formatChipLabel, CURRENCY_SYMBOLS, allDenoms,
 } from "@/lib/currency";
 import {
   useChipColors, resolveChipColor, useVisibleChipDenoms,
@@ -164,7 +164,7 @@ const CashCheckNewGrid = ({
 
         {/* Columns 2–4 — Cash per currency */}
         {CURRENCIES.map((cur) => {
-          const denomsList = CASH_DENOMS[cur] || [];
+          const denomsList = allDenoms(cur);
           const counted = cashSum(cash[cur] || {});
           const exp = expected.expectedCashByCurrency[cur] || 0;
           const diff = counted - exp;

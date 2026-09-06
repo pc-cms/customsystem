@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CategoryCombobox } from "./CategoryCombobox";
 import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
 import { useEditExpense } from "@/hooks/use-edit-expense";
+import { useAuth } from "@/lib/auth-context";
 import { useFinWallets } from "@/hooks/use-fin";
 
 type Currency = "TZS" | "USD" | "EUR" | "GBP" | "KES";
@@ -45,6 +46,8 @@ interface Props {
 
 export const EditExpenseDialog = ({ open, onOpenChange, expense }: Props) => {
   const edit = useEditExpense();
+  const { roles } = useAuth();
+  const isFinance = roles.includes("finance_manager") || roles.includes("super_admin");
   const { data: wallets = [] } = useFinWallets();
   const [finCatId, setFinCatId] = useState<string>("");
   const [walletId, setWalletId] = useState<string>("");
@@ -99,7 +102,11 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense }: Props) => {
       open={open}
       onOpenChange={onOpenChange}
       title="Edit expense"
-      description="Manager / Finance Manager only. Audited."
+      description={
+        isFinance
+          ? "Finance Manager edit. Audited."
+          : "Manager edit — current business day only. Saving removes the approval, finance must approve again."
+      }
       size="form"
     >
       <FormGrid>
@@ -144,7 +151,12 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense }: Props) => {
         )}
 
         <FormField label="Amount">
-          <NumberInput value={amount} onChange={setAmount} placeholder="0" />
+          <NumberInput
+            value={amount}
+            onChange={setAmount}
+            decimals={currency === "TZS" ? 0 : 2}
+            placeholder="0"
+          />
         </FormField>
         <FormField label="Currency">
           <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>

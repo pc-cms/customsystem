@@ -7,7 +7,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TableFooter } from "@/components/ui/table";
-import { formatNumberSpaces, formatChipLabel, CASH_DENOMS, CHIP_DENOMS } from "@/lib/currency";
+import { formatNumberSpaces, formatChipLabel, CASH_DENOMS, CHIP_DENOMS, allDenoms} from "@/lib/currency";
 import ChipToken from "@/components/ChipToken";
 const CATEGORY_LABELS: Record<string, string> = {};
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
@@ -445,7 +445,7 @@ export const CashPanel = ({ rows, businessDate, casinoId }: PanelProps) => {
   return (
     <div className="space-y-4">
       {Array.from(cashByCcy.entries()).map(([ccy, v]) => {
-        const denoms = (CASH_DENOMS[ccy] || Object.keys(v.denoms).map(Number).sort((a, b) => b - a));
+        const denoms = (allDenoms(ccy).length ? allDenoms(ccy) : Object.keys(v.denoms).map(Number).sort((a, b) => b - a));
         return (
           <div key={ccy} className="border rounded-md">
             <div className="px-3 py-2 border-b text-xs font-semibold">{ccy} cash</div>
