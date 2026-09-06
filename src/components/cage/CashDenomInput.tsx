@@ -29,15 +29,21 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
 }) => {
   const refs = useRef<Record<number, HTMLInputElement | null>>({});
   const showCents = typeof cents === "number" && !!onCentsChange;
+  // Coin denominations of the currency (empty for TZS) — counted below the notes.
+  const coins = (COIN_DENOMS[currency] || []).filter((c) => !denoms.includes(c));
   const total = cashSum(values) + (showCents ? (cents || 0) / 100 : 0);
   const t = SIZES[size];
 
   const fmtTotal = (n: number) => {
+    if (coins.length > 0) return formatNumberSpacesDecimals(n, 2);
     if (!showCents) return formatNumberSpaces(n);
     const int = Math.trunc(n);
     const frac = Math.round((n - int) * 100);
     return `${formatNumberSpaces(int)}.${String(frac).padStart(2, "0")}`;
   };
+
+  const allRows = [...denoms, ...coins];
+
 
   return (
     <div className="flex flex-col">
