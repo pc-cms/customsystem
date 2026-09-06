@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { formatCashDenomLabel, CURRENCY_SYMBOLS, formatNumberSpaces } from "@/lib/currency";
+import { formatCashDenomLabel, CURRENCY_SYMBOLS, formatNumberSpaces, formatNumberSpacesDecimals, COIN_DENOMS } from "@/lib/currency";
 import { NumberInput } from "@/components/ui/number-input";
 
 const cashSum = (cash: Record<number, number>) =>
