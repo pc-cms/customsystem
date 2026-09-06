@@ -7,7 +7,8 @@
  */
 import { CURRENCIES } from "@/lib/currency";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
-import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
+import { useAuth } from "@/lib/auth-context";
+import { useReportWallets, withExtraKeys, normalizeProviderMap } from "@/components/cage/report-v2/wallet-rows";
 import {
   A4_CLASS, A4_STYLE, Card, CardTable, KpiStrip, PageFooter, ReportHeader, Signatures,
   buildReportId, num, signed,
@@ -32,6 +33,8 @@ export type SlotsClosingReportV2Props = SlotsConsolidatedProps & {
   jackpotCount?: number;
   winningsTaxRate?: number;
   adjustmentRef?: string | null;
+  /** Canonical slots result (slots_result); falls back to systemShiftResult. */
+  slotsResult?: number | null;
   cardsFill?: number;
   cardsCredit?: number;
   closingCardValue?: number;
@@ -60,13 +63,19 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
     cashierName, managerName, shiftId,
     reportStatus = "DRAFT — GBT APPROVAL PENDING",
     taxableWinnings = 0, jackpotCount = 0, winningsTaxRate = 0.15, adjustmentRef,
-    cardsFill = 0, cardsCredit = 0, closingCardValue = 0,
+    cardsFill = 0, cardsCredit = 0, closingCardValue = 0, slotsResult,
   } = props;
+  const { casinoId } = useAuth();
+  const wallets = useReportWallets(casinoId);
+  const depByProv = normalizeProviderMap(cashlessDepositByProvider as any);
+  const wdByProv = normalizeProviderMap(cashlessWithdrawByProvider as any);
+  const endByProv = normalizeProviderMap(closerCashlessByProvider as any);
 
-  const providers = resolveProviders(cashlessDepositByProvider, cashlessWithdrawByProvider, closerCashlessByProvider);
-  const depTotal = Object.values(cashlessDepositByProvider || {}).reduce((s, v) => s + Number(v || 0), 0)
+  const providers = withExtraKeys(wallets.providers, depByProv, wdByProv, endByProv)
+    .filter(p => Number(depByProv[p.key] || 0) || Number(wdByProv[p.key] || 0) || Number(endByProv[p.key] || 0));
+  const depTotal = Object.values(depByProv).reduce((s, v) => s + Number(v || 0), 0)
     || Number(cashlessDepositTotalTzs || 0);
-  const wdTotal = Object.values(cashlessWithdrawByProvider || {}).reduce((s, v) => s + Number(v || 0), 0)
+  const wdTotal = Object.values(wdByProv).reduce((s, v) => s + Number(v || 0), 0)
     || Number(cashlessWithdrawTotalTzs || 0);
 
   const cashRows = (byCur: Record<string, number>) =>
@@ -88,12 +97,8 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
     return moved ? Number(e.in || 0) - Number(e.out || 0) : Number(e.final || 0);
   };
 
-  const bankKeys = [
-    ...BANK_CHANNELS.map(c => ({ key: c.key, label: `${c.bank} ${c.currency}` })),
-    ...Object.keys({ ...(openerBankChannels || {}), ...(closerBankChannels || {}) })
-      .filter(k => !BANK_CHANNELS.some(c => c.key === k))
-      .map(k => ({ key: k, label: k.replace(/_/g, " ") })),
-  ];
+  const bankKeys = withExtraKeys(wallets.banks, openerBankChannels as any, closerBankChannels as any)
+    .filter(b => bankValue(openerBankChannels, b.key) || bankValue(closerBankChannels, b.key));
 
   const totalMoney = Number(closerCashTotalTzs || 0) + Number(closerBankTotalTzs || 0) + (depTotal - wdTotal);
   const winningsTax = Math.round(Number(taxableWinnings || 0) * Number(winningsTaxRate || 0));
@@ -164,7 +169,7 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
 
       <KpiStrip
         items={[
-          { label: "System Result", value: signed(systemShiftResult), strong: true },
+          { label: "System Result", value: signed(Number(slotsResult ?? systemShiftResult ?? 0)), strong: true },
           { label: "Cash Flow Fill", value: num(cashFlowFill) },
           { label: "Cash Flow Credit", value: num(cashFlowCredit) },
           { label: "Expenses", value: num(casinoExpenses) },
@@ -203,9 +208,9 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
             { key: "end", label: "End Day", align: "right" },
           ]}
           rows={providers.map(p => {
-            const i = Number(cashlessDepositByProvider?.[p.key] || 0);
-            const o = Number(cashlessWithdrawByProvider?.[p.key] || 0);
-            const end = closerCashlessByProvider?.[p.key];
+            const i = Number(depByProv[p.key] || 0);
+            const o = Number(wdByProv[p.key] || 0);
+            const end = endByProv[p.key];
             return {
               p: p.label,
               in: num(i),
