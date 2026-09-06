@@ -48,9 +48,18 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
   return (
     <div className="flex flex-col">
       <div className={t.gap}>
-      {denoms.map((d, idx) => (
+      {allRows.map((d, idx) => (
         <div key={d} className={`flex items-center ${t.row}`}>
-          <span className={`cms-chip bg-muted text-foreground shrink-0 justify-center ${t.chip}`}>
+          {coins.length > 0 && idx === denoms.length && (
+            <span className="sr-only">Coins</span>
+          )}
+          <span
+            className={`cms-chip shrink-0 justify-center ${t.chip} ${
+              idx >= denoms.length
+                ? "bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-200"
+                : "bg-muted text-foreground"
+            }`}
+          >
             {formatCashDenomLabel(d, currency)}
           </span>
           <NumberInput
@@ -62,7 +71,7 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
             onKeyDown={e => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                const next = denoms[idx + 1];
+                const next = allRows[idx + 1];
                 if (next !== undefined) refs.current[next]?.focus();
                 else onSubmit?.();
               }
@@ -71,6 +80,7 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
           />
         </div>
       ))}
+
       {showCents && (
         <div className={`flex items-center ${t.row}`}>
           <span className={`cms-chip bg-muted text-foreground shrink-0 justify-center ${t.chip}`}>
