@@ -148,8 +148,31 @@ export const useOtherIncomes = (
   });
 };
 
+/**
+ * Resolve the FX rate the same way the wallets grid does: the casino's daily
+ * rate for that business date, falling back to the most recent rate set before
+ * it. Keeps manual income entries on the same rate as wallet adjustments.
+ */
+const resolveDailyFxRate = async (
+  casinoId: string,
+  businessDate: string,
+  currency: string,
+): Promise<number> => {
+  if (currency === "TZS") return 1;
+  const { data } = await (supabase as any)
+    .from("fin_daily_rates")
+    .select("rate_to_tzs, business_date")
+    .eq("casino_id", casinoId)
+    .eq("currency", currency)
+    .lte("business_date", businessDate)
+    .order("business_date", { ascending: false })
+    .limit(1);
+  const rate = Number(data?.[0]?.rate_to_tzs || 0);
+  return rate > 0 ? rate : 2500;
+};
 
 export const useAddOtherIncome = () => {
+
   const qc = useQueryClient();
   const { activeCasinoId } = useCasino();
   return useMutation({
@@ -175,7 +198,9 @@ export const useAddOtherIncome = () => {
         source: input.source,
         currency: input.currency,
         amount: input.amount,
-        fx_rate: input.fx_rate ?? (input.currency === "TZS" ? 1 : 2500),
+        fx_rate:
+          input.fx_rate ??
+          (await resolveDailyFxRate(activeCasinoId, input.business_date, input.currency)),
         note: input.note || null,
         created_by: uid,
       });
