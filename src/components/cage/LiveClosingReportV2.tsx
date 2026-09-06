@@ -16,6 +16,8 @@ import {
   buildReportId, num, signed,
 } from "./report-v2/primitives";
 import { useLiveShiftReportData } from "./report-v2/use-live-shift-report-data";
+import { useTotalDrop } from "@/lib/drop-source";
+
 
 export type LiveClosingReportV2Props = {
   shift: Tables<"shifts">;
@@ -49,6 +51,9 @@ const LiveClosingReportV2 = ({
   const { rows, cashlessIO } = useLiveShiftReportData({
     casinoId, shiftId: shift?.id, businessDate, tables,
   });
+  // Canon: per-table Drop is never printed; Total Drop = player_day_drop_cache.
+  const { data: totalDrop } = useTotalDrop({ casinoId, fromDate: businessDate });
+
 
   const totals = useMemo(() => rows.reduce(
     (a, r) => ({
@@ -131,13 +136,14 @@ const LiveClosingReportV2 = ({
           rows={rows.map(r => ({
             t: r.name,
             op: num(r.op), fl: num(r.fl), cr: num(r.cr), cl: num(r.cl),
-            dr: num(r.drop), res: signed(r.res),
+            dr: "·", res: signed(r.res),
           }))}
           footer={{
             t: "Total",
             op: num(totals.op), fl: num(totals.fl), cr: num(totals.cr), cl: num(totals.cl),
-            dr: num(totals.drop), res: signed(resultTable || totals.res),
+            dr: num(totalDrop || 0), res: signed(resultTable || totals.res),
           }}
+
         />
       </Card>
 
