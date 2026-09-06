@@ -34,8 +34,32 @@ export const CASH_DENOMS: Record<string, number[]> = {
   KES: [1000, 500, 200, 100, 50],
 };
 
+// Coin denominations per currency. Counted separately from banknotes but stored
+// in the same denomination map (fractional keys such as "0.5" are supported by
+// the `_sum_denoms` DB helper, which casts keys to numeric).
+export const COIN_DENOMS: Record<string, number[]> = {
+  TZS: [],
+  USD: [1, 0.5, 0.25, 0.1, 0.05],
+  EUR: [2, 1, 0.5, 0.2, 0.1],
+  GBP: [2, 1, 0.5, 0.2, 0.1],
+  KES: [40, 20, 10, 5, 1],
+};
+
+/** Notes + coins for a currency, notes first (used by read-only views/reports). */
+export const allDenoms = (currency: string): number[] => [
+  ...(CASH_DENOMS[currency] || []),
+  ...(COIN_DENOMS[currency] || []),
+];
+
+/** True when the currency is counted with fractional (coin) precision. */
+export const hasCoins = (currency: string): boolean => (COIN_DENOMS[currency] || []).length > 0;
+
+/** Decimal places used for amounts in this currency (TZS = whole numbers). */
+export const currencyDecimals = (currency: string): number => (currency === "TZS" ? 0 : 2);
+
 // Non-TZS currencies (for exchange rate inputs)
 export const FOREIGN_CURRENCIES = CURRENCIES.filter(c => c !== "TZS");
+
 
 export const CHIP_DENOMS = [10_000_000, 5_000_000, 1_000_000, 500_000, 100_000, 50_000, 25_000, 10_000, 5_000, 2_000, 1_000, 500] as const;
 
