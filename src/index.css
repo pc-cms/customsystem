@@ -680,6 +680,12 @@
   align-items: start;
 }
 
+/* Landscape sheet variant (screen preview geometry; print rules in @media print) */
+.rv2-page.rv2-page-land {
+  width: 281mm;
+  min-height: 194mm;
+}
+
 @media print {
   /* Dedicated portrait sheet — the global @page above is landscape (rota grids) */
   @page rv2portrait {
