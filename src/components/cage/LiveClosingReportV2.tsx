@@ -129,19 +129,20 @@ const LiveClosingReportV2 = ({
             { key: "op", label: "Opening", align: "right" },
             { key: "fl", label: "Fill", align: "right" },
             { key: "cr", label: "Credit", align: "right" },
+            { key: "drop", label: "Drop", align: "right", width: "10%" },
             { key: "cl", label: "Closing", align: "right" },
-            { key: "dr", label: "Turnover (Drop)", align: "right" },
+            { key: "to", label: "Turnover", align: "right" },
             { key: "res", label: "Result", align: "right" },
           ]}
           rows={rows.map(r => ({
             t: r.name,
             op: num(r.op), fl: num(r.fl), cr: num(r.cr), cl: num(r.cl),
-            dr: "·", res: signed(r.res),
+            drop: "", to: num(r.dr), res: signed(r.res),
           }))}
           footer={{
             t: "Total",
             op: num(totals.op), fl: num(totals.fl), cr: num(totals.cr), cl: num(totals.cl),
-            dr: num(totalDrop || 0), res: signed(resultTable || totals.res),
+            drop: "", to: num(totalDrop || 0), res: signed(resultTable || totals.res),
           }}
 
         />
