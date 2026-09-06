@@ -146,7 +146,7 @@ export default function FinancesOfficeSafePage() {
                   {info.wallets.map((w: any) => {
                     const isOpen = !!open[w.id];
                     const wVar = w.counted - w.balance;
-                    const denoms = CASH_DENOMS[w.currency] || CASH_DENOMS.TZS;
+                    const denoms = allDenoms(w.currency);
                     return (
                       <div key={w.id}>
                         <button

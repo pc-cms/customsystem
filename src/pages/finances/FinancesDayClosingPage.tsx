@@ -200,7 +200,7 @@ export default function FinancesDayClosingPage() {
       <PageSection title="Income Lines" titleRight={!locked && <Button size="sm" variant="outline" onClick={addLine}><Plus className="w-3.5 h-3.5" /> Line</Button>}>
         {!lines.length && <div className="text-sm text-muted-foreground text-center py-4">No income lines</div>}
         {lines.map((l, i) => {
-          const denoms = CASH_DENOMS[l.currency] || CASH_DENOMS.TZS;
+          const denoms = allDenoms(l.currency);
           const isOpen = expanded === i;
           return (
             <div key={i} className="rounded-md border border-border mb-2">

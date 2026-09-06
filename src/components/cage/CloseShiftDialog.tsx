@@ -356,7 +356,7 @@ const CloseShiftDialog = ({
   );
   const cashByCurrencyDenoms = useMemo(
     () => CURRENCIES.map(cur => {
-      const denoms = (CASH_DENOMS[cur] || []).filter(d => (cashCounts[cur]?.[d] || 0) > 0);
+      const denoms = allDenoms(cur).filter(d => (cashCounts[cur]?.[d] || 0) > 0);
       const total = cashSum(cashCounts[cur] || {});
       return { cur, denoms, total };
     }).filter(x => x.total > 0),

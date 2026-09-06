@@ -137,7 +137,7 @@ const TotalClosingReportV2 = ({
   /* ---------- Denomination breakdown ---------- */
   const denomRows: Array<Record<string, React.ReactNode>> = [];
   CURRENCIES.forEach(c => {
-    const denoms = (CASH_DENOMS as any)[c] as number[] | undefined;
+    const denoms = allDenoms(c) as number[] | undefined;
     let curLiveTzs = 0, curSlotsTzs = 0;
     (denoms || []).forEach(d => {
       const liveQty = Number(((liveCloser as any)?.cash?.[c] || {})[d] || 0);

@@ -837,7 +837,7 @@ export default function FinancesWalletsPage() {
               {visibleWallets.map((w, idx) => {
                 const isOpen = !!expanded[w.id];
                 const useDenoms = CASH_LIKE_KINDS.has(w.kind);
-                const denoms = CASH_DENOMS[w.currency] || CASH_DENOMS.TZS;
+                const denoms = allDenoms(w.currency);
                 const denomVals = denomCounts[w.id] || {};
                 const centsVal = w.currency === "TZS" && useDenoms ? centsInput[w.id] || 0 : 0;
                 const counted = useDenoms
