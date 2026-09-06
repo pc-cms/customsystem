@@ -93,7 +93,16 @@ export const formatCashDenomLabel = (denom: number, currency: string): string =>
   if (!Number.isInteger(denom)) return denom.toFixed(2);
   return formatNumberSpaces(denom);
 };
-...
+
+// Format number with space-separated thousands (global rule: no commas or dots)
+export const formatNumberSpaces = (num: number): string => {
+  if (num === 0) return "0";
+  const isNeg = num < 0;
+  const abs = Math.abs(Math.round(num));
+  const str = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return isNeg ? `-${str}` : str;
+};
+
 // Space-separated thousands with a fixed number of decimals ("1 250.50").
 export const formatNumberSpacesDecimals = (num: number, decimals = 2): string => {
   if (!Number.isFinite(num)) return "0";
