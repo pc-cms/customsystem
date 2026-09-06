@@ -198,7 +198,9 @@ export const useAddOtherIncome = () => {
         source: input.source,
         currency: input.currency,
         amount: input.amount,
-        fx_rate: input.fx_rate ?? (input.currency === "TZS" ? 1 : 2500),
+        fx_rate:
+          input.fx_rate ??
+          (await resolveDailyFxRate(activeCasinoId, input.business_date, input.currency)),
         note: input.note || null,
         created_by: uid,
       });
