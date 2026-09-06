@@ -714,6 +714,20 @@
     line-height: 1.3 !important;
     zoom: 1 !important;
   }
+
+  /* Landscape variant (Chips Movement sheet) — full A4 landscape width */
+  @page rv2landscape {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+  .rv2-page.rv2-page-land {
+    page: rv2landscape;
+    width: 281mm;
+    height: 194mm;
+    min-height: 194mm;
+    max-height: 194mm;
+  }
+
   .rv2-page:last-child {
     break-after: auto;
     page-break-after: auto;
