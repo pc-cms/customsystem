@@ -226,6 +226,12 @@ const TotalClosingReportV2 = ({
     return s + chanValue(bankChannels[b.key]) * rate;
   }, 0);
 
+  const openLive = liveShifts.filter((x: any) => x.status !== "closed").length;
+  const openSlots = slotsShifts.filter((x: any) => !["closed", "approved"].includes(String(x.status))).length;
+  const openNote = openLive || openSlots
+    ? `SHIFT OPEN — ${openLive ? "Live" : ""}${openLive && openSlots ? " + " : ""}${openSlots ? "Slots" : ""} not closed, figures are provisional`
+    : "";
+
   const signManager = managerName
     || liveShifts.map((x: any) => x.manager_name).find(Boolean)
     || slotsShifts.map((x: any) => x.manager_name).find(Boolean)
