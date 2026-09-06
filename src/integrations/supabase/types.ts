@@ -13284,6 +13284,10 @@ export type Database = {
         Args: { _closure_id: string; _patches: Json; _section: string }
         Returns: Json
       }
+      edit_expense_as_manager: {
+        Args: { p_expense_id: string; p_patch: Json }
+        Returns: undefined
+      }
       effective_module_perms: {
         Args: { p_user_id: string }
         Returns: {
