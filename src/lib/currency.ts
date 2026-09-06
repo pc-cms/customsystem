@@ -86,26 +86,33 @@ export const formatChipLabel = (value: number): string => {
 
 // Format a cash denomination label. TZS uses K/M (chip-style); other
 // currencies show the bare number with space-separated thousands (e.g. "1 000").
+// Coin denominations below 1 keep their decimals ("0.50", "0.05").
 // Currency symbol is NOT included — the section total below shows the currency.
 export const formatCashDenomLabel = (denom: number, currency: string): string => {
   if (currency === "TZS") return formatChipLabel(denom);
+  if (!Number.isInteger(denom)) return denom.toFixed(2);
   return formatNumberSpaces(denom);
 };
-
-// Format number with space-separated thousands (global rule: no commas or dots)
-export const formatNumberSpaces = (num: number): string => {
-  if (num === 0) return "0";
+...
+// Space-separated thousands with a fixed number of decimals ("1 250.50").
+export const formatNumberSpacesDecimals = (num: number, decimals = 2): string => {
+  if (!Number.isFinite(num)) return "0";
   const isNeg = num < 0;
-  const abs = Math.abs(Math.round(num));
-  const str = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  const fixed = Math.abs(num).toFixed(decimals);
+  const [int, frac] = fixed.split(".");
+  const str = int.replace(/\B(?=(\d{3})+(?!\d))/g, " ") + (frac ? `.${frac}` : "");
   return isNeg ? `-${str}` : str;
 };
+
+/** Currency-aware amount: TZS whole, foreign currencies with 2 decimals. */
+export const formatAmount = (num: number, currency: string = "TZS"): string =>
+  currency === "TZS" ? formatNumberSpaces(num) : formatNumberSpacesDecimals(num, 2);
 
 export const formatCurrency = (amount: number, currency: string = "TZS"): string => {
   // Hide the default TZS prefix to save horizontal space; show symbol only for foreign currencies.
   if (currency === "TZS") return formatNumberSpaces(amount);
   const sym = CURRENCY_SYMBOLS[currency] || currency;
-  return `${sym} ${formatNumberSpaces(amount)}`;
+  return `${sym} ${formatNumberSpacesDecimals(amount, 2)}`;
 };
 
 // Compact number for narrow screens: 1 250 000 -> "1.25M", 12 500 -> "12.5K"
