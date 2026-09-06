@@ -8,14 +8,14 @@
 1. **Переименовать колонку** «Turnover (Drop)» → **«Turnover»**.
 2. **Вставить новую колонку «Drop»** в таблицу Gaming Tables сразу после Fill/Credit:
    ```
-   Table | Opening | Fill | Credit | Drop | Closing | Result
+   Table | Opening | Fill | Credit | Drop | Closing | Turnover | Result
    ```
-3. **По столам** выводить drop per table (`r.dr`).
-4. **Строка Total** остаётся: в ней общий Drop из `player_day_drop_cache`.
+3. **По столам** в колонке **Turnover** выводить drop per table (`r.dr`).
+4. **Строка Total** — уточняется: общий Drop из `player_day_drop_cache` ставится в колонку Drop или в Turnover.
 5. Плитки KPI не меняем.
 
 Больше ничего не трогаем: источник Total Drop, печать и разметка не меняются.
 
 ## Проверка
 - `tsgo --noEmit` без ошибок.
-- Печатный прогон Live-отчёта (Аруша 05/09) — PDF: колонка Drop после Fill/Credit, по столам значения, итог в строке Total совпадает.
+- Печатный прогон Live-отчёта (Аруша 05/09) — PDF: колонка Drop после Fill/Credit, Turnover с drop per table, итог в строке Total совпадает.
