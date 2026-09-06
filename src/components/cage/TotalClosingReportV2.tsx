@@ -168,9 +168,11 @@ const TotalClosingReportV2 = ({
   const journalNetFor = (cage: string) =>
     cashless.filter(r => r.cage_type === cage)
       .reduce((s, r) => s + (r.direction === "IN" ? Number(r.amount || 0) : -Number(r.amount || 0)), 0);
-  const sumProv = (m: any) => Object.values(m || {}).reduce((s: number, v: any) => s + Number(v || 0), 0);
+  const sumProv = (m: any): number =>
+    Object.values(m || {}).reduce<number>((s, v: any) => s + Number(v || 0), 0);
   const shiftNet = (rows: any[]) =>
     rows.reduce((s, x) => s + sumProv(x.cashless_in_providers) - sumProv(x.cashless_out_providers), 0);
+
   const liveShiftNet = shiftNet(liveShifts);
   const slotsShiftNet = shiftNet(slotsShifts);
   const liveCashlessNet = liveShiftNet || journalNetFor("live_game");
