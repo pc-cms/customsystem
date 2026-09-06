@@ -10,13 +10,16 @@
    ```
    Table | Opening | Fill | Credit | Drop | Closing | Turnover | Result
    ```
-3. **По столам** в колонке **Turnover** выводить drop per table (`r.dr`).
-4. **Строка Total**: общий Drop из `player_day_drop_cache` выводится в колонку **Turnover**.
-5. Содержимое колонки **Drop** по столам — уточняется.
-6. Плитки KPI не меняем.
+3. **По столам**:
+   - колонка **Drop** — пустая (заглушка для будущего значения);
+   - колонка **Turnover** — drop per table (`r.dr`).
+4. **Строка Total**:
+   - колонка **Drop** — пустая;
+   - колонка **Turnover** — общий Drop из `player_day_drop_cache`.
+5. Плитки KPI не меняем.
 
 Больше ничего не трогаем: источник Total Drop, печать и разметка не меняются.
 
 ## Проверка
 - `tsgo --noEmit` без ошибок.
-- Печатный прогон Live-отчёта (Аруша 05/09) — PDF: колонка Drop после Fill/Credit, Turnover с drop per table, итог в строке Total совпадает.
+- Печатный прогон Live-отчёта (Аруша 05/09) — PDF: колонка Drop после Fill/Credit пустая, Turnover с drop per table, итог в строке Total совпадает.
