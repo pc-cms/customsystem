@@ -286,6 +286,8 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       cardsOpener: Number(cards?.opening_card_count ?? 0),
       cardsCloser: cards?.closing_card_count != null ? Number(cards.closing_card_count) : null,
       systemShiftResult: Number(shift.system_shift_result || 0),
+      // Canon: printed "System Result" is slots_result (net win).
+      slotsResult: Number((shift as any).slots_result ?? shift.system_shift_result ?? 0),
       openerByCurrency,
       closerByCurrency,
       openerCashTotalTzs,

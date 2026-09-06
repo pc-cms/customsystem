@@ -9,14 +9,13 @@ import { useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { CURRENCIES } from "@/lib/currency";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
-import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
+import { useReportWallets, withExtraKeys } from "./report-v2/wallet-rows";
 import type { Tables } from "@/integrations/supabase/types";
 import {
   A4_CLASS, A4_STYLE, Card, CardTable, KpiStrip, PageFooter, ReportHeader, Signatures,
   buildReportId, num, signed,
 } from "./report-v2/primitives";
 import { useLiveShiftReportData } from "./report-v2/use-live-shift-report-data";
-import { resolveProviders } from "@/components/cage-slots/SlotsClosingReportV2";
 
 export type LiveClosingReportV2Props = {
   shift: Tables<"shifts">;
@@ -83,16 +82,14 @@ const LiveClosingReportV2 = ({
     const moved = Number(e.in || 0) !== 0 || Number(e.out || 0) !== 0;
     return moved ? Number(e.in || 0) - Number(e.out || 0) : Number(e.final || 0);
   };
-  const bankKeys = [
-    ...BANK_CHANNELS.map(c => ({ key: c.key, label: `${c.bank} ${c.currency}` })),
-    ...Object.keys({ ...(openerBank?.channels || {}), ...(closerBank?.channels || {}) })
-      .filter(k => !BANK_CHANNELS.some(c => c.key === k))
-      .map(k => ({ key: k, label: k.replace(/_/g, " ") })),
-  ];
+  const wallets = useReportWallets(casinoId);
+  const bankKeys = withExtraKeys(wallets.banks, openerBank?.channels, closerBank?.channels)
+    .filter(b => bankValue(openerBank, b.key) || bankValue(closerBank, b.key));
   const bankTotal = (b: any) =>
     Number(b?.tzs || 0) + Number(b?.usd || 0) * Number(exchangeRates["USD"] || 0);
 
-  const providers = resolveProviders(cashlessIO.inByProv, cashlessIO.outByProv);
+  const providers = withExtraKeys(wallets.providers, cashlessIO.inByProv, cashlessIO.outByProv)
+    .filter(p => Number(cashlessIO.inByProv[p.key] || 0) || Number(cashlessIO.outByProv[p.key] || 0));
   const clIn = Object.values(cashlessIO.inByProv).reduce((s, v) => s + v, 0);
   const clOut = Object.values(cashlessIO.outByProv).reduce((s, v) => s + v, 0);
 

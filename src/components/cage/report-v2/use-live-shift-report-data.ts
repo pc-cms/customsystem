@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { buildLatestTableSnapshot } from "@/lib/table-live-result";
 import { fetchTotalDrop } from "@/lib/drop-source";
+import { normalizeProviderKey, normalizeProviderMap } from "./wallet-rows";
 
 export type LiveTableRow = {
   id: string;
@@ -114,8 +115,16 @@ export const useLiveShiftReportData = (opts: {
 
       const fromIso = null;
       void fromIso;
-      const { data: shiftRow } = await supabase.from("shifts").select("opened_at, closed_at").eq("id", shiftId).maybeSingle();
+      const { data: shiftRow } = await supabase
+        .from("shifts")
+        .select("opened_at, closed_at, cashless_in_providers, cashless_out_providers")
+        .eq("id", shiftId).maybeSingle();
       if (cancelled) return;
+      // Base = what the cashier entered on the shift itself; the journal only
+      // refines the In/Out split for providers it actually recorded.
+      const baseIn = normalizeProviderMap((shiftRow as any)?.cashless_in_providers);
+      const baseOut = normalizeProviderMap((shiftRow as any)?.cashless_out_providers);
+      setCashlessIO({ inByProv: baseIn, outByProv: baseOut });
       if (shiftRow?.opened_at) {
         const { data: cl } = await (supabase as any)
           .from("cashless_transactions")
@@ -128,12 +137,20 @@ export const useLiveShiftReportData = (opts: {
           const inP: Record<string, number> = {};
           const outP: Record<string, number> = {};
           (cl || []).forEach((r: any) => {
-            const p = String(r.provider || "").toUpperCase();
+            const p = normalizeProviderKey(r.provider);
+            if (!p) return;
             const a = Number(r.amount || 0);
             if (r.direction === "IN") inP[p] = (inP[p] || 0) + a;
             else if (r.direction === "OUT") outP[p] = (outP[p] || 0) + a;
           });
-          setCashlessIO({ inByProv: inP, outByProv: outP });
+          const touched = new Set([...Object.keys(inP), ...Object.keys(outP)]);
+          const mergedIn = { ...baseIn };
+          const mergedOut = { ...baseOut };
+          touched.forEach(k => {
+            mergedIn[k] = inP[k] || 0;
+            mergedOut[k] = outP[k] || 0;
+          });
+          setCashlessIO({ inByProv: mergedIn, outByProv: mergedOut });
         }
       }
     })();
