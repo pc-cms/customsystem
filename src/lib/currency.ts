@@ -45,11 +45,14 @@ export const COIN_DENOMS: Record<string, number[]> = {
   KES: [40, 20, 10, 5, 1],
 };
 
-/** Notes + coins for a currency, notes first (used by read-only views/reports). */
-export const allDenoms = (currency: string): number[] => [
-  ...(CASH_DENOMS[currency] || []),
-  ...(COIN_DENOMS[currency] || []),
-];
+/**
+ * Notes + coins for a currency, notes first (used by read-only views/reports).
+ * De-duplicated: a value present as BOTH a note and a coin (e.g. USD 1) must
+ * appear once, otherwise report rows double-count that denomination.
+ */
+export const allDenoms = (currency: string): number[] =>
+  Array.from(new Set([...(CASH_DENOMS[currency] || []), ...(COIN_DENOMS[currency] || [])]));
+
 
 /** True when the currency is counted with fractional (coin) precision. */
 export const hasCoins = (currency: string): boolean => (COIN_DENOMS[currency] || []).length > 0;

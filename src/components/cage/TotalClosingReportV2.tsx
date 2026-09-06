@@ -161,12 +161,23 @@ const TotalClosingReportV2 = ({
   const slotsExpenses = (data?.slotsExpenses || []).filter((e: any) => e.approved).reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
 
   /* ---------- Cashless ---------- */
+  // Source of truth = the shift's own provider maps (what the cashier closed
+  // with). The cashless_transactions journal is only a fallback for desks that
+  // record movements there instead.
   const cashless = (data?.cashless || []) as any[];
-  const netFor = (cage: string) =>
+  const journalNetFor = (cage: string) =>
     cashless.filter(r => r.cage_type === cage)
       .reduce((s, r) => s + (r.direction === "IN" ? Number(r.amount || 0) : -Number(r.amount || 0)), 0);
-  const liveCashlessNet = netFor("live_game");
-  const slotsCashlessNet = netFor("slots");
+  const sumProv = (m: any): number =>
+    Object.values(m || {}).reduce<number>((s, v: any) => s + Number(v || 0), 0);
+  const shiftNet = (rows: any[]) =>
+    rows.reduce((s, x) => s + sumProv(x.cashless_in_providers) - sumProv(x.cashless_out_providers), 0);
+
+  const liveShiftNet = shiftNet(liveShifts);
+  const slotsShiftNet = shiftNet(slotsShifts);
+  const liveCashlessNet = liveShiftNet || journalNetFor("live_game");
+  const slotsCashlessNet = slotsShiftNet || journalNetFor("slots");
+
 
   const liveTotalMoney = liveClosingCash + liveClosingBank + liveCashlessNet;
   const slotsTotalMoney = slotsClosingCash + slotsClosingBank + slotsCashlessNet;
