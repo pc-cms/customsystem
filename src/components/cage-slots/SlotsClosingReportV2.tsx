@@ -66,7 +66,9 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
     cardsFill = 0, cardsCredit = 0, closingCardValue = 0, slotsResult,
   } = props;
   const { casinoId } = useAuth();
-  const wallets = useReportWallets(casinoId);
+  const liveWallets = useReportWallets(casinoId);
+  // Frozen snapshots carry their own wallet labels so a reprint never renames rows.
+  const wallets = ((props as any).wallets as typeof liveWallets) || liveWallets;
   const depByProv = normalizeProviderMap(cashlessDepositByProvider as any);
   const wdByProv = normalizeProviderMap(cashlessWithdrawByProvider as any);
   const endByProv = normalizeProviderMap(closerCashlessByProvider as any);
