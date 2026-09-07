@@ -85,7 +85,10 @@ const OpenSlotsShiftScreen = () => {
     }
     const flatCash: { currency: string; denomination: number; quantity: number }[] = [];
     for (const c of CURRENCIES) {
-      const denoms = allDenoms(c);
+      const denoms = Array.from(new Set([
+        ...allDenoms(c),
+        ...Object.keys(openingCash[c] || {}).map(Number).filter(Number.isFinite),
+      ]));
       for (const d of denoms) {
         const q = Number((openingCash[c] || {})[d] || 0);
         if (q > 0) flatCash.push({ currency: c, denomination: d, quantity: q });

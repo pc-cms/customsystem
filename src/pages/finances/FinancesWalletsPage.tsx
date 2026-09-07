@@ -315,6 +315,7 @@ export default function FinancesWalletsPage() {
       const denoms: Record<number, number> = {};
       Object.entries(base).forEach(([k, v]) => {
         if (String(k) === "cents") return;
+        if (!Number.isFinite(Number(k))) return;
         denoms[Number(k)] = Number(v || 0);
       });
       m.set(id, { denoms, unallocated: 0 });
@@ -486,7 +487,6 @@ export default function FinancesWalletsPage() {
   /* ===== physical count (inline expandable) ===== */
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [denomCounts, setDenomCounts] = useState<Record<string, Record<number, number>>>({});
-  const [centsInput, setCentsInput] = useState<Record<string, number>>({});
   const [amountInput, setAmountInput] = useState<Record<string, string>>({});
   const [countNote, setCountNote] = useState<Record<string, string>>({});
   const [touchedCount, setTouchedCount] = useState<Record<string, boolean>>({});
@@ -504,16 +504,15 @@ export default function FinancesWalletsPage() {
       return;
     }
     const useDenoms = CASH_LIKE_KINDS.has(w.kind);
-    const cents = w.currency === "TZS" && useDenoms ? centsInput[w.id] || 0 : 0;
     const counted = useDenoms
-      ? cashSum(denomCounts[w.id] || {}) + cents / 100
+      ? cashSum(denomCounts[w.id] || {})
       : Number(amountInput[w.id] || 0);
     // Guard against an untouched panel — never write a zeroing adjustment
     // just because someone clicked Save without entering anything. But an
     // explicitly entered zero (empty wallet) is a valid physical count.
     const countTouched = !!touchedCount[w.id];
     const denomEntered = useDenoms
-      && (countTouched || Object.values(denomCounts[w.id] || {}).some((v) => Number(v) > 0) || cents > 0);
+      && (countTouched || Object.values(denomCounts[w.id] || {}).some((v) => Number(v) > 0));
     const amountEntered = !useDenoms
       && amountInput[w.id] !== undefined
       && String(amountInput[w.id]).trim() !== "";
@@ -567,7 +566,7 @@ export default function FinancesWalletsPage() {
       const { data: res, error: rpcError } = await (supabase as any).rpc("fin_save_wallet_count", {
         p_wallet_id: w.id,
         p_counted: counted,
-        p_denominations: useDenoms ? { ...(denomCounts[w.id] || {}), ...(cents ? { cents } : {}) } : {},
+        p_denominations: useDenoms ? { ...(denomCounts[w.id] || {}) } : {},
         p_note: countNote[w.id] || "",
         p_business_date: countDate,
         p_fx_rate: fxRate,
@@ -581,7 +580,6 @@ export default function FinancesWalletsPage() {
           : `Physical count checked · ${w.name}`,
       );
       setDenomCounts((s) => ({ ...s, [w.id]: {} }));
-      setCentsInput((s) => ({ ...s, [w.id]: 0 }));
       setAmountInput((s) => ({ ...s, [w.id]: "" }));
       setCountNote((s) => ({ ...s, [w.id]: "" }));
       setTouchedCount((s) => ({ ...s, [w.id]: false }));
@@ -839,9 +837,8 @@ export default function FinancesWalletsPage() {
                 const useDenoms = CASH_LIKE_KINDS.has(w.kind);
                 const denoms = allDenoms(w.currency);
                 const denomVals = denomCounts[w.id] || {};
-                const centsVal = w.currency === "TZS" && useDenoms ? centsInput[w.id] || 0 : 0;
                 const counted = useDenoms
-                  ? cashSum(denomVals) + centsVal / 100
+                  ? cashSum(denomVals)
                   : Number(amountInput[w.id] || 0);
                 const led = ledgerByWallet.get(w.id) || { native: 0, tzs: 0, counted: false };
                 const fresh = freshnessByWallet.get(w.id);
@@ -995,20 +992,6 @@ export default function FinancesWalletsPage() {
                                     currency={w.currency}
                                     size="sm"
                                     placeholders={expectedDenoms.get(w.id)?.denoms}
-                                    {...(w.currency === "TZS"
-                                      ? {
-                                          cents: centsVal,
-                                          onCentsChange: (c: number) => {
-                                            setCentsInput((s) => ({ ...s, [w.id]: c }));
-                                            setTouchedCount((s) => ({ ...s, [w.id]: true }));
-                                          },
-
-                                          centsPlaceholder: (() => {
-                                            const t = lastCounts?.get(w.id)?.total ?? 0;
-                                            return Math.round((t - Math.trunc(t)) * 100);
-                                          })(),
-                                        }
-                                      : {})}
                                   />
                                   <div className="mt-1 text-[10px] text-muted-foreground/70">
                                     Grey hints = notes from the last physical count

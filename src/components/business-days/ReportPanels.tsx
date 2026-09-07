@@ -7,7 +7,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TableFooter } from "@/components/ui/table";
-import { formatNumberSpaces, formatChipLabel, CASH_DENOMS, CHIP_DENOMS, allDenoms} from "@/lib/currency";
+import { formatNumberSpaces, formatChipLabel, formatCashDenomLabel, CASH_DENOMS, CHIP_DENOMS, allDenoms} from "@/lib/currency";
 import ChipToken from "@/components/ChipToken";
 const CATEGORY_LABELS: Record<string, string> = {};
 import BreaklistGrid from "@/components/pit/BreaklistGrid";
@@ -445,7 +445,10 @@ export const CashPanel = ({ rows, businessDate, casinoId }: PanelProps) => {
   return (
     <div className="space-y-4">
       {Array.from(cashByCcy.entries()).map(([ccy, v]) => {
-        const denoms = (allDenoms(ccy).length ? allDenoms(ccy) : Object.keys(v.denoms).map(Number).sort((a, b) => b - a));
+        const denoms = Array.from(new Set([
+          ...allDenoms(ccy),
+          ...Object.keys(v.denoms).map(Number).filter(Number.isFinite),
+        ])).sort((a, b) => b - a);
         return (
           <div key={ccy} className="border rounded-md">
             <div className="px-3 py-2 border-b text-xs font-semibold">{ccy} cash</div>
@@ -463,7 +466,7 @@ export const CashPanel = ({ rows, businessDate, casinoId }: PanelProps) => {
                   if (!q) return null;
                   return (
                     <TableRow key={d}>
-                      <TableCell className="text-xs py-1 font-mono">{ccy === "TZS" ? <ChipToken denom={d} /> : d}</TableCell>
+                      <TableCell className="text-xs py-1 font-mono">{ccy === "TZS" && (CASH_DENOMS[ccy] || []).includes(d) ? <ChipToken denom={d} /> : formatCashDenomLabel(d, ccy)}</TableCell>
                       <TableCell className="text-xs py-1 text-right font-mono">{q}</TableCell>
                       <TableCell className="text-xs py-1 text-right font-mono">{formatNumberSpaces(d * q)}</TableCell>
                     </TableRow>

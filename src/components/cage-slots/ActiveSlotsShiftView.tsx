@@ -804,7 +804,10 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                     onCashChange={(cur, next) => {
                       const prev = closingCash[cur] || {};
                       setClosingCash(c => ({ ...c, [cur]: next }));
-                      const denoms = allDenoms(cur);
+                      const denoms = Array.from(new Set([
+                        ...allDenoms(cur),
+                        ...Object.keys({ ...prev, ...next }).map(Number).filter(Number.isFinite),
+                      ]));
                       for (const d of denoms) {
                         if ((next[d] || 0) !== (prev[d] || 0)) {
                           persistClosingCash(cur, d, next[d] || 0);
