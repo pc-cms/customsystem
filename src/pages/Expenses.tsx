@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Receipt, CheckCircle, Plus, X, Trash2, GlassWater, ExternalLink, Printer, Calendar as CalendarIcon } from "lucide-react";
+import { Receipt, CheckCircle, Plus, X, Trash2, ExternalLink, Printer, Calendar as CalendarIcon } from "lucide-react";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { useExpenses, useCreateExpense, useApproveExpense, useDeleteExpense } from "@/hooks/use-casino-data";
 import { useCreateSlotsExpense, useCancelExpenseAsManager } from "@/hooks/use-expenses";
@@ -210,7 +210,6 @@ const Expenses = ({
       setSource(roleDefaultSource);
     }
   }, [roleDefaultSource, setSource, source, sourceLocked]);
-  const [showBarDetails, setShowBarDetails] = useState<boolean>(false);
   const [sort, setSort] = useSessionState<SortState | null>("expensesSort", { key: "date", dir: "desc" });
 
 
@@ -743,36 +742,30 @@ const Expenses = ({
         </div>
 
         <div className="cms-panel p-3">
+          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Collections</p>
+          <p className="font-mono text-lg font-bold text-card-foreground">
+            {formatCurrency(analytics.byBucket.collection.tzs)}
+            <span className="ml-2 text-xs text-muted-foreground font-normal">· {analytics.byBucket.collection.count}</span>
+          </p>
+          <CurrencyLine t={analytics.byBucket.collection} />
+        </div>
+        <div className="cms-panel p-3">
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Pending</p>
           <p className="font-mono text-lg font-bold text-accent">{analytics.pendingCount}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowBarDetails((v) => !v)}
-          className="cms-panel p-3 text-left transition hover:bg-muted/40"
-          title="Toggle bar charge details"
-        >
-          <p className="text-[10px] uppercase text-muted-foreground tracking-wider flex items-center gap-1">
-            <GlassWater className="w-3 h-3" /> Bar charges
-          </p>
-          <p className="font-mono text-lg font-bold text-card-foreground">
-            {formatCurrency(analytics.barChargeTotal)}
-            <span className="ml-2 text-xs text-muted-foreground font-normal">· {analytics.barChargeCount}</span>
-          </p>
-        </button>
       </div>
 
       {/* Non-expense buckets — excluded from Total Expenses (same rule as the monthly report) */}
-      {(["collection", "capex", "transfer"] as ExpenseBucket[]).some(
+      {(["capex", "transfer"] as ExpenseBucket[]).some(
         (b) => analytics.byBucket[b].count > 0,
       ) && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-          {(["collection", "capex", "transfer"] as ExpenseBucket[])
+          {(["capex", "transfer"] as ExpenseBucket[])
             .filter((b) => analytics.byBucket[b].count > 0)
             .map((b) => (
               <div key={b} className="cms-panel p-3">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  {b === "collection" ? "Collections" : b === "capex" ? "CAPEX" : "Transfers"}
+                  {b === "capex" ? "CAPEX" : "Transfers"}
                 </p>
                 <p className="font-mono text-base font-bold text-card-foreground">
                   {formatCurrency(analytics.byBucket[b].tzs)}
@@ -807,65 +800,6 @@ const Expenses = ({
 
 
 
-      {/* Bar charges details (toggle) */}
-      {showBarDetails && (
-        <div className="cms-panel overflow-hidden mb-4">
-          <div className="px-4 py-2 border-b border-border flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-card-foreground flex items-center gap-2">
-              <GlassWater className="w-4 h-4 text-amber-500" /> Bar charges · by player
-            </h3>
-            <span className="text-[10px] text-muted-foreground">
-              Auto-generated from POS · linked to player tab
-            </span>
-          </div>
-          {analytics.barChargesByPlayer.length === 0 ? (
-            <p className="text-center text-muted-foreground text-sm py-6">No bar charges in this period</p>
-          ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <th className="text-left px-3 py-2">Player</th>
-                  <th className="text-center px-3 py-2">Charges</th>
-                  <th className="text-right px-3 py-2">Total</th>
-                  <th className="text-left px-3 py-2">Last charge</th>
-                  <th className="text-center px-3 py-2 w-[80px]"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {analytics.barChargesByPlayer.map((p) => (
-                  <tr key={`${p.player_id}-${p.name}`} className="border-b border-border last:border-0">
-                    <td className="px-3 py-2 text-sm">{p.name}</td>
-                    <td className="px-3 py-2 text-center font-mono text-xs">{p.count}</td>
-                    <td className="px-3 py-2 text-right font-mono text-sm cms-amount-negative">
-                      {formatCurrency(p.total)}
-                    </td>
-                    <td className="px-3 py-2 text-xs text-muted-foreground font-mono">
-                      {fmtDateOnly(p.last_at)}
-                      {" · "}
-                      {new Date(p.last_at).toLocaleTimeString("en-GB", {
-                        timeZone: "Africa/Dar_es_Salaam",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      {p.player_id && (
-                        <Link
-                          to={`/players/${p.player_id}`}
-                          className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-                          title="Open player profile"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </Link>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
 
       {/* Entry table — every OK adds a fresh row (hidden in embedded/read-only mode) */}
       {!embedded && (
