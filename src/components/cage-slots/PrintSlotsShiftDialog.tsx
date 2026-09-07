@@ -322,6 +322,8 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Pr
       // ---- V2 layout extras (ignored by the legacy report) ----
       rates: rateMap,
       shiftId: shift.id,
+      closedAt: (shift as any).closed_at || null,
+      shiftStatus: shift.status || null,
       reportStatus: String(shift.status || "").toUpperCase() === "closed".toUpperCase() ? "CLOSED — APPROVED" : "DRAFT — GBT APPROVAL PENDING",
       taxableWinnings: Number((shift as any).taxable_winnings || 0),
       jackpotCount: Number((shift as any).jackpot_count || 0),

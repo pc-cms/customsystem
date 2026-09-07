@@ -11,7 +11,7 @@ import { CURRENCIES, CASH_DENOMS, formatNumberSpaces, allDenoms} from "@/lib/cur
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
 import { useReportWallets, withExtraKeys, normalizeProviderMap } from "./report-v2/wallet-rows";
 import {
-  A4_CLASS, A4_STYLE, Card, CardTable, PageFooter, ReportHeader, Signatures, buildReportId, num, signed,
+  A4_CLASS, A4_STYLE, Card, CardTable, DataSource, PageFooter, ReportHeader, Signatures, buildReportId, num, signed,
 } from "./report-v2/primitives";
 
 export type TotalClosingReportV2Props = {
@@ -393,6 +393,21 @@ const TotalClosingReportV2 = ({
           }]}
         />
       </Card>
+
+      <DataSource entries={[
+        ...slotsShifts.map((x: any) => ({
+          label: `Slots shift${x.shift_type ? ` · ${String(x.shift_type).toUpperCase()}` : ""}`,
+          id: x.id,
+          closedAt: x.closed_at,
+          note: ["closed", "approved"].includes(String(x.status)) ? null : "still open — provisional",
+        })),
+        ...liveShifts.map((x: any) => ({
+          label: "Live shift",
+          id: x.id,
+          closedAt: x.closed_at,
+          note: String(x.status) === "closed" ? null : "still open — provisional",
+        })),
+      ]} />
 
       <Signatures left="Slots Cashier / Live Cashier" right="Closing Manager" leftName={signCashiers} rightName={signManager} />
       <PageFooter casinoName={casinoName} page={4} total={4} />
