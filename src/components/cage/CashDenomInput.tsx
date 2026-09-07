@@ -1,9 +1,12 @@
 import { useRef } from "react";
-import { formatCashDenomLabel, CURRENCY_SYMBOLS, formatNumberSpaces, formatNumberSpacesDecimals, COIN_DENOMS } from "@/lib/currency";
+import { formatCashDenomLabel, CURRENCY_SYMBOLS, formatNumberSpaces, formatNumberSpacesDecimals, COIN_KEY } from "@/lib/currency";
 import { NumberInput } from "@/components/ui/number-input";
 
 const cashSum = (cash: Record<number, number>) =>
-  Object.entries(cash).reduce((s, [d, c]) => s + Number(d) * (c || 0), 0);
+  Object.entries(cash).reduce((s, [d, c]) => {
+    if (d === "cents") return s + (Number(c) || 0) / 100;
+    return s + Number(d) * (Number(c) || 0);
+  }, 0);
 
 type Size = "sm" | "md" | "lg";
 
@@ -13,53 +16,33 @@ const SIZES: Record<Size, { row: string; chip: string; input: string; total: str
   lg: { row: "gap-3",   chip: "text-xs h-10 w-20",    input: "text-base h-10 w-32", total: "text-lg",  gap: "space-y-1" },
 };
 
-const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "md", cents, onCentsChange, placeholders, centsPlaceholder }: {
+const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "md", placeholders }: {
   values: Record<number, number>;
   onChange: (v: Record<number, number>) => void;
   denoms: number[];
   currency: string;
   onSubmit?: () => void;
   size?: Size;
-  /** Optional fractional part (kopeks/cents) — enables an extra small input. */
-  cents?: number;
-  onCentsChange?: (c: number) => void;
   /** Greyed hint values from the previous count (per denomination). */
   placeholders?: Record<number, number>;
-  centsPlaceholder?: number;
 }) => {
   const refs = useRef<Record<number, HTMLInputElement | null>>({});
-  const showCents = typeof cents === "number" && !!onCentsChange;
-  // Coin denominations of the currency (empty for TZS) — counted below the notes.
-  const coins = (COIN_DENOMS[currency] || []).filter((c) => !denoms.includes(c));
-  const total = cashSum(values) + (showCents ? (cents || 0) / 100 : 0);
+  // Single free-form "Coins" field: a count of minor units (105 = 1.05 USD),
+  // for TZS simply an amount in shillings.
+  const coinKey = COIN_KEY(currency);
+  const coinCount = Number(values[coinKey]) || 0;
+  const total = cashSum(values);
   const t = SIZES[size];
 
-  const fmtTotal = (n: number) => {
-    if (coins.length > 0) return formatNumberSpacesDecimals(n, 2);
-    if (!showCents) return formatNumberSpaces(n);
-    const int = Math.trunc(n);
-    const frac = Math.round((n - int) * 100);
-    return `${formatNumberSpaces(int)}.${String(frac).padStart(2, "0")}`;
-  };
-
-  const allRows = [...denoms, ...coins];
-
+  const fmtTotal = (n: number) =>
+    currency === "TZS" ? formatNumberSpaces(n) : formatNumberSpacesDecimals(n, 2);
 
   return (
     <div className="flex flex-col">
       <div className={t.gap}>
-      {allRows.map((d, idx) => (
+      {denoms.map((d, idx) => (
         <div key={d} className={`flex items-center ${t.row}`}>
-          {coins.length > 0 && idx === denoms.length && (
-            <span className="sr-only">Coins</span>
-          )}
-          <span
-            className={`cms-chip shrink-0 justify-center ${t.chip} ${
-              idx >= denoms.length
-                ? "bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-200"
-                : "bg-muted text-foreground"
-            }`}
-          >
+          <span className={`cms-chip bg-muted text-foreground shrink-0 justify-center ${t.chip}`}>
             {formatCashDenomLabel(d, currency)}
           </span>
           <NumberInput
@@ -71,9 +54,9 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
             onKeyDown={e => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                const next = allRows[idx + 1];
+                const next = denoms[idx + 1];
                 if (next !== undefined) refs.current[next]?.focus();
-                else onSubmit?.();
+                else refs.current[coinKey]?.focus();
               }
             }}
             placeholderValue={placeholders?.[d]}
@@ -81,22 +64,26 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
         </div>
       ))}
 
-      {showCents && (
-        <div className={`flex items-center ${t.row}`}>
-          <span className={`cms-chip bg-muted text-foreground shrink-0 justify-center ${t.chip}`}>
-            Coins
-          </span>
-          <NumberInput
-            decimals={0}
-            min={0}
-            step={1}
-            className={`no-spin font-mono rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary flex-1 min-w-0 ${t.input}`}
-            value={cents || 0}
-            onValueChange={v => onCentsChange!(Math.max(0, Math.floor(v || 0)))}
-            placeholderValue={centsPlaceholder}
-          />
-        </div>
-      )}
+      <div className={`flex items-center ${t.row}`}>
+        <span
+          className={`cms-chip shrink-0 justify-center ${t.chip} bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-200`}
+          title={currency === "TZS" ? "Coins — amount in TZS" : "Coins — amount in cents (105 = 1.05)"}
+        >
+          Coins
+        </span>
+        <NumberInput
+          ref={el => { refs.current[coinKey] = el; }}
+          decimals={0}
+          min={0}
+          className={`no-spin font-mono rounded border border-border bg-background px-2 text-right text-foreground focus:outline-none focus:ring-1 focus:ring-primary flex-1 min-w-0 ${t.input}`}
+          value={coinCount}
+          onValueChange={v => onChange({ ...values, [coinKey]: Math.max(0, Math.floor(v || 0)) })}
+          onKeyDown={e => {
+            if (e.key === "Enter") { e.preventDefault(); onSubmit?.(); }
+          }}
+          placeholderValue={placeholders?.[coinKey]}
+        />
+      </div>
       </div>
       <div className="flex items-center justify-between gap-2 pt-2 mt-2 border-t border-border">
         <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</span>
