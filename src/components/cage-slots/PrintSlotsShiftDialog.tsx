@@ -45,28 +45,13 @@ const PROV_KEY_FROM_SNAPSHOT_KEY = (k: string): string | null => {
   return null;
 };
 
-const ensureSlotsPortraitPrintStyle = () => {
-  const existing = document.head.querySelector<HTMLStyleElement>('style[data-slots-print="1"]');
-  const styleEl = existing || document.createElement("style");
-  styleEl.setAttribute("data-slots-print", "1");
-  styleEl.textContent = `
-    @media print {
-      @page { size: 210mm 297mm !important; margin: 8mm !important; }
-      .slots-print-area { width: auto !important; min-height: 0 !important; }
-    }
-  `;
-  if (!existing) document.head.appendChild(styleEl);
-  return styleEl;
-};
-
 const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
   const { activeCasino } = useCasino();
-  const layout = useReportLayout(activeCasino?.id);
 
   const printSlotsReport = () => {
     const source = document.querySelector<HTMLElement>(".slots-print-area");
     if (!source) return;
-    ensureSlotsPortraitPrintStyle();
+
     const iframe = document.createElement("iframe");
     iframe.setAttribute("aria-hidden", "true");
     // Give the iframe a real A4-portrait viewport. Chromium can paint a
