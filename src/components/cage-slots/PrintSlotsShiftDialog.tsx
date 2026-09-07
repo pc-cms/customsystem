@@ -355,13 +355,12 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Pr
     if (!open) return;
     document.body.classList.add("reprint-shift-open");
     document.body.classList.add("slots-print-open");
-    const styleEl = ensureSlotsPortraitPrintStyle();
     return () => {
       document.body.classList.remove("reprint-shift-open");
       document.body.classList.remove("slots-print-open");
-      if (styleEl.parentNode) styleEl.parentNode.removeChild(styleEl);
     };
   }, [open]);
+
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v && !mandatory) onClose(); }}>
