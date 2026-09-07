@@ -287,18 +287,25 @@ const TotalClosingReportV2 = ({
   /* ---------- Bank accounts ---------- */
   // FROZEN RULE: every wallet of the casino is printed every day, even at 0 —
   // the report must look identical from one shift to the next.
-  const bankDefs = withExtraKeys(wallets.banks, bankChannels);
+  const bankDefs = withExtraKeys(wallets.banks, openingBankChannels, bankChannels);
   const bankCurrencyOf = (key: string) => (key.endsWith("_USD") ? "USD" : key.endsWith("_EUR") ? "EUR" : "TZS");
   const bankRows = bankDefs.map(b => {
-    const e = bankChannels[b.key];
+    const openingE = openingBankChannels[b.key] || { final: 0 };
+    const e = bankChannels[b.key] || { in: 0, out: 0, final: 0 };
     const cur = bankCurrencyOf(b.key);
     const rate = cur === "TZS" ? 1 : Number(rates[cur] || 0);
-    const closing = chanValue(e);
+    const opening = Number(openingE.final || 0);
+    const inn = Number(e.in || 0);
+    const out = Number(e.out || 0);
+    const net = inn - out;
+    const closing = opening + net;
     return {
       acc: b.label,
       cur,
-      inn: num(Number(e?.in || 0)),
-      out: num(Number(e?.out || 0)),
+      open: num(opening),
+      inn: num(inn),
+      out: num(out),
+      net: signed(net),
       close: num(closing),
       rate: rate ? num(rate) : "—",
       tzs: num(closing * rate),
@@ -307,7 +314,10 @@ const TotalClosingReportV2 = ({
   const bankTotalTzs = bankDefs.reduce((s, b) => {
     const cur = bankCurrencyOf(b.key);
     const rate = cur === "TZS" ? 1 : Number(rates[cur] || 0);
-    return s + chanValue(bankChannels[b.key]) * rate;
+    const opening = Number(openingBankChannels[b.key]?.final || 0);
+    const inn = Number(bankChannels[b.key]?.in || 0);
+    const out = Number(bankChannels[b.key]?.out || 0);
+    return s + (opening + inn - out) * rate;
   }, 0);
 
   const openLive = liveShifts.filter((x: any) => x.status !== "closed").length;
