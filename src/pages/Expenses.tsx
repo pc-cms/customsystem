@@ -74,7 +74,9 @@ const CurrencyLine = ({ t }: { t?: CurrencyTotals }) => {
   const keys = Object.keys(t?.byCurrency || {}).filter((c) => Number(t!.byCurrency[c]) !== 0);
   if (keys.length < 2) return null;
   const order = ["TZS", "USD", "EUR", "GBP", "KES"];
-  keys.sort((a, b) => (order.indexOf(a) + 99) % 100 - ((order.indexOf(b) + 99) % 100));
+  const rank = (c: string) => (order.indexOf(c) < 0 ? 99 : order.indexOf(c));
+  keys.sort((a, b) => rank(a) - rank(b));
+
   return (
     <span className="block text-[10px] text-muted-foreground font-normal leading-tight">
       {keys.map((c) => `${c} ${formatNumberSpaces(t!.byCurrency[c])}`).join(" · ")}
