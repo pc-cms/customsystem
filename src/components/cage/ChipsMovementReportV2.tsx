@@ -12,7 +12,7 @@ import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
 import type { Tables } from "@/integrations/supabase/types";
 import {
-  A4_CLASS, A4_STYLE, Card, KpiStrip, PageFooter, ReportHeader, Signatures, buildReportId, num, signed,
+  A4_CLASS, A4_STYLE, Card, PageFooter, ReportHeader, Signatures, buildReportId, num, signed,
 } from "./report-v2/primitives";
 
 export type ChipsMovementReportV2Props = {
@@ -29,6 +29,16 @@ export type ChipsMovementReportV2Props = {
   fillByDenomOverride?: Record<number, number>;
   creditByDenomOverride?: Record<number, number>;
 };
+
+/** Chips sheet is landscape and read from a distance — bigger type, tighter top. */
+const CHIPS_SHEET_CSS = `
+.rv2-chips .rv2-head { padding: 4px 8px 5px; }
+.rv2-chips .rv2-card { margin-bottom: 6px; }
+.rv2-chips .rv2-table th,
+.rv2-chips .rv2-table td { font-size: 14px; padding: 5px 7px; }
+.rv2-chips .rv2-table th { font-size: 12.5px; }
+.rv2-chips .rv2-sumtable td { font-size: 14px; }
+`;
 
 const ChipsMovementReportV2 = ({
   shift, openingChips, openingDiff = {}, closingChips, missPerDenom,
@@ -90,10 +100,11 @@ const ChipsMovementReportV2 = ({
 
   return (
     <div
-      className={`${A4_CLASS} rv2-page-land bg-white text-black p-2 flex flex-col`}
-      style={{ ...A4_STYLE, width: "281mm" }}
+      className={`${A4_CLASS} rv2-page-land rv2-chips bg-white text-black p-2 flex flex-col`}
+      style={{ ...A4_STYLE, width: "281mm", fontSize: "13px" }}
     >
       <style>{PRINT_REPORT_ACCENTS_CSS}</style>
+      <style>{CHIPS_SHEET_CSS}</style>
 
       <ReportHeader
         title="Casino Chips Movement Report"
@@ -104,15 +115,6 @@ const ChipsMovementReportV2 = ({
         manager={signManager}
       />
 
-      <KpiStrip
-        items={[
-          { label: "Opening Value", value: num(totals.opening) },
-          { label: "Float Fill", value: num(totals.fill) },
-          { label: "Float Credit", value: num(totals.credit) },
-          { label: "Closing Value", value: num(totals.closing), strong: true },
-          { label: "Chip Difference", value: signed(totals.miss), strong: true },
-        ]}
-      />
 
       <Card title="Quantity per Denomination">
         <table className="rv2-table" style={{ tableLayout: "auto", width: "100%" }}>
