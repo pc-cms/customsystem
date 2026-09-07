@@ -105,7 +105,14 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
   // FROZEN RULE: print every wallet, even at 0.
   const bankKeys = withExtraKeys(wallets.banks, openerBankChannels as any, closerBankChannels as any);
 
-  const totalMoney = Number(closerCashTotalTzs || 0) + Number(closerBankTotalTzs || 0) + (depTotal - wdTotal);
+  const computedOpenerBankTotalTzs = bankKeys.reduce(
+    (s, b) => s + bankOpening(openerBankChannels, b.key) * bankRate(b.key), 0,
+  );
+  const computedCloserBankTotalTzs = bankKeys.reduce(
+    (s, b) => s + bankClosing(closerBankChannels, b.key) * bankRate(b.key), 0,
+  );
+
+  const totalMoney = Number(closerCashTotalTzs || 0) + computedCloserBankTotalTzs + (depTotal - wdTotal);
   const winningsTax = Math.round(Number(taxableWinnings || 0) * Number(winningsTaxRate || 0));
 
   const cashCols = [
