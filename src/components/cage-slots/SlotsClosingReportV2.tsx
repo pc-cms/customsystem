@@ -91,12 +91,16 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
       };
     });
 
-  const bankValue = (ch: Record<string, { in?: number; out?: number; final?: number }> | null | undefined, key: string) => {
-    const e = ch?.[key];
-    if (!e) return 0;
-    const moved = Number(e.in || 0) !== 0 || Number(e.out || 0) !== 0;
-    return moved ? Number(e.in || 0) - Number(e.out || 0) : Number(e.final || 0);
+  const bankCurrencyOf = (key: string) => (key.endsWith("_USD") ? "USD" : key.endsWith("_EUR") ? "EUR" : "TZS");
+  const bankRate = (key: string) => {
+    const cur = bankCurrencyOf(key);
+    return cur === "TZS" ? 1 : Number(rates[cur] || 0);
   };
+  const bankChannel = (ch: any, key: string) => ch?.[key] || { in: 0, out: 0, final: 0 };
+  const bankOpening = (ch: any, key: string) => Number(bankChannel(ch, key).final || 0);
+  const bankIn = (ch: any, key: string) => Number(bankChannel(ch, key).in || 0);
+  const bankOut = (ch: any, key: string) => Number(bankChannel(ch, key).out || 0);
+  const bankClosing = (ch: any, key: string) => bankOpening(ch, key) + bankIn(ch, key) - bankOut(ch, key);
 
   // FROZEN RULE: print every wallet, even at 0.
   const bankKeys = withExtraKeys(wallets.banks, openerBankChannels as any, closerBankChannels as any);
