@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CURRENCIES, CASH_DENOMS, formatNumberSpaces, allDenoms} from "@/lib/currency";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
-import { useReportWallets, withExtraKeys } from "./report-v2/wallet-rows";
+import { useReportWallets, withExtraKeys, normalizeProviderMap } from "./report-v2/wallet-rows";
 import {
   A4_CLASS, A4_STYLE, Card, CardTable, PageFooter, ReportHeader, Signatures, buildReportId, num, signed,
 } from "./report-v2/primitives";
@@ -178,6 +178,27 @@ const TotalClosingReportV2 = ({
   const liveCashlessNet = liveShiftNet || journalNetFor("live_game");
   const slotsCashlessNet = slotsShiftNet || journalNetFor("slots");
 
+  // Per-provider breakdown — every provider wallet of the casino, even at 0.
+  const provNetOf = (rows: any[]): Record<string, number> => {
+    const out: Record<string, number> = {};
+    rows.forEach(r => {
+      const inn = normalizeProviderMap(r.cashless_in_providers);
+      const outm = normalizeProviderMap(r.cashless_out_providers);
+      Object.entries(inn).forEach(([k, v]) => { out[k] = (out[k] || 0) + Number(v || 0); });
+      Object.entries(outm).forEach(([k, v]) => { out[k] = (out[k] || 0) - Number(v || 0); });
+    });
+    return out;
+  };
+  const liveProvNet = provNetOf(liveShifts);
+  const slotsProvNet = provNetOf(slotsShifts);
+  const providerDefs = withExtraKeys(wallets.providers, liveProvNet, slotsProvNet);
+  const cashlessRows = providerDefs.map(p => ({
+    prov: p.label,
+    live: signed(liveProvNet[p.key] || 0),
+    slots: signed(slotsProvNet[p.key] || 0),
+    net: signed(Number(liveProvNet[p.key] || 0) + Number(slotsProvNet[p.key] || 0)),
+  }));
+
 
   const liveTotalMoney = liveClosingCash + liveClosingBank + liveCashlessNet;
   const slotsTotalMoney = slotsClosingCash + slotsClosingBank + slotsCashlessNet;
@@ -213,8 +234,9 @@ const TotalClosingReportV2 = ({
   });
 
   /* ---------- Bank accounts ---------- */
-  const bankDefs = withExtraKeys(wallets.banks, bankChannels)
-    .filter(b => chanValue(bankChannels[b.key]));
+  // FROZEN RULE: every wallet of the casino is printed every day, even at 0 —
+  // the report must look identical from one shift to the next.
+  const bankDefs = withExtraKeys(wallets.banks, bankChannels);
   const bankCurrencyOf = (key: string) => (key.endsWith("_USD") ? "USD" : key.endsWith("_EUR") ? "EUR" : "TZS");
   const bankRows = bankDefs.map(b => {
     const e = bankChannels[b.key];
@@ -252,6 +274,12 @@ const TotalClosingReportV2 = ({
     ...liveShifts.map((x: any) => x.cashier_name).filter(Boolean),
   ])).join(" / ") || "—";
 
+  // Shift Balance is the certified value stored when the desk was closed.
+  // While a desk is still open there is no certified balance — we print a dash
+  // instead of a computed figure so no phantom minus ever reaches paper.
+  const liveBalanceCell = openLive ? "—" : signed(liveBalance);
+  const slotsBalanceCell = openSlots ? "—" : signed(slotsBalance);
+
   const totalCash = liveClosingCash + slotsClosingCash;
   const totalMoney = totalCash + bankTotalTzs + liveCashlessNet + slotsCashlessNet;
 
@@ -288,9 +316,9 @@ const TotalClosingReportV2 = ({
           ]}
           footer={{
             k: "Shift Balance",
-            live: signed(liveBalance),
-            slots: signed(slotsBalance),
-            total: signed(liveBalance + slotsBalance),
+            live: liveBalanceCell,
+            slots: slotsBalanceCell,
+            total: openLive || openSlots ? "—" : signed(liveBalance + slotsBalance),
           }}
         />
       </Card>
@@ -328,6 +356,24 @@ const TotalClosingReportV2 = ({
       </Card>
       </div>
 
+      <Card title="Cashless by Provider">
+        <CardTable
+          cols={[
+            { key: "prov", label: "Provider", width: "34%" },
+            { key: "live", label: "Live Game", align: "right" },
+            { key: "slots", label: "Slots", align: "right" },
+            { key: "net", label: "Net", align: "right" },
+          ]}
+          rows={cashlessRows}
+          footer={{
+            prov: "Total Cashless Net",
+            live: signed(liveCashlessNet),
+            slots: signed(slotsCashlessNet),
+            net: signed(liveCashlessNet + slotsCashlessNet),
+          }}
+        />
+      </Card>
+
       <Card title="Total Closing Control">
 
         <CardTable
@@ -343,7 +389,7 @@ const TotalClosingReportV2 = ({
             bank: num(bankTotalTzs),
             cl: signed(liveCashlessNet + slotsCashlessNet),
             tm: num(totalMoney),
-            bal: signed(liveBalance + slotsBalance),
+            bal: openLive || openSlots ? "—" : signed(liveBalance + slotsBalance),
           }]}
         />
       </Card>

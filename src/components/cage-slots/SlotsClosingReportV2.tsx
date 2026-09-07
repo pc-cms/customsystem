@@ -71,8 +71,7 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
   const wdByProv = normalizeProviderMap(cashlessWithdrawByProvider as any);
   const endByProv = normalizeProviderMap(closerCashlessByProvider as any);
 
-  const providers = withExtraKeys(wallets.providers, depByProv, wdByProv, endByProv)
-    .filter(p => Number(depByProv[p.key] || 0) || Number(wdByProv[p.key] || 0) || Number(endByProv[p.key] || 0));
+  const providers = withExtraKeys(wallets.providers, depByProv, wdByProv, endByProv);
   const depTotal = Object.values(depByProv).reduce((s, v) => s + Number(v || 0), 0)
     || Number(cashlessDepositTotalTzs || 0);
   const wdTotal = Object.values(wdByProv).reduce((s, v) => s + Number(v || 0), 0)
@@ -97,8 +96,8 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
     return moved ? Number(e.in || 0) - Number(e.out || 0) : Number(e.final || 0);
   };
 
-  const bankKeys = withExtraKeys(wallets.banks, openerBankChannels as any, closerBankChannels as any)
-    .filter(b => bankValue(openerBankChannels, b.key) || bankValue(closerBankChannels, b.key));
+  // FROZEN RULE: print every wallet, even at 0.
+  const bankKeys = withExtraKeys(wallets.banks, openerBankChannels as any, closerBankChannels as any);
 
   const totalMoney = Number(closerCashTotalTzs || 0) + Number(closerBankTotalTzs || 0) + (depTotal - wdTotal);
   const winningsTax = Math.round(Number(taxableWinnings || 0) * Number(winningsTaxRate || 0));

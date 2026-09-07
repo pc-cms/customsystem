@@ -1,12 +1,13 @@
 /**
  * ClosingReportSettingsPanel — per-casino printed closing report settings.
- *  - Report layout: legacy (current reports) or v2 (new 4-page closing pack).
- *  - Winnings tax rate used in the Closing Record block of the new layout.
+ *  - Winnings tax rate used in the Closing Record block of the printed pack.
+ *
+ * The printed layout is FROZEN: every casino prints the same 4-page pack, so
+ * the legacy/v2 switch is gone from the UI (the DB column is kept untouched).
  */
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -16,7 +17,6 @@ import { Printer } from "lucide-react";
 export const ClosingReportSettingsPanel = () => {
   const { activeCasinoId } = useCasino();
   const qc = useQueryClient();
-  const [layout, setLayout] = useState<string>("legacy");
   const [taxRate, setTaxRate] = useState<string>("15");
   const [saving, setSaving] = useState(false);
 
@@ -26,7 +26,7 @@ export const ClosingReportSettingsPanel = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("casinos")
-        .select("id, report_layout, winnings_tax_rate")
+        .select("id, winnings_tax_rate")
         .eq("id", activeCasinoId!)
         .maybeSingle();
       if (error) throw error;
@@ -36,7 +36,6 @@ export const ClosingReportSettingsPanel = () => {
 
   useEffect(() => {
     if (!data) return;
-    setLayout(data.report_layout || "legacy");
     setTaxRate(String(Math.round(Number(data.winnings_tax_rate ?? 0.15) * 10000) / 100));
   }, [data]);
 
@@ -46,7 +45,6 @@ export const ClosingReportSettingsPanel = () => {
     const { error } = await supabase
       .from("casinos")
       .update({
-        report_layout: layout,
         winnings_tax_rate: (Number(taxRate) || 0) / 100,
       } as any)
       .eq("id", activeCasinoId);
@@ -64,16 +62,9 @@ export const ClosingReportSettingsPanel = () => {
         <p className="text-sm font-semibold">Closing Report</p>
       </header>
       <div className="p-4 space-y-3">
-        <div>
-          <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Printed layout</p>
-          <Select value={layout} onValueChange={setLayout}>
-            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="legacy">Legacy (current reports)</SelectItem>
-              <SelectItem value="v2">New closing pack (4 pages)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          All cash desks print the same fixed 4-page closing pack.
+        </p>
         <div>
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Winnings tax rate (%)</p>
           <Input

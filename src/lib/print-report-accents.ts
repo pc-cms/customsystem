@@ -12,7 +12,9 @@
  *
  * Targets: #shift-print-area, #chip-print-area, #slots-print-area.
  */
-export const PRINT_REPORT_ACCENTS_CSS = `
+import { PRINT_SHEET_CSS } from "@/lib/print-sheet-css";
+
+const ACCENTS = `
   #shift-print-area, #chip-print-area, #slots-print-area {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -107,3 +109,6 @@ export const PRINT_REPORT_ACCENTS_CSS = `
     text-transform: uppercase;
   }
 `;
+
+/** Accents + the frozen sheet geometry, injected by every report root. */
+export const PRINT_REPORT_ACCENTS_CSS = `${ACCENTS}\n${PRINT_SHEET_CSS}`;

@@ -12,19 +12,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Printer, X } from "lucide-react";
 import PrintPortal from "@/components/cage/PrintPortal";
-import SlotsConsolidatedReport from "./SlotsConsolidatedReport";
 import SlotsClosingReportV2 from "./SlotsClosingReportV2";
 import TotalClosingReportV2 from "@/components/cage/TotalClosingReportV2";
-import { useReportLayout } from "@/components/cage/report-v2/layout";
 import { useCasino } from "@/lib/casino-context";
 import { tipsBucketOf } from "@/lib/slots-tips-bucket";
 import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
 import SignatorySelects from "@/components/cage/report-v2/SignatorySelects";
+import { PRINT_SHEET_STYLE_TAG } from "@/lib/print-sheet-css";
 
 interface Props {
   open: boolean;
   onClose: () => void;
   shiftId: string;
+  /**
+   * Mandatory mode — opened automatically right after the shift was closed.
+   * Cannot be dismissed: the only way out is sending the pack to the printer.
+   */
+  mandatory?: boolean;
 }
 
 const PROVIDER_NORMALIZE = (raw: string) => {
@@ -45,28 +49,13 @@ const PROV_KEY_FROM_SNAPSHOT_KEY = (k: string): string | null => {
   return null;
 };
 
-const ensureSlotsPortraitPrintStyle = () => {
-  const existing = document.head.querySelector<HTMLStyleElement>('style[data-slots-print="1"]');
-  const styleEl = existing || document.createElement("style");
-  styleEl.setAttribute("data-slots-print", "1");
-  styleEl.textContent = `
-    @media print {
-      @page { size: 210mm 297mm !important; margin: 8mm !important; }
-      .slots-print-area { width: auto !important; min-height: 0 !important; }
-    }
-  `;
-  if (!existing) document.head.appendChild(styleEl);
-  return styleEl;
-};
-
-const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
+const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Props) => {
   const { activeCasino } = useCasino();
-  const layout = useReportLayout(activeCasino?.id);
 
   const printSlotsReport = () => {
     const source = document.querySelector<HTMLElement>(".slots-print-area");
     if (!source) return;
-    ensureSlotsPortraitPrintStyle();
+
     const iframe = document.createElement("iframe");
     iframe.setAttribute("aria-hidden", "true");
     // Give the iframe a real A4-portrait viewport. Chromium can paint a
@@ -91,7 +80,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       return;
     }
     doc.open();
-    doc.write(`<!doctype html><html><head><base href="${baseHref}">${styles}<style>@media print { @page { size: 210mm 297mm !important; margin: 8mm !important; } html, body { margin: 0 !important; background: white !important; } body, body * { visibility: visible !important; } .slots-print-area { display: block !important; width: auto !important; min-height: 0 !important; page: auto !important; page-break-after: auto !important; break-after: auto !important; } .rv2-page { width: 194mm !important; height: 281mm !important; font-size: 10.5px !important; line-height: 1.3 !important; zoom: 1 !important; max-height: 281mm !important; overflow: hidden !important; break-after: page !important; page-break-after: always !important; break-inside: avoid !important; } .rv2-page:last-child { break-after: auto !important; page-break-after: auto !important; } .rv2-card, .rv2-page table, .rv2-page tr { break-inside: avoid !important; page-break-inside: avoid !important; } } html, body { margin: 0; background: white; font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }</style></head><body><div class="slots-print-area cms-print-root">${source.innerHTML}</div></body></html>`);
+    doc.write(`<!doctype html><html><head><base href="${baseHref}">${styles}${PRINT_SHEET_STYLE_TAG}</head><body><div class="slots-print-area cms-print-root">${source.innerHTML}</div></body></html>`);
     doc.close();
     const cleanup = () => {
       setTimeout(() => {
@@ -366,26 +355,35 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
     if (!open) return;
     document.body.classList.add("reprint-shift-open");
     document.body.classList.add("slots-print-open");
-    const styleEl = ensureSlotsPortraitPrintStyle();
     return () => {
       document.body.classList.remove("reprint-shift-open");
       document.body.classList.remove("slots-print-open");
-      if (styleEl.parentNode) styleEl.parentNode.removeChild(styleEl);
     };
   }, [open]);
 
+
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={(v) => { if (!v && !mandatory) onClose(); }}>
+      <DialogContent
+        className={`max-w-5xl max-h-[90vh] overflow-y-auto${mandatory ? " [&>button]:hidden" : ""}`}
+        onEscapeKeyDown={(e) => { if (mandatory) e.preventDefault(); }}
+        onPointerDownOutside={(e) => { if (mandatory) e.preventDefault(); }}
+        onInteractOutside={(e) => { if (mandatory) e.preventDefault(); }}
+      >
         <DialogHeader>
-          <DialogTitle>Slots Shift Report — Print Preview</DialogTitle>
+          <DialogTitle>{mandatory ? "Print Slots Closing Pack" : "Slots Shift Report — Print Preview"}</DialogTitle>
+          {mandatory && (
+            <p className="text-xs text-muted-foreground">
+              The shift is closed and the figures are certified. Print the pack to finish.
+            </p>
+          )}
         </DialogHeader>
 
         {isLoading || !props ? (
           <div className="text-center text-muted-foreground py-10 text-sm">Loading…</div>
         ) : (
           <>
-            {layout === "v2" ? (
+            {(
               <SignatorySelects
                 casinoId={activeCasino?.id}
                 cashier={signCashier}
@@ -393,53 +391,50 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
                 onCashierChange={v => { setSignCashier(v); void saveSignatories(v, signManager); }}
                 onManagerChange={v => { setSignManager(v); void saveSignatories(signCashier, v); }}
               />
-            ) : null}
+            )}
 
             <div className="border border-border rounded-md overflow-auto bg-white print:hidden max-h-[55vh]">
               <div className="origin-top-left scale-[0.5] w-[200%]">
-                {layout === "v2" ? (
-                  <>
-                    <SlotsClosingReportV2 {...(props as any)} cashierName={signCashier || null} managerName={signManager || null} />
-                    {activeCasino?.id ? (
-                      <TotalClosingReportV2
-                        casinoId={activeCasino.id}
-                        casinoName={activeCasino?.name}
-                        businessDate={props.businessDate}
-                        managerName={signManager || undefined}
-                      />
-                    ) : null}
-                  </>
-                ) : (
-                  <SlotsConsolidatedReport {...props} />
-                )}
+                <>
+                  <SlotsClosingReportV2 {...(props as any)} cashierName={signCashier || null} managerName={signManager || null} />
+                  {activeCasino?.id ? (
+                    <TotalClosingReportV2
+                      casinoId={activeCasino.id}
+                      casinoName={activeCasino?.name}
+                      businessDate={props.businessDate}
+                      managerName={signManager || undefined}
+                    />
+                  ) : null}
+                </>
               </div>
             </div>
 
             <PrintPortal>
               <div className="slots-print-area hidden print:block">
-                {layout === "v2" ? (
-                  <>
-                    <SlotsClosingReportV2 {...(props as any)} cashierName={signCashier || null} managerName={signManager || null} />
-                    {activeCasino?.id ? (
-                      <TotalClosingReportV2
-                        casinoId={activeCasino.id}
-                        casinoName={activeCasino?.name}
-                        businessDate={props.businessDate}
-                        managerName={signManager || undefined}
-                      />
-                    ) : null}
-                  </>
-                ) : (
-                  <SlotsConsolidatedReport {...props} />
-                )}
+                <>
+                  <SlotsClosingReportV2 {...(props as any)} cashierName={signCashier || null} managerName={signManager || null} />
+                  {activeCasino?.id ? (
+                    <TotalClosingReportV2
+                      casinoId={activeCasino.id}
+                      casinoName={activeCasino?.name}
+                      businessDate={props.businessDate}
+                      managerName={signManager || undefined}
+                    />
+                  ) : null}
+                </>
               </div>
             </PrintPortal>
 
             <DialogFooter className="print:hidden">
-              <Button variant="outline" onClick={onClose} className="gap-1.5">
-                <X className="w-4 h-4" /> Close
-              </Button>
-              <Button onClick={printSlotsReport} className="gap-1.5">
+              {!mandatory && (
+                <Button variant="outline" onClick={onClose} className="gap-1.5">
+                  <X className="w-4 h-4" /> Close
+                </Button>
+              )}
+              <Button
+                onClick={() => { printSlotsReport(); if (mandatory) onClose(); }}
+                className="gap-1.5"
+              >
                 <Printer className="w-4 h-4" /> Print
               </Button>
             </DialogFooter>

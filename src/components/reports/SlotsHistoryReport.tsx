@@ -21,6 +21,7 @@ import { NumberInput } from "@/components/ui/number-input";
 import { formatMoneyFull } from "@/lib/format-money";
 import { fmtDate } from "@/lib/format-date";
 import { useCageSlotsHistory } from "@/hooks/use-cage-slots";
+import { useSearchParams } from "react-router-dom";
 import PrintSlotsShiftDialog from "@/components/cage-slots/PrintSlotsShiftDialog";
 
 import {
@@ -123,6 +124,10 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
   }, [allShifts, from, to]);
 
   const [printShiftId, setPrintShiftId] = useState<string | null>(null);
+  // `?print=<shiftId>` is set right after a slots shift is closed: the print
+  // pack opens automatically and cannot be dismissed without printing.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const mandatoryPrintId = searchParams.get("print");
   
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "business_date", dir: "desc" });
 
@@ -368,6 +373,18 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
         </DTBody>
       </DataTable>
 
+      {mandatoryPrintId && (
+        <PrintSlotsShiftDialog
+          open
+          mandatory
+          shiftId={mandatoryPrintId}
+          onClose={() => {
+            const next = new URLSearchParams(searchParams);
+            next.delete("print");
+            setSearchParams(next, { replace: true });
+          }}
+        />
+      )}
       {printShiftId && (
         <PrintSlotsShiftDialog open shiftId={printShiftId} onClose={() => setPrintShiftId(null)} />
       )}

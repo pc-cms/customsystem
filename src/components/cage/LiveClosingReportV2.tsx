@@ -88,13 +88,12 @@ const LiveClosingReportV2 = ({
     return moved ? Number(e.in || 0) - Number(e.out || 0) : Number(e.final || 0);
   };
   const wallets = useReportWallets(casinoId);
-  const bankKeys = withExtraKeys(wallets.banks, openerBank?.channels, closerBank?.channels)
-    .filter(b => bankValue(openerBank, b.key) || bankValue(closerBank, b.key));
+  // FROZEN RULE: print every wallet, even at 0.
+  const bankKeys = withExtraKeys(wallets.banks, openerBank?.channels, closerBank?.channels);
   const bankTotal = (b: any) =>
     Number(b?.tzs || 0) + Number(b?.usd || 0) * Number(exchangeRates["USD"] || 0);
 
-  const providers = withExtraKeys(wallets.providers, cashlessIO.inByProv, cashlessIO.outByProv)
-    .filter(p => Number(cashlessIO.inByProv[p.key] || 0) || Number(cashlessIO.outByProv[p.key] || 0));
+  const providers = withExtraKeys(wallets.providers, cashlessIO.inByProv, cashlessIO.outByProv);
   const clIn = Object.values(cashlessIO.inByProv).reduce((s, v) => s + v, 0);
   const clOut = Object.values(cashlessIO.outByProv).reduce((s, v) => s + v, 0);
 

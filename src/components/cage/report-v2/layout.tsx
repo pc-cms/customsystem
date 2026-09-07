@@ -10,8 +10,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import ShiftClosingReport from "@/components/cage/ShiftClosingReport";
-import ChipMovementReport from "@/components/cage/ChipMovementReport";
+import type ShiftClosingReport from "@/components/cage/ShiftClosingReport";
+import type ChipMovementReport from "@/components/cage/ChipMovementReport";
 import LiveClosingReportV2 from "@/components/cage/LiveClosingReportV2";
 import ChipsMovementReportV2 from "@/components/cage/ChipsMovementReportV2";
 
@@ -25,14 +25,15 @@ const useCasinoReportMeta = (casinoIdOverride?: string | null) => {
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const { data } = await supabase.from("casinos").select("report_layout, name").eq("id", id as string).maybeSingle();
+      const { data } = await supabase.from("casinos").select("name").eq("id", id as string).maybeSingle();
       return {
-        layout: ((data as any)?.report_layout === "v2" ? "v2" : "legacy") as ReportLayout,
+        // FROZEN: the printed pack is the same for every casino.
+        layout: "v2" as ReportLayout,
         name: ((data as any)?.name as string | null) || null,
       };
     },
   });
-  return { layout: (data?.layout as ReportLayout) || "legacy", name: data?.name || null };
+  return { layout: "v2" as ReportLayout, name: data?.name || null };
 };
 
 export const useReportLayout = (casinoIdOverride?: string | null): ReportLayout =>
@@ -42,13 +43,11 @@ type LegacyLiveProps = React.ComponentProps<typeof ShiftClosingReport>;
 type LegacyChipsProps = React.ComponentProps<typeof ChipMovementReport>;
 
 export const LiveClosingReport = (props: LegacyLiveProps) => {
-  const { layout, name } = useCasinoReportMeta();
-  if (layout === "v2") return <LiveClosingReportV2 {...({ casinoName: name || undefined, ...(props as any) } as any)} />;
-  return <ShiftClosingReport {...props} />;
+  const { name } = useCasinoReportMeta();
+  return <LiveClosingReportV2 {...({ casinoName: name || undefined, ...(props as any) } as any)} />;
 };
 
 export const ChipsMovementReport = (props: LegacyChipsProps) => {
-  const { layout, name } = useCasinoReportMeta();
-  if (layout === "v2") return <ChipsMovementReportV2 {...({ casinoName: name || undefined, ...(props as any) } as any)} />;
-  return <ChipMovementReport {...props} />;
+  const { name } = useCasinoReportMeta();
+  return <ChipsMovementReportV2 {...({ casinoName: name || undefined, ...(props as any) } as any)} />;
 };
