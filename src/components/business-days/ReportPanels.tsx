@@ -445,7 +445,10 @@ export const CashPanel = ({ rows, businessDate, casinoId }: PanelProps) => {
   return (
     <div className="space-y-4">
       {Array.from(cashByCcy.entries()).map(([ccy, v]) => {
-        const denoms = (allDenoms(ccy).length ? allDenoms(ccy) : Object.keys(v.denoms).map(Number).sort((a, b) => b - a));
+        const denoms = Array.from(new Set([
+          ...allDenoms(ccy),
+          ...Object.keys(v.denoms).map(Number).filter(Number.isFinite),
+        ])).sort((a, b) => b - a);
         return (
           <div key={ccy} className="border rounded-md">
             <div className="px-3 py-2 border-b text-xs font-semibold">{ccy} cash</div>
