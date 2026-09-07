@@ -225,13 +225,13 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
           footer={{
             acc: "Total",
             cur: "",
-            open: num(openerBankTotalTzs),
+            open: num(computedOpenerBankTotalTzs),
             inn: "",
             out: "",
             net: "",
             close: "",
             rate: "",
-            tzs: num(closerBankTotalTzs),
+            tzs: num(computedCloserBankTotalTzs),
           }}
         />
       </Card>

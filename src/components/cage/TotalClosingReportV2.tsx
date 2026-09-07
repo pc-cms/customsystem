@@ -176,6 +176,7 @@ const TotalClosingReportV2 = ({
       acc.final += Number(v?.final || 0);
     });
   });
+  const bankCurrencyOf = (key: string) => (key.endsWith("_USD") ? "USD" : key.endsWith("_EUR") ? "EUR" : "TZS");
   const liveClosingBank = Object.entries(liveBankChannels).reduce((s, [k, v]: [string, any]) => {
     const cur = bankCurrencyOf(k);
     const rate = cur === "TZS" ? 1 : Number(rates[cur] || 0);
@@ -290,7 +291,6 @@ const TotalClosingReportV2 = ({
   // FROZEN RULE: every wallet of the casino is printed every day, even at 0 —
   // the report must look identical from one shift to the next.
   const bankDefs = withExtraKeys(wallets.banks, openingBankChannels, bankChannels);
-  const bankCurrencyOf = (key: string) => (key.endsWith("_USD") ? "USD" : key.endsWith("_EUR") ? "EUR" : "TZS");
   const bankRows = bankDefs.map(b => {
     const openingE = openingBankChannels[b.key] || { final: 0 };
     const e = bankChannels[b.key] || { in: 0, out: 0, final: 0 };
