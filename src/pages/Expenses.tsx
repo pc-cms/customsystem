@@ -1074,7 +1074,7 @@ const DraftRowView = ({
         />
       </td>
       <td className="px-2 py-1.5">
-        <NumberInput placeholder="0" value={draft.amount} onChange={(v) => onChange({ amount: v })} className="h-8 text-xs text-right" />
+        <NumberInput placeholder="0" allowNegative={canPostNegative} value={draft.amount} onChange={(v) => onChange({ amount: v })} className="h-8 text-xs text-right" />
       </td>
       <td className="px-2 py-1.5">
         <Input placeholder="Description" value={draft.description} onChange={(e) => onChange({ description: e.target.value })} className="h-8 text-xs" />
