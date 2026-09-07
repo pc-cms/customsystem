@@ -91,17 +91,28 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
       };
     });
 
-  const bankValue = (ch: Record<string, { in?: number; out?: number; final?: number }> | null | undefined, key: string) => {
-    const e = ch?.[key];
-    if (!e) return 0;
-    const moved = Number(e.in || 0) !== 0 || Number(e.out || 0) !== 0;
-    return moved ? Number(e.in || 0) - Number(e.out || 0) : Number(e.final || 0);
+  const bankCurrencyOf = (key: string) => (key.endsWith("_USD") ? "USD" : key.endsWith("_EUR") ? "EUR" : "TZS");
+  const bankRate = (key: string) => {
+    const cur = bankCurrencyOf(key);
+    return cur === "TZS" ? 1 : Number(rates[cur] || 0);
   };
+  const bankChannel = (ch: any, key: string) => ch?.[key] || { in: 0, out: 0, final: 0 };
+  const bankOpening = (ch: any, key: string) => Number(bankChannel(ch, key).final || 0);
+  const bankIn = (ch: any, key: string) => Number(bankChannel(ch, key).in || 0);
+  const bankOut = (ch: any, key: string) => Number(bankChannel(ch, key).out || 0);
+  const bankClosing = (ch: any, key: string) => bankOpening(ch, key) + bankIn(ch, key) - bankOut(ch, key);
 
   // FROZEN RULE: print every wallet, even at 0.
   const bankKeys = withExtraKeys(wallets.banks, openerBankChannels as any, closerBankChannels as any);
 
-  const totalMoney = Number(closerCashTotalTzs || 0) + Number(closerBankTotalTzs || 0) + (depTotal - wdTotal);
+  const computedOpenerBankTotalTzs = bankKeys.reduce(
+    (s, b) => s + bankOpening(openerBankChannels, b.key) * bankRate(b.key), 0,
+  );
+  const computedCloserBankTotalTzs = bankKeys.reduce(
+    (s, b) => s + bankClosing(closerBankChannels, b.key) * bankRate(b.key), 0,
+  );
+
+  const totalMoney = Number(closerCashTotalTzs || 0) + computedCloserBankTotalTzs + (depTotal - wdTotal);
   const winningsTax = Math.round(Number(taxableWinnings || 0) * Number(winningsTaxRate || 0));
 
   const cashCols = [
@@ -146,8 +157,8 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
           <table className="rv2-table rv2-sumtable">
             <tbody>
               <SumRow label="Total Cash" value={num(openerCashTotalTzs)} />
-              <SumRow label="Bank" value={num(openerBankTotalTzs)} />
-              <SumRow label="Total Opening" value={num(Number(openerCashTotalTzs) + Number(openerBankTotalTzs))} strong />
+              <SumRow label="Bank" value={num(computedOpenerBankTotalTzs)} />
+              <SumRow label="Total Opening" value={num(Number(openerCashTotalTzs) + computedOpenerBankTotalTzs)} strong />
             </tbody>
           </table>
         </Card>
@@ -161,8 +172,8 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
           <table className="rv2-table rv2-sumtable">
             <tbody>
               <SumRow label="Total Cash" value={num(closerCashTotalTzs)} />
-              <SumRow label="Bank" value={num(closerBankTotalTzs)} />
-              <SumRow label="Total Closing" value={num(Number(closerCashTotalTzs) + Number(closerBankTotalTzs))} strong />
+              <SumRow label="Bank" value={num(computedCloserBankTotalTzs)} />
+              <SumRow label="Total Closing" value={num(Number(closerCashTotalTzs) + computedCloserBankTotalTzs)} strong />
             </tbody>
           </table>
         </Card>
@@ -179,22 +190,48 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
         ]}
       />
 
-      <Card title="Bank Accounts (movement / balance per channel)">
+      <Card title="Bank Accounts">
         <CardTable
           cols={[
-            { key: "acc", label: "Account", width: "40%" },
+            { key: "acc", label: "Account", width: "22%" },
+            { key: "cur", label: "Currency", width: "10%" },
             { key: "open", label: "Opening", align: "right" },
+            { key: "inn", label: "In", align: "right" },
+            { key: "out", label: "Out", align: "right" },
+            { key: "net", label: "Net", align: "right" },
             { key: "close", label: "Closing", align: "right" },
+            { key: "rate", label: "Rate", align: "right" },
+            { key: "tzs", label: "Closing TZS", align: "right" },
           ]}
-          rows={bankKeys.map(b => ({
-            acc: b.label,
-            open: num(bankValue(openerBankChannels, b.key)),
-            close: num(bankValue(closerBankChannels, b.key)),
-          }))}
+          rows={bankKeys.map(b => {
+            const cur = bankCurrencyOf(b.key);
+            const rate = bankRate(b.key);
+            const opening = bankOpening(openerBankChannels, b.key);
+            const inn = bankIn(closerBankChannels, b.key);
+            const out = bankOut(closerBankChannels, b.key);
+            const closing = opening + inn - out;
+            return {
+              acc: b.label,
+              cur,
+              open: num(opening),
+              inn: num(inn),
+              out: num(out),
+              net: signed(inn - out),
+              close: num(closing),
+              rate: rate ? num(rate) : "—",
+              tzs: num(closing * rate),
+            };
+          })}
           footer={{
             acc: "Total",
+            cur: "",
             open: num(openerBankTotalTzs),
-            close: num(closerBankTotalTzs),
+            inn: "",
+            out: "",
+            net: "",
+            close: "",
+            rate: "",
+            tzs: num(closerBankTotalTzs),
           }}
         />
       </Card>

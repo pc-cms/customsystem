@@ -6,6 +6,7 @@ import CashDenomInput from "./CashDenomInput";
 import {
   MOBILE_PROVIDERS, mobileTotal, BANK_CHANNELS, emptyBankChannels,
   withDerivedBankTotals, type MobileProviders, type Banks,
+  type BankChannelDef,
 } from "./CageHelpers";
 
 
@@ -103,6 +104,7 @@ const CashCountGrid = ({
   rates,
   hideChips = false,
   hideMobile = false,
+  bankChannelList,
 }: {
   chips: Record<number, number>;
   onChipsChange: (v: Record<number, number>) => void;
@@ -130,11 +132,13 @@ const CashCountGrid = ({
   hideChips?: boolean;
   /** Hide the Mobile Money block (e.g. Cage Slots derives it from Cashless IN/OUT). */
   hideMobile?: boolean;
+  /** Wallet-derived bank channel list. Falls back to the legacy hard-coded list. */
+  bankChannelList?: BankChannelDef[];
 }) => {
 
+  const channels = bankChannelList || (BANK_CHANNELS as unknown as BankChannelDef[]);
 
-
-  const bankNetTzs = BANK_CHANNELS.reduce((s, ch) => {
+  const bankNetTzs = channels.reduce((s, ch) => {
     const e = banks.channels?.[ch.key];
     const net = Number(e?.in || 0) - Number(e?.out || 0);
     return s + (ch.currency === "USD" ? net * (rates?.["USD"] || 0) : net);
@@ -185,16 +189,16 @@ const CashCountGrid = ({
               <span />
               <span className="text-[9px] uppercase tracking-wider text-muted-foreground text-right">In</span>
               <span className="text-[9px] uppercase tracking-wider text-muted-foreground text-right">Out</span>
-              {BANK_CHANNELS.map(ch => {
+              {channels.map(ch => {
                 const e = banks.channels?.[ch.key] || { in: 0, out: 0 };
                 const patch = (p: Partial<typeof e>) =>
                   onBanksChange(withDerivedBankTotals({
                     ...banks,
-                    channels: { ...emptyBankChannels(), ...(banks.channels || {}), [ch.key]: { ...e, ...p } },
-                  }));
+                    channels: { ...emptyBankChannels(channels), ...(banks.channels || {}), [ch.key]: { ...e, ...p } },
+                  }, channels));
                 return (
                   <Fragment key={ch.key}>
-                    <span className={mdChip}>{ch.bank} {ch.currency}</span>
+                    <span className={mdChip}>{ch.label || `${ch.bank} ${ch.currency}`}</span>
                     <NumberInput value={e.in || ""} onChange={v => patch({ in: Number(v) || 0 })} className={bankInput} placeholder="0" />
                     <NumberInput value={e.out || ""} onChange={v => patch({ out: Number(v) || 0 })} className={bankInput} placeholder="0" />
                   </Fragment>

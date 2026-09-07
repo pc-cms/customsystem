@@ -22,6 +22,8 @@ export const BANK_CHANNELS = [
 export type BankChannelEntry = { in: number; out: number; final?: number };
 export type BankChannels = Record<string, BankChannelEntry>;
 
+export type BankChannelDef = { key: string; bank: string; currency: string; label?: string };
+
 /**
  * `tzs` / `usd` stay for backward compatibility (legacy generic balances and
  * every downstream report). For new closings they are DERIVED from the daily
@@ -31,17 +33,17 @@ export type BankChannels = Record<string, BankChannelEntry>;
  */
 export type Banks = { tzs: number; usd: number; channels?: BankChannels };
 
-export const emptyBankChannels = (): BankChannels =>
-  Object.fromEntries(BANK_CHANNELS.map(c => [c.key, { in: 0, out: 0 }]));
+export const emptyBankChannels = (channels: BankChannelDef[] = BANK_CHANNELS as unknown as BankChannelDef[]): BankChannels =>
+  Object.fromEntries(channels.map(c => [c.key, { in: 0, out: 0 }]));
 
 export const emptyMobile = (): MobileProviders => Object.fromEntries(MOBILE_PROVIDERS.map(p => [p, 0]));
 export const emptyBanks = (): Banks => ({ tzs: 0, usd: 0, channels: emptyBankChannels() });
 
 /** Recompute the legacy tzs/usd totals from the per-channel daily NET. */
-export const withDerivedBankTotals = (b: Banks): Banks => {
+export const withDerivedBankTotals = (b: Banks, channels: BankChannelDef[] = BANK_CHANNELS as unknown as BankChannelDef[]): Banks => {
   if (!b.channels) return b;
   const sum = (cur: string) =>
-    BANK_CHANNELS.filter(c => c.currency === cur)
+    channels.filter(c => c.currency === cur)
       .reduce((s, c) => s + (Number(b.channels?.[c.key]?.in || 0) - Number(b.channels?.[c.key]?.out || 0)), 0);
   return { ...b, tzs: sum("TZS"), usd: sum("USD") };
 };
@@ -53,6 +55,16 @@ export const bankChannelNet = (b: Banks, key: string) =>
 
 export const mobileTotal = (m: MobileProviders) => Object.values(m).reduce((s, v) => s + (v || 0), 0);
 export const bankTotalTzs = (b: Banks, rates: Record<string, number>) => (b.tzs || 0) + (b.usd || 0) * (rates["USD"] || 0);
+
+/** Opening bank total: sum of counted balances (final) per channel. */
+export const bankOpeningTotalTzs = (
+  b: Banks,
+  rates: Record<string, number>,
+  channels: BankChannelDef[] = BANK_CHANNELS as unknown as BankChannelDef[],
+) => channels.reduce((s, ch) => {
+  const final = Number(b.channels?.[ch.key]?.final || 0);
+  return s + (ch.currency === "USD" ? final * (rates["USD"] || 0) : final);
+}, 0);
 
 
 export const chipSum = (chips: Record<number, number>) =>

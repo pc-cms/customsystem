@@ -25,11 +25,6 @@ export type TotalClosingReportV2Props = {
   reportStatus?: string;
 };
 
-const chanValue = (e: any) => {
-  if (!e) return 0;
-  const moved = Number(e?.in || 0) !== 0 || Number(e?.out || 0) !== 0;
-  return moved ? Number(e.in || 0) - Number(e.out || 0) : Number(e?.final || 0);
-};
 
 const sumCashMap = (cash: Record<string | number, number> | undefined) =>
   cash ? Object.entries(cash).reduce((s, [d, q]) => s + Number(d) * (Number(q) || 0), 0) : 0;
@@ -139,9 +134,13 @@ const TotalClosingReportV2 = ({
   // Slots cash desk records its own bank movements in the closing check.
   const slotsBankChannels: Record<string, any> = {};
   const slotsClosingChecks = new Map<string, any>();
+  const slotsOpeningChecks = new Map<string, any>();
   ((data?.slotsCounts || []) as any[]).forEach(r => {
-    if (r?.denominations?.is_opening) return;
-    slotsClosingChecks.set(r.cage_slots_shift_id, r);
+    if (r?.denominations?.is_opening) {
+      slotsOpeningChecks.set(r.cage_slots_shift_id, r);
+    } else {
+      slotsClosingChecks.set(r.cage_slots_shift_id, r);
+    }
   });
   slotsClosingChecks.forEach(r => {
     const ch = r?.denominations?.bank?.channels || {};
@@ -149,6 +148,22 @@ const TotalClosingReportV2 = ({
       const acc = (slotsBankChannels[k] ||= { in: 0, out: 0, final: 0 });
       acc.in += Number(v?.in || 0);
       acc.out += Number(v?.out || 0);
+      // closing check never carries final — movement only
+    });
+  });
+  const slotsOpeningBankChannels: Record<string, any> = {};
+  slotsOpeningChecks.forEach(r => {
+    const ch = r?.denominations?.bank?.channels || {};
+    Object.entries(ch).forEach(([k, v]: [string, any]) => {
+      const acc = (slotsOpeningBankChannels[k] ||= { in: 0, out: 0, final: 0 });
+      acc.final += Number(v?.final || 0);
+    });
+  });
+  const liveOpeningBankChannels = ((liveOpener as any)?.bank?.channels || {}) as Record<string, any>;
+  const openingBankChannels: Record<string, any> = {};
+  [liveOpeningBankChannels, slotsOpeningBankChannels].forEach(src => {
+    Object.entries(src || {}).forEach(([k, v]: [string, any]) => {
+      const acc = (openingBankChannels[k] ||= { in: 0, out: 0, final: 0 });
       acc.final += Number(v?.final || 0);
     });
   });
@@ -161,7 +176,12 @@ const TotalClosingReportV2 = ({
       acc.final += Number(v?.final || 0);
     });
   });
-  const liveClosingBank = Number((liveCloser as any)?.bank?.tzs || 0) + Number((liveCloser as any)?.bank?.usd || 0) * Number(rates.USD || 0);
+  const liveClosingBank = Object.entries(liveBankChannels).reduce((s, [k, v]: [string, any]) => {
+    const cur = bankCurrencyOf(k);
+    const rate = cur === "TZS" ? 1 : Number(rates[cur] || 0);
+    const opening = Number(liveOpeningBankChannels[k]?.final || 0);
+    return s + (opening + Number(v?.in || 0) - Number(v?.out || 0)) * rate;
+  }, 0);
   const liveResult = liveShifts.reduce((s, x) => s + Number(x.tables_result || 0), 0);
   const liveBalance = liveShifts.reduce((s, x) => s + Number(x.balance || 0), 0);
   const liveExpenses = (data?.liveExpenses || []).filter((e: any) => e.approved).reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
@@ -177,9 +197,11 @@ const TotalClosingReportV2 = ({
       .reduce((s, r) => s + Number(r.denomination || 0) * Number(r.quantity || 0), 0);
   });
   const slotsClosingCash = toTzs(slotsCashByCur);
-  const slotsClosingBank = Object.entries(slotsBankChannels).reduce((s2, [k, v]) => {
-    const cur = k.endsWith("_USD") ? "USD" : k.endsWith("_EUR") ? "EUR" : "TZS";
-    return s2 + chanValue(v) * (cur === "TZS" ? 1 : Number(rates[cur] || 0));
+  const slotsClosingBank = Object.entries(slotsBankChannels).reduce((s2, [k, v]: [string, any]) => {
+    const cur = bankCurrencyOf(k);
+    const rate = cur === "TZS" ? 1 : Number(rates[cur] || 0);
+    const opening = Number(slotsOpeningBankChannels[k]?.final || 0);
+    return s2 + (opening + Number(v?.in || 0) - Number(v?.out || 0)) * rate;
   }, 0);
   const slotsOpeningCash = toTzs(slotsOpenCashByCur);
   // Canon: slots result is slots_result (net win) — never system_shift_result.
@@ -267,18 +289,25 @@ const TotalClosingReportV2 = ({
   /* ---------- Bank accounts ---------- */
   // FROZEN RULE: every wallet of the casino is printed every day, even at 0 —
   // the report must look identical from one shift to the next.
-  const bankDefs = withExtraKeys(wallets.banks, bankChannels);
+  const bankDefs = withExtraKeys(wallets.banks, openingBankChannels, bankChannels);
   const bankCurrencyOf = (key: string) => (key.endsWith("_USD") ? "USD" : key.endsWith("_EUR") ? "EUR" : "TZS");
   const bankRows = bankDefs.map(b => {
-    const e = bankChannels[b.key];
+    const openingE = openingBankChannels[b.key] || { final: 0 };
+    const e = bankChannels[b.key] || { in: 0, out: 0, final: 0 };
     const cur = bankCurrencyOf(b.key);
     const rate = cur === "TZS" ? 1 : Number(rates[cur] || 0);
-    const closing = chanValue(e);
+    const opening = Number(openingE.final || 0);
+    const inn = Number(e.in || 0);
+    const out = Number(e.out || 0);
+    const net = inn - out;
+    const closing = opening + net;
     return {
       acc: b.label,
       cur,
-      inn: num(Number(e?.in || 0)),
-      out: num(Number(e?.out || 0)),
+      open: num(opening),
+      inn: num(inn),
+      out: num(out),
+      net: signed(net),
       close: num(closing),
       rate: rate ? num(rate) : "—",
       tzs: num(closing * rate),
@@ -287,7 +316,10 @@ const TotalClosingReportV2 = ({
   const bankTotalTzs = bankDefs.reduce((s, b) => {
     const cur = bankCurrencyOf(b.key);
     const rate = cur === "TZS" ? 1 : Number(rates[cur] || 0);
-    return s + chanValue(bankChannels[b.key]) * rate;
+    const opening = Number(openingBankChannels[b.key]?.final || 0);
+    const inn = Number(bankChannels[b.key]?.in || 0);
+    const out = Number(bankChannels[b.key]?.out || 0);
+    return s + (opening + inn - out) * rate;
   }, 0);
 
   const openLive = liveShifts.filter((x: any) => x.status !== "closed").length;
@@ -373,16 +405,18 @@ const TotalClosingReportV2 = ({
       <Card title="Bank Accounts">
         <CardTable
           cols={[
-            { key: "acc", label: "Account", width: "24%" },
-            { key: "cur", label: "Currency", width: "12%" },
+            { key: "acc", label: "Account", width: "22%" },
+            { key: "cur", label: "Currency", width: "10%" },
+            { key: "open", label: "Opening", align: "right" },
             { key: "inn", label: "In", align: "right" },
             { key: "out", label: "Out", align: "right" },
+            { key: "net", label: "Net", align: "right" },
             { key: "close", label: "Closing", align: "right" },
             { key: "rate", label: "Rate", align: "right" },
             { key: "tzs", label: "Closing TZS", align: "right" },
           ]}
           rows={bankRows}
-          footer={{ acc: "Total", cur: "", inn: "", out: "", close: "", rate: "", tzs: num(bankTotalTzs) }}
+          footer={{ acc: "Total", cur: "", open: "", inn: "", out: "", net: "", close: "", rate: "", tzs: num(bankTotalTzs) }}
         />
       </Card>
       </div>
