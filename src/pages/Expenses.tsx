@@ -975,28 +975,74 @@ const Expenses = ({
               onSortChange={setSort}
               footerRows={[
                 {
-                  key: "total",
+                  key: "total-expenses",
                   className: "font-bold border-t-2 border-border bg-muted/30",
                   cell: (col, index) => {
-                    if (index === 0) return <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</span>;
+                    if (index === 0)
+                      return <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Expenses</span>;
                     if (col.key === "amount") {
                       return (
                         <div className="text-right font-mono text-sm font-semibold cms-amount-negative">
-                          <div>{formatNumberSpaces(totalTzs)} TZS</div>
-                          {currencyKeys.length > 1 && (
-                            <div className="text-[10px] text-muted-foreground font-normal">
-                              {currencyKeys
-                                .map((c) => `${c} ${formatNumberSpaces(byCurrency[c])}`)
-                                .join(" · ")}
-                            </div>
-                          )}
+                          <div>{formatNumberSpaces(analytics.byBucket.expense.tzs)} TZS</div>
+                          <CurrencyLine t={analytics.byBucket.expense} />
                         </div>
                       );
                     }
                     return null;
                   },
                 },
+                ...(["collection", "capex", "transfer"] as ExpenseBucket[])
+                  .filter((b) => analytics.byBucket[b].count > 0)
+                  .map((b) => ({
+                    key: `total-${b}`,
+                    className: "border-t border-border bg-muted/10",
+                    cell: (col: ColumnDef<any>, index: number) => {
+                      if (index === 0)
+                        return (
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                            {b === "collection" ? "Collections" : b === "capex" ? "CAPEX" : "Transfers"}
+                          </span>
+                        );
+                      if (col.key === "amount") {
+                        return (
+                          <div className="text-right font-mono text-sm text-muted-foreground">
+                            <div>{formatNumberSpaces(analytics.byBucket[b].tzs)} TZS</div>
+                            <CurrencyLine t={analytics.byBucket[b]} />
+                          </div>
+                        );
+                      }
+                      return null;
+                    },
+                  })),
+                ...((["collection", "capex", "transfer"] as ExpenseBucket[]).some(
+                  (b) => analytics.byBucket[b].count > 0,
+                )
+                  ? [
+                      {
+                        key: "total-all",
+                        className: "font-bold border-t border-border bg-muted/30",
+                        cell: (col: ColumnDef<any>, index: number) => {
+                          if (index === 0)
+                            return <span className="text-[10px] uppercase tracking-wider text-muted-foreground">All rows</span>;
+                          if (col.key === "amount") {
+                            return (
+                              <div className="text-right font-mono text-sm font-semibold text-card-foreground">
+                                <div>{formatNumberSpaces(totalTzs)} TZS</div>
+                                {currencyKeys.length > 1 && (
+                                  <div className="text-[10px] text-muted-foreground font-normal">
+                                    {currencyKeys.map((c) => `${c} ${formatNumberSpaces(byCurrency[c])}`).join(" · ")}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                          return null;
+                        },
+                      },
+                    ]
+                  : []),
               ]}
+
               empty={
                 <div className="text-sm text-muted-foreground text-center py-8">
                   No expenses match the filters
