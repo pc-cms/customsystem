@@ -340,7 +340,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Pr
   // Closed shift -> print the immutable snapshot of these exact figures.
   const slotsShift = (data as any)?.shift;
   const isClosedSlots = String(slotsShift?.status || "").toLowerCase() === "closed";
-  const { payload: frozenProps } = useReportSnapshot<any>({
+  const { payload: frozenProps, isLoading: snapLoading } = useReportSnapshot<any>({
     casinoId: slotsShift?.casino_id,
     reportType: "slots_closing",
     sourceKey: shiftId,
@@ -400,7 +400,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Pr
           )}
         </DialogHeader>
 
-        {isLoading || !printProps ? (
+        {isLoading || !printProps || (isClosedSlots && (snapLoading || !frozenProps)) ? (
           <div className="text-center text-muted-foreground py-10 text-sm">Loading…</div>
         ) : (
           <>
