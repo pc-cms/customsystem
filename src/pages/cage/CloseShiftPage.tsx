@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useActiveShift, useCloseShift } from "@/hooks/use-shift";
 import { useTransactions, useExpenses, useGamingTables } from "@/hooks/use-casino-data";
@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Square, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CloseShiftDialog from "@/components/cage/CloseShiftDialog";
+import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
 
 /**
  * Close Shift route. Two-step in-page flow lives inside CloseShiftDialog
@@ -26,6 +27,9 @@ const CloseShiftPage = () => {
   const { data: expenses = [] } = useExpenses(businessDate);
   const { data: cageTransfers = [] } = useCageTransfers(shift?.id);
   const closeShift = useCloseShift();
+  // Printing the closing pack is mandatory: once the shift is closed the print
+  // window opens by itself and cannot be dismissed without printing.
+  const [printShiftId, setPrintShiftId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !shift) nav("/cage", { replace: true });
@@ -140,9 +144,18 @@ const CloseShiftPage = () => {
             shift_result: d.shiftResult,
             cashless_in_providers: d.cashlessInProviders,
             cashless_out_providers: d.cashlessOutProviders,
-          }, { onSuccess: () => nav("/cage") });
+          }, { onSuccess: () => setPrintShiftId(shift.id) });
         }}
       />
+      {printShiftId && (
+        <ReprintShiftDialog
+          open
+          mandatory
+          shiftId={printShiftId}
+          casinoId={shift.casino_id}
+          onClose={() => { setPrintShiftId(null); nav("/cage"); }}
+        />
+      )}
     </PageShell>
   );
 };
