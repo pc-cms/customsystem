@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Receipt, CheckCircle, Plus, X, Trash2, GlassWater, ExternalLink, Printer, Calendar as CalendarIcon } from "lucide-react";
+import { Receipt, CheckCircle, Plus, X, Trash2, ExternalLink, Printer, Calendar as CalendarIcon } from "lucide-react";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { useExpenses, useCreateExpense, useApproveExpense, useDeleteExpense } from "@/hooks/use-casino-data";
 import { useCreateSlotsExpense, useCancelExpenseAsManager } from "@/hooks/use-expenses";
@@ -210,7 +210,6 @@ const Expenses = ({
       setSource(roleDefaultSource);
     }
   }, [roleDefaultSource, setSource, source, sourceLocked]);
-  const [showBarDetails, setShowBarDetails] = useState<boolean>(false);
   const [sort, setSort] = useSessionState<SortState | null>("expensesSort", { key: "date", dir: "desc" });
 
 
