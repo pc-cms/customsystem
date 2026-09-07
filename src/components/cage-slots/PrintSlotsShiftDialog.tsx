@@ -335,13 +335,29 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Pr
     };
   }, [data, activeCasino]);
 
+  // Closed shift -> print the immutable snapshot of these exact figures.
+  const slotsShift = (data as any)?.shift;
+  const isClosedSlots = String(slotsShift?.status || "").toLowerCase() === "closed";
+  const { payload: frozenProps } = useReportSnapshot<any>({
+    casinoId: slotsShift?.casino_id,
+    reportType: "slots_closing",
+    sourceKey: shiftId,
+    businessDate: slotsShift?.business_date,
+    asOf: slotsShift?.closed_at ?? null,
+    freeze: isClosedSlots,
+    enabled: isClosedSlots && !!props,
+    build: async () => props,
+  });
+  const printProps = (frozenProps as any) || props;
+
   const [signCashier, setSignCashier] = useState<string>("");
   const [signManager, setSignManager] = useState<string>("");
   useEffect(() => {
-    if (!props) return;
-    setSignCashier(String((props as any).cashierName || ""));
-    setSignManager(String((props as any).managerName || ""));
-  }, [props?.shiftId]);
+    if (!printProps) return;
+    setSignCashier(String((printProps as any).cashierName || ""));
+    setSignManager(String((printProps as any).managerName || ""));
+  }, [printProps?.shiftId]);
+
 
   const saveSignatories = async (cashier: string, manager: string) => {
     if (!props?.shiftId) return;
