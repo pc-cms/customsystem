@@ -31,6 +31,12 @@ const SHEETS = [
   { title: "TOTAL CLOSING CASH DESK REPORT", land: false },
 ];
 const A4 = { portrait: [595, 842], landscape: [842, 595], tol: 3 };
+const REPORT_SOURCES = [
+  "src/components/cage/LiveClosingReportV2.tsx",
+  "src/components/cage/ChipsMovementReportV2.tsx",
+  "src/components/cage-slots/SlotsClosingReportV2.tsx",
+  "src/components/cage/TotalClosingReportV2.tsx",
+];
 
 /** Screen-side .rv2-* styling from index.css + the frozen print geometry. */
 const screenCss = readFileSync(resolve("src/index.css"), "utf8")
@@ -98,6 +104,17 @@ const matches = (dim, [w, h]) => Math.abs(dim[0] - w) < A4.tol && Math.abs(dim[1
 
 const run = async () => {
   mkdirSync(OUT_DIR, { recursive: true });
+  const reportSource = REPORT_SOURCES.map((path) => readFileSync(resolve(path), "utf8")).join("\n");
+  if (/Data Source|shift_close_id|<DataSource\b/.test(reportSource)) {
+    throw new Error("Printed reports must not contain the removed Data Source block");
+  }
+  if (!/withExtraKeys\(wallets\.banks/.test(reportSource) || !/withExtraKeys\(wallets\.providers/.test(reportSource)) {
+    throw new Error("Printed reports must build bank and cashless rows from the full casino wallet registry");
+  }
+  if (/withExtraKeys\(wallets\.(?:banks|providers)[^;]*\.filter\(/s.test(reportSource)) {
+    throw new Error("Printed wallet rows must not filter out zero values");
+  }
+
   const browser = await chromium.launch(executablePath ? { executablePath } : {});
   const results = [];
   let failed = 0;
