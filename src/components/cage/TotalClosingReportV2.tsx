@@ -181,7 +181,12 @@ const TotalClosingReportV2 = ({
       acc.final += Number(v?.final || 0);
     });
   });
-  const liveClosingBank = Number((liveCloser as any)?.bank?.tzs || 0) + Number((liveCloser as any)?.bank?.usd || 0) * Number(rates.USD || 0);
+  const liveClosingBank = Object.entries(liveBankChannels).reduce((s, [k, v]: [string, any]) => {
+    const cur = bankCurrencyOf(k);
+    const rate = cur === "TZS" ? 1 : Number(rates[cur] || 0);
+    const opening = Number(liveOpeningBankChannels[k]?.final || 0);
+    return s + (opening + Number(v?.in || 0) - Number(v?.out || 0)) * rate;
+  }, 0);
   const liveResult = liveShifts.reduce((s, x) => s + Number(x.tables_result || 0), 0);
   const liveBalance = liveShifts.reduce((s, x) => s + Number(x.balance || 0), 0);
   const liveExpenses = (data?.liveExpenses || []).filter((e: any) => e.approved).reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
@@ -197,9 +202,11 @@ const TotalClosingReportV2 = ({
       .reduce((s, r) => s + Number(r.denomination || 0) * Number(r.quantity || 0), 0);
   });
   const slotsClosingCash = toTzs(slotsCashByCur);
-  const slotsClosingBank = Object.entries(slotsBankChannels).reduce((s2, [k, v]) => {
-    const cur = k.endsWith("_USD") ? "USD" : k.endsWith("_EUR") ? "EUR" : "TZS";
-    return s2 + chanValue(v) * (cur === "TZS" ? 1 : Number(rates[cur] || 0));
+  const slotsClosingBank = Object.entries(slotsBankChannels).reduce((s2, [k, v]: [string, any]) => {
+    const cur = bankCurrencyOf(k);
+    const rate = cur === "TZS" ? 1 : Number(rates[cur] || 0);
+    const opening = Number(slotsOpeningBankChannels[k]?.final || 0);
+    return s2 + (opening + Number(v?.in || 0) - Number(v?.out || 0)) * rate;
   }, 0);
   const slotsOpeningCash = toTzs(slotsOpenCashByCur);
   // Canon: slots result is slots_result (net win) — never system_shift_result.
