@@ -132,7 +132,7 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
     sortKey === k ? (sortDir === "asc" ? <ArrowUp className="w-3 h-3 inline ml-0.5" /> : <ArrowDown className="w-3 h-3 inline ml-0.5" />) : null;
 
   const overrunCheck = useMemo(() => {
-    if (!form.fin_category_id || !form.amount) return null;
+    if (!form.fin_category_id || !form.amount || Number(form.amount) < 0) return null;
     const b = (budget || []).find((x: any) => x.category_id === form.fin_category_id && x.currency === form.currency);
     if (!b) return null;
     const mtd = rows
@@ -369,7 +369,7 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
             </FormField>
           ) : (
             <FormField span={4} label="Amount">
-              <NumberInput decimals={2} value={form.amount ?? 0} onValueChange={(v) => setForm({ ...form, amount: v ?? 0 })} />
+              <NumberInput decimals={2} allowNegative={canPostNegative} value={form.amount ?? 0} onValueChange={(v) => setForm({ ...form, amount: v ?? 0 })} />
             </FormField>
           )}
           <FormField span={3} label="FX → TZS">
