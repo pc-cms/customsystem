@@ -7,7 +7,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { CURRENCIES, CASH_DENOMS, formatNumberSpaces, allDenoms} from "@/lib/currency";
+import { CURRENCIES, CASH_DENOMS, formatNumberSpaces, formatCashDenomLabel, allDenoms, COIN_KEY } from "@/lib/currency";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
 import { useReportWallets, withExtraKeys, normalizeProviderMap } from "./report-v2/wallet-rows";
 import {
@@ -206,7 +206,11 @@ const TotalClosingReportV2 = ({
   /* ---------- Denomination breakdown ---------- */
   const denomRows: Array<Record<string, React.ReactNode>> = [];
   CURRENCIES.forEach(c => {
-    const denoms = allDenoms(c) as number[] | undefined;
+    const denoms = Array.from(new Set([
+      ...allDenoms(c),
+      COIN_KEY(c),
+      ...Object.keys(((liveCloser as any)?.cash?.[c] || {})).map(Number).filter(Number.isFinite),
+    ])).sort((a, b) => b - a);
     let curLiveTzs = 0, curSlotsTzs = 0;
     (denoms || []).forEach(d => {
       const liveQty = Number(((liveCloser as any)?.cash?.[c] || {})[d] || 0);
@@ -220,7 +224,7 @@ const TotalClosingReportV2 = ({
       curLiveTzs += liveQty * d * rate;
       curSlotsTzs += slotsQty * d * rate;
       denomRows.push({
-        cur: c, den: formatNumberSpaces(d),
+        cur: c, den: formatCashDenomLabel(d, c),
         live: formatNumberSpaces(liveQty), slots: formatNumberSpaces(slotsQty),
         tzs: num(tzs),
       });

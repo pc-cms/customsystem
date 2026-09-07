@@ -105,6 +105,8 @@ export const formatChipLabel = (value: number): string => {
 // Coin denominations below 1 keep their decimals ("0.50", "0.05").
 // Currency symbol is NOT included — the section total below shows the currency.
 export const formatCashDenomLabel = (denom: number, currency: string): string => {
+  // The single coin bucket is labelled "Coins" (it stores minor units, not a note).
+  if (denom === COIN_KEY(currency) && !(CASH_DENOMS[currency] || []).includes(denom)) return "Coins";
   if (currency === "TZS") return formatChipLabel(denom);
   if (!Number.isInteger(denom)) return denom.toFixed(2);
   return formatNumberSpaces(denom);
