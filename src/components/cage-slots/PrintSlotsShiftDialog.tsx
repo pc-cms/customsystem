@@ -12,7 +12,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Printer, X } from "lucide-react";
 import PrintPortal from "@/components/cage/PrintPortal";
-import SlotsConsolidatedReport from "./SlotsConsolidatedReport";
 import SlotsClosingReportV2 from "./SlotsClosingReportV2";
 import TotalClosingReportV2 from "@/components/cage/TotalClosingReportV2";
 import { useCasino } from "@/lib/casino-context";
@@ -370,7 +369,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
           <div className="text-center text-muted-foreground py-10 text-sm">Loading…</div>
         ) : (
           <>
-            {layout === "v2" ? (
+            {(
               <SignatorySelects
                 casinoId={activeCasino?.id}
                 cashier={signCashier}
@@ -378,45 +377,37 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
                 onCashierChange={v => { setSignCashier(v); void saveSignatories(v, signManager); }}
                 onManagerChange={v => { setSignManager(v); void saveSignatories(signCashier, v); }}
               />
-            ) : null}
+            )}
 
             <div className="border border-border rounded-md overflow-auto bg-white print:hidden max-h-[55vh]">
               <div className="origin-top-left scale-[0.5] w-[200%]">
-                {layout === "v2" ? (
-                  <>
-                    <SlotsClosingReportV2 {...(props as any)} cashierName={signCashier || null} managerName={signManager || null} />
-                    {activeCasino?.id ? (
-                      <TotalClosingReportV2
-                        casinoId={activeCasino.id}
-                        casinoName={activeCasino?.name}
-                        businessDate={props.businessDate}
-                        managerName={signManager || undefined}
-                      />
-                    ) : null}
-                  </>
-                ) : (
-                  <SlotsConsolidatedReport {...props} />
-                )}
+                <>
+                  <SlotsClosingReportV2 {...(props as any)} cashierName={signCashier || null} managerName={signManager || null} />
+                  {activeCasino?.id ? (
+                    <TotalClosingReportV2
+                      casinoId={activeCasino.id}
+                      casinoName={activeCasino?.name}
+                      businessDate={props.businessDate}
+                      managerName={signManager || undefined}
+                    />
+                  ) : null}
+                </>
               </div>
             </div>
 
             <PrintPortal>
               <div className="slots-print-area hidden print:block">
-                {layout === "v2" ? (
-                  <>
-                    <SlotsClosingReportV2 {...(props as any)} cashierName={signCashier || null} managerName={signManager || null} />
-                    {activeCasino?.id ? (
-                      <TotalClosingReportV2
-                        casinoId={activeCasino.id}
-                        casinoName={activeCasino?.name}
-                        businessDate={props.businessDate}
-                        managerName={signManager || undefined}
-                      />
-                    ) : null}
-                  </>
-                ) : (
-                  <SlotsConsolidatedReport {...props} />
-                )}
+                <>
+                  <SlotsClosingReportV2 {...(props as any)} cashierName={signCashier || null} managerName={signManager || null} />
+                  {activeCasino?.id ? (
+                    <TotalClosingReportV2
+                      casinoId={activeCasino.id}
+                      casinoName={activeCasino?.name}
+                      businessDate={props.businessDate}
+                      managerName={signManager || undefined}
+                    />
+                  ) : null}
+                </>
               </div>
             </PrintPortal>
 
