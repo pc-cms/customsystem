@@ -187,3 +187,76 @@ export const PageFooter = ({ casinoName, page, total }: { casinoName: string; pa
     <span>Page {page} of {total}</span>
   </div>
 );
+
+/**
+ * Printed template version — bump ONLY together with a real layout change.
+ * Combined with the app build version so any sheet can be traced back to the
+ * exact code that produced it.
+ */
+declare const __APP_VERSION__: string | undefined;
+export const REPORT_TEMPLATE_VERSION = "Style A v2.1";
+export const REPORT_BUILD_VERSION =
+  typeof __APP_VERSION__ !== "undefined" && __APP_VERSION__ ? __APP_VERSION__ : "dev";
+
+/** Human timestamp in casino time (EAT) for printed provenance lines. */
+export const fmtStamp = (iso?: string | null) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  const p = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Africa/Dar_es_Salaam",
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(d).reduce((a, x) => ({ ...a, [x.type]: x.value }), {} as any);
+  return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute} EAT`;
+};
+
+export type DataSourceEntry = {
+  /** e.g. "Live shift", "Slots shift" */
+  label: string;
+  /** shift_close_id — the closed shift record the figures come from */
+  id?: string | null;
+  /** shifts.closed_at */
+  closedAt?: string | null;
+  /** optional extra note, e.g. "still open — provisional" */
+  note?: string | null;
+};
+
+/**
+ * Provenance block — printed on every sheet so anyone holding the paper can
+ * tell exactly which shift record, which closing time and which template
+ * version produced the figures.
+ */
+export const DataSource = ({ entries }: { entries: DataSourceEntry[] }) => (
+  <div className="rv2-card rv2-src">
+    <div className="rv2-card-title"><span className="rv2-accent" />Data Source</div>
+    <table className="rv2-table">
+      <thead>
+        <tr>
+          <th className="rv2-l" style={{ width: "22%" }}>Source</th>
+          <th className="rv2-l">shift_close_id</th>
+          <th className="rv2-l" style={{ width: "26%" }}>Closed at</th>
+        </tr>
+      </thead>
+      <tbody>
+        {entries.length ? entries.map((e, i) => (
+          <tr key={i}>
+            <td className="rv2-l">{e.label}</td>
+            <td className="rv2-l" style={{ fontFamily: "monospace", wordBreak: "break-all" }}>
+              {e.id || "—"}
+            </td>
+            <td className="rv2-l">{e.note ? e.note : fmtStamp(e.closedAt)}</td>
+          </tr>
+        )) : (
+          <tr><td colSpan={3} className="rv2-c rv2-empty">—</td></tr>
+        )}
+        <tr>
+          <td className="rv2-l">Template</td>
+          <td className="rv2-l" colSpan={2}>
+            {REPORT_TEMPLATE_VERSION} · build {REPORT_BUILD_VERSION} · printed {fmtStamp(new Date().toISOString())}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+);
