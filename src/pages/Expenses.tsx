@@ -730,13 +730,18 @@ const Expenses = ({
           className="cms-panel p-3 text-left transition hover:bg-muted/40"
           title="Show all sources"
         >
-          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total</p>
-          <p className="font-mono text-lg font-bold text-card-foreground">{formatCurrency(analytics.totalAmount)}</p>
+          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total Expenses</p>
+          <p className="font-mono text-lg font-bold text-card-foreground">
+            {formatCurrency(analytics.byBucket.expense.tzs)}
+          </p>
+          <CurrencyLine t={analytics.byBucket.expense} />
         </button>
         <div className="cms-panel p-3">
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Approved</p>
-          <p className="font-mono text-lg font-bold cms-amount-positive">{formatCurrency(analytics.approvedAmount)}</p>
+          <p className="font-mono text-lg font-bold cms-amount-positive">{formatCurrency(analytics.approvedTotals.tzs)}</p>
+          <CurrencyLine t={analytics.approvedTotals} />
         </div>
+
         <div className="cms-panel p-3">
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Pending</p>
           <p className="font-mono text-lg font-bold text-accent">{analytics.pendingCount}</p>
