@@ -15,11 +15,11 @@ import PrintPortal from "@/components/cage/PrintPortal";
 import SlotsConsolidatedReport from "./SlotsConsolidatedReport";
 import SlotsClosingReportV2 from "./SlotsClosingReportV2";
 import TotalClosingReportV2 from "@/components/cage/TotalClosingReportV2";
-import { useReportLayout } from "@/components/cage/report-v2/layout";
 import { useCasino } from "@/lib/casino-context";
 import { tipsBucketOf } from "@/lib/slots-tips-bucket";
 import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
 import SignatorySelects from "@/components/cage/report-v2/SignatorySelects";
+import { PRINT_SHEET_STYLE_TAG } from "@/lib/print-sheet-css";
 
 interface Props {
   open: boolean;
@@ -76,7 +76,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId }: Props) => {
       return;
     }
     doc.open();
-    doc.write(`<!doctype html><html><head><base href="${baseHref}">${styles}<style>@media print { @page { size: 210mm 297mm !important; margin: 8mm !important; } html, body { margin: 0 !important; background: white !important; } body, body * { visibility: visible !important; } .slots-print-area { display: block !important; width: auto !important; min-height: 0 !important; page: auto !important; page-break-after: auto !important; break-after: auto !important; } .rv2-page { width: 194mm !important; height: 281mm !important; font-size: 10.5px !important; line-height: 1.3 !important; zoom: 1 !important; max-height: 281mm !important; overflow: hidden !important; break-after: page !important; page-break-after: always !important; break-inside: avoid !important; } .rv2-page:last-child { break-after: auto !important; page-break-after: auto !important; } .rv2-card, .rv2-page table, .rv2-page tr { break-inside: avoid !important; page-break-inside: avoid !important; } } html, body { margin: 0; background: white; font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }</style></head><body><div class="slots-print-area cms-print-root">${source.innerHTML}</div></body></html>`);
+    doc.write(`<!doctype html><html><head><base href="${baseHref}">${styles}${PRINT_SHEET_STYLE_TAG}</head><body><div class="slots-print-area cms-print-root">${source.innerHTML}</div></body></html>`);
     doc.close();
     const cleanup = () => {
       setTimeout(() => {
