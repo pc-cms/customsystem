@@ -119,14 +119,10 @@ const LiveClosingReportV2 = ({
   const bankIn = (b: any, key: string) => Number(bankChannel(b, key).in || 0);
   const bankOut = (b: any, key: string) => Number(bankChannel(b, key).out || 0);
   const bankClosing = (b: any, key: string) => bankOpening(b, key) + bankIn(b, key) - bankOut(b, key);
-  const bankTotalTzs = (b: any) => {
-    const keys = Object.keys(b?.channels || {});
-    return keys.reduce((s, k) => s + bankClosing(b, k) * bankRate(k), 0);
-  };
-  const bankTotalOpeningTzs = (b: any) => {
-    const keys = Object.keys(b?.channels || {});
-    return keys.reduce((s, k) => s + bankOpening(b, k) * bankRate(k), 0);
-  };
+  const bankTotalTzs = (b: any) =>
+    bankKeys.reduce((s, k) => s + bankClosing(b, k.key) * bankRate(k.key), 0);
+  const bankTotalOpeningTzs = (b: any) =>
+    bankKeys.reduce((s, k) => s + bankOpening(b, k.key) * bankRate(k.key), 0);
   const liveWallets = useReportWallets(reportCasinoId);
   const wallets = snapshot?.wallets || liveWallets;
   // FROZEN RULE: print every wallet, even at 0.
