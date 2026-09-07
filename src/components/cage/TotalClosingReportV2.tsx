@@ -139,9 +139,13 @@ const TotalClosingReportV2 = ({
   // Slots cash desk records its own bank movements in the closing check.
   const slotsBankChannels: Record<string, any> = {};
   const slotsClosingChecks = new Map<string, any>();
+  const slotsOpeningChecks = new Map<string, any>();
   ((data?.slotsCounts || []) as any[]).forEach(r => {
-    if (r?.denominations?.is_opening) return;
-    slotsClosingChecks.set(r.cage_slots_shift_id, r);
+    if (r?.denominations?.is_opening) {
+      slotsOpeningChecks.set(r.cage_slots_shift_id, r);
+    } else {
+      slotsClosingChecks.set(r.cage_slots_shift_id, r);
+    }
   });
   slotsClosingChecks.forEach(r => {
     const ch = r?.denominations?.bank?.channels || {};
@@ -149,6 +153,22 @@ const TotalClosingReportV2 = ({
       const acc = (slotsBankChannels[k] ||= { in: 0, out: 0, final: 0 });
       acc.in += Number(v?.in || 0);
       acc.out += Number(v?.out || 0);
+      // closing check never carries final — movement only
+    });
+  });
+  const slotsOpeningBankChannels: Record<string, any> = {};
+  slotsOpeningChecks.forEach(r => {
+    const ch = r?.denominations?.bank?.channels || {};
+    Object.entries(ch).forEach(([k, v]: [string, any]) => {
+      const acc = (slotsOpeningBankChannels[k] ||= { in: 0, out: 0, final: 0 });
+      acc.final += Number(v?.final || 0);
+    });
+  });
+  const liveOpeningBankChannels = ((liveOpener as any)?.bank?.channels || {}) as Record<string, any>;
+  const openingBankChannels: Record<string, any> = {};
+  [liveOpeningBankChannels, slotsOpeningBankChannels].forEach(src => {
+    Object.entries(src || {}).forEach(([k, v]: [string, any]) => {
+      const acc = (openingBankChannels[k] ||= { in: 0, out: 0, final: 0 });
       acc.final += Number(v?.final || 0);
     });
   });
