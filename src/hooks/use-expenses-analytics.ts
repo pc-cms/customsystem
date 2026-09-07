@@ -38,11 +38,33 @@ export interface ExpenseFilters {
   search?: string;
 }
 
+export type ExpenseBucket = "expense" | "collection" | "capex" | "transfer";
+
+export interface CurrencyTotals {
+  /** TZS-equivalent total (amount_tzs ?? amount). */
+  tzs: number;
+  /** Native amounts per currency code. */
+  byCurrency: Record<string, number>;
+  count: number;
+}
+
+const emptyTotals = (): CurrencyTotals => ({ tzs: 0, byCurrency: {}, count: 0 });
+
+const addTo = (t: CurrencyTotals, e: any) => {
+  t.tzs += Number(e.amount_tzs ?? e.amount ?? 0);
+  const c = e.currency || "TZS";
+  t.byCurrency[c] = (t.byCurrency[c] || 0) + Number(e.amount || 0);
+  t.count += 1;
+};
+
 export const useExpenseAnalytics = (
   expenses: Expense[],
   filters?: ExpenseFilters,
+  /** Resolves the accounting bucket of a row (from fin_categories.bucket). */
+  bucketOf?: (e: any) => ExpenseBucket,
 ) => {
   return useMemo(() => {
+
     let filtered = expenses;
 
     if (filters?.from) {
