@@ -5,7 +5,7 @@
  */
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import ChipToken from "@/components/ChipToken";
-import { CURRENCIES, CASH_DENOMS, CHIP_DENOMS, formatCurrency, formatNumberSpaces, formatCashDenomLabel, CURRENCY_SYMBOLS, allDenoms} from "@/lib/currency";
+import { CURRENCIES, CASH_DENOMS, CHIP_DENOMS, formatCurrency, formatNumberSpaces, formatCashDenomLabel, CURRENCY_SYMBOLS, allDenoms, COIN_KEY } from "@/lib/currency";
 import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { MOBILE_PROVIDERS } from "@/components/cage/CageHelpers";
 import type { Tables } from "@/integrations/supabase/types";
@@ -76,8 +76,14 @@ const ChipsView = ({ chips }: { chips: Record<number, number> }) => {
   );
 };
 
-const CashView = ({ values, denoms, currency }: { values: Record<number, number>; denoms: number[]; currency: string }) => {
+const CashView = ({ values, denoms: noteDenoms, currency }: { values: Record<number, number>; denoms: number[]; currency: string }) => {
   const total = sumValue(values);
+  // Notes + the single coin bucket (plus any legacy fractional keys already stored).
+  const denoms = Array.from(new Set([
+    ...noteDenoms,
+    COIN_KEY(currency),
+    ...Object.keys(values || {}).map(Number).filter(Number.isFinite),
+  ])).sort((a, b) => b - a);
   return (
     <div className="space-y-1">
       {denoms.map(d => {
