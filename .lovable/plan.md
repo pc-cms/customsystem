@@ -1,66 +1,66 @@
-# Bank rows on the printed closing reports
+# Банковские строки в печатных отчётах закрытия
 
-## What is wrong today (verified)
+## Что не так сейчас (проверено)
 
-- The shift opening form has no place to enter bank balances at all: the opening record
-  for the last three Arusha shifts contains only zeros for every bank channel
-  (CRDB / NBC / Selcom, in = 0, out = 0). So the printed "Opening" bank column is
-  always 0 — it is not the money the cashier actually had.
-- The reports list bank accounts using the names from Office > Wallets (so I&M TZS,
-  I&M USD appear), but the cash desk can only record six fixed accounts
-  (CRDB TZS/USD, NBC TZS/USD, Selcom TZS/USD). Any other account can only print 0.
-- The unclear single line "Bank" inside Cash Flow Opening / Closing is a legacy total
-  (a generic TZS + USD figure) that does not match the per-account table below it.
-- The Bank Accounts table on the Slots and Live sheets shows only Opening and Closing —
-  no In, Out or Net.
+- В форме открытия смены Live Game нет полей для ввода банковских остатков: в последних
+  трёх сменах Аруши для всех каналов (CRDB / NBC / Selcom) записаны только нули
+  (in = 0, out = 0). Поэтому колонка "Opening" в банках печатает 0 — это не деньги,
+  которые у кассира были на самом деле.
+- Отчёты выводят банковские счета по названиям из Office → Wallets (поэтому появляются
+  I&M TZS, I&M USD), но касса может записать только шесть фиксированных счетов
+  (CRDB TZS/USD, NBC TZS/USD, Selcom TZS/USD). Любой другой счёт печатает 0.
+- Непонятная одиночная строка "Bank" внутри Cash Flow Opening / Closing — это устаревший
+  общий итог (TZS + USD), который не совпадает с детальной таблицей счетов ниже.
+- Таблица Bank Accounts на листах Slots и Live Game показывает только Opening и Closing —
+  нет In, Out и Net.
 
-## What will change
+## Что изменится
 
-1. **Opening balances come from the cash desk, never from Office.**
-   - Live Game: the shift opening screen gets a bank block where the cashier enters the
-     opening balance per account, saved with the shift opening.
-   - Slots: the opening count keeps the same per-account opening balances.
-   - Both screens show last shift's closing balance as a grey hint only; the cashier
-     must type the counted figure (same rule as chips).
+1. **Остатки открытия берутся из кассы, а не из Office.**
+   - Live Game: экран открытия смены получит блок банковских счетов, где кассир вводит
+     остаток на открытие по каждому счёту, и он сохраняется вместе с открытием смены.
+   - Slots: пересчёт открытия уже хранит остатки по счетам, оставляем этот принцип.
+   - На обоих экранах прошлое закрытие показывается серым подсказкой, но кассир должен
+     ввести фактический пересчёт (как с фишками).
 
-2. **Accounts follow the wallet registry.**
-   Both cash desks list exactly the bank/Selcom accounts of that casino from Wallets
-   (including I&M TZS and I&M USD), in the same names and order as the Wallets screen,
-   instead of the six hardcoded ones.
+2. **Счета берутся из реестра кошельков.**
+   В обеих кассах список счетов формируется по кошелькам казино из Wallets
+   (включая I&M TZS и I&M USD), с теми же названиями и порядком, что и на экране
+   Wallets, а не шесть фиксированных.
 
-3. **Bank Accounts table gets In / Out / Net.**
-   New columns on all sheets: Account | Currency | Opening | In | Out | Net | Closing |
-   Rate | Closing TZS, with a Total row. Net = In − Out. Closing = Opening + Net.
-   The Total Closing sheet already has In/Out — it gains Opening and Net so all four
-   sheets read identically.
+3. **Таблица Bank Accounts получает In / Out / Net.**
+   Новые колонки на всех листах: Account | Currency | Opening | In | Out | Net | Closing |
+   Rate | Closing TZS, с итоговой строкой. Net = In − Out. Closing = Opening + Net.
+   Сводный Total Closing лист уже имеет In/Out — добавим Opening и Net, чтобы все четыре
+   листа читались одинаково.
 
-4. **The confusing "Bank" line is replaced.**
-   Inside Cash Flow Opening / Closing the single "Bank" line becomes "Total Bank" and is
-   computed as the sum of the per-account table right below it, so the two always agree.
+4. **Убираем путаную строку "Bank".**
+   Внутри Cash Flow Opening / Closing одиночная строка "Bank" заменяется на "Total Bank"
+   и считается как сумма детальной таблицы счетов прямо под ней, чтобы всегда совпадало.
 
-5. **Old shifts.** Shifts closed before this change have no per-account opening figure;
-   their reports print "—" in the Opening column rather than a fake 0. Already frozen
-   report copies stay untouched.
+5. **Старые смены.** У смен, закрытых до этого изменения, нет сохранённых остатков по
+   счетам на открытие; в их отчётах колонка Opening будет "—" вместо фиктивного 0.
+   Уже зафиксированные копии отчётов не трогаем.
 
-## Verification
+## Проверка
 
-- Reprint Arusha, Mwanza and Dodoma closing packs for a recent date and check on all
-  four sheets: opening bank per account equals what the cash desk entered, In − Out = Net,
-  Opening + Net = Closing, and the Total Bank line equals the table total.
-- Confirm every account of the casino (including I&M) prints, even at 0, and that the
-  pack is still exactly 4 pages (3 portrait + Chips Movement landscape).
+- Перепечатать пакеты закрытия для Аруши, Мванзы и Додомы за недавнюю дату и проверить
+  на всех четырёх листах: Opening bank по счетам равно тому, что ввёл кассир,
+  In − Out = Net, Opening + Net = Closing, а строка Total Bank совпадает с итогом таблицы.
+- Убедиться, что печатается каждый счёт казино (включая I&M), даже если 0, и пакет всё
+  ещё ровно 4 листа (3 портретных + Chips Movement landscape).
 
-## Technical notes
+## Технические детали
 
-- Cash desk bank structure: `shifts.opening_float.bank` / `closing_count.bank`
-  (`{tzs, usd, channels: {KEY: {in, out, final}}}`) and, for slots,
-  `cage_slots_cash_counts.denominations.bank`. The opening entry will store `final`
-  (the counted opening balance) alongside `in`/`out`.
-- `BANK_CHANNELS` in `src/components/cage/CageHelpers.ts` stops being the source of
-  accounts; the channel list is derived from `fin_wallets` (`wallet_group = 'banks'`,
-  `kind in ('bank','selcom')`) via the existing `wallet-rows` helper, keeping
-  `BANK_CHANNELS` only as a fallback for casinos with no wallet registry.
-- Touched: `OpenShiftScreen.tsx`, `CashCountGrid.tsx`, `CloseShiftDialog.tsx`,
-  `OpenSlotsShiftScreen.tsx` / slots opening check, `LiveClosingReportV2.tsx`,
+- Структура банка в кассе: `shifts.opening_float.bank` / `closing_count.bank`
+  (`{tzs, usd, channels: {KEY: {in, out, final}}}`), а для слотов —
+  `cage_slots_cash_counts.denominations.bank`. При открытии будем сохранять `final`
+  (пересчитанный остаток на открытие) рядом с `in`/`out`.
+- `BANK_CHANNELS` в `src/components/cage/CageHelpers.ts` перестаёт быть источником списка
+  счетов; список каналов берётся из `fin_wallets` (`wallet_group = 'banks'`,
+  `kind in ('bank','selcom')`) через существующий `wallet-rows`, оставляя `BANK_CHANNELS`
+  только как fallback для казино без реестра кошельков.
+- Затронутые файлы: `OpenShiftScreen.tsx`, `CashCountGrid.tsx`, `CloseShiftDialog.tsx`,
+  `OpenSlotsShiftScreen.tsx` / открытие слотов, `LiveClosingReportV2.tsx`,
   `SlotsClosingReportV2.tsx`, `TotalClosingReportV2.tsx`, `PrintSlotsShiftDialog.tsx`,
-  `report-v2/wallet-rows.ts`. No database schema change is required.
+  `report-v2/wallet-rows.ts`. Изменений схемы БД не требуется.
