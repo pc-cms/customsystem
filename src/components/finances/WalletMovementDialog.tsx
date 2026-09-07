@@ -39,12 +39,15 @@ const MODES: { id: MovementMode; label: string; icon: any; tone: string }[] = [
   { id: "transfer", label: "Transfer", icon: ArrowLeftRight, tone: "text-foreground" },
 ];
 
-function denomNote(vals: Record<number, number>, cents: number) {
+function denomNote(vals: Record<number, number>, currency: string) {
+  const coinKey = COIN_KEY(currency);
   const parts = Object.entries(vals)
     .filter(([, q]) => Number(q) > 0)
     .sort((a, b) => Number(b[0]) - Number(a[0]))
+    .filter(([d]) => Number(d) !== coinKey)
     .map(([d, q]) => `${formatNumberSpaces(Number(d))}×${q}`);
-  if (cents > 0) parts.push(`coins ${cents}`);
+  const coins = Number(vals[coinKey]) || 0;
+  if (coins > 0) parts.push(`coins ${coins}`);
   return parts.join(" · ");
 }
 
@@ -87,7 +90,6 @@ export default function WalletMovementDialog({
   const outsideWindow =
     !!date && !!((windowFrom && date < windowFrom) || (windowTo && date > windowTo));
   const [denoms, setDenoms] = useState<Record<number, number>>({});
-  const [cents, setCents] = useState(0);
   const [amountInput, setAmountInput] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -99,7 +101,6 @@ export default function WalletMovementDialog({
     setToWalletId("");
     setDate(clamp(todayEat));
     setDenoms({});
-    setCents(0);
     setAmountInput("");
     setNote("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -110,8 +111,7 @@ export default function WalletMovementDialog({
   const useDenoms = !!wallet && CASH_LIKE_KINDS.has(wallet.kind);
   const currency = wallet?.currency || "TZS";
   const denomList = CASH_DENOMS[currency] || CASH_DENOMS.TZS;
-  const centsVal = currency === "TZS" && useDenoms ? cents : 0;
-  const amount = useDenoms ? cashSum(denoms) + centsVal / 100 : Number(amountInput || 0);
+  const amount = useDenoms ? cashSum(denoms) : Number(amountInput || 0);
 
   const transferTargets = useMemo(
     () => wallets.filter((w) => w.id !== walletId && w.currency === currency),
@@ -166,11 +166,11 @@ export default function WalletMovementDialog({
     if (mode === "transfer" && !toWallet) return toast.error("Select destination wallet");
     if (!(amount > 0)) return toast.error("Enter amount");
 
-    const breakdown = useDenoms ? denomNote(denoms, centsVal) : "";
+    const breakdown = useDenoms ? denomNote(denoms, currency) : "";
     // Structured per-note breakdown so the next physical count can show
     // expected notes per denomination (all currencies, not just TZS).
     const denomJson = useDenoms
-      ? { ...Object.fromEntries(Object.entries(denoms).filter(([, v]) => Number(v) > 0)), ...(centsVal ? { cents: centsVal } : {}) }
+      ? Object.fromEntries(Object.entries(denoms).filter(([, v]) => Number(v) > 0))
       : null;
     const baseNote = [note.trim(), breakdown].filter(Boolean).join(" · ");
     setSaving(true);
@@ -362,9 +362,6 @@ export default function WalletMovementDialog({
                 denoms={denomList}
                 currency={currency}
                 size="sm"
-                {...(currency === "TZS"
-                  ? { cents, onCentsChange: (c: number) => setCents(c) }
-                  : {})}
               />
             ) : (
               <NumberInput
