@@ -12,7 +12,7 @@ import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
 import type { Tables } from "@/integrations/supabase/types";
 import {
-  A4_CLASS, A4_STYLE, Card, PageFooter, ReportHeader, Signatures, buildReportId, num, signed,
+  A4_CLASS, A4_STYLE, Card, DataSource, PageFooter, ReportHeader, Signatures, buildReportId, num, signed,
 } from "./report-v2/primitives";
 
 export type ChipsMovementReportV2Props = {
@@ -167,6 +167,13 @@ const ChipsMovementReportV2 = ({
         </table>
       </Card>
 
+
+      <DataSource entries={[{
+        label: "Live shift",
+        id: shift?.id,
+        closedAt: (shift as any)?.closed_at,
+        note: (shift as any)?.status && String((shift as any).status) !== "closed" ? "still open — provisional" : null,
+      }]} />
 
       <Signatures left="Closing Cashier" right="Closing Manager" leftName={signCashier} rightName={signManager} />
       <PageFooter casinoName={casinoName} page={3} total={4} />

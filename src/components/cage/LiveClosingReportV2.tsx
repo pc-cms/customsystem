@@ -12,7 +12,7 @@ import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
 import { useReportWallets, withExtraKeys } from "./report-v2/wallet-rows";
 import type { Tables } from "@/integrations/supabase/types";
 import {
-  A4_CLASS, A4_STYLE, Card, CardTable, KpiStrip, PageFooter, ReportHeader, Signatures,
+  A4_CLASS, A4_STYLE, Card, CardTable, DataSource, KpiStrip, PageFooter, ReportHeader, Signatures,
   buildReportId, num, signed,
 } from "./report-v2/primitives";
 import { useLiveShiftReportData } from "./report-v2/use-live-shift-report-data";
@@ -224,6 +224,13 @@ const LiveClosingReportV2 = ({
           rows={[{ tm: num(totalMoney), bal: signed(balance), adj: adjustmentRef || (shift as any)?.adjustment_ref || "-" }]}
         />
       </Card>
+
+      <DataSource entries={[{
+        label: "Live shift",
+        id: shift?.id,
+        closedAt: (shift as any)?.closed_at,
+        note: (shift as any)?.status && String((shift as any).status) !== "closed" ? "still open — provisional" : null,
+      }]} />
 
       <Signatures left="Closing Cashier" right="Closing Manager" leftName={signCashier} rightName={signManager} />
       <PageFooter casinoName={casinoName} page={2} total={4} />
