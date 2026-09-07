@@ -5,8 +5,8 @@
  * Same props as the legacy ChipMovementReport. Six per-denomination blocks are
  * rendered as one matrix so the page always fits A4 portrait.
  */
-import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { formatNumberSpaces } from "@/lib/currency";
 import { useVisibleChipDenoms } from "@/hooks/use-chip-colors";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
@@ -14,6 +14,9 @@ import type { Tables } from "@/integrations/supabase/types";
 import {
   A4_CLASS, A4_STYLE, Card, PageFooter, ReportHeader, Signatures, buildReportId, num, signed,
 } from "./report-v2/primitives";
+import { useReportSnapshot } from "@/hooks/use-report-snapshot";
+import { loadChipsMovementData, type ChipsReportFrozen } from "@/lib/report-snapshots";
+
 
 export type ChipsMovementReportV2Props = {
   shift: Tables<"shifts">;
@@ -40,44 +43,50 @@ const CHIPS_SHEET_CSS = `
 .rv2-chips .rv2-sumtable td { font-size: 14px; }
 `;
 
+/** Live fill/credit per denomination — used only while a shift is still open. */
+const useLiveChipsMovement = (shiftId: string | null | undefined) => {
+  const { data } = useQuery({
+    queryKey: ["chips-movement-live", shiftId],
+    enabled: !!shiftId,
+    queryFn: () => loadChipsMovementData(shiftId as string),
+  });
+  return {
+    fillByDenom: data?.fillByDenom || {},
+    creditByDenom: data?.creditByDenom || {},
+  };
+};
+
 const ChipsMovementReportV2 = ({
   shift, openingChips, openingDiff = {}, closingChips, missPerDenom,
   businessDate, casinoName = "Casino", cashierName, managerName,
   reportStatus = "DRAFT — GBT APPROVAL PENDING",
   fillByDenomOverride, creditByDenomOverride,
 }: ChipsMovementReportV2Props) => {
-  const denoms = useVisibleChipDenoms();
+  const liveDenoms = useVisibleChipDenoms();
   const signCashier = cashierName || (shift as any)?.cashier_name || undefined;
   const signManager = managerName || (shift as any)?.manager_name || undefined;
-  const [fillByDenom, setFillByDenom] = useState<Record<number, number>>({});
-  const [creditByDenom, setCreditByDenom] = useState<Record<number, number>>({});
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!shift?.id) return;
-      const { data } = await supabase
-        .from("cage_transfers")
-        .select("transfer_type, chips")
-        .eq("shift_id", shift.id)
-        .in("transfer_type", ["fill", "credit"]);
-      if (cancelled) return;
-      const fill: Record<number, number> = {};
-      const credit: Record<number, number> = {};
-      (data || []).forEach((r: any) => {
-        const target = r.transfer_type === "fill" ? fill : credit;
-        Object.entries((r.chips || {}) as Record<string, number>).forEach(([d, q]) => {
-          target[Number(d)] = (target[Number(d)] || 0) + (Number(q) || 0);
-        });
-      });
-      setFillByDenom(fill);
-      setCreditByDenom(credit);
-    })();
-    return () => { cancelled = true; };
-  }, [shift?.id]);
+  // Closed shift -> frozen chips movement (denominations included, so the
+  // matrix never changes shape on a later reprint).
+  const isClosed = !!(shift as any)?.closed_at;
+  const { payload: snapshot } = useReportSnapshot<ChipsReportFrozen>({
+    casinoId: (shift as any)?.casino_id,
+    reportType: "chips_movement",
+    sourceKey: shift?.id,
+    businessDate,
+    asOf: (shift as any)?.closed_at ?? null,
+    freeze: isClosed,
+    enabled: isClosed,
+    build: () => loadChipsMovementData(shift.id, liveDenoms),
+  });
 
-  const effFill = fillByDenomOverride ?? fillByDenom;
-  const effCredit = creditByDenomOverride ?? creditByDenom;
+  const denoms = snapshot?.denoms?.length ? snapshot.denoms : liveDenoms;
+  const fillByDenom = snapshot?.fillByDenom || {};
+  const creditByDenom = snapshot?.creditByDenom || {};
+  const liveChips = useLiveChipsMovement(snapshot ? null : shift?.id);
+
+  const effFill = fillByDenomOverride ?? (snapshot ? fillByDenom : liveChips.fillByDenom);
+  const effCredit = creditByDenomOverride ?? (snapshot ? creditByDenom : liveChips.creditByDenom);
 
   const value = (m: Record<number, number>) => denoms.reduce((s, d) => s + d * (m[d] || 0), 0);
   const totals = useMemo(() => ({
@@ -88,6 +97,7 @@ const ChipsMovementReportV2 = ({
     miss: value(missPerDenom),
     closing: value(closingChips),
   }), [openingChips, openingDiff, effFill, effCredit, missPerDenom, closingChips, denoms]);
+
 
   const blocks: Array<{ label: string; map: Record<number, number>; total: number; sign?: boolean }> = [
     { label: "Opening", map: openingChips, total: totals.opening },

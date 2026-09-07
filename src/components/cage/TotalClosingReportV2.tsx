@@ -13,6 +13,9 @@ import { useReportWallets, withExtraKeys, normalizeProviderMap } from "./report-
 import {
   A4_CLASS, A4_STYLE, Card, CardTable, PageFooter, ReportHeader, Signatures, buildReportId, num, signed,
 } from "./report-v2/primitives";
+import { useReportSnapshot } from "@/hooks/use-report-snapshot";
+import { loadReportWallets, type TotalReportFrozen } from "@/lib/report-snapshots";
+
 
 export type TotalClosingReportV2Props = {
   casinoId: string;
@@ -31,69 +34,93 @@ const chanValue = (e: any) => {
 const sumCashMap = (cash: Record<string | number, number> | undefined) =>
   cash ? Object.entries(cash).reduce((s, [d, q]) => s + Number(d) * (Number(q) || 0), 0) : 0;
 
+const loadTotalReportData = async (casinoId: string, businessDate: string) => {
+  // Business day rollover is 07:00 EAT = 04:00 UTC.
+  const fromUtc = `${businessDate}T04:00:00Z`;
+  const nx = new Date(`${businessDate}T00:00:00Z`);
+  nx.setUTCDate(nx.getUTCDate() + 1);
+  const toUtc = `${nx.toISOString().slice(0, 10)}T04:00:00Z`;
+
+  const [liveR, slotsR] = await Promise.all([
+    supabase.from("shifts").select("*").eq("casino_id", casinoId)
+      .gte("opened_at", fromUtc).lt("opened_at", toUtc).order("opened_at"),
+    supabase.from("cage_slots_shifts").select("*").eq("casino_id", casinoId)
+      .eq("business_date", businessDate).order("opened_at"),
+  ]);
+  const liveShifts = liveR.data || [];
+  const slotsShifts = slotsR.data || [];
+
+  const [liveExpR, slotsExpR, invR, ratesR, slotsCountsR, cashlessR] = await Promise.all([
+    liveShifts.length
+      ? supabase.from("expenses").select("amount, approved, shift_id").in("shift_id", liveShifts.map(s => s.id))
+      : Promise.resolve({ data: [] as any[] } as any),
+    slotsShifts.length
+      ? supabase.from("expenses").select("amount, approved, cage_slots_shift_id").in("cage_slots_shift_id", slotsShifts.map(s => s.id))
+      : Promise.resolve({ data: [] as any[] } as any),
+    slotsShifts.length
+      ? supabase.from("cage_slots_cash_inventory").select("*").in("cage_slots_shift_id", slotsShifts.map(s => s.id))
+      : Promise.resolve({ data: [] as any[] } as any),
+    slotsShifts.length
+      ? supabase.from("cage_slots_exchange_rates").select("*").in("cage_slots_shift_id", slotsShifts.map(s => s.id))
+      : Promise.resolve({ data: [] as any[] } as any),
+    slotsShifts.length
+      ? supabase.from("cage_slots_cash_counts").select("cage_slots_shift_id, denominations, created_at")
+          .in("cage_slots_shift_id", slotsShifts.map(s => s.id)).order("created_at")
+      : Promise.resolve({ data: [] as any[] } as any),
+    supabase.from("cashless_transactions").select("direction, amount, cage_type, created_at")
+      .eq("casino_id", casinoId).gte("created_at", fromUtc).lt("created_at", toUtc),
+  ]);
+
+  return {
+    liveShifts,
+    slotsShifts,
+    liveExpenses: liveExpR.data || [],
+    slotsExpenses: slotsExpR.data || [],
+    inventory: invR.data || [],
+    slotsRates: ratesR.data || [],
+    slotsCounts: slotsCountsR.data || [],
+    cashless: cashlessR.data || [],
+  };
+};
+
 const TotalClosingReportV2 = ({
   casinoId, casinoName = "Casino", businessDate, managerName,
   reportStatus = "DRAFT — GBT APPROVAL PENDING",
 }: TotalClosingReportV2Props) => {
-  const { data } = useQuery({
+  const { data: liveData } = useQuery({
     queryKey: ["total-closing-v2", casinoId, businessDate],
     enabled: !!casinoId && !!businessDate,
-    queryFn: async () => {
-      // Business day rollover is 07:00 EAT = 04:00 UTC.
-      const fromUtc = `${businessDate}T04:00:00Z`;
-      const nx = new Date(`${businessDate}T00:00:00Z`);
-      nx.setUTCDate(nx.getUTCDate() + 1);
-      const toUtc = `${nx.toISOString().slice(0, 10)}T04:00:00Z`;
-
-      const [liveR, slotsR] = await Promise.all([
-        supabase.from("shifts").select("*").eq("casino_id", casinoId)
-          .gte("opened_at", fromUtc).lt("opened_at", toUtc).order("opened_at"),
-        supabase.from("cage_slots_shifts").select("*").eq("casino_id", casinoId)
-          .eq("business_date", businessDate).order("opened_at"),
-      ]);
-      const liveShifts = liveR.data || [];
-      const slotsShifts = slotsR.data || [];
-
-      const [liveExpR, slotsExpR, invR, ratesR, slotsCountsR, cashlessR] = await Promise.all([
-        liveShifts.length
-          ? supabase.from("expenses").select("amount, approved, shift_id").in("shift_id", liveShifts.map(s => s.id))
-          : Promise.resolve({ data: [] as any[] } as any),
-        slotsShifts.length
-          ? supabase.from("expenses").select("amount, approved, cage_slots_shift_id").in("cage_slots_shift_id", slotsShifts.map(s => s.id))
-          : Promise.resolve({ data: [] as any[] } as any),
-        slotsShifts.length
-          ? supabase.from("cage_slots_cash_inventory").select("*").in("cage_slots_shift_id", slotsShifts.map(s => s.id))
-          : Promise.resolve({ data: [] as any[] } as any),
-        slotsShifts.length
-          ? supabase.from("cage_slots_exchange_rates").select("*").in("cage_slots_shift_id", slotsShifts.map(s => s.id))
-          : Promise.resolve({ data: [] as any[] } as any),
-        slotsShifts.length
-          ? supabase.from("cage_slots_cash_counts").select("cage_slots_shift_id, denominations, created_at")
-              .in("cage_slots_shift_id", slotsShifts.map(s => s.id)).order("created_at")
-          : Promise.resolve({ data: [] as any[] } as any),
-        supabase.from("cashless_transactions").select("direction, amount, cage_type, created_at")
-          .eq("casino_id", casinoId).gte("created_at", fromUtc).lt("created_at", toUtc),
-      ]);
-
-      return {
-        liveShifts,
-        slotsShifts,
-        liveExpenses: liveExpR.data || [],
-        slotsExpenses: slotsExpR.data || [],
-        inventory: invR.data || [],
-        slotsRates: ratesR.data || [],
-        slotsCounts: slotsCountsR.data || [],
-        cashless: cashlessR.data || [],
-      };
-    },
+    queryFn: () => loadTotalReportData(casinoId, businessDate),
   });
 
-  const wallets = useReportWallets(casinoId);
+  // Both cash desks closed -> the pack is final and gets frozen once.
+  const dayIsFinal = !!liveData
+    && (liveData.liveShifts.length > 0 || liveData.slotsShifts.length > 0)
+    && liveData.liveShifts.every((s: any) => !!s.closed_at)
+    && liveData.slotsShifts.every((s: any) => !!s.closed_at || s.status === "closed");
+
+  const { payload: snapshot } = useReportSnapshot<TotalReportFrozen>({
+    casinoId,
+    reportType: "total_closing",
+    sourceKey: businessDate,
+    businessDate,
+    freeze: dayIsFinal,
+    enabled: dayIsFinal,
+    build: async () => ({
+      data: liveData ?? (await loadTotalReportData(casinoId, businessDate)),
+      wallets: await loadReportWallets(casinoId),
+    }),
+  });
+
+  const liveWallets = useReportWallets(casinoId);
+  const wallets = snapshot?.wallets || liveWallets;
+  const data = snapshot?.data || liveData;
   const liveShifts = (data?.liveShifts || []) as any[];
   const slotsShifts = (data?.slotsShifts || []) as any[];
   const rates: Record<string, number> = { TZS: 1 };
   (liveShifts[0]?.exchange_rates || {}) && Object.entries(liveShifts[0]?.exchange_rates || {}).forEach(([k, v]) => { rates[k] = Number(v || 0); });
   (data?.slotsRates || []).forEach((r: any) => { rates[r.currency_code] = Number(r.rate_to_tzs || rates[r.currency_code] || 0); });
+
 
   /* ---------- Live side ---------- */
   const liveCloser = liveShifts.length ? (liveShifts[liveShifts.length - 1].closing_count || {}) : {};

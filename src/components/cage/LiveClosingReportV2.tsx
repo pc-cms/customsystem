@@ -17,6 +17,9 @@ import {
 } from "./report-v2/primitives";
 import { useLiveShiftReportData } from "./report-v2/use-live-shift-report-data";
 import { useTotalDrop } from "@/lib/drop-source";
+import { useReportSnapshot } from "@/hooks/use-report-snapshot";
+import { buildLiveReportPayload, type LiveReportFrozen } from "@/lib/report-snapshots";
+
 
 
 export type LiveClosingReportV2Props = {
@@ -46,13 +49,38 @@ const LiveClosingReportV2 = ({
   adjustmentRef,
 }: LiveClosingReportV2Props) => {
   const { casinoId } = useAuth();
+  const reportCasinoId = ((shift as any)?.casino_id as string | undefined) || casinoId;
   const signCashier = cashierName || (shift as any)?.cashier_name || undefined;
   const signManager = managerName || (shift as any)?.manager_name || undefined;
-  const { rows, cashlessIO } = useLiveShiftReportData({
-    casinoId, shiftId: shift?.id, businessDate, tables,
+
+  // Closed shift -> print the immutable snapshot (frozen on first open).
+  const isClosed = !!(shift as any)?.closed_at;
+  const { payload: snapshot } = useReportSnapshot<LiveReportFrozen>({
+    casinoId: reportCasinoId,
+    reportType: "live_closing",
+    sourceKey: shift?.id,
+    businessDate,
+    asOf: (shift as any)?.closed_at ?? null,
+    freeze: isClosed,
+    enabled: isClosed,
+    build: () => buildLiveReportPayload({
+      casinoId: reportCasinoId as string,
+      shiftId: shift.id,
+      businessDate,
+      tables,
+    }),
+  });
+
+  const { rows, cashlessIO, totalDrop: frozenDrop } = useLiveShiftReportData({
+    casinoId: reportCasinoId, shiftId: shift?.id, businessDate, tables,
+    frozen: snapshot,
   });
   // Canon: per-table Drop is never printed; Total Drop = player_day_drop_cache.
-  const { data: totalDrop } = useTotalDrop({ casinoId, fromDate: businessDate });
+  const { data: liveTotalDrop } = useTotalDrop({
+    casinoId: reportCasinoId, fromDate: businessDate,
+  });
+  const totalDrop = snapshot ? frozenDrop : liveTotalDrop;
+
 
 
   const totals = useMemo(() => rows.reduce(
@@ -87,7 +115,8 @@ const LiveClosingReportV2 = ({
     const moved = Number(e.in || 0) !== 0 || Number(e.out || 0) !== 0;
     return moved ? Number(e.in || 0) - Number(e.out || 0) : Number(e.final || 0);
   };
-  const wallets = useReportWallets(casinoId);
+  const liveWallets = useReportWallets(reportCasinoId);
+  const wallets = snapshot?.wallets || liveWallets;
   // FROZEN RULE: print every wallet, even at 0.
   const bankKeys = withExtraKeys(wallets.banks, openerBank?.channels, closerBank?.channels);
   const bankTotal = (b: any) =>
