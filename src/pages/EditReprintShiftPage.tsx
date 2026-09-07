@@ -597,7 +597,7 @@ const EditReprintShiftPage = () => {
               {built && (
                 <>
                   <ShiftClosingReport
-                    reportStatus="DRAFT — EDITED COPY (NOT CERTIFIED)"
+                    {...({ reportStatus: "DRAFT — EDITED COPY (NOT CERTIFIED)" } as any)}
                     shift={shift}
                     tables={tables}
                     closingCount={built.closingCount}
@@ -615,7 +615,7 @@ const EditReprintShiftPage = () => {
                     totalDropOverride={state.totalDrop}
                   />
                   <ChipMovementReport
-                    reportStatus="DRAFT — EDITED COPY (NOT CERTIFIED)"
+                    {...({ reportStatus: "DRAFT — EDITED COPY (NOT CERTIFIED)" } as any)}
                     shift={shift}
                     openingChips={state.openChips}
                     closingChips={state.closeChips}
@@ -637,7 +637,7 @@ const EditReprintShiftPage = () => {
         <PrintPortal>
           <div className="live-game-print-area hidden print:block">
             <ShiftClosingReport
-                    reportStatus="DRAFT — EDITED COPY (NOT CERTIFIED)"
+                    {...({ reportStatus: "DRAFT — EDITED COPY (NOT CERTIFIED)" } as any)}
               shift={shift}
               tables={tables}
               closingCount={built.closingCount}
@@ -655,7 +655,7 @@ const EditReprintShiftPage = () => {
               totalDropOverride={state.totalDrop}
             />
             <ChipMovementReport
-                    reportStatus="DRAFT — EDITED COPY (NOT CERTIFIED)"
+                    {...({ reportStatus: "DRAFT — EDITED COPY (NOT CERTIFIED)" } as any)}
               shift={shift}
               openingChips={state.openChips}
               closingChips={state.closeChips}

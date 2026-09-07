@@ -82,7 +82,7 @@ export const loadReportWallets = async (casinoId: string): Promise<ReportWallets
 /** Fill / credit chips per denomination for one Live Game shift. */
 export const loadChipsMovementData = async (
   shiftId: string,
-  denoms: number[] = CHIP_DENOMS as unknown as number[],
+  denoms: readonly number[] = CHIP_DENOMS,
 ): Promise<ChipsReportFrozen> => {
   const { data } = await supabase
     .from("cage_transfers")
@@ -99,7 +99,7 @@ export const loadChipsMovementData = async (
     });
   });
 
-  return { fillByDenom, creditByDenom, denoms };
+  return { fillByDenom, creditByDenom, denoms: [...denoms] };
 };
 
 type SnapshotRow = {
