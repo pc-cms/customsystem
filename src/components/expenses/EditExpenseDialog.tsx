@@ -75,7 +75,8 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense }: Props) => {
 
   const handleSave = async () => {
     const amt = Number(amount);
-    if (!amt || amt <= 0) return;
+    if (!amt) return;
+    if (amt < 0 && !(isFinance && isOffice)) return;
     await edit.mutateAsync({
       id: expense.id,
       fin_category_id: finCatId || null,
@@ -155,6 +156,7 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense }: Props) => {
             value={amount}
             onChange={setAmount}
             decimals={currency === "TZS" ? 0 : 2}
+            allowNegative={isFinance && isOffice}
             placeholder="0"
           />
         </FormField>
