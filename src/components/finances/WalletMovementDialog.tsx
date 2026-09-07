@@ -25,7 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
-import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
+import { formatNumberSpaces, CASH_DENOMS, COIN_KEY } from "@/lib/currency";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
