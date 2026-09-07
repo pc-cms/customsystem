@@ -157,8 +157,8 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
           <table className="rv2-table rv2-sumtable">
             <tbody>
               <SumRow label="Total Cash" value={num(openerCashTotalTzs)} />
-              <SumRow label="Bank" value={num(openerBankTotalTzs)} />
-              <SumRow label="Total Opening" value={num(Number(openerCashTotalTzs) + Number(openerBankTotalTzs))} strong />
+              <SumRow label="Bank" value={num(computedOpenerBankTotalTzs)} />
+              <SumRow label="Total Opening" value={num(Number(openerCashTotalTzs) + computedOpenerBankTotalTzs)} strong />
             </tbody>
           </table>
         </Card>
@@ -172,8 +172,8 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
           <table className="rv2-table rv2-sumtable">
             <tbody>
               <SumRow label="Total Cash" value={num(closerCashTotalTzs)} />
-              <SumRow label="Bank" value={num(closerBankTotalTzs)} />
-              <SumRow label="Total Closing" value={num(Number(closerCashTotalTzs) + Number(closerBankTotalTzs))} strong />
+              <SumRow label="Bank" value={num(computedCloserBankTotalTzs)} />
+              <SumRow label="Total Closing" value={num(Number(closerCashTotalTzs) + computedCloserBankTotalTzs)} strong />
             </tbody>
           </table>
         </Card>
