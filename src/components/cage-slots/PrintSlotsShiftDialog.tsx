@@ -18,6 +18,7 @@ import { useCasino } from "@/lib/casino-context";
 import { tipsBucketOf } from "@/lib/slots-tips-bucket";
 import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
 import { useReportSnapshot } from "@/hooks/use-report-snapshot";
+import { loadReportWallets } from "@/lib/report-snapshots";
 import SignatorySelects from "@/components/cage/report-v2/SignatorySelects";
 import { PRINT_SHEET_STYLE_TAG } from "@/lib/print-sheet-css";
 
@@ -347,7 +348,10 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Pr
     asOf: slotsShift?.closed_at ?? null,
     freeze: isClosedSlots,
     enabled: isClosedSlots && !!props,
-    build: async () => props,
+    build: async () => ({
+      ...(props as any),
+      wallets: await loadReportWallets(slotsShift.casino_id),
+    }),
   });
   const printProps = (frozenProps as any) || props;
 
