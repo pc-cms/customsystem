@@ -24,6 +24,12 @@ interface Props {
   onClose: () => void;
   shiftId: string;
   casinoId: string;
+  /**
+   * Mandatory mode — opened automatically right after the shift was closed.
+   * The window cannot be dismissed (no X, no Esc, no outside click): the only
+   * way out is actually sending the pack to the printer.
+   */
+  mandatory?: boolean;
 }
 
 /** Business date for an EAT timestamp using the 07:00 rollover rule. */
@@ -39,7 +45,7 @@ const businessDateForEAT = (iso: string): string => {
 
 import { printLiveGameReport } from "@/components/cage/printLiveGameReport";
 
-const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => {
+const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = false }: Props) => {
   const { data, isLoading } = useQuery({
     queryKey: ["reprint-shift", shiftId],
     enabled: open && !!shiftId && !!casinoId,
@@ -120,10 +126,20 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => {
   }, [open]);
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={(v) => { if (!v && !mandatory) onClose(); }}>
+      <DialogContent
+        className={`max-w-5xl max-h-[90vh] overflow-y-auto${mandatory ? " [&>button]:hidden" : ""}`}
+        onEscapeKeyDown={(e) => { if (mandatory) e.preventDefault(); }}
+        onPointerDownOutside={(e) => { if (mandatory) e.preventDefault(); }}
+        onInteractOutside={(e) => { if (mandatory) e.preventDefault(); }}
+      >
         <DialogHeader>
-          <DialogTitle>Reprint Shift Reports</DialogTitle>
+          <DialogTitle>{mandatory ? "Print Shift Closing Pack" : "Reprint Shift Reports"}</DialogTitle>
+          {mandatory && (
+            <p className="text-xs text-muted-foreground">
+              The shift is closed and the figures are certified. Print the pack to finish.
+            </p>
+          )}
         </DialogHeader>
 
         {isLoading || !shift ? (
@@ -197,10 +213,15 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId }: Props) => {
             </PrintPortal>
 
             <DialogFooter className="print:hidden">
-              <Button variant="outline" onClick={onClose} className="gap-1.5">
-                <X className="w-4 h-4" /> Close
-              </Button>
-              <Button onClick={printLiveGameReport} className="gap-1.5">
+              {!mandatory && (
+                <Button variant="outline" onClick={onClose} className="gap-1.5">
+                  <X className="w-4 h-4" /> Close
+                </Button>
+              )}
+              <Button
+                onClick={() => { printLiveGameReport(); if (mandatory) onClose(); }}
+                className="gap-1.5"
+              >
                 <Printer className="w-4 h-4" /> Print Reports
               </Button>
             </DialogFooter>
