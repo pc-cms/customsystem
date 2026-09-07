@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, Fragment } from "react";
 import { useOpenShift, useLastClosedShift } from "@/hooks/use-shift";
 import { useFinDailyRatesForDate } from "@/hooks/use-fin-daily-rates";
 import { Link } from "react-router-dom";
@@ -22,11 +22,12 @@ import ChipDenomInput from "@/components/ChipDenomInput";
 import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 import LockableSection from "@/components/cage/LockableSection";
 import {
-  MOBILE_PROVIDERS, emptyMobile, emptyBanks, mobileTotal, bankTotalTzs,
+  MOBILE_PROVIDERS, emptyMobile, emptyBanks, mobileTotal, bankTotalTzs, bankOpeningTotalTzs,
   chipSum, emptyCash, calcCashTotalTzs,
   type MobileProviders, type Banks,
 
 } from "@/components/cage/CageHelpers";
+import { useBankChannelList } from "@/components/cage/report-v2/wallet-rows";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -76,7 +77,11 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
     }
   }, [lastShift, closingPrefilled]);
   const [openingCash, setOpeningCash] = useState<Record<string, Record<number, number>>>(emptyCash);
-  const [bankBalance, setBankBalance] = useState<Banks>(emptyBanks);
+  const bankChannelList = useBankChannelList(casinoId);
+  const [bankBalance, setBankBalance] = useState<Banks>(() => ({
+    tzs: 0, usd: 0,
+    channels: Object.fromEntries(bankChannelList.map(c => [c.key, { in: 0, out: 0, final: 0 }])),
+  }));
   const [mobileBalance, setMobileBalance] = useState<MobileProviders>(emptyMobile);
   const [showRates, setShowRates] = useState(false);
   const [showManagerAccess, setShowManagerAccess] = useState(false);
@@ -94,7 +99,7 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const openingChipTotal = useMemo(() => chipSum(openingChips), [openingChips]);
   const cashTotalTzs = useMemo(() => calcCashTotalTzs(openingCash, rates), [openingCash, rates]);
   const mobTotal = useMemo(() => mobileTotal(mobileBalance), [mobileBalance]);
-  const bankTotal = useMemo(() => bankTotalTzs(bankBalance, rates), [bankBalance, rates]);
+  const bankTotal = useMemo(() => bankOpeningTotalTzs(bankBalance, rates, bankChannelList), [bankBalance, rates, bankChannelList]);
   const openingTotal = openingChipTotal + cashTotalTzs + mobTotal + bankTotal;
 
   // Per-denom diff between opening (entered) and closing (expected baseline).
@@ -317,10 +322,35 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
             </LockableSection>
           </div>
 
-          {/* Banks are captured as movement only (IN / OUT) during the shift —
-              there is no opening bank balance entry any more. */}
-
-
+          <LockableSection title="Bank Opening Balances" locked={locks.bankTzs} onToggleLock={() => toggleLock("bankTzs")}>
+            <p className="text-[10px] text-muted-foreground mb-2">
+              Enter the counted balance for each account at the start of the shift. These values are printed as the Opening column on the closing report.
+            </p>
+            <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 items-center">
+              <span className="text-[9px] uppercase tracking-wider text-muted-foreground text-right">Balance</span>
+              {bankChannelList.map(ch => {
+                const e = bankBalance.channels?.[ch.key] || { final: 0 };
+                return (
+                  <Fragment key={ch.key}>
+                    <span className="text-[10px] font-semibold text-foreground">{ch.label || `${ch.bank} ${ch.currency}`}</span>
+                    <NumberInput
+                      value={e.final || ""}
+                      onChange={v => setBankBalance(b => ({
+                        ...b,
+                        channels: { ...(b.channels || {}), [ch.key]: { ...(e as any), final: Number(v) || 0 } },
+                      }))}
+                      className="no-spin h-7 w-full min-w-0 font-mono text-xs text-right"
+                      placeholder="0"
+                    />
+                  </Fragment>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between pt-1 border-t border-border">
+              <span className="text-[10px] font-medium text-muted-foreground">Bank Total</span>
+              <span className="font-mono text-xs font-bold text-card-foreground">TZS {formatNumberSpaces(bankTotal)}</span>
+            </div>
+          </LockableSection>
 
           <div className="cms-panel px-3 py-2 space-y-2">
             <div className="grid grid-cols-2 gap-3">

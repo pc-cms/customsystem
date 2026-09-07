@@ -12,6 +12,8 @@ import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
 
 export type ReportRowDef = { key: string; label: string };
 
+export type BankChannelDef = { key: string; bank: string; currency: string; label: string };
+
 /** Canonical cashless provider key used by every report block. */
 export const normalizeProviderKey = (raw: string | null | undefined): string => {
   const k = String(raw || "").toUpperCase().replace(/[^A-Z]/g, "");
@@ -38,10 +40,17 @@ export const normalizeProviderMap = (
 };
 
 /** Bank channel key used in the cashdesk snapshots, derived from a wallet code. */
-const bankKeyOfCode = (code: string) => code.replace(/^BANK_/, "");
+export const bankKeyOfCode = (code: string) => code.replace(/^BANK_/, "");
 
 const DEFAULT_BANKS: ReportRowDef[] = BANK_CHANNELS.map(c => ({
   key: c.key,
+  label: `${c.bank} ${c.currency}`,
+}));
+
+const DEFAULT_BANK_CHANNELS: BankChannelDef[] = BANK_CHANNELS.map(c => ({
+  key: c.key,
+  bank: c.bank,
+  currency: c.currency,
   label: `${c.bank} ${c.currency}`,
 }));
 
@@ -55,6 +64,38 @@ const DEFAULT_PROVIDERS: ReportRowDef[] = [
 export type ReportWallets = {
   banks: ReportRowDef[];
   providers: ReportRowDef[];
+};
+
+export type RawWalletRow = {
+  name: string;
+  canonical_code: string | null;
+  wallet_group: string | null;
+  kind: string | null;
+  currency: string | null;
+};
+
+/** Build the list of bank/Selcom channels from the wallet registry. */
+export const buildBankChannelList = (rows: RawWalletRow[]): BankChannelDef[] => {
+  const out: BankChannelDef[] = [];
+  rows.forEach(w => {
+    const code = w.canonical_code || "";
+    const group = w.wallet_group || "";
+    const kind = w.kind || "";
+    if (group === "banks" || kind === "bank" || (kind === "selcom" && code !== "SELCOM_FLOAT_TZS")) {
+      if (!code || code === "SELCOM_FLOAT_TZS") return;
+      const key = bankKeyOfCode(code);
+      const currency = (w.currency || "").toUpperCase();
+      out.push({
+        key,
+        bank: w.name,
+        currency: currency || (key.endsWith("_USD") ? "USD" : "TZS"),
+        label: w.name,
+      });
+    }
+  });
+  const seen = new Set<string>();
+  const deduped = out.filter(r => (seen.has(r.key) ? false : (seen.add(r.key), true)));
+  return deduped.length ? deduped : DEFAULT_BANK_CHANNELS;
 };
 
 /** Wallet-driven labels for the Bank Accounts and Cashless report blocks. */
@@ -74,9 +115,7 @@ export const useReportWallets = (casinoId: string | null | undefined): ReportWal
     },
   });
 
-  const rows = (data || []) as Array<{
-    name: string; canonical_code: string | null; wallet_group: string | null; kind: string | null;
-  }>;
+  const rows = (data || []) as RawWalletRow[];
 
   const banks: ReportRowDef[] = [];
   const providers: ReportRowDef[] = [];
@@ -104,6 +143,25 @@ export const useReportWallets = (casinoId: string | null | undefined): ReportWal
     banks: banks.length ? dedupe(banks) : DEFAULT_BANKS,
     providers: providers.length ? dedupe(providers) : DEFAULT_PROVIDERS,
   };
+};
+
+/** Wallet-driven bank channel list for cash desk input and reports. */
+export const useBankChannelList = (casinoId: string | null | undefined): BankChannelDef[] => {
+  const { data } = useQuery({
+    queryKey: ["report-wallets", casinoId],
+    enabled: !!casinoId,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("fin_wallets")
+        .select("name, canonical_code, wallet_group, kind, currency, is_active")
+        .eq("casino_id", casinoId as string)
+        .eq("is_active", true)
+        .order("name");
+      return data || [];
+    },
+  });
+  return buildBankChannelList((data || []) as RawWalletRow[]);
 };
 
 /** Append rows present in the data but missing from the wallet registry. */

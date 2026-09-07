@@ -109,18 +109,28 @@ const LiveClosingReportV2 = ({
   const cashTzs = (src: Record<string, Record<string | number, number>>) =>
     CURRENCIES.reduce((s, c) => s + cashTotal(src[c]) * (c === "TZS" ? 1 : Number(exchangeRates[c] || 0)), 0);
 
-  const bankValue = (b: any, key: string) => {
-    const e = b?.channels?.[key];
-    if (!e) return 0;
-    const moved = Number(e.in || 0) !== 0 || Number(e.out || 0) !== 0;
-    return moved ? Number(e.in || 0) - Number(e.out || 0) : Number(e.final || 0);
+  const bankCurrencyOf = (key: string) => (key.endsWith("_USD") ? "USD" : key.endsWith("_EUR") ? "EUR" : "TZS");
+  const bankRate = (key: string) => {
+    const cur = bankCurrencyOf(key);
+    return cur === "TZS" ? 1 : Number(exchangeRates[cur] || 0);
+  };
+  const bankChannel = (b: any, key: string) => b?.channels?.[key] || { in: 0, out: 0, final: 0 };
+  const bankOpening = (b: any, key: string) => Number(bankChannel(b, key).final || 0);
+  const bankIn = (b: any, key: string) => Number(bankChannel(b, key).in || 0);
+  const bankOut = (b: any, key: string) => Number(bankChannel(b, key).out || 0);
+  const bankClosing = (b: any, key: string) => bankOpening(b, key) + bankIn(b, key) - bankOut(b, key);
+  const bankTotalTzs = (b: any) => {
+    const keys = Object.keys(b?.channels || {});
+    return keys.reduce((s, k) => s + bankClosing(b, k) * bankRate(k), 0);
+  };
+  const bankTotalOpeningTzs = (b: any) => {
+    const keys = Object.keys(b?.channels || {});
+    return keys.reduce((s, k) => s + bankOpening(b, k) * bankRate(k), 0);
   };
   const liveWallets = useReportWallets(reportCasinoId);
   const wallets = snapshot?.wallets || liveWallets;
   // FROZEN RULE: print every wallet, even at 0.
   const bankKeys = withExtraKeys(wallets.banks, openerBank?.channels, closerBank?.channels);
-  const bankTotal = (b: any) =>
-    Number(b?.tzs || 0) + Number(b?.usd || 0) * Number(exchangeRates["USD"] || 0);
 
   const providers = withExtraKeys(wallets.providers, cashlessIO.inByProv, cashlessIO.outByProv);
   const clIn = Object.values(cashlessIO.inByProv).reduce((s, v) => s + v, 0);
@@ -128,7 +138,9 @@ const LiveClosingReportV2 = ({
 
   const openerCashTzs = cashTzs(openerCash);
   const closerCashTzs = cashTzs(closerCash);
-  const totalMoney = closerCashTzs + bankTotal(closerBank) + (clIn - clOut);
+  const openerBankTotalTzs = bankTotalOpeningTzs(openerBank);
+  const closerBankTotalTzs = bankTotalTzs(closerBank);
+  const totalMoney = closerCashTzs + closerBankTotalTzs + (clIn - clOut);
 
   const cashCols = [
     { key: "currency", label: "Currency", width: "28%" },
@@ -182,8 +194,8 @@ const LiveClosingReportV2 = ({
           <table className="rv2-table rv2-sumtable">
             <tbody>
               <SumRow label="Total Cash" value={num(openerCashTzs)} />
-              <SumRow label="Bank" value={num(bankTotal(openerBank))} />
-              <SumRow label="Total Opening" value={num(openerCashTzs + bankTotal(openerBank))} strong />
+              <SumRow label="Bank" value={num(openerBankTotalTzs)} />
+              <SumRow label="Total Opening" value={num(openerCashTzs + openerBankTotalTzs)} strong />
             </tbody>
           </table>
         </Card>
@@ -192,8 +204,8 @@ const LiveClosingReportV2 = ({
           <table className="rv2-table rv2-sumtable">
             <tbody>
               <SumRow label="Total Cash" value={num(closerCashTzs)} />
-              <SumRow label="Bank" value={num(bankTotal(closerBank))} />
-              <SumRow label="Total Closing" value={num(closerCashTzs + bankTotal(closerBank))} strong />
+              <SumRow label="Bank" value={num(closerBankTotalTzs)} />
+              <SumRow label="Total Closing" value={num(closerCashTzs + closerBankTotalTzs)} strong />
             </tbody>
           </table>
         </Card>
@@ -210,19 +222,49 @@ const LiveClosingReportV2 = ({
         ]}
       />
 
-      <Card title="Bank Accounts (movement / balance per channel)">
+      <Card title="Bank Accounts">
         <CardTable
           cols={[
-            { key: "acc", label: "Account", width: "40%" },
+            { key: "acc", label: "Account", width: "22%" },
+            { key: "cur", label: "Currency", width: "10%" },
             { key: "open", label: "Opening", align: "right" },
+            { key: "inn", label: "In", align: "right" },
+            { key: "out", label: "Out", align: "right" },
+            { key: "net", label: "Net", align: "right" },
             { key: "close", label: "Closing", align: "right" },
+            { key: "rate", label: "Rate", align: "right" },
+            { key: "tzs", label: "Closing TZS", align: "right" },
           ]}
-          rows={bankKeys.map(b => ({
-            acc: b.label,
-            open: num(bankValue(openerBank, b.key)),
-            close: num(bankValue(closerBank, b.key)),
-          }))}
-          footer={{ acc: "Total", open: num(bankTotal(openerBank)), close: num(bankTotal(closerBank)) }}
+          rows={bankKeys.map(b => {
+            const cur = bankCurrencyOf(b.key);
+            const rate = bankRate(b.key);
+            const opening = bankOpening(openerBank, b.key);
+            const inn = bankIn(closerBank, b.key);
+            const out = bankOut(closerBank, b.key);
+            const closing = opening + inn - out;
+            return {
+              acc: b.label,
+              cur,
+              open: num(opening),
+              inn: num(inn),
+              out: num(out),
+              net: signed(inn - out),
+              close: num(closing),
+              rate: rate ? num(rate) : "—",
+              tzs: num(closing * rate),
+            };
+          })}
+          footer={{
+            acc: "Total",
+            cur: "",
+            open: num(openerBankTotalTzs),
+            inn: "",
+            out: "",
+            net: "",
+            close: "",
+            rate: "",
+            tzs: num(closerBankTotalTzs),
+          }}
         />
       </Card>
 
