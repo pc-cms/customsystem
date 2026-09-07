@@ -237,5 +237,7 @@ export const useExpenseAnalytics = (
     filters?.status,
     filters?.source,
     filters?.search,
+    bucketOf,
   ]);
+
 };
