@@ -25,11 +25,6 @@ export type TotalClosingReportV2Props = {
   reportStatus?: string;
 };
 
-const chanValue = (e: any) => {
-  if (!e) return 0;
-  const moved = Number(e?.in || 0) !== 0 || Number(e?.out || 0) !== 0;
-  return moved ? Number(e.in || 0) - Number(e.out || 0) : Number(e?.final || 0);
-};
 
 const sumCashMap = (cash: Record<string | number, number> | undefined) =>
   cash ? Object.entries(cash).reduce((s, [d, q]) => s + Number(d) * (Number(q) || 0), 0) : 0;
