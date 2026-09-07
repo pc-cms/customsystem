@@ -34,31 +34,44 @@ export const CASH_DENOMS: Record<string, number[]> = {
   KES: [1000, 500, 200, 100, 50],
 };
 
-// Coin denominations per currency. Counted separately from banknotes but stored
-// in the same denomination map (fractional keys such as "0.5" are supported by
-// the `_sum_denoms` DB helper, which casts keys to numeric).
-export const COIN_DENOMS: Record<string, number[]> = {
-  TZS: [],
-  USD: [1, 0.5, 0.25, 0.1, 0.05],
-  EUR: [2, 1, 0.5, 0.2, 0.1],
-  GBP: [2, 1, 0.5, 0.2, 0.1],
-  KES: [40, 20, 10, 5, 1],
-};
+// Coins are NOT counted per denomination. Every currency has a single "Coins"
+// field holding a count of minor units, stored in the same denomination map
+// under a fractional key (0.01 for foreign currencies, 1 for TZS shilling
+// coins). The `_sum_denoms` DB helper casts keys to numeric, so the stored
+// value sums correctly with no migration.
+export const COIN_KEY = (currency: string): number => (currency === "TZS" ? 1 : 0.01);
+
+/** Banknote denominations for a currency (coins are handled separately). */
+export const allDenoms = (currency: string): number[] => CASH_DENOMS[currency] || [];
 
 /**
- * Notes + coins for a currency, notes first (used by read-only views/reports).
- * De-duplicated: a value present as BOTH a note and a coin (e.g. USD 1) must
- * appear once, otherwise report rows double-count that denomination.
+ * Split a stored denomination map into banknotes and a single coin amount.
+ * Any key that is not a banknote of the currency (fractional keys, legacy
+ * per-denomination coin rows, the old `cents` key) is folded into `coins`,
+ * expressed in the currency unit.
  */
-export const allDenoms = (currency: string): number[] =>
-  Array.from(new Set([...(CASH_DENOMS[currency] || []), ...(COIN_DENOMS[currency] || [])]));
-
-
-/** True when the currency is counted with fractional (coin) precision. */
-export const hasCoins = (currency: string): boolean => (COIN_DENOMS[currency] || []).length > 0;
+export const splitCoins = (
+  map: Record<string | number, number> | undefined | null,
+  currency: string,
+): { notes: Record<number, number>; coins: number } => {
+  const noteSet = new Set(allDenoms(currency));
+  const notes: Record<number, number> = {};
+  let coins = 0;
+  Object.entries(map || {}).forEach(([k, q]) => {
+    const qty = Number(q) || 0;
+    if (!qty) return;
+    if (k === "cents") { coins += qty / 100; return; }
+    const d = Number(k);
+    if (!Number.isFinite(d)) return;
+    if (noteSet.has(d)) notes[d] = (notes[d] || 0) + qty;
+    else coins += d * qty;
+  });
+  return { notes, coins };
+};
 
 /** Decimal places used for amounts in this currency (TZS = whole numbers). */
 export const currencyDecimals = (currency: string): number => (currency === "TZS" ? 0 : 2);
+
 
 // Non-TZS currencies (for exchange rate inputs)
 export const FOREIGN_CURRENCIES = CURRENCIES.filter(c => c !== "TZS");
