@@ -17,6 +17,8 @@ import TotalClosingReportV2 from "@/components/cage/TotalClosingReportV2";
 import { useCasino } from "@/lib/casino-context";
 import { tipsBucketOf } from "@/lib/slots-tips-bucket";
 import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
+import { useReportSnapshot } from "@/hooks/use-report-snapshot";
+import { loadReportWallets } from "@/lib/report-snapshots";
 import SignatorySelects from "@/components/cage/report-v2/SignatorySelects";
 import { PRINT_SHEET_STYLE_TAG } from "@/lib/print-sheet-css";
 
@@ -335,20 +337,39 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Pr
     };
   }, [data, activeCasino]);
 
+  // Closed shift -> print the immutable snapshot of these exact figures.
+  const slotsShift = (data as any)?.shift;
+  const isClosedSlots = String(slotsShift?.status || "").toLowerCase() === "closed";
+  const { payload: frozenProps, isLoading: snapLoading } = useReportSnapshot<any>({
+    casinoId: slotsShift?.casino_id,
+    reportType: "slots_closing",
+    sourceKey: shiftId,
+    businessDate: slotsShift?.business_date,
+    asOf: slotsShift?.closed_at ?? null,
+    freeze: isClosedSlots,
+    enabled: isClosedSlots && !!props,
+    build: async () => ({
+      ...(props as any),
+      wallets: await loadReportWallets(slotsShift.casino_id),
+    }),
+  });
+  const printProps = (frozenProps as any) || props;
+
   const [signCashier, setSignCashier] = useState<string>("");
   const [signManager, setSignManager] = useState<string>("");
   useEffect(() => {
-    if (!props) return;
-    setSignCashier(String((props as any).cashierName || ""));
-    setSignManager(String((props as any).managerName || ""));
-  }, [props?.shiftId]);
+    if (!printProps) return;
+    setSignCashier(String((printProps as any).cashierName || ""));
+    setSignManager(String((printProps as any).managerName || ""));
+  }, [printProps?.shiftId]);
+
 
   const saveSignatories = async (cashier: string, manager: string) => {
-    if (!props?.shiftId) return;
+    if (!printProps?.shiftId) return;
     await supabase.from("cage_slots_shifts").update({
       cashier_name: cashier.trim() || null,
       manager_name: manager.trim() || null,
-    } as any).eq("id", props.shiftId);
+    } as any).eq("id", printProps.shiftId);
   };
 
   useEffect(() => {
@@ -379,7 +400,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Pr
           )}
         </DialogHeader>
 
-        {isLoading || !props ? (
+        {isLoading || !printProps || (isClosedSlots && (snapLoading || !frozenProps)) ? (
           <div className="text-center text-muted-foreground py-10 text-sm">Loading…</div>
         ) : (
           <>
@@ -396,12 +417,12 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Pr
             <div className="border border-border rounded-md overflow-auto bg-white print:hidden max-h-[55vh]">
               <div className="origin-top-left scale-[0.5] w-[200%]">
                 <>
-                  <SlotsClosingReportV2 {...(props as any)} cashierName={signCashier || null} managerName={signManager || null} />
+                  <SlotsClosingReportV2 {...(printProps as any)} cashierName={signCashier || null} managerName={signManager || null} />
                   {activeCasino?.id ? (
                     <TotalClosingReportV2
                       casinoId={activeCasino.id}
                       casinoName={activeCasino?.name}
-                      businessDate={props.businessDate}
+                      businessDate={printProps.businessDate}
                       managerName={signManager || undefined}
                     />
                   ) : null}
@@ -412,12 +433,12 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Pr
             <PrintPortal>
               <div className="slots-print-area hidden print:block">
                 <>
-                  <SlotsClosingReportV2 {...(props as any)} cashierName={signCashier || null} managerName={signManager || null} />
+                  <SlotsClosingReportV2 {...(printProps as any)} cashierName={signCashier || null} managerName={signManager || null} />
                   {activeCasino?.id ? (
                     <TotalClosingReportV2
                       casinoId={activeCasino.id}
                       casinoName={activeCasino?.name}
-                      businessDate={props.businessDate}
+                      businessDate={printProps.businessDate}
                       managerName={signManager || undefined}
                     />
                   ) : null}

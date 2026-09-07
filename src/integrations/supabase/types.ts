@@ -10680,6 +10680,59 @@ export type Database = {
           },
         ]
       }
+      report_snapshots: {
+        Row: {
+          as_of: string | null
+          business_date: string
+          captured_at: string
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          payload: Json
+          report_type: string
+          revision: number
+          source_key: string
+          superseded_at: string | null
+        }
+        Insert: {
+          as_of?: string | null
+          business_date: string
+          captured_at?: string
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payload: Json
+          report_type: string
+          revision?: number
+          source_key: string
+          superseded_at?: string | null
+        }
+        Update: {
+          as_of?: string | null
+          business_date?: string
+          captured_at?: string
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payload?: Json
+          report_type?: string
+          revision?: number
+          source_key?: string
+          superseded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_snapshots_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_capabilities: {
         Row: {
           capability: string
