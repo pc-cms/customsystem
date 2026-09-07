@@ -43,6 +43,8 @@ interface FinancesExpensesPageProps {
 export default function FinancesExpensesPage({ embedded = false, embeddedFrom, embeddedTo }: FinancesExpensesPageProps = {}) {
   const { roles } = useAuth();
   const canManage = roles.includes("super_admin") || roles.includes("manager") || roles.includes("finance_manager");
+  /** Finance director may record office expenses with a negative amount (refund / partial reversal). */
+  const canPostNegative = roles.includes("super_admin") || roles.includes("finance_manager");
 
   const initialRange = presetRange("month");
   const [preset, setPreset] = useSessionState<DatePreset>("preset", "month");
