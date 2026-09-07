@@ -274,6 +274,12 @@ const TotalClosingReportV2 = ({
     ...liveShifts.map((x: any) => x.cashier_name).filter(Boolean),
   ])).join(" / ") || "—";
 
+  // Shift Balance is the certified value stored when the desk was closed.
+  // While a desk is still open there is no certified balance — we print a dash
+  // instead of a computed figure so no phantom minus ever reaches paper.
+  const liveBalanceCell = openLive ? "—" : signed(liveBalance);
+  const slotsBalanceCell = openSlots ? "—" : signed(slotsBalance);
+
   const totalCash = liveClosingCash + slotsClosingCash;
   const totalMoney = totalCash + bankTotalTzs + liveCashlessNet + slotsCashlessNet;
 
@@ -310,9 +316,9 @@ const TotalClosingReportV2 = ({
           ]}
           footer={{
             k: "Shift Balance",
-            live: signed(liveBalance),
-            slots: signed(slotsBalance),
-            total: signed(liveBalance + slotsBalance),
+            live: liveBalanceCell,
+            slots: slotsBalanceCell,
+            total: openLive || openSlots ? "—" : signed(liveBalance + slotsBalance),
           }}
         />
       </Card>
@@ -350,6 +356,24 @@ const TotalClosingReportV2 = ({
       </Card>
       </div>
 
+      <Card title="Cashless by Provider">
+        <CardTable
+          cols={[
+            { key: "prov", label: "Provider", width: "34%" },
+            { key: "live", label: "Live Game", align: "right" },
+            { key: "slots", label: "Slots", align: "right" },
+            { key: "net", label: "Net", align: "right" },
+          ]}
+          rows={cashlessRows}
+          footer={{
+            prov: "Total Cashless Net",
+            live: signed(liveCashlessNet),
+            slots: signed(slotsCashlessNet),
+            net: signed(liveCashlessNet + slotsCashlessNet),
+          }}
+        />
+      </Card>
+
       <Card title="Total Closing Control">
 
         <CardTable
@@ -365,7 +389,7 @@ const TotalClosingReportV2 = ({
             bank: num(bankTotalTzs),
             cl: signed(liveCashlessNet + slotsCashlessNet),
             tm: num(totalMoney),
-            bal: signed(liveBalance + slotsBalance),
+            bal: openLive || openSlots ? "—" : signed(liveBalance + slotsBalance),
           }]}
         />
       </Card>
