@@ -588,8 +588,13 @@ const Expenses = ({
     const amt = Number(row.amount);
     // Collections (owner withdrawal / CAPEX / transfers) may be negative:
     // a returned collection reduces the withdrawn amount.
+    // Finance Manager / Super Admin may post negative office amounts in ANY category.
     const allowsNegative =
-      row.source === "office" && finCatById[row.fin_category_id]?.group_code === "collections";
+      row.source === "office" &&
+      (finCatById[row.fin_category_id]?.group_code === "collections" ||
+        roles.includes("finance_manager") ||
+        roles.includes("super_admin"));
+
 
     if (!amt || (!allowsNegative && amt <= 0))
       return toast.error(allowsNegative ? "Amount cannot be 0" : "Amount must be > 0");
@@ -994,7 +999,11 @@ const DraftRowView = ({
   canRemove: boolean;
   isPending: boolean;
 }) => {
+  const { roles: rowRoles } = useAuth();
   const isOffice = draft.source === "office";
+  const canPostNegative =
+    isOffice && (rowRoles.includes("finance_manager") || rowRoles.includes("super_admin"));
+
   const shiftMissing =
     (draft.source === "live_game" && !liveShift?.id) ||
     (draft.source === "slots" && !slotsShift?.id);
@@ -1065,7 +1074,7 @@ const DraftRowView = ({
         />
       </td>
       <td className="px-2 py-1.5">
-        <NumberInput placeholder="0" value={draft.amount} onChange={(v) => onChange({ amount: v })} className="h-8 text-xs text-right" />
+        <NumberInput placeholder="0" allowNegative={canPostNegative} value={draft.amount} onChange={(v) => onChange({ amount: v })} className="h-8 text-xs text-right" />
       </td>
       <td className="px-2 py-1.5">
         <Input placeholder="Description" value={draft.description} onChange={(e) => onChange({ description: e.target.value })} className="h-8 text-xs" />
