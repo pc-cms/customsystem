@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CURRENCIES, CASH_DENOMS, formatNumberSpaces, allDenoms} from "@/lib/currency";
 import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
-import { useReportWallets, withExtraKeys } from "./report-v2/wallet-rows";
+import { useReportWallets, withExtraKeys, normalizeProviderMap } from "./report-v2/wallet-rows";
 import {
   A4_CLASS, A4_STYLE, Card, CardTable, PageFooter, ReportHeader, Signatures, buildReportId, num, signed,
 } from "./report-v2/primitives";
@@ -177,6 +177,27 @@ const TotalClosingReportV2 = ({
   const slotsShiftNet = shiftNet(slotsShifts);
   const liveCashlessNet = liveShiftNet || journalNetFor("live_game");
   const slotsCashlessNet = slotsShiftNet || journalNetFor("slots");
+
+  // Per-provider breakdown — every provider wallet of the casino, even at 0.
+  const provNetOf = (rows: any[]): Record<string, number> => {
+    const out: Record<string, number> = {};
+    rows.forEach(r => {
+      const inn = normalizeProviderMap(r.cashless_in_providers);
+      const outm = normalizeProviderMap(r.cashless_out_providers);
+      Object.entries(inn).forEach(([k, v]) => { out[k] = (out[k] || 0) + Number(v || 0); });
+      Object.entries(outm).forEach(([k, v]) => { out[k] = (out[k] || 0) - Number(v || 0); });
+    });
+    return out;
+  };
+  const liveProvNet = provNetOf(liveShifts);
+  const slotsProvNet = provNetOf(slotsShifts);
+  const providerDefs = withExtraKeys(wallets.providers, liveProvNet, slotsProvNet);
+  const cashlessRows = providerDefs.map(p => ({
+    prov: p.label,
+    live: signed(liveProvNet[p.key] || 0),
+    slots: signed(slotsProvNet[p.key] || 0),
+    net: signed(Number(liveProvNet[p.key] || 0) + Number(slotsProvNet[p.key] || 0)),
+  }));
 
 
   const liveTotalMoney = liveClosingCash + liveClosingBank + liveCashlessNet;
