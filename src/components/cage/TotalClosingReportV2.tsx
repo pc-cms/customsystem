@@ -213,8 +213,9 @@ const TotalClosingReportV2 = ({
   });
 
   /* ---------- Bank accounts ---------- */
-  const bankDefs = withExtraKeys(wallets.banks, bankChannels)
-    .filter(b => chanValue(bankChannels[b.key]));
+  // FROZEN RULE: every wallet of the casino is printed every day, even at 0 —
+  // the report must look identical from one shift to the next.
+  const bankDefs = withExtraKeys(wallets.banks, bankChannels);
   const bankCurrencyOf = (key: string) => (key.endsWith("_USD") ? "USD" : key.endsWith("_EUR") ? "EUR" : "TZS");
   const bankRows = bankDefs.map(b => {
     const e = bankChannels[b.key];
