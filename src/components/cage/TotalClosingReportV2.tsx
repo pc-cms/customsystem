@@ -403,16 +403,18 @@ const TotalClosingReportV2 = ({
       <Card title="Bank Accounts">
         <CardTable
           cols={[
-            { key: "acc", label: "Account", width: "24%" },
-            { key: "cur", label: "Currency", width: "12%" },
+            { key: "acc", label: "Account", width: "22%" },
+            { key: "cur", label: "Currency", width: "10%" },
+            { key: "open", label: "Opening", align: "right" },
             { key: "inn", label: "In", align: "right" },
             { key: "out", label: "Out", align: "right" },
+            { key: "net", label: "Net", align: "right" },
             { key: "close", label: "Closing", align: "right" },
             { key: "rate", label: "Rate", align: "right" },
             { key: "tzs", label: "Closing TZS", align: "right" },
           ]}
           rows={bankRows}
-          footer={{ acc: "Total", cur: "", inn: "", out: "", close: "", rate: "", tzs: num(bankTotalTzs) }}
+          footer={{ acc: "Total", cur: "", open: "", inn: "", out: "", net: "", close: "", rate: "", tzs: num(bankTotalTzs) }}
         />
       </Card>
       </div>
