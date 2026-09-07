@@ -44,6 +44,8 @@ const businessDateForEAT = (iso: string): string => {
 };
 
 import { printLiveGameReport } from "@/components/cage/printLiveGameReport";
+import { useReportSnapshot } from "@/hooks/use-report-snapshot";
+import { buildLiveReportPayload, loadChipsMovementData } from "@/lib/report-snapshots";
 
 const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = false }: Props) => {
   const { data, isLoading } = useQuery({
@@ -118,6 +120,31 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = fals
     } as any).eq("id", shift.id);
   };
 
+  // Freeze / read the immutable pack before anything can be printed, so the
+  // preview and the paper always render the very same stored figures.
+  const isClosed = !!shift?.closed_at;
+  const live = useReportSnapshot<any>({
+    casinoId,
+    reportType: "live_closing",
+    sourceKey: shiftId,
+    businessDate,
+    asOf: shift?.closed_at ?? null,
+    freeze: isClosed,
+    enabled: isClosed && !!businessDate,
+    build: () => buildLiveReportPayload({ casinoId, shiftId, businessDate, tables }),
+  });
+  const chips = useReportSnapshot<any>({
+    casinoId,
+    reportType: "chips_movement",
+    sourceKey: shiftId,
+    businessDate,
+    asOf: shift?.closed_at ?? null,
+    freeze: isClosed,
+    enabled: isClosed && !!businessDate,
+    build: () => loadChipsMovementData(shiftId),
+  });
+  const packReady = !isClosed || (!live.isLoading && !chips.isLoading);
+
   // Add a body class while open so global @media print rules can target it.
   useEffect(() => {
     if (!open) return;
@@ -142,7 +169,7 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = fals
           )}
         </DialogHeader>
 
-        {isLoading || !shift ? (
+        {isLoading || !shift || !packReady ? (
           <div className="text-center text-muted-foreground py-10 text-sm">Loading…</div>
         ) : (
           <>
