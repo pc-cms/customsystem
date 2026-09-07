@@ -13,7 +13,7 @@ import { useMonthClosures } from "@/hooks/use-fin-month-closures";
 
 import { useActiveShift } from "@/hooks/use-shift";
 import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
-import { useExpenseAnalytics, type ExpenseStatus, type ExpenseTarget, type ExpenseSourceFilter } from "@/hooks/use-expenses-analytics";
+import { useExpenseAnalytics, type ExpenseStatus, type ExpenseTarget, type ExpenseSourceFilter, type ExpenseBucket, type CurrencyTotals } from "@/hooks/use-expenses-analytics";
 import { useAuth } from "@/lib/auth-context";
 import { getBusinessDate } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
@@ -68,6 +68,23 @@ const SRC_LABEL: Record<SourceVal, string> = {
   slots: "Slots",
   office: "Office",
 };
+
+/** Currency breakdown line (shown only when more than one currency is present). */
+const CurrencyLine = ({ t }: { t?: CurrencyTotals }) => {
+  const keys = Object.keys(t?.byCurrency || {}).filter((c) => Number(t!.byCurrency[c]) !== 0);
+  if (keys.length < 2) return null;
+  const order = ["TZS", "USD", "EUR", "GBP", "KES"];
+  const rank = (c: string) => (order.indexOf(c) < 0 ? 99 : order.indexOf(c));
+  keys.sort((a, b) => rank(a) - rank(b));
+
+  return (
+    <span className="block text-[10px] text-muted-foreground font-normal leading-tight">
+      {keys.map((c) => `${c} ${formatNumberSpaces(t!.byCurrency[c])}`).join(" · ")}
+    </span>
+  );
+};
+
+
 
 const resolveSource = (e: any): SourceVal => {
   const s = (e.source || "").toLowerCase();
@@ -244,7 +261,16 @@ const Expenses = ({
     }),
     [finCategoryFilter, target, status, source, search],
   );
-  const analytics = useExpenseAnalytics(expenses as any, filters);
+  /** Accounting bucket of a row — same rule as the monthly report (fin_categories.bucket). */
+  const bucketOf = useMemo(
+    () => (e: any): ExpenseBucket => {
+      const b = finCatById[e.fin_category_id]?.bucket;
+      return b === "collection" || b === "capex" || b === "transfer" ? b : "expense";
+    },
+    [finCatById],
+  );
+  const analytics = useExpenseAnalytics(expenses as any, filters, bucketOf);
+
 
   const resetFilters = () => {
     if (!officeEmbedded) {
@@ -704,13 +730,18 @@ const Expenses = ({
           className="cms-panel p-3 text-left transition hover:bg-muted/40"
           title="Show all sources"
         >
-          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total</p>
-          <p className="font-mono text-lg font-bold text-card-foreground">{formatCurrency(analytics.totalAmount)}</p>
+          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total Expenses</p>
+          <p className="font-mono text-lg font-bold text-card-foreground">
+            {formatCurrency(analytics.byBucket.expense.tzs)}
+          </p>
+          <CurrencyLine t={analytics.byBucket.expense} />
         </button>
         <div className="cms-panel p-3">
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Approved</p>
-          <p className="font-mono text-lg font-bold cms-amount-positive">{formatCurrency(analytics.approvedAmount)}</p>
+          <p className="font-mono text-lg font-bold cms-amount-positive">{formatCurrency(analytics.approvedTotals.tzs)}</p>
+          <CurrencyLine t={analytics.approvedTotals} />
         </div>
+
         <div className="cms-panel p-3">
           <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Pending</p>
           <p className="font-mono text-lg font-bold text-accent">{analytics.pendingCount}</p>
@@ -731,6 +762,28 @@ const Expenses = ({
         </button>
       </div>
 
+      {/* Non-expense buckets — excluded from Total Expenses (same rule as the monthly report) */}
+      {(["collection", "capex", "transfer"] as ExpenseBucket[]).some(
+        (b) => analytics.byBucket[b].count > 0,
+      ) && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+          {(["collection", "capex", "transfer"] as ExpenseBucket[])
+            .filter((b) => analytics.byBucket[b].count > 0)
+            .map((b) => (
+              <div key={b} className="cms-panel p-3">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  {b === "collection" ? "Collections" : b === "capex" ? "CAPEX" : "Transfers"}
+                </p>
+                <p className="font-mono text-base font-bold text-card-foreground">
+                  {formatCurrency(analytics.byBucket[b].tzs)}
+                  <span className="ml-2 text-xs text-muted-foreground font-normal">· {analytics.byBucket[b].count}</span>
+                </p>
+                <CurrencyLine t={analytics.byBucket[b]} />
+              </div>
+            ))}
+        </div>
+      )}
+
       {/* By-source mini summary (managers only) */}
       {!sourceLocked && (
         <div className="grid grid-cols-3 gap-3 mb-4">
@@ -743,13 +796,15 @@ const Expenses = ({
             >
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{SRC_LABEL[s]}</p>
               <p className="font-mono text-base font-bold text-card-foreground">
-                {formatCurrency(analytics.bySource?.[s]?.total ?? 0)}
-                <span className="ml-2 text-xs text-muted-foreground font-normal">· {analytics.bySource?.[s]?.count ?? 0}</span>
+                {formatCurrency(analytics.bySourceTotals?.[s]?.tzs ?? 0)}
+                <span className="ml-2 text-xs text-muted-foreground font-normal">· {analytics.bySourceTotals?.[s]?.count ?? 0}</span>
               </p>
+              <CurrencyLine t={analytics.bySourceTotals?.[s]} />
             </button>
           ))}
         </div>
       )}
+
 
 
       {/* Bar charges details (toggle) */}
@@ -920,28 +975,74 @@ const Expenses = ({
               onSortChange={setSort}
               footerRows={[
                 {
-                  key: "total",
+                  key: "total-expenses",
                   className: "font-bold border-t-2 border-border bg-muted/30",
                   cell: (col, index) => {
-                    if (index === 0) return <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</span>;
+                    if (index === 0)
+                      return <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Expenses</span>;
                     if (col.key === "amount") {
                       return (
                         <div className="text-right font-mono text-sm font-semibold cms-amount-negative">
-                          <div>{formatNumberSpaces(totalTzs)} TZS</div>
-                          {currencyKeys.length > 1 && (
-                            <div className="text-[10px] text-muted-foreground font-normal">
-                              {currencyKeys
-                                .map((c) => `${c} ${formatNumberSpaces(byCurrency[c])}`)
-                                .join(" · ")}
-                            </div>
-                          )}
+                          <div>{formatNumberSpaces(analytics.byBucket.expense.tzs)} TZS</div>
+                          <CurrencyLine t={analytics.byBucket.expense} />
                         </div>
                       );
                     }
                     return null;
                   },
                 },
+                ...(["collection", "capex", "transfer"] as ExpenseBucket[])
+                  .filter((b) => analytics.byBucket[b].count > 0)
+                  .map((b) => ({
+                    key: `total-${b}`,
+                    className: "border-t border-border bg-muted/10",
+                    cell: (col: ColumnDef<any>, index: number) => {
+                      if (index === 0)
+                        return (
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                            {b === "collection" ? "Collections" : b === "capex" ? "CAPEX" : "Transfers"}
+                          </span>
+                        );
+                      if (col.key === "amount") {
+                        return (
+                          <div className="text-right font-mono text-sm text-muted-foreground">
+                            <div>{formatNumberSpaces(analytics.byBucket[b].tzs)} TZS</div>
+                            <CurrencyLine t={analytics.byBucket[b]} />
+                          </div>
+                        );
+                      }
+                      return null;
+                    },
+                  })),
+                ...((["collection", "capex", "transfer"] as ExpenseBucket[]).some(
+                  (b) => analytics.byBucket[b].count > 0,
+                )
+                  ? [
+                      {
+                        key: "total-all",
+                        className: "font-bold border-t border-border bg-muted/30",
+                        cell: (col: ColumnDef<any>, index: number) => {
+                          if (index === 0)
+                            return <span className="text-[10px] uppercase tracking-wider text-muted-foreground">All rows</span>;
+                          if (col.key === "amount") {
+                            return (
+                              <div className="text-right font-mono text-sm font-semibold text-card-foreground">
+                                <div>{formatNumberSpaces(totalTzs)} TZS</div>
+                                {currencyKeys.length > 1 && (
+                                  <div className="text-[10px] text-muted-foreground font-normal">
+                                    {currencyKeys.map((c) => `${c} ${formatNumberSpaces(byCurrency[c])}`).join(" · ")}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                          return null;
+                        },
+                      },
+                    ]
+                  : []),
               ]}
+
               empty={
                 <div className="text-sm text-muted-foreground text-center py-8">
                   No expenses match the filters
