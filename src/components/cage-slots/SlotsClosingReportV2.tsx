@@ -183,22 +183,48 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
         ]}
       />
 
-      <Card title="Bank Accounts (movement / balance per channel)">
+      <Card title="Bank Accounts">
         <CardTable
           cols={[
-            { key: "acc", label: "Account", width: "40%" },
+            { key: "acc", label: "Account", width: "22%" },
+            { key: "cur", label: "Currency", width: "10%" },
             { key: "open", label: "Opening", align: "right" },
+            { key: "inn", label: "In", align: "right" },
+            { key: "out", label: "Out", align: "right" },
+            { key: "net", label: "Net", align: "right" },
             { key: "close", label: "Closing", align: "right" },
+            { key: "rate", label: "Rate", align: "right" },
+            { key: "tzs", label: "Closing TZS", align: "right" },
           ]}
-          rows={bankKeys.map(b => ({
-            acc: b.label,
-            open: num(bankValue(openerBankChannels, b.key)),
-            close: num(bankValue(closerBankChannels, b.key)),
-          }))}
+          rows={bankKeys.map(b => {
+            const cur = bankCurrencyOf(b.key);
+            const rate = bankRate(b.key);
+            const opening = bankOpening(openerBankChannels, b.key);
+            const inn = bankIn(closerBankChannels, b.key);
+            const out = bankOut(closerBankChannels, b.key);
+            const closing = opening + inn - out;
+            return {
+              acc: b.label,
+              cur,
+              open: num(opening),
+              inn: num(inn),
+              out: num(out),
+              net: signed(inn - out),
+              close: num(closing),
+              rate: rate ? num(rate) : "—",
+              tzs: num(closing * rate),
+            };
+          })}
           footer={{
             acc: "Total",
+            cur: "",
             open: num(openerBankTotalTzs),
-            close: num(closerBankTotalTzs),
+            inn: "",
+            out: "",
+            net: "",
+            close: "",
+            rate: "",
+            tzs: num(closerBankTotalTzs),
           }}
         />
       </Card>
