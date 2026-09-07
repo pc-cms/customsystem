@@ -183,6 +183,30 @@ export const useExpenseAnalytics = (
     });
     const barChargesByPlayer = Object.values(barByPlayer).sort((a, b) => b.total - a.total);
 
+    // ---- Bucket + currency aware totals (canon: matches monthly report) ----
+    const resolveBucket = (e: any): ExpenseBucket => bucketOf?.(e) || "expense";
+
+    const byBucket: Record<ExpenseBucket, CurrencyTotals> = {
+      expense: emptyTotals(),
+      collection: emptyTotals(),
+      capex: emptyTotals(),
+      transfer: emptyTotals(),
+    };
+    const totals = emptyTotals();
+    const approvedTotals = emptyTotals();
+    const bySourceTotals: Record<string, CurrencyTotals> = {
+      live_game: emptyTotals(),
+      slots: emptyTotals(),
+      office: emptyTotals(),
+    };
+
+    filtered.forEach((e: any) => {
+      addTo(totals, e);
+      if (e.approved) addTo(approvedTotals, e);
+      addTo(byBucket[resolveBucket(e)], e);
+      addTo(bySourceTotals[resolveSource(e)], e);
+    });
+
     return {
       filtered,
       totalAmount,
@@ -195,7 +219,14 @@ export const useExpenseAnalytics = (
       barChargeTotal,
       barChargeCount,
       barChargesByPlayer,
+      /** All filtered rows, TZS-equivalent + native per currency. */
+      totals,
+      approvedTotals,
+      /** Split by accounting bucket — `expense` is the true "Total Expenses". */
+      byBucket,
+      bySourceTotals,
     };
+
   }, [
     expenses,
     filters?.from,
