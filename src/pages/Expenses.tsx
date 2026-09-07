@@ -762,6 +762,28 @@ const Expenses = ({
         </button>
       </div>
 
+      {/* Non-expense buckets — excluded from Total Expenses (same rule as the monthly report) */}
+      {(["collection", "capex", "transfer"] as ExpenseBucket[]).some(
+        (b) => analytics.byBucket[b].count > 0,
+      ) && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+          {(["collection", "capex", "transfer"] as ExpenseBucket[])
+            .filter((b) => analytics.byBucket[b].count > 0)
+            .map((b) => (
+              <div key={b} className="cms-panel p-3">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  {b === "collection" ? "Collections" : b === "capex" ? "CAPEX" : "Transfers"}
+                </p>
+                <p className="font-mono text-base font-bold text-card-foreground">
+                  {formatCurrency(analytics.byBucket[b].tzs)}
+                  <span className="ml-2 text-xs text-muted-foreground font-normal">· {analytics.byBucket[b].count}</span>
+                </p>
+                <CurrencyLine t={analytics.byBucket[b]} />
+              </div>
+            ))}
+        </div>
+      )}
+
       {/* By-source mini summary (managers only) */}
       {!sourceLocked && (
         <div className="grid grid-cols-3 gap-3 mb-4">
@@ -774,13 +796,15 @@ const Expenses = ({
             >
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{SRC_LABEL[s]}</p>
               <p className="font-mono text-base font-bold text-card-foreground">
-                {formatCurrency(analytics.bySource?.[s]?.total ?? 0)}
-                <span className="ml-2 text-xs text-muted-foreground font-normal">· {analytics.bySource?.[s]?.count ?? 0}</span>
+                {formatCurrency(analytics.bySourceTotals?.[s]?.tzs ?? 0)}
+                <span className="ml-2 text-xs text-muted-foreground font-normal">· {analytics.bySourceTotals?.[s]?.count ?? 0}</span>
               </p>
+              <CurrencyLine t={analytics.bySourceTotals?.[s]} />
             </button>
           ))}
         </div>
       )}
+
 
 
       {/* Bar charges details (toggle) */}
