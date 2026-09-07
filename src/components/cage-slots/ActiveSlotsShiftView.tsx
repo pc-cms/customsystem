@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight, History, Pencil, Gift } from "lucide-react";
-import PrintSlotsShiftDialog from "./PrintSlotsShiftDialog";
+import { Coins, Send, RotateCcw, FileText, CreditCard, Save, ArrowLeftRight, History, Pencil, Gift } from "lucide-react";
 import { HourlyCheckBanner } from "@/components/cage/HourlyCheckBanner";
 import EditOpeningCardsDialog from "./EditOpeningCardsDialog";
 // SlotsTransfersForm moved to dedicated /transfers page
@@ -470,8 +469,6 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [showApprove, setShowApprove] = useState(false);
   const [managerComment, setManagerComment] = useState("");
   const [viewerCheck, setViewerCheck] = useState<Tables<"cash_counts"> | null>(null);
-  const [showPrintPrompt, setShowPrintPrompt] = useState(false);
-  const [showPrintDialog, setShowPrintDialog] = useState(false);
   const needsComment = Math.abs(shiftBalance) > 0;
 
   const doApprove = (managerId: string) => {
@@ -577,14 +574,6 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             <Button
               variant="outline"
               size="lg"
-              onClick={() => setShowPrintDialog(true)}
-              className="gap-1.5"
-            >
-              <Printer className="w-4 h-4" /> Print Report
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
               onClick={() => reopen.mutate({ shift_id: shift.id })}
               disabled={reopen.isPending}
             >
@@ -597,14 +586,6 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             />
           </div>
         </div>
-
-        {showPrintDialog && (
-          <PrintSlotsShiftDialog
-            open={showPrintDialog}
-            shiftId={shift.id}
-            onClose={() => setShowPrintDialog(false)}
-          />
-        )}
       </PageShell>
     );
   }
@@ -1131,41 +1112,6 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           initialValue={openingCardsSeed}
           open={showEditOpeningCards}
           onClose={() => { setShowEditOpeningCards(false); setOpeningCardsSeed(undefined); }}
-        />
-      )}
-
-      {/* Print Reports prompt — shown after manager approves & closes the shift */}
-      {showPrintPrompt && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowPrintPrompt(false)}>
-          <div className="bg-card border border-border rounded-md shadow-lg p-5 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
-            <div>
-              <h3 className="font-semibold text-base">Print Reports?</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Shift closed successfully. Do you want to print the shift report now?
-              </p>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowPrintPrompt(false)}>No</Button>
-              <Button
-                size="sm"
-                className="gap-1.5"
-                onClick={() => {
-                  setShowPrintPrompt(false);
-                  setShowPrintDialog(true);
-                }}
-              >
-                <Printer className="w-3.5 h-3.5" /> Yes, Print
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showPrintDialog && (
-        <PrintSlotsShiftDialog
-          open
-          shiftId={shift.id}
-          onClose={() => setShowPrintDialog(false)}
         />
       )}
     </PageShell>
