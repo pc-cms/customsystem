@@ -999,7 +999,11 @@ const DraftRowView = ({
   canRemove: boolean;
   isPending: boolean;
 }) => {
+  const { roles: rowRoles } = useAuth();
   const isOffice = draft.source === "office";
+  const canPostNegative =
+    isOffice && (rowRoles.includes("finance_manager") || rowRoles.includes("super_admin"));
+
   const shiftMissing =
     (draft.source === "live_game" && !liveShift?.id) ||
     (draft.source === "slots" && !slotsShift?.id);
