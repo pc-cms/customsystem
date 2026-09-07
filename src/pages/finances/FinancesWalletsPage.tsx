@@ -992,20 +992,6 @@ export default function FinancesWalletsPage() {
                                     currency={w.currency}
                                     size="sm"
                                     placeholders={expectedDenoms.get(w.id)?.denoms}
-                                    {...(w.currency === "TZS"
-                                      ? {
-                                          cents: centsVal,
-                                          onCentsChange: (c: number) => {
-                                            setCentsInput((s) => ({ ...s, [w.id]: c }));
-                                            setTouchedCount((s) => ({ ...s, [w.id]: true }));
-                                          },
-
-                                          centsPlaceholder: (() => {
-                                            const t = lastCounts?.get(w.id)?.total ?? 0;
-                                            return Math.round((t - Math.trunc(t)) * 100);
-                                          })(),
-                                        }
-                                      : {})}
                                   />
                                   <div className="mt-1 text-[10px] text-muted-foreground/70">
                                     Grey hints = notes from the last physical count
