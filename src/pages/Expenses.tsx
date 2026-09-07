@@ -244,7 +244,16 @@ const Expenses = ({
     }),
     [finCategoryFilter, target, status, source, search],
   );
-  const analytics = useExpenseAnalytics(expenses as any, filters);
+  /** Accounting bucket of a row — same rule as the monthly report (fin_categories.bucket). */
+  const bucketOf = useMemo(
+    () => (e: any): ExpenseBucket => {
+      const b = finCatById[e.fin_category_id]?.bucket;
+      return b === "collection" || b === "capex" || b === "transfer" ? b : "expense";
+    },
+    [finCatById],
+  );
+  const analytics = useExpenseAnalytics(expenses as any, filters, bucketOf);
+
 
   const resetFilters = () => {
     if (!officeEmbedded) {
