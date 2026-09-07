@@ -10,7 +10,7 @@ import { PRINT_REPORT_ACCENTS_CSS } from "@/lib/print-report-accents";
 import { useAuth } from "@/lib/auth-context";
 import { useReportWallets, withExtraKeys, normalizeProviderMap } from "@/components/cage/report-v2/wallet-rows";
 import {
-  A4_CLASS, A4_STYLE, Card, CardTable, KpiStrip, PageFooter, ReportHeader, Signatures,
+  A4_CLASS, A4_STYLE, Card, CardTable, DataSource, KpiStrip, PageFooter, ReportHeader, Signatures,
   buildReportId, num, signed,
 } from "@/components/cage/report-v2/primitives";
 import type { SlotsConsolidatedProps } from "./SlotsConsolidatedReport";
@@ -28,6 +28,9 @@ export type SlotsClosingReportV2Props = SlotsConsolidatedProps & {
   cashierName?: string | null;
   managerName?: string | null;
   shiftId?: string | null;
+  /** cage_slots_shifts.closed_at of the source shift. */
+  closedAt?: string | null;
+  shiftStatus?: string | null;
   reportStatus?: string;
   taxableWinnings?: number;
   jackpotCount?: number;
@@ -60,7 +63,7 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
     cashFlowFill, cashFlowCredit, casinoExpenses, tipsCollection, aceBalance,
     cashlessDepositByProvider, cashlessWithdrawByProvider,
     cashlessDepositTotalTzs, cashlessWithdrawTotalTzs,
-    cashierName, managerName, shiftId,
+    cashierName, managerName, shiftId, closedAt, shiftStatus,
     reportStatus = "DRAFT — GBT APPROVAL PENDING",
     taxableWinnings = 0, jackpotCount = 0, winningsTaxRate = 0.15, adjustmentRef,
     cardsFill = 0, cardsCredit = 0, closingCardValue = 0, slotsResult,
@@ -246,6 +249,13 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
           }]}
         />
       </Card>
+
+      <DataSource entries={[{
+        label: "Slots shift",
+        id: shiftId,
+        closedAt,
+        note: shiftStatus && !["closed", "approved"].includes(String(shiftStatus)) ? "still open — provisional" : null,
+      }]} />
 
       <Signatures left="Closing Cashier" right="Closing Manager" leftName={cashierName} rightName={managerName} />
       <PageFooter casinoName={casinoName} page={1} total={4} />
