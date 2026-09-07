@@ -17,6 +17,7 @@ import TotalClosingReportV2 from "@/components/cage/TotalClosingReportV2";
 import { useCasino } from "@/lib/casino-context";
 import { tipsBucketOf } from "@/lib/slots-tips-bucket";
 import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
+import { useReportSnapshot } from "@/hooks/use-report-snapshot";
 import SignatorySelects from "@/components/cage/report-v2/SignatorySelects";
 import { PRINT_SHEET_STYLE_TAG } from "@/lib/print-sheet-css";
 
