@@ -512,6 +512,22 @@
     page-break-before: always;
     break-before: page;
   }
+  /* V2 Chips Movement sheet is landscape — do not clip it on a portrait page. */
+  @page chips-landscape {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+  #chip-print-area:has(.rv2-page-land) {
+    page: chips-landscape;
+    width: 281mm !important;
+    overflow: visible !important;
+  }
+  #chip-print-area .rv2-page-land {
+    page: chips-landscape;
+    width: 281mm !important;
+    max-width: 281mm !important;
+  }
+
   .expenses-print-area {
     page: cashdesk-portrait;
   }
