@@ -135,7 +135,7 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
         cashier={cashierName}
         manager={managerName}
         shiftLabel={String(shiftType || "").toUpperCase() === "DAY" ? "Day" : "Night"}
-        closedAt={(props as any).closedAt || (props as any).closed_at || null}
+        closedAt={closedAt}
       />
 
       <KpiStrip
