@@ -137,6 +137,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [adjustmentRef, setAdjustmentRef] = useState<string>((shift as any).adjustment_ref || "");
   const [signCashier, setSignCashier] = useState<string>((shift as any).cashier_name || "");
   const [signManager, setSignManager] = useState<string>((shift as any).manager_name || "");
+  const [printShiftId, setPrintShiftId] = useState<string | null>(null);
 
   // Dirty refs — block DB→state re-hydration while the cashier has unsaved
   // edits in a provider block. Cleared after a successful onBlur save.
