@@ -572,6 +572,14 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             <Button
               variant="outline"
               size="lg"
+              onClick={() => setPrintShiftId(shift.id)}
+              className="gap-1.5"
+            >
+              <Printer className="w-4 h-4" /> Print
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
               onClick={() => reopen.mutate({ shift_id: shift.id })}
               disabled={reopen.isPending}
             >
@@ -584,6 +592,14 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             />
           </div>
         </div>
+
+        {printShiftId && (
+          <PrintSlotsShiftDialog
+            open
+            shiftId={printShiftId}
+            onClose={() => setPrintShiftId(null)}
+          />
+        )}
       </PageShell>
     );
   }
