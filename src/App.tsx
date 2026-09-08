@@ -116,6 +116,7 @@ const CageViewPage = lazy(() => import("@/pages/cage/CageViewPage"));
 // DailyExpensesPage and SlotsExpenses removed — unified into /expenses.
 const CageSlots = lazy(() => import("@/pages/CageSlots"));
 const SlotsTipsCdPage = lazy(() => import("@/pages/cage/SlotsTipsCdPage"));
+const PrintSlotsShiftPage = lazy(() => import("@/pages/cage-slots/PrintSlotsShiftPage"));
 
 
 const ExpensesApprovals = lazy(() => import("@/pages/ExpensesApprovals"));
