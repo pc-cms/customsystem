@@ -27,3 +27,9 @@
 - `src/pages/cage/CloseShiftPage.tsx`: редирект `useEffect(!shift → nav("/cage"))` подавляется, пока `printShiftId` не null.
 - Slots: в `ActiveSlotsShiftView.doApprove` вместо перехода на `/reports?tab=slots&print=` — открытие `PrintSlotsShiftDialog mandatory` на отдельном маршруте печати, чтобы размонтирование вью не убивало диалог; поддержку `?print=` в `SlotsHistoryReport` оставляем как запасной путь.
 - Кнопка Print в Manager Review: `ReprintShiftDialog` (Live) и `PrintSlotsShiftDialog` (Slots), немодальный режим (`mandatory={false}`).
+
+## Шапка отчёта: время закрытия смены
+
+- В шапке всех четырёх листов поле «Generated» (сейчас подставляется дата печати) заменяется на **Closed** — дата и время закрытия смены (EAT, DD/MM/YYYY HH:mm) из самой смены. Время печати нигде не выводится.
+- Никаких пометок «копия», «reprint», «draft» и подобных на листах — при повторной печати лист выглядит идентично оригиналу.
+- Правка одна, в общей шапке отчётов (`ReportHeader` в `src/components/cage/report-v2/primitives.tsx`), плюс передача `closed_at` смены во все четыре листа. Остальные поля и расчёты не трогаем.
