@@ -123,6 +123,7 @@ const ChipsMovementReportV2 = ({
         businessDate={businessDate}
         cashier={signCashier}
         manager={signManager}
+        closedAt={(shift as any)?.closed_at}
       />
 
 
