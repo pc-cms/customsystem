@@ -470,12 +470,13 @@ const ProtectedRoutes = () => {
           <Route path="/closings" element={<Navigate to="/reports?tab=total" replace />} />
           <Route path="/cage/shift/:id/edit-opening" element={<RoleGuard path="/cage"><ErrorBoundary><EditOpeningChipsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/shift/:id/edit-reprint" element={<RoleGuard path="/reports"><ErrorBoundary><EditReprintShiftPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/cage-slots" element={<RoleGuard path="/cage-slots"><ErrorBoundary><CageSlots /></ErrorBoundary></RoleGuard>} />
+          <Route path="/cage-slots" element={<RoleGuard path="/cage-slots"><ErrorBoundary><CageSlots /></ErrorBoundary></RoleBoundary></RoleGuard>} />
           <Route path="/cage-slots/cashless" element={<Navigate to="/cashless" replace />} />
           <Route path="/cage-slots/transfers" element={<Navigate to="/transfers" replace />} />
           <Route path="/cage-slots/tips" element={<RoleGuard path="/cage-slots"><ErrorBoundary><SlotsTipsCdPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage-slots/expenses" element={<Navigate to="/expenses" replace />} />
           <Route path="/cage-slots/report/:id" element={<Navigate to="/reports?tab=slots" replace />} />
+          <Route path="/cage-slots/print/:shiftId" element={<RoleGuard path="/cage-slots"><ErrorBoundary><PrintSlotsShiftPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/players/register" element={<RoleGuard path="/reception"><ErrorBoundary><RegisterPlayerPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/expenses/approvals" element={<RoleGuard path="/expenses/approvals"><ErrorBoundary><ExpensesApprovals /></ErrorBoundary></RoleGuard>} />
           <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />
