@@ -64,7 +64,7 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
     cashierName, managerName, shiftId,
     reportStatus = "DRAFT — GBT APPROVAL PENDING",
     taxableWinnings = 0, jackpotCount = 0, winningsTaxRate = 0.15, adjustmentRef,
-    cardsFill = 0, cardsCredit = 0, closingCardValue = 0, slotsResult,
+    cardsFill = 0, cardsCredit = 0, closingCardValue = 0, slotsResult, closedAt,
   } = props;
   const { casinoId } = useAuth();
   const liveWallets = useReportWallets(casinoId);
