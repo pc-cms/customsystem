@@ -334,6 +334,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Pr
       cardsFill: 0,
       cardsCredit: 0,
       closingCardValue: Number(cards?.closing_card_count || 0) * cardDepositTzs,
+      closedAt: (shift as any).closed_at || null,
     };
   }, [data, activeCasino]);
 
