@@ -112,6 +112,11 @@ const TotalClosingReportV2 = ({
   const data = snapshot?.data || liveData;
   const liveShifts = (data?.liveShifts || []) as any[];
   const slotsShifts = (data?.slotsShifts || []) as any[];
+  const closedAt = useMemo(() => {
+    const candidates = [...liveShifts, ...slotsShifts].map((s: any) => s.closed_at).filter(Boolean);
+    if (!candidates.length) return null;
+    return candidates.sort()[candidates.length - 1];
+  }, [liveShifts, slotsShifts]);
   const rates: Record<string, number> = { TZS: 1 };
   (liveShifts[0]?.exchange_rates || {}) && Object.entries(liveShifts[0]?.exchange_rates || {}).forEach(([k, v]) => { rates[k] = Number(v || 0); });
   (data?.slotsRates || []).forEach((r: any) => { rates[r.currency_code] = Number(r.rate_to_tzs || rates[r.currency_code] || 0); });
