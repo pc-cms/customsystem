@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Coins, Send, RotateCcw, FileText, CreditCard, Save, ArrowLeftRight, History, Pencil, Gift } from "lucide-react";
+import { Coins, Send, RotateCcw, FileText, CreditCard, Save, ArrowLeftRight, History, Pencil, Gift, Printer } from "lucide-react";
 import { HourlyCheckBanner } from "@/components/cage/HourlyCheckBanner";
 import EditOpeningCardsDialog from "./EditOpeningCardsDialog";
 // SlotsTransfersForm moved to dedicated /transfers page
