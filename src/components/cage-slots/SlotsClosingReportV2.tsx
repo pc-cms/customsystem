@@ -38,6 +38,7 @@ export type SlotsClosingReportV2Props = SlotsConsolidatedProps & {
   cardsFill?: number;
   cardsCredit?: number;
   closingCardValue?: number;
+  closedAt?: string | null;
 };
 
 /** Union of the fixed provider list and any extra provider present in data. */
