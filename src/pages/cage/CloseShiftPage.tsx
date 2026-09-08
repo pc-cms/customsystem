@@ -32,8 +32,9 @@ const CloseShiftPage = () => {
   const [printShiftId, setPrintShiftId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (printShiftId) return; // keep the page mounted while the mandatory print dialog is open
     if (!isLoading && !shift) nav("/cage", { replace: true });
-  }, [isLoading, shift, nav]);
+  }, [isLoading, shift, nav, printShiftId]);
 
   const isInTx = (t: string) => t === "buy" || t === "in";
   const isOutTx = (t: string) => t === "cashout" || t === "out";

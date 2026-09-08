@@ -334,6 +334,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Pr
       cardsFill: 0,
       cardsCredit: 0,
       closingCardValue: Number(cards?.closing_card_count || 0) * cardDepositTzs,
+      closedAt: (shift as any).closed_at || null,
     };
   }, [data, activeCasino]);
 
@@ -450,6 +451,11 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Pr
               {!mandatory && (
                 <Button variant="outline" onClick={onClose} className="gap-1.5">
                   <X className="w-4 h-4" /> Close
+                </Button>
+              )}
+              {mandatory && (
+                <Button variant="outline" onClick={onClose} className="gap-1.5">
+                  Close without printing
                 </Button>
               )}
               <Button

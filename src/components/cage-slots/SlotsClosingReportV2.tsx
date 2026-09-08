@@ -38,6 +38,7 @@ export type SlotsClosingReportV2Props = SlotsConsolidatedProps & {
   cardsFill?: number;
   cardsCredit?: number;
   closingCardValue?: number;
+  closedAt?: string | null;
 };
 
 /** Union of the fixed provider list and any extra provider present in data. */
@@ -63,7 +64,7 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
     cashierName, managerName, shiftId,
     reportStatus = "DRAFT — GBT APPROVAL PENDING",
     taxableWinnings = 0, jackpotCount = 0, winningsTaxRate = 0.15, adjustmentRef,
-    cardsFill = 0, cardsCredit = 0, closingCardValue = 0, slotsResult,
+    cardsFill = 0, cardsCredit = 0, closingCardValue = 0, slotsResult, closedAt,
   } = props;
   const { casinoId } = useAuth();
   const liveWallets = useReportWallets(casinoId);
@@ -134,6 +135,7 @@ const SlotsClosingReportV2 = (props: SlotsClosingReportV2Props) => {
         cashier={cashierName}
         manager={managerName}
         shiftLabel={String(shiftType || "").toUpperCase() === "DAY" ? "Day" : "Night"}
+        closedAt={closedAt}
       />
 
       <KpiStrip

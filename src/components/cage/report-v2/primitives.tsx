@@ -7,6 +7,14 @@
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
 
+const fmtClosedAtEAT = (iso: string | null | undefined): string => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  const date = d.toLocaleDateString("en-GB", { timeZone: "Africa/Dar_es_Salaam" });
+  const time = d.toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" });
+  return `${date} ${time} EAT`;
+};
+
 /** Class carrying the print page geometry (see `.rv2-page` in index.css). */
 export const A4_CLASS = "rv2-page";
 
@@ -44,7 +52,7 @@ export const ReportHeader = ({
   businessDate,
   cashier,
   manager,
-  generatedAt,
+  closedAt,
   shiftLabel,
 }: {
   title: string;
@@ -53,7 +61,7 @@ export const ReportHeader = ({
   businessDate: string;
   cashier?: string | null;
   manager?: string | null;
-  generatedAt?: string;
+  closedAt?: string | null;
   shiftLabel?: string | null;
 }) => (
   <div className="rv2-card rv2-head mb-2">
@@ -68,7 +76,7 @@ export const ReportHeader = ({
       <Meta label="Business Date" value={fmtDate(businessDate)} />
       <Meta label="Cashier" value={cashier || "—"} />
       <Meta label="Closing Manager" value={manager || "—"} />
-      <Meta label="Generated" value={generatedAt || `${fmtDate(new Date().toISOString().slice(0, 10))} EAT`} />
+      <Meta label="Closed" value={fmtClosedAtEAT(closedAt)} />
     </div>
     {shiftLabel ? (
       <div className="rv2-head-shift">Shift: {shiftLabel}</div>

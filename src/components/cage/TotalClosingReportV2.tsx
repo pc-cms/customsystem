@@ -5,6 +5,7 @@
  * Self-contained: consolidates BOTH cash desks (Live Game + Slots) for one
  * business date of one casino.
  */
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CURRENCIES, CASH_DENOMS, formatNumberSpaces, formatCashDenomLabel, allDenoms, COIN_KEY } from "@/lib/currency";
@@ -112,6 +113,11 @@ const TotalClosingReportV2 = ({
   const data = snapshot?.data || liveData;
   const liveShifts = (data?.liveShifts || []) as any[];
   const slotsShifts = (data?.slotsShifts || []) as any[];
+  const closedAt = useMemo(() => {
+    const candidates = [...liveShifts, ...slotsShifts].map((s: any) => s.closed_at).filter(Boolean);
+    if (!candidates.length) return null;
+    return candidates.sort()[candidates.length - 1];
+  }, [liveShifts, slotsShifts]);
   const rates: Record<string, number> = { TZS: 1 };
   (liveShifts[0]?.exchange_rates || {}) && Object.entries(liveShifts[0]?.exchange_rates || {}).forEach(([k, v]) => { rates[k] = Number(v || 0); });
   (data?.slotsRates || []).forEach((r: any) => { rates[r.currency_code] = Number(r.rate_to_tzs || rates[r.currency_code] || 0); });
@@ -358,6 +364,7 @@ const TotalClosingReportV2 = ({
         businessDate={businessDate}
         cashier={openNote ? `Both cash desks · ${openNote}` : "Both cash desks"}
         manager={signManager}
+        closedAt={closedAt}
       />
 
       <Card title="Cash Desks Summary">

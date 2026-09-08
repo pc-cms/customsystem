@@ -156,6 +156,7 @@ const LiveClosingReportV2 = ({
         businessDate={businessDate}
         cashier={signCashier}
         manager={signManager}
+        closedAt={(shift as any)?.closed_at}
       />
 
       <Card title="Gaming Tables">

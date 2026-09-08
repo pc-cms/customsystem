@@ -116,6 +116,7 @@ const CageViewPage = lazy(() => import("@/pages/cage/CageViewPage"));
 // DailyExpensesPage and SlotsExpenses removed — unified into /expenses.
 const CageSlots = lazy(() => import("@/pages/CageSlots"));
 const SlotsTipsCdPage = lazy(() => import("@/pages/cage/SlotsTipsCdPage"));
+const PrintSlotsShiftPage = lazy(() => import("@/pages/cage-slots/PrintSlotsShiftPage"));
 
 
 const ExpensesApprovals = lazy(() => import("@/pages/ExpensesApprovals"));
@@ -476,6 +477,7 @@ const ProtectedRoutes = () => {
           <Route path="/cage-slots/tips" element={<RoleGuard path="/cage-slots"><ErrorBoundary><SlotsTipsCdPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage-slots/expenses" element={<Navigate to="/expenses" replace />} />
           <Route path="/cage-slots/report/:id" element={<Navigate to="/reports?tab=slots" replace />} />
+          <Route path="/cage-slots/print/:shiftId" element={<RoleGuard path="/cage-slots"><ErrorBoundary><PrintSlotsShiftPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/players/register" element={<RoleGuard path="/reception"><ErrorBoundary><RegisterPlayerPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/expenses/approvals" element={<RoleGuard path="/expenses/approvals"><ErrorBoundary><ExpensesApprovals /></ErrorBoundary></RoleGuard>} />
           <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />

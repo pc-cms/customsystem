@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Coins, Send, RotateCcw, FileText, CreditCard, Save, ArrowLeftRight, History, Pencil, Gift } from "lucide-react";
+import { Coins, Send, RotateCcw, FileText, CreditCard, Save, ArrowLeftRight, History, Pencil, Gift, Printer } from "lucide-react";
 import { HourlyCheckBanner } from "@/components/cage/HourlyCheckBanner";
 import EditOpeningCardsDialog from "./EditOpeningCardsDialog";
+import PrintSlotsShiftDialog from "./PrintSlotsShiftDialog";
 // SlotsTransfersForm moved to dedicated /transfers page
 import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
 import { useSlotsExpenses } from "@/hooks/use-expenses";
@@ -137,6 +138,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const [adjustmentRef, setAdjustmentRef] = useState<string>((shift as any).adjustment_ref || "");
   const [signCashier, setSignCashier] = useState<string>((shift as any).cashier_name || "");
   const [signManager, setSignManager] = useState<string>((shift as any).manager_name || "");
+  const [printShiftId, setPrintShiftId] = useState<string | null>(null);
 
   // Dirty refs — block DB→state re-hydration while the cashier has unsaved
   // edits in a provider block. Cleared after a successful onBlur save.
@@ -483,12 +485,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           setShowApprove(false);
           setManagerComment("");
           // Shift becomes "closed" → this view unmounts immediately. Navigate
-          // to the report page with ?print=1 so the print dialog opens there
-          // (the previous inline print prompt was being unmounted before it
-          // could appear, which is why "Print" never fired on close).
-          // Printing is mandatory — the report page opens a print window that
-          // cannot be dismissed without printing.
-          navigate(`/reports?tab=slots&print=${shift.id}`);
+          // to the dedicated print route so the mandatory print dialog survives.
+          navigate(`/cage-slots/print/${shift.id}`);
         },
       },
     );
@@ -574,6 +572,14 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             <Button
               variant="outline"
               size="lg"
+              onClick={() => setPrintShiftId(shift.id)}
+              className="gap-1.5"
+            >
+              <Printer className="w-4 h-4" /> Print
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
               onClick={() => reopen.mutate({ shift_id: shift.id })}
               disabled={reopen.isPending}
             >
@@ -586,6 +592,14 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             />
           </div>
         </div>
+
+        {printShiftId && (
+          <PrintSlotsShiftDialog
+            open
+            shiftId={printShiftId}
+            onClose={() => setPrintShiftId(null)}
+          />
+        )}
       </PageShell>
     );
   }
