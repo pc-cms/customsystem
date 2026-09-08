@@ -364,6 +364,7 @@ const TotalClosingReportV2 = ({
         businessDate={businessDate}
         cashier={openNote ? `Both cash desks · ${openNote}` : "Both cash desks"}
         manager={signManager}
+        closedAt={closedAt}
       />
 
       <Card title="Cash Desks Summary">
