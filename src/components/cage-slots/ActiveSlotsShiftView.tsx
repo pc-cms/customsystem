@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Coins, Send, RotateCcw, FileText, CreditCard, Save, ArrowLeftRight, History, Pencil, Gift, Printer } from "lucide-react";
 import { HourlyCheckBanner } from "@/components/cage/HourlyCheckBanner";
 import EditOpeningCardsDialog from "./EditOpeningCardsDialog";
+import PrintSlotsShiftDialog from "./PrintSlotsShiftDialog";
 // SlotsTransfersForm moved to dedicated /transfers page
 import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
 import { useSlotsExpenses } from "@/hooks/use-expenses";
