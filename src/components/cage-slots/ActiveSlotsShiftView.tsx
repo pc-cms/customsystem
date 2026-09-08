@@ -483,12 +483,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           setShowApprove(false);
           setManagerComment("");
           // Shift becomes "closed" → this view unmounts immediately. Navigate
-          // to the report page with ?print=1 so the print dialog opens there
-          // (the previous inline print prompt was being unmounted before it
-          // could appear, which is why "Print" never fired on close).
-          // Printing is mandatory — the report page opens a print window that
-          // cannot be dismissed without printing.
-          navigate(`/reports?tab=slots&print=${shift.id}`);
+          // to the dedicated print route so the mandatory print dialog survives.
+          navigate(`/cage-slots/print/${shift.id}`);
         },
       },
     );
