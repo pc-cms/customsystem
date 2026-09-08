@@ -7,6 +7,14 @@
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
 
+const fmtClosedAtEAT = (iso: string | null | undefined): string => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  const date = d.toLocaleDateString("en-GB", { timeZone: "Africa/Dar_es_Salaam" });
+  const time = d.toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit" });
+  return `${date} ${time} EAT`;
+};
+
 /** Class carrying the print page geometry (see `.rv2-page` in index.css). */
 export const A4_CLASS = "rv2-page";
 
