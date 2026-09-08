@@ -5,6 +5,7 @@
  * Self-contained: consolidates BOTH cash desks (Live Game + Slots) for one
  * business date of one casino.
  */
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CURRENCIES, CASH_DENOMS, formatNumberSpaces, formatCashDenomLabel, allDenoms, COIN_KEY } from "@/lib/currency";
