@@ -1,22 +1,23 @@
 /**
- * Dedicated print route for a freshly-closed slots shift.
+ * Dedicated print route for a freshly-closed live-game shift.
  *
- * Rendered at /cage-slots/print/:shiftId so the mandatory print dialog
- * survives the unmount of ActiveSlotsShiftView after the shift becomes
- * "closed". The same component is also used from Manager Review.
+ * Rendered at /cage/print/:shiftId so the mandatory print dialog survives the
+ * unmount of CloseShiftPage once the shift is no longer active.
  */
 import { useParams, useNavigate } from "react-router-dom";
-import PrintSlotsShiftDialog from "@/components/cage-slots/PrintSlotsShiftDialog";
+import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Printer } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 import { clearPendingPrint } from "@/lib/pending-print";
 
-const PrintSlotsShiftPage = () => {
+const PrintShiftPage = () => {
   const { shiftId } = useParams<{ shiftId: string }>();
+  const { casinoId } = useAuth();
   const nav = useNavigate();
 
-  if (!shiftId) {
+  if (!shiftId || !casinoId) {
     return (
       <PageShell>
         <PageHeader icon={Printer} title="Print" subtitle="Shift ID is missing" />
@@ -25,13 +26,14 @@ const PrintSlotsShiftPage = () => {
   }
 
   return (
-    <PrintSlotsShiftDialog
+    <ReprintShiftDialog
       open
       mandatory
       shiftId={shiftId}
-      onClose={() => { clearPendingPrint(); nav("/cage-slots", { replace: true }); }}
+      casinoId={casinoId}
+      onClose={() => { clearPendingPrint(); nav("/cage", { replace: true }); }}
     />
   );
 };
 
-export default PrintSlotsShiftPage;
+export default PrintShiftPage;
