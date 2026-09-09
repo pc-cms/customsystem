@@ -354,7 +354,11 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Pr
       wallets: await loadReportWallets(slotsShift.casino_id),
     }),
   });
-  const printProps = (frozenProps as any) || props;
+  // Snapshots frozen before the header switched to "Closed" carry no closedAt —
+  // fall back to the shift's closed_at so reprints always stamp a time.
+  const printProps = frozenProps
+    ? { ...(frozenProps as any), closedAt: (frozenProps as any).closedAt ?? (props as any)?.closedAt ?? slotsShift?.closed_at ?? null }
+    : props;
 
   const [signCashier, setSignCashier] = useState<string>("");
   const [signManager, setSignManager] = useState<string>("");
