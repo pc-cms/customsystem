@@ -395,7 +395,7 @@ export default function BossDashboard() {
                   <LayoutGrid className="w-4 h-4" /> {selectedIds.length}/{accessibleCasinos.length} casinos
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="start" className="w-64">
+              <PopoverContent align="start" className="dark w-64">
                 <div className="flex flex-col gap-2">
                   {accessibleCasinos.map((c) => {
                     const checked = selectedIds.includes(c.id);
