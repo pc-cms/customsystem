@@ -417,39 +417,22 @@ export const useOpenSlotsShift = () => {
         if (error) throw error;
       }
 
-      // Carry-over banks/mobile from the previous slots shift's last check.
-      // These balances persist physically across shifts; if we don't capture
-      // them as opening baseline, every mid-shift check reports a false
-      // +balance equal to whatever sits on bank/mobile accounts.
-      let carryBanks: any = { tzs: 0, usd: 0 };
-      let carryMobile: any = {};
-      try {
-        const { data: prev } = await supabase
-          .from("cage_slots_cash_counts")
-          .select("denominations")
-          .eq("casino_id", casinoId)
-          .neq("cage_slots_shift_id", shift.id)
-          .order("created_at", { ascending: false })
-          .limit(20);
-        const last = (prev || []).find((r: any) => {
-          const d = r.denominations || {};
-          return d.bank || d.mobile;
-        }) as any;
-        if (last) {
-          carryBanks = last.denominations?.bank || carryBanks;
-          carryMobile = last.denominations?.mobile || carryMobile;
-        }
-      } catch { /* non-fatal */ }
+      // Bank / mobile blocks of a slots shift hold movements OF THE DAY
+      // (IN − OUT), not standing balances: they are posted to wallets at
+      // closure. Carrying them into the next shift's opening snapshot would
+      // open the new shift with a phantom amount (e.g. Selcom 300 000) that
+      // no cash operation can clear. Opening = cash inventory only.
+      const carryBanks: any = {
+        tzs: 0,
+        usd: 0,
+        channels: Object.fromEntries(BANK_CHANNELS.map(c => [c.key, { in: 0, out: 0 }])),
+      };
+      const carryMobile: any = {};
 
-      const carryBanksTzs = (Number(carryBanks?.tzs) || 0)
-        + (Number(carryBanks?.usd) || 0) * (input.exchange_rates["USD"] || 0);
-      const carryMobileTzs: number = Object.values(carryMobile || {})
-        .reduce<number>((s, v) => s + (Number(v) || 0), 0);
-
-      // Opening cash check snapshot (seed) — cash + carry-over bank/mobile.
+      // Opening cash check snapshot (seed) — cash only.
       // Cards are a plastic counter, NOT money — excluded from opening TZS total.
-      const openingTotal = invRows.reduce((s, r) => s + r.denomination * r.quantity * r.rate_to_tzs, 0)
-        + carryBanksTzs + carryMobileTzs;
+      const openingTotal = invRows.reduce((s, r) => s + r.denomination * r.quantity * r.rate_to_tzs, 0);
+
       try {
         await supabase.from("cage_slots_cash_counts").insert({
           cage_slots_shift_id: shift.id,
