@@ -138,18 +138,17 @@ const CloseShiftPage = () => {
             shift_result: d.shiftResult,
             cashless_in_providers: d.cashlessInProviders,
             cashless_out_providers: d.cashlessOutProviders,
-          }, { onSuccess: () => setPrintShiftId(shift.id) });
+          }, {
+            onSuccess: () => {
+              // Mandatory print: leave the closing page for a dedicated print
+              // route that cannot be unmounted by the shift going inactive.
+              setPendingPrint({ kind: "live", shiftId: shift.id, casinoId: shift.casino_id });
+              nav(`/cage/print/${shift.id}`, { replace: true });
+            },
+          });
         }}
       />
-      {printShiftId && (
-        <ReprintShiftDialog
-          open
-          mandatory
-          shiftId={printShiftId}
-          casinoId={shift.casino_id}
-          onClose={() => { setPrintShiftId(null); nav("/cage"); }}
-        />
-      )}
+
     </PageShell>
   );
 };
