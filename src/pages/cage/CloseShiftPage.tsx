@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useActiveShift, useCloseShift } from "@/hooks/use-shift";
 import { useTransactions, useExpenses, useGamingTables } from "@/hooks/use-casino-data";
@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Square, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CloseShiftDialog from "@/components/cage/CloseShiftDialog";
-import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
+import { setPendingPrint } from "@/lib/pending-print";
 
 /**
  * Close Shift route. Two-step in-page flow lives inside CloseShiftDialog
@@ -27,14 +27,7 @@ const CloseShiftPage = () => {
   const { data: expenses = [] } = useExpenses(businessDate);
   const { data: cageTransfers = [] } = useCageTransfers(shift?.id);
   const closeShift = useCloseShift();
-  // Printing the closing pack is mandatory: once the shift is closed the print
-  // window opens by itself and cannot be dismissed without printing.
-  const [printShiftId, setPrintShiftId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (printShiftId) return; // keep the page mounted while the mandatory print dialog is open
-    if (!isLoading && !shift) nav("/cage", { replace: true });
-  }, [isLoading, shift, nav, printShiftId]);
 
   const isInTx = (t: string) => t === "buy" || t === "in";
   const isOutTx = (t: string) => t === "cashout" || t === "out";
