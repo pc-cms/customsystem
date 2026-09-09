@@ -478,8 +478,8 @@ export default function BossDashboard() {
       data-tv-viewport={liveTv ? "true" : undefined}
       className={
         liveTv
-          ? "fixed inset-0 z-[70] w-screen h-[100dvh] max-w-none m-0 overflow-hidden text-foreground"
-          : "min-h-[100dvh] w-full text-foreground"
+          ? "dark fixed inset-0 z-[70] w-screen h-[100dvh] max-w-none m-0 overflow-hidden text-foreground"
+          : "dark min-h-[100dvh] w-full text-foreground"
       }
       style={{
         fontSize: rootFontSize,
@@ -546,7 +546,7 @@ export default function BossDashboard() {
           <PopoverContent
             side="top"
             align="end"
-            className="z-[90] w-auto max-w-[92vw] p-2 bg-black/90 border-white/10"
+            className="dark z-[90] w-auto max-w-[92vw] p-2 bg-black/90 border-white/10"
           >
             {controlsPanel}
           </PopoverContent>
