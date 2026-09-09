@@ -395,7 +395,7 @@ export default function BossDashboard() {
                   <LayoutGrid className="w-4 h-4" /> {selectedIds.length}/{accessibleCasinos.length} casinos
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="start" className="w-64">
+              <PopoverContent align="start" className="dark w-64">
                 <div className="flex flex-col gap-2">
                   {accessibleCasinos.map((c) => {
                     const checked = selectedIds.includes(c.id);
@@ -478,8 +478,8 @@ export default function BossDashboard() {
       data-tv-viewport={liveTv ? "true" : undefined}
       className={
         liveTv
-          ? "fixed inset-0 z-[70] w-screen h-[100dvh] max-w-none m-0 overflow-hidden text-foreground"
-          : "min-h-[100dvh] w-full text-foreground"
+          ? "dark fixed inset-0 z-[70] w-screen h-[100dvh] max-w-none m-0 overflow-hidden text-foreground"
+          : "dark min-h-[100dvh] w-full text-foreground"
       }
       style={{
         fontSize: rootFontSize,
@@ -546,7 +546,7 @@ export default function BossDashboard() {
           <PopoverContent
             side="top"
             align="end"
-            className="z-[90] w-auto max-w-[92vw] p-2 bg-black/90 border-white/10"
+            className="dark z-[90] w-auto max-w-[92vw] p-2 bg-black/90 border-white/10"
           >
             {controlsPanel}
           </PopoverContent>
