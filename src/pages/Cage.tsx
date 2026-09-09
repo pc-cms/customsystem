@@ -9,10 +9,17 @@ import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useReadOnlyMode } from "@/hooks/use-readonly-mode";
 import { useAuth } from "@/lib/auth-context";
+import { Navigate } from "react-router-dom";
+import { getPendingPrint } from "@/lib/pending-print";
 
 const Cage = () => {
   const isReadOnly = useReadOnlyMode();
   const { roles, managerOverride } = useAuth();
+
+  // Safety net: a shift was closed but the mandatory print pack was never
+  // opened (lost navigation, reload). Send the user back to the print route.
+  const pendingPrint = getPendingPrint("live");
+  if (pendingPrint) return <Navigate to={`/cage/print/${pendingPrint.shiftId}`} replace />;
 
   // Cage is a CASHIER-only operational surface.
   // Cashier and Super Admin can transact. Manager Access override also unlocks it.
