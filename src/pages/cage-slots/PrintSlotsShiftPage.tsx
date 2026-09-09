@@ -10,6 +10,7 @@ import PrintSlotsShiftDialog from "@/components/cage-slots/PrintSlotsShiftDialog
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Printer } from "lucide-react";
+import { clearPendingPrint } from "@/lib/pending-print";
 
 const PrintSlotsShiftPage = () => {
   const { shiftId } = useParams<{ shiftId: string }>();
@@ -28,7 +29,7 @@ const PrintSlotsShiftPage = () => {
       open
       mandatory
       shiftId={shiftId}
-      onClose={() => nav("/cage-slots", { replace: true })}
+      onClose={() => { clearPendingPrint(); nav("/cage-slots", { replace: true }); }}
     />
   );
 };

@@ -4,6 +4,7 @@ import { Coins, Send, RotateCcw, FileText, CreditCard, Save, ArrowLeftRight, His
 import { HourlyCheckBanner } from "@/components/cage/HourlyCheckBanner";
 import EditOpeningCardsDialog from "./EditOpeningCardsDialog";
 import PrintSlotsShiftDialog from "./PrintSlotsShiftDialog";
+import { setPendingPrint } from "@/lib/pending-print";
 // SlotsTransfersForm moved to dedicated /transfers page
 import { useSlotsTransfers } from "@/hooks/use-cage-slots-transfers";
 import { useSlotsExpenses } from "@/hooks/use-expenses";
@@ -486,7 +487,8 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
           setManagerComment("");
           // Shift becomes "closed" → this view unmounts immediately. Navigate
           // to the dedicated print route so the mandatory print dialog survives.
-          navigate(`/cage-slots/print/${shift.id}`);
+          setPendingPrint({ kind: "slots", shiftId: shift.id });
+          navigate(`/cage-slots/print/${shift.id}`, { replace: true });
         },
       },
     );
