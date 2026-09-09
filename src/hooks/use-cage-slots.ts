@@ -10,6 +10,8 @@ import { logAction } from "@/lib/logging";
 import { toast } from "sonner";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
+import { BANK_CHANNELS } from "@/components/cage/CageHelpers";
+
 
 export type SlotsShiftType = "day" | "night";
 export type SlotsStatus = "draft" | "open" | "ready_for_review" | "approved" | "closed" | "reversed";
