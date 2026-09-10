@@ -152,23 +152,19 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = fals
     return () => document.body.classList.remove("reprint-shift-open");
   }, [open]);
 
-  return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v && !mandatory) onClose(); }}>
-      <DialogContent
-        className={`max-w-5xl max-h-[90vh] overflow-y-auto${mandatory ? " [&>button]:hidden" : ""}`}
-        onEscapeKeyDown={(e) => { if (mandatory) e.preventDefault(); }}
-        onPointerDownOutside={(e) => { if (mandatory) e.preventDefault(); }}
-        onInteractOutside={(e) => { if (mandatory) e.preventDefault(); }}
-      >
-        <DialogHeader>
-          <DialogTitle>{mandatory ? "Print Shift Closing Pack" : "Reprint Shift Reports"}</DialogTitle>
-          {mandatory && (
-            <p className="text-xs text-muted-foreground">
-              The shift is closed and the figures are certified. Print the pack to finish.
-            </p>
-          )}
-        </DialogHeader>
+  const header = (
+    <>
+      <DialogTitle>{mandatory ? "Print Shift Closing Pack" : "Reprint Shift Reports"}</DialogTitle>
+      {mandatory && (
+        <p className="text-xs text-muted-foreground">
+          The shift is closed and the figures are certified. Print the pack to finish.
+        </p>
+      )}
+    </>
+  );
 
+  const body = (
+    <>
         {isLoading || !shift || !packReady ? (
           <div className="text-center text-muted-foreground py-10 text-sm">Loading…</div>
         ) : (
