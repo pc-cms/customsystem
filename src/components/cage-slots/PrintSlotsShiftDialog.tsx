@@ -31,6 +31,8 @@ interface Props {
    * Cannot be dismissed: the only way out is sending the pack to the printer.
    */
   mandatory?: boolean;
+  /** Render as a full page (dedicated print route) instead of a modal. */
+  asPage?: boolean;
 }
 
 const PROVIDER_NORMALIZE = (raw: string) => {
@@ -51,7 +53,7 @@ const PROV_KEY_FROM_SNAPSHOT_KEY = (k: string): string | null => {
   return null;
 };
 
-const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Props) => {
+const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false, asPage = false }: Props) => {
   const { activeCasino } = useCasino();
 
   const printSlotsReport = () => {
