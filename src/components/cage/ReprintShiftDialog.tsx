@@ -30,6 +30,8 @@ interface Props {
    * way out is actually sending the pack to the printer.
    */
   mandatory?: boolean;
+  /** Render as a full page (dedicated print route) instead of a modal. */
+  asPage?: boolean;
 }
 
 /** Business date for an EAT timestamp using the 07:00 rollover rule. */
