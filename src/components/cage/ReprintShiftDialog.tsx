@@ -241,7 +241,7 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = fals
 
             <div className="print:hidden flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button variant="outline" onClick={onClose} className="gap-1.5">
-                {mandatory ? "Close without printing" : (<><X className="w-4 h-4" /> Close</>)}
+                {mandatory ? "Close shift" : (<><X className="w-4 h-4" /> Close</>)}
               </Button>
               <Button
                 onClick={() => { printLiveGameReport(); if (mandatory) onClose(); }}
