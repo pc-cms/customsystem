@@ -154,7 +154,9 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = fals
 
   const header = (
     <>
-      <DialogTitle>{mandatory ? "Print Shift Closing Pack" : "Reprint Shift Reports"}</DialogTitle>
+      {asPage
+        ? <h1 className="text-lg font-semibold">{mandatory ? "Print Shift Closing Pack" : "Reprint Shift Reports"}</h1>
+        : <DialogTitle>{mandatory ? "Print Shift Closing Pack" : "Reprint Shift Reports"}</DialogTitle>}
       {mandatory && (
         <p className="text-xs text-muted-foreground">
           The shift is closed and the figures are certified. Print the pack to finish.
