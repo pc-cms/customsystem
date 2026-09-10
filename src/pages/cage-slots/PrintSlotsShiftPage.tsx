@@ -1,9 +1,9 @@
 /**
  * Dedicated print route for a freshly-closed slots shift.
  *
- * Rendered at /cage-slots/print/:shiftId so the mandatory print dialog
- * survives the unmount of ActiveSlotsShiftView after the shift becomes
- * "closed". The same component is also used from Manager Review.
+ * Rendered at /cage-slots/print/:shiftId as a FULL PAGE (no modal): the closing
+ * pack preview plus Print / Close without printing. Keeping it a page means the
+ * pack cannot disappear when the shift stops being active.
  */
 import { useParams, useNavigate } from "react-router-dom";
 import PrintSlotsShiftDialog from "@/components/cage-slots/PrintSlotsShiftDialog";
@@ -25,12 +25,15 @@ const PrintSlotsShiftPage = () => {
   }
 
   return (
-    <PrintSlotsShiftDialog
-      open
-      mandatory
-      shiftId={shiftId}
-      onClose={() => { clearPendingPrint(); nav("/cage-slots", { replace: true }); }}
-    />
+    <PageShell>
+      <PrintSlotsShiftDialog
+        open
+        mandatory
+        asPage
+        shiftId={shiftId}
+        onClose={() => { clearPendingPrint(); nav("/cage-slots", { replace: true }); }}
+      />
+    </PageShell>
   );
 };
 
