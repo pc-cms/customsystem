@@ -31,6 +31,8 @@ interface Props {
    * Cannot be dismissed: the only way out is sending the pack to the printer.
    */
   mandatory?: boolean;
+  /** Render as a full page (dedicated print route) instead of a modal. */
+  asPage?: boolean;
 }
 
 const PROVIDER_NORMALIZE = (raw: string) => {
@@ -51,7 +53,7 @@ const PROV_KEY_FROM_SNAPSHOT_KEY = (k: string): string | null => {
   return null;
 };
 
-const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Props) => {
+const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false, asPage = false }: Props) => {
   const { activeCasino } = useCasino();
 
   const printSlotsReport = () => {
@@ -388,23 +390,20 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Pr
   }, [open]);
 
 
-  return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v && !mandatory) onClose(); }}>
-      <DialogContent
-        className={`max-w-5xl max-h-[90vh] overflow-y-auto${mandatory ? " [&>button]:hidden" : ""}`}
-        onEscapeKeyDown={(e) => { if (mandatory) e.preventDefault(); }}
-        onPointerDownOutside={(e) => { if (mandatory) e.preventDefault(); }}
-        onInteractOutside={(e) => { if (mandatory) e.preventDefault(); }}
-      >
-        <DialogHeader>
-          <DialogTitle>{mandatory ? "Print Slots Closing Pack" : "Slots Shift Report — Print Preview"}</DialogTitle>
-          {mandatory && (
-            <p className="text-xs text-muted-foreground">
-              The shift is closed and the figures are certified. Print the pack to finish.
-            </p>
-          )}
-        </DialogHeader>
+  const title = mandatory ? "Print Slots Closing Pack" : "Slots Shift Report — Print Preview";
+  const header = (
+    <>
+      {asPage ? <h1 className="text-lg font-semibold">{title}</h1> : <DialogTitle>{title}</DialogTitle>}
+      {mandatory && (
+        <p className="text-xs text-muted-foreground">
+          The shift is closed and the figures are certified. Print the pack to finish.
+        </p>
+      )}
+    </>
+  );
 
+  const body = (
+    <>
         {isLoading || !printProps || (isClosedSlots && (snapLoading || !frozenProps)) ? (
           <div className="text-center text-muted-foreground py-10 text-sm">Loading…</div>
         ) : (
@@ -419,7 +418,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Pr
               />
             )}
 
-            <div className="border border-border rounded-md overflow-auto bg-white print:hidden max-h-[55vh]">
+            <div className={`border border-border rounded-md overflow-auto bg-white print:hidden ${asPage ? "max-h-[70vh]" : "max-h-[55vh]"}`}>
               <div className="origin-top-left scale-[0.5] w-[200%]">
                 <>
                   <SlotsClosingReportV2 {...(printProps as any)} cashierName={signCashier || null} managerName={signManager || null} />
@@ -451,26 +450,42 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false }: Pr
               </div>
             </PrintPortal>
 
-            <DialogFooter className="print:hidden">
-              {!mandatory && (
-                <Button variant="outline" onClick={onClose} className="gap-1.5">
-                  <X className="w-4 h-4" /> Close
-                </Button>
-              )}
-              {mandatory && (
-                <Button variant="outline" onClick={onClose} className="gap-1.5">
-                  Close without printing
-                </Button>
-              )}
+            <div className="print:hidden flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={onClose} className="gap-1.5">
+                {mandatory ? "Close without printing" : (<><X className="w-4 h-4" /> Close</>)}
+              </Button>
               <Button
                 onClick={() => { printSlotsReport(); if (mandatory) onClose(); }}
                 className="gap-1.5"
               >
                 <Printer className="w-4 h-4" /> Print
               </Button>
-            </DialogFooter>
+            </div>
           </>
         )}
+    </>
+  );
+
+  // Full-page mode for the dedicated print route after a shift is closed.
+  if (asPage) {
+    return (
+      <div className="p-4 space-y-4 print:p-0">
+        <div className="space-y-1">{header}</div>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v && !mandatory) onClose(); }}>
+      <DialogContent
+        className={`max-w-5xl max-h-[90vh] overflow-y-auto${mandatory ? " [&>button]:hidden" : ""}`}
+        onEscapeKeyDown={(e) => { if (mandatory) e.preventDefault(); }}
+        onPointerDownOutside={(e) => { if (mandatory) e.preventDefault(); }}
+        onInteractOutside={(e) => { if (mandatory) e.preventDefault(); }}
+      >
+        <DialogHeader>{header}</DialogHeader>
+        {body}
       </DialogContent>
     </Dialog>
   );

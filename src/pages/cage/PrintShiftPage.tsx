@@ -1,8 +1,9 @@
 /**
  * Dedicated print route for a freshly-closed live-game shift.
  *
- * Rendered at /cage/print/:shiftId so the mandatory print dialog survives the
- * unmount of CloseShiftPage once the shift is no longer active.
+ * Rendered at /cage/print/:shiftId as a FULL PAGE (no modal): the closing pack
+ * preview plus Print / Close without printing. A page cannot be swallowed by a
+ * re-render the way an overlay could when the shift stopped being active.
  */
 import { useParams, useNavigate } from "react-router-dom";
 import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
@@ -17,7 +18,7 @@ const PrintShiftPage = () => {
   const { casinoId } = useAuth();
   const nav = useNavigate();
 
-  if (!shiftId || !casinoId) {
+  if (!shiftId) {
     return (
       <PageShell>
         <PageHeader icon={Printer} title="Print" subtitle="Shift ID is missing" />
@@ -25,14 +26,26 @@ const PrintShiftPage = () => {
     );
   }
 
+  // casinoId can still be hydrating — keep the page mounted and wait.
+  if (!casinoId) {
+    return (
+      <PageShell>
+        <PageHeader icon={Printer} title="Print Shift Closing Pack" subtitle="Loading…" />
+      </PageShell>
+    );
+  }
+
   return (
-    <ReprintShiftDialog
-      open
-      mandatory
-      shiftId={shiftId}
-      casinoId={casinoId}
-      onClose={() => { clearPendingPrint(); nav("/cage", { replace: true }); }}
-    />
+    <PageShell>
+      <ReprintShiftDialog
+        open
+        mandatory
+        asPage
+        shiftId={shiftId}
+        casinoId={casinoId}
+        onClose={() => { clearPendingPrint(); nav("/cage", { replace: true }); }}
+      />
+    </PageShell>
   );
 };
 

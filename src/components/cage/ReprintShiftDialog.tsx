@@ -30,6 +30,8 @@ interface Props {
    * way out is actually sending the pack to the printer.
    */
   mandatory?: boolean;
+  /** Render as a full page (dedicated print route) instead of a modal. */
+  asPage?: boolean;
 }
 
 /** Business date for an EAT timestamp using the 07:00 rollover rule. */
@@ -47,7 +49,7 @@ import { printLiveGameReport } from "@/components/cage/printLiveGameReport";
 import { useReportSnapshot } from "@/hooks/use-report-snapshot";
 import { buildLiveReportPayload, loadChipsMovementData } from "@/lib/report-snapshots";
 
-const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = false }: Props) => {
+const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = false, asPage = false }: Props) => {
   const { data, isLoading } = useQuery({
     queryKey: ["reprint-shift", shiftId],
     enabled: open && !!shiftId && !!casinoId,
@@ -152,23 +154,21 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = fals
     return () => document.body.classList.remove("reprint-shift-open");
   }, [open]);
 
-  return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v && !mandatory) onClose(); }}>
-      <DialogContent
-        className={`max-w-5xl max-h-[90vh] overflow-y-auto${mandatory ? " [&>button]:hidden" : ""}`}
-        onEscapeKeyDown={(e) => { if (mandatory) e.preventDefault(); }}
-        onPointerDownOutside={(e) => { if (mandatory) e.preventDefault(); }}
-        onInteractOutside={(e) => { if (mandatory) e.preventDefault(); }}
-      >
-        <DialogHeader>
-          <DialogTitle>{mandatory ? "Print Shift Closing Pack" : "Reprint Shift Reports"}</DialogTitle>
-          {mandatory && (
-            <p className="text-xs text-muted-foreground">
-              The shift is closed and the figures are certified. Print the pack to finish.
-            </p>
-          )}
-        </DialogHeader>
+  const header = (
+    <>
+      {asPage
+        ? <h1 className="text-lg font-semibold">{mandatory ? "Print Shift Closing Pack" : "Reprint Shift Reports"}</h1>
+        : <DialogTitle>{mandatory ? "Print Shift Closing Pack" : "Reprint Shift Reports"}</DialogTitle>}
+      {mandatory && (
+        <p className="text-xs text-muted-foreground">
+          The shift is closed and the figures are certified. Print the pack to finish.
+        </p>
+      )}
+    </>
+  );
 
+  const body = (
+    <>
         {isLoading || !shift || !packReady ? (
           <div className="text-center text-muted-foreground py-10 text-sm">Loading…</div>
         ) : (
@@ -183,7 +183,7 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = fals
               onManagerChange={v => { setSignManager(v); void saveSignatories(signCashier, v); }}
             />
 
-            <div className="border border-border rounded-md overflow-auto bg-white text-black print:hidden max-h-[55vh]">
+            <div className={`border border-border rounded-md overflow-auto bg-white text-black print:hidden ${asPage ? "max-h-[70vh]" : "max-h-[55vh]"}`}>
               <div className="origin-top-left scale-[0.5] w-[200%]">
                 <ShiftClosingReport
                   shift={shift}
@@ -239,26 +239,43 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = fals
               </div>
             </PrintPortal>
 
-            <DialogFooter className="print:hidden">
-              {!mandatory && (
-                <Button variant="outline" onClick={onClose} className="gap-1.5">
-                  <X className="w-4 h-4" /> Close
-                </Button>
-              )}
-              {mandatory && (
-                <Button variant="outline" onClick={onClose} className="gap-1.5">
-                  Close without printing
-                </Button>
-              )}
+            <div className="print:hidden flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={onClose} className="gap-1.5">
+                {mandatory ? "Close without printing" : (<><X className="w-4 h-4" /> Close</>)}
+              </Button>
               <Button
                 onClick={() => { printLiveGameReport(); if (mandatory) onClose(); }}
                 className="gap-1.5"
               >
                 <Printer className="w-4 h-4" /> Print Reports
               </Button>
-            </DialogFooter>
+            </div>
           </>
         )}
+    </>
+  );
+
+  // Full-page mode: used by the dedicated print route after a shift is closed,
+  // so nothing can unmount an overlay before the cashier prints.
+  if (asPage) {
+    return (
+      <div className="p-4 space-y-4 print:p-0">
+        <div className="space-y-1">{header}</div>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v && !mandatory) onClose(); }}>
+      <DialogContent
+        className={`max-w-5xl max-h-[90vh] overflow-y-auto${mandatory ? " [&>button]:hidden" : ""}`}
+        onEscapeKeyDown={(e) => { if (mandatory) e.preventDefault(); }}
+        onPointerDownOutside={(e) => { if (mandatory) e.preventDefault(); }}
+        onInteractOutside={(e) => { if (mandatory) e.preventDefault(); }}
+      >
+        <DialogHeader>{header}</DialogHeader>
+        {body}
       </DialogContent>
     </Dialog>
   );
