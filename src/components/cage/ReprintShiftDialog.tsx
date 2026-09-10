@@ -235,26 +235,43 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = fals
               </div>
             </PrintPortal>
 
-            <DialogFooter className="print:hidden">
-              {!mandatory && (
-                <Button variant="outline" onClick={onClose} className="gap-1.5">
-                  <X className="w-4 h-4" /> Close
-                </Button>
-              )}
-              {mandatory && (
-                <Button variant="outline" onClick={onClose} className="gap-1.5">
-                  Close without printing
-                </Button>
-              )}
+            <div className="print:hidden flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={onClose} className="gap-1.5">
+                {mandatory ? "Close without printing" : (<><X className="w-4 h-4" /> Close</>)}
+              </Button>
               <Button
                 onClick={() => { printLiveGameReport(); if (mandatory) onClose(); }}
                 className="gap-1.5"
               >
                 <Printer className="w-4 h-4" /> Print Reports
               </Button>
-            </DialogFooter>
+            </div>
           </>
         )}
+    </>
+  );
+
+  // Full-page mode: used by the dedicated print route after a shift is closed,
+  // so nothing can unmount an overlay before the cashier prints.
+  if (asPage) {
+    return (
+      <div className="p-4 space-y-4 print:p-0">
+        <div className="space-y-1">{header}</div>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v && !mandatory) onClose(); }}>
+      <DialogContent
+        className={`max-w-5xl max-h-[90vh] overflow-y-auto${mandatory ? " [&>button]:hidden" : ""}`}
+        onEscapeKeyDown={(e) => { if (mandatory) e.preventDefault(); }}
+        onPointerDownOutside={(e) => { if (mandatory) e.preventDefault(); }}
+        onInteractOutside={(e) => { if (mandatory) e.preventDefault(); }}
+      >
+        <DialogHeader>{header}</DialogHeader>
+        {body}
       </DialogContent>
     </Dialog>
   );
