@@ -49,7 +49,7 @@ import { printLiveGameReport } from "@/components/cage/printLiveGameReport";
 import { useReportSnapshot } from "@/hooks/use-report-snapshot";
 import { buildLiveReportPayload, loadChipsMovementData } from "@/lib/report-snapshots";
 
-const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = false }: Props) => {
+const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = false, asPage = false }: Props) => {
   const { data, isLoading } = useQuery({
     queryKey: ["reprint-shift", shiftId],
     enabled: open && !!shiftId && !!casinoId,
@@ -183,7 +183,7 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = fals
               onManagerChange={v => { setSignManager(v); void saveSignatories(signCashier, v); }}
             />
 
-            <div className="border border-border rounded-md overflow-auto bg-white text-black print:hidden max-h-[55vh]">
+            <div className={`border border-border rounded-md overflow-auto bg-white text-black print:hidden ${asPage ? "max-h-[70vh]" : "max-h-[55vh]"}`}>
               <div className="origin-top-left scale-[0.5] w-[200%]">
                 <ShiftClosingReport
                   shift={shift}
