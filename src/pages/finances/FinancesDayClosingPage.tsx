@@ -31,8 +31,14 @@ const amountToneClass = (value: number) => value > 0 ? "cms-amount-positive" : v
 
 export default function FinancesDayClosingPage() {
   const [bd, setBd] = useState(today());
+  const listRange = useMemo(() => {
+    const [year, month] = bd.split("-").map(Number);
+    const lastDay = new Date(year, month, 0).getDate();
+    const prefix = `${year}-${String(month).padStart(2, "0")}`;
+    return { from: `${prefix}-01`, to: `${prefix}-${String(lastDay).padStart(2, "0")}` };
+  }, [bd]);
   const { data: existing } = useFinDayClosing(bd);
-  const { data: list = [] } = useDayClosingList();
+  const { data: list = [] } = useDayClosingList(listRange);
   const { data: tablesAuto = 0 } = useShiftsTablesResultForDate(bd);
   const { data: wallets = [] } = useFinWallets();
   const { data: snap } = useBusinessDayClosureSnapshot(bd);
