@@ -5,7 +5,7 @@
  * preview plus Print / Close without printing. A page cannot be swallowed by a
  * re-render the way an overlay could when the shift stopped being active.
  */
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Navigate } from "react-router-dom";
 import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
