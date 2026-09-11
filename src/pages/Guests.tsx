@@ -231,12 +231,20 @@ const Guests = () => {
         await logAction(casinoId, "player", "PLAYER_CHECKED_IN", { player_id: playerId, reopened: true });
         return existing.id;
       }
-      const { error } = await supabase.from("casino_visits").insert({
-        casino_id: casinoId,
-        player_id: playerId,
-        checked_in_by: user.id,
-        position: "hall",
-      });
+      // Idempotent: upsert on the (casino_id, player_id, date) unique key so a
+      // concurrent check-in (another terminal / race with the read above) can
+      // never raise a unique-constraint error — it just reopens the same row.
+      const { error } = await supabase.from("casino_visits").upsert(
+        {
+          casino_id: casinoId,
+          player_id: playerId,
+          date: today,
+          checked_in_by: user.id,
+          checked_out_at: null,
+          position: "hall",
+        },
+        { onConflict: "casino_id,player_id,date" },
+      );
       if (error) throw error;
       await logAction(casinoId, "player", "PLAYER_CHECKED_IN", { player_id: playerId });
     },
