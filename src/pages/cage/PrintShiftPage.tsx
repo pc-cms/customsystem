@@ -10,6 +10,7 @@ import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Printer } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { clearPendingPrint } from "@/lib/pending-print";
 
