@@ -10733,6 +10733,48 @@ export type Database = {
           },
         ]
       }
+      request_metrics: {
+        Row: {
+          bucket_at: string
+          client_id: string
+          created_at: string
+          error_count: number
+          id: string
+          max_duration_ms: number
+          module: string
+          request_count: number
+          timeout_count: number
+          total_duration_ms: number
+          user_id: string
+        }
+        Insert: {
+          bucket_at: string
+          client_id: string
+          created_at?: string
+          error_count?: number
+          id?: string
+          max_duration_ms?: number
+          module: string
+          request_count?: number
+          timeout_count?: number
+          total_duration_ms?: number
+          user_id?: string
+        }
+        Update: {
+          bucket_at?: string
+          client_id?: string
+          created_at?: string
+          error_count?: number
+          id?: string
+          max_duration_ms?: number
+          module?: string
+          request_count?: number
+          timeout_count?: number
+          total_duration_ms?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       role_capabilities: {
         Row: {
           capability: string

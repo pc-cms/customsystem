@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, ClipboardList } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterBar } from "@/components/layout/FilterBar";
+import { RequestMetricsPanel } from "@/components/admin/RequestMetricsPanel";
 
 const CATEGORY_STYLES: Record<string, string> = {
   transaction: "bg-primary/10 text-primary", edit: "bg-accent/10 text-accent",
@@ -58,6 +59,8 @@ const Logs = () => {
         subtitle={`Immutable trail · searchable · ${filtered.length} entries`}
         date
       />
+
+      <RequestMetricsPanel />
 
       <FilterBar
         search={

@@ -16,6 +16,7 @@ import { createIDBPersister } from "@/lib/query-persister";
 import { usePrefetchCriticalData } from "@/hooks/use-prefetch";
 import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
 import { useBusinessDayWatcher } from "@/hooks/use-business-day-watcher";
+import { useRequestMetricsCollector } from "@/hooks/use-request-metrics";
 import { initSyncEngine } from "@/lib/sync-engine";
 import { clearSelectedPlayer } from "@/hooks/use-selected-player";
 import Login from "@/pages/Login";
@@ -384,6 +385,9 @@ const ProtectedRoutes = () => {
   // One module-aware realtime channel per casino. Keeping a single global
   // subscription layer avoids duplicate events and duplicate query refreshes.
   useRealtimeSubscriptions();
+
+  // Flush locally aggregated request metrics in small background batches.
+  useRequestMetricsCollector();
 
   // Detect business-day rollover (07:00 EAT) and invalidate stale "today" caches.
   useBusinessDayWatcher();
