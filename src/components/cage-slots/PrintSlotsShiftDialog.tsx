@@ -405,7 +405,17 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false, asPa
   const body = (
     <>
         {isLoading || !printProps || (isClosedSlots && (snapLoading || !frozenProps)) ? (
-          <div className="text-center text-muted-foreground py-10 text-sm">Loading…</div>
+          <div className="space-y-4">
+            <div className="text-center text-muted-foreground py-10 text-sm">
+              {!isLoading && !printProps ? "Report data could not be loaded." : "Loading…"}
+            </div>
+            {/* Escape hatch: never trap the cashier if the report never loads. */}
+            <div className="print:hidden flex justify-end">
+              <Button variant="outline" onClick={onClose} className="gap-1.5">
+                {mandatory ? "Close shift" : (<><X className="w-4 h-4" /> Close</>)}
+              </Button>
+            </div>
+          </div>
         ) : (
           <>
             {(
