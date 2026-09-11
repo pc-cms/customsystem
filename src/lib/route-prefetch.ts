@@ -46,7 +46,7 @@ export const pathLoaders: Record<string, Loader> = {
   "/admin": () => import("@/pages/Admin"),
   "/admin/users/new": () => import("@/pages/admin/UserNewPage"),
   "/admin/users/:id/edit": () => import("@/pages/admin/UserEditPage"),
-  "/admin/sync-log": () => import("@/pages/admin/SyncLogPage"),
+  
   // /finances/* routes removed — Office (/office) is the only finance entry point.
   "/office": () => import("@/pages/office/OfficePage"),
   "/reception": () => import("@/pages/Reception"),

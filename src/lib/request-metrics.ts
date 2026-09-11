@@ -98,7 +98,7 @@ export function getRequestMetricBuckets(): RequestMetricBucket[] {
 export function startRequestMetricsFlush() {
   if (typeof window === "undefined" || flushTimer) return;
   const notify = () => window.dispatchEvent(new CustomEvent(FLUSH_EVENT));
-  flushTimer = setInterval(notify, 10_000);
+  flushTimer = setInterval(notify, 60_000);
   notify();
 }
 
