@@ -145,7 +145,7 @@ export default function BossPhoneDashboard() {
           <div className="min-w-0 flex-1">
             <div className="text-[13px] font-semibold leading-tight truncate">Dashboard Phone</div>
             <div className="text-[10px] leading-tight" style={{ color: "rgba(255,255,255,0.5)" }}>
-              {periodView === "today" ? dateLabel : monthLabel} · {clock}
+              {periodView === "today" ? dateLabel : monthLabel} · {clock.time}
             </div>
           </div>
           <div className="inline-flex rounded-md border border-white/10 bg-black/40 p-0.5">
