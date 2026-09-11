@@ -30,7 +30,6 @@ import {
   IVORY,
   DASH,
 } from "@/components/boss/tv/primitives";
-import premierClubLogo from "/premier-club-logo.svg";
 
 type PeriodView = "today" | "monthly";
 
