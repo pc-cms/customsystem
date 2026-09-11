@@ -7,10 +7,12 @@
  * helpers — no separate formulas here.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useBossCasinoDays } from "@/hooks/use-boss-dashboard";
 import { useAceLiveSlotsResultMany } from "@/hooks/use-ace-finance";
 import {
@@ -88,6 +90,7 @@ function Metric({ label, drop, result, hold, muted }: {
 
 export default function BossPhoneDashboard() {
   const { accessibleCasinos: ctxCasinos } = useCasino();
+  const isMobile = useIsMobile();
 
   const { data: allCasinos = [] } = useQuery({
     queryKey: ["boss-dashboard-casinos"],
@@ -104,10 +107,34 @@ export default function BossPhoneDashboard() {
 
   const casinos = allCasinos.length > 0 ? allCasinos : ctxCasinos;
 
-  const [periodView, setPeriodView] = useState<PeriodView>(
-    () => (localStorage.getItem(LS_PERIOD) as PeriodView) || "today",
-  );
-  useEffect(() => { localStorage.setItem(LS_PERIOD, periodView); }, [periodView]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawView = searchParams.get("view") as PeriodView | null;
+  const periodView: PeriodView = rawView === "monthly" ? "monthly" : "today";
+
+  useEffect(() => {
+    // On first load without a query param, restore the last chosen period from storage.
+    if (!rawView) {
+      const saved = localStorage.getItem(LS_PERIOD) as PeriodView | null;
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("view", saved === "monthly" ? "monthly" : "today");
+        return next;
+      }, { replace: true });
+    }
+  }, [rawView, setSearchParams]);
+
+  useEffect(() => {
+    // Persist the current period choice for future direct visits without a query param.
+    localStorage.setItem(LS_PERIOD, periodView);
+  }, [periodView]);
+
+  const setPeriodView = (p: PeriodView) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("view", p);
+      return next;
+    }, { replace: true });
+  };
 
   const activeIds = useMemo(() => casinos.map((c) => c.id), [casinos]);
   const { data: days } = useBossCasinoDays(activeIds);
@@ -136,27 +163,29 @@ export default function BossPhoneDashboard() {
       style={{ background: STAGE_BACKGROUND["black-gold"] }}
     >
       <div className="w-full px-3 py-2 space-y-2">
-        {/* Single compact header: logo + period toggle, page title lives in MobileHeader */}
-        <div className="flex items-center gap-2">
-          <img src={premierClubLogo} alt="Premier Club" className="h-6 w-auto shrink-0" />
-          <div className="flex-1" />
-          <div className="inline-flex rounded-md border border-white/10 bg-black/40 p-0.5 shrink-0">
-            {(["today", "monthly"] as PeriodView[]).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriodView(p)}
-                className="px-2.5 py-1 text-[11px] rounded-sm font-semibold"
-                style={
-                  periodView === p
-                    ? { background: "rgba(232,198,136,0.18)", color: PREMIER.softGold }
-                    : { color: "rgba(255,255,255,0.55)" }
-                }
-              >
-                {p === "today" ? "Today" : "Month"}
-              </button>
-            ))}
+        {/* Desktop fallback: logo + period toggle (mobile uses MobileHeader) */}
+        {!isMobile && (
+          <div className="flex items-center gap-2">
+            <img src={premierClubLogo} alt="Premier Club" className="h-6 w-auto shrink-0" />
+            <div className="flex-1" />
+            <div className="inline-flex rounded-md border border-white/10 bg-black/40 p-0.5 shrink-0">
+              {(["today", "monthly"] as PeriodView[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriodView(p)}
+                  className="px-2.5 py-1 text-[11px] rounded-sm font-semibold"
+                  style={
+                    periodView === p
+                      ? { background: "rgba(232,198,136,0.18)", color: PREMIER.softGold }
+                      : { color: "rgba(255,255,255,0.55)" }
+                  }
+                >
+                  {p === "today" ? "Today" : "Month"}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Company total */}
         <div
