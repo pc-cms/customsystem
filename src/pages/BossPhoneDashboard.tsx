@@ -52,7 +52,7 @@ function Metric({ label, drop, result, hold, muted }: {
       >
         {label}
       </div>
-      <div className="grid items-end gap-x-1" style={{ gridTemplateColumns: COLS }}>
+      <div className="grid items-end gap-x-2" style={{ gridTemplateColumns: COLS }}>
         <div className="min-w-0 overflow-hidden">
           <div className="text-[9px] uppercase mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>Drop</div>
           <Num
