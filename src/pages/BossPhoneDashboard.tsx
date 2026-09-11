@@ -35,7 +35,7 @@ type PeriodView = "today" | "monthly";
 
 const LS_PERIOD = "boss-phone:period-view";
 
-const COLS = "minmax(0, 1.05fr) minmax(0, 1.35fr) minmax(0, 0.6fr)";
+const COLS = "minmax(0, 0.95fr) minmax(0, 1.55fr) minmax(0, 0.5fr)";
 
 function Metric({ label, drop, result, hold, muted }: {
   label: string;
@@ -52,7 +52,7 @@ function Metric({ label, drop, result, hold, muted }: {
       >
         {label}
       </div>
-      <div className="grid items-end gap-x-1" style={{ gridTemplateColumns: COLS }}>
+      <div className="grid items-end gap-x-2" style={{ gridTemplateColumns: COLS }}>
         <div className="min-w-0 overflow-hidden">
           <div className="text-[9px] uppercase mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>Drop</div>
           <Num
@@ -136,12 +136,10 @@ export default function BossPhoneDashboard() {
       style={{ background: STAGE_BACKGROUND["black-gold"] }}
     >
       <div className="w-full px-3 py-2 space-y-2">
-        {/* Single compact header */}
+        {/* Single compact header: logo + period toggle, page title lives in MobileHeader */}
         <div className="flex items-center gap-2">
           <img src={premierClubLogo} alt="Premier Club" className="h-6 w-auto shrink-0" />
-          <div className="min-w-0 flex-1">
-            <div className="text-[13px] font-semibold leading-tight truncate">Dashboard Phone</div>
-          </div>
+          <div className="flex-1" />
           <div className="inline-flex rounded-md border border-white/10 bg-black/40 p-0.5 shrink-0">
             {(["today", "monthly"] as PeriodView[]).map((p) => (
               <button
@@ -171,7 +169,7 @@ export default function BossPhoneDashboard() {
           >
             Company Total
           </div>
-          <div className="grid items-end gap-x-1" style={{ gridTemplateColumns: COLS }}>
+          <div className="grid items-end gap-x-2" style={{ gridTemplateColumns: COLS }}>
             <div className="min-w-0 overflow-hidden">
               <div className="text-[9px] uppercase mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>Drop</div>
               <Num text={fmtMoney(company.drop)} color={IVORY} size="md" className="w-full" />
