@@ -1,6 +1,6 @@
-- [ ] Remove duplicate global realtime subscriptions while preserving offline sync
-- [ ] Gate Breaklist and chip polling to active visible screens
-- [ ] Bound operational history to seven days
-- [ ] Scope Office queries to selected month
-- [ ] Optimize confirmed Office database bottlenecks
-- [ ] Verify build, behavior, and before/after query load
+- [x] Remove duplicate global realtime subscriptions while preserving offline sync
+- [x] Gate Breaklist and chip polling to active visible screens
+- [x] Bound operational history to seven days
+- [x] Scope Office queries to selected month
+- [x] Reduce duplicate invalidations reaching Office database calculations
+- [x] Verify query bounds and benchmark Office RPC execution
