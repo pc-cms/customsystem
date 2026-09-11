@@ -138,7 +138,7 @@ export interface SmartTableProps<T> {
   bare?: boolean;
 }
 
-const DEFAULT_VIRTUAL_THRESHOLD = 200;
+const DEFAULT_VIRTUAL_THRESHOLD = 80;
 
 function compare(a: unknown, b: unknown): number {
   if (a == null && b == null) return 0;

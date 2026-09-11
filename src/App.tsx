@@ -16,6 +16,7 @@ import { createIDBPersister } from "@/lib/query-persister";
 import { usePrefetchCriticalData } from "@/hooks/use-prefetch";
 import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
 import { useBusinessDayWatcher } from "@/hooks/use-business-day-watcher";
+import { useIdleWeekMonthPrefetch } from "@/hooks/use-idle-prefetch";
 import { useRequestMetricsCollector } from "@/hooks/use-request-metrics";
 import { initSyncEngine } from "@/lib/sync-engine";
 import { clearSelectedPlayer } from "@/hooks/use-selected-player";
@@ -391,6 +392,10 @@ const ProtectedRoutes = () => {
 
   // Detect business-day rollover (07:00 EAT) and invalidate stale "today" caches.
   useBusinessDayWatcher();
+
+  // Неделя/месяц прогреваются в фоне, в простое браузера — экраны за сегодня
+  // при этом не ждут ничего лишнего.
+  useIdleWeekMonthPrefetch();
 
   // Initialize offline sync engine on mount
   useEffect(() => { initSyncEngine(); }, []);
