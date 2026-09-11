@@ -466,7 +466,7 @@ export const PeerLinksPanel = () => {
         </DialogContent>
       </Dialog>
 
-      <RecentExchangeActivity />
+      
     </div>
   );
 };

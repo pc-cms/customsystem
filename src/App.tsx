@@ -129,7 +129,6 @@ const CrmPlayers = lazy(() => import("@/pages/crm/CrmPlayers"));
 
 const UserNewPage = lazy(() => import("@/pages/admin/UserNewPage"));
 const UserEditPage = lazy(() => import("@/pages/admin/UserEditPage"));
-const SyncLogPage = lazy(() => import("@/pages/admin/SyncLogPage"));
 const SyncQueuePage = lazy(() => import("@/pages/admin/SyncQueuePage"));
 const PromoCodesPage = lazy(() => import("@/pages/admin/PromoCodesPage"));
 const ShopCatalogPage = lazy(() => import("@/pages/admin/ShopCatalogPage"));
