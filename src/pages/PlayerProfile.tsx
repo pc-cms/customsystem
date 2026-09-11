@@ -72,7 +72,9 @@ const PlayerProfile = () => {
   const { data: player, isLoading } = usePlayer(id);
   const { data: visits = [] } = usePlayerVisits(id);
   const { data: transactions = [] } = usePlayerTransactions(id);
-  const { data: groupHistory = [] } = usePlayerGroupHistory(id);
+  // Вкладки грузят свои данные только при открытии — карточка открывается сразу.
+  const [tab, setTab] = useState<string>("info");
+  const { data: groupHistory = [] } = usePlayerGroupHistory(id, tab === "connections");
   const { data: economy = null } = usePlayerEconomy(id);
   const { data: expenses = [] } = usePlayerExpenses(id);
   const canSeeNotes = roles.some(r => ["pit", "surveillance", "manager", "shift_manager"].includes(r)) || isManager;
@@ -90,7 +92,7 @@ const PlayerProfile = () => {
   const [range, setRange] = useSessionState("range", () => restrictedToToday
     ? { from: businessDate!, to: businessDate! }
     : presetRange("month"));
-  const { data: sessions = [] } = usePlayerSessions(id, range);
+  const { data: sessions = [] } = usePlayerSessions(id, range, tab === "stats" || tab === "visits" || tab === "info");
 
   const [editOpen, setEditOpen] = useState(false);
   const [expandedVisit, setExpandedVisit] = useState<string | null>(null);
@@ -498,7 +500,7 @@ const PlayerProfile = () => {
           <div className="w-full md:w-[180px] shrink-0">
             <div className="aspect-[4/5] w-full rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
               {player.photo_url ? (
-                <img src={player.photo_url} className="w-full h-full object-cover" alt={fullName} />
+                <img src={player.photo_url} className="w-full h-full object-cover" alt={fullName} loading="lazy" decoding="async" />
               ) : (
                 <User className="w-16 h-16 text-muted-foreground" />
               )}
@@ -648,7 +650,7 @@ const PlayerProfile = () => {
       </PageSection>
 
       {/* Tabs */}
-      <Tabs defaultValue="info" className="w-full">
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <TabsList className="w-full sm:w-auto overflow-x-auto justify-start">
             <TabsTrigger value="info"><History className="w-3.5 h-3.5 mr-1" /> Info & History</TabsTrigger>
