@@ -16,12 +16,10 @@ const PrintSlotsShiftPage = () => {
   const { shiftId } = useParams<{ shiftId: string }>();
   const nav = useNavigate();
 
+  // Dead end guard: clear the pending mark so /cage-slots does not bounce back.
   if (!shiftId) {
-    return (
-      <PageShell>
-        <PageHeader icon={Printer} title="Print" subtitle="Shift ID is missing" />
-      </PageShell>
-    );
+    clearPendingPrint();
+    return <Navigate to="/cage-slots" replace />;
   }
 
   return (
