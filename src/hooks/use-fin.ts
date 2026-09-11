@@ -5,6 +5,7 @@
 import { invalidateFinance } from "@/lib/fin-invalidate";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
+import { instantRangeOptions, instantMonthOptions } from "@/lib/instant-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
@@ -247,6 +248,7 @@ export const useFinWalletTx = (opts?: {
   const { activeCasinoId, isSummaryMode } = useCasino();
   const limit = opts?.limit == null ? 5000 : opts.limit;
   return useQuery({
+    ...instantRangeOptions(opts?.from, opts?.to),
     queryKey: ["fin-wallet-tx", isSummaryMode ? "all" : activeCasinoId, opts?.from, opts?.to, opts?.walletId, limit],
     queryFn: async () => {
       let q = supabase
@@ -313,6 +315,7 @@ export const useReverseWalletTx = () => {
 export const useFinExpenses = (opts?: { from?: string; to?: string }) => {
   const { activeCasinoId, isSummaryMode } = useCasino();
   return useQuery({
+    ...instantRangeOptions(opts?.from, opts?.to),
     queryKey: ["fin-expenses", isSummaryMode ? "all" : activeCasinoId, opts?.from, opts?.to],
     queryFn: async () => {
       let q = supabase
@@ -458,6 +461,7 @@ export const useFinDayClosing = (businessDate?: string) => {
 export const useDayClosingList = (opts?: { from?: string; to?: string }) => {
   const { activeCasinoId } = useCasino();
   return useQuery({
+    ...instantRangeOptions(opts?.from, opts?.to),
     queryKey: ["fin-day-closing-list", activeCasinoId, opts?.from, opts?.to],
     queryFn: async () => {
       if (!activeCasinoId) return [];
@@ -619,6 +623,7 @@ export const useMissCardsForDate = (businessDate?: string) => {
 export const useFinMoneyChange = (opts?: { from?: string; to?: string }) => {
   const { activeCasinoId, isSummaryMode } = useCasino();
   return useQuery({
+    ...instantRangeOptions(opts?.from, opts?.to),
     queryKey: ["fin-money-change", isSummaryMode ? "all" : activeCasinoId, opts?.from, opts?.to],
     queryFn: async () => {
       let q = supabase
@@ -682,6 +687,7 @@ export const useCreateMoneyChange = () => {
 export const useFinBudget = (year: number, month?: number) => {
   const { activeCasinoId, isSummaryMode } = useCasino();
   return useQuery({
+    ...instantMonthOptions(year, month),
     queryKey: ["fin-budget", isSummaryMode ? "all" : activeCasinoId, year, month],
     queryFn: async () => {
       let q = supabase
