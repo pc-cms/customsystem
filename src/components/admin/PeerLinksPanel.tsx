@@ -21,7 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Trash2, Pause, Play, CheckCircle2, XCircle, Sparkles, Server, Cloud } from "lucide-react";
-import { RecentExchangeActivity } from "./RecentExchangeActivity";
+
 
 type PeerStatus = "pending_outbound" | "pending_inbound" | "active" | "paused" | "rejected";
 
