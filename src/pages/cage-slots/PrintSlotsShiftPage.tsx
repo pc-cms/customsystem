@@ -5,7 +5,7 @@
  * pack preview plus Print / Close without printing. Keeping it a page means the
  * pack cannot disappear when the shift stops being active.
  */
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Navigate } from "react-router-dom";
 import PrintSlotsShiftDialog from "@/components/cage-slots/PrintSlotsShiftDialog";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
