@@ -29,6 +29,7 @@ import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getBusinessDate } from "@/lib/business-day";
+import { instantMonthOptions } from "@/lib/instant-query";
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
@@ -70,6 +71,7 @@ function useMonthAggregates(year: number, month: number) {
   return useQuery({
     queryKey: ["day-closings-month-agg", activeCasinoId, year, month],
     enabled: !!activeCasinoId,
+    ...instantMonthOptions(year, month),
     queryFn: async () => {
       const lastDay = new Date(year, month, 0).getDate();
       const startDate = `${year}-${pad(month)}-01`;
@@ -124,6 +126,7 @@ function useMonthClosures(year: number, month: number) {
   return useQuery({
     queryKey: ["day-closings-bdc", activeCasinoId, year, month],
     enabled: !!activeCasinoId,
+    ...instantMonthOptions(year, month),
     queryFn: async () => {
       const lastDay = new Date(year, month, 0).getDate();
       const { data } = await supabase
