@@ -35,7 +35,7 @@ type PeriodView = "today" | "monthly";
 
 const LS_PERIOD = "boss-phone:period-view";
 
-const COLS = "minmax(0, 1fr) minmax(0, 1.45fr) minmax(0, 0.55fr)";
+const COLS = "minmax(0, 0.95fr) minmax(0, 1.55fr) minmax(0, 0.5fr)";
 
 function Metric({ label, drop, result, hold, muted }: {
   label: string;
