@@ -109,6 +109,18 @@ export default function BossPhoneDashboard() {
   const periodView: PeriodView = rawView === "monthly" ? "monthly" : "today";
 
   useEffect(() => {
+    // On first load without a query param, restore the last chosen period from storage.
+    if (!rawView) {
+      const saved = localStorage.getItem(LS_PERIOD) as PeriodView | null;
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("view", saved === "monthly" ? "monthly" : "today");
+        return next;
+      }, { replace: true });
+    }
+  }, [rawView, setSearchParams]);
+
+  useEffect(() => {
     // Persist the current period choice for future direct visits without a query param.
     localStorage.setItem(LS_PERIOD, periodView);
   }, [periodView]);
