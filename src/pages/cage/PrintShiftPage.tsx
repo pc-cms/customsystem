@@ -24,11 +24,20 @@ const PrintShiftPage = () => {
     return <Navigate to="/cage" replace />;
   }
 
-  // casinoId can still be hydrating — keep the page mounted and wait.
+  // casinoId can still be hydrating — keep the page mounted and wait, but
+  // always offer a way back so the cashier is never stuck here.
   if (!casinoId) {
     return (
       <PageShell>
         <PageHeader icon={Printer} title="Print Shift Closing Pack" subtitle="Loading…" />
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            onClick={() => { clearPendingPrint(); nav("/cage", { replace: true }); }}
+          >
+            Close shift
+          </Button>
+        </div>
       </PageShell>
     );
   }
