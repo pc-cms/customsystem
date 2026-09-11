@@ -6,8 +6,21 @@ import { toast } from "sonner";
 
 /** Single player + cards + tags. */
 export const usePlayer = (id: string | undefined) => {
+  const qc = useQueryClient();
+  // Мгновенный первый рендер: если игрок уже есть в кэше списка игроков,
+  // показываем его сразу, а полная карточка приходит поверх.
+  const cached = (() => {
+    if (!id) return undefined;
+    for (const [, data] of qc.getQueriesData({ queryKey: ["players"] })) {
+      const hit = Array.isArray(data) ? (data as any[]).find((p) => p?.id === id) : undefined;
+      if (hit) return { player_cards: [], player_tags: [], ...hit };
+    }
+    return undefined;
+  })();
   return useQuery({
     queryKey: ["player", id],
+    placeholderData: cached,
+    staleTime: 60_000,
     queryFn: async () => {
       if (!id) return null;
       const { data, error } = await supabase
@@ -23,7 +36,7 @@ export const usePlayer = (id: string | undefined) => {
 };
 
 /** All visits for a player (cross-casino if RLS allows). */
-export const usePlayerVisits = (playerId: string | undefined) => {
+export const usePlayerVisits = (playerId: string | undefined, enabled = true) => {
   return useQuery({
     queryKey: ["player-visits", playerId],
     queryFn: async () => {
@@ -35,14 +48,16 @@ export const usePlayerVisits = (playerId: string | undefined) => {
         .order("checked_in_at", { ascending: false })
         .range(from, to));
     },
-    enabled: !!playerId,
+    enabled: !!playerId && enabled,
+    staleTime: 60_000,
   });
 };
 
 /** Client (table) sessions filtered by date range. */
 export const usePlayerSessions = (
   playerId: string | undefined,
-  range?: { from: string; to: string }
+  range?: { from: string; to: string },
+  enabled = true,
 ) => {
   return useQuery({
     queryKey: ["player-sessions", playerId, range?.from, range?.to],
@@ -59,7 +74,8 @@ export const usePlayerSessions = (
         return q.range(from, to);
       });
     },
-    enabled: !!playerId,
+    enabled: !!playerId && enabled,
+    staleTime: 60_000,
   });
 };
 
@@ -79,6 +95,7 @@ export const usePlayerTransactions = (playerId: string | undefined) => {
         .range(from, to));
     },
     enabled: !!playerId,
+    staleTime: 60_000,
   });
 };
 
@@ -86,6 +103,7 @@ export const usePlayerTransactions = (playerId: string | undefined) => {
 export const usePlayerEconomy = (playerId: string | undefined) => {
   return useQuery({
     queryKey: ["player-economy", playerId],
+    staleTime: 60_000,
     queryFn: async () => {
       if (!playerId) return null;
       const { data, error } = await supabase
@@ -101,7 +119,7 @@ export const usePlayerEconomy = (playerId: string | undefined) => {
 };
 
 /** Comps / gifts given to a player (via expenses with player_id set). */
-export const usePlayerExpenses = (playerId: string | undefined) => {
+export const usePlayerExpenses = (playerId: string | undefined, enabled = true) => {
   return useQuery({
     queryKey: ["player-expenses", playerId],
     queryFn: async () => {
@@ -113,12 +131,13 @@ export const usePlayerExpenses = (playerId: string | undefined) => {
         .order("created_at", { ascending: false })
         .range(from, to));
     },
-    enabled: !!playerId,
+    enabled: !!playerId && enabled,
+    staleTime: 60_000,
   });
 };
 
 /** Group memberships — current and historical. */
-export const usePlayerGroupHistory = (playerId: string | undefined) => {
+export const usePlayerGroupHistory = (playerId: string | undefined, enabled = true) => {
   return useQuery({
     queryKey: ["player-group-history", playerId],
     queryFn: async () => {
@@ -131,7 +150,8 @@ export const usePlayerGroupHistory = (playerId: string | undefined) => {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!playerId,
+    enabled: !!playerId && enabled,
+    staleTime: 60_000,
   });
 };
 
