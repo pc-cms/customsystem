@@ -18,12 +18,10 @@ const PrintShiftPage = () => {
   const { casinoId } = useAuth();
   const nav = useNavigate();
 
+  // Dead end guard: clear the pending mark so /cage does not bounce back here.
   if (!shiftId) {
-    return (
-      <PageShell>
-        <PageHeader icon={Printer} title="Print" subtitle="Shift ID is missing" />
-      </PageShell>
-    );
+    clearPendingPrint();
+    return <Navigate to="/cage" replace />;
   }
 
   // casinoId can still be hydrating — keep the page mounted and wait.
