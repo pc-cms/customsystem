@@ -49,7 +49,7 @@ function alwaysTasks(qc: QueryClient, casinoId: string, today: string): Task[] {
       queryFn: async () => {
         const { data } = await supabase
           .from("players")
-          .select("*, player_cards(*), player_tags(*)")
+          .select("*, player_cards(id, player_id, card_number, rfid_uid, is_active), player_tags(id, player_id, tag)")
           .eq("casino_id", casinoId)
           .order("last_name");
         return data ?? [];

@@ -33,7 +33,7 @@ export const usePlayers = () => {
     queryFn: async () => {
       return await fetchPaged<any>((from, to) => supabase
         .from("players")
-        .select("*, player_cards(*), player_tags(*)")
+        .select("*, player_cards(id, player_id, card_number, rfid_uid, is_active), player_tags(id, player_id, tag)")
         .neq("status", "merged")
         .order("last_name")
         .range(from, to)

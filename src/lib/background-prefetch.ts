@@ -148,5 +148,24 @@ export function prefetchWeekAndMonth(qc: QueryClient, casinoId: string) {
     }),
   );
 
+  // Снимки фишек: последние 6 дней (сегодня уже загружен экраном).
+  for (let d = 1; d <= 6; d++) {
+    const date = shiftDate(today, -d);
+    tasks.push(() =>
+      qc.prefetchQuery({
+        queryKey: ["chip-snapshots", casinoId, date],
+        queryFn: async () => {
+          const { data, error } = await supabase.rpc("chip_snapshots_latest", {
+            _casino_id: casinoId,
+            _date: date,
+          });
+          if (error) throw error;
+          return data || [];
+        },
+        staleTime: IDLE_STALE,
+      }),
+    );
+  }
+
   runSequentially(tasks);
 }

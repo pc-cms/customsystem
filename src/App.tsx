@@ -129,7 +129,6 @@ const CrmPlayers = lazy(() => import("@/pages/crm/CrmPlayers"));
 
 const UserNewPage = lazy(() => import("@/pages/admin/UserNewPage"));
 const UserEditPage = lazy(() => import("@/pages/admin/UserEditPage"));
-const SyncLogPage = lazy(() => import("@/pages/admin/SyncLogPage"));
 const SyncQueuePage = lazy(() => import("@/pages/admin/SyncQueuePage"));
 const PromoCodesPage = lazy(() => import("@/pages/admin/PromoCodesPage"));
 const ShopCatalogPage = lazy(() => import("@/pages/admin/ShopCatalogPage"));
@@ -535,7 +534,7 @@ const ProtectedRoutes = () => {
           <Route path="/admin/license" element={<Navigate to="/superadmin/license" replace />} />
           <Route path="/admin/users/new" element={<RoleGuard path="/admin"><ErrorBoundary><UserNewPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/users/:id/edit" element={<RoleGuard path="/admin"><ErrorBoundary><UserEditPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/admin/sync-log" element={<RoleGuard path="/admin"><ErrorBoundary><SyncLogPage /></ErrorBoundary></RoleGuard>} />
+          
           <Route path="/admin/sync-queue" element={<RoleGuard path="/admin"><ErrorBoundary><SyncQueuePage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/promo-codes" element={<RoleGuard path="/admin/promo-codes"><ErrorBoundary><PromoCodesPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/shop" element={<RoleGuard path="/admin/shop"><ErrorBoundary><ShopCatalogPage /></ErrorBoundary></RoleGuard>} />
