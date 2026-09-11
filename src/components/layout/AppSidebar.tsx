@@ -1002,6 +1002,7 @@ export const AppSidebar = ({ collapsed = false, onToggle }: { collapsed?: boolea
 export const MobileHeader = () => {
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const currentTab = new URLSearchParams(location.search).get("tab");
   const currentItem =
@@ -1017,15 +1018,49 @@ export const MobileHeader = () => {
     });
   const pageTitle = currentItem?.label || "CMS";
 
+  const isBossPhone = location.pathname === "/boss-phone";
+  const periodView = searchParams.get("view") === "monthly" ? "monthly" : "today";
+
+  const setPeriodView = (p: "today" | "monthly") => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("view", p);
+      return next;
+    }, { replace: true });
+  };
+
   return (
     <>
       <header className="h-12 flex items-center gap-2 px-3 border-b border-border bg-sidebar shrink-0">
         <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => setOpen(true)}>
           <Menu className="w-5 h-5" />
         </Button>
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="text-sm font-bold text-foreground truncate">{pageTitle}</span>
-        </div>
+        {isBossPhone ? (
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <img src={premierClubLogo} alt="Premier Club" className="h-6 w-auto shrink-0" />
+            <div className="flex-1" />
+            <div className="inline-flex rounded-md border border-white/10 bg-black/40 p-0.5 shrink-0">
+              {(["today", "monthly"] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriodView(p)}
+                  className="px-2.5 py-1 text-[11px] rounded-sm font-semibold"
+                  style={
+                    periodView === p
+                      ? { background: "rgba(232,198,136,0.18)", color: PREMIER.softGold }
+                      : { color: "rgba(255,255,255,0.55)" }
+                  }
+                >
+                  {p === "today" ? "Today" : "Month"}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="text-sm font-bold text-foreground truncate">{pageTitle}</span>
+          </div>
+        )}
       </header>
 
       <Sheet open={open} onOpenChange={setOpen}>
