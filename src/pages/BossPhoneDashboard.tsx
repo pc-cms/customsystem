@@ -136,12 +136,10 @@ export default function BossPhoneDashboard() {
       style={{ background: STAGE_BACKGROUND["black-gold"] }}
     >
       <div className="w-full px-3 py-2 space-y-2">
-        {/* Single compact header */}
+        {/* Single compact header: logo + period toggle, page title lives in MobileHeader */}
         <div className="flex items-center gap-2">
           <img src={premierClubLogo} alt="Premier Club" className="h-6 w-auto shrink-0" />
-          <div className="min-w-0 flex-1">
-            <div className="text-[13px] font-semibold leading-tight truncate">Dashboard Phone</div>
-          </div>
+          <div className="flex-1" />
           <div className="inline-flex rounded-md border border-white/10 bg-black/40 p-0.5 shrink-0">
             {(["today", "monthly"] as PeriodView[]).map((p) => (
               <button
