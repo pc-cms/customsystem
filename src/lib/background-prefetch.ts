@@ -124,15 +124,25 @@ export function prefetchWeekAndMonth(qc: QueryClient, casinoId: string) {
   tasks.push(() =>
     qc.prefetchQuery({
       queryKey: ["players-drop-cache-range", casinoId, weekFrom, today],
-      queryFn: async () => {
+      queryFn: async (): Promise<Record<string, { dropR: number; recycled: number }>> => {
         const { data, error } = await supabase
           .from("player_day_drop_cache")
-          .select("player_id, business_date, drop_amount")
+          .select("player_id, peak, recycled")
           .eq("casino_id", casinoId)
           .gte("business_date", weekFrom)
-          .lte("business_date", today);
+          .lte("business_date", today)
+          .order("business_date", { ascending: true });
         if (error) throw error;
-        return data;
+        const rec: Record<string, { dropR: number; recycled: number }> = {};
+        (data || []).forEach((r: any) => {
+          if (!r?.player_id) return;
+          const prev = rec[r.player_id] || { dropR: 0, recycled: 0 };
+          rec[r.player_id] = {
+            dropR: prev.dropR + (Number(r.peak) || 0),
+            recycled: prev.recycled + (Number(r.recycled) || 0),
+          };
+        });
+        return rec;
       },
       staleTime: IDLE_STALE,
     }),
