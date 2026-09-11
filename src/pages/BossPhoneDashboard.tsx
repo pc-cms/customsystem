@@ -11,8 +11,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
-import { getBusinessDate } from "@/lib/business-day";
-import premierClubLogo from "/premier-club-logo.svg";
 import { useBossCasinoDays } from "@/hooks/use-boss-dashboard";
 import { useAceLiveSlotsResultMany } from "@/hooks/use-ace-finance";
 import {
@@ -21,15 +19,23 @@ import {
   sumDisplayedToday,
 } from "@/lib/boss-display-metrics";
 import { PREMIER, STAGE_BACKGROUND, tvAccentFor } from "@/components/boss/tv/tokens";
-import { useEatClock } from "@/components/boss/tv/primitives";
+import {
+  Num,
+  fmtMoney,
+  fmtSigned,
+  fmtPct,
+  resultColor,
+  resultGlow,
+  IVORY,
+  DASH,
+} from "@/components/boss/tv/primitives";
+import premierClubLogo from "/premier-club-logo.svg";
 
 type PeriodView = "today" | "monthly";
 
 const LS_PERIOD = "boss-phone:period-view";
-const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-const money = (n: number) =>
-  `${n < 0 ? "-" : ""}${Math.abs(Math.round(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}`;
+const COLS = "minmax(0, 1.05fr) minmax(0, 1.35fr) minmax(0, 0.6fr)";
 
 function Metric({ label, drop, result, hold, muted }: {
   label: string;
@@ -39,44 +45,41 @@ function Metric({ label, drop, result, hold, muted }: {
   muted?: boolean;
 }) {
   return (
-    <div className="rounded-lg px-2.5 py-2" style={{ background: "rgba(255,255,255,0.04)" }}>
+    <div className="rounded-lg px-2 py-1.5" style={{ background: "rgba(255,255,255,0.04)" }}>
       <div
         className="text-[10px] font-semibold uppercase tracking-wider mb-1"
         style={{ color: PREMIER.darkGold }}
       >
         {label}
       </div>
-      <div className="grid grid-cols-3 gap-1 items-baseline">
-        <div className="min-w-0">
-          <div className="text-[9px] uppercase" style={{ color: "rgba(255,255,255,0.45)" }}>Drop</div>
-          <div
-            className="font-mono font-semibold tabular-nums text-[13px] leading-tight truncate"
-            style={{ color: muted ? "rgba(255,255,255,0.35)" : PREMIER.champagne }}
-          >
-            {drop === null ? "—" : money(drop)}
-          </div>
+      <div className="grid items-end gap-x-1" style={{ gridTemplateColumns: COLS }}>
+        <div className="min-w-0 overflow-hidden">
+          <div className="text-[9px] uppercase mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>Drop</div>
+          <Num
+            text={drop == null || muted ? DASH : fmtMoney(drop)}
+            color={muted ? "rgba(255,255,255,0.35)" : IVORY}
+            size="sm"
+            className="w-full"
+          />
         </div>
-        <div className="min-w-0">
-          <div className="text-[9px] uppercase" style={{ color: "rgba(255,255,255,0.45)" }}>Result</div>
-          <div
-            className="font-mono font-semibold tabular-nums text-[13px] leading-tight truncate"
-            style={{
-              color: result === null
-                ? "rgba(255,255,255,0.35)"
-                : result < 0 ? "#F08A8A" : PREMIER.softGold,
-            }}
-          >
-            {result === null ? "—" : money(result)}
-          </div>
+        <div className="min-w-0 overflow-hidden">
+          <div className="text-[9px] uppercase mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>Result</div>
+          <Num
+            text={result == null || muted ? DASH : fmtSigned(result)}
+            color={muted ? "rgba(255,255,255,0.35)" : resultColor(result)}
+            glow={muted ? undefined : resultGlow(result)}
+            size="sm"
+            className="w-full"
+          />
         </div>
-        <div className="min-w-0 text-right">
-          <div className="text-[9px] uppercase" style={{ color: "rgba(255,255,255,0.45)" }}>Hold</div>
-          <div
-            className="font-mono font-semibold tabular-nums text-[13px] leading-tight"
-            style={{ color: hold === null ? "rgba(255,255,255,0.35)" : PREMIER.lightBlue }}
-          >
-            {hold === null ? "—" : `${hold.toFixed(1)}%`}
-          </div>
+        <div className="min-w-0 overflow-hidden text-right">
+          <div className="text-[9px] uppercase mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>Hold</div>
+          <Num
+            text={hold == null || muted ? DASH : fmtPct(hold)}
+            color={muted ? "rgba(255,255,255,0.35)" : PREMIER.lightBlue}
+            size="sm"
+            className="w-full"
+          />
         </div>
       </div>
     </div>
@@ -127,28 +130,19 @@ export default function BossPhoneDashboard() {
     [casinos, displayed],
   );
 
-  const clock = useEatClock();
-  const businessDate = getBusinessDate();
-  const d = new Date(businessDate);
-  const dateLabel = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-  const monthLabel = `${MONTH_LABELS[d.getMonth()]} ${d.getFullYear()}`;
-
   return (
     <div
-      className="dark min-h-[100dvh] w-full text-white"
+      className="dark min-h-[100dvh] w-full text-white pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
       style={{ background: STAGE_BACKGROUND["black-gold"] }}
     >
-      <div className="mx-auto w-full max-w-[560px] px-3 py-3 space-y-3">
-        {/* Header */}
+      <div className="w-full px-3 py-2 space-y-2">
+        {/* Single compact header */}
         <div className="flex items-center gap-2">
-          <img src={premierClubLogo} alt="Premier Club" className="h-7 w-auto" />
+          <img src={premierClubLogo} alt="Premier Club" className="h-6 w-auto shrink-0" />
           <div className="min-w-0 flex-1">
             <div className="text-[13px] font-semibold leading-tight truncate">Dashboard Phone</div>
-            <div className="text-[10px] leading-tight" style={{ color: "rgba(255,255,255,0.5)" }}>
-              {periodView === "today" ? dateLabel : monthLabel} · {clock.time}
-            </div>
           </div>
-          <div className="inline-flex rounded-md border border-white/10 bg-black/40 p-0.5">
+          <div className="inline-flex rounded-md border border-white/10 bg-black/40 p-0.5 shrink-0">
             {(["today", "monthly"] as PeriodView[]).map((p) => (
               <button
                 key={p}
@@ -168,7 +162,7 @@ export default function BossPhoneDashboard() {
 
         {/* Company total */}
         <div
-          className="rounded-xl border p-3"
+          className="rounded-xl border p-2.5"
           style={{ borderColor: "rgba(232,198,136,0.25)", background: "rgba(255,255,255,0.03)" }}
         >
           <div
@@ -177,27 +171,24 @@ export default function BossPhoneDashboard() {
           >
             Company Total
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="min-w-0">
-              <div className="text-[9px] uppercase" style={{ color: "rgba(255,255,255,0.45)" }}>Drop</div>
-              <div className="font-mono font-bold tabular-nums text-[16px] truncate" style={{ color: PREMIER.champagne }}>
-                {money(company.drop)}
-              </div>
+          <div className="grid items-end gap-x-1" style={{ gridTemplateColumns: COLS }}>
+            <div className="min-w-0 overflow-hidden">
+              <div className="text-[9px] uppercase mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>Drop</div>
+              <Num text={fmtMoney(company.drop)} color={IVORY} size="md" className="w-full" />
             </div>
-            <div className="min-w-0">
-              <div className="text-[9px] uppercase" style={{ color: "rgba(255,255,255,0.45)" }}>Result</div>
-              <div
-                className="font-mono font-bold tabular-nums text-[16px] truncate"
-                style={{ color: company.result < 0 ? "#F08A8A" : PREMIER.softGold }}
-              >
-                {money(company.result)}
-              </div>
+            <div className="min-w-0 overflow-hidden">
+              <div className="text-[9px] uppercase mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>Result</div>
+              <Num
+                text={fmtSigned(company.result)}
+                color={resultColor(company.result)}
+                glow={resultGlow(company.result)}
+                size="md"
+                className="w-full"
+              />
             </div>
-            <div className="min-w-0 text-right">
-              <div className="text-[9px] uppercase" style={{ color: "rgba(255,255,255,0.45)" }}>Hold</div>
-              <div className="font-mono font-bold tabular-nums text-[16px]" style={{ color: PREMIER.lightBlue }}>
-                {company.hold.toFixed(1)}%
-              </div>
+            <div className="min-w-0 overflow-hidden text-right">
+              <div className="text-[9px] uppercase mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>Hold</div>
+              <Num text={fmtPct(company.hold)} color={PREMIER.lightBlue} size="md" className="w-full" />
             </div>
           </div>
         </div>
@@ -209,14 +200,14 @@ export default function BossPhoneDashboard() {
           return (
             <div
               key={c.id}
-              className="rounded-xl border p-3 space-y-2"
+              className="rounded-xl border p-2.5 space-y-1.5"
               style={{ borderColor: `${accent}55`, background: "rgba(255,255,255,0.03)" }}
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="text-[13px] font-bold uppercase tracking-wide truncate" style={{ color: accent }}>
                   {c.name}
                 </div>
-                <div className="text-[10px] font-mono" style={{ color: "rgba(255,255,255,0.5)" }}>
+                <div className="text-[10px] font-mono shrink-0" style={{ color: "rgba(255,255,255,0.5)" }}>
                   {dm ? `${dm.total.headCount} heads` : "—"}
                 </div>
               </div>
