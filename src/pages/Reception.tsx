@@ -232,13 +232,22 @@ const CheckInTab = () => {
           .eq("id", existing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("casino_visits").insert({
-          casino_id: casinoId,
-          player_id: playerId,
-          date: today,
-          checked_in_by: user.id,
-          position: "hall",
-        });
+        // Upsert on the (casino_id, player_id, date) unique key: a visit row may
+        // already exist but be invisible to the read above (race with another
+        // terminal / auto check-in). Reopening it is the correct outcome.
+        const { error } = await supabase
+          .from("casino_visits")
+          .upsert(
+            {
+              casino_id: casinoId,
+              player_id: playerId,
+              date: today,
+              checked_in_by: user.id,
+              checked_out_at: null,
+              position: "hall",
+            },
+            { onConflict: "casino_id,player_id,date" },
+          );
         if (error) throw error;
       }
       await logAction(casinoId, "player", "PLAYER_CHECKED_IN", { player_id: playerId });
