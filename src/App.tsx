@@ -57,6 +57,7 @@ const PosManagerCogs = lazy(() => import("@/pages/pos/PosManagerCogs"));
 // Lazy-loaded pages — each becomes a separate chunk
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const BossDashboard = lazy(() => import("@/pages/BossDashboard"));
+const BossPhoneDashboard = lazy(() => import("@/pages/BossPhoneDashboard"));
 
 const PlayerProfile = lazy(() => import("@/pages/PlayerProfile"));
 const Cage = lazy(() => import("@/pages/Cage"));

@@ -25,6 +25,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   // ============= OVERVIEW =============
   if (base === "/") return "dashboard";
   if (base === "/boss-dashboard") return "boss_dashboard";
+  if (base === "/boss-phone") return "boss_dashboard";
 
   // ============= PIT — flat URLs (Phase 2) =============
   if (base === "/breaklist") return "pit_breaklist";
