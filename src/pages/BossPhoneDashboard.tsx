@@ -56,7 +56,7 @@ function Metric({ label, drop, result, hold, muted }: {
       </div>
       <div className="grid items-end gap-x-2" style={{ gridTemplateColumns: COLS }}>
         <div className="min-w-0 overflow-hidden">
-          <div className="text-[9px] uppercase mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>Drop</div>
+          <div className="text-[9px] uppercase mb-0.5 text-center" style={{ color: "rgba(255,255,255,0.45)" }}>Drop</div>
           <Num
             text={drop == null || muted ? DASH : fmtMoney(drop)}
             color={muted ? "rgba(255,255,255,0.35)" : IVORY}
@@ -65,7 +65,7 @@ function Metric({ label, drop, result, hold, muted }: {
           />
         </div>
         <div className="min-w-0 overflow-hidden">
-          <div className="text-[9px] uppercase mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>Result</div>
+          <div className="text-[9px] uppercase mb-0.5 text-center" style={{ color: "rgba(255,255,255,0.45)" }}>Result</div>
           <Num
             text={result == null || muted ? DASH : fmtSigned(result)}
             color={muted ? "rgba(255,255,255,0.35)" : resultColor(result)}
@@ -74,8 +74,8 @@ function Metric({ label, drop, result, hold, muted }: {
             className="w-full"
           />
         </div>
-        <div className="min-w-0 overflow-hidden text-right">
-          <div className="text-[9px] uppercase mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>Hold</div>
+        <div className="min-w-0 overflow-hidden">
+          <div className="text-[9px] uppercase mb-0.5 text-center" style={{ color: "rgba(255,255,255,0.45)" }}>Hold</div>
           <Num
             text={hold == null || muted ? DASH : fmtPct(hold)}
             color={muted ? "rgba(255,255,255,0.35)" : PREMIER.lightBlue}
@@ -200,11 +200,11 @@ export default function BossPhoneDashboard() {
           </div>
           <div className="grid items-end gap-x-2" style={{ gridTemplateColumns: COLS }}>
             <div className="min-w-0 overflow-hidden">
-              <div className="text-[9px] uppercase mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>Drop</div>
+              <div className="text-[9px] uppercase mb-0.5 text-center" style={{ color: "rgba(255,255,255,0.45)" }}>Drop</div>
               <Num text={fmtMoney(company.drop)} color={IVORY} size="md" className="w-full" />
             </div>
             <div className="min-w-0 overflow-hidden">
-              <div className="text-[9px] uppercase mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>Result</div>
+              <div className="text-[9px] uppercase mb-0.5 text-center" style={{ color: "rgba(255,255,255,0.45)" }}>Result</div>
               <Num
                 text={fmtSigned(company.result)}
                 color={resultColor(company.result)}
@@ -213,8 +213,8 @@ export default function BossPhoneDashboard() {
                 className="w-full"
               />
             </div>
-            <div className="min-w-0 overflow-hidden text-right">
-              <div className="text-[9px] uppercase mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>Hold</div>
+            <div className="min-w-0 overflow-hidden">
+              <div className="text-[9px] uppercase mb-0.5 text-center" style={{ color: "rgba(255,255,255,0.45)" }}>Hold</div>
               <Num text={fmtPct(company.hold)} color={PREMIER.lightBlue} size="md" className="w-full" />
             </div>
           </div>
