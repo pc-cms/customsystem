@@ -169,7 +169,7 @@ export default function BossPhoneDashboard() {
           >
             Company Total
           </div>
-          <div className="grid items-end gap-x-1" style={{ gridTemplateColumns: COLS }}>
+          <div className="grid items-end gap-x-2" style={{ gridTemplateColumns: COLS }}>
             <div className="min-w-0 overflow-hidden">
               <div className="text-[9px] uppercase mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>Drop</div>
               <Num text={fmtMoney(company.drop)} color={IVORY} size="md" className="w-full" />
