@@ -32,8 +32,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { PREMIER } from "@/components/boss/tv/tokens";
 import arushaLogo from "@/assets/arusha-logo.png";
 import mwanzaLogo from "@/assets/mwanza-logo.png";
+import premierClubLogo from "/premier-club-logo.svg";
 
 type AppRole = "cashier" | "cashier_slots" | "pit" | "manager" | "shift_manager" | "reception" | "finance_manager" | "surveillance" | "super_admin" | "hr" | "account_manager" | "boss" | "general_manager";
 
