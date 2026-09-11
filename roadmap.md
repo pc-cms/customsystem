@@ -6,3 +6,9 @@
 - [x] Verify query bounds and benchmark Office RPC execution
 - [x] Add live request count, latency, error, and timeout metrics to Admin Logs
 - [x] Bump version and publish performance monitoring
+- [x] Instant today-only loads for Breaklist and Player Statistics
+- [x] Player profile: instant open from cached player, per-tab lazy blocks, lazy photo
+- [x] Idle background prefetch of week/month for Office, Breaklist, Player Statistics
+- [x] Lower Office table virtualization threshold to 80 rows
+- [x] Add date-filter indexes: fin_money_change, shifts, transactions (active)
+- [ ] Root-cause review of the 2026-09-11 slowdown (separate deep dive, per user)
