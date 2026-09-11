@@ -6,6 +6,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateFinance } from "@/lib/fin-invalidate";
+import { instantRangeOptions } from "@/lib/instant-query";
 import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
@@ -145,6 +146,7 @@ export const useOtherIncomes = (
       return (data || []) as OtherIncomeRow[];
     },
     ...liveQueryOptions(),
+    ...instantRangeOptions(from, to),
   });
 };
 

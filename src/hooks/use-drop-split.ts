@@ -12,7 +12,7 @@
  * the JSON round-trip intact.
  */
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { liveQueryOptions, liveQueryOptionsWithFallback } from "@/lib/live-query-options";
@@ -165,6 +165,7 @@ export const useTablesDropCacheToday = (businessDate: string | null | undefined)
     },
     enabled: !!casinoId && !!businessDate,
     ...liveQueryOptions(),
+    placeholderData: keepPreviousData,
   });
 
 
@@ -208,6 +209,7 @@ export const usePlayersDropCacheToday = (businessDate: string | null | undefined
     },
     enabled: !!casinoId && !!businessDate,
     ...liveQueryOptions(),
+    placeholderData: keepPreviousData,
   });
   const data = useMemo(() => toLookup(q.data ?? {}), [q.data]);
   return { ...q, data };
@@ -245,6 +247,7 @@ export const usePlayersDropCacheRange = (
     },
     enabled: !!casinoId && !!fromDate && !!toDate,
     ...liveQueryOptions(),
+    placeholderData: keepPreviousData,
   });
   const data = useMemo(() => toLookup(q.data ?? {}), [q.data]);
   return { ...q, data };
@@ -283,6 +286,7 @@ export const usePlayerDropCacheByDays = (playerId: string | null | undefined) =>
     },
     enabled: !!playerId,
     ...liveQueryOptions(),
+    placeholderData: keepPreviousData,
   });
   return q;
 };

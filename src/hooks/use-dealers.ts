@@ -3,7 +3,7 @@
  * Hooks alias employee_id → dealer_id and write employee_id (DB triggers
  * keep the legacy `dealer_id` column in sync). Consumers stay unchanged.
  */
-import { useQuery, useMutation, useQueryClient, useIsMutating } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useIsMutating, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
@@ -404,12 +404,18 @@ export const useBreaklistData = (date: string) => {
       return (await fetchBreaklistRows(casinoId, date)).map(aliasBreaklistRow);
     },
     enabled: !!casinoId,
+    // Смена дня не должна гасить сетку: старые строки остаются на экране,
+    // новые подгружаются фоном.
+    placeholderData: keepPreviousData,
     // Safety net for realtime: even if the websocket drops a postgres_changes
     // event (token refresh edge cases, network blips), Pit operators on two PCs
     // must converge within seconds — not after a manual reload.
     refetchInterval: date === today && pendingBreaklistMutations === 0 ? 3_000 : false,
     refetchIntervalInBackground: false,
-    staleTime: 2_000,
+    // Прошедшие дни брейклиста не меняются — держим их из кэша мгновенно.
+    staleTime: date === today ? 2_000 : 10 * 60_000,
+    refetchOnMount: date === today ? "always" : false,
+    refetchOnWindowFocus: date === today,
   });
 };
 

@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { BarChart3, Search, ArrowUp, ArrowDown, ArrowUpDown, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { usePlayers, useGamingTables } from "@/hooks/use-casino-data";
@@ -122,7 +122,10 @@ const PlayerStatistics = () => {
       );
     },
     enabled: !!casinoId,
-    staleTime: 1000 * 30,
+    placeholderData: keepPreviousData,
+    staleTime: isHistorical ? 10 * 60_000 : 1000 * 30,
+    refetchOnMount: isHistorical ? false : "always",
+    refetchOnWindowFocus: !isHistorical,
     refetchInterval: isHistorical ? false : 30_000,
   });
 
@@ -140,7 +143,10 @@ const PlayerStatistics = () => {
       );
     },
     enabled: !!casinoId,
-    staleTime: 1000 * 30,
+    placeholderData: keepPreviousData,
+    staleTime: isHistorical ? 10 * 60_000 : 1000 * 30,
+    refetchOnMount: isHistorical ? false : "always",
+    refetchOnWindowFocus: !isHistorical,
     refetchInterval: isHistorical ? false : 30_000,
   });
   const { data: chipAdjustments = [] } = useQuery({
@@ -157,7 +163,10 @@ const PlayerStatistics = () => {
       );
     },
     enabled: !!casinoId,
-    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+    staleTime: isHistorical ? 10 * 60_000 : 30_000,
+    refetchOnMount: isHistorical ? false : "always",
+    refetchOnWindowFocus: !isHistorical,
     refetchInterval: isHistorical ? false : 30_000,
   });
   // Drop = `player_day_drop_cache` (DB-trigger maintained peak-NEP per day).
