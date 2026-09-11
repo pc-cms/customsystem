@@ -14,7 +14,6 @@ import { BrandingProvider } from "@/lib/branding";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { createIDBPersister } from "@/lib/query-persister";
 import { usePrefetchCriticalData } from "@/hooks/use-prefetch";
-import { useModuleLiveSync } from "@/hooks/use-module-live-sync";
 import { useRealtimeSubscriptions } from "@/hooks/use-realtime";
 import { useBusinessDayWatcher } from "@/hooks/use-business-day-watcher";
 import { initSyncEngine } from "@/lib/sync-engine";
@@ -382,12 +381,8 @@ const ProtectedRoutes = () => {
   // Prefetch critical data in background
   usePrefetchCriticalData();
 
-  // Phase A "Realtime-first": mount Postgres Changes channels for every
-  // allowed module and invalidate matching queries on events. Together with
-  // liveQueryOptions() this replaces short staleTime/refetchOnMount hooks.
-  useModuleLiveSync();
-
-  // Adaptive realtime subscriptions (full/polling/off based on connection quality)
+  // One module-aware realtime channel per casino. Keeping a single global
+  // subscription layer avoids duplicate events and duplicate query refreshes.
   useRealtimeSubscriptions();
 
   // Detect business-day rollover (07:00 EAT) and invalidate stale "today" caches.

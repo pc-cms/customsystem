@@ -145,13 +145,13 @@ export default function DayClosingsTab() {
   const month = period.month;
   const dates = useMemo(() => buildMonthDates(year, month), [year, month]);
 
-  const { data: list = [] } = useDayClosingList();
+  const monthFrom = `${year}-${pad(month)}-01`;
+  const monthTo = `${year}-${pad(month)}-${pad(new Date(year, month, 0).getDate())}`;
+  const { data: list = [] } = useDayClosingList({ from: monthFrom, to: monthTo });
   const { data: aggMap } = useMonthAggregates(year, month);
   const { data: closureMap } = useMonthClosures(year, month);
   const { isManager } = useAuth() as any;
 
-  const monthFrom = `${year}-${pad(month)}-01`;
-  const monthTo = `${year}-${pad(month)}-${pad(new Date(year, month, 0).getDate())}`;
   const { data: incomes = [] } = useOtherIncomes(monthFrom, monthTo, { only: ["jp"] });
   const { data: wallets = [] } = useFinWallets();
   const { activeCasinoId: aceCasinoId } = useCasino();

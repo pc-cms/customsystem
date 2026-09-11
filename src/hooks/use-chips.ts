@@ -108,6 +108,7 @@ export const useChipSnapshots = (date: string) => {
 // Full per-hour history (used only by Tables → Analytics chart).
 export const useChipSnapshotsFull = (date: string) => {
   const { casinoId } = useAuth();
+  const isToday = date === new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Dar_es_Salaam" });
   return useQuery({
     queryKey: ["chip-snapshots-full", casinoId, date],
     queryFn: async () => {
@@ -116,7 +117,7 @@ export const useChipSnapshotsFull = (date: string) => {
     },
     enabled: !!casinoId,
     ...liveQueryOptions(),
-    refetchInterval: 30_000,
+    refetchInterval: isToday ? 30_000 : false,
     refetchIntervalInBackground: false,
   });
 };
