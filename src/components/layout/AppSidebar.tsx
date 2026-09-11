@@ -52,6 +52,7 @@ const NAV_ITEMS: NavItem[] = [
   // OVERVIEW — flat entries above the sections.
   { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "OVERVIEW" },
   { to: "/boss-dashboard", icon: LayoutDashboard, label: "Dashboard TV", roles: ["super_admin", "boss" as AppRole], section: "OVERVIEW" },
+  { to: "/boss-phone", icon: LayoutDashboard, label: "Dashboard Phone", roles: ["super_admin", "boss" as AppRole], section: "OVERVIEW" },
 
   // PIT
 
