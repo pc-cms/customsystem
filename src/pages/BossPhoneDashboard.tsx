@@ -90,6 +90,7 @@ function Metric({ label, drop, result, hold, muted }: {
 
 export default function BossPhoneDashboard() {
   const { accessibleCasinos: ctxCasinos } = useCasino();
+  const isMobile = useIsMobile();
 
   const { data: allCasinos = [] } = useQuery({
     queryKey: ["boss-dashboard-casinos"],
