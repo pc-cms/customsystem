@@ -31,7 +31,7 @@ const MAX_429_RETRIES = 1;
 let inFlight: Promise<Response> | null = null;
 let cooldownUntil = 0;
 
-const originalFetch = typeof window !== "undefined" ? window.fetch.bind(window) : null;
+let originalFetch: typeof window.fetch | null = null;
 
 function isRefreshTokenRequest(input: RequestInfo | URL, init?: RequestInit): boolean {
   try {
@@ -109,8 +109,9 @@ async function guardedRefreshFetch(input: RequestInfo | URL, init?: RequestInit)
 let installed = false;
 
 export function installAuthThrottle() {
-  if (installed || typeof window === "undefined" || !originalFetch) return;
+  if (installed || typeof window === "undefined") return;
   installed = true;
+  originalFetch = window.fetch.bind(window);
 
   window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
     if (isRefreshTokenRequest(input, init)) {

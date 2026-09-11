@@ -34,8 +34,8 @@ export function RequestMetricsPanel() {
         ))}
       </div>
 
-      <div className="cms-panel overflow-hidden">
-        <div className="grid grid-cols-[1fr_90px_100px_90px_90px_90px] gap-3 border-b border-border bg-card px-3 py-2 text-[10px] font-medium uppercase text-muted-foreground">
+      <div className="cms-panel overflow-x-auto">
+        <div className="grid min-w-[650px] grid-cols-[1fr_90px_100px_90px_90px_90px] gap-3 border-b border-border bg-card px-3 py-2 text-[10px] font-medium uppercase text-muted-foreground">
           <div>Module</div><div>Requests</div><div>Avg response</div><div>Max</div><div>Errors</div><div>Timeouts</div>
         </div>
         {isLoading ? (
@@ -43,7 +43,7 @@ export function RequestMetricsPanel() {
         ) : data.length === 0 ? (
           <div className="py-6 text-center text-sm text-muted-foreground">No request data in the last 15 minutes</div>
         ) : data.map((row) => (
-          <div key={row.module} className="grid grid-cols-[1fr_90px_100px_90px_90px_90px] gap-3 border-b border-border px-3 py-2 text-xs last:border-b-0">
+          <div key={row.module} className="grid min-w-[650px] grid-cols-[1fr_90px_100px_90px_90px_90px] gap-3 border-b border-border px-3 py-2 text-xs last:border-b-0">
             <div className="font-medium text-foreground">{row.module}</div>
             <div className="font-mono">{row.requestCount.toLocaleString("en-US")}</div>
             <div className="font-mono">{formatMs(row.averageDurationMs)}</div>

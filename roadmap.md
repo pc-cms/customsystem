@@ -4,3 +4,5 @@
 - [x] Scope Office queries to selected month
 - [x] Reduce duplicate invalidations reaching Office database calculations
 - [x] Verify query bounds and benchmark Office RPC execution
+- [x] Add live request count, latency, error, and timeout metrics to Admin Logs
+- [x] Bump version and publish performance monitoring

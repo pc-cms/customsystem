@@ -7,9 +7,14 @@ import { installChunkRecovery } from "./lib/chunk-recovery";
 import { initAuthLeaderElection } from "./lib/auth-leader";
 import { installAuthThrottle } from "./lib/auth-throttle";
 import { getRuntimeConfig } from "./lib/runtime-config";
+import { installRequestMetrics } from "./lib/request-metrics";
 
 // Install BEFORE rendering so we catch chunk errors during initial route load.
 installChunkRecovery();
+
+// Measure real network calls before the auth guard wraps fetch. Metrics are
+// aggregated in-memory and flushed in batches after authentication is ready.
+installRequestMetrics();
 
 // Preload runtime-config.json (local on-prem casinoSlug/casinoId) so that
 // synchronous slug detection in casino-context can pick it up on first render.
