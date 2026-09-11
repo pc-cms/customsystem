@@ -105,10 +105,22 @@ export default function BossPhoneDashboard() {
 
   const casinos = allCasinos.length > 0 ? allCasinos : ctxCasinos;
 
-  const [periodView, setPeriodView] = useState<PeriodView>(
-    () => (localStorage.getItem(LS_PERIOD) as PeriodView) || "today",
-  );
-  useEffect(() => { localStorage.setItem(LS_PERIOD, periodView); }, [periodView]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawView = searchParams.get("view") as PeriodView | null;
+  const periodView: PeriodView = rawView === "monthly" ? "monthly" : "today";
+
+  useEffect(() => {
+    // Persist the current period choice for future direct visits without a query param.
+    localStorage.setItem(LS_PERIOD, periodView);
+  }, [periodView]);
+
+  const setPeriodView = (p: PeriodView) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("view", p);
+      return next;
+    }, { replace: true });
+  };
 
   const activeIds = useMemo(() => casinos.map((c) => c.id), [casinos]);
   const { data: days } = useBossCasinoDays(activeIds);
