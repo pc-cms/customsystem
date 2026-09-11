@@ -2,7 +2,7 @@
  * Unified expenses-by-business-day hook for the Closings · Expenses tab
  * and the /expenses/daily manager page. Returns ALL sources (live_game, slots, office).
  */
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -25,5 +25,6 @@ export const useDailyExpenses = (businessDate?: string) => {
     },
     enabled: !!casinoId && !!businessDate,
     ...liveQueryOptions(),
+    placeholderData: keepPreviousData,
   });
 };
