@@ -26,8 +26,8 @@ const day = (over: Partial<CasinoDay> = {}): CasinoDay => ({
 const ace = (over: Partial<AceLiveSlots> = {}): AceLiveSlots => ({
   fresh: true,
   totalDrop: 50_000_000,
-  netWin: 8_000_000,
-  winCashdesk: 99_000_000, // must never be used for the displayed result
+  netWin: 8_000_000, // system figure — must never be used for the displayed result
+  winCashdesk: 12_000_000,
   activeCredits: 3_000_000,
   ageMs: 60_000,
   periodLabel: "Live",
@@ -35,23 +35,28 @@ const ace = (over: Partial<AceLiveSlots> = {}): AceLiveSlots => ({
 });
 
 describe("deriveDisplayedToday", () => {
-  it("uses fresh ACE net_win minus active_credits (never win_cashdesk)", () => {
+  it("uses fresh ACE win_cashdesk minus active_credits (never net_win)", () => {
     const d = deriveDisplayedToday(day(), ace())!;
     expect(d.usesAce).toBe(true);
-    expect(d.slots.result).toBe(5_000_000); // 8M net win − 3M credits
+    expect(d.slots.result).toBe(9_000_000); // 12M cashdesk win − 3M credits
     expect(d.slots.drop).toBe(50_000_000);
   });
 
-  it("falls back to the closed-day net_win when ACE is stale", () => {
+  it("falls back to the closed-day result when ACE is stale", () => {
     const d = deriveDisplayedToday(
       day(),
-      ace({ fresh: false, totalDrop: null, netWin: null, activeCredits: null }),
+      ace({ fresh: false, totalDrop: null, netWin: null, winCashdesk: null, activeCredits: null }),
     )!;
     expect(d.usesAce).toBe(false);
     expect(d.slots.drop).toBe(10_000_000);
     expect(d.slots.result).toBe(1_000_000);
     expect(d.total.drop).toBe(110_000_000);
     expect(d.total.result).toBe(21_000_000);
+  });
+
+  it("falls back to the closed-day result when ACE live has no win_cashdesk", () => {
+    const d = deriveDisplayedToday(day(), ace({ winCashdesk: null }))!;
+    expect(d.slots.result).toBe(1_000_000);
   });
 
   it("marks slots unavailable when there is no source at all", () => {
@@ -71,8 +76,8 @@ describe("deriveDisplayedToday", () => {
     const d = deriveDisplayedToday(day(), ace())!;
     // tables 100M + ACE slots 50M — the closed-day 10M must NOT be added.
     expect(d.total.drop).toBe(150_000_000);
-    expect(d.total.result).toBe(25_000_000); // 20M tables + 5M slots
-    expect(d.total.hold).toBeCloseTo((25 / 150) * 100, 6);
+    expect(d.total.result).toBe(29_000_000); // 20M tables + 9M slots
+    expect(d.total.hold).toBeCloseTo((29 / 150) * 100, 6);
   });
 
   it("computes hold only when drop > 0", () => {
