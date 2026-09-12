@@ -318,6 +318,8 @@ export default function DayClosingsTab() {
         // CashDesk Win — physical slots cash, the only slots figure in Wallet Expected.
         cashdesk_win: v.cash,
         players_card_balance: v.cards,
+        // A manual save always turns a provisional ACE figure into a real one.
+        ace_provisional: false,
 
         notes: finalComment || null,
       });
@@ -674,6 +676,16 @@ const StatusBadge = ({ row }: { row: Row }) => {
     }
     return (
       <span className={cn(base, "border-rose-500/40 text-rose-500")} title="Missing: no Day Closing row for this business date">
+        <CircleDashed className="h-3.5 w-3.5" />
+      </span>
+    );
+  }
+  if ((row.existing as any).ace_provisional) {
+    return (
+      <span
+        className={cn(base, "border-violet-500/40 text-violet-500")}
+        title="Provisional: live ACE figures, the closed ACE period has not arrived yet"
+      >
         <CircleDashed className="h-3.5 w-3.5" />
       </span>
     );

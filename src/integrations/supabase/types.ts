@@ -4557,6 +4557,7 @@ export type Database = {
       }
       fin_day_closing: {
         Row: {
+          ace_provisional: boolean
           business_date: string
           cashdesk_win: number
           casino_id: string
@@ -4575,6 +4576,7 @@ export type Database = {
           variance_note: string | null
         }
         Insert: {
+          ace_provisional?: boolean
           business_date: string
           cashdesk_win?: number
           casino_id: string
@@ -4593,6 +4595,7 @@ export type Database = {
           variance_note?: string | null
         }
         Update: {
+          ace_provisional?: boolean
           business_date?: string
           cashdesk_win?: number
           casino_id?: string
@@ -12913,6 +12916,7 @@ export type Database = {
         Returns: Json
       }
       ace_is_collector_admin: { Args: never; Returns: boolean }
+      ace_seed_provisional_day_closing: { Args: never; Returns: Json }
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
       admin_active_sessions: {
         Args: never
