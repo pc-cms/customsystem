@@ -13,7 +13,6 @@
  */
 
 import { clearIDBPersistedQueryCache } from "@/lib/query-persister";
-import { clearIDBPersistedQueryCache } from "@/lib/query-persister";
 
 const isInIframe = (() => {
   try {
