@@ -4,7 +4,7 @@
  * Update policy (deliberate, do not "improve" without discussion):
  *   - SW polls for updates every 30 min + on focus/visibility/online.
  *   - When new version is available we ONLY dispatch `pwa:update-available`
- *     and show a persistent toast. NO automatic reload during work.
+ *     and show a single non-blocking corner reminder. NO automatic reload.
  *   - User clicks "Update now" → updateSW(true) → page reloads with new code.
  *   - Force Update button calls resetPWACache() and is the manual escape hatch.
  *
@@ -12,7 +12,7 @@
  * mid-shift and were removed deliberately.
  */
 
-import { toast } from "sonner";
+import { clearIDBPersistedQueryCache } from "@/lib/query-persister";
 import { clearIDBPersistedQueryCache } from "@/lib/query-persister";
 
 const isInIframe = (() => {
