@@ -66,7 +66,7 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
   //   Slots           → ONLY closed days: cashdesk_win − players_card_balance.
   //                     While the day is open (and no fresh ACE feed) slots show `·`
   //                     — an open cage-slots shift is a draft, not a result.
-  const [dailyTodayRes, dailyMtdRes, hcRes, closingsRes, snapRes, slotShiftsRes, dayClosuresRes] = await Promise.all([
+  const [dailyTodayRes, dailyMtdRes, hcRes, closingsRes, snapRes, slotShiftsRes] = await Promise.all([
     (supabase as any).rpc("compute_daily_diff", {
       _casino_id: casinoId, _from: businessDate, _to: businessDate,
     }),
@@ -94,14 +94,8 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
       .eq("status", "closed")
       .gte("business_date", mStart)
       .lte("business_date", businessDate),
-    // CANON: MTD counts ONLY officially closed business days (same as Monthly Report).
-    supabase
-      .from("business_day_closures")
-      .select("business_date")
-      .eq("casino_id", casinoId)
-      .gte("business_date", mStart)
-      .lte("business_date", businessDate),
   ]);
+
 
 
 
