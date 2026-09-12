@@ -146,18 +146,24 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
   //   Table Result = Σ fin_day_closing.tables_result
   //   Slot Result  = Σ per day (cashdesk_win − players_card_balance)   [signed]
   //   Tables Drop  = Σ drop cache, restricted to those closed days
+  // Officially closed business days — the ONLY days that feed MTD.
+  const officiallyClosed = new Set<string>(
+    (((dayClosuresRes as any).data || []) as any[]).map((r) => String(r.business_date)),
+  );
   const shiftDropByDate = new Map<string, number>();
   for (const s of ((slotShiftsRes as any).data || []) as any[]) {
+    if (!officiallyClosed.has(String(s.business_date))) continue;
     shiftDropByDate.set(
       s.business_date,
       (shiftDropByDate.get(s.business_date) || 0) + Number(s.manual_drop_slots || 0),
     );
   }
+  const closedClosings = closings.filter((c) => officiallyClosed.has(String(c.business_date)));
   let mtdSlotsDrop = 0;
   let mtdSlotsResult = 0;
   let mtdTablesResult = 0;
   const closingDates = new Set<string>();
-  for (const c of closings) {
+  for (const c of closedClosings) {
     closingDates.add(c.business_date);
     const aceDrop = Number(c.drop_slots || 0);
     mtdSlotsDrop += aceDrop !== 0 ? aceDrop : shiftDropByDate.get(c.business_date) || 0;
@@ -166,7 +172,8 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
   }
   for (const [d, v] of shiftDropByDate) if (!closingDates.has(d)) mtdSlotsDrop += v;
   // Availability = EXISTENCE of a source record, never "value is non-zero".
-  const mtdSlotsAvailable = closings.length > 0 || shiftDropByDate.size > 0;
+  const mtdSlotsAvailable = closedClosings.length > 0 || shiftDropByDate.size > 0;
+
 
   const mtdTablesDrop = mtdRows
     .filter((r) => closingDates.has(String(r.business_date)))
