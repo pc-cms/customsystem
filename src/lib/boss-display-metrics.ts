@@ -9,8 +9,8 @@
  *                    fin_day_closing.tables_result once the day is closed.
  *  - Slots Drop    : fresh ACE (<= 15 min) total_drop; else the closed day's
  *                    fin_day_closing.drop_slots; else unavailable ("—").
- *  - Slots Result  : fresh ACE net_win − active_credits; else the closed day's
- *                    fin_day_closing.cashdesk_win − players_card_balance;
+ *  - Slots Result  : fresh ACE win_cashdesk − active_credits; else the closed
+ *                    day's fin_day_closing.cashdesk_win − players_card_balance;
  *                    else unavailable ("—").
  *  - Total         : STRICTLY displayed Tables + displayed Slots (a missing
  *                    slots source contributes nothing — never double-counted).
@@ -23,9 +23,9 @@ import type { CasinoDay, CasinoMetric } from "@/hooks/use-boss-dashboard";
 export interface AceLiveSlots {
   fresh: boolean;
   totalDrop: number | null;
-  /** System result from the gaming system — the Slots Result source. */
+  /** System result from the gaming system — stored, NOT the dashboard result. */
   netWin: number | null;
-  /** Physical cash figure — used by wallets, NEVER by the dashboard result. */
+  /** Physical cash figure — the live Slots Result source (minus credits). */
   winCashdesk: number | null;
   activeCredits: number | null;
   ageMs: number | null;
@@ -83,13 +83,15 @@ export function deriveDisplayedToday(
 
   const aceFresh = !!ace?.fresh;
   const aceResult =
-    aceFresh && ace!.netWin != null ? ace!.netWin - (ace!.activeCredits ?? 0) : null;
+    aceFresh && ace!.winCashdesk != null
+      ? ace!.winCashdesk - (ace!.activeCredits ?? 0)
+      : null;
   const aceDrop = aceFresh && ace!.totalDrop != null ? ace!.totalDrop : null;
   const usesAce = aceResult != null || aceDrop != null;
 
   // Slots drop: ACE first, then the closed day's figure, else unavailable.
   const slotsDrop = aceDrop != null ? aceDrop : day.slotsAvailable ? day.slots.drop : null;
-  // Slots result: ACE net_win − credits first, then the closed day's
+  // Slots result: ACE win_cashdesk − credits first, then the closed day's
   // cashdesk_win − players_card_balance.
   const slotsResult =
     aceResult != null ? aceResult : day.slotsAvailable ? day.slots.result : null;
