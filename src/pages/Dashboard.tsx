@@ -292,7 +292,11 @@ const Dashboard = () => {
 
         const DOT = "·";
         const slotsNetWin = ace.fresh ? Number(ace.netWin ?? 0) : 0;
-        const slotsResult = ace.fresh ? slotsNetWin - Number(ace.activeCredits ?? 0) : 0;
+        // Live Slots Result canon: CashDesk Win − Active Credits.
+        const slotsResult =
+          ace.fresh && ace.winCashdesk != null
+            ? Number(ace.winCashdesk) - Number(ace.activeCredits ?? 0)
+            : 0;
         const grandTotal = totalResult + slotsResult;
         const aceHint = ace.fresh
           ? `ACE Live · ${Math.max(0, Math.round((ace.ageMs ?? 0) / 60000))}m ago`
