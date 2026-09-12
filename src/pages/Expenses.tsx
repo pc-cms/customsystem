@@ -36,7 +36,7 @@ import { EditExpenseDialog, type EditableExpense } from "@/components/expenses/E
 import { Pencil } from "lucide-react";
 
 import { PlayerNameAutocomplete } from "@/components/PlayerNameAutocomplete";
-import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
+import { formatCurrency, formatCurrencyExact, formatNumberSpaces } from "@/lib/currency";
 import { hasExpenseManagementAccess, isExpenseSourceLocked } from "@/lib/expense-access";
 import { defaultPostingDate } from "@/lib/office-posting-date";
 import { SmartTable, type ColumnDef, type SortState } from "@/components/ui/smart-table";
@@ -429,7 +429,7 @@ const Expenses = ({
         accessor: (r) => (
           <div className="text-right">
             <div className="font-mono text-sm cms-amount-negative">
-              {formatCurrency(Number(r.amount), r.currency || "TZS")}
+              {formatCurrencyExact(Number(r.amount), r.currency || "TZS")}
             </div>
             {(r.currency || "TZS") !== "TZS" && (
               <div className="text-[10px] text-muted-foreground font-normal">
@@ -1109,7 +1109,7 @@ const DraftRowView = ({
         />
       </td>
       <td className="px-2 py-1.5">
-        <NumberInput placeholder="0" allowNegative={canPostNegative} value={draft.amount} onChange={(v) => onChange({ amount: v })} className="h-8 text-xs text-right" />
+        <NumberInput placeholder="0" decimals={2} allowNegative={canPostNegative} value={draft.amount} onChange={(v) => onChange({ amount: v })} className="h-8 text-xs text-right" />
       </td>
       <td className="px-2 py-1.5">
         <Input placeholder="Description" value={draft.description} onChange={(e) => onChange({ description: e.target.value })} className="h-8 text-xs" />

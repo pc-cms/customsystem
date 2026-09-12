@@ -155,7 +155,7 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense }: Props) => {
           <NumberInput
             value={amount}
             onChange={setAmount}
-            decimals={currency === "TZS" ? 0 : 2}
+            decimals={2}
             allowNegative={isFinance && isOffice}
             placeholder="0"
           />
