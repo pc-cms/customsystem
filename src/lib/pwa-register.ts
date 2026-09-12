@@ -4,7 +4,7 @@
  * Update policy (deliberate, do not "improve" without discussion):
  *   - SW polls for updates every 30 min + on focus/visibility/online.
  *   - When new version is available we ONLY dispatch `pwa:update-available`
- *     and show a persistent toast. NO automatic reload during work.
+ *     and show a single non-blocking corner reminder. NO automatic reload.
  *   - User clicks "Update now" → updateSW(true) → page reloads with new code.
  *   - Force Update button calls resetPWACache() and is the manual escape hatch.
  *
@@ -12,7 +12,6 @@
  * mid-shift and were removed deliberately.
  */
 
-import { toast } from "sonner";
 import { clearIDBPersistedQueryCache } from "@/lib/query-persister";
 
 const isInIframe = (() => {
@@ -68,16 +67,20 @@ export async function setupPWA() {
           );
         } catch { /* ignore */ }
 
-        // Check immediately + periodically + on visibility/focus/online.
+        // Check immediately + periodically + on visibility/focus/online
+        // (throttled: never more than once per UPDATE_CHECK_INTERVAL_MS).
+        let lastCheck = Date.now();
         registration.update().catch(() => {});
         setInterval(() => {
+          lastCheck = Date.now();
           registration.update().catch(() => {});
         }, UPDATE_CHECK_INTERVAL_MS);
 
         const checkNow = () => {
-          if (document.visibilityState === "visible") {
-            registration.update().catch(() => {});
-          }
+          if (document.visibilityState !== "visible") return;
+          if (Date.now() - lastCheck < UPDATE_CHECK_INTERVAL_MS) return;
+          lastCheck = Date.now();
+          registration.update().catch(() => {});
         };
         document.addEventListener("visibilitychange", checkNow);
         window.addEventListener("focus", checkNow);
@@ -90,21 +93,12 @@ export async function setupPWA() {
         console.log("[PWA] New version available — waiting for user to confirm");
         swUpdateFn = updateSW;
 
-        // Fire global event so the blocking dialog can react.
+        // Single source of UI: the corner reminder component.
         window.dispatchEvent(new CustomEvent("pwa:update-available", {
           detail: { update: updateSW },
         }));
-
-        // Persistent toast fallback (no auto-reload).
-        toast("New version available", {
-          description: "Click Update now to load it.",
-          duration: Infinity,
-          action: {
-            label: "Update now",
-            onClick: () => { void applyUpdate(); },
-          },
-        });
       },
+
     });
     swUpdateFn = updateSW;
   } catch (e) {

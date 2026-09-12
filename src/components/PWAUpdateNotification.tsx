@@ -1,8 +1,12 @@
 /**
- * PWAUpdateNotification — non-blocking corner reminder shown when a new
- * version is available. Never covers the screen, never steals focus, so an
- * operator can finish typing. Dismiss (X) snoozes it for 30 minutes; a newer
- * build raises it again immediately.
+ * PWAUpdateNotification — the ONLY update UI in the app: a single
+ * non-blocking corner card shown when a new build is really waiting to
+ * install (`hasPendingUpdate()`), never a toast, never a full-screen dialog.
+ *
+ * Dismiss (X) hides it permanently for the currently loaded build: the
+ * decision is stored in localStorage, so reloads and new logins do not raise
+ * the same reminder again. After the user updates, the app version changes
+ * and a future build can notify again.
  *
  * Listens for "pwa:update-available" dispatched from pwa-register.ts.
  */
@@ -17,50 +21,32 @@ declare const __APP_VERSION__: string | undefined;
 
 type UpdateFn = (reload?: boolean) => Promise<void>;
 
-const SNOOZE_MS = 30 * 60 * 1000;
-const SNOOZE_KEY = "cms.pwaUpdate.snoozeUntil";
+const DISMISS_KEY = "cms.pwaUpdate.dismissedVersion";
 
-const readSnooze = (): number => {
+const appVersion =
+  typeof __APP_VERSION__ !== "undefined" && __APP_VERSION__ ? __APP_VERSION__ : "";
+
+const readDismissed = (): string => {
   try {
-    return Number(sessionStorage.getItem(SNOOZE_KEY) || 0);
+    return localStorage.getItem(DISMISS_KEY) || "";
   } catch {
-    return 0;
+    return "";
   }
 };
 
 export const PWAUpdateNotification = () => {
   const [available, setAvailable] = useState(false);
-  const [currentVersion, setCurrentVersion] = useState("");
   const [dirty, setDirtyState] = useState(hasDirtyWork());
   const [busy, setBusy] = useState(false);
-  const [snoozedUntil, setSnoozedUntil] = useState<number>(() => readSnooze());
-  const [, setTick] = useState(0);
+  const [dismissedVersion, setDismissedVersion] = useState<string>(() => readDismissed());
 
   useEffect(() => subscribeDirty(() => setDirtyState(hasDirtyWork())), []);
 
   useEffect(() => {
-    setCurrentVersion(
-      typeof __APP_VERSION__ !== "undefined" && __APP_VERSION__
-        ? __APP_VERSION__
-        : ""
-    );
-  }, []);
-
-  // Re-evaluate every minute so the reminder comes back when snooze expires.
-  useEffect(() => {
-    const t = setInterval(() => setTick((v) => v + 1), 60_000);
-    return () => clearInterval(t);
-  }, []);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { update?: UpdateFn } | undefined;
+    const handler = () => {
       // Only raise the reminder when a build is actually waiting to install.
       void hasPendingUpdate().then((pending) => {
-        if (!pending && !detail?.update) return;
-        // A fresh update event clears any active snooze — this is a newer build.
-        try { sessionStorage.removeItem(SNOOZE_KEY); } catch { /* noop */ }
-        setSnoozedUntil(0);
+        if (!pending) return;
         setAvailable(true);
       });
     };
@@ -75,13 +61,13 @@ export const PWAUpdateNotification = () => {
   };
 
   const dismiss = () => {
-    const until = Date.now() + SNOOZE_MS;
-    try { sessionStorage.setItem(SNOOZE_KEY, String(until)); } catch { /* noop */ }
-    setSnoozedUntil(until);
+    try { localStorage.setItem(DISMISS_KEY, appVersion); } catch { /* noop */ }
+    setDismissedVersion(appVersion);
+    setAvailable(false);
   };
 
   if (!available) return null;
-  if (snoozedUntil > Date.now()) return null;
+  if (dismissedVersion && dismissedVersion === appVersion) return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-[9999] max-w-xs rounded-lg border border-border bg-card shadow-xl p-3 flex items-start gap-3 no-print animate-in slide-in-from-bottom-2">
@@ -97,8 +83,8 @@ export const PWAUpdateNotification = () => {
           <RefreshCw className={cn("w-3 h-3 mr-1", busy && "animate-spin")} />
           {busy ? "Updating…" : "Update now"}
         </Button>
-        {currentVersion && (
-          <p className="text-[10px] text-muted-foreground mt-1.5 font-mono">Current: {currentVersion}</p>
+        {appVersion && (
+          <p className="text-[10px] text-muted-foreground mt-1.5 font-mono">Current: {appVersion}</p>
         )}
       </div>
       <button
