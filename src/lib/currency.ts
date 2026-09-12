@@ -135,6 +135,16 @@ export const formatNumberSpacesDecimals = (num: number, decimals = 2): string =>
 export const formatAmount = (num: number, currency: string = "TZS"): string =>
   currency === "TZS" ? formatNumberSpaces(num) : formatNumberSpacesDecimals(num, 2);
 
+/**
+ * Like `formatCurrency`, but keeps TZS cents when the amount is not a whole
+ * number (bank charges such as 2.33 TZS). Whole TZS amounts stay unchanged.
+ */
+export const formatCurrencyExact = (amount: number, currency: string = "TZS"): string => {
+  if (currency === "TZS" && Number.isFinite(amount) && !Number.isInteger(amount))
+    return formatNumberSpacesDecimals(amount, 2);
+  return formatCurrency(amount, currency);
+};
+
 export const formatCurrency = (amount: number, currency: string = "TZS"): string => {
   // Hide the default TZS prefix to save horizontal space; show symbol only for foreign currencies.
   if (currency === "TZS") return formatNumberSpaces(amount);
