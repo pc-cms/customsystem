@@ -47,6 +47,66 @@
 
   <body>
     <div id="root"></div>
+    <!-- Boot self-heal: when a cached index.html points at build assets that no
+         longer exist (404 JS / CSS served as text/plain), no app code runs and
+         the screen stays white. This inline guard runs before any bundle, so it
+         is the only code able to recover: it purges service workers + caches and
+         hard-reloads once per tab. -->
+    <script>
+      (function () {
+        var FLAG = "cms:boot-recovery";
+        var recovering = false;
+        function recover(reason) {
+          if (recovering) return;
+          if (!navigator.onLine) return;
+          try { if (sessionStorage.getItem(FLAG)) return; sessionStorage.setItem(FLAG, "1"); } catch (e) {}
+          recovering = true;
+          console.warn("[Boot] Stale build detected (" + reason + ") — purging caches");
+          var jobs = [];
+          try {
+            if ("serviceWorker" in navigator) {
+              jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+                return Promise.all(rs.map(function (r) { return r.unregister(); }));
+              }).catch(function () {}));
+            }
+            if ("caches" in window) {
+              jobs.push(caches.keys().then(function (ns) {
+                return Promise.all(ns.map(function (n) { return caches.delete(n); }));
+              }).catch(function () {}));
+            }
+          } catch (e) {}
+          var go = function () {
+            var u = new URL(window.location.href);
+            u.searchParams.set("_cb", Date.now().toString(36));
+            window.location.replace(u.toString());
+          };
+          Promise.all(jobs).then(go, go);
+          setTimeout(go, 4000);
+        }
+        window.addEventListener("error", function (ev) {
+          var t = ev.target;
+          if (!t || t === window) return;
+          var tag = t.tagName;
+          if (tag === "SCRIPT" || (tag === "LINK" && t.rel === "stylesheet")) {
+            recover(tag.toLowerCase() + " failed to load");
+          }
+        }, true);
+        // Watchdog: nothing rendered after 12s on a live connection.
+        setTimeout(function () {
+          var root = document.getElementById("root");
+          if (root && root.childElementCount === 0) recover("empty root");
+        }, 12000);
+        // Successful boot clears the flag so future recoveries are allowed.
+        window.addEventListener("load", function () {
+          setTimeout(function () {
+            var root = document.getElementById("root");
+            if (root && root.childElementCount > 0) {
+              try { sessionStorage.removeItem(FLAG); } catch (e) {}
+            }
+          }, 5000);
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
