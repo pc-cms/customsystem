@@ -224,6 +224,18 @@ const EditReprintShiftPage = () => {
         if (r.table_id) tableCredit[r.table_id] = (tableCredit[r.table_id] || 0) + Number(r.amount || 0);
       }
     });
+    // Banks / mobile wallets — opening balance + IN/OUT of this shift.
+    const openChannels = ((opening.bank || {}).channels || {}) as Record<string, any>;
+    const closeChannels = ((closing.bank || {}).channels || {}) as Record<string, any>;
+    const bankKeysAll = Array.from(new Set([...Object.keys(openChannels), ...Object.keys(closeChannels)]));
+    const bankOpen: Record<string, number> = {};
+    const bankIn: Record<string, number> = {};
+    const bankOut: Record<string, number> = {};
+    bankKeysAll.forEach((k) => {
+      bankOpen[k] = Number(openChannels[k]?.final ?? 0);
+      bankIn[k] = Number(closeChannels[k]?.in ?? 0);
+      bankOut[k] = Number(closeChannels[k]?.out ?? 0);
+    });
     return {
       openCashByCcy, closeCashByCcy, openChips, closeChips,
       totalExpenses: data?.totalExpenses || 0,
@@ -232,7 +244,9 @@ const EditReprintShiftPage = () => {
       balance: Number((shift as any).balance ?? closing.cash_desk_balance ?? 0),
       missTotal: Number((shift as any).miss_total ?? -(closing.chip_miss_total ?? 0)),
       missByDenom,
-      exchangeRates: ((shift as any).exchange_rates || {}) as Record<string, number>,
+      exchangeRates: { ...(((shift as any).exchange_rates || {}) as Record<string, number>) },
+      bankKeys: bankKeysAll,
+      bankOpen, bankIn, bankOut,
       tableRes: { ...(data?.tableResults || {}) } as Record<string, number>,
       tableFill, tableCredit,
       tableDrop: { ...(data?.tableDrop || {}) } as Record<string, number>,
