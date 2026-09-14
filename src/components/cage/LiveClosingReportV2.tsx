@@ -39,6 +39,13 @@ export type LiveClosingReportV2Props = {
   casinoName?: string;
   reportStatus?: string;
   adjustmentRef?: string | null;
+  /**
+   * Print-only overrides (Edit&Print page). When supplied they take priority
+   * over the frozen snapshot / live data — nothing is written back.
+   */
+  tableRowOverrides?: Record<string, Partial<{ op: number; fl: number; cr: number; cl: number; inVal: number; res: number }>>;
+  totalDropOverride?: number | null;
+  cashlessOverride?: { inByProv: Record<string, number>; outByProv: Record<string, number> };
 };
 
 const LiveClosingReportV2 = ({
@@ -47,6 +54,7 @@ const LiveClosingReportV2 = ({
   tipsTotal = 0, cashierName, managerName, casinoName = "Casino",
   reportStatus = "DRAFT — GBT APPROVAL PENDING",
   adjustmentRef,
+  tableRowOverrides, totalDropOverride, cashlessOverride,
 }: LiveClosingReportV2Props) => {
   const { casinoId } = useAuth();
   const reportCasinoId = ((shift as any)?.casino_id as string | undefined) || casinoId;
