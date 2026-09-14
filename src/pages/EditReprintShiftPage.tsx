@@ -198,12 +198,23 @@ const EditReprintShiftPage = () => {
       closeChips[d] = Number((closing.chips || {})[d] ?? (closing.chips || {})[String(d)] ?? 0);
       missByDenom[d] = Number((storedMiss as any)[d] ?? (storedMiss as any)[String(d)] ?? 0);
     });
-    const cashlessIO: CashlessIO = { inByProv: {}, outByProv: {} };
+    // Same rule as the printed sheet: cashier's shift totals are the base, the
+    // cashless journal only refines the split for providers it recorded.
+    const baseIn = normalizeProviderMap((shift as any).cashless_in_providers);
+    const baseOut = normalizeProviderMap((shift as any).cashless_out_providers);
+    const jIn: Record<string, number> = {};
+    const jOut: Record<string, number> = {};
     (data?.cashless || []).forEach((r: any) => {
-      const p = String(r.provider || "").toUpperCase();
+      const p = normalizeProviderKey(r.provider);
+      if (!p) return;
       const a = Number(r.amount || 0);
-      if (r.direction === "IN") cashlessIO.inByProv[p] = (cashlessIO.inByProv[p] || 0) + a;
-      else if (r.direction === "OUT") cashlessIO.outByProv[p] = (cashlessIO.outByProv[p] || 0) + a;
+      if (r.direction === "IN") jIn[p] = (jIn[p] || 0) + a;
+      else if (r.direction === "OUT") jOut[p] = (jOut[p] || 0) + a;
+    });
+    const cashlessIO: CashlessIO = { inByProv: { ...baseIn }, outByProv: { ...baseOut } };
+    new Set([...Object.keys(jIn), ...Object.keys(jOut)]).forEach((k) => {
+      cashlessIO.inByProv[k] = jIn[k] || 0;
+      cashlessIO.outByProv[k] = jOut[k] || 0;
     });
     let addFloat = 0, slotsOut = 0;
     const fillByDenom: ChipMap = {};
