@@ -24,6 +24,7 @@ import PrintPortal from "@/components/cage/PrintPortal";
 import { printLiveGameReport } from "@/components/cage/printLiveGameReport";
 import { fetchTotalDrop } from "@/lib/drop-source";
 import { useAuth } from "@/lib/auth-context";
+import { useReportWallets, normalizeProviderKey, normalizeProviderMap } from "@/components/cage/report-v2/wallet-rows";
 import type { Tables } from "@/integrations/supabase/types";
 
 const businessDateForEAT = (iso: string): string => {
@@ -197,12 +198,23 @@ const EditReprintShiftPage = () => {
       closeChips[d] = Number((closing.chips || {})[d] ?? (closing.chips || {})[String(d)] ?? 0);
       missByDenom[d] = Number((storedMiss as any)[d] ?? (storedMiss as any)[String(d)] ?? 0);
     });
-    const cashlessIO: CashlessIO = { inByProv: {}, outByProv: {} };
+    // Same rule as the printed sheet: cashier's shift totals are the base, the
+    // cashless journal only refines the split for providers it recorded.
+    const baseIn = normalizeProviderMap((shift as any).cashless_in_providers);
+    const baseOut = normalizeProviderMap((shift as any).cashless_out_providers);
+    const jIn: Record<string, number> = {};
+    const jOut: Record<string, number> = {};
     (data?.cashless || []).forEach((r: any) => {
-      const p = String(r.provider || "").toUpperCase();
+      const p = normalizeProviderKey(r.provider);
+      if (!p) return;
       const a = Number(r.amount || 0);
-      if (r.direction === "IN") cashlessIO.inByProv[p] = (cashlessIO.inByProv[p] || 0) + a;
-      else if (r.direction === "OUT") cashlessIO.outByProv[p] = (cashlessIO.outByProv[p] || 0) + a;
+      if (r.direction === "IN") jIn[p] = (jIn[p] || 0) + a;
+      else if (r.direction === "OUT") jOut[p] = (jOut[p] || 0) + a;
+    });
+    const cashlessIO: CashlessIO = { inByProv: { ...baseIn }, outByProv: { ...baseOut } };
+    new Set([...Object.keys(jIn), ...Object.keys(jOut)]).forEach((k) => {
+      cashlessIO.inByProv[k] = jIn[k] || 0;
+      cashlessIO.outByProv[k] = jOut[k] || 0;
     });
     let addFloat = 0, slotsOut = 0;
     const fillByDenom: ChipMap = {};
@@ -224,6 +236,18 @@ const EditReprintShiftPage = () => {
         if (r.table_id) tableCredit[r.table_id] = (tableCredit[r.table_id] || 0) + Number(r.amount || 0);
       }
     });
+    // Banks / mobile wallets — opening balance + IN/OUT of this shift.
+    const openChannels = ((opening.bank || {}).channels || {}) as Record<string, any>;
+    const closeChannels = ((closing.bank || {}).channels || {}) as Record<string, any>;
+    const bankKeysAll = Array.from(new Set([...Object.keys(openChannels), ...Object.keys(closeChannels)]));
+    const bankOpen: Record<string, number> = {};
+    const bankIn: Record<string, number> = {};
+    const bankOut: Record<string, number> = {};
+    bankKeysAll.forEach((k) => {
+      bankOpen[k] = Number(openChannels[k]?.final ?? 0);
+      bankIn[k] = Number(closeChannels[k]?.in ?? 0);
+      bankOut[k] = Number(closeChannels[k]?.out ?? 0);
+    });
     return {
       openCashByCcy, closeCashByCcy, openChips, closeChips,
       totalExpenses: data?.totalExpenses || 0,
@@ -232,7 +256,9 @@ const EditReprintShiftPage = () => {
       balance: Number((shift as any).balance ?? closing.cash_desk_balance ?? 0),
       missTotal: Number((shift as any).miss_total ?? -(closing.chip_miss_total ?? 0)),
       missByDenom,
-      exchangeRates: ((shift as any).exchange_rates || {}) as Record<string, number>,
+      exchangeRates: { ...(((shift as any).exchange_rates || {}) as Record<string, number>) },
+      bankKeys: bankKeysAll,
+      bankOpen, bankIn, bankOut,
       tableRes: { ...(data?.tableResults || {}) } as Record<string, number>,
       tableFill, tableCredit,
       tableDrop: { ...(data?.tableDrop || {}) } as Record<string, number>,
@@ -248,6 +274,26 @@ const EditReprintShiftPage = () => {
   // print-only sandbox — we NEVER auto-recompute or overwrite it, only allow
   // manual edits that stay in local state.
   useEffect(() => { if (initial) setState(initial); }, [initial]);
+
+  // Every configured bank / mobile wallet must be editable, even if the shift
+  // JSON has no channel for it (the printed sheet lists them all, even at 0).
+  const wallets = useReportWallets(casinoId);
+  const walletKeys = useMemo(
+    () => [...wallets.banks.map(b => b.key), ...wallets.providers.map(p => p.key)],
+    [wallets],
+  );
+  useEffect(() => {
+    if (!state) return;
+    const missing = wallets.banks.map(b => b.key).filter(k => !(state.bankKeys || []).includes(k));
+    if (missing.length === 0) return;
+    setState({
+      ...state,
+      bankKeys: [...(state.bankKeys || []), ...missing],
+      bankOpen: { ...state.bankOpen, ...Object.fromEntries(missing.map(k => [k, 0])) },
+      bankIn: { ...state.bankIn, ...Object.fromEntries(missing.map(k => [k, 0])) },
+      bankOut: { ...state.bankOut, ...Object.fromEntries(missing.map(k => [k, 0])) },
+    });
+  }, [wallets, state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const baselineChipDelta = useMemo(() => {
     if (!initial) return 0;
@@ -330,8 +376,27 @@ const EditReprintShiftPage = () => {
       CURRENCIES.forEach(c => { out[c] = { "1": Number(byCcy[c] || 0) }; });
       return out;
     };
-    const openingFloat = { ...(shift.opening_float as any || {}), cash: buildCashObj(state.openCashByCcy), chips: state.openChips };
-    const closingCount = { ...(shift.closing_count as any || {}), cash: buildCashObj(state.closeCashByCcy), chips: state.closeChips };
+    const openChannels: Record<string, any> = {};
+    const closeChannels: Record<string, any> = {};
+    (state.bankKeys || []).forEach((k) => {
+      const op = Number(state.bankOpen?.[k] || 0);
+      const i = Number(state.bankIn?.[k] || 0);
+      const o = Number(state.bankOut?.[k] || 0);
+      openChannels[k] = { in: 0, out: 0, final: op };
+      closeChannels[k] = { in: i, out: o, final: op + i - o };
+    });
+    const openingFloat = {
+      ...(shift.opening_float as any || {}),
+      cash: buildCashObj(state.openCashByCcy),
+      chips: state.openChips,
+      bank: { ...((shift.opening_float as any)?.bank || {}), channels: openChannels },
+    };
+    const closingCount = {
+      ...(shift.closing_count as any || {}),
+      cash: buildCashObj(state.closeCashByCcy),
+      chips: state.closeChips,
+      bank: { ...((shift.closing_count as any)?.bank || {}), channels: closeChannels },
+    };
     return { openingFloat, closingCount };
   }, [state, shift]);
 
@@ -507,20 +572,74 @@ const EditReprintShiftPage = () => {
 
               {/* Cashless */}
               <Section title="Cashless IN / OUT per provider">
-                <div className="grid grid-cols-[44px,1fr,1fr] gap-1 items-center">
+                <div className="grid grid-cols-[64px,1fr,1fr] gap-1 items-center">
                   <div />
                   <div className="text-[9px] uppercase text-muted-foreground text-center">IN</div>
                   <div className="text-[9px] uppercase text-muted-foreground text-center">OUT</div>
-                  {PROV_KEYS.map(p => (
-                    <FragmentRow key={p} label={PROV_LABELS[p]}
-                      o={state.cashlessIO.inByProv[p] || 0}
-                      cV={state.cashlessIO.outByProv[p] || 0}
-                      onO={(n) => setState({ ...state, cashlessIO: { ...state.cashlessIO, inByProv: { ...state.cashlessIO.inByProv, [p]: n } } })}
-                      onC={(n) => setState({ ...state, cashlessIO: { ...state.cashlessIO, outByProv: { ...state.cashlessIO.outByProv, [p]: n } } })}
+                  {(wallets.providers.length ? wallets.providers : PROV_KEYS.map(k => ({ key: k, label: PROV_LABELS[k] }))).map(p => (
+                    <FragmentRow key={p.key} label={p.label}
+                      o={state.cashlessIO.inByProv[p.key] || 0}
+                      cV={state.cashlessIO.outByProv[p.key] || 0}
+                      onO={(n) => setState({ ...state, cashlessIO: { ...state.cashlessIO, inByProv: { ...state.cashlessIO.inByProv, [p.key]: n } } })}
+                      onC={(n) => setState({ ...state, cashlessIO: { ...state.cashlessIO, outByProv: { ...state.cashlessIO.outByProv, [p.key]: n } } })}
                     />
                   ))}
                 </div>
               </Section>
+
+              {/* Exchange rates */}
+              <Section title="Exchange rates (per currency)">
+                <div className="grid grid-cols-[64px,1fr] gap-1 items-center">
+                  {CURRENCIES.filter(c => c !== "TZS").map(c => (
+                    <FragmentRowSingle key={c} label={c}
+                      value={Number(state.exchangeRates?.[c] || 0)}
+                      onChange={(n) => setState({ ...state, exchangeRates: { ...state.exchangeRates, [c]: n } })}
+                    />
+                  ))}
+                </div>
+              </Section>
+
+              {/* Banks & mobile wallets */}
+              <Section title="Banks & wallets (opening / in / out)" className="md:col-span-2">
+                <div className="grid grid-cols-[minmax(120px,1fr),110px,110px,110px,110px] gap-1 items-center">
+                  <div />
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Opening</div>
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">In</div>
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Out</div>
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Closing</div>
+                  {(state.bankKeys || []).map(k => {
+                    const label = wallets.banks.find(b => b.key === k)?.label || k;
+                    const op = Number(state.bankOpen?.[k] || 0);
+                    const i = Number(state.bankIn?.[k] || 0);
+                    const o = Number(state.bankOut?.[k] || 0);
+                    return (
+                      <div key={k} className="contents">
+                        <div className="text-[11px] font-medium text-muted-foreground truncate" title={label}>{label}</div>
+                        <NumInput value={op} onChange={(n) => setState({ ...state, bankOpen: { ...state.bankOpen, [k]: n } })} />
+                        <NumInput value={i} onChange={(n) => setState({ ...state, bankIn: { ...state.bankIn, [k]: n } })} />
+                        <NumInput value={o} onChange={(n) => setState({ ...state, bankOut: { ...state.bankOut, [k]: n } })} />
+                        <div className="text-[11px] font-mono tabular-nums text-right pr-1">{formatNumberSpaces(op + i - o)}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Section>
+
+              {/* Chip difference (Miss) per denomination */}
+              <Section title="Chip difference / Miss (qty per denomination)" className="md:col-span-2">
+                <div className="grid grid-cols-[60px,1fr,60px,1fr,60px,1fr] gap-1 items-center">
+                  {(CHIP_DENOMS as readonly number[]).map(d => (
+                    <FragmentRowSingle key={d} label={formatChipLabel(d)}
+                      value={Number(state.missByDenom?.[d] || 0)}
+                      onChange={(n) => setState({ ...state, missByDenom: { ...state.missByDenom, [d]: n } })}
+                    />
+                  ))}
+                </div>
+                <div className="text-[10px] text-muted-foreground pt-1 border-t border-border mt-1">
+                  Total: <span className="font-mono">{formatNumberSpaces(recomputedMiss.total)}</span>
+                </div>
+              </Section>
+
 
               {/* Chips spans both columns */}
               <Section title="Chips open / close (per denomination, qty)" className="md:col-span-2">

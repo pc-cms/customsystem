@@ -39,6 +39,13 @@ export type LiveClosingReportV2Props = {
   casinoName?: string;
   reportStatus?: string;
   adjustmentRef?: string | null;
+  /**
+   * Print-only overrides (Edit&Print page). When supplied they take priority
+   * over the frozen snapshot / live data — nothing is written back.
+   */
+  tableRowOverrides?: Record<string, Partial<{ op: number; fl: number; cr: number; cl: number; inVal: number; res: number }>>;
+  totalDropOverride?: number | null;
+  cashlessOverride?: { inByProv: Record<string, number>; outByProv: Record<string, number> };
 };
 
 const LiveClosingReportV2 = ({
@@ -47,6 +54,7 @@ const LiveClosingReportV2 = ({
   tipsTotal = 0, cashierName, managerName, casinoName = "Casino",
   reportStatus = "DRAFT — GBT APPROVAL PENDING",
   adjustmentRef,
+  tableRowOverrides, totalDropOverride, cashlessOverride,
 }: LiveClosingReportV2Props) => {
   const { casinoId } = useAuth();
   const reportCasinoId = ((shift as any)?.casino_id as string | undefined) || casinoId;
@@ -71,7 +79,7 @@ const LiveClosingReportV2 = ({
     }),
   });
 
-  const { rows, cashlessIO, totalDrop: frozenDrop } = useLiveShiftReportData({
+  const { rows: baseRows, cashlessIO: baseCashless, totalDrop: frozenDrop } = useLiveShiftReportData({
     casinoId: reportCasinoId, shiftId: shift?.id, businessDate, tables,
     frozen: snapshot,
   });
@@ -79,9 +87,26 @@ const LiveClosingReportV2 = ({
   const { data: liveTotalDrop } = useTotalDrop({
     casinoId: reportCasinoId, fromDate: businessDate,
   });
-  const totalDrop = snapshot ? frozenDrop : liveTotalDrop;
 
-
+  // Print-only edits win over snapshot / live figures.
+  const rows = useMemo(() => {
+    if (!tableRowOverrides) return baseRows;
+    return baseRows.map(r => {
+      const ov = tableRowOverrides[r.id];
+      if (!ov) return r;
+      return {
+        ...r,
+        op: ov.op ?? r.op,
+        fl: ov.fl ?? r.fl,
+        cr: ov.cr ?? r.cr,
+        cl: ov.cl ?? r.cl,
+        drop: ov.inVal ?? r.drop,
+        res: ov.res ?? r.res,
+      };
+    });
+  }, [baseRows, tableRowOverrides]);
+  const cashlessIO = cashlessOverride ?? baseCashless;
+  const totalDrop = totalDropOverride ?? (snapshot ? frozenDrop : liveTotalDrop);
 
   const totals = useMemo(() => rows.reduce(
     (a, r) => ({
