@@ -263,6 +263,26 @@ const EditReprintShiftPage = () => {
   // manual edits that stay in local state.
   useEffect(() => { if (initial) setState(initial); }, [initial]);
 
+  // Every configured bank / mobile wallet must be editable, even if the shift
+  // JSON has no channel for it (the printed sheet lists them all, even at 0).
+  const wallets = useReportWallets(casinoId);
+  const walletKeys = useMemo(
+    () => [...wallets.banks.map(b => b.key), ...wallets.providers.map(p => p.key)],
+    [wallets],
+  );
+  useEffect(() => {
+    if (!state) return;
+    const missing = wallets.banks.map(b => b.key).filter(k => !(state.bankKeys || []).includes(k));
+    if (missing.length === 0) return;
+    setState({
+      ...state,
+      bankKeys: [...(state.bankKeys || []), ...missing],
+      bankOpen: { ...state.bankOpen, ...Object.fromEntries(missing.map(k => [k, 0])) },
+      bankIn: { ...state.bankIn, ...Object.fromEntries(missing.map(k => [k, 0])) },
+      bankOut: { ...state.bankOut, ...Object.fromEntries(missing.map(k => [k, 0])) },
+    });
+  }, [wallets, state]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const baselineChipDelta = useMemo(() => {
     if (!initial) return 0;
     return (CHIP_DENOMS as any).reduce(
