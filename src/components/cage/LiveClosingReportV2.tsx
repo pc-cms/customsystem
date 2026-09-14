@@ -79,7 +79,7 @@ const LiveClosingReportV2 = ({
     }),
   });
 
-  const { rows, cashlessIO, totalDrop: frozenDrop } = useLiveShiftReportData({
+  const { rows: baseRows, cashlessIO: baseCashless, totalDrop: frozenDrop } = useLiveShiftReportData({
     casinoId: reportCasinoId, shiftId: shift?.id, businessDate, tables,
     frozen: snapshot,
   });
@@ -87,9 +87,26 @@ const LiveClosingReportV2 = ({
   const { data: liveTotalDrop } = useTotalDrop({
     casinoId: reportCasinoId, fromDate: businessDate,
   });
-  const totalDrop = snapshot ? frozenDrop : liveTotalDrop;
 
-
+  // Print-only edits win over snapshot / live figures.
+  const rows = useMemo(() => {
+    if (!tableRowOverrides) return baseRows;
+    return baseRows.map(r => {
+      const ov = tableRowOverrides[r.id];
+      if (!ov) return r;
+      return {
+        ...r,
+        op: ov.op ?? r.op,
+        fl: ov.fl ?? r.fl,
+        cr: ov.cr ?? r.cr,
+        cl: ov.cl ?? r.cl,
+        drop: ov.inVal ?? r.drop,
+        res: ov.res ?? r.res,
+      };
+    });
+  }, [baseRows, tableRowOverrides]);
+  const cashlessIO = cashlessOverride ?? baseCashless;
+  const totalDrop = totalDropOverride ?? (snapshot ? frozenDrop : liveTotalDrop);
 
   const totals = useMemo(() => rows.reduce(
     (a, r) => ({
