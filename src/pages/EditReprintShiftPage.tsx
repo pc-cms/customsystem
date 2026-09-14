@@ -344,8 +344,27 @@ const EditReprintShiftPage = () => {
       CURRENCIES.forEach(c => { out[c] = { "1": Number(byCcy[c] || 0) }; });
       return out;
     };
-    const openingFloat = { ...(shift.opening_float as any || {}), cash: buildCashObj(state.openCashByCcy), chips: state.openChips };
-    const closingCount = { ...(shift.closing_count as any || {}), cash: buildCashObj(state.closeCashByCcy), chips: state.closeChips };
+    const openChannels: Record<string, any> = {};
+    const closeChannels: Record<string, any> = {};
+    (state.bankKeys || []).forEach((k) => {
+      const op = Number(state.bankOpen?.[k] || 0);
+      const i = Number(state.bankIn?.[k] || 0);
+      const o = Number(state.bankOut?.[k] || 0);
+      openChannels[k] = { in: 0, out: 0, final: op };
+      closeChannels[k] = { in: i, out: o, final: op + i - o };
+    });
+    const openingFloat = {
+      ...(shift.opening_float as any || {}),
+      cash: buildCashObj(state.openCashByCcy),
+      chips: state.openChips,
+      bank: { ...((shift.opening_float as any)?.bank || {}), channels: openChannels },
+    };
+    const closingCount = {
+      ...(shift.closing_count as any || {}),
+      cash: buildCashObj(state.closeCashByCcy),
+      chips: state.closeChips,
+      bank: { ...((shift.closing_count as any)?.bank || {}), channels: closeChannels },
+    };
     return { openingFloat, closingCount };
   }, [state, shift]);
 
