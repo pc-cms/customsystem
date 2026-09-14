@@ -24,6 +24,7 @@ import PrintPortal from "@/components/cage/PrintPortal";
 import { printLiveGameReport } from "@/components/cage/printLiveGameReport";
 import { fetchTotalDrop } from "@/lib/drop-source";
 import { useAuth } from "@/lib/auth-context";
+import { useReportWallets } from "@/components/cage/report-v2/wallet-rows";
 import type { Tables } from "@/integrations/supabase/types";
 
 const businessDateForEAT = (iso: string): string => {
