@@ -561,20 +561,74 @@ const EditReprintShiftPage = () => {
 
               {/* Cashless */}
               <Section title="Cashless IN / OUT per provider">
-                <div className="grid grid-cols-[44px,1fr,1fr] gap-1 items-center">
+                <div className="grid grid-cols-[64px,1fr,1fr] gap-1 items-center">
                   <div />
                   <div className="text-[9px] uppercase text-muted-foreground text-center">IN</div>
                   <div className="text-[9px] uppercase text-muted-foreground text-center">OUT</div>
-                  {PROV_KEYS.map(p => (
-                    <FragmentRow key={p} label={PROV_LABELS[p]}
-                      o={state.cashlessIO.inByProv[p] || 0}
-                      cV={state.cashlessIO.outByProv[p] || 0}
-                      onO={(n) => setState({ ...state, cashlessIO: { ...state.cashlessIO, inByProv: { ...state.cashlessIO.inByProv, [p]: n } } })}
-                      onC={(n) => setState({ ...state, cashlessIO: { ...state.cashlessIO, outByProv: { ...state.cashlessIO.outByProv, [p]: n } } })}
+                  {(wallets.providers.length ? wallets.providers : PROV_KEYS.map(k => ({ key: k, label: PROV_LABELS[k] }))).map(p => (
+                    <FragmentRow key={p.key} label={p.label}
+                      o={state.cashlessIO.inByProv[p.key] || 0}
+                      cV={state.cashlessIO.outByProv[p.key] || 0}
+                      onO={(n) => setState({ ...state, cashlessIO: { ...state.cashlessIO, inByProv: { ...state.cashlessIO.inByProv, [p.key]: n } } })}
+                      onC={(n) => setState({ ...state, cashlessIO: { ...state.cashlessIO, outByProv: { ...state.cashlessIO.outByProv, [p.key]: n } } })}
                     />
                   ))}
                 </div>
               </Section>
+
+              {/* Exchange rates */}
+              <Section title="Exchange rates (per currency)">
+                <div className="grid grid-cols-[64px,1fr] gap-1 items-center">
+                  {CURRENCIES.filter(c => c !== "TZS").map(c => (
+                    <FragmentRowSingle key={c} label={c}
+                      value={Number(state.exchangeRates?.[c] || 0)}
+                      onChange={(n) => setState({ ...state, exchangeRates: { ...state.exchangeRates, [c]: n } })}
+                    />
+                  ))}
+                </div>
+              </Section>
+
+              {/* Banks & mobile wallets */}
+              <Section title="Banks & wallets (opening / in / out)" className="md:col-span-2">
+                <div className="grid grid-cols-[minmax(120px,1fr),110px,110px,110px,110px] gap-1 items-center">
+                  <div />
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Opening</div>
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">In</div>
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Out</div>
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Closing</div>
+                  {(state.bankKeys || []).map(k => {
+                    const label = wallets.banks.find(b => b.key === k)?.label || k;
+                    const op = Number(state.bankOpen?.[k] || 0);
+                    const i = Number(state.bankIn?.[k] || 0);
+                    const o = Number(state.bankOut?.[k] || 0);
+                    return (
+                      <div key={k} className="contents">
+                        <div className="text-[11px] font-medium text-muted-foreground truncate" title={label}>{label}</div>
+                        <NumInput value={op} onChange={(n) => setState({ ...state, bankOpen: { ...state.bankOpen, [k]: n } })} />
+                        <NumInput value={i} onChange={(n) => setState({ ...state, bankIn: { ...state.bankIn, [k]: n } })} />
+                        <NumInput value={o} onChange={(n) => setState({ ...state, bankOut: { ...state.bankOut, [k]: n } })} />
+                        <div className="text-[11px] font-mono tabular-nums text-right pr-1">{formatNumberSpaces(op + i - o)}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Section>
+
+              {/* Chip difference (Miss) per denomination */}
+              <Section title="Chip difference / Miss (qty per denomination)" className="md:col-span-2">
+                <div className="grid grid-cols-[60px,1fr,60px,1fr,60px,1fr] gap-1 items-center">
+                  {(CHIP_DENOMS as readonly number[]).map(d => (
+                    <FragmentRowSingle key={d} label={formatChipLabel(d)}
+                      value={Number(state.missByDenom?.[d] || 0)}
+                      onChange={(n) => setState({ ...state, missByDenom: { ...state.missByDenom, [d]: n } })}
+                    />
+                  ))}
+                </div>
+                <div className="text-[10px] text-muted-foreground pt-1 border-t border-border mt-1">
+                  Total: <span className="font-mono">{formatNumberSpaces(recomputedMiss.total)}</span>
+                </div>
+              </Section>
+
 
               {/* Chips spans both columns */}
               <Section title="Chips open / close (per denomination, qty)" className="md:col-span-2">
