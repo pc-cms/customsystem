@@ -129,6 +129,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/reports/poker-tips") return "tips_and_bonuses";
   if (base === "/reports/floor-tips") return "tips_and_bonuses";
   if (base === "/hr/warnings") return "hr_warnings";
+  if (base === "/hr/advances") return "payroll";
   if (base === "/cancelled-transactions") return "cancelled_transactions";
 
   // ============= PIT EXTRAS =============
