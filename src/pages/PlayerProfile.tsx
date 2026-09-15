@@ -67,6 +67,9 @@ const PlayerProfile = () => {
   const navigate = useNavigate();
   const { roles, isManager } = useAuth();
   const showFinancials = canSeePlayerFinancials(roles);
+  // ACE test phase: all ACE UI (Slots tab, ACE IDs & Cards, jackpots) is
+  // super_admin-only, matching the server-side RLS lockdown.
+  const isSuperAdmin = roles.includes("super_admin");
   const canEditLevel = roles.some((r) => ["super_admin", "manager", "shift_manager", "finance_manager"].includes(r));
   const updateCategory = useUpdatePlayerCategory();
 
@@ -657,7 +660,7 @@ const PlayerProfile = () => {
             <TabsTrigger value="info"><History className="w-3.5 h-3.5 mr-1" /> Info & History</TabsTrigger>
             {showFinancials && <TabsTrigger value="visits"><CalendarDays className="w-3.5 h-3.5 mr-1" /> Visits</TabsTrigger>}
             {showFinancials && <TabsTrigger value="stats"><BarChart3 className="w-3.5 h-3.5 mr-1" /> Statistics</TabsTrigger>}
-            {showFinancials && <TabsTrigger value="slots"><BarChart3 className="w-3.5 h-3.5 mr-1" /> Slots (ACE)</TabsTrigger>}
+            {isSuperAdmin && <TabsTrigger value="slots"><BarChart3 className="w-3.5 h-3.5 mr-1" /> Slots (ACE)</TabsTrigger>}
             <TabsTrigger value="connections"><UsersIcon className="w-3.5 h-3.5 mr-1" /> Connections</TabsTrigger>
             <TabsTrigger value="lotteries"><Trophy className="w-3.5 h-3.5 mr-1" /> Lotteries</TabsTrigger>
             <TabsTrigger value="tickets"><Ticket className="w-3.5 h-3.5 mr-1" /> Tickets</TabsTrigger>
@@ -1161,13 +1164,13 @@ const PlayerProfile = () => {
         </TabsContent>
 
         {/* Slots (ACE) — additive, never mixed with table statistics above. */}
-        {showFinancials && (
+        {isSuperAdmin && (
           <TabsContent value="slots" className="space-y-4">
             <PlayerAceSlots
               playerId={(player as any).id}
               from={range.from}
               to={range.to}
-              isSuperAdmin={roles.includes("super_admin")}
+              isSuperAdmin={isSuperAdmin}
             />
           </TabsContent>
         )}
