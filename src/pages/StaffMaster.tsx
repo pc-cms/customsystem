@@ -468,6 +468,9 @@ const StaffMaster = () => {
                   <SortHeaderTh sortKey="position" label="Position" current={sortKey} dir={sortDir} onClick={toggleSort} />
                   <SortHeaderTh sortKey="contract_type" label="Contract" current={sortKey} dir={sortDir} onClick={toggleSort} />
                   <SortHeaderTh sortKey="basic_salary" label="Salary" align="right" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <th>TIN</th>
+                  <th>NSSF No</th>
+                  <th>GEPF No</th>
                   <SortHeaderTh sortKey="onboarding_date" label="Joining" current={sortKey} dir={sortDir} onClick={toggleSort} />
                   <SortHeaderTh sortKey="exp_years" label="Exp YY" extraClass={calc} current={sortKey} dir={sortDir} onClick={toggleSort} />
                   <SortHeaderTh sortKey="birthday" label="Birthday" current={sortKey} dir={sortDir} onClick={toggleSort} />
