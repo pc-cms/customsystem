@@ -259,7 +259,10 @@ const EntriesGrid = ({ entries, canEdit, period }: { entries: PayrollEntry[]; ca
     nssf: a.nssf + e.nssf_employee,
     gepf: a.gepf + e.gepf_employee,
     net: a.net + e.net_salary,
-  }), { basic: 0, gross: 0, paye: 0, nssf: 0, gepf: 0, net: 0 }), [filtered]);
+    nssf_er: a.nssf_er + e.nssf_employer,
+    wcf: a.wcf + e.wcf_amount,
+    sdl: a.sdl + e.sdl_amount,
+  }), { basic: 0, gross: 0, paye: 0, nssf: 0, gepf: 0, net: 0, nssf_er: 0, wcf: 0, sdl: 0 }), [filtered]);
 
   const onChange = (id: string, field: string, val: number) => {
     setDraft(d => ({ ...d, [id]: { ...d[id], [field]: val } }));
@@ -286,6 +289,12 @@ const EntriesGrid = ({ entries, canEdit, period }: { entries: PayrollEntry[]; ca
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground ml-auto">{filtered.length} employees</span>
+      </div>
+
+      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+        <span>NSSF employer <b className="font-mono text-foreground">{fmt(totals.nssf_er)}</b></span>
+        <span>WCF <b className="font-mono text-foreground">{fmt(totals.wcf)}</b></span>
+        <span>SDL <b className="font-mono text-foreground">{fmt(totals.sdl)}</b></span>
       </div>
 
       <DataTable>
