@@ -198,6 +198,9 @@ const READONLY_FIELDS = [
   ["worked_days", "Wkd Days"],
   ["worked_hours", "Wkd Hrs"],
   ["overtime_hours", "OT Hrs"],
+  ["night_days", "Night Days"],
+  ["night_allowance_hours", "Night Hrs"],
+  ["night_allowance", "Night Allow."],
   ["prorata_days", "Paid Days"],
   ["loan_installment", "Loan Inst."],
 ] as const;
