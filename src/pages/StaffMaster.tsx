@@ -468,6 +468,9 @@ const StaffMaster = () => {
                   <SortHeaderTh sortKey="position" label="Position" current={sortKey} dir={sortDir} onClick={toggleSort} />
                   <SortHeaderTh sortKey="contract_type" label="Contract" current={sortKey} dir={sortDir} onClick={toggleSort} />
                   <SortHeaderTh sortKey="basic_salary" label="Salary" align="right" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <th>TIN</th>
+                  <th>NSSF No</th>
+                  <th>GEPF No</th>
                   <SortHeaderTh sortKey="onboarding_date" label="Joining" current={sortKey} dir={sortDir} onClick={toggleSort} />
                   <SortHeaderTh sortKey="exp_years" label="Exp YY" extraClass={calc} current={sortKey} dir={sortDir} onClick={toggleSort} />
                   <SortHeaderTh sortKey="birthday" label="Birthday" current={sortKey} dir={sortDir} onClick={toggleSort} />
@@ -642,6 +645,9 @@ const EmployeeRow = ({ e, idx, canEdit, deleting, onPatch, onPatchName, onPatchP
       </td>
       <td className={td}><EditableCell type="select" value={e.contract_type || null} options={["FT", "PT", "PM"]} readOnly={ro} onSave={(v) => onPatch(e.id, "contract_type", v)} /></td>
       <td className={`${td} text-right font-mono px-2`}><EditableCell type="number" align="right" value={Number(e.basic_salary) || 0} readOnly={ro} onSave={(v) => onPatch(e.id, "basic_salary", v)} /></td>
+      <td className={`${td} font-mono`}><EditableCell type="text" value={e.tax_id} readOnly={ro} onSave={(v) => onPatch(e.id, "tax_id", v)} /></td>
+      <td className={`${td} font-mono`}><EditableCell type="text" value={e.nssf_number} readOnly={ro} onSave={(v) => onPatch(e.id, "nssf_number", v)} /></td>
+      <td className={`${td} font-mono`}><EditableCell type="text" value={e.gepf_number} readOnly={ro} onSave={(v) => onPatch(e.id, "gepf_number", v)} /></td>
       <td className={td}><EditableCell type="date" value={e.onboarding_date} readOnly={ro} onSave={(v) => onPatch(e.id, "onboarding_date", v)} /></td>
       <td className={`${td} ${calc} font-mono px-2`}>{exp != null ? exp.toFixed(1) : dot}</td>
       <td className={td}><EditableCell type="date" value={e.birthday} readOnly={ro} onSave={(v) => onPatch(e.id, "birthday", v)} /></td>

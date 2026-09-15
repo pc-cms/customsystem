@@ -28,6 +28,15 @@ import {
 } from "@/lib/payroll-exports";
 import { fmtDateTime } from "@/lib/format-date";
 
+const useStatutoryNumbers = () => {
+  const { data: employees = [] } = useEmployees();
+  return useMemo(() => {
+    const m = new Map<string, { tax_id?: string | null; nssf_number?: string | null }>();
+    employees.forEach(emp => m.set(emp.id, { tax_id: emp.tax_id, nssf_number: emp.nssf_number }));
+    return m;
+  }, [employees]);
+};
+
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n).replace(/,/g, " ");
 
@@ -39,6 +48,7 @@ const PayrollPeriodPage = () => {
   const isFinance = roles.includes("finance_manager") || roles.includes("super_admin");
   const isSuper = roles.includes("super_admin");
 
+  const statIds = useStatutoryNumbers();
   const { data: period } = usePayrollPeriod(id);
   const { data: entries = [], isLoading } = usePayrollEntries(id);
 
@@ -150,19 +160,19 @@ const PayrollPeriodPage = () => {
             <>
               <div className="w-full mt-2 text-xs text-muted-foreground uppercase tracking-wider">Exports</div>
               <BankExportButton entries={entries} period={period} />
-              <Button size="sm" variant="outline" onClick={() => exportSalarySlipsPrint(entries, period)}>
+              <Button size="sm" variant="outline" onClick={() => exportSalarySlipsPrint(entries, period, statIds)}>
                 <Printer className="w-4 h-4 mr-1" /> Salary Slips PDF
               </Button>
-              <Button size="sm" variant="outline" onClick={() => exportNssfReport(entries, period)}>
+              <Button size="sm" variant="outline" onClick={() => exportNssfReport(entries, period, statIds)}>
                 <FileSpreadsheet className="w-4 h-4 mr-1" /> NSSF
               </Button>
-              <Button size="sm" variant="outline" onClick={() => exportPayeReport(entries, period)}>
+              <Button size="sm" variant="outline" onClick={() => exportPayeReport(entries, period, statIds)}>
                 <FileSpreadsheet className="w-4 h-4 mr-1" /> PAYE
               </Button>
-              <Button size="sm" variant="outline" onClick={() => exportSdlReport(entries, period)}>
+              <Button size="sm" variant="outline" onClick={() => exportSdlReport(entries, period, statIds)}>
                 <FileSpreadsheet className="w-4 h-4 mr-1" /> SDL
               </Button>
-              <Button size="sm" variant="outline" onClick={() => exportWcfReport(entries, period)}>
+              <Button size="sm" variant="outline" onClick={() => exportWcfReport(entries, period, statIds)}>
                 <FileSpreadsheet className="w-4 h-4 mr-1" /> WCF
               </Button>
               <Button size="sm" variant="outline" onClick={() => exportJournal(entries, period)}>
@@ -198,6 +208,9 @@ const READONLY_FIELDS = [
   ["worked_days", "Wkd Days"],
   ["worked_hours", "Wkd Hrs"],
   ["overtime_hours", "OT Hrs"],
+  ["night_days", "Night Days"],
+  ["night_allowance_hours", "Night Hrs"],
+  ["night_allowance", "Night Allow."],
   ["prorata_days", "Paid Days"],
   ["loan_installment", "Loan Inst."],
 ] as const;
@@ -216,6 +229,7 @@ const NUMERIC_INPUT_FIELDS = [
 const EntriesGrid = ({ entries, canEdit, period }: { entries: PayrollEntry[]; canEdit: boolean; period: any }) => {
   const update = useUpdatePayrollEntry();
   const { data: employees = [] } = useEmployees();
+  const statIds = useStatutoryNumbers();
   const [draft, setDraft] = useState<Record<string, Partial<PayrollEntry>>>({});
   const [dept, setDept] = useState<string>("__all__");
 
@@ -245,7 +259,10 @@ const EntriesGrid = ({ entries, canEdit, period }: { entries: PayrollEntry[]; ca
     nssf: a.nssf + e.nssf_employee,
     gepf: a.gepf + e.gepf_employee,
     net: a.net + e.net_salary,
-  }), { basic: 0, gross: 0, paye: 0, nssf: 0, gepf: 0, net: 0 }), [filtered]);
+    nssf_er: a.nssf_er + e.nssf_employer,
+    wcf: a.wcf + e.wcf_amount,
+    sdl: a.sdl + e.sdl_amount,
+  }), { basic: 0, gross: 0, paye: 0, nssf: 0, gepf: 0, net: 0, nssf_er: 0, wcf: 0, sdl: 0 }), [filtered]);
 
   const onChange = (id: string, field: string, val: number) => {
     setDraft(d => ({ ...d, [id]: { ...d[id], [field]: val } }));
@@ -272,6 +289,12 @@ const EntriesGrid = ({ entries, canEdit, period }: { entries: PayrollEntry[]; ca
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground ml-auto">{filtered.length} employees</span>
+      </div>
+
+      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+        <span>NSSF employer <b className="font-mono text-foreground">{fmt(totals.nssf_er)}</b></span>
+        <span>WCF <b className="font-mono text-foreground">{fmt(totals.wcf)}</b></span>
+        <span>SDL <b className="font-mono text-foreground">{fmt(totals.sdl)}</b></span>
       </div>
 
       <DataTable>
@@ -321,7 +344,7 @@ const EntriesGrid = ({ entries, canEdit, period }: { entries: PayrollEntry[]; ca
               <DTCell numeric>{fmt(e.gepf_employee)}</DTCell>
               <DTCell numeric className="font-bold text-emerald-700 dark:text-emerald-400">{fmt(e.net_salary)}</DTCell>
               <DTCell>
-                <Button size="sm" variant="ghost" title="Print this slip" onClick={() => exportSingleSalarySlip(e, period)}>
+                <Button size="sm" variant="ghost" title="Print this slip" onClick={() => exportSingleSalarySlip(e, period, statIds)}>
                   <Printer className="w-3.5 h-3.5" />
                 </Button>
               </DTCell>
@@ -419,7 +442,9 @@ const ChecklistPanel = ({ periodId }: { periodId: string }) => {
 };
 
 
-const SlipsPanel = ({ entries, period, periodLabel }: { entries: PayrollEntry[]; period: any; periodLabel: string }) => (
+const SlipsPanel = ({ entries, period, periodLabel }: { entries: PayrollEntry[]; period: any; periodLabel: string }) => {
+  const statIds = useStatutoryNumbers();
+  return (
   <PageSection card={false}>
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       {entries.map(e => (
@@ -429,7 +454,7 @@ const SlipsPanel = ({ entries, period, periodLabel }: { entries: PayrollEntry[];
               <div className="font-semibold">{e.snapshot_full_name}</div>
               <div className="text-xs text-muted-foreground">{e.snapshot_position} · {periodLabel}</div>
             </div>
-            <Button size="sm" variant="outline" onClick={() => exportSingleSalarySlip(e, period)}>
+            <Button size="sm" variant="outline" onClick={() => exportSingleSalarySlip(e, period, statIds)}>
               <Printer className="w-3.5 h-3.5 mr-1" /> PDF
             </Button>
           </div>
@@ -447,7 +472,8 @@ const SlipsPanel = ({ entries, period, periodLabel }: { entries: PayrollEntry[];
       ))}
     </div>
   </PageSection>
-);
+  );
+};
 
 const ACTION_LABELS: Record<string, string> = {
   period_created: "Period created",
