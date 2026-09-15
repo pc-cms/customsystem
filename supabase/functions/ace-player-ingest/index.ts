@@ -141,35 +141,111 @@ Deno.serve(async (req) => {
 
   try {
     if (kind === "players") {
-      // Only updates ACE-sourced metadata of identities that already exist.
-      // Creating CMS players from ACE is deliberately not done here.
+      // Known identity -> update ACE-owned metadata + cards only (CMS player
+      // fields are never touched, even after a merge/reassignment).
+      // Unknown (casino_id, ace_player_id) -> auto-create an admin-only CMS
+      // player named "<ace name> (ACE)" and link a new auto-created identity.
       let updated = 0;
+      let created = 0;
       for (const it of items) {
         const ace_player_id = str(it.ace_player_id);
         if (!ace_player_id) continue;
-        const identity_id = await identityFor(ace_player_id);
+        const nowIso = new Date().toISOString();
+        const ace_name = str(it.ace_name);
+        let identity_id = await identityFor(ace_player_id);
+        let identity_player_id: string | null = null;
+
+        if (!identity_id) {
+          // Auto-create the CMS player, then the identity. Idempotency is
+          // guaranteed by UNIQUE(casino_id, ace_player_id): on a duplicate
+          // (retry/race) we drop the extra player and reuse the winner.
+          const { data: newPlayer, error: pErr } = await admin
+            .from("players")
+            .insert({
+              casino_id,
+              first_name: ace_name ?? `ACE ${ace_player_id}`,
+              last_name: "(ACE)",
+              player_type: "slots",
+              is_ace_auto: true,
+            })
+            .select("id")
+            .single();
+          if (pErr) throw pErr;
+
+          const { data: newIdent, error: iErr } = await admin
+            .from("player_ace_identities")
+            .insert({
+              player_id: newPlayer.id,
+              casino_id,
+              ace_player_id,
+              ace_name,
+              is_auto_created: true,
+              first_seen_at: str(it.first_seen_at) ?? nowIso,
+              last_seen_at: str(it.last_seen_at) ?? nowIso,
+            })
+            .select("id, player_id")
+            .maybeSingle();
+
+          if (iErr) {
+            // Duplicate identity created concurrently — roll the orphan back.
+            await admin.from("players").delete().eq("id", newPlayer.id);
+            const { data: existing } = await admin
+              .from("player_ace_identities")
+              .select("id, player_id")
+              .eq("casino_id", casino_id)
+              .eq("ace_player_id", ace_player_id)
+              .maybeSingle();
+            if (!existing) throw iErr;
+            identity_id = existing.id;
+            identity_player_id = existing.player_id;
+          } else {
+            identity_id = newIdent!.id;
+            identity_player_id = newIdent!.player_id;
+            created++;
+          }
+          identityCache.set(ace_player_id, identity_id);
+        }
+
         if (!identity_id) continue;
-        await admin
-          .from("player_ace_identities")
-          .update({
-            ace_name: str(it.ace_name) ?? undefined,
-            first_seen_at: str(it.first_seen_at) ?? undefined,
-            last_seen_at: str(it.last_seen_at) ?? new Date().toISOString(),
-          })
-          .eq("id", identity_id);
-        updated++;
+
+        if (identity_player_id === null) {
+          const { data: row } = await admin
+            .from("player_ace_identities")
+            .select("player_id")
+            .eq("id", identity_id)
+            .maybeSingle();
+          identity_player_id = row?.player_id ?? null;
+          await admin
+            .from("player_ace_identities")
+            .update({
+              ace_name: ace_name ?? undefined,
+              first_seen_at: str(it.first_seen_at) ?? undefined,
+              last_seen_at: str(it.last_seen_at) ?? nowIso,
+            })
+            .eq("id", identity_id);
+          updated++;
+        }
+
         const cards = Array.isArray(it.cards) ? (it.cards as unknown[]) : [];
         for (const c of cards) {
           const card_number = typeof c === "string" ? str(c) : str((c as Record<string, unknown>)?.card_number);
           if (!card_number) continue;
           await admin.from("player_ace_cards").upsert(
-            { identity_id, casino_id, card_number, last_seen_at: new Date().toISOString() },
+            {
+              identity_id,
+              player_id: identity_player_id,
+              casino_id,
+              card_number,
+              first_seen_at: nowIso,
+              last_seen_at: nowIso,
+            },
             { onConflict: "identity_id,card_number" },
           );
         }
       }
-      return json({ ok: true, kind, updated });
+      return json({ ok: true, kind, updated, created });
     }
+
 
     if (kind === "transactions") {
       const rows = [];
