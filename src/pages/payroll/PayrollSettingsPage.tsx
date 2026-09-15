@@ -62,6 +62,8 @@ export default function PayrollSettingsPage() {
       overtime_enabled: !!s.overtime_enabled,
       overtime_multiplier: s.overtime_multiplier ?? 1.5,
       prorata_enabled: s.prorata_enabled !== false,
+      night_hours_per_day: s.night_hours_per_day ?? 10,
+      night_rate_pct: s.night_rate_pct ?? 0,
       default_payment_description: s.default_payment_description ?? null,
 
     });
