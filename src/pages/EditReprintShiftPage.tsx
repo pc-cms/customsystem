@@ -795,7 +795,8 @@ const EditReprintShiftPage = () => {
                   <ChipMovementReport
                     shift={shift}
                     openingChips={state.openChips}
-                    closingChips={state.closeChips}
+                    openingDiff={state.openingDiff}
+
                     missPerDenom={recomputedMiss.perDenom}
                     businessDate={businessDate}
                     fillByDenomOverride={state.fillByDenom}
