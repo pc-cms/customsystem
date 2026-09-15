@@ -284,7 +284,16 @@ const EditReprintShiftPage = () => {
   // Shift Balance is the certified value from close time. Reprint is a
   // print-only sandbox — we NEVER auto-recompute or overwrite it, only allow
   // manual edits that stay in local state.
-  useEffect(() => { if (initial) setState(initial); }, [initial]);
+  // Seed the editable state exactly once per shift: re-seeding on every new
+  // `initial` identity would silently discard everything the operator typed.
+  const seededFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!initial) return;
+    if (seededFor.current === shiftId) return;
+    seededFor.current = shiftId;
+    setState(initial);
+  }, [initial, shiftId]);
+
 
   // Every configured bank / mobile wallet must be editable, even if the shift
   // JSON has no channel for it (the printed sheet lists them all, even at 0).
