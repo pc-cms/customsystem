@@ -105,7 +105,16 @@ const EditReprintShiftPage = () => {
   const { data, isLoading } = useQuery({
     queryKey: ["edit-reprint-shift", shiftId],
     enabled: !!shiftId && !!casinoId,
+    // The page is a print-only sandbox: any background refetch would rebuild
+    // `initial` and wipe the operator's in-memory edits. Load once, never refetch.
+    staleTime: Infinity,
+    gcTime: 30 * 60_000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
     queryFn: async () => {
+
       const { data: shift } = await supabase.from("shifts").select("*").eq("id", shiftId).maybeSingle();
       const fromIso = (shift as any)?.opened_at ?? "1970-01-01T00:00:00Z";
       const toIso = (shift as any)?.closed_at ?? new Date().toISOString();
