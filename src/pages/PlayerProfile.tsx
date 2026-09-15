@@ -33,6 +33,7 @@ import { usePlayerDropCacheByDays } from "@/hooks/use-drop-split";
 import { Textarea } from "@/components/ui/textarea";
 import { PlayerNotesPanel } from "@/components/player/PlayerNotesPanel";
 import { useAuth } from "@/lib/auth-context";
+import PlayerAceSlots from "@/components/players/PlayerAceSlots";
 import { useBusinessDayFilter } from "@/hooks/use-business-day-filter";
 import { edgeFor, theoFromHands, theoFromDrop, holdPct } from "@/lib/casino-edges";
 import { formatNumberSpaces } from "@/lib/currency";
@@ -656,6 +657,7 @@ const PlayerProfile = () => {
             <TabsTrigger value="info"><History className="w-3.5 h-3.5 mr-1" /> Info & History</TabsTrigger>
             {showFinancials && <TabsTrigger value="visits"><CalendarDays className="w-3.5 h-3.5 mr-1" /> Visits</TabsTrigger>}
             {showFinancials && <TabsTrigger value="stats"><BarChart3 className="w-3.5 h-3.5 mr-1" /> Statistics</TabsTrigger>}
+            {showFinancials && <TabsTrigger value="slots"><BarChart3 className="w-3.5 h-3.5 mr-1" /> Slots (ACE)</TabsTrigger>}
             <TabsTrigger value="connections"><UsersIcon className="w-3.5 h-3.5 mr-1" /> Connections</TabsTrigger>
             <TabsTrigger value="lotteries"><Trophy className="w-3.5 h-3.5 mr-1" /> Lotteries</TabsTrigger>
             <TabsTrigger value="tickets"><Ticket className="w-3.5 h-3.5 mr-1" /> Tickets</TabsTrigger>
@@ -1157,6 +1159,18 @@ const PlayerProfile = () => {
             )}
           </PageSection>
         </TabsContent>
+
+        {/* Slots (ACE) — additive, never mixed with table statistics above. */}
+        {showFinancials && (
+          <TabsContent value="slots" className="space-y-4">
+            <PlayerAceSlots
+              playerId={(player as any).id}
+              from={range.from}
+              to={range.to}
+              isSuperAdmin={roles.includes("super_admin")}
+            />
+          </TabsContent>
+        )}
 
         {/* TAB 4 */}
         <TabsContent value="lotteries">
