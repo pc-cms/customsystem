@@ -11131,6 +11131,66 @@ export type Database = {
           },
         ]
       }
+      staff_advances: {
+        Row: {
+          advance_date: string
+          amount: number
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          month: number
+          note: string | null
+          paid_out: boolean
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          advance_date?: string
+          amount: number
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          month: number
+          note?: string | null
+          paid_out?: boolean
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          advance_date?: string
+          amount?: number
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          month?: number
+          note?: string | null
+          paid_out?: boolean
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_advances_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_advances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_attendance: {
         Row: {
           casino_id: string
@@ -14108,6 +14168,10 @@ export type Database = {
         Returns: undefined
       }
       mirror_unfreeze_writes: { Args: { p_casino_id: string }; Returns: Json }
+      payroll_apply_advances: {
+        Args: { _period_id: string }
+        Returns: undefined
+      }
       payroll_approve_hr: { Args: { _period_id: string }; Returns: undefined }
       payroll_approve_manager: {
         Args: { _period_id: string }

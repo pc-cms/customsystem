@@ -154,6 +154,7 @@ const GraphicsPage = lazy(() => import("@/pages/reports/GraphicsPage"));
 
 const TipsAndBonuses = lazy(() => import("@/pages/TipsAndBonuses"));
 const HrWarnings = lazy(() => import("@/pages/hr/Warnings"));
+const HrAdvances = lazy(() => import("@/pages/hr/Advances"));
 const StaffMaster = lazy(() => import("@/pages/StaffMaster"));
 const AttendanceMonthly = lazy(() => import("@/pages/AttendanceMonthly"));
 const Payroll = lazy(() => import("@/pages/Payroll"));
@@ -569,6 +570,7 @@ const ProtectedRoutes = () => {
           <Route path="/monthly-tips" element={<Navigate to="/tips-and-bonuses?tab=monthly" replace />} />
           <Route path="/tips-and-bonuses" element={<RoleGuard path="/tips-and-bonuses"><ErrorBoundary><TipsAndBonuses /></ErrorBoundary></RoleGuard>} />
           <Route path="/hr/warnings" element={<RoleGuard path="/hr/warnings"><ErrorBoundary><HrWarnings /></ErrorBoundary></RoleGuard>} />
+          <Route path="/hr/advances" element={<RoleGuard path="/hr/advances"><ErrorBoundary><HrAdvances /></ErrorBoundary></RoleGuard>} />
 
           <Route path="/reports/miss-chips" element={<Navigate to="/miss-chips" replace />} />
           {/* Legacy report URLs land on the Tips ledger (tabs poker/floor removed 2026-09-01). */}
