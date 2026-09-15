@@ -105,7 +105,16 @@ const EditReprintShiftPage = () => {
   const { data, isLoading } = useQuery({
     queryKey: ["edit-reprint-shift", shiftId],
     enabled: !!shiftId && !!casinoId,
+    // The page is a print-only sandbox: any background refetch would rebuild
+    // `initial` and wipe the operator's in-memory edits. Load once, never refetch.
+    staleTime: Infinity,
+    gcTime: 30 * 60_000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
     queryFn: async () => {
+
       const { data: shift } = await supabase.from("shifts").select("*").eq("id", shiftId).maybeSingle();
       const fromIso = (shift as any)?.opened_at ?? "1970-01-01T00:00:00Z";
       const toIso = (shift as any)?.closed_at ?? new Date().toISOString();
@@ -252,6 +261,8 @@ const EditReprintShiftPage = () => {
       openCashByCcy, closeCashByCcy, openChips, closeChips,
       totalExpenses: data?.totalExpenses || 0,
       tipsTotal: 0, addFloat, slotsOut, fillByDenom, creditByDenom, cashlessIO,
+      openingDiff: {} as ChipMap,
+
       resultTable: Number((shift as any).tables_result ?? closing.result_table ?? 0),
       balance: Number((shift as any).balance ?? closing.cash_desk_balance ?? 0),
       missTotal: Number((shift as any).miss_total ?? -(closing.chip_miss_total ?? 0)),
@@ -273,7 +284,16 @@ const EditReprintShiftPage = () => {
   // Shift Balance is the certified value from close time. Reprint is a
   // print-only sandbox — we NEVER auto-recompute or overwrite it, only allow
   // manual edits that stay in local state.
-  useEffect(() => { if (initial) setState(initial); }, [initial]);
+  // Seed the editable state exactly once per shift: re-seeding on every new
+  // `initial` identity would silently discard everything the operator typed.
+  const seededFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!initial) return;
+    if (seededFor.current === shiftId) return;
+    seededFor.current = shiftId;
+    setState(initial);
+  }, [initial, shiftId]);
+
 
   // Every configured bank / mobile wallet must be editable, even if the shift
   // JSON has no channel for it (the printed sheet lists them all, even at 0).
@@ -338,6 +358,18 @@ const EditReprintShiftPage = () => {
     const total = (CHIP_DENOMS as any).reduce((s: number, d: number) => s + d * (perDenom[d] || 0), 0);
     return { perDenom, total };
   }, [state?.missByDenom]);
+
+  /** TZS value of the editable chip blocks (opening diff / fill / credit). */
+  const chipBlockTotals = useMemo(() => {
+    const sum = (m?: ChipMap) =>
+      (CHIP_DENOMS as readonly number[]).reduce((s, d) => s + d * Number(m?.[d] || 0), 0);
+    return {
+      diff: sum(state?.openingDiff),
+      fill: sum(state?.fillByDenom),
+      credit: sum(state?.creditByDenom),
+    };
+  }, [state?.openingDiff, state?.fillByDenom, state?.creditByDenom]);
+
 
   // Convert per-currency cash totals into TZS using state.exchangeRates.
   const cashTzs = (byCcy: CashByCurrency, rates: Record<string, number>) =>
@@ -671,6 +703,34 @@ const EditReprintShiftPage = () => {
                 </div>
               </Section>
 
+              {/* Opening diff / Float fill / Float credit per denomination */}
+              <Section title="Opening diff / Float fill / Float credit (qty per denomination)" className="md:col-span-2">
+                <div className="grid grid-cols-[60px,1fr,1fr,1fr] gap-1 items-center">
+                  <div />
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Opening diff</div>
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Fill</div>
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Credit</div>
+                  {(CHIP_DENOMS as readonly number[]).map(d => (
+                    <div key={d} className="contents">
+                      <div className="text-[11px] font-medium text-muted-foreground">{formatChipLabel(d)}</div>
+                      <NumInput value={Number(state.openingDiff?.[d] || 0)}
+                        onChange={(n) => setState({ ...state, openingDiff: { ...(state.openingDiff || {}), [d]: n } })} />
+                      <NumInput value={Number(state.fillByDenom?.[d] || 0)}
+                        onChange={(n) => setState({ ...state, fillByDenom: { ...(state.fillByDenom || {}), [d]: n } })} />
+                      <NumInput value={Number(state.creditByDenom?.[d] || 0)}
+                        onChange={(n) => setState({ ...state, creditByDenom: { ...(state.creditByDenom || {}), [d]: n } })} />
+                    </div>
+                  ))}
+                </div>
+                <div className="text-[10px] text-muted-foreground pt-1 border-t border-border mt-1 flex gap-4 flex-wrap">
+                  <span>Opening diff: <span className="font-mono">{formatNumberSpaces(chipBlockTotals.diff)}</span></span>
+                  <span>Fill: <span className="font-mono">{formatNumberSpaces(chipBlockTotals.fill)}</span></span>
+                  <span>Credit: <span className="font-mono">{formatNumberSpaces(chipBlockTotals.credit)}</span></span>
+                </div>
+              </Section>
+
+
+
               {/* Per-table results moved to full-width grid at top */}
 
               {/* Totals & balance */}
@@ -735,7 +795,10 @@ const EditReprintShiftPage = () => {
                   <ChipMovementReport
                     shift={shift}
                     openingChips={state.openChips}
+                    openingDiff={state.openingDiff}
                     closingChips={state.closeChips}
+
+
                     missPerDenom={recomputedMiss.perDenom}
                     businessDate={businessDate}
                     fillByDenomOverride={state.fillByDenom}
@@ -773,7 +836,9 @@ const EditReprintShiftPage = () => {
             <ChipMovementReport
               shift={shift}
               openingChips={state.openChips}
+              openingDiff={state.openingDiff}
               closingChips={state.closeChips}
+
               missPerDenom={recomputedMiss.perDenom}
               businessDate={businessDate}
               fillByDenomOverride={state.fillByDenom}
