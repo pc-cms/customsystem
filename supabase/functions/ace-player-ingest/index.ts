@@ -219,7 +219,8 @@ Deno.serve(async (req) => {
             .from("player_ace_identities")
             .update({
               ace_name: ace_name ?? undefined,
-              first_seen_at: str(it.first_seen_at) ?? undefined,
+              // first_seen_at is immutable after creation — only ace_name
+              // (ACE-owned metadata) and last_seen_at refresh here.
               last_seen_at: str(it.last_seen_at) ?? nowIso,
             })
             .eq("id", identity_id);
