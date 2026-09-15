@@ -80,13 +80,24 @@ const ChipsMovementReportV2 = ({
     build: () => loadChipsMovementData(shift.id, liveDenoms),
   });
 
-  const denoms = snapshot?.denoms?.length ? snapshot.denoms : liveDenoms;
+  const snapDenoms = snapshot?.denoms?.length ? snapshot.denoms : liveDenoms;
   const fillByDenom = snapshot?.fillByDenom || {};
   const creditByDenom = snapshot?.creditByDenom || {};
   const liveChips = useLiveChipsMovement(snapshot ? null : shift?.id);
 
   const effFill = fillByDenomOverride ?? (snapshot ? fillByDenom : liveChips.fillByDenom);
   const effCredit = creditByDenomOverride ?? (snapshot ? creditByDenom : liveChips.creditByDenom);
+
+  // Never hide an edited denomination: the printed matrix covers every
+  // denomination that carries a value in any of the six blocks.
+  const denoms = useMemo(() => {
+    const set = new Set<number>(snapDenoms);
+    [openingChips, openingDiff, effFill, effCredit, missPerDenom, closingChips].forEach(m => {
+      Object.entries(m || {}).forEach(([d, q]) => { if (Number(q)) set.add(Number(d)); });
+    });
+    return Array.from(set).sort((a, b) => b - a);
+  }, [snapDenoms, openingChips, openingDiff, effFill, effCredit, missPerDenom, closingChips]);
+
 
   const value = (m: Record<number, number>) => denoms.reduce((s, d) => s + d * (m[d] || 0), 0);
   const totals = useMemo(() => ({
