@@ -338,7 +338,7 @@ export default function AceAnalytics() {
         </TabsContent>
 
         <TabsContent value="jp-report" className="space-y-4">
-          <PageSection title="Jackpot wins" flush>
+          <PageSection title="Jackpot wins" card={false}>
             <SmartTable
               data={jackpots.data ?? []}
               rowKey={(r: any) => r.id}
@@ -399,12 +399,12 @@ function ReportTable({
   return (
     <PageSection
       title={label}
-      right={
+      titleRight={
         <Button variant="outline" size="sm" onClick={exportRaw} disabled={!rows.length}>
           <Download className="w-4 h-4 mr-1" /> Export
         </Button>
       }
-      flush
+      card={false}
     >
       <SmartTable
         data={rows}
