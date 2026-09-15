@@ -230,6 +230,8 @@ Deno.serve(async (req) => {
         for (const c of cards) {
           const card_number = typeof c === "string" ? str(c) : str((c as Record<string, unknown>)?.card_number);
           if (!card_number) continue;
+          // insert-once (keeps the original first_seen_at on retries),
+          // then refresh the ACE-owned last_seen_at.
           await admin.from("player_ace_cards").upsert(
             {
               identity_id,
@@ -239,8 +241,13 @@ Deno.serve(async (req) => {
               first_seen_at: nowIso,
               last_seen_at: nowIso,
             },
-            { onConflict: "identity_id,card_number" },
+            { onConflict: "identity_id,card_number", ignoreDuplicates: true },
           );
+          await admin
+            .from("player_ace_cards")
+            .update({ last_seen_at: nowIso, player_id: identity_player_id })
+            .eq("identity_id", identity_id)
+            .eq("card_number", card_number);
         }
       }
       return json({ ok: true, kind, updated, created });
