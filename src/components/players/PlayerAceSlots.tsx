@@ -146,7 +146,7 @@ export default function PlayerAceSlots({ playerId, from, to, isSuperAdmin }: Pro
               { key: "out", header: "OUT", type: "money", accessor: (r: any) => (r.out_amount === null ? NA : formatMoneyFull(r.out_amount)) },
               { key: "drop", header: "Drop", type: "money", accessor: (r: any) => (r.drop_amount === null ? NA : formatMoneyFull(r.drop_amount)) },
               { key: "handle", header: "Handle", type: "money", accessor: (r: any) => (r.handle_amount === null ? NA : formatMoneyFull(r.handle_amount)) },
-              { key: "games", header: "Games", type: "number", accessor: (r: any) => r.games ?? NA },
+              { key: "games", header: "Games", type: "int", accessor: (r: any) => r.games ?? NA },
               { key: "last", header: "Last play", accessor: (r: any) => (r.last_play_at ? fmtDateTime(r.last_play_at) : "—") },
             ]}
           />

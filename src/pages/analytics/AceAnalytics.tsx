@@ -122,11 +122,11 @@ export default function AceAnalytics() {
         ),
       sortValue: (r) => r.slot_result ?? 0,
     },
-    { key: "games", header: "Games", type: "number", accessor: (r) => r.games ?? NA, sortValue: (r) => r.games ?? 0 },
+    { key: "games", header: "Games", type: "int", accessor: (r) => r.games ?? NA, sortValue: (r) => r.games ?? 0 },
     {
       key: "jp",
       header: "Jackpots",
-      type: "number",
+      type: "int",
       accessor: (r) =>
         r.jackpot_count ? `${r.jackpot_count} · ${formatMoneyFull(r.jackpot_amount ?? 0)}` : "—",
       sortValue: (r) => r.jackpot_amount ?? 0,
@@ -419,7 +419,7 @@ function ReportTable({
           {
             key: "rows",
             header: "Rows",
-            type: "number",
+            type: "int",
             accessor: (r: any) => (Array.isArray(r.rows_data) ? r.rows_data.length : 0),
           },
         ]}
