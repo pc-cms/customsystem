@@ -691,6 +691,34 @@ const EditReprintShiftPage = () => {
                 </div>
               </Section>
 
+              {/* Opening diff / Float fill / Float credit per denomination */}
+              <Section title="Opening diff / Float fill / Float credit (qty per denomination)" className="md:col-span-2">
+                <div className="grid grid-cols-[60px,1fr,1fr,1fr] gap-1 items-center">
+                  <div />
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Opening diff</div>
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Fill</div>
+                  <div className="text-[9px] uppercase text-muted-foreground text-center">Credit</div>
+                  {(CHIP_DENOMS as readonly number[]).map(d => (
+                    <div key={d} className="contents">
+                      <div className="text-[11px] font-medium text-muted-foreground">{formatChipLabel(d)}</div>
+                      <NumInput value={Number(state.openingDiff?.[d] || 0)}
+                        onChange={(n) => setState({ ...state, openingDiff: { ...(state.openingDiff || {}), [d]: n } })} />
+                      <NumInput value={Number(state.fillByDenom?.[d] || 0)}
+                        onChange={(n) => setState({ ...state, fillByDenom: { ...(state.fillByDenom || {}), [d]: n } })} />
+                      <NumInput value={Number(state.creditByDenom?.[d] || 0)}
+                        onChange={(n) => setState({ ...state, creditByDenom: { ...(state.creditByDenom || {}), [d]: n } })} />
+                    </div>
+                  ))}
+                </div>
+                <div className="text-[10px] text-muted-foreground pt-1 border-t border-border mt-1 flex gap-4 flex-wrap">
+                  <span>Opening diff: <span className="font-mono">{formatNumberSpaces(chipBlockTotals.diff)}</span></span>
+                  <span>Fill: <span className="font-mono">{formatNumberSpaces(chipBlockTotals.fill)}</span></span>
+                  <span>Credit: <span className="font-mono">{formatNumberSpaces(chipBlockTotals.credit)}</span></span>
+                </div>
+              </Section>
+
+
+
               {/* Per-table results moved to full-width grid at top */}
 
               {/* Totals & balance */}
