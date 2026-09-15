@@ -108,6 +108,8 @@ export default function PayrollSettingsPage() {
           {NUM("SDL",                s.sdl_pct,            v => setS({ ...s, sdl_pct: v }),            "%",  !isSuper)}
           {NUM("WCF",                s.wcf_pct,            v => setS({ ...s, wcf_pct: v }),            "%",  !isSuper)}
           {NUM("Overtime Multiplier", s.overtime_multiplier ?? 1.5, v => setS({ ...s, overtime_multiplier: v }), "×", !isSuper || !s.overtime_enabled)}
+          {NUM("Night Allowance", s.night_rate_pct ?? 0, v => setS({ ...s, night_rate_pct: v }), "%", !isSuper)}
+          {NUM("Night Hours / Day", s.night_hours_per_day ?? 10, v => setS({ ...s, night_hours_per_day: v }), "h", !isSuper)}
           <div className="space-y-1">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">Overtime Pay</Label>
             <label className="flex items-center gap-2 h-10 text-sm">
