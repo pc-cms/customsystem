@@ -261,6 +261,8 @@ const EditReprintShiftPage = () => {
       openCashByCcy, closeCashByCcy, openChips, closeChips,
       totalExpenses: data?.totalExpenses || 0,
       tipsTotal: 0, addFloat, slotsOut, fillByDenom, creditByDenom, cashlessIO,
+      openingDiff: {} as ChipMap,
+
       resultTable: Number((shift as any).tables_result ?? closing.result_table ?? 0),
       balance: Number((shift as any).balance ?? closing.cash_desk_balance ?? 0),
       missTotal: Number((shift as any).miss_total ?? -(closing.chip_miss_total ?? 0)),
