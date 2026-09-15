@@ -214,8 +214,9 @@ Deno.serve(async (req) => {
           business_date,
           in_amount: num(it.in_amount),
           out_amount: num(it.out_amount),
-          // Drop = IN when ACE does not send an explicit drop.
-          drop_amount: num(it.drop_amount) ?? num(it.in_amount),
+          // Canonical rule: Slot Drop = IN, always. Any source-provided
+          // drop field stays untouched in raw_data for diagnostics only.
+          drop_amount: num(it.in_amount),
           handle_amount: num(it.handle_amount), // never derived from drop
           games: int(it.games),
           first_play_at: str(it.first_play_at),
