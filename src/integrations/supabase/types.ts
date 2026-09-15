@@ -14168,6 +14168,10 @@ export type Database = {
         Returns: undefined
       }
       mirror_unfreeze_writes: { Args: { p_casino_id: string }; Returns: Json }
+      payroll_apply_advances: {
+        Args: { _period_id: string }
+        Returns: undefined
+      }
       payroll_approve_hr: { Args: { _period_id: string }; Returns: undefined }
       payroll_approve_manager: {
         Args: { _period_id: string }
