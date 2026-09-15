@@ -28,16 +28,21 @@ const fetchPaged = async <T,>(
  * Blacklist status is global.
  */
 export const usePlayers = () => {
+  // ACE-generated test players (is_ace_auto) stay super-admin-only while the
+  // ACE integration is in test mode; everyone else never sees them.
+  const { roles } = useAuth();
+  const isSuper = roles.includes("super_admin");
   return useQuery({
-    queryKey: ["players"],
+    queryKey: ["players", isSuper ? "with-ace-auto" : "no-ace-auto"],
     queryFn: async () => {
-      return await fetchPaged<any>((from, to) => supabase
-        .from("players")
-        .select("*, player_cards(id, player_id, card_number, rfid_uid, is_active), player_tags(id, player_id, tag)")
-        .neq("status", "merged")
-        .order("last_name")
-        .range(from, to)
-      );
+      return await fetchPaged<any>((from, to) => {
+        let q = supabase
+          .from("players")
+          .select("*, player_cards(id, player_id, card_number, rfid_uid, is_active), player_tags(id, player_id, tag)")
+          .neq("status", "merged");
+        if (!isSuper) q = q.eq("is_ace_auto", false);
+        return q.order("last_name").range(from, to);
+      });
     },
     ...liveQueryOptions(),
   });

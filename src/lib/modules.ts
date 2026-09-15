@@ -81,6 +81,7 @@ export type ModuleKey =
   | "report_daily_balance"
   | "report_demo"
   | "report_graphics"
+  | "ace_analytics"
   | "blank_forms"
 
   | "report_am_budget"
@@ -111,6 +112,7 @@ export const MODULES: ModuleDef[] = [
   { key: "tables", label: "Tables", group: "Operations" },
   { key: "table_tracker", label: "Table Check", group: "Operations" },
   { key: "table_results", label: "Table Results", group: "Reports" },
+  { key: "ace_analytics", label: "ACE Analytics", group: "Reports" },
 
   // Cage / Cashier
   { key: "cage", label: "Cage Live Game (Cashier)", group: "Operations" },
