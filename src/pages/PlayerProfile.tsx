@@ -67,6 +67,9 @@ const PlayerProfile = () => {
   const navigate = useNavigate();
   const { roles, isManager } = useAuth();
   const showFinancials = canSeePlayerFinancials(roles);
+  // ACE test phase: all ACE UI (Slots tab, ACE IDs & Cards, jackpots) is
+  // super_admin-only, matching the server-side RLS lockdown.
+  const isSuperAdmin = roles.includes("super_admin");
   const canEditLevel = roles.some((r) => ["super_admin", "manager", "shift_manager", "finance_manager"].includes(r));
   const updateCategory = useUpdatePlayerCategory();
 
