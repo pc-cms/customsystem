@@ -103,6 +103,116 @@ export type Database = {
           },
         ]
       }
+      ace_egm_current: {
+        Row: {
+          ace_player_id: string | null
+          active_credit: number | null
+          casino_id: string
+          created_at: string
+          egm_code: string
+          id: string
+          identity_id: string | null
+          observed_at: string | null
+          position: string | null
+          raw_data: Json | null
+          state: string | null
+          updated_at: string
+        }
+        Insert: {
+          ace_player_id?: string | null
+          active_credit?: number | null
+          casino_id: string
+          created_at?: string
+          egm_code: string
+          id?: string
+          identity_id?: string | null
+          observed_at?: string | null
+          position?: string | null
+          raw_data?: Json | null
+          state?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ace_player_id?: string | null
+          active_credit?: number | null
+          casino_id?: string
+          created_at?: string
+          egm_code?: string
+          id?: string
+          identity_id?: string | null
+          observed_at?: string | null
+          position?: string | null
+          raw_data?: Json | null
+          state?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ace_egm_current_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ace_egm_current_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "player_ace_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ace_egm_reports: {
+        Row: {
+          business_date: string | null
+          captured_at: string
+          casino_id: string
+          created_at: string
+          id: string
+          period_from: string | null
+          period_label: string | null
+          period_to: string | null
+          raw_data: Json | null
+          rows_data: Json | null
+          source_key: string
+        }
+        Insert: {
+          business_date?: string | null
+          captured_at?: string
+          casino_id: string
+          created_at?: string
+          id?: string
+          period_from?: string | null
+          period_label?: string | null
+          period_to?: string | null
+          raw_data?: Json | null
+          rows_data?: Json | null
+          source_key: string
+        }
+        Update: {
+          business_date?: string | null
+          captured_at?: string
+          casino_id?: string
+          created_at?: string
+          id?: string
+          period_from?: string | null
+          period_label?: string | null
+          period_to?: string | null
+          raw_data?: Json | null
+          rows_data?: Json | null
+          source_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ace_egm_reports_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ace_finance_snapshots: {
         Row: {
           active_credits: number | null
@@ -270,6 +380,320 @@ export type Database = {
             columns: ["casino_id"]
             isOneToOne: false
             referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ace_jackpot_reports: {
+        Row: {
+          business_date: string | null
+          captured_at: string
+          casino_id: string
+          created_at: string
+          id: string
+          period_from: string | null
+          period_label: string | null
+          period_to: string | null
+          raw_data: Json | null
+          rows_data: Json | null
+          source_key: string
+        }
+        Insert: {
+          business_date?: string | null
+          captured_at?: string
+          casino_id: string
+          created_at?: string
+          id?: string
+          period_from?: string | null
+          period_label?: string | null
+          period_to?: string | null
+          raw_data?: Json | null
+          rows_data?: Json | null
+          source_key: string
+        }
+        Update: {
+          business_date?: string | null
+          captured_at?: string
+          casino_id?: string
+          created_at?: string
+          id?: string
+          period_from?: string | null
+          period_label?: string | null
+          period_to?: string | null
+          raw_data?: Json | null
+          rows_data?: Json | null
+          source_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ace_jackpot_reports_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ace_jackpot_wins: {
+        Row: {
+          ace_player_id: string | null
+          amount: number | null
+          business_date: string
+          casino_id: string
+          created_at: string
+          egm_code: string | null
+          id: string
+          identity_id: string | null
+          jackpot_name: string | null
+          occurred_at: string | null
+          raw_data: Json | null
+          source_key: string | null
+        }
+        Insert: {
+          ace_player_id?: string | null
+          amount?: number | null
+          business_date: string
+          casino_id: string
+          created_at?: string
+          egm_code?: string | null
+          id?: string
+          identity_id?: string | null
+          jackpot_name?: string | null
+          occurred_at?: string | null
+          raw_data?: Json | null
+          source_key?: string | null
+        }
+        Update: {
+          ace_player_id?: string | null
+          amount?: number | null
+          business_date?: string
+          casino_id?: string
+          created_at?: string
+          egm_code?: string | null
+          id?: string
+          identity_id?: string | null
+          jackpot_name?: string | null
+          occurred_at?: string | null
+          raw_data?: Json | null
+          source_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ace_jackpot_wins_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ace_jackpot_wins_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "player_ace_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ace_player_daily: {
+        Row: {
+          business_date: string
+          casino_id: string
+          created_at: string
+          drop_amount: number | null
+          egm_count: number | null
+          first_play_at: string | null
+          games: number | null
+          handle_amount: number | null
+          id: string
+          identity_id: string
+          in_amount: number | null
+          is_final: boolean
+          last_play_at: string | null
+          out_amount: number | null
+          raw_data: Json | null
+          updated_at: string
+        }
+        Insert: {
+          business_date: string
+          casino_id: string
+          created_at?: string
+          drop_amount?: number | null
+          egm_count?: number | null
+          first_play_at?: string | null
+          games?: number | null
+          handle_amount?: number | null
+          id?: string
+          identity_id: string
+          in_amount?: number | null
+          is_final?: boolean
+          last_play_at?: string | null
+          out_amount?: number | null
+          raw_data?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string
+          created_at?: string
+          drop_amount?: number | null
+          egm_count?: number | null
+          first_play_at?: string | null
+          games?: number | null
+          handle_amount?: number | null
+          id?: string
+          identity_id?: string
+          in_amount?: number | null
+          is_final?: boolean
+          last_play_at?: string | null
+          out_amount?: number | null
+          raw_data?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ace_player_daily_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ace_player_daily_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "player_ace_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ace_player_egm_daily: {
+        Row: {
+          business_date: string
+          casino_id: string
+          created_at: string
+          drop_amount: number | null
+          egm_code: string
+          first_play_at: string | null
+          games: number | null
+          handle_amount: number | null
+          id: string
+          identity_id: string
+          in_amount: number | null
+          is_final: boolean
+          last_play_at: string | null
+          out_amount: number | null
+          raw_data: Json | null
+          updated_at: string
+        }
+        Insert: {
+          business_date: string
+          casino_id: string
+          created_at?: string
+          drop_amount?: number | null
+          egm_code: string
+          first_play_at?: string | null
+          games?: number | null
+          handle_amount?: number | null
+          id?: string
+          identity_id: string
+          in_amount?: number | null
+          is_final?: boolean
+          last_play_at?: string | null
+          out_amount?: number | null
+          raw_data?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string
+          created_at?: string
+          drop_amount?: number | null
+          egm_code?: string
+          first_play_at?: string | null
+          games?: number | null
+          handle_amount?: number | null
+          id?: string
+          identity_id?: string
+          in_amount?: number | null
+          is_final?: boolean
+          last_play_at?: string | null
+          out_amount?: number | null
+          raw_data?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ace_player_egm_daily_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ace_player_egm_daily_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "player_ace_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ace_player_transactions: {
+        Row: {
+          ace_player_id: string | null
+          amount: number | null
+          business_date: string
+          casino_id: string
+          created_at: string
+          egm_code: string | null
+          id: string
+          identity_id: string | null
+          occurred_at: string | null
+          raw_data: Json | null
+          source_key: string
+          tx_type: string
+        }
+        Insert: {
+          ace_player_id?: string | null
+          amount?: number | null
+          business_date: string
+          casino_id: string
+          created_at?: string
+          egm_code?: string | null
+          id?: string
+          identity_id?: string | null
+          occurred_at?: string | null
+          raw_data?: Json | null
+          source_key: string
+          tx_type: string
+        }
+        Update: {
+          ace_player_id?: string | null
+          amount?: number | null
+          business_date?: string
+          casino_id?: string
+          created_at?: string
+          egm_code?: string | null
+          id?: string
+          identity_id?: string | null
+          occurred_at?: string | null
+          raw_data?: Json | null
+          source_key?: string
+          tx_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ace_player_transactions_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ace_player_transactions_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "player_ace_identities"
             referencedColumns: ["id"]
           },
         ]
@@ -8011,6 +8435,180 @@ export type Database = {
           },
         ]
       }
+      player_ace_cards: {
+        Row: {
+          card_number: string
+          casino_id: string
+          created_at: string
+          first_seen_at: string | null
+          id: string
+          identity_id: string
+          is_active: boolean
+          last_seen_at: string | null
+          player_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          card_number: string
+          casino_id: string
+          created_at?: string
+          first_seen_at?: string | null
+          id?: string
+          identity_id: string
+          is_active?: boolean
+          last_seen_at?: string | null
+          player_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          card_number?: string
+          casino_id?: string
+          created_at?: string
+          first_seen_at?: string | null
+          id?: string
+          identity_id?: string
+          is_active?: boolean
+          last_seen_at?: string | null
+          player_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_ace_cards_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_ace_cards_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "player_ace_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_ace_cards_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "player_ace_cards_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_ace_identities: {
+        Row: {
+          ace_name: string | null
+          ace_player_id: string
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          first_seen_at: string | null
+          id: string
+          is_active: boolean
+          is_auto_created: boolean
+          last_seen_at: string | null
+          player_id: string
+          updated_at: string
+        }
+        Insert: {
+          ace_name?: string | null
+          ace_player_id: string
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          first_seen_at?: string | null
+          id?: string
+          is_active?: boolean
+          is_auto_created?: boolean
+          last_seen_at?: string | null
+          player_id: string
+          updated_at?: string
+        }
+        Update: {
+          ace_name?: string | null
+          ace_player_id?: string
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          first_seen_at?: string | null
+          id?: string
+          is_active?: boolean
+          is_auto_created?: boolean
+          last_seen_at?: string | null
+          player_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_ace_identities_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_ace_identities_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player_economy"
+            referencedColumns: ["player_id"]
+          },
+          {
+            foreignKeyName: "player_ace_identities_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_ace_identity_audit: {
+        Row: {
+          ace_player_id: string | null
+          action: string
+          casino_id: string | null
+          created_at: string
+          from_player_id: string | null
+          id: string
+          identity_id: string | null
+          note: string | null
+          performed_by: string | null
+          to_player_id: string | null
+        }
+        Insert: {
+          ace_player_id?: string | null
+          action: string
+          casino_id?: string | null
+          created_at?: string
+          from_player_id?: string | null
+          id?: string
+          identity_id?: string | null
+          note?: string | null
+          performed_by?: string | null
+          to_player_id?: string | null
+        }
+        Update: {
+          ace_player_id?: string | null
+          action?: string
+          casino_id?: string | null
+          created_at?: string
+          from_player_id?: string | null
+          id?: string
+          identity_id?: string | null
+          note?: string | null
+          performed_by?: string | null
+          to_player_id?: string | null
+        }
+        Relationships: []
+      }
       player_cards: {
         Row: {
           card_number: string
@@ -8676,6 +9274,7 @@ export type Database = {
           id: string
           id_document_url: string | null
           id_number: string
+          is_ace_auto: boolean
           last_name: string
           locked_at: string | null
           merged_at: string | null
@@ -8704,6 +9303,7 @@ export type Database = {
           id?: string
           id_document_url?: string | null
           id_number?: string
+          is_ace_auto?: boolean
           last_name: string
           locked_at?: string | null
           merged_at?: string | null
@@ -8732,6 +9332,7 @@ export type Database = {
           id?: string
           id_document_url?: string | null
           id_number?: string
+          is_ace_auto?: boolean
           last_name?: string
           locked_at?: string | null
           merged_at?: string | null
@@ -12932,6 +13533,15 @@ export type Database = {
         }
         Returns: Json
       }
+      ace_attach_identity: {
+        Args: {
+          _ace_player_id: string
+          _casino_id: string
+          _force?: boolean
+          _player_id: string
+        }
+        Returns: Json
+      }
       ace_backfill_history_day: {
         Args: {
           _business_date: string
@@ -12976,7 +13586,36 @@ export type Database = {
         Returns: Json
       }
       ace_is_collector_admin: { Args: never; Returns: boolean }
+      ace_merge_auto_player: {
+        Args: { _auto_player_id: string; _survivor_id: string }
+        Returns: Json
+      }
+      ace_player_stats: {
+        Args: { _casino_id?: string; _from: string; _to: string }
+        Returns: {
+          ace_ids: string[]
+          cards: string[]
+          casino_ids: string[]
+          drop_amount: number
+          egm_codes: string[]
+          games: number
+          handle_amount: number
+          in_amount: number
+          is_ace_auto: boolean
+          jackpot_amount: number
+          jackpot_count: number
+          last_activity: string
+          out_amount: number
+          player_id: string
+          player_name: string
+          slot_result: number
+        }[]
+      }
       ace_seed_provisional_day_closing: { Args: never; Returns: Json }
+      ace_unlink_identity: {
+        Args: { _identity_id: string; _note?: string }
+        Returns: undefined
+      }
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
       admin_active_sessions: {
         Args: never
