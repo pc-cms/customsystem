@@ -264,8 +264,7 @@ export default function PlayerAceSlots({ playerId, from, to, isSuperAdmin }: Pro
               Move it here
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogFooter>
-      </AlertDialogContent>
+        </AlertDialogContent>
       </AlertDialog>
     </div>
   );
