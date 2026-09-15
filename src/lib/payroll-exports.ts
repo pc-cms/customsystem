@@ -44,47 +44,51 @@ export const exportBankCsv = (entries: PayrollEntry[], period: PayrollPeriod, fo
 };
 
 // ============= TAX REPORTS =============
-export const exportNssfReport = (entries: PayrollEntry[], period: PayrollPeriod) => {
+export type StatutoryNumbers = Map<string, { tax_id?: string | null; nssf_number?: string | null }>;
+const num = (ids: StatutoryNumbers | undefined, employeeId: string, field: "tax_id" | "nssf_number") =>
+  ids?.get(employeeId)?.[field] ?? "";
+
+export const exportNssfReport = (entries: PayrollEntry[], period: PayrollPeriod, ids?: StatutoryNumbers) => {
   const rows: (string|number|null)[][] = [
     [`NSSF — ${monthLabel(period)}`, "", "", "", "", ""],
     ["#", "NAME", "NSSF NO.", "GROSS SALARY", "EMPLOYEE 10%", "EMPLOYER 10%"],
   ];
-  entries.forEach((e, i) => rows.push([i+1, e.snapshot_full_name, "", e.gross_salary, e.nssf_employee, e.nssf_employer]));
+  entries.forEach((e, i) => rows.push([i+1, e.snapshot_full_name, num(ids, e.employee_id, "nssf_number"), e.gross_salary, e.nssf_employee, e.nssf_employer]));
   const totals = entries.reduce((a, e) => ({ g: a.g+e.gross_salary, em: a.em+e.nssf_employee, er: a.er+e.nssf_employer }), { g:0, em:0, er:0 });
   rows.push(["", "TOTAL", "", totals.g, totals.em, totals.er]);
   downloadXlsx(`NSSF_${period.year}_${period.month}.xlsx`, [{ name: "NSSF", rows }]);
 };
 
-export const exportPayeReport = (entries: PayrollEntry[], period: PayrollPeriod) => {
+export const exportPayeReport = (entries: PayrollEntry[], period: PayrollPeriod, ids?: StatutoryNumbers) => {
   const rows: (string|number|null)[][] = [
     [`PAYE — ${monthLabel(period)}`, "", "", "", ""],
     ["#", "NAME", "TAX ID", "TAXABLE PAY", "PAYE"],
   ];
-  entries.forEach((e, i) => rows.push([i+1, e.snapshot_full_name, "", e.taxable_pay, e.paye]));
+  entries.forEach((e, i) => rows.push([i+1, e.snapshot_full_name, num(ids, e.employee_id, "tax_id"), e.taxable_pay, e.paye]));
   const total = entries.reduce((a, e) => a + e.paye, 0);
   rows.push(["", "TOTAL", "", "", total]);
   downloadXlsx(`PAYE_${period.year}_${period.month}.xlsx`, [{ name: "PAYE", rows }]);
 };
 
-export const exportSdlReport = (entries: PayrollEntry[], period: PayrollPeriod) => {
+export const exportSdlReport = (entries: PayrollEntry[], period: PayrollPeriod, ids?: StatutoryNumbers) => {
   const rows: (string|number|null)[][] = [
-    [`SDL 3.5% — ${monthLabel(period)}`, "", "", ""],
-    ["#", "NAME", "GROSS SALARY", "SDL"],
+    [`SDL 3.5% — ${monthLabel(period)}`, "", "", "", ""],
+    ["#", "NAME", "TAX ID", "GROSS SALARY", "SDL"],
   ];
-  entries.forEach((e, i) => rows.push([i+1, e.snapshot_full_name, e.gross_salary, e.sdl_amount]));
+  entries.forEach((e, i) => rows.push([i+1, e.snapshot_full_name, num(ids, e.employee_id, "tax_id"), e.gross_salary, e.sdl_amount]));
   const total = entries.reduce((a, e) => a + e.sdl_amount, 0);
-  rows.push(["", "TOTAL", "", total]);
+  rows.push(["", "TOTAL", "", "", total]);
   downloadXlsx(`SDL_${period.year}_${period.month}.xlsx`, [{ name: "SDL", rows }]);
 };
 
-export const exportWcfReport = (entries: PayrollEntry[], period: PayrollPeriod) => {
+export const exportWcfReport = (entries: PayrollEntry[], period: PayrollPeriod, ids?: StatutoryNumbers) => {
   const rows: (string|number|null)[][] = [
-    [`WCF 1% — ${monthLabel(period)}`, "", "", ""],
-    ["#", "NAME", "GROSS SALARY", "WCF"],
+    [`WCF 1% — ${monthLabel(period)}`, "", "", "", ""],
+    ["#", "NAME", "TAX ID", "GROSS SALARY", "WCF"],
   ];
-  entries.forEach((e, i) => rows.push([i+1, e.snapshot_full_name, e.gross_salary, e.wcf_amount]));
+  entries.forEach((e, i) => rows.push([i+1, e.snapshot_full_name, num(ids, e.employee_id, "tax_id"), e.gross_salary, e.wcf_amount]));
   const total = entries.reduce((a, e) => a + e.wcf_amount, 0);
-  rows.push(["", "TOTAL", "", total]);
+  rows.push(["", "TOTAL", "", "", total]);
   downloadXlsx(`WCF_${period.year}_${period.month}.xlsx`, [{ name: "WCF", rows }]);
 };
 
@@ -115,10 +119,10 @@ export const exportJournal = (entries: PayrollEntry[], period: PayrollPeriod) =>
 // ============= SALARY SLIPS (HTML print, opens print dialog) =============
 const fmt = (n: number) => new Intl.NumberFormat("en-US", { useGrouping: true }).format(n).replace(/,/g, " ");
 
-export const exportSingleSalarySlip = (entry: PayrollEntry, period: PayrollPeriod) =>
-  exportSalarySlipsPrint([entry], period);
+export const exportSingleSalarySlip = (entry: PayrollEntry, period: PayrollPeriod, ids?: StatutoryNumbers) =>
+  exportSalarySlipsPrint([entry], period, ids);
 
-export const exportSalarySlipsPrint = (entries: PayrollEntry[], period: PayrollPeriod) => {
+export const exportSalarySlipsPrint = (entries: PayrollEntry[], period: PayrollPeriod, ids?: StatutoryNumbers) => {
   const label = monthLabel(period);
   const slips = entries.map(e => `
     <div class="slip">
@@ -126,11 +130,13 @@ export const exportSalarySlipsPrint = (entries: PayrollEntry[], period: PayrollP
       <table><tbody>
         <tr><td>Employee</td><td><b>${e.snapshot_full_name}</b></td></tr>
         <tr><td>Position</td><td>${e.snapshot_position}</td></tr>
+        <tr><td>TIN / NSSF No.</td><td>${num(ids, e.employee_id, "tax_id") || "—"} / ${num(ids, e.employee_id, "nssf_number") || "—"}</td></tr>
         <tr><td>Basic Salary</td><td>${fmt(e.snapshot_basic_salary)}</td></tr>
         ${Number(e.prorata_factor ?? 1) < 1 ? `<tr><td>Pro-rata (paid days)</td><td>${e.prorata_days}</td></tr>` : ""}
         <tr><td>Public Holiday Earned</td><td>${fmt(e.public_holiday_earned)}</td></tr>
         <tr><td>Off Days Total</td><td>${fmt(e.off_days_total)}</td></tr>
         ${Number(e.overtime_amount ?? 0) > 0 ? `<tr><td>Overtime (${e.overtime_hours} h)</td><td>${fmt(e.overtime_amount)}</td></tr>` : ""}
+        ${Number(e.night_allowance ?? 0) > 0 ? `<tr><td>Night Allowance (${e.night_allowance_hours} h)</td><td>${fmt(e.night_allowance)}</td></tr>` : ""}
         <tr><th>Gross Salary</th><th>${fmt(e.gross_salary)}</th></tr>
         <tr><td>GEPF 10%</td><td>(${fmt(e.gepf_employee)})</td></tr>
         <tr><td>NSSF 10%</td><td>(${fmt(e.nssf_employee)})</td></tr>
@@ -141,6 +147,7 @@ export const exportSalarySlipsPrint = (entries: PayrollEntry[], period: PayrollP
         <tr><td>GEPF Loan</td><td>(${fmt(e.gepf_loan)})</td></tr>
         ${Number(e.loan_installment ?? 0) > 0 ? `<tr><td>Loan Installment</td><td>(${fmt(e.loan_installment)})</td></tr>` : ""}
         <tr><th>NET SALARY PAYABLE</th><th>${fmt(e.net_salary)}</th></tr>
+        <tr><td>Employer: NSSF / WCF / SDL</td><td>${fmt(e.nssf_employer)} / ${fmt(e.wcf_amount)} / ${fmt(e.sdl_amount)}</td></tr>
 
       </tbody></table>
     </div>`).join("");
