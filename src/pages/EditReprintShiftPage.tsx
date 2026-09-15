@@ -359,6 +359,18 @@ const EditReprintShiftPage = () => {
     return { perDenom, total };
   }, [state?.missByDenom]);
 
+  /** TZS value of the editable chip blocks (opening diff / fill / credit). */
+  const chipBlockTotals = useMemo(() => {
+    const sum = (m?: ChipMap) =>
+      (CHIP_DENOMS as readonly number[]).reduce((s, d) => s + d * Number(m?.[d] || 0), 0);
+    return {
+      diff: sum(state?.openingDiff),
+      fill: sum(state?.fillByDenom),
+      credit: sum(state?.creditByDenom),
+    };
+  }, [state?.openingDiff, state?.fillByDenom, state?.creditByDenom]);
+
+
   // Convert per-currency cash totals into TZS using state.exchangeRates.
   const cashTzs = (byCcy: CashByCurrency, rates: Record<string, number>) =>
     CURRENCIES.reduce((s, c) => s + (Number(byCcy[c] || 0) * (c === "TZS" ? 1 : Number(rates[c] || 0))), 0);
