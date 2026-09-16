@@ -533,6 +533,28 @@ export const useMarkPaid         = rpcMutation("payroll_mark_paid",        "Mark
 export const useRevertToDraft    = rpcMutation("payroll_revert_to_draft",  "Reverted to draft", true);
 export const useUnlockPeriod     = rpcMutation("payroll_unlock_period",    "Period unlocked",   true);
 
+// ============= REBUILD FROM SCRATCH (super_admin, draft only) =============
+// Deletes all entries of the period and re-creates them via payroll_refresh_period.
+// The period itself and its audit history are preserved; action is logged as "rebuilt".
+export const useRebuildPeriod = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (periodId: string) => {
+      const { data, error } = await supabase.rpc("payroll_rebuild_period" as any, { _period_id: periodId });
+      if (error) throw error;
+      return data as { deleted: number; refresh: { added: number; updated: number } };
+    },
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["payroll_entries"] });
+      qc.invalidateQueries({ queryKey: ["payroll_period"] });
+      qc.invalidateQueries({ queryKey: ["payroll_audit"] });
+      const created = r?.refresh?.added ?? 0;
+      toast.success(`Rebuilt: ${created} entries`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+};
+
 // ============= UPDATE PERIOD METADATA (payment description, branch label) =============
 // Direct table writes on payroll_periods are super_admin-only (status/approval guard),
 // so metadata edits go through a definer RPC that HR / Finance / Manager may call.

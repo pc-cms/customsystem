@@ -14835,6 +14835,7 @@ export type Database = {
           severity: string
         }[]
       }
+      payroll_rebuild_period: { Args: { _period_id: string }; Returns: Json }
       payroll_refresh_period: { Args: { _period_id: string }; Returns: Json }
       payroll_revert_to_draft: {
         Args: { _period_id: string; _reason?: string }
