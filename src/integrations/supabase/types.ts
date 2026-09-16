@@ -13564,6 +13564,14 @@ export type Database = {
         }
         Returns: Json
       }
+      ace_consolidated_range_distinct: {
+        Args: { _casino_id?: string; _from: string; _to: string }
+        Returns: {
+          casino_id: string
+          egms: number
+          players: number
+        }[]
+      }
       ace_consolidated_stats: {
         Args: { _casino_id?: string; _from: string; _to: string }
         Returns: {

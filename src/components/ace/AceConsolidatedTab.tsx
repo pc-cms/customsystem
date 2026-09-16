@@ -11,11 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Download } from "lucide-react";
 import { fmtDateOnly } from "@/lib/format-date";
-import { formatMoneyFull } from "@/lib/format-money";
+
 import { downloadXlsx } from "@/lib/excel-export";
 import {
   useAceConsolidated,
   useAceEgmCurrent,
+  useAceRangeDistinct,
   type AceConsolidatedRow,
 } from "@/hooks/use-ace-players";
 import {
@@ -36,33 +37,55 @@ type Agg = {
   out: number | null;
   result: number | null;
   games: number | null;
-  players: number;
-  egms: number;
+  players: number | null;
+  egms: number | null;
   jackpot: number | null;
   provisional: number;
 };
 
-const aggregate = (rows: AceConsolidatedRow[], key: string, label: string): Agg => ({
-  key,
-  label,
-  drop: sumOrNull(rows.map((r) => r.drop_amount)),
-  handle: sumOrNull(rows.map((r) => r.handle_amount)),
-  in: sumOrNull(rows.map((r) => r.in_amount)),
-  out: sumOrNull(rows.map((r) => r.out_amount)),
-  result: sumOrNull(rows.map((r) => r.slot_result)),
-  games: sumOrNull(rows.map((r) => r.games)),
-  players: Math.max(0, ...rows.map((r) => Number(r.players ?? 0))),
-  egms: Math.max(0, ...rows.map((r) => Number(r.egms ?? 0))),
-  jackpot: sumOrNull(rows.map((r) => r.jackpot_paid)),
-  provisional: rows.reduce((a, r) => a + Number(r.provisional_rows ?? 0), 0),
-});
+/**
+ * Money/count columns are plain sums. Players and EGMs are NOT summable across
+ * business days (the same player or machine repeats daily), so unique counts
+ * for multi-day scopes come from `ace_consolidated_range_distinct`; summing is
+ * only valid across branches within one day.
+ */
+const aggregate = (
+  rows: AceConsolidatedRow[],
+  key: string,
+  label: string,
+  distinct?: { players: number | null; egms: number | null },
+): Agg => {
+  const oneDay = new Set(rows.map((r) => r.business_date)).size <= 1;
+  return {
+    key,
+    label,
+    drop: sumOrNull(rows.map((r) => r.drop_amount)),
+    handle: sumOrNull(rows.map((r) => r.handle_amount)),
+    in: sumOrNull(rows.map((r) => r.in_amount)),
+    out: sumOrNull(rows.map((r) => r.out_amount)),
+    result: sumOrNull(rows.map((r) => r.slot_result)),
+    games: sumOrNull(rows.map((r) => r.games)),
+    players: oneDay ? sumOrNull(rows.map((r) => r.players)) : (distinct?.players ?? null),
+    egms: oneDay ? sumOrNull(rows.map((r) => r.egms)) : (distinct?.egms ?? null),
+    jackpot: sumOrNull(rows.map((r) => r.jackpot_paid)),
+    provisional: rows.reduce((a, r) => a + Number(r.provisional_rows ?? 0), 0),
+  };
+};
 
 export default function AceConsolidatedTab({ casinoId, from, to, mode, casinoName }: Props) {
   const consolidated = useAceConsolidated(from, to, casinoId, mode === "live" ? 30_000 : false);
-  const egms = useAceEgmCurrent(casinoId);
+  const egms = useAceEgmCurrent(casinoId, mode === "live" ? 25_000 : false);
+  const distinct = useAceRangeDistinct(from, to, casinoId);
   const rows = consolidated.data ?? [];
+  const dist = (id: string) => {
+    const d = distinct.data?.get(id);
+    return d ? { players: d.players, egms: d.egms } : undefined;
+  };
 
-  const total = useMemo(() => aggregate(rows, "total", "Total"), [rows]);
+  const total = useMemo(
+    () => aggregate(rows, "total", "Total", dist("__total")),
+    [rows, distinct.data],
+  );
 
   /** Active Credits only exist as a current snapshot — never for closed days. */
   const activeCredits = useMemo(() => {
@@ -78,9 +101,9 @@ export default function AceConsolidatedTab({ casinoId, from, to, mode, casinoNam
       m.set(r.casino_id, list);
     });
     return [...m.entries()].map(([id, list]) =>
-      aggregate(list, id, casinoName.get(id) ?? list[0]?.casino_name ?? "—"),
+      aggregate(list, id, casinoName.get(id) ?? list[0]?.casino_name ?? "—", dist(id)),
     );
-  }, [rows, casinoName]);
+  }, [rows, casinoName, distinct.data]);
 
   const byDay = useMemo(
     () =>
@@ -180,8 +203,8 @@ export default function AceConsolidatedTab({ casinoId, from, to, mode, casinoNam
           value={mode === "live" ? money(activeCredits) : NA}
           hint={mode === "live" ? "current EGM snapshot" : "not stored for closed days"}
         />
-        <Kpi label="Players" value={intOrNa(total.players)} />
-        <Kpi label="EGMs" value={intOrNa(total.egms)} />
+        <Kpi label="Players" value={intOrNa(total.players)} hint="unique over the selected range" />
+        <Kpi label="EGMs" value={intOrNa(total.egms)} hint="unique machines with recorded play" />
         <Kpi label="Jackpot paid" value={money(total.jackpot)} hint="already inside OUT" />
         <Kpi
           label="Data state"
@@ -214,7 +237,9 @@ export default function AceConsolidatedTab({ casinoId, from, to, mode, casinoNam
       <p className="text-[11px] text-muted-foreground">
         Drop = EGM IN · Handle = ACE turnover (total_in) · Slot Result = IN − OUT ·
         Jackpot paid is informational and already included in OUT. Slot figures are never
-        combined with table-game results. Amounts in TZS ({formatMoneyFull(0)} = no data reported).
+        combined with table-game results. Amounts in TZS; N/A means ACE reported nothing.
+        Players and EGMs are unique counts for the selected range (not a sum of daily rows);
+        EGMs stay N/A while per-machine detail has not been collected for those days.
       </p>
     </div>
   );

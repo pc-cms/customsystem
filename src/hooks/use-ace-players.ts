@@ -153,11 +153,17 @@ export const useAcePlayerJackpots = (playerId: string | undefined, enabled = tru
     },
   });
 
-/** Current EGM status snapshot. */
-export const useAceEgmCurrent = (casinoId?: string | null) =>
+/**
+ * Current EGM status snapshot.
+ * `refetchInterval` lets the live screen poll (25s); other callers stay passive.
+ * React Query dedupes the shared key, so only one poll runs per branch scope.
+ */
+export const useAceEgmCurrent = (casinoId?: string | null, refetchInterval?: number | false) =>
   useQuery({
     queryKey: ["ace-egm-current", casinoId ?? "all"],
-    staleTime: 30_000,
+    staleTime: 20_000,
+    refetchInterval: refetchInterval ?? false,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       let q = supabase.from("ace_egm_current" as any).select("*").order("egm_code");
       if (casinoId) q = q.eq("casino_id", casinoId);
@@ -441,5 +447,30 @@ export const useAceCoverage = () =>
         if (!e.last_jp_report || (r.business_date ?? "") > (e.last_jp_report ?? "")) e.last_jp_report = r.business_date;
       });
       return [...map.values()];
+    },
+  });
+
+/**
+ * Correct distinct counts for a whole date range: unique slot players and
+ * unique machines per branch, plus a grand-total row where `casino_id` is null.
+ * Needed because per-day counts cannot be summed or maxed across days.
+ */
+export const useAceRangeDistinct = (from: string, to: string, casinoId?: string | null) =>
+  useQuery({
+    queryKey: ["ace-range-distinct", from, to, casinoId ?? "all"],
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("ace_consolidated_range_distinct" as any, {
+        _from: from,
+        _to: to,
+        _casino_id: casinoId ?? null,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as unknown as {
+        casino_id: string | null;
+        players: number | null;
+        egms: number | null;
+      }[];
+      return new Map(rows.map((r) => [r.casino_id ?? "__total", r]));
     },
   });
