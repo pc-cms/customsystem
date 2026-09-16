@@ -124,7 +124,7 @@ class ModernEgmTest(unittest.TestCase):
         self.by_code = {i["egm_code"]: i for i in self.items}
 
     def test_rows_and_leg_id_join(self):
-        self.assertEqual(len(self.items), 3)
+        self.assertEqual(len(self.items), 4)
         first = self.by_code["401"]
         self.assertEqual(first["position"], "401")
         self.assertEqual(first["raw_data"]["leg_id"], 1187)
@@ -135,6 +135,17 @@ class ModernEgmTest(unittest.TestCase):
         self.assertEqual(self.by_code["401"]["active_credit"], 250.0)
         self.assertEqual(self.by_code["402"]["active_credit"], 0.0)
         self.assertIsNone(self.by_code["1189"]["active_credit"])
+
+    def test_stale_currentmeters_does_not_leak_into_canonical(self):
+        stale = self.by_code["1"]
+        self.assertEqual(stale["active_credit"], 0.0)
+        self.assertEqual(stale["raw_data"]["ace_ui_credit"], 148200.0)
+        self.assertEqual(stale["raw_data"]["currentmeters_credit"], 148200.0)
+        self.assertEqual(stale["raw_data"]["meter_date"], "2026-09-16")
+        self.assertEqual(
+            stale["raw_data"]["currentmeters_updated"], "2025-07-03 10:00:00"
+        )
+
 
     def test_player_display_without_fake_id(self):
         self.assertEqual(self.by_code["401"]["ace_player_id"], "88132")
