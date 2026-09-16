@@ -105,7 +105,10 @@ export default function AceReportsTab({
     downloadXlsx(`ace-${kind}-report-${selected.business_date ?? "period"}.xlsx`, [
       {
         name: "Report",
-        rows: [headers, ...storedRows.map((r) => headers.map((h) => (r?.[h] ?? null) as any))],
+        rows: [
+          headers.map((h) => (h === "_table" ? "Block" : h)),
+          ...storedRows.map((r) => headers.map((h) => (r?.[h] ?? null) as any)),
+        ],
       },
     ]);
   };
