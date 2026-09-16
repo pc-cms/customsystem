@@ -12,6 +12,7 @@ ENV_FILE = os.environ.get("ACE_ENV_FILE", "/etc/ace-collector.env")
 
 DEFAULT_ACE_BASE_URL = "https://192.168.1.191"
 DEFAULT_API_URL = "https://rpehngjvwcnipvkouluu.supabase.co/functions/v1/ace-finance-ingest"
+DEFAULT_PLAYER_API_URL = "https://rpehngjvwcnipvkouluu.supabase.co/functions/v1/ace-player-ingest"
 DEFAULT_TZ = "Africa/Dar_es_Salaam"
 
 
