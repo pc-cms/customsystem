@@ -6,8 +6,8 @@ import { PageSection } from "@/components/layout/PageShell";
 import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
 import { Badge } from "@/components/ui/badge";
 import { fmtDateOnly, fmtDateTime } from "@/lib/format-date";
-import { useAceOverview, useAceCoverage } from "@/hooks/use-ace-players";
-import { AceEmpty, intOrNa } from "./ace-shared";
+import { useAceOverview, useAceCoverage, useAcePeriods } from "@/hooks/use-ace-players";
+import { AceEmpty, Kpi, intOrNa } from "./ace-shared";
 
 export default function AceSystemTab({
   from,
@@ -22,6 +22,10 @@ export default function AceSystemTab({
 }) {
   const overview = useAceOverview(from, to, casinoId);
   const coverage = useAceCoverage();
+  const periods = useAcePeriods(casinoId);
+  const storedPeriods = periods.data ?? [];
+  const egmPeriods = storedPeriods.filter((r: any) => r.kind === "EGM").length;
+  const jackpotPeriods = storedPeriods.filter((r: any) => r.kind === "Jackpot").length;
 
   const keyCols: ColumnDef<any>[] = [
     { key: "loc", header: "Location", accessor: (r) => r.location_code, sortValue: (r) => r.location_code },
@@ -47,6 +51,13 @@ export default function AceSystemTab({
 
   return (
     <div className="space-y-4">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <Kpi label="Connected branches" value={intOrNa((overview.data?.keys ?? []).filter((r: any) => r.is_active).length)} />
+        <Kpi label="Stored days" value={intOrNa((coverage.data ?? []).reduce((sum, r) => sum + r.day_count, 0))} />
+        <Kpi label="EGM reports" value={intOrNa(egmPeriods)} />
+        <Kpi label="Jackpot reports" value={intOrNa(jackpotPeriods)} />
+      </div>
+
       <PageSection title="Collector keys" card={false}>
         <SmartTable
           data={(overview.data?.keys ?? []) as any[]}

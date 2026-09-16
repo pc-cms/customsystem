@@ -1,19 +1,12 @@
-/**
- * Reports workspace — stored ACE report captures (EGM / Jackpot).
- *
- * The stored `rows_data` snapshot is rendered verbatim: original ACE headers,
- * original order, original values. Nothing is recalculated.
- */
-import { useEffect, useMemo, useState } from "react";
+/** Stored ACE reports arranged for operational review; snapshots are never recalculated. */
+import { useMemo, useState } from "react";
 import { PageSection } from "@/components/layout/PageShell";
 import { FilterBar } from "@/components/layout/FilterBar";
 import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DatePickerButton } from "@/components/ui/date-range-presets";
 import { Download } from "lucide-react";
 import { fmtDateOnly, fmtDateTime } from "@/lib/format-date";
 import { downloadXlsx } from "@/lib/excel-export";
@@ -21,195 +14,91 @@ import { useAceReports } from "@/hooks/use-ace-players";
 import { AceEmpty, type AceScope } from "./ace-shared";
 
 type Capture = any;
+type ReportGroup = { key: string; table: unknown; headers: string[]; rows: Record<string, any>[]; captures: number };
+const numeric = (value: unknown): number | null => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string" || !value.trim()) return null;
+  const normalized = value.replace(/\s/g, "").replace(/,/g, "");
+  return /^-?\d+(\.\d+)?$/.test(normalized) ? Number(normalized) : null;
+};
 
-export default function AceReportsTab({
-  casinoId,
-  from,
-  to,
-  casinoName,
-}: AceScope & { casinoName: Map<string, string> }) {
+export default function AceReportsTab({ casinoId, from, to, onRangeChange }: AceScope & { casinoName: Map<string, string>; onRangeChange?: (range: { from: string; to: string }) => void }) {
   const [kind, setKind] = useState<"egm" | "jackpot">("egm");
-  const reports = useAceReports(kind, from, to, casinoId);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-
+  const [localFrom, setLocalFrom] = useState(from);
+  const [localTo, setLocalTo] = useState(to);
+  const [periodId, setPeriodId] = useState("all");
+  const reports = useAceReports(kind, localFrom, localTo, casinoId);
   const captures = (reports.data ?? []) as Capture[];
+  const selectedCaptures = periodId === "all" ? captures : captures.filter((c) => c.id === periodId);
 
-  // auto-select the newest capture whenever the list changes
-  useEffect(() => {
-    if (!captures.length) { setSelectedId(null); return; }
-    if (!captures.some((c) => c.id === selectedId)) setSelectedId(captures[0].id);
-  }, [captures, selectedId]);
-
-  const selected = captures.find((c) => c.id === selectedId) ?? null;
-
-  const storedRows: Record<string, any>[] = useMemo(
-    () => (Array.isArray(selected?.rows_data) ? (selected!.rows_data as any[]) : []),
-    [selected],
-  );
-
-  /**
-   * One ACE capture can hold several logical tables in a single `rows_data`
-   * array, tagged with `_table`. Each row also carries `_headers`, the original
-   * ACE header order — JSON key order is not preserved by the database, so the
-   * header list is the only trustworthy source. `_headers`/`_table` are capture
-   * metadata and are never shown as columns. Stored row order is preserved.
-   */
-  const groups = useMemo(() => {
-    const out: { table: any; headers: string[]; rows: Record<string, any>[] }[] = [];
-    storedRows.forEach((r, i) => {
-      const t = r?._table ?? 0;
-      let g = out.find((x) => x.table === t);
-      if (!g) {
-        const declared = Array.isArray(r?._headers) ? (r._headers as any[]).map(String) : null;
-        g = {
-          table: t,
-          headers: declared ?? Object.keys(r ?? {}).filter((k) => !k.startsWith("_")),
-          rows: [],
-        };
-        out.push(g);
-      }
-      g.rows.push({ __i: i, ...r });
+  const groups = useMemo<ReportGroup[]>(() => {
+    const out = new Map<string, ReportGroup>();
+    selectedCaptures.slice().reverse().forEach((capture) => {
+      const rows = Array.isArray(capture.rows_data) ? capture.rows_data as Record<string, any>[] : [];
+      rows.forEach((row, index) => {
+        const table = row?._table ?? 0;
+        const declared = Array.isArray(row?._headers) ? row._headers.map(String) : Object.keys(row ?? {}).filter((key) => !key.startsWith("_"));
+        const key = `${String(table)}:${JSON.stringify(declared)}`;
+        const group = out.get(key) ?? { key, table, headers: declared, rows: [], captures: 0 };
+        group.rows.push({ __key: `${capture.id}:${index}`, __capture: capture, ...row });
+        group.captures += out.has(key) ? 0 : 1;
+        out.set(key, group);
+      });
     });
-    return out;
-  }, [storedRows]);
+    return [...out.values()];
+  }, [selectedCaptures]);
 
-  const q = search.trim().toLowerCase();
-
-  const visibleGroups = useMemo(
-    () =>
-      groups.map((g) => ({
-        ...g,
-        rows: q
-          ? g.rows.filter((r) => g.headers.some((h) => String(r[h] ?? "").toLowerCase().includes(q)))
-          : g.rows,
-      })),
-    [groups, q],
-  );
-
-  const makeCols = (headers: string[]): ColumnDef<any>[] =>
-    headers.map((h) => ({
-      key: h,
-      header: h,
-      accessor: (r) => {
-        const v = r[h];
-        return v === null || v === undefined || v === ""
-          ? <span className="text-muted-foreground">—</span>
-          : String(v);
-      },
-      sortValue: (r) => {
-        const v = r[h];
-        const n = typeof v === "number" ? v : Number(String(v ?? "").replace(/\s/g, "").replace(/,/g, ""));
-        return Number.isFinite(n) && String(v ?? "").trim() !== "" ? n : String(v ?? "");
-      },
-    }));
-
-  const exportContent = () => {
-    if (!selected || !groups.length) return;
-    downloadXlsx(
-      `ace-${kind}-report-${selected.business_date ?? "period"}.xlsx`,
-      groups.map((g, i) => ({
-        name: groups.length > 1 ? `Report ${i + 1}` : "Report",
-        rows: [g.headers, ...g.rows.map((r) => g.headers.map((h) => (r?.[h] ?? null) as any))],
-      })),
-    );
+  const updateRange = (next: { from: string; to: string }) => {
+    setLocalFrom(next.from); setLocalTo(next.to); setPeriodId("all"); onRangeChange?.(next);
   };
+  const makeCols = (headers: string[]): ColumnDef<any>[] => headers.map((header) => ({
+    key: header, header,
+    accessor: (row) => row[header] === null || row[header] === undefined || row[header] === "" ? <span className="text-muted-foreground">—</span> : String(row[header]),
+    sortValue: (row) => numeric(row[header]) ?? String(row[header] ?? ""),
+  }));
+  const footerFor = (group: ReportGroup) => [{ key: "total", className: "font-semibold", cell: (column: ColumnDef<any>, index: number) => {
+    if (index === 0) return "Total";
+    const values = group.rows.map((row) => numeric(row[column.key])).filter((v): v is number => v !== null);
+    return values.length === group.rows.length && values.length ? values.reduce((a, b) => a + b, 0).toLocaleString("en-US").replace(/,/g, " ") : null;
+  } }];
+  const exportContent = () => downloadXlsx(`ace-${kind}-report-${localFrom}_${localTo}.xlsx`, groups.map((group, index) => ({
+    name: groups.length > 1 ? `Report ${index + 1}` : "Report",
+    rows: [group.headers, ...group.rows.map((row) => group.headers.map((header) => row[header] ?? null))],
+  })));
 
+  return <div className="space-y-3">
+    <FilterBar filters={<>
+      <Select value={kind} onValueChange={(value) => { setKind(value as "egm" | "jackpot"); setPeriodId("all"); }}>
+        <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
+        <SelectContent><SelectItem value="egm">EGM Report</SelectItem><SelectItem value="jackpot">Jackpot Report</SelectItem></SelectContent>
+      </Select>
+      <span className="text-xs text-muted-foreground">From</span><DatePickerButton value={localFrom} onChange={(value) => updateRange({ from: value, to: localTo })} />
+      <span className="text-xs text-muted-foreground">To</span><DatePickerButton value={localTo} onChange={(value) => updateRange({ from: localFrom, to: value })} />
+      <Select value={periodId} onValueChange={setPeriodId}>
+        <SelectTrigger className="h-9 min-w-64"><SelectValue placeholder="Stored periods" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Combined selected range</SelectItem>
+          {captures.map((capture) => <SelectItem key={capture.id} value={capture.id}>{capture.period_label || fmtDateOnly(capture.business_date)} · {fmtDateTime(capture.captured_at)}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </>} right={<Button variant="outline" size="sm" onClick={exportContent} disabled={!groups.length}><Download className="mr-1 h-4 w-4" /> Export</Button>} />
 
-  const captureCols: ColumnDef<Capture>[] = [
-    { key: "branch", header: "Branch", accessor: (r) => casinoName.get(r.casino_id) ?? "—", sortValue: (r) => casinoName.get(r.casino_id) ?? "" },
-    { key: "day", header: "Business day", accessor: (r) => (r.business_date ? fmtDateOnly(r.business_date) : "—"), sortValue: (r) => r.business_date ?? "" },
-    { key: "period", header: "Period", accessor: (r) => r.period_label ?? "—", sortValue: (r) => r.period_label ?? "" },
-    { key: "cap", header: "Captured", accessor: (r) => fmtDateTime(r.captured_at), sortValue: (r) => r.captured_at ?? "" },
-    { key: "rows", header: "Rows", type: "int", accessor: (r) => (Array.isArray(r.rows_data) ? r.rows_data.length : 0), sortValue: (r) => (Array.isArray(r.rows_data) ? r.rows_data.length : 0) },
-    {
-      key: "sel",
-      header: "",
-      accessor: (r) => (r.id === selectedId ? <Badge variant="outline">Open</Badge> : null),
-    },
-  ];
+    <PageSection title="Stored ACE periods" card={false} titleRight={<Badge variant="outline">{captures.length} reports</Badge>}>
+      <div className="flex flex-wrap gap-2">
+        {captures.map((capture) => <Button key={capture.id} size="sm" variant={periodId === capture.id ? "default" : "outline"} onClick={() => setPeriodId(capture.id)}>
+          {capture.period_label || fmtDateOnly(capture.business_date)}
+        </Button>)}
+        {!captures.length && <AceEmpty what="stored reports" />}
+      </div>
+    </PageSection>
 
-  return (
-    <div className="space-y-3">
-      <FilterBar
-        filters={
-          <>
-            <Select value={kind} onValueChange={(v) => { setKind(v as any); setSelectedId(null); }}>
-              <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="egm">EGM report</SelectItem>
-                <SelectItem value="jackpot">Jackpot report</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input
-              className="h-9 w-64"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search inside the opened report"
-            />
-          </>
-        }
-        right={
-          <Button variant="outline" size="sm" onClick={exportContent} disabled={!storedRows.length}>
-            <Download className="mr-1 h-4 w-4" /> Export report
-          </Button>
-        }
-      />
-
-      <PageSection title="Captures" card={false}>
-        <SmartTable
-          data={captures}
-          columns={captureCols}
-          rowKey={(r) => r.id}
-          loading={reports.isLoading}
-          stickyHeader
-          onRowClick={(r) => setSelectedId(r.id)}
-          rowClassName={(r) => (r.id === selectedId ? "bg-muted/40" : undefined)}
-          empty={<AceEmpty what="stored report captures" />}
-        />
-      </PageSection>
-
-      <PageSection
-        title={
-          selected
-            ? `${kind === "egm" ? "EGM" : "Jackpot"} report · ${casinoName.get(selected.casino_id) ?? "—"} · ${selected.period_label ?? "—"}`
-            : "Report content"
-        }
-        card={false}
-        titleRight={
-          selected ? (
-            <span className="text-[11px] text-muted-foreground">
-              Stored snapshot · captured {fmtDateTime(selected.captured_at)} · not recalculated
-            </span>
-          ) : null
-        }
-      >
-        {visibleGroups.length === 0 ? (
-          <SmartTable
-            data={[]}
-            columns={[]}
-            rowKey={(r: any) => r.__i}
-            empty={<AceEmpty what="report rows" />}
-          />
-        ) : (
-          <div className="space-y-4">
-            {visibleGroups.map((g, i) => (
-              <div key={String(g.table)} className="space-y-1">
-                {visibleGroups.length > 1 && (
-                  <div className="text-[11px] font-medium text-muted-foreground">Table {i + 1}</div>
-                )}
-                <SmartTable
-                  data={g.rows}
-                  columns={makeCols(g.headers)}
-                  rowKey={(r) => r.__i}
-                  stickyHeader
-                  empty={<AceEmpty what="report rows" />}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-      </PageSection>
-    </div>
-  );
+    <PageSection title={periodId === "all" ? "Combined report" : "Selected ACE period"} card={false} titleRight={<span className="text-[11px] text-muted-foreground">Stored snapshots · unchanged</span>}>
+      {!groups.length ? <SmartTable data={[]} columns={[]} rowKey={() => "empty"} empty={<AceEmpty what="report rows" />} /> : <div className="space-y-4">
+        {groups.map((group, index) => <div key={group.key} className="space-y-1">
+          {groups.length > 1 && <div className="text-xs font-medium text-muted-foreground">Table {index + 1}</div>}
+          <SmartTable data={group.rows} columns={makeCols(group.headers)} rowKey={(row) => row.__key} stickyHeader footerRows={group.rows.length ? footerFor(group) : undefined} empty={<AceEmpty what="report rows" />} />
+        </div>)}
+      </div>}
+    </PageSection>
+  </div>;
 }

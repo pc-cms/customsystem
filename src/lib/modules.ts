@@ -112,7 +112,7 @@ export const MODULES: ModuleDef[] = [
   { key: "tables", label: "Tables", group: "Operations" },
   { key: "table_tracker", label: "Table Check", group: "Operations" },
   { key: "table_results", label: "Table Results", group: "Reports" },
-  { key: "ace_analytics", label: "ACE Analytics", group: "Reports" },
+  { key: "ace_analytics", label: "ACE", group: "Reports" },
 
   // Cage / Cashier
   { key: "cage", label: "Cage Live Game (Cashier)", group: "Operations" },

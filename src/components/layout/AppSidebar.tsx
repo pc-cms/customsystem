@@ -9,7 +9,7 @@ import {
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
   Wallet, DoorOpen, ShieldAlert, Menu, Upload,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
-  RefreshCw, FlaskConical, AlertTriangle, HandCoins, User as UserIcon, Rows3, Rows2, Gift, CheckCircle2, Coffee, Megaphone, TrendingUp, ArrowLeftRight, BookOpen, Activity,
+  RefreshCw, FlaskConical, AlertTriangle, HandCoins, User as UserIcon, Rows3, Rows2, Gift, CheckCircle2, Coffee, Megaphone, TrendingUp, ArrowLeftRight, BookOpen, Activity, SlidersHorizontal,
 } from "lucide-react";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { resetPWACache } from "@/lib/pwa-register";
@@ -69,6 +69,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/reports", icon: FileBarChart, label: "Statistics", roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/reports/graphics", icon: TrendingUp, label: "Graphics", roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "finance_manager", "surveillance"], section: "ANALYTICS" },
   { to: "/analytics/ace", icon: Activity, label: "ACE", roles: ["super_admin"], section: "ANALYTICS" },
+  { to: "/analytics/ace-control", icon: SlidersHorizontal, label: "ACE Control", roles: ["super_admin"], section: "SYSTEM" },
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "boss", "general_manager", "manager", "finance_manager"], section: "ANALYTICS" },
 
   // STAFF — Rota + Attendance (each expands to Live/Floor/Security/Office).

@@ -1,6 +1,6 @@
 /**
  * Jackpots — operational wins log (raw report captures live in Reports).
- * Player stays blank when the source cannot link an identity; never inferred.
+ * Player enrichment uses existing identity relations only; nothing is written back.
  */
 import { useMemo, useState } from "react";
 import { PageSection } from "@/components/layout/PageShell";
@@ -9,7 +9,7 @@ import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
-import { fmtDateOnly, fmtDateTime } from "@/lib/format-date";
+import { fmtDateTime } from "@/lib/format-date";
 import { downloadXlsx } from "@/lib/excel-export";
 import { useAceJackpotWins } from "@/hooks/use-ace-players";
 import { AceEmpty, Kpi, intOrNa, money, sumOrNull, type AceScope } from "./ace-shared";
@@ -18,7 +18,6 @@ export default function AceJackpotsTab({
   casinoId,
   from,
   to,
-  casinoName,
 }: AceScope & { casinoName: Map<string, string> }) {
   const wins = useAceJackpotWins(from, to, casinoId);
   const [q, setQ] = useState("");
@@ -35,17 +34,25 @@ export default function AceJackpotsTab({
   const total = sumOrNull(rows.map((r) => r.amount));
 
   const cols: ColumnDef<any>[] = [
-    { key: "day", header: "Business day", accessor: (r) => fmtDateOnly(r.business_date), sortValue: (r) => r.business_date ?? "" },
-    { key: "time", header: "Time", accessor: (r) => (r.occurred_at ? fmtDateTime(r.occurred_at) : "—"), sortValue: (r) => r.occurred_at ?? "" },
-    { key: "branch", header: "Branch", accessor: (r) => casinoName.get(r.casino_id) ?? "—", sortValue: (r) => casinoName.get(r.casino_id) ?? "" },
+    { key: "time", header: "Date / Time", accessor: (r) => (r.occurred_at ? fmtDateTime(r.occurred_at) : "—"), sortValue: (r) => r.occurred_at ?? "" },
     { key: "name", header: "Jackpot", accessor: (r) => r.jackpot_name ?? "—", sortValue: (r) => r.jackpot_name ?? "" },
     { key: "egm", header: "EGM", accessor: (r) => r.egm_code ?? "—", sortValue: (r) => r.egm_code ?? "" },
     {
       key: "player",
-      header: "ACE player",
-      accessor: (r) => (r.identity_id ? r.ace_player_id ?? "—" : <span className="text-muted-foreground">not linked</span>),
-      sortValue: (r) => r.ace_player_id ?? "",
+      header: "Player",
+      accessor: (r) => {
+        const identity = Array.isArray(r.player_ace_identities) ? r.player_ace_identities[0] : r.player_ace_identities;
+        const player = Array.isArray(identity?.players) ? identity.players[0] : identity?.players;
+        const name = `${player?.first_name ?? ""} ${player?.last_name ?? ""}`.trim();
+        return name || <span className="text-muted-foreground">N/A</span>;
+      },
+      sortValue: (r) => {
+        const identity = Array.isArray(r.player_ace_identities) ? r.player_ace_identities[0] : r.player_ace_identities;
+        const player = Array.isArray(identity?.players) ? identity.players[0] : identity?.players;
+        return `${player?.first_name ?? ""} ${player?.last_name ?? ""}`.trim();
+      },
     },
+    { key: "ace", header: "ACE ID", accessor: (r) => r.ace_player_id ?? "N/A", sortValue: (r) => r.ace_player_id ?? "" },
     { key: "amount", header: "Amount", type: "money", accessor: (r) => money(r.amount), sortValue: (r) => r.amount ?? 0 },
   ];
 
@@ -54,7 +61,7 @@ export default function AceJackpotsTab({
       key: "total",
       className: "font-semibold",
       cell: (col: ColumnDef<any>) =>
-        col.key === "day" ? `Total · ${rows.length}` : col.key === "amount" ? money(total) : null,
+        col.key === "time" ? `Total · ${rows.length}` : col.key === "amount" ? money(total) : null,
     },
   ];
 
@@ -63,10 +70,11 @@ export default function AceJackpotsTab({
       {
         name: "Jackpots",
         rows: [
-          ["Business day", "Time", "Branch", "Jackpot", "EGM", "ACE player", "Amount"],
+          ["Date / Time", "Jackpot", "EGM", "Player", "ACE ID", "Amount"],
           ...rows.map((r) => [
-            r.business_date, r.occurred_at ?? "", casinoName.get(r.casino_id) ?? "",
-            r.jackpot_name ?? "", r.egm_code ?? "", r.identity_id ? r.ace_player_id ?? "" : "", r.amount,
+            r.occurred_at ?? "", r.jackpot_name ?? "", r.egm_code ?? "",
+            (() => { const identity = Array.isArray(r.player_ace_identities) ? r.player_ace_identities[0] : r.player_ace_identities; const player = Array.isArray(identity?.players) ? identity.players[0] : identity?.players; return `${player?.first_name ?? ""} ${player?.last_name ?? ""}`.trim(); })(),
+            r.ace_player_id ?? "", r.amount,
           ]),
         ],
       },
@@ -76,7 +84,7 @@ export default function AceJackpotsTab({
     <div className="space-y-3">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         <Kpi label="Wins" value={intOrNa(rows.length)} />
-        <Kpi label="Jackpot paid" value={money(total)} hint="already included in OUT" />
+        <Kpi label="Jackpot paid" value={money(total)} />
         <Kpi label="Linked to a player" value={intOrNa(rows.filter((r) => r.identity_id).length)} />
       </div>
 

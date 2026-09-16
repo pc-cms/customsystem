@@ -35,6 +35,11 @@ export interface AcePlayerStatsRow {
   last_activity: string | null;
 }
 
+export interface AcePlayerActivityMeta {
+  visits: number;
+  last_activity: string | null;
+}
+
 export interface AceIdentityRow {
   id: string;
   player_id: string;
@@ -74,6 +79,45 @@ export const useAcePlayerStats = (from: string, to: string, casinoId?: string | 
       });
       if (error) throw error;
       return (data ?? []) as unknown as AcePlayerStatsRow[];
+    },
+  });
+
+/** Distinct stored ACE activity days per CMS player for the selected branch/range. */
+export const useAcePlayerActivityMeta = (from: string, to: string, casinoId?: string | null) =>
+  useQuery({
+    queryKey: ["ace-player-activity-meta", from, to, casinoId ?? "all"],
+    staleTime: STALE,
+    queryFn: async () => {
+      let q = supabase
+        .from("ace_player_daily" as any)
+        .select("identity_id, business_date, last_play_at, player_ace_identities!inner(player_id)")
+        .gte("business_date", from)
+        .lte("business_date", to)
+        .order("business_date", { ascending: false })
+        .limit(5000);
+      if (casinoId) q = q.eq("casino_id", casinoId);
+      const { data, error } = await q;
+      if (error) throw error;
+      const days = new Map<string, Set<string>>();
+      const last = new Map<string, string | null>();
+      ((data ?? []) as any[]).forEach((r) => {
+        const relation = Array.isArray(r.player_ace_identities)
+          ? r.player_ace_identities[0]
+          : r.player_ace_identities;
+        const playerId = relation?.player_id as string | undefined;
+        if (!playerId) return;
+        const playerDays = days.get(playerId) ?? new Set<string>();
+        if (r.business_date) playerDays.add(r.business_date);
+        days.set(playerId, playerDays);
+        const seen = (r.last_play_at ?? null) as string | null;
+        if (seen && (!last.get(playerId) || seen > String(last.get(playerId)))) last.set(playerId, seen);
+      });
+      return new Map<string, AcePlayerActivityMeta>(
+        [...days.entries()].map(([playerId, playerDays]) => [
+          playerId,
+          { visits: playerDays.size, last_activity: last.get(playerId) ?? null },
+        ]),
+      );
     },
   });
 
@@ -165,7 +209,10 @@ export const useAceEgmCurrent = (casinoId?: string | null, refetchInterval?: num
     refetchInterval: refetchInterval ?? false,
     refetchIntervalInBackground: false,
     queryFn: async () => {
-      let q = supabase.from("ace_egm_current" as any).select("*").order("egm_code");
+      let q = supabase
+        .from("ace_egm_current" as any)
+        .select("*, player_ace_identities(ace_player_id, player_id, players(first_name, last_name))")
+        .order("egm_code");
       if (casinoId) q = q.eq("casino_id", casinoId);
       const { data, error } = await q;
       if (error) throw error;
@@ -194,9 +241,46 @@ export const useAceReports = (
       const { data, error } = await q;
       if (error) throw error;
       return ((data ?? []) as any[]).filter((r) => {
-        const d = r.business_date ?? r.period_to ?? r.period_from;
-        return !d || (d >= from && d <= to);
+        const start = r.period_from ?? r.business_date ?? r.period_to;
+        const end = r.period_to ?? r.business_date ?? r.period_from;
+        return !start || !end || (start <= to && end >= from);
       });
+    },
+  });
+
+/** Recognizable closed ACE periods derived from immutable stored report captures. */
+export const useAcePeriods = (casinoId?: string | null) =>
+  useQuery({
+    queryKey: ["ace-periods", casinoId ?? "all"],
+    staleTime: STALE,
+    queryFn: async () => {
+      const load = async (table: "ace_egm_reports" | "ace_jackpot_reports", kind: "EGM" | "Jackpot") => {
+        let q = supabase
+          .from(table as any)
+          .select("id, casino_id, business_date, period_from, period_to, period_label, captured_at")
+          .order("captured_at", { ascending: false })
+          .limit(500);
+        if (casinoId) q = q.eq("casino_id", casinoId);
+        const { data, error } = await q;
+        if (error) throw error;
+        return ((data ?? []) as any[]).map((r) => ({ ...r, kind }));
+      };
+      const [egm, jackpot] = await Promise.all([
+        load("ace_egm_reports", "EGM"),
+        load("ace_jackpot_reports", "Jackpot"),
+      ]);
+      const byPeriod = new Map<string, any>();
+      [...egm, ...jackpot].forEach((r) => {
+        const from = r.period_from ?? r.business_date;
+        const to = r.period_to ?? r.business_date ?? from;
+        if (!from || !to) return;
+        const key = `${r.casino_id}:${from}:${to}:${r.period_label ?? ""}`;
+        const existing = byPeriod.get(key);
+        if (!existing || (r.captured_at ?? "") > (existing.captured_at ?? "")) {
+          byPeriod.set(key, { ...r, key, from, to });
+        }
+      });
+      return [...byPeriod.values()].sort((a, b) => String(b.captured_at).localeCompare(String(a.captured_at)));
     },
   });
 
@@ -208,7 +292,7 @@ export const useAceJackpotWins = (from: string, to: string, casinoId?: string | 
     queryFn: async () => {
       let q = supabase
         .from("ace_jackpot_wins" as any)
-        .select("*")
+        .select("*, player_ace_identities(ace_player_id, player_id, players(first_name, last_name))")
         .gte("business_date", from)
         .lte("business_date", to)
         .order("occurred_at", { ascending: false })
