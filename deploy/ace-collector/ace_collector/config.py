@@ -46,6 +46,7 @@ class Config:
     ace_password: str
     ace_verify_tls: bool
     api_url: str
+    player_api_url: str
     api_key: str
     location_code: str
     timezone: str
