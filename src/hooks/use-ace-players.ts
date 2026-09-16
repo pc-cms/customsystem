@@ -153,11 +153,17 @@ export const useAcePlayerJackpots = (playerId: string | undefined, enabled = tru
     },
   });
 
-/** Current EGM status snapshot. */
-export const useAceEgmCurrent = (casinoId?: string | null) =>
+/**
+ * Current EGM status snapshot.
+ * `refetchInterval` lets the live screen poll (25s); other callers stay passive.
+ * React Query dedupes the shared key, so only one poll runs per branch scope.
+ */
+export const useAceEgmCurrent = (casinoId?: string | null, refetchInterval?: number | false) =>
   useQuery({
     queryKey: ["ace-egm-current", casinoId ?? "all"],
-    staleTime: 30_000,
+    staleTime: 20_000,
+    refetchInterval: refetchInterval ?? false,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       let q = supabase.from("ace_egm_current" as any).select("*").order("egm_code");
       if (casinoId) q = q.eq("casino_id", casinoId);
