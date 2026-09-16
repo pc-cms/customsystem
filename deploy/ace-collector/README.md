@@ -188,6 +188,25 @@ sudo -u acecollector /opt/ace-collector/run.sh --analytics-reports-only --verbos
 sudo -u acecollector /opt/ace-collector/run.sh --analytics-reports-only --period-id 8340
 ```
 
+### Historical analytics backfill (manual only)
+
+This mode is independent from finance history and returns before any finance
+ingest client is created. It skips the newest/current player game period, never
+collects historical EGM-current status or transactions, and uses only the
+idempotent analytics ingest kinds.
+
+```bash
+# Read-only inventory; sends nothing to Casino System
+/opt/ace-collector/run.sh --analytics-history-scan --from 2026-09-01 --to 2026-09-17 --verbose
+
+# Closed player periods, player-aware jackpots, and closed EGM/JP reports
+/opt/ace-collector/run.sh --analytics-backfill-from 2026-09-01 --to 2026-09-17 --verbose
+```
+
+The caller should use the same instance environment, session file and `flock`
+lock as that branch's existing collector invocation. Historical daily rows are
+sent with `is_final=true`; the open period remains owned by `--analytics-once`.
+
 Only after these pass should anyone consider adding a **separate** cron entry —
 and it must never create a second concurrent login loop.
 

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 
-from ace_collector.analytics_parser import normalize_player_row
+from ace_collector.analytics_parser import local_to_utc_iso, normalize_player_row
 
 logger = logging.getLogger("ace-collector")
 
@@ -41,6 +41,39 @@ def _rows(results) -> list[dict]:
     walk(results)
     return out
 
+
+
+def all_game_periods(client) -> list[tuple[str, str]]:
+    """Return every safely paired ACE game period in source order.
+
+    ACE sends parallel ``start_dates`` / ``end_dates`` arrays.  An unequal
+    response is never inferred or padded: only indexes present in both arrays
+    are paired, and blank bounds are skipped explicitly.
+    """
+    results = client.api_json("bonusreport", "get_game_periods_dates")
+    starts: list = []
+    ends: list = []
+    if isinstance(results, dict):
+        starts = list(results.get("start_dates") or [])
+        ends = list(results.get("end_dates") or [])
+    if len(starts) != len(ends):
+        logger.warning(
+            "ANALYTICS-HISTORY period arrays mismatch start_dates=%d end_dates=%d; "
+            "pairing only %d safe indexes",
+            len(starts), len(ends), min(len(starts), len(ends)),
+        )
+    periods: list[tuple[str, str]] = []
+    for index in range(min(len(starts), len(ends))):
+        start = str(starts[index] or "").strip()
+        end = str(ends[index] or "").strip()
+        if not start or not end:
+            logger.warning(
+                "ANALYTICS-HISTORY incomplete game period index=%d start=%r end=%r; skipped",
+                index, start, end,
+            )
+            continue
+        periods.append((start, end))
+    return periods
 
 
 def game_period(client) -> tuple[str | None, str | None]:
@@ -86,7 +119,15 @@ def collect(client, start: str | None = None, end: str | None = None) -> dict:
         ace_id = record["ace_player_id"]
         if ace_id not in seen:
             seen.add(ace_id)
-            players.append({"ace_player_id": ace_id, "ace_name": record["ace_name"]})
+            player = {"ace_player_id": ace_id, "ace_name": record["ace_name"]}
+            # Historical first_seen_at is safe: the ingest endpoint applies it
+            # only when creating an identity and keeps existing values immutable.
+            # Do not send historical last_seen_at because the current ingest
+            # contract updates it unconditionally and an old period could regress
+            # a newer live observation.
+            if start:
+                player["first_seen_at"] = local_to_utc_iso(start)
+            players.append(player)
         if business_date:
             daily.append(
                 {
