@@ -121,6 +121,21 @@ def test_scan_posts_nothing(monkeypatch):
     ) == 0
 
 
+def test_player_collect_sets_historical_first_seen_but_not_stale_last_seen():
+    from jobs import player_statistics
+
+    class Client:
+        def api_json(self, module, method, payload=None):
+            assert method == "get_opt_trips_tree"
+            return [{"ptr_id": 9, "forename": "Player", "total_in": 12}]
+
+    result = player_statistics.collect(
+        Client(), "2026-09-01 07:00:00", "2026-09-02 06:59:59"
+    )
+    assert result["players"][0]["first_seen_at"] == "2026-09-01T04:00:00Z"
+    assert "last_seen_at" not in result["players"][0]
+
+
 def test_analytics_history_cli_accepts_september_before_config(monkeypatch):
     class StopConfig:
         @classmethod
@@ -136,3 +151,30 @@ def test_analytics_history_cli_accepts_september_before_config(monkeypatch):
         assert str(exc) == "validated"
     else:
         raise AssertionError("September analytics range was rejected by finance guardrails")
+
+
+def test_scan_main_never_constructs_finance_api(monkeypatch):
+    class FakeCfg:
+        location_code = "arusha"
+
+        @classmethod
+        def load(cls):
+            return cls()
+
+        def validate(self):
+            return []
+
+    class FakeClient:
+        def __init__(self, cfg): pass
+        def login(self): pass
+
+    monkeypatch.setattr(collector, "Config", FakeCfg)
+    monkeypatch.setattr(collector, "AceClient", FakeClient)
+    monkeypatch.setattr(
+        collector, "IngestApi",
+        lambda _cfg: (_ for _ in ()).throw(AssertionError("finance API constructed")),
+    )
+    monkeypatch.setattr(collector, "run_analytics_history", lambda *args, **kwargs: 0)
+    assert collector.main([
+        "--analytics-history-scan", "--from", "2026-09-01", "--to", "2026-09-17"
+    ]) == 0

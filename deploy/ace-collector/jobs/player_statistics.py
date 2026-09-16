@@ -120,13 +120,13 @@ def collect(client, start: str | None = None, end: str | None = None) -> dict:
         if ace_id not in seen:
             seen.add(ace_id)
             player = {"ace_player_id": ace_id, "ace_name": record["ace_name"]}
-            # Historical metadata narrows identity lifetime without changing
-            # CMS-owned player profile fields. The ingest endpoint keeps an
-            # existing identity's first_seen_at immutable.
+            # Historical first_seen_at is safe: the ingest endpoint applies it
+            # only when creating an identity and keeps existing values immutable.
+            # Do not send historical last_seen_at because the current ingest
+            # contract updates it unconditionally and an old period could regress
+            # a newer live observation.
             if start:
                 player["first_seen_at"] = local_to_utc_iso(start)
-            if end:
-                player["last_seen_at"] = local_to_utc_iso(end)
             players.append(player)
         if business_date:
             daily.append(
