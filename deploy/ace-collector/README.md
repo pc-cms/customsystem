@@ -205,8 +205,12 @@ and it must never create a second concurrent login loop.
 ### Data rules enforced in code
 
 * Slot Drop = IN (always); ACE drop fields stay in `raw_data` only
-* Handle is **always NULL in v1** — no verified ACE betting-turnover field yet;
-  nothing is guessed or derived, the source row stays in `raw_data`
+* Handle = verified ACE `total_in` (betting turnover, TOTAL IN in the ACE player
+  report); absent `total_in` stays NULL. Guessed fields (`handle`, `turnover`,
+  `total_bet`, `total_in_result`) are never mapped
+* Games = verified `games_played` (legacy `games` only as fallback)
+* one daily row per ACE player: nested child trip rows under `data` are not
+  traversed once the parent player row is found
 * player id = `ptr_id` (verified); a bare `id` is the trip id and is never used
 * explicit `0` stays `0`, absent stays `null`
 * every source row is preserved verbatim in `raw_data`

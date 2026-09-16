@@ -17,6 +17,7 @@ from ace_collector.analytics_parser import (
     to_number,
 )
 from jobs.accounting_reports import jackpot_rows_from_report  # noqa: E402
+from jobs.player_statistics import _rows  # noqa: E402
 
 EGMS_HTML = """
 <table>
@@ -98,7 +99,7 @@ class PlayerNormalizationTest(unittest.TestCase):
         self.assertIsNone(rec["handle_amount"])
         self.assertIsNone(rec["games"])
 
-    def test_handle_stays_null_in_v1_even_for_handle_like_fields(self):
+    def test_guessed_handle_fields_are_not_handle(self):
         row = {
             "client_id": 1,
             "egm_handle": "250.00",
@@ -108,8 +109,26 @@ class PlayerNormalizationTest(unittest.TestCase):
             "total_in_result": "250.00",
         }
         rec = normalize_player_row(row, None)
-        self.assertIsNone(rec["handle_amount"])  # v1: never mapped, only raw_data
+        self.assertIsNone(rec["handle_amount"])  # only verified total_in maps
         self.assertEqual(rec["raw_data"]["egm_handle"], "250.00")
+
+    def test_verified_total_in_is_handle_and_games_played_is_games(self):
+        row = {
+            "ptr_id": 88132,
+            "forename": "Nurdin Mafie",
+            "egm_cashless_in": 20500,
+            "egm_cashless_out": 250,
+            "total_in": 113000,
+            "total_out": 92750,
+            "games_played": 107,
+            "casino_result_balance": 20250,
+        }
+        rec = normalize_player_row(row, "2026-09-15")
+        self.assertEqual(rec["handle_amount"], 113000.0)
+        self.assertEqual(rec["games"], 107)
+        self.assertEqual(rec["in_amount"], 20500.0)  # EGM movement, not total_in
+        self.assertEqual(rec["drop_amount"], 20500.0)
+        self.assertEqual(rec["out_amount"], 250.0)
 
     def test_ptr_id_wins_over_trip_id_and_forename_is_name(self):
         rec = normalize_player_row(
@@ -128,6 +147,28 @@ class PlayerNormalizationTest(unittest.TestCase):
 
     def test_row_without_ace_id_is_skipped(self):
         self.assertIsNone(normalize_player_row({"client_name": "Anon"}, "2026-09-15"))
+
+
+class PlayerTreeTest(unittest.TestCase):
+    def test_parent_with_nested_child_rows_yields_one_row(self):
+        tree = {
+            "results": [
+                {
+                    "ptr_id": 88132,
+                    "forename": "Nurdin Mafie",
+                    "total_in": 113000,
+                    "games_played": 107,
+                    "data": [
+                        {"ptr_id": 88132, "id": 5551, "client": "Nurdin Mafie"},
+                        {"ptr_id": 88132, "id": 5552, "client": "Nurdin Mafie"},
+                    ],
+                },
+                {"ptr_id": 88133, "forename": "Other", "data": [{"ptr_id": 88133, "id": 1}]},
+            ]
+        }
+        rows = _rows(tree)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual([r["ptr_id"] for r in rows], [88132, 88133])
 
 
 class EgmHtmlTest(unittest.TestCase):
