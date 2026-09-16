@@ -22,6 +22,7 @@ __all__ = [
     "parse_egm_list",
     "normalize_player_row",
     "normalize_jackpot_win",
+    "combine_date_time",
     "source_key",
 ]
 
