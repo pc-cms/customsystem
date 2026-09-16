@@ -4,8 +4,8 @@ Strictly read-only helpers. Rules enforced here:
 
 * explicit zero stays ``0.0`` — an absent value stays ``None`` (never 0)
 * canonical CMS Slot Drop = IN (Drop is never taken from ACE)
-* Handle is NEVER derived from Drop/IN — it stays ``None`` unless a verified
-  ACE handle field is present
+* Handle is NEVER derived from Drop/IN — only the verified ACE ``total_in``
+  betting-turnover field maps to it, otherwise it stays ``None``
 * every source row is preserved verbatim in ``raw_data``
 """
 from __future__ import annotations
@@ -141,12 +141,14 @@ def parse_egm_list(html: str) -> list[dict]:
 IN_COMPONENTS = ("egm_cashless_in", "egm_key_in", "egm_bill_in")
 OUT_COMPONENTS = ("egm_cashless_out", "egm_slip_out", "egm_key_out")
 
-#: v1: Handle is ALWAYS NULL. No ACE betting-turnover field has been verified
-#: in a live payload yet, so nothing may be mapped to Handle (guessed names
-#: such as `egm_handle`/`turnover`/`total_in_result` are deliberately ignored).
-#: The full source row stays in `raw_data` so the real field can be mapped
-#: after the Arusha dry-run.
-HANDLE_FIELDS: tuple[str, ...] = ()
+#: VERIFIED on the Arusha live payload: `total_in` is the ACE betting turnover
+#: (the player report labels it TOTAL IN, and the EGM accounting report derives
+#: Average Bet = ΔTotal IN / Games from the same metric). Guessed names such as
+#: `handle`/`turnover`/`total_bet`/`total_in_result` are deliberately ignored.
+HANDLE_FIELDS: tuple[str, ...] = ("total_in",)
+
+#: VERIFIED games counter; legacy `games` kept only as a fallback.
+GAMES_FIELDS = ("games_played", "games")
 
 #: `ptr_id` is the VERIFIED ACE player id (playersbygame selects it as
 #: current_client). A bare `id` is the TRIP id and must never be used.
@@ -191,10 +193,18 @@ def normalize_player_row(row: dict, business_date: str | None) -> dict | None:
     in_amount = _sum_components(row, "all_egm_in", IN_COMPONENTS)
     out_amount = _sum_components(row, "all_egm_out", OUT_COMPONENTS)
 
-    # v1: Handle stays NULL until a real ACE betting-turnover field is verified.
+    # Handle = verified ACE betting turnover (`total_in`) only; never derived.
     handle = None
+    for field in HANDLE_FIELDS:
+        handle = to_number(row.get(field))
+        if handle is not None:
+            break
 
-    games = to_number(row.get("games"))
+    games = None
+    for field in GAMES_FIELDS:
+        games = to_number(row.get(field))
+        if games is not None:
+            break
 
     return {
         "ace_player_id": ace_player_id,
