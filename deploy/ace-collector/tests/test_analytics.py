@@ -40,10 +40,16 @@ EGM_REPORT_HTML = """
 JP_REPORT_HTML = """
 <table>
   <tr><th>JackPot</th><th>Sum of Winning</th><th>EGM Position</th><th>Platform</th>
-      <th>Jackpot Date/Time</th><th>Winning Date/Time</th><th>%</th></tr>
+      <th>Jackpot Date</th><th>Jackpot Time</th>
+      <th>Winning Date</th><th>Winning Time</th><th>%</th></tr>
   <tr><td>Mini</td><td>21 195.00</td><td>A01</td><td>EGT</td>
-      <td>2026-09-15 10:00</td><td>2026-09-15 22:10</td><td>1.5</td></tr>
-  <tr><td>Grand</td><td></td><td></td><td>EGT</td><td></td><td></td><td>2.0</td></tr>
+      <td>15/SEP/2026</td><td>10:00:00</td>
+      <td>15/SEP/2026</td><td>17:51:56</td><td>1.5</td></tr>
+  <tr><td>Mini</td><td>21 195.00</td><td>A01</td><td>EGT</td>
+      <td>15/SEP/2026</td><td>10:00:00</td>
+      <td>15/SEP/2026</td><td>21:04:11</td><td>1.5</td></tr>
+  <tr><td>Grand</td><td></td><td></td><td>EGT</td><td></td><td></td>
+      <td></td><td></td><td>2.0</td></tr>
 </table>
 """
 
