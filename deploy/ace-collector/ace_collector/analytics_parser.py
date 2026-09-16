@@ -140,12 +140,17 @@ def parse_egm_list(html: str) -> list[dict]:
 IN_COMPONENTS = ("egm_cashless_in", "egm_key_in", "egm_bill_in")
 OUT_COMPONENTS = ("egm_cashless_out", "egm_slip_out", "egm_key_out")
 
-#: Only a field that ACE explicitly documents as betting turnover may become
-#: Handle. `total_in_result` is NOT such a field and is deliberately absent.
-HANDLE_FIELDS = ("egm_handle", "handle", "turnover", "total_bet")
+#: v1: Handle is ALWAYS NULL. No ACE betting-turnover field has been verified
+#: in a live payload yet, so nothing may be mapped to Handle (guessed names
+#: such as `egm_handle`/`turnover`/`total_in_result` are deliberately ignored).
+#: The full source row stays in `raw_data` so the real field can be mapped
+#: after the Arusha dry-run.
+HANDLE_FIELDS: tuple[str, ...] = ()
 
-ID_FIELDS = ("client_id", "ptr_id", "player_id", "clientid", "id")
-NAME_FIELDS = ("client_name", "player_name", "name", "full_name")
+#: `ptr_id` is the VERIFIED ACE player id (playersbygame selects it as
+#: current_client). A bare `id` is the TRIP id and must never be used.
+ID_FIELDS = ("ptr_id", "client_id", "player_id", "clientid")
+NAME_FIELDS = ("forename", "client", "client_name", "player_name", "name", "full_name")
 
 
 def _sum_components(row: dict, aggregate: str, components: tuple[str, ...]) -> float | None:
