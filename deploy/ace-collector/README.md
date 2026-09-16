@@ -219,13 +219,14 @@ cd /opt/ace-collector && python3 -m unittest discover -s tests -v
 
 ---
 
-## 9. Future: Player Statistics
+## 9. Shared building blocks
 
-`jobs/player_statistics.py` is a **placeholder only**. The authentication
-(`ace_collector/ace_client.py`), configuration (`ace_collector/config.py`) and
-API client (`ace_collector/api.py`) modules are deliberately generic so the
-future player-statistics job can reuse the same authenticated ACE session and
-the same config/secret file without any duplication.
+Authentication (`ace_collector/ace_client.py`), configuration
+(`ace_collector/config.py`) and the finance API client (`ace_collector/api.py`)
+are shared by both the finance job and the analytics jobs, so there is exactly
+one ACE login/session per run. The analytics jobs add
+`ace_collector/analytics_api.py` (ace-player-ingest) and
+`ace_collector/analytics_parser.py` (parsers/normalizers) on top of them.
 
 ---
 
