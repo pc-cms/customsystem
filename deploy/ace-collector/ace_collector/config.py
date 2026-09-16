@@ -64,6 +64,9 @@ class Config:
             ace_password=os.environ.get("ACE_PASSWORD", ""),
             ace_verify_tls=_bool(os.environ.get("ACE_VERIFY_TLS"), False),
             api_url=os.environ.get("CASINO_API_URL", DEFAULT_API_URL),
+            # Analytics ingest endpoint — separate from the finance one; the
+            # SAME ACE_INGEST_KEY / LOCATION_CODE are reused.
+            player_api_url=os.environ.get("ACE_PLAYER_API_URL", DEFAULT_PLAYER_API_URL),
             api_key=os.environ.get("ACE_INGEST_KEY", ""),
             location_code=os.environ.get("LOCATION_CODE", "arusha").strip().lower(),
             timezone=os.environ.get("ACE_TZ", DEFAULT_TZ),
