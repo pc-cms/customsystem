@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ace_collector.analytics_parser import (
     combine_date_time,  # noqa: E402
+    local_to_utc_iso,
     normalize_jackpot_win,
     normalize_player_row,
     parse_egm_list,
@@ -201,8 +202,8 @@ class ReportTableTest(unittest.TestCase):
         self.assertEqual(item["egm_code"], "A01")
         self.assertIsNone(item["ace_player_id"])
         # Winning Date + Winning Time combined and normalized to ISO
-        self.assertEqual(item["occurred_at"], "2026-09-15T17:51:56")
-        self.assertEqual(items[1]["occurred_at"], "2026-09-15T21:04:11")
+        self.assertEqual(item["occurred_at"], "2026-09-15T14:51:56Z")
+        self.assertEqual(items[1]["occurred_at"], "2026-09-15T18:04:11Z")
         # same day, same EGM, same name/amount -> only the time differs
         self.assertNotEqual(item["source_key"], items[1]["source_key"])
         self.assertEqual(
@@ -224,6 +225,36 @@ class ReportTableTest(unittest.TestCase):
         self.assertIsNone(combine_date_time(None, None))
 
 
+class TimezoneTest(unittest.TestCase):
+    def test_ace_local_is_converted_to_utc(self):
+        self.assertEqual(
+            local_to_utc_iso("2026-09-15T17:51:56"), "2026-09-15T14:51:56Z"
+        )
+        self.assertEqual(
+            local_to_utc_iso("2026-09-15 17:51:56"), "2026-09-15T14:51:56Z"
+        )
+        self.assertEqual(
+            local_to_utc_iso("2026-09-15T17:51:56+03:00"), "2026-09-15T14:51:56Z"
+        )
+        self.assertIsNone(local_to_utc_iso(""))
+        self.assertEqual(local_to_utc_iso("not a date"), "not a date")
+
+    def test_report_jackpots_store_utc_and_keep_business_date(self):
+        rows = [r for t in parse_html_tables(JP_REPORT_HTML) for r in t["rows"]]
+        items = jackpot_rows_from_report(rows, "2026-09-15")
+        self.assertEqual(items[0]["occurred_at"], "2026-09-15T14:51:56Z")
+        self.assertEqual(items[0]["business_date"], "2026-09-15")
+
+    def test_after_midnight_local_keeps_prior_business_date(self):
+        html = JP_REPORT_HTML.replace("17:51:56", "02:11:28").replace(
+            "15/SEP/2026</td>\n      <td>02:11:28", "16/SEP/2026</td>\n      <td>02:11:28"
+        )
+        rows = [r for t in parse_html_tables(html) for r in t["rows"]]
+        items = jackpot_rows_from_report(rows, "2026-09-15")
+        self.assertEqual(items[0]["business_date"], "2026-09-15")
+        self.assertTrue(items[0]["occurred_at"].endswith("Z"))
+
+
 class JackpotWinTest(unittest.TestCase):
     def test_normalize_and_deterministic_key(self):
         row = {
@@ -235,6 +266,7 @@ class JackpotWinTest(unittest.TestCase):
             "client_name": "John Smith",
         }
         a = normalize_jackpot_win(row, "2026-09-15")
+        self.assertEqual(a["occurred_at"], "2026-09-15T19:10:00Z")
         b = normalize_jackpot_win(dict(row), "2026-09-15")
         self.assertEqual(a["source_key"], b["source_key"])
         self.assertEqual(a["amount"], 21195.0)

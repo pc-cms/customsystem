@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from bs4 import BeautifulSoup
@@ -23,6 +24,7 @@ __all__ = [
     "normalize_player_row",
     "normalize_jackpot_win",
     "combine_date_time",
+    "local_to_utc_iso",
     "source_key",
 ]
 
@@ -243,7 +245,7 @@ def normalize_jackpot_win(row: dict, business_date: str | None) -> dict | None:
             break
     return {
         "business_date": business_date,
-        "occurred_at": str(occurred) if occurred else None,
+        "occurred_at": local_to_utc_iso(occurred),
         "jackpot_name": str(name) if name else None,
         "amount": amount,
         "egm_code": str(egm) if egm else None,
@@ -289,6 +291,33 @@ def combine_date_time(date_value: Any, time_value: Any) -> str | None:
     if not time_text:
         return iso_date
     return f"{iso_date}T{time_text}"
+
+
+_ACE_TZ = timezone(timedelta(hours=3))  # Africa/Dar_es_Salaam, no DST
+
+
+def local_to_utc_iso(value: Any) -> str | None:
+    """ACE local (Africa/Dar_es_Salaam, UTC+3) timestamp text -> UTC ISO.
+
+    ``2026-09-15T17:51:56`` -> ``2026-09-15T14:51:56Z``. Already offset-aware
+    input is converted as given; unrecognised text is returned unchanged so no
+    information is lost. Source keys keep using the original local text.
+    """
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    candidate = text.replace(" ", "T", 1) if " " in text and "T" not in text else text
+    if candidate.endswith("Z"):
+        candidate = candidate[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(candidate)
+    except ValueError:
+        return text
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=_ACE_TZ)
+    return parsed.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def source_key(*parts: Any) -> str:
