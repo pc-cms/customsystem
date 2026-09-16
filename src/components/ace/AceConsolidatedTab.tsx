@@ -74,7 +74,7 @@ const aggregate = (
 
 export default function AceConsolidatedTab({ casinoId, from, to, mode, casinoName }: Props) {
   const consolidated = useAceConsolidated(from, to, casinoId, mode === "live" ? 30_000 : false);
-  const egms = useAceEgmCurrent(casinoId, mode === "live" ? 25_000 : false);
+  const egms = useAceEgmCurrent(casinoId, mode === "live" ? 30_000 : false);
   const distinct = useAceRangeDistinct(from, to, casinoId);
   const rows = consolidated.data ?? [];
   const dist = (id: string) => {
