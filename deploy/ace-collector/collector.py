@@ -529,6 +529,16 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--to", dest="to_date", metavar="YYYY-MM-DD",
                     help="end business date (inclusive) for history modes — REQUIRED")
 
+    # ── ACE analytics (OFF by default; cron behaviour is unchanged) ────────
+    ap.add_argument("--analytics-dry-run", action="store_true",
+                    help="fetch/parse ACE analytics and log a summary, POST NOTHING")
+    ap.add_argument("--analytics-once", action="store_true",
+                    help="run one analytics cycle and send it to ace-player-ingest")
+    ap.add_argument("--analytics-reports-only", action="store_true",
+                    help="collect only the EGM/JP accounting reports")
+    ap.add_argument("--period-id", type=int, default=None,
+                    help="ACE period_id for --analytics-reports-only")
+
     ap.add_argument("--verbose", "-v", action="store_true")
     args = ap.parse_args(argv)
 
