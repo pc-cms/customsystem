@@ -310,13 +310,45 @@ export default function AceAnalytics() {
               { key: "branch", header: "Branch", accessor: (r: any) => casinoName.get(r.casino_id) ?? "—" },
               { key: "pos", header: "Position", accessor: (r: any) => r.position ?? "—" },
               { key: "state", header: "State", accessor: (r: any) => r.state ?? "—" },
-              { key: "player", header: "ACE player", accessor: (r: any) => r.ace_player_id ?? "—" },
+              {
+                key: "player",
+                header: "Player",
+                accessor: (r: any) => r.ace_player_id ?? r.raw_data?.player_display ?? "—",
+              },
               {
                 key: "credit",
                 header: "Active credit",
                 type: "money",
                 accessor: (r: any) => money(r.active_credit),
                 sortValue: (r: any) => r.active_credit ?? 0,
+              },
+              { key: "game", header: "Game", accessor: (r: any) => r.raw_data?.current_game ?? "—" },
+              {
+                key: "avgbet",
+                header: "Avg bet",
+                type: "money",
+                accessor: (r: any) =>
+                  r.raw_data?.average_bet === null || r.raw_data?.average_bet === undefined
+                    ? "—"
+                    : money(r.raw_data.average_bet),
+                sortValue: (r: any) => r.raw_data?.average_bet ?? 0,
+              },
+              {
+                key: "lastbet",
+                header: "Last bet",
+                type: "money",
+                accessor: (r: any) =>
+                  r.raw_data?.last_bet === null || r.raw_data?.last_bet === undefined
+                    ? "—"
+                    : money(r.raw_data.last_bet),
+                sortValue: (r: any) => r.raw_data?.last_bet ?? 0,
+              },
+              {
+                key: "sgames",
+                header: "Session games",
+                accessor: (r: any) =>
+                  r.raw_data?.session_games_played ?? "—",
+                sortValue: (r: any) => r.raw_data?.session_games_played ?? 0,
               },
               {
                 key: "seen",
