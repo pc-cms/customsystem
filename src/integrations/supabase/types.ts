@@ -13564,6 +13564,27 @@ export type Database = {
         }
         Returns: Json
       }
+      ace_consolidated_stats: {
+        Args: { _casino_id?: string; _from: string; _to: string }
+        Returns: {
+          avg_bet: number
+          business_date: string
+          casino_id: string
+          casino_name: string
+          drop_amount: number
+          egms: number
+          final_rows: number
+          games: number
+          handle_amount: number
+          in_amount: number
+          jackpot_count: number
+          jackpot_paid: number
+          out_amount: number
+          players: number
+          provisional_rows: number
+          slot_result: number
+        }[]
+      }
       ace_create_install_token: {
         Args: { _casino_id: string }
         Returns: {
