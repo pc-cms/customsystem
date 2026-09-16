@@ -73,6 +73,7 @@ export default function PlayerAceSlots({ playerId, from, to, isSuperAdmin }: Pro
   const [aceInput, setAceInput] = useState("");
   const [branch, setBranch] = useState<string>("");
   const [conflict, setConflict] = useState<{ ace: string; casino: string } | null>(null);
+  const [unlinkTarget, setUnlinkTarget] = useState<any | null>(null);
 
   const attach = useAttachAceIdentity();
   const unlink = useUnlinkAceIdentity();
@@ -84,20 +85,19 @@ export default function PlayerAceSlots({ playerId, from, to, isSuperAdmin }: Pro
   const slotHandle = sum(rows, "handle_amount");
   const slotResult = slotIn === null && slotOut === null ? null : (slotIn ?? 0) - (slotOut ?? 0);
 
-  const submitAceIds = async (force = false) => {
-    if (!branch) return;
-    const ids = aceInput.split(",").map((s) => s.trim()).filter(Boolean);
-    for (const ace of ids) {
-      const res = await attach.mutateAsync({
-        player_id: playerId,
-        casino_id: branch,
-        ace_player_id: ace,
-        force,
-      });
-      if (res?.status === "conflict") {
-        setConflict({ ace, casino: branch });
-        return;
-      }
+  /** Link exactly one ACE ID to this player, in one branch. */
+  const submitAceId = async (force = false) => {
+    const ace = aceInput.trim();
+    if (!branch || !ace) return;
+    const res = await attach.mutateAsync({
+      player_id: playerId,
+      casino_id: branch,
+      ace_player_id: ace,
+      force,
+    });
+    if (res?.status === "conflict") {
+      setConflict({ ace, casino: branch });
+      return;
     }
     setAceInput("");
   };
@@ -153,12 +153,12 @@ export default function PlayerAceSlots({ playerId, from, to, isSuperAdmin }: Pro
         </div>
       </PageSection>
 
-      <PageSection card title="ACE IDs & Cards">
+      <PageSection card title="Linked ACE identities">
         {isSuperAdmin && (
           <div className="mb-4 grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
             <div>
-              <Label className="text-xs">ACE ID(s) — comma separated</Label>
-              <Input value={aceInput} onChange={(e) => setAceInput(e.target.value)} placeholder="10231, 10232" />
+              <Label className="text-xs">ACE ID (one at a time)</Label>
+              <Input value={aceInput} onChange={(e) => setAceInput(e.target.value)} placeholder="10231" />
             </div>
             <div>
               <Label className="text-xs">Branch (ACE IDs are unique per branch)</Label>
@@ -171,8 +171,8 @@ export default function PlayerAceSlots({ playerId, from, to, isSuperAdmin }: Pro
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={() => submitAceIds(false)} disabled={!aceInput.trim() || !branch || attach.isPending}>
-              <Plus className="w-4 h-4 mr-1" /> Add
+            <Button onClick={() => submitAceId(false)} disabled={!aceInput.trim() || !branch || attach.isPending}>
+              <Plus className="w-4 h-4 mr-1" /> Link ACE ID
             </Button>
           </div>
         )}
@@ -196,7 +196,7 @@ export default function PlayerAceSlots({ playerId, from, to, isSuperAdmin }: Pro
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => unlink.mutate({ identity_id: i.id, player_id: playerId })}
+                      onClick={() => setUnlinkTarget(i)}
                     >
                       <Unlink className="w-4 h-4 mr-1" /> Unlink
                     </Button>
@@ -235,6 +235,31 @@ export default function PlayerAceSlots({ playerId, from, to, isSuperAdmin }: Pro
           Jackpot payouts are already included in OUT, so they are never added to Slot Result again.
         </p>
       </PageSection>
+
+      <AlertDialog open={!!unlinkTarget} onOpenChange={(o) => !o && setUnlinkTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unlink this ACE identity?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ACE {unlinkTarget?.ace_player_id} ({casinoName.get(unlinkTarget?.casino_id) ?? "—"}) will no
+              longer be linked to this player. Historical slot data stays attached to the identity and the
+              change is recorded in the ACE identity audit.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const t = unlinkTarget;
+                setUnlinkTarget(null);
+                if (t) unlink.mutate({ identity_id: t.id, player_id: playerId });
+              }}
+            >
+              Unlink
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!conflict} onOpenChange={(o) => !o && setConflict(null)}>
         <AlertDialogContent>

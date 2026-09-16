@@ -338,3 +338,108 @@ export const useMergeAceAutoPlayer = () => {
     onError: (e: any) => toast.error(e?.message ?? "Merge failed"),
   });
 };
+
+// -------------------- consolidated / coverage --------------------
+
+export interface AceConsolidatedRow {
+  casino_id: string;
+  casino_name: string | null;
+  business_date: string;
+  drop_amount: number | null;
+  handle_amount: number | null;
+  in_amount: number | null;
+  out_amount: number | null;
+  slot_result: number | null;
+  games: number | null;
+  avg_bet: number | null;
+  players: number | null;
+  egms: number | null;
+  jackpot_paid: number | null;
+  jackpot_count: number | null;
+  final_rows: number | null;
+  provisional_rows: number | null;
+}
+
+/**
+ * Consolidated slot figures per branch per business day, computed in the DB so
+ * long historical ranges stay cheap. Read-only, super_admin-gated server side.
+ */
+export const useAceConsolidated = (
+  from: string,
+  to: string,
+  casinoId?: string | null,
+  refetchInterval?: number | false,
+) =>
+  useQuery({
+    queryKey: ["ace-consolidated", from, to, casinoId ?? "all"],
+    staleTime: 30_000,
+    refetchInterval: refetchInterval ?? false,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("ace_consolidated_stats" as any, {
+        _from: from,
+        _to: to,
+        _casino_id: casinoId ?? null,
+      });
+      if (error) throw error;
+      return (data ?? []) as unknown as AceConsolidatedRow[];
+    },
+  });
+
+/** CMS data coverage per branch — what history actually exists in the CMS. */
+export const useAceCoverage = () =>
+  useQuery({
+    queryKey: ["ace-coverage"],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const [daily, egm, egmRep, jpRep] = await Promise.all([
+        supabase.rpc("ace_consolidated_stats" as any, {
+          _from: "2020-01-01",
+          _to: new Date().toISOString().slice(0, 10),
+          _casino_id: null,
+        }),
+        supabase.from("ace_egm_current" as any).select("casino_id, observed_at"),
+        supabase.from("ace_egm_reports" as any).select("casino_id, business_date, captured_at"),
+        supabase.from("ace_jackpot_reports" as any).select("casino_id, business_date, captured_at"),
+      ]);
+      const rows = (daily.data ?? []) as any[];
+      const map = new Map<string, {
+        casino_id: string;
+        casino_name: string | null;
+        first_date: string | null;
+        last_date: string | null;
+        day_count: number;
+        last_egm_observed: string | null;
+        last_egm_report: string | null;
+        last_jp_report: string | null;
+      }>();
+      const ensure = (id: string, name: string | null) => {
+        if (!map.has(id)) {
+          map.set(id, {
+            casino_id: id, casino_name: name,
+            first_date: null, last_date: null, day_count: 0,
+            last_egm_observed: null, last_egm_report: null, last_jp_report: null,
+          });
+        }
+        return map.get(id)!;
+      };
+      rows.forEach((r) => {
+        const e = ensure(r.casino_id, r.casino_name);
+        e.day_count += 1;
+        if (!e.first_date || r.business_date < e.first_date) e.first_date = r.business_date;
+        if (!e.last_date || r.business_date > e.last_date) e.last_date = r.business_date;
+      });
+      ((egm.data ?? []) as any[]).forEach((r) => {
+        const e = ensure(r.casino_id, null);
+        if (!e.last_egm_observed || r.observed_at > e.last_egm_observed) e.last_egm_observed = r.observed_at;
+      });
+      ((egmRep.data ?? []) as any[]).forEach((r) => {
+        const e = ensure(r.casino_id, null);
+        if (!e.last_egm_report || (r.business_date ?? "") > (e.last_egm_report ?? "")) e.last_egm_report = r.business_date;
+      });
+      ((jpRep.data ?? []) as any[]).forEach((r) => {
+        const e = ensure(r.casino_id, null);
+        if (!e.last_jp_report || (r.business_date ?? "") > (e.last_jp_report ?? "")) e.last_jp_report = r.business_date;
+      });
+      return [...map.values()];
+    },
+  });
