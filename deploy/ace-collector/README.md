@@ -196,8 +196,8 @@ and it must never create a second concurrent login loop.
 | Job | Source | Status |
 |---|---|---|
 | `jobs/player_statistics.py` | `/api/bonusreport/get_game_periods_dates/` + `/api/bonusreport/get_opt_trips_tree/` | verified |
-| `jobs/egm_status.py` | `/users/manager/egms.php` (server-rendered) | verified fallback |
-| `jobs/egm_status.py` modern | `ace.Api("egms.getegmlist")` | **disabled** — `/aceapi/` wire shape not captured |
+| `jobs/egm_status.py` modern | `ace.Api("egms.getegmlist")` -> POST `/aceapi/` JSON-RPC | **verified primary** |
+| `jobs/egm_status.py` | `/users/manager/egms.php` (server-rendered) | verified fallback (used when the modern call fails) |
 | `jobs/accounting_reports.py` | `report_c.php` `report_game_automat` / `report_jp` | verified |
 | `jobs/jackpot_wins.py` | `/api/bonusreport/get_jackpot_wins/` | verified |
 | `jobs/transactions.py` | account transactions | **disabled stub** — no verified list API |

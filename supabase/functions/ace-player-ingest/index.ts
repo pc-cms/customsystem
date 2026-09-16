@@ -375,7 +375,7 @@ Deno.serve(async (req) => {
       if (rows.length) {
         const { error } = await admin
           .from("ace_jackpot_wins")
-          .upsert(rows, { onConflict: "casino_id,source_key", ignoreDuplicates: true });
+          .upsert(rows, { onConflict: "casino_id,source_key" });
         if (error) throw error;
       }
       return json({ ok: true, kind, received: rows.length });
