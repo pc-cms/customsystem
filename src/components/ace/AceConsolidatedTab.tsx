@@ -237,7 +237,9 @@ export default function AceConsolidatedTab({ casinoId, from, to, mode, casinoNam
       <p className="text-[11px] text-muted-foreground">
         Drop = EGM IN · Handle = ACE turnover (total_in) · Slot Result = IN − OUT ·
         Jackpot paid is informational and already included in OUT. Slot figures are never
-        combined with table-game results. Amounts in TZS ({formatMoneyFull(0)} = no data reported).
+        combined with table-game results. Amounts in TZS; N/A means ACE reported nothing.
+        Players and EGMs are unique counts for the selected range (not a sum of daily rows);
+        EGMs stay N/A while per-machine detail has not been collected for those days.
       </p>
     </div>
   );
