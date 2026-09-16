@@ -1,0 +1,53 @@
+name: ACE collector package freshness
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/ace-collector/**'
+      - 'scripts/build-ace-collector-package.sh'
+      - '.github/workflows/ace-collector-package.yml'
+  pull_request:
+    paths:
+      - 'deploy/ace-collector/**'
+      - 'public/download/ace-collector-server.tar.gz'
+      - 'scripts/build-ace-collector-package.sh'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ace-collector-package-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check package freshness
+        id: check
+        run: |
+          if ./scripts/build-ace-collector-package.sh --check; then
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Rebuild and commit (main only)
+        if: github.event_name == 'push' && steps.check.outputs.stale == 'true'
+        run: |
+          ./scripts/build-ace-collector-package.sh
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/download/ace-collector-server.tar.gz
+          git commit -m "chore: rebuild ACE collector download package"
+          git push
+
+      - name: Fail PR on stale package
+        if: github.event_name == 'pull_request' && steps.check.outputs.stale == 'true'
+        run: |
+          echo "public/download/ace-collector-server.tar.gz is stale." >&2
+          echo "Run ./scripts/build-ace-collector-package.sh and commit the result." >&2
+          exit 1
