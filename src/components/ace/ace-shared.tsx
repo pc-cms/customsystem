@@ -69,8 +69,8 @@ export const Kpi = ({
   value: React.ReactNode;
   className?: string;
 }) => (
-  <div className={cn("min-h-16 rounded-md border border-border bg-card px-3 py-2.5", className)}>
+  <div className={cn("min-h-20 rounded-md border border-border bg-card px-3 py-3", className)}>
     <div className="text-[10px] uppercase text-muted-foreground">{label}</div>
-    <div className="mt-1 font-mono text-lg font-semibold tabular-nums">{value}</div>
+    <div className="mt-2 font-mono text-lg font-semibold tabular-nums">{value}</div>
   </div>
 );
