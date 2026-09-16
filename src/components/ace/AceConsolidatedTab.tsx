@@ -203,8 +203,8 @@ export default function AceConsolidatedTab({ casinoId, from, to, mode, casinoNam
           value={mode === "live" ? money(activeCredits) : NA}
           hint={mode === "live" ? "current EGM snapshot" : "not stored for closed days"}
         />
-        <Kpi label="Players" value={intOrNa(total.players)} />
-        <Kpi label="EGMs" value={intOrNa(total.egms)} />
+        <Kpi label="Players" value={intOrNa(total.players)} hint="unique over the selected range" />
+        <Kpi label="EGMs" value={intOrNa(total.egms)} hint="unique machines with recorded play" />
         <Kpi label="Jackpot paid" value={money(total.jackpot)} hint="already inside OUT" />
         <Kpi
           label="Data state"
