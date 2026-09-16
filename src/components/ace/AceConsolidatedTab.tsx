@@ -100,9 +100,9 @@ export default function AceConsolidatedTab({ casinoId, from, to, mode, casinoNam
       m.set(r.casino_id, list);
     });
     return [...m.entries()].map(([id, list]) =>
-      aggregate(list, id, casinoName.get(id) ?? list[0]?.casino_name ?? "—"),
+      aggregate(list, id, casinoName.get(id) ?? list[0]?.casino_name ?? "—", dist(id)),
     );
-  }, [rows, casinoName]);
+  }, [rows, casinoName, distinct.data]);
 
   const byDay = useMemo(
     () =>
