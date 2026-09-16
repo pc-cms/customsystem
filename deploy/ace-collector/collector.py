@@ -586,6 +586,16 @@ def main(argv: list[str] | None = None) -> int:
     client = AceClient(cfg)
     api = IngestApi(cfg)
 
+    # ── analytics modes: never touch the finance path ─────────────────────
+    if args.analytics_dry_run or args.analytics_once or args.analytics_reports_only:
+        logger.info("ANALYTICS URL: %s", cfg.player_api_url)
+        return run_analytics(
+            client, cfg, logger,
+            dry_run=args.analytics_dry_run or not (args.analytics_once or args.analytics_reports_only),
+            period_id=args.period_id,
+            reports_only=args.analytics_reports_only,
+        )
+
     if args.health:
         logger.info("ACE base URL : %s (verify_tls=%s)", cfg.ace_base_url, cfg.ace_verify_tls)
         logger.info("API URL      : %s", cfg.api_url)
