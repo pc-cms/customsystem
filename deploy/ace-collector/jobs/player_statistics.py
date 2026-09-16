@@ -18,13 +18,19 @@ logger = logging.getLogger("ace-collector")
 
 
 def _rows(results) -> list[dict]:
-    """Flatten whatever container ACE returns into a flat list of dict rows."""
+    """Flatten wrappers/lists into player rows.
+
+    A dict carrying an ACE player id IS a player row: it is emitted once and
+    its nested child trip rows (``data``) are NOT traversed, otherwise the same
+    player would produce duplicate daily rows.
+    """
     out: list[dict] = []
 
     def walk(node):
         if isinstance(node, dict):
-            if any(k in node for k in ("client_id", "ptr_id", "player_id")):
+            if any(k in node for k in ("ptr_id", "client_id", "player_id", "clientid")):
                 out.append(node)
+                return
             for value in node.values():
                 if isinstance(value, (dict, list)):
                     walk(value)
@@ -34,6 +40,7 @@ def _rows(results) -> list[dict]:
 
     walk(results)
     return out
+
 
 
 def game_period(client) -> tuple[str | None, str | None]:
