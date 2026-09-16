@@ -153,12 +153,12 @@ export default function PlayerAceSlots({ playerId, from, to, isSuperAdmin }: Pro
         </div>
       </PageSection>
 
-      <PageSection card title="ACE IDs & Cards">
+      <PageSection card title="Linked ACE identities">
         {isSuperAdmin && (
           <div className="mb-4 grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
             <div>
-              <Label className="text-xs">ACE ID(s) — comma separated</Label>
-              <Input value={aceInput} onChange={(e) => setAceInput(e.target.value)} placeholder="10231, 10232" />
+              <Label className="text-xs">ACE ID (one at a time)</Label>
+              <Input value={aceInput} onChange={(e) => setAceInput(e.target.value)} placeholder="10231" />
             </div>
             <div>
               <Label className="text-xs">Branch (ACE IDs are unique per branch)</Label>
@@ -171,8 +171,8 @@ export default function PlayerAceSlots({ playerId, from, to, isSuperAdmin }: Pro
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={() => submitAceIds(false)} disabled={!aceInput.trim() || !branch || attach.isPending}>
-              <Plus className="w-4 h-4 mr-1" /> Add
+            <Button onClick={() => submitAceId(false)} disabled={!aceInput.trim() || !branch || attach.isPending}>
+              <Plus className="w-4 h-4 mr-1" /> Link ACE ID
             </Button>
           </div>
         )}
