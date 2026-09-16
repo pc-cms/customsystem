@@ -7,7 +7,8 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from ace_collector.analytics_parser import (  # noqa: E402
+from ace_collector.analytics_parser import (
+    combine_date_time,  # noqa: E402
     normalize_jackpot_win,
     normalize_player_row,
     parse_egm_list,
