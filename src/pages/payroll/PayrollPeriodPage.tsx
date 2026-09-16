@@ -58,8 +58,10 @@ const PayrollPeriodPage = () => {
   const revert = useRevertToDraft();
   const unlock = useUnlockPeriod();
   const refresh = useRefreshPayrollPeriod();
+  const rebuild = useRebuildPeriod();
   const [unlockOpen, setUnlockOpen] = useState(false);
   const [unlockReason, setUnlockReason] = useState("");
+  const [rebuildOpen, setRebuildOpen] = useState(false);
 
   if (!period) {
     return <div className="p-6 text-sm text-muted-foreground">Loading period…</div>;
@@ -83,6 +85,11 @@ const PayrollPeriodPage = () => {
         {!isLocked && !isPaid && (isHR || isFinance) && (
           <Button size="sm" variant="outline" onClick={() => refresh.mutate(period.id)} disabled={refresh.isPending}>
             <RefreshCw className={`w-4 h-4 mr-1 ${refresh.isPending ? "animate-spin" : ""}`} /> Refresh
+          </Button>
+        )}
+        {isDraft && isSuper && (
+          <Button size="sm" variant="outline" onClick={() => setRebuildOpen(true)} disabled={rebuild.isPending}>
+            <RefreshCw className={`w-4 h-4 mr-1 ${rebuild.isPending ? "animate-spin" : ""}`} /> Rebuild from scratch
           </Button>
         )}
         <Button size="sm" variant="ghost" onClick={() => nav("/payroll")}>
@@ -182,6 +189,30 @@ const PayrollPeriodPage = () => {
           )}
         </div>
       </PageSection>
+
+      <Dialog open={rebuildOpen} onOpenChange={setRebuildOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Rebuild from scratch</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            All payroll entries for {periodLabel} will be deleted and re-created from employee data,
+            rates, attendance and advances. Manual edits in the rows will be lost.
+            The period itself and its audit history are preserved.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRebuildOpen(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={rebuild.isPending}
+              onClick={async () => {
+                await rebuild.mutateAsync(period.id);
+                setRebuildOpen(false);
+              }}
+            >
+              Rebuild
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={unlockOpen} onOpenChange={setUnlockOpen}>
         <DialogContent>
