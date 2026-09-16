@@ -49,69 +49,72 @@ export default function AceReportsTab({
   );
 
   /**
-   * Column order comes from the `_headers` list captured with each row — JSON
-   * object key order is not preserved by the database, so it cannot be trusted.
-   * `_headers` / `_table` are internal capture metadata and are not shown as
-   * data columns; `_table` becomes a "Block" column only for multi-block reports.
+   * One ACE capture can hold several logical tables in a single `rows_data`
+   * array, tagged with `_table`. Each row also carries `_headers`, the original
+   * ACE header order — JSON key order is not preserved by the database, so the
+   * header list is the only trustworthy source. `_headers`/`_table` are capture
+   * metadata and are never shown as columns. Stored row order is preserved.
    */
-  const multiBlock = useMemo(
-    () => new Set(storedRows.map((r) => r?._table)).size > 1,
-    [storedRows],
-  );
-
-  const headers = useMemo(() => {
-    const seen: string[] = [];
-    const push = (k: string) => {
-      if (k !== "_headers" && k !== "_table" && !seen.includes(k)) seen.push(k);
-    };
-    storedRows.forEach((r) => {
-      const declared = Array.isArray(r?._headers) ? (r._headers as any[]) : [];
-      declared.forEach((h) => push(String(h)));
+  const groups = useMemo(() => {
+    const out: { table: any; headers: string[]; rows: Record<string, any>[] }[] = [];
+    storedRows.forEach((r, i) => {
+      const t = r?._table ?? 0;
+      let g = out.find((x) => x.table === t);
+      if (!g) {
+        const declared = Array.isArray(r?._headers) ? (r._headers as any[]).map(String) : null;
+        g = {
+          table: t,
+          headers: declared ?? Object.keys(r ?? {}).filter((k) => !k.startsWith("_")),
+          rows: [],
+        };
+        out.push(g);
+      }
+      g.rows.push({ __i: i, ...r });
     });
-    // fall back to row keys for captures stored without header metadata
-    storedRows.forEach((r) => Object.keys(r ?? {}).forEach(push));
-    return multiBlock ? ["_table", ...seen] : seen;
-  }, [storedRows, multiBlock]);
+    return out;
+  }, [storedRows]);
 
-  const indexed = useMemo(
-    () => storedRows.map((r, i) => ({ __i: i, ...r })),
-    [storedRows],
+  const q = search.trim().toLowerCase();
+
+  const visibleGroups = useMemo(
+    () =>
+      groups.map((g) => ({
+        ...g,
+        rows: q
+          ? g.rows.filter((r) => g.headers.some((h) => String(r[h] ?? "").toLowerCase().includes(q)))
+          : g.rows,
+      })),
+    [groups, q],
   );
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return indexed;
-    return indexed.filter((r) =>
-      headers.some((h) => String(r[h] ?? "").toLowerCase().includes(q)),
-    );
-  }, [indexed, headers, search]);
-
-  const contentCols: ColumnDef<any>[] = headers.map((h) => ({
-    key: h,
-    header: h === "_table" ? "Block" : h,
-    accessor: (r) => {
-      const v = r[h];
-      return v === null || v === undefined || v === "" ? <span className="text-muted-foreground">—</span> : String(v);
-    },
-    sortValue: (r) => {
-      const v = r[h];
-      const n = typeof v === "number" ? v : Number(String(v ?? "").replace(/\s/g, "").replace(/,/g, ""));
-      return Number.isFinite(n) && String(v ?? "").trim() !== "" ? n : String(v ?? "");
-    },
-  }));
+  const makeCols = (headers: string[]): ColumnDef<any>[] =>
+    headers.map((h) => ({
+      key: h,
+      header: h,
+      accessor: (r) => {
+        const v = r[h];
+        return v === null || v === undefined || v === ""
+          ? <span className="text-muted-foreground">—</span>
+          : String(v);
+      },
+      sortValue: (r) => {
+        const v = r[h];
+        const n = typeof v === "number" ? v : Number(String(v ?? "").replace(/\s/g, "").replace(/,/g, ""));
+        return Number.isFinite(n) && String(v ?? "").trim() !== "" ? n : String(v ?? "");
+      },
+    }));
 
   const exportContent = () => {
-    if (!selected) return;
-    downloadXlsx(`ace-${kind}-report-${selected.business_date ?? "period"}.xlsx`, [
-      {
-        name: "Report",
-        rows: [
-          headers.map((h) => (h === "_table" ? "Block" : h)),
-          ...storedRows.map((r) => headers.map((h) => (r?.[h] ?? null) as any)),
-        ],
-      },
-    ]);
+    if (!selected || !groups.length) return;
+    downloadXlsx(
+      `ace-${kind}-report-${selected.business_date ?? "period"}.xlsx`,
+      groups.map((g, i) => ({
+        name: groups.length > 1 ? `Report ${i + 1}` : "Report",
+        rows: [g.headers, ...g.rows.map((r) => g.headers.map((h) => (r?.[h] ?? null) as any))],
+      })),
+    );
   };
+
 
   const captureCols: ColumnDef<Capture>[] = [
     { key: "branch", header: "Branch", accessor: (r) => casinoName.get(r.casino_id) ?? "—", sortValue: (r) => casinoName.get(r.casino_id) ?? "" },
