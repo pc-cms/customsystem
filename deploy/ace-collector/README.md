@@ -229,7 +229,7 @@ the same config/secret file without any duplication.
 
 ---
 
-## 9. Layout
+## 10. Layout
 
 ```
 ace-collector/
@@ -245,7 +245,14 @@ ace-collector/
 │   ├── ace_client.py
 │   ├── parser.py
 │   └── api.py
+├── ace_collector/
+│   ├── analytics_api.py
+│   └── analytics_parser.py
 └── jobs/
     ├── __init__.py
-    └── player_statistics.py
+    ├── player_statistics.py
+    ├── egm_status.py
+    ├── accounting_reports.py
+    ├── jackpot_wins.py
+    └── transactions.py
 ```
