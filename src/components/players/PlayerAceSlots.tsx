@@ -73,6 +73,7 @@ export default function PlayerAceSlots({ playerId, from, to, isSuperAdmin }: Pro
   const [aceInput, setAceInput] = useState("");
   const [branch, setBranch] = useState<string>("");
   const [conflict, setConflict] = useState<{ ace: string; casino: string } | null>(null);
+  const [unlinkTarget, setUnlinkTarget] = useState<any | null>(null);
 
   const attach = useAttachAceIdentity();
   const unlink = useUnlinkAceIdentity();
