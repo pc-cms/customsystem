@@ -482,6 +482,7 @@ const ACTION_LABELS: Record<string, string> = {
   manager_approved: "Manager approved & locked",
   reverted_to_draft: "Reverted to draft",
   unlocked: "Unlocked by administrator",
+  rebuilt: "Rebuilt from scratch",
 };
 
 const AuditPanel = ({ periodId }: { periodId: string }) => {
