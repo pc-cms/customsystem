@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 
 from ace_collector.analytics_parser import (
+    combine_date_time,
     parse_html_tables,
     source_key,
     to_number,
