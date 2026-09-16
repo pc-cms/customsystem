@@ -451,6 +451,64 @@ def run_backfill(client, api, cfg, logger, from_date: str, to_date: str, dry_run
     return 1 if counts["failed"] and counts["sent"] == 0 else 0
 
 
+# ─────────────────────────────── ACE analytics ─────────────────────────────
+# Completely separate from the finance path above. Nothing here runs unless an
+# explicit --analytics-* flag is given, so the existing cron stays finance-only.
+
+def run_analytics(client, cfg, logger, dry_run: bool, period_id: int | None,
+                  reports_only: bool) -> int:
+    from ace_collector.analytics_api import AnalyticsApi
+    from jobs import accounting_reports, egm_status, jackpot_wins, player_statistics
+    from jobs import transactions as transactions_job
+
+    api = AnalyticsApi(cfg)
+    failures = 0
+
+    def step(name: str, fn):
+        nonlocal failures
+        try:
+            fn()
+        except Exception as exc:  # noqa: BLE001 — one source must not block others
+            failures += 1
+            logger.error("ANALYTICS %s failed: %s", name, exc)
+
+    if not reports_only:
+        step("heartbeat", lambda: api.send("heartbeat", dry_run=dry_run))
+        step("players", lambda: player_statistics.run(client, api, dry_run=dry_run))
+        step("egm_status", lambda: egm_status.run(client, api, dry_run=dry_run))
+        step("jackpot_wins", lambda: jackpot_wins.run(client, api, dry_run=dry_run))
+        # documented, disabled, emits nothing
+        transactions_job.run(client, api, dry_run=dry_run)
+
+    if reports_only or period_id is not None:
+        pid = period_id
+        label = None
+        business_date = None
+        if pid is None:
+            closed = latest_closed_periods(client, 1)
+            if not closed:
+                logger.warning("ANALYTICS no closed ACE period available for reports")
+                return 1 if failures else 0
+            pid, label = closed[0]
+            business_date = business_date_from_label(label)
+        else:
+            for cpid, clabel in all_closed_periods(client):
+                if cpid == pid:
+                    label = clabel
+                    business_date = business_date_from_label(clabel)
+                    break
+        step(
+            "reports",
+            lambda: accounting_reports.run(
+                client, api, pid, period_label=label,
+                business_date=business_date, dry_run=dry_run,
+            ),
+        )
+
+    logger.info("ANALYTICS cycle done (dry_run=%s, failures=%d)", dry_run, failures)
+    return 1 if failures else 0
+
+
 
 
 
@@ -470,6 +528,16 @@ def main(argv: list[str] | None = None) -> int:
                     help="start business date for --history-scan")
     ap.add_argument("--to", dest="to_date", metavar="YYYY-MM-DD",
                     help="end business date (inclusive) for history modes — REQUIRED")
+
+    # ── ACE analytics (OFF by default; cron behaviour is unchanged) ────────
+    ap.add_argument("--analytics-dry-run", action="store_true",
+                    help="fetch/parse ACE analytics and log a summary, POST NOTHING")
+    ap.add_argument("--analytics-once", action="store_true",
+                    help="run one analytics cycle and send it to ace-player-ingest")
+    ap.add_argument("--analytics-reports-only", action="store_true",
+                    help="collect only the EGM/JP accounting reports")
+    ap.add_argument("--period-id", type=int, default=None,
+                    help="ACE period_id for --analytics-reports-only")
 
     ap.add_argument("--verbose", "-v", action="store_true")
     args = ap.parse_args(argv)
@@ -517,6 +585,16 @@ def main(argv: list[str] | None = None) -> int:
 
     client = AceClient(cfg)
     api = IngestApi(cfg)
+
+    # ── analytics modes: never touch the finance path ─────────────────────
+    if args.analytics_dry_run or args.analytics_once or args.analytics_reports_only:
+        logger.info("ANALYTICS URL: %s", cfg.player_api_url)
+        return run_analytics(
+            client, cfg, logger,
+            dry_run=args.analytics_dry_run or not (args.analytics_once or args.analytics_reports_only),
+            period_id=args.period_id,
+            reports_only=args.analytics_reports_only,
+        )
 
     if args.health:
         logger.info("ACE base URL : %s (verify_tls=%s)", cfg.ace_base_url, cfg.ace_verify_tls)

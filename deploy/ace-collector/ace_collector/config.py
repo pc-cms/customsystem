@@ -12,6 +12,7 @@ ENV_FILE = os.environ.get("ACE_ENV_FILE", "/etc/ace-collector.env")
 
 DEFAULT_ACE_BASE_URL = "https://192.168.1.191"
 DEFAULT_API_URL = "https://rpehngjvwcnipvkouluu.supabase.co/functions/v1/ace-finance-ingest"
+DEFAULT_PLAYER_API_URL = "https://rpehngjvwcnipvkouluu.supabase.co/functions/v1/ace-player-ingest"
 DEFAULT_TZ = "Africa/Dar_es_Salaam"
 
 
@@ -45,6 +46,7 @@ class Config:
     ace_password: str
     ace_verify_tls: bool
     api_url: str
+    player_api_url: str
     api_key: str
     location_code: str
     timezone: str
@@ -62,6 +64,9 @@ class Config:
             ace_password=os.environ.get("ACE_PASSWORD", ""),
             ace_verify_tls=_bool(os.environ.get("ACE_VERIFY_TLS"), False),
             api_url=os.environ.get("CASINO_API_URL", DEFAULT_API_URL),
+            # Analytics ingest endpoint — separate from the finance one; the
+            # SAME ACE_INGEST_KEY / LOCATION_CODE are reused.
+            player_api_url=os.environ.get("ACE_PLAYER_API_URL", DEFAULT_PLAYER_API_URL),
             api_key=os.environ.get("ACE_INGEST_KEY", ""),
             location_code=os.environ.get("LOCATION_CODE", "arusha").strip().lower(),
             timezone=os.environ.get("ACE_TZ", DEFAULT_TZ),

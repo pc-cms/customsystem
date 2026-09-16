@@ -185,3 +185,72 @@ class AceClient:
         html = self._get("/users/manager/report_c.php").text
         self._save_cookies()
         return html
+
+    def report_html(self, type_report: str, period_id: int, extra: dict | None = None) -> str:
+        """Generic Manager report fetch (same payload shape as Finance)."""
+        self.enter_manager_finance()
+        payload = {
+            "class_report": "Report_Current",
+            "type_report": type_report,
+            "period_id": str(period_id),
+            "p": "1",
+            "table": "",
+            "maxRow": "300",
+            "order": "",
+            "order_dir": "",
+        }
+        payload.update(extra or {})
+        resp = self._post("/users/manager/report_c.php", payload)
+        self._save_cookies()
+        return resp.text
+
+    def manager_page_html(self, path: str) -> str:
+        """Any server-rendered Manager page (read-only), e.g. egms.php."""
+        self.enter_manager_finance()
+        resp = self._get(path)
+        if self._looks_logged_out(resp.text):
+            self._drop_cached_session()
+            self.login(force=True)
+            self.enter_manager_finance()
+            resp = self._get(path)
+        self._save_cookies()
+        return resp.text
+
+    # ------------------------------------------------------- legacy JSON API
+    def api_json(self, module: str, method: str, payload: dict | None = None) -> object:
+        """Read-only call to the legacy ACE JSON API ``/api/{module}/{method}/``.
+
+        Uses the very same authenticated requests.Session / cached cookies as
+        the finance job. A single retry via the existing login mechanism is
+        performed when ACE answers with a logged-out page or 401/403.
+        """
+        self.login()
+        path = f"/api/{module.strip('/')}/{method.strip('/')}/"
+
+        def call() -> requests.Response:
+            return self.session.post(
+                self.url(path),
+                json=payload or {},
+                headers={"Content-Type": "application/json"},
+                timeout=self.cfg.http_timeout,
+                allow_redirects=True,
+            )
+
+        resp = call()
+        if resp.status_code in (401, 403) or self._looks_logged_out(resp.text):
+            logger.debug("ACE JSON API session expired — re-authenticating once")
+            self._drop_cached_session()
+            self.login(force=True)
+            resp = call()
+        resp.raise_for_status()
+        self._save_cookies()
+        try:
+            body = resp.json()
+        except ValueError as exc:
+            raise AceError(f"ACE JSON API {path} returned non-JSON payload") from exc
+        if isinstance(body, dict):
+            status = str(body.get("status", "")).upper()
+            if status and status != "OK":
+                raise AceError(f"ACE JSON API {path} status={body.get('status')!r}")
+            return body.get("results", body)
+        return body

@@ -157,17 +157,80 @@ Logrotate: daily, 14 rotations, compressed.
 
 ---
 
-## 8. Future: Player Statistics
+## 8. ACE Analytics (players / EGM / jackpots) — MANUAL ONLY
 
-`jobs/player_statistics.py` is a **placeholder only**. The authentication
-(`ace_collector/ace_client.py`), configuration (`ace_collector/config.py`) and
-API client (`ace_collector/api.py`) modules are deliberately generic so the
-future player-statistics job can reuse the same authenticated ACE session and
-the same config/secret file without any duplication.
+The analytics collector is **code-only and disabled**. Cron is NOT changed by
+this feature: `run.sh` without any `--analytics-*` flag behaves exactly as
+before (finance only). Nothing analytics-related runs automatically.
+
+Ingest endpoint: `ACE_PLAYER_API_URL`
+(default `https://rpehngjvwcnipvkouluu.supabase.co/functions/v1/ace-player-ingest`).
+The **same** `ACE_INGEST_KEY` and `LOCATION_CODE` are reused; `CASINO_API_URL`
+for finance is untouched. Branch-aware env/session files keep working as-is.
+
+### Dry-run test (posts nothing)
+
+```bash
+sudo -u acecollector /opt/ace-collector/run.sh --analytics-dry-run --verbose
+```
+
+This logs a summary of players/daily rows, EGM status rows and jackpot wins and
+**POSTs nothing**.
+
+### Activation (after a successful manual dry-run)
+
+```bash
+# one real analytics cycle
+sudo -u acecollector /opt/ace-collector/run.sh --analytics-once --verbose
+
+# accounting reports only (latest closed period, or an explicit one)
+sudo -u acecollector /opt/ace-collector/run.sh --analytics-reports-only --verbose
+sudo -u acecollector /opt/ace-collector/run.sh --analytics-reports-only --period-id 8340
+```
+
+Only after these pass should anyone consider adding a **separate** cron entry —
+and it must never create a second concurrent login loop.
+
+### Sources used
+
+| Job | Source | Status |
+|---|---|---|
+| `jobs/player_statistics.py` | `/api/bonusreport/get_game_periods_dates/` + `/api/bonusreport/get_opt_trips_tree/` | verified |
+| `jobs/egm_status.py` | `/users/manager/egms.php` (server-rendered) | verified fallback |
+| `jobs/egm_status.py` modern | `ace.Api("egms.getegmlist")` | **disabled** — `/aceapi/` wire shape not captured |
+| `jobs/accounting_reports.py` | `report_c.php` `report_game_automat` / `report_jp` | verified |
+| `jobs/jackpot_wins.py` | `/api/bonusreport/get_jackpot_wins/` | verified |
+| `jobs/transactions.py` | account transactions | **disabled stub** — no verified list API |
+
+### Data rules enforced in code
+
+* Slot Drop = IN (always); ACE drop fields stay in `raw_data` only
+* Handle is **never** derived — `total_in_result` is not treated as turnover
+* explicit `0` stays `0`, absent stays `null`
+* every source row is preserved verbatim in `raw_data`
+* business dates come from the ACE period, never the calendar day
+* all ACE calls are read-only reports/APIs — nothing is written to ACE
+
+### Tests
+
+```bash
+cd /opt/ace-collector && python3 -m unittest discover -s tests -v
+```
 
 ---
 
-## 9. Layout
+## 9. Shared building blocks
+
+Authentication (`ace_collector/ace_client.py`), configuration
+(`ace_collector/config.py`) and the finance API client (`ace_collector/api.py`)
+are shared by both the finance job and the analytics jobs, so there is exactly
+one ACE login/session per run. The analytics jobs add
+`ace_collector/analytics_api.py` (ace-player-ingest) and
+`ace_collector/analytics_parser.py` (parsers/normalizers) on top of them.
+
+---
+
+## 10. Layout
 
 ```
 ace-collector/
@@ -183,7 +246,14 @@ ace-collector/
 │   ├── ace_client.py
 │   ├── parser.py
 │   └── api.py
+├── ace_collector/
+│   ├── analytics_api.py
+│   └── analytics_parser.py
 └── jobs/
     ├── __init__.py
-    └── player_statistics.py
+    ├── player_statistics.py
+    ├── egm_status.py
+    ├── accounting_reports.py
+    ├── jackpot_wins.py
+    └── transactions.py
 ```
