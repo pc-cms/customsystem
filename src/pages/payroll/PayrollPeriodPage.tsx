@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/lib/auth-context";
 import {
   usePayrollPeriod, usePayrollEntries, useUpdatePayrollEntry,
-  useApproveHR, useApproveManager, useMarkPaid, useRevertToDraft, useUnlockPeriod,
+  useApproveHR, useApproveManager, useMarkPaid, useRevertToDraft, useUnlockPeriod, useRebuildPeriod,
   usePayrollAuditLog, useEmployees, usePayrollChecklist,
   PERIOD_STATUS_LABEL,
   type PayrollEntry,
