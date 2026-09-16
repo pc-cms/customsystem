@@ -38,8 +38,8 @@ MODERN_RESULT = {
 
 EGMS_HTML = """
 <table>
-  <tr><th>#EGM</th><th>State</th></tr>
-  <tr egm="1187"><td>A01</td><td>In Game</td></tr>
+  <tr><th>#EGM</th><th>MAC Address</th><th>State</th></tr>
+  <tr egm="1187"><td>A01</td><td>00:11:22:33</td><td>In Game</td></tr>
 </table>
 """
 
