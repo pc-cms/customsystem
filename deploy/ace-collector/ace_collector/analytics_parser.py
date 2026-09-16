@@ -24,6 +24,7 @@ __all__ = [
     "normalize_player_row",
     "normalize_jackpot_win",
     "combine_date_time",
+    "local_to_utc_iso",
     "source_key",
 ]
 
@@ -244,7 +245,7 @@ def normalize_jackpot_win(row: dict, business_date: str | None) -> dict | None:
             break
     return {
         "business_date": business_date,
-        "occurred_at": str(occurred) if occurred else None,
+        "occurred_at": local_to_utc_iso(occurred),
         "jackpot_name": str(name) if name else None,
         "amount": amount,
         "egm_code": str(egm) if egm else None,

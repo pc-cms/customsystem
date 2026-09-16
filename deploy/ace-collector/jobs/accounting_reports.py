@@ -10,6 +10,7 @@ import logging
 
 from ace_collector.analytics_parser import (
     combine_date_time,
+    local_to_utc_iso,
     parse_html_tables,
     source_key,
     to_number,
@@ -73,7 +74,7 @@ def jackpot_rows_from_report(rows: list[dict], business_date: str | None) -> lis
         items.append(
             {
                 "business_date": bdate,
-                "occurred_at": str(won_at),
+                "occurred_at": local_to_utc_iso(won_at) or str(won_at),
                 "jackpot_name": str(name),
                 "amount": amount,
                 "egm_code": str(egm),
