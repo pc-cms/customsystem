@@ -196,7 +196,7 @@ export default function PlayerAceSlots({ playerId, from, to, isSuperAdmin }: Pro
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => unlink.mutate({ identity_id: i.id, player_id: playerId })}
+                      onClick={() => setUnlinkTarget(i)}
                     >
                       <Unlink className="w-4 h-4 mr-1" /> Unlink
                     </Button>
