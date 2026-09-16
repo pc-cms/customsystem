@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Download } from "lucide-react";
 import { fmtDateOnly } from "@/lib/format-date";
-import { formatMoneyFull } from "@/lib/format-money";
+
 import { downloadXlsx } from "@/lib/excel-export";
 import {
   useAceConsolidated,
