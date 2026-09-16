@@ -202,8 +202,8 @@ class ReportTableTest(unittest.TestCase):
         self.assertEqual(item["egm_code"], "A01")
         self.assertIsNone(item["ace_player_id"])
         # Winning Date + Winning Time combined and normalized to ISO
-        self.assertEqual(item["occurred_at"], "2026-09-15T17:51:56")
-        self.assertEqual(items[1]["occurred_at"], "2026-09-15T21:04:11")
+        self.assertEqual(item["occurred_at"], "2026-09-15T14:51:56Z")
+        self.assertEqual(items[1]["occurred_at"], "2026-09-15T18:04:11Z")
         # same day, same EGM, same name/amount -> only the time differs
         self.assertNotEqual(item["source_key"], items[1]["source_key"])
         self.assertEqual(
