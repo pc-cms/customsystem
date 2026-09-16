@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import uuid
 import urllib3
 
 import requests
@@ -215,6 +216,52 @@ class AceClient:
             resp = self._get(path)
         self._save_cookies()
         return resp.text
+
+    # -------------------------------------------------- modern JSON-RPC API
+    def api_rpc(self, method: str, params: dict | None = None) -> object:
+        """Read-only ``ace.Api(method, params)`` call against ``/aceapi/``.
+
+        Mirrors the verified browser wire shape:
+        ``{"jsonrpc": "2.0", "method": ..., "params": {...}, "id": <uuid4>}``.
+        Same authenticated session, cached cookies, timeout and TLS settings as
+        every other call. One re-login retry on 401/403/logged-out HTML.
+        """
+        self.login()
+        body = {
+            "jsonrpc": "2.0",
+            "method": method,
+            "params": params or {},
+            "id": str(uuid.uuid4()),
+        }
+
+        def call() -> requests.Response:
+            return self.session.post(
+                self.url("/aceapi/"),
+                json=body,
+                headers={"Content-Type": "application/json"},
+                timeout=self.cfg.http_timeout,
+                allow_redirects=True,
+            )
+
+        resp = call()
+        if resp.status_code in (401, 403) or self._looks_logged_out(resp.text):
+            logger.debug("ACE RPC session expired — re-authenticating once")
+            self._drop_cached_session()
+            self.login(force=True)
+            body["id"] = str(uuid.uuid4())
+            resp = call()
+        resp.raise_for_status()
+        self._save_cookies()
+        try:
+            payload = resp.json()
+        except ValueError as exc:
+            raise AceError(f"ACE RPC {method} returned non-JSON payload") from exc
+        if isinstance(payload, dict):
+            if payload.get("error"):
+                raise AceError(f"ACE RPC {method} error: {payload['error']!r}")
+            if "result" in payload:
+                return payload["result"]
+        return payload
 
     # ------------------------------------------------------- legacy JSON API
     def api_json(self, module: str, method: str, payload: dict | None = None) -> object:
