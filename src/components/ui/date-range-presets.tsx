@@ -73,7 +73,7 @@ interface DatePickerButtonProps {
   placeholder?: string;
 }
 
-const DatePickerButton = ({ value, onChange, placeholder = "Pick date" }: DatePickerButtonProps) => {
+export const DatePickerButton = ({ value, onChange, placeholder = "Pick date" }: DatePickerButtonProps) => {
   const selected = value ? fromIso(value) : undefined;
   return (
     <Popover>

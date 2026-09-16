@@ -13,6 +13,7 @@ import { formatMoneyFull } from "@/lib/format-money";
 import { cn } from "@/lib/utils";
 
 export type AceMode = "live" | "closed";
+export type AceConsolidatedMode = "current" | "month" | "period";
 
 export interface AceScope {
   casinoId: string | null;
@@ -62,17 +63,14 @@ export const AceEmpty = ({ what }: { what: string }) => (
 export const Kpi = ({
   label,
   value,
-  hint,
   className,
 }: {
   label: string;
   value: React.ReactNode;
-  hint?: string;
   className?: string;
 }) => (
-  <div className={cn("rounded-md border border-border bg-card p-3", className)}>
-    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-    <div className="mt-0.5 font-mono text-lg font-semibold tabular-nums">{value}</div>
-    {hint && <div className="mt-0.5 text-[10px] text-muted-foreground">{hint}</div>}
+  <div className={cn("min-h-16 rounded-md border border-border bg-card px-3 py-2.5", className)}>
+    <div className="text-[10px] uppercase text-muted-foreground">{label}</div>
+    <div className="mt-1 font-mono text-lg font-semibold tabular-nums">{value}</div>
   </div>
 );

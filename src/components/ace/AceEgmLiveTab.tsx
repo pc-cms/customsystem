@@ -26,12 +26,17 @@ const agoLabel = (iso: string | null) => {
   return `${Math.floor(m / 60)} h ago`;
 };
 
+const playerLabel = (row: any) => {
+  const identity = Array.isArray(row.player_ace_identities) ? row.player_ace_identities[0] : row.player_ace_identities;
+  const player = Array.isArray(identity?.players) ? identity.players[0] : identity?.players;
+  const name = `${player?.first_name ?? ""} ${player?.last_name ?? ""}`.trim();
+  return name || row.raw_data?.player_display || row.ace_player_id || "—";
+};
+
 export default function AceEgmLiveTab({
   casinoId,
-  casinoName,
 }: {
-  casinoId: string | null;
-  casinoName: Map<string, string>;
+  casinoId: string;
 }) {
   // live screen: the query itself polls every 25s (the 5s timer below only
   // repaints the "updated X ago" label)
@@ -59,7 +64,7 @@ export default function AceEgmLiveTab({
         if (egm && !String(r.egm_code ?? "").toLowerCase().includes(egm.toLowerCase())) return false;
         if (state !== "all" && r.state !== state) return false;
         if (player) {
-          const hay = `${r.ace_player_id ?? ""} ${r.raw_data?.player_display ?? ""}`.toLowerCase();
+          const hay = `${playerLabel(r)} ${r.ace_player_id ?? ""}`.toLowerCase();
           if (!hay.includes(player.toLowerCase())) return false;
         }
         return true;
@@ -75,17 +80,13 @@ export default function AceEgmLiveTab({
   const withPlayer = rows.filter((r) => r.ace_player_id != null).length;
 
   const cols: ColumnDef<any>[] = [
-    { key: "egm", header: "EGM", accessor: (r) => r.egm_code, sortValue: (r) => r.egm_code },
-    { key: "branch", header: "Branch", accessor: (r) => casinoName.get(r.casino_id) ?? "—", sortValue: (r) => casinoName.get(r.casino_id) ?? "" },
     { key: "pos", header: "Position", accessor: (r) => r.position ?? "—", sortValue: (r) => r.position ?? "" },
     { key: "state", header: "State", accessor: (r) => r.state ?? "—", sortValue: (r) => r.state ?? "" },
-    { key: "player", header: "Player", accessor: (r) => r.ace_player_id ?? r.raw_data?.player_display ?? "—", sortValue: (r) => r.ace_player_id ?? "" },
+    { key: "player", header: "Player", accessor: playerLabel, sortValue: playerLabel },
     { key: "credit", header: "Active credit", type: "money", accessor: (r) => money(r.active_credit), sortValue: (r) => r.active_credit ?? 0 },
     { key: "game", header: "Game", accessor: (r) => r.raw_data?.current_game ?? "—", sortValue: (r) => r.raw_data?.current_game ?? "" },
-    { key: "avgbet", header: "Avg bet", type: "money", accessor: (r) => money(r.raw_data?.average_bet), sortValue: (r) => r.raw_data?.average_bet ?? 0 },
     { key: "lastbet", header: "Last bet", type: "money", accessor: (r) => money(r.raw_data?.last_bet), sortValue: (r) => r.raw_data?.last_bet ?? 0 },
-    { key: "sgames", header: "Session games", type: "int", accessor: (r) => intOrNa(r.raw_data?.session_games_played), sortValue: (r) => r.raw_data?.session_games_played ?? 0 },
-    { key: "seen", header: "Last seen", accessor: (r) => (r.observed_at ? fmtDateTime(r.observed_at) : "—"), sortValue: (r) => r.observed_at ?? "" },
+    { key: "seen", header: "Last activity", accessor: (r) => (r.observed_at ? fmtDateTime(r.observed_at) : "—"), sortValue: (r) => r.observed_at ?? "" },
   ];
 
   const footer = [
@@ -93,7 +94,7 @@ export default function AceEgmLiveTab({
       key: "total",
       className: "font-semibold",
       cell: (col: ColumnDef<any>) =>
-        col.key === "egm" ? `Total · ${rows.length}` : col.key === "credit" ? money(creditsTotal) : null,
+        col.key === "pos" ? `Total · ${rows.length}` : col.key === "credit" ? money(creditsTotal) : null,
     },
   ];
 
@@ -102,12 +103,11 @@ export default function AceEgmLiveTab({
       {
         name: "EGM Live",
         rows: [
-          ["EGM", "Branch", "Position", "State", "Player", "Active credit", "Game", "Avg bet", "Last bet", "Session games", "Last seen"],
+          ["Position", "State", "Player", "Active credit", "Game", "Last bet", "Last activity"],
           ...rows.map((r) => [
-            r.egm_code, casinoName.get(r.casino_id) ?? "", r.position ?? "", r.state ?? "",
-            r.ace_player_id ?? "", r.active_credit, r.raw_data?.current_game ?? "",
-            r.raw_data?.average_bet ?? null, r.raw_data?.last_bet ?? null,
-            r.raw_data?.session_games_played ?? null, r.observed_at ?? "",
+            r.position ?? "", r.state ?? "",
+            playerLabel(r), r.active_credit, r.raw_data?.current_game ?? "",
+            r.raw_data?.last_bet ?? null, r.observed_at ?? "",
           ]),
         ],
       },
@@ -117,9 +117,9 @@ export default function AceEgmLiveTab({
     <div className="space-y-3">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="EGMs" value={intOrNa(rows.length)} />
-        <Kpi label="With ACE player" value={intOrNa(withPlayer)} hint="machines carrying an ACE player id" />
-        <Kpi label="Active credits" value={money(creditsTotal)} hint="fresh ACE meter" />
-        <Kpi label="Snapshot" value={agoLabel(latestObserved)} hint={latestObserved ? fmtDateTime(latestObserved) : "no observation yet"} />
+        <Kpi label="With ACE player" value={intOrNa(withPlayer)} />
+        <Kpi label="Active credits" value={money(creditsTotal)} />
+        <Kpi label="Snapshot" value={agoLabel(latestObserved)} />
       </div>
 
       <FilterBar
@@ -150,7 +150,7 @@ export default function AceEgmLiveTab({
           rowKey={(r) => r.id}
           loading={egms.isLoading}
           stickyHeader
-          defaultSort={{ key: "egm", dir: "asc" }}
+          defaultSort={{ key: "pos", dir: "asc" }}
           footerRows={rows.length ? footer : undefined}
           empty={<AceEmpty what="EGM snapshot" />}
         />

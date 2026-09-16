@@ -15,6 +15,7 @@ import { fmtDateOnly, fmtDateTime } from "@/lib/format-date";
 import { downloadXlsx } from "@/lib/excel-export";
 import {
   useAcePlayerStats,
+  useAcePlayerActivityMeta,
   useAcePlayerEgmDaily,
   type AcePlayerStatsRow,
 } from "@/hooks/use-ace-players";
@@ -80,6 +81,7 @@ const DrillPanel = ({
 
 export default function AcePlayersTab({ casinoId, from, to }: AceScope) {
   const players = useAcePlayerStats(from, to, casinoId);
+  const activity = useAcePlayerActivityMeta(from, to, casinoId);
   const [name, setName] = useState("");
   const [aceId, setAceId] = useState("");
   const [card, setCard] = useState("");
@@ -113,6 +115,7 @@ export default function AcePlayersTab({ casinoId, from, to }: AceScope) {
   );
 
   const cols: ColumnDef<AcePlayerStatsRow>[] = [
+    { key: "ace", header: "ACE ID", accessor: (r) => (r.ace_ids ?? []).join(" · ") || "—", sortValue: (r) => (r.ace_ids ?? []).join(" "), cellClassName: "font-mono" },
     {
       key: "player",
       header: "Player",
@@ -124,9 +127,17 @@ export default function AcePlayersTab({ casinoId, from, to }: AceScope) {
       ),
       sortValue: (r) => r.player_name ?? "",
     },
-    { key: "ace", header: "ACE ID(s)", accessor: (r) => (r.ace_ids ?? []).join(", ") || "—", sortValue: (r) => (r.ace_ids ?? []).join(",") },
-    { key: "cards", header: "Card(s)", accessor: (r) => (r.cards ?? []).join(", ") || "—", sortValue: (r) => (r.cards ?? []).join(",") },
-    { key: "egms", header: "EGM(s)", accessor: (r) => (r.egm_codes ?? []).join(", ") || "—", sortValue: (r) => (r.egm_codes ?? []).length },
+    { key: "cards", header: "Card(s)", accessor: (r) => (r.cards ?? []).join(" · ") || "—", sortValue: (r) => (r.cards ?? []).join(" "), cellClassName: "font-mono" },
+    { key: "visits", header: "Visits", type: "int", accessor: (r) => intOrNa(activity.data?.get(r.player_id)?.visits), sortValue: (r) => activity.data?.get(r.player_id)?.visits },
+    {
+      key: "last",
+      header: "Last activity",
+      accessor: (r) => {
+        const value = r.last_activity ?? activity.data?.get(r.player_id)?.last_activity;
+        return value ? fmtDateTime(value) : "—";
+      },
+      sortValue: (r) => r.last_activity ?? activity.data?.get(r.player_id)?.last_activity ?? "",
+    },
     { key: "drop", header: "Drop", type: "money", accessor: (r) => money(r.drop_amount), sortValue: (r) => r.drop_amount ?? 0 },
     { key: "handle", header: "Handle", type: "money", accessor: (r) => money(r.handle_amount), sortValue: (r) => r.handle_amount ?? 0 },
     { key: "in", header: "IN", type: "money", accessor: (r) => money(r.in_amount), sortValue: (r) => r.in_amount ?? 0 },
@@ -147,12 +158,6 @@ export default function AcePlayersTab({ casinoId, from, to }: AceScope) {
       accessor: (r) => (r.jackpot_count ? `${r.jackpot_count} · ${new Intl.NumberFormat("en-US").format(Number(r.jackpot_amount ?? 0)).replace(/,/g, " ")}` : "—"),
       sortValue: (r) => r.jackpot_amount ?? 0,
     },
-    {
-      key: "last",
-      header: "Last activity",
-      accessor: (r) => (r.last_activity ? fmtDateTime(r.last_activity) : "—"),
-      sortValue: (r) => r.last_activity ?? "",
-    },
   ];
 
   const footer = [
@@ -161,7 +166,7 @@ export default function AcePlayersTab({ casinoId, from, to }: AceScope) {
       className: "font-semibold",
       cell: (col: ColumnDef<AcePlayerStatsRow>) => {
         switch (col.key) {
-          case "player": return `Total · ${rows.length}`;
+          case "ace": return `Total · ${rows.length}`;
           case "drop": return money(totals.drop);
           case "handle": return money(totals.handle);
           case "in": return money(totals.in);
@@ -181,11 +186,11 @@ export default function AcePlayersTab({ casinoId, from, to }: AceScope) {
       {
         name: "Players",
         rows: [
-          ["Player", "ACE IDs", "Cards", "EGMs", "Drop", "Handle", "IN", "OUT", "Slot Result", "Games", "Avg Bet", "JP count", "JP amount", "Last activity"],
+          ["ACE IDs", "Player", "Cards", "Visits", "Last activity", "Drop", "Handle", "IN", "OUT", "Slot Result", "Games", "Avg Bet", "JP count", "JP amount"],
           ...rows.map((r) => [
-            r.player_name ?? "", (r.ace_ids ?? []).join(" "), (r.cards ?? []).join(" "), (r.egm_codes ?? []).join(" "),
+            (r.ace_ids ?? []).join(" "), r.player_name ?? "", (r.cards ?? []).join(" "), activity.data?.get(r.player_id)?.visits ?? null, r.last_activity ?? activity.data?.get(r.player_id)?.last_activity ?? "",
             r.drop_amount, r.handle_amount, r.in_amount, r.out_amount, r.slot_result, r.games,
-            avgBet(r.handle_amount, r.games), r.jackpot_count, r.jackpot_amount, r.last_activity ?? "",
+            avgBet(r.handle_amount, r.games), r.jackpot_count, r.jackpot_amount,
           ]),
         ],
       },
@@ -214,10 +219,11 @@ export default function AcePlayersTab({ casinoId, from, to }: AceScope) {
           data={rows}
           columns={cols}
           rowKey={(r) => r.player_id}
-          loading={players.isLoading}
+          loading={players.isLoading || activity.isLoading}
           stickyHeader
           defaultSort={{ key: "drop", dir: "desc" }}
           onRowClick={(r) => setSelected(r)}
+          rowClassName={(r) => r.is_ace_auto ? "bg-muted/25" : undefined}
           footerRows={rows.length ? footer : undefined}
           empty={<AceEmpty what="ACE player statistics" />}
         />
