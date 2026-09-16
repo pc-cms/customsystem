@@ -38,6 +38,7 @@ export interface AcePlayerStatsRow {
 export interface AcePlayerActivityMeta {
   visits: number;
   last_activity: string | null;
+  cards: string[];
 }
 
 export interface AceIdentityRow {
@@ -108,8 +109,12 @@ export const useAcePlayerActivityMeta = (from: string, to: string, casinoId?: st
       if (identityResult.error) throw identityResult.error;
       const days = new Map<string, Set<string>>();
       const last = new Map<string, string | null>();
+      const cardsByPlayer = new Map<string, Set<string>>();
       const rememberLast = (playerId: string, value: string | null | undefined) => {
-        if (value && (!last.get(playerId) || value > String(last.get(playerId)))) last.set(playerId, value);
+        if (!value) return;
+        const date = value.slice(0, 10);
+        if (date < from || date > to) return;
+        if (!last.get(playerId) || value > String(last.get(playerId))) last.set(playerId, value);
       };
       ((dailyResult.data ?? []) as any[]).forEach((r) => {
         const relation = Array.isArray(r.player_ace_identities)
@@ -130,12 +135,18 @@ export const useAcePlayerActivityMeta = (from: string, to: string, casinoId?: st
         // Identity/card timestamps are used only when newer than the daily fallback.
         rememberLast(playerId, identity.last_seen_at);
         const cards = Array.isArray(identity.player_ace_cards) ? identity.player_ace_cards : [];
-        cards.forEach((card: any) => rememberLast(playerId, card.last_seen_at));
+        cards.forEach((card: any) => {
+          rememberLast(playerId, card.last_seen_at);
+          if (!card.card_number) return;
+          const playerCards = cardsByPlayer.get(playerId) ?? new Set<string>();
+          playerCards.add(String(card.card_number));
+          cardsByPlayer.set(playerId, playerCards);
+        });
       });
       return new Map<string, AcePlayerActivityMeta>(
         [...days.entries()].map(([playerId, playerDays]) => [
           playerId,
-          { visits: playerDays.size, last_activity: last.get(playerId) ?? null },
+          { visits: playerDays.size, last_activity: last.get(playerId) ?? null, cards: [...(cardsByPlayer.get(playerId) ?? [])] },
         ]),
       );
     },

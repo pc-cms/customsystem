@@ -24,7 +24,7 @@ const numeric = (value: unknown): number | null => {
 
 const isAdditiveHeader = (header: string) => {
   const value = header.toLowerCase();
-  if (/(average|avg|%|rate|denom|position|time|date|#)/.test(value)) return false;
+  if (/(average|avg|%|rate|denom|position|time|date|#|\/egm)/.test(value)) return false;
   return /(games|netwin|\bwin\b|drop|paid|credit|jackpot|\bjp\b|\bin\b|\bout\b|amount)/.test(value);
 };
 
