@@ -101,10 +101,19 @@ def normalize_modern(result: dict) -> list[dict]:
         if not egm_code:
             continue
 
-        # Exact JS formula: (currentcredits * etl_denom) / 100
-        credits = to_number(current.get("currentcredits"))
+        # CMS canonical: fresh ETL meter (etl_current_credits * etl_denom) / 100.
+        # The ACE UI/JS value (currentmeters.currentcredits) can be years stale,
+        # so it is kept as a raw diagnostic only.
         denom = to_number(meters.get("etl_denom"))
-        active_credit = None if credits is None or denom is None else credits * denom / 100
+        etl_credits = to_number(meters.get("etl_current_credits"))
+        active_credit = (
+            None if etl_credits is None or denom is None else etl_credits * denom / 100
+        )
+        ui_credits = to_number(current.get("currentcredits"))
+        ace_ui_credit = (
+            None if ui_credits is None or denom is None else ui_credits * denom / 100
+        )
+
 
         games_played = to_number(session.get("games_played"))
         total_in_result = to_number(session.get("total_in_result"))
