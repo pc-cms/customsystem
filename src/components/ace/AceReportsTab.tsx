@@ -48,12 +48,30 @@ export default function AceReportsTab({
     [selected],
   );
 
-  /** Column order follows the first stored row — the original ACE header order. */
+  /**
+   * Column order comes from the `_headers` list captured with each row — JSON
+   * object key order is not preserved by the database, so it cannot be trusted.
+   * `_headers` / `_table` are internal capture metadata and are not shown as
+   * data columns; `_table` becomes a "Block" column only for multi-block reports.
+   */
+  const multiBlock = useMemo(
+    () => new Set(storedRows.map((r) => r?._table)).size > 1,
+    [storedRows],
+  );
+
   const headers = useMemo(() => {
     const seen: string[] = [];
-    storedRows.forEach((r) => Object.keys(r ?? {}).forEach((k) => { if (!seen.includes(k)) seen.push(k); }));
-    return seen;
-  }, [storedRows]);
+    const push = (k: string) => {
+      if (k !== "_headers" && k !== "_table" && !seen.includes(k)) seen.push(k);
+    };
+    storedRows.forEach((r) => {
+      const declared = Array.isArray(r?._headers) ? (r._headers as any[]) : [];
+      declared.forEach((h) => push(String(h)));
+    });
+    // fall back to row keys for captures stored without header metadata
+    storedRows.forEach((r) => Object.keys(r ?? {}).forEach(push));
+    return multiBlock ? ["_table", ...seen] : seen;
+  }, [storedRows, multiBlock]);
 
   const indexed = useMemo(
     () => storedRows.map((r, i) => ({ __i: i, ...r })),
