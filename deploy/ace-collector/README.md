@@ -205,7 +205,9 @@ and it must never create a second concurrent login loop.
 ### Data rules enforced in code
 
 * Slot Drop = IN (always); ACE drop fields stay in `raw_data` only
-* Handle is **never** derived — `total_in_result` is not treated as turnover
+* Handle is **always NULL in v1** — no verified ACE betting-turnover field yet;
+  nothing is guessed or derived, the source row stays in `raw_data`
+* player id = `ptr_id` (verified); a bare `id` is the trip id and is never used
 * explicit `0` stays `0`, absent stays `null`
 * every source row is preserved verbatim in `raw_data`
 * business dates come from the ACE period, never the calendar day
