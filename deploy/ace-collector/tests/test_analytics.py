@@ -97,9 +97,33 @@ class PlayerNormalizationTest(unittest.TestCase):
         self.assertIsNone(rec["handle_amount"])
         self.assertIsNone(rec["games"])
 
-    def test_verified_handle_field_is_kept(self):
-        rec = normalize_player_row({"client_id": 1, "egm_handle": "250.00"}, None)
-        self.assertEqual(rec["handle_amount"], 250.0)
+    def test_handle_stays_null_in_v1_even_for_handle_like_fields(self):
+        row = {
+            "client_id": 1,
+            "egm_handle": "250.00",
+            "handle": "250.00",
+            "turnover": "250.00",
+            "total_bet": "250.00",
+            "total_in_result": "250.00",
+        }
+        rec = normalize_player_row(row, None)
+        self.assertIsNone(rec["handle_amount"])  # v1: never mapped, only raw_data
+        self.assertEqual(rec["raw_data"]["egm_handle"], "250.00")
+
+    def test_ptr_id_wins_over_trip_id_and_forename_is_name(self):
+        rec = normalize_player_row(
+            {"ptr_id": 123, "id": 999, "forename": "John Smith"}, "2026-09-15"
+        )
+        self.assertEqual(rec["ace_player_id"], "123")
+        self.assertNotEqual(rec["ace_player_id"], "999")
+        self.assertEqual(rec["ace_name"], "John Smith")
+
+    def test_trip_id_alone_is_not_an_ace_player_id(self):
+        self.assertIsNone(normalize_player_row({"id": 999, "client": "X"}, None))
+
+    def test_child_row_client_is_used_as_name(self):
+        rec = normalize_player_row({"ptr_id": 5, "client": "Jane Doe"}, None)
+        self.assertEqual(rec["ace_name"], "Jane Doe")
 
     def test_row_without_ace_id_is_skipped(self):
         self.assertIsNone(normalize_player_row({"client_name": "Anon"}, "2026-09-15"))
