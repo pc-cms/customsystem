@@ -21,13 +21,19 @@ MODERN_RESULT = {
         },
         {"leg_id": 1188, "leg_num_in_floor": "402", "lgs_id": 1, "islinked": 0},
         {"leg_id": 1189, "lgs_id": 1},
+        {"leg_id": 1190, "leg_num_in_floor": "1", "lgs_id": 1},
     ],
     "egmsparams": {"1187": {"gamescnt": 15}},
     "players": {"1187": {"player": "Nurdin Mafie", "ptr_id": 88132}, "1188": {"player": "Anon"}},
-    "meters": {"1187": {"etl_denom": 10}, "1188": {"etl_denom": 10}},
+    "meters": {
+        "1187": {"etl_denom": 10, "etl_current_credits": 2500, "etl_date": "2026-09-16"},
+        "1188": {"etl_denom": 10, "etl_current_credits": 0, "etl_date": "2026-09-16"},
+        "1190": {"etl_denom": 10, "etl_current_credits": 0, "etl_date": "2026-09-16"},
+    },
     "currentmeters": {
-        "1187": {"currentcredits": 2500, "gamename": "Shining Crown"},
-        "1188": {"currentcredits": 0, "gamename": "Burning Hot"},
+        "1187": {"currentcredits": 2500, "gamename": "Shining Crown", "updated": "2026-09-16 13:00:00"},
+        "1188": {"currentcredits": 0, "gamename": "Burning Hot", "updated": "2026-09-16 13:00:00"},
+        "1190": {"currentcredits": 1482000, "gamename": "Old Game", "updated": "2025-07-03 10:00:00"},
     },
     "sessions": {
         "1187": {"total_in_result": 20000, "games_played": 100},
@@ -35,6 +41,7 @@ MODERN_RESULT = {
     },
     "lastbets": {"1187": {"total_in": 200}, "1189": {"total_in": 999}},
 }
+
 
 EGMS_HTML = """
 <table>
