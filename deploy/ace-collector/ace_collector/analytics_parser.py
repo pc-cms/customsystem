@@ -22,6 +22,7 @@ __all__ = [
     "parse_egm_list",
     "normalize_player_row",
     "normalize_jackpot_win",
+    "combine_date_time",
     "source_key",
 ]
 
@@ -140,12 +141,17 @@ def parse_egm_list(html: str) -> list[dict]:
 IN_COMPONENTS = ("egm_cashless_in", "egm_key_in", "egm_bill_in")
 OUT_COMPONENTS = ("egm_cashless_out", "egm_slip_out", "egm_key_out")
 
-#: Only a field that ACE explicitly documents as betting turnover may become
-#: Handle. `total_in_result` is NOT such a field and is deliberately absent.
-HANDLE_FIELDS = ("egm_handle", "handle", "turnover", "total_bet")
+#: v1: Handle is ALWAYS NULL. No ACE betting-turnover field has been verified
+#: in a live payload yet, so nothing may be mapped to Handle (guessed names
+#: such as `egm_handle`/`turnover`/`total_in_result` are deliberately ignored).
+#: The full source row stays in `raw_data` so the real field can be mapped
+#: after the Arusha dry-run.
+HANDLE_FIELDS: tuple[str, ...] = ()
 
-ID_FIELDS = ("client_id", "ptr_id", "player_id", "clientid", "id")
-NAME_FIELDS = ("client_name", "player_name", "name", "full_name")
+#: `ptr_id` is the VERIFIED ACE player id (playersbygame selects it as
+#: current_client). A bare `id` is the TRIP id and must never be used.
+ID_FIELDS = ("ptr_id", "client_id", "player_id", "clientid")
+NAME_FIELDS = ("forename", "client", "client_name", "player_name", "name", "full_name")
 
 
 def _sum_components(row: dict, aggregate: str, components: tuple[str, ...]) -> float | None:
@@ -185,11 +191,8 @@ def normalize_player_row(row: dict, business_date: str | None) -> dict | None:
     in_amount = _sum_components(row, "all_egm_in", IN_COMPONENTS)
     out_amount = _sum_components(row, "all_egm_out", OUT_COMPONENTS)
 
+    # v1: Handle stays NULL until a real ACE betting-turnover field is verified.
     handle = None
-    for field in HANDLE_FIELDS:
-        handle = to_number(row.get(field))
-        if handle is not None:
-            break
 
     games = to_number(row.get("games"))
 
@@ -240,6 +243,42 @@ def normalize_jackpot_win(row: dict, business_date: str | None) -> dict | None:
         ),
         "raw_data": row,
     }
+
+
+_MONTHS = {
+    "jan": "01", "feb": "02", "mar": "03", "apr": "04", "may": "05", "jun": "06",
+    "jul": "07", "aug": "08", "sep": "09", "oct": "10", "nov": "11", "dec": "12",
+}
+
+
+def combine_date_time(date_value: Any, time_value: Any) -> str | None:
+    """Combine verified ACE ``Winning Date`` + ``Winning Time`` cells.
+
+    ``15/SEP/2026`` + ``17:51:56`` -> ``2026-09-15T17:51:56``. When the date
+    cannot be recognised the original text is returned joined with a space, so
+    no information is lost and the source key stays stable. Absent -> None.
+    """
+    date_text = "" if date_value is None else str(date_value).strip()
+    time_text = "" if time_value is None else str(time_value).strip()
+    if not date_text and not time_text:
+        return None
+    iso_date = None
+    m = re.fullmatch(r"(\d{1,2})[/.\-]([A-Za-z]{3,})[/.\-](\d{4})", date_text)
+    if m and m.group(2)[:3].lower() in _MONTHS:
+        iso_date = f"{m.group(3)}-{_MONTHS[m.group(2)[:3].lower()]}-{int(m.group(1)):02d}"
+    if iso_date is None:
+        m = re.fullmatch(r"(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})", date_text)
+        if m:
+            iso_date = f"{m.group(3)}-{int(m.group(2)):02d}-{int(m.group(1)):02d}"
+    if iso_date is None:
+        m = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", date_text)
+        if m:
+            iso_date = date_text
+    if iso_date is None:
+        return " ".join(p for p in (date_text, time_text) if p) or None
+    if not time_text:
+        return iso_date
+    return f"{iso_date}T{time_text}"
 
 
 def source_key(*parts: Any) -> str:

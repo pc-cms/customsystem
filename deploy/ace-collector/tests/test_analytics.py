@@ -7,7 +7,8 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from ace_collector.analytics_parser import (  # noqa: E402
+from ace_collector.analytics_parser import (
+    combine_date_time,  # noqa: E402
     normalize_jackpot_win,
     normalize_player_row,
     parse_egm_list,
@@ -40,10 +41,16 @@ EGM_REPORT_HTML = """
 JP_REPORT_HTML = """
 <table>
   <tr><th>JackPot</th><th>Sum of Winning</th><th>EGM Position</th><th>Platform</th>
-      <th>Jackpot Date/Time</th><th>Winning Date/Time</th><th>%</th></tr>
+      <th>Jackpot Date</th><th>Jackpot Time</th>
+      <th>Winning Date</th><th>Winning Time</th><th>%</th></tr>
   <tr><td>Mini</td><td>21 195.00</td><td>A01</td><td>EGT</td>
-      <td>2026-09-15 10:00</td><td>2026-09-15 22:10</td><td>1.5</td></tr>
-  <tr><td>Grand</td><td></td><td></td><td>EGT</td><td></td><td></td><td>2.0</td></tr>
+      <td>15/SEP/2026</td><td>10:00:00</td>
+      <td>15/SEP/2026</td><td>17:51:56</td><td>1.5</td></tr>
+  <tr><td>Mini</td><td>21 195.00</td><td>A01</td><td>EGT</td>
+      <td>15/SEP/2026</td><td>10:00:00</td>
+      <td>15/SEP/2026</td><td>21:04:11</td><td>1.5</td></tr>
+  <tr><td>Grand</td><td></td><td></td><td>EGT</td><td></td><td></td>
+      <td></td><td></td><td>2.0</td></tr>
 </table>
 """
 
@@ -91,9 +98,33 @@ class PlayerNormalizationTest(unittest.TestCase):
         self.assertIsNone(rec["handle_amount"])
         self.assertIsNone(rec["games"])
 
-    def test_verified_handle_field_is_kept(self):
-        rec = normalize_player_row({"client_id": 1, "egm_handle": "250.00"}, None)
-        self.assertEqual(rec["handle_amount"], 250.0)
+    def test_handle_stays_null_in_v1_even_for_handle_like_fields(self):
+        row = {
+            "client_id": 1,
+            "egm_handle": "250.00",
+            "handle": "250.00",
+            "turnover": "250.00",
+            "total_bet": "250.00",
+            "total_in_result": "250.00",
+        }
+        rec = normalize_player_row(row, None)
+        self.assertIsNone(rec["handle_amount"])  # v1: never mapped, only raw_data
+        self.assertEqual(rec["raw_data"]["egm_handle"], "250.00")
+
+    def test_ptr_id_wins_over_trip_id_and_forename_is_name(self):
+        rec = normalize_player_row(
+            {"ptr_id": 123, "id": 999, "forename": "John Smith"}, "2026-09-15"
+        )
+        self.assertEqual(rec["ace_player_id"], "123")
+        self.assertNotEqual(rec["ace_player_id"], "999")
+        self.assertEqual(rec["ace_name"], "John Smith")
+
+    def test_trip_id_alone_is_not_an_ace_player_id(self):
+        self.assertIsNone(normalize_player_row({"id": 999, "client": "X"}, None))
+
+    def test_child_row_client_is_used_as_name(self):
+        rec = normalize_player_row({"ptr_id": 5, "client": "Jane Doe"}, None)
+        self.assertEqual(rec["ace_name"], "Jane Doe")
 
     def test_row_without_ace_id_is_skipped(self):
         self.assertIsNone(normalize_player_row({"client_name": "Anon"}, "2026-09-15"))
@@ -122,16 +153,34 @@ class ReportTableTest(unittest.TestCase):
     def test_jp_report_rows_and_jackpot_extraction(self):
         rows = [r for t in parse_html_tables(JP_REPORT_HTML) for r in t["rows"]]
         items = jackpot_rows_from_report(rows, "2026-09-15")
-        self.assertEqual(len(items), 1)  # incomplete row cannot get a stable key
+        self.assertEqual(len(items), 2)  # incomplete row cannot get a stable key
         item = items[0]
         self.assertEqual(item["jackpot_name"], "Mini")
         self.assertEqual(item["amount"], 21195.0)
         self.assertEqual(item["egm_code"], "A01")
         self.assertIsNone(item["ace_player_id"])
+        # Winning Date + Winning Time combined and normalized to ISO
+        self.assertEqual(item["occurred_at"], "2026-09-15T17:51:56")
+        self.assertEqual(items[1]["occurred_at"], "2026-09-15T21:04:11")
+        # same day, same EGM, same name/amount -> only the time differs
+        self.assertNotEqual(item["source_key"], items[1]["source_key"])
         self.assertEqual(
             item["source_key"],
             jackpot_rows_from_report(rows, "2026-09-15")[0]["source_key"],
         )
+
+    def test_combine_date_time_variants(self):
+        self.assertEqual(
+            combine_date_time("15/SEP/2026", "17:51:56"), "2026-09-15T17:51:56"
+        )
+        self.assertEqual(
+            combine_date_time("2026-09-15", "17:51:56"), "2026-09-15T17:51:56"
+        )
+        self.assertEqual(
+            combine_date_time("15/09/2026", "17:51:56"), "2026-09-15T17:51:56"
+        )
+        self.assertIsNone(combine_date_time("", ""))
+        self.assertIsNone(combine_date_time(None, None))
 
 
 class JackpotWinTest(unittest.TestCase):
