@@ -21,13 +21,19 @@ MODERN_RESULT = {
         },
         {"leg_id": 1188, "leg_num_in_floor": "402", "lgs_id": 1, "islinked": 0},
         {"leg_id": 1189, "lgs_id": 1},
+        {"leg_id": 1190, "leg_num_in_floor": "1", "lgs_id": 1},
     ],
     "egmsparams": {"1187": {"gamescnt": 15}},
     "players": {"1187": {"player": "Nurdin Mafie", "ptr_id": 88132}, "1188": {"player": "Anon"}},
-    "meters": {"1187": {"etl_denom": 10}, "1188": {"etl_denom": 10}},
+    "meters": {
+        "1187": {"etl_denom": 10, "etl_current_credits": 2500, "etl_date": "2026-09-16"},
+        "1188": {"etl_denom": 10, "etl_current_credits": 0, "etl_date": "2026-09-16"},
+        "1190": {"etl_denom": 10, "etl_current_credits": 0, "etl_date": "2026-09-16"},
+    },
     "currentmeters": {
-        "1187": {"currentcredits": 2500, "gamename": "Shining Crown"},
-        "1188": {"currentcredits": 0, "gamename": "Burning Hot"},
+        "1187": {"currentcredits": 2500, "gamename": "Shining Crown", "updated": "2026-09-16 13:00:00"},
+        "1188": {"currentcredits": 0, "gamename": "Burning Hot", "updated": "2026-09-16 13:00:00"},
+        "1190": {"currentcredits": 1482000, "gamename": "Old Game", "updated": "2025-07-03 10:00:00"},
     },
     "sessions": {
         "1187": {"total_in_result": 20000, "games_played": 100},
@@ -35,6 +41,7 @@ MODERN_RESULT = {
     },
     "lastbets": {"1187": {"total_in": 200}, "1189": {"total_in": 999}},
 }
+
 
 EGMS_HTML = """
 <table>
@@ -117,7 +124,7 @@ class ModernEgmTest(unittest.TestCase):
         self.by_code = {i["egm_code"]: i for i in self.items}
 
     def test_rows_and_leg_id_join(self):
-        self.assertEqual(len(self.items), 3)
+        self.assertEqual(len(self.items), 4)
         first = self.by_code["401"]
         self.assertEqual(first["position"], "401")
         self.assertEqual(first["raw_data"]["leg_id"], 1187)
@@ -128,6 +135,17 @@ class ModernEgmTest(unittest.TestCase):
         self.assertEqual(self.by_code["401"]["active_credit"], 250.0)
         self.assertEqual(self.by_code["402"]["active_credit"], 0.0)
         self.assertIsNone(self.by_code["1189"]["active_credit"])
+
+    def test_stale_currentmeters_does_not_leak_into_canonical(self):
+        stale = self.by_code["1"]
+        self.assertEqual(stale["active_credit"], 0.0)
+        self.assertEqual(stale["raw_data"]["ace_ui_credit"], 148200.0)
+        self.assertEqual(stale["raw_data"]["currentmeters_credit"], 148200.0)
+        self.assertEqual(stale["raw_data"]["meter_date"], "2026-09-16")
+        self.assertEqual(
+            stale["raw_data"]["currentmeters_updated"], "2025-07-03 10:00:00"
+        )
+
 
     def test_player_display_without_fake_id(self):
         self.assertEqual(self.by_code["401"]["ace_player_id"], "88132")

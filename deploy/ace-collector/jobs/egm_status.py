@@ -101,10 +101,19 @@ def normalize_modern(result: dict) -> list[dict]:
         if not egm_code:
             continue
 
-        # Exact JS formula: (currentcredits * etl_denom) / 100
-        credits = to_number(current.get("currentcredits"))
+        # CMS canonical: fresh ETL meter (etl_current_credits * etl_denom) / 100.
+        # The ACE UI/JS value (currentmeters.currentcredits) can be years stale,
+        # so it is kept as a raw diagnostic only.
         denom = to_number(meters.get("etl_denom"))
-        active_credit = None if credits is None or denom is None else credits * denom / 100
+        etl_credits = to_number(meters.get("etl_current_credits"))
+        active_credit = (
+            None if etl_credits is None or denom is None else etl_credits * denom / 100
+        )
+        ui_credits = to_number(current.get("currentcredits"))
+        ace_ui_credit = (
+            None if ui_credits is None or denom is None else ui_credits * denom / 100
+        )
+
 
         games_played = to_number(session.get("games_played"))
         total_in_result = to_number(session.get("total_in_result"))
@@ -127,12 +136,17 @@ def normalize_modern(result: dict) -> list[dict]:
                 "leg_id": leg_id,
                 "player_display": player_display,
                 "current_game": current.get("gamename"),
+                "ace_ui_credit": ace_ui_credit,
+                "currentmeters_credit": ace_ui_credit,
+                "meter_date": meters.get("etl_date"),
+                "currentmeters_updated": current.get("updated"),
                 "session_games_played": games_played,
                 "session_total_in_result": total_in_result,
                 "average_bet": average_bet,
                 "last_bet": last_bet,
                 "games_count": (params or {}).get("gamescnt"),
                 "islinked": row.get("islinked"),
+
             }
         )
         for key, value in (

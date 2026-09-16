@@ -209,6 +209,13 @@ and it must never create a second concurrent login loop.
   report); absent `total_in` stays NULL. Guessed fields (`handle`, `turnover`,
   `total_bet`, `total_in_result`) are never mapped
 * Games = verified `games_played` (legacy `games` only as fallback)
+* EGM live credit: CMS canonical `active_credit` = `meters.etl_current_credits *
+  meters.etl_denom / 100` (fresh ETL meter). The ACE UI/JS value
+  (`currentmeters.currentcredits * etl_denom / 100`) is NOT canonical — it can be
+  years stale — and is kept only in `raw_data` as `ace_ui_credit` /
+  `currentmeters_credit`, together with `meter_date` (`etl_date`) and
+  `currentmeters_updated` for staleness diagnostics
+
 * one daily row per ACE player: nested child trip rows under `data` are not
   traversed once the parent player row is found
 * player id = `ptr_id` (verified); a bare `id` is the trip id and is never used
