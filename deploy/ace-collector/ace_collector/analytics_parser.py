@@ -190,11 +190,8 @@ def normalize_player_row(row: dict, business_date: str | None) -> dict | None:
     in_amount = _sum_components(row, "all_egm_in", IN_COMPONENTS)
     out_amount = _sum_components(row, "all_egm_out", OUT_COMPONENTS)
 
+    # v1: Handle stays NULL until a real ACE betting-turnover field is verified.
     handle = None
-    for field in HANDLE_FIELDS:
-        handle = to_number(row.get(field))
-        if handle is not None:
-            break
 
     games = to_number(row.get("games"))
 
