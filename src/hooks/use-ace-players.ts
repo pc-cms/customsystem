@@ -449,3 +449,28 @@ export const useAceCoverage = () =>
       return [...map.values()];
     },
   });
+
+/**
+ * Correct distinct counts for a whole date range: unique slot players and
+ * unique machines per branch, plus a grand-total row where `casino_id` is null.
+ * Needed because per-day counts cannot be summed or maxed across days.
+ */
+export const useAceRangeDistinct = (from: string, to: string, casinoId?: string | null) =>
+  useQuery({
+    queryKey: ["ace-range-distinct", from, to, casinoId ?? "all"],
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("ace_consolidated_range_distinct" as any, {
+        _from: from,
+        _to: to,
+        _casino_id: casinoId ?? null,
+      });
+      if (error) throw error;
+      const rows = (data ?? []) as unknown as {
+        casino_id: string | null;
+        players: number | null;
+        egms: number | null;
+      }[];
+      return new Map(rows.map((r) => [r.casino_id ?? "__total", r]));
+    },
+  });
