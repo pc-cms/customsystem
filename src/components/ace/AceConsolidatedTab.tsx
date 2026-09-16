@@ -10,6 +10,7 @@ import { Download } from "lucide-react";
 import { fmtDateOnly, fmtDateTime } from "@/lib/format-date";
 import { getBusinessDate } from "@/lib/business-day";
 import { presetRange } from "@/components/ui/date-range-presets";
+import { MonthCarousel } from "@/components/payroll/MonthCarousel";
 import { downloadXlsx } from "@/lib/excel-export";
 import { useAceConsolidated, useAceEgmCurrent, useAcePeriods, useAceRangeDistinct, type AceConsolidatedRow } from "@/hooks/use-ace-players";
 import { AceEmpty, Kpi, NA, avgBet, intOrNa, money, signedMoney, sumOrNull, type AceConsolidatedMode } from "./ace-shared";
@@ -38,7 +39,10 @@ const aggregate = (rows: AceConsolidatedRow[], key: string, label: string, disti
 
 export default function AceConsolidatedTab({ casinoId, casinoName, operational = false, onRangeChange }: Props) {
   const today = getBusinessDate();
-  const month = presetRange("month", new Date(`${today}T12:00:00`));
+  const todayDate = new Date(`${today}T12:00:00`);
+  const [monthYear, setMonthYear] = useState(todayDate.getFullYear());
+  const [monthNumber, setMonthNumber] = useState(todayDate.getMonth() + 1);
+  const month = presetRange("month", new Date(monthYear, monthNumber - 1, 12));
   const [view, setView] = useState<AceConsolidatedMode>(operational ? "current" : "month");
   const periods = useAcePeriods(casinoId);
   const [periodKey, setPeriodKey] = useState("");
@@ -99,9 +103,10 @@ export default function AceConsolidatedTab({ casinoId, casinoName, operational =
     <FilterBar filters={<>
       <div className="flex gap-1">
         <Button size="sm" className="h-9" variant={view === "current" ? "default" : "outline"} onClick={() => setView("current")}>Current Day</Button>
-        <Button size="sm" className="h-9" variant={view === "month" ? "default" : "outline"} onClick={() => setView("month")}>This Month</Button>
+        <Button size="sm" className="h-9" variant={view === "month" ? "default" : "outline"} onClick={() => setView("month")}>Month</Button>
         <Button size="sm" className="h-9" variant={view === "period" ? "default" : "outline"} onClick={() => setView("period")}>Closed Period</Button>
       </div>
+      {view === "month" && <MonthCarousel year={monthYear} month={monthNumber} onChange={(year, monthValue) => { setMonthYear(year); setMonthNumber(monthValue); }} />}
       {view === "period" && <Select value={periodKey} onValueChange={setPeriodKey}>
         <SelectTrigger className="h-9 min-w-72"><SelectValue placeholder="Select stored ACE period" /></SelectTrigger>
         <SelectContent>{(periods.data ?? []).map((p: any) => <SelectItem key={p.key} value={p.key}>{p.period_label || `${fmtDateOnly(p.from)} – ${fmtDateOnly(p.to)}`} · {fmtDateTime(p.captured_at)}</SelectItem>)}</SelectContent>

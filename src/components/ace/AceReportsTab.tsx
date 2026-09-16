@@ -14,12 +14,36 @@ import { useAceReports } from "@/hooks/use-ace-players";
 import { AceEmpty, type AceScope } from "./ace-shared";
 
 type Capture = any;
-type ReportGroup = { key: string; table: unknown; headers: string[]; rows: Record<string, any>[]; captures: number };
+type ReportGroup = { key: string; table: unknown; headers: string[]; rows: Record<string, any>[] };
 const numeric = (value: unknown): number | null => {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   if (typeof value !== "string" || !value.trim()) return null;
   const normalized = value.replace(/\s/g, "").replace(/,/g, "");
   return /^-?\d+(\.\d+)?$/.test(normalized) ? Number(normalized) : null;
+};
+
+const isAdditiveHeader = (header: string) => {
+  const value = header.toLowerCase();
+  if (/(average|avg|%|rate|denom|position|time|date|#|\/egm)/.test(value)) return false;
+  return /(games|netwin|\bwin\b|drop|paid|credit|jackpot|\bjp\b|\bin\b|\bout\b|amount)/.test(value);
+};
+
+const combineRows = (headers: string[], rows: Record<string, any>[]) => {
+  const additive = headers.filter(isAdditiveHeader);
+  if (!additive.length) return rows;
+  const dimensions = headers.filter((header) => !additive.includes(header));
+  const combined = new Map<string, Record<string, any>>();
+  rows.forEach((row) => {
+    const key = JSON.stringify(dimensions.map((header) => row[header] ?? null));
+    const current = combined.get(key) ?? Object.fromEntries(dimensions.map((header) => [header, row[header] ?? null]));
+    additive.forEach((header) => {
+      const value = numeric(row[header]);
+      if (value !== null) current[header] = Number(current[header] ?? 0) + value;
+      else if (!(header in current)) current[header] = null;
+    });
+    combined.set(key, current);
+  });
+  return [...combined.values()];
 };
 
 export default function AceReportsTab({ casinoId, from, to, onRangeChange }: AceScope & { casinoName: Map<string, string>; onRangeChange?: (range: { from: string; to: string }) => void }) {
@@ -39,13 +63,17 @@ export default function AceReportsTab({ casinoId, from, to, onRangeChange }: Ace
         const table = row?._table ?? 0;
         const declared = Array.isArray(row?._headers) ? row._headers.map(String) : Object.keys(row ?? {}).filter((key) => !key.startsWith("_"));
         const key = `${String(table)}:${JSON.stringify(declared)}`;
-        const group = out.get(key) ?? { key, table, headers: declared, rows: [], captures: 0 };
+        const group = out.get(key) ?? { key, table, headers: declared, rows: [] };
         group.rows.push({ __key: `${capture.id}:${index}`, __capture: capture, ...row });
-        group.captures += out.has(key) ? 0 : 1;
         out.set(key, group);
       });
     });
-    return [...out.values()];
+    return [...out.values()].map((group) => ({
+      ...group,
+      rows: periodId === "all" && selectedCaptures.length > 1
+        ? combineRows(group.headers, group.rows).map((row, index) => ({ ...row, __key: `${group.key}:combined:${index}` }))
+        : group.rows,
+    }));
   }, [selectedCaptures]);
 
   const updateRange = (next: { from: string; to: string }) => {
@@ -83,7 +111,7 @@ export default function AceReportsTab({ casinoId, from, to, onRangeChange }: Ace
       </Select>
     </>} right={<Button variant="outline" size="sm" onClick={exportContent} disabled={!groups.length}><Download className="mr-1 h-4 w-4" /> Export</Button>} />
 
-    <PageSection title="Stored ACE periods" card={false} titleRight={<Badge variant="outline">{captures.length} reports</Badge>}>
+    <PageSection title="Available periods" card={false} titleRight={<Badge variant="outline">{captures.length} reports</Badge>}>
       <div className="flex flex-wrap gap-2">
         {captures.map((capture) => <Button key={capture.id} size="sm" variant={periodId === capture.id ? "default" : "outline"} onClick={() => setPeriodId(capture.id)}>
           {capture.period_label || fmtDateOnly(capture.business_date)}
@@ -92,7 +120,7 @@ export default function AceReportsTab({ casinoId, from, to, onRangeChange }: Ace
       </div>
     </PageSection>
 
-    <PageSection title={periodId === "all" ? "Combined report" : "Selected ACE period"} card={false} titleRight={<span className="text-[11px] text-muted-foreground">Stored snapshots · unchanged</span>}>
+    <PageSection title={periodId === "all" ? "Combined report" : "Report"} card={false}>
       {!groups.length ? <SmartTable data={[]} columns={[]} rowKey={() => "empty"} empty={<AceEmpty what="report rows" />} /> : <div className="space-y-4">
         {groups.map((group, index) => <div key={group.key} className="space-y-1">
           {groups.length > 1 && <div className="text-xs font-medium text-muted-foreground">Table {index + 1}</div>}

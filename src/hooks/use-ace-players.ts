@@ -38,6 +38,7 @@ export interface AcePlayerStatsRow {
 export interface AcePlayerActivityMeta {
   visits: number;
   last_activity: string | null;
+  cards: string[];
 }
 
 export interface AceIdentityRow {
@@ -82,25 +83,40 @@ export const useAcePlayerStats = (from: string, to: string, casinoId?: string | 
     },
   });
 
-/** Distinct stored ACE activity days per CMS player for the selected branch/range. */
+/** Distinct stored ACE activity days and strongest available activity timestamp. */
 export const useAcePlayerActivityMeta = (from: string, to: string, casinoId?: string | null) =>
   useQuery({
     queryKey: ["ace-player-activity-meta", from, to, casinoId ?? "all"],
     staleTime: STALE,
     queryFn: async () => {
-      let q = supabase
+      let dailyQuery = supabase
         .from("ace_player_daily" as any)
         .select("identity_id, business_date, last_play_at, player_ace_identities!inner(player_id)")
         .gte("business_date", from)
         .lte("business_date", to)
         .order("business_date", { ascending: false })
         .limit(5000);
-      if (casinoId) q = q.eq("casino_id", casinoId);
-      const { data, error } = await q;
-      if (error) throw error;
+      let identityQuery = supabase
+        .from("player_ace_identities" as any)
+        .select("player_id, last_seen_at, player_ace_cards(last_seen_at)")
+        .limit(5000);
+      if (casinoId) {
+        dailyQuery = dailyQuery.eq("casino_id", casinoId);
+        identityQuery = identityQuery.eq("casino_id", casinoId);
+      }
+      const [dailyResult, identityResult] = await Promise.all([dailyQuery, identityQuery]);
+      if (dailyResult.error) throw dailyResult.error;
+      if (identityResult.error) throw identityResult.error;
       const days = new Map<string, Set<string>>();
       const last = new Map<string, string | null>();
-      ((data ?? []) as any[]).forEach((r) => {
+      const cardsByPlayer = new Map<string, Set<string>>();
+      const rememberLast = (playerId: string, value: string | null | undefined) => {
+        if (!value) return;
+        const date = value.slice(0, 10);
+        if (date < from || date > to) return;
+        if (!last.get(playerId) || value > String(last.get(playerId))) last.set(playerId, value);
+      };
+      ((dailyResult.data ?? []) as any[]).forEach((r) => {
         const relation = Array.isArray(r.player_ace_identities)
           ? r.player_ace_identities[0]
           : r.player_ace_identities;
@@ -109,13 +125,28 @@ export const useAcePlayerActivityMeta = (from: string, to: string, casinoId?: st
         const playerDays = days.get(playerId) ?? new Set<string>();
         if (r.business_date) playerDays.add(r.business_date);
         days.set(playerId, playerDays);
-        const seen = (r.last_play_at ?? null) as string | null;
-        if (seen && (!last.get(playerId) || seen > String(last.get(playerId)))) last.set(playerId, seen);
+        // Precedence by precision: exact daily play timestamp, then business date.
+        rememberLast(playerId, r.last_play_at ?? r.business_date ?? null);
+      });
+      ((identityResult.data ?? []) as any[]).forEach((identity) => {
+        const playerId = identity.player_id as string | undefined;
+        if (!playerId) return;
+        if (!days.has(playerId)) days.set(playerId, new Set<string>());
+        // Identity/card timestamps are used only when newer than the daily fallback.
+        rememberLast(playerId, identity.last_seen_at);
+        const cards = Array.isArray(identity.player_ace_cards) ? identity.player_ace_cards : [];
+        cards.forEach((card: any) => {
+          rememberLast(playerId, card.last_seen_at);
+          if (!card.card_number) return;
+          const playerCards = cardsByPlayer.get(playerId) ?? new Set<string>();
+          playerCards.add(String(card.card_number));
+          cardsByPlayer.set(playerId, playerCards);
+        });
       });
       return new Map<string, AcePlayerActivityMeta>(
         [...days.entries()].map(([playerId, playerDays]) => [
           playerId,
-          { visits: playerDays.size, last_activity: last.get(playerId) ?? null },
+          { visits: playerDays.size, last_activity: last.get(playerId) ?? null, cards: [...(cardsByPlayer.get(playerId) ?? [])] },
         ]),
       );
     },

@@ -86,7 +86,8 @@ export default function AceEgmLiveTab({
     { key: "credit", header: "Active credit", type: "money", accessor: (r) => money(r.active_credit), sortValue: (r) => r.active_credit ?? 0 },
     { key: "game", header: "Game", accessor: (r) => r.raw_data?.current_game ?? "—", sortValue: (r) => r.raw_data?.current_game ?? "" },
     { key: "lastbet", header: "Last bet", type: "money", accessor: (r) => money(r.raw_data?.last_bet), sortValue: (r) => r.raw_data?.last_bet ?? 0 },
-    { key: "seen", header: "Last activity", accessor: (r) => (r.observed_at ? fmtDateTime(r.observed_at) : "—"), sortValue: (r) => r.observed_at ?? "" },
+    { key: "games", header: "Session games", type: "int", accessor: (r) => intOrNa(r.raw_data?.session_games_played), sortValue: (r) => r.raw_data?.session_games_played ?? 0 },
+    { key: "seen", header: "Last seen", accessor: (r) => (r.observed_at ? fmtDateTime(r.observed_at) : "—"), sortValue: (r) => r.observed_at ?? "" },
   ];
 
   const footer = [
@@ -103,11 +104,11 @@ export default function AceEgmLiveTab({
       {
         name: "EGM Live",
         rows: [
-          ["Position", "State", "Player", "Active credit", "Game", "Last bet", "Last activity"],
+          ["Position", "State", "Player", "Active credit", "Game", "Last bet", "Session games", "Last seen"],
           ...rows.map((r) => [
             r.position ?? "", r.state ?? "",
             playerLabel(r), r.active_credit, r.raw_data?.current_game ?? "",
-            r.raw_data?.last_bet ?? null, r.observed_at ?? "",
+            r.raw_data?.last_bet ?? null, r.raw_data?.session_games_played ?? null, r.observed_at ?? "",
           ]),
         ],
       },

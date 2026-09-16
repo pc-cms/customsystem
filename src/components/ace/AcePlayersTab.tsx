@@ -21,6 +21,9 @@ import {
 } from "@/hooks/use-ace-players";
 import { AceEmpty, avgBet, intOrNa, money, signedMoney, sumOrNull, type AceScope } from "./ace-shared";
 
+const activityLabel = (value: string | null | undefined) =>
+  value?.length === 10 ? fmtDateOnly(value) : value ? fmtDateTime(value) : "—";
+
 const DrillPanel = ({
   player,
   from,
@@ -96,10 +99,10 @@ export default function AcePlayersTab({ casinoId, from, to }: AceScope) {
       (r) =>
         (!name || (r.player_name ?? "").toLowerCase().includes(name.toLowerCase())) &&
         has(r.ace_ids, aceId) &&
-        has(r.cards, card) &&
+        has(activity.data?.get(r.player_id)?.cards ?? [], card) &&
         has(r.egm_codes, egm),
     );
-  }, [players.data, name, aceId, card, egm]);
+  }, [players.data, activity.data, name, aceId, card, egm]);
 
   const totals = useMemo(
     () => ({
@@ -127,14 +130,14 @@ export default function AcePlayersTab({ casinoId, from, to }: AceScope) {
       ),
       sortValue: (r) => r.player_name ?? "",
     },
-    { key: "cards", header: "Card(s)", accessor: (r) => (r.cards ?? []).join(" · ") || "—", sortValue: (r) => (r.cards ?? []).join(" "), cellClassName: "font-mono" },
+    { key: "cards", header: "Card(s)", accessor: (r) => (activity.data?.get(r.player_id)?.cards ?? []).join(" · ") || "—", sortValue: (r) => (activity.data?.get(r.player_id)?.cards ?? []).join(" "), cellClassName: "font-mono" },
     { key: "visits", header: "Visits", type: "int", accessor: (r) => intOrNa(activity.data?.get(r.player_id)?.visits), sortValue: (r) => activity.data?.get(r.player_id)?.visits },
     {
       key: "last",
       header: "Last activity",
       accessor: (r) => {
         const value = r.last_activity ?? activity.data?.get(r.player_id)?.last_activity;
-        return value ? fmtDateTime(value) : "—";
+        return activityLabel(value);
       },
       sortValue: (r) => r.last_activity ?? activity.data?.get(r.player_id)?.last_activity ?? "",
     },
@@ -188,7 +191,7 @@ export default function AcePlayersTab({ casinoId, from, to }: AceScope) {
         rows: [
           ["ACE IDs", "Player", "Cards", "Visits", "Last activity", "Drop", "Handle", "IN", "OUT", "Slot Result", "Games", "Avg Bet", "JP count", "JP amount"],
           ...rows.map((r) => [
-            (r.ace_ids ?? []).join(" "), r.player_name ?? "", (r.cards ?? []).join(" "), activity.data?.get(r.player_id)?.visits ?? null, r.last_activity ?? activity.data?.get(r.player_id)?.last_activity ?? "",
+            (r.ace_ids ?? []).join(" "), r.player_name ?? "", (activity.data?.get(r.player_id)?.cards ?? []).join(" "), activity.data?.get(r.player_id)?.visits ?? null, r.last_activity ?? activity.data?.get(r.player_id)?.last_activity ?? "",
             r.drop_amount, r.handle_amount, r.in_amount, r.out_amount, r.slot_result, r.games,
             avgBet(r.handle_amount, r.games), r.jackpot_count, r.jackpot_amount,
           ]),
