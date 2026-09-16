@@ -85,20 +85,19 @@ export default function PlayerAceSlots({ playerId, from, to, isSuperAdmin }: Pro
   const slotHandle = sum(rows, "handle_amount");
   const slotResult = slotIn === null && slotOut === null ? null : (slotIn ?? 0) - (slotOut ?? 0);
 
-  const submitAceIds = async (force = false) => {
-    if (!branch) return;
-    const ids = aceInput.split(",").map((s) => s.trim()).filter(Boolean);
-    for (const ace of ids) {
-      const res = await attach.mutateAsync({
-        player_id: playerId,
-        casino_id: branch,
-        ace_player_id: ace,
-        force,
-      });
-      if (res?.status === "conflict") {
-        setConflict({ ace, casino: branch });
-        return;
-      }
+  /** Link exactly one ACE ID to this player, in one branch. */
+  const submitAceId = async (force = false) => {
+    const ace = aceInput.trim();
+    if (!branch || !ace) return;
+    const res = await attach.mutateAsync({
+      player_id: playerId,
+      casino_id: branch,
+      ace_player_id: ace,
+      force,
+    });
+    if (res?.status === "conflict") {
+      setConflict({ ace, casino: branch });
+      return;
     }
     setAceInput("");
   };
