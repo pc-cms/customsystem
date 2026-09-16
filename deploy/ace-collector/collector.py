@@ -13,6 +13,8 @@ Commands:
   --dry-run --force-closing
   --history-scan --from 2026-01-01 --to 2026-07-31   (read-only, posts nothing)
   --backfill-from 2026-01-01 --to 2026-07-31         (SAFE Statistics backfill)
+  --analytics-history-scan --from 2026-09-01 --to 2026-09-17
+  --analytics-backfill-from 2026-09-01 --to 2026-09-17
 
 """
 from __future__ import annotations
@@ -20,7 +22,7 @@ from __future__ import annotations
 import argparse
 import sys
 import time
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from ace_collector.ace_client import AceClient, AceError
@@ -509,6 +511,163 @@ def run_analytics(client, cfg, logger, dry_run: bool, period_id: int | None,
     return 1 if failures else 0
 
 
+def _date_range(from_date: str, to_date: str) -> list[str]:
+    start = date.fromisoformat(from_date)
+    end = date.fromisoformat(to_date)
+    return [(start + timedelta(days=i)).isoformat() for i in range((end - start).days + 1)]
+
+
+def analytics_history_inventory(client, logger, from_date: str, to_date: str) -> dict:
+    """Inventory analytics source periods without sending anything to CMS."""
+    from jobs.player_statistics import all_game_periods, business_date_of
+
+    game_periods = all_game_periods(client)
+    current = game_periods[-1] if game_periods else None
+    selected_players: list[tuple[str, str, str]] = []
+    player_by_date: dict[str, list[tuple[str, str]]] = {}
+    for start, end in game_periods:
+        bdate = business_date_of(start, end)
+        if not bdate or not (from_date <= bdate <= to_date):
+            continue
+        player_by_date.setdefault(bdate, []).append((start, end))
+        if (start, end) != current:
+            selected_players.append((bdate, start, end))
+
+    selected_reports: list[tuple[str, int, str]] = []
+    report_by_date: dict[str, list[tuple[int, str]]] = {}
+    for period_id, label in all_closed_periods(client):
+        bdate = business_date_from_label(label)
+        if not bdate or not (from_date <= bdate <= to_date):
+            continue
+        report_by_date.setdefault(bdate, []).append((period_id, label))
+        selected_reports.append((bdate, period_id, label))
+
+    selected_players.sort(key=lambda row: (row[0], row[1], row[2]))
+    selected_reports.sort(key=lambda row: (row[0], row[1]))
+    requested_dates = _date_range(from_date, to_date)
+    return {
+        "all_player_periods": game_periods,
+        "current_player_period": current,
+        "player_periods": selected_players,
+        "report_periods": selected_reports,
+        "player_duplicates": {d: rows for d, rows in player_by_date.items() if len(rows) > 1},
+        "report_duplicates": {d: rows for d, rows in report_by_date.items() if len(rows) > 1},
+        "missing_player_dates": [d for d in requested_dates if d not in player_by_date],
+        "missing_report_dates": [d for d in requested_dates if d not in report_by_date],
+    }
+
+
+def log_analytics_history_inventory(logger, cfg, from_date: str, to_date: str,
+                                    inventory: dict) -> None:
+    prefix = "ANALYTICS-HISTORY-SCAN"
+    current = inventory["current_player_period"]
+    logger.info("%s location=%s window=%s..%s", prefix, cfg.location_code, from_date, to_date)
+    if current:
+        logger.info("%s OPEN/current player_period=%s..%s skipped=true", prefix, current[0], current[1])
+    else:
+        logger.warning("%s OPEN/current player_period=NONE", prefix)
+    for bdate, start, end in inventory["player_periods"]:
+        logger.info("%s CLOSED player date=%s period=%s..%s selected=true", prefix, bdate, start, end)
+    for bdate, period_id, label in inventory["report_periods"]:
+        logger.info(
+            "%s CLOSED accounting date=%s period_id=%s label=%r reports=EGM,JP",
+            prefix, bdate, period_id, label,
+        )
+    for bdate, periods in inventory["player_duplicates"].items():
+        logger.warning("%s duplicate player date=%s periods=%s", prefix, bdate, periods)
+    for bdate, periods in inventory["report_duplicates"].items():
+        logger.warning("%s duplicate accounting date=%s periods=%s", prefix, bdate, periods)
+    logger.info("%s missing_player_dates=%s", prefix, inventory["missing_player_dates"] or "none")
+    logger.info("%s missing_accounting_dates=%s", prefix, inventory["missing_report_dates"] or "none")
+    logger.info(
+        "%s totals all_player_periods=%d selected_closed_players=%d closed_accounting_periods=%d "
+        "player_duplicate_dates=%d accounting_duplicate_dates=%d posts=0",
+        prefix, len(inventory["all_player_periods"]), len(inventory["player_periods"]),
+        len(inventory["report_periods"]), len(inventory["player_duplicates"]),
+        len(inventory["report_duplicates"]),
+    )
+
+
+def run_analytics_history(client, cfg, logger, from_date: str, to_date: str,
+                          scan_only: bool) -> int:
+    """Scan or idempotently ingest CLOSED ACE analytics periods only."""
+    from ace_collector.analytics_api import AnalyticsApi
+    from jobs import accounting_reports, jackpot_wins, player_statistics
+
+    inventory = analytics_history_inventory(client, logger, from_date, to_date)
+    log_analytics_history_inventory(logger, cfg, from_date, to_date, inventory)
+    if scan_only:
+        return 0
+
+    api = AnalyticsApi(cfg)
+    attempted = 0
+    succeeded = 0
+    failures = 0
+    totals = {"players": 0, "daily": 0, "jackpots": 0, "egm_reports": 0, "jp_reports": 0}
+
+    for bdate, start, end in inventory["player_periods"]:
+        attempted += 1
+        try:
+            data = player_statistics.collect(client, start, end)
+            for row in data["daily"]:
+                row["is_final"] = True
+            if data["players"]:
+                api.send("players", data["players"])
+            if data["daily"]:
+                api.send("daily", data["daily"])
+            jackpots = jackpot_wins.collect(client, start, end)
+            if jackpots:
+                api.send("jackpots", jackpots)
+            totals["players"] += len(data["players"])
+            totals["daily"] += len(data["daily"])
+            totals["jackpots"] += len(jackpots)
+            succeeded += 1
+            logger.info(
+                "ANALYTICS-BACKFILL date=%s player_period=%s..%s players=%d daily=%d "
+                "jackpots=%d status=ok",
+                bdate, start, end, len(data["players"]), len(data["daily"]), len(jackpots),
+            )
+        except Exception as exc:  # noqa: BLE001 — continue with later periods
+            failures += 1
+            logger.error(
+                "ANALYTICS-BACKFILL date=%s player_period=%s..%s status=failed error=%s",
+                bdate, start, end, exc,
+            )
+
+    for bdate, period_id, label in inventory["report_periods"]:
+        attempted += 1
+        try:
+            result = accounting_reports.run(
+                client, api, period_id, period_label=label,
+                business_date=bdate, dry_run=False,
+            )
+            totals["egm_reports"] += len(result["egm_rows"])
+            totals["jp_reports"] += len(result["jp_rows"])
+            totals["jackpots"] += len(result["jackpots"])
+            succeeded += 1
+            logger.info(
+                "ANALYTICS-BACKFILL date=%s accounting_period=%s egm_rows=%d jp_rows=%d "
+                "jackpots=%d status=ok",
+                bdate, period_id, len(result["egm_rows"]), len(result["jp_rows"]),
+                len(result["jackpots"]),
+            )
+        except Exception as exc:  # noqa: BLE001 — continue with later periods
+            failures += 1
+            logger.error(
+                "ANALYTICS-BACKFILL date=%s accounting_period=%s status=failed error=%s",
+                bdate, period_id, exc,
+            )
+
+    logger.info(
+        "ANALYTICS-BACKFILL done location=%s window=%s..%s attempted=%d succeeded=%d "
+        "failures=%d players=%d daily=%d egm_report_rows=%d jp_report_rows=%d jackpots=%d",
+        cfg.location_code, from_date, to_date, attempted, succeeded, failures,
+        totals["players"], totals["daily"], totals["egm_reports"],
+        totals["jp_reports"], totals["jackpots"],
+    )
+    return 1 if attempted > 0 and succeeded == 0 else 0
+
+
 
 
 
@@ -534,6 +693,10 @@ def main(argv: list[str] | None = None) -> int:
                     help="fetch/parse ACE analytics and log a summary, POST NOTHING")
     ap.add_argument("--analytics-once", action="store_true",
                     help="run one analytics cycle and send it to ace-player-ingest")
+    ap.add_argument("--analytics-history-scan", action="store_true",
+                    help="inventory historical analytics periods; POST NOTHING")
+    ap.add_argument("--analytics-backfill-from", metavar="YYYY-MM-DD",
+                    help="backfill CLOSED analytics periods from this business date")
     ap.add_argument("--analytics-reports-only", action="store_true",
                     help="collect only the EGM/JP accounting reports")
     ap.add_argument("--period-id", type=int, default=None,
@@ -551,6 +714,23 @@ def main(argv: list[str] | None = None) -> int:
             return None
 
     logger = setup_logging(args.verbose)
+
+    analytics_history = args.analytics_history_scan or bool(args.analytics_backfill_from)
+    analytics_from = valid_date(args.analytics_backfill_from or args.from_date)
+    analytics_to = valid_date(args.to_date)
+    if analytics_history:
+        if not analytics_from:
+            logger.error(
+                "A valid --from / --analytics-backfill-from date (YYYY-MM-DD) is required"
+            )
+            return 2
+        if not analytics_to:
+            logger.error("A valid --to YYYY-MM-DD bound is required for analytics history")
+            return 2
+        if analytics_to < analytics_from:
+            logger.error("--to (%s) must not be earlier than analytics --from (%s)",
+                         analytics_to, analytics_from)
+            return 2
 
     # Validate the historical bounds BEFORE anything touches ACE or the config:
     # a malformed or out-of-window range must never reach the network.
@@ -584,7 +764,19 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     client = AceClient(cfg)
-    api = IngestApi(cfg)
+
+    # Analytics history returns before the finance API is even constructed.
+    # It therefore cannot call ace-finance-ingest or inherit finance guardrails.
+    if analytics_history:
+        try:
+            client.login()
+            return run_analytics_history(
+                client, cfg, logger, analytics_from, analytics_to,
+                scan_only=args.analytics_history_scan and not args.analytics_backfill_from,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.error("ANALYTICS-BACKFILL fatal error: %s", exc)
+            return 1
 
     # ── analytics modes: never touch the finance path ─────────────────────
     if args.analytics_dry_run or args.analytics_once or args.analytics_reports_only:
@@ -595,6 +787,8 @@ def main(argv: list[str] | None = None) -> int:
             period_id=args.period_id,
             reports_only=args.analytics_reports_only,
         )
+
+    api = IngestApi(cfg)
 
     if args.health:
         logger.info("ACE base URL : %s (verify_tls=%s)", cfg.ace_base_url, cfg.ace_verify_tls)
