@@ -152,16 +152,34 @@ class ReportTableTest(unittest.TestCase):
     def test_jp_report_rows_and_jackpot_extraction(self):
         rows = [r for t in parse_html_tables(JP_REPORT_HTML) for r in t["rows"]]
         items = jackpot_rows_from_report(rows, "2026-09-15")
-        self.assertEqual(len(items), 1)  # incomplete row cannot get a stable key
+        self.assertEqual(len(items), 2)  # incomplete row cannot get a stable key
         item = items[0]
         self.assertEqual(item["jackpot_name"], "Mini")
         self.assertEqual(item["amount"], 21195.0)
         self.assertEqual(item["egm_code"], "A01")
         self.assertIsNone(item["ace_player_id"])
+        # Winning Date + Winning Time combined and normalized to ISO
+        self.assertEqual(item["occurred_at"], "2026-09-15T17:51:56")
+        self.assertEqual(items[1]["occurred_at"], "2026-09-15T21:04:11")
+        # same day, same EGM, same name/amount -> only the time differs
+        self.assertNotEqual(item["source_key"], items[1]["source_key"])
         self.assertEqual(
             item["source_key"],
             jackpot_rows_from_report(rows, "2026-09-15")[0]["source_key"],
         )
+
+    def test_combine_date_time_variants(self):
+        self.assertEqual(
+            combine_date_time("15/SEP/2026", "17:51:56"), "2026-09-15T17:51:56"
+        )
+        self.assertEqual(
+            combine_date_time("2026-09-15", "17:51:56"), "2026-09-15T17:51:56"
+        )
+        self.assertEqual(
+            combine_date_time("15/09/2026", "17:51:56"), "2026-09-15T17:51:56"
+        )
+        self.assertIsNone(combine_date_time("", ""))
+        self.assertIsNone(combine_date_time(None, None))
 
 
 class JackpotWinTest(unittest.TestCase):
