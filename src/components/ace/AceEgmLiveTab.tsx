@@ -33,7 +33,9 @@ export default function AceEgmLiveTab({
   casinoId: string | null;
   casinoName: Map<string, string>;
 }) {
-  const egms = useAceEgmCurrent(casinoId);
+  // live screen: the query itself polls every 25s (the 5s timer below only
+  // repaints the "updated X ago" label)
+  const egms = useAceEgmCurrent(casinoId, 25_000);
   const [egm, setEgm] = useState("");
   const [player, setPlayer] = useState("");
   const [state, setState] = useState("all");
