@@ -52,7 +52,17 @@ def jackpot_rows_from_report(rows: list[dict], business_date: str | None) -> lis
     for row in rows:
         name = _pick(row, "JackPot", "Jackpot")
         egm = _pick(row, "EGM Position", "Position")
-        won_at = _pick(row, "Winning Date/Time", "Winning Date", "Win Date/Time")
+        # VERIFIED report_jp layout: separate `Winning Date` + `Winning Time`.
+        won_at = combine_date_time(
+            _pick(row, "Winning Date"), _pick(row, "Winning Time")
+        )
+        if not won_at:
+            # Fallback only when the Winning columns are absent.
+            won_at = combine_date_time(
+                _pick(row, "Jackpot Date"), _pick(row, "Jackpot Time")
+            )
+        if not won_at:
+            won_at = _pick(row, "Winning Date/Time", "Win Date/Time")
         amount = to_number(_pick(row, "Sum of Winning", "Winning Sum"))
         if not (name and egm and won_at):
             continue  # no stable source key -> never emitted
