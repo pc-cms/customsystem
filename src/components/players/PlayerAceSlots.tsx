@@ -236,6 +236,31 @@ export default function PlayerAceSlots({ playerId, from, to, isSuperAdmin }: Pro
         </p>
       </PageSection>
 
+      <AlertDialog open={!!unlinkTarget} onOpenChange={(o) => !o && setUnlinkTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unlink this ACE identity?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ACE {unlinkTarget?.ace_player_id} ({casinoName.get(unlinkTarget?.casino_id) ?? "—"}) will no
+              longer be linked to this player. Historical slot data stays attached to the identity and the
+              change is recorded in the ACE identity audit.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const t = unlinkTarget;
+                setUnlinkTarget(null);
+                if (t) unlink.mutate({ identity_id: t.id, player_id: playerId });
+              }}
+            >
+              Unlink
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={!!conflict} onOpenChange={(o) => !o && setConflict(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
