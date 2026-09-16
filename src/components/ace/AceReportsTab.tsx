@@ -184,13 +184,31 @@ export default function AceReportsTab({
           ) : null
         }
       >
-        <SmartTable
-          data={filtered}
-          columns={contentCols}
-          rowKey={(r) => r.__i}
-          stickyHeader
-          empty={<AceEmpty what="report rows" />}
-        />
+        {visibleGroups.length === 0 ? (
+          <SmartTable
+            data={[]}
+            columns={[]}
+            rowKey={(r: any) => r.__i}
+            empty={<AceEmpty what="report rows" />}
+          />
+        ) : (
+          <div className="space-y-4">
+            {visibleGroups.map((g, i) => (
+              <div key={String(g.table)} className="space-y-1">
+                {visibleGroups.length > 1 && (
+                  <div className="text-[11px] font-medium text-muted-foreground">Table {i + 1}</div>
+                )}
+                <SmartTable
+                  data={g.rows}
+                  columns={makeCols(g.headers)}
+                  rowKey={(r) => r.__i}
+                  stickyHeader
+                  empty={<AceEmpty what="report rows" />}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </PageSection>
     </div>
   );
