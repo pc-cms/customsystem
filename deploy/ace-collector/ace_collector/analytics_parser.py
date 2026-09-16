@@ -245,6 +245,42 @@ def normalize_jackpot_win(row: dict, business_date: str | None) -> dict | None:
     }
 
 
+_MONTHS = {
+    "jan": "01", "feb": "02", "mar": "03", "apr": "04", "may": "05", "jun": "06",
+    "jul": "07", "aug": "08", "sep": "09", "oct": "10", "nov": "11", "dec": "12",
+}
+
+
+def combine_date_time(date_value: Any, time_value: Any) -> str | None:
+    """Combine verified ACE ``Winning Date`` + ``Winning Time`` cells.
+
+    ``15/SEP/2026`` + ``17:51:56`` -> ``2026-09-15T17:51:56``. When the date
+    cannot be recognised the original text is returned joined with a space, so
+    no information is lost and the source key stays stable. Absent -> None.
+    """
+    date_text = "" if date_value is None else str(date_value).strip()
+    time_text = "" if time_value is None else str(time_value).strip()
+    if not date_text and not time_text:
+        return None
+    iso_date = None
+    m = re.fullmatch(r"(\d{1,2})[/.\-]([A-Za-z]{3,})[/.\-](\d{4})", date_text)
+    if m and m.group(2)[:3].lower() in _MONTHS:
+        iso_date = f"{m.group(3)}-{_MONTHS[m.group(2)[:3].lower()]}-{int(m.group(1)):02d}"
+    if iso_date is None:
+        m = re.fullmatch(r"(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})", date_text)
+        if m:
+            iso_date = f"{m.group(3)}-{int(m.group(2)):02d}-{int(m.group(1)):02d}"
+    if iso_date is None:
+        m = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", date_text)
+        if m:
+            iso_date = date_text
+    if iso_date is None:
+        return " ".join(p for p in (date_text, time_text) if p) or None
+    if not time_text:
+        return iso_date
+    return f"{iso_date}T{time_text}"
+
+
 def source_key(*parts: Any) -> str:
     """Deterministic, idempotent source key (stable across retries/runs)."""
     joined = "|".join("" if p is None else str(p).strip() for p in parts)
