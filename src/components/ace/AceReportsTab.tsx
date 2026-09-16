@@ -88,7 +88,7 @@ export default function AceReportsTab({
 
   const contentCols: ColumnDef<any>[] = headers.map((h) => ({
     key: h,
-    header: h,
+    header: h === "_table" ? "Block" : h,
     accessor: (r) => {
       const v = r[h];
       return v === null || v === undefined || v === "" ? <span className="text-muted-foreground">—</span> : String(v);
