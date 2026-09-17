@@ -67,6 +67,8 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
   const periodEnd = useMemo(() => getPeriodEnd15(periodStart), [periodStart]);
 
   const { data: dealers = [], isPending: dealersPending, isFetching: dealersFetching } = useDealers();
+  // Non-Pit staff explicitly flagged as tips participants (Monthly Tips only).
+  const { data: tipsExtraStaff = [] } = useTipsParticipants();
   const { isReady: scopeReady } = useDataScope();
   const dealersLoading = !scopeReady || dealersPending || (dealersFetching && dealers.length === 0);
   const { data: rota = [] } = usePitRotaRange(periodStart, periodEnd);
@@ -102,7 +104,11 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
   const days = useMemo(() => enumerateDays(periodStart, periodEnd), [periodStart, periodEnd]);
 
   const rows = useMemo(() => {
-    const activeDealers = (dealers as any[]).filter((d) => d.is_active !== false);
+    const byId = new Map<string, any>();
+    [...(dealers as any[]), ...(tipsExtraStaff as any[])].forEach((d) => {
+      if (!byId.has(d.id)) byId.set(d.id, d);
+    });
+    const activeDealers = [...byId.values()].filter((d) => d.is_active !== false);
     const attMap = new Map<string, string>();
     attendance.forEach((a: any) => attMap.set(`${a.dealer_id}|${a.date}`, a.value));
     const rotaMap = new Map<string, string>();
