@@ -104,7 +104,10 @@ export function useAceLiveSlotsResult(locationCode: string | null | undefined) {
       fresh && data?.active_credits != null ? Number(data.active_credits) : null,
     winCashdesk:
       fresh && (data as any)?.win_cashdesk != null ? Number((data as any).win_cashdesk) : null,
-
+    cashlessDiff:
+      fresh && (data as any)?.cashless_money_difference != null
+        ? Number((data as any).cashless_money_difference)
+        : null,
     ageMs,
     periodLabel: data?.period_label ?? null,
     receivedAt: data?.received_at ?? null,
@@ -186,6 +189,10 @@ export function useAceLiveSlotsResultMany(locationCodes: (string | null)[]) {
         fresh && (data as any)?.win_cashdesk != null ? Number((data as any).win_cashdesk) : null,
       activeCredits:
         fresh && data?.active_credits != null ? Number(data.active_credits) : null,
+      cashlessDiff:
+        fresh && (data as any)?.cashless_money_difference != null
+          ? Number((data as any).cashless_money_difference)
+          : null,
       ageMs,
       periodLabel: data?.period_label ?? null,
     };
