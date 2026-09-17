@@ -121,7 +121,8 @@ export function useOpenCyclesForDay() {
 
 export type CloseDayFigures = {
   dropSlots: number;
-  netWin: number;
+  /** Net Win is owned by ACE Collector / Statistics — optional here. */
+  netWin?: number | null;
   cashDeskWin: number;
   clientBalance: number;
   jpIn?: number | null;
@@ -140,7 +141,7 @@ export function useCloseBusinessDayWithFigures() {
       const { data, error } = await supabase.rpc("close_business_day_with_figures", {
         _casino_id: casinoId,
         _drop_slots: f.dropSlots,
-        _net_win: f.netWin,
+        _net_win: f.netWin ?? null,
         _cashdesk_win: f.cashDeskWin,
         _client_balance: f.clientBalance,
         _notes: f.notes || null,

@@ -81,7 +81,7 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
       .is("checked_out_at", null),
     supabase
       .from("fin_day_closing")
-      .select("business_date, tables_result, slots_result, net_win, cashdesk_win, players_card_balance, drop_slots")
+      .select("business_date, tables_result, slots_result, cashdesk_win, players_card_balance, drop_slots")
       .eq("casino_id", casinoId)
       .gte("business_date", mStart)
       .lte("business_date", businessDate),

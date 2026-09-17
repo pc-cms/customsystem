@@ -4986,7 +4986,10 @@ export type Database = {
         Row: {
           ace_provisional: boolean
           business_date: string
+          cashdesk_in: number
+          cashdesk_out: number
           cashdesk_win: number
+          cashdesk_win_base: number | null
           casino_id: string
           closed_by: string | null
           created_at: string
@@ -5005,7 +5008,10 @@ export type Database = {
         Insert: {
           ace_provisional?: boolean
           business_date: string
+          cashdesk_in?: number
+          cashdesk_out?: number
           cashdesk_win?: number
+          cashdesk_win_base?: number | null
           casino_id: string
           closed_by?: string | null
           created_at?: string
@@ -5024,7 +5030,10 @@ export type Database = {
         Update: {
           ace_provisional?: boolean
           business_date?: string
+          cashdesk_in?: number
+          cashdesk_out?: number
           cashdesk_win?: number
+          cashdesk_win_base?: number | null
           casino_id?: string
           closed_by?: string | null
           created_at?: string

@@ -22,8 +22,8 @@ import { cn } from "@/lib/utils";
 /**
  * Close the current business day — the ONE canonical way a day is closed.
  *
- * The operator enters the four mandatory day figures (Drop Slots, Net Win,
- * CashDesk Win, Client Balance) plus optional JP, and sees a live checklist of
+ * The operator enters the four mandatory day figures (Drop Slots, CashDesk Win,
+ * Client Balance) plus optional JP, and sees a live checklist of
  * blocking conditions (cage shift, slots shift, tables, sessions/visits).
  * Confirmation always requires manager credentials.
  *
@@ -110,15 +110,14 @@ export function CloseBusinessDayButton({ className }: { className?: string }) {
 
 
   const [dropSlots, setDropSlots] = useState<number | null>(null);
-  const [netWin, setNetWin] = useState<number | null>(null);
   const [cashDeskWin, setCashDeskWin] = useState<number | null>(null);
   const [clientBalance, setClientBalance] = useState<number | null>(null);
   const [jpIn, setJpIn] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
 
   const figures = useMemo(
-    () => ({ dropSlots, netWin, cashDeskWin, clientBalance }),
-    [dropSlots, netWin, cashDeskWin, clientBalance],
+    () => ({ dropSlots, cashDeskWin, clientBalance }),
+    [dropSlots, cashDeskWin, clientBalance],
   );
 
   if (!canSee) return null;
@@ -149,14 +148,13 @@ export function CloseBusinessDayButton({ className }: { className?: string }) {
     try {
       await closeMut.mutateAsync({
         dropSlots: figures.dropSlots as number,
-        netWin: figures.netWin as number,
         cashDeskWin: figures.cashDeskWin as number,
         clientBalance: figures.clientBalance as number,
         jpIn,
         notes: notes.trim() || undefined,
         businessDate: effectiveDate || null,
       });
-      setDropSlots(null); setNetWin(null); setCashDeskWin(null); setClientBalance(null);
+      setDropSlots(null); setCashDeskWin(null); setClientBalance(null);
       setJpIn(null); setNotes(""); setTargetDate("");
     } catch {
       /* toast already shown by the mutation */
@@ -240,7 +238,7 @@ export function CloseBusinessDayButton({ className }: { className?: string }) {
                   label="No active sessions / open visits"
                   detail={`${c?.active_sessions?.length || 0} sessions, ${c?.open_visits?.length || 0} visits`}
                 />
-                <ConditionRow ok={figuresOk} label="All four figures entered" />
+                <ConditionRow ok={figuresOk} label="All figures entered" />
               </div>
             )}
 
@@ -265,10 +263,6 @@ export function CloseBusinessDayButton({ className }: { className?: string }) {
               <FigureField
                 id="cbd-drop-slots" label="Drop Slots" hint="→ Statistics · Slots — Drop"
                 value={dropSlots} onChange={setDropSlots}
-              />
-              <FigureField
-                id="cbd-net-win" label="Net Win" hint="→ Statistics · Slots — Net Win"
-                value={netWin} onChange={setNetWin} allowNegative
               />
               <FigureField
                 id="cbd-cashdesk-win" label="CashDesk Win" hint="→ Slots — Cashdesk · Day Closing"

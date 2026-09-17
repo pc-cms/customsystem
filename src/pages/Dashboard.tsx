@@ -291,8 +291,8 @@ const Dashboard = () => {
         if (!showFinancials) return null;
 
         const DOT = "·";
-        const slotsNetWin = ace.fresh ? Number(ace.netWin ?? 0) : 0;
         // Live Slots Result canon: CashDesk Win − Active Credits − Cashless Diff.
+        // Net Win is deliberately NOT displayed here — Statistics · Slots owns it.
         const slotsResult =
           ace.fresh && ace.winCashdesk != null
             ? Number(ace.winCashdesk) -
@@ -315,13 +315,6 @@ const Dashboard = () => {
               ace.fresh && ace.activeCredits != null
                 ? formatCurrency(Number(ace.activeCredits))
                 : DOT,
-          },
-          {
-            label: "Net Win",
-            signed: ace.fresh ? slotsNetWin : undefined,
-            value: ace.fresh
-              ? `${slotsNetWin >= 0 ? "+" : ""}${formatCurrency(slotsNetWin)}`
-              : DOT,
           },
           {
             label: "Cashdesk Win",

@@ -51,7 +51,7 @@ const amountToneClass = (value: number) =>
   value > 0 ? "cms-amount-positive" : value < 0 ? "cms-amount-negative" : "text-muted-foreground";
 
 type DayAgg = { tables: number; slots: number; missChips: number; missCards: number };
-type Draft = { tables?: number | null; slots?: number | null; drop?: number | null; cash?: number | null; cards?: number | null; jp?: number | null; comment?: string };
+type Draft = { tables?: number | null; drop?: number | null; cash?: number | null; cashIn?: number | null; cashOut?: number | null; cards?: number | null; jp?: number | null; comment?: string };
 type Row = {
   date: string;
   existing: any;
@@ -241,16 +241,17 @@ export default function DayClosingsTab() {
     const tables = d.tables ?? (r.existing?.tables_result != null ? Number(r.existing.tables_result) : r.agg.tables);
     // Slot fields NEVER prefill from a cage/slot cashier shift (open or closed).
     // Only ACE Collector or an explicit manual entry may populate them.
-    // Slot Result = system result (net_win); CashDesk Win stays a separate metric.
-    const slots = d.slots ?? Number(r.existing?.slots_result ?? r.existing?.net_win ?? 0);
-
-
+    // Net Win is NOT shown/edited here — it lives in Statistics · Slots only.
     const drop = d.drop ?? Number(r.existing?.drop_slots ?? 0);
-    const cash = d.cash ?? Number(r.existing?.cashdesk_win ?? 0);
+    // CashDesk Win entered base + manual Out − manual In = final CashDesk Win.
+    const cash = d.cash ?? Number(r.existing?.cashdesk_win_base ?? r.existing?.cashdesk_win ?? 0);
+    const cashIn = d.cashIn ?? Number(r.existing?.cashdesk_in ?? 0);
+    const cashOut = d.cashOut ?? Number(r.existing?.cashdesk_out ?? 0);
+    const cashNet = cash + cashOut - cashIn;
     const cards = d.cards ?? Number(r.existing?.players_card_balance ?? 0);
     const jp = d.jp ?? r.jpPosted;
     const comment = d.comment ?? (r.existing?.notes ?? "");
-    return { tables, slots, drop, cash, cards, jp, comment };
+    return { tables, drop, cash, cashIn, cashOut, cashNet, cards, jp, comment };
   };
 
   /** The business day that is still running — no figures may be stored for it. */
@@ -311,12 +312,15 @@ export default function DayClosingsTab() {
         id: r.existing?.id,
         business_date: r.date,
         tables_result: v.tables,
-        // System / Slots Result = manual system result (also stored in net_win).
-        slots_result: v.slots,
-        net_win: v.slots,
+        // Net Win / Slots Result are never written from here — ACE Collector and
+        // Statistics · Slots own that figure.
         drop_slots: v.drop,
-        // CashDesk Win — physical slots cash, the only slots figure in Wallet Expected.
-        cashdesk_win: v.cash,
+        // CashDesk Win — physical slots cash, the only slots figure in Wallet
+        // Expected. Stored final value = entered base + Out − In.
+        cashdesk_win_base: v.cash,
+        cashdesk_in: v.cashIn,
+        cashdesk_out: v.cashOut,
+        cashdesk_win: v.cashNet,
         players_card_balance: v.cards,
         // A manual save always turns a provisional ACE figure into a real one.
         ace_provisional: false,
@@ -366,13 +370,14 @@ export default function DayClosingsTab() {
 
   /* ---------- month totals ---------- */
   const totals = useMemo(() => {
-    const t = { tables: 0, slots: 0, drop: 0, cash: 0, missChips: 0, missCards: 0, cards: 0, jp: 0 };
+    const t = { tables: 0, drop: 0, cash: 0, cashIn: 0, cashOut: 0, missChips: 0, missCards: 0, cards: 0, jp: 0 };
     let cardsFound = false;
     rows.forEach((r) => {
       t.tables += Number(r.existing?.tables_result ?? r.agg.tables ?? 0);
-      t.slots += Number(r.existing?.slots_result ?? 0);
       t.drop += Number(r.existing?.drop_slots ?? 0);
       t.cash += Number(r.existing?.cashdesk_win ?? 0);
+      t.cashIn += Number(r.existing?.cashdesk_in ?? 0);
+      t.cashOut += Number(r.existing?.cashdesk_out ?? 0);
       t.missChips += Number(r.agg.missChips ?? 0);
       t.missCards += Number(r.agg.missCards ?? 0);
       t.jp += r.jpPosted;
@@ -438,29 +443,55 @@ export default function DayClosingsTab() {
       }),
     },
     {
-      key: "slots",
-      header: "Net Win",
-      type: "money",
-      style: { width: 168 },
-      sortValue: (r) => val(r).slots,
-
-      accessor: (r) => numCell(r, val(r).slots, (n) => setField(r.date, { slots: n }), {
-        placeholder: 0,
-        title: `Net Win — slots gaming SYSTEM result (ACE Collector or manual). Goes to Statistics and P&L only. Never part of Wallet Expected, never taken from a cashier shift.`,
-      }),
-    },
-    {
       key: "cash",
       header: "CashDesk Win",
       type: "money",
       style: { width: 168 },
-      sortValue: (r) => val(r).cash,
+      sortValue: (r) => val(r).cashNet,
 
-      accessor: (r) => numCell(r, val(r).cash, (n) => setField(r.date, { cash: n }), {
+      accessor: (r) => {
+        const v = val(r);
+        return (
+          <div className="flex flex-col items-end gap-0.5">
+            {numCell(r, v.cash, (n) => setField(r.date, { cash: n }), {
+              placeholder: 0,
+              title: "CashDesk Win — physical slots cash desk win. Final value = this amount + Out − In. The ONLY slots figure that flows into Wallets / Expected.",
+            })}
+            {v.cashNet !== v.cash && (
+              <span
+                className={cn("font-mono text-[10px] tabular-nums", amountToneClass(v.cashNet))}
+                title="Final CashDesk Win = entered amount + Out − In"
+              >
+                = {formatNumberSpaces(v.cashNet)}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: "cashIn",
+      header: "In",
+      type: "money",
+      style: { width: 140 },
+      sortValue: (r) => val(r).cashIn,
+      accessor: (r) => numCell(r, val(r).cashIn, (n) => setField(r.date, { cashIn: n }), {
+        tone: false,
         placeholder: 0,
-        title: "CashDesk Win — physical slots cash desk win. The ONLY slots figure that flows into Wallets / Expected. Never equal to Net Win, never taken from a cashier shift.",
+        title: "Manual In — subtracted from CashDesk Win.",
       }),
-
+    },
+    {
+      key: "cashOut",
+      header: "Out",
+      type: "money",
+      style: { width: 140 },
+      sortValue: (r) => val(r).cashOut,
+      accessor: (r) => numCell(r, val(r).cashOut, (n) => setField(r.date, { cashOut: n }), {
+        tone: false,
+        placeholder: 0,
+        title: "Manual Out — added to CashDesk Win.",
+      }),
     },
     {
       key: "drop",
@@ -581,8 +612,9 @@ export default function DayClosingsTab() {
       case "date": return <span className="text-[10px] font-semibold uppercase tracking-wider">Totals · {MONTH_NAMES[month - 1]}</span>;
       case "status": return null;
       case "tables": return <Money v={totals.tables} />;
-      case "slots": return <Money v={totals.slots} />;
       case "cash": return <Money v={totals.cash} />;
+      case "cashIn": return <span className="font-mono text-[12px] text-muted-foreground">{formatNumberSpaces(totals.cashIn)}</span>;
+      case "cashOut": return <span className="font-mono text-[12px] text-muted-foreground">{formatNumberSpaces(totals.cashOut)}</span>;
 
       case "drop": return <span className="font-mono text-[12px] text-muted-foreground">{formatNumberSpaces(totals.drop)}</span>;
       case "cards": return <span className={cn("font-mono text-[12px]", totals.cards ? "cms-amount-negative" : "text-muted-foreground")}>{totals.cards ? `${totals.cards > 0 ? "− " : "+ "}${formatNumberSpaces(Math.abs(totals.cards))}` : "0"}</span>;
