@@ -612,8 +612,9 @@ export default function DayClosingsTab() {
       case "date": return <span className="text-[10px] font-semibold uppercase tracking-wider">Totals · {MONTH_NAMES[month - 1]}</span>;
       case "status": return null;
       case "tables": return <Money v={totals.tables} />;
-      case "slots": return <Money v={totals.slots} />;
       case "cash": return <Money v={totals.cash} />;
+      case "cashIn": return <span className="font-mono text-[12px] text-muted-foreground">{formatNumberSpaces(totals.cashIn)}</span>;
+      case "cashOut": return <span className="font-mono text-[12px] text-muted-foreground">{formatNumberSpaces(totals.cashOut)}</span>;
 
       case "drop": return <span className="font-mono text-[12px] text-muted-foreground">{formatNumberSpaces(totals.drop)}</span>;
       case "cards": return <span className={cn("font-mono text-[12px]", totals.cards ? "cms-amount-negative" : "text-muted-foreground")}>{totals.cards ? `${totals.cards > 0 ? "− " : "+ "}${formatNumberSpaces(Math.abs(totals.cards))}` : "0"}</span>;
