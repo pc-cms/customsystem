@@ -14,6 +14,7 @@ import {
   useUpsertMonthlyTipsEntry, useUpsertMonthlyTipsPool,
   getPeriodStart16, getPeriodEnd15, addMonthsPeriod, enumerateDays,
 } from "@/hooks/use-monthly-tips";
+import { useStaffRotaRange, useStaffAttendanceRange, useSetStaffAttendance } from "@/hooks/use-staff";
 import { useDataScope } from "@/hooks/use-data-scope";
 import { useTipsCollectedForPeriod } from "@/hooks/use-tips";
 import { fmtDateOnly } from "@/lib/format-date";
@@ -73,6 +74,10 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
   const dealersLoading = !scopeReady || dealersPending || (dealersFetching && dealers.length === 0);
   const { data: rota = [] } = usePitRotaRange(periodStart, periodEnd);
   const { data: attendance = [] } = useDealerAttendanceRange(periodStart, periodEnd);
+  // Non-Pit tips participants keep their rota/attendance in the staff tables,
+  // so Monthly Tips has to read those too or their hours would always show 0.
+  const { data: staffRota = [] } = useStaffRotaRange(periodStart, periodEnd);
+  const { data: staffAttendance = [] } = useStaffAttendanceRange(periodStart, periodEnd);
   const { data: entries = [] } = useMonthlyTipsEntries(periodStart);
   const { data: pool } = useMonthlyTipsPool(periodStart);
   const { data: collected } = useTipsCollectedForPeriod(periodStart, periodEnd);
@@ -80,6 +85,7 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
   const upsertEntry = useUpsertMonthlyTipsEntry();
   const upsertPool = useUpsertMonthlyTipsPool();
   const setAtt = useSetDealerAttendance();
+  const setStaffAtt = useSetStaffAttendance();
 
   const [poolInput, setPoolInput] = useState<string>("");
   const [calculated, setCalculated] = useState<boolean>(false);
