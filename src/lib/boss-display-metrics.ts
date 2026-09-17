@@ -150,7 +150,8 @@ export function deriveDisplayedToday(
  * Monthly (MTD) displayed metrics — Tables / Slots / TOTAL.
  * CANON (identical to the Company Report): CLOSED Day Closings only, the open
  * business day never contributes. Tables = Σ tables_result, Slots = Σ per day
- * (cashdesk_win − players_card_balance). No ACE override for MTD.
+ * (cashdesk_win − players_card_balance − ACE cashless difference). No ACE
+ * override for MTD.
  */
 
 export function deriveDisplayedMonthly(day: CasinoDay | undefined): DisplayedToday | null {
@@ -172,7 +173,7 @@ export function deriveDisplayedMonthly(day: CasinoDay | undefined): DisplayedTod
     slotsAvailable: available,
     usesAce: false,
     aceHint:
-      "Closed Day Closings only · Slots = Σ per day (CashDesk Win − Card Balance). Open day excluded.",
+      "Closed Day Closings only · Slots = Σ per day (CashDesk Win − Card Balance − Cashless Diff). Open day excluded.",
     aceCreditsHint: null,
 
   };
