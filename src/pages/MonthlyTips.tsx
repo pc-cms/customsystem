@@ -117,8 +117,10 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
     const activeDealers = [...byId.values()].filter((d) => d.is_active !== false);
     const attMap = new Map<string, string>();
     attendance.forEach((a: any) => attMap.set(`${a.dealer_id}|${a.date}`, a.value));
+    staffAttendance.forEach((a: any) => attMap.set(`${a.staff_id}|${a.date}`, a.value));
     const rotaMap = new Map<string, string>();
     rota.forEach((r: any) => rotaMap.set(`${r.dealer_id}|${r.date}`, r.shift));
+    staffRota.forEach((r: any) => rotaMap.set(`${r.staff_id}|${r.date}`, r.shift));
     const entryMap = new Map<string, { extra_override: number | null; bonus_points: number }>();
     entries.forEach((e: any) => entryMap.set(e.dealer_id ?? e.employee_id, { extra_override: e.extra_override, bonus_points: e.bonus_points }));
 
