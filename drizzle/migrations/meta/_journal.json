@@ -8,6 +8,13 @@
       "when": 1789641101178,
       "tag": "0000_boss_monthly_report_cashless_diff",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789651942829,
+      "tag": "0001_add_tips_participant",
+      "breakpoints": true
     }
   ]
 }
