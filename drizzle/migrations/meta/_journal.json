@@ -15,6 +15,13 @@
       "when": 1789651942829,
       "tag": "0001_add_tips_participant",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789657236810,
+      "tag": "0002_day_closing_cashdesk_in_out",
+      "breakpoints": true
     }
   ]
 }
