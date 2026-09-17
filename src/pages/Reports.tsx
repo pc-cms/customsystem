@@ -409,22 +409,6 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
     onError: (e: any) => toast.error(e.message || "Failed to update"),
   });
 
-  /** Backfill Net Win for days that never went through Close Day. */
-  const updateNetWin = useMutation({
-    mutationFn: async ({ date, value }: { date: string; value: number }) => {
-      const { error } = await supabase
-        .from("fin_day_closing")
-        .upsert({ casino_id: casinoId, business_date: date, net_win: value } as any,
-                { onConflict: "casino_id,business_date" });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["reports-total"] });
-      qc.invalidateQueries({ queryKey: ["slots-report-day-closings"] });
-      toast.success("Net Win updated");
-    },
-    onError: (e: any) => toast.error(e.message || "Failed to update"),
-  });
 
   return (
     <div className="space-y-3">
@@ -484,16 +468,8 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
                   )}
                 </DTCell>
 
-                <DTCell type="money" title={r.slotsLocked ? "From Close Day" : undefined}>
-                  {r.slotsLocked || !canEditDrop ? (
-                    <span className={`font-semibold ${signCls(r.slotsResult || 0)}`}>{fmt(r.slotsResult || 0)}</span>
-                  ) : (
-                    <DropSlotsCell
-                      value={r.slotsResult || 0}
-                      canEdit
-                      onSave={(v) => updateNetWin.mutate({ date: r.date, value: v })}
-                    />
-                  )}
+                <DTCell type="money" title="CashDesk Win − Card Balance − Cashless Diff (Close Day)">
+                  <span className={`font-semibold ${signCls(r.slotsResult || 0)}`}>{fmt(r.slotsResult || 0)}</span>
                 </DTCell>
                 <DTCell type="money"><span className="text-muted-foreground">{fmtHold(holdOf(r.slotsResult || 0, r.dropSlots || 0))}</span></DTCell>
                 <DTCell type="money"><span className={`font-bold ${signCls(totalResults)}`}>{fmt(totalResults)}</span></DTCell>
