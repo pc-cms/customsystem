@@ -149,7 +149,7 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
       if (c !== 0) return c;
       return a.dealer.name.localeCompare(b.dealer.name);
     });
-  }, [dealers, attendance, rota, entries, days, attDraft, extraDraft, bonusDraft]);
+  }, [dealers, tipsExtraStaff, attendance, rota, entries, days, attDraft, extraDraft, bonusDraft]);
 
   const totalPoints = rows.reduce((s, r) => s + r.points, 0);
   const poolAmount = calculated ? (parseInt(poolInput.replace(/\s/g, ""), 10) || 0) : 0;
