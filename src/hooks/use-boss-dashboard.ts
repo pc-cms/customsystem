@@ -66,7 +66,7 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
   //   Slots           → ONLY closed days: cashdesk_win − players_card_balance.
   //                     While the day is open (and no fresh ACE feed) slots show `·`
   //                     — an open cage-slots shift is a draft, not a result.
-  const [dailyTodayRes, dailyMtdRes, hcRes, closingsRes, snapRes, slotShiftsRes] = await Promise.all([
+  const [dailyTodayRes, dailyMtdRes, hcRes, closingsRes, snapRes, slotShiftsRes, aceCashlessRes] = await Promise.all([
     (supabase as any).rpc("compute_daily_diff", {
       _casino_id: casinoId, _from: businessDate, _to: businessDate,
     }),
@@ -94,7 +94,28 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
       .eq("status", "closed")
       .gte("business_date", mStart)
       .lte("business_date", businessDate),
+    // ACE cashless money difference per closed business date — subtracted from
+    // the slots result (canon: cashdesk_win − card balance − cashless diff).
+    (supabase as any)
+      .from("ace_finance_snapshots")
+      .select("business_date, cashless_money_difference")
+      .eq("casino_id", casinoId)
+      .gt("period_id", 0)
+      .eq("apply_status", "applied")
+      .gte("business_date", mStart)
+      .lte("business_date", businessDate),
   ]);
+
+  const cashlessByDate = new Map<string, number>();
+  for (const r of ((aceCashlessRes as any).data || []) as any[]) {
+    if (!r.business_date) continue;
+    cashlessByDate.set(
+      r.business_date,
+      (cashlessByDate.get(r.business_date) || 0) + Number(r.cashless_money_difference || 0),
+    );
+  }
+
+
 
 
 
@@ -108,8 +129,9 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
   const todayClosing = closings.find((r) => r.business_date === businessDate);
 
   // Result of a CLOSED day (approved source):
-  //   tables_result + (cashdesk_win − players_card_balance).
-  const closedSlotsResult = (r: any) => closedDaySlotsResult(r);
+  //   tables_result + (cashdesk_win − players_card_balance − cashless diff).
+  const closedSlotsResult = (r: any) =>
+    closedDaySlotsResult({ ...r, cashless_difference: cashlessByDate.get(r.business_date) ?? 0 });
   const closedDayResult = (r: any) =>
     Number(r.tables_result || 0) + closedSlotsResult(r);
 
@@ -126,7 +148,8 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
 
   const slotsAvailable = !!todayClosing;
   const slotsDrop = todayClosing ? Number(todayClosing.drop_slots || 0) : 0;
-  // Displayed Slots Result for a CLOSED day = cashdesk_win − players_card_balance.
+  // Displayed Slots Result for a CLOSED day =
+  // cashdesk_win − players_card_balance − cashless diff.
   const slotsResult = todayClosing ? closedSlotsResult(todayClosing) : 0;
 
   const totalDrop = liveDrop + slotsDrop;
@@ -139,7 +162,7 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
   // Company Report. A day counts as soon as its figures are in Day Closings;
   // the official closure lock is NOT required.
   //   Table Result = Σ fin_day_closing.tables_result
-  //   Slot Result  = Σ per day (cashdesk_win − players_card_balance)   [signed]
+  //   Slot Result  = Σ per day (cashdesk_win − card balance − cashless diff)  [signed]
   //   Tables Drop  = Σ drop cache, restricted to those days
   const shiftDropByDate = new Map<string, number>();
   for (const s of ((slotShiftsRes as any).data || []) as any[]) {
