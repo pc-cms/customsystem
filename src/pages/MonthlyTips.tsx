@@ -14,6 +14,7 @@ import {
   useUpsertMonthlyTipsEntry, useUpsertMonthlyTipsPool,
   getPeriodStart16, getPeriodEnd15, addMonthsPeriod, enumerateDays,
 } from "@/hooks/use-monthly-tips";
+import { useStaffRotaRange, useStaffAttendanceRange, useSetStaffAttendance } from "@/hooks/use-staff";
 import { useDataScope } from "@/hooks/use-data-scope";
 import { useTipsCollectedForPeriod } from "@/hooks/use-tips";
 import { fmtDateOnly } from "@/lib/format-date";
@@ -73,6 +74,10 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
   const dealersLoading = !scopeReady || dealersPending || (dealersFetching && dealers.length === 0);
   const { data: rota = [] } = usePitRotaRange(periodStart, periodEnd);
   const { data: attendance = [] } = useDealerAttendanceRange(periodStart, periodEnd);
+  // Non-Pit tips participants keep their rota/attendance in the staff tables,
+  // so Monthly Tips has to read those too or their hours would always show 0.
+  const { data: staffRota = [] } = useStaffRotaRange(periodStart, periodEnd);
+  const { data: staffAttendance = [] } = useStaffAttendanceRange(periodStart, periodEnd);
   const { data: entries = [] } = useMonthlyTipsEntries(periodStart);
   const { data: pool } = useMonthlyTipsPool(periodStart);
   const { data: collected } = useTipsCollectedForPeriod(periodStart, periodEnd);
@@ -80,6 +85,7 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
   const upsertEntry = useUpsertMonthlyTipsEntry();
   const upsertPool = useUpsertMonthlyTipsPool();
   const setAtt = useSetDealerAttendance();
+  const setStaffAtt = useSetStaffAttendance();
 
   const [poolInput, setPoolInput] = useState<string>("");
   const [calculated, setCalculated] = useState<boolean>(false);
@@ -111,8 +117,10 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
     const activeDealers = [...byId.values()].filter((d) => d.is_active !== false);
     const attMap = new Map<string, string>();
     attendance.forEach((a: any) => attMap.set(`${a.dealer_id}|${a.date}`, a.value));
+    staffAttendance.forEach((a: any) => attMap.set(`${a.staff_id}|${a.date}`, a.value));
     const rotaMap = new Map<string, string>();
     rota.forEach((r: any) => rotaMap.set(`${r.dealer_id}|${r.date}`, r.shift));
+    staffRota.forEach((r: any) => rotaMap.set(`${r.staff_id}|${r.date}`, r.shift));
     const entryMap = new Map<string, { extra_override: number | null; bonus_points: number }>();
     entries.forEach((e: any) => entryMap.set(e.dealer_id ?? e.employee_id, { extra_override: e.extra_override, bonus_points: e.bonus_points }));
 
@@ -149,7 +157,13 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
       if (c !== 0) return c;
       return a.dealer.name.localeCompare(b.dealer.name);
     });
-  }, [dealers, tipsExtraStaff, attendance, rota, entries, days, attDraft, extraDraft, bonusDraft]);
+  }, [dealers, tipsExtraStaff, attendance, staffAttendance, rota, staffRota, entries, days, attDraft, extraDraft, bonusDraft]);
+
+  // Ids of non-Pit participants — their attendance edits must go to staff_attendance.
+  const extraStaffIds = useMemo(
+    () => new Set((tipsExtraStaff as any[]).map((d) => d.id)),
+    [tipsExtraStaff]
+  );
 
   const totalPoints = rows.reduce((s, r) => s + r.points, 0);
   const poolAmount = calculated ? (parseInt(poolInput.replace(/\s/g, ""), 10) || 0) : 0;
@@ -200,7 +214,8 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
     if (norm === null) return;
     if (norm === (original || "")) return;
 
-    setAtt.mutate({ dealer_id: dealerId, date, value: norm });
+    if (extraStaffIds.has(dealerId)) setStaffAtt.mutate({ staff_id: dealerId, date, value: norm });
+    else setAtt.mutate({ dealer_id: dealerId, date, value: norm });
     setCalculated(false);
   };
 
