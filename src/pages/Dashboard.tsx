@@ -292,10 +292,12 @@ const Dashboard = () => {
 
         const DOT = "·";
         const slotsNetWin = ace.fresh ? Number(ace.netWin ?? 0) : 0;
-        // Live Slots Result canon: CashDesk Win − Active Credits.
+        // Live Slots Result canon: CashDesk Win − Active Credits − Cashless Diff.
         const slotsResult =
           ace.fresh && ace.winCashdesk != null
-            ? Number(ace.winCashdesk) - Number(ace.activeCredits ?? 0)
+            ? Number(ace.winCashdesk) -
+              Number(ace.activeCredits ?? 0) -
+              Number((ace as any).cashlessDiff ?? 0)
             : 0;
         const grandTotal = totalResult + slotsResult;
         const aceHint = ace.fresh
