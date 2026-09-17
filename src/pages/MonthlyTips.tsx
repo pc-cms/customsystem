@@ -157,7 +157,13 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
       if (c !== 0) return c;
       return a.dealer.name.localeCompare(b.dealer.name);
     });
-  }, [dealers, tipsExtraStaff, attendance, rota, entries, days, attDraft, extraDraft, bonusDraft]);
+  }, [dealers, tipsExtraStaff, attendance, staffAttendance, rota, staffRota, entries, days, attDraft, extraDraft, bonusDraft]);
+
+  // Ids of non-Pit participants — their attendance edits must go to staff_attendance.
+  const extraStaffIds = useMemo(
+    () => new Set((tipsExtraStaff as any[]).map((d) => d.id)),
+    [tipsExtraStaff]
+  );
 
   const totalPoints = rows.reduce((s, r) => s + r.points, 0);
   const poolAmount = calculated ? (parseInt(poolInput.replace(/\s/g, ""), 10) || 0) : 0;
@@ -208,7 +214,8 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
     if (norm === null) return;
     if (norm === (original || "")) return;
 
-    setAtt.mutate({ dealer_id: dealerId, date, value: norm });
+    if (extraStaffIds.has(dealerId)) setStaffAtt.mutate({ staff_id: dealerId, date, value: norm });
+    else setAtt.mutate({ dealer_id: dealerId, date, value: norm });
     setCalculated(false);
   };
 
