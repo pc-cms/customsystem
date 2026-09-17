@@ -255,7 +255,7 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
       const toStr = toDate.toISOString().slice(0, 10);
       const toIso = businessDayHourUTC(toStr, 7);
 
-      const [liveData, slotsData, expData, dropData, closingData] = await Promise.all([
+      const [liveData, slotsData, expData, dropData, closingData, cashlessData] = await Promise.all([
         fetchPaged<any>((f, t) => supabase.from("shifts").select("id, closed_at, tables_result")
           .eq("casino_id", casinoId).eq("status", "closed")
           .gte("closed_at", fromIso).lt("closed_at", toIso).range(f, t)),
@@ -272,9 +272,15 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
         fetchPaged<any>((f, t) => supabase.from("player_day_drop_cache").select("business_date, peak")
           .eq("casino_id", casinoId)
           .gte("business_date", from).lt("business_date", toStr).range(f, t)),
-        // Result Slots = Net Win entered at Close Day. No fallback to computed figures.
-        fetchPaged<any>((f, t) => supabase.from("fin_day_closing").select("business_date, net_win, drop_slots")
+        // Result Slots canon (closed day): CashDesk Win − Card Balance − ACE
+        // cashless difference. Net Win is never used here.
+        fetchPaged<any>((f, t) => supabase.from("fin_day_closing")
+          .select("business_date, cashdesk_win, players_card_balance, drop_slots")
           .eq("casino_id", casinoId)
+          .gte("business_date", from).lt("business_date", toStr).range(f, t)),
+        fetchPaged<any>((f, t) => (supabase as any).from("ace_finance_snapshots")
+          .select("business_date, cashless_money_difference")
+          .eq("casino_id", casinoId).gt("period_id", 0).eq("apply_status", "applied")
           .gte("business_date", from).lt("business_date", toStr).range(f, t)),
       ]);
       const liveRes = { data: liveData, error: null };
@@ -307,13 +313,24 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
         r.dropSlots += Number(s.manual_drop_slots || 0);
         r.slotsShiftIds.push(s.id);
       });
-      // Result Slots strictly from Close Day. A zero (day closed without the
-      // figure, or no closing row) stays editable so it can be filled manually.
+      const cashlessByDate = new Map<string, number>();
+      (cashlessData || []).forEach((c: any) => {
+        if (!c.business_date) return;
+        cashlessByDate.set(
+          c.business_date,
+          (cashlessByDate.get(c.business_date) || 0) + Number(c.cashless_money_difference || 0),
+        );
+      });
+      // Result Slots strictly from Close Day figures (never Net Win):
+      // CashDesk Win − Card Balance − ACE cashless difference.
       (closingData || []).forEach((c: any) => {
         if (!c.business_date) return;
         const r = row(c.business_date);
-        r.slotsResult = Number(c.net_win || 0);
-        r.slotsLocked = r.slotsResult !== 0;
+        r.slotsResult =
+          Number(c.cashdesk_win || 0) -
+          Number(c.players_card_balance || 0) -
+          Number(cashlessByDate.get(c.business_date) || 0);
+        r.slotsLocked = true;
         // Drop Slots: ACE Collector / Close Day figure wins over the manual
         // cage entry, so Statistics matches Day Closings and the Dashboard.
         const aceDrop = Number(c.drop_slots || 0);
