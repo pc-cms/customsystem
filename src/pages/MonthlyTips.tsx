@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   useDealers, useDealerAttendanceRange, usePitRotaRange, useSetDealerAttendance,
+  useTipsParticipants,
 } from "@/hooks/use-dealers";
 import {
   useMonthlyTipsEntries, useMonthlyTipsPool,
