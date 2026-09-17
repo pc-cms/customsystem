@@ -51,7 +51,7 @@ const amountToneClass = (value: number) =>
   value > 0 ? "cms-amount-positive" : value < 0 ? "cms-amount-negative" : "text-muted-foreground";
 
 type DayAgg = { tables: number; slots: number; missChips: number; missCards: number };
-type Draft = { tables?: number | null; slots?: number | null; drop?: number | null; cash?: number | null; cards?: number | null; jp?: number | null; comment?: string };
+type Draft = { tables?: number | null; drop?: number | null; cash?: number | null; cashIn?: number | null; cashOut?: number | null; cards?: number | null; jp?: number | null; comment?: string };
 type Row = {
   date: string;
   existing: any;
@@ -241,16 +241,17 @@ export default function DayClosingsTab() {
     const tables = d.tables ?? (r.existing?.tables_result != null ? Number(r.existing.tables_result) : r.agg.tables);
     // Slot fields NEVER prefill from a cage/slot cashier shift (open or closed).
     // Only ACE Collector or an explicit manual entry may populate them.
-    // Slot Result = system result (net_win); CashDesk Win stays a separate metric.
-    const slots = d.slots ?? Number(r.existing?.slots_result ?? r.existing?.net_win ?? 0);
-
-
+    // Net Win is NOT shown/edited here — it lives in Statistics · Slots only.
     const drop = d.drop ?? Number(r.existing?.drop_slots ?? 0);
-    const cash = d.cash ?? Number(r.existing?.cashdesk_win ?? 0);
+    // CashDesk Win entered base + manual Out − manual In = final CashDesk Win.
+    const cash = d.cash ?? Number(r.existing?.cashdesk_win_base ?? r.existing?.cashdesk_win ?? 0);
+    const cashIn = d.cashIn ?? Number(r.existing?.cashdesk_in ?? 0);
+    const cashOut = d.cashOut ?? Number(r.existing?.cashdesk_out ?? 0);
+    const cashNet = cash + cashOut - cashIn;
     const cards = d.cards ?? Number(r.existing?.players_card_balance ?? 0);
     const jp = d.jp ?? r.jpPosted;
     const comment = d.comment ?? (r.existing?.notes ?? "");
-    return { tables, slots, drop, cash, cards, jp, comment };
+    return { tables, drop, cash, cashIn, cashOut, cashNet, cards, jp, comment };
   };
 
   /** The business day that is still running — no figures may be stored for it. */
@@ -311,12 +312,15 @@ export default function DayClosingsTab() {
         id: r.existing?.id,
         business_date: r.date,
         tables_result: v.tables,
-        // System / Slots Result = manual system result (also stored in net_win).
-        slots_result: v.slots,
-        net_win: v.slots,
+        // Net Win / Slots Result are never written from here — ACE Collector and
+        // Statistics · Slots own that figure.
         drop_slots: v.drop,
-        // CashDesk Win — physical slots cash, the only slots figure in Wallet Expected.
-        cashdesk_win: v.cash,
+        // CashDesk Win — physical slots cash, the only slots figure in Wallet
+        // Expected. Stored final value = entered base + Out − In.
+        cashdesk_win_base: v.cash,
+        cashdesk_in: v.cashIn,
+        cashdesk_out: v.cashOut,
+        cashdesk_win: v.cashNet,
         players_card_balance: v.cards,
         // A manual save always turns a provisional ACE figure into a real one.
         ace_provisional: false,
