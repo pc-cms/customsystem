@@ -1,0 +1,1 @@
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS tips_participant boolean NOT NULL DEFAULT false;

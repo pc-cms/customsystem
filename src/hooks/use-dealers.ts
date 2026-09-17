@@ -146,6 +146,38 @@ export const useDealers = () => {
   });
 };
 
+/**
+ * Employees outside the Pit department who are explicitly marked as tips
+ * participants (`tips_participant = true`). Used by Monthly Tips only — the
+ * Pit rota and Weekly Bonus stay Pit-only.
+ */
+export const useTipsParticipants = () => {
+  const { activeCasinoId: casinoId, loading: casinoLoading } = useCasino();
+  const { user, loading: authLoading } = useAuth();
+  const isReady = !authLoading && !casinoLoading && !!user && !!casinoId;
+  return useQuery({
+    queryKey: ["tips-participants", casinoId],
+    queryFn: async () => {
+      if (!casinoId) return [];
+      const { data, error } = await supabase
+        .from("employees")
+        .select("*")
+        .eq("casino_id", casinoId)
+        .is("deleted_at", null)
+        .neq("department", "Pit")
+        .eq("tips_participant", true)
+        .order("full_name");
+      if (error) throw error;
+      const raw = data ?? [];
+      return disambiguateNames(raw.map(mapEmployeeToDealer), raw);
+    },
+    enabled: isReady,
+    ...liveQueryOptions(),
+  });
+};
+
+
+
 export const useCreateDealer = () => {
   const qc = useQueryClient();
   const { activeCasinoId: casinoId } = useCasino();

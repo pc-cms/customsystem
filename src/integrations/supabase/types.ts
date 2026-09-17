@@ -4083,6 +4083,7 @@ export type Database = {
           staff_rules_acknowledged: boolean
           tax_id: string | null
           termination_date: string | null
+          tips_participant: boolean
           uniform_issued: boolean
           updated_at: string
         }
@@ -4130,6 +4131,7 @@ export type Database = {
           staff_rules_acknowledged?: boolean
           tax_id?: string | null
           termination_date?: string | null
+          tips_participant?: boolean
           uniform_issued?: boolean
           updated_at?: string
         }
@@ -4177,6 +4179,7 @@ export type Database = {
           staff_rules_acknowledged?: boolean
           tax_id?: string | null
           termination_date?: string | null
+          tips_participant?: boolean
           uniform_issued?: boolean
           updated_at?: string
         }
