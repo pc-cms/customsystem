@@ -370,13 +370,14 @@ export default function DayClosingsTab() {
 
   /* ---------- month totals ---------- */
   const totals = useMemo(() => {
-    const t = { tables: 0, slots: 0, drop: 0, cash: 0, missChips: 0, missCards: 0, cards: 0, jp: 0 };
+    const t = { tables: 0, drop: 0, cash: 0, cashIn: 0, cashOut: 0, missChips: 0, missCards: 0, cards: 0, jp: 0 };
     let cardsFound = false;
     rows.forEach((r) => {
       t.tables += Number(r.existing?.tables_result ?? r.agg.tables ?? 0);
-      t.slots += Number(r.existing?.slots_result ?? 0);
       t.drop += Number(r.existing?.drop_slots ?? 0);
       t.cash += Number(r.existing?.cashdesk_win ?? 0);
+      t.cashIn += Number(r.existing?.cashdesk_in ?? 0);
+      t.cashOut += Number(r.existing?.cashdesk_out ?? 0);
       t.missChips += Number(r.agg.missChips ?? 0);
       t.missCards += Number(r.agg.missCards ?? 0);
       t.jp += r.jpPosted;
@@ -442,29 +443,55 @@ export default function DayClosingsTab() {
       }),
     },
     {
-      key: "slots",
-      header: "Net Win",
-      type: "money",
-      style: { width: 168 },
-      sortValue: (r) => val(r).slots,
-
-      accessor: (r) => numCell(r, val(r).slots, (n) => setField(r.date, { slots: n }), {
-        placeholder: 0,
-        title: `Net Win — slots gaming SYSTEM result (ACE Collector or manual). Goes to Statistics and P&L only. Never part of Wallet Expected, never taken from a cashier shift.`,
-      }),
-    },
-    {
       key: "cash",
       header: "CashDesk Win",
       type: "money",
       style: { width: 168 },
-      sortValue: (r) => val(r).cash,
+      sortValue: (r) => val(r).cashNet,
 
-      accessor: (r) => numCell(r, val(r).cash, (n) => setField(r.date, { cash: n }), {
+      accessor: (r) => {
+        const v = val(r);
+        return (
+          <div className="flex flex-col items-end gap-0.5">
+            {numCell(r, v.cash, (n) => setField(r.date, { cash: n }), {
+              placeholder: 0,
+              title: "CashDesk Win — physical slots cash desk win. Final value = this amount + Out − In. The ONLY slots figure that flows into Wallets / Expected.",
+            })}
+            {v.cashNet !== v.cash && (
+              <span
+                className={cn("font-mono text-[10px] tabular-nums", amountToneClass(v.cashNet))}
+                title="Final CashDesk Win = entered amount + Out − In"
+              >
+                = {formatNumberSpaces(v.cashNet)}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: "cashIn",
+      header: "In",
+      type: "money",
+      style: { width: 140 },
+      sortValue: (r) => val(r).cashIn,
+      accessor: (r) => numCell(r, val(r).cashIn, (n) => setField(r.date, { cashIn: n }), {
+        tone: false,
         placeholder: 0,
-        title: "CashDesk Win — physical slots cash desk win. The ONLY slots figure that flows into Wallets / Expected. Never equal to Net Win, never taken from a cashier shift.",
+        title: "Manual In — subtracted from CashDesk Win.",
       }),
-
+    },
+    {
+      key: "cashOut",
+      header: "Out",
+      type: "money",
+      style: { width: 140 },
+      sortValue: (r) => val(r).cashOut,
+      accessor: (r) => numCell(r, val(r).cashOut, (n) => setField(r.date, { cashOut: n }), {
+        tone: false,
+        placeholder: 0,
+        title: "Manual Out — added to CashDesk Win.",
+      }),
     },
     {
       key: "drop",
