@@ -29,6 +29,7 @@ const ace = (over: Partial<AceLiveSlots> = {}): AceLiveSlots => ({
   netWin: 8_000_000, // system figure — must never be used for the displayed result
   winCashdesk: 12_000_000,
   activeCredits: 3_000_000,
+  cashlessDiff: 1_000_000,
   ageMs: 60_000,
   periodLabel: "Live",
   ...over,
@@ -38,14 +39,14 @@ describe("deriveDisplayedToday", () => {
   it("uses fresh ACE win_cashdesk minus active_credits (never net_win)", () => {
     const d = deriveDisplayedToday(day(), ace())!;
     expect(d.usesAce).toBe(true);
-    expect(d.slots.result).toBe(9_000_000); // 12M cashdesk win − 3M credits
+    expect(d.slots.result).toBe(8_000_000); // 12M cashdesk win − 3M credits − 1M cashless
     expect(d.slots.drop).toBe(50_000_000);
   });
 
   it("falls back to the closed-day result when ACE is stale", () => {
     const d = deriveDisplayedToday(
       day(),
-      ace({ fresh: false, totalDrop: null, netWin: null, winCashdesk: null, activeCredits: null }),
+      ace({ fresh: false, totalDrop: null, netWin: null, winCashdesk: null, activeCredits: null, cashlessDiff: null }),
     )!;
     expect(d.usesAce).toBe(false);
     expect(d.slots.drop).toBe(10_000_000);
@@ -76,8 +77,8 @@ describe("deriveDisplayedToday", () => {
     const d = deriveDisplayedToday(day(), ace())!;
     // tables 100M + ACE slots 50M — the closed-day 10M must NOT be added.
     expect(d.total.drop).toBe(150_000_000);
-    expect(d.total.result).toBe(29_000_000); // 20M tables + 9M slots
-    expect(d.total.hold).toBeCloseTo((29 / 150) * 100, 6);
+    expect(d.total.result).toBe(28_000_000); // 20M tables + 8M slots
+    expect(d.total.hold).toBeCloseTo((28 / 150) * 100, 6);
   });
 
   it("computes hold only when drop > 0", () => {
@@ -138,11 +139,18 @@ describe("deriveDisplayedMonthly", () => {
   });
 });
 
-describe("closed-day slots result (cashdesk_win − players_card_balance)", () => {
-  it("uses cashdesk_win minus players_card_balance, never net_win", () => {
+describe("closed-day slots result (cashdesk_win − card balance − cashless diff)", () => {
+  it("uses cashdesk_win minus players_card_balance minus cashless diff, never net_win", () => {
     expect(
       closedDaySlotsResult({ cashdesk_win: 12_000_000, players_card_balance: 2_000_000 } as any),
     ).toBe(10_000_000);
+    expect(
+      closedDaySlotsResult({
+        cashdesk_win: 12_000_000,
+        players_card_balance: 2_000_000,
+        cashless_difference: 500_000,
+      }),
+    ).toBe(9_500_000);
   });
 
   it("supports a negative result and null fields", () => {
