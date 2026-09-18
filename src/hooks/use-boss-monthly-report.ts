@@ -142,6 +142,8 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
       const playersCards = zeroPer();
       const other = zeroPer();
       const collection = zeroPer();
+      const capex = zeroPer();
+
 
       for (const p of payload.per_casino || []) {
         const id = p.casino_id;
@@ -154,6 +156,7 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
 
         other[id] = Number(p.other || 0);
         collection[id] = Number(p.collection || 0);
+        capex[id] = Number(p.capex || 0);
         estimated[id] = Number(p.estimated || 0);
         result[id] = tables[id] + slots[id];
       }
