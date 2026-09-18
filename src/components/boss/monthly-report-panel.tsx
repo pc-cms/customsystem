@@ -385,7 +385,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
 
     },
     {
-      label: "CAPEX", per: summary.capex, total: t.capex, muted: true,
+      label: "CAPEX", per: summary.capex ?? {}, total: t.capex ?? 0, muted: true,
       hint: "Capital expenditure — the CAPEX category of the 'Collections' group, shown separately. It still reduces Balance and Expected Profit.",
     },
     {
@@ -483,7 +483,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
                     {r.hint && <HintIcon text={r.hint} />}
                   </td>
                   {casinos.map((c) => (
-                    <AmountCell key={c.id} value={r.per[c.id] || 0} bold={r.strong} dim={r.muted} />
+                    <AmountCell key={c.id} value={r.per?.[c.id] || 0} bold={r.strong} dim={r.muted} />
                   ))}
                   <AmountCell value={r.total} bold={!r.muted} dim={r.muted} />
                   {canEdit && <td />}
