@@ -109,7 +109,7 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
   const ids = casinos.map(c => c.id).sort().join(",");
 
   return useQuery({
-    queryKey: ["boss-monthly-report", ids, year, month],
+    queryKey: ["boss-monthly-report", "v2", ids, year, month],
     enabled: casinos.length > 0,
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
