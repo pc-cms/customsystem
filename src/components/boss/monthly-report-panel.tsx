@@ -385,7 +385,7 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
 
     },
     {
-      label: "CAPEX", per: summary.capex ?? {}, total: t.capex ?? 0, muted: true,
+      label: "CAPEX", per: summary.capex ?? {}, total: t.capex ?? 0,
       hint: "Capital expenditure — the CAPEX category of the 'Collections' group, shown separately. It still reduces Balance and Expected Profit.",
     },
     {
