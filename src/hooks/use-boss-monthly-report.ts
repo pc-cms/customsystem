@@ -246,9 +246,9 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
         year,
         month,
         summary: {
-          estimated, result, tables, slots, playersCards, other, collection, extras, extrasTotal, bonus5,
+          estimated, result, tables, slots, playersCards, other, collection, capex, extras, extrasTotal, bonus5,
           totals: {
-            estimated: tEstimated, result: tResult, other: tOther, collection: tCollection,
+            estimated: tEstimated, result: tResult, other: tOther, collection: tCollection, capex: tCapex,
             tables: sumRec(tables), slots: sumRec(slots), playersCards: sumRec(playersCards),
             extras: tExtras, bonus5: tBonus,
             expectedProfit, balance, total: balance,
