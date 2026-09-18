@@ -89,7 +89,7 @@ type RpcPayload = {
   closed_days_count: number;
   per_casino: Array<{
     casino_id: string; tables: number; slots: number; players_cards: number;
-    other: number; collection: number; estimated: number;
+    other: number; collection: number; capex?: number; estimated: number;
   }>;
   daily: Array<{ date: string; casino_id: string; result: number }>;
   daily_collection: Array<{ date: string; collection: number }>;
