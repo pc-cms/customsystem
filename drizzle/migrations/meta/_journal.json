@@ -29,6 +29,13 @@
       "when": 1789657407442,
       "tag": "0003_day_closing_net_win_optional_and_cashdesk_base",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789768127957,
+      "tag": "0004_boss_monthly_report_collection_parity",
+      "breakpoints": true
     }
   ]
 }
