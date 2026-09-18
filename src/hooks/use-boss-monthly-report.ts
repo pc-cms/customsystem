@@ -10,6 +10,10 @@
  *   - Players Card Balance:  kept in data but no longer shown as a separate Boss report row
  *   - Other incomes:         fin_other_incomes.amount * fx_rate (→ TZS)
  *   - Collection:            expenses in fin_categories.group_code = 'collections'
+ *                            EXCLUDING the CAPEX category, plus Office → Collections
+ *                            entries (fin_other_incomes.source = 'collection').
+ *                            Same rule as the Office Monthly Report.
+ *   - CAPEX:                  the CAPEX category of the same group, shown separately
  *   - Estimated Expenses:    fin_budget.planned_amount converted with dated FX
  *   - Extra Expenses:        boss_report_extras (manual per casino / month)
  *   - Bonus 5%:              synthetic 5% of max(0, Result − Estimated Expenses)
@@ -46,11 +50,12 @@ export type Summary = {
   playersCards: Record<string, number>;
   other:      Record<string, number>;
   collection: Record<string, number>;
+  capex:      Record<string, number>;
   extras:     ExtraBucket[];          // manual extras + synthetic bonus5
   extrasTotal: Record<string, number>;
   bonus5:     Record<string, number>;
   totals: {
-    estimated: number; result: number; other: number; collection: number;
+    estimated: number; result: number; other: number; collection: number; capex: number;
     tables: number; slots: number; playersCards: number;
     extras: number; bonus5: number;
     expectedProfit: number; balance: number; total: number; dailyBalance: number;
@@ -84,7 +89,7 @@ type RpcPayload = {
   closed_days_count: number;
   per_casino: Array<{
     casino_id: string; tables: number; slots: number; players_cards: number;
-    other: number; collection: number; estimated: number;
+    other: number; collection: number; capex?: number; estimated: number;
   }>;
   daily: Array<{ date: string; casino_id: string; result: number }>;
   daily_collection: Array<{ date: string; collection: number }>;
@@ -137,6 +142,8 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
       const playersCards = zeroPer();
       const other = zeroPer();
       const collection = zeroPer();
+      const capex = zeroPer();
+
 
       for (const p of payload.per_casino || []) {
         const id = p.casino_id;
@@ -149,6 +156,7 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
 
         other[id] = Number(p.other || 0);
         collection[id] = Number(p.collection || 0);
+        capex[id] = Number(p.capex || 0);
         estimated[id] = Number(p.estimated || 0);
         result[id] = tables[id] + slots[id];
       }
@@ -213,19 +221,20 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
       const tResult = sumRec(result);
       const tOther = sumRec(other);
       const tCollection = sumRec(collection);
+      const tCapex = sumRec(capex);
       const tExtras = sumRec(extrasTotal);
       const tBonus = sumRec(bonus5);
-      const balance = tResult - tEstimated - tExtras - tCollection;
+      const balance = tResult - tEstimated - tExtras - tCollection - tCapex;
 
       // Forecast: average of CLOSED business days only
       const daysInMonth = lastDay;
       const daysElapsed = Math.max(1, Number(payload.closed_days_count || 0));
       const forecastResult = (tResult / daysElapsed) * daysInMonth;
-      const expectedProfit = forecastResult - tEstimated - tExtras - tCollection;
+      const expectedProfit = forecastResult - tEstimated - tExtras - tCollection - tCapex;
 
-      // Daily balance: fixed costs charged once on the first row
+      // Daily balance: fixed costs (and CAPEX) charged once on the first row
       const days = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
-      let running = -(tEstimated + tExtras);
+      let running = -(tEstimated + tExtras + tCapex);
       for (const d of days) {
         running += d.jcResult - d.collection;
         d.balance = running;
@@ -237,9 +246,9 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
         year,
         month,
         summary: {
-          estimated, result, tables, slots, playersCards, other, collection, extras, extrasTotal, bonus5,
+          estimated, result, tables, slots, playersCards, other, collection, capex, extras, extrasTotal, bonus5,
           totals: {
-            estimated: tEstimated, result: tResult, other: tOther, collection: tCollection,
+            estimated: tEstimated, result: tResult, other: tOther, collection: tCollection, capex: tCapex,
             tables: sumRec(tables), slots: sumRec(slots), playersCards: sumRec(playersCards),
             extras: tExtras, bonus5: tBonus,
             expectedProfit, balance, total: balance,

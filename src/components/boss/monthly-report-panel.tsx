@@ -386,7 +386,11 @@ export function MonthlyReportPanel({ casinos, accentFor, year, month }: Props) {
     },
     {
       label: "Collection", per: summary.collection, total: t.collection,
-      hint: "Expenses of the month in categories of the 'Collections' group (voided entries excluded).",
+      hint: "Same rule as the Office Monthly Report: 'Collections' group expenses excluding CAPEX, plus Office → Collections entries (voided entries excluded).",
+    },
+    {
+      label: "CAPEX", per: summary.capex, total: t.capex, muted: true,
+      hint: "Capital expenditure — the CAPEX category of the 'Collections' group, shown separately. It still reduces Balance and Expected Profit.",
     },
   ];
 
