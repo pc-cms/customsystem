@@ -10,6 +10,10 @@
  *   - Players Card Balance:  kept in data but no longer shown as a separate Boss report row
  *   - Other incomes:         fin_other_incomes.amount * fx_rate (→ TZS)
  *   - Collection:            expenses in fin_categories.group_code = 'collections'
+ *                            EXCLUDING the CAPEX category, plus Office → Collections
+ *                            entries (fin_other_incomes.source = 'collection').
+ *                            Same rule as the Office Monthly Report.
+ *   - CAPEX:                  the CAPEX category of the same group, shown separately
  *   - Estimated Expenses:    fin_budget.planned_amount converted with dated FX
  *   - Extra Expenses:        boss_report_extras (manual per casino / month)
  *   - Bonus 5%:              synthetic 5% of max(0, Result − Estimated Expenses)
@@ -46,11 +50,12 @@ export type Summary = {
   playersCards: Record<string, number>;
   other:      Record<string, number>;
   collection: Record<string, number>;
+  capex:      Record<string, number>;
   extras:     ExtraBucket[];          // manual extras + synthetic bonus5
   extrasTotal: Record<string, number>;
   bonus5:     Record<string, number>;
   totals: {
-    estimated: number; result: number; other: number; collection: number;
+    estimated: number; result: number; other: number; collection: number; capex: number;
     tables: number; slots: number; playersCards: number;
     extras: number; bonus5: number;
     expectedProfit: number; balance: number; total: number; dailyBalance: number;
