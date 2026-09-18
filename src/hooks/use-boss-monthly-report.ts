@@ -221,19 +221,20 @@ export function useBossMonthlyReport(casinos: CasinoRef[], opts?: { year?: numbe
       const tResult = sumRec(result);
       const tOther = sumRec(other);
       const tCollection = sumRec(collection);
+      const tCapex = sumRec(capex);
       const tExtras = sumRec(extrasTotal);
       const tBonus = sumRec(bonus5);
-      const balance = tResult - tEstimated - tExtras - tCollection;
+      const balance = tResult - tEstimated - tExtras - tCollection - tCapex;
 
       // Forecast: average of CLOSED business days only
       const daysInMonth = lastDay;
       const daysElapsed = Math.max(1, Number(payload.closed_days_count || 0));
       const forecastResult = (tResult / daysElapsed) * daysInMonth;
-      const expectedProfit = forecastResult - tEstimated - tExtras - tCollection;
+      const expectedProfit = forecastResult - tEstimated - tExtras - tCollection - tCapex;
 
-      // Daily balance: fixed costs charged once on the first row
+      // Daily balance: fixed costs (and CAPEX) charged once on the first row
       const days = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
-      let running = -(tEstimated + tExtras);
+      let running = -(tEstimated + tExtras + tCapex);
       for (const d of days) {
         running += d.jcResult - d.collection;
         d.balance = running;
