@@ -139,18 +139,11 @@ describe("deriveDisplayedMonthly", () => {
   });
 });
 
-describe("closed-day slots result (cashdesk_win − card balance − cashless diff)", () => {
-  it("uses cashdesk_win minus players_card_balance minus cashless diff, never net_win", () => {
+describe("closed-day slots result (cashdesk_win − card balance)", () => {
+  it("uses cashdesk_win minus players_card_balance, never net_win and never a second cashless subtraction", () => {
     expect(
-      closedDaySlotsResult({ cashdesk_win: 12_000_000, players_card_balance: 2_000_000 } as any),
+      closedDaySlotsResult({ cashdesk_win: 12_000_000, players_card_balance: 2_000_000 }),
     ).toBe(10_000_000);
-    expect(
-      closedDaySlotsResult({
-        cashdesk_win: 12_000_000,
-        players_card_balance: 2_000_000,
-        cashless_difference: 500_000,
-      }),
-    ).toBe(9_500_000);
   });
 
   it("supports a negative result and null fields", () => {
