@@ -36,6 +36,13 @@
       "when": 1789768127957,
       "tag": "0004_boss_monthly_report_collection_parity",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789976855370,
+      "tag": "0005_close_day_always_seeds_day_closing",
+      "breakpoints": true
     }
   ]
 }
