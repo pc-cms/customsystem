@@ -43,6 +43,13 @@
       "when": 1789976855370,
       "tag": "0005_close_day_always_seeds_day_closing",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790016021143,
+      "tag": "0006_boss_monthly_report_drop_cashless_double_subtract",
+      "breakpoints": true
     }
   ]
 }
