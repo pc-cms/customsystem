@@ -5,7 +5,11 @@
  *
  * Sources:
  *   - Result (Live+Slots):   fin_day_closing.tables_result + slots_result,
- *                            CLOSED business days only (business_day_closures)
+ *                            CLOSED business days only (business_day_closures).
+ *                            NOTE: the Day Closings padlock (fin_day_closing.locked_at)
+ *                            is NEVER a condition here — a closed day always counts.
+ *                            `close_business_day` seeds the fin_day_closing row for
+ *                            every closed day so no casino can fall out of the report.
  *   - Slots:                 slots_result − players_card_balance (cash desk win minus money on the cards)
  *   - Players Card Balance:  kept in data but no longer shown as a separate Boss report row
  *   - Other incomes:         fin_other_incomes.amount * fx_rate (→ TZS)
