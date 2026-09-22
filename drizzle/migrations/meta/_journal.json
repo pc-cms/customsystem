@@ -50,6 +50,13 @@
       "when": 1790016021143,
       "tag": "0006_boss_monthly_report_drop_cashless_double_subtract",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790074642299,
+      "tag": "0007_close_day_seeds_slots_from_live_ace",
+      "breakpoints": true
     }
   ]
 }
