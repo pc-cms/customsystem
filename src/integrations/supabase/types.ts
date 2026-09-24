@@ -7324,6 +7324,7 @@ export type Database = {
           id: string
           shift: string | null
           slot_id: string
+          source: string
           updated_at: string
         }
         Insert: {
@@ -7333,6 +7334,7 @@ export type Database = {
           id?: string
           shift?: string | null
           slot_id: string
+          source?: string
           updated_at?: string
         }
         Update: {
@@ -7342,6 +7344,7 @@ export type Database = {
           id?: string
           shift?: string | null
           slot_id?: string
+          source?: string
           updated_at?: string
         }
         Relationships: [
@@ -7402,6 +7405,50 @@ export type Database = {
           },
           {
             foreignKeyName: "management_slots_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "management_people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      management_vacations: {
+        Row: {
+          color: string
+          created_at: string
+          created_by: string | null
+          end_date: string
+          id: string
+          note: string | null
+          person_id: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          id?: string
+          note?: string | null
+          person_id: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          id?: string
+          note?: string | null
+          person_id?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "management_vacations_person_id_fkey"
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "management_people"
@@ -11468,6 +11515,59 @@ export type Database = {
           },
         ]
       }
+      shift_codes: {
+        Row: {
+          casino_id: string
+          code: string
+          color: string | null
+          created_at: string
+          department: string
+          end_time: string | null
+          hours: number
+          id: string
+          is_working: boolean
+          sort_order: number
+          start_time: string | null
+          updated_at: string
+        }
+        Insert: {
+          casino_id: string
+          code: string
+          color?: string | null
+          created_at?: string
+          department: string
+          end_time?: string | null
+          hours?: number
+          id?: string
+          is_working?: boolean
+          sort_order?: number
+          start_time?: string | null
+          updated_at?: string
+        }
+        Update: {
+          casino_id?: string
+          code?: string
+          color?: string | null
+          created_at?: string
+          department?: string
+          end_time?: string | null
+          hours?: number
+          id?: string
+          is_working?: boolean
+          sort_order?: number
+          start_time?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_codes_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shifts: {
         Row: {
           adjustment_ref: string | null
@@ -13752,6 +13852,16 @@ export type Database = {
           open_tables: Json
         }[]
       }
+      can_edit_mgmt_slot: {
+        Args: { _block: string; _casino_id: string; _uid: string }
+        Returns: boolean
+      }
+      can_edit_mgmt_slot_id: {
+        Args: { _slot_id: string; _uid: string }
+        Returns: boolean
+      }
+      can_edit_shift_codes: { Args: { _uid: string }; Returns: boolean }
+      can_edit_vacations: { Args: { _uid: string }; Returns: boolean }
       can_finance: { Args: { _uid: string }; Returns: boolean }
       can_manage: { Args: { _uid: string }; Returns: boolean }
       can_view_all_casinos: { Args: { _uid: string }; Returns: boolean }
@@ -14716,6 +14826,7 @@ export type Database = {
         Returns: undefined
       }
       is_manager_op: { Args: { _uid: string }; Returns: boolean }
+      is_mgmt_network_editor: { Args: { _uid: string }; Returns: boolean }
       is_promo_chip: { Args: { p_chip_color_id: string }; Returns: boolean }
       is_super_admin: { Args: { _uid: string }; Returns: boolean }
       kyc_decide: {
@@ -14821,6 +14932,10 @@ export type Database = {
           _survivor_id: string
         }
         Returns: string
+      }
+      mgmt_vacation_apply: {
+        Args: { _add: boolean; _from: string; _person: string; _to: string }
+        Returns: undefined
       }
       mirror_freeze_writes: { Args: { p_casino_id: string }; Returns: Json }
       mirror_full_parity_snapshot: {
