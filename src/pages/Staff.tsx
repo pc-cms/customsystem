@@ -27,6 +27,8 @@ const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "Ju
 
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
 import { predictedShiftHours } from "@/lib/shift-hours";
+import ShiftCodesDialog from "@/components/shifts/ShiftCodesDialog";
+import { useShiftHoursMap, SHIFT_CODES_FROM, type ShiftDept } from "@/hooks/use-shift-codes";
 import { parseAttValue, normalizeAttInput, isStatusCode } from "@/lib/attendance-code";
 
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
@@ -267,6 +269,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
         <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={printRota}>
           <Printer className="w-3.5 h-3.5" /> Print
         </Button>
+        {(isRotaTab || activeTab === "attendance") && <ShiftCodesDialog defaultDept={(rotaGroupKey || attGroupKey) as any} />}
       </PageHeader>
 
 
@@ -543,6 +546,8 @@ const EmployeeList = () => {
 const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { month: string; groupKey: RotaGroupKey; monthLabel: string; readOnly?: boolean }) => {
   const { activeCasino } = useCasino();
   const group = useMemo(() => getRotaGroup(groupKey, activeCasino), [groupKey, activeCasino]);
+  const staffCodeHours = useShiftHoursMap(activeCasino?.id, groupKey as ShiftDept);
+  const rotaHoursOverride = `${month}-01` >= SHIFT_CODES_FROM ? staffCodeHours : undefined;
   const groupShifts = group.shifts as readonly string[];
   const [filterDept, setFilterDept] = useSessionState<string>("dept", "all");
   const [y, m] = month.split("-").map(Number);
@@ -697,7 +702,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
       const display = getDisplayShift(staffId, day);
       if (display) {
         counts[display.shift] = (counts[display.shift] || 0) + 1;
-        hours += predictedShiftHours(display.shift, "staff");
+        hours += predictedShiftHours(display.shift, "staff", rotaHoursOverride);
       }
     });
     return { counts, hours };
@@ -972,6 +977,7 @@ const NEW_SHIFT_GRID_FROM = "2026-08-01";
 const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly = false }: { month: string; monthLabel: string; groupKey?: RotaGroupKey; readOnly?: boolean }) => {
   const { activeCasino } = useCasino();
   const newShiftGrid = usesArushaShiftGrid(activeCasino);
+  const attCodeHours = useShiftHoursMap(activeCasino?.id, groupKey as ShiftDept);
   const group = ROTA_GROUPS[groupKey];
   const groupDepts = group.departments as readonly StaffDepartment[];
   const [y, m] = month.split("-").map(Number);
@@ -1061,7 +1067,9 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
         // Everything before that keeps the historical flat 8h.
         const useNewGrid = newShiftGrid && dateStr >= NEW_SHIFT_GRID_FROM;
         // Management grid: D 10:00–18:00 (8h), M 12:00–20:00 (8h), N 18:00–06:00 (12h).
-        const fillValue = groupKey === "management"
+        const codeH = dateStr >= SHIFT_CODES_FROM && attCodeHours && rotaShift.toUpperCase() in attCodeHours
+          ? attCodeHours[rotaShift.toUpperCase()] : null;
+        const fillValue = codeH != null ? String(codeH) : groupKey === "management"
           ? (rotaShift === "N" ? "12" : "8")
           : useNewGrid ? String(predictedShiftHours(rotaShift, "staff")) : "8";
         autoFilledRef.current.add(key);

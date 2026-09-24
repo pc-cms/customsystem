@@ -20,6 +20,8 @@ import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, isExtraShift } from "@/lib/shift-colors";
 import { predictedShiftHours } from "@/lib/shift-hours";
+import ShiftCodesDialog from "@/components/shifts/ShiftCodesDialog";
+import { useShiftHoursMap, SHIFT_CODES_FROM } from "@/hooks/use-shift-codes";
 import { useCasino } from "@/lib/casino-context";
 import { usesArushaShiftGrid, usesDodomaShiftGrid } from "@/hooks/use-staff";
 import { parseAttValue, normalizeAttInput, isStatusCode } from "@/lib/attendance-code";
@@ -378,6 +380,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
           belowHeader={belowHeader}
         >
           {rightControls}
+          {showMonthNav && <ShiftCodesDialog defaultDept="pit" />}
         </PageHeader>
       </div>
 
@@ -673,6 +676,8 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
 
   const { activeCasino } = useCasino();
   const hoursScope = usesDodomaShiftGrid(activeCasino) ? "pit_dodoma" : usesArushaShiftGrid(activeCasino) ? "pit_arusha" : "pit";
+  const pitCodeHours = useShiftHoursMap(activeCasino?.id, "pit");
+  const rotaHoursOverride = `${month}-01` >= SHIFT_CODES_FROM ? pitCodeHours : undefined;
   const { data: dealers = [] } = useDealers();
   const { data: rota = [] } = usePitRotaRange(startDate, endDate);
   const { data: monthAttendance = [] } = useDealerAttendanceRange(startDate, endDate);
@@ -847,7 +852,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
       const display = getDisplayShift(dealerId, day);
       if (display) {
         counts[display.shift] = (counts[display.shift] || 0) + 1;
-        hours += predictedShiftHours(display.shift, hoursScope);
+        hours += predictedShiftHours(display.shift, hoursScope, rotaHoursOverride);
       }
     });
     return { counts, hours };
@@ -1049,6 +1054,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   const pitBosses = sortByCategory(dealers.filter((d: any) => d.is_active && d.is_pit_boss), attSort);
 
   const attHoursScope = usesDodomaShiftGrid(activeCasinoForAtt) ? "pit_dodoma" : usesArushaShiftGrid(activeCasinoForAtt) ? "pit_arusha" : "pit";
+  const attCodeHours = useShiftHoursMap((activeCasinoForAtt as any)?.id, "pit");
 
   const getRotaShift = (dealerId: string, day: number): string | null => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
@@ -1119,7 +1125,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
 
         // Shift-aware auto-fill hours — Extra shifts mirror their base shift
         // (EM=M, ESW=SW, EN=N) and the Arusha grid uses its own hours.
-        const fillValue = String(predictedShiftHours(rotaShift, attHoursScope) || 9);
+        const fillValue = String(predictedShiftHours(rotaShift, attHoursScope, dateStr >= SHIFT_CODES_FROM ? attCodeHours : undefined) || 9);
 
         autoFilledRef.current.add(key);
         setAttendanceRaw.mutate({ dealer_id: d.id, date: dateStr, value: fillValue });

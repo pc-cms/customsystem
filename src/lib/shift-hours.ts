@@ -52,9 +52,15 @@ const PIT_DODOMA_HOURS: Record<string, number> = {
   T: 6,
 };
 
-export function predictedShiftHours(shift: string | null | undefined, scope: ShiftHoursScope = "pit"): number {
+export function predictedShiftHours(
+  shift: string | null | undefined,
+  scope: ShiftHoursScope = "pit",
+  /** Configured shift codes (casino + department). Wins over built-in defaults. */
+  overrides?: Record<string, number>,
+): number {
   if (!shift) return 0;
   const s = shift.toUpperCase();
+  if (overrides && s in overrides) return overrides[s];
   if (NON_WORKING.has(s)) return 0;
   if (scope === "staff") return STAFF_HOURS[s] ?? 8;
   if (scope === "pit_dodoma") return PIT_DODOMA_HOURS[s] ?? 10;

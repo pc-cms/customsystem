@@ -3,7 +3,11 @@
  * Blocks: each casino, OFFICE, CCTV. Slot-based, so managers can be moved
  * between cities without touching the roster.
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useCasino } from "@/lib/casino-context";
+import VacationPlanner from "@/components/management/VacationPlanner";
+import ShiftCodesDialog from "@/components/shifts/ShiftCodesDialog";
+import type { MgmtBlock } from "@/hooks/use-management-rota";
 import { ChevronLeft, ChevronRight, Printer, UserCheck } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -17,7 +21,9 @@ import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_COLORS } from "@/lib/shift-colors";
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-const EDIT_ROLES = ["super_admin", "boss", "general_manager", "manager", "shift_manager"];
+const NETWORK_ROLES = ["super_admin", "boss", "general_manager", "finance_manager", "hr"];
+const CASINO_ROLES = ["manager", "shift_manager"];
+const EDIT_ROLES = [...NETWORK_ROLES, ...CASINO_ROLES];
 
 export default function ManagementSchedulePage({ mode }: { mode: "rota" | "attendance" }) {
   const { roles } = useAuth();
@@ -29,6 +35,16 @@ export default function ManagementSchedulePage({ mode }: { mode: "rota" | "atten
   const isCctvUser = roles.includes("surveillance");
   const canEdit = roles.some((r) => EDIT_ROLES.includes(r)) || isCctvUser;
   const cctvOnly = isCctvUser && !roles.some((r) => EDIT_ROLES.includes(r));
+  const { activeCasinoId } = useCasino();
+  const isNetwork = roles.some((r) => NETWORK_ROLES.includes(r));
+  const isCasinoMgr = roles.some((r) => CASINO_ROLES.includes(r));
+  const canEditBlock = (block: MgmtBlock, casinoId: string | null) => {
+    if (isNetwork) return true;
+    if (block === "cctv") return isCctvUser;
+    if (block === "casino") return isCasinoMgr && !!activeCasinoId && casinoId === activeCasinoId;
+    return false;
+  };
+  const [view, setView] = useState<"schedule" | "vacations">("schedule");
 
   const navigateMonth = (delta: number) => {
     const [y, m] = month.split("-").map(Number);
@@ -96,12 +112,24 @@ export default function ManagementSchedulePage({ mode }: { mode: "rota" | "atten
           </div>
         }
       >
+        <div className="inline-flex rounded-md border border-border p-0.5">
+          {(["schedule", "vacations"] as const).map((v) => (
+            <Button key={v} size="sm" variant={view === v ? "secondary" : "ghost"} className="h-7 text-xs" onClick={() => setView(v)}>
+              {v === "schedule" ? "Schedule" : "Vacations"}
+            </Button>
+          ))}
+        </div>
+        <ShiftCodesDialog defaultDept="management" />
         <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={printGrid}>
           <Printer className="w-3.5 h-3.5" /> Print
         </Button>
       </PageHeader>
 
-      <ManagementGrid month={month} mode={mode} canEdit={canEdit} cctvOnly={cctvOnly} />
+      {view === "schedule" ? (
+        <ManagementGrid month={month} mode={mode} canEdit={canEdit} cctvOnly={cctvOnly} canEditBlock={canEditBlock} />
+      ) : (
+        <VacationPlanner year={Number(month.slice(0, 4))} />
+      )}
     </div>
   );
 }

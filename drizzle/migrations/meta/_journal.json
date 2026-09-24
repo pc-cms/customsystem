@@ -57,6 +57,13 @@
       "when": 1790074642299,
       "tag": "0007_close_day_seeds_slots_from_live_ace",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790251986780,
+      "tag": "0008_shift_codes_mgmt_vacations",
+      "breakpoints": true
     }
   ]
 }
