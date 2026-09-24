@@ -20,6 +20,7 @@ import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, isExtraShift } from "@/lib/shift-colors";
 import { predictedShiftHours } from "@/lib/shift-hours";
+import ShiftCodesDialog from "@/components/shifts/ShiftCodesDialog";
 import { useShiftHoursMap, SHIFT_CODES_FROM } from "@/hooks/use-shift-codes";
 import { useCasino } from "@/lib/casino-context";
 import { usesArushaShiftGrid, usesDodomaShiftGrid } from "@/hooks/use-staff";
@@ -379,6 +380,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
           belowHeader={belowHeader}
         >
           {rightControls}
+          {showMonthNav && <ShiftCodesDialog defaultDept="pit" />}
         </PageHeader>
       </div>
 

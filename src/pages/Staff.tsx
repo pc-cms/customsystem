@@ -27,6 +27,7 @@ const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "Ju
 
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
 import { predictedShiftHours } from "@/lib/shift-hours";
+import ShiftCodesDialog from "@/components/shifts/ShiftCodesDialog";
 import { useShiftHoursMap, SHIFT_CODES_FROM, type ShiftDept } from "@/hooks/use-shift-codes";
 import { parseAttValue, normalizeAttInput, isStatusCode } from "@/lib/attendance-code";
 
@@ -268,6 +269,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
         <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={printRota}>
           <Printer className="w-3.5 h-3.5" /> Print
         </Button>
+        {(isRotaTab || activeTab === "attendance") && <ShiftCodesDialog defaultDept={(rotaGroupKey || attGroupKey) as any} />}
       </PageHeader>
 
 
