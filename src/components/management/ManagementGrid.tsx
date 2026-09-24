@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { CellPicker } from "@/components/grids/CellPicker";
+import { useAllShiftCodes, SHIFT_CODES_FROM } from "@/hooks/use-shift-codes";
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_COLORS } from "@/lib/shift-colors";
 import {
   CCTV_HOURS,
@@ -59,9 +60,22 @@ interface Props {
   canEdit: boolean;
   /** Surveillance users may only edit the CCTV block. */
   cctvOnly?: boolean;
+  /** Per-block edit check (casino managers edit only their own casino block). */
+  canEditBlock?: (block: MgmtBlock, casinoId: string | null) => boolean;
 }
 
-export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false }: Props) {
+export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false, canEditBlock }: Props) {
+  const blockEditable = (block: MgmtBlock, casinoId: string | null) =>
+    canEditBlock ? canEditBlock(block, casinoId) : canEdit && (!cctvOnly || block === "cctv");
+  const { data: allCodes = [] } = useAllShiftCodes();
+  const useCodes = `${month}-01` >= SHIFT_CODES_FROM;
+  const mgmtHours = (casinoId: string | null, shift: string) => {
+    if (useCodes && casinoId) {
+      const c = allCodes.find((x) => x.casino_id === casinoId && x.department === "management" && x.code === shift);
+      if (c) return c.is_working ? Number(c.hours) : 0;
+    }
+    return MGMT_SHIFT_HOURS[shift] ?? 8;
+  };
   const { days } = monthBounds(month);
   const { data: casinos = [] } = useAllCasinos();
   const { data: people = [] } = useManagementPeople();
@@ -264,7 +278,7 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false 
 
   const cellFor = (slot: MgmtSlot, date: string, isCctv: boolean) => {
     const r = rotaMap.get(`${slot.id}|${date}`);
-    const editable = canEdit && (!cctvOnly || isCctv) && !!slot.person_id;
+    const editable = blockEditable(slot.block, slot.casino_id) && !!slot.person_id;
 
     if (mode === "rota") {
       const value = r?.city ? `city:${r.city}` : r?.shift || null;
@@ -292,7 +306,7 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false 
     // Attendance: auto from rota unless manually overridden.
     const manual = attMap.get(`${slot.id}|${date}`);
     const worked = !!r && (!!r.city || (r.shift && r.shift !== "L"));
-    const auto = worked ? (isCctv ? String(CCTV_HOURS) : String(MGMT_SHIFT_HOURS[r!.shift || "D"] ?? 8)) : "";
+    const auto = worked ? (isCctv ? String(CCTV_HOURS) : String(mgmtHours(slot.casino_id, r!.shift || "D"))) : "";
     const display = manual || (auto ? auto : "·");
     const cls = manual
       ? UNIFIED_ATT_COLORS[manual]
@@ -329,7 +343,7 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false 
         cities.set(r.city, (cities.get(r.city) || 0) + 1);
       } else if (r.shift && r.shift !== "L") {
         days++;
-        hours += MGMT_SHIFT_HOURS[r.shift] ?? 8;
+        hours += mgmtHours(slot.casino_id, r.shift);
       }
     }
     const cityText = isCctv
@@ -374,7 +388,7 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false 
                     className="sticky left-0 border-y border-border px-2 py-1 text-[10px] font-bold tracking-wider uppercase"
                   >
                     {b.label}
-                    {canEdit && (!cctvOnly || isCctv) && (
+                    {blockEditable(b.block, b.casinoId) && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -396,7 +410,7 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false 
                 {b.slots.map((slot) => {
                   const person = slot.person_id ? peopleById.get(slot.person_id) : null;
                   const t = totalsFor(slot, isCctv);
-                  const slotEditable = canEdit && (!cctvOnly || isCctv);
+                  const slotEditable = blockEditable(slot.block, slot.casino_id);
                   return (
                     <tr key={slot.id} className="hover:bg-muted/30">
                       <td className="sticky left-0 z-10 bg-card border-b border-r border-border px-1 py-0.5">
