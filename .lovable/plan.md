@@ -3,6 +3,9 @@
 ## Цель
 В Boss → Dashboard TV в режиме Live (Today) под названием каждого казино показывать имя менеджера, который сейчас на смене, по Management Rota. Monthly-режим и Company Report не трогаем.
 
+## Список для подтверждения
+По роте на 26/09/2026 в 22:24 EAT (ночная смена N): Arusha — Vadim; Dodoma — Valeriy; Mbeya — Hussein; Mwanza — Caroline. Список меняется автоматически по времени и роте.
+
 ## Правила выбора менеджера
 - Источник: `management_rota` + `management_slots` (block = "casino", casino_id = локация) + `management_people` (имя), за сегодняшнюю дату EAT.
 - Время смен берём из настроенных `shift_codes` для каждого казино и департамента Management (сейчас D = 10:00–18:00, M = 13:00–21:00, N = 18:00–06:00); учитываем ночную смену, начавшуюся вчера.
