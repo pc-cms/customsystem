@@ -20,6 +20,7 @@ import {
 import { CityMark } from "./city-marks";
 import { TvBrandHeader } from "./tv-header";
 import { TopPlayersOverall } from "./top-players";
+import { DutyManagerLabel } from "./duty-manager-label";
 import type { TvStageProps } from "./types";
 
 export function DarkGoldStage({ casinos, company, newPlayersCount, period, periodLabel }: TvStageProps) {
@@ -102,6 +103,7 @@ export function DarkGoldStage({ casinos, company, newPlayersCount, period, perio
                   >
                     Head {period === "today" ? c.displayed?.total.headCount ?? 0 : DASH}
                   </span>
+                    <DutyManagerLabel name={c.dutyManager} period={period} />
                 </div>
               </div>
               {c.displayed ? (

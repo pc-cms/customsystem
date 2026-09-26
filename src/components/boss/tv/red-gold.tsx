@@ -19,6 +19,7 @@ import {
 import { CityMark } from "./city-marks";
 import { TvBrandHeader } from "./tv-header";
 import { TopPlayersOverall } from "./top-players";
+import { DutyManagerLabel } from "./duty-manager-label";
 import type { TvStageProps } from "./types";
 
 function HeroStat({
@@ -162,6 +163,7 @@ export function RedGoldStage({ casinos, company, newPlayersCount, period, period
                     >
                       Head {period === "today" ? d?.total.headCount ?? 0 : DASH}
                     </span>
+                    <DutyManagerLabel name={c.dutyManager} period={period} />
                   </div>
                 </div>
 

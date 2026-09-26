@@ -48,6 +48,7 @@ import type { TvCasino } from "@/components/boss/tv/types";
 import { MonthlyReportPanel } from "@/components/boss/monthly-report-panel";
 import { useAceLiveSlotsResultMany } from "@/hooks/use-ace-finance";
 import { deriveDisplayedToday, deriveDisplayedMonthly, sumDisplayedToday } from "@/lib/boss-display-metrics";
+import { useDutyManagers } from "@/hooks/use-duty-managers";
 
 
 type Resolution = "fhd" | "uhd";
@@ -206,6 +207,7 @@ export default function BossDashboard() {
 
   const { data: topPlayers = [] } = useBossTopPlayers(activeIds);
   const { data: newPlayers = [] } = useBossNewPlayers(activeIds);
+  const dutyManagers = useDutyManagers(periodView === "today" && tvMode && blockOrient !== "report");
 
   const topByCasino = useMemo(() => {
     const m: Record<string, typeof topPlayers> = {};
@@ -249,6 +251,7 @@ export default function BossDashboard() {
         slug: c.slug,
         accent: tvAccentFor(c.slug, i),
         displayed: (periodView === "today" ? displayedMap[c.id] : monthlyMap[c.id]) ?? null,
+        dutyManager: periodView === "today" ? dutyManagers[c.id] ?? null : null,
         top: (topByCasino[c.id] || []).map((t) => ({
           playerId: t.playerId,
           name: t.name,
@@ -256,7 +259,7 @@ export default function BossDashboard() {
           casinoId: t.casinoId,
         })),
       })),
-    [casinos, displayedMap, monthlyMap, periodView, topByCasino],
+    [casinos, displayedMap, monthlyMap, periodView, topByCasino, dutyManagers],
   );
 
   const isReport = blockOrient === "report";
