@@ -207,7 +207,7 @@ export default function BossDashboard() {
 
   const { data: topPlayers = [] } = useBossTopPlayers(activeIds);
   const { data: newPlayers = [] } = useBossNewPlayers(activeIds);
-  const dutyManagers = useDutyManagers(periodView === "today" && tvMode && blockOrient !== "report");
+  const dutyManagers = useDutyManagers(periodView === "today");
 
   const topByCasino = useMemo(() => {
     const m: Record<string, typeof topPlayers> = {};
