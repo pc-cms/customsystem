@@ -5,7 +5,7 @@ export function DutyManagerLabel({ name, period }: { name: string | null; period
   return (
     <span
       title={name ?? undefined}
-      className="block min-w-0 max-w-full truncate uppercase tracking-[0.12em] text-white/55"
+      className="block min-w-0 max-w-full truncate uppercase tracking-[0.12em] text-amber-300/90"
       style={{ fontSize: "var(--tv-city-head, 13px)" }}
     >
       {name ?? DASH}
