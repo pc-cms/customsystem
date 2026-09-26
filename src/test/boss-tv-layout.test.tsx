@@ -108,6 +108,7 @@ const casinos: TvCasino[] = ["Mwanza", "Arusha"].map((name, i) => ({
   slug: name.toLowerCase(),
   accent: "#E8C688",
   displayed,
+  dutyManager: "Vadim",
   top: [
     { playerId: `p${i}a`, name: `Player ${i}A`, drop: 9_000_000, casinoId: `c${i}` },
     { playerId: `p${i}b`, name: `Player ${i}B`, drop: 4_000_000, casinoId: `c${i}` },
@@ -134,6 +135,16 @@ const renderStyle = (style: "black-gold" | "red-gold" | "dark-gold") =>
   );
 
 describe("LiveStage layouts", () => {
+  it("shows the duty manager only for Today in every style", () => {
+    for (const style of ["black-gold", "red-gold", "dark-gold"] as const) {
+      const live = renderStyle(style);
+      expect(live.getAllByText("Manager · Vadim")).toHaveLength(2);
+      cleanup();
+      const monthly = render(<LiveStage style={style} casinos={casinos} company={company} newPlayersCount={7} period="monthly" periodLabel="Aug 2026" />);
+      expect(monthly.queryByText("Manager · Vadim")).toBeNull();
+      cleanup();
+    }
+  });
   it("renders three structurally different boards", () => {
     const black = renderStyle("black-gold");
     expect(black.container.querySelector("[data-tv-style='black-gold']")).toBeTruthy();
