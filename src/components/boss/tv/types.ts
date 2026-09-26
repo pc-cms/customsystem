@@ -13,6 +13,7 @@ export interface TvCasino {
   slug: string | null;
   accent: string;
   displayed: DisplayedToday | null;
+  dutyManager: string | null;
   top: TvTopPlayer[];
 }
 

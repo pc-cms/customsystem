@@ -1,0 +1,1 @@
+- Dashboard TV resolves the current casino manager from Management Rota, Attendance and per-casino Management shift codes in EAT; keep this presentation-only so financial metrics remain unchanged.

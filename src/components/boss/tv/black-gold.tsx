@@ -21,6 +21,7 @@ import {
 import { CityMark } from "./city-marks";
 import { TvBrandHeader } from "./tv-header";
 import { TopPlayersStrip } from "./top-players";
+import { DutyManagerLabel } from "./duty-manager-label";
 import type { TvStageProps } from "./types";
 import type { CasinoMetric } from "@/hooks/use-boss-dashboard";
 
@@ -202,6 +203,7 @@ export function BlackGoldStage({ casinos, company, newPlayersCount, period, peri
                     >
                       Head {period === "today" ? d?.total.headCount ?? 0 : DASH}
                     </span>
+                    <DutyManagerLabel name={c.dutyManager} period={period} />
                   </div>
                 </div>
 
