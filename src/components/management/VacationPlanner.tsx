@@ -5,7 +5,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -82,6 +82,24 @@ export default function VacationPlanner({ year: initialYear }: { year: number })
   });
 
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [personDraft, setPersonDraft] = useState<{ id: string; name: string } | null>(null);
+
+  const savePerson = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await supabase.from("management_people" as any).update({ name }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["management-people"] }); setPersonDraft(null); toast.success("Name updated"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const removePerson = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("management_people" as any).update({ is_active: false }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["management-people"] }); setPersonDraft(null); toast.success("Removed from the list"); },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const segments = (v: Vacation, m: number) => {
     const ms = new Date(year, m, 1);
@@ -138,7 +156,20 @@ export default function VacationPlanner({ year: initialYear }: { year: number })
               }, 0);
               return (
                 <tr key={p.id} className="hover:bg-muted/30">
-                  <td className="sticky left-0 z-10 bg-card border-b border-r border-border px-2 py-1 font-medium">{p.name}</td>
+                  <td className="sticky left-0 z-10 bg-card border-b border-r border-border px-2 py-1 font-medium">
+                    <span className="inline-flex items-center gap-1">
+                      {p.name}
+                      {canEdit && (
+                        <button
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => setPersonDraft({ id: p.id, name: p.name })}
+                          aria-label={`Edit ${p.name}`}
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      )}
+                    </span>
+                  </td>
                   {MONTHS.map((_, m) => (
                     <td key={m} className="border-b border-r border-border p-0 relative h-7">
                       <div className="absolute inset-0 grid grid-cols-3">
@@ -201,6 +232,23 @@ export default function VacationPlanner({ year: initialYear }: { year: number })
           <DialogFooter className="gap-2">
             {draft?.id && <Button variant="destructive" size="sm" onClick={() => remove.mutate(draft.id!)}>Delete</Button>}
             <Button size="sm" disabled={!draft || daysOf(draft) <= 0 || save.isPending} onClick={() => draft && save.mutate(draft)}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!personDraft} onOpenChange={(o) => !o && setPersonDraft(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit manager</DialogTitle>
+          </DialogHeader>
+          {personDraft && (
+            <label className="text-xs space-y-1">Name
+              <Input value={personDraft.name} onChange={(e) => setPersonDraft({ ...personDraft, name: e.target.value })} className="h-8" />
+            </label>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="destructive" size="sm" disabled={removePerson.isPending} onClick={() => personDraft && removePerson.mutate(personDraft.id)}>Remove from list</Button>
+            <Button size="sm" disabled={!personDraft?.name.trim() || savePerson.isPending} onClick={() => personDraft && savePerson.mutate({ id: personDraft.id, name: personDraft.name.trim() })}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
