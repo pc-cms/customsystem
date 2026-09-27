@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, Receipt, CreditCard, Printer, Plus } from "lucide-react";
+import { X, Receipt, Printer, Plus } from "lucide-react";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateTime } from "@/lib/format-date";
 import {
@@ -11,7 +11,7 @@ import {
   type PosOrderStatus,
   type PosOrderWithItems,
 } from "@/hooks/use-pos-orders";
-import { useCloseComplimentaryTab, type PosTab } from "@/hooks/use-pos-tabs";
+import { type PosTab } from "@/hooks/use-pos-tabs";
 import {
   usePosModifiers,
   usePosOrderItemModifiers,
@@ -20,8 +20,8 @@ import {
 } from "@/hooks/use-pos-modifiers";
 
 import { toast } from "@/hooks/use-toast";
-import CloseBillDialog from "./CloseBillDialog";
-import PayNowDialog from "./PayNowDialog";
+import CheckoutDialog from "./CheckoutDialog";
+import ManagerPinDialog from "./ManagerPinDialog";
 import ReceiptDialog from "./ReceiptDialog";
 import PlayerPosStatusBadge from "@/components/pos/PlayerPosStatusBadge";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
@@ -46,11 +46,10 @@ const STATUS_CHIP: Record<PosOrderStatus, { label: string; cls: string }> = {
 export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
   const { data: orders = [], isLoading } = usePosTabOrders(tab?.id ?? null, casinoId);
   const voidOrder = useVoidPosOrder();
-  const closeComp = useCloseComplimentaryTab();
   const updateNotes = useUpdatePosOrderNotes();
   const [closeDialog, setCloseDialog] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
-  const [payNowOrder, setPayNowOrder] = useState<PosOrderWithItems | null>(null);
+  const [voidTarget, setVoidTarget] = useState<string | null>(null);
   const [modItemId, setModItemId] = useState<string | null>(null);
 
   const orderItemIds = useMemo(
@@ -83,30 +82,13 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
     );
   }
 
-  const isComp = tab.operation_mode === "complimentary";
-  const activeOrders = orders.filter((o) => o.status === "pending" || o.status === "preparing");
-  const handleCloseComp = async () => {
-    if (activeOrders.length > 0) {
-      toast({ title: "Orders still in progress", description: "Wait until the bar accepts/serves them, or void them.", variant: "destructive" });
-      return;
-    }
-    try {
-      await closeComp.mutateAsync({ tab_id: tab.id });
-      toast({ title: "Complimentary tab closed" });
-    } catch (e: any) {
-      toast({ title: "Cannot close", description: e?.message, variant: "destructive" });
-    }
-  };
+  const label = tab.player_id ? tab.player_name || "Player" : tab.walkin_label || "Guest";
 
-  const label = tab.player_id ? tab.player_name || "Player" : `Walk-in · ${tab.walkin_label}`;
-
-  const handleVoid = async (orderId: string) => {
-    try {
-      await voidOrder.mutateAsync({ order_id: orderId });
-      toast({ title: "Order voided" });
-    } catch (e: any) {
-      toast({ title: "Cannot void", description: e?.message, variant: "destructive" });
-    }
+  const handleVoid = async (pin: string, reason: string) => {
+    if (!voidTarget) return;
+    await voidOrder.mutateAsync({ order_id: voidTarget, manager_pin: pin, reason });
+    toast({ title: "Order voided" });
+    setVoidTarget(null);
   };
 
   return (
@@ -121,16 +103,10 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
             <div className="text-xs text-muted-foreground">Opened {fmtDateTime(tab.opened_at)}</div>
           </div>
           <div className="text-right shrink-0">
-            {isComp ? (
-              <Badge variant="secondary">Complimentary</Badge>
-            ) : (
-              <>
-                <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Total</div>
-                <div className="text-2xl font-bold font-mono tabular-nums">
-                  {formatNumberSpaces(tab.total_tzs)}
-                </div>
-              </>
-            )}
+            <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Total</div>
+            <div className="text-2xl font-bold font-mono tabular-nums">
+              {formatNumberSpaces(tab.total_tzs)}
+            </div>
           </div>
         </div>
       </div>
@@ -144,8 +120,7 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
           <ul className="divide-y divide-border">
             {orders.map((o) => {
               const chip = STATUS_CHIP[o.status];
-              const canVoid = o.status === "pending" || o.status === "preparing";
-              const canPayNow = !isComp && canVoid && o.total_tzs > 0;
+              const canVoid = o.status !== "void" && o.status !== "served";
               const canEditNote = o.status === "pending";
               const notes = (o as any).notes as string | null;
               return (
@@ -160,7 +135,7 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
                               <span className={cn("truncate", o.status === "void" && "line-through opacity-60")}>
                                 {it.item_name} <span className="text-muted-foreground">×{it.qty}</span>
                               </span>
-                              {!isComp && <span className="font-mono tabular-nums">{formatNumberSpaces(it.line_total_tzs)}</span>}
+                              <span className="font-mono tabular-nums">{formatNumberSpaces(it.line_total_tzs)}</span>
                             </div>
                             {mods.length > 0 && (
                               <div className="pl-3 flex flex-wrap gap-1 mt-0.5">
@@ -216,22 +191,12 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      {canPayNow && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setPayNowOrder(o)}
-                          title="Pay now"
-                        >
-                          <CreditCard className="h-4 w-4" />
-                        </Button>
-                      )}
                       {canVoid && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleVoid(o.id)}
-                          title="Void"
+                          onClick={() => setVoidTarget(o.id)}
+                          title="Void (manager PIN)"
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -255,40 +220,29 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
         >
           <Printer className="h-4 w-4" />
         </Button>
-        {isComp ? (
-          <Button
-            className="flex-1 h-12 text-base"
-            disabled={closeComp.isPending}
-            onClick={handleCloseComp}
-          >
-            Close complimentary tab
-          </Button>
-        ) : (
-          <Button
-            className="flex-1 h-12 text-base"
-            disabled={tab.total_tzs <= 0}
-            onClick={() => setCloseDialog(true)}
-          >
-            Close bill · {formatNumberSpaces(tab.total_tzs)} TZS
-          </Button>
-        )}
+        <Button
+          className="flex-1 h-12 text-base"
+          disabled={tab.total_tzs <= 0}
+          onClick={() => setCloseDialog(true)}
+        >
+          Checkout · {formatNumberSpaces(tab.total_tzs)} TZS
+        </Button>
       </div>
 
-      <CloseBillDialog
+      <CheckoutDialog
         open={closeDialog}
         onOpenChange={setCloseDialog}
         tab={tab}
         onClosed={() => setReceiptOpen(true)}
       />
       <ReceiptDialog open={receiptOpen} onOpenChange={setReceiptOpen} tab={tab} />
-      <PayNowDialog
-        open={!!payNowOrder}
-        onOpenChange={(o) => { if (!o) setPayNowOrder(null); }}
-        parentTab={tab}
-        order={payNowOrder}
-        casinoId={casinoId}
-        shiftId={shiftId}
-        userId={userId}
+      <ManagerPinDialog
+        open={!!voidTarget}
+        onOpenChange={(o) => { if (!o) setVoidTarget(null); }}
+        title="Void sent order"
+        askReason
+        confirmLabel="Void order"
+        onConfirm={handleVoid}
       />
 
       <EditItemModifiersDialog
