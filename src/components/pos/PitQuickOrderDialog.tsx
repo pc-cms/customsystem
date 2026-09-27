@@ -117,16 +117,19 @@ export const PitQuickOrderDialog = ({ open, onOpenChange, playerId, playerName }
       for (const [itemId, qty] of cartLines) {
         const it = itemsById.get(itemId);
         if (!it) continue;
-        await addOrder.mutateAsync({
-          casino_id: casinoId,
-          shift_id: shift.id,
-          tab_id: tabId,
-          waiter_user_id: shift.waiter_user_id,
-          item_id: it.id,
-          item_name: it.name,
-          unit_price_tzs: it.price_tzs,
-          qty,
+        // Pit path: no waiter PIN; direct insert attributed to the pit user (legacy flow).
+        // Complimentary tabs are zero-priced server-side.
+        const { data: ord, error: oErr } = await supabase
+          .from("pos_orders")
+          .insert({ casino_id: casinoId, shift_id: shift.id, tab_id: tabId, waiter_user_id: shift.waiter_user_id, status: "pending" } as any)
+          .select("id")
+          .single();
+        if (oErr) throw oErr;
+        const { error: iErr } = await supabase.from("pos_order_items").insert({
+          order_id: (ord as any).id, item_id: it.id, item_name: it.name, qty,
+          unit_price_tzs: it.price_tzs, line_total_tzs: it.price_tzs * qty,
         });
+        if (iErr) throw iErr;
       }
       toast({ title: "Sent to bar", description: `${cartLines.length} item(s) ordered` });
       close();
