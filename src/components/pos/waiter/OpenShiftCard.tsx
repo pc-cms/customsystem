@@ -34,18 +34,18 @@ export const OpenShiftCard = ({ casinoId, userId }: Props) => {
   const [counts, setCounts] = useState<Record<string, number>>({});
   const { data: locations = [] } = usePosLocations(casinoId, true);
   const defaultLoc = locations.find((l) => l.name === "Main Bar") ?? locations[0];
-  // Complimentary bars take no cash: opening cash is forced to 0.
-  const isComp = (defaultLoc?.operation_mode ?? "complimentary") === "complimentary";
+  const isComp = false;
+  const [totalItems, setTotalItems] = useState(0);
 
   const countedItems = Object.keys(counts).length;
   const handle = async () => {
     const n = isComp ? 0 : Number(cash);
     if (!Number.isFinite(n) || n < 0) {
-      toast({ title: "Opening cash must be a non-negative number", variant: "destructive" });
+      toast({ title: "Opening money must be a non-negative number", variant: "destructive" });
       return;
     }
-    if (countedItems === 0) {
-      toast({ title: "Opening stock count required", description: "Enter at least one counted item.", variant: "destructive" });
+    if (countedItems < totalItems || countedItems === 0) {
+      toast({ title: "Opening stock count required", description: "Count every tracked item.", variant: "destructive" });
       return;
     }
     try {
@@ -74,7 +74,7 @@ export const OpenShiftCard = ({ casinoId, userId }: Props) => {
       <div>
         <h2 className="text-xl font-semibold">Open POS shift</h2>
         <p className="text-sm text-muted-foreground">
-          Choose your shift segment, enter the cash in the POS register and count opening stock.
+          Choose your shift segment, enter the money in the bar drawer and count opening stock.
         </p>
       </div>
 
@@ -89,7 +89,7 @@ export const OpenShiftCard = ({ casinoId, userId }: Props) => {
           </Tabs>
         </FormField>
 
-        {!isComp && <FormField span={12} label="Opening cash (TZS)" required>
+        {!isComp && <FormField span={12} label="Opening money (TZS)" required>
           <NumberInput
             decimals={0}
             value={Number(cash) || 0}
@@ -112,7 +112,7 @@ export const OpenShiftCard = ({ casinoId, userId }: Props) => {
             Enter actual shelf qty per item. Expected qty is hidden; variance is recorded for the manager report.
           </span>
         </div>
-        <StockCountPanel value={counts} onChange={setCounts} />
+        <StockCountPanel value={counts} onChange={setCounts} onTotalChange={setTotalItems} />
       </div>
 
       <Button className="w-full h-12 text-base" onClick={handle} disabled={busy}>
