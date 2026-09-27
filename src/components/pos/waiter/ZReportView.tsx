@@ -52,6 +52,19 @@ export const ZReportView = ({ z }: { z: PosZReport }) => {
       </div>
 
       <div>
+        {z.by_waiter && z.by_waiter.length > 0 && (
+          <div className="mb-4">
+            <div className="text-xs font-medium text-muted-foreground mb-1">By waiter</div>
+            <div className="rounded-md border divide-y">
+              {z.by_waiter.map((w) => (
+                <div key={w.employee_id ?? w.name} className="flex justify-between px-3 py-1.5">
+                  <span>{w.name} <span className="text-muted-foreground">· {w.orders} orders</span></span>
+                  <Money v={w.retail_tzs} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="text-xs font-medium text-muted-foreground mb-1">Money drawer</div>
         <div className="rounded-md border divide-y">
           <div className="flex justify-between px-3 py-1.5"><span>Opening money</span><Money v={z.opening_cash} /></div>

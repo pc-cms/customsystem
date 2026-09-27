@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { liveQueryOptions } from "@/lib/live-query-options";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getPosOperator } from "@/lib/pos-operator";
 
 export type PosTab = {
   id: string;
@@ -99,31 +100,60 @@ export function useOpenPosTab() {
     mutationFn: async (input: {
       casino_id: string;
       shift_id: string;
-      opened_by_user_id: string;
       player_id?: string | null;
-      player_name?: string | null;
-      walkin_label?: string | null;
-      pos_location_id?: string | null;
-    }) => {
-      const { data, error } = await supabase
-        .from("pos_tabs")
-        .insert({
-          casino_id: input.casino_id,
-          shift_id: input.shift_id,
-          opened_by_user_id: input.opened_by_user_id,
-          player_id: input.player_id ?? null,
-          player_name: input.player_name ?? null,
-          walkin_label: input.walkin_label ?? null,
-          pos_location_id: input.pos_location_id ?? null,
-        } as any)
-        .select("*")
-        .single();
+      guest_note?: string | null;
+    }): Promise<{ id: string; existing: boolean }> => {
+      const op = getPosOperator();
+      if (!op) throw new Error("Terminal locked — unlock with your PIN.");
+      const { data, error } = await supabase.rpc("pos_open_tab" as any, {
+        _token: op.token,
+        _casino_id: input.casino_id,
+        _shift_id: input.shift_id,
+        _player_id: input.player_id ?? null,
+        _guest_note: input.guest_note ?? null,
+      });
       if (error) throw error;
-      return data as unknown as PosTab;
+      return data as any;
     },
-    onSuccess: (_d, v) => {
-      qc.invalidateQueries({ queryKey: kOpen(v.casino_id, v.shift_id) });
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pos-tabs"] }),
+  });
+}
+
+/** New checkout: money / credits / free. Server validates and redeems credits atomically. */
+export function useCheckoutPosTab() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      tab_id: string; money: number; credits: number; free: number; idem: string; manager_pin?: string | null;
+    }) => {
+      const op = getPosOperator();
+      if (!op) throw new Error("Terminal locked — unlock with your PIN.");
+      const { data, error } = await supabase.rpc("pos_close_tab_v2" as any, {
+        _token: op.token, _tab_id: input.tab_id, _money: input.money, _credits: input.credits,
+        _free: input.free, _idem: input.idem, _manager_pin: input.manager_pin ?? null,
+      });
+      if (error) throw error;
+      return data as any;
     },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pos-tabs"] });
+      qc.invalidateQueries({ queryKey: ["pos-player-status"] });
+    },
+  });
+}
+
+/** End of shift: manager PIN closes remaining open tabs as FREE. */
+export function useCloseFreeTabs() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { shift_id: string; manager_pin: string; tab_ids?: string[] | null }) => {
+      const { data, error } = await supabase.rpc("pos_close_free_tabs" as any, {
+        _shift_id: input.shift_id, _manager_pin: input.manager_pin, _tab_ids: input.tab_ids ?? null,
+      });
+      if (error) throw error;
+      return data as { closed: number; retail_total: number; skipped: Array<{ label: string; reason: string }> };
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pos-tabs"] }),
   });
 }
 
@@ -156,22 +186,6 @@ export function useClosePosTab() {
  * otherwise be blocked by the monthly house-comp budget trigger. Returns the
  * new override id, ready to pass into useClosePosTab.
  */
-/** Close a zero-value complimentary tab — no payment, no comp expense, no budget use. */
-export function useCloseComplimentaryTab() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: { tab_id: string }) => {
-      const { error } = await supabase
-        .from("pos_tabs")
-        .update({ status: "closed", payment_split: {} } as any)
-        .eq("id", input.tab_id)
-        .eq("operation_mode", "complimentary");
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["pos-tabs"] }),
-  });
-}
-
 export function useCreateCompBudgetOverride() {
   return useMutation({
     mutationFn: async (input: {
