@@ -9,7 +9,6 @@ import {
   useVoidPosOrder,
   useUpdatePosOrderNotes,
   type PosOrderStatus,
-  type PosOrderWithItems,
 } from "@/hooks/use-pos-orders";
 import { type PosTab } from "@/hooks/use-pos-tabs";
 import {
