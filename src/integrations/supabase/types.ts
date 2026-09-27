@@ -9432,6 +9432,35 @@ export type Database = {
           },
         ]
       }
+      pos_casino_settings: {
+        Row: {
+          bar_output_mode: string
+          casino_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bar_output_mode?: string
+          casino_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bar_output_mode?: string
+          casino_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_casino_settings_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: true
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_comp_budget_overrides: {
         Row: {
           amount_tzs: number
@@ -9695,6 +9724,7 @@ export type Database = {
           price_tzs: number
           serving_size_ml: number | null
           stock_qty: number | null
+          stock_unit: string
           updated_at: string
         }
         Insert: {
@@ -9713,6 +9743,7 @@ export type Database = {
           price_tzs: number
           serving_size_ml?: number | null
           stock_qty?: number | null
+          stock_unit?: string
           updated_at?: string
         }
         Update: {
@@ -9731,6 +9762,7 @@ export type Database = {
           price_tzs?: number
           serving_size_ml?: number | null
           stock_qty?: number | null
+          stock_unit?: string
           updated_at?: string
         }
         Relationships: [
@@ -13763,6 +13795,14 @@ export type Database = {
         Args: { _casino_id: string; _token: string }
         Returns: string
       }
+      _pos_player_active: {
+        Args: { _casino_id: string; _player_id: string }
+        Returns: boolean
+      }
+      _pos_verify_manager_pin: {
+        Args: { _casino_id: string; _pin: string }
+        Returns: string
+      }
       _sum_denoms: { Args: { p: Json }; Returns: number }
       _sum_mobile: { Args: { p: Json }; Returns: number }
       ace_admin_list_collectors: {
@@ -15197,6 +15237,7 @@ export type Database = {
         Args: { _business_date: string; _casino_id: string; _user: string }
         Returns: number
       }
+      pos_active_player_ids: { Args: { _casino_id: string }; Returns: string[] }
       pos_backfill_cost_snapshots: {
         Args: {
           _casino_id: string
@@ -15214,8 +15255,28 @@ export type Database = {
           old_unit_cost: number
         }[]
       }
+      pos_bar_unavailable: {
+        Args: { _order_id: string; _reason?: string }
+        Returns: undefined
+      }
+      pos_close_free_tabs: {
+        Args: { _manager_pin: string; _shift_id: string; _tab_ids?: string[] }
+        Returns: Json
+      }
       pos_close_shift: {
         Args: { _closing_cash: number; _shift_id: string }
+        Returns: Json
+      }
+      pos_close_tab_v2: {
+        Args: {
+          _credits: number
+          _free: number
+          _idem: string
+          _manager_pin?: string
+          _money: number
+          _tab_id: string
+          _token: string
+        }
         Returns: Json
       }
       pos_cogs_report: {
@@ -15283,6 +15344,16 @@ export type Database = {
         Returns: Json
       }
       pos_item_availability_detail: { Args: { item_id: string }; Returns: Json }
+      pos_open_tab: {
+        Args: {
+          _casino_id: string
+          _guest_note?: string
+          _player_id?: string
+          _shift_id: string
+          _token: string
+        }
+        Returns: Json
+      }
       pos_operator_lock: { Args: { _token: string }; Returns: undefined }
       pos_operator_unlock: {
         Args: { _casino_id: string; _pin: string }
@@ -15375,9 +15446,17 @@ export type Database = {
         Args: { _casino_id: string; _employee_id: string; _pin: string }
         Returns: undefined
       }
+      pos_staff_set_role: {
+        Args: { _casino_id: string; _employee_id: string; _role: string }
+        Returns: undefined
+      }
       pos_suggested_price: { Args: { _item_id: string }; Returns: number }
       pos_tabs_recompute_total: {
         Args: { _tab_id: string }
+        Returns: undefined
+      }
+      pos_void_order_mgr: {
+        Args: { _manager_pin: string; _order_id: string; _reason: string }
         Returns: undefined
       }
       promo_campaign_kpi: { Args: { _campaign_id: string }; Returns: Json }
