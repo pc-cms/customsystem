@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
-import { SmartTable, type SmartColumn } from "@/components/ui/smart-table";
+import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
 import { useCasino } from "@/lib/casino-context";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -73,21 +73,21 @@ export default function PosManagerStaffAccess() {
     }
   };
 
-  const columns: SmartColumn<Row>[] = [
-    { key: "full_name", header: "Employee", cell: (r) => <span className="font-medium">{r.full_name}</span> },
-    { key: "position", header: "Position", cell: (r) => r.position || "·" },
-    { key: "department", header: "Department", cell: (r) => r.department || "·" },
+  const columns: ColumnDef<Row>[] = [
+    { key: "full_name", header: "Employee", sortValue: (r) => r.full_name, accessor: (r) => <span className="font-medium">{r.full_name}</span> },
+    { key: "position", header: "Position", accessor: (r) => r.position || "·" },
+    { key: "department", header: "Department", accessor: (r) => r.department || "·" },
     {
       key: "status", header: "Status",
-      cell: (r) => r.access_active && r.pin_set
+      accessor: (r) => r.access_active && r.pin_set
         ? <Badge variant="secondary">Active · PIN set</Badge>
         : r.pin_set
           ? <Badge variant="outline">Disabled</Badge>
           : <span className="text-muted-foreground">·</span>,
     },
     {
-      key: "actions", header: "", align: "right",
-      cell: (r) => (
+      key: "actions", header: "", headerClassName: "text-right",
+      accessor: (r) => (
         <div className="flex justify-end gap-1">
           <Button size="sm" variant="outline" onClick={() => { setTarget(r); setPinValue(""); }}>
             {r.pin_set ? "Reset PIN" : "Enable · set PIN"}
@@ -112,7 +112,7 @@ export default function PosManagerStaffAccess() {
     <PageShell>
       <PageHeader title="POS Staff Access" subtitle="Waiter PINs for shared POS terminals" icon={KeyRound} />
       <PageSection bodyClassName="p-0">
-        <SmartTable rows={data} columns={columns} rowKey={(r) => r.employee_id} loading={isLoading} emptyText="No bar/waiter employees in this casino." />
+        <SmartTable data={data} columns={columns} rowKey={(r) => r.employee_id} loading={isLoading} empty="No bar/waiter employees in this casino." />
       </PageSection>
 
       <ResponsiveDialog

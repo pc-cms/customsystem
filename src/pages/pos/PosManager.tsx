@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { UtensilsCrossed, Receipt, Boxes, BarChart3, ReceiptText, ShoppingCart, Tag, ClipboardCheck, Users, ScaleIcon, AlertTriangle, MapPin, Sparkles, ChefHat, TrendingUp } from "lucide-react";
+import { UtensilsCrossed, Receipt, Boxes, BarChart3, ReceiptText, ShoppingCart, Tag, ClipboardCheck, Users, ScaleIcon, AlertTriangle, MapPin, Sparkles, ChefHat, TrendingUp, KeyRound } from "lucide-react";
 
 import CompBudgetCard from "@/components/pos/manager/CompBudgetCard";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ const cards: ManagerCard[] = [
   { to: "/pos/manager/pricing", title: "Pricing review", desc: "Suggested prices from moving-average cost — future phase", icon: Tag, status: "soon" },
   { to: "/pos/manager/stock-counts", title: "Stock variance", desc: "Bartender shelf counts vs system stock", icon: ClipboardCheck, status: "beta" },
   { to: "/pos/manager/shift-reconciliation", title: "Shift reconciliation", desc: "Sales vs cash vs stock variance per shift", icon: ScaleIcon, status: "beta" },
+  { to: "/pos/manager/staff-access", title: "Staff Access", desc: "Waiter PINs for shared POS terminals", icon: KeyRound, status: "live" },
   { to: "/pos/reports", title: "Reports", desc: "Sales by waiter, top items, payment mix", icon: BarChart3, status: "live" },
   { to: "/pos/manager/cogs", title: "Cost control", desc: "COGS and margin reporting — planned for Phase 3C-3", icon: TrendingUp, status: "soon" },
   { to: "/pos/manager/player-analytics", title: "Player analytics", desc: "F&B consumption by player + drill-down", icon: Users, status: "live" },
