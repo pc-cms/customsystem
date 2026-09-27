@@ -292,7 +292,7 @@ function ModifierSheet({
                 "text-sm font-mono tabular-nums",
                 m.price_tzs_delta > 0 ? "text-foreground" : m.price_tzs_delta < 0 ? "text-cms-amount-positive" : "text-muted-foreground",
               )}>
-                {m.price_tzs_delta > 0 ? "+" : ""}{formatNumberSpaces(m.price_tzs_delta)}
+                {showPrices ? `${m.price_tzs_delta > 0 ? "+" : ""}${formatNumberSpaces(m.price_tzs_delta)}` : ""}
               </span>
             </label>
           ))}
@@ -308,12 +308,12 @@ function ModifierSheet({
           />
         </div>
 
-        <div className="flex items-center justify-between text-sm border-t border-border pt-2">
+        {showPrices && <div className="flex items-center justify-between text-sm border-t border-border pt-2">
           <span className="text-muted-foreground">
             ({formatNumberSpaces(sheet.item.price_tzs)} {deltaSum !== 0 && `${deltaSum > 0 ? "+" : ""}${formatNumberSpaces(deltaSum)}`}) × {sheet.qty}
           </span>
           <span className="font-mono font-semibold tabular-nums">{formatNumberSpaces(lineTotal)}</span>
-        </div>
+        </div>}
 
         <ResponsiveDialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
