@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { History, ArrowLeftRight, Lock } from "lucide-react";
 
-const IDLE_LOCK_MS = 90_000;
+const IDLE_LOCK_MS = 180_000;
 import { useIsMobile } from "@/hooks/use-mobile";
 
 
@@ -191,7 +191,7 @@ export default function PosWaiter() {
             />
           </TabsContent>
           <TabsContent value="menu" className="flex-1 m-0">
-            <MenuPanel mode={activeTab?.operation_mode ?? "paid"} casinoId={activeCasinoId} shiftId={shift.id} tabId={activeTabId} userId={user!.id} />
+            <MenuPanel casinoId={activeCasinoId} shiftId={shift.id} tabId={activeTabId} userId={user!.id} />
           </TabsContent>
           <TabsContent value="active" className="flex-1 m-0">
             <ActiveTabPanel tab={activeTab} casinoId={activeCasinoId} shiftId={shift.id} userId={user!.id} />
@@ -227,7 +227,7 @@ export default function PosWaiter() {
           />
         </div>
         <div className="col-span-5 border-r border-border min-h-0">
-          <MenuPanel mode={activeTab?.operation_mode ?? "paid"} casinoId={activeCasinoId} shiftId={shift.id} tabId={activeTabId} userId={user!.id} />
+          <MenuPanel casinoId={activeCasinoId} shiftId={shift.id} tabId={activeTabId} userId={user!.id} />
         </div>
         <div className="col-span-4 min-h-0">
           <ActiveTabPanel tab={activeTab} casinoId={activeCasinoId} shiftId={shift.id} userId={user!.id} />
