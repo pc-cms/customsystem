@@ -80,7 +80,7 @@ function OrderCard({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => onMarkProblem(order)}>
-                  <AlertTriangle className="h-4 w-4 mr-2" /> Mark as problem
+                  <AlertTriangle className="h-4 w-4 mr-2" /> Unavailable
                 </DropdownMenuItem>
                 {order.status !== "pending" && (
                   <DropdownMenuItem onClick={() => onForceClose(order)} className="text-cms-amount-negative">
@@ -136,10 +136,15 @@ function OrderCard({
         </div>
       )}
       {onAdvance && (
-        <Button size="sm" className="w-full" onClick={onAdvance}>
-          {COLS.find((c) => c.key === order.status)?.nextLabel ?? "Next"}
-          <ChevronRight className="h-4 w-4 ml-1" />
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" className="flex-1" onClick={onAdvance}>
+            {order.status === "ready" ? "Done" : "Ready"}
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+          {order.status !== "ready" && (
+            <Button size="sm" variant="outline" onClick={() => onMarkProblem(order)}>Unavailable</Button>
+          )}
+        </div>
       )}
       {order.status === "ready" && (
         <div className="text-[11px] text-center text-muted-foreground">
