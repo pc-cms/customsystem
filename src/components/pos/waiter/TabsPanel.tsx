@@ -33,7 +33,7 @@ export const TabsPanel = ({ tabs, activeTabId, onSelect, onNew, loading }: Props
             {tabs.map((t) => {
               const label = t.player_id
                 ? t.player_name || "Player"
-                : `Walk-in · ${t.walkin_label}`;
+                : t.walkin_label || "Guest";
               const active = t.id === activeTabId;
               return (
                 <li key={t.id}>
@@ -47,7 +47,7 @@ export const TabsPanel = ({ tabs, activeTabId, onSelect, onNew, loading }: Props
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="font-medium truncate">{label}</span>
                       <span className="font-mono tabular-nums text-sm shrink-0">
-                        {t.operation_mode === "complimentary" ? "Comp" : formatNumberSpaces(t.total_tzs)}
+                        {formatNumberSpaces(t.total_tzs)}
                       </span>
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5">

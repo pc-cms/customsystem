@@ -30,7 +30,11 @@ export function usePosPlayerSearch(casinoId: string | null, q: string) {
         _q: term,
       });
       if (error) throw error;
-      return (data ?? []) as unknown as PosPlayerSearchRow[];
+      // Only players currently checked in to THIS casino (open casino_visits).
+      const { data: active, error: aErr } = await supabase.rpc("pos_active_player_ids" as any, { _casino_id: casinoId });
+      if (aErr) throw aErr;
+      const ids = new Set(((active ?? []) as any[]).map((r) => (typeof r === "string" ? r : r.pos_active_player_ids ?? r.id)));
+      return ((data ?? []) as unknown as PosPlayerSearchRow[]).filter((p) => ids.has(p.id));
     },
   });
 }

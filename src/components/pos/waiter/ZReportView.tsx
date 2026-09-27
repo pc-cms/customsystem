@@ -31,10 +31,13 @@ export const ZReportView = ({ z }: { z: PosZReport }) => {
         <div className="text-xs font-medium text-muted-foreground mb-1">Payment totals</div>
         <div className="rounded-md border divide-y">
           {[
-            ["Cash", t.cash],
-            ["Card", t.card],
-            ["Comp · player", t.comp_player],
-            ["Comp · house", t.comp_house],
+            ["Money", t.money ?? t.cash],
+            ["Credits", t.credits ?? 0],
+            ["Free (hospitality, not revenue)", t.free ?? 0],
+            ...(t.card || t.comp_player || t.comp_house
+              ? [["Card (legacy)", t.card], ["Comp · player (legacy)", t.comp_player], ["Comp · house (legacy)", t.comp_house]]
+              : []),
+            ...(z.cogs_tzs != null ? [["COGS", z.cogs_tzs]] : []),
           ].map(([label, val]) => (
             <div key={label as string} className="flex justify-between px-3 py-1.5">
               <span>{label}</span>
@@ -42,20 +45,33 @@ export const ZReportView = ({ z }: { z: PosZReport }) => {
             </div>
           ))}
           <div className="flex justify-between px-3 py-2 font-semibold bg-muted/40">
-            <span>Gross</span>
+            <span>Retail value</span>
             <Money v={t.gross_tzs} />
           </div>
         </div>
       </div>
 
       <div>
-        <div className="text-xs font-medium text-muted-foreground mb-1">Cash drawer</div>
+        {z.by_waiter && z.by_waiter.length > 0 && (
+          <div className="mb-4">
+            <div className="text-xs font-medium text-muted-foreground mb-1">By waiter</div>
+            <div className="rounded-md border divide-y">
+              {z.by_waiter.map((w) => (
+                <div key={w.employee_id ?? w.name} className="flex justify-between px-3 py-1.5">
+                  <span>{w.name} <span className="text-muted-foreground">· {w.orders} orders</span></span>
+                  <Money v={w.retail_tzs} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="text-xs font-medium text-muted-foreground mb-1">Money drawer</div>
         <div className="rounded-md border divide-y">
-          <div className="flex justify-between px-3 py-1.5"><span>Opening cash</span><Money v={z.opening_cash} /></div>
-          <div className="flex justify-between px-3 py-1.5"><span>+ Cash sales</span><Money v={t.cash} /></div>
-          <div className="flex justify-between px-3 py-1.5 bg-muted/30"><span>Expected</span><Money v={z.expected_cash} /></div>
+          <div className="flex justify-between px-3 py-1.5"><span>Opening money</span><Money v={z.opening_cash} /></div>
+          <div className="flex justify-between px-3 py-1.5"><span>+ Money sales</span><Money v={t.money ?? t.cash} /></div>
+          <div className="flex justify-between px-3 py-1.5 bg-muted/30"><span>Expected money</span><Money v={z.expected_cash} /></div>
           <div className="flex justify-between px-3 py-1.5">
-            <span>Actual closing</span>
+            <span>Actual closing money</span>
             <Money v={z.closing_cash ?? 0} />
           </div>
           <div className={`flex justify-between px-3 py-2 font-semibold ${deltaCls}`}>

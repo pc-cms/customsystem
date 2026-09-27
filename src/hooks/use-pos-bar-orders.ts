@@ -111,9 +111,9 @@ export function usePosBarOrders(casinoId: string | null) {
 export function useAdvancePosOrder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { order_id: string; to: "preparing" | "ready" | "served" }) => {
+    mutationFn: async (input: { order_id: string; to: "ready" | "served" }) => {
       const patch: {
-        status: "preparing" | "ready" | "served";
+        status: "ready" | "served";
         ready_at?: string;
         served_at?: string;
       } = { status: input.to };

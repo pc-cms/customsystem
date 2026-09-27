@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getPosOperator, setPosOperator } from "@/lib/pos-operator";
+import { maybePrintBarTicket } from "@/lib/pos-print";
 
 export type PosOrderStatus = "pending" | "preparing" | "ready" | "served" | "void";
 
@@ -101,7 +102,9 @@ export function useAddPosOrder() {
         if (String(error.message).includes("OPERATOR_LOCKED")) setPosOperator(null);
         throw error;
       }
-      return data as unknown as string;
+      const orderId = data as unknown as string;
+      void maybePrintBarTicket(orderId);
+      return orderId;
     },
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: kOrders(v.tab_id) });
@@ -130,18 +133,14 @@ export function useUpdatePosOrderNotes() {
 }
 
 
+/** Void after send: requires POS manager PIN + reason (server-verified). */
 export function useVoidPosOrder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { order_id: string; reason?: string }) => {
-      const { error } = await supabase
-        .from("pos_orders")
-        .update({
-          status: "void",
-          voided_at: new Date().toISOString(),
-          voided_reason: input.reason ?? null,
-        })
-        .eq("id", input.order_id);
+    mutationFn: async (input: { order_id: string; reason: string; manager_pin: string }) => {
+      const { error } = await supabase.rpc("pos_void_order_mgr" as any, {
+        _order_id: input.order_id, _reason: input.reason, _manager_pin: input.manager_pin,
+      });
       if (error) throw error;
     },
     onSuccess: () => {

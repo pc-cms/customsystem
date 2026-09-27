@@ -19,6 +19,9 @@ import {
 import { useSavePosStockCount } from "@/hooks/use-pos-stock-counts";
 import ZReportView from "./ZReportView";
 import StockCountPanel from "./StockCountPanel";
+import ManagerPinDialog from "./ManagerPinDialog";
+import { useCloseFreeTabs, usePosOpenTabs } from "@/hooks/use-pos-tabs";
+import { printEfdSlip } from "@/lib/pos-print";
 
 interface Props {
   open: boolean;
@@ -34,6 +37,11 @@ export const CloseShiftDialog = ({ open, onOpenChange, shift, openTabsCount, onC
   const { data: preview, isLoading } = usePosZReportPreview(shift?.id ?? null, open);
   const [closingCash, setClosingCash] = useState("0");
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [totalItems, setTotalItems] = useState(0);
+  const [freeOpen, setFreeOpen] = useState(false);
+  const closeFree = useCloseFreeTabs();
+  const { data: openTabs = [] } = usePosOpenTabs(shift?.casino_id ?? null, shift?.id ?? null);
+  const openRetail = openTabs.reduce((a, t) => a + (Number(t.total_tzs) || 0), 0);
 
   useEffect(() => {
     if (open && preview) {
@@ -55,7 +63,7 @@ export const CloseShiftDialog = ({ open, onOpenChange, shift, openTabsCount, onC
 
   const countedItems = Object.keys(counts).length;
   const busy = closeMut.isPending || saveCountMut.isPending;
-  const canClose = openTabsCount === 0 && !!shift && !!preview && countedItems > 0 && !busy;
+  const canClose = openTabsCount === 0 && !!shift && !!preview && countedItems > 0 && countedItems >= totalItems && !busy;
 
   const handle = async () => {
     if (!shift) return;
@@ -63,8 +71,8 @@ export const CloseShiftDialog = ({ open, onOpenChange, shift, openTabsCount, onC
       toast({ title: "Close all open tabs first", variant: "destructive" });
       return;
     }
-    if (countedItems === 0) {
-      toast({ title: "Closing stock count required", description: "Enter at least one counted item.", variant: "destructive" });
+    if (countedItems === 0 || countedItems < totalItems) {
+      toast({ title: "Closing stock count required", description: "Count every tracked item.", variant: "destructive" });
       return;
     }
     try {
@@ -91,13 +99,21 @@ export const CloseShiftDialog = ({ open, onOpenChange, shift, openTabsCount, onC
     <ResponsiveDialog open={open} onOpenChange={onOpenChange} title="Close shift · Z-report" size="xl">
       <div className="space-y-4">
         {openTabsCount > 0 && (
-          <div className="rounded-md bg-cms-amount-negative/10 text-cms-amount-negative px-3 py-2 text-sm">
-            {openTabsCount} open tab(s) must be closed first.
+          <div className="rounded-md bg-cms-amount-negative/10 px-3 py-2 text-sm space-y-2">
+            <div className="text-cms-amount-negative">
+              {openTabsCount} open tab(s) · retail {formatNumberSpaces(openRetail)} TZS must be closed first.
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {openTabs.map((t) => t.player_name || t.walkin_label || "Guest").join(", ")}
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setFreeOpen(true)}>
+              Close remaining as FREE (manager PIN)
+            </Button>
           </div>
         )}
 
         <FormGrid>
-          <FormField span={6} label="Closing cash in drawer">
+          <FormField span={6} label="Closing money in drawer">
             <NumberInput
               decimals={0}
               value={Number(closingCash) || 0}
@@ -105,7 +121,7 @@ export const CloseShiftDialog = ({ open, onOpenChange, shift, openTabsCount, onC
               className="text-lg"
             />
           </FormField>
-          <FormField span={6} label="Expected">
+          <FormField span={6} label="Expected money">
             <div className="h-10 flex items-center font-mono tabular-nums">
               {preview ? formatNumberSpaces(preview.expected_cash) : "—"} TZS
             </div>
@@ -124,16 +140,35 @@ export const CloseShiftDialog = ({ open, onOpenChange, shift, openTabsCount, onC
               Enter actual shelf qty per item. Expected qty is hidden; variance is recorded for the manager report.
             </span>
           </div>
-          <StockCountPanel value={counts} onChange={setCounts} />
+          <StockCountPanel value={counts} onChange={setCounts} onTotalChange={setTotalItems} />
         </div>
 
         <ResponsiveDialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" disabled={!previewWithCash} onClick={() => previewWithCash && printEfdSlip(previewWithCash)}>
+            Print EFD slip
+          </Button>
           <Button onClick={handle} disabled={!canClose}>
             {saveCountMut.isPending ? "Saving count…" : closeMut.isPending ? "Closing…" : "Confirm & close shift"}
           </Button>
         </ResponsiveDialogFooter>
       </div>
+      <ManagerPinDialog
+        open={freeOpen}
+        onOpenChange={setFreeOpen}
+        title="Close remaining tabs as FREE"
+        description={<p className="text-sm">{openTabsCount} tab(s) · retail {formatNumberSpaces(openRetail)} TZS will close with payment FREE.</p>}
+        confirmLabel="Close as FREE"
+        onConfirm={async (pin) => {
+          if (!shift) return;
+          const r = await closeFree.mutateAsync({ shift_id: shift.id, manager_pin: pin });
+          toast({
+            title: `${r.closed} tab(s) closed as FREE`,
+            description: r.skipped?.length ? `Skipped: ${r.skipped.map((x) => `${x.label} (${x.reason})`).join(", ")}` : undefined,
+          });
+          setFreeOpen(false);
+        }}
+      />
     </ResponsiveDialog>
   );
 };

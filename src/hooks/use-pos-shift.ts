@@ -48,6 +48,10 @@ export type PosZReportTotals = {
   card: number;
   comp_player: number;
   comp_house: number;
+  retail_tzs?: number;
+  money?: number;
+  credits?: number;
+  free?: number;
 };
 
 export type PosZReportCounts = {
@@ -80,6 +84,12 @@ export type PosZReport = {
   by_category: PosZReportLine[];
   by_item: PosZReportLine[];
   computed_at: string;
+  casino_name?: string | null;
+  business_date?: string | null;
+  shift_type?: string | null;
+  cogs_tzs?: number | null;
+  vat_rate?: number;
+  by_waiter?: Array<{ employee_id: string | null; name: string; orders: number; retail_tzs: number }>;
 };
 
 const key = (casinoId: string | null, userId: string | null) =>

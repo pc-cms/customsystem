@@ -55,7 +55,7 @@ export default function PosManagerLocations() {
         casino_id: activeCasinoId,
         name: edit.name.trim(),
         type: (edit.type as PosLocationType) ?? "bar",
-        operation_mode: (edit.operation_mode as PosOperationMode) ?? "complimentary",
+        operation_mode: "paid" as PosOperationMode,
         is_active: edit.is_active ?? true,
         sort_order: edit.sort_order ?? 0,
       });
@@ -70,7 +70,7 @@ export default function PosManagerLocations() {
     <PageShell>
       <PageHeader title="POS Locations" subtitle="Bars, coffee counters, VIP service…" icon={MapPin}>
         {canEdit && (
-          <Button onClick={() => setEdit({ type: "bar", operation_mode: "complimentary", is_active: true, sort_order: 0 })}>
+          <Button onClick={() => setEdit({ type: "bar", is_active: true, sort_order: 0 })}>
             <Plus className="h-4 w-4 mr-2" /> New location
           </Button>
         )}
@@ -82,7 +82,6 @@ export default function PosManagerLocations() {
             <DTRow>
               <DTHeader>Name</DTHeader>
               <DTHeader>Type</DTHeader>
-              <DTHeader>Mode</DTHeader>
               <DTHeader>Sort</DTHeader>
               <DTHeader>Status</DTHeader>
               <DTHeader className="text-right">Actions</DTHeader>
@@ -90,18 +89,13 @@ export default function PosManagerLocations() {
           </DTHead>
           <DTBody>
             {isLoading ? (
-              <DTRow><DTCell colSpan={6} className="text-center text-muted-foreground">Loading…</DTCell></DTRow>
+              <DTRow><DTCell colSpan={5} className="text-center text-muted-foreground">Loading…</DTCell></DTRow>
             ) : locations.length === 0 ? (
-              <DTRow><DTCell colSpan={6} className="text-center text-muted-foreground">No locations.</DTCell></DTRow>
+              <DTRow><DTCell colSpan={5} className="text-center text-muted-foreground">No locations.</DTCell></DTRow>
             ) : locations.map((loc) => (
               <DTRow key={loc.id}>
                 <DTCell className="font-medium">{loc.name}</DTCell>
                 <DTCell>{TYPES.find(t => t.value === loc.type)?.label ?? loc.type}</DTCell>
-                <DTCell>
-                  {loc.operation_mode === "paid"
-                    ? <Badge>Paid</Badge>
-                    : <Badge variant="secondary">Complimentary</Badge>}
-                </DTCell>
                 <DTCell className="tabular-nums">{loc.sort_order}</DTCell>
                 <DTCell>
                   {loc.is_active
@@ -157,25 +151,6 @@ export default function PosManagerLocations() {
                   {TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <label className="text-xs uppercase text-muted-foreground">Operating mode</label>
-              <Select
-                value={(edit.operation_mode as string) ?? "complimentary"}
-                onValueChange={(v) => setEdit({ ...edit, operation_mode: v as PosOperationMode })}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="complimentary">Complimentary</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                {(edit.operation_mode ?? "complimentary") === "complimentary"
-                  ? "Free for players. No selling prices or payment; stock and cost are still tracked."
-                  : "Normal selling prices and bill payment (cash, card, comp, player charge)."}
-                {" "}Applies to new tabs only — existing tabs keep their mode.
-              </p>
             </div>
             <div>
               <label className="text-xs uppercase text-muted-foreground">Sort order</label>

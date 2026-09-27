@@ -21,11 +21,10 @@ interface Props {
   shiftId: string;
   tabId: string | null;
   userId: string;
-  mode?: "complimentary" | "paid";
 }
 
-export const MenuPanel = ({ casinoId, tabId, mode = "paid" }: Props) => {
-  const showPrices = mode !== "complimentary";
+export const MenuPanel = ({ casinoId, tabId }: Props) => {
+  const showPrices = true;
   const { data: categories = [] } = usePosMenuCategories(casinoId);
   const { data: items = [] } = usePosMenuItems(casinoId);
   const { data: modifiers = [] } = usePosModifiers(casinoId, true);

@@ -59,7 +59,7 @@ export function useUpsertPosLocation() {
         casino_id: input.casino_id,
         name: input.name,
         type: input.type ?? "bar",
-        operation_mode: input.operation_mode ?? "complimentary",
+        operation_mode: "paid",
         is_active: input.is_active ?? true,
         sort_order: input.sort_order ?? 0,
         updated_at: new Date().toISOString(),

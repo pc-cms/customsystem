@@ -137,12 +137,13 @@ export const HandoverShiftDialog = ({
   );
 
   const countedItems = Object.keys(counts).length;
+  const [totalItems, setTotalItems] = useState(0);
   const canSubmit =
     openTabsCount === 0 &&
     !!shift &&
     !!preview &&
     !!newWaiterId &&
-    countedItems > 0 &&
+    countedItems > 0 && countedItems >= totalItems &&
     !handoverMut.isPending &&
     !saveCountMut.isPending;
 
@@ -156,7 +157,7 @@ export const HandoverShiftDialog = ({
       toast({ title: "Select the incoming bartender", variant: "destructive" });
       return;
     }
-    if (countedItems === 0) {
+    if (countedItems === 0 || countedItems < totalItems) {
       toast({ title: "Stock count required", description: "Enter at least one counted item.", variant: "destructive" });
       return;
     }
@@ -200,7 +201,7 @@ export const HandoverShiftDialog = ({
         )}
 
         <FormGrid>
-          <FormField span={4} label="Closing cash (= opening cash)">
+          <FormField span={4} label="Closing money (= opening money)">
             <NumberInput
               decimals={0}
               value={Number(closingCash) || 0}
@@ -262,7 +263,7 @@ export const HandoverShiftDialog = ({
               Enter actual shelf qty per item. Expected qty is hidden — variance goes to manager report.
             </span>
           </div>
-          <StockCountPanel value={counts} onChange={setCounts} />
+          <StockCountPanel value={counts} onChange={setCounts} onTotalChange={setTotalItems} />
         </div>
 
         <ResponsiveDialogFooter>

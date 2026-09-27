@@ -38,6 +38,9 @@ export type PosReport = {
     comp_player: number;
     comp_house: number;
     player_charge: number;
+    money: number;
+    credits: number;
+    free: number;
     comp_orders: number;
     comp_items: number;
     comp_cogs_tzs: number;
@@ -64,7 +67,7 @@ export function usePosReport(casinoId: string | null, range: PosReportRange) {
       const closed = (tabs ?? []).filter(t => t.status === "closed");
       const voided = (tabs ?? []).filter(t => t.status === "voided");
 
-      let gross = 0, cash = 0, card = 0, cp = 0, ch = 0, pc = 0;
+      let gross = 0, cash = 0, card = 0, cp = 0, ch = 0, pc = 0, money = 0, credits = 0, free = 0;
       for (const t of closed) {
         const ps = (t.payment_split as PaymentSplit | null) ?? {};
         gross += Number(t.total_tzs) || 0;
@@ -73,6 +76,9 @@ export function usePosReport(casinoId: string | null, range: PosReportRange) {
         cp   += Number(ps.comp_player) || 0;
         ch   += Number(ps.comp_house) || 0;
         pc   += Number(ps.player_charge) || 0;
+        money += (Number((ps as any).money) || 0) + (Number(ps.cash) || 0);
+        credits += Number((ps as any).credits) || 0;
+        free += Number((ps as any).free) || 0;
       }
       const paidClosed = closed.filter((t: any) => t.operation_mode !== "complimentary").length;
 
@@ -170,7 +176,7 @@ export function usePosReport(casinoId: string | null, range: PosReportRange) {
           void_rate: denom > 0 ? billsVoided / denom : 0,
           gross_tzs: gross,
           avg_ticket: paidClosed > 0 ? Math.round(gross / paidClosed) : 0,
-          cash, card, comp_player: cp, comp_house: ch, player_charge: pc,
+          cash, card, comp_player: cp, comp_house: ch, player_charge: pc, money, credits, free,
           comp_orders: compOrderIds.size,
           comp_items: compItems,
           comp_cogs_tzs: Math.round(compCogs),

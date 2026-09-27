@@ -78,6 +78,13 @@
       "when": 1790509522977,
       "tag": "0010_pos_complimentary_zero_price_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790513264867,
+      "tag": "0011_pos_core_checkout_free_tender",
+      "breakpoints": true
     }
   ]
 }
