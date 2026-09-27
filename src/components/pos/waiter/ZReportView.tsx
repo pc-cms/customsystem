@@ -58,7 +58,7 @@ export const ZReportView = ({ z }: { z: PosZReport }) => {
           <div className="flex justify-between px-3 py-1.5"><span>+ Money sales</span><Money v={t.money ?? t.cash} /></div>
           <div className="flex justify-between px-3 py-1.5 bg-muted/30"><span>Expected money</span><Money v={z.expected_cash} /></div>
           <div className="flex justify-between px-3 py-1.5">
-            <span>Actual closing</span>
+            <span>Actual closing money</span>
             <Money v={z.closing_cash ?? 0} />
           </div>
           <div className={`flex justify-between px-3 py-2 font-semibold ${deltaCls}`}>
