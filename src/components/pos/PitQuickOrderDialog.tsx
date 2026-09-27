@@ -24,7 +24,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { usePosAnyOpenShift } from "@/hooks/use-pos-shift";
 import { usePosMenuCategories, usePosMenuItems, type PosMenuItem } from "@/hooks/use-pos-menu";
-import { useAddPosOrder } from "@/hooks/use-pos-orders";
+import { useQueryClient } from "@tanstack/react-query";
 import { stockStatus } from "@/hooks/use-pos-inventory";
 
 interface Props {
@@ -42,7 +42,7 @@ export const PitQuickOrderDialog = ({ open, onOpenChange, playerId, playerName }
   const { data: shift, isLoading: shiftLoading } = usePosAnyOpenShift(casinoId);
   const { data: categories = [] } = usePosMenuCategories(casinoId);
   const { data: items = [] } = usePosMenuItems(casinoId);
-  const addOrder = useAddPosOrder();
+  const qc = useQueryClient();
 
   const activeCats = useMemo(() => categories.filter((c) => c.is_active), [categories]);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
@@ -131,6 +131,8 @@ export const PitQuickOrderDialog = ({ open, onOpenChange, playerId, playerName }
         });
         if (iErr) throw iErr;
       }
+      qc.invalidateQueries({ queryKey: ["pos-orders"] });
+      qc.invalidateQueries({ queryKey: ["pos-tabs"] });
       toast({ title: "Sent to bar", description: `${cartLines.length} item(s) ordered` });
       close();
     } catch (e: any) {
