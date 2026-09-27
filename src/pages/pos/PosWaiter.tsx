@@ -123,7 +123,7 @@ export default function PosWaiter() {
           <Lock className="h-4 w-4" /> Switch waiter / Lock
         </Button>
         <span className="text-muted-foreground">
-          Opening cash: <span className="font-mono tabular-nums">{formatNumberSpaces(shift.opening_cash)}</span>
+          Opening money: <span className="font-mono tabular-nums">{formatNumberSpaces(shift.opening_cash)}</span>
         </span>
         <Button size="sm" variant="outline" onClick={() => setHistoryOpen(true)} className="gap-1">
           <History className="h-4 w-4" /> History

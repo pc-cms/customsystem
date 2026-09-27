@@ -33,7 +33,7 @@ export const TabsPanel = ({ tabs, activeTabId, onSelect, onNew, loading }: Props
             {tabs.map((t) => {
               const label = t.player_id
                 ? t.player_name || "Player"
-                : `Walk-in · ${t.walkin_label}`;
+                : t.walkin_label || "Guest";
               const active = t.id === activeTabId;
               return (
                 <li key={t.id}>
