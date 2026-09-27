@@ -64,6 +64,20 @@
       "when": 1790251986780,
       "tag": "0008_shift_codes_mgmt_vacations",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790509336731,
+      "tag": "0009_pos_foundation_mode_pin_terminal",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790509522977,
+      "tag": "0010_pos_complimentary_zero_price_guard",
+      "breakpoints": true
     }
   ]
 }

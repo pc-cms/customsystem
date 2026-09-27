@@ -90,6 +90,12 @@ export default function PosReports() {
           <KPI label="Comp · house" value={formatNumberSpaces(totals?.comp_house ?? 0)} />
         </div>
 
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+          <KPI label="Complimentary orders" value={String(totals?.comp_orders ?? 0)} sub="not revenue" />
+          <KPI label="Complimentary items" value={String(totals?.comp_items ?? 0)} />
+          <KPI label="Complimentary COGS" value={formatNumberSpaces(totals?.comp_cogs_tzs ?? 0)} sub="TZS cost" />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* By waiter */}
           <div className="cms-panel">
@@ -100,26 +106,28 @@ export default function PosReports() {
               <thead className="bg-muted/40">
                 <tr className="border-b border-border">
                   <th className="text-left px-3 py-2 text-xs uppercase text-muted-foreground">Waiter</th>
-                  <th className="text-right px-3 py-2 text-xs uppercase text-muted-foreground">Bills</th>
+                  <th className="text-right px-3 py-2 text-xs uppercase text-muted-foreground">Orders</th>
                   <th className="text-right px-3 py-2 text-xs uppercase text-muted-foreground">Voided</th>
-                  <th className="text-right px-3 py-2 text-xs uppercase text-muted-foreground">Gross</th>
+                  <th className="text-right px-3 py-2 text-xs uppercase text-muted-foreground">Comp</th>
+                  <th className="text-right px-3 py-2 text-xs uppercase text-muted-foreground">Paid sales</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading && (
-                  <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">Loading…</td></tr>
+                  <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">Loading…</td></tr>
                 )}
                 {!isLoading && (data?.byWaiter ?? []).length === 0 && (
-                  <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">No data</td></tr>
+                  <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">No data</td></tr>
                 )}
                 {(data?.byWaiter ?? []).map(w => (
                   <tr key={w.waiter_user_id} className="border-b border-border/50 last:border-0">
                     <td className="px-3 py-2">{w.waiter_name}</td>
-                    <td className="px-3 py-2 text-right font-mono tabular-nums">{w.bills}</td>
+                    <td className="px-3 py-2 text-right font-mono tabular-nums">{w.orders}</td>
                     <td className="px-3 py-2 text-right font-mono tabular-nums">
                       {w.voided > 0 ? <Badge variant="destructive">{w.voided}</Badge> : "·"}
                     </td>
-                    <td className="px-3 py-2 text-right font-mono tabular-nums">{formatNumberSpaces(w.gross_tzs)}</td>
+                    <td className="px-3 py-2 text-right font-mono tabular-nums">{w.comp_orders || "·"}</td>
+                    <td className="px-3 py-2 text-right font-mono tabular-nums">{formatNumberSpaces(w.paid_sales_tzs)}</td>
                   </tr>
                 ))}
               </tbody>

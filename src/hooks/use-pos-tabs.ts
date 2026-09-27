@@ -24,6 +24,7 @@ export type PosTab = {
   void_reason: string | null;
   business_date: string | null;
   pos_location_id: string | null;
+  operation_mode: "complimentary" | "paid" | null;
 };
 
 export type PaymentSplit = {
@@ -155,6 +156,22 @@ export function useClosePosTab() {
  * otherwise be blocked by the monthly house-comp budget trigger. Returns the
  * new override id, ready to pass into useClosePosTab.
  */
+/** Close a zero-value complimentary tab — no payment, no comp expense, no budget use. */
+export function useCloseComplimentaryTab() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { tab_id: string }) => {
+      const { error } = await supabase
+        .from("pos_tabs")
+        .update({ status: "closed", payment_split: {} } as any)
+        .eq("id", input.tab_id)
+        .eq("operation_mode", "complimentary");
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pos-tabs"] }),
+  });
+}
+
 export function useCreateCompBudgetOverride() {
   return useMutation({
     mutationFn: async (input: {

@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getPosOperator, setPosOperator } from "@/lib/pos-operator";
 
 export type PosOrderStatus = "pending" | "preparing" | "ready" | "served" | "void";
 
@@ -24,7 +25,11 @@ export type PosOrder = {
   voided_reason: string | null;
   business_date: string | null;
   source: string;
+  operation_mode: PosOperationMode | null;
+  ordered_by_employee_id: string | null;
 };
+
+export type PosOperationMode = "complimentary" | "paid";
 
 export type PosOrderItem = {
   id: string;
@@ -76,59 +81,27 @@ export function useAddPosOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: {
-      casino_id: string;
-      shift_id: string;
       tab_id: string;
-      waiter_user_id: string;
       item_id: string;
-      item_name: string;
-      unit_price_tzs: number;
       qty: number;
       notes?: string | null;
-      modifiers?: Array<{ id: string; name: string; price_tzs_delta: number }>;
+      modifier_ids?: string[];
     }) => {
-      // Insert order shell — total_tzs computed by trigger after order_items insert
-      const { data: order, error: oErr } = await supabase
-        .from("pos_orders")
-        .insert({
-          casino_id: input.casino_id,
-          shift_id: input.shift_id,
-          tab_id: input.tab_id,
-          waiter_user_id: input.waiter_user_id,
-          status: "pending",
-          notes: input.notes ?? null,
-        } as any)
-        .select("id")
-        .single();
-      if (oErr) throw oErr;
-
-      const lineTotal = input.unit_price_tzs * input.qty;
-      const { data: item, error: iErr } = await supabase
-        .from("pos_order_items")
-        .insert({
-          order_id: order.id,
-          item_id: input.item_id,
-          item_name: input.item_name,
-          qty: input.qty,
-          unit_price_tzs: input.unit_price_tzs,
-          line_total_tzs: lineTotal,
-        })
-        .select("id")
-        .single();
-      if (iErr) throw iErr;
-
-      // Attach modifiers (DB trigger recomputes line_total via per-unit formula).
-      if (input.modifiers && input.modifiers.length > 0) {
-        const rows = input.modifiers.map((m) => ({
-          order_item_id: (item as any).id as string,
-          modifier_id: m.id,
-          modifier_name_snapshot: m.name,
-          price_tzs_delta_snapshot: m.price_tzs_delta,
-        }));
-        const { error: mErr } = await supabase.from("pos_order_item_modifiers").insert(rows);
-        if (mErr) throw mErr;
+      const op = getPosOperator();
+      if (!op) throw new Error("Terminal locked — unlock with your PIN.");
+      const { data, error } = await supabase.rpc("pos_create_order", {
+        _token: op.token,
+        _tab_id: input.tab_id,
+        _item_id: input.item_id,
+        _qty: input.qty,
+        _notes: input.notes ?? null,
+        _modifier_ids: input.modifier_ids ?? [],
+      });
+      if (error) {
+        if (String(error.message).includes("OPERATOR_LOCKED")) setPosOperator(null);
+        throw error;
       }
-      return order.id as string;
+      return data as unknown as string;
     },
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: kOrders(v.tab_id) });

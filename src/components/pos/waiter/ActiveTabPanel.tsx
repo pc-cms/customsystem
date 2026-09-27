@@ -11,7 +11,7 @@ import {
   type PosOrderStatus,
   type PosOrderWithItems,
 } from "@/hooks/use-pos-orders";
-import type { PosTab } from "@/hooks/use-pos-tabs";
+import { useCloseComplimentaryTab, type PosTab } from "@/hooks/use-pos-tabs";
 import {
   usePosModifiers,
   usePosOrderItemModifiers,
@@ -46,6 +46,7 @@ const STATUS_CHIP: Record<PosOrderStatus, { label: string; cls: string }> = {
 export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
   const { data: orders = [], isLoading } = usePosTabOrders(tab?.id ?? null, casinoId);
   const voidOrder = useVoidPosOrder();
+  const closeComp = useCloseComplimentaryTab();
   const updateNotes = useUpdatePosOrderNotes();
   const [closeDialog, setCloseDialog] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
@@ -82,6 +83,21 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
     );
   }
 
+  const isComp = tab.operation_mode === "complimentary";
+  const activeOrders = orders.filter((o) => o.status === "pending" || o.status === "preparing");
+  const handleCloseComp = async () => {
+    if (activeOrders.length > 0) {
+      toast({ title: "Orders still in progress", description: "Wait until the bar accepts/serves them, or void them.", variant: "destructive" });
+      return;
+    }
+    try {
+      await closeComp.mutateAsync({ tab_id: tab.id });
+      toast({ title: "Complimentary tab closed" });
+    } catch (e: any) {
+      toast({ title: "Cannot close", description: e?.message, variant: "destructive" });
+    }
+  };
+
   const label = tab.player_id ? tab.player_name || "Player" : `Walk-in · ${tab.walkin_label}`;
 
   const handleVoid = async (orderId: string) => {
@@ -105,10 +121,16 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
             <div className="text-xs text-muted-foreground">Opened {fmtDateTime(tab.opened_at)}</div>
           </div>
           <div className="text-right shrink-0">
-            <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Total</div>
-            <div className="text-2xl font-bold font-mono tabular-nums">
-              {formatNumberSpaces(tab.total_tzs)}
-            </div>
+            {isComp ? (
+              <Badge variant="secondary">Complimentary</Badge>
+            ) : (
+              <>
+                <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Total</div>
+                <div className="text-2xl font-bold font-mono tabular-nums">
+                  {formatNumberSpaces(tab.total_tzs)}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -123,7 +145,7 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
             {orders.map((o) => {
               const chip = STATUS_CHIP[o.status];
               const canVoid = o.status === "pending" || o.status === "preparing";
-              const canPayNow = canVoid && o.total_tzs > 0;
+              const canPayNow = !isComp && canVoid && o.total_tzs > 0;
               const canEditNote = o.status === "pending";
               const notes = (o as any).notes as string | null;
               return (
@@ -138,7 +160,7 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
                               <span className={cn("truncate", o.status === "void" && "line-through opacity-60")}>
                                 {it.item_name} <span className="text-muted-foreground">×{it.qty}</span>
                               </span>
-                              <span className="font-mono tabular-nums">{formatNumberSpaces(it.line_total_tzs)}</span>
+                              {!isComp && <span className="font-mono tabular-nums">{formatNumberSpaces(it.line_total_tzs)}</span>}
                             </div>
                             {mods.length > 0 && (
                               <div className="pl-3 flex flex-wrap gap-1 mt-0.5">
@@ -233,13 +255,23 @@ export const ActiveTabPanel = ({ tab, casinoId, shiftId, userId }: Props) => {
         >
           <Printer className="h-4 w-4" />
         </Button>
-        <Button
-          className="flex-1 h-12 text-base"
-          disabled={tab.total_tzs <= 0}
-          onClick={() => setCloseDialog(true)}
-        >
-          Close bill · {formatNumberSpaces(tab.total_tzs)} TZS
-        </Button>
+        {isComp ? (
+          <Button
+            className="flex-1 h-12 text-base"
+            disabled={closeComp.isPending}
+            onClick={handleCloseComp}
+          >
+            Close complimentary tab
+          </Button>
+        ) : (
+          <Button
+            className="flex-1 h-12 text-base"
+            disabled={tab.total_tzs <= 0}
+            onClick={() => setCloseDialog(true)}
+          >
+            Close bill · {formatNumberSpaces(tab.total_tzs)} TZS
+          </Button>
+        )}
       </div>
 
       <CloseBillDialog

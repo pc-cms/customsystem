@@ -52,6 +52,7 @@ const PosManagerLocations = lazy(() => import("@/pages/pos/PosManagerLocations")
 const PosManagerModifiers = lazy(() => import("@/pages/pos/PosManagerModifiers"));
 const PosManagerRecipes = lazy(() => import("@/pages/pos/PosManagerRecipes"));
 const PosManagerCogs = lazy(() => import("@/pages/pos/PosManagerCogs"));
+const PosManagerStaffAccess = lazy(() => import("@/pages/pos/PosManagerStaffAccess"));
 
 
 // Lazy-loaded pages — each becomes a separate chunk
@@ -692,6 +693,7 @@ const AppRoutes = () => {
           <Route path="manager/modifiers" element={<PosManagerModifiers />} />
           <Route path="manager/recipes" element={<PosManagerRecipes />} />
           <Route path="manager/cogs" element={<PosManagerCogs />} />
+          <Route path="manager/staff-access" element={<PosManagerStaffAccess />} />
 
           <Route path="reports" element={<PosReports />} />
           <Route path="charges" element={<PosCharges />} />

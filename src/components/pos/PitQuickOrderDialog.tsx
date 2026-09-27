@@ -24,7 +24,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { usePosAnyOpenShift } from "@/hooks/use-pos-shift";
 import { usePosMenuCategories, usePosMenuItems, type PosMenuItem } from "@/hooks/use-pos-menu";
-import { useAddPosOrder } from "@/hooks/use-pos-orders";
+import { useQueryClient } from "@tanstack/react-query";
 import { stockStatus } from "@/hooks/use-pos-inventory";
 
 interface Props {
@@ -42,7 +42,7 @@ export const PitQuickOrderDialog = ({ open, onOpenChange, playerId, playerName }
   const { data: shift, isLoading: shiftLoading } = usePosAnyOpenShift(casinoId);
   const { data: categories = [] } = usePosMenuCategories(casinoId);
   const { data: items = [] } = usePosMenuItems(casinoId);
-  const addOrder = useAddPosOrder();
+  const qc = useQueryClient();
 
   const activeCats = useMemo(() => categories.filter((c) => c.is_active), [categories]);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
@@ -117,17 +117,22 @@ export const PitQuickOrderDialog = ({ open, onOpenChange, playerId, playerName }
       for (const [itemId, qty] of cartLines) {
         const it = itemsById.get(itemId);
         if (!it) continue;
-        await addOrder.mutateAsync({
-          casino_id: casinoId,
-          shift_id: shift.id,
-          tab_id: tabId,
-          waiter_user_id: shift.waiter_user_id,
-          item_id: it.id,
-          item_name: it.name,
-          unit_price_tzs: it.price_tzs,
-          qty,
+        // Pit path: no waiter PIN; direct insert attributed to the pit user (legacy flow).
+        // Complimentary tabs are zero-priced server-side.
+        const { data: ord, error: oErr } = await supabase
+          .from("pos_orders")
+          .insert({ casino_id: casinoId, shift_id: shift.id, tab_id: tabId, waiter_user_id: shift.waiter_user_id, status: "pending" } as any)
+          .select("id")
+          .single();
+        if (oErr) throw oErr;
+        const { error: iErr } = await supabase.from("pos_order_items").insert({
+          order_id: (ord as any).id, item_id: it.id, item_name: it.name, qty,
+          unit_price_tzs: it.price_tzs, line_total_tzs: it.price_tzs * qty,
         });
+        if (iErr) throw iErr;
       }
+      qc.invalidateQueries({ queryKey: ["pos-orders"] });
+      qc.invalidateQueries({ queryKey: ["pos-tabs"] });
       toast({ title: "Sent to bar", description: `${cartLines.length} item(s) ordered` });
       close();
     } catch (e: any) {

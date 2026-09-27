@@ -71,10 +71,18 @@ export function usePosBarOrders(casinoId: string | null) {
           waiterMap[(p as any).user_id] = (p as any).display_name ?? "";
         }
       }
-      return rows.map((r) => ({
-        ...r,
-        waiter: r.waiter_user_id ? { display_name: waiterMap[r.waiter_user_id] ?? null } : null,
-      })) as unknown as PosBarOrder[];
+      const empIds = Array.from(new Set(rows.map((r) => r.ordered_by_employee_id).filter(Boolean)));
+      const empMap: Record<string, string> = {};
+      if (empIds.length > 0) {
+        const { data: emps } = await supabase.rpc("pos_employee_names", { _ids: empIds });
+        for (const e of (emps ?? []) as any[]) empMap[e.id] = e.full_name;
+      }
+      return rows.map((r) => {
+        const name = (r.ordered_by_employee_id && empMap[r.ordered_by_employee_id])
+          || (r.waiter_user_id ? waiterMap[r.waiter_user_id] : null)
+          || null;
+        return { ...r, waiter: name || r.waiter_user_id ? { display_name: name } : null };
+      }) as unknown as PosBarOrder[];
     },
   });
 

@@ -47,7 +47,7 @@ export const TabsPanel = ({ tabs, activeTabId, onSelect, onNew, loading }: Props
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="font-medium truncate">{label}</span>
                       <span className="font-mono tabular-nums text-sm shrink-0">
-                        {formatNumberSpaces(t.total_tzs)}
+                        {t.operation_mode === "complimentary" ? "Comp" : formatNumberSpaces(t.total_tzs)}
                       </span>
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5">

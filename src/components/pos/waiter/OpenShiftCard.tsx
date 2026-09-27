@@ -14,6 +14,7 @@ import { useSavePosStockCount } from "@/hooks/use-pos-stock-counts";
 import { formatNumberSpaces } from "@/lib/currency";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StockCountPanel from "./StockCountPanel";
+import { usePosLocations } from "@/hooks/use-pos-locations";
 
 interface Props {
   casinoId: string;
@@ -31,10 +32,14 @@ export const OpenShiftCard = ({ casinoId, userId }: Props) => {
   const [cash, setCash] = useState("0");
   const [shiftType, setShiftType] = useState<PosShiftType>(suggestShiftType());
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const { data: locations = [] } = usePosLocations(casinoId, true);
+  const defaultLoc = locations.find((l) => l.name === "Main Bar") ?? locations[0];
+  // Complimentary bars take no cash: opening cash is forced to 0.
+  const isComp = (defaultLoc?.operation_mode ?? "complimentary") === "complimentary";
 
   const countedItems = Object.keys(counts).length;
   const handle = async () => {
-    const n = Number(cash);
+    const n = isComp ? 0 : Number(cash);
     if (!Number.isFinite(n) || n < 0) {
       toast({ title: "Opening cash must be a non-negative number", variant: "destructive" });
       return;
@@ -84,7 +89,7 @@ export const OpenShiftCard = ({ casinoId, userId }: Props) => {
           </Tabs>
         </FormField>
 
-        <FormField span={12} label="Opening cash (TZS)" required>
+        {!isComp && <FormField span={12} label="Opening cash (TZS)" required>
           <NumberInput
             decimals={0}
             value={Number(cash) || 0}
@@ -95,7 +100,7 @@ export const OpenShiftCard = ({ casinoId, userId }: Props) => {
           <p className="text-xs text-muted-foreground mt-1">
             Preview: {formatNumberSpaces(Number(cash) || 0)} TZS
           </p>
-        </FormField>
+        </FormField>}
       </FormGrid>
 
       <div className="space-y-2">

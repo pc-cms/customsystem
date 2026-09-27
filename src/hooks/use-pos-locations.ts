@@ -7,11 +7,13 @@ import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PosLocationType = "bar" | "coffee" | "vip_service" | "other";
+export type PosOperationMode = "complimentary" | "paid";
 export type PosLocation = {
   id: string;
   casino_id: string;
   name: string;
   type: PosLocationType;
+  operation_mode: PosOperationMode;
   is_active: boolean;
   sort_order: number;
   created_at: string;
@@ -57,6 +59,7 @@ export function useUpsertPosLocation() {
         casino_id: input.casino_id,
         name: input.name,
         type: input.type ?? "bar",
+        operation_mode: input.operation_mode ?? "complimentary",
         is_active: input.is_active ?? true,
         sort_order: input.sort_order ?? 0,
         updated_at: new Date().toISOString(),
