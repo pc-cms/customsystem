@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePosOperator, lockPosOperator } from "@/lib/pos-operator";
+import PinUnlockOverlay from "@/components/pos/waiter/PinUnlockOverlay";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
 import { usePosCurrentShift, type PosZReport } from "@/hooks/use-pos-shift";
@@ -17,7 +19,9 @@ import ClosedTabsDialog from "@/components/pos/waiter/ClosedTabsDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { History, ArrowLeftRight } from "lucide-react";
+import { History, ArrowLeftRight, Lock } from "lucide-react";
+
+const IDLE_LOCK_MS = 90_000;
 import { useIsMobile } from "@/hooks/use-mobile";
 
 
@@ -36,6 +40,23 @@ export default function PosWaiter() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [lastZ, setLastZ] = useState<PosZReport | null>(null);
   const [mobileView, setMobileView] = useState<"tabs" | "menu" | "active">("tabs");
+  const operator = usePosOperator(activeCasinoId);
+
+  // Idle auto-lock: any touch/key resets the timer; not per item tap.
+  useEffect(() => {
+    if (!operator) return;
+    let timer = window.setTimeout(() => void lockPosOperator(), IDLE_LOCK_MS);
+    const reset = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => void lockPosOperator(), IDLE_LOCK_MS);
+    };
+    const evs = ["pointerdown", "keydown", "wheel", "touchstart"] as const;
+    evs.forEach((e) => window.addEventListener(e, reset, { passive: true }));
+    return () => {
+      window.clearTimeout(timer);
+      evs.forEach((e) => window.removeEventListener(e, reset));
+    };
+  }, [operator]);
 
 
   if (!activeCasinoId) {
@@ -44,6 +65,9 @@ export default function PosWaiter() {
         Select a casino to start.
       </div>
     );
+  }
+  if (!operator) {
+    return <PinUnlockOverlay casinoId={activeCasinoId} />;
   }
   if (shiftLoading) {
     return <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>;
@@ -90,8 +114,14 @@ export default function PosWaiter() {
         <span className="text-muted-foreground truncate">
           Opened {fmtDateTime(shift.opened_at)}
         </span>
+        <span className="rounded bg-primary/10 text-primary px-2 py-1 font-semibold whitespace-nowrap">
+          Active waiter: {operator.full_name}
+        </span>
       </div>
       <div className="flex items-center gap-3">
+        <Button size="sm" variant="outline" onClick={() => void lockPosOperator()} className="gap-1">
+          <Lock className="h-4 w-4" /> Switch waiter / Lock
+        </Button>
         <span className="text-muted-foreground">
           Opening cash: <span className="font-mono tabular-nums">{formatNumberSpaces(shift.opening_cash)}</span>
         </span>
@@ -161,7 +191,7 @@ export default function PosWaiter() {
             />
           </TabsContent>
           <TabsContent value="menu" className="flex-1 m-0">
-            <MenuPanel casinoId={activeCasinoId} shiftId={shift.id} tabId={activeTabId} userId={user!.id} />
+            <MenuPanel mode={activeTab?.operation_mode ?? "paid"} casinoId={activeCasinoId} shiftId={shift.id} tabId={activeTabId} userId={user!.id} />
           </TabsContent>
           <TabsContent value="active" className="flex-1 m-0">
             <ActiveTabPanel tab={activeTab} casinoId={activeCasinoId} shiftId={shift.id} userId={user!.id} />
@@ -197,7 +227,7 @@ export default function PosWaiter() {
           />
         </div>
         <div className="col-span-5 border-r border-border min-h-0">
-          <MenuPanel casinoId={activeCasinoId} shiftId={shift.id} tabId={activeTabId} userId={user!.id} />
+          <MenuPanel mode={activeTab?.operation_mode ?? "paid"} casinoId={activeCasinoId} shiftId={shift.id} tabId={activeTabId} userId={user!.id} />
         </div>
         <div className="col-span-4 min-h-0">
           <ActiveTabPanel tab={activeTab} casinoId={activeCasinoId} shiftId={shift.id} userId={user!.id} />
