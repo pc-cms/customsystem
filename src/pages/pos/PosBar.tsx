@@ -146,11 +146,7 @@ function OrderCard({
           )}
         </div>
       )}
-      {order.status === "ready" && (
-        <div className="text-[11px] text-center text-muted-foreground">
-          Auto-closing to Served…
-        </div>
-      )}
+
     </Card>
   );
 }
