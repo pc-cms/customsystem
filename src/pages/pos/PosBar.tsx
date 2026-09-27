@@ -29,11 +29,11 @@ import type { PosOrderStatus } from "@/hooks/use-pos-orders";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
-const COLS: { key: PosOrderStatus; title: string; icon: typeof Clock; next?: "preparing" | "ready" | "served"; nextLabel?: string }[] = [
-  { key: "pending",   title: "New",       icon: Clock, next: "preparing", nextLabel: "Accept" },
-  { key: "preparing", title: "Preparing", icon: Flame, next: "ready",     nextLabel: "Ready" },
-  { key: "ready",     title: "Ready",     icon: Check },
+const COLS: { key: PosOrderStatus; title: string; icon: typeof Clock; next?: "ready" | "served"; nextLabel?: string }[] = [
+  { key: "pending",   title: "New",       icon: Clock, next: "ready",  nextLabel: "Ready" },
+  { key: "ready",     title: "Ready",     icon: Check, next: "served", nextLabel: "Done" },
 ];
 
 function ageMinutes(iso: string): number {
@@ -178,33 +178,29 @@ export default function PosBar() {
 
   const grouped = useMemo(() => {
     const m: Record<PosOrderStatus, PosBarOrder[]> = { pending: [], preparing: [], ready: [], served: [], void: [] };
-    for (const o of filteredOrders) m[o.status]?.push(o);
+    for (const o of filteredOrders) m[o.status === "preparing" ? "pending" : o.status]?.push(o);
     return m;
   }, [filteredOrders]);
 
-  const handleAdvance = (o: PosBarOrder, to: "preparing" | "ready" | "served") => {
+  const handleAdvance = (o: PosBarOrder, to: "ready" | "served") => {
     advance.mutate(
       { order_id: o.id, to },
       {
         onSuccess: () => {
-          if (to === "preparing") toast.success(`Accepted: ${tabLabel(o)}`);
-          if (to === "ready") toast.success(`Ready → Served: ${tabLabel(o)}`);
+          if (to === "ready") toast.success(`Ready: ${tabLabel(o)}`);
+          if (to === "served") toast.success(`Done: ${tabLabel(o)}`);
         },
         onError: (e) => toast.error((e as Error).message),
       },
     );
   };
 
-  const handleMarkProblem = (o: PosBarOrder) => {
-    const reason = window.prompt(`Mark as problem — reason?\n(${tabLabel(o)})`, "");
-    if (!reason || !reason.trim()) return;
-    markProblem.mutate(
-      { order_id: o.id, reason: reason.trim() },
-      {
-        onSuccess: () => toast.success("Marked as problem"),
-        onError: (e) => toast.error((e as Error).message),
-      },
-    );
+  const handleMarkProblem = async (o: PosBarOrder) => {
+    const reason = window.prompt(`Unavailable — reason?\n(${tabLabel(o)})`, "Unavailable");
+    if (reason === null) return;
+    const { error } = await supabase.rpc("pos_bar_unavailable" as any, { _order_id: o.id, _reason: reason.trim() || "Unavailable" });
+    if (error) toast.error(error.message);
+    else toast.success("Order marked unavailable · stock returned");
   };
 
   const handleForceClose = (o: PosBarOrder) => {
@@ -228,35 +224,12 @@ export default function PosBar() {
       <div className="flex items-baseline justify-between mb-3 gap-3 flex-wrap">
         <h1 className="text-xl font-semibold">Bar Display</h1>
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setLocationFilter("all")}
-            className={cn(
-              "h-8 px-3 rounded-md text-xs font-medium border",
-              locationFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:bg-accent/40",
-            )}
-          >
-            All
-          </button>
-          {locations.map((l) => (
-            <button
-              key={l.id}
-              type="button"
-              onClick={() => setLocationFilter(l.id)}
-              className={cn(
-                "h-8 px-3 rounded-md text-xs font-medium border inline-flex items-center gap-1",
-                locationFilter === l.id ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:bg-accent/40",
-              )}
-            >
-              <MapPin className="h-3 w-3" /> {l.name}
-            </button>
-          ))}
           <span className="text-xs text-muted-foreground ml-2">
             {isLoading ? "Loading…" : `${filteredOrders.length} / ${orders.length} active`}
           </span>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 min-h-0">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 min-h-0">
         {COLS.map((col) => {
           const Icon = col.icon;
           const items = grouped[col.key] ?? [];
