@@ -38,11 +38,15 @@ export default function PosManagerStaffAccess() {
   });
 
   const setPin = useMutation({
-    mutationFn: async (v: { employee_id: string; pin: string }) => {
+    mutationFn: async (v: { employee_id: string; pin: string; role: string }) => {
       const { error } = await supabase.rpc("pos_staff_set_pin", {
         _casino_id: activeCasinoId!, _employee_id: v.employee_id, _pin: v.pin,
       });
       if (error) throw error;
+      const { error: rErr } = await supabase.rpc("pos_staff_set_role" as any, {
+        _casino_id: activeCasinoId!, _employee_id: v.employee_id, _role: v.role,
+      });
+      if (rErr) throw rErr;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: key }),
   });
@@ -56,6 +60,7 @@ export default function PosManagerStaffAccess() {
 
   const [target, setTarget] = useState<Row | null>(null);
   const [pin, setPinValue] = useState("");
+  const [role, setRole] = useState<"waiter" | "manager">("waiter");
 
   const save = async () => {
     if (!target) return;
@@ -64,7 +69,7 @@ export default function PosManagerStaffAccess() {
       return;
     }
     try {
-      await setPin.mutateAsync({ employee_id: target.employee_id, pin });
+      await setPin.mutateAsync({ employee_id: target.employee_id, pin, role });
       toast({ title: "PIN saved", description: `${target.full_name} can now unlock the POS terminal.` });
       setTarget(null);
       setPinValue("");
@@ -80,7 +85,7 @@ export default function PosManagerStaffAccess() {
     {
       key: "status", header: "Status",
       accessor: (r) => r.access_active && r.pin_set
-        ? <Badge variant="secondary">Active · PIN set</Badge>
+        ? <Badge variant="secondary">{r.role === "manager" ? "Manager" : "Waiter"} · PIN set</Badge>
         : r.pin_set
           ? <Badge variant="outline">Disabled</Badge>
           : <span className="text-muted-foreground">·</span>,
@@ -89,7 +94,7 @@ export default function PosManagerStaffAccess() {
       key: "actions", header: "", headerClassName: "text-right",
       accessor: (r) => (
         <div className="flex justify-end gap-1">
-          <Button size="sm" variant="outline" onClick={() => { setTarget(r); setPinValue(""); }}>
+          <Button size="sm" variant="outline" onClick={() => { setTarget(r); setPinValue(""); setRole(r.role === "manager" ? "manager" : "waiter"); }}>
             {r.pin_set ? "Reset PIN" : "Enable · set PIN"}
           </Button>
           {r.access_active && (
@@ -110,7 +115,7 @@ export default function PosManagerStaffAccess() {
 
   return (
     <PageShell>
-      <PageHeader title="POS Staff Access" subtitle="Waiter PINs for shared POS terminals" icon={KeyRound} />
+      <PageHeader title="POS Staff Access" subtitle="Waiter and POS manager PINs for shared POS terminals" icon={KeyRound} />
       <PageSection bodyClassName="p-0">
         <SmartTable data={data} columns={columns} rowKey={(r) => r.employee_id} loading={isLoading} empty="No bar/waiter employees in this casino." />
       </PageSection>
@@ -122,6 +127,13 @@ export default function PosManagerStaffAccess() {
         size="form"
       >
         <div className="space-y-3">
+          <div className="flex gap-2">
+            {(["waiter", "manager"] as const).map((r) => (
+              <Button key={r} type="button" size="sm" variant={role === r ? "default" : "outline"} onClick={() => setRole(r)}>
+                {r === "waiter" ? "Waiter PIN" : "POS Manager PIN"}
+              </Button>
+            ))}
+          </div>
           <div>
             <label className="text-xs uppercase text-muted-foreground">New PIN (4–6 digits)</label>
             <Input
