@@ -21,9 +21,11 @@ interface Props {
   shiftId: string;
   tabId: string | null;
   userId: string;
+  mode?: "complimentary" | "paid";
 }
 
-export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
+export const MenuPanel = ({ casinoId, tabId, mode = "paid" }: Props) => {
+  const showPrices = mode !== "complimentary";
   const { data: categories = [] } = usePosMenuCategories(casinoId);
   const { data: items = [] } = usePosMenuItems(casinoId);
   const { data: modifiers = [] } = usePosModifiers(casinoId, true);
@@ -57,16 +59,11 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
     }
     try {
       await addOrder.mutateAsync({
-        casino_id: casinoId,
-        shift_id: shiftId,
         tab_id: tabId,
-        waiter_user_id: userId,
         item_id: item.id,
-        item_name: item.name,
-        unit_price_tzs: item.price_tzs,
         qty,
         notes: opts?.notes ?? null,
-        modifiers: opts?.modifiers ?? [],
+        modifier_ids: (opts?.modifiers ?? []).map((m) => m.id),
       });
     } catch (e: any) {
       toast({ title: "Failed", description: e?.message, variant: "destructive" });
@@ -114,6 +111,7 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
                   availability={av}
                   disabled={!tabId || addOrder.isPending}
                   hasModifiers={modifiers.length > 0}
+                  showPrice={showPrices}
                   onAdd={(qty) => handleAdd(it, qty)}
                   onAddWithNote={(qty, note) => handleAdd(it, qty, { notes: note })}
                   onOpenMods={(qty) => setModSheet({ item: it, qty })}
@@ -127,6 +125,7 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
       <ModifierSheet
         sheet={modSheet}
         modifiers={modifiers}
+        showPrices={showPrices}
         onClose={() => setModSheet(null)}
         onConfirm={async (mods, note) => {
           if (!modSheet) return;
@@ -139,8 +138,9 @@ export const MenuPanel = ({ casinoId, shiftId, tabId, userId }: Props) => {
 };
 
 const ItemTile = ({
-  item, availability, disabled, hasModifiers, onAdd, onAddWithNote, onOpenMods,
+  item, availability, disabled, hasModifiers, showPrice, onAdd, onAddWithNote, onOpenMods,
 }: {
+  showPrice: boolean;
   item: PosMenuItem;
   availability?: PosItemAvailabilityRow;
   disabled: boolean;
@@ -195,7 +195,7 @@ const ItemTile = ({
         <div className="font-medium text-sm leading-tight line-clamp-2">{item.name}</div>
         <div className="mt-2 flex items-baseline justify-between">
           <span className="font-mono tabular-nums font-semibold">
-            {formatNumberSpaces(item.price_tzs)}
+            {showPrice ? formatNumberSpaces(item.price_tzs) : ""}
           </span>
           {availability?.has_recipe
             ? portions != null && (
@@ -243,8 +243,9 @@ const ItemTile = ({
 };
 
 function ModifierSheet({
-  sheet, modifiers, onClose, onConfirm,
+  sheet, modifiers, showPrices, onClose, onConfirm,
 }: {
+  showPrices: boolean;
   sheet: { item: PosMenuItem; qty: number } | null;
   modifiers: PosModifier[];
   onClose: () => void;
