@@ -48,6 +48,10 @@ export type PosZReportTotals = {
   card: number;
   comp_player: number;
   comp_house: number;
+  retail_tzs?: number;
+  money?: number;
+  credits?: number;
+  free?: number;
 };
 
 export type PosZReportCounts = {
