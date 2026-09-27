@@ -118,7 +118,6 @@ export const PitQuickOrderDialog = ({ open, onOpenChange, playerId, playerName }
         const it = itemsById.get(itemId);
         if (!it) continue;
         // Pit path: no waiter PIN; direct insert attributed to the pit user (legacy flow).
-        // Complimentary tabs are zero-priced server-side.
         const { data: ord, error: oErr } = await supabase
           .from("pos_orders")
           .insert({ casino_id: casinoId, shift_id: shift.id, tab_id: tabId, waiter_user_id: shift.waiter_user_id, status: "pending" } as any)

@@ -55,7 +55,7 @@ export default function PosManagerLocations() {
         casino_id: activeCasinoId,
         name: edit.name.trim(),
         type: (edit.type as PosLocationType) ?? "bar",
-        operation_mode: (edit.operation_mode as PosOperationMode) ?? "complimentary",
+        operation_mode: "paid" as PosOperationMode,
         is_active: edit.is_active ?? true,
         sort_order: edit.sort_order ?? 0,
       });
@@ -82,7 +82,6 @@ export default function PosManagerLocations() {
             <DTRow>
               <DTHeader>Name</DTHeader>
               <DTHeader>Type</DTHeader>
-              <DTHeader>Mode</DTHeader>
               <DTHeader>Sort</DTHeader>
               <DTHeader>Status</DTHeader>
               <DTHeader className="text-right">Actions</DTHeader>
@@ -90,16 +89,13 @@ export default function PosManagerLocations() {
           </DTHead>
           <DTBody>
             {isLoading ? (
-              <DTRow><DTCell colSpan={6} className="text-center text-muted-foreground">Loading…</DTCell></DTRow>
+              <DTRow><DTCell colSpan={5} className="text-center text-muted-foreground">Loading…</DTCell></DTRow>
             ) : locations.length === 0 ? (
-              <DTRow><DTCell colSpan={6} className="text-center text-muted-foreground">No locations.</DTCell></DTRow>
+              <DTRow><DTCell colSpan={5} className="text-center text-muted-foreground">No locations.</DTCell></DTRow>
             ) : locations.map((loc) => (
               <DTRow key={loc.id}>
                 <DTCell className="font-medium">{loc.name}</DTCell>
                 <DTCell>{TYPES.find(t => t.value === loc.type)?.label ?? loc.type}</DTCell>
-                <DTCell>
-                  <span className="text-muted-foreground">·</span>
-                </DTCell>
                 <DTCell className="tabular-nums">{loc.sort_order}</DTCell>
                 <DTCell>
                   {loc.is_active
