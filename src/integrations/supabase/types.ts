@@ -9611,6 +9611,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          operation_mode: string
           sort_order: number
           type: string
           updated_at: string
@@ -9621,6 +9622,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          operation_mode?: string
           sort_order?: number
           type?: string
           updated_at?: string
@@ -9631,6 +9633,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          operation_mode?: string
           sort_order?: number
           type?: string
           updated_at?: string
@@ -9964,6 +9967,54 @@ export type Database = {
           },
         ]
       }
+      pos_operator_sessions: {
+        Row: {
+          casino_id: string
+          created_at: string
+          employee_id: string
+          expires_at: string
+          id: string
+          revoked_at: string | null
+          terminal_user_id: string
+          token_hash: string
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          employee_id: string
+          expires_at: string
+          id?: string
+          revoked_at?: string | null
+          terminal_user_id: string
+          token_hash: string
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          employee_id?: string
+          expires_at?: string
+          id?: string
+          revoked_at?: string | null
+          terminal_user_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_operator_sessions_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_operator_sessions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_order_item_modifiers: {
         Row: {
           created_at: string
@@ -10077,6 +10128,8 @@ export type Database = {
           id: string
           is_problem: boolean
           notes: string | null
+          operation_mode: string | null
+          ordered_by_employee_id: string | null
           pos_location_id: string | null
           problem_marked_at: string | null
           problem_marked_by: string | null
@@ -10108,6 +10161,8 @@ export type Database = {
           id?: string
           is_problem?: boolean
           notes?: string | null
+          operation_mode?: string | null
+          ordered_by_employee_id?: string | null
           pos_location_id?: string | null
           problem_marked_at?: string | null
           problem_marked_by?: string | null
@@ -10139,6 +10194,8 @@ export type Database = {
           id?: string
           is_problem?: boolean
           notes?: string | null
+          operation_mode?: string | null
+          ordered_by_employee_id?: string | null
           pos_location_id?: string | null
           problem_marked_at?: string | null
           problem_marked_by?: string | null
@@ -10159,6 +10216,13 @@ export type Database = {
           waiter_user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pos_orders_ordered_by_employee_id_fkey"
+            columns: ["ordered_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pos_orders_pos_location_id_fkey"
             columns: ["pos_location_id"]
@@ -10181,6 +10245,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pos_pin_failures: {
+        Row: {
+          at: string
+          casino_id: string
+          id: number
+          terminal_user_id: string
+        }
+        Insert: {
+          at?: string
+          casino_id: string
+          id?: number
+          terminal_user_id: string
+        }
+        Update: {
+          at?: string
+          casino_id?: string
+          id?: number
+          terminal_user_id?: string
+        }
+        Relationships: []
       }
       pos_player_charges: {
         Row: {
@@ -10535,6 +10620,63 @@ export type Database = {
           },
         ]
       }
+      pos_staff_access: {
+        Row: {
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          is_active: boolean
+          pin_hash: string | null
+          pin_set_at: string | null
+          role: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          is_active?: boolean
+          pin_hash?: string | null
+          pin_set_at?: string | null
+          role?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          is_active?: boolean
+          pin_hash?: string | null
+          pin_set_at?: string | null
+          role?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_staff_access_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_staff_access_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_stock_count_items: {
         Row: {
           count_id: string
@@ -10652,6 +10794,7 @@ export type Database = {
           id: string
           opened_at: string
           opened_by_user_id: string
+          operation_mode: string | null
           payment_split: Json | null
           player_id: string | null
           player_name: string | null
@@ -10674,6 +10817,7 @@ export type Database = {
           id?: string
           opened_at?: string
           opened_by_user_id: string
+          operation_mode?: string | null
           payment_split?: Json | null
           player_id?: string | null
           player_name?: string | null
@@ -10696,6 +10840,7 @@ export type Database = {
           id?: string
           opened_at?: string
           opened_by_user_id?: string
+          operation_mode?: string | null
           payment_split?: Json | null
           player_id?: string | null
           player_name?: string | null
@@ -13613,6 +13758,11 @@ export type Database = {
         Returns: undefined
       }
       _has_payload: { Args: { snap: Json }; Returns: boolean }
+      _pos_is_manager: { Args: { _casino: string }; Returns: boolean }
+      _pos_operator_employee: {
+        Args: { _casino_id: string; _token: string }
+        Returns: string
+      }
       _sum_denoms: { Args: { p: Json }; Returns: number }
       _sum_mobile: { Args: { p: Json }; Returns: number }
       ace_admin_list_collectors: {
@@ -15100,7 +15250,25 @@ export type Database = {
         Returns: Json
       }
       pos_compute_z_report: { Args: { _shift_id: string }; Returns: Json }
+      pos_create_order: {
+        Args: {
+          _item_id: string
+          _modifier_ids?: string[]
+          _notes?: string
+          _qty: number
+          _tab_id: string
+          _token: string
+        }
+        Returns: string
+      }
       pos_create_purchase: { Args: { _payload: Json }; Returns: string }
+      pos_employee_names: {
+        Args: { _ids: string[] }
+        Returns: {
+          full_name: string
+          id: string
+        }[]
+      }
       pos_get_or_create_default_location: {
         Args: { _casino_id: string }
         Returns: string
@@ -15115,6 +15283,17 @@ export type Database = {
         Returns: Json
       }
       pos_item_availability_detail: { Args: { item_id: string }; Returns: Json }
+      pos_operator_lock: { Args: { _token: string }; Returns: undefined }
+      pos_operator_unlock: {
+        Args: { _casino_id: string; _pin: string }
+        Returns: {
+          employee_id: string
+          expires_at: string
+          full_name: string
+          role: string
+          token: string
+        }[]
+      }
       pos_player_search: {
         Args: { _casino_id: string; _q: string }
         Returns: {
@@ -15174,6 +15353,27 @@ export type Database = {
           waiter_name: string
           waiter_user_id: string
         }[]
+      }
+      pos_staff_access_list: {
+        Args: { _casino_id: string }
+        Returns: {
+          access_active: boolean
+          department: string
+          employee_id: string
+          full_name: string
+          pin_set: boolean
+          pin_set_at: string
+          position: string
+          role: string
+        }[]
+      }
+      pos_staff_disable: {
+        Args: { _casino_id: string; _employee_id: string }
+        Returns: undefined
+      }
+      pos_staff_set_pin: {
+        Args: { _casino_id: string; _employee_id: string; _pin: string }
+        Returns: undefined
       }
       pos_suggested_price: { Args: { _item_id: string }; Returns: number }
       pos_tabs_recompute_total: {
