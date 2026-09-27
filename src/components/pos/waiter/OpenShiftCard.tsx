@@ -115,7 +115,7 @@ export const OpenShiftCard = ({ casinoId, userId }: Props) => {
         <StockCountPanel value={counts} onChange={setCounts} onTotalChange={setTotalItems} />
       </div>
 
-      <Button className="w-full h-12 text-base" onClick={handle} disabled={busy}>
+      <Button className="w-full h-12 text-base" onClick={handle} disabled={busy || countedItems < totalItems}>
         {busy ? "Opening…" : "Open shift"}
       </Button>
     </div>
