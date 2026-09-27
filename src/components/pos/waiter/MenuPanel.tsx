@@ -21,7 +21,6 @@ interface Props {
   shiftId: string;
   tabId: string | null;
   userId: string;
-  mode?: "complimentary" | "paid";
 }
 
 export const MenuPanel = ({ casinoId, tabId }: Props) => {

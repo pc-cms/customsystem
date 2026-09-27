@@ -80,20 +80,14 @@ export default function PosReports() {
           <KPI label="Avg ticket" value={formatNumberSpaces(totals?.avg_ticket ?? 0)} sub="TZS" />
           <KPI label="Voided" value={String(totals?.bills_voided ?? 0)}
             sub={`${((totals?.void_rate ?? 0) * 100).toFixed(1)}% rate`} />
-          <KPI label="Charge to tab" value={formatNumberSpaces(totals?.player_charge ?? 0)} sub="TZS postpaid" />
+          <KPI label="Charge to tab (legacy)" value={formatNumberSpaces(totals?.player_charge ?? 0)} sub="TZS postpaid" />
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <KPI label="Cash" value={formatNumberSpaces(totals?.cash ?? 0)} />
-          <KPI label="Card" value={formatNumberSpaces(totals?.card ?? 0)} />
-          <KPI label="Comp · player" value={formatNumberSpaces(totals?.comp_player ?? 0)} />
-          <KPI label="Comp · house" value={formatNumberSpaces(totals?.comp_house ?? 0)} />
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-          <KPI label="Complimentary orders" value={String(totals?.comp_orders ?? 0)} sub="not revenue" />
-          <KPI label="Complimentary items" value={String(totals?.comp_items ?? 0)} />
-          <KPI label="Complimentary COGS" value={formatNumberSpaces(totals?.comp_cogs_tzs ?? 0)} sub="TZS cost" />
+          <KPI label="Money" value={formatNumberSpaces(totals?.money ?? 0)} sub="TZS revenue" />
+          <KPI label="Credits" value={formatNumberSpaces(totals?.credits ?? 0)} sub="promo wallet" />
+          <KPI label="Free" value={formatNumberSpaces(totals?.free ?? 0)} sub="hospitality · not revenue" />
+          <KPI label="Legacy card/comp" value={formatNumberSpaces((totals?.card ?? 0) + (totals?.comp_player ?? 0) + (totals?.comp_house ?? 0))} sub="history" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
