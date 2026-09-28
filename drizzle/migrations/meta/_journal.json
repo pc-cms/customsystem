@@ -85,6 +85,13 @@
       "when": 1790513264867,
       "tag": "0011_pos_core_checkout_free_tender",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790596009158,
+      "tag": "0012_ace_jp_ignore_payouts",
+      "breakpoints": true
     }
   ]
 }
