@@ -92,6 +92,20 @@
       "when": 1790596009158,
       "tag": "0012_ace_jp_ignore_payouts",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790598067228,
+      "tag": "0013_jp_positive_only_close_day",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790598090416,
+      "tag": "0014_jp_keep_system_corrections",
+      "breakpoints": true
     }
   ]
 }
