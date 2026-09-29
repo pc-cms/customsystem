@@ -127,6 +127,13 @@
       "when": 1790676198007,
       "tag": "0017_attendance_autofill_on_day_close",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790676221293,
+      "tag": "0018_attendance_autofill_recorded_by",
+      "breakpoints": true
     }
   ]
 }
