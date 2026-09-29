@@ -707,8 +707,9 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   }, [dealers, rolesAtMonth]);
 
   const [rotaSort, setRotaSort] = useSessionState<"category" | "name">("pitRotaSort", "category");
-  const activeDealers = sortByCategory(dealersForMonth.filter((d: any) => d.is_active && !d.is_pit_boss), rotaSort);
-  const pitBosses = sortByCategory(dealersForMonth.filter((d: any) => d.is_active && d.is_pit_boss), rotaSort);
+  const [pitUnit, setPitUnit] = useSessionState<PitUnitView>("pitUnit", "all");
+  const activeDealers = pitUnit === "pit_bosses" ? [] : sortByCategory(dealersForMonth.filter((d: any) => d.is_active && !d.is_pit_boss), rotaSort);
+  const pitBosses = pitUnit === "dealers" ? [] : sortByCategory(dealersForMonth.filter((d: any) => d.is_active && d.is_pit_boss), rotaSort);
 
   const today = new Date();
   const todayDay = today.getDate();
@@ -933,6 +934,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   return (
     <>
       <div className="print-title hidden">{`Live Game Rota — ${month}`}</div>
+      <PitUnitTabs value={pitUnit} onChange={setPitUnit} />
       <div className="cms-panel overflow-hidden print-target">
       <table className="w-full border-collapse table-fixed">
         <thead>
@@ -1052,8 +1054,9 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   } };
 
   const [attSort, setAttSort] = useSessionState<"category" | "name">("pitAttSort", "category");
-  const activeDealers = sortByCategory(dealers.filter((d: any) => d.is_active && !d.is_pit_boss), attSort);
-  const pitBosses = sortByCategory(dealers.filter((d: any) => d.is_active && d.is_pit_boss), attSort);
+  const [pitUnit, setPitUnit] = useSessionState<PitUnitView>("pitUnit", "all");
+  const activeDealers = pitUnit === "pit_bosses" ? [] : sortByCategory(dealers.filter((d: any) => d.is_active && !d.is_pit_boss), attSort);
+  const pitBosses = pitUnit === "dealers" ? [] : sortByCategory(dealers.filter((d: any) => d.is_active && d.is_pit_boss), attSort);
 
   const attHoursScope = usesDodomaShiftGrid(activeCasinoForAtt) ? "pit_dodoma" : usesArushaShiftGrid(activeCasinoForAtt) ? "pit_arusha" : "pit";
   const pitAttUnitHours = useUnitHoursMaps((activeCasinoForAtt as any)?.id, "pit");
@@ -1285,6 +1288,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   return (
     <>
       <div className="print-title hidden">{`Live Game Attendance — ${month}`}</div>
+      <PitUnitTabs value={pitUnit} onChange={setPitUnit} />
       {!readOnly && (
         <div className="flex justify-end mb-2 no-print">
           <AttendanceImportDialog
@@ -1372,3 +1376,26 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
 };
 
 export default Pit;
+
+type PitUnitView = "all" | "dealers" | "pit_bosses";
+const PIT_UNIT_OPTIONS: { key: PitUnitView; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "dealers", label: "Dealers" },
+  { key: "pit_bosses", label: "Pit Bosses" },
+];
+function PitUnitTabs({ value, onChange }: { value: PitUnitView; onChange: (v: PitUnitView) => void }) {
+  return (
+    <div className="flex gap-1 mb-2 no-print">
+      {PIT_UNIT_OPTIONS.map(o => (
+        <button
+          key={o.key}
+          type="button"
+          onClick={() => onChange(o.key)}
+          className={`px-3 py-1 rounded text-xs font-medium border transition-colors ${value === o.key ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:bg-muted"}`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
