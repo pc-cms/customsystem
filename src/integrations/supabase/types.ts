@@ -11705,6 +11705,7 @@ export type Database = {
           is_working: boolean
           sort_order: number
           start_time: string | null
+          unit: string | null
           updated_at: string
         }
         Insert: {
@@ -11719,6 +11720,7 @@ export type Database = {
           is_working?: boolean
           sort_order?: number
           start_time?: string | null
+          unit?: string | null
           updated_at?: string
         }
         Update: {
@@ -11733,6 +11735,7 @@ export type Database = {
           is_working?: boolean
           sort_order?: number
           start_time?: string | null
+          unit?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -14449,6 +14452,10 @@ export type Database = {
           is_pit_boss: boolean
           job_position: string
         }[]
+      }
+      employee_unit_key: {
+        Args: { _department: string; _is_pit_boss: boolean; _position: string }
+        Returns: string
       }
       ensure_fin_daily_rates: {
         Args: { _business_date: string; _casino_id: string }
