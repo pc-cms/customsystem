@@ -21,7 +21,7 @@ import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-bu
 import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, isExtraShift } from "@/lib/shift-colors";
 import { predictedShiftHours } from "@/lib/shift-hours";
 import ShiftCodesDialog from "@/components/shifts/ShiftCodesDialog";
-import { useUnitHoursMaps, SHIFT_CODES_FROM } from "@/hooks/use-shift-codes";
+import { useUnitHoursMaps, useShiftCodes, formatShiftCodeLegend, SHIFT_CODES_FROM } from "@/hooks/use-shift-codes";
 import { useCasino } from "@/lib/casino-context";
 import { usesArushaShiftGrid, usesDodomaShiftGrid } from "@/hooks/use-staff";
 import { parseAttValue, normalizeAttInput, isStatusCode } from "@/lib/attendance-code";
@@ -171,6 +171,8 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
   const { roles, isManager } = useAuth();
   const { activeCasino } = useCasino();
   const pitLabels = usesArushaShiftGrid(activeCasino) ? ARUSHA_PIT_SHIFT_LABELS : SHIFT_LABELS;
+  const [legendPitUnit] = useSessionState<string>("pitUnit", "all");
+  const { data: pitLegendCodes } = useShiftCodes(activeCasino?.id, "pit", legendPitUnit === "pit_bosses" ? "pit_bosses" : "dealers");
   const isHR = roles.includes("hr") && !roles.includes("pit") && !roles.includes("manager");
   // HR gets full rota control (lock/unlock, template, past-month edits) just like manager.
   const canEditRota = isManager || roles.includes("hr");
@@ -339,7 +341,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
       {ROTA_SHIFTS.map(s => (
         <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${SHIFT_COLORS[s]}`}>
           <span className="font-bold">{s}</span>
-          <span className="opacity-80">{pitLabels[s]}</span>
+          <span className="opacity-80">{(activeTab === "rota" ? formatShiftCodeLegend(pitLegendCodes.find((c) => c.code.toUpperCase() === s)) : null) ?? pitLabels[s]}</span>
         </span>
       ))}
       {activeTab === "attendance" && (

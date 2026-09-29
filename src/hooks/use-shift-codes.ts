@@ -105,3 +105,10 @@ export const useDeleteShiftCode = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["shift-codes"] }),
   });
 };
+
+/** Legend text for a code: "10:00–18:00 · 8h"; null when the code has no times. */
+export const formatShiftCodeLegend = (c: ShiftCode | undefined): string | null => {
+  if (!c || !c.is_working || !c.start_time || !c.end_time) return null;
+  const h = Number(c.hours);
+  return `${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)} · ${Number.isInteger(h) ? h : h.toFixed(2).replace(/0+$/, "")}h`;
+};
