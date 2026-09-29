@@ -209,6 +209,17 @@ const ROTA_SUBITEMS: VirtualSub[] = [
   { to: "/rota/management", icon: UserCheck, label: "Management", matchPath: "/rota/management",
     roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "surveillance"] },
 ];
+const deptSubs = (k: string): VirtualSub[] => [
+  ...ROTA_SUBITEMS.filter(s => s.to === `/rota/${k}`).map(s => ({ ...s, icon: CalendarDays, label: "Rota" })),
+  ...ATTENDANCE_SUBITEMS.filter(s => s.to === `/attendance/${k}`).map(s => ({ ...s, icon: ClipboardPen, label: "Attendance" })),
+];
+const DEPT_GROUP_SUBITEMS: Record<string, VirtualSub[]> = {
+  "__dept:live__": deptSubs("live"),
+  "__dept:floor__": deptSubs("floor"),
+  "__dept:security__": deptSubs("security"),
+  "__dept:office__": deptSubs("office"),
+  "__dept:management__": deptSubs("management"),
+};
 
 // Office sub-pages promoted to the left sidebar (moved out of the Office top
 // tab strip, 2026-09-01). Each is a tab-aware link to /office?tab=… so the
