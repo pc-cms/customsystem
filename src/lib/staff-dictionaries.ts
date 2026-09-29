@@ -7,15 +7,20 @@ export const DEPARTMENTS = [
   "Pit",
   "Floor",
   "Security",
+  "Unassigned",
 ] as const;
 
 export type Department = (typeof DEPARTMENTS)[number];
 
 export const POSITIONS_BY_DEPT: Record<string, string[]> = {
-  "Pit":      ["Dealer", "Inspector", "Trainee", "Pit Boss"],
-  "Floor":    ["Cashier", "Head Cashier", "Bartender", "Waiter", "Hostess", "Receptionist", "Cleaner", "Housekeeper"],
+  // Live Game: Dealers (Dealer, Inspector, Trainee) · Pit Bosses (Pit Boss, Trainer)
+  "Pit":      ["Dealer", "Inspector", "Trainee", "Pit Boss", "Trainer"],
+  // Floor: Cash Desk · Bar · Housekeeping · Slots · Reception
+  "Floor":    ["Cashier", "Head Cashier", "Bartender", "Supervisor", "Housekeeper", "Attendant", "Hostess", "Receptionist"],
   "Security": ["Security", "Supervisor Security"],
-  "Office":   ["IT", "HR", "Manager", "Trainer"],
+  // Office: HR · Tech
+  "Office":   ["HR", "IT"],
+  "Unassigned": [],
 };
 
 export const ALL_POSITIONS = Array.from(
@@ -32,7 +37,8 @@ export function deriveCategory(department: string | null, position: string | nul
     case "Dealer":    return { dealer_category: "dealer",    is_pit_boss: false };
     case "Inspector": return { dealer_category: "inspector", is_pit_boss: false };
     case "Trainee":   return { dealer_category: "trainee",   is_pit_boss: false };
-    case "Pit Boss":  return { dealer_category: null,        is_pit_boss: true  };
+    case "Pit Boss":
+    case "Trainer":   return { dealer_category: null,        is_pit_boss: true  };
     default:          return { dealer_category: null,        is_pit_boss: false };
   }
 }
