@@ -54,7 +54,7 @@ Monthly Attendance   все отделы и часы за месяц, фильт
 ## Уточнить (по умолчанию как ниже)
 
 - Security вы не назвали — оставляю отдельной кнопкой.
-- Waiter (Floor — Arusha, Mbeya, Mwanza; Bar — Dodoma) — такой должности в справочнике нет: по умолчанию → Bar / Bartender. Waiter в отделе Slots (Mwanza) → Slots / Attendant.
+- Все Waiter (Floor — Arusha, Mbeya, Mwanza; Bar — Dodoma; Slots — Mwanza) → Floor / Slots / Attendant.
 - Hostess в Floor (Arusha, Dodoma) → Slots / Hostess.
 - Manager (Mbeya, Office, 2 чел.) — должности нет: по умолчанию → Office / HR, покажу списком.
 - 2 сотрудника в Mwanza без отдела → Unassigned.
