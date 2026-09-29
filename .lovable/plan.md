@@ -8,19 +8,20 @@
 
 ```text
 Live Game   Dealers        Dealer, Inspector, Trainee
-            Pit Bosses     Pit Boss
+            Pit Bosses     Pit Boss, Trainer
 Floor       Cash Desk      Cashier, Head Cashier
-            Bar            Bartender, Waiter
+            Bar            Bartender, Supervisor
             Housekeeping   Housekeeper            (Cleaner → Housekeeper)
-            Slots          Slot Attendant
-            Reception      Receptionist, Hostess
+            Slots          Attendant, Hostess
+            Reception      Receptionist
 Security    Security       Security, Supervisor Security
-Office      HR             HR, Manager
-            Tech           IT, Trainer
+Office      HR             HR
+            Tech           IT
 Management  (отдельный список менеджеров/CCTV — как сейчас)
 ```
 
 - Всем сотрудникам проставляется отдел + подотдел по этой таблице; старые значения (`Bar`, `Cash Desk`, `Housekeeper`, `Slots` в поле отдела) переводятся в `Floor` + нужный подотдел. `Cleaner` переименовывается в `Housekeeper`.
+- Trainer (Arusha, сейчас в Office) переносится в Live Game → Pit Bosses.
 - Staff Master: выпадашки Отдел → Подотдел → Должность только из справочника.
 
 ## Коды смен с наследованием
@@ -47,10 +48,13 @@ Monthly Attendance   все отделы и часы за месяц, фильт
 - Сверка сентября: у каждого сотрудника часы = код его подотдела (или унаследованный), пропусков нет, Monthly Attendance совпадает с экранами.
 - Уже внесённые вручную часы не меняются.
 
-## Уточнить (по умолчанию как выше)
+## Уточнить (по умолчанию как ниже)
 
 - Security вы не назвали — оставляю отдельной кнопкой.
-- Manager (Mbeya) → Office/HR, Trainer (Arusha) → Office/Tech, Waiter в отделе Slots (Mwanza) → Floor/Slots как Slot Attendant, 2 сотрудника в Mwanza без отдела — оставляю без отдела, покажу списком.
+- Waiter (Floor — Arusha, Mbeya, Mwanza; Bar — Dodoma) — такой должности в справочнике нет: по умолчанию → Bar / Bartender. Waiter в отделе Slots (Mwanza) → Slots / Attendant.
+- Hostess в Floor (Arusha, Dodoma) → Slots / Hostess.
+- Manager (Mbeya, Office, 2 чел.) — должности нет: по умолчанию → Office / HR, покажу списком.
+- 2 сотрудника в Mwanza без отдела — оставляю без отдела, покажу списком.
 
 ## Технические детали
 
