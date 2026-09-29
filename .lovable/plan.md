@@ -22,13 +22,16 @@ Management  (отдельный список менеджеров/CCTV — ка�
 
 - Всем сотрудникам проставляется отдел + подотдел по этой таблице; старые значения (`Bar`, `Cash Desk`, `Housekeeper`, `Slots` в поле отдела) переводятся в `Floor` + нужный подотдел. `Cleaner` переименовывается в `Housekeeper`.
 - Trainer (Arusha, сейчас в Office) переносится в Live Game → Pit Bosses.
-- Staff Master: выпадашки Отдел → Подотдел → Должность только из справочника.
+- Сотрудники без отдела → **Unassigned** (видны в Staff Master и Monthly Attendance, в ротах отделов не появляются, пока им не назначат отдел).
+- Отдел и подотдел назначаются **только в Staff Master**; страницы отделов показывают сотрудников по этому назначению.
+- Справочник общий для всех казино.
 
-## Коды смен с наследованием
+## Коды смен
 
-- Коды можно задать на уровне подотдела (например, Floor → Bar в Dodoma). Если у подотдела своих кодов нет — берутся коды отдела (Floor), если и их нет — встроенные значения.
-- Одинаковое правило везде: Rota (прогноз), Attendance (факт и автозаполнение), автозаполнение при закрытии дня, Master Attendance.
-- В окне кодов смен появляется выбор подотдела и пометка «inherits from Floor».
+- **На каждой странице подотдела свои коды и часы** (Dealers, Pit Bosses, Cash Desk, Bar, Housekeeping, Slots, Reception, Security, HR, Tech). Вкладка **All** — только сводный просмотр, своих кодов там нет.
+- Коды и часы **уникальны внутри каждого казино**: Bar в Dodoma и Bar в Mwanza настраиваются отдельно.
+- Если у подотдела в казино коды ещё не заданы — стартово копируются из текущих кодов его отдела этого казино (чтобы часы не поменялись), дальше редактируются независимо.
+- Одно правило везде: Rota (прогноз), Attendance (факт и автозаполнение), автозаполнение при закрытии дня, Monthly Attendance.
 
 ## Новое меню слева
 
@@ -54,12 +57,12 @@ Monthly Attendance   все отделы и часы за месяц, фильт
 - Waiter (Floor — Arusha, Mbeya, Mwanza; Bar — Dodoma) — такой должности в справочнике нет: по умолчанию → Bar / Bartender. Waiter в отделе Slots (Mwanza) → Slots / Attendant.
 - Hostess в Floor (Arusha, Dodoma) → Slots / Hostess.
 - Manager (Mbeya, Office, 2 чел.) — должности нет: по умолчанию → Office / HR, покажу списком.
-- 2 сотрудника в Mwanza без отдела — оставляю без отдела, покажу списком.
+- 2 сотрудника в Mwanza без отдела → Unassigned.
 
 ## Технические детали
 
-- Таблицы: `staff_units` (department, unit, sort) и `staff_positions` (unit, position); в `employees` добавляется `unit` (nullable) + бэкфилл, старое значение `department` нормализуется одним UPDATE по маппингу.
-- `shift_codes`: новый столбец `unit` (nullable); поиск кода: (casino, dept, unit) → (casino, dept, null) → встроенные.
+- Таблицы: `staff_units` (department, unit, sort) и `staff_positions` (unit, position); в `employees` добавляется `unit` (nullable) + бэкфилл, старое значение `department` нормализуется одним UPDATE по маппингу; пустой отдел → `Unassigned`.
+- `shift_codes`: новый столбец `unit`; уникальность (casino, department, unit, code); стартовое копирование кодов отдела в каждый подотдел каждого казино; поиск кода: (casino, dept, unit) → встроенные.
 - `attendance_autofill_day` и `get_monthly_attendance` переводятся на это правило (Monthly берёт часы из уже заполненных значений + коды при пустом).
 - Фронт: общий компонент `DepartmentPage` (dept, units, mode) поверх существующих сеток Pit/Staff; `AppSidebar` — новые пункты; редиректы со старых `/rota/*`, `/attendance/*`.
 - Права: новые ключи модулей наследуют текущие права Rota/Attendance соответствующего отдела.
