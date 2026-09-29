@@ -13,6 +13,8 @@ export type ShiftCode = {
   id: string;
   casino_id: string;
   department: ShiftDept;
+  /** Sub-department (unit) key; null = legacy department-level code. */
+  unit: string | null;
   code: string;
   start_time: string | null;
   end_time: string | null;
@@ -33,19 +35,35 @@ export const useAllShiftCodes = () =>
     staleTime: 5 * 60_000,
   });
 
-export const useShiftCodes = (casinoId: string | null | undefined, department: ShiftDept | null | undefined) => {
+export const useShiftCodes = (casinoId: string | null | undefined, department: ShiftDept | null | undefined, unit: string | null = null) => {
   const q = useAllShiftCodes();
-  const list = (q.data || []).filter((c) => c.casino_id === casinoId && c.department === department);
+  const list = (q.data || []).filter((c) => c.casino_id === casinoId && c.department === department && (c.unit ?? null) === unit);
   return { ...q, data: list };
 };
 
 /** code → hours map for a casino+department (undefined while none configured). */
-export const useShiftHoursMap = (casinoId: string | null | undefined, department: ShiftDept | null | undefined) => {
-  const { data } = useShiftCodes(casinoId, department);
+export const useShiftHoursMap = (casinoId: string | null | undefined, department: ShiftDept | null | undefined, unit: string | null = null) => {
+  const { data } = useShiftCodes(casinoId, department, unit);
   if (!data.length) return undefined;
   const m: Record<string, number> = {};
   for (const c of data) m[c.code.toUpperCase()] = c.is_working ? Number(c.hours) : 0;
   return m;
+};
+
+/**
+ * unit → (code → hours) for a casino+department. Each sub-department has its
+ * own codes; units without codes fall back to the department-level map.
+ */
+export const useUnitHoursMaps = (casinoId: string | null | undefined, department: ShiftDept | null | undefined) => {
+  const q = useAllShiftCodes();
+  const out: Record<string, Record<string, number>> = {};
+  for (const c of q.data || []) {
+    if (c.casino_id !== casinoId || c.department !== department) continue;
+    const k = c.unit ?? "";
+    (out[k] ||= {})[c.code.toUpperCase()] = c.is_working ? Number(c.hours) : 0;
+  }
+  return (unit: string | null | undefined): Record<string, number> | undefined =>
+    (unit && out[unit]) || out[""] || undefined;
 };
 
 /** Hours between two HH:MM times, overnight aware. */
@@ -61,7 +79,7 @@ export const hoursBetween = (start: string | null, end: string | null): number =
 export const useUpsertShiftCode = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (row: Partial<ShiftCode> & { casino_id: string; department: ShiftDept; code: string }) => {
+    mutationFn: async (row: Partial<ShiftCode> & { casino_id: string; department: ShiftDept; code: string; unit?: string | null }) => {
       const hours = row.is_working === false ? 0 : hoursBetween(row.start_time ?? null, row.end_time ?? null);
       const payload = { ...row, code: row.code.toUpperCase(), hours };
       const { error } = row.id
