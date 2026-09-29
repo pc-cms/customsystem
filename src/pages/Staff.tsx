@@ -28,7 +28,7 @@ const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "Ju
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
 import { predictedShiftHours } from "@/lib/shift-hours";
 import ShiftCodesDialog from "@/components/shifts/ShiftCodesDialog";
-import { useUnitHoursMaps, SHIFT_CODES_FROM, type ShiftDept } from "@/hooks/use-shift-codes";
+import { useUnitHoursMaps, useShiftCodes, formatShiftCodeLegend, SHIFT_CODES_FROM, type ShiftDept } from "@/hooks/use-shift-codes";
 import { parseAttValue, normalizeAttInput, isStatusCode } from "@/lib/attendance-code";
 
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
@@ -202,6 +202,8 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
   // Selected sub-department pill (shared session key with the grids) → default unit for shift codes.
   const [selectedDeptPill] = useSessionState<string>("dept", "all");
   const codesUnit = selectedDeptPill !== "all" ? selectedDeptPill : undefined;
+  const { data: legendCodes } = useShiftCodes(activeCasino?.id, (rotaGroupKey || "floor") as ShiftDept, codesUnit ?? null);
+  const legendLabel = (s: string) => formatShiftCodeLegend(legendCodes.find((c) => c.code.toUpperCase() === s)) ?? rotaGroup?.shiftLabels[s];
 
   return (
     <div>
@@ -231,7 +233,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
                 {rotaGroup.shifts.map(s => (
                   <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${STAFF_SHIFT_COLORS[s]}`}>
                     <span className="font-bold">{s}</span>
-                    <span className="opacity-80">{rotaGroup.shiftLabels[s]}</span>
+                    <span className="opacity-80">{legendLabel(s)}</span>
                   </span>
                 ))}
               </div>
