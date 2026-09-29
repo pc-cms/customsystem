@@ -72,9 +72,13 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/analytics/ace-control", icon: SlidersHorizontal, label: "ACE Control", roles: ["super_admin"], section: "SYSTEM" },
   { to: "/groups", icon: UsersRound, label: "Groups", roles: ["super_admin", "boss", "general_manager", "manager", "finance_manager"], section: "ANALYTICS" },
 
-  // STAFF — Rota + Attendance (each expands to Live/Floor/Security/Office).
-  { to: "__rota__", icon: CalendarDays, label: "Rota", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "STAFF" },
-  { to: "__attendance__", icon: ClipboardPen, label: "Attendance", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "STAFF" },
+  // STAFF — one button per department, each expands to Rota + Attendance.
+  { to: "__dept:live__", icon: Gamepad2, label: "Live Game", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "STAFF" },
+  { to: "__dept:floor__", icon: Building2, label: "Floor", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "STAFF" },
+  { to: "__dept:security__", icon: Shield, label: "Security", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "STAFF" },
+  { to: "__dept:office__", icon: Briefcase, label: "Office", roles: ["super_admin", "manager", "shift_manager", "pit", "finance_manager", "surveillance"], section: "STAFF" },
+  { to: "__dept:management__", icon: UserCheck, label: "Management", roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "surveillance"], section: "STAFF" },
+  { to: "/attendance/monthly", icon: CalendarDays, label: "Monthly Attendance", roles: ["super_admin", "hr", "manager", "finance_manager"], section: "STAFF" },
   { to: "/staff/playlist", icon: UserCheck, label: "Employee List", roles: ["super_admin", "manager", "shift_manager", "surveillance"], section: "STAFF" },
 
   // MANAGEMENT — read/manage surfaces for floor management.
@@ -108,7 +112,6 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/hr/advances", icon: HandCoins, label: "Advances", roles: ["super_admin", "hr", "finance_manager", "manager"], section: "HR" },
   { to: "/hr/warnings", icon: AlertTriangle, label: "Warnings", roles: ["super_admin", "hr", "manager", "finance_manager"], section: "HR" },
   { to: "/staff/master", icon: UserCheck, label: "Staff Master", roles: ["super_admin", "hr", "finance_manager", "manager", "shift_manager"], section: "HR" },
-  { to: "/attendance/monthly", icon: CalendarDays, label: "Attendance (Month)", roles: ["super_admin", "hr", "manager", "finance_manager"], section: "HR" },
   { to: "/payroll", icon: Wallet, label: "Payroll", roles: ["super_admin", "hr", "finance_manager"], section: "HR" },
   { to: "/payroll/dashboard", icon: Wallet, label: "Payroll · Dashboard", roles: ["super_admin", "hr", "finance_manager"], section: "HR" },
   { to: "/payroll/bank-export", icon: Wallet, label: "Payroll · Bank Export", roles: ["super_admin", "finance_manager"], section: "HR" },
@@ -206,6 +209,17 @@ const ROTA_SUBITEMS: VirtualSub[] = [
   { to: "/rota/management", icon: UserCheck, label: "Management", matchPath: "/rota/management",
     roles: ["super_admin", "boss", "general_manager", "manager", "shift_manager", "surveillance"] },
 ];
+const deptSubs = (k: string): VirtualSub[] => [
+  ...ROTA_SUBITEMS.filter(s => s.to === `/rota/${k}`).map(s => ({ ...s, icon: CalendarDays, label: "Rota" })),
+  ...ATTENDANCE_SUBITEMS.filter(s => s.to === `/attendance/${k}`).map(s => ({ ...s, icon: ClipboardPen, label: "Attendance" })),
+];
+const DEPT_GROUP_SUBITEMS: Record<string, VirtualSub[]> = {
+  "__dept:live__": deptSubs("live"),
+  "__dept:floor__": deptSubs("floor"),
+  "__dept:security__": deptSubs("security"),
+  "__dept:office__": deptSubs("office"),
+  "__dept:management__": deptSubs("management"),
+};
 
 // Office sub-pages promoted to the left sidebar (moved out of the Office top
 // tab strip, 2026-09-01). Each is a tab-aware link to /office?tab=… so the
