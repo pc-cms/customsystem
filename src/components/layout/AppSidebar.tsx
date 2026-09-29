@@ -394,6 +394,7 @@ const SidebarSections = ({
     }
     if (item.to === "__attendance__") return renderVirtualGroup("attendance", item, sectionCtx, ATTENDANCE_SUBITEMS);
     if (item.to === "__rota__") return renderVirtualGroup("rota", item, sectionCtx, ROTA_SUBITEMS);
+    if (DEPT_GROUP_SUBITEMS[item.to]) return renderVirtualGroup(item.to, item, sectionCtx, DEPT_GROUP_SUBITEMS[item.to]);
     if (item.to === "/office") {
       // Office keeps its direct link; Import Statement / Rates / Inter-Casino
       // render as indented sub-links underneath (they left the top tab strip).
@@ -660,8 +661,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
               if (item.to.startsWith("__divider__")) {
                 return <div key={item.to} className="w-8 my-1 border-t border-sidebar-border/60" />;
               }
-              const isVirtual = item.to === "__attendance__" || item.to === "__rota__";
-              const subs = item.to === "__attendance__" ? ATTENDANCE_SUBITEMS : item.to === "__rota__" ? ROTA_SUBITEMS : null;
+              const subs = item.to === "__attendance__" ? ATTENDANCE_SUBITEMS : item.to === "__rota__" ? ROTA_SUBITEMS : (DEPT_GROUP_SUBITEMS[item.to] ?? null);
               const targetTo = subs ? subs[0].to : item.to;
               const { base: itemBase, tab: itemTab } = parseItemTo(targetTo);
               const isTabAware = itemTab !== null;
