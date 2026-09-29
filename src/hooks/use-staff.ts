@@ -26,19 +26,19 @@ export interface StaffMember {
 export const DEPARTMENT_LABELS: Record<StaffDepartment, string> = {
   manager: "Managers",
   security: "Security",
-  cashier: "Cashiers",
+  cashier: "Cash Desk",
   bartender: "Bar",
-  hostess: "Hostess",
-  waiter: "Waiters",
+  hostess: "Slots",
+  waiter: "Slots",
   cleaner: "Housekeeping",
-  it: "IT",
+  it: "Tech",
   hr: "HR",
   driver: "Driver",
   reception: "Reception",
 };
 
 export const DEPARTMENT_ORDER: StaffDepartment[] = [
-  "manager", "security", "cashier", "bartender", "hostess", "waiter", "cleaner", "reception", "it", "hr", "driver",
+  "manager", "security", "cashier", "bartender", "cleaner", "hostess", "waiter", "reception", "hr", "it", "driver",
 ];
 
 // Rota group definitions
@@ -52,7 +52,7 @@ export const ROTA_GROUPS = {
   },
   floor: {
     label: "Floor",
-    departments: ["cashier", "bartender", "hostess", "waiter", "cleaner", "reception"] as StaffDepartment[],
+    departments: ["cashier", "bartender", "cleaner", "hostess", "reception"] as StaffDepartment[],
     shifts: ["D", "N", "L", "E", "O"] as const,
     shiftLabels: { D: "12:30 · 8h", N: "20:45 · 8h", L: "Leave · 0h", E: "17:45 · 8h", O: "Off · 0h" } as Record<string, string>,
   },
@@ -64,7 +64,7 @@ export const ROTA_GROUPS = {
   },
   office: {
     label: "Office",
-    departments: ["it", "hr", "driver"] as StaffDepartment[],
+    departments: ["hr", "it"] as StaffDepartment[],
     shifts: ["D", "N", "T", "L", "E", "O"] as const,
     shiftLabels: { D: "12:30 · 8h", N: "20:45 · 8h", T: "09:00–15:00 · 6h", L: "Leave · 0h", E: "17:45 · 8h", O: "Off · 0h" } as Record<string, string>,
 
@@ -150,12 +150,15 @@ const mapDept = (department: string, position: string | null): StaffDepartment =
   // "Floor" is the canonical bucket for all non-gaming staff — dispatch by position.
   if (department === "Floor") {
     switch (position) {
-      case "Bartender":   return "bartender";
-      case "Cashier":     return "cashier";
+      case "Bartender":
+      case "Supervisor":  return "bartender";
+      case "Cashier":
+      case "Head Cashier": return "cashier";
+      case "Attendant":
       case "Cleaner":
       case "Housekeeper": return "cleaner";
       case "Hostess":     return "hostess";
-      case "Waiter":      return "waiter";
+      case "Waiter":      return "hostess";
       case "Receptionist":
       case "Reception":   return "reception";
       default:            return "cleaner";
@@ -165,11 +168,10 @@ const mapDept = (department: string, position: string | null): StaffDepartment =
     case "Security":    return "security";
     case "Cash Desk":   return "cashier";
     case "Bar":         return "bartender";
-    case "Slots":       return position === "Waiter" ? "waiter" : "hostess";
+    case "Slots":       return "hostess";
     case "Housekeeper": return "cleaner";
     case "Office":
       if (position === "HR") return "hr";
-      if (position === "Manager") return "manager";
       return "it";
     default:            return "cleaner";
   }
@@ -222,7 +224,7 @@ export const useStaffMembers = () => {
         .select("*")
         .eq("casino_id", casinoId!)
         .is("deleted_at", null)
-        .neq("department", "Pit")
+        .not("department", "in", "(Pit,Unassigned)")
         .order("department")
         .order("full_name");
       if (error) throw error;
@@ -240,9 +242,9 @@ const reverseDept = (d: StaffDepartment): { department: string; position: string
     case "security":  return { department: "Security", position: "Security" };
     case "cashier":   return { department: "Floor",    position: "Cashier" };
     case "bartender": return { department: "Floor",    position: "Bartender" };
-    case "hostess":   return { department: "Floor",    position: "Hostess" };
-    case "waiter":    return { department: "Floor",    position: "Waiter" };
-    case "cleaner":   return { department: "Floor",    position: "Cleaner" };
+    case "hostess":   return { department: "Floor",    position: "Attendant" };
+    case "waiter":    return { department: "Floor",    position: "Attendant" };
+    case "cleaner":   return { department: "Floor",    position: "Housekeeper" };
     case "reception": return { department: "Floor",    position: "Receptionist" };
     case "it":
     case "driver":    return { department: "Office",   position: "IT" };
