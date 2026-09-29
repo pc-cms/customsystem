@@ -113,6 +113,13 @@
       "when": 1790674735381,
       "tag": "0015_ace_jp_post_on_closed_day",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790674919188,
+      "tag": "0016_ace_jp_closed_day_until_1230",
+      "breakpoints": true
     }
   ]
 }
