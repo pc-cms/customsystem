@@ -23,6 +23,30 @@ import { downloadXlsx } from "@/lib/excel-export";
 import AttendanceImportDialog from "@/components/attendance/AttendanceImportDialog";
 
 const DEPT_ORDER = ["Pit", "Floor", "Security", "Office"] as const;
+
+/** Mirrors DB employee_unit_key(department, position, is_pit_boss). */
+const unitOf = (r: MonthlyAttendanceRow): string => {
+  const pos = (r.job_position || "").trim().toLowerCase();
+  switch (r.department) {
+    case "Pit": return r.is_pit_boss || pos === "pit boss" || pos === "trainer" ? "pit_bosses" : "dealers";
+    case "Security": return "security";
+    case "Office": return pos === "it" ? "it" : "hr";
+    case "Floor":
+      if (pos === "cashier" || pos === "head cashier") return "cashier";
+      if (pos === "bartender" || pos === "supervisor") return "bartender";
+      if (pos === "attendant" || pos === "hostess") return "hostess";
+      if (pos === "receptionist") return "reception";
+      return "cleaner";
+    default: return "unassigned";
+  }
+};
+const UNIT_FILTERS = [
+  { key: "dealers", label: "Dealers" }, { key: "pit_bosses", label: "Pit Bosses" },
+  { key: "cashier", label: "Cash Desk" }, { key: "bartender", label: "Bar" },
+  { key: "cleaner", label: "Housekeeping" }, { key: "hostess", label: "Slots" },
+  { key: "reception", label: "Reception" }, { key: "security", label: "Security" },
+  { key: "hr", label: "HR" }, { key: "it", label: "Tech" }, { key: "unassigned", label: "Unassigned" },
+];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const WEEKDAYS = ["Su","Mo","Tu","We","Th","Fr","Sa"];
 
@@ -55,8 +79,10 @@ const AttendanceMonthly = () => {
 
   const [holidayOpen, setHolidayOpen] = useState(false);
 
+  const [unitFilter, setUnitFilter] = useState<string>("all");
+
   // Group rows by employee
-  const employees = useMemo(() => {
+  const allEmployees = useMemo(() => {
     const map = new Map<string, { meta: MonthlyAttendanceRow; byDay: Map<number, MonthlyAttendanceRow> }>();
     for (const r of rows) {
       const day = Number(r.d.slice(8, 10));
@@ -65,6 +91,10 @@ const AttendanceMonthly = () => {
     }
     return Array.from(map.values());
   }, [rows]);
+  const employees = useMemo(
+    () => (unitFilter === "all" ? allEmployees : allEmployees.filter((e) => unitOf(e.meta) === unitFilter)),
+    [allEmployees, unitFilter],
+  );
 
   const grouped = useMemo(() => {
     const by: Record<string, typeof employees> = { Pit: [], Floor: [], Security: [], Office: [], Other: [] };
@@ -199,6 +229,23 @@ const AttendanceMonthly = () => {
       </PageHeader>
 
       <PageSection card={false}>
+        {!isLoading && allEmployees.length > 0 && (
+          <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+            {[{ key: "all", label: "All" }, ...UNIT_FILTERS].map((u) => {
+              const count = u.key === "all" ? allEmployees.length : allEmployees.filter((e) => unitOf(e.meta) === u.key).length;
+              if (u.key !== "all" && count === 0) return null;
+              return (
+                <button
+                  key={u.key}
+                  onClick={() => setUnitFilter(u.key)}
+                  className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${unitFilter === u.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                >
+                  {u.label} ({count})
+                </button>
+              );
+            })}
+          </div>
+        )}
         {isLoading ? (
           <div className="text-sm text-muted-foreground p-4">Loading…</div>
         ) : employees.length === 0 ? (

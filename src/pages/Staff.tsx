@@ -199,6 +199,9 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
     return m;
   }, [staffRotaForExcel]);
 
+  // Selected sub-department pill (shared session key with the grids) → default unit for shift codes.
+  const [selectedDeptPill] = useSessionState<string>("dept", "all");
+  const codesUnit = selectedDeptPill !== "all" ? selectedDeptPill : undefined;
 
   return (
     <div>
