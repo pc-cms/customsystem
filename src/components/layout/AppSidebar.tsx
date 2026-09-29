@@ -319,7 +319,7 @@ const SidebarSections = ({
   };
 
   const renderVirtualGroup = (
-    key: "attendance" | "rota",
+    key: string,
     item: NavItem,
     sectionCtx: Section,
     allSubs: VirtualSub[],
