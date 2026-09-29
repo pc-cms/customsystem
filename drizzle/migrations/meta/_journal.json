@@ -120,6 +120,13 @@
       "when": 1790674919188,
       "tag": "0016_ace_jp_closed_day_until_1230",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790676198007,
+      "tag": "0017_attendance_autofill_on_day_close",
+      "breakpoints": true
     }
   ]
 }

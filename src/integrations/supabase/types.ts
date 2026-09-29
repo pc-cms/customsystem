@@ -13997,6 +13997,10 @@ export type Database = {
         Args: { p_expense_id: string; p_manager_id: string }
         Returns: undefined
       }
+      attendance_autofill_day: {
+        Args: { _casino_id: string; _date: string }
+        Returns: number
+      }
       audit_drop_caches: {
         Args: { _from?: string; _to?: string }
         Returns: {
