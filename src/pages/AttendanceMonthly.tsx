@@ -21,32 +21,11 @@ import { buildDisplayNames, splitFullName } from "@/lib/display-name";
 import { useCasino } from "@/lib/casino-context";
 import { downloadXlsx } from "@/lib/excel-export";
 import AttendanceImportDialog from "@/components/attendance/AttendanceImportDialog";
-
-const DEPT_ORDER = ["Pit", "Floor", "Security", "Office"] as const;
+import { UNITS, DEPT_LABEL, unitKeyOf } from "@/lib/staff-units";
 
 /** Mirrors DB employee_unit_key(department, position, is_pit_boss). */
-const unitOf = (r: MonthlyAttendanceRow): string => {
-  const pos = (r.job_position || "").trim().toLowerCase();
-  switch (r.department) {
-    case "Pit": return r.is_pit_boss || pos === "pit boss" || pos === "trainer" ? "pit_bosses" : "dealers";
-    case "Security": return "security";
-    case "Office": return pos === "it" ? "it" : "hr";
-    case "Floor":
-      if (pos === "cashier" || pos === "head cashier") return "cashier";
-      if (pos === "bartender" || pos === "supervisor") return "bartender";
-      if (pos === "attendant" || pos === "hostess") return "hostess";
-      if (pos === "receptionist") return "reception";
-      return "cleaner";
-    default: return "unassigned";
-  }
-};
-const UNIT_FILTERS = [
-  { key: "dealers", label: "Dealers" }, { key: "pit_bosses", label: "Pit Bosses" },
-  { key: "cashier", label: "Cash Desk" }, { key: "bartender", label: "Bar" },
-  { key: "cleaner", label: "Housekeeping" }, { key: "hostess", label: "Slots" },
-  { key: "reception", label: "Reception" }, { key: "security", label: "Security" },
-  { key: "hr", label: "HR" }, { key: "it", label: "Tech" }, { key: "unassigned", label: "Unassigned" },
-];
+const unitOf = (r: MonthlyAttendanceRow): string => unitKeyOf(r.department, r.job_position, r.is_pit_boss);
+const UNIT_FILTERS = UNITS;
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const WEEKDAYS = ["Su","Mo","Tu","We","Th","Fr","Sa"];
 
@@ -97,11 +76,8 @@ const AttendanceMonthly = () => {
   );
 
   const grouped = useMemo(() => {
-    const by: Record<string, typeof employees> = { Pit: [], Floor: [], Security: [], Office: [], Other: [] };
-    for (const e of employees) {
-      const k = (DEPT_ORDER as readonly string[]).includes(e.meta.department) ? e.meta.department : "Other";
-      (by as any)[k].push(e);
-    }
+    const by: Record<string, typeof employees> = {};
+    for (const e of employees) (by[unitOf(e.meta)] ||= []).push(e);
     for (const k of Object.keys(by)) by[k].sort((a, b) => a.meta.full_name.localeCompare(b.meta.full_name));
     return by;
   }, [employees]);
@@ -283,14 +259,15 @@ const AttendanceMonthly = () => {
                 </tr>
               </thead>
               <tbody>
-                {(["Pit", "Floor", "Security", "Office", "Other"] as const).flatMap(dept => {
+                {UNITS.flatMap(u => {
+                  const dept = u.key;
                   const list = grouped[dept];
                   if (!list || list.length === 0) return [] as JSX.Element[];
                   const rowsOut: JSX.Element[] = [];
                   rowsOut.push(
                     <tr key={`hdr-${dept}`} className="bg-muted/40">
                       <td colSpan={daysInMonth + 6} className="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                        {dept} <span className="ml-2 text-[9px]">({list.length})</span>
+                        {u.dept === "Unassigned" ? "Unassigned" : `${DEPT_LABEL[u.dept]} · ${u.label}`} <span className="ml-2 text-[9px]">({list.length})</span>
                       </td>
                     </tr>
                   );
