@@ -31,6 +31,7 @@ import {
   splitName,
   joinName,
 } from "@/lib/staff-dictionaries";
+import { UNITS, DEPT_LABEL, unitKeyOf } from "@/lib/staff-units";
 import { EditableCell } from "@/components/staff-master/editable-cell";
 import { SignedImage } from "@/components/SignedImage";
 import { NumberInput } from "@/components/ui/number-input";

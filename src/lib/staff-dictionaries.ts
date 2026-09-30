@@ -3,10 +3,10 @@
  * Position determines dealer_category and is_pit_boss for Live Game.
  */
 export const DEPARTMENTS = [
-  "Office",
   "Pit",
   "Floor",
   "Security",
+  "Office",
   "Unassigned",
 ] as const;
 
