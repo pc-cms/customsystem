@@ -133,9 +133,10 @@ const AttendanceMonthly = () => {
       ...days.map(d => String(d)),
       "Days", "Hours", "Leave", "Hol H", "OT H",
     ]);
-    for (const dept of [...DEPT_ORDER, "Other"]) {
-      const list = grouped[dept] || [];
+    for (const u of UNITS) {
+      const list = grouped[u.key] || [];
       if (!list.length) continue;
+      const dept = u.dept === "Unassigned" ? "Unassigned" : `${DEPT_LABEL[u.dept]} · ${u.label}`;
       for (const e of list) {
         const t = totalsByEmployee.get(e.meta.employee_id) || { hours: 0, dWorked: 0, leave: 0, holH: 0, otH: 0 };
         out.push([
