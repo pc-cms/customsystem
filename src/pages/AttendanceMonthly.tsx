@@ -1,3 +1,4 @@
+import { useModuleWrite } from "@/hooks/use-module-permissions";
 /**
  * Monthly Attendance — single big grid (employees × days of month).
  * Cells show hours (number) or code (A=absent). Holiday columns highlighted
@@ -41,7 +42,7 @@ const monthFirst = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).p
 const AttendanceMonthly = () => {
   const { roles } = useAuth();
   const { activeCasino } = useCasino();
-  const canEdit = roles.includes("hr") || roles.includes("manager") || roles.includes("shift_manager") || roles.includes("super_admin") || roles.includes("finance_manager");
+  const canEdit = useModuleWrite("staff_master");
 
   const [cursor, setCursor] = useState<Date>(() => {
     const d = today();

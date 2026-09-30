@@ -1,3 +1,4 @@
+import { useModuleWrite } from "@/hooks/use-module-permissions";
 import { useMemo, useRef, useState, useCallback } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { UserCheck, Camera, RotateCw, Upload, Trash2, Plus, ArrowUpDown, ArrowUp, ArrowDown, Undo2 } from "lucide-react";
@@ -261,11 +262,7 @@ const StaffMaster = () => {
   const { roles } = useAuth();
   const { activeCasinoId } = useCasino();
   const qc = useQueryClient();
-  const canEdit =
-    roles.includes("hr") ||
-    roles.includes("manager") ||
-    roles.includes("shift_manager") ||
-    roles.includes("super_admin");
+  const canEdit = useModuleWrite("staff_master");
   const { data: employees = [], isLoading } = useEmployees();
   const patch = usePatchEmployee();
   const upsert = useUpsertEmployee();
