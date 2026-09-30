@@ -31,6 +31,7 @@ import {
   splitName,
   joinName,
 } from "@/lib/staff-dictionaries";
+import { UNITS, DEPT_LABEL, unitKeyOf } from "@/lib/staff-units";
 import { EditableCell } from "@/components/staff-master/editable-cell";
 import { SignedImage } from "@/components/SignedImage";
 import { NumberInput } from "@/components/ui/number-input";
@@ -301,13 +302,11 @@ const StaffMaster = () => {
     }
   };
 
-  // Group by department in DEPARTMENTS order; unknown depts → "Other"
+  // Group by department → sub-department (shared order); unknown depts → Unassigned
   const grouped = useMemo(() => {
     const by: Record<string, Employee[]> = {};
-    for (const k of DEPARTMENTS) by[k] = [];
-    by["Other"] = [];
     for (const e of employees) {
-      const k = (DEPARTMENTS as readonly string[]).includes(e.department) ? e.department : "Other";
+      const k = unitKeyOf(e.department, e.position, (e as any).is_pit_boss);
       (by[k] ||= []).push(e);
     }
     for (const k of Object.keys(by)) {
@@ -503,14 +502,15 @@ const StaffMaster = () => {
                 {employees.length === 0 && (
                   <tr><td colSpan={TOTAL_COLS} className="text-center text-muted-foreground py-8">No employees yet — click Reimport to build from Staff and Pit Personnel, or use the bottom row to add one</td></tr>
                 )}
-                {([...DEPARTMENTS, "Other"] as const).flatMap(dept => {
+                {UNITS.flatMap(u => {
+                  const dept = u.key;
                   const list = grouped[dept];
                   if (!list || list.length === 0) return [] as JSX.Element[];
                   const rows: JSX.Element[] = [];
                   rows.push(
                     <tr key={`hdr-${dept}`} className="bg-muted/50">
                       <td colSpan={TOTAL_COLS} className="font-semibold text-xs uppercase tracking-wider text-muted-foreground py-1.5 px-3">
-                        {dept} <span className="ml-2 text-[10px]">({list.length})</span>
+                        {u.dept === "Unassigned" ? "Unassigned" : `${DEPT_LABEL[u.dept]} · ${u.label}`} <span className="ml-2 text-[10px]">({list.length})</span>
                       </td>
                     </tr>
                   );

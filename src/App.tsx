@@ -250,7 +250,7 @@ import { UpgradeCard } from "@/components/license/ModuleGate";
 
 // Legacy /pit?tab=… → flat /breaklist|/rota/live|/attendance/live|/dealers
 const LegacyPitRedirect = () => {
-  const tab = new URLSearchParams(window.location.search).get("tab");
+  const tab = new URLSearchParams(useLocation().search).get("tab");
   const target =
     tab === "rota" ? "/rota/live" :
     tab === "attendance" ? "/attendance/live" :
@@ -261,9 +261,10 @@ const LegacyPitRedirect = () => {
 
 // Legacy /staff?tab=… or /floor?tab=… → flat /staff/employees|/rota/*|/attendance/*
 const LegacyStaffRedirect = () => {
-  const sp = new URLSearchParams(window.location.search);
+  const sp = new URLSearchParams(useLocation().search);
   const tab = sp.get("tab");
-  const group = sp.get("group") || "floor";
+  const rawGroup = sp.get("group") || "floor";
+  const group = ["floor", "security", "office", "management"].includes(rawGroup) ? rawGroup : "floor";
   let target = "/staff/employees";
   if (tab === "attendance") target = `/attendance/${group}`;
   else if (tab === "rota_floor") target = "/rota/floor";
@@ -271,6 +272,12 @@ const LegacyStaffRedirect = () => {
   else if (tab === "rota_office") target = "/rota/office";
   else if (tab === "rota_management") target = "/rota/management";
   return <Navigate to={target} replace />;
+};
+
+// Sidebar department groups (old bookmarks like /__dept:floor__) → that department's Rota.
+const DeptGroupRedirect = () => {
+  const m = useLocation().pathname.match(/__dept:(live|floor|security|office|management)__/);
+  return <Navigate to={m ? `/rota/${m[1]}` : "/"} replace />;
 };
 
 const RoleGuard = ({ path, children }: { path: string; children: React.ReactNode }) => {
@@ -528,6 +535,10 @@ const ProtectedRoutes = () => {
           <Route path="/pit" element={<LegacyPitRedirect />} />
           <Route path="/staff" element={<LegacyStaffRedirect />} />
           <Route path="/floor" element={<LegacyStaffRedirect />} />
+          {["live", "floor", "security", "office", "management"].map((k) => (
+            <Route key={k} path={`/__dept:${k}__`} element={<DeptGroupRedirect />} />
+          ))}
+          <Route path="/staff-master" element={<Navigate to="/staff/master" replace />} />
           <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
           {/* All finance surfaces live under /office as flat tabs. /finances/* routes are removed. */}
           <Route path="/office" element={<RoleGuard path="/office"><ErrorBoundary><OfficePage /></ErrorBoundary></RoleGuard>} />
