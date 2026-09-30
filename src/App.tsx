@@ -535,6 +535,10 @@ const ProtectedRoutes = () => {
           <Route path="/pit" element={<LegacyPitRedirect />} />
           <Route path="/staff" element={<LegacyStaffRedirect />} />
           <Route path="/floor" element={<LegacyStaffRedirect />} />
+          {["live", "floor", "security", "office", "management"].map((k) => (
+            <Route key={k} path={`/__dept:${k}__`} element={<DeptGroupRedirect />} />
+          ))}
+          <Route path="/staff-master" element={<Navigate to="/staff/master" replace />} />
           <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
           {/* All finance surfaces live under /office as flat tabs. /finances/* routes are removed. */}
           <Route path="/office" element={<RoleGuard path="/office"><ErrorBoundary><OfficePage /></ErrorBoundary></RoleGuard>} />
