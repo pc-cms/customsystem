@@ -39,12 +39,19 @@ export const useMonthlyAttendance = (monthFirstDay: string) => {
   return useQuery({
     queryKey: ["monthly_attendance", activeCasinoId, monthFirstDay],
     queryFn: async (): Promise<MonthlyAttendanceRow[]> => {
-      const { data, error } = await supabase.rpc("get_monthly_attendance", {
-        p_casino_id: activeCasinoId!,
-        p_month: monthFirstDay,
-      });
-      if (error) throw error;
-      return (data || []) as MonthlyAttendanceRow[];
+      // RPC returns employees × days rows; page past the 1000-row API cap.
+      const PAGE = 1000;
+      const out: MonthlyAttendanceRow[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .rpc("get_monthly_attendance", { p_casino_id: activeCasinoId!, p_month: monthFirstDay })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        const chunk = (data || []) as MonthlyAttendanceRow[];
+        out.push(...chunk);
+        if (chunk.length < PAGE) break;
+      }
+      return out;
     },
     enabled: !!activeCasinoId,
   });
