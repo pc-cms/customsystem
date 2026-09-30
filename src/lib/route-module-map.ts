@@ -18,6 +18,9 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   // Virtual sidebar parents (group expanders) — gated by their primary module
   if (to === "__attendance__") return "pit_attendance";
   if (to === "__rota__") return "pit_rota";
+  // Department buttons (STAFF section) — gated by the access matrix, not a role whitelist
+  if (to === "__dept:live__") return "pit_rota";
+  if (to === "__dept:floor__" || to === "__dept:security__" || to === "__dept:office__" || to === "__dept:management__") return "staff_rota";
 
   const [base, q = ""] = to.split("?");
   const tab = new URLSearchParams(q).get("tab");
