@@ -183,6 +183,13 @@
       "when": 1790891895395,
       "tag": "0025_fin_carry_tips_jp",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790893814875,
+      "tag": "0026_wallets_tips_jp_carry",
+      "breakpoints": true
     }
   ]
 }
