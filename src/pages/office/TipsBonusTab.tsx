@@ -303,6 +303,8 @@ export default function TipsBonusTab({ belowHeader }: { belowHeader?: ReactNode 
           <TotalCard label="Tips IN" value={totals.tips.inSum} />
           <TotalCard label="Tips OUT" value={totals.tips.outSum} />
           <TotalCard label="Tips Net" value={totals.tips.net} />
+          {whole && <TotalCard label="Tips START" value={tipsStart} />}
+          {whole && <TotalCard label="Tips END" value={tipsEnd} />}
         </div>
         <TotalCard label="Total Net" value={totals.net} strong className="lg:h-full lg:flex lg:flex-col lg:justify-center" />
       </div>
@@ -329,6 +331,7 @@ export default function TipsBonusTab({ belowHeader }: { belowHeader?: ReactNode 
           rowKey={(r) => r.id}
           loading={isLoading}
           footerRows={[
+            ...(showCarry ? [carryFooterRow("start", "Tips START", tipsStart)] : []),
             {
               key: "total",
               className: "font-bold bg-muted/40 border-t border-border",
@@ -352,6 +355,7 @@ export default function TipsBonusTab({ belowHeader }: { belowHeader?: ReactNode 
                 return null;
               },
             },
+            ...(showCarry ? [carryFooterRow("end", "Tips END", tipsEnd)] : []),
           ]}
 
           empty={
