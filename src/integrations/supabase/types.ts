@@ -14535,6 +14535,14 @@ export type Database = {
         }
         Returns: Json
       }
+      fin_balance_snapshot_base: {
+        Args: {
+          p_casino_id: string
+          p_period_end: string
+          p_period_start: string
+        }
+        Returns: Json
+      }
       fin_bank_import_confirm_batch: {
         Args: { p_batch_id: string }
         Returns: Json
