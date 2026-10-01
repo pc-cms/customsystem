@@ -176,6 +176,13 @@
       "when": 1790888689546,
       "tag": "0024_miss_chips_opening_by_denom",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790891895395,
+      "tag": "0025_fin_carry_tips_jp",
+      "breakpoints": true
     }
   ]
 }
