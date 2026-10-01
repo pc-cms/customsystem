@@ -281,17 +281,10 @@ export default function JpTab() {
         <TotalCard label="Payouts (OUT)" value={totals.outSum} />
         <TotalCard label="Corrections" value={totals.corrSum} />
         <TotalCard label="Net" value={totals.net} strong />
+        {jpWhole && <TotalCard label="JP START" value={jpStart} />}
+        {jpWhole && <TotalCard label="JP END" value={jpStart + totals.net} />}
       </div>
-
-      <PageSection card={false}>
-        <SmartTable
-          data={allRows}
-          columns={columns}
-          rowKey={(r) => r.id}
-          loading={isLoading}
-          footerRows={[
-            {
-              key: "total",
+__KEEP__
               className: "font-bold bg-muted/40 border-t border-border",
               cell: (col, index) => {
                 if (index === 0) return "Total";

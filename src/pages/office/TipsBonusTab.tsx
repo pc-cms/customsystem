@@ -30,6 +30,7 @@ import {
   type OtherIncomeRow,
 } from "@/hooks/use-other-incomes";
 import { useFinCarry } from "@/hooks/use-fin-carry";
+import { carryFooterRow } from "@/components/office/carry-footer-row";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import { useAuth } from "@/lib/auth-context";
