@@ -7521,6 +7521,7 @@ export type Database = {
       }
       miss_chips_opening: {
         Row: {
+          by_denom: Json
           casino_id: string
           created_at: string
           id: string
@@ -7529,6 +7530,7 @@ export type Database = {
           total_tzs: number
         }
         Insert: {
+          by_denom?: Json
           casino_id: string
           created_at?: string
           id?: string
@@ -7537,6 +7539,7 @@ export type Database = {
           total_tzs?: number
         }
         Update: {
+          by_denom?: Json
           casino_id?: string
           created_at?: string
           id?: string
