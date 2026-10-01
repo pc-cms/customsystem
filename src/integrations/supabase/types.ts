@@ -7519,6 +7519,41 @@ export type Database = {
         }
         Relationships: []
       }
+      miss_chips_opening: {
+        Row: {
+          casino_id: string
+          created_at: string
+          id: string
+          month_start: string
+          note: string | null
+          total_tzs: number
+        }
+        Insert: {
+          casino_id: string
+          created_at?: string
+          id?: string
+          month_start: string
+          note?: string | null
+          total_tzs?: number
+        }
+        Update: {
+          casino_id?: string
+          created_at?: string
+          id?: string
+          month_start?: string
+          note?: string | null
+          total_tzs?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "miss_chips_opening_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       monthly_tips_entries: {
         Row: {
           bonus_points: number
