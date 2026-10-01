@@ -6,6 +6,7 @@ import { UNIFIED_SHIFT_COLORS } from "@/lib/shift-colors";
 import { buildDisplayNames, splitFullName } from "@/lib/display-name";
 import { invalidateEmployeeCaches } from "@/lib/invalidate-employees";
 import { toast } from "sonner";
+import { unitKeyOf } from "@/lib/staff-units";
 
 
 export type StaffDepartment = "manager" | "security" | "cashier" | "bartender" | "hostess" | "waiter" | "cleaner" | "it" | "hr" | "driver" | "reception";
@@ -147,33 +148,17 @@ export const STAFF_SHIFT_COLORS = UNIFIED_SHIFT_COLORS;
 // Phase 3: read employees (non-Live-Game), alias employee_id → staff_id, write employee_id (DB triggers fill legacy staff_id).
 
 const mapDept = (department: string, position: string | null): StaffDepartment => {
-  // "Floor" is the canonical bucket for all non-gaming staff — dispatch by position.
-  if (department === "Floor") {
-    switch (position) {
-      case "Bartender":
-      case "Supervisor":  return "bartender";
-      case "Cashier":
-      case "Head Cashier": return "cashier";
-      case "Attendant":
-      case "Cleaner":
-      case "Housekeeper": return "cleaner";
-      case "Hostess":     return "hostess";
-      case "Waiter":      return "hostess";
-      case "Receptionist":
-      case "Reception":   return "reception";
-      default:            return "cleaner";
-    }
+  // Canonical departments dispatch through the shared unit map (same as Staff Master / Monthly Attendance).
+  if (department === "Floor" || department === "Security" || department === "Office") {
+    return unitKeyOf(department, position) as StaffDepartment;
   }
   switch (department) {
-    case "Security":    return "security";
     case "Cash Desk":   return "cashier";
     case "Bar":         return "bartender";
     case "Slots":       return "hostess";
     case "Housekeeper": return "cleaner";
-    case "Office":
-      if (position === "HR") return "hr";
-      return "it";
-    default:            return "cleaner";
+    // Unassigned / unknown: bucket outside every rota group so they never leak into Floor.
+    default:            return "driver";
   }
 };
 
