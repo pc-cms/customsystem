@@ -248,7 +248,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
       {activeTab === "rota" && <RotaLockButton scope="pit" month={month} />}
     </div>
   ) : showDatePicker ? (
-    isManager ? (
+    (isManager || roles.includes("surveillance")) ? (
       <DateNavigator
         value={date}
         onChange={(iso) => setDate(iso || businessToday)}
