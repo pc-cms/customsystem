@@ -284,7 +284,17 @@ export default function JpTab() {
         {jpWhole && <TotalCard label="JP START" value={jpStart} />}
         {jpWhole && <TotalCard label="JP END" value={jpStart + totals.net} />}
       </div>
-__KEEP__
+
+      <PageSection card={false}>
+        <SmartTable
+          data={allRows}
+          columns={columns}
+          rowKey={(r) => r.id}
+          loading={isLoading}
+          footerRows={[
+            ...(jpWhole ? [carryFooterRow("start", "JP START", jpStart)] : []),
+            {
+              key: "total",
               className: "font-bold bg-muted/40 border-t border-border",
               cell: (col, index) => {
                 if (index === 0) return "Total";
