@@ -91,6 +91,23 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
     enabled: !!casinoId,
   });
 
+  // Start Month carry: only when the window is a whole calendar month.
+  const isWholeMonth = effFrom.endsWith("-01") &&
+    format(addDays(new Date(effTo + "T00:00:00"), 1), "dd") === "01" &&
+    effFrom.slice(0, 7) === effTo.slice(0, 7);
+  const { data: start } = useQuery({
+    queryKey: ["miss-chips-carry", casinoId, effFrom],
+    enabled: !!casinoId && isWholeMonth,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("miss_chips_carry", { p_casino_id: casinoId, p_month_start: effFrom });
+      if (error) throw error;
+      const by: Record<number, number> = {};
+      Object.entries((data?.by_denom || {}) as Record<string, number>).forEach(([d, q]) => { by[Number(d)] = Number(q); });
+      return { by, total: Number(data?.total || 0) };
+    },
+  });
+  const showStart = isWholeMonth && !!start;
+
   const dailyRows = useMemo(() => {
     const m = new Map<string, ShiftMissRow>();
     rows.forEach((r) => {
@@ -174,10 +191,27 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
                 <DTCell colSpan={totalCols} className="text-center py-6 text-muted-foreground">Loading…</DTCell>
               </DTRow>
             )}
-            {!isLoading && dailyRows.length === 0 && (
+            {!isLoading && dailyRows.length === 0 && !showStart && (
               <DTRow>
                 <DTCell colSpan={totalCols} className="text-center py-6 text-muted-foreground">
                   No closed shifts with miss chips in this month
+                </DTCell>
+              </DTRow>
+            )}
+            {showStart && (
+              <DTRow className="font-semibold [&_td]:bg-muted/60">
+                <DTCell type="date">START</DTCell>
+                {DENOMS_DESC.map((d) => {
+                  const v = start!.by[d] ?? 0;
+                  const color = v > 0 ? "cms-amount-positive" : v < 0 ? "cms-amount-negative" : "text-muted-foreground";
+                  return (
+                    <DTCell key={d} type="int" className={cn("text-center font-semibold", color)}>
+                      {v === 0 ? "·" : (v > 0 ? `+${v}` : String(v))}
+                    </DTCell>
+                  );
+                })}
+                <DTCell type="money">
+                  <MoneyCell value={start!.total} mode={mode} signed className="font-semibold" />
                 </DTCell>
               </DTRow>
             )}
@@ -199,7 +233,7 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
               </DTRow>
             ))}
             {dailyRows.length > 0 && (
-              <DTRow className="sticky bottom-0 z-20 border-t-2 border-border font-semibold [&_td]:bg-muted">
+              <DTRow className={cn("border-t-2 border-border font-semibold [&_td]:bg-muted", !showStart && "sticky bottom-0 z-20")}>
                 <DTCell type="date">MONTH SUM</DTCell>
                 {DENOMS_DESC.map((d) => {
                   const v = monthSum.by[d] ?? 0;
@@ -212,6 +246,23 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
                 })}
                 <DTCell type="money">
                   <MoneyCell value={monthSum.total} mode={mode} signed className="font-bold text-base" />
+                </DTCell>
+              </DTRow>
+            )}
+            {showStart && (
+              <DTRow className="sticky bottom-0 z-20 border-t border-border font-semibold [&_td]:bg-muted">
+                <DTCell type="date">END</DTCell>
+                {DENOMS_DESC.map((d) => {
+                  const v = (start!.by[d] ?? 0) + (monthSum.by[d] ?? 0);
+                  const color = v > 0 ? "cms-amount-positive" : v < 0 ? "cms-amount-negative" : "text-muted-foreground";
+                  return (
+                    <DTCell key={d} type="int" className={cn("text-center font-semibold", color)}>
+                      {v === 0 ? "·" : (v > 0 ? `+${v}` : String(v))}
+                    </DTCell>
+                  );
+                })}
+                <DTCell type="money">
+                  <MoneyCell value={start!.total + monthSum.total} mode={mode} signed className="font-bold text-base" />
                 </DTCell>
               </DTRow>
             )}

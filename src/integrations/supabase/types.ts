@@ -15164,6 +15164,10 @@ export type Database = {
         Returns: undefined
       }
       mirror_unfreeze_writes: { Args: { p_casino_id: string }; Returns: Json }
+      miss_chips_carry: {
+        Args: { p_casino_id: string; p_month_start: string }
+        Returns: Json
+      }
       payroll_apply_advances: {
         Args: { _period_id: string }
         Returns: undefined
