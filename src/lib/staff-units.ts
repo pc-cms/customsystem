@@ -33,7 +33,7 @@ export const unitKeyOf = (department: string | null | undefined, position: strin
   switch (normDept(department)) {
     case "Pit": return isPitBoss || pos === "pit boss" || pos === "trainer" ? "pit_bosses" : "dealers";
     case "Security": return "security";
-    case "Office": return pos === "it" ? "it" : "hr";
+    case "Office": return pos === "hr" ? "hr" : "it";
     case "Floor":
       if (pos === "cashier" || pos === "head cashier") return "cashier";
       if (pos === "bartender" || pos === "supervisor") return "bartender";
