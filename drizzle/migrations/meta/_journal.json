@@ -148,6 +148,13 @@
       "when": 1790855263182,
       "tag": "0020_miss_chips_carry",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790871576864,
+      "tag": "0021_shift_codes_manager_edit",
+      "breakpoints": true
     }
   ]
 }

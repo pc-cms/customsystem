@@ -23,7 +23,7 @@ import {
   type ShiftDept,
 } from "@/hooks/use-shift-codes";
 
-export const SHIFT_CODE_EDIT_ROLES = ["super_admin", "finance_manager", "shift_manager", "boss", "general_manager"];
+export const SHIFT_CODE_EDIT_ROLES = ["super_admin", "finance_manager", "shift_manager", "boss", "general_manager", "manager"];
 const NETWORK_ROLES = ["super_admin", "finance_manager", "boss", "general_manager"];
 const PIT_ENUM = ["M", "N", "A", "S", "E", "L", "EM", "EN", "T", "SW", "ESW"];
 const DEPTS: { key: ShiftDept; label: string }[] = [
