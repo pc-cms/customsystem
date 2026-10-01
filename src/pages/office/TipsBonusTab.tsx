@@ -29,6 +29,7 @@ import {
   useDeleteOtherIncome,
   type OtherIncomeRow,
 } from "@/hooks/use-other-incomes";
+import { useFinCarry } from "@/hooks/use-fin-carry";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import { useAuth } from "@/lib/auth-context";
@@ -87,6 +88,11 @@ export default function TipsBonusTab({ belowHeader }: { belowHeader?: ReactNode 
     });
     return { ...acc, net: acc.tips.net + acc.bonus.net };
   }, [allRows]);
+
+  /** Tips opening balance carried from previous months (whole month only). */
+  const { whole, start: tipsStart } = useFinCarry("tips", range.from, range.to);
+  const tipsEnd = tipsStart + totals.tips.net;
+  const showCarry = whole && filter !== "bonus";
 
   /** Net of the CURRENTLY VISIBLE rows (in TZS) — used by the table footer. */
   const visibleNet = useMemo(
