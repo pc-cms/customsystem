@@ -15,6 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { FormGrid, FormField } from "@/components/ui/form-grid";
+import { useFinCarry } from "@/hooks/use-fin-carry";
+import { carryFooterRow } from "@/components/office/carry-footer-row";
 import { SmartTable, type ColumnDef } from "@/components/ui/smart-table";
 import { useSessionState } from "@/hooks/use-session-state";
 import { DateRangePresets, type DatePreset, presetRange } from "@/components/ui/date-range-presets";
@@ -44,6 +46,7 @@ export default function JpTab() {
 
   const { period } = useOfficePeriod();
   const range = { from: period.from, to: period.to };
+  const { whole: jpWhole, start: jpStart } = useFinCarry("jp", range.from, range.to);
 
   const { data: rows = [], isLoading } = useOtherIncomes(range.from, range.to, {
     only: [...JP_ONLY] as any,
@@ -281,6 +284,8 @@ export default function JpTab() {
         <TotalCard label="Payouts (OUT)" value={totals.outSum} />
         <TotalCard label="Corrections" value={totals.corrSum} />
         <TotalCard label="Net" value={totals.net} strong />
+        {jpWhole && <TotalCard label="JP START" value={jpStart} />}
+        {jpWhole && <TotalCard label="JP END" value={jpStart + totals.net} />}
       </div>
 
       <PageSection card={false}>
@@ -290,6 +295,7 @@ export default function JpTab() {
           rowKey={(r) => r.id}
           loading={isLoading}
           footerRows={[
+            ...(jpWhole ? [carryFooterRow("start", "JP START", jpStart)] : []),
             {
               key: "total",
               className: "font-bold bg-muted/40 border-t border-border",
@@ -313,6 +319,7 @@ export default function JpTab() {
                 return null;
               },
             },
+            ...(jpWhole ? [carryFooterRow("end", "JP END", jpStart + totals.net)] : []),
           ]}
           empty={
 

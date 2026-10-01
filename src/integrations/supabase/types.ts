@@ -14599,6 +14599,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      fin_carry: {
+        Args: { p_casino_id: string; p_month_start: string; p_source: string }
+        Returns: number
+      }
       fin_close_month: {
         Args: {
           p_casino_id: string

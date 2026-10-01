@@ -29,6 +29,8 @@ import {
   useDeleteOtherIncome,
   type OtherIncomeRow,
 } from "@/hooks/use-other-incomes";
+import { useFinCarry } from "@/hooks/use-fin-carry";
+import { carryFooterRow } from "@/components/office/carry-footer-row";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import { useAuth } from "@/lib/auth-context";
@@ -87,6 +89,11 @@ export default function TipsBonusTab({ belowHeader }: { belowHeader?: ReactNode 
     });
     return { ...acc, net: acc.tips.net + acc.bonus.net };
   }, [allRows]);
+
+  /** Tips opening balance carried from previous months (whole month only). */
+  const { whole, start: tipsStart } = useFinCarry("tips", range.from, range.to);
+  const tipsEnd = tipsStart + totals.tips.net;
+  const showCarry = whole && filter !== "bonus";
 
   /** Net of the CURRENTLY VISIBLE rows (in TZS) — used by the table footer. */
   const visibleNet = useMemo(
@@ -297,6 +304,8 @@ export default function TipsBonusTab({ belowHeader }: { belowHeader?: ReactNode 
           <TotalCard label="Tips IN" value={totals.tips.inSum} />
           <TotalCard label="Tips OUT" value={totals.tips.outSum} />
           <TotalCard label="Tips Net" value={totals.tips.net} />
+          {whole && <TotalCard label="Tips START" value={tipsStart} />}
+          {whole && <TotalCard label="Tips END" value={tipsEnd} />}
         </div>
         <TotalCard label="Total Net" value={totals.net} strong className="lg:h-full lg:flex lg:flex-col lg:justify-center" />
       </div>
@@ -323,6 +332,7 @@ export default function TipsBonusTab({ belowHeader }: { belowHeader?: ReactNode 
           rowKey={(r) => r.id}
           loading={isLoading}
           footerRows={[
+            ...(showCarry ? [carryFooterRow("start", "Tips START", tipsStart)] : []),
             {
               key: "total",
               className: "font-bold bg-muted/40 border-t border-border",
@@ -346,6 +356,7 @@ export default function TipsBonusTab({ belowHeader }: { belowHeader?: ReactNode 
                 return null;
               },
             },
+            ...(showCarry ? [carryFooterRow("end", "Tips END", tipsEnd)] : []),
           ]}
 
           empty={
