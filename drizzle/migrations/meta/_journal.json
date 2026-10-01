@@ -169,6 +169,13 @@
       "when": 1790888413394,
       "tag": "0023_miss_chips_opening",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790888689546,
+      "tag": "0024_miss_chips_opening_by_denom",
+      "breakpoints": true
     }
   ]
 }
