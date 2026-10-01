@@ -155,6 +155,13 @@
       "when": 1790871576864,
       "tag": "0021_shift_codes_manager_edit",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790886296907,
+      "tag": "0022_boss_report_budget_carry_forward",
+      "breakpoints": true
     }
   ]
 }
