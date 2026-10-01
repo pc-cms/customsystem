@@ -233,7 +233,7 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
               </DTRow>
             ))}
             {dailyRows.length > 0 && (
-              <DTRow className="sticky bottom-0 z-20 border-t-2 border-border font-semibold [&_td]:bg-muted">
+              <DTRow className={cn("border-t-2 border-border font-semibold [&_td]:bg-muted", !showStart && "sticky bottom-0 z-20")}>
                 <DTCell type="date">MONTH SUM</DTCell>
                 {DENOMS_DESC.map((d) => {
                   const v = monthSum.by[d] ?? 0;
