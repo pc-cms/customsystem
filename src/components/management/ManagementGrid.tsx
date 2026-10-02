@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { CellPicker } from "@/components/grids/CellPicker";
 import { useAllShiftCodes, SHIFT_CODES_FROM } from "@/hooks/use-shift-codes";
-import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_COLORS } from "@/lib/shift-colors";
+import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_COLORS, getShiftColor } from "@/lib/shift-colors";
 import {
   CCTV_HOURS,
   CITY_CODES,
@@ -451,7 +451,7 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
                           <>
                             <span className="font-bold">{t.days}d</span>{" "}
                             <span className="text-muted-foreground">{t.hours}h</span>
-                            {!isCctv && t.shifts.size > 0 && <div className="flex justify-end gap-0.5 pt-0.5">{[...t.shifts.entries()].map(([code, count]) => <span key={code} className={`inline-flex items-center justify-center rounded px-1 font-mono text-[10px] ${UNIFIED_SHIFT_COLORS[code] || "bg-muted text-foreground font-bold"}`}>{code} {count}</span>)}</div>}
+                            {!isCctv && t.shifts.size > 0 && <div className="flex justify-end gap-0.5 pt-0.5">{[...t.shifts.entries()].map(([code, count]) => <span key={code} className={`inline-flex items-center justify-center rounded px-1 font-mono text-[10px] ${getShiftColor(code)}`}>{code} {count}</span>)}</div>}
                             {t.cityText && <div className="text-[9px] text-muted-foreground">{t.cityText}</div>}
                           </>
                         ) : (
