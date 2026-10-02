@@ -74,7 +74,7 @@ function Row({ row, casinoId, dept, unit, isNew, onDone }: { row: Draft; casinoI
   const save = () => {
     const code = d.code.trim().toUpperCase();
     if (!code) return toast.error("Code is required");
-    if (dept === "pit" && !PIT_ENUM.includes(code)) return toast.error(`Live Game codes: ${PIT_ENUM.join(", ")}`);
+    if (!/^[A-Z0-9]{1,4}$/.test(code)) return toast.error("Code: 1–4 letters or digits");
     if (d.is_working && (!d.start_time || !d.end_time)) return toast.error("Set start and end time");
     upsert.mutate(
       { id: d.id, casino_id: casinoId, department: dept, unit, code, start_time: d.is_working ? d.start_time : null, end_time: d.is_working ? d.end_time : null, is_working: d.is_working },

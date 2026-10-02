@@ -190,6 +190,13 @@
       "when": 1790893814875,
       "tag": "0026_wallets_tips_jp_carry",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1790943090412,
+      "tag": "0027_pit_custom_shift_codes",
+      "breakpoints": true
     }
   ]
 }
