@@ -736,7 +736,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
   };
   const shiftsFor = (unit: string) => groupShifts.filter(code => isWorking(code, unit));
   const summaryShifts = groupShifts.filter(code =>
-    (filterDept === "all" ? group.departments : [filterDept]).some(unit => isWorking(code, unit))
+    (filterDept === "all" ? visibleDepts : [filterDept]).some(unit => isWorking(code, unit))
   );
   const labelFor = (code: string, unit: string) =>
     formatShiftCodeLegend(configuredFor(unit).find(c => c.code.toUpperCase() === code)) ?? group.shiftLabels[code] ?? code;
