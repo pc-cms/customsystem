@@ -338,10 +338,10 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
   // Below header: unified legend for rota / attendance (identical shift explanations)
   const belowHeader = (activeTab === "rota" || activeTab === "attendance") ? (
     <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto whitespace-nowrap py-0.5">
-      {ROTA_SHIFTS.map(s => (
-        <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${SHIFT_COLORS[s]}`}>
+      {[...ROTA_SHIFTS, ...pitLegendCodes.map((c) => c.code.toUpperCase()).filter((k) => !(ROTA_SHIFTS as readonly string[]).includes(k))].map((s: string) => (
+        <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${(SHIFT_COLORS as any)[s] ?? "bg-muted text-foreground"}`}>
           <span className="font-bold">{s}</span>
-          <span className="opacity-80">{(activeTab === "rota" ? formatShiftCodeLegend(pitLegendCodes.find((c) => c.code.toUpperCase() === s)) : null) ?? pitLabels[s]}</span>
+          <span className="opacity-80">{(activeTab === "rota" ? formatShiftCodeLegend(pitLegendCodes.find((c) => c.code.toUpperCase() === s)) : null) ?? (pitLabels as any)[s] ?? ""}</span>
         </span>
       ))}
       {activeTab === "attendance" && (
