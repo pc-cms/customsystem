@@ -953,7 +953,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               );
             })}
             {summaryShifts.map(code => (
-              <td key={code} className="px-2 py-1 text-center border-l border-border/25"><span className="text-xs font-mono font-bold text-card-foreground">{isWorking(code, forcePitBoss ? "pit_bosses" : "dealers") ? stats.counts[code] || "" : ""}</span></td>
+              <td key={code} className="px-1 py-1 text-center border-l border-border/25"><span className={stats.counts[code] && isWorking(code, forcePitBoss ? "pit_bosses" : "dealers") ? `inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-xs font-mono ${SHIFT_COLORS[code] || "bg-muted text-foreground font-bold"}` : ""}>{isWorking(code, forcePitBoss ? "pit_bosses" : "dealers") ? stats.counts[code] || "" : ""}</span></td>
             ))}
             <td className="px-2 py-1 text-center border-l border-border/25"><span className="text-xs font-mono font-bold text-primary">{stats.hours || ""}</span></td>
           </tr>
@@ -980,12 +980,12 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
               return (
                 <th key={day} className={`text-center px-0 py-1 border-l border-border/25 ${isToday ? "bg-primary/40" : isWeekend ? "bg-muted/30" : ""}`}>
-                  <div className="text-[9px] text-muted-foreground leading-tight">{weekday}</div>
+                   <div className="text-[10px] text-muted-foreground leading-tight">{weekday}</div>
                   <div className={`text-xs font-mono leading-tight ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
                 </th>
               );
             })}
-            {summaryShifts.map(code => <th key={code} title={labelForUnit(code, pitUnit === "pit_bosses" ? "pit_bosses" : "dealers")} className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 min-w-8">{code}</th>)}
+            {summaryShifts.map(code => <th key={code} title={labelForUnit(code, pitUnit === "pit_bosses" ? "pit_bosses" : "dealers")} className="text-center px-1 py-2 min-w-8"><span className={`inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono ${SHIFT_COLORS[code] || "bg-muted text-foreground font-bold"}`}>{code}</span></th>)}
             <th className="text-center text-[10px] font-medium text-primary uppercase px-1 py-2 w-10" title="Planned hours (forecast)">Σh</th>
           </tr>
         </thead>
@@ -993,13 +993,13 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
           {renderDealerRows(activeDealers, "Dealers", "border-blue-400 dark:border-blue-500/50 text-blue-600 dark:text-blue-400")}
           {activeDealers.length > 0 && [...shiftsForUnit("dealers"), "All"].map((code, index) => (
             <tr key={code} className={index === 0 ? "border-t-2 border-border" : ""}>
-              <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ {code}</td>
+               <td colSpan={2} className="px-1 py-1 text-[11px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10"><span className={code === "All" ? "inline-flex items-center h-6 rounded px-2 bg-muted text-foreground" : `inline-flex items-center h-6 rounded px-2 ${SHIFT_COLORS[code] || "bg-muted text-foreground font-bold"}`}>Σ {code}</span></td>
               {days.map(day => {
                 const count = activeDealers.filter(d => {
                   const shift = getDisplayShift(d.id, day)?.shift;
                   return code === "All" ? !!shift && shiftsForUnit("dealers").includes(shift) : shift === code;
                 }).length;
-                return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
+                 return <td key={day} className="text-center px-0.5 py-1"><span className={count ? `inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono font-bold ${code === "All" ? "bg-muted text-foreground" : SHIFT_COLORS[code] || "bg-muted text-foreground"}` : ""}>{count || ""}</span></td>;
               })}
               <td colSpan={summaryShifts.length + 1} />
             </tr>
@@ -1016,24 +1016,24 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                   const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
                   return (
                     <th key={day} className={`text-center px-0 py-1 border-l border-border/25 ${isToday ? "bg-primary/40" : isWeekend ? "bg-muted/30" : ""}`}>
-                      <div className="text-[9px] text-muted-foreground leading-tight">{weekday}</div>
+                       <div className="text-[10px] text-muted-foreground leading-tight">{weekday}</div>
                       <div className={`text-xs font-mono leading-tight ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
                     </th>
                   );
                 })}
-                {summaryShifts.map(code => <th key={code} title={labelForUnit(code, "pit_bosses")} className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 min-w-8">{code}</th>)}
+                {summaryShifts.map(code => <th key={code} title={labelForUnit(code, "pit_bosses")} className="text-center px-1 py-2 min-w-8"><span className={`inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono ${SHIFT_COLORS[code] || "bg-muted text-foreground font-bold"}`}>{code}</span></th>)}
                 <th className="text-center text-[10px] font-medium text-primary uppercase px-1 py-2 w-10" title="Planned hours (forecast)">Σh</th>
               </tr>
               {renderDealerRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400", "no-print", true)}
               {[...shiftsForUnit("pit_bosses"), "All"].map((code, index) => (
                 <tr key={code} className={index === 0 ? "border-t-2 border-border no-print" : "no-print"}>
-                  <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ {code}</td>
+                   <td colSpan={2} className="px-1 py-1 text-[11px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10"><span className={code === "All" ? "inline-flex items-center h-6 rounded px-2 bg-muted text-foreground" : `inline-flex items-center h-6 rounded px-2 ${SHIFT_COLORS[code] || "bg-muted text-foreground font-bold"}`}>Σ {code}</span></td>
                   {days.map(day => {
                     const count = pitBosses.filter(d => {
                       const shift = getDisplayShift(d.id, day)?.shift;
                       return code === "All" ? !!shift && shiftsForUnit("pit_bosses").includes(shift) : shift === code;
                     }).length;
-                    return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
+                     return <td key={day} className="text-center px-0.5 py-1"><span className={count ? `inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono font-bold ${code === "All" ? "bg-muted text-foreground" : SHIFT_COLORS[code] || "bg-muted text-foreground"}` : ""}>{count || ""}</span></td>;
                   })}
                   <td colSpan={summaryShifts.length + 1} />
                 </tr>
@@ -1318,8 +1318,8 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
           />
         </div>
       )}
-      <div className="cms-panel overflow-hidden print-target">
-      <table className="w-full border-collapse table-fixed">
+       <div className="cms-panel overflow-x-auto print-target">
+       <table className="w-full min-w-max border-collapse table-fixed">
         <thead>
           <tr className="border-b border-border">
             <th className="text-center text-xs font-medium text-muted-foreground uppercase px-0.5 py-2 sticky left-0 bg-card z-10 w-7">C</th>
@@ -1332,7 +1332,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
               const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
               return (
                 <th key={day} className={`text-center px-0 py-1 border-l border-border/25 ${isToday ? "bg-primary/40" : isWeekend ? "bg-muted/30" : ""}`}>
-                  <div className="text-[9px] text-muted-foreground leading-tight">{weekday}</div>
+                   <div className="text-[10px] text-muted-foreground leading-tight">{weekday}</div>
                   <div className={`text-xs font-mono leading-tight ${isToday ? "text-primary font-bold" : "text-card-foreground"}`}>{day}</div>
                 </th>
               );
@@ -1347,14 +1347,14 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
           {renderAttendanceRows(activeDealers, "Dealers", "border-blue-400 dark:border-blue-500/50 text-blue-600 dark:text-blue-400")}
           {/* Summary: shifts per day — dealers only */}
           <tr className="border-t-2 border-border">
-            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400 sticky left-0 bg-card z-10">Σ Shifts</td>
+            <td colSpan={2} className="px-1 py-1 text-[11px] font-mono font-bold text-primary sticky left-0 bg-card z-10">Σ Shifts</td>
             {days.map(day => {
               const count = activeDealers.filter(d => {
                 const v = getValue(d.id, day);
                 const n = Number(v);
                 return !isNaN(n) && n > 0;
               }).length;
-              return <td key={day} className="text-center text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400">{count || ""}</td>;
+              return <td key={day} className="text-center text-[11px] font-mono font-bold text-primary">{count || ""}</td>;
             })}
             <td colSpan={4} />
           </tr>

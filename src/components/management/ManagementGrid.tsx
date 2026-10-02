@@ -332,6 +332,7 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
     let days = 0;
     let hours = 0;
     const cities = new Map<string, number>();
+    const shifts = new Map<string, number>();
     for (const date of dates) {
       const manual = attMap.get(`${slot.id}|${date}`);
       if (mode === "attendance" && manual) continue;
@@ -344,12 +345,13 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
       } else if (r.shift && r.shift !== "L") {
         days++;
         hours += mgmtHours(slot.casino_id, r.shift);
+        shifts.set(r.shift, (shifts.get(r.shift) || 0) + 1);
       }
     }
     const cityText = isCctv
       ? [...cities.entries()].map(([id, n]) => `${cityCodeById.get(id)} ${n}`).join(" · ")
       : "";
-    return { days, hours, cityText };
+    return { days, hours, cityText, shifts };
   };
 
   if (isLoading) return <div className="p-4 text-sm text-muted-foreground">Loading…</div>;
@@ -368,12 +370,12 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
               const weekend = dt.getUTCDay() === 0 || dt.getUTCDay() === 6;
               return (
                 <th key={d} className={`border-b border-border px-0.5 py-1 font-mono font-normal min-w-[30px] ${weekend ? "bg-muted/40" : ""}`}>
-                  <div className="text-[10px] font-bold">{d.slice(-2)}</div>
-                  <div className="text-[8px] text-muted-foreground">{dow}</div>
+                  <div className="text-[11px] font-bold">{d.slice(-2)}</div>
+                  <div className="text-[9px] text-muted-foreground">{dow}</div>
                 </th>
               );
             })}
-            <th className="border-b border-l border-border px-2 py-1 text-right font-semibold min-w-[110px]">Total</th>
+            <th className="border-b border-l border-border bg-muted px-2 py-1 text-right font-semibold min-w-[110px]">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -444,11 +446,12 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
                           </td>
                         );
                       })}
-                      <td className="border-b border-l border-border px-2 py-0.5 text-right font-mono text-[10px] whitespace-nowrap">
+                      <td className="border-b border-l border-border bg-muted/30 px-2 py-0.5 text-right font-mono text-[11px] whitespace-nowrap">
                         {person ? (
                           <>
                             <span className="font-bold">{t.days}d</span>{" "}
                             <span className="text-muted-foreground">{t.hours}h</span>
+                            {!isCctv && t.shifts.size > 0 && <div className="flex justify-end gap-0.5 pt-0.5">{[...t.shifts.entries()].map(([code, count]) => <span key={code} className={`inline-flex items-center justify-center rounded px-1 font-mono text-[10px] ${UNIFIED_SHIFT_COLORS[code] || "bg-muted text-foreground font-bold"}`}>{code} {count}</span>)}</div>}
                             {t.cityText && <div className="text-[9px] text-muted-foreground">{t.cityText}</div>}
                           </>
                         ) : (
