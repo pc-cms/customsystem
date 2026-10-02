@@ -459,7 +459,37 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       const planMonthly = new Map<string, { tzs: Map<number, number>; usd: Map<number, number> }>();
       const startMonth = ytd ? 1 : month;
       const endMonth = month;
-      (budgets.data || []).forEach((b: any) => {
+      // Same carry-forward rule as Dashboard (boss_monthly_report): a month
+      // without its own budget inherits the latest earlier month with data,
+      // per casino.
+      const rawBudgets = (budgets.data || []) as any[];
+      const monthsByCasino = new Map<string, Set<number>>();
+      rawBudgets.forEach((b) => {
+        const s = monthsByCasino.get(b.casino_id) || new Set<number>();
+        s.add(b.month);
+        monthsByCasino.set(b.casino_id, s);
+      });
+      const effectiveBudgets: any[] = [...rawBudgets];
+      monthsByCasino.forEach((have, cid) => {
+        for (let m = startMonth; m <= endMonth; m++) {
+          if (have.has(m)) continue;
+          let src = 0;
+          have.forEach((hm) => { if (hm < m && hm > src) src = hm; });
+          if (!src) continue;
+          rawBudgets
+            .filter((b) => b.casino_id === cid && b.month === src)
+            .forEach((b) => effectiveBudgets.push({ ...b, month: m, __carried: true }));
+        }
+      });
+      effectiveBudgets.forEach((b: any) => {
+        if (b.__carried) {
+          if (b.month >= startMonth && b.month <= endMonth) {
+            const pm = planMap.get(b.category_id) || { tzs: 0, usd: 0 };
+            pm[b.currency === "USD" ? "usd" : "tzs"] += Number(b.planned_amount || 0);
+            planMap.set(b.category_id, pm);
+          }
+          return;
+        }
         const key = b.category_id;
         const pm = planMap.get(key) || { tzs: 0, usd: 0 };
         const isUsd = b.currency === "USD";
