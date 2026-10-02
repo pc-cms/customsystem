@@ -25,7 +25,7 @@ import { Trash2 } from "lucide-react";
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
+import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, getShiftColor } from "@/lib/shift-colors";
 import { predictedShiftHours } from "@/lib/shift-hours";
 import ShiftCodesDialog from "@/components/shifts/ShiftCodesDialog";
 import { useUnitHoursMaps, useShiftCodes, useAllShiftCodes, formatShiftCodeLegend, SHIFT_CODES_FROM, type ShiftDept } from "@/hooks/use-shift-codes";
@@ -234,7 +234,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
             {isRotaTab && rotaGroup && (
               <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap overflow-x-auto py-0.5">
                 {visibleCodes.map((s: string) => (
-                  <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${(STAFF_SHIFT_COLORS as any)[s] ?? "bg-muted text-foreground"}`}>
+                  <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${getShiftColor(s)}`}>
                     <span className="font-bold">{s}</span>
                     <span className="opacity-80">{legendLabel(s)}</span>
                   </span>
@@ -244,7 +244,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
             {activeTab === "attendance" && (
               <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap overflow-x-auto py-0.5">
                 {visibleCodes.map(s => (
-                  <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${(STAFF_SHIFT_COLORS as Record<string, string>)[s] ?? "bg-muted text-foreground"}`}>
+                  <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${getShiftColor(s)}`}>
                     <span className="font-bold">{s}</span>
                     <span className="opacity-80">{legendLabel(s)}</span>
                   </span>
@@ -760,7 +760,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
           );
         })}
         {(unit ? shiftsFor(unit) : summaryShifts).map(s => (
-           <th key={s} className="text-center px-1 py-2 min-w-8"><span className={`inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono ${STAFF_SHIFT_COLORS[s] || "bg-muted text-foreground font-bold"}`}>{s}</span></th>
+           <th key={s} className="text-center px-1 py-2 min-w-8"><span className={`inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono ${getShiftColor(s)}`}>{s}</span></th>
         ))}
         <th className="text-center text-[10px] font-medium text-primary uppercase px-1 py-2 w-10" title="Planned hours (forecast)">Σh</th>
       </tr>
@@ -892,11 +892,11 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
           <tbody>
             {summaryShifts.map((shiftKey, si) => (
               <tr key={shiftKey} className={si === 0 ? "border-t-2 border-border" : ""}>
-                 <td className="px-1 py-1 text-[11px] font-mono font-bold sticky left-0 bg-card z-10"><span className={`inline-flex items-center h-6 rounded px-2 ${STAFF_SHIFT_COLORS[shiftKey] || "bg-muted text-foreground font-bold"}`}>Σ {shiftKey}</span></td>
+                 <td className="px-1 py-1 text-[11px] font-mono font-bold sticky left-0 bg-card z-10"><span className={`inline-flex items-center h-6 rounded px-2 ${getShiftColor(shiftKey)}`}>Σ {shiftKey}</span></td>
                 {days.map(day => {
                   const filteredStaff = filterDept === "all" ? activeStaff : activeStaff.filter(s => s.department === filterDept);
                   const count = filteredStaff.filter(s => isWorking(shiftKey, s.department) && getDisplayShift(s.id, day)?.shift === shiftKey).length;
-                   return <td key={day} className="text-center px-0.5 py-1"><span className={count ? `inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono font-bold ${STAFF_SHIFT_COLORS[shiftKey] || "bg-muted text-foreground"}` : ""}>{count || ""}</span></td>;
+                   return <td key={day} className="text-center px-0.5 py-1"><span className={count ? `inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono font-bold ${getShiftColor(shiftKey)}` : ""}>{count || ""}</span></td>;
                 })}
                 <td colSpan={summaryShifts.length + 1} />
               </tr>
@@ -971,7 +971,7 @@ const DepartmentBlock = ({
                   rows={[{
                     options: groupShifts.map(s => ({
                       value: s, label: s, title: shiftLabels[s],
-                      className: (STAFF_SHIFT_COLORS as any)[s] ?? "bg-muted text-foreground",
+                      className: getShiftColor(s),
                     })),
                   }]}
                   onSelect={(v) => v === null ? onClear(staff.id, day) : onSet(staff.id, day, v)}
@@ -979,7 +979,7 @@ const DepartmentBlock = ({
                   onPaste={e => handlePaste(e as any, staff.id, day)}
                   cellClassName={`w-full h-8 rounded text-xs font-mono font-semibold transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
                     display
-                      ? `${STAFF_SHIFT_COLORS[display.shift] || "bg-muted text-muted-foreground"} ${display.isAuto ? "border border-dashed border-amber-500/50" : ""}`
+                      ? `${getShiftColor(display.shift)} ${display.isAuto ? "border border-dashed border-amber-500/50" : ""}`
                       : "bg-transparent hover:bg-muted/50 text-muted-foreground/40 hover:text-muted-foreground"
                   }`}
                 />
@@ -988,7 +988,7 @@ const DepartmentBlock = ({
           })}
           {summaryShifts.map(s => (
             <td key={s} className="px-2 py-1 text-center border-l border-border/25">
-               <span className={stats.counts[s] ? `inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-xs font-mono ${STAFF_SHIFT_COLORS[s] || "bg-muted text-foreground font-bold"}` : ""}>{stats.counts[s] || ""}</span>
+               <span className={stats.counts[s] ? `inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-xs font-mono ${getShiftColor(s)}` : ""}>{stats.counts[s] || ""}</span>
             </td>
           ))}
           <td className="px-2 py-1 text-center border-l border-border/25">

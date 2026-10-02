@@ -18,7 +18,7 @@ import ActivePlayers from "@/components/pit/ActivePlayers";
 import TableTracker from "@/pages/TableTracker";
 import { getBusinessDate, isBusinessToday } from "@/lib/business-day";
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
-import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, isExtraShift } from "@/lib/shift-colors";
+import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, isExtraShift, getShiftColor } from "@/lib/shift-colors";
 import { predictedShiftHours } from "@/lib/shift-hours";
 import ShiftCodesDialog from "@/components/shifts/ShiftCodesDialog";
 import { useUnitHoursMaps, useShiftCodes, formatShiftCodeLegend, SHIFT_CODES_FROM } from "@/hooks/use-shift-codes";
@@ -341,7 +341,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
   const belowHeader = (activeTab === "rota" || activeTab === "attendance") ? (
     <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto whitespace-nowrap py-0.5">
       {pitVisibleShifts.map((s: string) => (
-        <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${(SHIFT_COLORS as any)[s] ?? "bg-muted text-foreground"}`}>
+        <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${getShiftColor(s)}`}>
           <span className="font-bold">{s}</span>
           <span className="opacity-80">{pitLegendLabel(s)}</span>
         </span>
@@ -933,7 +933,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                         value: s,
                         label: s,
                         title: labelForUnit(s, forcePitBoss ? "pit_bosses" : "dealers"),
-                        className: (SHIFT_COLORS as any)[s] ?? "bg-muted text-foreground",
+                        className: getShiftColor(s),
                       })),
                     }]}
                     onSelect={(v) => {
@@ -945,7 +945,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                     onPaste={e => handlePaste(e as any, dealer.id, day)}
                     cellClassName={`w-full h-8 rounded text-xs font-mono font-semibold transition-colors focus:outline-none focus:ring-1 focus:ring-primary ${
                       display
-                        ? `${SHIFT_COLORS[display.shift] || "bg-muted text-muted-foreground"} ${display.isAuto ? "border border-dashed border-emerald-500/50" : ""}`
+                        ? `${getShiftColor(display.shift)} ${display.isAuto ? "border border-dashed border-emerald-500/50" : ""}`
                         : "bg-transparent hover:bg-muted/50 text-muted-foreground/40 hover:text-muted-foreground"
                     }`}
                   />
@@ -953,7 +953,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
               );
             })}
             {summaryShifts.map(code => (
-              <td key={code} className="px-1 py-1 text-center border-l border-border/25"><span className={stats.counts[code] && isWorking(code, forcePitBoss ? "pit_bosses" : "dealers") ? `inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-xs font-mono ${SHIFT_COLORS[code] || "bg-muted text-foreground font-bold"}` : ""}>{isWorking(code, forcePitBoss ? "pit_bosses" : "dealers") ? stats.counts[code] || "" : ""}</span></td>
+              <td key={code} className="px-1 py-1 text-center border-l border-border/25"><span className={stats.counts[code] && isWorking(code, forcePitBoss ? "pit_bosses" : "dealers") ? `inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-xs font-mono ${getShiftColor(code)}` : ""}>{isWorking(code, forcePitBoss ? "pit_bosses" : "dealers") ? stats.counts[code] || "" : ""}</span></td>
             ))}
             <td className="px-2 py-1 text-center border-l border-border/25"><span className="text-xs font-mono font-bold text-primary">{stats.hours || ""}</span></td>
           </tr>
@@ -985,7 +985,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                 </th>
               );
             })}
-            {summaryShifts.map(code => <th key={code} title={labelForUnit(code, pitUnit === "pit_bosses" ? "pit_bosses" : "dealers")} className="text-center px-1 py-2 min-w-8"><span className={`inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono ${SHIFT_COLORS[code] || "bg-muted text-foreground font-bold"}`}>{code}</span></th>)}
+            {summaryShifts.map(code => <th key={code} title={labelForUnit(code, pitUnit === "pit_bosses" ? "pit_bosses" : "dealers")} className="text-center px-1 py-2 min-w-8"><span className={`inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono ${getShiftColor(code)}`}>{code}</span></th>)}
             <th className="text-center text-[10px] font-medium text-primary uppercase px-1 py-2 w-10" title="Planned hours (forecast)">Σh</th>
           </tr>
         </thead>
@@ -993,13 +993,13 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
           {renderDealerRows(activeDealers, "Dealers", "border-blue-400 dark:border-blue-500/50 text-blue-600 dark:text-blue-400")}
           {activeDealers.length > 0 && [...shiftsForUnit("dealers"), "All"].map((code, index) => (
             <tr key={code} className={index === 0 ? "border-t-2 border-border" : ""}>
-               <td colSpan={2} className="px-1 py-1 text-[11px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10"><span className={code === "All" ? "inline-flex items-center h-6 rounded px-2 bg-muted text-foreground" : `inline-flex items-center h-6 rounded px-2 ${SHIFT_COLORS[code] || "bg-muted text-foreground font-bold"}`}>Σ {code}</span></td>
+               <td colSpan={2} className="px-1 py-1 text-[11px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10"><span className={code === "All" ? "inline-flex items-center h-6 rounded px-2 bg-muted text-foreground" : `inline-flex items-center h-6 rounded px-2 ${getShiftColor(code)}`}>Σ {code}</span></td>
               {days.map(day => {
                 const count = activeDealers.filter(d => {
                   const shift = getDisplayShift(d.id, day)?.shift;
                   return code === "All" ? !!shift && shiftsForUnit("dealers").includes(shift) : shift === code;
                 }).length;
-                 return <td key={day} className="text-center px-0.5 py-1"><span className={count ? `inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono font-bold ${code === "All" ? "bg-muted text-foreground" : SHIFT_COLORS[code] || "bg-muted text-foreground"}` : ""}>{count || ""}</span></td>;
+                 return <td key={day} className="text-center px-0.5 py-1"><span className={count ? `inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono font-bold ${code === "All" ? "bg-muted text-foreground" : getShiftColor(code)}` : ""}>{count || ""}</span></td>;
               })}
               <td colSpan={summaryShifts.length + 1} />
             </tr>
@@ -1021,19 +1021,19 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                     </th>
                   );
                 })}
-                {summaryShifts.map(code => <th key={code} title={labelForUnit(code, "pit_bosses")} className="text-center px-1 py-2 min-w-8"><span className={`inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono ${SHIFT_COLORS[code] || "bg-muted text-foreground font-bold"}`}>{code}</span></th>)}
+                {summaryShifts.map(code => <th key={code} title={labelForUnit(code, "pit_bosses")} className="text-center px-1 py-2 min-w-8"><span className={`inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono ${getShiftColor(code)}`}>{code}</span></th>)}
                 <th className="text-center text-[10px] font-medium text-primary uppercase px-1 py-2 w-10" title="Planned hours (forecast)">Σh</th>
               </tr>
               {renderDealerRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400", "no-print", true)}
               {[...shiftsForUnit("pit_bosses"), "All"].map((code, index) => (
                 <tr key={code} className={index === 0 ? "border-t-2 border-border no-print" : "no-print"}>
-                   <td colSpan={2} className="px-1 py-1 text-[11px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10"><span className={code === "All" ? "inline-flex items-center h-6 rounded px-2 bg-muted text-foreground" : `inline-flex items-center h-6 rounded px-2 ${SHIFT_COLORS[code] || "bg-muted text-foreground font-bold"}`}>Σ {code}</span></td>
+                   <td colSpan={2} className="px-1 py-1 text-[11px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10"><span className={code === "All" ? "inline-flex items-center h-6 rounded px-2 bg-muted text-foreground" : `inline-flex items-center h-6 rounded px-2 ${getShiftColor(code)}`}>Σ {code}</span></td>
                   {days.map(day => {
                     const count = pitBosses.filter(d => {
                       const shift = getDisplayShift(d.id, day)?.shift;
                       return code === "All" ? !!shift && shiftsForUnit("pit_bosses").includes(shift) : shift === code;
                     }).length;
-                     return <td key={day} className="text-center px-0.5 py-1"><span className={count ? `inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono font-bold ${code === "All" ? "bg-muted text-foreground" : SHIFT_COLORS[code] || "bg-muted text-foreground"}` : ""}>{count || ""}</span></td>;
+                     return <td key={day} className="text-center px-0.5 py-1"><span className={count ? `inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono font-bold ${code === "All" ? "bg-muted text-foreground" : getShiftColor(code)}` : ""}>{count || ""}</span></td>;
                   })}
                   <td colSpan={summaryShifts.length + 1} />
                 </tr>
