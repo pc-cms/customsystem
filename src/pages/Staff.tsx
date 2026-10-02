@@ -202,8 +202,11 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
   // Selected sub-department pill (shared session key with the grids) → default unit for shift codes.
   const [selectedDeptPill] = useSessionState<string>("dept", "all");
   const codesUnit = selectedDeptPill !== "all" ? selectedDeptPill : undefined;
-  const { data: legendCodes } = useShiftCodes(activeCasino?.id, (rotaGroupKey || "floor") as ShiftDept, codesUnit ?? null);
-  const legendLabel = (s: string) => formatShiftCodeLegend(legendCodes.find((c) => c.code.toUpperCase() === s)) ?? rotaGroup?.shiftLabels[s];
+  const visibleGroup = (rotaGroupKey || attGroupKey) as RotaGroupKey;
+  const visibleConfig = getRotaGroup(visibleGroup, activeCasino);
+  const { data: legendCodes = [] } = useShiftCodes(activeCasino?.id, visibleGroup as ShiftDept, codesUnit ?? null);
+  const visibleCodes = [...visibleConfig.shifts, ...legendCodes.map(c => c.code.toUpperCase()).filter(k => !(visibleConfig.shifts as readonly string[]).includes(k))];
+  const legendLabel = (s: string) => formatShiftCodeLegend(legendCodes.find(c => c.code.toUpperCase() === s)) ?? visibleConfig.shiftLabels[s] ?? s;
 
   return (
     <div>
@@ -230,7 +233,7 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
             {isRotaTab && lockScope && <RotaLockButton scope={lockScope} month={month} />}
             {isRotaTab && rotaGroup && (
               <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap overflow-x-auto py-0.5">
-                {[...rotaGroup.shifts, ...legendCodes.map((c) => c.code.toUpperCase()).filter((k) => !(rotaGroup.shifts as readonly string[]).includes(k))].map((s: string) => (
+                {visibleCodes.map((s: string) => (
                   <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${(STAFF_SHIFT_COLORS as any)[s] ?? "bg-muted text-foreground"}`}>
                     <span className="font-bold">{s}</span>
                     <span className="opacity-80">{legendLabel(s)}</span>
@@ -240,10 +243,10 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
             )}
             {activeTab === "attendance" && (
               <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap overflow-x-auto py-0.5">
-                {(attGroupKey === "management" ? (["D", "M", "N"] as const) : (["D", "N"] as const)).map(s => (
-                  <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${STAFF_SHIFT_COLORS[s]}`}>
+                {visibleCodes.map(s => (
+                  <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${(STAFF_SHIFT_COLORS as Record<string, string>)[s] ?? "bg-muted text-foreground"}`}>
                     <span className="font-bold">{s}</span>
-                    <span className="opacity-80">{attGroupKey === "management" ? getRotaGroup("management", activeCasino).shiftLabels[s] : STAFF_SHIFT_LABELS[s]}</span>
+                    <span className="opacity-80">{legendLabel(s)}</span>
                   </span>
                 ))}
                 <span className="mx-1 h-4 w-px bg-border" />
@@ -265,8 +268,8 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
             title={`${rotaGroup.label} Rota — ${monthLabel}`}
             employees={excelEmployees}
             existing={excelExisting}
-            allowedShifts={rotaGroup.shifts}
-            shiftLabels={rotaGroup.shiftLabels}
+            allowedShifts={visibleCodes}
+            shiftLabels={Object.fromEntries(visibleCodes.map(s => [s, legendLabel(s)]))}
             onSetCell={(id, date, shift) => setStaffRotaForExcel.mutateAsync({ staff_id: id, date, shift })}
             disabled={isLocked}
           />
@@ -723,10 +726,19 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
     return { counts, hours };
   };
 
-  // Determine summary shift keys (first two non-leave/off shifts)
-  const summaryShifts = groupShifts.filter(s => s !== "L" && s !== "E" && s !== "O");
+  const configuredFor = (unit: string) => allCodes.filter(c => c.casino_id === activeCasino?.id && c.department === groupKey && c.unit === unit);
+  const isWorking = (code: string, unit: string) => {
+    const configured = configuredFor(unit).find(c => c.code.toUpperCase() === code);
+    return configured ? configured.is_working : !["L", "E", "O"].includes(code);
+  };
+  const shiftsFor = (unit: string) => groupShifts.filter(code => isWorking(code, unit));
+  const summaryShifts = groupShifts.filter(code =>
+    (filterDept === "all" ? group.departments : [filterDept]).some(unit => isWorking(code, unit))
+  );
+  const labelFor = (code: string, unit: string) =>
+    formatShiftCodeLegend(configuredFor(unit).find(c => c.code.toUpperCase() === code)) ?? group.shiftLabels[code] ?? code;
 
-  const renderTableHeader = () => (
+  const renderTableHeader = (unit?: string) => (
     <thead>
       <tr className="border-b border-border">
         <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-0 bg-card z-10 w-[180px]">
@@ -744,7 +756,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
             </th>
           );
         })}
-        {summaryShifts.slice(0, 2).map(s => (
+        {(unit ? shiftsFor(unit) : summaryShifts).map(s => (
           <th key={s} className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">{s}</th>
         ))}
         <th className="text-center text-[10px] font-medium text-primary uppercase px-1 py-2 w-10" title="Planned hours (forecast)">Σh</th>
@@ -771,10 +783,9 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
   };
 
   const printTitle = `${group.label} Rota`;
-  const printLegend = group.shifts.filter(s => s !== "O").map(s => ({
-    code: s,
-    label: group.shiftLabels[s],
-  }));
+  const printLegend = (unit: string) => [...group.shifts, ...configuredFor(unit).map(c => c.code.toUpperCase()).filter(code => !(group.shifts as readonly string[]).includes(code))]
+    .filter(code => code !== "O")
+    .map(code => ({ code, label: labelFor(code, unit) }));
 
   return (
     <>
@@ -817,7 +828,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
         return (
           <div
             key={dept}
-            className={`cms-panel overflow-hidden print-target ${deptIdx < visibleDepts.length - 1 ? "mb-3" : ""} ${shouldBreakAfter(dept, deptIdx) ? "print-page-break" : ""}`}
+            className={`cms-panel overflow-x-auto print-target ${deptIdx < visibleDepts.length - 1 ? "mb-3" : ""} ${shouldBreakAfter(dept, deptIdx) ? "print-page-break" : ""}`}
           >
             {/* Print header — visible only when printing, shown at top of each page section */}
             {isFirstOnPage && (
@@ -825,7 +836,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
                 <span className="print-header-title">{printTitle}</span>
                 <span className="print-header-month">{monthLabel}</span>
                 <div className="print-header-legend">
-                  {printLegend.map(l => (
+                  {printLegend(dept).map(l => (
                     <span key={l.code} style={{
                       background: l.code === "MO" ? "#ecfccb" : l.code === "D" ? "#fef3c7" : l.code === "M" ? "#ccfbf1" : l.code === "N" ? "#e0f2fe" : l.code === "G" ? "#e0e7ff" : l.code === "L" ? "#d1fae5" : l.code === "E" ? "#f3e8ff" : "#f3f4f6",
                       color: l.code === "MO" ? "#3f6212" : l.code === "D" ? "#b45309" : l.code === "M" ? "#0f766e" : l.code === "N" ? "#0369a1" : l.code === "G" ? "#4338ca" : l.code === "L" ? "#047857" : l.code === "E" ? "#6b21a8" : "#374151",
@@ -837,8 +848,8 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
                 </div>
               </div>
             )}
-            <table className="w-full border-collapse table-fixed">
-              {renderTableHeader()}
+            <table className="w-full min-w-max border-collapse table-fixed">
+              {renderTableHeader(dept)}
               <tbody>
                 <DepartmentBlock
                   dept={dept}
@@ -851,7 +862,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
                   todayDay={todayDay}
                   getDisplayShift={getDisplayShift}
                   groupShifts={groupShifts as readonly string[]}
-                  shiftLabels={group.shiftLabels as Record<string, string>}
+                  shiftLabels={Object.fromEntries(groupShifts.map(code => [code, labelFor(code, dept)]))}
                   handleKeyDown={handleKeyDown}
                   handlePaste={handlePaste}
                   onSet={(staffId, day, shift) => {
@@ -863,7 +874,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
                     deleteRota.mutate({ staff_id: staffId, date: ds });
                   }}
                   getStats={getStats}
-                  summaryShifts={summaryShifts}
+                  summaryShifts={shiftsFor(dept)}
                 />
               </tbody>
             </table>
@@ -872,8 +883,8 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
       })}
 
       {/* Summary per day */}
-      <div className="cms-panel overflow-hidden print-target print-summary-section mt-3">
-        <table className="w-full border-collapse table-fixed">
+      <div className="cms-panel overflow-x-auto print-target print-summary-section mt-3">
+        <table className="w-full min-w-max border-collapse table-fixed">
           {renderTableHeader()}
           <tbody>
             {summaryShifts.map((shiftKey, si) => (
@@ -881,10 +892,10 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
                 <td className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ {shiftKey}</td>
                 {days.map(day => {
                   const filteredStaff = filterDept === "all" ? activeStaff : activeStaff.filter(s => s.department === filterDept);
-                  const count = filteredStaff.filter(s => getDisplayShift(s.id, day)?.shift === shiftKey).length;
+                  const count = filteredStaff.filter(s => isWorking(shiftKey, s.department) && getDisplayShift(s.id, day)?.shift === shiftKey).length;
                   return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
                 })}
-                <td colSpan={3} />
+                <td colSpan={summaryShifts.length + 1} />
               </tr>
             ))}
             <tr>
@@ -893,11 +904,11 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
                 const filteredStaff = filterDept === "all" ? activeStaff : activeStaff.filter(s => s.department === filterDept);
                 const count = filteredStaff.filter(s => {
                   const sh = getDisplayShift(s.id, day)?.shift;
-                  return sh && summaryShifts.includes(sh);
+                  return sh && isWorking(sh, s.department) && summaryShifts.includes(sh);
                 }).length;
                 return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
               })}
-              <td colSpan={3} />
+              <td colSpan={summaryShifts.length + 1} />
             </tr>
           </tbody>
         </table>
@@ -929,7 +940,7 @@ const DepartmentBlock = ({
 }) => (
   <>
     <tr>
-      <td colSpan={days.length + 2 + summaryShifts.slice(0, 2).length} className="px-0 py-0 sticky left-0">
+      <td colSpan={days.length + 2 + summaryShifts.length} className="px-0 py-0 sticky left-0">
         <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${DEPT_BORDER_COLORS[dept] || "border-muted"}`}>
           <span className={`w-2 h-2 rounded-full ${DEPT_DOT_COLORS[dept] || "bg-muted-foreground"}`} />
           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-card-foreground">{DEPARTMENT_LABELS[dept as StaffDepartment]}</span>
@@ -956,7 +967,7 @@ const DepartmentBlock = ({
                   display={display?.shift || "·"}
                   rows={[{
                     options: groupShifts.map(s => ({
-                      value: s, label: s,
+                      value: s, label: s, title: shiftLabels[s],
                       className: (STAFF_SHIFT_COLORS as any)[s] ?? "bg-muted text-foreground",
                     })),
                   }]}
@@ -972,7 +983,7 @@ const DepartmentBlock = ({
               </td>
             );
           })}
-          {summaryShifts.slice(0, 2).map(s => (
+          {summaryShifts.map(s => (
             <td key={s} className="px-2 py-1 text-center border-l border-border/25">
               <span className="text-xs font-mono font-bold text-card-foreground">{stats.counts[s] || ""}</span>
             </td>
