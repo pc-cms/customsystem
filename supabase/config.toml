@@ -57,3 +57,7 @@ verify_jwt = false
 # finance-hub-notify: internal outbound notifier (cron-driven, no browser callers).
 [functions.finance-hub-notify]
 verify_jwt = false
+
+# hapa-pos-adapter: server-to-server; validates own Bearer + X-Hapa-Installation in code/RPC.
+[functions.hapa-pos-adapter]
+verify_jwt = false
