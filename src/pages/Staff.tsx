@@ -760,7 +760,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
           );
         })}
         {(unit ? shiftsFor(unit) : summaryShifts).map(s => (
-          <th key={s} className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">{s}</th>
+           <th key={s} className="text-center px-1 py-2 min-w-8"><span className={`inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono ${STAFF_SHIFT_COLORS[s] || "bg-muted text-foreground font-bold"}`}>{s}</span></th>
         ))}
         <th className="text-center text-[10px] font-medium text-primary uppercase px-1 py-2 w-10" title="Planned hours (forecast)">Σh</th>
       </tr>
@@ -892,24 +892,24 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
           <tbody>
             {summaryShifts.map((shiftKey, si) => (
               <tr key={shiftKey} className={si === 0 ? "border-t-2 border-border" : ""}>
-                <td className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ {shiftKey}</td>
+                 <td className="px-1 py-1 text-[11px] font-mono font-bold sticky left-0 bg-card z-10"><span className={`inline-flex items-center h-6 rounded px-2 ${STAFF_SHIFT_COLORS[shiftKey] || "bg-muted text-foreground font-bold"}`}>Σ {shiftKey}</span></td>
                 {days.map(day => {
                   const filteredStaff = filterDept === "all" ? activeStaff : activeStaff.filter(s => s.department === filterDept);
                   const count = filteredStaff.filter(s => isWorking(shiftKey, s.department) && getDisplayShift(s.id, day)?.shift === shiftKey).length;
-                  return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
+                   return <td key={day} className="text-center px-0.5 py-1"><span className={count ? `inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono font-bold ${STAFF_SHIFT_COLORS[shiftKey] || "bg-muted text-foreground"}` : ""}>{count || ""}</span></td>;
                 })}
                 <td colSpan={summaryShifts.length + 1} />
               </tr>
             ))}
             <tr>
-              <td className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ All</td>
+               <td className="px-1 py-1 text-[11px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10"><span className="inline-flex items-center h-6 rounded px-2 bg-muted text-foreground">Σ All</span></td>
               {days.map(day => {
                 const filteredStaff = filterDept === "all" ? activeStaff : activeStaff.filter(s => s.department === filterDept);
                 const count = filteredStaff.filter(s => {
                   const sh = getDisplayShift(s.id, day)?.shift;
                   return sh && isWorking(sh, s.department) && summaryShifts.includes(sh);
                 }).length;
-                return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
+                 return <td key={day} className="text-center px-0.5 py-1"><span className={count ? "inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-[11px] font-mono font-bold bg-muted text-foreground" : ""}>{count || ""}</span></td>;
               })}
               <td colSpan={summaryShifts.length + 1} />
             </tr>
@@ -988,7 +988,7 @@ const DepartmentBlock = ({
           })}
           {summaryShifts.map(s => (
             <td key={s} className="px-2 py-1 text-center border-l border-border/25">
-              <span className="text-xs font-mono font-bold text-card-foreground">{stats.counts[s] || ""}</span>
+               <span className={stats.counts[s] ? `inline-flex min-w-6 h-6 items-center justify-center rounded px-1 text-xs font-mono ${STAFF_SHIFT_COLORS[s] || "bg-muted text-foreground font-bold"}` : ""}>{stats.counts[s] || ""}</span>
             </td>
           ))}
           <td className="px-2 py-1 text-center border-l border-border/25">
@@ -1185,7 +1185,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
           </div>
         )}
       </div>
-      <div className="cms-panel overflow-hidden print-target">
+       <div className="cms-panel overflow-x-auto print-target">
         {/* Print header for attendance */}
         <div className="hidden print-header">
           <span className="print-header-title">Floor Attendance{filterDept !== "all" ? ` — ${DEPARTMENT_LABELS[filterDept as StaffDepartment]}` : ""}</span>
@@ -1195,7 +1195,7 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
             <span style={{ background: "#ffedd5", color: "#c2410c" }}>S = Sick</span>
           </div>
         </div>
-        <table className="w-full border-collapse table-fixed">
+        <table className="w-full min-w-max border-collapse table-fixed">
         <thead>
           <tr className="border-b border-border">
             <th className="text-left text-xs font-medium text-muted-foreground uppercase px-1 py-2 sticky left-0 bg-card z-10 w-[180px]">

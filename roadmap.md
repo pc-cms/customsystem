@@ -14,3 +14,4 @@
 - [ ] Root-cause review of the 2026-09-11 slowdown (separate deep dive, per user)
 - [x] Payroll: Rebuild from scratch (payroll_rebuild_period RPC + super_admin button on draft periods)
 - [x] Verify night allowance = Basic/195 × 0.05 × night hours — formula and settings (195 h, 5%) already match in all casinos
+- [ ] Improve code totals and typography across Rota and Attendance screens
