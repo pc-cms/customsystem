@@ -27,6 +27,27 @@ export const UNIFIED_SHIFT_COLORS: Record<string, string> = {
   O: "bg-muted/30 text-muted-foreground",
 };
 
+// Custom codes share a stable color across the rota cell, legend and every total.
+// Static classes keep Tailwind aware of all variants; colors live in theme tokens.
+const CUSTOM_SHIFT_COLORS = [
+  "bg-shift-custom-1 text-shift-custom-foreground",
+  "bg-shift-custom-2 text-shift-custom-foreground",
+  "bg-shift-custom-3 text-shift-custom-foreground",
+  "bg-shift-custom-4 text-shift-custom-foreground",
+  "bg-shift-custom-5 text-shift-custom-foreground",
+  "bg-shift-custom-6 text-shift-custom-foreground",
+  "bg-shift-custom-7 text-shift-custom-foreground",
+  "bg-shift-custom-8 text-shift-custom-foreground",
+] as const;
+
+export const getShiftColor = (code: string): string => {
+  const key = code.toUpperCase();
+  if (UNIFIED_SHIFT_COLORS[key]) return UNIFIED_SHIFT_COLORS[key];
+  let hash = 0;
+  for (const char of key) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return `${CUSTOM_SHIFT_COLORS[hash % CUSTOM_SHIFT_COLORS.length]} font-bold`;
+};
+
 export const UNIFIED_ATT_COLORS: Record<string, string> = {
   A: "bg-red-200 text-red-900 dark:bg-red-500 dark:text-white font-bold",
   S: "bg-orange-200 text-orange-900 dark:bg-orange-500 dark:text-white font-bold",

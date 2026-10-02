@@ -149,6 +149,17 @@
     --chart-grey: 215 16% 55%;
     --chart-gold: 43 89% 52%;
 
+    /* Unconfigured shift codes: stable accents shared by cells and totals. */
+    --shift-custom-1: 345 57% 40%;
+    --shift-custom-2: 270 47% 42%;
+    --shift-custom-3: 162 60% 31%;
+    --shift-custom-4: 18 69% 39%;
+    --shift-custom-5: 191 68% 32%;
+    --shift-custom-6: 51 73% 31%;
+    --shift-custom-7: 310 52% 37%;
+    --shift-custom-8: 96 48% 29%;
+    --shift-custom-foreground: 0 0% 100%;
+
 
 
     --sidebar-background: 0 0% 100%;
@@ -209,6 +220,16 @@
     --chart-pink: 336 82% 64%;
     --chart-grey: 215 18% 62%;
     --chart-gold: 43 92% 60%;
+
+    --shift-custom-1: 345 57% 42%;
+    --shift-custom-2: 270 47% 44%;
+    --shift-custom-3: 162 60% 33%;
+    --shift-custom-4: 18 69% 41%;
+    --shift-custom-5: 191 68% 34%;
+    --shift-custom-6: 51 73% 33%;
+    --shift-custom-7: 310 52% 39%;
+    --shift-custom-8: 96 48% 31%;
+    --shift-custom-foreground: 0 0% 100%;
 
 
 
