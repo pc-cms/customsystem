@@ -15058,6 +15058,15 @@ export type Database = {
         Returns: number
       }
       get_user_casino_id: { Args: { _user_id: string }; Returns: string }
+      hapa_pos_adapter_v1: {
+        Args: {
+          p_action: string
+          p_credential_hash: string
+          p_installation: string
+          p_payload: Json
+        }
+        Returns: Json
+      }
       has_any_pos_role: { Args: { _user: string }; Returns: boolean }
       has_cap: { Args: { _cap: string; _uid: string }; Returns: boolean }
       has_casino_scope: {
