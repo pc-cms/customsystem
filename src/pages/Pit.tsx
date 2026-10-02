@@ -172,7 +172,9 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
   const { activeCasino } = useCasino();
   const pitLabels = usesArushaShiftGrid(activeCasino) ? ARUSHA_PIT_SHIFT_LABELS : SHIFT_LABELS;
   const [legendPitUnit] = useSessionState<string>("pitUnit", "all");
-  const { data: pitLegendCodes } = useShiftCodes(activeCasino?.id, "pit", legendPitUnit === "pit_bosses" ? "pit_bosses" : "dealers");
+  const { data: pitLegendCodes = [] } = useShiftCodes(activeCasino?.id, "pit", legendPitUnit === "pit_bosses" ? "pit_bosses" : "dealers");
+  const pitVisibleShifts = [...ROTA_SHIFTS, ...pitLegendCodes.map(c => c.code.toUpperCase()).filter(k => !(ROTA_SHIFTS as readonly string[]).includes(k))];
+  const pitLegendLabel = (s: string) => formatShiftCodeLegend(pitLegendCodes.find(c => c.code.toUpperCase() === s)) ?? pitLabels[s] ?? s;
   const isHR = roles.includes("hr") && !roles.includes("pit") && !roles.includes("manager");
   // HR gets full rota control (lock/unlock, template, past-month edits) just like manager.
   const canEditRota = isManager || roles.includes("hr");
@@ -314,8 +316,8 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
               title={`Live Game Rota — ${monthLabel}`}
               employees={pitExcelEmployees}
               existing={pitRotaMap}
-              allowedShifts={ROTA_SHIFTS}
-              shiftLabels={pitLabels}
+              allowedShifts={pitVisibleShifts}
+              shiftLabels={Object.fromEntries(pitVisibleShifts.map(s => [s, pitLegendLabel(s)]))}
               onSetCell={(id, date, shift) => setPitRotaForExcel.mutateAsync({ dealer_id: id, date, shift })}
               disabled={!!pitLock}
             />
@@ -338,10 +340,10 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
   // Below header: unified legend for rota / attendance (identical shift explanations)
   const belowHeader = (activeTab === "rota" || activeTab === "attendance") ? (
     <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto whitespace-nowrap py-0.5">
-      {[...ROTA_SHIFTS, ...pitLegendCodes.map((c) => c.code.toUpperCase()).filter((k) => !(ROTA_SHIFTS as readonly string[]).includes(k))].map((s: string) => (
+      {pitVisibleShifts.map((s: string) => (
         <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${(SHIFT_COLORS as any)[s] ?? "bg-muted text-foreground"}`}>
           <span className="font-bold">{s}</span>
-          <span className="opacity-80">{(activeTab === "rota" ? formatShiftCodeLegend(pitLegendCodes.find((c) => c.code.toUpperCase() === s)) : null) ?? (pitLabels as any)[s] ?? ""}</span>
+          <span className="opacity-80">{pitLegendLabel(s)}</span>
         </span>
       ))}
       {activeTab === "attendance" && (
@@ -690,6 +692,24 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
     return out;
   }, [rotaDealerCodes, rotaBossCodes]);
   const pitCodesActive = `${month}-01` >= SHIFT_CODES_FROM;
+  const [pitUnit, setPitUnit] = useSessionState<PitUnitView>("pitUnit", "all");
+  const { data: legacyPitCodes = [] } = useShiftCodes(activeCasino?.id, "pit");
+  const codesForUnit = (unit: "dealers" | "pit_bosses") => {
+    const scoped = unit === "dealers" ? rotaDealerCodes : rotaBossCodes;
+    return scoped.length ? scoped : legacyPitCodes;
+  };
+  const isWorking = (code: string, unit: "dealers" | "pit_bosses") => {
+    const configured = codesForUnit(unit).find(c => c.code.toUpperCase() === code);
+    return configured ? configured.is_working : codesForUnit(unit).length === 0 && !["L", "O", "E"].includes(code);
+  };
+  const summaryShifts = rotaShifts.filter(code =>
+    (pitUnit !== "pit_bosses" && isWorking(code, "dealers")) ||
+    (pitUnit !== "dealers" && isWorking(code, "pit_bosses"))
+  );
+  const shiftsForUnit = (unit: "dealers" | "pit_bosses") => rotaShifts.filter(code => isWorking(code, unit));
+  const labelForUnit = (code: string, unit: "dealers" | "pit_bosses") =>
+    formatShiftCodeLegend(codesForUnit(unit).find(c => c.code.toUpperCase() === code)) ??
+    (usesArushaShiftGrid(activeCasino) ? ARUSHA_PIT_SHIFT_LABELS : SHIFT_LABELS)[code] ?? code;
   const { data: dealers = [] } = useDealers();
   const { data: rota = [] } = usePitRotaRange(startDate, endDate);
   const { data: monthAttendance = [] } = useDealerAttendanceRange(startDate, endDate);
@@ -719,7 +739,6 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   }, [dealers, rolesAtMonth]);
 
   const [rotaSort, setRotaSort] = useSessionState<"category" | "name">("pitRotaSort", "category");
-  const [pitUnit, setPitUnit] = useSessionState<PitUnitView>("pitUnit", "all");
   const activeDealers = pitUnit === "pit_bosses" ? [] : sortByCategory(dealersForMonth.filter((d: any) => d.is_active && !d.is_pit_boss), rotaSort);
   const pitBosses = pitUnit === "dealers" ? [] : sortByCategory(dealersForMonth.filter((d: any) => d.is_active && d.is_pit_boss), rotaSort);
 
@@ -861,7 +880,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   const getDealerStats = (dealerId: string) => {
     const counts: Record<string, number> = {};
     let hours = 0;
-    const isBoss = (dealers as any[] | undefined)?.find((x: any) => x.id === dealerId)?.is_pit_boss;
+    const isBoss = dealersForMonth.find((x: any) => x.id === dealerId)?.is_pit_boss;
     const rotaHoursOverride = pitCodesActive ? pitUnitHours(isBoss ? "pit_bosses" : "dealers") : undefined;
     days.forEach(day => {
       const display = getDisplayShift(dealerId, day);
@@ -876,7 +895,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   const renderDealerRows = (dealerList: any[], label: string, accentColor: string, extraRowClass = "", forcePitBoss = false) => (
     <>
       <tr className={extraRowClass}>
-        <td colSpan={days.length + 7} className="px-0 py-0 sticky left-0">
+        <td colSpan={days.length + 3 + summaryShifts.length} className="px-0 py-0 sticky left-0">
           <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${accentColor}`}>
             <span className="text-[10px] font-mono font-semibold uppercase tracking-wider">{label}</span>
             <span className="text-[10px] font-mono text-muted-foreground">({dealerList.length})</span>
@@ -908,11 +927,12 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                   <CellPicker
                     value={display?.shift ?? null}
                     display={display?.shift || "·"}
-                    title={display ? `${display.shift}${display.isAuto ? " (auto)" : ""}` : "Pick shift"}
+                    title={display ? `${display.shift} · ${labelForUnit(display.shift, forcePitBoss ? "pit_bosses" : "dealers")}${display.isAuto ? " (auto)" : ""}` : "Pick shift"}
                     rows={[{
                       options: rotaShifts.map(s => ({
                         value: s,
                         label: s,
+                        title: labelForUnit(s, forcePitBoss ? "pit_bosses" : "dealers"),
                         className: (SHIFT_COLORS as any)[s] ?? "bg-muted text-foreground",
                       })),
                     }]}
@@ -932,10 +952,9 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                 </td>
               );
             })}
-            <td className="px-2 py-1 text-center border-l border-border/25"><span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">{stats.counts["M"] || ""}</span></td>
-            <td className="px-2 py-1 text-center"><span className="text-xs font-mono font-bold text-violet-600 dark:text-violet-400">{stats.counts["SW"] || ""}</span></td>
-            <td className="px-2 py-1 text-center"><span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">{stats.counts["N"] || ""}</span></td>
-            <td className="px-2 py-1 text-center"><span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">{((stats.counts["E"] || 0) + (stats.counts["EM"] || 0) + (stats.counts["ESW"] || 0) + (stats.counts["EN"] || 0)) || ""}</span></td>
+            {summaryShifts.map(code => (
+              <td key={code} className="px-2 py-1 text-center border-l border-border/25"><span className="text-xs font-mono font-bold text-card-foreground">{isWorking(code, forcePitBoss ? "pit_bosses" : "dealers") ? stats.counts[code] || "" : ""}</span></td>
+            ))}
             <td className="px-2 py-1 text-center border-l border-border/25"><span className="text-xs font-mono font-bold text-primary">{stats.hours || ""}</span></td>
           </tr>
         );
@@ -947,8 +966,8 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
     <>
       <div className="print-title hidden">{`Live Game Rota — ${month}`}</div>
       <PitUnitTabs value={pitUnit} onChange={setPitUnit} />
-      <div className="cms-panel overflow-hidden print-target">
-      <table className="w-full border-collapse table-fixed">
+      <div className="cms-panel overflow-x-auto print-target">
+      <table className="w-full min-w-max border-collapse table-fixed">
         <thead>
           <tr className="border-b border-border">
             <th className="text-center text-xs font-medium text-muted-foreground uppercase px-0.5 py-2 sticky left-0 bg-card z-10 w-7">C</th>
@@ -966,51 +985,25 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                 </th>
               );
             })}
-            <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">M</th>
-            <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">SW</th>
-            <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">N</th>
-            <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">E</th>
+            {summaryShifts.map(code => <th key={code} title={labelForUnit(code, pitUnit === "pit_bosses" ? "pit_bosses" : "dealers")} className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 min-w-8">{code}</th>)}
             <th className="text-center text-[10px] font-medium text-primary uppercase px-1 py-2 w-10" title="Planned hours (forecast)">Σh</th>
           </tr>
         </thead>
         <tbody>
           {renderDealerRows(activeDealers, "Dealers", "border-blue-400 dark:border-blue-500/50 text-blue-600 dark:text-blue-400")}
-          {/* Summary: M/N/E count per day — dealers only */}
-          <tr className="border-t-2 border-border">
-            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400 sticky left-0 bg-card z-10">Σ M</td>
-            {days.map(day => {
-              const count = activeDealers.filter(d => getDisplayShift(d.id, day)?.shift === "M").length;
-              return <td key={day} className="text-center text-[9px] font-mono font-bold text-blue-600 dark:text-blue-400">{count || ""}</td>;
-            })}
-            <td colSpan={5} />
-          </tr>
-          <tr>
-            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-violet-600 dark:text-violet-400 sticky left-0 bg-card z-10">Σ SW</td>
-            {days.map(day => {
-              const count = activeDealers.filter(d => getDisplayShift(d.id, day)?.shift === "SW").length;
-              return <td key={day} className="text-center text-[9px] font-mono font-bold text-violet-600 dark:text-violet-400">{count || ""}</td>;
-            })}
-            <td colSpan={5} />
-          </tr>
-          <tr>
-            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400 sticky left-0 bg-card z-10">Σ N</td>
-            {days.map(day => {
-              const count = activeDealers.filter(d => getDisplayShift(d.id, day)?.shift === "N").length;
-              return <td key={day} className="text-center text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400">{count || ""}</td>;
-            })}
-            <td colSpan={5} />
-          </tr>
-          <tr>
-            <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ All</td>
-            {days.map(day => {
-              const count = activeDealers.filter(d => {
-                const s = getDisplayShift(d.id, day)?.shift;
-                return s === "M" || s === "SW" || s === "N" || isExtraShift(s);
-              }).length;
-              return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
-            })}
-            <td colSpan={5} />
-          </tr>
+          {activeDealers.length > 0 && [...shiftsForUnit("dealers"), "All"].map((code, index) => (
+            <tr key={code} className={index === 0 ? "border-t-2 border-border" : ""}>
+              <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ {code}</td>
+              {days.map(day => {
+                const count = activeDealers.filter(d => {
+                  const shift = getDisplayShift(d.id, day)?.shift;
+                  return code === "All" ? !!shift && shiftsForUnit("dealers").includes(shift) : shift === code;
+                }).length;
+                return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
+              })}
+              <td colSpan={summaryShifts.length + 1} />
+            </tr>
+          ))}
           {pitBosses.length > 0 && (
             <>
               <tr className="border-t-2 border-border bg-muted/20 no-print">
@@ -1028,13 +1021,23 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                     </th>
                   );
                 })}
-                <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">M</th>
-                <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">SW</th>
-                <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">N</th>
-                <th className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 w-8">E</th>
+                {summaryShifts.map(code => <th key={code} title={labelForUnit(code, "pit_bosses")} className="text-center text-[10px] font-medium text-muted-foreground uppercase px-1 py-2 min-w-8">{code}</th>)}
                 <th className="text-center text-[10px] font-medium text-primary uppercase px-1 py-2 w-10" title="Planned hours (forecast)">Σh</th>
               </tr>
               {renderDealerRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400", "no-print", true)}
+              {[...shiftsForUnit("pit_bosses"), "All"].map((code, index) => (
+                <tr key={code} className={index === 0 ? "border-t-2 border-border no-print" : "no-print"}>
+                  <td colSpan={2} className="px-1 py-1 text-[9px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10">Σ {code}</td>
+                  {days.map(day => {
+                    const count = pitBosses.filter(d => {
+                      const shift = getDisplayShift(d.id, day)?.shift;
+                      return code === "All" ? !!shift && shiftsForUnit("pit_bosses").includes(shift) : shift === code;
+                    }).length;
+                    return <td key={day} className="text-center text-[9px] font-mono font-bold text-card-foreground">{count || ""}</td>;
+                  })}
+                  <td colSpan={summaryShifts.length + 1} />
+                </tr>
+              ))}
             </>
           )}
         </tbody>
