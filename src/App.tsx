@@ -23,6 +23,7 @@ import { clearSelectedPlayer } from "@/hooks/use-selected-player";
 import Login from "@/pages/Login";
 // CONTROL ROOM LAB (super_admin preview) — isolated presentation layer.
 import { LabPeriodProvider } from "@/ui-lab/ControlRoomShell";
+const OAuthConsent = lazy(() => import("@/pages/OAuthConsent"));
 const LabHome = lazy(() => import("@/ui-lab/pages/LabHome"));
 const LiveGameLab = lazy(() => import("@/ui-lab/pages/LiveGameLab"));
 const TotalLab = lazy(() => import("@/ui-lab/pages/TotalLab"));
@@ -625,6 +626,11 @@ const PlayerPreviewRouteReset = () => {
   return null;
 };
 
+const safeNextPath = (): string | null => {
+  const n = new URLSearchParams(window.location.search).get("next");
+  return n && n.startsWith("/") && !n.startsWith("//") ? n : null;
+};
+
 const AppRoutes = () => {
   const { user, loading, roles } = useAuth();
   const detectedSlug = getSlugFromHostname();
@@ -716,7 +722,8 @@ const AppRoutes = () => {
         <Route path="/admin/fleet/clones" element={<CloneStatusPage />} />
         <Route path="/admin/fleet/actions" element={<FleetActionsPage />} />
         <Route path="/admin/cloud-snapshots" element={<CloudSnapshotsPage />} />
-        <Route path="/login" element={user ? <Navigate to={defaultRoute} replace /> : <Login />} />
+        <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+        <Route path="/login" element={user ? <Navigate to={safeNextPath() ?? defaultRoute} replace /> : <Login />} />
         <Route path="/*" element={<ProtectedRoutes />} />
 
       </Routes>

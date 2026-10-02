@@ -4,6 +4,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 import pkg from "./package.json";
+import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -38,6 +39,7 @@ export default defineConfig(({ mode }) => ({
     : undefined,
   plugins: [
     react(),
+    mcpPlugin(),
     mode === "development" && componentTagger(),
     VitePWA({
       // "prompt" — новый SW встаёт в waiting и ждёт кнопки "Update now".
@@ -54,7 +56,7 @@ export default defineConfig(({ mode }) => ({
         // НЕ skipWaiting: новая версия применяется только по кнопке.
         skipWaiting: false,
         navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/~oauth/, /^\/api/],
+        navigateFallbackDenylist: [/^\/~oauth/, /^\/\.lovable\//, /^\/api/],
         // Cache JS/CSS/images aggressively (hashed filenames are safe)
         globPatterns: ["**/*.{js,css,html,png,svg,ico,webp,woff,woff2}"],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
