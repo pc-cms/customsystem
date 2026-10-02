@@ -679,6 +679,16 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   const { activeCasino } = useCasino();
   const hoursScope = usesDodomaShiftGrid(activeCasino) ? "pit_dodoma" : usesArushaShiftGrid(activeCasino) ? "pit_arusha" : "pit";
   const pitUnitHours = useUnitHoursMaps(activeCasino?.id, "pit");
+  const { data: rotaDealerCodes = [] } = useShiftCodes(activeCasino?.id, "pit", "dealers");
+  const { data: rotaBossCodes = [] } = useShiftCodes(activeCasino?.id, "pit", "pit_bosses");
+  const rotaShifts: string[] = useMemo(() => {
+    const out: string[] = [...ROTA_SHIFTS];
+    for (const c of [...rotaDealerCodes, ...rotaBossCodes]) {
+      const k = String(c.code || "").toUpperCase();
+      if (k && !out.includes(k)) out.push(k);
+    }
+    return out;
+  }, [rotaDealerCodes, rotaBossCodes]);
   const pitCodesActive = `${month}-01` >= SHIFT_CODES_FROM;
   const { data: dealers = [] } = useDealers();
   const { data: rota = [] } = usePitRotaRange(startDate, endDate);
@@ -752,9 +762,9 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
     if (!current) {
       setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: "M" });
     } else {
-      const idx = ROTA_SHIFTS.indexOf(current.shift as typeof ROTA_SHIFTS[number]);
-      if (idx >= 0 && idx < ROTA_SHIFTS.length - 1) {
-        setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: ROTA_SHIFTS[idx + 1] });
+      const idx = rotaShifts.indexOf(current.shift as typeof ROTA_SHIFTS[number]);
+      if (idx >= 0 && idx < rotaShifts.length - 1) {
+        setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: rotaShifts[idx + 1] as any });
       } else {
         deleteRota.mutate({ dealer_id: dealerId, date: dateStr });
       }
@@ -798,7 +808,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
       focusNextCell(e.target as HTMLElement);
       return;
     }
-    if (ROTA_SHIFTS.includes(key as typeof ROTA_SHIFTS[number])) {
+    if (rotaShifts.includes(key as typeof ROTA_SHIFTS[number])) {
       e.preventDefault();
       setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: key as typeof ROTA_SHIFTS[number] });
       focusNextCell(e.target as HTMLElement);
@@ -835,12 +845,12 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
     const text = e.clipboardData.getData("text").trim().toUpperCase();
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const values = text.split(/[\s,]+/);
-    if (values.length === 1 && ROTA_SHIFTS.includes(values[0] as typeof ROTA_SHIFTS[number])) {
+    if (values.length === 1 && rotaShifts.includes(values[0] as typeof ROTA_SHIFTS[number])) {
       setRota.mutate({ dealer_id: dealerId, date: dateStr, shift: values[0] as typeof ROTA_SHIFTS[number] });
     } else if (values.length > 1) {
       values.forEach((v, i) => {
         const d = day + i;
-        if (d <= daysInMonth && ROTA_SHIFTS.includes(v as typeof ROTA_SHIFTS[number])) {
+        if (d <= daysInMonth && rotaShifts.includes(v as typeof ROTA_SHIFTS[number])) {
           const ds = `${month}-${String(d).padStart(2, "0")}`;
           setRota.mutate({ dealer_id: dealerId, date: ds, shift: v as typeof ROTA_SHIFTS[number] });
         }
@@ -900,10 +910,10 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                     display={display?.shift || "·"}
                     title={display ? `${display.shift}${display.isAuto ? " (auto)" : ""}` : "Pick shift"}
                     rows={[{
-                      options: ROTA_SHIFTS.map(s => ({
+                      options: rotaShifts.map(s => ({
                         value: s,
                         label: s,
-                        className: SHIFT_COLORS[s],
+                        className: (SHIFT_COLORS as any)[s] ?? "bg-muted text-foreground",
                       })),
                     }]}
                     onSelect={(v) => {
