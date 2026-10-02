@@ -21,7 +21,9 @@ BEGIN
          (term ,'00000000-0000-0000-0000-000000000000','authenticated','authenticated','hapa-terminal@synthetic.invalid'),
          (stranger,'00000000-0000-0000-0000-000000000000','authenticated','authenticated','hapa-stranger@synthetic.invalid');
   INSERT INTO public.casinos(id, name, code) VALUES (c,'HAPA SYNTH A','HZ'||substr(md5(c::text),1,6)), (c2,'HAPA SYNTH B','HZ'||substr(md5(c2::text),1,6));
-  INSERT INTO public.profiles(user_id, casino_id, display_name) VALUES (actor, c, 'synthetic actor'), (term, c, 'synthetic terminal');
+  INSERT INTO public.profiles(user_id, casino_id, display_name) VALUES (actor, c, 'synthetic actor'), (term, c, 'synthetic terminal')
+    ON CONFLICT (user_id) DO UPDATE SET casino_id = EXCLUDED.casino_id;
+  DELETE FROM public.user_roles WHERE user_id IN (actor, term, stranger);
   INSERT INTO public.house_promo_fund(casino_id, balance) VALUES (c, 100000000);
   INSERT INTO public.players(id, casino_id, first_name, last_name) VALUES (pl, c, 'Synthzq'||substr(md5(pl::text),1,6), 'Hapatest');
   today := public.get_current_business_date(c);
