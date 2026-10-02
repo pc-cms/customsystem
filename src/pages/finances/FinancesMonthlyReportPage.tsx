@@ -1273,7 +1273,7 @@ const Row = ({ c, expanded, onToggle, isNetwork, colCount, editMode, year, month
                     ))}
                     <tr className="border-t-2 border-border bg-muted/30 font-semibold [&>td]:h-7 [&>td]:px-2">
                       <td colSpan={isNetwork ? 5 : 4}>Total · {c.expenses.length}</td>
-                      <td className="text-right font-mono tabular-nums">{formatNumberSpaces(c.actual_tzs)}</td>
+                      <td className="text-right font-mono tabular-nums">{formatNumberSpaces(c.expenses.reduce((s, e) => s + (Number(e.amount_tzs) || 0), 0))}
                       {editMode && <td />}
                     </tr>
 
