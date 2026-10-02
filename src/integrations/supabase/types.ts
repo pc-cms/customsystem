@@ -15932,6 +15932,7 @@ export type Database = {
         | "T"
         | "SW"
         | "ESW"
+        | "D"
       staff_department:
         | "security"
         | "cashier"
@@ -16249,7 +16250,20 @@ export const Constants = {
         "expiry_writeoff",
       ],
       promo_grant_status: ["active", "exhausted", "expired", "reversed"],
-      shift_type: ["M", "N", "A", "S", "E", "L", "EM", "EN", "T", "SW", "ESW"],
+      shift_type: [
+        "M",
+        "N",
+        "A",
+        "S",
+        "E",
+        "L",
+        "EM",
+        "EN",
+        "T",
+        "SW",
+        "ESW",
+        "D",
+      ],
       staff_department: [
         "security",
         "cashier",
