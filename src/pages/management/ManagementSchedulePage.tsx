@@ -89,7 +89,7 @@ export default function ManagementSchedulePage({ mode }: { mode: "rota" | "atten
                   <span className="opacity-80">{MGMT_SHIFT_LABELS[s]}</span>
                 </span>
               ))}
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-blue-700 text-white">
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${UNIFIED_SHIFT_COLORS.N}`}>
                 <span className="font-bold">ARU</span>
                 <span className="opacity-80">CCTV 18:00–06:00</span>
               </span>

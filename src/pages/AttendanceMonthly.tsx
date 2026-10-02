@@ -231,7 +231,7 @@ const AttendanceMonthly = () => {
         ) : (
           <div className="overflow-auto border border-border rounded-md bg-card">
             <table className="text-[11px] font-mono w-full border-collapse">
-              <thead className="sticky top-0 bg-muted/80 z-10">
+               <thead className="sticky top-0 bg-muted z-10">
                 <tr>
                   <th className="sticky left-0 z-20 bg-muted/95 px-2 py-1 text-left min-w-48">Employee</th>
                   {days.map(d => {
@@ -253,11 +253,11 @@ const AttendanceMonthly = () => {
                       </th>
                     );
                   })}
-                  <th className="px-2 py-1 text-right border-l-2 border-border">Days</th>
-                  <th className="px-2 py-1 text-right">Hours</th>
-                  <th className="px-2 py-1 text-right">Leave</th>
-                  <th className="px-2 py-1 text-right">Hol H</th>
-                  <th className="px-2 py-1 text-right">OT H</th>
+                   <th className="px-2 py-1 text-right border-l-2 border-border bg-muted">Days</th>
+                   <th className="px-2 py-1 text-right bg-muted">Hours</th>
+                   <th className="px-2 py-1 text-right bg-muted">Leave</th>
+                   <th className="px-2 py-1 text-right bg-muted">Hol H</th>
+                   <th className="px-2 py-1 text-right bg-muted">OT H</th>
                 </tr>
               </thead>
               <tbody>
@@ -358,11 +358,11 @@ const AttendanceMonthly = () => {
                             </td>
                           );
                         })}
-                        <td className="text-right px-2 py-0.5 border-l-2 border-border">{t.dWorked}</td>
-                        <td className="text-right px-2 py-0.5 font-semibold">{fmtNum(t.hours)}</td>
-                        <td className="text-right px-2 py-0.5">{t.leave}</td>
-                        <td className="text-right px-2 py-0.5 text-amber-700 dark:text-amber-400">{fmtNum(t.holH)}</td>
-                        <td className="text-right px-2 py-0.5">{fmtNum(t.otH)}</td>
+                         <td className="text-right px-2 py-0.5 border-l-2 border-border bg-muted/30">{t.dWorked}</td>
+                         <td className="text-right px-2 py-0.5 font-semibold bg-muted/30">{fmtNum(t.hours)}</td>
+                         <td className="text-right px-2 py-0.5 bg-muted/30">{t.leave}</td>
+                         <td className="text-right px-2 py-0.5 text-amber-700 dark:text-amber-400 bg-muted/30">{fmtNum(t.holH)}</td>
+                         <td className="text-right px-2 py-0.5 bg-muted/30">{fmtNum(t.otH)}</td>
                       </tr>
                     );
                   }
