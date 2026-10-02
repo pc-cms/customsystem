@@ -729,7 +729,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
   const configuredFor = (unit: string) => allCodes.filter(c => c.casino_id === activeCasino?.id && c.department === groupKey && c.unit === unit);
   const isWorking = (code: string, unit: string) => {
     const configured = configuredFor(unit).find(c => c.code.toUpperCase() === code);
-    return configured ? configured.is_working : !["L", "E", "O"].includes(code);
+    return configured ? configured.is_working : configuredFor(unit).length === 0 && !["L", "E", "O"].includes(code);
   };
   const shiftsFor = (unit: string) => groupShifts.filter(code => isWorking(code, unit));
   const summaryShifts = groupShifts.filter(code =>
@@ -940,7 +940,7 @@ const DepartmentBlock = ({
 }) => (
   <>
     <tr>
-      <td colSpan={days.length + 2 + summaryShifts.length} className="px-0 py-0 sticky left-0">
+      <td colSpan={days.length + 1 + summaryShifts.length} className="px-0 py-0 sticky left-0">
         <div className={`flex items-center gap-2 px-3 py-1 border-b-2 ${DEPT_BORDER_COLORS[dept] || "border-muted"}`}>
           <span className={`w-2 h-2 rounded-full ${DEPT_DOT_COLORS[dept] || "bg-muted-foreground"}`} />
           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-card-foreground">{DEPARTMENT_LABELS[dept as StaffDepartment]}</span>

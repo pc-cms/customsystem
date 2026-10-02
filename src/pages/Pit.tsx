@@ -696,7 +696,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   const codesForUnit = (unit: "dealers" | "pit_bosses") => unit === "dealers" ? rotaDealerCodes : rotaBossCodes;
   const isWorking = (code: string, unit: "dealers" | "pit_bosses") => {
     const configured = codesForUnit(unit).find(c => c.code.toUpperCase() === code);
-    return configured ? configured.is_working : !["L", "O", "E"].includes(code);
+    return configured ? configured.is_working : codesForUnit(unit).length === 0 && !["L", "O", "E"].includes(code);
   };
   const summaryShifts = rotaShifts.filter(code =>
     (pitUnit !== "pit_bosses" && isWorking(code, "dealers")) ||
