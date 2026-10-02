@@ -16,7 +16,7 @@ import {
   useStaffMembers, useCreateStaffMember, useUpdateStaffMember, useDeleteStaffMember,
   useStaffRotaRange, useSetStaffRota,
   useDeleteStaffRota, useStaffAttendanceRange, useSetStaffAttendance,
-  DEPARTMENT_LABELS, DEPARTMENT_ORDER, STAFF_SHIFT_LABELS, STAFF_SHIFT_COLORS,
+  DEPARTMENT_LABELS, DEPARTMENT_ORDER, STAFF_SHIFT_LABELS,
   ROTA_GROUPS, getRotaGroup, usesArushaShiftGrid, type StaffDepartment, type RotaGroupKey,
 } from "@/hooks/use-staff";
 import { useCasino } from "@/lib/casino-context";
@@ -841,8 +841,8 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
                 <div className="print-header-legend">
                   {printLegend(dept).map(l => (
                     <span key={l.code} style={{
-                      background: l.code === "MO" ? "#ecfccb" : l.code === "D" ? "#fef3c7" : l.code === "M" ? "#ccfbf1" : l.code === "N" ? "#e0f2fe" : l.code === "G" ? "#e0e7ff" : l.code === "L" ? "#d1fae5" : l.code === "E" ? "#f3e8ff" : "#f3f4f6",
-                      color: l.code === "MO" ? "#3f6212" : l.code === "D" ? "#b45309" : l.code === "M" ? "#0f766e" : l.code === "N" ? "#0369a1" : l.code === "G" ? "#4338ca" : l.code === "L" ? "#047857" : l.code === "E" ? "#6b21a8" : "#374151",
+                       background: l.code === "MO" ? "#ecfccb" : l.code === "D" ? "#fef3c7" : l.code === "M" ? "#ccfbf1" : l.code === "N" ? "#e0f2fe" : l.code === "G" ? "#e0e7ff" : l.code === "L" ? "#d1fae5" : l.code === "E" ? "#f3e8ff" : "#f3f4f6",
+                       color: l.code === "MO" ? "#3f6212" : l.code === "D" ? "#b45309" : l.code === "M" ? "#0f766e" : l.code === "N" ? "#0369a1" : l.code === "G" ? "#4338ca" : l.code === "L" ? "#047857" : l.code === "E" ? "#6b21a8" : "#374151",
                     }}>
                       {l.code} = {l.label}
                     </span>

@@ -61,8 +61,6 @@ const NameSortHeader = ({ value, onChange }: { value: "category" | "name"; onCha
 
 const ROTA_SHIFTS = ["M", "SW", "N", "L", "EM", "ESW", "EN", "O"] as const;
 
-const SHIFT_COLORS = UNIFIED_SHIFT_COLORS;
-
 /** Legacy Live Game grid (non-Arusha casinos). */
 const SHIFT_LABELS: Record<string, string> = {
   M: "17:45 · 11h",
