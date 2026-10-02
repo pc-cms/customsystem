@@ -130,7 +130,8 @@ BEGIN
   r2 := public.redeem_promo_fifo(pl, c, 50, NULL, term, NULL, 'bar');
   RESET ROLE;
   IF (r2->>'amount')::bigint <> 50 THEN RAISE EXCEPTION 'FAIL terminal redeem'; END IF;
-  BEGIN SET LOCAL ROLE authenticated; PERFORM public._pos_operator_employee('spoofed-opaque-session', c); RESET ROLE; RAISE EXCEPTION 'FAIL spoofed waiter';
+  -- _pos_operator_employee is not callable by API roles; invoke as owner with the terminal JWT claims.
+  BEGIN PERFORM public._pos_operator_employee('spoofed-opaque-session', c); RAISE EXCEPTION 'FAIL spoofed waiter';
   EXCEPTION WHEN raise_exception THEN IF SQLERRM NOT LIKE 'OPERATOR_LOCKED%' THEN RAISE; END IF; END;
   BEGIN SET LOCAL ROLE authenticated; PERFORM public.pos_close_tab_v2('spoofed-opaque-session', gen_random_uuid(), 0, 1, 0, 'x', NULL); RESET ROLE; RAISE EXCEPTION 'FAIL close tab';
   EXCEPTION WHEN raise_exception THEN IF SQLERRM NOT LIKE 'Tab not found%' THEN RAISE; END IF; END;
