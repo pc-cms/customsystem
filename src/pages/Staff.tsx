@@ -726,7 +726,10 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
     return { counts, hours };
   };
 
-  const configuredFor = (unit: string) => allCodes.filter(c => c.casino_id === activeCasino?.id && c.department === groupKey && c.unit === unit);
+  const configuredFor = (unit: string) => {
+    const scoped = allCodes.filter(c => c.casino_id === activeCasino?.id && c.department === groupKey && c.unit === unit);
+    return scoped.length ? scoped : allCodes.filter(c => c.casino_id === activeCasino?.id && c.department === groupKey && c.unit === null);
+  };
   const isWorking = (code: string, unit: string) => {
     const configured = configuredFor(unit).find(c => c.code.toUpperCase() === code);
     return configured ? configured.is_working : configuredFor(unit).length === 0 && !["L", "E", "O"].includes(code);

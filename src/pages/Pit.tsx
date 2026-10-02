@@ -693,7 +693,11 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
   }, [rotaDealerCodes, rotaBossCodes]);
   const pitCodesActive = `${month}-01` >= SHIFT_CODES_FROM;
   const [pitUnit, setPitUnit] = useSessionState<PitUnitView>("pitUnit", "all");
-  const codesForUnit = (unit: "dealers" | "pit_bosses") => unit === "dealers" ? rotaDealerCodes : rotaBossCodes;
+  const { data: legacyPitCodes = [] } = useShiftCodes(activeCasino?.id, "pit");
+  const codesForUnit = (unit: "dealers" | "pit_bosses") => {
+    const scoped = unit === "dealers" ? rotaDealerCodes : rotaBossCodes;
+    return scoped.length ? scoped : legacyPitCodes;
+  };
   const isWorking = (code: string, unit: "dealers" | "pit_bosses") => {
     const configured = codesForUnit(unit).find(c => c.code.toUpperCase() === code);
     return configured ? configured.is_working : codesForUnit(unit).length === 0 && !["L", "O", "E"].includes(code);
