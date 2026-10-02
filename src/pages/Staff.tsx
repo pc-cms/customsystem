@@ -28,7 +28,7 @@ const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "Ju
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS } from "@/lib/shift-colors";
 import { predictedShiftHours } from "@/lib/shift-hours";
 import ShiftCodesDialog from "@/components/shifts/ShiftCodesDialog";
-import { useUnitHoursMaps, useShiftCodes, formatShiftCodeLegend, SHIFT_CODES_FROM, type ShiftDept } from "@/hooks/use-shift-codes";
+import { useUnitHoursMaps, useShiftCodes, useAllShiftCodes, formatShiftCodeLegend, SHIFT_CODES_FROM, type ShiftDept } from "@/hooks/use-shift-codes";
 import { parseAttValue, normalizeAttInput, isStatusCode } from "@/lib/attendance-code";
 
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
@@ -230,8 +230,8 @@ const Staff = ({ forcedTab, forcedGroup }: StaffProps = {}) => {
             {isRotaTab && lockScope && <RotaLockButton scope={lockScope} month={month} />}
             {isRotaTab && rotaGroup && (
               <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap overflow-x-auto py-0.5">
-                {rotaGroup.shifts.map(s => (
-                  <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${STAFF_SHIFT_COLORS[s]}`}>
+                {[...rotaGroup.shifts, ...legendCodes.map((c) => c.code.toUpperCase()).filter((k) => !(rotaGroup.shifts as readonly string[]).includes(k))].map((s: string) => (
+                  <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${(STAFF_SHIFT_COLORS as any)[s] ?? "bg-muted text-foreground"}`}>
                     <span className="font-bold">{s}</span>
                     <span className="opacity-80">{legendLabel(s)}</span>
                   </span>
@@ -553,7 +553,16 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
   const group = useMemo(() => getRotaGroup(groupKey, activeCasino), [groupKey, activeCasino]);
   const unitCodeHours = useUnitHoursMaps(activeCasino?.id, groupKey as ShiftDept);
   const codesActive = `${month}-01` >= SHIFT_CODES_FROM;
-  const groupShifts = group.shifts as readonly string[];
+  const { data: allCodes = [] } = useAllShiftCodes();
+  const groupShifts = useMemo(() => {
+    const out: string[] = [...(group.shifts as readonly string[])];
+    for (const c of allCodes) {
+      if (c.casino_id !== activeCasino?.id || c.department !== groupKey) continue;
+      const k = String(c.code || "").toUpperCase();
+      if (k && !out.includes(k)) out.push(k);
+    }
+    return out as readonly string[];
+  }, [group.shifts, allCodes, activeCasino?.id, groupKey]);
   const [filterDept, setFilterDept] = useSessionState<string>("dept", "all");
   const [y, m] = month.split("-").map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
@@ -948,7 +957,7 @@ const DepartmentBlock = ({
                   rows={[{
                     options: groupShifts.map(s => ({
                       value: s, label: s,
-                      className: STAFF_SHIFT_COLORS[s],
+                      className: (STAFF_SHIFT_COLORS as any)[s] ?? "bg-muted text-foreground",
                     })),
                   }]}
                   onSelect={(v) => v === null ? onClear(staff.id, day) : onSet(staff.id, day, v)}
