@@ -121,7 +121,11 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
   // Dealers scheduled in rota for this date (M / SW / N + Extra variants)
   const rotaDealers = useMemo(() => {
     return rota
-      .filter((r: any) => r.shift === "M" || r.shift === "SW" || r.shift === "N" || isExtraShift(r.shift))
+      // Any working code (incl. custom per-casino codes like "D"); exclude off/leave/absence codes.
+      .filter((r: any) => {
+        const s = String(r.shift || "").trim().toUpperCase();
+        return !!s && !["O", "OFF", "L", "V", "H", "A", "S", "SP", "X"].includes(s);
+      })
       .map((r: any) => ({ dealerId: r.dealer_id, shift: r.shift as string }));
   }, [rota]);
 
