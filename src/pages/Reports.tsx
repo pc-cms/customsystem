@@ -238,7 +238,7 @@ const Reports = () => {
 const signCls = (n: number) => n > 0 ? "cms-amount-positive" : n < 0 ? "cms-amount-negative" : "text-card-foreground";
 // Statistics-only table polish; shared DataTable defaults elsewhere stay unchanged.
 const statisticsTableClass = "[&_th]:border-b [&_th]:border-border [&_td]:py-2.5 [&_tbody_tr]:hover:bg-muted/30";
-const statisticsTotalClass = "border-b-2 border-primary/40 bg-primary/10 [&_th]:h-10 [&_th]:text-xs [&_th]:font-bold";
+const statisticsTotalClass = "border-b border-primary/25 bg-primary/[0.06] [&_th]:h-10 [&_th]:text-xs [&_th]:font-bold";
 
 // =================== TOTAL REPORT (per business day rollup) ===================
 const TotalReport = ({ from, to }: { from: string; to: string }) => {

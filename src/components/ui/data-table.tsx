@@ -101,9 +101,6 @@ export const DataTable = React.forwardRef<HTMLTableElement, DataTableProps>(
         ref={ref}
         className={cn(
           "w-full text-sm border-collapse",
-          // dotted vertical dividers between cells
-          "[&_th:not(:last-child)]:border-r [&_th:not(:last-child)]:border-dashed [&_th:not(:last-child)]:border-border/60",
-          "[&_td:not(:last-child)]:border-r [&_td:not(:last-child)]:border-dashed [&_td:not(:last-child)]:border-border/40",
           className,
         )}
         style={{ tableLayout: "auto" }}
@@ -121,7 +118,7 @@ export const DTHead = React.forwardRef<
   <thead
     ref={ref}
     className={cn(
-      "sticky top-0 z-10 bg-muted [&_tr]:border-b border-border",
+      "sticky top-0 z-10 bg-card [&_tr]:border-b [&_tr]:border-border/60",
       className,
     )}
     {...props}
@@ -136,7 +133,7 @@ export const DTBody = React.forwardRef<
   <tbody
     ref={ref}
     className={cn(
-      "[&_tr:last-child]:border-0 [&_tr:nth-child(odd)]:bg-muted/20",
+      "[&_tr:last-child]:border-0",
       className,
     )}
     {...props}
@@ -154,7 +151,7 @@ export const DTRow = React.memo(
       <tr
         ref={ref}
         className={cn(
-          "border-b border-border transition-colors hover:bg-muted/40",
+          "border-b border-border/30 transition-colors hover:bg-muted/30",
           className,
         )}
         {...props}
@@ -184,7 +181,7 @@ export const DTHeader = React.forwardRef<HTMLTableCellElement, CellProps>(
     <th
       ref={ref}
       className={cn(
-        "h-9 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap",
+        "h-8 px-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80 whitespace-nowrap",
         type && TYPE_TH[type],
         align === "right" && "text-right",
         align === "center" && "text-center",
@@ -204,7 +201,7 @@ export const DTCell = React.forwardRef<HTMLTableCellElement, CellProps>(
     <td
       ref={ref}
       className={cn(
-        "h-10 px-3 align-middle text-foreground",
+        "h-8 px-3 py-1.5 align-middle text-foreground",
         type && TYPE_TD[type],
         align === "right" && "text-right",
         align === "center" && "text-center",
