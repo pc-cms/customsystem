@@ -687,18 +687,20 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
                 <DTCell type="money"><span className={signCls(r.miss)}>{fmt(r.miss)}</span></DTCell>
                 <DTCell type="money"><span className={`font-bold ${signCls(r.balance)}`}>{fmt(r.balance)}</span></DTCell>
                 <DTCell type="actions">
-                  <div className="flex gap-1 justify-end">
+                  <div className="flex gap-0.5 justify-end">
                     <Button
-                      size="sm" variant="outline" className="h-7 gap-1 text-[11px]"
+                      size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                      title="Print" aria-label="Print"
                       disabled={!sh} onClick={() => sh && setReprintId(sh.id)}
                     >
-                      <Printer className="w-3 h-3" /> Print
+                      <Printer className="w-3.5 h-3.5" />
                     </Button>
                     <Button
-                      size="sm" variant="outline" className="h-7 gap-1 text-[11px]"
+                      size="sm" variant="ghost" className="h-6 px-1.5 gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                      title="Edit & Print" aria-label="Edit & Print"
                       disabled={!sh} onClick={() => sh && navigate(`/cage/shift/${sh.id}/edit-reprint`)}
                     >
-                      <Printer className="w-3 h-3" /> Edit&Print
+                      Edit
                     </Button>
                   </div>
                 </DTCell>
