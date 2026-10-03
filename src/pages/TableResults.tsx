@@ -1019,11 +1019,11 @@ const GroupTotalCells = ({
   header?: boolean;
 }) => {
   const bgMap = {
-    warning: "bg-warning/15",
-    success: "bg-success/15",
-    destructive: "bg-destructive/15",
-    primary: "bg-primary/25",
-    info: "bg-info/20",
+    warning: "[background-image:linear-gradient(hsl(var(--warning)/0.15),hsl(var(--warning)/0.15)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+    success: "[background-image:linear-gradient(hsl(var(--success)/0.15),hsl(var(--success)/0.15)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+    destructive: "[background-image:linear-gradient(hsl(var(--destructive)/0.15),hsl(var(--destructive)/0.15)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+    primary: "[background-image:linear-gradient(hsl(var(--primary)/0.25),hsl(var(--primary)/0.25)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+    info: "[background-image:linear-gradient(hsl(var(--info)/0.2),hsl(var(--info)/0.2)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
   };
   const isNeg = result < 0;
   const content = (
