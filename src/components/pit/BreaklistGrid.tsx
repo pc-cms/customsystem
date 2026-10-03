@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback, forwardRef, useImper
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCasino } from "@/lib/casino-context";
+import { useShiftCodes, sortShiftsByTime } from "@/hooks/use-shift-codes";
 import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useClearBreaklistCell, useGamingTables, usePitRotaRange, useSetDealerAttendance, useDealerAttendance } from "@/hooks/use-casino-data";
 import { useCasinoInfo } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
@@ -91,6 +92,10 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
   const { data: rota = [] } = usePitRotaRange(date, date);
   const { data: attendance = [] } = useDealerAttendance(date);
   const { data: casino } = useCasinoInfo();
+  const { activeCasinoId: breakCasinoId } = useCasino();
+  const { data: breakDealerCodes = [] } = useShiftCodes(breakCasinoId, "pit", "dealers");
+  const { data: breakLegacyCodes = [] } = useShiftCodes(breakCasinoId, "pit");
+  const breakShiftCodes = breakDealerCodes.length ? breakDealerCodes : breakLegacyCodes;
   const isMwanza = (casino?.name ?? "").toLowerCase().includes("mwanza");
   const fmtTableName = (name: string | null | undefined) => {
     if (!name) return name;
