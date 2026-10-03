@@ -257,21 +257,13 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
 
   return (
     <div className="space-y-3">
-      {/* KPI summary tiles */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-        {[
-          { label: "Shifts", value: String(totals.shifts), cls: "text-card-foreground" },
-          { label: "AVG Drop", value: formatMoneyFull(totals.avgDrop), cls: "text-card-foreground" },
-          { label: "Drop", value: formatMoneyFull(totals.drop), cls: "text-card-foreground" },
-          { label: "Net Win", value: formatMoneyFull(totals.netWin), cls: signCls(totals.netWin) },
-          { label: "Hold", value: fmtHold(totals.hold), cls: "text-card-foreground" },
-        ].map((c) => (
-          <div key={c.label} className="cms-panel p-2">
-            <p className="uppercase text-muted-foreground tracking-wider text-[10px]">{c.label}</p>
-            <p className={`font-mono text-sm font-bold ${c.cls}`}>{c.value}</p>
-          </div>
-        ))}
-      </div>
+      <StatStrip items={[
+        { label: "Shifts", value: String(totals.shifts) },
+        { label: "AVG Drop", value: formatMoneyFull(totals.avgDrop) },
+        { label: "Drop", value: formatMoneyFull(totals.drop) },
+        { label: "Net Win", value: formatMoneyFull(totals.netWin), cls: signCls(totals.netWin) },
+        { label: "Hold", value: fmtHold(totals.hold) },
+      ]} />
 
       {!embedded && (
         <div className="flex items-center justify-end">
@@ -279,7 +271,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
         </div>
       )}
 
-      <DataTable className="[&_th]:border-b [&_th]:border-border [&_td]:py-2.5 [&_tbody_tr]:hover:bg-muted/30">
+      <DataTable className={statsTableClass}>
         <DTHead>
           <DTRow>
             <DTHeader type="date" className="cursor-pointer select-none" onClick={() => toggleSort("business_date")}>
@@ -295,8 +287,8 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
             <DTHeader type="actions" />
           </DTRow>
           {sorted.length > 0 && (
-            <DTRow className="border-b-2 border-primary/40 bg-primary/10 text-foreground [&_th]:h-10 [&_th]:text-xs [&_th]:font-bold [&_th]:text-foreground">
-              <DTHeader type="date" className="text-primary">Total</DTHeader>
+            <DTRow className={`${statsTotalClass} [&_th]:text-foreground`}>
+              <DTHeader type="date" className="!text-muted-foreground !text-[10px] !uppercase !tracking-[0.08em]">Total</DTHeader>
               <DTHeader type="time" />
               <DTHeader type="money"><MoneyCell value={totals.drop} mode={mode} /></DTHeader>
               <DTHeader type="money"><MoneyCell value={totals.netWin} mode={mode} signed /></DTHeader>
