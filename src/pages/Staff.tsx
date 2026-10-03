@@ -890,7 +890,10 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
         <table className="w-full min-w-max border-collapse table-fixed">
           {renderTableHeader()}
           <tbody>
-            {summaryShifts.map((shiftKey, si) => (
+            {summaryShifts.filter(shiftKey => {
+              const fs = filterDept === "all" ? activeStaff : activeStaff.filter(s => s.department === filterDept);
+              return days.some(day => fs.some(s => isWorking(shiftKey, s.department) && getDisplayShift(s.id, day)?.shift === shiftKey));
+            }).map((shiftKey, si) => (
               <tr key={shiftKey} className={si === 0 ? "border-t-2 border-border" : ""}>
                  <td className="px-1 py-1 text-[11px] font-mono font-bold sticky left-0 bg-card z-10"><span className={`inline-flex items-center h-6 rounded px-2 ${getShiftColor(shiftKey)}`}>Σ {shiftKey}</span></td>
                 {days.map(day => {
