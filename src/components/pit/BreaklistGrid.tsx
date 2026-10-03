@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback, forwardRef, useImper
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCasino } from "@/lib/casino-context";
+import { useShiftCodes, sortShiftsByTime } from "@/hooks/use-shift-codes";
 import { useDealers, useBreaklistData, useSetBreaklistCell, useLockBreaklistCell, useClearBreaklistCell, useGamingTables, usePitRotaRange, useSetDealerAttendance, useDealerAttendance } from "@/hooks/use-casino-data";
 import { useCasinoInfo } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
@@ -91,6 +92,10 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
   const { data: rota = [] } = usePitRotaRange(date, date);
   const { data: attendance = [] } = useDealerAttendance(date);
   const { data: casino } = useCasinoInfo();
+  const { activeCasinoId: breakCasinoId } = useCasino();
+  const { data: breakDealerCodes = [] } = useShiftCodes(breakCasinoId, "pit", "dealers");
+  const { data: breakLegacyCodes = [] } = useShiftCodes(breakCasinoId, "pit");
+  const breakShiftCodes = breakDealerCodes.length ? breakDealerCodes : breakLegacyCodes;
   const isMwanza = (casino?.name ?? "").toLowerCase().includes("mwanza");
   const fmtTableName = (name: string | null | undefined) => {
     if (!name) return name;
@@ -161,7 +166,9 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
     );
     const rows = filtered;
 
-    const shiftOrder: Record<string, number> = { M: 0, SW: 1, N: 2, E: 3, EM: 3, ESW: 3, EN: 3 };
+    const allShiftKeys = Array.from(new Set(rotaDealers.map(r => r.shift || "Z")));
+    const ordered = sortShiftsByTime(allShiftKeys, breakShiftCodes);
+    const shiftRank = (k: string) => { const i = ordered.indexOf(k); return i < 0 ? 999 : i; };
     const categoryOrder: Record<string, number> = { trainee: 0, dealer: 1, inspector: 2, expert: 3, pit_boss: 4 };
     const dir = sortDir === "asc" ? 1 : -1;
     if (sortBy === "name") {
@@ -178,10 +185,10 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
     return [...rows].sort((a, b) => {
       const sa = rotaDealers.find(r => r.dealerId === a.id)?.shift || "Z";
       const sb = rotaDealers.find(r => r.dealerId === b.id)?.shift || "Z";
-      const diff = (shiftOrder[sa] ?? 9) - (shiftOrder[sb] ?? 9);
+      const diff = shiftRank(sa) - shiftRank(sb);
       return dir * (diff !== 0 ? diff : a.name.localeCompare(b.name));
     });
-  }, [activeDealers, rotaDealers, sortBy, sortDir, absentDealerIds]);
+  }, [activeDealers, rotaDealers, sortBy, sortDir, absentDealerIds, breakShiftCodes]);
 
   const getDealerShift = (dealerId: string) => {
     return rotaDealers.find(r => r.dealerId === dealerId)?.shift || null;

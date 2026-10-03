@@ -112,3 +112,23 @@ export const formatShiftCodeLegend = (c: ShiftCode | undefined): string | null =
   const h = Number(c.hours);
   return `${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)} · ${Number.isInteger(h) ? h : h.toFixed(2).replace(/0+$/, "")}h`;
 };
+
+const LEGACY_START: Record<string, string> = { D: "06:00", M: "08:00", A: "10:00", SW: "16:00", E: "18:00", N: "20:00" };
+const NON_WORKING = new Set(["O", "L", "V", "A", "S", "SP", "EM", "ESW", "EN"]);
+
+/** Sort codes chronologically by start time; non-working codes go last. */
+export const sortShiftsByTime = (codes: readonly string[], configured: ShiftCode[]): string[] => {
+  const key = (code: string): [number, number, string] => {
+    const c = configured.find((x) => x.code.toUpperCase() === code);
+    if (c && !c.is_working) return [1, 9999, code];
+    if (!c && NON_WORKING.has(code)) return [1, 9999, code];
+    const t = c?.start_time || LEGACY_START[code];
+    if (!t) return [0, 9998, code];
+    const [h, m] = t.split(":").map(Number);
+    return [0, h * 60 + (m || 0), code];
+  };
+  return [...codes].sort((a, b) => {
+    const ka = key(a), kb = key(b);
+    return ka[0] - kb[0] || ka[1] - kb[1] || ka[2].localeCompare(kb[2]);
+  });
+};

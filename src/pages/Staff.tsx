@@ -28,7 +28,7 @@ const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "Ju
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, getShiftColor } from "@/lib/shift-colors";
 import { predictedShiftHours } from "@/lib/shift-hours";
 import ShiftCodesDialog from "@/components/shifts/ShiftCodesDialog";
-import { useUnitHoursMaps, useShiftCodes, useAllShiftCodes, formatShiftCodeLegend, SHIFT_CODES_FROM, type ShiftDept } from "@/hooks/use-shift-codes";
+import { useUnitHoursMaps, useShiftCodes, useAllShiftCodes, formatShiftCodeLegend, SHIFT_CODES_FROM, type ShiftDept , sortShiftsByTime } from "@/hooks/use-shift-codes";
 import { parseAttValue, normalizeAttInput, isStatusCode } from "@/lib/attendance-code";
 
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
@@ -564,7 +564,7 @@ const StaffRotaGrid = ({ month, groupKey, monthLabel, readOnly = false }: { mont
       const k = String(c.code || "").toUpperCase();
       if (k && !out.includes(k)) out.push(k);
     }
-    return out as readonly string[];
+    return sortShiftsByTime(out, allCodes.filter(c => c.casino_id === activeCasino?.id && c.department === groupKey)) as readonly string[];
   }, [group.shifts, allCodes, activeCasino?.id, groupKey]);
   const [filterDept, setFilterDept] = useSessionState<string>("dept", "all");
   const [y, m] = month.split("-").map(Number);

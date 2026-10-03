@@ -21,7 +21,7 @@ import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-bu
 import { UNIFIED_SHIFT_COLORS, UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, isExtraShift, getShiftColor } from "@/lib/shift-colors";
 import { predictedShiftHours } from "@/lib/shift-hours";
 import ShiftCodesDialog from "@/components/shifts/ShiftCodesDialog";
-import { useUnitHoursMaps, useShiftCodes, formatShiftCodeLegend, SHIFT_CODES_FROM } from "@/hooks/use-shift-codes";
+import { useUnitHoursMaps, useShiftCodes, formatShiftCodeLegend, SHIFT_CODES_FROM , sortShiftsByTime } from "@/hooks/use-shift-codes";
 import { useCasino } from "@/lib/casino-context";
 import { usesArushaShiftGrid, usesDodomaShiftGrid } from "@/hooks/use-staff";
 import { parseAttValue, normalizeAttInput, isStatusCode } from "@/lib/attendance-code";
@@ -687,7 +687,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
       const k = String(c.code || "").toUpperCase();
       if (k && !out.includes(k)) out.push(k);
     }
-    return out;
+    return sortShiftsByTime(out, [...rotaDealerCodes, ...rotaBossCodes]);
   }, [rotaDealerCodes, rotaBossCodes]);
   const pitCodesActive = `${month}-01` >= SHIFT_CODES_FROM;
   const [pitUnit, setPitUnit] = useSessionState<PitUnitView>("pitUnit", "all");
