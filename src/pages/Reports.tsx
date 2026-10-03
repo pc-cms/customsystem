@@ -1,3 +1,4 @@
+import { StatStrip, statsTableClass, statsTotalClass } from "@/components/reports/StatStrip";
 import { useState, useMemo, lazy, Suspense } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { useTransactions, useExpenses } from "@/hooks/use-casino-data";
@@ -237,8 +238,8 @@ const Reports = () => {
 
 const signCls = (n: number) => n > 0 ? "cms-amount-positive" : n < 0 ? "cms-amount-negative" : "text-card-foreground";
 // Statistics-only table polish; shared DataTable defaults elsewhere stay unchanged.
-const statisticsTableClass = "[&_th]:border-b [&_th]:border-border [&_td]:py-2.5 [&_tbody_tr]:hover:bg-muted/30";
-const statisticsTotalClass = "border-b border-primary/25 bg-primary/[0.06] [&_th]:h-10 [&_th]:text-xs [&_th]:font-bold";
+const statisticsTableClass = statsTableClass;
+const statisticsTotalClass = statsTotalClass;
 
 // =================== TOTAL REPORT (per business day rollup) ===================
 const TotalReport = ({ from, to }: { from: string; to: string }) => {
@@ -403,22 +404,15 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2">
-        {[
-          { label: "Drop Table", value: fmt(totals.dropTables), cls: "text-card-foreground" },
-          { label: "Result Table", value: fmt(totals.tablesResult), cls: signCls(totals.tablesResult) },
-          { label: "Hold", value: fmtHold(totals.holdTables), cls: "text-card-foreground" },
-          { label: "Drop Slots", value: fmt(totals.dropSlots), cls: "text-card-foreground" },
-          { label: "Result Slots", value: fmt(totals.slotsResult), cls: signCls(totals.slotsResult) },
-          { label: "Hold", value: fmtHold(totals.holdSlots), cls: "text-card-foreground" },
-          { label: "Total Result", value: fmt(totals.totalResult), cls: signCls(totals.totalResult) },
-        ].map((c, i) => (
-          <div key={`${c.label}-${i}`} className="cms-panel p-2">
-            <p className="uppercase text-muted-foreground tracking-wider text-[10px]">{c.label}</p>
-            <p className={`font-mono text-sm font-bold ${c.cls}`}>{c.value}</p>
-          </div>
-        ))}
-      </div>
+      <StatStrip items={[
+        { label: "Drop Table", value: fmt(totals.dropTables) },
+        { label: "Result Table", value: fmt(totals.tablesResult), cls: signCls(totals.tablesResult) },
+        { label: "Hold", value: fmtHold(totals.holdTables) },
+        { label: "Drop Slots", value: fmt(totals.dropSlots) },
+        { label: "Result Slots", value: fmt(totals.slotsResult), cls: signCls(totals.slotsResult) },
+        { label: "Hold", value: fmtHold(totals.holdSlots) },
+        { label: "Total Result", value: fmt(totals.totalResult), cls: signCls(totals.totalResult) },
+      ]} />
 
       <DataTable className={statisticsTableClass}>
         <DTHead>
@@ -624,23 +618,13 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-        <div className="cms-panel p-2">
-          <p className="uppercase text-muted-foreground tracking-wider text-[10px]">Days</p>
-          <p className="font-mono text-sm font-bold text-card-foreground">{rows.length}</p>
-        </div>
-        {[
-          { label: "AVG Drop", value: fmt(totals.avgDrop), cls: "text-card-foreground" },
-          { label: "Drop", value: fmt(totals.drop), cls: "text-card-foreground" },
-          { label: "Table Result", value: fmt(totals.result), cls: signCls(totals.result) },
-          { label: "Hold %", value: fmtHold(totals.hold), cls: "text-card-foreground" },
-        ].map((c) => (
-          <div key={c.label} className="cms-panel p-2">
-            <p className="uppercase text-muted-foreground tracking-wider text-[10px]">{c.label}</p>
-            <p className={`font-mono text-sm font-bold ${c.cls}`}>{c.value}</p>
-          </div>
-        ))}
-      </div>
+      <StatStrip items={[
+        { label: "Days", value: String(rows.length) },
+        { label: "AVG Drop", value: fmt(totals.avgDrop) },
+        { label: "Drop", value: fmt(totals.drop) },
+        { label: "Table Result", value: fmt(totals.result), cls: signCls(totals.result) },
+        { label: "Hold %", value: fmtHold(totals.hold) },
+      ]} />
 
       <DataTable className={statisticsTableClass}>
         <DTHead>
