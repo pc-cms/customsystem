@@ -143,7 +143,13 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
 
   // Sort options: # (insertion order) is meaningless without a base sort,
   // so sort cycles between Shift / Category / Name. Numbering is then derived from current sort.
-  const [sortBy, setSortBy] = useState<"name" | "shift" | "category">("shift");
+  const [sortBy, setSortByRaw] = useState<"name" | "shift" | "category">("shift");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const setSortBy = (k: "name" | "shift" | "category") => {
+    if (k === sortBy) setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    else { setSortByRaw(k); setSortDir("asc"); }
+  };
+  const sortArrow = (k: string, cls: string) => sortBy === k ? <span className={cls}>{sortDir === "asc" ? "↑" : "↓"}</span> : null;
 
   const breaklistDealers = useMemo(() => {
     const rotaDealerIds = new Set(rotaDealers.map(r => r.dealerId));
@@ -157,14 +163,15 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
 
     const shiftOrder: Record<string, number> = { M: 0, SW: 1, N: 2, E: 3, EM: 3, ESW: 3, EN: 3 };
     const categoryOrder: Record<string, number> = { trainee: 0, dealer: 1, inspector: 2, expert: 3, pit_boss: 4 };
+    const dir = sortDir === "asc" ? 1 : -1;
     if (sortBy === "name") {
-      return [...rows].sort((a, b) => a.name.localeCompare(b.name));
+      return [...rows].sort((a, b) => dir * a.name.localeCompare(b.name));
     }
     if (sortBy === "category") {
       return [...rows].sort((a, b) => {
         const ca = categoryOrder[a.category] ?? 99;
         const cb = categoryOrder[b.category] ?? 99;
-        return ca !== cb ? ca - cb : a.name.localeCompare(b.name);
+        return dir * (ca !== cb ? ca - cb : a.name.localeCompare(b.name));
       });
     }
     // shift
@@ -172,9 +179,9 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
       const sa = rotaDealers.find(r => r.dealerId === a.id)?.shift || "Z";
       const sb = rotaDealers.find(r => r.dealerId === b.id)?.shift || "Z";
       const diff = (shiftOrder[sa] ?? 9) - (shiftOrder[sb] ?? 9);
-      return diff !== 0 ? diff : a.name.localeCompare(b.name);
+      return dir * (diff !== 0 ? diff : a.name.localeCompare(b.name));
     });
-  }, [activeDealers, rotaDealers, sortBy, absentDealerIds]);
+  }, [activeDealers, rotaDealers, sortBy, sortDir, absentDealerIds]);
 
   const getDealerShift = (dealerId: string) => {
     return rotaDealers.find(r => r.dealerId === dealerId)?.shift || null;
@@ -648,21 +655,21 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
                   className={`text-center text-[9px] font-medium uppercase px-1 py-2 min-w-[34px] whitespace-nowrap sticky left-[26px] bg-card z-10 cursor-pointer hover:text-foreground select-none ${sortBy === "category" ? "text-foreground" : "text-muted-foreground"}`}
                   title="Sort by Category"
                 >
-                  <span className="inline-flex items-center justify-center gap-0.5">C{sortBy === "category" && <span className="text-[8px]">↓</span>}</span>
+                  <span className="inline-flex items-center justify-center gap-0.5">C{sortArrow("category", "text-[8px]")}</span>
                 </th>
                 <th
                   onClick={() => setSortBy("name")}
                   className={`text-left text-xs font-medium uppercase px-3 py-2 sticky left-[60px] bg-card z-10 min-w-[120px] whitespace-nowrap cursor-pointer hover:text-foreground select-none ${sortBy === "name" ? "text-foreground" : "text-muted-foreground"}`}
                   title="Sort by Name"
                 >
-                  Name {sortBy === "name" && <span className="text-[10px]">↓</span>}
+                  Name {sortArrow("name", "text-[10px]")}
                 </th>
                 <th
                   onClick={() => setSortBy("shift")}
                   className={`text-center text-[9px] font-medium uppercase px-1 py-2 min-w-[34px] whitespace-nowrap sticky left-[180px] bg-card z-10 cursor-pointer hover:text-foreground select-none shadow-[inset_-1px_0_0_hsl(var(--border))] ${sortBy === "shift" ? "text-foreground" : "text-muted-foreground"}`}
                   title="Sort by Shift"
                 >
-                  <span className="inline-flex items-center justify-center gap-0.5">S{sortBy === "shift" && <span className="text-[8px]">↓</span>}</span>
+                  <span className="inline-flex items-center justify-center gap-0.5">S{sortArrow("shift", "text-[8px]")}</span>
                 </th>
                 {visibleSlots.map(slot => {
                   const isActive = isToday && slot === currentSlot;
