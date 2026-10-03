@@ -184,7 +184,7 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
               </DTHeader>
             </DTRow>
             {dailyRows.length > 0 && (
-              <DTRow className="border-b-2 border-primary/40 bg-primary/10 [&_th]:h-10 [&_th]:text-xs [&_th]:font-bold [&_th]:text-foreground">
+              <DTRow className="border-b-2 border-primary/40 bg-primary/10 [&_th]:h-10 [&_th]:text-xs [&_th]:font-bold">
                 <DTHeader type="date" className="text-primary">MONTH SUM</DTHeader>
                 {DENOMS_DESC.map((d) => {
                   const v = monthSum.by[d] ?? 0;

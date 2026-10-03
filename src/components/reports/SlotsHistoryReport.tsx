@@ -295,7 +295,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
             <DTHeader type="actions" />
           </DTRow>
           {sorted.length > 0 && (
-            <DTRow className="border-b-2 border-primary/40 bg-primary/10 [&_th]:h-10 [&_th]:text-xs [&_th]:font-bold [&_th]:text-foreground">
+            <DTRow className="border-b-2 border-primary/40 bg-primary/10 text-foreground [&_th]:h-10 [&_th]:text-xs [&_th]:font-bold [&_th]:text-foreground">
               <DTHeader type="date" className="text-primary">Total</DTHeader>
               <DTHeader type="time" />
               <DTHeader type="money"><MoneyCell value={totals.drop} mode={mode} /></DTHeader>
