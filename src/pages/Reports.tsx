@@ -1,3 +1,4 @@
+import { StatStrip, statsTableClass, statsTotalClass } from "@/components/reports/StatStrip";
 import { useState, useMemo, lazy, Suspense } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { useTransactions, useExpenses } from "@/hooks/use-casino-data";

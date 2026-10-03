@@ -1,3 +1,4 @@
+import { StatStrip, statsTableClass, statsTotalClass } from "@/components/reports/StatStrip";
 /**
  * SlotsHistoryReport — read-only Slots cage shift history over an arbitrary
  * business-day range. Columns mirror the Live Game report layout:
