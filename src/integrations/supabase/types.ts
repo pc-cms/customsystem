@@ -11371,6 +11371,7 @@ export type Database = {
           funding_pool_ref: string | null
           id: string
           issued_business_date: string
+          notes: string | null
           player_id: string
           remaining: number
           source: Database["public"]["Enums"]["promo_grant_source"]
@@ -11388,6 +11389,7 @@ export type Database = {
           funding_pool_ref?: string | null
           id?: string
           issued_business_date: string
+          notes?: string | null
           player_id: string
           remaining: number
           source: Database["public"]["Enums"]["promo_grant_source"]
@@ -11405,6 +11407,7 @@ export type Database = {
           funding_pool_ref?: string | null
           id?: string
           issued_business_date?: string
+          notes?: string | null
           player_id?: string
           remaining?: number
           source?: Database["public"]["Enums"]["promo_grant_source"]
@@ -15064,6 +15067,16 @@ export type Database = {
           p_credential_hash: string
           p_installation: string
           p_payload: Json
+        }
+        Returns: Json
+      }
+      hapa_pos_credit_admin: {
+        Args: {
+          p_casino: string
+          p_enabled?: boolean
+          p_limit: number
+          p_margin?: number
+          p_player: string
         }
         Returns: Json
       }
