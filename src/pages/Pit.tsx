@@ -989,7 +989,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
         </thead>
         <tbody>
           {renderDealerRows(activeDealers, "Dealers", "border-blue-400 dark:border-blue-500/50 text-blue-600 dark:text-blue-400")}
-          {activeDealers.length > 0 && [...shiftsForUnit("dealers"), "All"].map((code, index) => (
+          {activeDealers.length > 0 && [...shiftsForUnit("dealers").filter(c => days.some(day => activeDealers.some(d => getDisplayShift(d.id, day)?.shift === c))), "All"].map((code, index) => (
             <tr key={code} className={index === 0 ? "border-t-2 border-border" : ""}>
                <td colSpan={2} className="px-1 py-1 text-[11px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10"><span className={code === "All" ? "inline-flex items-center h-6 rounded px-2 bg-muted text-foreground" : `inline-flex items-center h-6 rounded px-2 ${getShiftColor(code)}`}>Σ {code}</span></td>
               {days.map(day => {
@@ -1023,7 +1023,7 @@ const RotaGrid = ({ month, readOnly = false }: { month: string; readOnly?: boole
                 <th className="text-center text-[10px] font-medium text-primary uppercase px-1 py-2 w-10" title="Planned hours (forecast)">Σh</th>
               </tr>
               {renderDealerRows(pitBosses, "Pit Bosses", "border-purple-400 dark:border-purple-500/50 text-purple-600 dark:text-purple-400", "no-print", true)}
-              {[...shiftsForUnit("pit_bosses"), "All"].map((code, index) => (
+              {[...shiftsForUnit("pit_bosses").filter(c => days.some(day => pitBosses.some(d => getDisplayShift(d.id, day)?.shift === c))), "All"].map((code, index) => (
                 <tr key={code} className={index === 0 ? "border-t-2 border-border no-print" : "no-print"}>
                    <td colSpan={2} className="px-1 py-1 text-[11px] font-mono font-bold text-card-foreground sticky left-0 bg-card z-10"><span className={code === "All" ? "inline-flex items-center h-6 rounded px-2 bg-muted text-foreground" : `inline-flex items-center h-6 rounded px-2 ${getShiftColor(code)}`}>Σ {code}</span></td>
                   {days.map(day => {
