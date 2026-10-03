@@ -82,7 +82,7 @@ export default function ManagementSchedulePage({ mode }: { mode: "rota" | "atten
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-            <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap overflow-x-auto py-0.5">
+            <div className="flex items-center gap-1.5 flex-wrap justify-center py-0.5">
               {(["D", "M", "N"] as const).map((s) => (
                 <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${UNIFIED_SHIFT_COLORS[s]}`}>
                   <span className="font-bold">{s}</span>

@@ -337,7 +337,7 @@ const Pit = ({ forcedTab }: PitProps = {}) => {
 
   // Below header: unified legend for rota / attendance (identical shift explanations)
   const belowHeader = (activeTab === "rota" || activeTab === "attendance") ? (
-    <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto whitespace-nowrap py-0.5">
+    <div className="flex items-center gap-1.5 flex-wrap py-0.5">
       {pitVisibleShifts.map((s: string) => (
         <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${getShiftColor(s)}`}>
           <span className="font-bold">{s}</span>
