@@ -2,7 +2,7 @@
  * SlotsHistoryReport — read-only Slots cage shift history over an arbitrary
  * business-day range. Columns mirror the Live Game report layout:
  * Business Day / Closed / Drop / Net Win / Cashdesk / Card Balance /
- * Card Miss / Balance / Print — with a TOTAL row at the bottom.
+ * Card Miss / Balance / Print — with a TOTAL row in the table header.
  *
  * Drop falls back to the manual cage entry (`manual_drop_slots`) when the day
  * closing has no figure.
@@ -279,7 +279,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
         </div>
       )}
 
-      <DataTable>
+      <DataTable className="[&_th]:border-b [&_th]:border-border [&_td]:py-2.5 [&_tbody_tr]:hover:bg-muted/30">
         <DTHead>
           <DTRow>
             <DTHeader type="date" className="cursor-pointer select-none" onClick={() => toggleSort("business_date")}>
@@ -294,6 +294,19 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("balance")}>Balance{sortArrow("balance")}</DTHeader>
             <DTHeader type="actions" />
           </DTRow>
+          {sorted.length > 0 && (
+            <DTRow className="border-b-2 border-primary/40 bg-primary/10 text-foreground [&_th]:h-10 [&_th]:text-xs [&_th]:font-bold [&_th]:text-foreground">
+              <DTHeader type="date" className="text-primary">Total</DTHeader>
+              <DTHeader type="time" />
+              <DTHeader type="money"><MoneyCell value={totals.drop} mode={mode} /></DTHeader>
+              <DTHeader type="money"><MoneyCell value={totals.netWin} mode={mode} signed /></DTHeader>
+              <DTHeader type="money"><MoneyCell value={totals.cdr} mode={mode} signed /></DTHeader>
+              <DTHeader type="money"><MoneyCell value={totals.cardBalance} mode={mode} signed /></DTHeader>
+              <DTHeader type="money"><MoneyCell value={totals.miss} mode={mode} signed /></DTHeader>
+              <DTHeader type="money"><MoneyCell value={totals.balance} mode={mode} signed /></DTHeader>
+              <DTHeader type="actions" />
+            </DTRow>
+          )}
         </DTHead>
         <DTBody>
           {isLoading && (
@@ -357,19 +370,6 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
           })}
 
 
-          {sorted.length > 0 && (
-            <DTRow className="border-t-2 border-primary/40 bg-primary/10 font-bold text-[120%]">
-              <DTCell type="date" className="uppercase text-primary">Total</DTCell>
-              <DTCell type="time" />
-              <DTCell type="money"><MoneyCell value={totals.drop} mode={mode} /></DTCell>
-              <DTCell type="money"><MoneyCell value={totals.netWin} mode={mode} signed /></DTCell>
-              <DTCell type="money"><MoneyCell value={totals.cdr} mode={mode} signed /></DTCell>
-              <DTCell type="money"><MoneyCell value={totals.cardBalance} mode={mode} signed /></DTCell>
-              <DTCell type="money"><MoneyCell value={totals.miss} mode={mode} signed /></DTCell>
-              <DTCell type="money"><MoneyCell value={totals.balance} mode={mode} signed /></DTCell>
-              <DTCell type="actions" />
-            </DTRow>
-          )}
         </DTBody>
       </DataTable>
 

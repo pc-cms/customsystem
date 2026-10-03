@@ -236,6 +236,9 @@ const Reports = () => {
 };
 
 const signCls = (n: number) => n > 0 ? "cms-amount-positive" : n < 0 ? "cms-amount-negative" : "text-card-foreground";
+// Statistics-only table polish; shared DataTable defaults elsewhere stay unchanged.
+const statisticsTableClass = "[&_th]:border-b [&_th]:border-border [&_td]:py-2.5 [&_tbody_tr]:hover:bg-muted/30";
+const statisticsTotalClass = "border-b-2 border-primary/40 bg-primary/10 [&_th]:h-10 [&_th]:text-xs [&_th]:font-bold";
 
 // =================== TOTAL REPORT (per business day rollup) ===================
 const TotalReport = ({ from, to }: { from: string; to: string }) => {
@@ -417,7 +420,7 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
         ))}
       </div>
 
-      <DataTable>
+      <DataTable className={statisticsTableClass}>
         <DTHead>
           <DTRow>
             <SortHeader label="Business Day" k="date" sort={sort as any} toggle={toggle} type="date" />
@@ -429,6 +432,18 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
             <SortHeader label="Hold" k="holdSlots" sort={sort as any} toggle={toggle} type="money" />
             <SortHeader label="Total Result" k="totalResults" sort={sort as any} toggle={toggle} type="money" />
           </DTRow>
+          {sorted.length > 0 && (
+            <DTRow className={statisticsTotalClass}>
+              <DTHeader type="date" className="text-primary">Total</DTHeader>
+              <DTHeader type="money" className="text-foreground">{fmt(totals.dropTables)}</DTHeader>
+              <DTHeader type="money" className={signCls(totals.tablesResult)}>{fmt(totals.tablesResult)}</DTHeader>
+              <DTHeader type="money" className="text-foreground">{fmtHold(totals.holdTables)}</DTHeader>
+              <DTHeader type="money" className="text-foreground">{fmt(totals.dropSlots)}</DTHeader>
+              <DTHeader type="money" className={signCls(totals.slotsResult)}>{fmt(totals.slotsResult)}</DTHeader>
+              <DTHeader type="money" className="text-foreground">{fmtHold(totals.holdSlots)}</DTHeader>
+              <DTHeader type="money" className={signCls(totals.totalResult)}>{fmt(totals.totalResult)}</DTHeader>
+            </DTRow>
+          )}
         </DTHead>
         <DTBody>
           {isLoading ? (
@@ -464,18 +479,6 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
               </DTRow>
             );
           })}
-          {sorted.length > 0 && (
-            <DTRow className="border-t-2 border-primary/40 bg-primary/10 font-bold text-[120%]">
-              <DTCell type="date" className="uppercase text-primary">Total</DTCell>
-              <DTCell type="money">{fmt(totals.dropTables)}</DTCell>
-              <DTCell type="money"><span className={signCls(totals.tablesResult)}>{fmt(totals.tablesResult)}</span></DTCell>
-              <DTCell type="money">{fmtHold(totals.holdTables)}</DTCell>
-              <DTCell type="money">{fmt(totals.dropSlots)}</DTCell>
-              <DTCell type="money"><span className={signCls(totals.slotsResult)}>{fmt(totals.slotsResult)}</span></DTCell>
-              <DTCell type="money">{fmtHold(totals.holdSlots)}</DTCell>
-              <DTCell type="money"><span className={signCls(totals.totalResult)}>{fmt(totals.totalResult)}</span></DTCell>
-            </DTRow>
-          )}
         </DTBody>
       </DataTable>
     </div>
@@ -639,7 +642,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
         ))}
       </div>
 
-      <DataTable>
+      <DataTable className={statisticsTableClass}>
         <DTHead>
           <DTRow>
             <SortHeader label="Date" k="date" sort={sort} toggle={toggle} type="date" />
@@ -652,6 +655,19 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
             <SortHeader label="Gaming Balance" k="balance" sort={sort} toggle={toggle} type="money" />
             <DTHeader type="actions" />
           </DTRow>
+          {sorted.length > 0 && (
+            <DTRow className={statisticsTotalClass}>
+              <DTHeader type="date" className="text-primary">Total</DTHeader>
+              <DTHeader type="time" />
+              <DTHeader type="money" className="text-foreground">{fmt(totals.drop)}</DTHeader>
+              <DTHeader type="money" className={signCls(totals.result)}>{fmt(totals.result)}</DTHeader>
+              <DTHeader type="money" className="text-foreground">{fmtHold(totals.hold)}</DTHeader>
+              <DTHeader type="money" className={signCls(totals.playerResult)}>{fmt(totals.playerResult)}</DTHeader>
+              <DTHeader type="money" className={signCls(totals.miss)}>{fmt(totals.miss)}</DTHeader>
+              <DTHeader type="money" className={signCls(totals.balance)}>{fmt(totals.balance)}</DTHeader>
+              <DTHeader type="actions" />
+            </DTRow>
+          )}
         </DTHead>
         <DTBody>
           {isLoading ? (
@@ -689,19 +705,6 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
               </DTRow>
             );
           })}
-          {sorted.length > 0 && (
-            <DTRow className="border-t-2 border-primary/40 bg-primary/10 font-bold text-[120%]">
-              <DTCell type="date" className="uppercase text-primary">Total</DTCell>
-              <DTCell type="time" />
-              <DTCell type="money">{fmt(totals.drop)}</DTCell>
-              <DTCell type="money"><span className={signCls(totals.result)}>{fmt(totals.result)}</span></DTCell>
-              <DTCell type="money">{fmtHold(totals.hold)}</DTCell>
-              <DTCell type="money"><span className={signCls(totals.playerResult)}>{fmt(totals.playerResult)}</span></DTCell>
-              <DTCell type="money"><span className={signCls(totals.miss)}>{fmt(totals.miss)}</span></DTCell>
-              <DTCell type="money"><span className={signCls(totals.balance)}>{fmt(totals.balance)}</span></DTCell>
-              <DTCell type="actions" />
-            </DTRow>
-          )}
         </DTBody>
       </DataTable>
       {reprintId && casinoId && (

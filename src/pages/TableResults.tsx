@@ -331,7 +331,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
     return list.sort((a, b) => a.date.localeCompare(b.date));
   }, [data, allDates, inByDateTable]);
 
-  /* Period totals (bottom row) */
+  /* Period totals (header row) */
   const totals = useMemo(() => {
     const cellsTotal: Record<string, { drop: number; result: number }> = {};
     let arDrop = 0, arResult = 0;
@@ -655,7 +655,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
       {!isLoading && buckets.length > 0 && (
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto [container-type:inline-size] relative">
-            <table className="w-full caption-bottom text-xs [&_th]:h-8 [&_th]:px-1.5 [&_td]:p-1.5 [&_thead_th]:sticky">
+            <table className="w-full caption-bottom text-xs [&_th]:h-8 [&_th]:px-2 [&_td]:p-2 [&_thead_th]:sticky [&_tbody_tr]:border-b [&_tbody_tr]:border-border/60">
               {/* Group headers */}
               <TableHeader>
                 <TableRow className="bg-muted hover:bg-muted">
@@ -713,7 +713,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                 </TableRow>
 
                 {/* Period totals per table — moved to header (Σ row at top) */}
-                <TableRow className="hover:bg-transparent border-b-2 border-b-primary/40">
+                <TableRow className="bg-primary/10 hover:bg-primary/10 border-b-2 border-b-primary/40">
                   <TableHead className="sticky left-0 top-16 z-30 border-r-2 border-r-border text-[10px] uppercase tracking-wide font-semibold whitespace-nowrap [background-image:linear-gradient(hsl(var(--primary)/0.3),hsl(var(--primary)/0.3)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]">
                     Σ Period ({buckets.length}d)
                   </TableHead>
@@ -734,6 +734,16 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                     return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === CLUB_TABLES.length - 1} accent="info" />;
                   })}
                   <DRHeadCell drop={periodTotalDrop} result={totals.totalResult} bold />
+                </TableRow>
+                <TableRow className="bg-muted hover:bg-muted border-b border-border">
+                  <TableHead className="sticky left-0 top-24 z-30 bg-muted border-r-2 border-r-border text-[10px] uppercase font-semibold whitespace-nowrap">
+                    Σ by group
+                  </TableHead>
+                  <GroupTotalCells colSpan={AR_TABLES.length} drop={totals.arDrop} result={totals.arResult} accent="warning" header />
+                  <GroupTotalCells colSpan={PK_TABLES.length} drop={totals.pkDrop} result={totals.pkResult} accent="success" header />
+                  <GroupTotalCells colSpan={BJ_TABLES.length} drop={totals.bjDrop} result={totals.bjResult} accent="destructive" header />
+                  <GroupTotalCells colSpan={CLUB_TABLES.length} drop={totals.clubDrop} result={totals.clubResult} accent="info" header />
+                  <GroupTotalCells colSpan={1} drop={periodTotalDrop} result={totals.totalResult} accent="primary" noBorder header />
                 </TableRow>
               </TableHeader>
 
@@ -866,17 +876,6 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                   );
                 })}
 
-                {/* TOTAL by group row (AR / PK / BJ subtotals spanning each group) */}
-                <TableRow className="bg-primary/15 hover:bg-primary/15 font-semibold border-t-2 border-t-primary/40">
-                  <TableCell className="sticky left-0 bg-primary/20 z-10 border-r-2 border-r-border text-[11px] uppercase tracking-wide">
-                    Σ by group
-                  </TableCell>
-                  <GroupTotalCells colSpan={AR_TABLES.length} drop={totals.arDrop} result={totals.arResult} accent="warning" />
-                  <GroupTotalCells colSpan={PK_TABLES.length} drop={totals.pkDrop} result={totals.pkResult} accent="success" />
-                  <GroupTotalCells colSpan={BJ_TABLES.length} drop={totals.bjDrop} result={totals.bjResult} accent="destructive" />
-                  <GroupTotalCells colSpan={CLUB_TABLES.length} drop={totals.clubDrop} result={totals.clubResult} accent="info" />
-                  <GroupTotalCells colSpan={1} drop={periodTotalDrop} result={totals.totalResult} accent="primary" noBorder />
-                </TableRow>
               </TableBody>
             </table>
           </div>
@@ -1010,34 +1009,47 @@ const GroupTotalCells = ({
   result,
   accent,
   noBorder,
+  header = false,
 }: {
   colSpan: number;
   drop?: number;
   result: number;
   accent: "warning" | "success" | "destructive" | "primary" | "info";
   noBorder?: boolean;
+  header?: boolean;
 }) => {
   const bgMap = {
-    warning: "bg-warning/15",
-    success: "bg-success/15",
-    destructive: "bg-destructive/15",
-    primary: "bg-primary/25",
-    info: "bg-info/20",
+    warning: "[background-image:linear-gradient(hsl(var(--warning)/0.15),hsl(var(--warning)/0.15)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+    success: "[background-image:linear-gradient(hsl(var(--success)/0.15),hsl(var(--success)/0.15)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+    destructive: "[background-image:linear-gradient(hsl(var(--destructive)/0.15),hsl(var(--destructive)/0.15)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+    primary: "[background-image:linear-gradient(hsl(var(--primary)/0.25),hsl(var(--primary)/0.25)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
+    info: "[background-image:linear-gradient(hsl(var(--info)/0.2),hsl(var(--info)/0.2)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]",
   };
   const isNeg = result < 0;
-  return (
-    <TableCell
-      colSpan={colSpan}
-      className={cn(
-        "text-center font-mono tabular-nums whitespace-nowrap px-3",
-        bgMap[accent],
-        !noBorder && "border-r-2 border-r-border",
-      )}
-    >
+  const content = (
+    <>
       <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-2">R</span>
       <span className={cn("font-semibold", isNeg && "text-destructive")}>
         {result === 0 ? "—" : formatSpaced(result)}
       </span>
+    </>
+  );
+  const className = cn(
+    "text-center font-mono tabular-nums whitespace-nowrap px-3",
+    bgMap[accent],
+    !noBorder && "border-r-2 border-r-border",
+    header && "sticky top-24 z-10",
+  );
+  return header ? (
+    <TableHead colSpan={colSpan} className={className}>
+      {content}
+    </TableHead>
+  ) : (
+    <TableCell
+      colSpan={colSpan}
+      className={className}
+    >
+      {content}
     </TableCell>
   );
 };
