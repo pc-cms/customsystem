@@ -29,6 +29,10 @@ export const statsTableClass =
 export const statsTotalClass =
   "border-b border-border/60 bg-muted/40 [&_th]:h-9 [&_th]:text-[13px] [&_th]:tracking-normal [&_th]:normal-case [&_th]:font-semibold";
 
+/** Same TOTAL look for body rows (td cells). */
+export const statsTotalRowClass =
+  "border-b border-border/60 bg-muted/40 [&_td]:h-9 [&_td]:font-semibold";
+
 const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 /** Date cell with weekday; Fri–Sun gently emphasised. */
 export const DayLabel = ({ date }: { date: string }) => {
