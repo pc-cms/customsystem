@@ -23,8 +23,22 @@ export const StatStrip = ({ items }: { items: StatItem[] }) => (
 
 /** Shared Statistics table look: denser numbers, calm header, left-aligned dates. */
 export const statsTableClass =
-  "[&_th]:border-b [&_th]:border-border/60 [&_th]:text-[10px] [&_th]:tracking-[0.08em] [&_td]:py-2 [&_td]:text-[13px] [&_td:first-child]:text-left [&_th:first-child]:text-left [&_td:first-child]:pl-4 [&_th:first-child]:pl-4 [&_tbody_tr]:hover:bg-muted/30";
+  "[&_th]:border-b [&_th]:border-border/60 [&_th]:text-[10px] [&_th]:tracking-[0.08em] [&_td]:py-2 [&_td]:text-sm [&_td]:tabular-nums [&_td:first-child]:text-left [&_th:first-child]:text-left [&_td:first-child]:pl-4 [&_th:first-child]:pl-4 [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-primary/[0.06]";
 
 /** Pinned TOTAL row — quiet contrast, hairline borders. */
 export const statsTotalClass =
   "border-b border-border/60 bg-muted/40 [&_th]:h-9 [&_th]:text-[13px] [&_th]:tracking-normal [&_th]:normal-case [&_th]:font-semibold";
+
+const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+/** Date cell with weekday; Fri–Sun gently emphasised. */
+export const DayLabel = ({ date }: { date: string }) => {
+  const [y, m, d] = date.slice(0, 10).split("-").map(Number);
+  const wd = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  const weekend = wd === 0 || wd === 5 || wd === 6;
+  return (
+    <span className="inline-flex items-center gap-2 whitespace-nowrap">
+      <span className={cn("w-7 text-[10px] font-semibold uppercase tracking-wide", weekend ? "text-primary" : "text-muted-foreground")}>{WD[wd]}</span>
+      <span className="font-mono tabular-nums">{`${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`}</span>
+    </span>
+  );
+};

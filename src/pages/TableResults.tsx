@@ -655,7 +655,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
       {!isLoading && buckets.length > 0 && (
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto [container-type:inline-size] relative">
-            <table className="w-full caption-bottom text-xs [&_th]:h-8 [&_th]:px-2 [&_td]:p-2 [&_thead_th]:sticky [&_tbody_tr]:border-b [&_tbody_tr]:border-border/60">
+            <table className="w-full caption-bottom text-[13px] tabular-nums [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-primary/[0.06] [&_th]:h-8 [&_th]:px-2 [&_td]:p-2 [&_thead_th]:sticky [&_tbody_tr]:border-b [&_tbody_tr]:border-border/60">
               {/* Group headers */}
               <TableHeader>
                 <TableRow className="bg-muted hover:bg-muted">
