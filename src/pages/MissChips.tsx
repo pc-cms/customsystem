@@ -184,23 +184,6 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
                 </button>
               </DTHeader>
             </DTRow>
-            {dailyRows.length > 0 && (
-              <DTRow className={statsTotalClass}>
-                <DTHeader type="date">Month sum</DTHeader>
-                {DENOMS_DESC.map((d) => {
-                  const v = monthSum.by[d] ?? 0;
-                  const color = v > 0 ? "cms-amount-positive" : v < 0 ? "cms-amount-negative" : "text-muted-foreground";
-                  return (
-                    <DTHeader key={d} type="int" className={cn("text-center", color)}>
-                      {v === 0 ? "·" : (v > 0 ? `+${v}` : String(v))}
-                    </DTHeader>
-                  );
-                })}
-                <DTHeader type="money">
-                  <MoneyCell value={monthSum.total} mode={mode} signed className="font-bold" />
-                </DTHeader>
-              </DTRow>
-            )}
           </DTHead>
 
           <DTBody>
