@@ -12,6 +12,7 @@ import { Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { statsTableClass, statsTotalClass, DayLabel } from "@/components/reports/StatStrip";
 import { DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell } from "@/components/ui/data-table";
 import { MoneyCell } from "@/components/ui/money-cell";
 import { useMoneyMode, useMoneyDisplayMode } from "@/components/ui/data-table-toolbar";
@@ -161,7 +162,7 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
 
   const Body = (
     <PageSection titleRight={embedded ? undefined : <MoneyToggle />} card={false}>
-        <DataTable className="[&_th]:border-b [&_th]:border-border [&_td]:py-2.5 [&_tbody_tr]:hover:bg-muted/30">
+        <DataTable className={statsTableClass}>
           <DTHead className="[&_th]:bg-muted">
             <DTRow>
               <DTHeader type="date">
@@ -184,8 +185,8 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
               </DTHeader>
             </DTRow>
             {dailyRows.length > 0 && (
-              <DTRow className="border-b-2 border-primary/40 bg-primary/10 [&_th]:h-10 [&_th]:text-xs [&_th]:font-bold">
-                <DTHeader type="date" className="text-primary">MONTH SUM</DTHeader>
+              <DTRow className={statsTotalClass}>
+                <DTHeader type="date">Month sum</DTHeader>
                 {DENOMS_DESC.map((d) => {
                   const v = monthSum.by[d] ?? 0;
                   const color = v > 0 ? "cms-amount-positive" : v < 0 ? "cms-amount-negative" : "text-muted-foreground";
@@ -234,7 +235,7 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
             )}
             {sortedRows.map((r) => (
               <DTRow key={r.business_date}>
-                <DTCell type="date">{fmtDateOnly(r.business_date)}</DTCell>
+                <DTCell type="date"><DayLabel date={r.business_date} /></DTCell>
                 {DENOMS_DESC.map((d) => {
                   const v = r.by_denom[d] ?? 0;
                   const color = v > 0 ? "cms-amount-positive" : v < 0 ? "cms-amount-negative" : "text-muted-foreground";
