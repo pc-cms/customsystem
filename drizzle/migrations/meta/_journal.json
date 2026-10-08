@@ -204,6 +204,13 @@
       "when": 1791488045248,
       "tag": "0028_boss_report_closed_month_actual_expenses",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1791488478317,
+      "tag": "0029_boss_report_closed_month_snapshot_fast",
+      "breakpoints": true
     }
   ]
 }
