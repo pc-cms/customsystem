@@ -8,7 +8,6 @@
  */
 import type { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchBreaklistRows } from "@/hooks/use-dealers";
 import { getBusinessDate } from "@/lib/business-day";
 
 const IDLE_STALE = 5 * 60_000;
@@ -65,19 +64,6 @@ export function prefetchWeekAndMonth(qc: QueryClient, casinoId: string) {
   const weekFrom = shiftDate(today, -6);
 
   const tasks: Array<() => Promise<unknown>> = [];
-
-  // Брейк-лист: последние 6 дней (сегодня уже загружен экраном).
-  for (let d = 1; d <= 6; d++) {
-    const date = shiftDate(today, -d);
-    tasks.push(() =>
-      qc.prefetchQuery({
-        queryKey: ["breaklist", casinoId, date],
-        queryFn: async () =>
-          (await fetchBreaklistRows(casinoId, date)).map((b: any) => ({ ...b, dealer_id: b.employee_id })),
-        staleTime: IDLE_STALE,
-      }),
-    );
-  }
 
   // Офис: закрытия дня за текущий месяц.
   tasks.push(() =>
