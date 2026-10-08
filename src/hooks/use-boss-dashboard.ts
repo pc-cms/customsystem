@@ -56,22 +56,56 @@ const monthStart = (): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 };
 
-async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<CasinoDay> {
-  const mStart = monthStart();
+type MonthPast = { mtdRows: any[]; closings: any[]; shifts: any[] };
 
+const prevDay = (iso: string) => {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+};
+
+/** Past days of the month (mStart..yesterday) — cached 10 min, not polled. */
+async function fetchCasinoMonthPast(casinoId: string, businessDate: string): Promise<MonthPast> {
+  const mStart = monthStart();
+  const to = prevDay(businessDate);
+  if (to < mStart) return { mtdRows: [], closings: [], shifts: [] };
+  const [d, c, s] = await Promise.all([
+    (supabase as any).rpc("compute_daily_diff", { _casino_id: casinoId, _from: mStart, _to: to }),
+    supabase
+      .from("fin_day_closing")
+      .select("business_date, tables_result, slots_result, cashdesk_win, players_card_balance, drop_slots")
+      .eq("casino_id", casinoId)
+      .gte("business_date", mStart)
+      .lte("business_date", to),
+    supabase
+      .from("cage_slots_shifts")
+      .select("business_date, manual_drop_slots")
+      .eq("casino_id", casinoId)
+      .eq("status", "closed")
+      .gte("business_date", mStart)
+      .lte("business_date", to),
+  ]);
+  if (d.error) throw d.error;
+  if (c.error) throw c.error;
+  if (s.error) throw s.error;
+  return { mtdRows: d.data || [], closings: c.data || [], shifts: s.data || [] };
+}
+
+async function fetchCasinoDay(
+  casinoId: string,
+  businessDate: string,
+  getPast: () => Promise<MonthPast>,
+): Promise<CasinoDay> {
   // Source of truth (aligned with Dashboard TV → Monthly Report):
   //   Drop            → RPC `compute_daily_diff` (Σ player_day_drop_cache.peak)
   //   Tables (open)   → Chips Check: latest chip-count snapshots per table
   //   Tables (closed) → `fin_day_closing.tables_result`
   //   Slots           → ONLY closed days: cashdesk_win − players_card_balance.
-  //                     While the day is open (and no fresh ACE feed) slots show `·`
-  //                     — an open cage-slots shift is a draft, not a result.
-  const [dailyTodayRes, dailyMtdRes, hcRes, closingsRes, snapRes, slotShiftsRes] = await Promise.all([
+  // Only TODAY is polled; past days of the month come from a 10-min cache.
+  const [past, dailyTodayRes, hcRes, todayClosingRes, snapRes, todayShiftsRes] = await Promise.all([
+    getPast(),
     (supabase as any).rpc("compute_daily_diff", {
       _casino_id: casinoId, _from: businessDate, _to: businessDate,
-    }),
-    (supabase as any).rpc("compute_daily_diff", {
-      _casino_id: casinoId, _from: mStart, _to: businessDate,
     }),
     supabase
       .from("casino_visits")
@@ -83,30 +117,25 @@ async function fetchCasinoDay(casinoId: string, businessDate: string): Promise<C
       .from("fin_day_closing")
       .select("business_date, tables_result, slots_result, cashdesk_win, players_card_balance, drop_slots")
       .eq("casino_id", casinoId)
-      .gte("business_date", mStart)
-      .lte("business_date", businessDate),
+      .eq("business_date", businessDate),
     (supabase as any).rpc("chip_snapshots_latest", { _casino_id: casinoId, _date: businessDate }),
-    // Statistics fallback for monthly Slots Drop when Day Closing has no ACE figure.
     supabase
       .from("cage_slots_shifts")
       .select("business_date, manual_drop_slots")
       .eq("casino_id", casinoId)
       .eq("status", "closed")
-      .gte("business_date", mStart)
-      .lte("business_date", businessDate),
+      .eq("business_date", businessDate),
   ]);
 
-
-
-
-
+  const dailyMtdRes = { data: [...past.mtdRows, ...((dailyTodayRes.data || []) as any[])] };
+  const slotShiftsRes = { data: [...past.shifts, ...((todayShiftsRes.data || []) as any[])] };
 
   const headCount = hcRes.count ?? 0;
 
   const todayRow = (dailyTodayRes.data || [])[0] || {};
   const liveDrop = Number(todayRow.drop_r || 0);
 
-  const closings = (closingsRes.data || []) as any[];
+  const closings = [...past.closings, ...((todayClosingRes.data || []) as any[])];
   const todayClosing = closings.find((r) => r.business_date === businessDate);
 
   // Result of a CLOSED day (approved source):
