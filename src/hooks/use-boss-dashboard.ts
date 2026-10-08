@@ -8,7 +8,7 @@
  *   - New players today (visits_count <= 3) across all
  *   - MTD Total Drop / Result / Hold per casino
  */
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getBusinessDate } from "@/lib/business-day";
 import { closedDaySlotsResult } from "@/lib/boss-display-metrics";
@@ -235,12 +235,21 @@ async function fetchCasinoDay(
 
 export function useBossCasinoDays(casinoIds: string[]) {
   const today = getBusinessDate();
+  const qc = useQueryClient();
   const results = useQueries({
     queries: casinoIds.map((id) => ({
       queryKey: ["boss-dashboard-day", id, today],
-      queryFn: () => fetchCasinoDay(id, today),
+      queryFn: () =>
+        fetchCasinoDay(id, today, () =>
+          qc.fetchQuery({
+            queryKey: ["boss-dashboard-month-past", id, today],
+            queryFn: () => fetchCasinoMonthPast(id, today),
+            staleTime: 10 * 60_000,
+          }),
+        ),
       enabled: !!id,
       refetchInterval: 10_000,
+      refetchIntervalInBackground: false,
       staleTime: 5_000,
     })),
   });
