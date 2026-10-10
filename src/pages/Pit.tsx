@@ -24,7 +24,7 @@ import ShiftCodesDialog from "@/components/shifts/ShiftCodesDialog";
 import { useUnitHoursMaps, useShiftCodes, formatShiftCodeLegend, SHIFT_CODES_FROM , sortShiftsByTime } from "@/hooks/use-shift-codes";
 import { useCasino } from "@/lib/casino-context";
 import { usesArushaShiftGrid, usesDodomaShiftGrid } from "@/hooks/use-staff";
-import { parseAttValue, normalizeAttInput, isStatusCode } from "@/lib/attendance-code";
+import { parseAttValue, normalizeAttInput, isStatusCode, isWorkingRotaCode } from "@/lib/attendance-code";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -1074,12 +1074,17 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
   const attHoursScope = usesDodomaShiftGrid(activeCasinoForAtt) ? "pit_dodoma" : usesArushaShiftGrid(activeCasinoForAtt) ? "pit_arusha" : "pit";
   const pitAttUnitHours = useUnitHoursMaps((activeCasinoForAtt as any)?.id, "pit");
 
+  const dealerCodeHours = (dealerId: string) => {
+    const d: any = dealers.find((x: any) => x.id === dealerId);
+    return pitAttUnitHours(d?.is_pit_boss ? "pit_bosses" : "dealers");
+  };
+
   const getRotaShift = (dealerId: string, day: number): string | null => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const entry = rota.find((r: any) => r.dealer_id === dealerId && r.date === dateStr);
     if (!entry) return null;
-    const s = entry.shift as string;
-    return (s === "M" || s === "SW" || s === "N" || s === "G" || isExtraShift(s)) ? s : null;
+    const s = String(entry.shift || "").toUpperCase();
+    return isWorkingRotaCode(s, dealerCodeHours(dealerId)) ? s : null;
   };
 
   const today = new Date();
@@ -1098,7 +1103,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
 
   const handleSave = (dealerId: string, day: number, val: string) => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-    const next = normalizeAttInput(val);
+    const next = normalizeAttInput(val, dateStr >= SHIFT_CODES_FROM ? dealerCodeHours(dealerId) : undefined);
     if (next === null) return;
     setAttendance.mutate({ dealer_id: dealerId, date: dateStr, value: next });
   };
@@ -1136,7 +1141,7 @@ const AttendanceGrid = ({ month, readOnly = false }: { month: string; readOnly?:
         if (autoFilledRef.current.has(key)) continue;
 
         const rotaShift = getRotaShift(d.id, day);
-        if (rotaShift !== "M" && rotaShift !== "SW" && rotaShift !== "N" && rotaShift !== "G" && !isExtraShift(rotaShift)) continue;
+        if (!rotaShift) continue;
 
         const current = getValue(d.id, day);
         if (current !== "") continue;

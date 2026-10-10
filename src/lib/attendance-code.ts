@@ -51,11 +51,16 @@ export const parseAttValue = (val: string | null | undefined): ParsedAtt => {
 };
 
 /** Normalize free-text input into a storable attendance value ("" when invalid). */
-export const normalizeAttInput = (raw: string): string | null => {
+export const normalizeAttInput = (raw: string, codeHours?: Record<string, number>): string | null => {
   const v = (raw ?? "").trim().toUpperCase();
   if (v === "") return "";
   if (v === "A" || v === "S" || v === "SP" || v === "L") return v;
-  // Shift shortcuts
+  // Configured shift codes of this casino + sub-department win over legacy shortcuts.
+  if (codeHours && v in codeHours) {
+    const h = Number(codeHours[v]);
+    return h > 0 ? String(h) : null;
+  }
+  // Legacy shift shortcuts
   if (v === "M" || v === "EM") return "11";
   if (v === "SW" || v === "ESW") return "11";
   if (v === "T") return "6";
@@ -71,3 +76,16 @@ export const normalizeAttInput = (raw: string): string | null => {
 /** Status codes that carry no hours. */
 export const isStatusCode = (kind: AttKind) =>
   kind === "absent" || kind === "sick" || kind === "suspend" || kind === "late";
+
+const NON_WORKING_ROTA = new Set(["", "O", "OFF", "L", "V", "A", "S", "SP"]);
+
+/**
+ * A rota code counts as a scheduled working shift when it is not a status/off
+ * code and, if configured for the unit, has hours > 0.
+ */
+export const isWorkingRotaCode = (code: string | null | undefined, codeHours?: Record<string, number>): boolean => {
+  const c = (code ?? "").trim().toUpperCase();
+  if (NON_WORKING_ROTA.has(c)) return false;
+  if (codeHours && c in codeHours) return Number(codeHours[c]) > 0;
+  return true;
+};
