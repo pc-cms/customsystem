@@ -118,6 +118,7 @@ export const useWalletDayGrid = (opts: { from: string; to: string; groups: Walle
           .in("wallet_id", walletIds)
           .gte("business_date", from)
           .lte("business_date", to)
+          .order("id")
           .range(a, b),
       );
       const cells = new Map<string, GridCell>();
@@ -177,7 +178,7 @@ export const useWalletDayGrid = (opts: { from: string; to: string; groups: Walle
           .lt("business_date", from);
         // With an opening snapshot only the movements after the 1st are added on top.
         if (hasOpening) q = q.gte("business_date", monthStart);
-        return q.range(a, b);
+        return q.order("id").range(a, b);
       });
 
       const map = new Map<string, number>();
