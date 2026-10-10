@@ -29,7 +29,7 @@ import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_TINTS, getShiftColor } from "@/lib/sh
 import { predictedShiftHours } from "@/lib/shift-hours";
 import ShiftCodesDialog from "@/components/shifts/ShiftCodesDialog";
 import { useUnitHoursMaps, useShiftCodes, useAllShiftCodes, formatShiftCodeLegend, SHIFT_CODES_FROM, type ShiftDept , sortShiftsByTime } from "@/hooks/use-shift-codes";
-import { parseAttValue, normalizeAttInput, isStatusCode } from "@/lib/attendance-code";
+import { parseAttValue, normalizeAttInput, isStatusCode, isWorkingRotaCode } from "@/lib/attendance-code";
 
 import { useClosedBusinessDates, useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { CellPicker } from "@/components/grids/CellPicker";
@@ -1040,17 +1040,22 @@ const StaffAttendanceGrid = ({ month, monthLabel, groupKey = "floor", readOnly =
     return entry ? String(entry.value) : "";
   };
 
+  const staffCodeHours = (staffId: string) => {
+    const s = staff.find((x) => x.id === staffId);
+    return unitAttHours(s?.department);
+  };
+
   const getRotaShift = (staffId: string, day: number): string | null => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     const entry = rota.find((r: any) => r.staff_id === staffId && r.date === dateStr);
     if (!entry) return null;
-    const s = entry.shift as string;
-    return (s === "MO" || s === "D" || s === "M" || s === "N" || s === "G") ? s : null;
+    const s = String(entry.shift || "").toUpperCase();
+    return isWorkingRotaCode(s, staffCodeHours(staffId)) ? s : null;
   };
 
   const handleSave = (staffId: string, day: number, val: string) => {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-    const next = normalizeAttInput(val);
+    const next = normalizeAttInput(val, dateStr >= SHIFT_CODES_FROM ? staffCodeHours(staffId) : undefined);
     if (next === null) return;
     setAttendance.mutate({ staff_id: staffId, date: dateStr, value: next });
   };
