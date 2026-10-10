@@ -211,6 +211,13 @@
       "when": 1791488478317,
       "tag": "0029_boss_report_closed_month_snapshot_fast",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1791638540304,
+      "tag": "0030_migration",
+      "breakpoints": true
     }
   ]
 }
