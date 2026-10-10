@@ -46,6 +46,7 @@ export const usePlayerVisits = (playerId: string | undefined, enabled = true) =>
         .select("*, casinos(name, code)")
         .eq("player_id", playerId)
         .order("checked_in_at", { ascending: false })
+        .order("id")
         .range(from, to));
     },
     enabled: !!playerId && enabled,
@@ -68,7 +69,8 @@ export const usePlayerSessions = (
           .from("client_sessions")
           .select("*, gaming_tables(name, game)")
           .eq("player_id", playerId)
-          .order("started_at", { ascending: false });
+          .order("started_at", { ascending: false })
+          .order("id");
         if (range?.from) q = q.gte("started_at", `${range.from}T00:00:00`);
         if (range?.to) q = q.lte("started_at", `${range.to}T23:59:59`);
         return q.range(from, to);
@@ -92,6 +94,7 @@ export const usePlayerTransactions = (playerId: string | undefined) => {
         .in("type", ["buy", "cashout", "in", "out"])
         .is("cancelled_at", null)
         .order("created_at", { ascending: false })
+        .order("id")
         .range(from, to));
     },
     enabled: !!playerId,
@@ -129,6 +132,7 @@ export const usePlayerExpenses = (playerId: string | undefined, enabled = true) 
         .select("id, casino_id, category, amount, description, approved, created_at")
         .eq("player_id", playerId)
         .order("created_at", { ascending: false })
+        .order("id")
         .range(from, to));
     },
     enabled: !!playerId && enabled,

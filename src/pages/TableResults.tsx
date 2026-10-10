@@ -210,6 +210,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
         .gte("business_date", from)
         .lte("business_date", to)
         .order("business_date", { ascending: true })
+        .order("player_id")
         .range(pageFrom, pageTo)
       );
       (rows ?? []).forEach((r: any) => {
@@ -236,6 +237,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
         .lte("business_date", to)
         .in("type", ["in", "buy"])
         .is("cancelled_at", null)
+        .order("id")
         .range(pageFrom, pageTo)
       );
       (rows ?? []).forEach((r: any) => {

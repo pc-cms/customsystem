@@ -71,7 +71,8 @@ export const useHolidays = (monthFirstDay: string) => {
         .eq("casino_id", activeCasinoId!)
         .gte("date", start)
         .lte("date", end)
-        .order("date");
+        .order("date")
+        .order("employee_id");
       if (error) throw error;
       return (data || []) as AttendanceHoliday[];
     },
