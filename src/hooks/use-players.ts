@@ -41,7 +41,9 @@ export const usePlayers = () => {
           .select("*, player_cards(id, player_id, card_number, rfid_uid, is_active), player_tags(id, player_id, tag)")
           .neq("status", "merged");
         if (!isSuper) q = q.eq("is_ace_auto", false);
-        return q.order("last_name").range(from, to);
+        // Unique tie-breaker: without it, players sharing a last name (e.g. 70× "IND")
+        // can fall between 1000-row pages and silently disappear from the list.
+        return q.order("last_name").order("id").range(from, to);
       });
     },
     ...liveQueryOptions(),
