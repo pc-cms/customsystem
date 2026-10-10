@@ -195,6 +195,7 @@ export const usePlayersDropCacheToday = (businessDate: string | null | undefined
         .select("player_id, peak, recycled")
         .eq("casino_id", casinoId)
         .eq("business_date", businessDate)
+        .order("player_id")
         .range(from, to)
       );
       const rec: Record<string, TableSplit> = {};
@@ -232,6 +233,7 @@ export const usePlayersDropCacheRange = (
         .gte("business_date", fromDate)
         .lte("business_date", toDate)
         .order("business_date", { ascending: true })
+        .order("player_id")
         .range(from, to)
       );
       const rec: Record<string, TableSplit> = {};

@@ -91,6 +91,7 @@ const YearlyGraphicsReport = () => {
             .eq("casino_id", casinoId)
             .gte("business_date", from).lte("business_date", to)
             .order("business_date", { ascending: true })
+            .order("player_id")
             .range(a, b)),
         supabase.from("fin_day_closing")
           .select("business_date, tables_result, slots_result")
@@ -106,6 +107,7 @@ const YearlyGraphicsReport = () => {
             .eq("casino_id", casinoId)
             .gte("date", from).lte("date", to)
             .order("date", { ascending: true })
+            .order("id")
             .range(a, b)),
       ]);
 

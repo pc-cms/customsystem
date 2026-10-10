@@ -118,6 +118,7 @@ const PlayerStatistics = () => {
         .gte("created_at", windowStartUTC)
         .lt("created_at", windowEndUTC)
         .order("created_at", { ascending: false })
+        .order("id")
         .range(from, to)
       );
     },
@@ -139,6 +140,7 @@ const PlayerStatistics = () => {
         .gte("created_at", windowStartUTC)
         .lt("created_at", windowEndUTC)
         .order("created_at", { ascending: false })
+        .order("id")
         .range(from, to)
       );
     },
@@ -159,6 +161,7 @@ const PlayerStatistics = () => {
         .gte("created_at", windowStartUTC)
         .lt("created_at", windowEndUTC)
         .order("created_at", { ascending: false })
+        .order("id")
         .range(from, to)
       );
     },
@@ -262,6 +265,7 @@ const PlayerStatistics = () => {
         .gte("date", fromDate)
         .lte("date", toDate)
         .order("checked_in_at", { ascending: false })
+        .order("id")
         .range(from, to)
       );
     },
@@ -300,6 +304,7 @@ const PlayerStatistics = () => {
         .gte("started_at", windowStartUTC)
         .lt("started_at", windowEndUTC)
         .order("started_at", { ascending: false })
+        .order("id")
         .range(from, to)
       );
     },

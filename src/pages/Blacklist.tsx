@@ -85,6 +85,7 @@ const Blacklist = () => {
         .select("*")
         .eq("status", "blacklist")
         .order("updated_at", { ascending: false })
+        .order("id")
         .range(from, to));
     },
   });

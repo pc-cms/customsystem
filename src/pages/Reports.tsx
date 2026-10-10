@@ -262,27 +262,27 @@ const TotalReport = ({ from, to }: { from: string; to: string }) => {
       const [liveData, slotsData, expData, dropData, closingData] = await Promise.all([
         fetchPaged<any>((f, t) => supabase.from("shifts").select("id, closed_at, tables_result")
           .eq("casino_id", casinoId).eq("status", "closed")
-          .gte("closed_at", fromIso).lt("closed_at", toIso).range(f, t)),
+          .gte("closed_at", fromIso).lt("closed_at", toIso).order("id").range(f, t)),
         fetchPaged<any>((f, t) => supabase.from("cage_slots_shifts").select("id, business_date, status, manual_drop_slots")
           .eq("casino_id", casinoId).eq("status", "closed")
-          .gte("business_date", from).lt("business_date", toStr).range(f, t)),
+          .gte("business_date", from).lt("business_date", toStr).order("id").range(f, t)),
 
         fetchPaged<any>((f, t) => supabase.from("expenses").select("amount, created_at")
           .eq("casino_id", casinoId)
-          .gte("created_at", fromIso).lt("created_at", toIso).range(f, t)),
+          .gte("created_at", fromIso).lt("created_at", toIso).order("id").range(f, t)),
         // Drop Tables = Σ peak-NEP from player_day_drop_cache per business day.
         // SAME source as Player Statistics / Dashboard / Tables — keeps every
         // screen in sync. Paged so long periods (year / All) aren't truncated.
         fetchPaged<any>((f, t) => supabase.from("player_day_drop_cache").select("business_date, peak")
           .eq("casino_id", casinoId)
-          .gte("business_date", from).lt("business_date", toStr).range(f, t)),
+          .gte("business_date", from).lt("business_date", toStr).order("player_id").range(f, t)),
         // Result Slots canon (closed day): CashDesk Win − Card Balance.
         // The card balance IS the ACE cashless money difference — never
         // subtracted twice. Net Win is never used here.
         fetchPaged<any>((f, t) => supabase.from("fin_day_closing")
           .select("business_date, cashdesk_win, players_card_balance, drop_slots")
           .eq("casino_id", casinoId)
-          .gte("business_date", from).lt("business_date", toStr).range(f, t)),
+          .gte("business_date", from).lt("business_date", toStr).order("id").range(f, t)),
       ]);
       const liveRes = { data: liveData, error: null };
       const slotsRes = { data: slotsData, error: null };

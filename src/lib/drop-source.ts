@@ -50,6 +50,7 @@ export async function fetchTotalDrop(params: Params): Promise<number> {
         .gte("business_date", fromDate)
         .lte("business_date", to)
         .order("business_date", { ascending: true })
+        .order("player_id")
         .range(from, until);
       if (playerIds && playerIds.length > 0) {
         q = q.in("player_id", playerIds);

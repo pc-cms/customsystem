@@ -331,7 +331,7 @@ export function useBossNewPlayers(casinoIds: string[]) {
       const { fetchPaged } = await import("@/lib/fetch-paged");
       const playerIds = Array.from(new Set(Array.from(uniq.values()).map((v) => v.playerId)));
       const counts = await fetchPaged<{ player_id: string }>((from, to) =>
-        supabase.from("casino_visits").select("player_id").in("player_id", playerIds).range(from, to),
+        supabase.from("casino_visits").select("player_id").in("player_id", playerIds).order("id").range(from, to),
       );
       const cmap = new Map<string, number>();
       counts.forEach((r) => cmap.set(r.player_id, (cmap.get(r.player_id) || 0) + 1));
