@@ -85,6 +85,7 @@ export type ModuleKey =
   | "blank_forms"
 
   | "report_am_budget"
+  | "tables_float"
   | "admin";
 
 export interface ModuleDef {
@@ -171,6 +172,7 @@ export const MODULES: ModuleDef[] = [
   { key: "cctv", label: "CCTV", group: "System" },
   { key: "cctv_dashboard", label: "CCTV Dashboard", group: "System" },
   { key: "marketing_campaigns", label: "Marketing Campaigns", group: "Operations" },
+  { key: "tables_float", label: "Tables & Float", group: "System" },
   { key: "admin", label: "Admin Panel", group: "System" },
 
   // Club / Premier Promo

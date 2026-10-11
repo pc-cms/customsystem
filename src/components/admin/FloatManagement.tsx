@@ -38,6 +38,7 @@ const FloatManagement = () => {
   const [hasChanges, setHasChanges] = useState(false);
 
   const isLocked = casinoInfo?.float_locked === true;
+  const openTableIds = useMemo(() => new Set(tables.filter(t => t.status === "open").map(t => t.id)), [tables]);
 
   // Build locations: tables + cashier + safe (filtered by per-casino visibility)
   const locations: LocationDef[] = useMemo(() => {
@@ -156,6 +157,13 @@ const FloatManagement = () => {
         </div>
       </div>
 
+      {openTableIds.size > 0 && (
+        <div className="cms-panel p-3 flex items-center gap-2 text-xs text-warning">
+          <AlertTriangle className="w-4 h-4" />
+          Open tables are read-only. Table float can only be changed before tables are opened on Pit.
+        </div>
+      )}
+
       {/* Grid table */}
       <div className="cms-panel overflow-x-auto">
         <div className="min-w-[800px]">
@@ -196,7 +204,7 @@ const FloatManagement = () => {
                             min={0}
                             value={val || ""}
                             onValueChange={(v) => handleChange(loc.key, d, v == null ? "" : String(v))}
-                            disabled={isLocked}
+                            disabled={isLocked || (loc.type === "table" && !!loc.id && openTableIds.has(loc.id))}
                             className="w-16 h-7 rounded text-[11px] font-mono text-center border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary text-card-foreground mx-auto block disabled:opacity-50 disabled:cursor-not-allowed"
                             placeholder="0"
                           />
