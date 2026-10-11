@@ -86,6 +86,7 @@ const AttendanceManagementPage = lazy(() => import("@/pages/flat/StaffFlat").the
 const Groups = lazy(() => import("@/pages/Groups"));
 const Reports = lazy(() => import("@/pages/Reports"));
 const Admin = lazy(() => import("@/pages/Admin"));
+const TablesFloatPage = lazy(() => import("@/pages/settings/TablesFloatPage"));
 const SuperadminLicensePage = lazy(() => import("@/pages/admin/SuperadminLicensePage"));
 const Staff = lazy(() => import("@/pages/Staff"));
 // Finances/* routes have been removed. Everything financial lives under /office as flat tabs.
@@ -547,6 +548,7 @@ const ProtectedRoutes = () => {
           <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
           <Route path="/stats" element={<Navigate to="/player-statistics" replace />} />
           <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />
+          <Route path="/settings/tables-float" element={<RoleGuard path="/settings/tables-float"><ErrorBoundary><TablesFloatPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin" element={<RoleGuard path="/admin"><Admin /></RoleGuard>} />
           <Route path="/superadmin/license" element={<RoleGuard path="/admin"><ErrorBoundary><SuperadminLicensePage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/license" element={<Navigate to="/superadmin/license" replace />} />

@@ -67,7 +67,6 @@ const TableManagement = () => {
         display_order: order,
       } as any);
       if (error) throw error;
-      await logAction(casinoId, "system", "TABLE_CREATED", { name, game: newGame, display_order: order });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["gaming-tables"] });

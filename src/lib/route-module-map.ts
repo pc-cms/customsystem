@@ -168,6 +168,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
 
   if (base === "/reports/am-budget") return "report_am_budget";
 
+  if (base === "/settings/tables-float") return "tables_float";
   if (base === "/admin" || base.startsWith("/admin/")) return "admin";
 
 
