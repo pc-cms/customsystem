@@ -44,7 +44,6 @@ export const useArchiveTable = () => {
         .update({ is_archived: archive } as any)
         .eq("id", tableId);
       if (error) throw error;
-      await logAction(casinoId, "system", archive ? "TABLE_ARCHIVED" : "TABLE_RESTORED", { table_id: tableId });
     },
     onSuccess: (_, { archive }) => {
       qc.invalidateQueries({ queryKey: ["gaming-tables"] });
@@ -68,7 +67,6 @@ export const useRenameTable = () => {
         .update({ name: trimmed } as any)
         .eq("id", tableId);
       if (error) throw error;
-      await logAction(casinoId, "system", "TABLE_RENAMED", { table_id: tableId, name: trimmed });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["gaming-tables"] });
