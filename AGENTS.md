@@ -2,3 +2,4 @@
 - POS location operation_mode (complimentary|paid) is snapshotted onto pos_tabs/pos_orders at insert so history never changes when a location mode changes.
 - Shift codes are per casino + department + unit (shift_codes.unit = sub-department key: dealers/pit_bosses, cashier/bartender/cleaner/hostess/reception, security, hr/it); unit rows win over legacy unit=NULL rows — each sub-department configures its own hours independently.
 - Use the shared shift color resolver for rota cells, legends and code totals; it preserves familiar colors and gives custom codes stable themed accents.
+- Table/float admin lives at /settings/tables-float (module tables_float); table float changes and chip moves (RPC move_table_chips) are DB-guarded to closed tables because baseline drives table results.
