@@ -15240,6 +15240,10 @@ export type Database = {
         Args: { p_casino_id: string; p_month_start: string }
         Returns: Json
       }
+      move_table_chips: {
+        Args: { p_chips: Json; p_from: string; p_to: string }
+        Returns: Json
+      }
       payroll_apply_advances: {
         Args: { _period_id: string }
         Returns: undefined
