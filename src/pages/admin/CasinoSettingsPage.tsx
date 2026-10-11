@@ -9,7 +9,7 @@
  *     new spec entry → it appears here automatically.
  */
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, LayoutGrid, Coins, Palette, ShieldCheck, Settings2, Banknote, Wallet, HandCoins, Gauge } from "lucide-react";
+import { Clock, Palette, ShieldCheck, Settings2, Banknote, Wallet, HandCoins, Gauge } from "lucide-react";
 import { TimeSettingsPanel } from "@/components/admin/TimeSettingsPanel";
 import { ClosingReportSettingsPanel } from "@/components/admin/ClosingReportSettingsPanel";
 import ChipColorSettings from "@/components/admin/ChipColorSettings";
