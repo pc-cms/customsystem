@@ -232,6 +232,13 @@
       "when": 1791740806427,
       "tag": "0032_tables_float_settings_access",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791740835020,
+      "tag": "0033_float_log_skip_cashier",
+      "breakpoints": true
     }
   ]
 }
