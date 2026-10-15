@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { usePlayers, useTransactions, useGamingTables } from "@/hooks/use-casino-data";
+import { usePlayersWithCheckedIn } from "@/hooks/use-players";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,7 +22,7 @@ import { usePlayersDropCacheToday } from "@/hooks/use-drop-split";
 const POKER_GAMES = ["Poker", "Texas Holdem", "Omaha", "PLO"];
 
 const ActivePlayers = () => {
-  const { data: players = [] } = usePlayers();
+  const { data: players = [] } = usePlayersWithCheckedIn();
   const { data: tables = [] } = useGamingTables();
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const today = serverBusinessDate || getBusinessDate();

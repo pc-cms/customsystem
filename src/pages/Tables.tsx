@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useSessionState } from "@/hooks/use-session-state";
 import { useNavigate } from "react-router-dom";
 import { useGamingTables, useTransactions, useTableTracker, usePlayers } from "@/hooks/use-casino-data";
+import { usePlayersWithCheckedIn } from "@/hooks/use-players";
 import { useActiveShift } from "@/hooks/use-shift";
 import { useChipSnapshots } from "@/hooks/use-chips";
 import { useChipBaseline, useOpenAllTables, baselineToMap } from "@/hooks/use-table-lifecycle";
@@ -60,7 +61,7 @@ const Tables = () => {
   }, [businessDay, date, restrictedToToday, setDate]);
 
   const { data: tables = [] } = useGamingTables();
-  const { data: players = [] } = usePlayers();
+  const { data: players = [] } = usePlayersWithCheckedIn();
   const { data: transactions = [] } = useTransactions(effectiveDate);
   const { data: shift } = useActiveShift();
   const { data: snapshots = [] } = useChipSnapshots(effectiveDate);
