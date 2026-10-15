@@ -239,6 +239,13 @@
       "when": 1791740835020,
       "tag": "0033_float_log_skip_cashier",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792085236066,
+      "tag": "0034_merge_players_fold_same_day_visits",
+      "breakpoints": true
     }
   ]
 }
