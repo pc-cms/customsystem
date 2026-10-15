@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useCheckedInPlayers } from "./use-visits";
 import { liveQueryOptions } from "@/lib/live-query-options";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -352,4 +354,23 @@ export const useRemoveGroupMember = () => {
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["player-groups"] }); },
   });
+};
+
+/**
+ * Global player list + every player checked in to this casino right now,
+ * merged by id. Checked-in players are guaranteed present even when the
+ * big paged list is stale or incomplete.
+ */
+export const usePlayersWithCheckedIn = () => {
+  const all = usePlayers();
+  const checkedIn = useCheckedInPlayers();
+  const data = useMemo(() => {
+    const base = (all.data || []) as any[];
+    const extra = (checkedIn.data || []) as any[];
+    if (!extra.length) return base;
+    const ids = new Set(base.map(p => p.id));
+    const missing = extra.filter(p => !ids.has(p.id));
+    return missing.length ? [...base, ...missing] : base;
+  }, [all.data, checkedIn.data]);
+  return { ...all, data, isLoading: all.isLoading && !checkedIn.data };
 };

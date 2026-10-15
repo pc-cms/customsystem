@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import PlayerSearch from "@/components/cage/PlayerSearch";
-import { usePlayers } from "@/hooks/use-players";
+import { usePlayers, usePlayersWithCheckedIn } from "@/hooks/use-players";
 import { formatCurrency } from "@/lib/currency";
 
 const PROVIDERS: { value: CashlessProvider; label: string }[] = [
@@ -81,7 +81,7 @@ const Cashless = () => {
   const { data: rows = [] } = useCashless(viewDate, source);
 
   const { data: slotsShift } = useActiveCageSlotsShift();
-  const { data: players = [] } = usePlayers();
+  const { data: players = [] } = usePlayersWithCheckedIn();
 
   const create = useCreateCashless();
   const approve = useApproveCashless();
