@@ -39,3 +39,38 @@ export const useVisitsToday = (selectFields = "*, players(first_name, last_name,
     ...liveQueryOptions(),
   });
 };
+
+/**
+ * Players with an open visit today in this casino, fetched directly via the
+ * visit → player join. Does NOT depend on the global paged players list, so a
+ * freshly checked-in player is never missing from cashier / pit screens.
+ */
+export const useCheckedInPlayers = () => {
+  const { casinoId } = useAuth();
+  const today = getBusinessDate();
+  return useQuery({
+    queryKey: ["casino-visits-live", casinoId, today, "checked-in-players"],
+    queryFn: async () => {
+      if (!casinoId) return [] as any[];
+      const { data, error } = await supabase
+        .from("casino_visits")
+        .select("player_id, players(*, player_cards(id, player_id, card_number, rfid_uid, is_active), player_tags(id, player_id, tag))")
+        .eq("casino_id", casinoId)
+        .eq("date", today)
+        .is("checked_out_at", null)
+        .order("checked_in_at", { ascending: false })
+        .order("id");
+      if (error) throw error;
+      const seen = new Set<string>();
+      return (data || []).flatMap((v: any) => {
+        const p = v.players;
+        if (!p?.id || seen.has(p.id)) return [];
+        seen.add(p.id);
+        return [p];
+      });
+    },
+    enabled: !!casinoId,
+    refetchInterval: 30_000,
+    ...liveQueryOptions(),
+  });
+};

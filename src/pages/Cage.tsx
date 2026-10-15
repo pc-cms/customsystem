@@ -1,6 +1,7 @@
 import { Landmark } from "lucide-react";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
-import { usePlayers, useGamingTables } from "@/hooks/use-casino-data";
+import { useGamingTables } from "@/hooks/use-casino-data";
+import { usePlayersWithCheckedIn as usePlayers } from "@/hooks/use-players";
 import { useActiveShift } from "@/hooks/use-shift";
 import OpenShiftScreen from "@/components/cage/OpenShiftScreen";
 import ActiveShiftView from "@/components/cage/ActiveShiftView";
