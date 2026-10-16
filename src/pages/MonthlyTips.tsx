@@ -40,7 +40,7 @@ const CATEGORY_ORDER: Record<string, number> = {
 
 const DENOMS = [10000, 5000, 2000, 1000];
 
-import { parseAttValue as parseValue, normalizeAttInput as normalizeAttRaw } from "@/lib/attendance-code";
+import { parseAttValue as parseValue, normalizeAttInput as normalizeAttRaw, pitBossHours } from "@/lib/attendance-code";
 
 const normalizeAttInput = (raw: string): string | null => normalizeAttRaw(raw);
 
@@ -132,7 +132,7 @@ export default function MonthlyTips({ belowHeader }: { belowHeader?: ReactNode }
         const att = (attDraft[key] ?? attMap.get(key)) ?? "";
         const shift = rotaMap.get(key) ?? "";
         const p = parseValue(att);
-        hours += p.hours;
+        hours += d.is_pit_boss ? pitBossHours(p, shift) : p.hours;
         if (isExtraShift(shift)) extraComputed += 1;
         return { att, shift, parsed: p, key, day };
       });

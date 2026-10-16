@@ -89,3 +89,18 @@ export const isWorkingRotaCode = (code: string | null | undefined, codeHours?: R
   if (codeHours && c in codeHours) return Number(codeHours[c]) > 0;
   return true;
 };
+
+/**
+ * Pit Boss canonical hours for tips/bonus: middle/swing/day = 11h, night = 8h,
+ * regardless of the casino shift-code duration. Only applied to days with
+ * plain worked hours ("<n>"); statuses and partial (nS / nL) keep actual hours.
+ */
+export const PIT_BOSS_LONG = new Set(["M", "EM", "SW", "ESW", "E", "D"]);
+export const PIT_BOSS_SHORT = new Set(["N", "EN"]);
+export const pitBossHours = (parsed: ParsedAtt, shift: string | null | undefined): number => {
+  if (parsed.kind !== "hours") return parsed.hours;
+  const s = (shift ?? "").trim().toUpperCase();
+  if (PIT_BOSS_LONG.has(s)) return 11;
+  if (PIT_BOSS_SHORT.has(s)) return 8;
+  return parsed.hours;
+};
