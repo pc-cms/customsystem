@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useCasino } from "@/lib/casino-context";
 import { logAction } from "@/lib/logging";
+import { CHIP_DENOMS } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -69,6 +70,7 @@ const TableManagement = () => {
         display_order: order,
         // New tables are created closed; opening is a Pit action guarded by Live Start.
         status: "closed",
+        denominations: [...CHIP_DENOMS].sort((a, b) => a - b),
       } as any);
       if (error) throw error;
     },
