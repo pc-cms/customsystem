@@ -67,6 +67,8 @@ const TableManagement = () => {
         name,
         game: newGame,
         display_order: order,
+        // New tables are created closed; opening is a Pit action guarded by Live Start.
+        status: "closed",
       } as any);
       if (error) throw error;
     },
