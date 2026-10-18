@@ -128,7 +128,6 @@ export const useLockFloat = () => {
         .update({ float_locked: true } as any)
         .eq("id", casinoId);
       if (error) throw error;
-      await logAction(casinoId, "system", "FLOAT_LOCKED", {});
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["casino-info"] });
@@ -149,7 +148,6 @@ export const useUnlockFloat = () => {
         .update({ float_locked: false } as any)
         .eq("id", casinoId);
       if (error) throw error;
-      await logAction(casinoId, "system", "FLOAT_UNLOCKED", {});
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["casino-info"] });

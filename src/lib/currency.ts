@@ -194,6 +194,11 @@ export interface TableConfig {
 // Table roles by game type
 export const TABLE_ROLES: Record<string, string[]> = {
   "Texas Holdem": ["P", "Pi"],
+  "Poker": ["P", "Pi"],
+  "Omaha": ["P", "Pi"],
+  "PLO": ["P", "Pi"],
+  "Niu Niu": ["P", "Pi"],
+  "Baccarat": ["P", "Pi"],
   "Blackjack": ["BJ", "BJi"],
   "American Roulette": ["AR", "ARi", "ARc"],
   "Club Poker": ["CP"],
