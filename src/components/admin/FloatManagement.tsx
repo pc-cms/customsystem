@@ -4,7 +4,7 @@
  */
 import { useState, useMemo, useCallback, type CSSProperties } from "react";
 import { useGamingTables } from "@/hooks/use-casino-data";
-import { useChipBaseline, useUpsertBaseline, useCasinoInfo, useLockFloat } from "@/hooks/use-table-lifecycle";
+import { useChipBaseline, useUpsertBaseline, useCasinoInfo, useLockFloat, useUnlockFloat } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ const FloatManagement = () => {
   const visibleDenoms = useVisibleChipDenoms();
   const upsertBaseline = useUpsertBaseline();
   const lockFloat = useLockFloat();
+  const unlockFloat = useUnlockFloat();
   const { casinoId } = useAuth();
 
   const [showLockConfirm, setShowLockConfirm] = useState(false);
@@ -244,6 +245,17 @@ const FloatManagement = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {isLocked && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { if (window.confirm("Unlock casino float? Chip quantities will become editable.")) unlockFloat.mutate(); }}
+              disabled={unlockFloat.isPending}
+              className="gap-1.5"
+            >
+              <Lock className="w-4 h-4" /> {unlockFloat.isPending ? "Unlocking…" : "Unlock Float"}
+            </Button>
+          )}
           {!isLocked && (
             <>
               <Button
