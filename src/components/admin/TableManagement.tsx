@@ -28,6 +28,8 @@ const GAME_OPTIONS = [
   "Club Poker",
   "Omaha",
   "PLO",
+  "Baccarat",
+  "Niu Niu",
 ];
 
 const TableManagement = () => {

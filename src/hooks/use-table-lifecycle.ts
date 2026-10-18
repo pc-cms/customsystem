@@ -138,6 +138,27 @@ export const useLockFloat = () => {
   });
 };
 
+export const useUnlockFloat = () => {
+  const qc = useQueryClient();
+  const { activeCasinoId: casinoId } = useCasino();
+  return useMutation({
+    mutationFn: async () => {
+      if (!casinoId) throw new Error("No casino");
+      const { error } = await supabase
+        .from("casinos")
+        .update({ float_locked: false } as any)
+        .eq("id", casinoId);
+      if (error) throw error;
+      await logAction(casinoId, "system", "FLOAT_UNLOCKED", {});
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["casino-info"] });
+      toast.success("Casino float unlocked");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+};
+
 /**
  * Update casino schedule.
  * `shift_end` and `breaklist_lock` are critical timing parameters — changing
