@@ -4,7 +4,7 @@
  */
 import { useState, useMemo, useCallback, type CSSProperties } from "react";
 import { useGamingTables } from "@/hooks/use-casino-data";
-import { useChipBaseline, useUpsertBaseline, useCasinoInfo, useLockFloat } from "@/hooks/use-table-lifecycle";
+import { useChipBaseline, useUpsertBaseline, useCasinoInfo, useLockFloat, useUnlockFloat } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

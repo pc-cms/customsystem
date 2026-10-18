@@ -9,6 +9,7 @@ export const HOUSE_EDGE: Record<string, number> = {
   "European Roulette": 0.027,
   "Texas Holdem": 0.025, // rake-based proxy
   Baccarat: 0.0106,
+  "Niu Niu": 0.03,
   Default: 0.02,
 };
 
