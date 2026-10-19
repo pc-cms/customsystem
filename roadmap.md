@@ -15,4 +15,4 @@
 - [x] Payroll: Rebuild from scratch (payroll_rebuild_period RPC + super_admin button on draft periods)
 - [x] Verify night allowance = Basic/195 × 0.05 × night hours — formula and settings (195 h, 5%) already match in all casinos
 - [x] Improve code totals and typography across Rota and Attendance screens
-- [ ] Isolate cash desk print expense rows and totals from Office; verify a mixed fixture without deployment
+- [x] Isolate cash desk print expense rows and totals from Office; verify a mixed fixture without deployment
