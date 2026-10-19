@@ -4,3 +4,4 @@
 - Use the shared shift color resolver for rota cells, legends and code totals; it preserves familiar colors and gives custom codes stable themed accents.
 - Table/float admin lives at /settings/tables-float (module tables_float); table float changes and chip moves (RPC move_table_chips) are DB-guarded to closed tables because baseline drives table results.
 - Break List game assignments use TABLE_ROLES with existing dealer/inspector enum values for card games; avoid new role enums so assignments remain compatible with database validation.
+- Filter expense print sources at callers using expense-print-source, never inside ExpensesDayReport, so Office printing and existing approval/snapshot contracts remain independent.
