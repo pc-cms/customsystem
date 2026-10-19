@@ -21,6 +21,7 @@ import { useReportSnapshot } from "@/hooks/use-report-snapshot";
 import { loadReportWallets } from "@/lib/report-snapshots";
 import SignatorySelects from "@/components/cage/report-v2/SignatorySelects";
 import { PRINT_SHEET_STYLE_TAG } from "@/lib/print-sheet-css";
+import { filterExpensePrintRows } from "@/lib/expense-print-source";
 
 interface Props {
   open: boolean;
@@ -132,7 +133,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false, asPa
         supabase.from("cage_slots_cash_counts").select("*").eq("cage_slots_shift_id", shiftId).order("created_at", { ascending: true }),
         (supabase as any).from("cashless_transactions").select("direction, provider, amount").eq("cage_slots_shift_id", shiftId),
         (supabase as any).from("cage_slots_transfers").select("transfer_type, amount").eq("cage_slots_shift_id", shiftId),
-        supabase.from("expenses").select("amount, approved").eq("cage_slots_shift_id", shiftId),
+        supabase.from("expenses").select("amount, approved, source").eq("cage_slots_shift_id", shiftId),
         (supabase as any).from("cage_slots_tips_cd").select("amount, created_at").eq("cage_slots_shift_id", shiftId),
       ]);
       return {
@@ -143,7 +144,7 @@ const PrintSlotsShiftDialog = ({ open, onClose, shiftId, mandatory = false, asPa
         checks: checksR.data || [],
         cashless: cashlessR.data || [],
         transfers: transfersR.data || [],
-        expenses: expensesR.data || [],
+        expenses: filterExpensePrintRows(expensesR.data || [], "slots"),
         tipsCd: tipsCdR.data || [],
       };
     },

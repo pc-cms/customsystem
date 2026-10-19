@@ -40,6 +40,7 @@ import { formatCurrency, formatCurrencyExact, formatNumberSpaces } from "@/lib/c
 import { hasExpenseManagementAccess, isExpenseSourceLocked } from "@/lib/expense-access";
 import { defaultPostingDate } from "@/lib/office-posting-date";
 import { SmartTable, type ColumnDef, type SortState } from "@/components/ui/smart-table";
+import { filterExpensePrintRows } from "@/lib/expense-print-source";
 
 type SourceVal = "live_game" | "slots" | "office";
 
@@ -994,7 +995,7 @@ const Expenses = ({
           <ExpensesDayReport
             casinoName={activeCasino?.name || "Casino"}
             businessDate={isSingleDay ? from : `${from} – ${to}`}
-            rows={[...analytics.filtered].sort(
+            rows={filterExpensePrintRows(analytics.filtered, officeEmbedded ? "office" : sourceLocked ? roleDefaultSource : "cash_desks").sort(
               (a: any, b: any) => String(a.created_at).localeCompare(String(b.created_at)),
             ) as any}
           />

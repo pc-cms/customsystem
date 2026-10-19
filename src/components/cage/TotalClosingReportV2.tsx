@@ -16,6 +16,7 @@ import {
 } from "./report-v2/primitives";
 import { useReportSnapshot } from "@/hooks/use-report-snapshot";
 import { loadReportWallets, type TotalReportFrozen } from "@/lib/report-snapshots";
+import { filterExpensePrintRows } from "@/lib/expense-print-source";
 
 
 export type TotalClosingReportV2Props = {
@@ -48,10 +49,10 @@ const loadTotalReportData = async (casinoId: string, businessDate: string) => {
 
   const [liveExpR, slotsExpR, invR, ratesR, slotsCountsR, cashlessR] = await Promise.all([
     liveShifts.length
-      ? supabase.from("expenses").select("amount, approved, shift_id").in("shift_id", liveShifts.map(s => s.id))
+      ? supabase.from("expenses").select("amount, approved, source, shift_id").eq("casino_id", casinoId).in("shift_id", liveShifts.map(s => s.id))
       : Promise.resolve({ data: [] as any[] } as any),
     slotsShifts.length
-      ? supabase.from("expenses").select("amount, approved, cage_slots_shift_id").in("cage_slots_shift_id", slotsShifts.map(s => s.id))
+      ? supabase.from("expenses").select("amount, approved, source, cage_slots_shift_id").eq("casino_id", casinoId).in("cage_slots_shift_id", slotsShifts.map(s => s.id))
       : Promise.resolve({ data: [] as any[] } as any),
     slotsShifts.length
       ? supabase.from("cage_slots_cash_inventory").select("*").in("cage_slots_shift_id", slotsShifts.map(s => s.id))
@@ -70,8 +71,8 @@ const loadTotalReportData = async (casinoId: string, businessDate: string) => {
   return {
     liveShifts,
     slotsShifts,
-    liveExpenses: liveExpR.data || [],
-    slotsExpenses: slotsExpR.data || [],
+    liveExpenses: filterExpensePrintRows(liveExpR.data || [], "live_game"),
+    slotsExpenses: filterExpensePrintRows(slotsExpR.data || [], "slots"),
     inventory: invR.data || [],
     slotsRates: ratesR.data || [],
     slotsCounts: slotsCountsR.data || [],

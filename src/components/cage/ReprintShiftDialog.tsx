@@ -18,6 +18,7 @@ import { LiveClosingReport as ShiftClosingReport, ChipsMovementReport as ChipMov
 import PrintPortal from "@/components/cage/PrintPortal";
 import SignatorySelects from "@/components/cage/report-v2/SignatorySelects";
 import type { Tables } from "@/integrations/supabase/types";
+import { filterExpensePrintRows } from "@/lib/expense-print-source";
 
 interface Props {
   open: boolean;
@@ -57,9 +58,9 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = fals
       const [{ data: shift }, { data: tables }, { data: exp }] = await Promise.all([
         supabase.from("shifts").select("*").eq("id", shiftId).maybeSingle(),
         supabase.from("gaming_tables").select("*").eq("casino_id", casinoId),
-        supabase.from("expenses").select("amount").eq("shift_id", shiftId),
+        supabase.from("expenses").select("amount, source").eq("casino_id", casinoId).eq("shift_id", shiftId),
       ]);
-      const totalExpenses = (exp || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+      const totalExpenses = filterExpensePrintRows(exp || [], "live_game").reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
       return { shift, tables: tables || [], totalExpenses };
     },
   });
