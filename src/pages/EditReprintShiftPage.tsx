@@ -26,6 +26,7 @@ import { fetchTotalDrop } from "@/lib/drop-source";
 import { useAuth } from "@/lib/auth-context";
 import { useReportWallets, normalizeProviderKey, normalizeProviderMap } from "@/components/cage/report-v2/wallet-rows";
 import type { Tables } from "@/integrations/supabase/types";
+import { filterExpensePrintRows } from "@/lib/expense-print-source";
 
 const businessDateForEAT = (iso: string): string => {
   const d = new Date(iso);
@@ -128,7 +129,7 @@ const EditReprintShiftPage = () => {
         { data: inTx },
       ] = await Promise.all([
         supabase.from("gaming_tables").select("*").eq("casino_id", casinoId!),
-        supabase.from("expenses").select("amount").eq("shift_id", shiftId),
+        supabase.from("expenses").select("amount, source").eq("casino_id", casinoId!).eq("shift_id", shiftId),
         supabase.from("cage_transfers").select("transfer_type, amount, chips, table_id").eq("shift_id", shiftId),
         (supabase as any).from("cashless_transactions")
           .select("direction, provider, amount, created_at")
@@ -158,7 +159,7 @@ const EditReprintShiftPage = () => {
       });
       const bDate = (shift as any)?.closed_at ? businessDateForEAT((shift as any).closed_at) : "";
       const totalDrop = bDate ? await fetchTotalDrop({ casinoId: casinoId!, fromDate: bDate }) : 0;
-      const totalExpenses = (exp || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+      const totalExpenses = filterExpensePrintRows((exp || []) as any[], "live_game").reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
       const tableResults: Record<string, number> = {};
       (tableResRpc || []).forEach((r: any) => {
         if (r?.table_id) tableResults[r.table_id] = Number(r.result ?? 0);
