@@ -572,15 +572,18 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
       const toIso = businessDayHourUTC(toDate.toISOString().slice(0, 10), 7);
       const { data, error } = await supabase
         .from("shifts")
-        .select("id, closed_at")
+        .select("id, opened_at, closed_at")
         .eq("casino_id", casinoId)
         .not("closed_at", "is", null)
-        .gte("closed_at", fromIso).lt("closed_at", toIso)
-        .order("closed_at", { ascending: true })
+        .gte("opened_at", fromIso).lt("opened_at", toIso)
+        .order("opened_at", { ascending: true })
         .limit(1000);
       if (error) throw error;
+      // Key by the OPENING business date: a shift belongs to the day it was
+      // opened. closed_at can land exactly on the 07:00 rollover (auto-close),
+      // which would tip the shift into the next day and disable printing.
       const rec: Record<string, { id: string; closed_at: string }> = {};
-      (data || []).forEach((s: any) => { rec[eatBizDate(s.closed_at)] = { id: s.id, closed_at: s.closed_at }; });
+      (data || []).forEach((s: any) => { rec[eatBizDate(s.opened_at)] = { id: s.id, closed_at: s.closed_at }; });
       return rec;
     },
     enabled: !!casinoId,
