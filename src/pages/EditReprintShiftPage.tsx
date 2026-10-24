@@ -157,7 +157,7 @@ const EditReprintShiftPage = () => {
         if (!r?.table_id) return;
         tableDrop[r.table_id] = (tableDrop[r.table_id] || 0) + Number(r.amount || 0);
       });
-      const bDate = (shift as any)?.closed_at ? businessDateForEAT((shift as any).closed_at) : "";
+      const bDate = (shift as any)?.opened_at ? businessDateForEAT((shift as any).opened_at) : "";
       const totalDrop = bDate ? await fetchTotalDrop({ casinoId: casinoId!, fromDate: bDate }) : 0;
       const totalExpenses = filterExpensePrintRows((exp || []) as any[], "live_game").reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
       const tableResults: Record<string, number> = {};
@@ -182,9 +182,11 @@ const EditReprintShiftPage = () => {
 
   const shift = data?.shift as Tables<"shifts"> | undefined;
   const tables = (data?.tables || []) as Tables<"gaming_tables">[];
+  // OPENING timestamp: closed_at can sit exactly on the 07:00 EAT rollover
+  // (forced auto-close) and would tip the shift into the next business day.
   const businessDate = useMemo(
-    () => (shift?.closed_at ? businessDateForEAT(shift.closed_at) : ""),
-    [shift?.closed_at],
+    () => (shift?.opened_at ? businessDateForEAT(shift.opened_at) : ""),
+    [shift?.opened_at],
   );
 
   const initial = useMemo(() => {
