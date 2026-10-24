@@ -93,9 +93,11 @@ const ReprintShiftDialog = ({ open, onClose, shiftId, casinoId, mandatory = fals
     return computeMissByDenom(openingChips, chipCounts, CHIP_DENOMS);
   }, [closingCount, openingChips, chipCounts]);
 
+  // Business date from the OPENING timestamp: closed_at can sit exactly on
+  // the 07:00 EAT rollover (forced auto-close) and would tip into the next day.
   const businessDate = useMemo(
-    () => (shift?.closed_at ? businessDateForEAT(shift.closed_at) : ""),
-    [shift?.closed_at],
+    () => (shift?.opened_at ? businessDateForEAT(shift.opened_at) : ""),
+    [shift?.opened_at],
   );
 
   // Canonical columns (filled by DB trigger compute_shift_balance) are the
