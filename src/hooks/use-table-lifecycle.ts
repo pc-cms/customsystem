@@ -31,62 +31,62 @@ export const useUpsertBaseline = () => {
   const qc = useQueryClient();
   const { activeCasinoId: casinoId } = useCasino();
   return useMutation({
+    /**
+     * Persist ONLY changed cells. Rows with a known `id` are updated by id,
+     * new cells are inserted in one batch. All requests run in parallel so a
+     * save takes ~1 round-trip instead of one per cell (was 30–60s on slow
+     * links, causing users to leave the page before edits were written).
+     * Every update must return its row — a silent 0-row update is an error.
+     */
     mutationFn: async (entries: Array<{
+      id?: string | null;
       location_type: string;
       location_id: string | null;
       denomination: number;
       expected_quantity: number;
     }>) => {
       if (!casinoId) throw new Error("No casino");
-      for (const entry of entries) {
-        const { data: existing } = await supabase
+      if (entries.length === 0) return 0;
+      const updates = entries.filter(e => e.id);
+      const inserts = entries.filter(e => !e.id);
+      const jobs: Promise<void>[] = updates.map(async (e) => {
+        const { data, error } = await supabase
           .from("chip_baseline")
-          .select("id")
-          .eq("casino_id", casinoId)
-          .eq("location_type", entry.location_type)
-          .eq("denomination", entry.denomination)
-          .is("location_id", entry.location_id === null ? null : undefined as any)
-          .maybeSingle();
-
-        // Try with location_id match if not null
-        let found = existing;
-        if (!found && entry.location_id) {
-          const { data: existing2 } = await supabase
+          .update({ expected_quantity: e.expected_quantity } as any)
+          .eq("id", e.id as string)
+          .select("id");
+        if (error) throw error;
+        if (!data || data.length === 0) throw new Error("Float not saved: no permission to change baseline");
+      });
+      if (inserts.length > 0) {
+        jobs.push((async () => {
+          const { data, error } = await supabase
             .from("chip_baseline")
-            .select("id")
-            .eq("casino_id", casinoId)
-            .eq("location_type", entry.location_type)
-            .eq("location_id", entry.location_id)
-            .eq("denomination", entry.denomination)
-            .maybeSingle();
-          found = existing2;
-        }
-
-        if (found) {
-          const { error } = await supabase
-            .from("chip_baseline")
-            .update({ expected_quantity: entry.expected_quantity } as any)
-            .eq("id", found.id);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase
-            .from("chip_baseline")
-            .insert({
+            .insert(inserts.map(e => ({
               casino_id: casinoId,
-              location_type: entry.location_type,
-              location_id: entry.location_id,
-              denomination: entry.denomination,
-              expected_quantity: entry.expected_quantity,
-            } as any);
+              location_type: e.location_type,
+              location_id: e.location_id,
+              denomination: e.denomination,
+              expected_quantity: e.expected_quantity,
+            })) as any)
+            .select("id");
           if (error) throw error;
-        }
+          if (!data || data.length !== inserts.length) throw new Error("Float not saved: no permission to add baseline");
+        })());
       }
+      const results = await Promise.allSettled(jobs);
+      const failed = results.find(r => r.status === "rejected") as PromiseRejectedResult | undefined;
+      if (failed) throw failed.reason;
+      return entries.length;
     },
-    onSuccess: () => {
+    onSuccess: (count) => {
       qc.invalidateQueries({ queryKey: ["chip-baseline"] });
-      toast.success("Baseline updated");
+      toast.success(count ? `Float saved (${count} changes)` : "No changes to save");
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e: any) => {
+      qc.invalidateQueries({ queryKey: ["chip-baseline"] });
+      toast.error(e?.message ?? "Float not saved");
+    },
   });
 };
 
