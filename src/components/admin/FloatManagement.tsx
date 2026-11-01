@@ -2,7 +2,7 @@
  * FloatManagement — Manager UI for setting chip baseline (tables, cashier, safe).
  * Allows filling default float per location and locking the casino float.
  */
-import { useState, useMemo, useCallback, type CSSProperties } from "react";
+import { useState, useMemo, useCallback, useEffect, type CSSProperties } from "react";
 import { useGamingTables } from "@/hooks/use-casino-data";
 import { useChipBaseline, useUpsertBaseline, useCasinoInfo, useLockFloat, useUnlockFloat } from "@/hooks/use-table-lifecycle";
 import { useAuth } from "@/lib/auth-context";
@@ -97,9 +97,21 @@ const FloatManagement = () => {
     return locations.reduce((s, loc) => s + locationTotal(loc.key, loc.denoms), 0);
   }, [locations, locationTotal]);
 
-  // Build the list of baseline rows to persist from current grid values.
+  // Existing baseline row ids: { locKey: { denom: id } }
+  const baselineIdMap = useMemo(() => {
+    const map: Record<string, Record<number, string>> = {};
+    baseline.forEach(b => {
+      const key = b.location_id ? `table-${b.location_id}` : b.location_type;
+      if (!map[key]) map[key] = {};
+      map[key][b.denomination] = b.id;
+    });
+    return map;
+  }, [baseline]);
+
+  // Build ONLY the changed cells (edited value differs from saved baseline).
   const buildEntries = () => {
     const entries: Array<{
+      id: string | null;
       location_type: string;
       location_id: string | null;
       denomination: number;
@@ -108,19 +120,31 @@ const FloatManagement = () => {
 
     locations.forEach(loc => {
       loc.denoms.forEach(d => {
-        const val = getValue(loc.key, d);
-        if (val > 0 || baselineMap[loc.key]?.[d]) {
-          entries.push({
-            location_type: loc.type,
-            location_id: loc.id,
-            denomination: d,
-            expected_quantity: val,
-          });
-        }
+        const edited = editValues[loc.key]?.[d];
+        if (edited === undefined) return;
+        const saved = baselineMap[loc.key]?.[d] ?? 0;
+        if (edited === saved) return;
+        const id = baselineIdMap[loc.key]?.[d] ?? null;
+        if (!id && edited === 0) return;
+        entries.push({
+          id,
+          location_type: loc.type,
+          location_id: loc.id,
+          denomination: d,
+          expected_quantity: edited,
+        });
       });
     });
     return entries;
   };
+
+  // Warn before leaving the page with unsaved float edits.
+  useEffect(() => {
+    if (!hasChanges) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [hasChanges]);
 
   // Save all values
   const handleSave = () => {
