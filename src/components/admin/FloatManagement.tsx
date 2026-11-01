@@ -97,8 +97,8 @@ const FloatManagement = () => {
     return locations.reduce((s, loc) => s + locationTotal(loc.key, loc.denoms), 0);
   }, [locations, locationTotal]);
 
-  // Save all values
-  const handleSave = () => {
+  // Build the list of baseline rows to persist from current grid values.
+  const buildEntries = () => {
     const entries: Array<{
       location_type: string;
       location_id: string | null;
@@ -119,8 +119,12 @@ const FloatManagement = () => {
         }
       });
     });
+    return entries;
+  };
 
-    upsertBaseline.mutate(entries, {
+  // Save all values
+  const handleSave = () => {
+    upsertBaseline.mutate(buildEntries(), {
       onSuccess: () => {
         setEditValues({});
         setHasChanges(false);
@@ -128,8 +132,17 @@ const FloatManagement = () => {
     });
   };
 
-  // Lock float
-  const handleLock = () => {
+  // Lock float — persists any unsaved edits first so locking never discards them.
+  const handleLock = async () => {
+    if (hasChanges) {
+      try {
+        await upsertBaseline.mutateAsync(buildEntries());
+        setEditValues({});
+        setHasChanges(false);
+      } catch {
+        return; // error toast shown by mutation; keep dialog open, do not lock
+      }
+    }
     lockFloat.mutate(undefined, {
       onSuccess: () => setShowLockConfirm(false),
     });
