@@ -317,11 +317,11 @@ const FloatManagement = () => {
             <Button variant="outline" onClick={() => setShowLockConfirm(false)}>Cancel</Button>
             <Button
               onClick={handleLock}
-              disabled={lockFloat.isPending}
+              disabled={lockFloat.isPending || upsertBaseline.isPending}
               className="gap-1.5 bg-orange-600 hover:bg-orange-700"
             >
               <Lock className="w-4 h-4" />
-              {lockFloat.isPending ? "Locking…" : "Lock Float"}
+              {upsertBaseline.isPending ? "Saving…" : lockFloat.isPending ? "Locking…" : "Lock Float"}
             </Button>
           </DialogFooter>
         </DialogContent>
