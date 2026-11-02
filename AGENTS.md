@@ -5,3 +5,4 @@
 - Table/float admin lives at /settings/tables-float (module tables_float); table float changes and chip moves (RPC move_table_chips) are DB-guarded to closed tables because baseline drives table results.
 - Break List game assignments use TABLE_ROLES with existing dealer/inspector enum values for card games; avoid new role enums so assignments remain compatible with database validation.
 - Filter expense print sources at callers using expense-print-source, never inside ExpensesDayReport, so Office printing and existing approval/snapshot contracts remain independent.
+- fin_month_opening.basic_float_override_tzs, when set, replaces the wallet-sum Opening Basic Float in fin_balance_snapshot for whole-month windows; wallets stay untouched so Variance shows the gap.
