@@ -253,6 +253,13 @@
       "when": 1792342882004,
       "tag": "0035_audit_casino_float_lock",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793627186079,
+      "tag": "0036_month_opening_basic_float_override",
+      "breakpoints": true
     }
   ]
 }

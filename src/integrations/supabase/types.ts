@@ -5821,6 +5821,7 @@ export type Database = {
       }
       fin_month_opening: {
         Row: {
+          basic_float_override_tzs: number | null
           casino_id: string
           created_at: string
           id: string
@@ -5834,6 +5835,7 @@ export type Database = {
           year: number
         }
         Insert: {
+          basic_float_override_tzs?: number | null
           casino_id: string
           created_at?: string
           id?: string
@@ -5847,6 +5849,7 @@ export type Database = {
           year: number
         }
         Update: {
+          basic_float_override_tzs?: number | null
           casino_id?: string
           created_at?: string
           id?: string
