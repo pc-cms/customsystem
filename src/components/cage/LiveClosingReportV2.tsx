@@ -171,7 +171,7 @@ const LiveClosingReportV2 = ({
   ];
 
   return (
-    <div className={`${A4_CLASS} bg-white text-black p-2 flex flex-col`} style={A4_STYLE}>
+    <div className={`${A4_CLASS} rv2-live bg-white text-black p-2 flex flex-col`} style={A4_STYLE}>
       <style>{PRINT_REPORT_ACCENTS_CSS}</style>
 
       <ReportHeader
@@ -187,11 +187,11 @@ const LiveClosingReportV2 = ({
       <Card title="Gaming Tables">
         <CardTable
           cols={[
-            { key: "t", label: "Table", width: "22%" },
+            { key: "t", label: "Table", width: "11%" },
             { key: "op", label: "Opening", align: "right" },
             { key: "fl", label: "Fill", align: "right" },
             { key: "cr", label: "Credit", align: "right" },
-            { key: "dropEmpty", label: "Drop", align: "right", width: "10%" },
+            { key: "dropEmpty", label: "Drop", align: "right", width: "5%" },
             { key: "cl", label: "Closing", align: "right" },
             { key: "to", label: "Turnover", align: "right" },
             { key: "res", label: "Result", align: "right" },
@@ -247,8 +247,8 @@ const LiveClosingReportV2 = ({
       <Card title="Bank Accounts">
         <CardTable
           cols={[
-            { key: "acc", label: "Account", width: "22%" },
-            { key: "cur", label: "Currency", width: "10%" },
+            { key: "acc", label: "Account", width: "15%" },
+            { key: "cur", label: "Currency", width: "7%" },
             { key: "open", label: "Opening", align: "right" },
             { key: "inn", label: "In", align: "right" },
             { key: "out", label: "Out", align: "right" },
