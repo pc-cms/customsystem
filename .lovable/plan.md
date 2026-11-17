@@ -10,6 +10,13 @@ The Table Results page has a fixed list of columns: AR1–AR3, P1–P5, BJ1, Clu
 - OTHER results go into the group total row, ALL total, Hold %, the top TOTAL strip and the Excel export.
 - Order within a group: natural (AR1, AR2, AR3; P1…P5).
 
+## Table controls (top toolbar, same look as now)
+- **Groups filter**: chips AR / PK / BJ / CLUB / OTHER — turn a whole game group on or off.
+- **Tables filter**: dropdown with checkboxes to hide/show individual tables; "Show all" reset. Choice is remembered per casino on this device.
+- **Sorting**: click Date to sort days ascending/descending; click a table/group/ALL header to sort days by that Result (both directions).
+- **View**: Result only / Drop + Result toggle (existing per-table Drop switch kept).
+- Hidden tables/groups are excluded from visible totals; the ALL column and top TOTAL always show the full casino result, so nothing is lost.
+
 ## Tables per casino (current)
 - Arusha: AR1–3, P1–5, BJ1, Club, OTHER: NU1, BC1
 - Dodoma: AR1–3, P1–5, BJ1, OTHER: N01
