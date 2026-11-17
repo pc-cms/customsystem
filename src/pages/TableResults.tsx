@@ -174,7 +174,6 @@ type SortKey = string; // "date" | "all" | "g:AR" | "t:P1"
 const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResultsProps = {}) => {
   const { roles, casinoId } = useAuth();
   // Per-table Drop = raw Σ IN transactions per table (shown for ALL casinos).
-  const showPerTableDrop = true;
   const isSurveillanceOnly = roles.includes("surveillance" as any) &&
     !roles.some((r) => ["manager", "super_admin", "finance_manager"].includes(r as string));
   const currentYear = new Date().getFullYear();
@@ -195,19 +194,21 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
   const filterKey = `table-results-filter:${casinoId ?? "none"}`;
   const [hiddenGroups, setHiddenGroups] = useState<GroupKey[]>([]);
   const [hiddenTables, setHiddenTables] = useState<string[]>([]);
+  const [showPerTableDrop, setShowPerTableDrop] = useState(true);
   useEffect(() => {
     try {
       const raw = localStorage.getItem(filterKey);
       const v = raw ? JSON.parse(raw) : {};
       setHiddenGroups(Array.isArray(v.groups) ? v.groups : []);
       setHiddenTables(Array.isArray(v.tables) ? v.tables : []);
+      setShowPerTableDrop(v.drop !== false);
     } catch {
       setHiddenGroups([]); setHiddenTables([]);
     }
   }, [filterKey]);
-  const saveFilters = (groups: GroupKey[], tables: string[]) => {
-    setHiddenGroups(groups); setHiddenTables(tables);
-    try { localStorage.setItem(filterKey, JSON.stringify({ groups, tables })); } catch { /* ignore */ }
+  const saveFilters = (groups: GroupKey[], tables: string[], drop: boolean = showPerTableDrop) => {
+    setHiddenGroups(groups); setHiddenTables(tables); setShowPerTableDrop(drop);
+    try { localStorage.setItem(filterKey, JSON.stringify({ groups, tables, drop })); } catch { /* ignore */ }
   };
 
   // Surveillance: clamp anchors to current calendar year, force off custom preset
@@ -411,18 +412,19 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
 
   const exportExcel = () => {
     const header: (string | number)[] = ["Date", "Weekday"];
-    for (const t of visibleTables) header.push(`${t} Drop`, `${t} Result`, `${t} Hold%`);
-    for (const g of visibleGroups) header.push(`${g.key} Drop`, `${g.key} Result`);
+    for (const t of visibleTables) header.push(...(showPerTableDrop ? [`${t} Drop`, `${t} Result`, `${t} Hold%`] : [`${t} Result`]));
+    for (const g of visibleGroups) header.push(...(showPerTableDrop ? [`${g.key} Drop`, `${g.key} Result`] : [`${g.key} Result`]));
     header.push("Total Drop", "Total Result", "Total Hold%");
     const rows: (string | number | null)[][] = [header];
     for (const b of sortedBuckets) {
       const r: (string | number | null)[] = [b.date, dayName(b.date)];
       for (const t of visibleTables) {
         const c = b.cells[t];
-        if (c?.hasData) r.push(c.drop, c.result, pct(c.drop, c.result));
+        if (!showPerTableDrop) r.push(c?.hasData ? c.result : "");
+        else if (c?.hasData) r.push(c.drop, c.result, pct(c.drop, c.result));
         else r.push("", "", "");
       }
-      for (const g of visibleGroups) r.push(groupDrop(b, g.tables), groupResult(b, g.tables));
+      for (const g of visibleGroups) r.push(...(showPerTableDrop ? [groupDrop(b, g.tables)] : []), groupResult(b, g.tables));
       const dayTot = dropForDay(b.date);
       r.push(dayTot, b.totalResult, pct(dayTot, b.totalResult));
       rows.push(r);
@@ -430,10 +432,11 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
     const totalsRow: (string | number | null)[] = ["TOTAL", ""];
     for (const t of visibleTables) {
       const c = totals.cellsTotal[t];
-      if (c) totalsRow.push(c.drop, c.result, pct(c.drop, c.result));
+      if (!showPerTableDrop) totalsRow.push(c ? c.result : "");
+      else if (c) totalsRow.push(c.drop, c.result, pct(c.drop, c.result));
       else totalsRow.push("", "", "");
     }
-    for (const g of visibleGroups) totalsRow.push(groupTotalDrop(g.tables), groupTotal(g.tables));
+    for (const g of visibleGroups) totalsRow.push(...(showPerTableDrop ? [groupTotalDrop(g.tables)] : []), groupTotal(g.tables));
     totalsRow.push(periodTotalDrop, totals.totalResult, pct(periodTotalDrop, totals.totalResult));
     rows.push([]);
     rows.push(totalsRow);
@@ -669,8 +672,16 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                 </div>
               </PopoverContent>
             </Popover>
+            <Button
+              size="sm"
+              variant={showPerTableDrop ? "secondary" : "outline"}
+              className="h-7 px-2 text-xs"
+              onClick={() => saveFilters(hiddenGroups, hiddenTables, !showPerTableDrop)}
+            >
+              Drop
+            </Button>
             {hasFilters && (
-              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => saveFilters([], [])}>
+              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => saveFilters([], [], showPerTableDrop)}>
                 Show all
               </Button>
             )}
@@ -748,7 +759,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                       return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === g.tables.length - 1} alwaysShowDrop={showPerTableDrop} />;
                     }),
                   )}
-                  <DRHeadCell drop={periodTotalDrop} result={totals.totalResult} bold />
+                  <DRHeadCell drop={periodTotalDrop} result={totals.totalResult} bold alwaysShowDrop />
                 </TableRow>
                 <TableRow className="bg-muted hover:bg-muted border-b border-border">
                   <TableHead className="sticky left-0 top-24 z-30 bg-muted border-r-2 border-r-border text-[10px] uppercase font-semibold whitespace-nowrap">
@@ -759,6 +770,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                       key={g.key}
                       colSpan={g.tables.length}
                       drop={groupTotalDrop(g.tables)}
+                      showDrop={showPerTableDrop}
                       result={groupTotal(g.tables)}
                       accent={GROUPS[g.key].tot}
                       header
@@ -766,7 +778,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                       suffix={sortMark(`g:${g.key}`)}
                     />
                   ))}
-                  <GroupTotalCells colSpan={1} drop={periodTotalDrop} result={totals.totalResult} accent="primary" noBorder header />
+                  <GroupTotalCells colSpan={1} drop={periodTotalDrop} showDrop result={totals.totalResult} accent="primary" noBorder header />
                 </TableRow>
               </TableHeader>
 
@@ -814,7 +826,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                           }),
                         )}
 
-                        <DRCell drop={dropForDay(b.date)} result={b.totalResult} hasData bold />
+                        <DRCell drop={dropForDay(b.date)} result={b.totalResult} hasData bold alwaysShowDrop />
                       </TableRow>
 
                       {isOpen && (
@@ -898,6 +910,8 @@ const DRCell = ({
   bold,
   groupEnd,
   accent,
+  drop = 0,
+  alwaysShowDrop = false,
 }: {
   drop?: number;
   result: number;
@@ -925,6 +939,11 @@ const DRCell = ({
         tint,
       )}
     >
+      {alwaysShowDrop && (
+        <div className="text-[10px] font-normal text-muted-foreground leading-tight">
+          D {drop === 0 ? "—" : formatSpaced(drop)}
+        </div>
+      )}
       {result === 0 ? "—" : formatSpaced(result)}
     </TableCell>
   );
@@ -935,6 +954,8 @@ const DRHeadCell = ({
   result,
   bold,
   groupEnd,
+  drop = 0,
+  alwaysShowDrop = false,
 }: {
   drop?: number;
   result: number;
@@ -957,6 +978,11 @@ const DRHeadCell = ({
         stickyTop,
       )}
     >
+      {alwaysShowDrop && (
+        <div className="text-[10px] font-normal text-muted-foreground leading-tight">
+          D {drop === 0 ? "—" : formatSpaced(drop)}
+        </div>
+      )}
       {result === 0 ? "—" : formatSpaced(result)}
     </TableHead>
   );
@@ -971,8 +997,11 @@ const GroupTotalCells = ({
   header = false,
   onClick,
   suffix,
+  drop = 0,
+  showDrop = false,
 }: {
   colSpan: number;
+  showDrop?: boolean;
   drop?: number;
   result: number;
   accent: "warning" | "success" | "destructive" | "primary" | "info" | "other";
@@ -992,6 +1021,12 @@ const GroupTotalCells = ({
   const isNeg = result < 0;
   const content = (
     <>
+      {showDrop && (
+        <>
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-1">D</span>
+          <span className="mr-3 text-muted-foreground">{drop === 0 ? "—" : formatSpaced(drop)}</span>
+        </>
+      )}
       <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-2">R</span>
       <span className={cn("font-semibold", isNeg && "text-destructive")}>
         {result === 0 ? "—" : formatSpaced(result)}
