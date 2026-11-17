@@ -99,7 +99,7 @@ export function MirrorCutoverPanel() {
     try {
       // 1. Local snapshot (this node's database)
       const { data: localData, error: localErr } =
-        await supabase.rpc("mirror_full_parity_snapshot", { p_casino_id: activeCasinoId });
+        await supabase.rpc("admin_mirror_full_parity_snapshot", { p_casino_id: activeCasinoId });
       if (localErr) throw localErr;
       const localResp: ParityResponse = {
         casino_id: activeCasinoId,
