@@ -1,10 +1,17 @@
-# Niu Niu отдельной игрой, проверка Dashboard, новая версия
+# Разделение по типам игр на всех экранах, проверка Dashboard, новая версия
 
 ## 1. Statistics → Tables: Niu Niu и Baccarat отдельными играми
 - Новая группа **NIU · Niu Niu**: столы NU1, N01 и любые столы NU*/N0*.
 - Новая группа **BAC · Baccarat**: столы BC1 и «Baccarat».
 - В **Other Games** останутся только столы неизвестного типа.
 - Новые группы появятся в кнопках фильтра, в сортировке и в Excel. Цифры не меняются.
+
+## 1b. Единые типы игр на всех экранах
+Типы игр: **Roulette (AR)**, **Poker (PK)**, **Blackjack (BJ)**, **Niu Niu (NIU)**, **Baccarat (BAC)**, **Club**, **Other**. Тип определяется одинаково везде, по названию стола, поэтому неверно записанная игра у стола не мешает.
+- **Tables Tracking:** сейчас слева рулетка смешана с BJ, Niu Niu и Baccarat, справа покер. Будут отдельные блоки для каждого типа игры со своим заголовком и плиткой итога (TOTAL ARs, TOTAL POKER, TOTAL BJ, TOTAL NIU NIU, TOTAL BACCARAT) плюс Total Casino.
+- **Dashboard и Boss / TV:** те же плитки итогов по типам игр.
+- **Chip Check:** столы сгруппированы по типу игры, итог по каждому типу.
+- **Statistics → Tables:** группы как в п. 1.
 
 ## 2. Проверка Dashboard: откуда берётся результат столов
 | Экран | Откуда берётся | Fill / Credit |
@@ -16,6 +23,9 @@
 
 Расхождение с Chip Check появляется на Boss / TV, пока день открыт: там не учитываются Fill и Credit. Меньшая разница возможна, если флот меняли после подсчёта или подсчёт сохранили не полностью.
 Кроме того, основной Dashboard группирует столы по игре, записанной у стола. Поэтому N01 в Dodoma (записан как рулетка) и Baccarat в Mwanza (записан как покер) попадают не в те итоги.
+
+## 2b. Fill и Credit в Tables Tracking
+В результате стола Fill и Credit учитываются, но отдельными цифрами на карточке стола не показываются. Учитываются только для текущей смены сегодняшнего дня. Предлагаю показывать на карточке стола строки **Fill** и **Credit**, если они были (сами расчёты не меняются).
 
 ## 3. Варианты исправления (выберите один)
 - **A (рекомендую):** на Boss / TV результат открытого дня = подсчёт фишек − Fill + Credit, по тому же правилу, что на основном Dashboard и в Chip Check. Закрытые дни не меняются.
@@ -29,4 +39,6 @@
 - `src/pages/TableResults.tsx`: добавить в `GROUP_ORDER`/`GROUPS`/`tableGroupOf` группы NIU (`^(NU|N0)\d*$|NIU`) и BAC (`^BC\d*$|BACCARAT`).
 - Вариант A: в `src/hooks/use-boss-dashboard.ts` к результату открытого дня добавить `credit − fill` из `cage_transfers` за бизнес-день по казино.
 - Вариант C: в `src/pages/Dashboard.tsx` группировать через общий `tableGroupOf`.
+- Общий модуль `src/lib/table-game-group.ts` (`tableGroupOf` + подписи), применяется в Tables.tsx, Dashboard.tsx, ChipCountPanel.tsx, BossDashboard и TableResults.tsx.
+- Tables.tsx: показывать fill/credit из `adjustmentMap` на карточке.
 - Версия в `package.json`.
