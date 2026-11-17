@@ -1,32 +1,32 @@
-# Niu Niu group, Dashboard table result check, version bump
+# Niu Niu отдельной игрой, проверка Dashboard, новая версия
 
-## 1. Statistics → Tables: Niu Niu and Baccarat as their own games
-- New group **NIU · Niu Niu**: tables NU1, N01 and any NU*/N0* table.
-- New group **BAC · Baccarat**: tables BC1 and "Baccarat".
-- **Other Games** remains only for unknown types.
-- Group filter buttons, sorting and Excel get the new groups. Numbers don't change.
+## 1. Statistics → Tables: Niu Niu и Baccarat отдельными играми
+- Новая группа **NIU · Niu Niu**: столы NU1, N01 и любые столы NU*/N0*.
+- Новая группа **BAC · Baccarat**: столы BC1 и «Baccarat».
+- В **Other Games** останутся только столы неизвестного типа.
+- Новые группы появятся в кнопках фильтра, в сортировке и в Excel. Цифры не меняются.
 
-## 2. Dashboard check: where the table result comes from
-| Screen | Source | Fill / Credit |
+## 2. Проверка Dashboard: откуда берётся результат столов
+| Экран | Откуда берётся | Fill / Credit |
 |---|---|---|
-| Dashboard (main) | latest saved chip count vs expected | counted (current shift only) |
-| Boss / TV (open day) | latest saved chip count vs expected | **not counted** |
-| Boss / TV (closed day) | saved day closing | as at closing |
-| Chip Check | entered count vs current Float | counted |
+| Dashboard (основной) | последний сохранённый подсчёт фишек против ожидаемого | учитываются (только текущая смена) |
+| Boss / TV (день открыт) | последний сохранённый подсчёт фишек против ожидаемого | **не учитываются** |
+| Boss / TV (день закрыт) | сохранённое закрытие дня | как при закрытии |
+| Chip Check | введённый подсчёт против текущего флота | учитываются |
 
-The difference from Chip Check happens on Boss / TV while the day is open, because Fill and Credit are skipped there. A smaller difference can also appear when the Float was changed after a count, or when the count was only partly saved.
-Also the main Dashboard groups by the game written on the table, so Dodoma N01 (written as Roulette) and Mwanza Baccarat (written as Poker) fall into the wrong totals.
+Расхождение с Chip Check появляется на Boss / TV, пока день открыт: там не учитываются Fill и Credit. Меньшая разница возможна, если флот меняли после подсчёта или подсчёт сохранили не полностью.
+Кроме того, основной Dashboard группирует столы по игре, записанной у стола. Поэтому N01 в Dodoma (записан как рулетка) и Baccarat в Mwanza (записан как покер) попадают не в те итоги.
 
-## 3. Fix options (choose one)
-- **A (recommended):** Boss / TV live result = chip count − Fill + Credit, the same rule as the main Dashboard and Chip Check. Closed days don't change.
-- **B:** Boss / TV and Dashboard use the exact Chip Check calculation (current Float + Fill/Credit), so all three always match.
-- **C:** A + group the main Dashboard by table name (as in Statistics), so N01 and Baccarat go to Niu Niu / Baccarat.
+## 3. Варианты исправления (выберите один)
+- **A (рекомендую):** на Boss / TV результат открытого дня = подсчёт фишек − Fill + Credit, по тому же правилу, что на основном Dashboard и в Chip Check. Закрытые дни не меняются.
+- **B:** Boss / TV и Dashboard считают ровно как Chip Check (текущий флот + Fill/Credit), тогда все три экрана всегда совпадают.
+- **C:** вариант A + группировка на основном Dashboard по названию стола, как в Statistics. Тогда N01 и Baccarat попадут в Niu Niu / Baccarat.
 
-## 4. Version
+## 4. Версия
 - 1.3.759 → 1.3.760.
 
-## Technical details
-- `src/pages/TableResults.tsx`: extend `GROUP_ORDER`/`GROUPS`/`tableGroupOf` with NIU (`^(NU|N0)\d*$|NIU`) and BAC (`^BC\d*$|BACCARAT`).
-- Option A: `src/hooks/use-boss-dashboard.ts` live branch adds `credit − fill` from `cage_transfers` of the business day per casino.
-- Option C: `src/pages/Dashboard.tsx` bucket via shared `tableGroupOf`.
-- `package.json` version.
+## Технические детали
+- `src/pages/TableResults.tsx`: добавить в `GROUP_ORDER`/`GROUPS`/`tableGroupOf` группы NIU (`^(NU|N0)\d*$|NIU`) и BAC (`^BC\d*$|BACCARAT`).
+- Вариант A: в `src/hooks/use-boss-dashboard.ts` к результату открытого дня добавить `credit − fill` из `cage_transfers` за бизнес-день по казино.
+- Вариант C: в `src/pages/Dashboard.tsx` группировать через общий `tableGroupOf`.
+- Версия в `package.json`.
