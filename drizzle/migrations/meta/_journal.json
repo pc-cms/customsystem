@@ -260,13 +260,6 @@
       "when": 1793627186079,
       "tag": "0036_month_opening_basic_float_override",
       "breakpoints": true
-    },
-    {
-      "idx": 37,
-      "version": "7",
-      "when": 1794934370128,
-      "tag": "0037_security_definer_and_rls_tighten",
-      "breakpoints": true
     }
   ]
 }

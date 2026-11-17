@@ -14008,26 +14008,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      admin_mirror_full_parity_snapshot: {
-        Args: { p_casino_id: string }
-        Returns: {
-          critical: boolean
-          ids_checksum: string
-          max_change_ts: string
-          row_count: number
-          rows_checksum: string
-          scope: string
-          table_name: string
-        }[]
-      }
-      admin_mirror_parity_snapshot: {
-        Args: { p_casino_id: string }
-        Returns: {
-          max_updated_at: string
-          row_count: number
-          table_name: string
-        }[]
-      }
       am_issue_grant: {
         Args: {
           p_amount: number
@@ -15121,7 +15101,6 @@ export type Database = {
         Args: { _employee_id: string }
         Returns: undefined
       }
-      is_cms_staff: { Args: { _uid: string }; Returns: boolean }
       is_manager_op: { Args: { _uid: string }; Returns: boolean }
       is_mgmt_network_editor: { Args: { _uid: string }; Returns: boolean }
       is_promo_chip: { Args: { p_chip_color_id: string }; Returns: boolean }

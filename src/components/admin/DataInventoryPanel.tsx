@@ -36,7 +36,7 @@ export function DataInventoryPanel() {
     setLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase.rpc("admin_mirror_parity_snapshot", {
+      const { data, error } = await supabase.rpc("mirror_parity_snapshot", {
         p_casino_id: activeCasinoId,
       });
       if (error) throw error;
