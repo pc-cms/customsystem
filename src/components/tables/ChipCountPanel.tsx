@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { GAME_GROUP_ORDER, GAME_GROUP_TOTAL_LABEL, gameGroupOf } from "@/lib/table-game-group";
 import { Button } from "@/components/ui/button";
 import { Save, Maximize2, Minimize2, History, Tablet } from "lucide-react";
 import { useChipSnapshots, useChipSnapshotsFull, useBatchChipSnapshot } from "@/hooks/use-chips";
@@ -88,9 +89,11 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const visibleSet = useMemo(() => new Set(visibleCasinoDenoms), [visibleCasinoDenoms]);
 
   const countLocations = useMemo(() => {
-    return openTables.map(t => ({
+    const ord = (t: any) => GAME_GROUP_ORDER.indexOf(gameGroupOf(t.name, t.game));
+    return [...openTables].sort((a, b) => ord(a) - ord(b)).map(t => ({
       key: `table-${t.id}`,
       label: t.name,
+      group: gameGroupOf(t.name, t.game),
       type: "table" as const,
       id: t.id,
       denoms: (t.denominations || []).filter(d => visibleSet.has(d)),
@@ -180,6 +183,11 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   }, [countLocations, counts, baselineMap, visibleDenoms, adjustmentFor, latestSnapshotPerTable]);
 
   const grandTotal = rowResults.reduce((s, r) => s + r.total, 0);
+  const groupTotals = useMemo(() => {
+    const m = new Map<string, number>();
+    countLocations.forEach((loc, i) => m.set(loc.group, (m.get(loc.group) || 0) + (rowResults[i]?.total || 0)));
+    return GAME_GROUP_ORDER.filter(g => m.has(g)).map(g => ({ g, total: m.get(g) || 0 }));
+  }, [countLocations, rowResults]);
   const fillTotal = countLocations.reduce((s, loc) => s + breakdownFor(loc.id).fill, 0);
   const creditTotal = countLocations.reduce((s, loc) => s + breakdownFor(loc.id).credit, 0);
   // Fill/Credit column is always visible (collapsed by default) so operators
@@ -465,6 +473,18 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
             </tbody>
           </table>
         </div>
+        {groupTotals.length > 1 && (
+          <div className="grid gap-2 p-3 border-t border-border" style={{ gridTemplateColumns: `repeat(${groupTotals.length}, minmax(0, 1fr))` }}>
+            {groupTotals.map(({ g, total }) => (
+              <div key={g} className="rounded border border-border px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{GAME_GROUP_TOTAL_LABEL[g]}</p>
+                <p className={`font-mono text-sm font-bold whitespace-nowrap ${total >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                  {total >= 0 ? "+" : ""}{formatCurrency(total)}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };

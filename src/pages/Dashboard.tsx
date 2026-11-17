@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { GAME_GROUP_ORDER, GAME_GROUP_TOTAL_LABEL, gameGroupOf } from "@/lib/table-game-group";
 import { Receipt, LayoutDashboard, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -214,20 +215,10 @@ const Dashboard = () => {
 
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { result: number; label: string }> = {};
-    const gameLabels: Record<string, string> = {
-      "American Roulette": "TOTAL ARs",
-      "Poker": "TOTAL POKER",
-      "Texas Holdem": "TOTAL POKER",
-      "Omaha": "TOTAL POKER",
-      "PLO": "TOTAL POKER",
-      "Club Poker": "TOTAL POKER",
-      "Blackjack": "TOTAL BJ",
-    };
-    tables.forEach(t => {
-      const label = gameLabels[t.game] || `Total ${t.game}`;
-      if (!totals[label]) totals[label] = { result: 0, label };
-      const r = tableStats[t.id] || { result: 0 };
-      totals[label].result += r.result;
+    GAME_GROUP_ORDER.forEach(g => {
+      const ts = tables.filter(t => gameGroupOf(t.name, t.game) === g);
+      if (ts.length === 0) return;
+      totals[g] = { label: GAME_GROUP_TOTAL_LABEL[g], result: ts.reduce((s, t) => s + (tableStats[t.id]?.result || 0), 0) };
     });
     return totals;
   }, [tables, tableStats]);

@@ -29,12 +29,13 @@ import { useCasino } from "@/lib/casino-context";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchPaged } from "@/lib/fetch-paged";
+import { GAME_GROUP_ORDER, gameGroupOf, naturalCompare, type GameGroup } from "@/lib/table-game-group";
 
 /* ------------------------------------------------------------------ */
 /* Layout config — order of columns in the horizontal report          */
 /* ------------------------------------------------------------------ */
-type GroupKey0 = "AR" | "PK" | "BJ" | "CLUB" | "OTHER";
-const GROUP_ORDER: GroupKey0[] = ["AR", "PK", "BJ", "CLUB", "OTHER"];
+type GroupKey0 = GameGroup;
+const GROUP_ORDER: GroupKey0[] = GAME_GROUP_ORDER;
 const tint = (v: string, a: number) =>
   `[background-image:linear-gradient(hsl(var(--${v})/${a}),hsl(var(--${v})/${a})),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]`;
 const GROUPS: Record<GroupKey0, {
@@ -46,21 +47,14 @@ const GROUPS: Record<GroupKey0, {
   AR: { label: "American Roulette", short: "AR", sub: "amber", tot: "warning", headBg: "[background-image:linear-gradient(hsl(var(--warning)/0.12),hsl(var(--warning)/0.12)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]" },
   PK: { label: "Poker (PK)", short: "PK", sub: "emerald", tot: "success", headBg: "[background-image:linear-gradient(hsl(var(--success)/0.12),hsl(var(--success)/0.12)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]" },
   BJ: { label: "Blackjack", short: "BJ", sub: "rose", tot: "destructive", headBg: "[background-image:linear-gradient(hsl(var(--destructive)/0.12),hsl(var(--destructive)/0.12)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]" },
+  NIU: { label: "Niu Niu", short: "NIU", sub: "other", tot: "other", headBg: "[background-image:linear-gradient(hsl(var(--primary)/0.12),hsl(var(--primary)/0.12)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]" },
+  BAC: { label: "Baccarat", short: "BAC", sub: "info", tot: "info", headBg: "[background-image:linear-gradient(hsl(var(--info)/0.10),hsl(var(--info)/0.10)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]" },
   CLUB: { label: "Club Poker", short: "CLUB", sub: "info", tot: "info", headBg: "[background-image:linear-gradient(hsl(var(--info)/0.18),hsl(var(--info)/0.18)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]" },
   OTHER: { label: "Other Games", short: "OTHER", sub: "other", tot: "other", headBg: "[background-image:linear-gradient(hsl(var(--accent-foreground)/0.10),hsl(var(--accent-foreground)/0.10)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]" },
 };
 void tint;
 
-/** Group by table name — tables are never renamed; saved game types are not always reliable. */
-export const tableGroupOf = (name: string): GroupKey0 => {
-  const n = name.trim().toUpperCase();
-  if (/^AR\d*$/.test(n)) return "AR";
-  if (/^PK?\d+$/.test(n)) return "PK";
-  if (/^BJ\d*$/.test(n)) return "BJ";
-  if (n === "CLUB") return "CLUB";
-  return "OTHER";
-};
-const naturalCompare = (a: string, b: string) => a.localeCompare(b, "en", { numeric: true, sensitivity: "base" });
+export const tableGroupOf = (name: string): GroupKey0 => gameGroupOf(name);
 
 const PRESETS = [
   { key: "week", label: "Week" },
@@ -309,7 +303,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
       const n = r.gaming_tables?.name;
       if (n) names.add(n);
     }
-    const out: Record<GroupKey, string[]> = { AR: [], PK: [], BJ: [], CLUB: [], OTHER: [] };
+    const out: Record<GroupKey, string[]> = { AR: [], PK: [], BJ: [], NIU: [], BAC: [], CLUB: [], OTHER: [] };
     for (const n of names) out[tableGroupOf(n)].push(n);
     for (const g of GROUP_ORDER) out[g].sort(naturalCompare);
     return out;

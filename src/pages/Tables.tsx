@@ -22,6 +22,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 
 import { liveTableResult, buildLatestTableSnapshot } from "@/lib/table-live-result";
 import { useShiftTableAdjustments } from "@/hooks/use-shift-table-adjustments";
+import { GAME_GROUP_ORDER, GAME_GROUP_LABEL, GAME_GROUP_TOTAL_LABEL, gameGroupOf } from "@/lib/table-game-group";
 import TableSeatingDialog from "@/components/pit/TableSeatingDialog";
 
 import type { FloorTable } from "@/components/pit/FloorTableCard";
@@ -315,7 +316,7 @@ const Tables = () => {
   }, [transactions, shift]);
 
   const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
-  const { adjustmentMap } = useShiftTableAdjustments(effectiveDate === businessDay ? (shift?.id ?? null) : null);
+  const { adjustmentMap, breakdownFor } = useShiftTableAdjustments(effectiveDate === businessDay ? (shift?.id ?? null) : null);
 
   const tableStats = useMemo(() => {
     const stats: Record<string, { result: number }> = {};
@@ -340,23 +341,21 @@ const Tables = () => {
 
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { result: number; label: string }> = {};
-    const gameLabels: Record<string, string> = { "American Roulette": "TOTAL ARs", "Poker": "TOTAL POKER", "Texas Holdem": "TOTAL POKER", "Omaha": "TOTAL POKER", "PLO": "TOTAL POKER", "Club Poker": "TOTAL POKER", "Blackjack": "TOTAL BJ" };
-    tables.forEach(t => {
-      const label = gameLabels[t.game] || `Total ${t.game}`;
-      if (!totals[label]) totals[label] = { result: 0, label };
-      const r = tableStats[t.id] || { result: 0 };
-      totals[label].result += r.result;
+    GAME_GROUP_ORDER.forEach(g => {
+      const ts = tables.filter(t => gameGroupOf(t.name, t.game) === g);
+      if (ts.length === 0) return;
+      totals[g] = { label: GAME_GROUP_TOTAL_LABEL[g], result: ts.reduce((s, t) => s + (tableStats[t.id]?.result || 0), 0) };
     });
     return totals;
   }, [tables, tableStats]);
 
   const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
-  const pokerGames = ["Poker", "Texas Holdem", "Omaha", "PLO", "Club Poker"];
   const byOrder = (a: any, b: any) =>
     ((a.display_order ?? 0) - (b.display_order ?? 0)) || a.name.localeCompare(b.name);
-  const leftTables = tables.filter(t => !pokerGames.includes(t.game)).sort(byOrder);
-  const rightTables = tables.filter(t => pokerGames.includes(t.game)).sort(byOrder);
+  const tablesByGame = GAME_GROUP_ORDER
+    .map(g => ({ g, list: tables.filter(t => gameGroupOf(t.name, t.game) === g).sort(byOrder) }))
+    .filter(x => x.list.length > 0);
 
   const openTable = openTableId ? (tables.find(t => t.id === openTableId) as FloorTable | undefined) ?? null : null;
   const seatedHere = openTableId ? (seatedByTable[openTableId] || []) : [];
@@ -394,7 +393,7 @@ const Tables = () => {
         role={isOpen ? "button" : undefined}
       >
         {/* Header: Name | DROP | RESULT | OPEN/CLOSED */}
-        <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 px-4 py-2.5 border-b border-border">
+        <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-3 px-4 py-2.5 border-b border-border">
           <div className="flex items-center gap-2 min-w-0">
             <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isOpen ? "bg-success" : "bg-destructive"}`} />
             <div className="min-w-0">
@@ -406,6 +405,12 @@ const Tables = () => {
             <p className="text-[9px] uppercase text-muted-foreground tracking-wider leading-none">Drop</p>
             <p className="font-mono text-lg font-bold text-muted-foreground whitespace-nowrap mt-0.5">·</p>
           </div>
+          {(breakdownFor(table.id).fill || breakdownFor(table.id).credit) ? (
+            <div className="text-right font-mono text-[10px] leading-tight text-muted-foreground whitespace-nowrap">
+              {breakdownFor(table.id).fill ? <p>Fill {formatCurrency(breakdownFor(table.id).fill)}</p> : null}
+              {breakdownFor(table.id).credit ? <p>Credit {formatCurrency(breakdownFor(table.id).credit)}</p> : null}
+            </div>
+          ) : null}
           <div className="text-right">
             <p className="text-[9px] uppercase text-muted-foreground tracking-wider leading-none">Result</p>
             <p className={`font-mono text-lg font-bold whitespace-nowrap mt-0.5 ${r.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
@@ -536,18 +541,14 @@ const Tables = () => {
         </div>
       )}
 
-      {/* Two-column Table Cards */}
+      {/* Table cards — one section per game type */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="space-y-3">
-          <h3 className="font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1 text-xl">AR / BJ</h3>
-          {leftTables.map(renderTableCard)}
-          {leftTables.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No AR/BJ tables</p>}
-        </div>
-        <div className="space-y-3">
-          <h3 className="font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1 text-xl">Poker</h3>
-          {rightTables.map(renderTableCard)}
-          {rightTables.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No Poker tables</p>}
-        </div>
+        {tablesByGame.map(({ g, list }) => (
+          <div key={g} className="space-y-3">
+            <h3 className="font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1 text-xl">{GAME_GROUP_LABEL[g]}</h3>
+            {list.map(renderTableCard)}
+          </div>
+        ))}
       </div>
       {tables.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No tables configured</p>}
 

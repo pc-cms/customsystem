@@ -102,7 +102,10 @@ async function fetchCasinoDay(
   //   Tables (closed) → `fin_day_closing.tables_result`
   //   Slots           → ONLY closed days: cashdesk_win − players_card_balance.
   // Only TODAY is polled; past days of the month come from a 10-min cache.
-  const [past, dailyTodayRes, hcRes, todayClosingRes, snapRes, todayShiftsRes] = await Promise.all([
+  // Business day window 07:00 EAT → next day 07:00 EAT (04:00 UTC).
+  const bdStart = new Date(`${businessDate}T04:00:00Z`);
+  const bdEnd = new Date(bdStart.getTime() + 86400000);
+  const [past, dailyTodayRes, hcRes, todayClosingRes, snapRes, todayShiftsRes, transfersRes] = await Promise.all([
     getPast(),
     (supabase as any).rpc("compute_daily_diff", {
       _casino_id: casinoId, _from: businessDate, _to: businessDate,
@@ -125,6 +128,13 @@ async function fetchCasinoDay(
       .eq("casino_id", casinoId)
       .eq("status", "closed")
       .eq("business_date", businessDate),
+    supabase
+      .from("cage_transfers")
+      .select("transfer_type, amount, table_id")
+      .eq("casino_id", casinoId)
+      .in("transfer_type", ["fill", "credit"])
+      .gte("created_at", bdStart.toISOString())
+      .lt("created_at", bdEnd.toISOString()),
   ]);
 
   const dailyMtdRes = { data: [...past.mtdRows, ...((dailyTodayRes.data || []) as any[])] };
@@ -152,9 +162,16 @@ async function fetchCasinoDay(
     return acc + (Number(r.actual_quantity || 0) - Number(r.expected_quantity || 0)) * Number(r.denomination || 0);
   }, 0);
 
+  // Same rule as Dashboard / Chips Check: Result = chip delta − Fill + Credit.
+  const transferAdj = ((transfersRes.data || []) as any[]).reduce((acc, r) => {
+    if (!r.table_id) return acc;
+    const amt = Number(r.amount || 0);
+    return acc + (r.transfer_type === "credit" ? amt : -amt);
+  }, 0);
+
   const liveResult = todayClosing
     ? Number(todayClosing.tables_result || 0)
-    : snapResult;
+    : snapResult + transferAdj;
 
   const slotsAvailable = !!todayClosing;
   const slotsDrop = todayClosing ? Number(todayClosing.drop_slots || 0) : 0;
