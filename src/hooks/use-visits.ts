@@ -19,19 +19,22 @@ import { liveQueryOptions } from "@/lib/live-query-options";
  * useModuleLiveSync (ALWAYS_LIVE). No refetchOnMount/Focus needed.
  */
 export const useVisitsToday = (selectFields = "*, players(first_name, last_name, nickname, photo_url, status, id_number, category, player_type, player_cards(*), player_tags(*))") => {
-  const { casinoId } = useAuth();
+  const { casinoId, roles } = useAuth();
+  const isSuper = roles.includes("super_admin");
   const today = getBusinessDate();
 
   return useQuery({
-    queryKey: ["casino-visits-live", casinoId, today, selectFields],
+    queryKey: ["casino-visits-live", casinoId, today, selectFields, isSuper ? "with-ace" : "no-ace"],
     queryFn: async () => {
       if (!casinoId) return [];
-      const { data, error } = await supabase
+      // ACE auto players are Super Admin only on every screen.
+      let q: any = supabase
         .from("casino_visits")
-        .select(selectFields)
+        .select(isSuper ? selectFields : `${selectFields}, ace_chk:players!inner(is_ace_auto)`)
         .eq("casino_id", casinoId)
-        .eq("date", today)
-        .order("checked_in_at", { ascending: false });
+        .eq("date", today);
+      if (!isSuper) q = q.eq("ace_chk.is_ace_auto", false);
+      const { data, error } = await q.order("checked_in_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -46,10 +49,11 @@ export const useVisitsToday = (selectFields = "*, players(first_name, last_name,
  * freshly checked-in player is never missing from cashier / pit screens.
  */
 export const useCheckedInPlayers = () => {
-  const { casinoId } = useAuth();
+  const { casinoId, roles } = useAuth();
+  const isSuper = roles.includes("super_admin");
   const today = getBusinessDate();
   return useQuery({
-    queryKey: ["casino-visits-live", casinoId, today, "checked-in-players"],
+    queryKey: ["casino-visits-live", casinoId, today, "checked-in-players", isSuper ? "with-ace" : "no-ace"],
     queryFn: async () => {
       if (!casinoId) return [] as any[];
       const { data, error } = await supabase
@@ -65,6 +69,7 @@ export const useCheckedInPlayers = () => {
       return (data || []).flatMap((v: any) => {
         const p = v.players;
         if (!p?.id || seen.has(p.id)) return [];
+        if (!isSuper && p.is_ace_auto) return []; // ACE auto players: Super Admin only
         seen.add(p.id);
         return [p];
       });

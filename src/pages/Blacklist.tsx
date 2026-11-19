@@ -84,6 +84,7 @@ const Blacklist = () => {
         .from("players")
         .select("*")
         .eq("status", "blacklist")
+        .in("is_ace_auto", roles.includes("super_admin") ? [true, false] : [false])
         .order("updated_at", { ascending: false })
         .order("id")
         .range(from, to));
@@ -104,6 +105,7 @@ const Blacklist = () => {
         .from("players")
         .select("*")
         .neq("status", "blacklist")
+        .in("is_ace_auto", roles.includes("super_admin") ? [true, false] : [false])
         .or(`first_name.ilike.${like},last_name.ilike.${like},nickname.ilike.${like},id_number.ilike.${like},phone.ilike.${like}`)
         .order("updated_at", { ascending: false })
         .limit(12);

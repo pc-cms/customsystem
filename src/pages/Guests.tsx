@@ -200,6 +200,7 @@ const Guests = () => {
         .from("players")
         .select("id, first_name, last_name, nickname, photo_url, status, phone, id_number, id_document_url, category")
         .eq("casino_id", casinoId)
+        .in("is_ace_auto", roles.includes("super_admin") ? [true, false] : [false])
         .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,nickname.ilike.%${q}%`)
         .limit(50);
       return data || [];

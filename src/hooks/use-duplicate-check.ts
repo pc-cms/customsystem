@@ -49,7 +49,8 @@ export function useDuplicateCheck() {
           const { data: docMatches } = await supabase
             .from("players")
             .select("id, first_name, last_name, nickname, photo_url, id_number, casino_id")
-            .eq("id_number", fields.id_number.trim());
+            .eq("id_number", fields.id_number.trim())
+            .eq("is_ace_auto", false);
 
           if (docMatches && docMatches.length > 0) {
             for (const p of docMatches) {
@@ -74,6 +75,7 @@ export function useDuplicateCheck() {
           const { data: allPlayers } = await supabase
             .from("players")
             .select("id, first_name, last_name, nickname, photo_url, phone, casino_id")
+            .eq("is_ace_auto", false)
             .limit(500);
 
           if (allPlayers) {
