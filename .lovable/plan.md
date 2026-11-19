@@ -17,7 +17,7 @@
 ## Что сделаю
 
 **Шапка (как строки 2–5 файла):**
-- Плитки по видам игр: Roulette, Poker, Blackjack, Niu Niu, Baccarat, Club, Other. В каждой Drop, Result и Hold %.
+- Плитки по видам игр: Roulette, Poker, Blackjack, Niu Niu, Baccarat, Club и любые новые типы, которые вы добавите. Группы **Other** больше нет. В каждой Drop, Result и Hold %.
 - Плитка **Total Live**: Drop, Result, Hold %.
 - **Average Drop / Average Result** за день (делим на число дней с игрой).
 
@@ -30,6 +30,13 @@
 
 **Excel:** выгрузка в той же раскладке, что ваш файл: шапка с периодом, итоги по играм сверху, затем дни с D/R/% по столам.
 
+## Типы игр (категории столов) — управляемый список
+- Новый список типов игр: Code (например NIU), название (Niu Niu), порядок показа. Сразу заполнен текущими: AR, PK, BJ, NIU, BAC, CLUB.
+- В **Settings → Tables & Float → New Table** поле Game выбирается из этого списка. Рядом кнопка **+ New game type**: ввести код и название, тип сразу появляется в списке.
+- Тип стола берётся из выбранной игры, а не угадывается по имени. Новый тип сразу появляется во всех экранах: Statistics, Tables Tracking, Dashboard, Chip Check, Pit.
+- Добавлять типы могут Manager, Finance Manager и Super Admin. Удалять тип, к которому привязаны столы, нельзя.
+- Новому типу без своих правил в Break List даются роли карточного стола (P/Pi).
+
 ## Правила расчёта (не меняются)
 - Drop стола = сумма IN по столу (как сейчас).
 - Total Live Drop = Drop казино из кэша (как сейчас). Поэтому сумма Drop столов может немного отличаться от Total — так задумано.
@@ -39,6 +46,8 @@
 1.3.761 → 1.3.762.
 
 ## Технические детали
+- Новая таблица `table_game_types` (code unique, label, sort_order, legacy_games text[]): GRANT, RLS (чтение — все вошедшие, запись — manager/finance_manager/super_admin), seed текущих 6 типов с маппингом старых значений (Texas Holdem/Poker/Omaha/PLO → PK и т.д.).
+- `gameGroupOf` → функция на основе списка из хука `useGameTypes()`; группа OTHER удаляется. Существующие экраны (Tables, Dashboard, ChipCountPanel, ActivePlayers, TableResults) переходят на динамический список.
 - `src/pages/TableResults.tsx`: заменить DRCell/DRHeadCell на тройку ячеек D/R/% (`holdPct`), добавить колонки Month/Day, строку TOTAL с D/R/% и блок плиток (StatStrip) с группами, Live и средними. Группы через `gameGroupOf`.
 - Средние: Σ / число дней с данными в периоде.
 - Excel: `downloadXlsx` с шапкой периода, строками итогов по группам и дневными строками.
