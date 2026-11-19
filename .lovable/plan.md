@@ -59,7 +59,7 @@
 
 **A. Данные (по вашему подтверждению)**
 - Dodoma N01 → Niu Niu; Mwanza Baccarat → Baccarat.
-- Dodoma N02: порядок после N01; архивный AR3 переименовать в AR3-old, история сохраняется.
+- Dodoma N02: порядок после N01. Архивный дубль AR3 удалить: проверено, у него нет ни транзакций, ни результатов, ни подсчётов, ни Fill/Credit.
 
 **B. Один источник типа игры**
 - Pit Active Players, Break List, theo в профиле игрока, расчёт фишек — всё через общий модуль типов игр. Для блоков: Roulette / Poker / Blackjack / Niu Niu / Baccarat / Club.
@@ -75,14 +75,14 @@
 
 **E. Версия** 1.3.760 → 1.3.761.
 
-## Вопросы к вам
-1. Исправить игру у Dodoma N01 и Mwanza Baccarat в базе (п. A)?
-2. Архивный дубль AR3 в Dodoma переименовать в AR3-old?
-3. Делать запрет одинаковых имён столов в одном казино?
+## Ваши решения
+1. Игру Dodoma N01 и Mwanza Baccarat исправить — да.
+2. Архивный дубль AR3 в Dodoma удалить — да.
+3. Имя стола уникально в рамках казино — да.
 
 ## Технические детали
-- Данные: UPDATE gaming_tables (game, display_order, name) через миграцию, без касания результатов и транзакций.
-- Уникальность: unique index (casino_id, lower(name)) после переименования дубля.
+- Данные: UPDATE gaming_tables (game, display_order, name) через запрос к данным; удаление дубля AR3 (id e634b373…) после повторной проверки ссылок, без касания результатов и транзакций.
+- Уникальность: unique index (casino_id, lower(name)) после удаления дубля.
 - ActivePlayers.tsx, BreaklistGrid.tsx (TABLE_ROLES по gameGroupOf), PlayerProfile.tsx и casino-edges.ts, use-chips.ts → `gameGroupOf`.
 - Одна форма: вынести общий диалог из TableManagement.tsx; AceEgmLiveTab использует его.
 - `useShiftTableAdjustments`: для прошлой даты запрос cage_transfers по окну бизнес-дня.
