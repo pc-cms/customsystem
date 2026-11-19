@@ -281,6 +281,13 @@
       "when": 1795090120860,
       "tag": "0039_table_game_types",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1795093626448,
+      "tag": "0040_restrict_table_game_types_read",
+      "breakpoints": true
     }
   ]
 }
