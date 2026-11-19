@@ -116,6 +116,8 @@ export const exportJournal = (entries: PayrollEntry[], period: PayrollPeriod) =>
   downloadXlsx(`JOURNAL_${period.year}_${period.month}.xlsx`, [{ name: "Journal", rows }]);
 };
 
+const esc = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+
 // ============= SALARY SLIPS (HTML print, opens print dialog) =============
 const fmt = (n: number) => new Intl.NumberFormat("en-US", { useGrouping: true }).format(n).replace(/,/g, " ");
 
@@ -126,11 +128,11 @@ export const exportSalarySlipsPrint = (entries: PayrollEntry[], period: PayrollP
   const label = monthLabel(period);
   const slips = entries.map(e => `
     <div class="slip">
-      <h2>SALARY SLIP — ${label}</h2>
+      <h2>SALARY SLIP — ${esc(label)}</h2>
       <table><tbody>
-        <tr><td>Employee</td><td><b>${e.snapshot_full_name}</b></td></tr>
-        <tr><td>Position</td><td>${e.snapshot_position}</td></tr>
-        <tr><td>TIN / NSSF No.</td><td>${num(ids, e.employee_id, "tax_id") || "—"} / ${num(ids, e.employee_id, "nssf_number") || "—"}</td></tr>
+        <tr><td>Employee</td><td><b>${esc(e.snapshot_full_name)}</b></td></tr>
+        <tr><td>Position</td><td>${esc(e.snapshot_position)}</td></tr>
+        <tr><td>TIN / NSSF No.</td><td>${esc(num(ids, e.employee_id, "tax_id") || "—")} / ${esc(num(ids, e.employee_id, "nssf_number") || "—")}</td></tr>
         <tr><td>Basic Salary</td><td>${fmt(e.snapshot_basic_salary)}</td></tr>
         ${Number(e.prorata_factor ?? 1) < 1 ? `<tr><td>Pro-rata (paid days)</td><td>${e.prorata_days}</td></tr>` : ""}
         <tr><td>Public Holiday Earned</td><td>${fmt(e.public_holiday_earned)}</td></tr>
@@ -153,7 +155,7 @@ export const exportSalarySlipsPrint = (entries: PayrollEntry[], period: PayrollP
     </div>`).join("");
   const w = window.open("", "_blank");
   if (!w) { alert("Popup blocked — allow popups for this site"); return; }
-  w.document.write(`<!doctype html><html><head><title>Salary Slips ${label}</title>
+  w.document.write(`<!doctype html><html><head><title>Salary Slips ${esc(label)}</title>
     <style>
       body{font-family:Arial,sans-serif;margin:0;padding:0}
       .slip{padding:24px;border-bottom:2px dashed #888;page-break-after:always}

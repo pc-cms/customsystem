@@ -40,6 +40,14 @@ Deno.serve(async (req) => {
     const cleanLogin = String(login || "").trim().toLowerCase();
     if (!cleanLogin || !password || !display_name) throw new Error("Missing fields");
 
+    // Managers may grant only their own level or lower; top roles are Super Admin only.
+    const SUPER_ONLY_ROLES = ["super_admin", "boss", "general_manager"];
+    if (!hasSuperAdmin && Array.isArray(roles) && roles.some((r: unknown) => SUPER_ONLY_ROLES.includes(String(r)))) {
+      return new Response(JSON.stringify({ error: "Only Super Admin can assign Super Admin, Boss or General Manager roles" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Determine target casino_id
     let targetCasinoId = casino_id;
     if (!targetCasinoId) {

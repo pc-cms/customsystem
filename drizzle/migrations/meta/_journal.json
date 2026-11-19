@@ -288,6 +288,13 @@
       "when": 1795093626448,
       "tag": "0040_restrict_table_game_types_read",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1795099106820,
+      "tag": "0041_restrict_activity_logs_purge",
+      "breakpoints": true
     }
   ]
 }

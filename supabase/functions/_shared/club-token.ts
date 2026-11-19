@@ -1,10 +1,12 @@
 // Premier Club session token: HMAC-signed { phone, exp } using SUPABASE_JWT_SECRET.
 // Stateless, no DB lookup needed to validate.
 
-const SECRET = Deno.env.get("SUPABASE_JWT_SECRET") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "dev-secret";
+const SECRET = Deno.env.get("SUPABASE_JWT_SECRET") ?? "";
+if (!SECRET) console.error("[club-token] SUPABASE_JWT_SECRET is not set; club tokens disabled");
 const TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
 async function hmac(payload: string): Promise<string> {
+  if (!SECRET) throw new Error("Club token signing secret is not configured");
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(SECRET),
