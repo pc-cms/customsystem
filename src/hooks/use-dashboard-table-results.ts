@@ -17,12 +17,14 @@ import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useShiftTableAdjustments } from "@/hooks/use-shift-table-adjustments";
+import { getBusinessDate } from "@/lib/business-day";
 
 export type TableResultMap = Record<string, number>;
 
 export const useDashboardTableResults = (businessDate: string | undefined) => {
   const { casinoId } = useAuth();
-  const { adjustmentMap } = useShiftTableAdjustments();
+  const isPast = !!businessDate && businessDate !== getBusinessDate();
+  const { adjustmentMap } = useShiftTableAdjustments(isPast ? null : undefined, isPast ? businessDate : null);
   const query = useQuery({
     queryKey: ["dashboard-table-results", casinoId, businessDate],
     queryFn: async (): Promise<TableResultMap> => {

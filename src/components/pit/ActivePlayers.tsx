@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { GAME_GROUP_ORDER, GAME_GROUP_LABEL, gameGroupOf } from "@/lib/table-game-group";
 import { usePlayers, useTransactions, useGamingTables } from "@/hooks/use-casino-data";
 import { usePlayersWithCheckedIn } from "@/hooks/use-players";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,6 @@ import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { useNavigate } from "react-router-dom";
 import { usePlayersDropCacheToday } from "@/hooks/use-drop-split";
 
-const POKER_GAMES = ["Poker", "Texas Holdem", "Omaha", "PLO"];
 
 const ActivePlayers = () => {
   const { data: players = [] } = usePlayersWithCheckedIn();
@@ -268,10 +268,9 @@ const ActivePlayers = () => {
   // Split tables into AR/BJ vs Poker columns (matches /tables page layout)
   const sortedTables = useMemo(() => {
     const all = [...tables].sort((a, b) => a.name.localeCompare(b.name));
-    return {
-      left: all.filter(t => !POKER_GAMES.includes(t.game)) as FloorTable[],
-      right: all.filter(t => POKER_GAMES.includes(t.game)) as FloorTable[],
-    };
+    return GAME_GROUP_ORDER
+      .map(g => ({ g, list: all.filter(t => gameGroupOf(t.name, t.game) === g) as FloorTable[] }))
+      .filter(x => x.list.length > 0);
   }, [tables]);
 
   // Search filter on tables (by player name)
@@ -362,24 +361,14 @@ const ActivePlayers = () => {
             <p className="text-xs text-muted-foreground text-center py-6">No tables configured</p>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <h4 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">AR / BJ</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {sortedTables.left.map(renderTable)}
+              {sortedTables.map(({ g, list }) => (
+                <div key={g} className="space-y-2">
+                  <h4 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">{GAME_GROUP_LABEL[g]}</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {list.map(renderTable)}
+                  </div>
                 </div>
-                {sortedTables.left.length === 0 && (
-                  <p className="text-[11px] text-muted-foreground text-center py-3">No AR/BJ tables</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <h4 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1 border-b border-border pb-1">Poker</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {sortedTables.right.map(renderTable)}
-                </div>
-                {sortedTables.right.length === 0 && (
-                  <p className="text-[11px] text-muted-foreground text-center py-3">No Poker tables</p>
-                )}
-              </div>
+              ))}
             </div>
           )}
         </div>

@@ -161,7 +161,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
 
   // Live Fill/Credit adjustments for the active shift (per table).
   // displayed = (actual − baseline) × denom + (Σcredit − Σfill)
-  const { adjustmentFor, breakdownFor, adjustmentAt } = useShiftTableAdjustments();
+  const { adjustmentFor, breakdownFor, adjustmentAt } = useShiftTableAdjustments(date !== today ? null : undefined, date !== today ? date : null);
 
   const rowResults = useMemo(() => {
     return countLocations.map(loc => {

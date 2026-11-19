@@ -21,14 +21,28 @@ import { useActiveShift } from "@/hooks/use-shift";
 export type TableAdjustment = { fill: number; credit: number; adjustment: number };
 export type TableAdjustmentMap = Record<string, TableAdjustment>;
 
-export const useShiftTableAdjustments = (shiftIdOverride?: string | null) => {
+export const useShiftTableAdjustments = (shiftIdOverride?: string | null, pastBusinessDate?: string | null) => {
   const { casinoId } = useAuth();
   const { data: activeShift } = useActiveShift();
   const shiftId = shiftIdOverride === undefined ? (activeShift?.id ?? null) : shiftIdOverride;
 
   const query = useQuery({
-    queryKey: ["shift-table-adjustments", casinoId, shiftId],
+    queryKey: ["shift-table-adjustments", casinoId, shiftId, pastBusinessDate ?? null],
     queryFn: async () => {
+      if (casinoId && pastBusinessDate) {
+        // Past business day: Fill/Credit of every shift in 07:00 EAT → 07:00 EAT window.
+        const start = new Date(`${pastBusinessDate}T04:00:00Z`);
+        const end = new Date(start.getTime() + 86400000);
+        const { data, error } = await supabase
+          .from("cage_transfers")
+          .select("table_id, transfer_type, amount, created_at")
+          .eq("casino_id", casinoId)
+          .in("transfer_type", ["fill", "credit"])
+          .gte("created_at", start.toISOString())
+          .lt("created_at", end.toISOString());
+        if (error) throw error;
+        return (data ?? []) as Array<{ table_id: string | null; transfer_type: string; amount: number; created_at: string }>;
+      }
       if (!casinoId || !shiftId) return [] as Array<{ table_id: string | null; transfer_type: string; amount: number; created_at: string }>;
       const { data, error } = await supabase
         .from("cage_transfers")
@@ -39,7 +53,7 @@ export const useShiftTableAdjustments = (shiftIdOverride?: string | null) => {
       if (error) throw error;
       return (data ?? []) as Array<{ table_id: string | null; transfer_type: string; amount: number; created_at: string }>;
     },
-    enabled: !!casinoId && !!shiftId,
+    enabled: !!casinoId && (!!shiftId || !!pastBusinessDate),
     ...liveQueryOptions(),
     refetchInterval: 10_000,
   });

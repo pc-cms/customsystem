@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS gaming_tables_casino_name_uniq ON public.gaming_tables (casino_id, lower(btrim(name)));

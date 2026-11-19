@@ -5,6 +5,7 @@
  *  - Rename inline
  *  - Set Display Order (drives sorting across Dashboard, Tables Tracking, Tracker, etc.)
  */
+import { GAME_GROUP_LABEL, gameGroupOf } from "@/lib/table-game-group";
 import { useState, useMemo } from "react";
 import { useGamingTables, useArchiveTable, useRenameTable } from "@/hooks/use-tables";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -62,7 +63,14 @@ const TableManagement = () => {
       if (!casinoId || !user) throw new Error("Not authenticated");
       const name = newName.trim();
       if (!name) throw new Error("Name is required");
-      const order = newOrder.trim() === "" ? nextOrder : Number(newOrder);
+      if (tables.some((t: any) => t.name.trim().toLowerCase() === name.toLowerCase()))
+        throw new Error(`Table "${name}" already exists in this casino`);
+      const grp = gameGroupOf(name, newGame);
+      const sameGroup = tables.filter((t: any) => gameGroupOf(t.name, t.game) === grp);
+      const autoOrder = sameGroup.length
+        ? Math.max(...sameGroup.map((t: any) => t.display_order ?? 0)) + 1
+        : nextOrder;
+      const order = newOrder.trim() === "" ? autoOrder : Number(newOrder);
       const { error } = await supabase.from("gaming_tables").insert({
         casino_id: casinoId,
         name,
@@ -81,7 +89,11 @@ const TableManagement = () => {
       setNewOrder("");
       setShowCreate(false);
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(
+      String(e?.message || "").includes("gaming_tables_casino_name_uniq")
+        ? "A table with this name already exists in this casino"
+        : e.message,
+    ),
   });
 
   const setOrder = useMutation({
@@ -179,6 +191,11 @@ const TableManagement = () => {
               </Button>
             </div>
           </div>
+          {newName.trim() && gameGroupOf(newName, null) !== "OTHER" && gameGroupOf(newName, null) !== gameGroupOf("", newGame) && (
+            <p className="text-[11px] text-warning">
+              Name "{newName.trim()}" looks like {GAME_GROUP_LABEL[gameGroupOf(newName, null)]}, but game is {newGame}.
+            </p>
+          )}
           <p className="text-[11px] text-muted-foreground">
             Tip: lower Display Order = appears first. Leave blank to append. Use gaps of 10 so you can insert new tables between existing ones.
           </p>

@@ -316,7 +316,7 @@ const Tables = () => {
   }, [transactions, shift]);
 
   const snapshotIndex = useMemo(() => buildLatestTableSnapshot(snapshots as any), [snapshots]);
-  const { adjustmentMap, breakdownFor } = useShiftTableAdjustments(effectiveDate === businessDay ? (shift?.id ?? null) : null);
+  const { adjustmentMap, breakdownFor } = useShiftTableAdjustments(effectiveDate === businessDay ? (shift?.id ?? null) : null, effectiveDate !== businessDay ? effectiveDate : null);
 
   const tableStats = useMemo(() => {
     const stats: Record<string, { result: number }> = {};
